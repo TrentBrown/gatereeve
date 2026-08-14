@@ -1,0 +1,51 @@
+name: Plugin CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  portable-acceptance:
+    name: Ubuntu ${{ matrix.ubuntu }} acceptance
+    runs-on: ubuntu-${{ matrix.ubuntu }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu:
+          - "22.04"
+          - "24.04"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - run: bash ci/portable-acceptance.sh
+
+  container-acceptance:
+    name: Ubuntu ${{ matrix.ubuntu }} container
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu:
+          - "22.04"
+          - "24.04"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build acceptance image
+        run: >-
+          docker build
+          --file Dockerfile.acceptance
+          --build-arg UBUNTU_VERSION=${{ matrix.ubuntu }}
+          --tag workflow-acceptance:${{ matrix.ubuntu }}
+          .
+      - name: Run acceptance image
+        run: docker run --rm workflow-acceptance:${{ matrix.ubuntu }}

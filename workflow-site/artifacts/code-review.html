@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Code Review - PR #46</title>
+  <link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Code Review - PR #46</h1>
+<p><strong>Result:</strong> PASS - no remaining findings.</p>
+<p><strong>Reviewed diff:</strong> <code>1f1e2e4ff3961a9808cf3336ad33dd9eda5d6ff0..33d0d07c4876577eab0a1d5da26874b8c7a2d972</code></p>
+<h2>Findings</h2>
+<p>No unresolved correctness, security, regression, or test-gap findings remain.</p>
+<p>Review found and fixed three issues before this report: generic proposal/result payloads were replaced with strict action-specific schemas; atomic-create <code>EEXIST</code> now becomes a stale-document conflict instead of an internal error; and invalid stack definitions now map to the public <code>invalid_input</code> error. Focused regression coverage exercises these boundaries.</p>
+<h2>Reviewed invariants</h2>
+<ul>
+<li>Execute accepts only a receipt and explicit target; the daemon retrieves the stored proposal and recomputes evidence before the first mutation.</li>
+<li>Completed receipts replay persisted results before current evidence is consulted, while incomplete stale receipts never invoke the target action.</li>
+<li>Preview methods observe only: reclamation does not audit, release, or signal; administration does not mutate; stack validation does not apply or prune.</li>
+<li>Every I-4 schema is closed and action-specific, and safe results are constructed without raw document contents or arbitrary JSON escape hatches.</li>
+<li>Stack-document primitives canonicalize the containing directory, reject symlinks and nonregular files, bound reads, validate definitions, fingerprint bytes, and use safe atomic create/replace semantics.</li>
+<li>Existing Desktop document behavior shares the new primitives rather than carrying a divergent security policy.</li>
+<li>Unsafe any-owner process eviction has no MCP registration or public action route.</li>
+</ul>
+<h2>Residual risks and deferred coverage</h2>
+<ul>
+<li>Real macOS/Linux process-owner and Docker evidence-change scenarios remain I-7.</li>
+<li>Docker endpoint snapshots and launcher-operation credential custody remain I-5.</li>
+<li>CLI/Desktop setup and packaged host integration remain I-6/I-7.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

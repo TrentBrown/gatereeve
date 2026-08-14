@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pattern Init</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Pattern Init</h1>
+<p class="note">Skill name: <code>pattern-init</code></p>
+<p class="note">Initialize a pattern-review rule scope. Use before pattern-extract, pattern-promote, pattern-audit, or pattern-review when a repo, client directory, worktree, or parent scope does not yet have a .pattern-review directory and empty lifecycle YAML files.</p>
+<hr>
+<p>Use this to intentionally create a <code>.pattern-review</code> scope. Scope creation is a governance decision; do it before extraction when no existing pattern-review directory should receive proposals.</p>
+<p>Deterministic helper:</p>
+<pre><code>python3 /Users/trent.brown/agentic-development-workflow/scripts/pattern_tool.py init &lt;target&gt;</code></pre>
+<p>Workflow:</p>
+<ul>
+<li>Choose the directory that should own the rules. For a per-repo primitive, initialize the repo root. For a client-level rule set, initialize the shared parent directory that sits above peer repos.</li>
+<li>Run the helper against that target.</li>
+<li>Confirm the helper created or found:</li>
+<li><code>.pattern-review/rules.yaml</code></li>
+<li><code>.pattern-review/proposals.yaml</code></li>
+<li><code>.pattern-review/deferred.yaml</code></li>
+<li><code>.pattern-review/rejected.yaml</code></li>
+<li><code>.pattern-review/README.md</code></li>
+<li>Do not add active rules during init. <code>rules.yaml</code> starts empty; use <a href="../pattern-extract/SKILL.html"><code>pattern-extract</code></a> and <a href="../pattern-promote/SKILL.html"><code>pattern-promote</code></a> for rule creation.</li>
+<li>If the target already has lifecycle files, leave them intact and report them as existing. Do not overwrite rule state during init.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

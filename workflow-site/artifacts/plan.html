@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plan - tb-portreeve-mcp</title>
+  <link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Plan - tb-portreeve-mcp</h1>
+<p><strong>Feature:</strong> <code>tb-portreeve-mcp</code> <strong>Spec:</strong> <a href="spec.html"><code>spec.md</code></a> <strong>Design:</strong> <a href="design.html"><code>design.md</code></a> <strong>Interview:</strong> <a href="interview.html"><code>interview.md</code></a> <strong>Created:</strong> 2026-08-10</p>
+<h2>Inputs</h2>
+<ul>
+<li><code>spec.md</code> controls scope, required behavior, and rubric mapping.</li>
+<li><code>design.md</code> supplies the chosen architecture, constraints, and boundaries.</li>
+<li><code>interview.md</code> supplies supporting examples, rationale, references, and edge cases.</li>
+</ul>
+<h2>Strategy</h2>
+<p>Build the MCP feature contract-first and deliver it through sequential branches whose PRs can be reviewed and merged independently. Extend the daemon protocol and official JavaScript client only where the approved MCP safety model needs capabilities that do not exist yet: bounded cursor collections, MCP origin attribution, evidence receipts with replayable outcomes, canonical stack document operations, and semantically idempotent mutations. Keep these facilities general PortReeve application contracts rather than embedding MCP transport policy in the daemon.</p>
+<p>Add the official TypeScript MCP SDK v2 as an isolated runtime dependency for a new <code>src/mcp/</code> adapter. The adapter owns stdio framing, tool registration, bridge-run attribution, process-local credential handles, and bounded renewal. It reaches domain state exclusively through the public JavaScript client. A declarative tool catalog should keep names, schemas, annotations, summaries, and exclusions auditable without introducing action-multiplexing tools.</p>
+<p>Land safe observation and diagnostics before credential-bearing workflows. Then add the vault and ordinary coordination lifecycle, followed by the generic receipt service and consequential mutations. Complete the catalog with structured history, Docker snapshots, and launcher coordination that never executes project commands. Add host configuration generation to the CLI and Desktop only after the bridge contract is stable. Finish with compiled, packaged, cross-era, cross-host, cross-platform, concurrent-bridge, unavailable daemon, incompatible daemon, and Docker-backed verification.</p>
+<p>Record the MCP dependency/version pin, public protocol and storage schema changes, receipt persistence model, canonical-document service boundary, and Desktop IPC expansion in <code>scratchpad.md</code> when their implementation decisions are made.</p>
+<h2>Steps</h2>
+<ul>
+<li><strong>P1. Establish protocol and client foundations.</strong> Define the complete MCP capability matrix and stable tool naming catalog. Add the official MCP SDK v2 dependency and extend public protocol schemas, server routes, storage, and the official JavaScript client for cursor pagination, MCP origin attribution, evidence receipts with durable execution outcomes, explicit idempotency semantics, and any currently uncovered included operation. Preserve existing CLI behavior through adapters and fixtures. <strong>Advances:</strong> R1, R2, R3, R5, R6, R7.</li>
+</ul>
+<ul>
+<li><strong>P2. Build the stdio bridge, diagnostics, and bounded reads.</strong> Add <code>portreeve mcp serve</code>, dual-era <code>serveStdio</code> hosting, stdout framing guards, bridge run/client labels, capability and protocol checks, stable errors, and a declarative tools-only registry. Implement health, diagnostics, settings reads, and globally filterable/paginated port, claim, stack, generation, activation, and history reads. Keep the bridge alive across unavailable or incompatible daemons and retry the socket on later calls. <strong>Advances:</strong> R1, R2, R3, R7.</li>
+</ul>
+<ul>
+<li><strong>P3. Add credential custody and ordinary coordination.</strong> Implement an in-memory cryptographically opaque handle vault, ten-minute default and sixty-minute maximum custody deadlines, TTL-derived renewal scheduling, explicit custody extension, immediate credential removal on settlement, and shutdown cleanup. Expose semantically idempotent standalone acquire, confirm, abandon, and release plus stack prepare/begin/renew/resolve/confirm/ skip/abandon/reconcile/end operations. Prove multi-bridge isolation and lost custody recovery. <strong>Advances:</strong> R4, R5.</li>
+</ul>
+<ul>
+<li><strong>P4. Add evidence-bound consequential mutations.</strong> Implement the generic five-minute preview/execute receipt contract with target, action, evidence, revision or fingerprint binding, stale rejection, completed replay, and durable history. Apply it to normal reclaim, claim reassignment/deletion/ pruning, stack creation/replacement/pruning, and supported settings changes. Extract or share canonical stack-document behavior so the daemon and Desktop enforce one location, validation, fingerprint, traversal, symlink, overwrite, and external-change policy. Keep unsafe any-owner eviction absent. <strong>Advances:</strong> R5, R6, R7.</li>
+</ul>
+<ul>
+<li><strong>P5. Complete and audit the coordination catalog.</strong> Add redacted Docker-sandbox snapshots, launcher coordination begin/renew/complete and evidence/history tools without shell execution, remaining included generation/activation inspections, and bounded structured operational history. Snapshot the full tool catalog and prove every approved family is present while every excluded administration, shell, filesystem, raw-log, resource, prompt, subscription, and network-listener surface is absent. <strong>Advances:</strong> R2, R5, R7.</li>
+</ul>
+<ul>
+<li><strong>P6. Add CLI and Desktop MCP setup.</strong> Add configuration-generation commands for generic stdio, Codex, and Claude Code with exact-installed-path defaults, an explicit portable variant, optional client labels, copyable instructions, and no third-party writes. Add the Desktop <code>MCP</code> tab, validated main-process generator/diagnostic authority, strict IPC/preload schemas, renderer-safe status and errors, host-format selection, and clipboard actions. Link the Guide without implying that MCP owns project lifecycle. <strong>Advances:</strong> R3, R8.</li>
+</ul>
+<ul>
+<li><strong>P7. Prove shipped compatibility and complete the feature.</strong> Compile the bridge into the existing standalone executable, inspect packaged Desktop contents, and run modern <code>2026-07-28</code> plus maintained legacy-era stdio discovery/calls. Exercise real Codex and Claude Code configuration, multiple simultaneous bridges, absent and incompatible daemons, credential leakage, receipt expiry/replay/staleness, macOS and Linux standalone runtimes, packaged macOS Desktop behavior, and Docker-backed activation. Run the full rubric evaluation, independent judge, and completion report. <strong>Advances:</strong> R1, R2, R3, R4, R5, R6, R7, R8.</li>
+</ul>
+<h2>Verification</h2>
+<ul>
+<li><strong>Protocol and client contracts:</strong> Validate every new request/response schema, error, cursor, origin field, receipt transition, compatibility range, and CLI adapter against deterministic fixtures.</li>
+<li><strong>MCP conformance:</strong> Use the official SDK v2 client and server test utilities plus raw framed transcripts to verify modern and legacy stdio negotiation, discovery, schemas, structured content, annotations, bounded collections, cancellation, stderr handling, and stdout purity.</li>
+<li><strong>Credential safety:</strong> Seed recognizable secrets through every bridge path; inspect tool results, summaries, errors, diagnostics, history, logs, Desktop IPC, and persistence. Use fake clocks and real process exit for custody and renewal bounds.</li>
+<li><strong>Mutation safety:</strong> Change listeners, Docker evidence, revisions, settings, documents, symlinks, and fingerprints between preview and execute; verify stale rejection and idempotent replay.</li>
+<li><strong>Coordination integration:</strong> Run complete standalone and stack activation lifecycles, retries after lost responses, concurrent bridges, bridge death, daemon loss/restoration, protocol mismatch, launcher sessions without shell execution, and redacted Docker snapshots.</li>
+<li><strong>Setup and Desktop:</strong> Snapshot generic/Codex/Claude configuration formats; verify exact and portable executable variants, no external writes, strict IPC, clipboard behavior, responsive/accessibility behavior, and complete safe failures in the packaged app.</li>
+<li><strong>Release matrix:</strong> Run full Bun checks, standalone compilation, packaged Electron verification, macOS and Linux stdio clients, real Codex and Claude tool calls, Docker-backed activation, and the existing PortReeve native release regression gates.</li>
+<li><strong>Final step:</strong> Run full rubric evaluation and produce the completion report.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

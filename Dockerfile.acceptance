@@ -1,0 +1,35 @@
+ARG NODE_VERSION=22.17.0
+ARG UBUNTU_VERSION=24.04
+FROM node:${NODE_VERSION}-bookworm-slim AS node-runtime
+
+FROM ubuntu:${UBUNTU_VERSION}
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+      ca-certificates \
+      gh \
+      git \
+      python3 \
+      unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-runtime /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && useradd --create-home --shell /bin/bash workflow
+
+WORKDIR /workspace
+COPY README.md DEVELOPMENT.md INSTALL.md RELEASING.md USER-GUIDE.md ./
+COPY cli ./cli
+RUN npm ci --prefix cli
+COPY .github/workflows/plugin-release.yml ./.github/workflows/plugin-release.yml
+COPY plugin-src ./plugin-src
+COPY docs ./docs
+COPY ci ./ci
+RUN chown -R workflow:workflow /workspace
+
+USER workflow
+CMD ["bash", "ci/portable-acceptance.sh"]

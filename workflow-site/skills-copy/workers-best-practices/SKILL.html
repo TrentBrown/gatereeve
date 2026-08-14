@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fetch latest workers types</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Fetch latest workers types</h1>
+<p class="note">Skill name: <code>workers-best-practices</code></p>
+<p class="note">Reviews and authors Cloudflare Workers code against production best practices. Load when writing new Workers, reviewing Worker code, configuring wrangler.jsonc, or checking for common Workers anti-patterns (streaming, floating promises, global state, secrets, bindings, observability). Biases towards retrieval from Cloudflare docs over pre-trained knowledge.</p>
+<hr>
+<p>Your knowledge of Cloudflare Workers APIs, types, and configuration may be outdated. <strong>Prefer retrieval over pre-training</strong> for any Workers code task — writing or reviewing.</p>
+<h2>Retrieval Sources</h2>
+<p>Fetch the <strong>latest</strong> versions before writing or reviewing Workers code. Do not rely on baked-in knowledge for API signatures, config fields, or binding shapes.</p>
+<table>
+<thead><tr><th>Source</th><th>How to retrieve</th><th>Use for</th></tr></thead>
+<tbody>
+<tr><td>Workers best practices</td><td>Fetch <code>https://developers.cloudflare.com/workers/best-practices/workers-best-practices/</code></td><td>Canonical rules, patterns, anti-patterns</td></tr>
+<tr><td>Workers types</td><td>See <code>references/review.md</code> for retrieval steps</td><td>API signatures, handler types, binding types</td></tr>
+<tr><td>Wrangler config schema</td><td><code>node_modules/wrangler/config-schema.json</code></td><td>Config fields, binding shapes, allowed values</td></tr>
+<tr><td>Cloudflare docs</td><td>Search tool or <code>https://developers.cloudflare.com/workers/</code></td><td>API reference, compatibility dates/flags</td></tr>
+</tbody>
+</table>
+<h2>FIRST: Fetch Latest References</h2>
+<p>Before reviewing or writing Workers code, retrieve the current best practices page and relevant type definitions. If the project&#x27;s <code>node_modules</code> has an older version, <strong>prefer the latest published version</strong>.</p>
+<pre><code>mkdir -p /tmp/workers-types-latest &amp;&amp; \
+  npm pack @cloudflare/workers-types --pack-destination /tmp/workers-types-latest &amp;&amp; \
+  tar -xzf /tmp/workers-types-latest/cloudflare-workers-types-*.tgz -C /tmp/workers-types-latest
+# Types at /tmp/workers-types-latest/package/index.d.ts</code></pre>
+<h2>Reference Documentation</h2>
+<ul>
+<li><code>references/rules.md</code> — all best practice rules with code examples and anti-patterns</li>
+<li><code>references/review.md</code> — type validation, config validation, binding access patterns, review process</li>
+</ul>
+<h2>Rules Quick Reference</h2>
+<h3>Configuration</h3>
+<table>
+<thead><tr><th>Rule</th><th>Summary</th></tr></thead>
+<tbody>
+<tr><td>Compatibility date</td><td>Set <code>compatibility_date</code> to today on new projects; update periodically on existing ones</td></tr>
+<tr><td>nodejs_compat</td><td>Enable the <code>nodejs_compat</code> flag — many libraries depend on Node.js built-ins</td></tr>
+<tr><td>wrangler types</td><td>Run <code>wrangler types</code> to generate <code>Env</code> — never hand-write binding interfaces</td></tr>
+<tr><td>Secrets</td><td>Use <code>wrangler secret put</code>, never hardcode secrets in config or source</td></tr>
+<tr><td>wrangler.jsonc</td><td>Use JSONC config for non-secret settings — newer features are JSON-only</td></tr>
+</tbody>
+</table>
+<h3>Request &amp; Response Handling</h3>
+<table>
+<thead><tr><th>Rule</th><th>Summary</th></tr></thead>
+<tbody>
+<tr><td>Streaming</td><td>Stream large/unknown payloads — never <code>await response.text()</code> on unbounded data</td></tr>
+<tr><td>waitUntil</td><td>Use <code>ctx.waitUntil()</code> for post-response work; do not destructure <code>ctx</code></td></tr>
+</tbody>
+</table>
+<h3>Architecture</h3>
+<table>
+<thead><tr><th>Rule</th><th>Summary</th></tr></thead>
+<tbody>
+<tr><td>Bindings over REST</td><td>Use in-process bindings (KV, R2, D1, Queues) — not the Cloudflare REST API</td></tr>
+<tr><td>Queues &amp; Workflows</td><td>Move async/background work off the critical path</td></tr>
+<tr><td>Service bindings</td><td>Use service bindings for Worker-to-Worker calls — not public HTTP</td></tr>
+<tr><td>Hyperdrive</td><td>Always use Hyperdrive for external PostgreSQL/MySQL connections</td></tr>
+</tbody>
+</table>
+<h3>Observability</h3>
+<table>
+<thead><tr><th>Rule</th><th>Summary</th></tr></thead>
+<tbody>
+<tr><td>Logs &amp; Traces</td><td>Enable <code>observability</code> in config with <code>head_sampling_rate</code>; use structured JSON logging</td></tr>
+</tbody>
+</table>
+<h3>Code Patterns</h3>
+<table>
+<thead><tr><th>Rule</th><th>Summary</th></tr></thead>
+<tbody>
+<tr><td>No global request state</td><td>Never store request-scoped data in module-level variables</td></tr>
+<tr><td>Floating promises</td><td>Every Promise must be <code>await</code>ed, <code>return</code>ed, <code>void</code>ed, or passed to <code>ctx.waitUntil()</code></td></tr>
+</tbody>
+</table>
+<h3>Security</h3>
+<table>
+<thead><tr><th>Rule</th><th>Summary</th></tr></thead>
+<tbody>
+<tr><td>Web Crypto</td><td>Use <code>crypto.randomUUID()</code> / <code>crypto.getRandomValues()</code> — never <code>Math.random()</code> for security</td></tr>
+<tr><td>No passThroughOnException</td><td>Use explicit try/catch with structured error responses</td></tr>
+</tbody>
+</table>
+<h2>Anti-Patterns to Flag</h2>
+<table>
+<thead><tr><th>Anti-pattern</th><th>Why it matters</th></tr></thead>
+<tbody>
+<tr><td><code>await response.text()</code> on unbounded data</td><td>Memory exhaustion — 128 MB limit</td></tr>
+<tr><td>Hardcoded secrets in source or config</td><td>Credential leak via version control</td></tr>
+<tr><td><code>Math.random()</code> for tokens/IDs</td><td>Predictable, not cryptographically secure</td></tr>
+<tr><td>Bare <code>fetch()</code> without <code>await</code> or <code>waitUntil</code></td><td>Floating promise — dropped result, swallowed error</td></tr>
+<tr><td>Module-level mutable variables for request state</td><td>Cross-request data leaks, stale state, I/O errors</td></tr>
+<tr><td>Cloudflare REST API from inside a Worker</td><td>Unnecessary network hop, auth overhead, added latency</td></tr>
+<tr><td><code>ctx.passThroughOnException()</code> as error handling</td><td>Hides bugs, makes debugging impossible</td></tr>
+<tr><td>Hand-written <code>Env</code> interface</td><td>Drifts from actual wrangler config bindings</td></tr>
+<tr><td>Direct string comparison for secret values</td><td>Timing side-channel — use <code>crypto.subtle.timingSafeEqual</code></td></tr>
+<tr><td>Destructuring <code>ctx</code> (<code>const { waitUntil } = ctx</code>)</td><td>Loses <code>this</code> binding — throws &quot;Illegal invocation&quot; at runtime</td></tr>
+<tr><td><code>any</code> on <code>Env</code> or handler params</td><td>Defeats type safety for all binding access</td></tr>
+<tr><td><code>as unknown as T</code> double-cast</td><td>Hides real type incompatibilities — fix the design</td></tr>
+<tr><td><code>implements</code> on platform base classes (instead of <code>extends</code>)</td><td>Legacy — loses <code>this.ctx</code>, <code>this.env</code>. Applies to DurableObject, WorkerEntrypoint, Workflow</td></tr>
+<tr><td><code>env.X</code> inside platform base class</td><td>Should be <code>this.env.X</code> in classes extending DurableObject, WorkerEntrypoint, etc.</td></tr>
+</tbody>
+</table>
+<h2>Review Workflow</h2>
+<ul>
+<li><strong>Retrieve</strong> — fetch latest best practices page, workers types, and wrangler schema</li>
+<li><strong>Read full files</strong> — not just diffs; context matters for binding access patterns</li>
+<li><strong>Check types</strong> — binding access, handler signatures, no <code>any</code>, no unsafe casts (see <code>references/review.md</code>)</li>
+<li><strong>Check config</strong> — compatibility_date, nodejs_compat, observability, secrets, binding-code consistency</li>
+<li><strong>Check patterns</strong> — streaming, floating promises, global state, serialization boundaries</li>
+<li><strong>Check security</strong> — crypto usage, secret handling, timing-safe comparisons, error handling</li>
+<li><strong>Validate with tools</strong> — <code>npx tsc --noEmit</code>, lint for <code>no-floating-promises</code></li>
+<li><strong>Reference rules</strong> — see <code>references/rules.md</code> for each rule&#x27;s correct pattern</li>
+</ul>
+<h2>Scope</h2>
+<p>This skill covers Workers-specific best practices and code review. For related topics:</p>
+<ul>
+<li><strong>Durable Objects</strong>: load the <a href="../durable-objects/SKILL.html"><code>durable-objects</code></a> skill</li>
+<li><strong>Workflows</strong>: see <a href="https://developers.cloudflare.com/workflows/build/rules-of-workflows/">Rules of Workflows</a></li>
+<li><strong>Wrangler CLI commands</strong>: load the <a href="../wrangler/SKILL.html"><code>wrangler</code></a> skill</li>
+</ul>
+<h2>Principles</h2>
+<ul>
+<li><strong>Be certain.</strong> Retrieve before flagging. If unsure about an API, config field, or pattern, fetch the docs first.</li>
+<li><strong>Provide evidence.</strong> Reference line numbers, tool output, or docs links.</li>
+<li><strong>Focus on what developers will copy.</strong> Workers code in examples and docs gets pasted into production.</li>
+<li><strong>Correctness over completeness.</strong> A concise example that works beats a comprehensive one with errors.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

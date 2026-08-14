@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pattern Extract</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Pattern Extract</h1>
+<p class="note">Skill name: <code>pattern-extract</code></p>
+<p class="note">Extract structured pattern-review rule proposals from instruction prose. Use to bootstrap or refresh .pattern-review/proposals.yaml from AGENTS.md, CLAUDE.md, .cursor/rules, or similar repo/client guidance without changing active rules.</p>
+<hr>
+<p>Use this to convert human-readable instruction prose into candidate pattern-review rules. This command is batch-oriented and non-interactive.</p>
+<p>Workflow:</p>
+<ul>
+<li>Identify applicable instruction files by walking from the target repo or changed files upward: <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>.cursor/rules</code>, and similar local guidance.</li>
+<li>Fail if no applicable <code>.pattern-review</code> directory is found after the normal scope walk. Tell the caller to run <code>/pattern-init &lt;intended-scope&gt;</code>.</li>
+<li>Display the <code>.pattern-review</code> directory that will receive proposals before writing anything.</li>
+<li>Extract only review-critical patterns: conventions that should be checked before human review, especially repeated failure classes or high-risk local rules.</li>
+<li>Write candidates to the nearest appropriate <code>.pattern-review/proposals.yaml</code>. Do not modify <code>rules.yaml</code>.</li>
+<li>Prefer proposal objects with:</li>
+<li><code>type: new_rule</code> or <code>type: modify_rule</code></li>
+<li><code>id</code>, <code>title</code>, <code>description</code>, <code>rationale</code></li>
+<li><code>scope</code></li>
+<li><code>trigger</code> with mode <code>path</code>, <code>diff</code>, <code>agentic</code>, or <code>always</code></li>
+<li><code>severity</code></li>
+<li><code>review</code> with mode <code>agentic</code>, <code>manual</code>, <code>mechanical</code>, or <code>checklist</code></li>
+<li><code>evidence</code> and <code>provenance</code></li>
+<li><code>examples</code> and <code>exceptions</code> when available</li>
+<li>Use structured source locations in evidence and provenance:</li>
+<li><code>evidence.instructionFiles</code> should contain objects with <code>path</code> relative to the <code>.pattern-review</code> scope root and, when known, <code>line</code>, such as <code>{ path: &quot;AGENTS.md&quot;, line: 12 }</code>.</li>
+<li>Include <code>sourceText</code> for literal source evidence when practical. Do not summarize or ellipsize source text by default. Use deterministic boundaries: a full bullet line, full paragraph, or directly relevant fenced block. If a section is too large to include fully, store <code>line</code> plus <code>sourceBoundary: section</code> and explain that the section continues rather than truncating silently.</li>
+<li><code>provenance.target</code> should be an object with <code>path</code> for concrete repo or folder targets, usually <code>{ path: &quot;.&quot; }</code> for the initialized scope.</li>
+<li>Avoid machine-specific absolute paths unless the source is outside any portable checkout context.</li>
+<li>Do not put Markdown links in YAML. Reports and chat can render clickable links from <code>path</code> and <code>line</code>.</li>
+<li>Preserve example usefulness:</li>
+<li>When examples are available or can be reasonably derived from the source guidance, write complete, concrete good and bad examples.</li>
+<li>Do not truncate, ellipsize, or reduce examples to fragments. A useful example should be a complete sentence or compact mini-scenario that shows the rule being satisfied or violated.</li>
+<li>Prefer source-grounded examples over generic placeholders. If the source does not support a concrete example, omit <code>examples</code> rather than inventing vague filler.</li>
+<li>Keep active rules clean. Promotion to <code>rules.yaml</code> happens only through <a href="../pattern-promote/SKILL.html"><code>pattern-promote</code></a>.</li>
+<li>If a candidate resembles an existing active, proposed, deferred, or rejected rule, update or reference that lifecycle item instead of blindly adding a duplicate.</li>
+<li>Normalize lifecycle YAML after writing: <code>python3 /Users/trent.brown/agentic-development-workflow/scripts/pattern_tool.py normalize-buckets &lt;pattern-dir&gt;</code>.</li>
+<li>Parse the normalized <code>proposals.yaml</code> before reporting success. Treat parse failures as command failures.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

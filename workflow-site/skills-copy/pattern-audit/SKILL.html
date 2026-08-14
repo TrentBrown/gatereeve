@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pattern Audit</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Pattern Audit</h1>
+<p class="note">Skill name: <code>pattern-audit</code></p>
+<p class="note">Audit pattern-review rule-set health. Use periodically or before sharing rules to inspect .pattern-review rules for schema problems, duplicate IDs, overlap, weak triggers, missing examples, unclear rationale, and maintenance recommendations without changing active rules.</p>
+<hr>
+<p>Use this for rule-system maintenance. It is not part of every <a href="../pattern-review/SKILL.html"><code>pattern-review</code></a> run.</p>
+<p>Deterministic helper:</p>
+<pre><code>python3 /Users/trent.brown/agentic-development-workflow/scripts/pattern_tool.py audit-rules &lt;pattern-dir&gt;</code></pre>
+<p>Workflow:</p>
+<ul>
+<li>Fail if no applicable <code>.pattern-review</code> directory is found. Tell the caller to run <code>/pattern-init &lt;intended-scope&gt;</code>.</li>
+<li>Display the <code>.pattern-review</code> directory being audited before inspecting it.</li>
+<li>Run the helper for cheap shape validation.</li>
+<li>Inspect active rules, proposals, deferred entries, and rejected entries for semantic concerns:</li>
+<li>duplicate IDs or surprising overrides;</li>
+<li>near-duplicate rules;</li>
+<li>overlapping scopes/triggers with conflicting obligations;</li>
+<li>weak or missing rationale;</li>
+<li>missing examples or exceptions where they would materially help;</li>
+<li>agentic triggers or reviews that are too vague to audit;</li>
+<li>stale or unclear provenance.</li>
+<li>Write <code>.pattern-review/audit.md</code> for the rule set being audited.</li>
+<li>If a rule-system issue should change active rules, write a proposal to <code>.pattern-review/proposals.yaml</code>. Do not modify <code>rules.yaml</code> directly.</li>
+<li>Treat schema-invalid active rules as blocking audit findings until fixed through <a href="../pattern-promote/SKILL.html"><code>pattern-promote</code></a> or explicit manual repair.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

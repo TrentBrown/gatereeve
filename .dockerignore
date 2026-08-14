@@ -1,0 +1,8 @@
+.git
+.checkpoints
+.handoffs
+cli/node_modules
+dist
+workflow-site
+**/__pycache__
+**/*.pyc

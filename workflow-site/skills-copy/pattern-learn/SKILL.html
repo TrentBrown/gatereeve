@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pattern Learn</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Pattern Learn</h1>
+<p class="note">Skill name: <code>pattern-learn</code></p>
+<p class="note">Learn from normalized downstream failure events. Use after judge, PR review, GitHub review, CI, QA, or manual notes emit docs/issues/&lt;branch&gt;/learning-events/*.yaml to classify findings, create pattern rule proposals or rule modifications, and write non-rule learning recommendations.</p>
+<hr>
+<p>Use this after downstream evaluators produce learning events. It consumes failure signals and proposes durable improvements. It does not change active rules.</p>
+<p>Deterministic helper:</p>
+<pre><code>python3 /Users/trent.brown/agentic-development-workflow/scripts/pattern_tool.py event-inventory &lt;issue-dir&gt; &lt;pattern-dir&gt;</code></pre>
+<p>Workflow:</p>
+<ul>
+<li>Fail if no applicable <code>.pattern-review</code> directory is found after the normal scope walk or if an explicit pattern directory does not exist. Tell the caller to run <code>/pattern-init &lt;intended-scope&gt;</code>.</li>
+<li>Display the <code>.pattern-review</code> directory that will receive proposals or be checked for processed provenance.</li>
+<li>Read <code>docs/issues/&lt;branch&gt;/learning-events/*.yaml</code>. Each event represents one finding.</li>
+<li>Use event IDs and fingerprints to skip already-processed events by checking provenance in <code>rules.yaml</code>, <code>proposals.yaml</code>, <code>deferred.yaml</code>, and <code>rejected.yaml</code>.</li>
+<li>Classify each pending event as one of: <code>new_pattern_rule</code>, <code>existing_rule_missed</code>, <code>existing_rule_ignored</code>, <code>process_gap</code>, <code>documentation_gap</code>, <code>test_gap</code>, <code>domain_knowledge</code>, <code>one_off_bug</code>, or <code>disputed_or_unclear</code>.</li>
+<li>For rule-worthy outcomes, write <code>new_rule</code> or <code>modify_rule</code> proposals to <code>.pattern-review/proposals.yaml</code> with event provenance. For modifications, include a complete resolved rule candidate; do not patch active rules. Preserve evidence as structured source locations with <code>path</code> relative to the <code>.pattern-review</code> scope root and, when known, <code>line</code>. Avoid machine-specific absolute paths unless the source is outside any portable checkout context. Do not encode Markdown links in YAML; reports can render clickable links from those fields.</li>
+<li>For non-rule outcomes, write <code>docs/issues/&lt;branch&gt;/learning-recommendations.md</code> or the analogous source-event location.</li>
+<li>Normalize lifecycle YAML after writing proposals: <code>python3 /Users/trent.brown/agentic-development-workflow/scripts/pattern_tool.py normalize-buckets &lt;pattern-dir&gt;</code>.</li>
+<li>Parse the normalized lifecycle files before reporting success. Treat parse failures as command failures.</li>
+<li>Do not mutate learning-event source files. They are evidence, not state.</li>
+<li>Do not modify <code>rules.yaml</code>; only <a href="../pattern-promote/SKILL.html"><code>pattern-promote</code></a> changes active rules.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

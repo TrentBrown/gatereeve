@@ -1,0 +1,11 @@
+{
+  "name": "agentic-workflow-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "python3 render_artifacts.py"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.9.0"
+  }
+}

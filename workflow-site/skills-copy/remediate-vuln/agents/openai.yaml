@@ -1,0 +1,4 @@
+interface:
+  display_name: "Remediate Vulnerability"
+  short_description: "Triage and remediate Snyk vulnerability packets"
+  default_prompt: "Use $remediate-vuln to remediate one dependency or code vulnerability packet from a Snyk explain report."

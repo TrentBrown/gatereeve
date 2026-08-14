@@ -1,0 +1,20 @@
+{
+  "name": "quality-code",
+  "interface": {
+    "displayName": "QualityCode"
+  },
+  "plugins": [
+    {
+      "name": "agentic-development-workflow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex/agentic-development-workflow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

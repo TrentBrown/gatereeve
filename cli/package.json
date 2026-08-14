@@ -1,0 +1,21 @@
+{
+  "name": "@agentic-development-workflow/maintainer-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Maintainer tooling for building and releasing the Agentic Software Development Workflow plugin",
+  "bin": {
+    "cli": "./bin/workflow.js"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "start": "node bin/workflow.js",
+    "test": "node --test",
+    "build:plugins": "node bin/workflow.js plugin build"
+  },
+  "dependencies": {
+    "qp-cli-core": "1.7.1"
+  }
+}

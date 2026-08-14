@@ -1,0 +1,3329 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GateReeve — an agentic software development workflow</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f3f1f8;
+      --fg: #2e2a45;
+      --muted: #6f6a8a;
+      --panel: #fcfbfe;
+      --panel-soft: #f7f5fb;
+      --line: #d9d4e6;
+      --ink: #292254;
+      --primary: #6d28d9;
+      --primary-strong: #4c1d95;
+      --font-serif: Georgia, "Times New Roman", serif;
+      --activity: #16a34a;
+      --artifact: #8b5cf6;
+      --gate: #0ea5e9;
+      --review: #6d28d9;
+      --source: #475569;
+      --failure: #b91c1c;
+      --code: #0f172a;
+      --code-fg: #e5e7eb;
+      --flow-arrow: color-mix(in srgb, var(--muted) 70%, var(--line));
+      --font-sans: Arial, Helvetica, sans-serif;
+      --font-mono: Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14111f;
+        --fg: #e6e3f0;
+        --muted: #a29cc0;
+        --panel: #1c1830;
+        --panel-soft: #171326;
+        --line: #38324f;
+        --ink: #cec4f0;
+        --primary: #a78bfa;
+        --primary-strong: #c4b5fd;
+        --activity: #86efac;
+        --artifact: #c4b5fd;
+        --gate: #38bdf8;
+        --review: #c4b5fd;
+        --source: #cbd5e1;
+        --failure: #fca5a5;
+        --code: #020617;
+        --code-fg: #e5e7eb;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      font-synthesis: none;
+      line-height: 1.5;
+    }
+
+    main {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 32px 20px 72px;
+    }
+
+    header {
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: 40px;
+      line-height: 1.1;
+      letter-spacing: 0;
+      color: var(--ink);
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-family: var(--font-serif);
+      font-size: 22px;
+      letter-spacing: 0;
+      color: var(--ink);
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 10px;
+    }
+
+    a {
+      color: var(--artifact);
+      overflow-wrap: anywhere;
+    }
+
+    a[href^="skills-copy/"] {
+      color: var(--activity);
+    }
+
+    code,
+    pre {
+      font-family: var(--font-mono);
+    }
+
+    :not(pre) > code {
+      background: color-mix(in srgb, var(--line) 45%, transparent);
+      border-radius: 4px;
+      padding: 1px 4px;
+      overflow-wrap: anywhere;
+    }
+
+    pre {
+      overflow: auto;
+      background: var(--code);
+      color: var(--code-fg);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    summary {
+      cursor: pointer;
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--ink);
+    }
+
+    ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+
+    li + li {
+      margin-top: 4px;
+    }
+
+    .lede {
+      color: var(--muted);
+      max-width: 920px;
+      font-size: 16px;
+    }
+
+    .lede p {
+      margin-bottom: 10px;
+    }
+
+    .lede .lead-in {
+      color: var(--fg);
+      font-weight: 700;
+    }
+
+    .lockup {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .mark {
+      width: 64px;
+      height: 64px;
+      border-radius: 10px;
+      background: var(--ink);
+      color: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+    }
+
+    .mark .monogram {
+      font-family: var(--font-serif);
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: 1px;
+    }
+
+    .mark {
+      border-bottom: 4px solid var(--primary);
+    }
+
+    .kicker {
+      font-size: 12px;
+      letter-spacing: 2.5px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .byline {
+      margin: 4px 0 0;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .guide-card {
+      margin-top: 22px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--primary-strong);
+      border-radius: 10px;
+      padding: 26px 32px;
+    }
+
+    .guide-card .gc-kicker {
+      font-size: 11.5px;
+      letter-spacing: 2.5px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .guide-card h2 {
+      font-size: 29px;
+      margin: 6px 0 14px;
+    }
+
+    .credo {
+      margin: 18px 0 16px;
+    }
+
+    .credo .credo-a {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .credo .credo-b {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      color: var(--primary);
+    }
+
+    .panel,
+    details {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      margin: 16px 0;
+    }
+
+    .panel.soft {
+      background: var(--panel-soft);
+    }
+
+    details.section-disclosure > summary {
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    details.section-disclosure > summary + details {
+      margin-top: 16px;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .top-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .top-nav a,
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 11px;
+      background: var(--panel);
+      color: var(--fg);
+      text-decoration: none;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .taxonomy-grid,
+    .philosophy-grid,
+    .detail-grid,
+    .artifact-grid,
+    .link-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .taxonomy-grid {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .philosophy-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 14px;
+    }
+
+    .detail-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 12px;
+    }
+
+    .artifact-grid {
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      margin-top: 12px;
+    }
+
+    .link-grid {
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      margin-top: 12px;
+    }
+
+    .harness-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    details.harness-detail {
+      margin: 0;
+      padding: 0;
+      background: var(--panel);
+    }
+
+    details.harness-detail > summary {
+      padding: 12px;
+      font-size: 16px;
+    }
+
+    details.harness-detail[open] > summary {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .harness-body {
+      padding: 12px;
+    }
+
+    .guide-steps {
+      margin-top: 12px;
+      padding-left: 22px;
+    }
+
+    .guide-steps li + li {
+      margin-top: 12px;
+    }
+
+    .step-figure {
+      max-width: 760px;
+      margin: 8px 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-soft);
+    }
+
+    .step-figure.wide-figure {
+      max-width: none;
+    }
+
+    .step-figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .step-figure figcaption {
+      border-top: 1px solid var(--line);
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    details .link-grid + h3 {
+      margin-top: 34px;
+    }
+
+    .type-card,
+    .mini,
+    .artifact-link,
+    .node {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .type-card,
+    .mini,
+    .artifact-link {
+      min-width: 0;
+      padding: 12px;
+    }
+
+    .model-link {
+      display: block;
+      color: var(--fg);
+      text-decoration: none;
+      transition: border-color .15s ease, background-color .15s ease;
+    }
+
+    .model-link:hover,
+    .model-link:focus-visible,
+    .model-link.is-selected {
+      border-color: color-mix(in srgb, var(--artifact) 55%, var(--line));
+      background: color-mix(in srgb, var(--artifact) 6%, var(--panel));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--artifact) 14%, transparent);
+      outline: none;
+    }
+
+    .type-card {
+      border-top-width: 4px;
+    }
+
+    .type-card.activity {
+      border-top-color: var(--activity);
+    }
+
+    .type-card.artifact {
+      border-top-color: var(--artifact);
+    }
+
+    .type-card.gate {
+      border-top-color: var(--gate);
+    }
+
+    .phase-card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 14px;
+    }
+
+    .phase-number {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 7px;
+    }
+
+    .phase-card .subtitle {
+      margin-bottom: 8px;
+    }
+
+    .label,
+    .eyebrow {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      margin: -2px 0 10px;
+    }
+
+    .gate-spine {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(152px, 1fr));
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .gate-card {
+      --gate-card-border: color-mix(in srgb, var(--gate) 65%, var(--line));
+      --gate-card-bg: var(--panel);
+      display: block;
+      position: relative;
+      min-width: 0;
+      border: 2px solid var(--gate-card-border);
+      border-radius: 8px;
+      background: var(--gate-card-bg);
+      padding: 14px;
+      text-decoration: none;
+      color: var(--fg);
+      overflow-wrap: anywhere;
+      transition: border-color .15s ease, background-color .15s ease;
+    }
+
+    .gate-card:hover,
+    .gate-card:focus-visible,
+    .gate-card.is-selected {
+      --gate-card-border: color-mix(in srgb, var(--gate) 70%, var(--line));
+      --gate-card-bg: color-mix(in srgb, var(--gate) 6%, var(--panel));
+      border-color: var(--gate-card-border);
+      background: var(--gate-card-bg);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--gate) 14%, transparent);
+      outline: none;
+    }
+
+    .gate-card:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: calc(100% + 1px);
+      width: 8px;
+      height: 8px;
+      border-top: 2px solid var(--flow-arrow);
+      border-right: 2px solid var(--flow-arrow);
+      pointer-events: none;
+      transform: translateY(-50%) rotate(45deg);
+      transform-origin: center;
+      z-index: 2;
+    }
+
+    .gate-card strong,
+    .artifact-link strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .gate-card span,
+    .artifact-link span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .inline-gate-detail {
+      margin-top: 14px;
+      border: 1px solid color-mix(in srgb, var(--gate) 40%, var(--line));
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--gate) 4%, var(--panel));
+      padding: 16px;
+    }
+
+    .inline-gate-detail.activity-detail {
+      border-color: color-mix(in srgb, var(--activity) 40%, var(--line));
+      background: color-mix(in srgb, var(--activity) 4%, var(--panel));
+    }
+
+    .inline-gate-detail.gate-detail {
+      border-color: color-mix(in srgb, var(--gate) 40%, var(--line));
+      background: color-mix(in srgb, var(--gate) 4%, var(--panel));
+    }
+
+    #superpower-detail {
+      border-color: color-mix(in srgb, var(--artifact) 40%, var(--line));
+      background: color-mix(in srgb, var(--artifact) 4%, var(--panel));
+    }
+
+    .inline-gate-detail[hidden] {
+      display: none;
+    }
+
+    .inline-gate-detail h3 {
+      margin-bottom: 12px;
+    }
+
+    .inline-gate-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .inline-gate-header h3 {
+      margin: 0;
+    }
+
+    .inline-gate-close {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+      font-size: 16px;
+      line-height: 1;
+      padding: 5px 8px;
+    }
+
+    .inline-gate-close:hover,
+    .inline-gate-close:focus-visible {
+      border-color: color-mix(in srgb, var(--gate) 70%, var(--line));
+      color: var(--fg);
+      outline: none;
+    }
+
+    .swimlane {
+      display: grid;
+      grid-template-columns: 96px repeat(7, minmax(136px, 1fr));
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-top: 12px;
+    }
+
+    .lane-label {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      min-height: 64px;
+      padding: 10px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .node {
+      min-width: 0;
+      min-height: 64px;
+      padding: 10px;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    a.node {
+      display: block;
+      color: var(--fg);
+      text-decoration: none;
+      transition: border-color .15s ease, background-color .15s ease;
+    }
+
+    a.node:hover,
+    a.node:focus-visible,
+    a.node.is-selected {
+      border-color: color-mix(in srgb, var(--gate) 70%, var(--line));
+      background: color-mix(in srgb, var(--gate) 6%, var(--panel));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--gate) 14%, transparent);
+      outline: none;
+    }
+
+    .node.activity {
+      border-left: 4px solid var(--activity);
+    }
+
+    a.node.activity:hover,
+    a.node.activity:focus-visible,
+    a.node.activity.is-selected {
+      border-color: color-mix(in srgb, var(--activity) 70%, var(--line));
+      background: color-mix(in srgb, var(--activity) 6%, var(--panel));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--activity) 14%, transparent);
+      outline: none;
+    }
+
+    .node.artifact {
+      border-left: 4px solid var(--artifact);
+    }
+
+    .node.gate {
+      border-left: 4px solid var(--gate);
+    }
+
+    .node.review {
+      border-left: 4px solid var(--review);
+    }
+
+    .node.empty {
+      background: transparent;
+      border-style: dashed;
+      color: var(--muted);
+    }
+
+    .pattern-loop {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-areas:
+        "init extract promote"
+        "learn rules review"
+        "events events review";
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .pattern-card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 12px;
+      font-size: 14px;
+    }
+
+    .pattern-card strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .pattern-card .connector {
+      display: inline-block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .pattern-card.hub {
+      border: 2px solid color-mix(in srgb, var(--review) 65%, var(--line));
+      background: color-mix(in srgb, var(--review) 8%, var(--panel));
+    }
+
+    .pattern-init { grid-area: init; }
+    .pattern-extract { grid-area: extract; }
+    .pattern-promote { grid-area: promote; }
+    .pattern-rules { grid-area: rules; }
+    .pattern-review { grid-area: review; }
+    .pattern-events { grid-area: events; }
+    .pattern-learn { grid-area: learn; }
+
+    .validation-flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .validation-step {
+      position: relative;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 12px;
+      font-size: 14px;
+    }
+
+    .validation-step:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      top: 50%;
+      right: -11px;
+      transform: translate(50%, -50%);
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .validation-step strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .review-stack-flow {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .review-stack-flow .model-link:hover,
+    .review-stack-flow .model-link:focus-visible,
+    .review-stack-flow .model-link.is-selected {
+      border-color: color-mix(in srgb, var(--activity) 55%, var(--line));
+      background: color-mix(in srgb, var(--activity) 6%, var(--panel));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--activity) 14%, transparent);
+      outline: none;
+    }
+
+    #review-stack-detail {
+      border-color: color-mix(in srgb, var(--activity) 40%, var(--line));
+      background: color-mix(in srgb, var(--activity) 4%, var(--panel));
+    }
+
+    .review-stack-flow .validation-step:not(:last-child)::after {
+      content: "";
+      left: calc(100% + 1px);
+      right: auto;
+      width: 6px;
+      height: 6px;
+      border-top: 2px solid var(--flow-arrow);
+      border-right: 2px solid var(--flow-arrow);
+      color: inherit;
+      transform: translateY(-50%) rotate(45deg);
+      transform-origin: center;
+      z-index: 2;
+    }
+
+    .rule-schema {
+      margin-top: 14px;
+    }
+
+    @media (max-width: 820px) {
+      .philosophy-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pattern-loop {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "init"
+          "extract"
+          "promote"
+          "rules"
+          "review"
+          "events"
+          "learn";
+      }
+
+      .validation-flow {
+        grid-template-columns: 1fr;
+      }
+
+      .validation-step:not(:last-child)::after {
+        content: "↓";
+        top: auto;
+        right: 50%;
+        bottom: -13px;
+        left: auto;
+        width: auto;
+        height: auto;
+        border: 0;
+        color: var(--muted);
+        transform: translate(50%, 50%);
+      }
+
+      .gate-card::before,
+      .gate-card::after {
+        display: none;
+      }
+    }
+
+    .context-stack {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .context-row {
+      display: grid;
+      grid-template-columns: minmax(150px, .8fr) minmax(260px, 1.6fr) minmax(190px, 1fr);
+      gap: 12px;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 12px;
+    }
+
+    .context-row > div {
+      min-width: 0;
+    }
+
+    .context-title {
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+
+    .context-desc {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 7px;
+    }
+
+    .artifact-chip {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      min-width: 0;
+      border: 1px solid color-mix(in srgb, var(--artifact) 45%, var(--line));
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: color-mix(in srgb, var(--artifact) 8%, transparent);
+      text-decoration: none;
+      font-size: 13px;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .artifact-chip.output {
+      border-color: color-mix(in srgb, var(--artifact) 55%, var(--line));
+      background: color-mix(in srgb, var(--artifact) 8%, transparent);
+    }
+
+    .artifact-chip.source {
+      border-color: color-mix(in srgb, var(--source) 55%, var(--line));
+      background: color-mix(in srgb, var(--source) 8%, transparent);
+      color: var(--fg);
+    }
+
+    .loop-view {
+      display: grid;
+      grid-template-columns: minmax(420px, 1.35fr) minmax(260px, .85fr);
+      gap: 14px;
+      align-items: stretch;
+      margin-top: 14px;
+    }
+
+    .loop-diagram {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 14px;
+    }
+
+    .loop-frame {
+      min-width: 0;
+      border: 2px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: var(--panel);
+    }
+
+    .loop-frame + .loop-steps,
+    .loop-heading + .loop-frame,
+    .loop-heading + .loop-steps {
+      margin-top: 12px;
+    }
+
+    .loop-meta {
+      border-color: color-mix(in srgb, var(--review) 62%, var(--line));
+      background: color-mix(in srgb, var(--review) 5%, var(--panel));
+    }
+
+    .loop-stewardship {
+      border-color: color-mix(in srgb, var(--source) 62%, var(--line));
+      background: color-mix(in srgb, var(--source) 5%, var(--panel));
+    }
+
+    .loop-outer {
+      border-color: color-mix(in srgb, var(--gate) 62%, var(--line));
+      background: color-mix(in srgb, var(--gate) 5%, var(--panel));
+    }
+
+    .loop-inner {
+      border-color: color-mix(in srgb, var(--activity) 62%, var(--line));
+      background: color-mix(in srgb, var(--activity) 6%, var(--panel));
+    }
+
+    .loop-note-inner {
+      background: color-mix(in srgb, var(--activity) 6%, var(--panel));
+    }
+
+    .loop-note-outer {
+      background: color-mix(in srgb, var(--gate) 5%, var(--panel));
+    }
+
+    .loop-note-meta {
+      background: color-mix(in srgb, var(--review) 5%, var(--panel));
+    }
+
+    .loop-note-stewardship {
+      background: color-mix(in srgb, var(--source) 5%, var(--panel));
+    }
+
+    .loop-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .loop-heading .label {
+      margin-bottom: 0;
+    }
+
+    .loop-heading strong {
+      font-size: 15px;
+      text-align: right;
+    }
+
+    .loop-steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .loop-steps span {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      padding: 5px 9px;
+      font-size: 13px;
+      color: var(--fg);
+    }
+
+    .loop-notes {
+      display: grid;
+      gap: 12px;
+    }
+
+    @media (max-width: 820px) {
+      .loop-view {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .context-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .artifact-link {
+      display: block;
+      text-decoration: none;
+      color: var(--fg);
+    }
+
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="lockup">
+      <div class="mark" aria-hidden="true">
+        <span class="monogram">GR</span>
+      </div>
+      <div>
+        <div class="kicker">PROOF AT EVERY GATE</div>
+        <h1>GateReeve</h1>
+        <p class="byline">A gate-based, artifact-driven workflow for agent-assisted software development.</p>
+      </div>
+    </div>
+    <nav class="top-nav" aria-label="Page sections">
+      <a href="#philosophy">Philosophy</a>
+      <a href="#loop-engineering-view">Workflow Loops</a>
+      <a href="#workflow-model">Workflow model</a>
+      <a href="#gate-spine">Gate Spine</a>
+      <a href="#workflow-layers">Workflow Layers</a>
+      <a href="#artifact-lifecycle">Artifact Flow</a>
+      <a href="#pr-boundary-review-stack">PR Boundary Review</a>
+      <a href="#agentic-superpowers">Agentic Superpowers</a>
+      <a href="#supporting-reference">Supporting reference</a>
+      <a href="#skill-library">Skill library</a>
+      <a href="#artifact-library">Artifact examples</a>
+    </nav>
+    <section class="guide-card" id="what">
+      <div class="gc-kicker">THE WORKFLOW</div>
+      <h2>What is GateReeve?</h2>
+      <div class="lede">
+        <p>
+          GateReeve takes an idea from discovery through design, specification,
+          implementation, review, and closeout while preserving the reasoning
+          and evidence needed to trust the result. Another way to read it is as
+          a set of nested execution, delivery, learning, and stewardship loops
+          that let agents work autonomously while still improving under human
+          governance.
+        </p>
+        <p>
+          The name borrows from the historical <em>reeve</em>: the local
+          official who enforced standards and kept order on the community's
+          behalf. A gate-reeve keeps the gates — and in this workflow every
+          gate is a decision point with explicit pass conditions that work
+          must clear before it moves on.
+        </p>
+        <div class="credo">
+          <div class="credo-a">GateReeve runs the gates.</div>
+          <div class="credo-b">You own the judgment.</div>
+        </div>
+        <p>
+          <strong class="lead-in">The premise.</strong>
+          The core premise is simple: human judgment belongs at the boundaries.
+          The developer clarifies intent up front, gives the agent enough context
+          and autonomy to execute, then validates the result with tests, rubric
+          checks, pattern review, adversarial judge review, and human review.
+        </p>
+        <p>
+          <strong class="lead-in">Gates and artifacts.</strong>
+          The workflow is gate-based and artifact-driven. Each stage leaves
+          durable records: intent, specifications, plans, decisions, verification
+          evidence, review results, and closeout notes. Those artifacts keep the
+          work inspectable and prevent important context from disappearing into
+          chat history.
+        </p>
+        <p>
+          <strong class="lead-in">Learning and stewardship.</strong>
+          The outer loops are still under development, but they are central to
+          the direction of the workflow. The learning loop turns mistakes into
+          better guidelines, checks, or tools; the stewardship loop periodically
+          reviews whether those rules, skills, and tools still fit the way the
+          models and workflow are evolving. Pattern review is the beginning of
+          the learning loop, evaluating code against durable coding-standard
+          patterns so recurring problems can be prevented instead of
+          rediscovered.
+        </p>
+        <p>
+          <strong class="lead-in">How to read this page.</strong>
+          Read this as both a philosophy and a model. The opening sections explain
+          the operating principles; the diagrams that follow use a compact key
+          to show the gate spine, workflow layers, artifact flow, nested loop
+          view, and supporting skills that make the process repeatable. In practice, the workflow is
+          implemented through user-level agent skills that drive the gates,
+          artifacts, reviews, and closeout steps described below.
+        </p>
+      </div>
+    </section>
+  </header>
+
+  <section class="panel soft" id="philosophy">
+    <h2>The Philosophy: Structure, Autonomy, Proof</h2>
+    <p class="note">
+      The workflow works because human attention is concentrated where judgment
+      changes the outcome. The developer leads the setup, lets the agent move
+      with autonomy inside clear boundaries, then owns the proof that the result
+      is ready for another human to spend time on.
+    </p>
+    <div class="philosophy-grid">
+      <div class="phase-card">
+        <div class="phase-number">
+          <span>Phase 1</span>
+          <span>Human-led</span>
+        </div>
+        <h3>Specify clearly</h3>
+        <div class="subtitle">Define the rails before execution</div>
+        <p>
+          Clarify intent, pressure-test assumptions, write acceptance criteria,
+          and turn the work into observable pass/fail conditions. The agent
+          should start with enough context to solve the right problem.
+        </p>
+      </div>
+      <div class="phase-card">
+        <div class="phase-number">
+          <span>Phase 2</span>
+          <span>Human on the loop</span>
+        </div>
+        <h3>Let the agent execute</h3>
+        <div class="subtitle">Observe direction, not every keystroke</div>
+        <p>
+          The agent inspects, edits, runs tools, tests, and advances the work.
+          The human watches the trajectory and steps in for judgment calls,
+          changed direction, or scope decisions. This is oversight without
+          approving every small move.
+        </p>
+      </div>
+      <div class="phase-card">
+        <div class="phase-number">
+          <span>Phase 3</span>
+          <span>Human-led</span>
+        </div>
+        <h3>Validate hard</h3>
+        <div class="subtitle">Prove readiness before handoff</div>
+        <p>
+          Run focused tests, evaluate the rubric, inspect the diff, review
+          patterns, run an independent LLM-as-judge pass, and close the loop on
+          findings. The output should carry concrete evidence before it reaches
+          a human reviewer.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel soft" id="loop-engineering-view">
+    <h2>Workflow Loops</h2>
+    <p class="note">
+      The workflow can also be read as four nested loops operating at different
+      time scales: execution inside the current task, delivery through gated
+      branch workflow, learning from misses, and periodic stewardship of the
+      whole agentic system.
+    </p>
+    <div class="loop-view" role="img" aria-label="Nested workflow loop model with execution, delivery, learning, and stewardship loops">
+      <div class="loop-diagram">
+        <div class="loop-frame loop-stewardship">
+          <div class="loop-heading">
+            <span class="label">Stewardship loop</span>
+            <strong>Maintain the system</strong>
+          </div>
+          <div class="loop-frame loop-meta">
+            <div class="loop-heading">
+              <span class="label">Learning loop</span>
+              <strong>Learn from misses</strong>
+            </div>
+            <div class="loop-frame loop-outer">
+              <div class="loop-heading">
+                <span class="label">Delivery loop</span>
+                <strong>Deliver reviewable work</strong>
+              </div>
+              <div class="loop-frame loop-inner">
+                <div class="loop-heading">
+                  <span class="label">Execution loop</span>
+                  <strong>Agent executes</strong>
+                </div>
+                <div class="loop-steps">
+                  <span>Inspect</span>
+                  <span>Edit</span>
+                  <span>Test</span>
+                  <span>Reflect</span>
+                </div>
+              </div>
+              <div class="loop-steps">
+                <span>Design</span>
+                <span>Spec</span>
+                <span>Plan</span>
+                <span>Implement</span>
+                <span>Review</span>
+              </div>
+            </div>
+            <div class="loop-steps">
+              <span>Capture miss</span>
+              <span>Propose rule</span>
+              <span>Human promote</span>
+              <span>Prevent recurrence</span>
+            </div>
+          </div>
+          <div class="loop-steps">
+            <span>Audit skills</span>
+            <span>Run broad scans</span>
+            <span>Retire obsolete rules</span>
+            <span>Update tools</span>
+          </div>
+        </div>
+      </div>
+      <div class="loop-notes">
+        <div class="mini loop-note-inner">
+          <div class="label">Execution loop</div>
+          The agent works inside the current task: reading files, changing code,
+          running tools, testing, and correcting course. The human stays on the
+          loop: watching direction, supplying judgment, and steering when
+          scope, risk, or priority changes.
+        </div>
+        <div class="mini loop-note-outer">
+          <div class="label">Delivery loop</div>
+          The branch moves through explicit exit gates: design approval, spec
+          validation, implementation verification, PR boundary, human review,
+          and completion proof.
+        </div>
+        <div class="mini loop-note-meta">
+          <div class="label">Learning loop</div>
+          Pattern Review and learning events turn repeated misses into
+          inspectable proposals that a human can promote into future rules.
+        </div>
+        <div class="mini loop-note-stewardship">
+          <div class="label">Stewardship loop</div>
+          Periodically inspect the health of the whole agentic system: run
+          rules and skills for continued value, retire obsolete guidance, and
+          update tools as model capabilities improve.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="workflow-model">
+    <h2>The Workflow Model</h2>
+    <p class="note">
+      After the loop framing, the rest of this page turns the philosophy into
+      an inspectable model. The key below defines the diagram grammar, and the
+      sections that follow show different structural views of the same
+      workflow: the gate sequence, the layered workflow, the artifact flow, and
+      the concrete checks that happen at each boundary. Read them as
+      complementary lenses, not separate processes.
+    </p>
+    <h3>Diagram key</h3>
+    <div class="taxonomy-grid">
+      <div class="type-card activity">
+        <h3>Activity</h3>
+        <div class="subtitle">Work performed</div>
+        <p>
+          Interviewing, drafting, implementation, review, remediation, and
+          closeout. Activities consume context and produce artifacts or
+          evidence.
+        </p>
+      </div>
+      <div class="type-card artifact">
+        <h3>Artifact</h3>
+        <div class="subtitle">Durable record</div>
+        <p>
+          Markdown docs, reports, trackers, learning events, and PR
+          descriptions. Artifacts carry knowledge forward and provide evidence
+          for gates.
+        </p>
+      </div>
+      <div class="type-card gate">
+        <h3>Gate</h3>
+        <div class="subtitle">Proceed or loop</div>
+        <p>
+          A decision point with explicit pass conditions. Gates may be human,
+          deterministic, agentic, or mixed, but they should leave a traceable
+          result.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="gate-spine">
+    <h2>Gate Spine</h2>
+    <p class="note">
+      The gate spine shows the enforced sequence at a glance: where work can
+      move forward, where it must loop back, and what kind of evidence is
+      required to proceed. Select a gate to see its purpose, inputs, outputs,
+      and pass condition inline.
+    </p>
+    <div class="gate-spine">
+      <a class="gate-card" href="#design-gate" data-gate-link data-gate-surface="gate-spine">
+        <strong>Design</strong>
+        <span>Intent is interrogated and the design is approved.</span>
+      </a>
+      <a class="gate-card" href="#spec-gate" data-gate-link data-gate-surface="gate-spine">
+        <strong>Spec</strong>
+        <span>Acceptance criteria and rubric become testable.</span>
+      </a>
+      <a class="gate-card" href="#branch-gate" data-gate-link data-gate-surface="gate-spine">
+        <strong>Branch Readiness</strong>
+        <span>Plan, issues, tracker, and decision logs are aligned.</span>
+      </a>
+      <a class="gate-card" href="#implementation-gate" data-gate-link data-gate-surface="gate-spine">
+        <strong>Implementation</strong>
+        <span>Build, test, amend, and record decisions.</span>
+      </a>
+      <a class="gate-card" href="#pr-boundary-gate" data-gate-link data-gate-surface="gate-spine">
+        <strong>PR Boundary</strong>
+        <span>Definition-of-done, eval, pattern review, adversarial /judge, review checks, and explain-diff pass.</span>
+      </a>
+      <a class="gate-card" href="#human-review-gate" data-gate-link data-gate-surface="gate-spine">
+        <strong>Human Review</strong>
+        <span>External reviewer feedback is resolved or waived.</span>
+      </a>
+      <a class="gate-card" href="#completion-gate" data-gate-link data-gate-surface="gate-spine">
+        <strong>Completion</strong>
+        <span>All rubric items are proven and the work is closed out.</span>
+      </a>
+    </div>
+    <div class="inline-gate-detail" id="gate-spine-detail" data-gate-detail-surface="gate-spine" hidden></div>
+  </section>
+
+  <section class="panel soft" id="workflow-layers">
+    <h2>Workflow Layers</h2>
+    <p class="note">
+      The same sequence is split into activity, output artifacts, and exit gate
+      lanes. This view makes the workflow mechanics explicit: what work
+      happens, what durable records are produced, and where a proceed-or-loop
+      decision is required. Select the boundary review activity or an exit gate
+      to inspect its detail in place.
+    </p>
+    <div class="swimlane" role="img" aria-label="Workflow swimlane showing activities, artifacts, and gates">
+      <div class="lane-label">Activity</div>
+      <div class="node activity">Grill Me interview and discovery synthesis</div>
+      <div class="node activity">Draft acceptance criteria and binary rubric</div>
+      <div class="node activity">Initialize branch docs and issue plan</div>
+      <div class="node activity">Implement scoped issues and tests</div>
+      <a class="node activity" href="#activity-pr-boundary-review" data-workflow-activity-link>Run boundary review sequence</a>
+      <div class="node activity">Respond to human review</div>
+      <div class="node activity">Finalize evidence and closeout</div>
+
+      <div class="lane-label">Output Artifacts</div>
+      <div class="node artifact"><a href="artifacts/interview.html" target="_blank" rel="noopener"><code>interview.md</code></a><br><a href="artifacts/design.html" target="_blank" rel="noopener"><code>design.md</code></a><br>codebase context</div>
+      <div class="node artifact"><a href="artifacts/spec.html" target="_blank" rel="noopener"><code>spec.md</code></a><br>rubric table<br>architecture contracts</div>
+      <div class="node artifact"><a href="artifacts/plan.html" target="_blank" rel="noopener"><code>plan.md</code></a><br><a href="artifacts/issues.html" target="_blank" rel="noopener"><code>issues.md</code></a><br><a href="artifacts/tracker.html" target="_blank" rel="noopener"><code>tracker.md</code></a><br>repo shape</div>
+      <div class="node artifact"><a href="artifacts/scratchpad.html" target="_blank" rel="noopener"><code>scratchpad.md</code></a><br>tests and code changes</div>
+      <div class="node artifact">current diff<br><a href="artifacts/pattern-review.html" target="_blank" rel="noopener">Pattern Review</a><br><a href="artifacts/judge.html" target="_blank" rel="noopener">judge result</a><br><a href="artifacts/code-review.html" target="_blank" rel="noopener">PR Review</a><br><a href="artifacts/explain-diff.html" target="_blank" rel="noopener">explain-diff</a><br>learning events</div>
+      <div class="node artifact">PR comments<br><a href="artifacts/issues.html" target="_blank" rel="noopener">updated issues</a></div>
+      <div class="node artifact"><a href="artifacts/tracker.html" target="_blank" rel="noopener">final tracker</a><br>checkpoint</div>
+
+      <div class="lane-label">Exit Gates</div>
+      <a class="node gate" href="#design-gate" data-gate-link data-gate-surface="workflow-layers">Design approval</a>
+      <a class="node gate" href="#spec-gate" data-gate-link data-gate-surface="workflow-layers">Spec validation</a>
+      <a class="node gate" href="#branch-gate" data-gate-link data-gate-surface="workflow-layers">Branch readiness</a>
+      <a class="node gate" href="#implementation-gate" data-gate-link data-gate-surface="workflow-layers">Local verification loop</a>
+      <a class="node gate" href="#pr-boundary-gate" data-gate-link data-gate-surface="workflow-layers">PR boundary</a>
+      <a class="node gate" href="#human-review-gate" data-gate-link data-gate-surface="workflow-layers">Review acceptance</a>
+      <a class="node gate" href="#completion-gate" data-gate-link data-gate-surface="workflow-layers">Completion proof</a>
+    </div>
+    <div class="inline-gate-detail" id="workflow-layers-detail" data-gate-detail-surface="workflow-layers" data-workflow-layer-detail hidden></div>
+  </section>
+
+  <section class="panel" id="artifact-lifecycle">
+    <h2>Artifact Flow</h2>
+    <p class="note">
+      Artifact Flow shows how durable context accumulates as the work advances:
+      interview answers become design intent, design intent becomes acceptance
+      criteria, implementation creates decision memory, and the PR boundary
+      converts the full branch context plus current diff into review evidence.
+      The live codebase and current diff are living source context rather than
+      static artifacts, but they remain essential inputs to later decisions.
+    </p>
+    <div class="context-stack" aria-label="Artifact context accumulation">
+      <div class="context-row">
+        <div>
+          <div class="context-title">Design Synthesis</div>
+          <div class="context-desc">Interview output becomes approved intent.</div>
+        </div>
+        <div>
+          <div class="label">Uses accumulated context</div>
+          <div class="chip-list">
+            <a class="artifact-chip" href="artifacts/interview.html" target="_blank" rel="noopener"><code>interview.md</code></a>
+            <span class="artifact-chip source">existing codebase</span>
+          </div>
+        </div>
+        <div>
+          <div class="label">Creates</div>
+          <div class="chip-list">
+            <a class="artifact-chip output" href="artifacts/design.html" target="_blank" rel="noopener"><code>design.md</code></a>
+          </div>
+        </div>
+      </div>
+
+      <div class="context-row">
+        <div>
+          <div class="context-title">Spec Drafting</div>
+          <div class="context-desc">Intent becomes acceptance criteria and a binary rubric.</div>
+        </div>
+        <div>
+          <div class="label">Uses accumulated context</div>
+          <div class="chip-list">
+            <a class="artifact-chip" href="artifacts/interview.html" target="_blank" rel="noopener"><code>interview.md</code></a>
+            <a class="artifact-chip" href="artifacts/design.html" target="_blank" rel="noopener"><code>design.md</code></a>
+            <span class="artifact-chip source">existing codebase</span>
+            <span class="artifact-chip source">architecture contracts</span>
+          </div>
+        </div>
+        <div>
+          <div class="label">Creates</div>
+          <div class="chip-list">
+            <a class="artifact-chip output" href="artifacts/spec.html" target="_blank" rel="noopener"><code>spec.md</code></a>
+          </div>
+        </div>
+      </div>
+
+      <div class="context-row">
+        <div>
+          <div class="context-title">Planning</div>
+          <div class="context-desc">Requirements become an executable route and task ledger.</div>
+        </div>
+        <div>
+          <div class="label">Uses accumulated context</div>
+          <div class="chip-list">
+            <a class="artifact-chip" href="artifacts/interview.html" target="_blank" rel="noopener"><code>interview.md</code></a>
+            <a class="artifact-chip" href="artifacts/design.html" target="_blank" rel="noopener"><code>design.md</code></a>
+            <a class="artifact-chip" href="artifacts/spec.html" target="_blank" rel="noopener"><code>spec.md</code></a>
+            <span class="artifact-chip source">repo structure</span>
+            <span class="artifact-chip source">tests and commands</span>
+          </div>
+        </div>
+        <div>
+          <div class="label">Creates</div>
+          <div class="chip-list">
+            <a class="artifact-chip output" href="artifacts/plan.html" target="_blank" rel="noopener"><code>plan.md</code></a>
+            <a class="artifact-chip output" href="artifacts/issues.html" target="_blank" rel="noopener"><code>issues.md</code></a>
+            <a class="artifact-chip output" href="artifacts/tracker.html" target="_blank" rel="noopener"><code>tracker.md</code></a>
+          </div>
+        </div>
+      </div>
+
+      <div class="context-row">
+        <div>
+          <div class="context-title">Implementation Memory</div>
+          <div class="context-desc">Work adds decisions, evidence, and changed code.</div>
+        </div>
+        <div>
+          <div class="label">Uses accumulated context</div>
+          <div class="chip-list">
+            <a class="artifact-chip" href="artifacts/design.html" target="_blank" rel="noopener"><code>design.md</code></a>
+            <a class="artifact-chip" href="artifacts/spec.html" target="_blank" rel="noopener"><code>spec.md</code></a>
+            <a class="artifact-chip" href="artifacts/plan.html" target="_blank" rel="noopener"><code>plan.md</code></a>
+            <a class="artifact-chip" href="artifacts/issues.html" target="_blank" rel="noopener"><code>issues.md</code></a>
+            <span class="artifact-chip source">live codebase</span>
+          </div>
+        </div>
+        <div>
+          <div class="label">Creates</div>
+          <div class="chip-list">
+            <a class="artifact-chip output" href="artifacts/scratchpad.html" target="_blank" rel="noopener"><code>scratchpad.md</code></a>
+            <a class="artifact-chip output" href="artifacts/decisions.html" target="_blank" rel="noopener"><code>decisions.md</code></a>
+          </div>
+        </div>
+      </div>
+
+      <div class="context-row">
+        <div>
+          <div class="context-title">PR Boundary</div>
+          <div class="context-desc">The full branch context plus diff becomes review evidence.</div>
+        </div>
+        <div>
+          <div class="label">Uses accumulated context</div>
+          <div class="chip-list">
+            <a class="artifact-chip" href="artifacts/interview.html" target="_blank" rel="noopener"><code>interview.md</code></a>
+            <a class="artifact-chip" href="artifacts/design.html" target="_blank" rel="noopener"><code>design.md</code></a>
+            <a class="artifact-chip" href="artifacts/spec.html" target="_blank" rel="noopener"><code>spec.md</code></a>
+            <a class="artifact-chip" href="artifacts/plan.html" target="_blank" rel="noopener"><code>plan.md</code></a>
+            <a class="artifact-chip" href="artifacts/issues.html" target="_blank" rel="noopener"><code>issues.md</code></a>
+            <a class="artifact-chip" href="artifacts/tracker.html" target="_blank" rel="noopener"><code>tracker.md</code></a>
+            <a class="artifact-chip" href="artifacts/decisions.html" target="_blank" rel="noopener"><code>decisions.md</code></a>
+            <span class="artifact-chip source">current diff</span>
+            <span class="artifact-chip source">verification output</span>
+          </div>
+        </div>
+        <div>
+          <div class="label">Creates</div>
+          <div class="chip-list">
+            <a class="artifact-chip output" href="artifacts/pattern-review.html" target="_blank" rel="noopener">Pattern Review</a>
+            <a class="artifact-chip output" href="artifacts/judge.html" target="_blank" rel="noopener">judge report</a>
+            <a class="artifact-chip output" href="artifacts/code-review.html" target="_blank" rel="noopener">PR Review</a>
+            <a class="artifact-chip output" href="artifacts/explain-diff.html" target="_blank" rel="noopener">explain-diff</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="artifact-grid">
+      <div class="mini">
+        <div class="label">Decision memory</div>
+        <a href="artifacts/interview.html" target="_blank" rel="noopener"><code>interview.md</code></a>
+        captures design-phase answers and rationale;
+        <a href="artifacts/scratchpad.html" target="_blank" rel="noopener"><code>scratchpad.md</code></a>
+        captures implementation-time decisions; human-promoted decisions move into
+        <a href="artifacts/decisions.html" target="_blank" rel="noopener"><code>decisions.md</code></a>.
+      </div>
+      <div class="mini">
+        <div class="label">Reports</div>
+        <a href="artifacts/pattern-review.html" target="_blank" rel="noopener">Pattern Review</a>,
+        <a href="skills-copy/workflow-judge/SKILL.html" target="_blank" rel="noopener">judge</a>,
+        <a href="skills-copy/workflow-pr-review/SKILL.html" target="_blank" rel="noopener">PR-review</a>,
+        <a href="skills-copy/explain-diff/SKILL.html" target="_blank" rel="noopener">explain-diff</a>, and completion reports are evidence,
+        not replacements for the source artifacts.
+      </div>
+      <div class="mini">
+        <div class="label">Learning events</div>
+        Downstream misses become normalized learning events that feed
+        <a href="skills-copy/pattern-learn/SKILL.html" target="_blank" rel="noopener"><code>pattern-learn</code></a>.
+        This is the meta loop: misses become structured learning inputs rather
+        than one-off review comments.
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="pattern-lifecycle" hidden>
+    <h2>Pattern Rules and the Learning Loop</h2>
+    <p class="note">
+      Pattern Review is the concrete meta loop in the workflow. Repeated
+      mistakes, review comments, coding standards, and project-specific
+      conventions become durable rules. Those rules are then applied at PR
+      boundaries so the same class of problem is caught earlier the next time.
+    </p>
+    <p class="note">
+      This is deliberately hybrid. Deterministic code owns the mechanics:
+      schemas, lifecycle buckets, rule storage, path scoping, trigger matching,
+      and persisted reports. The probabilistic AI handles the judgment-heavy
+      part: deciding whether a rule really applies to a particular diff and
+      explaining the evidence. That balance is a useful pattern for agentic
+      skills generally.
+    </p>
+
+    <h3>Rules as validation</h3>
+    <div class="validation-flow" aria-label="Pattern rules validation path">
+      <div class="validation-step">
+        <strong>Current diff</strong>
+        The branch changes define the concrete review surface.
+      </div>
+      <div class="validation-step">
+        <strong>Active rules</strong>
+        <a href="artifacts/pattern-rules.html" target="_blank" rel="noopener"><code>rules.yaml</code></a>
+        contains the durable standards to apply.
+      </div>
+      <div class="validation-step">
+        <strong>Deterministic scoping</strong>
+        Paths, triggers, and severity narrow the review to relevant rules.
+      </div>
+      <div class="validation-step">
+        <strong>Agentic review</strong>
+        The LLM applies judgment against the scoped rules and changed code.
+      </div>
+      <div class="validation-step">
+        <strong>Gate report</strong>
+        <a href="artifacts/pattern-review.html" target="_blank" rel="noopener"><code>pattern-review.md</code></a>
+        records pass/fail evidence for the PR boundary.
+      </div>
+    </div>
+
+    <h3>Learning cycle</h3>
+    <div class="pattern-loop" aria-label="Pattern review learning cycle">
+      <div class="pattern-card pattern-events">
+        <strong>Learning events</strong>
+        Judge findings, PR-review misses, human review comments, and QA
+        feedback become normalized evidence.
+        <span class="connector">captures misses</span>
+      </div>
+      <div class="pattern-card pattern-learn">
+        <strong><a href="skills-copy/pattern-learn/SKILL.html" target="_blank" rel="noopener"><code>pattern-learn</code></a></strong>
+        Classify learning events and turn recurring misses into candidate
+        rules.
+        <span class="connector">creates proposals</span>
+      </div>
+      <div class="pattern-card pattern-rules hub">
+        <strong>Active pattern rules</strong>
+        Human-promoted rules become the durable rule set consumed by future
+        Pattern Review runs.
+        <span class="connector">center of the loop</span>
+      </div>
+      <div class="pattern-card pattern-review">
+        <strong><a href="skills-copy/pattern-review/SKILL.html" target="_blank" rel="noopener"><code>pattern-review</code></a></strong>
+        Run the PR-boundary gate against the current diff and active rules.
+        <span class="connector">prevents recurrence</span>
+      </div>
+      <div class="pattern-card pattern-extract">
+        <strong><a href="skills-copy/pattern-extract/SKILL.html" target="_blank" rel="noopener"><code>pattern-extract</code></a></strong>
+        Bootstrap candidate rules from instruction prose, coding standards, and
+        repo guidance.
+        <span class="connector">seeds proposals</span>
+      </div>
+      <div class="pattern-card pattern-promote">
+        <strong><a href="skills-copy/pattern-promote/SKILL.html" target="_blank" rel="noopener"><code>pattern-promote</code></a></strong>
+        A human accepts, edits, defers, or rejects proposals before they become
+        active.
+        <span class="connector">governs changes</span>
+      </div>
+      <div class="pattern-card pattern-init">
+        <strong><a href="skills-copy/pattern-init/SKILL.html" target="_blank" rel="noopener"><code>pattern-init</code></a></strong>
+        Create the local pattern-review buckets for a repository, worktree, or
+        scope.
+        <span class="connector">sets up storage</span>
+      </div>
+    </div>
+
+    <h3>Rule anatomy</h3>
+    <p class="note">
+      A rule is small, inspectable, and evidence-backed. The important split is
+      between deterministic fields such as <code>scope</code>,
+      <code>trigger</code>, and <code>severity</code>, and the agentic review
+      instruction that tells the LLM what judgment to apply.
+    </p>
+    <pre class="rule-schema"><code>- id: client-api-access-through-stores
+  title: Client API access must go through stores
+  description: Vue components must not call remote APIs directly.
+  rationale: Preserves the UI / data-access boundary.
+  scope:
+    paths:
+      - public/**/*.vue
+      - public/**/*.js
+  trigger:
+    mode: diff
+    addedContains:
+      - "$axios"
+  severity: blocker
+  review:
+    mode: agentic
+    instructions: Inspect changed components for direct API access.
+  evidence:
+    sourceSummary: Repeated PR review finding.
+  examples:
+    good: Component calls a store action.
+    bad: Component calls this.$axios directly.</code></pre>
+
+    <div class="detail-grid">
+      <div class="mini">
+        <div class="label">Deterministic mechanics</div>
+        Rule files are structured YAML. Scripts can parse them, validate them,
+        match path scopes, compute hashes, and produce consistent reports.
+      </div>
+      <div class="mini">
+        <div class="label">Agentic judgment</div>
+        The review instruction is where the LLM does useful judgment: reading a
+        real diff, deciding applicability, and producing evidence.
+      </div>
+      <div class="mini">
+        <div class="label">Human governance</div>
+        Proposals do not become active rules automatically. Promotion is a
+        human-on-the-loop decision so the rule set stays intentional.
+      </div>
+    </div>
+
+    <div class="link-grid">
+      <a class="artifact-link" href="artifacts/pattern-rules.html" target="_blank" rel="noopener"><strong>sample rules.yaml</strong><span>Active rule examples with scope, triggers, evidence, provenance, and good/bad examples</span></a>
+      <a class="artifact-link" href="artifacts/pattern-review.html" target="_blank" rel="noopener"><strong>sample pattern-review.md</strong><span>Rendered Pattern Review gate report</span></a>
+      <a class="artifact-link" href="skills-copy/pattern-review/SKILL.html" target="_blank" rel="noopener"><strong>pattern-review</strong><span>Run the validation gate</span></a>
+      <a class="artifact-link" href="skills-copy/pattern-learn/SKILL.html" target="_blank" rel="noopener"><strong>pattern-learn</strong><span>Convert misses into rule proposals</span></a>
+      <a class="artifact-link" href="skills-copy/pattern-promote/SKILL.html" target="_blank" rel="noopener"><strong>pattern-promote</strong><span>Human-govern proposed rules</span></a>
+      <a class="artifact-link" href="skills-copy/pattern-audit/SKILL.html" target="_blank" rel="noopener"><strong>pattern-audit</strong><span>Inspect rule-set health</span></a>
+    </div>
+  </section>
+
+  <section class="panel soft" id="pr-boundary-review-stack">
+    <h2>PR Boundary Review</h2>
+    <p class="note">
+      The PR boundary turns implementation work into reviewable evidence. It is
+      not a single check. It is a coordinated stack of skills that reconcile the
+      workflow record, evaluate the implementation against the spec, apply
+      durable pattern rules, run adversarial judge review, perform
+      code-review-style inspection, explain the final diff, and preserve the
+      decisions that should survive the branch. This section decomposes that
+      boundary into the concrete review activities and artifacts a human
+      reviewer can trust.
+    </p>
+
+    <h3>Evidence assembly path</h3>
+    <div class="validation-flow review-stack-flow" aria-label="PR boundary review stack evidence assembly path">
+      <a class="validation-step model-link" href="#review-stage-reconcile" data-review-stack-link>
+        <strong>Reconcile</strong>
+        Issues, tracker state, decisions, and verification scope are brought up
+        to date.
+      </a>
+      <a class="validation-step model-link" href="#review-stage-evaluate" data-review-stack-link>
+        <strong>Evaluate</strong>
+        The implementation is checked against the spec, acceptance criteria,
+        rubric, and Definition of Done.
+      </a>
+      <a class="validation-step model-link" href="#review-stage-pattern-review" data-review-stack-link>
+        <strong>Pattern review</strong>
+        Active rules are applied to the current diff.
+      </a>
+      <a class="validation-step model-link" href="#review-stage-judge" data-review-stack-link>
+        <strong>Judge</strong>
+        An independent LLM-as-judge pass looks for gaps, contradictions, and
+        scope drift.
+      </a>
+      <a class="validation-step model-link" href="#review-stage-pr-review" data-review-stack-link>
+        <strong>PR review</strong>
+        A code-review stance looks for bugs, regressions, and residual risks.
+      </a>
+      <a class="validation-step model-link" href="#review-stage-explain-diff" data-review-stack-link>
+        <strong>Explain diff</strong>
+        The completed branch is translated into a reviewer-facing walkthrough.
+      </a>
+      <a class="validation-step model-link" href="#review-stage-ready-evidence" data-review-stack-link>
+        <strong>Ready evidence</strong>
+        The branch has concrete artifacts for human review.
+      </a>
+    </div>
+
+    <div class="inline-gate-detail" id="review-stack-detail" data-review-stack-detail hidden></div>
+    <div id="review-stack-detail-templates" hidden>
+      <details id="review-stage-reconcile">
+        <summary>Reconcile</summary>
+        <div class="detail-grid">
+          <div class="mini">
+            <div class="label">Purpose</div>
+            Bring the branch record into a coherent state before judging
+            whether the work is ready for review.
+          </div>
+          <div class="mini">
+            <div class="label">What happens</div>
+            Issues, tracker state, decision logs, and verification scope are
+            reconciled against the current branch diff.
+          </div>
+          <div class="mini">
+            <div class="label">Artifacts</div>
+            <a href="artifacts/issues.html" target="_blank" rel="noopener"><code>issues.md</code></a>,
+            <a href="artifacts/tracker.html" target="_blank" rel="noopener"><code>tracker.md</code></a>,
+            <a href="artifacts/scratchpad.html" target="_blank" rel="noopener"><code>scratchpad.md</code></a>,
+            and <a href="artifacts/decisions.html" target="_blank" rel="noopener"><code>decisions.md</code></a>.
+          </div>
+          <div class="mini">
+            <div class="label">Skills</div>
+            <a href="skills-copy/workflow-pr-boundary/SKILL.html" target="_blank" rel="noopener">workflow-pr-boundary</a>
+            and <a href="skills-copy/workflow-decision-triage/SKILL.html" target="_blank" rel="noopener">workflow-decision-triage</a>.
+          </div>
+          <div class="mini">
+            <div class="label">Output</div>
+            The branch record is internally consistent enough for evaluation
+            and review checks to be meaningful.
+          </div>
+        </div>
+      </details>
+      <details id="review-stage-evaluate">
+        <summary>Evaluate</summary>
+        <div class="detail-grid">
+          <div class="mini">
+            <div class="label">Purpose</div>
+            Check the implementation against the spec, acceptance criteria,
+            rubric, and Definition of Done from concrete evidence.
+          </div>
+          <div class="mini">
+            <div class="label">What happens</div>
+            Verification commands and observed behavior are mapped back to the
+            criteria that should be satisfied by the completed slice.
+          </div>
+          <div class="mini">
+            <div class="label">Artifacts</div>
+            <a href="artifacts/spec.html" target="_blank" rel="noopener"><code>spec.md</code></a> and
+            <a href="artifacts/tracker.html" target="_blank" rel="noopener"><code>tracker.md</code></a>.
+          </div>
+          <div class="mini">
+            <div class="label">Skill</div>
+            <a href="skills-copy/workflow-spec-evaluate/SKILL.html" target="_blank" rel="noopener">workflow-spec-evaluate</a>
+          </div>
+          <div class="mini">
+            <div class="label">Output</div>
+            Tracker evidence is updated from facts, not optimism.
+          </div>
+        </div>
+      </details>
+      <details id="review-stage-pattern-review">
+        <summary>Pattern review</summary>
+        <div class="detail-grid">
+          <div class="mini">
+            <div class="label">Purpose</div>
+            Apply durable coding-standard and project-specific pattern rules to
+            the current diff.
+          </div>
+          <div class="mini">
+            <div class="label">What happens</div>
+            Active rules are scoped to the changed files and evaluated against
+            the branch diff; findings become a persisted gate report.
+          </div>
+          <div class="mini">
+            <div class="label">Artifacts</div>
+            <a href="artifacts/pattern-rules.html" target="_blank" rel="noopener"><code>rules.yaml</code></a>
+            and <a href="artifacts/pattern-review.html" target="_blank" rel="noopener"><code>pattern-review.md</code></a>.
+          </div>
+          <div class="mini">
+            <div class="label">Skill</div>
+            <a href="skills-copy/pattern-review/SKILL.html" target="_blank" rel="noopener">pattern-review</a>
+          </div>
+          <div class="mini">
+            <div class="label">Output</div>
+            Pattern findings are fixed, reviewed, or explicitly waived before
+            human review.
+          </div>
+        </div>
+      </details>
+      <details id="review-stage-judge">
+        <summary>Judge</summary>
+        <div class="detail-grid">
+          <div class="mini">
+            <div class="label">Purpose</div>
+            Run an independent adversarial evaluation against the spec, changed
+            files, and workflow evidence.
+          </div>
+          <div class="mini">
+            <div class="label">What happens</div>
+            The judge looks for gaps, contradictions, scope drift, weak
+            evidence, and rubric criteria that are not actually satisfied.
+          </div>
+          <div class="mini">
+            <div class="label">Artifact</div>
+            <a href="artifacts/judge.html" target="_blank" rel="noopener"><code>judge.md</code></a>.
+          </div>
+          <div class="mini">
+            <div class="label">Skill</div>
+            <a href="skills-copy/workflow-judge/SKILL.html" target="_blank" rel="noopener">workflow-judge</a>
+          </div>
+          <div class="mini">
+            <div class="label">Output</div>
+            Judge failures block review until fixed or explicitly accepted by
+            the human.
+          </div>
+        </div>
+      </details>
+      <details id="review-stage-pr-review">
+        <summary>PR review</summary>
+        <div class="detail-grid">
+          <div class="mini">
+            <div class="label">Purpose</div>
+            Inspect the diff from a code-review stance, prioritizing bugs,
+            regressions, missing tests, and residual risks.
+          </div>
+          <div class="mini">
+            <div class="label">What happens</div>
+            The review focuses on changed code, file/line evidence, cross-repo
+            contracts, test gaps, and risks that a human reviewer would care
+            about.
+          </div>
+          <div class="mini">
+            <div class="label">Artifact</div>
+            <a href="artifacts/code-review.html" target="_blank" rel="noopener"><code>code-review.md</code></a>.
+          </div>
+          <div class="mini">
+            <div class="label">Skill</div>
+            <a href="skills-copy/workflow-pr-review/SKILL.html" target="_blank" rel="noopener">workflow-pr-review</a>
+          </div>
+          <div class="mini">
+            <div class="label">Output</div>
+            Findings lead with concrete file and line evidence, or the review
+            records residual risks and test gaps.
+          </div>
+        </div>
+      </details>
+      <details id="review-stage-explain-diff">
+        <summary>Explain diff</summary>
+        <div class="detail-grid">
+          <div class="mini">
+            <div class="label">Purpose</div>
+            Translate the completed branch diff into a reviewer-facing
+            walkthrough.
+          </div>
+          <div class="mini">
+            <div class="label">What happens</div>
+            The explanation gives background, intuition, code walkthrough,
+            diagrams, and comprehension checks so the reviewer can understand
+            the change faster.
+          </div>
+          <div class="mini">
+            <div class="label">Artifact</div>
+            <a href="artifacts/explain-diff.html" target="_blank" rel="noopener"><code>explain-diff.html</code></a>.
+          </div>
+          <div class="mini">
+            <div class="label">Skill</div>
+            <a href="skills-copy/explain-diff/SKILL.html" target="_blank" rel="noopener">explain-diff</a>
+          </div>
+          <div class="mini">
+            <div class="label">Output</div>
+            The reviewer gets a narrative map of the diff, not just a raw file
+            list.
+          </div>
+        </div>
+      </details>
+      <details id="review-stage-ready-evidence">
+        <summary>Ready evidence</summary>
+        <div class="detail-grid">
+          <div class="mini">
+            <div class="label">Purpose</div>
+            Assemble the final review packet so a human can evaluate the branch
+            without reconstructing context from scratch.
+          </div>
+          <div class="mini">
+            <div class="label">What happens</div>
+            The PR description, linked reports, tracker state, decisions, and
+            final commit are aligned with the evidence produced by the earlier
+            sub-activities.
+          </div>
+          <div class="mini">
+            <div class="label">Artifacts</div>
+            PR description, linked reports, promoted decisions, tracker
+            evidence, and the final Git commit.
+          </div>
+          <div class="mini">
+            <div class="label">Skills</div>
+            <a href="skills-copy/workflow-pr-boundary/SKILL.html" target="_blank" rel="noopener">workflow-pr-boundary</a>
+            and <a href="skills-copy/workflow-commit/SKILL.html" target="_blank" rel="noopener">workflow-commit</a>.
+          </div>
+          <div class="mini">
+            <div class="label">Output</div>
+            The branch is ready for human review with concrete, linked
+            evidence.
+          </div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section class="panel" id="agentic-superpowers">
+    <h2>Agentic Development Superpowers</h2>
+    <p class="note">
+      These practices are orthogonal to the workflow diagrams, but they change
+      the practical ceiling of agentic software development. They reduce
+      coordination friction, increase agent autonomy, and keep the developer in
+      the role of facilitator rather than bottleneck.
+    </p>
+    <div class="detail-grid">
+      <a class="mini model-link" href="#yolo-harness-setup" data-superpower-link>
+        <div class="label">YOLO Mode</div>
+        Agent autonomy only pays off when the harness can run commands, edit
+        files, and inspect results without asking for permission at every small
+        step. The exact name varies by harness, but the principle is the same:
+        grant enough trusted local authority for the agent to execute the inner
+        loop at speed, then rely on gates and review to control risk.
+      </a>
+      <a class="mini model-link" href="#full-stack-access" data-superpower-link>
+        <div class="label">Full-stack access</div>
+        When I find myself mediating between an agent and the system it needs
+        to understand, I stop and connect the agent directly. Give it eyes,
+        ears, and hands across the stack: browser state, logs, CLIs, schemas,
+        queries, tests, and runtime evidence. Then get out of the way.
+      </a>
+      <a class="mini model-link" href="#git-worktrees" data-superpower-link>
+        <div class="label">Git worktrees</div>
+        Worktrees let separate topic branches run side by side in the same
+        repository without separate full clones. They are the killer Git feature
+        for agentic development because multiple agents can work concurrently
+        without stepping on each other's files, while still sharing the same
+        object database and repository history.
+      </a>
+      <a class="mini model-link" href="#desktop-harnesses" data-superpower-link>
+        <div class="label">First-party desktop apps</div>
+        Installed applications from model providers such as OpenAI and
+        Anthropic are increasingly replacing traditional IDE-centered
+        workflows. They are built around managing agentic development sessions,
+        not just chatting in a browser or issuing commands in a terminal.
+      </a>
+      <a class="mini model-link" href="#voice-to-text" data-superpower-link>
+        <div class="label">Voice-to-text</div>
+        Modern AI dictation is accurate enough to change how software work
+        feels. Speaking is a more natural way to give agents context, much as it
+        is a natural way to work with junior engineers. English is becoming a
+        programming language, and voice is often the fastest input device for
+        that language.
+      </a>
+      <a class="mini model-link" href="#model-effort-choice" data-superpower-link>
+        <div class="label">Model and effort choice</div>
+        Default to the strongest practical model and effort level unless cost,
+        latency, or task simplicity argues otherwise. Token cost has become a
+        practical consideration for next-generation models, so model choice
+        should be treated as a cost-benefit decision. My current daily driver is
+        the Codex desktop application with GPT-5.5 on medium effort.
+      </a>
+    </div>
+    <div class="inline-gate-detail" id="superpower-detail" data-superpower-detail hidden></div>
+    <div id="superpower-detail-templates" hidden>
+    <details id="yolo-harness-setup">
+      <summary>YOLO Mode</summary>
+      <p class="note">
+        YOLO Mode is a deliberate tradeoff: it increases productivity by giving
+        the agent more autonomy, but it also increases risk. The harnesses warn
+        about this because the agent may be able to edit files, run commands,
+        use the network, or reach systems that normally require explicit
+        approval. Choosing this mode requires extra diligence: decide whether
+        the surrounding guardrails are sufficient, including worktrees, review
+        gates, limited credentials, and whether VPN access to shared stages
+        should be enabled at all.
+      </p>
+      <p class="note">
+        The disclosure sections below show how to enable the most autonomous
+        mode in each supported harness. The exact label differs by product, but
+        the goal is the same: reduce routine approval prompts enough for the
+        agent to work without constant human mediation.
+      </p>
+      <div class="harness-list">
+        <details class="harness-detail" id="claude-vscode-yolo">
+          <summary>Visual Studio Code with Claude Code</summary>
+          <div class="harness-body">
+            <p>
+              The Claude Code extension calls this permission level
+              <code>Bypass permissions</code>. The VS Code setting that makes it
+              available is labeled <code>Claude Code: Allow Dangerously Skip Permissions</code>.
+            </p>
+            <ol class="guide-steps">
+              <li>
+                Open Visual Studio Code settings from the application menu:
+                <code>Code → Preferences → Settings</code>.
+                <figure class="step-figure">
+                  <img src="artifacts/yolo-mode/claude-vscode-open-settings.png" alt="Visual Studio Code menu path showing Code, Preferences, Settings">
+                  <figcaption>Open settings from the application menu.</figcaption>
+                </figure>
+              </li>
+              <li>
+                Search the settings page for
+                <code>@ext:Anthropic.claude-code</code>.
+              </li>
+              <li>
+                Enable
+                <code>Claude Code: Allow Dangerously Skip Permissions</code>.
+                <figure class="step-figure">
+                  <img src="artifacts/yolo-mode/claude-vscode-enable-permission.png" alt="Visual Studio Code settings showing the Claude Code Allow Dangerously Skip Permissions checkbox">
+                  <figcaption>Filter to the Claude Code extension settings, then enable the permission.</figcaption>
+                </figure>
+              </li>
+              <li>
+                Dismiss settings and open a new Claude Code session from the
+                right sidebar.
+              </li>
+              <li>
+                Open the mode selector at the bottom of the Claude Code prompt
+                box.
+              </li>
+              <li>
+                Choose <code>Bypass permissions</code>.
+                <figure class="step-figure">
+                  <img src="artifacts/yolo-mode/claude-vscode-bypass-permissions.png" alt="Claude Code panel mode selector showing Bypass permissions selected">
+                  <figcaption>Start a new Claude Code session, open the mode selector, and choose <code>Bypass permissions</code>.</figcaption>
+                </figure>
+              </li>
+            </ol>
+            <p class="note">
+              Claude Code may sometimes revert to a less permissive mode,
+              especially across new sessions. If approval prompts start
+              appearing again, reopen the mode selector and change the session
+              back to <code>Bypass permissions</code>.
+            </p>
+          </div>
+        </details>
+        <details class="harness-detail">
+          <summary>Visual Studio Code with Codex</summary>
+          <div class="harness-body">
+            <p>
+              The Codex extension exposes its approval mode directly in the
+              chat window. To enable YOLO mode, open the approval selector and
+              choose <code>Full access</code>.
+            </p>
+            <ol class="guide-steps">
+              <li>
+                Click the current approval mode at the bottom of the Codex chat
+                window, then select <code>Full access</code>.
+                <figure class="step-figure">
+                  <img src="artifacts/yolo-mode/codex-vscode-full-access.png" alt="Visual Studio Code Codex chat approval menu showing Full access">
+                  <figcaption>Open the approval mode menu in the Codex chat window and select <code>Full access</code>.</figcaption>
+                </figure>
+              </li>
+            </ol>
+          </div>
+        </details>
+        <details class="harness-detail">
+          <summary>Cursor</summary>
+          <div class="harness-body">
+            <p>
+              Cursor exposes agent autonomy controls under the Agents settings.
+              For a YOLO-style setup, switch the run mode to unsandboxed
+              execution and allow network access.
+            </p>
+            <ol class="guide-steps">
+              <li>
+                Open Cursor settings from the application menu:
+                <code>Cursor → Settings</code>.
+                <figure class="step-figure">
+                  <img src="artifacts/yolo-mode/cursor-open-settings.png" alt="Cursor application menu showing Settings selected">
+                  <figcaption>Open Cursor settings from the application menu.</figcaption>
+                </figure>
+              </li>
+              <li>
+                Select <code>Agents</code>, open the <code>Run Mode</code>
+                menu, and choose <code>Run Everything (Unsandboxed)</code>.
+                <figure class="step-figure">
+                  <img src="artifacts/yolo-mode/cursor-run-everything.png" alt="Cursor Agents settings showing Run Mode menu with Run Everything Unsandboxed">
+                  <figcaption>In Agents settings, set Run Mode to <code>Run Everything (Unsandboxed)</code>.</figcaption>
+                </figure>
+              </li>
+              <li>
+                Open the <code>Auto-Run Network Access</code> menu and choose
+                <code>Allow All</code>.
+                <figure class="step-figure">
+                  <img src="artifacts/yolo-mode/cursor-network-allow-all.png" alt="Cursor Agents settings showing Auto-Run Network Access menu with Allow All">
+                  <figcaption>Set Auto-Run Network Access to <code>Allow All</code>.</figcaption>
+                </figure>
+              </li>
+            </ol>
+          </div>
+        </details>
+        <details class="harness-detail">
+          <summary>Codex desktop application</summary>
+          <div class="harness-body">
+            <p>
+              The Codex desktop application exposes agent permissions in the
+              ChatGPT desktop settings. Enable full access to let Codex run
+              commands with network access and without approval prompts.
+            </p>
+            <ol class="guide-steps">
+              <li>
+                Open ChatGPT settings from the application menu:
+                <code>ChatGPT → Settings</code>.
+                <figure class="step-figure">
+                  <img src="artifacts/yolo-mode/codex-desktop-open-settings.png" alt="ChatGPT desktop application menu showing Settings selected">
+                  <figcaption>Open ChatGPT settings from the application menu.</figcaption>
+                </figure>
+              </li>
+              <li>
+                In <code>General</code>, enable the permission toggles:
+                <code>Default permissions</code>, <code>Auto-review</code>, and
+                <code>Full access</code>.
+                <figure class="step-figure">
+                  <img src="artifacts/yolo-mode/codex-desktop-enable-permissions.png" alt="ChatGPT desktop General settings showing Default permissions Auto-review and Full access toggles enabled">
+                  <figcaption>In General settings, enable <code>Default permissions</code>, <code>Auto-review</code>, and <code>Full access</code>.</figcaption>
+                </figure>
+              </li>
+            </ol>
+          </div>
+        </details>
+        <details class="harness-detail">
+          <summary>Claude Code desktop application</summary>
+          <div class="harness-body">
+            <p>
+              The Claude desktop application exposes this through the
+              Claude Code settings. Enable bypass permissions mode to allow
+              Claude Code local sessions to run without repeated approval
+              prompts.
+            </p>
+            <ol class="guide-steps">
+              <li>
+                Open Claude settings from the application menu:
+                <code>Claude → Settings</code>.
+                <figure class="step-figure">
+                  <img src="artifacts/yolo-mode/claude-desktop-open-settings.png" alt="Claude desktop application menu showing Settings selected">
+                  <figcaption>Open Claude settings from the application menu.</figcaption>
+                </figure>
+              </li>
+              <li>
+                Select <code>Claude Code</code>, then enable
+                <code>Allow bypass permissions mode</code>.
+                <figure class="step-figure">
+                  <img src="artifacts/yolo-mode/claude-desktop-allow-bypass-permissions.png" alt="Claude desktop settings showing Claude Code and Allow bypass permissions mode enabled">
+                  <figcaption>In Claude Code settings, enable <code>Allow bypass permissions mode</code>.</figcaption>
+                </figure>
+              </li>
+            </ol>
+          </div>
+        </details>
+      </div>
+    </details>
+    <details id="desktop-harnesses">
+      <summary>First-party desktop apps</summary>
+      <p class="note">
+        First-party desktop apps are installed applications from model
+        providers such as OpenAI and Anthropic. They make it easier to keep
+        multiple agentic development sessions alive, switch attention when a
+        session needs judgment, and give agents local context that browser chat
+        and terminal-only interfaces do not organize as naturally.
+      </p>
+      <div class="link-grid">
+        <a class="artifact-link" href="https://chatgpt.com/features/desktop/" target="_blank" rel="noopener"><strong>Codex desktop app</strong><span>OpenAI ChatGPT desktop app with Codex</span></a>
+        <a class="artifact-link" href="https://claude.com/download" target="_blank" rel="noopener"><strong>Claude Code desktop app</strong><span>Anthropic Claude desktop download</span></a>
+        <a class="artifact-link" href="https://cursor.com/download" target="_blank" rel="noopener"><strong>Cursor</strong><span>Cursor desktop download for macOS, Windows, and Linux</span></a>
+      </div>
+    </details>
+    <details id="full-stack-access">
+      <summary>Full-stack access</summary>
+      <p class="note">
+        The most productive agent sessions happen when the agent can observe
+        and operate the system directly instead of asking the developer to
+        relay evidence by hand. Bugs and feature work rarely respect layer
+        boundaries. A browser symptom may originate in frontend state, a
+        backend API response, a database row, a queue message, a cloud
+        permission, or a stale deployment. The agent needs access to enough of
+        that stack to follow the evidence.
+      </p>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Browser and UI automation</div>
+          Playwright is especially valuable because it lets the agent drive a
+          real browser, run end-to-end tests, reproduce user flows, collect
+          screenshots, and verify that fixes work from the user's point of
+          view.
+        </div>
+        <div class="mini">
+          <div class="label">Frontend telemetry</div>
+          Browser console output, network requests, response payloads, local
+          storage, cookies, and rendered DOM state often explain what the UI is
+          really doing. Without that evidence, the agent is guessing from code
+          alone.
+        </div>
+        <div class="mini">
+          <div class="label">Backend and runtime logs</div>
+          Local server logs, application logs, queue workers, API traces, and
+          remote runtime logs let the agent connect a frontend symptom to the
+          backend behavior that caused it.
+        </div>
+        <div class="mini">
+          <div class="label">Data and schemas</div>
+          Database schemas, seed data, migrations, query tools, and safe
+          read-only inspection paths help the agent distinguish a code bug from
+          bad data, missing fixtures, or an unexpected production shape.
+        </div>
+        <div class="mini">
+          <div class="label">Cloud and CLIs</div>
+          The agent can use the AWS CLI when credentials and guardrails permit,
+          and the same principle applies to any other CLI: GitHub, Docker,
+          database clients, deployment tools, log tools, and custom project
+          commands.
+        </div>
+        <div class="mini">
+          <div class="label">Computer Use</div>
+          Computer Use is particularly strong in the Codex desktop application.
+          It lets the agent operate normal desktop apps the way a person would:
+          by seeing, clicking, typing, using menus, and moving between windows
+          when there is no clean API, plugin, or CLI path.
+        </div>
+        <div class="mini">
+          <div class="label">The magic is cross-layer diagnosis</div>
+          Once this is wired up, an agent can run a browser test, watch the
+          console and network tab, inspect backend logs, query local data, and
+          rerun verification without waiting for a human to copy evidence from
+          each layer.
+        </div>
+      </div>
+      <div class="link-grid">
+        <a class="artifact-link" href="https://playwright.dev/" target="_blank" rel="noopener"><strong>Playwright</strong><span>Browser automation for tests, scripts, and agent workflows</span></a>
+        <a class="artifact-link" href="https://developers.openai.com/codex/app/computer-use" target="_blank" rel="noopener"><strong>Codex Computer Use</strong><span>Let Codex operate desktop apps by seeing, clicking, and typing</span></a>
+      </div>
+    </details>
+    <details id="git-worktrees">
+      <summary>Git worktrees</summary>
+      <p class="note">
+        Git worktrees are one of the highest-leverage features for agentic
+        development. They let you create separate working directories for
+        separate branches, so each agent session can have its own files, branch,
+        editor state, and test runs without blocking or overwriting another
+        session.
+      </p>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Why they are better than full clones</div>
+          A worktree is not a separate full checkout with its own independent
+          repository history. Linked worktrees share the repository's Git object
+          data and metadata, so creating or deleting one is usually much faster
+          and lighter than cloning the whole repository again.
+        </div>
+        <div class="mini">
+          <div class="label">Why agents love them</div>
+          Agentic work often means several tasks are active at once: one branch
+          is waiting for review, another is debugging a failure, and a third is
+          implementing the next slice. Worktrees keep those contexts isolated so
+          agents do not stomp on each other's files or force constant stashing
+          and branch switching.
+        </div>
+        <div class="mini">
+          <div class="label">Multi-repo products complicate things</div>
+          Many harnesses can create a worktree automatically when the project is
+          a monorepo. Products that span multiple repos are harder: you may need
+          matching topic branches and worktrees in both frontend and backend
+          repos. It is still worth doing because it preserves isolation across
+          the whole feature, not just one repository.
+        </div>
+      </div>
+      <div class="link-grid">
+        <a class="artifact-link" href="https://git-scm.com/docs/git-worktree" target="_blank" rel="noopener"><strong>Git worktree documentation</strong><span>Canonical Git definition and command reference</span></a>
+        <a class="artifact-link" href="https://developers.openai.com/codex/app/worktrees" target="_blank" rel="noopener"><strong>Codex worktrees</strong><span>How Codex uses Git worktrees in the desktop app</span></a>
+        <a class="artifact-link" href="https://code.claude.com/docs/en/worktrees" target="_blank" rel="noopener"><strong>Claude Code worktrees</strong><span>Running parallel Claude Code sessions with worktrees</span></a>
+      </div>
+    </details>
+    <details id="voice-to-text">
+      <summary>Voice-to-text</summary>
+      <p class="note">
+        The current generation of AI dictation tools is materially different
+        from old operating-system speech recognition. They handle natural
+        speech, clean up filler, preserve intent, and produce text that is
+        often ready to paste directly into an agent prompt, issue description,
+        review response, or design note.
+      </p>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Why it matters</div>
+          Agentic development shifts a lot of programming into explaining
+          intent, constraints, examples, and tradeoffs. Speaking that context is
+          usually faster and more natural than typing it. It also reduces wrist
+          load and lowers the friction of giving agents the rich context they
+          need.
+        </div>
+        <div class="mini">
+          <div class="label">English as programming language</div>
+          If English is becoming a programming language for agents, then voice
+          is one of the best interfaces for writing it. The interaction starts
+          to feel less like typing commands and more like mentoring a junior
+          engineer: explain the goal, describe constraints, answer questions,
+          and refine the result.
+        </div>
+        <div class="mini">
+          <div class="label">My current tool</div>
+          I currently use Willow Voice. The accuracy is high enough that it is
+          worth paying for, especially when writing longer prompts or design
+          explanations. My referral link is
+          <a href="https://app.willowvoice.com/?ref=TBROWN11" target="_blank" rel="noopener">Willow Voice</a>.
+        </div>
+      </div>
+      <div class="link-grid">
+        <a class="artifact-link" href="https://willowvoice.com/" target="_blank" rel="noopener"><strong>Willow Voice</strong><span>AI dictation for prompts, documents, email, and messaging</span></a>
+        <a class="artifact-link" href="https://wisprflow.ai/" target="_blank" rel="noopener"><strong>Wispr Flow</strong><span>Cross-platform voice dictation, often heard as “WhisperFlow”</span></a>
+        <a class="artifact-link" href="https://superwhisper.com/" target="_blank" rel="noopener"><strong>Superwhisper</strong><span>AI voice-to-text for macOS, Windows, and iOS</span></a>
+        <a class="artifact-link" href="https://aquavoice.com/" target="_blank" rel="noopener"><strong>Aqua Voice</strong><span>Fast AI dictation that works across apps</span></a>
+        <a class="artifact-link" href="https://www.macwhisper.com/" target="_blank" rel="noopener"><strong>MacWhisper</strong><span>Whisper-based transcription and dictation on macOS</span></a>
+      </div>
+    </details>
+    <details id="model-effort-choice">
+      <summary>Model and effort choice</summary>
+      <p class="note">
+        The default should usually be the strongest model and effort level that
+        is practical for the job. For hard implementation work, review, or
+        ambiguous debugging, the quality gains are often worth the additional
+        time and token cost. For small mechanical edits, simple searches, or
+        low-risk formatting, a cheaper or lower-effort setting may be enough.
+      </p>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Optimize for outcome</div>
+          Use stronger models when correctness matters, when the codebase is
+          unfamiliar, or when a mistake would create expensive review or
+          rework. The cheaper run is not cheaper if it produces a weak plan,
+          misses context, or needs to be redone.
+        </div>
+        <div class="mini">
+          <div class="label">Tune effort to task shape</div>
+          Higher effort is best for open-ended design, multi-file changes,
+          adversarial review, and failure diagnosis. Medium effort is often the
+          useful daily-driver setting. Lower effort fits quick edits and
+          well-scoped mechanical follow-through.
+        </div>
+        <div class="mini">
+          <div class="label">Delegate with tuned effort</div>
+          One of the more exciting features of cutting-edge agentic models is
+          their ability to delegate work to sub-agents and tune the model and
+          effort used by each one to the difficulty of its subproblem. That can
+          preserve a high-performance primary agent without making every
+          supporting task equally expensive.
+        </div>
+        <div class="mini">
+          <div class="label">Watch cost, time, and tokens</div>
+          Token cost has become a real factor with the newest models, but it
+          depends on how you access them. With direct API use, more tokens means
+          more billable cost. With a subscription plan, it usually means you
+          burn through plan limits faster rather than paying more for that
+          individual task.
+        </div>
+      </div>
+      <details id="model-effort-benchmarks">
+        <summary>Cost-benefit benchmark examples</summary>
+        <p class="note">
+          These examples show why the external benchmark graphs are useful:
+          they make the relationship between quality, effort, time, and task
+          cost visible instead of relying on a single model ranking.
+        </p>
+        <figure class="step-figure wide-figure">
+          <img src="artifacts/model-effort/deepswe-cost-curve.jpeg" alt="DeepSWE score versus average cost per task graph for coding agent models">
+          <figcaption>
+            Cost-benefit curves make the tradeoff visible. A model can produce a
+            better score while costing more per task, and different effort
+            levels can move the same model along the curve. The practical
+            question is which point gives enough quality for the work at hand.
+          </figcaption>
+        </figure>
+        <figure class="step-figure wide-figure">
+          <img src="artifacts/model-effort/artificial-analysis-quadrants.png" alt="Artificial Analysis intelligence versus cost per task quadrant chart">
+          <figcaption>
+            Quadrant charts are useful for spotting efficient choices quickly:
+            models in the attractive region combine stronger measured
+            capability with lower cost per task. Treat these charts as decision
+            aids, not absolute truth; your subscription limits, latency, task
+            type, and local workflow still matter.
+          </figcaption>
+        </figure>
+        <div class="link-grid">
+          <a class="artifact-link" href="https://artificialanalysis.ai/agents/coding-agents" target="_blank" rel="noopener"><strong>Artificial Analysis Coding Agent Benchmarks</strong><span>Compares coding-agent performance, token usage, cost per task, and execution time</span></a>
+        </div>
+      </details>
+    </details>
+    </div>
+  </section>
+
+
+  <div id="gate-detail-templates" hidden>
+
+    <details id="design-gate">
+      <summary>Design</summary>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Purpose</div>
+          Resolve intent, scope, and constraints before requirements are
+          written.
+        </div>
+        <div class="mini">
+          <div class="label">Inputs</div>
+          Developer seed, existing codebase, existing docs, tracker issue, and
+          known stakeholder constraints.
+        </div>
+        <div class="mini">
+          <div class="label">Outputs</div>
+          <a href="artifacts/interview.html" target="_blank" rel="noopener"><code>interview.md</code></a>,
+          <a href="artifacts/design.html" target="_blank" rel="noopener"><code>design.md</code></a>, and
+          relevant decisions.
+        </div>
+        <div class="mini">
+          <div class="label">Pass condition</div>
+          The developer explicitly approves the design, or the branch is stopped
+          before downstream artifacts are created.
+        </div>
+      </div>
+    </details>
+
+    <details id="spec-gate">
+      <summary>Spec</summary>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Purpose</div>
+          Convert approved design into observable acceptance criteria and a
+          binary rubric.
+        </div>
+        <div class="mini">
+          <div class="label">Inputs</div>
+          <code>design.md</code> controls; <code>interview.md</code> explains
+          provenance and intent; the current codebase constrains feasible
+          contracts, architecture, and test strategy.
+        </div>
+        <div class="mini">
+          <div class="label">Checks</div>
+          Spec linting, ambiguity review, missing-rubric checks, and explicit
+          amendment rules.
+        </div>
+        <div class="mini">
+          <div class="label">Pass condition</div>
+          Every requirement is testable, every rubric item is binary, and
+          implementation planning can proceed without inventing requirements.
+        </div>
+      </div>
+    </details>
+
+    <details id="branch-gate">
+      <summary>Branch Readiness</summary>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Purpose</div>
+          Make implementation executable and auditable before code changes
+          begin.
+        </div>
+        <div class="mini">
+          <div class="label">Outputs</div>
+          <a href="artifacts/plan.html" target="_blank" rel="noopener"><code>plan.md</code></a>,
+          <a href="artifacts/issues.html" target="_blank" rel="noopener"><code>issues.md</code></a>,
+          <a href="artifacts/tracker.html" target="_blank" rel="noopener"><code>tracker.md</code></a>,
+          <a href="artifacts/scratchpad.html" target="_blank" rel="noopener"><code>scratchpad.md</code></a>,
+          and <a href="artifacts/decisions.html" target="_blank" rel="noopener"><code>decisions.md</code></a>.
+        </div>
+        <div class="mini">
+          <div class="label">Checks</div>
+          Plan maps to rubric; issues map to plan; tracker starts with known
+          status; decision log exists; implementation steps match the actual
+          repository shape.
+        </div>
+        <div class="mini">
+          <div class="label">Pass condition</div>
+          The work can be executed issue-by-issue without changing the spec by
+          accident.
+        </div>
+      </div>
+    </details>
+
+    <details id="implementation-gate">
+      <summary>Implementation Loop</summary>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Ongoing activity</div>
+          Implement scoped issues, run targeted tests, update tracker evidence,
+          keep the live codebase aligned with the spec, and record decisions
+          when triggers fire.
+        </div>
+        <div class="mini">
+          <div class="label">Normal loopbacks</div>
+          Failed tests return to implementation; new requirements return to
+          spec amendment; design mismatch returns to design amendment.
+        </div>
+        <div class="mini">
+          <div class="label">Artifacts</div>
+          Code changes, current diff, test evidence, <code>scratchpad.md</code>,
+          updated <code>issues.md</code>, and tracker evidence.
+        </div>
+      </div>
+    </details>
+
+    <details id="pr-boundary-gate">
+      <summary>PR Boundary</summary>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Purpose</div>
+          Ensure the PR is reviewable, verified, and aligned with the spec
+          before human review.
+        </div>
+        <div class="mini">
+          <div class="label">Sequence</div>
+          Reconcile issues and tracker, inspect the current diff, run definition-of-done
+          checks, evaluate the spec,
+          <a href="skills-copy/pattern-review/SKILL.html" target="_blank" rel="noopener">pattern-review</a>,
+          adversarial <a href="skills-copy/workflow-judge/SKILL.html" target="_blank" rel="noopener"><code>/judge</code></a>,
+          <a href="skills-copy/workflow-pr-review/SKILL.html" target="_blank" rel="noopener">PR-review</a>,
+          <a href="skills-copy/explain-diff/SKILL.html" target="_blank" rel="noopener">explain-diff</a>,
+          and decision triage.
+        </div>
+        <div class="mini">
+          <div class="label">Outputs</div>
+          Verification matrix,
+          <a href="artifacts/pattern-review.html" target="_blank" rel="noopener">Pattern Review</a>,
+          <a href="artifacts/judge.html" target="_blank" rel="noopener">judge result</a>,
+          <a href="artifacts/code-review.html" target="_blank" rel="noopener">PR Review</a>,
+          <a href="artifacts/explain-diff.html" target="_blank" rel="noopener">explain-diff</a>,
+          normalized learning events, and PR description. These outputs are
+          grounded in both the artifact stack and the current diff.
+        </div>
+        <div class="mini">
+          <div class="label">Pass condition</div>
+          Blocking findings are fixed or explicitly waived with evidence.
+        </div>
+      </div>
+    </details>
+
+    <details id="human-review-gate">
+      <summary>Human Review</summary>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Purpose</div>
+          Incorporate external review after the work has already passed the
+          internal workflow gates.
+        </div>
+        <div class="mini">
+          <div class="label">Failure path</div>
+          Review comments become reopened or new issues, and the work returns
+          to implementation plus the PR boundary checks.
+        </div>
+        <div class="mini">
+          <div class="label">Learning path</div>
+          Downstream misses become learning events so
+          <a href="skills-copy/pattern-review/SKILL.html" target="_blank" rel="noopener">pattern-review</a> can
+          improve.
+        </div>
+      </div>
+    </details>
+
+    <details id="completion-gate">
+      <summary>Completion</summary>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Purpose</div>
+          Prove the complete feature satisfies all acceptance criteria and is
+          ready to merge or promote.
+        </div>
+        <div class="mini">
+          <div class="label">Checks</div>
+          Full verification, final judge, final tracker lint, decision triage,
+          and completion report.
+        </div>
+        <div class="mini">
+          <div class="label">Pass condition</div>
+          Zero <code>NOT YET</code> and zero <code>FAIL</code>; manual checks
+          are explicitly identified or complete.
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div id="workflow-activity-detail-templates" hidden>
+    <details id="activity-pr-boundary-review">
+      <summary>Run boundary review sequence</summary>
+      <div class="detail-grid">
+        <div class="mini">
+          <div class="label">Purpose</div>
+          Convert implementation work into reviewable evidence before the PR
+          boundary exit gate is allowed to pass.
+        </div>
+        <div class="mini">
+          <div class="label">What happens</div>
+          The workflow record is reconciled, the spec and rubric are evaluated,
+          pattern rules are applied, adversarial judge review runs, PR review
+          findings are collected, the diff is explained, and decision records
+          are triaged.
+        </div>
+        <div class="mini">
+          <div class="label">Outputs</div>
+          Updated tracker and issue state,
+          <a href="artifacts/pattern-review.html" target="_blank" rel="noopener">Pattern Review</a>,
+          <a href="artifacts/judge.html" target="_blank" rel="noopener">judge result</a>,
+          <a href="artifacts/code-review.html" target="_blank" rel="noopener">PR Review</a>,
+          <a href="artifacts/explain-diff.html" target="_blank" rel="noopener">explain-diff</a>, and PR-ready
+          evidence.
+        </div>
+        <div class="mini">
+          <div class="label">Deeper view</div>
+          The <a href="#pr-boundary-review-stack">PR Boundary Review</a>
+          section decomposes this activity into the review sub-activities that
+          produce the evidence.
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <details class="section-disclosure" id="supporting-reference">
+    <summary>Supporting Reference</summary>
+    <p class="note">
+      These sections provide direct access to the skill and artifact examples
+      used throughout the workflow. They complement the gate sequence without
+      being additional gate-detail panels.
+    </p>
+
+    <details id="skill-library">
+      <summary>Skill Library</summary>
+      <p class="note">
+        Local copies of the skills referenced by the workflow. These links open
+        pre-rendered HTML views of each copied <code>SKILL.md</code>.
+      </p>
+      <h3>Workflow Skills</h3>
+      <div class="link-grid">
+        <a class="artifact-link" href="skills-copy/software-development-workflow/SKILL.html" target="_blank" rel="noopener"><strong>software-development-workflow</strong><span>Home-level workflow entrypoint</span></a>
+        <a class="artifact-link" href="skills-copy/workflow-design/SKILL.html" target="_blank" rel="noopener"><strong>workflow-design</strong><span>Discovery, interview, and design gate</span></a>
+        <a class="artifact-link" href="skills-copy/workflow-spec-draft/SKILL.html" target="_blank" rel="noopener"><strong>workflow-spec-draft</strong><span>Acceptance criteria and rubric drafting</span></a>
+        <a class="artifact-link" href="skills-copy/workflow-spec-validate/SKILL.html" target="_blank" rel="noopener"><strong>workflow-spec-validate</strong><span>Spec validation before planning</span></a>
+        <a class="artifact-link" href="skills-copy/workflow-branch-bootstrap/SKILL.html" target="_blank" rel="noopener"><strong>workflow-branch-bootstrap</strong><span>Branch folder and implementation docs</span></a>
+        <a class="artifact-link" href="skills-copy/workflow-decision-record/SKILL.html" target="_blank" rel="noopener"><strong>workflow-decision-record</strong><span>Decision capture during implementation</span></a>
+        <a class="artifact-link" href="skills-copy/workflow-decision-triage/SKILL.html" target="_blank" rel="noopener"><strong>workflow-decision-triage</strong><span>Decision promotion and cleanup</span></a>
+        <a class="artifact-link" href="skills-copy/workflow-spec-evaluate/SKILL.html" target="_blank" rel="noopener"><strong>workflow-spec-evaluate</strong><span>Implementation evaluation against the spec</span></a>
+        <a class="artifact-link" href="skills-copy/workflow-pr-boundary/SKILL.html" target="_blank" rel="noopener"><strong>workflow-pr-boundary</strong><span>PR boundary verification</span></a>
+        <a class="artifact-link" href="skills-copy/workflow-pr-review/SKILL.html" target="_blank" rel="noopener"><strong>workflow-pr-review</strong><span>PR/code review</span></a>
+        <a class="artifact-link" href="skills-copy/explain-diff/SKILL.html" target="_blank" rel="noopener"><strong>explain-diff</strong><span>Reviewer-facing diff explanation</span></a>
+        <a class="artifact-link" href="skills-copy/workflow-judge/SKILL.html" target="_blank" rel="noopener"><strong>workflow-judge</strong><span>Independent compliance evaluation</span></a>
+        <a class="artifact-link" href="skills-copy/workflow-commit/SKILL.html" target="_blank" rel="noopener"><strong>workflow-commit</strong><span>Commit workflow changes</span></a>
+      </div>
+      <h3>Pattern Review Skills</h3>
+      <div class="link-grid">
+        <a class="artifact-link" href="skills-copy/pattern-init/SKILL.html" target="_blank" rel="noopener"><strong>pattern-init</strong><span>Create pattern-review buckets</span></a>
+        <a class="artifact-link" href="skills-copy/pattern-extract/SKILL.html" target="_blank" rel="noopener"><strong>pattern-extract</strong><span>Extract proposals from instruction prose</span></a>
+        <a class="artifact-link" href="skills-copy/pattern-promote/SKILL.html" target="_blank" rel="noopener"><strong>pattern-promote</strong><span>Govern proposal dispositions</span></a>
+        <a class="artifact-link" href="skills-copy/pattern-review/SKILL.html" target="_blank" rel="noopener"><strong>pattern-review</strong><span>Run the pattern gate</span></a>
+        <a class="artifact-link" href="skills-copy/pattern-learn/SKILL.html" target="_blank" rel="noopener"><strong>pattern-learn</strong><span>Convert learning events into proposals</span></a>
+        <a class="artifact-link" href="skills-copy/pattern-audit/SKILL.html" target="_blank" rel="noopener"><strong>pattern-audit</strong><span>Audit rule-set health</span></a>
+      </div>
+      <h3>General Process Skills</h3>
+      <div class="link-grid">
+        <a class="artifact-link" href="skills-copy/grill-me/SKILL.html" target="_blank" rel="noopener"><strong>grill-me</strong><span>Relentless design interview</span></a>
+        <a class="artifact-link" href="skills-copy/checkpoint/SKILL.html" target="_blank" rel="noopener"><strong>checkpoint</strong><span>Freeze session state</span></a>
+        <a class="artifact-link" href="skills-copy/handoff/SKILL.html" target="_blank" rel="noopener"><strong>handoff</strong><span>Write handoff documents</span></a>
+        <a class="artifact-link" href="skills-copy/remediate-vuln/SKILL.html" target="_blank" rel="noopener"><strong>remediate-vuln</strong><span>Vulnerability remediation packets</span></a>
+      </div>
+      <h3>Platform And Runtime Skills</h3>
+      <div class="link-grid">
+        <a class="artifact-link" href="skills-copy/playwright/SKILL.html" target="_blank" rel="noopener"><strong>playwright</strong><span>Browser automation and UI verification</span></a>
+      </div>
+    </details>
+
+    <details id="artifact-library">
+      <summary>Artifact Examples</summary>
+      <p class="note">
+        These examples come from completed workflows and show the kinds of
+        durable records the process produces at each stage.
+      </p>
+      <div class="link-grid">
+        <a class="artifact-link" href="artifacts/interview.html" target="_blank" rel="noopener"><strong>interview.md</strong><span>Grill Me working record</span></a>
+        <a class="artifact-link" href="artifacts/design.html" target="_blank" rel="noopener"><strong>design.md</strong><span>Approved design gate artifact</span></a>
+        <a class="artifact-link" href="artifacts/spec.html" target="_blank" rel="noopener"><strong>spec.md</strong><span>Acceptance criteria and binary rubric</span></a>
+        <a class="artifact-link" href="artifacts/plan.html" target="_blank" rel="noopener"><strong>plan.md</strong><span>Rubric-mapped implementation plan</span></a>
+        <a class="artifact-link" href="artifacts/issues.html" target="_blank" rel="noopener"><strong>issues.md</strong><span>Operational task breakdown and status</span></a>
+        <a class="artifact-link" href="artifacts/tracker.html" target="_blank" rel="noopener"><strong>tracker.md</strong><span>Rubric evidence and PR state</span></a>
+        <a class="artifact-link" href="artifacts/scratchpad.html" target="_blank" rel="noopener"><strong>scratchpad.md</strong><span>Append-only decision capture</span></a>
+        <a class="artifact-link" href="artifacts/decisions.html" target="_blank" rel="noopener"><strong>decisions.md</strong><span>Promoted permanent decisions</span></a>
+        <a class="artifact-link" href="artifacts/pattern-rules.html" target="_blank" rel="noopener"><strong>rules.yaml</strong><span>Pattern Review active rule examples</span></a>
+        <a class="artifact-link" href="artifacts/completion-report.html" target="_blank" rel="noopener"><strong>completion-report.md</strong><span>Definition-of-done proof and honest limitations</span></a>
+        <a class="artifact-link" href="artifacts/pattern-review.html" target="_blank" rel="noopener"><strong>pattern-review.md</strong><span>Deterministic pattern gate report</span></a>
+        <a class="artifact-link" href="artifacts/code-review.html" target="_blank" rel="noopener"><strong>code-review.md</strong><span>PR boundary code review</span></a>
+        <a class="artifact-link" href="artifacts/judge.html" target="_blank" rel="noopener"><strong>judge.md</strong><span>Independent LLM-as-judge verdict</span></a>
+        <a class="artifact-link" href="artifacts/verification.html" target="_blank" rel="noopener"><strong>verification.md</strong><span>Boundary verification evidence</span></a>
+        <a class="artifact-link" href="artifacts/spec-evaluation.html" target="_blank" rel="noopener"><strong>spec-evaluation.md</strong><span>Spec compliance evaluation</span></a>
+        <a class="artifact-link" href="artifacts/explain-diff.html" target="_blank" rel="noopener"><strong>explain-diff.html</strong><span>Interactive PR walkthrough</span></a>
+        <a class="artifact-link" href="artifacts/workflow-overview.html" target="_blank" rel="noopener"><strong>Workflow overview</strong><span>Rendered Mermaid process diagram</span></a>
+        <a class="artifact-link" href="artifacts/grillme-explainer.html" target="_blank" rel="noopener"><strong>Grill Me overview</strong><span>Rendered explainer and PDF link</span></a>
+      </div>
+    </details>
+  </details>
+
+</main>
+<script>
+  const gateIds = new Set([
+    "design-gate",
+    "spec-gate",
+    "branch-gate",
+    "implementation-gate",
+    "pr-boundary-gate",
+    "human-review-gate",
+    "completion-gate",
+  ]);
+
+  const superpowerIds = new Set([
+    "yolo-harness-setup",
+    "desktop-harnesses",
+    "full-stack-access",
+    "git-worktrees",
+    "voice-to-text",
+    "model-effort-choice",
+  ]);
+
+  const reviewStackIds = new Set([
+    "review-stage-reconcile",
+    "review-stage-evaluate",
+    "review-stage-pattern-review",
+    "review-stage-judge",
+    "review-stage-pr-review",
+    "review-stage-explain-diff",
+    "review-stage-ready-evidence",
+  ]);
+
+  const workflowActivityIds = new Set([
+    "activity-pr-boundary-review",
+  ]);
+
+  function gateIdFromHash(hash) {
+    if (!hash || !hash.startsWith("#")) return null;
+    const id = decodeURIComponent(hash.slice(1));
+    return gateIds.has(id) ? id : null;
+  }
+
+  function superpowerIdFromHash(hash) {
+    if (!hash || !hash.startsWith("#")) return null;
+    const id = decodeURIComponent(hash.slice(1));
+    return superpowerIds.has(id) ? id : null;
+  }
+
+  function reviewStackIdFromHash(hash) {
+    if (!hash || !hash.startsWith("#")) return null;
+    const id = decodeURIComponent(hash.slice(1));
+    return reviewStackIds.has(id) ? id : null;
+  }
+
+  function workflowActivityIdFromHash(hash) {
+    if (!hash || !hash.startsWith("#")) return null;
+    const id = decodeURIComponent(hash.slice(1));
+    return workflowActivityIds.has(id) ? id : null;
+  }
+
+  function clearGateSelection() {
+    document.querySelectorAll("[data-gate-link].is-selected").forEach((link) => {
+      link.classList.remove("is-selected");
+    });
+    document.querySelectorAll("[data-gate-detail-surface]").forEach((target) => {
+      target.hidden = true;
+      target.replaceChildren();
+    });
+  }
+
+  function closeGateDetail() {
+    clearGateSelection();
+    const baseState = history.state && typeof history.state === "object" ? history.state : {};
+    const currentUrl = new URL(window.location.href);
+    currentUrl.hash = "";
+    history.replaceState({ ...baseState, workflowScrollY: window.scrollY, gateSurface: null }, "", currentUrl.href);
+    saveScrollPosition();
+  }
+
+  function clearSuperpowerSelection() {
+    document.querySelectorAll("[data-superpower-link].is-selected").forEach((link) => {
+      link.classList.remove("is-selected");
+    });
+    const target = document.querySelector("[data-superpower-detail]");
+    if (target) {
+      target.hidden = true;
+      target.replaceChildren();
+    }
+  }
+
+  function closeSuperpowerDetail() {
+    clearSuperpowerSelection();
+    const baseState = history.state && typeof history.state === "object" ? history.state : {};
+    const currentUrl = new URL(window.location.href);
+    currentUrl.hash = "";
+    history.replaceState({ ...baseState, workflowScrollY: window.scrollY }, "", currentUrl.href);
+    saveScrollPosition();
+  }
+
+  function clearReviewStackSelection() {
+    document.querySelectorAll("[data-review-stack-link].is-selected").forEach((link) => {
+      link.classList.remove("is-selected");
+    });
+    const target = document.querySelector("[data-review-stack-detail]");
+    if (target) {
+      target.hidden = true;
+      target.replaceChildren();
+    }
+  }
+
+  function closeReviewStackDetail() {
+    clearReviewStackSelection();
+    const baseState = history.state && typeof history.state === "object" ? history.state : {};
+    const currentUrl = new URL(window.location.href);
+    currentUrl.hash = "";
+    history.replaceState({ ...baseState, workflowScrollY: window.scrollY }, "", currentUrl.href);
+    saveScrollPosition();
+  }
+
+  function clearWorkflowActivitySelection(options = {}) {
+    document.querySelectorAll("[data-workflow-activity-link].is-selected").forEach((link) => {
+      link.classList.remove("is-selected");
+    });
+    if (options.preserveDetail) return;
+    const target = document.querySelector("[data-workflow-layer-detail]");
+    if (target) {
+      target.hidden = true;
+      target.replaceChildren();
+    }
+  }
+
+  function clearWorkflowLayerGateSelection() {
+    document.querySelectorAll('[data-gate-link][data-gate-surface="workflow-layers"].is-selected').forEach((link) => {
+      link.classList.remove("is-selected");
+    });
+  }
+
+  function closeWorkflowLayerDetail() {
+    clearWorkflowActivitySelection();
+    clearWorkflowLayerGateSelection();
+    const baseState = history.state && typeof history.state === "object" ? history.state : {};
+    const currentUrl = new URL(window.location.href);
+    currentUrl.hash = "";
+    history.replaceState({ ...baseState, workflowScrollY: window.scrollY, gateSurface: null }, "", currentUrl.href);
+    saveScrollPosition();
+  }
+
+  function renderGateDetail(gateId, surface = "workflow-layers", options = {}) {
+    const source = document.getElementById(gateId);
+    const target =
+      document.querySelector(`[data-gate-detail-surface="${surface}"]`) ||
+      document.querySelector('[data-gate-detail-surface="workflow-layers"]');
+    if (!source || !target) return false;
+
+    const title = source.querySelector("summary")?.textContent?.trim() || "Exit Gate";
+    const fragment = document.createDocumentFragment();
+    const header = document.createElement("div");
+    header.className = "inline-gate-header";
+
+    const heading = document.createElement("h3");
+    heading.textContent = title;
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "inline-gate-close";
+    closeButton.setAttribute("aria-label", "Close gate detail");
+    closeButton.textContent = "×";
+    closeButton.addEventListener("click", closeGateDetail);
+
+    header.appendChild(heading);
+    header.appendChild(closeButton);
+    fragment.appendChild(header);
+
+    Array.from(source.children).forEach((child) => {
+      if (child.tagName !== "SUMMARY") {
+        const clone = child.cloneNode(true);
+        if (clone.removeAttribute) clone.removeAttribute("id");
+        clone.querySelectorAll?.("[id]").forEach((element) => element.removeAttribute("id"));
+        fragment.appendChild(clone);
+      }
+    });
+
+    target.replaceChildren(fragment);
+    target.hidden = false;
+    target.classList.remove("activity-detail");
+    target.classList.add("gate-detail");
+
+    if (surface === "workflow-layers") {
+      clearWorkflowActivitySelection({ preserveDetail: true });
+    }
+
+    document.querySelectorAll(`[data-gate-link][data-gate-surface="${surface}"]`).forEach((link) => {
+      link.classList.toggle("is-selected", link.getAttribute("href") === `#${gateId}`);
+    });
+
+    if (options.scroll) {
+      target.scrollIntoView({ block: "start" });
+    }
+    return true;
+  }
+
+  function renderWorkflowActivityDetail(activityId, options = {}) {
+    const source = document.getElementById(activityId);
+    const target = document.querySelector("[data-workflow-layer-detail]");
+    if (!source || !target) return false;
+
+    const title = source.querySelector("summary")?.textContent?.trim() || "Workflow activity";
+    const fragment = document.createDocumentFragment();
+    const header = document.createElement("div");
+    header.className = "inline-gate-header";
+
+    const heading = document.createElement("h3");
+    heading.textContent = title;
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "inline-gate-close";
+    closeButton.setAttribute("aria-label", "Close workflow activity detail");
+    closeButton.textContent = "×";
+    closeButton.addEventListener("click", closeWorkflowLayerDetail);
+
+    header.appendChild(heading);
+    header.appendChild(closeButton);
+    fragment.appendChild(header);
+
+    Array.from(source.children).forEach((child) => {
+      if (child.tagName !== "SUMMARY") {
+        const clone = child.cloneNode(true);
+        if (clone.removeAttribute) clone.removeAttribute("id");
+        clone.querySelectorAll?.("[id]").forEach((element) => element.removeAttribute("id"));
+        fragment.appendChild(clone);
+      }
+    });
+
+    target.replaceChildren(fragment);
+    target.hidden = false;
+    target.classList.remove("gate-detail");
+    target.classList.add("activity-detail");
+
+    clearWorkflowLayerGateSelection();
+    document.querySelectorAll("[data-workflow-activity-link]").forEach((link) => {
+      link.classList.toggle("is-selected", link.getAttribute("href") === `#${activityId}`);
+    });
+
+    if (options.scroll) {
+      target.scrollIntoView({ block: "start" });
+    }
+    return true;
+  }
+
+  function renderSuperpowerDetail(superpowerId, options = {}) {
+    const source = document.getElementById(superpowerId);
+    const target = document.querySelector("[data-superpower-detail]");
+    if (!source || !target) return false;
+
+    const title = source.querySelector("summary")?.textContent?.trim() || "Agentic Superpower";
+    const fragment = document.createDocumentFragment();
+    const header = document.createElement("div");
+    header.className = "inline-gate-header";
+
+    const heading = document.createElement("h3");
+    heading.textContent = title;
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "inline-gate-close";
+    closeButton.setAttribute("aria-label", "Close superpower detail");
+    closeButton.textContent = "×";
+    closeButton.addEventListener("click", closeSuperpowerDetail);
+
+    header.appendChild(heading);
+    header.appendChild(closeButton);
+    fragment.appendChild(header);
+
+    Array.from(source.children).forEach((child) => {
+      if (child.tagName !== "SUMMARY") {
+        const clone = child.cloneNode(true);
+        if (clone.removeAttribute) clone.removeAttribute("id");
+        clone.querySelectorAll?.("[id]").forEach((element) => element.removeAttribute("id"));
+        fragment.appendChild(clone);
+      }
+    });
+
+    target.replaceChildren(fragment);
+    target.hidden = false;
+
+    document.querySelectorAll("[data-superpower-link]").forEach((link) => {
+      link.classList.toggle("is-selected", link.getAttribute("href") === `#${superpowerId}`);
+    });
+
+    if (options.scroll) {
+      target.scrollIntoView({ block: "start" });
+    }
+    return true;
+  }
+
+  function renderReviewStackDetail(reviewStackId, options = {}) {
+    const source = document.getElementById(reviewStackId);
+    const target = document.querySelector("[data-review-stack-detail]");
+    if (!source || !target) return false;
+
+    const title = source.querySelector("summary")?.textContent?.trim() || "Review activity";
+    const fragment = document.createDocumentFragment();
+    const header = document.createElement("div");
+    header.className = "inline-gate-header";
+
+    const heading = document.createElement("h3");
+    heading.textContent = title;
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "inline-gate-close";
+    closeButton.setAttribute("aria-label", "Close review activity detail");
+    closeButton.textContent = "×";
+    closeButton.addEventListener("click", closeReviewStackDetail);
+
+    header.appendChild(heading);
+    header.appendChild(closeButton);
+    fragment.appendChild(header);
+
+    Array.from(source.children).forEach((child) => {
+      if (child.tagName !== "SUMMARY") {
+        const clone = child.cloneNode(true);
+        if (clone.removeAttribute) clone.removeAttribute("id");
+        clone.querySelectorAll?.("[id]").forEach((element) => element.removeAttribute("id"));
+        fragment.appendChild(clone);
+      }
+    });
+
+    target.replaceChildren(fragment);
+    target.hidden = false;
+
+    document.querySelectorAll("[data-review-stack-link]").forEach((link) => {
+      link.classList.toggle("is-selected", link.getAttribute("href") === `#${reviewStackId}`);
+    });
+
+    if (options.scroll) {
+      target.scrollIntoView({ block: "start" });
+    }
+    return true;
+  }
+
+  function openHashTarget(hash, options = {}) {
+    if (!hash) return;
+    const gateId = gateIdFromHash(hash);
+    if (gateId) {
+      const state = history.state && typeof history.state === "object" ? history.state : {};
+      renderGateDetail(gateId, options.surface || state.gateSurface || "workflow-layers", options);
+      return;
+    }
+    const superpowerId = superpowerIdFromHash(hash);
+    if (superpowerId) {
+      renderSuperpowerDetail(superpowerId, options);
+      return;
+    }
+    const reviewStackId = reviewStackIdFromHash(hash);
+    if (reviewStackId) {
+      renderReviewStackDetail(reviewStackId, options);
+      return;
+    }
+    const workflowActivityId = workflowActivityIdFromHash(hash);
+    if (workflowActivityId) {
+      renderWorkflowActivityDetail(workflowActivityId, options);
+      return;
+    }
+    const target = document.querySelector(hash);
+    if (!target) return;
+    if (target.tagName === "DETAILS") target.open = true;
+    let parentDetails = target.parentElement ? target.parentElement.closest("details") : null;
+    while (parentDetails) {
+      parentDetails.open = true;
+      parentDetails = parentDetails.parentElement ? parentDetails.parentElement.closest("details") : null;
+    }
+    if (options.scroll) {
+      target.scrollIntoView({ block: "start" });
+    }
+  }
+
+  if ("scrollRestoration" in history) {
+    history.scrollRestoration = "manual";
+  }
+
+  function scrollStorageKey() {
+    return `workflow-site-scroll:${window.location.pathname}`;
+  }
+
+  function disclosureStorageKey() {
+    return `workflow-site-disclosures:${window.location.pathname}`;
+  }
+
+  function disclosureElements() {
+    return Array.from(document.querySelectorAll("details[id]:not(.harness-detail)"))
+      .filter((details) => !details.closest("#gate-detail-templates"))
+      .filter((details) => !details.closest("#workflow-activity-detail-templates"))
+      .filter((details) => !details.closest("#superpower-detail-templates"))
+      .filter((details) => !details.closest("#review-stack-detail-templates"));
+  }
+
+  function saveDisclosureState() {
+    const openIds = disclosureElements()
+      .filter((details) => details.open)
+      .map((details) => details.id);
+    sessionStorage.setItem(disclosureStorageKey(), JSON.stringify(openIds));
+  }
+
+  function restoreDisclosureState() {
+    const stored = sessionStorage.getItem(disclosureStorageKey());
+    if (stored === null) return false;
+
+    let openIds;
+    try {
+      openIds = JSON.parse(stored);
+    } catch {
+      return false;
+    }
+    if (!Array.isArray(openIds)) return false;
+
+    const openSet = new Set(openIds);
+    disclosureElements().forEach((details) => {
+      details.open = openSet.has(details.id);
+    });
+    return true;
+  }
+
+  function saveScrollPosition(options = {}) {
+    const scrollYValue = window.scrollY;
+    const baseState = history.state && typeof history.state === "object" ? history.state : {};
+    const currentUrl = new URL(window.location.href);
+    if (options.clearHash) currentUrl.hash = "";
+    history.replaceState({ ...baseState, workflowScrollY: scrollYValue }, "", currentUrl.href);
+    sessionStorage.setItem(scrollStorageKey(), String(scrollYValue));
+  }
+
+  function savedScrollPosition(options = {}) {
+    if (history.state && typeof history.state.workflowScrollY === "number") {
+      return history.state.workflowScrollY;
+    }
+    if (!options.allowSessionFallback) return null;
+    const stored = sessionStorage.getItem(scrollStorageKey());
+    if (stored === null) return null;
+    const parsed = Number(stored);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  function restoreScrollPosition(options = {}) {
+    const y = savedScrollPosition(options);
+    if (y === null) return false;
+
+    openHashTarget(window.location.hash, { scroll: false });
+    requestAnimationFrame(() => {
+      window.scrollTo(0, y);
+      setTimeout(() => window.scrollTo(0, y), 0);
+      setTimeout(() => window.scrollTo(0, y), 50);
+      setTimeout(() => window.scrollTo(0, y), 150);
+    });
+    return true;
+  }
+
+  function navigateToHash(hash, options = {}) {
+    if (!hash || hash === "#") return false;
+    const gateId = gateIdFromHash(hash);
+    const superpowerId = superpowerIdFromHash(hash);
+    const reviewStackId = reviewStackIdFromHash(hash);
+    const workflowActivityId = workflowActivityIdFromHash(hash);
+    const target = gateId || superpowerId || reviewStackId || workflowActivityId ? document.getElementById(gateId || superpowerId || reviewStackId || workflowActivityId) : document.querySelector(hash);
+    if (!target) return false;
+
+    if (gateId && options.surface) {
+      const selectedLink = document.querySelector(`[data-gate-link][data-gate-surface="${options.surface}"][href="${hash}"].is-selected`);
+      const detailTarget = document.querySelector(`[data-gate-detail-surface="${options.surface}"]`);
+      if (selectedLink && detailTarget && !detailTarget.hidden) {
+        closeGateDetail();
+        return true;
+      }
+    }
+
+    if (superpowerId) {
+      const selectedLink = document.querySelector(`[data-superpower-link][href="${hash}"].is-selected`);
+      const detailTarget = document.querySelector("[data-superpower-detail]");
+      if (selectedLink && detailTarget && !detailTarget.hidden) {
+        closeSuperpowerDetail();
+        return true;
+      }
+    }
+
+    if (reviewStackId) {
+      const selectedLink = document.querySelector(`[data-review-stack-link][href="${hash}"].is-selected`);
+      const detailTarget = document.querySelector("[data-review-stack-detail]");
+      if (selectedLink && detailTarget && !detailTarget.hidden) {
+        closeReviewStackDetail();
+        return true;
+      }
+    }
+
+    if (workflowActivityId) {
+      const selectedLink = document.querySelector(`[data-workflow-activity-link][href="${hash}"].is-selected`);
+      const detailTarget = document.querySelector("[data-workflow-layer-detail]");
+      if (selectedLink && detailTarget && !detailTarget.hidden) {
+        closeWorkflowLayerDetail();
+        return true;
+      }
+    }
+
+    saveScrollPosition();
+    const targetUrl = new URL(window.location.href);
+    targetUrl.hash = hash;
+    const nextState = {
+      workflowScrollY: window.scrollY,
+      ...(gateId ? { gateSurface: options.surface || "workflow-layers" } : {}),
+    };
+    if (window.location.hash !== hash) {
+      history.pushState(nextState, "", targetUrl.href);
+    } else {
+      history.replaceState(nextState, "", targetUrl.href);
+    }
+    openHashTarget(hash, {
+      scroll: !gateId && !superpowerId && !reviewStackId && !workflowActivityId,
+      surface: options.surface,
+    });
+    saveDisclosureState();
+    return true;
+  }
+
+  const navigation = performance.getEntriesByType("navigation")[0];
+  const isHistoryNavigation = navigation && navigation.type === "back_forward";
+  let pendingScrollSave = false;
+  function scheduleScrollSave() {
+    if (pendingScrollSave) return;
+    pendingScrollSave = true;
+    requestAnimationFrame(() => {
+      pendingScrollSave = false;
+      saveScrollPosition();
+    });
+  }
+
+  restoreDisclosureState();
+
+  const restoredOnLoad = restoreScrollPosition({ allowSessionFallback: isHistoryNavigation });
+
+  if (!restoredOnLoad) {
+    openHashTarget(window.location.hash, { scroll: !isHistoryNavigation });
+  }
+
+  window.addEventListener("pagehide", () => {
+    saveDisclosureState();
+    saveScrollPosition();
+  });
+  window.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      saveDisclosureState();
+      saveScrollPosition();
+    }
+  });
+  window.addEventListener("scroll", scheduleScrollSave, { passive: true });
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) restoreScrollPosition({ allowSessionFallback: true });
+  });
+  window.addEventListener("popstate", () => {
+    if (!window.location.hash) {
+      clearGateSelection();
+      clearSuperpowerSelection();
+      clearReviewStackSelection();
+      clearWorkflowActivitySelection();
+    }
+    if (!restoreScrollPosition()) {
+      openHashTarget(window.location.hash, { scroll: true });
+    }
+  });
+
+  document.querySelectorAll('a[href^="#"]').forEach((link) => {
+    link.addEventListener("click", (event) => {
+      if (navigateToHash(link.getAttribute("href"), { surface: link.dataset.gateSurface })) {
+        event.preventDefault();
+      }
+    });
+  });
+
+  document.querySelectorAll('a[href]:not([href^="#"])').forEach((link) => {
+    link.addEventListener("click", () => {
+      saveDisclosureState();
+      saveScrollPosition();
+    }, { capture: true });
+  });
+
+  disclosureElements().forEach((details) => {
+    details.addEventListener("toggle", saveDisclosureState);
+  });
+</script>
+</body>
+</html>

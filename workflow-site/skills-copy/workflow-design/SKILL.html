@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workflow Design</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Workflow Design</h1>
+<p class="note">Skill name: <code>workflow-design</code></p>
+<p class="note">Design phase of the software-development workflow: grill-me interview, design.md synthesis, and the design gate. Use at branch start for any non-trivial feature, before any spec work.</p>
+<hr>
+<h2>Embedded Instructions</h2>
+<h3>Design Phase Procedure</h3>
+<ul>
+<li>Confirm the feature-level tracker task (The Tree) and delivery branch exist; resolve the cumulative feature folder as <code>docs/issues/{featureId}/</code>.</li>
+<li>Ensure <code>interview.md</code> exists in the feature folder.</li>
+<li>Run the <a href="../grill-me/SKILL.html"><code>grill-me</code></a> interview on the feature intent. Keep <code>interview.md</code> current during the interview, ideally updating it after each settled decision or other high-value design clarification. Do not draft <code>design.md</code>, <code>spec.md</code>, or implementation-planning documents during the interview.</li>
+<li>When the interview concludes, synthesize <code>design.md</code> in the feature folder from <code>templates/design.md</code>:</li>
+<li>H1: <code># Design - {featureId}</code></li>
+<li>Sections: Problem, Intent, Chosen shape, Alternatives considered, Constraints, Open risks.</li>
+<li>Present <code>design.md</code> for the design gate. Explicit user approval is required before any spec work begins.</li>
+<li>On approval: mark the status line approved with the date, freeze the document (further changes via <code>## Changes</code> entries only), write a checkpoint (<code>gate:design</code>), and proceed to spec drafting.</li>
+<li>On rejection: revise via further grilling, or delete the branch if the feature is abandoned outright.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verification - PR #46</title>
+  <link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Verification - PR #46</h1>
+<p><strong>Scope:</strong> MCP slice I-4, pinned diff <code>1f1e2e4ff3961a9808cf3336ad33dd9eda5d6ff0..33d0d07c4876577eab0a1d5da26874b8c7a2d972</code></p>
+<table>
+<thead><tr><th>Category</th><th>Command</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Toolchain</td><td><code>bun run toolchain:check</code> under pinned Bun 1.3.14</td><td>PASS - Bun 1.3.14 darwin/arm64</td></tr>
+<tr><td>Type check</td><td><code>bun run typecheck</code></td><td>PASS</td></tr>
+<tr><td>Lint</td><td><code>bun run lint</code></td><td>PASS</td></tr>
+<tr><td>Changed-file format</td><td>Pinned Bun Prettier over every source file in the pinned diff</td><td>PASS</td></tr>
+<tr><td>Unit and integration</td><td><code>bun test</code></td><td>PASS - 453 tests, 0 failures, 2,219 assertions across 96 files</td></tr>
+<tr><td>Receipt service</td><td>Receipt and consequential-action tests within the full suite</td><td>PASS - five-minute expiry, evidence binding, stale refusal, execute replay, and result persistence</td></tr>
+<tr><td>MCP stdio</td><td><code>bun test test/mcp/stdio.test.js</code></td><td>PASS - 45 registered tools, strict schemas, real settings preview/execute/replay, and modern plus legacy discovery</td></tr>
+<tr><td>Public socket/client</td><td><code>bun test test/server/server-client.test.js</code></td><td>PASS - 28 tests covering every consequential action family</td></tr>
+<tr><td>Desktop document policy</td><td>Desktop stack-document tests within the full suite</td><td>PASS - shared canonical path and external-change protection</td></tr>
+<tr><td>Documentation</td><td><code>bun test test/release/documentation.test.js</code></td><td>PASS - updated public socket, client, and MCP contracts</td></tr>
+<tr><td>Build/runtime</td><td><code>bun run build</code></td><td>PASS - standalone <code>dist/portreeve</code> built with consequential tools and shared document primitives</td></tr>
+<tr><td>Browser/E2E</td><td>N/A</td><td>No renderer behavior changes in I-4.</td></tr>
+</tbody>
+</table>
+<h2>Known unrelated local failure</h2>
+<p><code>bun run check</code> reaches and passes toolchain, typecheck, and lint, then stops only because Prettier finds three ignored local handoff files under <code>.handoffs/</code>. Those files predate this branch, are absent from Git and the PR, and remain intentionally untouched. Formatting of every file in the pinned PR diff passes.</p>
+<h2>Runtime observations</h2>
+<ul>
+<li>The bridge now advertises 45 tools: 19 read-only and 26 mutation-classified tools. Preview tools persist nondestructive receipts; execute tools require the matching receipt plus an explicit target.</li>
+<li>Receipt execution retrieves the persisted proposal, recomputes current evidence in the daemon, refuses stale evidence, and replays a previously completed result before consulting later evidence.</li>
+<li>All seven consequential families are covered: port reclaim; claim reassign, delete, and prune; stack definition apply and stack prune; and settings changes.</li>
+<li>Stack-document reads return validated structure and fingerprints, never raw file contents. Writes use the fixed <code>portreeve.stack.json</code> path, reject links and nonregular files, enforce a 1 MiB limit, and atomically compare before replace.</li>
+<li>Unsafe any-owner eviction is intentionally absent.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

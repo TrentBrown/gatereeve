@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workflow Commit</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Workflow Commit</h1>
+<p class="note">Skill name: <code>workflow-commit</code></p>
+<p class="note">Commit local software changes safely. Use when the user asks to commit, finalize a workflow boundary, prepare a clean git commit, inspect staged/unstaged changes, avoid unrelated user changes, enforce protected branch rules, or generate a commit message from verified work.</p>
+<hr>
+<p>Never include unrelated user changes. Verify branch protection rules. For specced work, ensure workflow docs and verification evidence are current before committing.</p>
+<h2>Embedded Instructions</h2>
+<h3>Software Development Workflow</h3>
+<p>This is the canonical, tool-agnostic workflow for software development. Agent adapters such as Claude Code slash commands and Codex skills should point here rather than duplicating the policy.</p>
+<blockquote>Visual overview: <a href="../../artifacts/workflow-overview.html"><code>WORKFLOW.mermaid</code></a></blockquote>
+<h2>Version Control</h2>
+<ul>
+<li>Load the selected policy profile and repository instructions before deciding which branches are protected or which branching strategy applies.</li>
+<li>Do not commit directly to a protected branch unless the active profile or explicit user instruction defines a repository-specific exception.</li>
+<li>Feature branch names use the configured <code>agentic-workflow.branchPrefix</code>. If no prefix is configured, stop and run <code>workflow-setup</code> rather than guessing another developer&#x27;s identity.</li>
+<li>Use <code>git mv</code> for file moves and renames.</li>
+<li>Before committing, inspect <code>git status</code> and <code>git diff</code>, stage only intended files, and preserve unrelated user changes.</li>
+</ul>
+<h2>Feature Folder</h2>
+<p>Every specced feature uses one canonical cumulative feature folder:</p>
+<pre><code>docs/issues/{featureId}/</code></pre>
+<p>Resolve the feature ID and participating repository from <a href="WORKSPACE-CONTEXT.html"><code>WORKSPACE-CONTEXT.md</code></a>. In configured workspaces, the stable feature ID is independent of the fresh delivery branch used by each sequential PR. Without <code>.agentic-workflow.json</code>, legacy work continues to use the current branch as <code>featureId</code>.</p>
+<p>The folder contains:</p>
+<table>
+<thead><tr><th>File</th><th>Purpose</th><th>Mutability</th></tr></thead>
+<tbody>
+<tr><td><code>interview.md</code></td><td>Grill Me interview record; captures settled answers, examples, rationale, and open questions before design synthesis</td><td>Live during design interview</td></tr>
+<tr><td><code>design.md</code></td><td>Problem, intent, and chosen shape; synthesized from the grill interview</td><td>Frozen at design gate; amendable with changelog</td></tr>
+<tr><td><code>spec.md</code></td><td>Requirements: acceptance criteria and rubric</td><td>Amendable with changelog</td></tr>
+<tr><td><code>plan.md</code></td><td>Implementation strategy, steps mapped to rubric</td><td>Evolves deliberately</td></tr>
+<tr><td><code>issues.md</code></td><td>Operational task breakdown, estimates, status</td><td>Fluid, appended during work</td></tr>
+<tr><td><code>tracker.md</code></td><td>Rubric status and PR log</td><td>Updated at PR boundaries</td></tr>
+<tr><td><code>scratchpad.md</code></td><td>Raw decision log</td><td>Append-only during sessions</td></tr>
+<tr><td><code>decisions.md</code></td><td>Promoted permanent decisions</td><td>Grows at triage boundaries</td></tr>
+</tbody>
+</table>
+<p>Each file&#x27;s H1 includes the stable feature ID.</p>
+<p>For multi-repo features, default to one feature-level tracker in the canonical feature folder. It represents the complete feature, not one repository. Create repo-local trackers only when there is a clear process reason; the canonical tracker remains the source of truth.</p>
+<h2>Design Phase</h2>
+<p>Every non-trivial feature begins with a design interview, not a spec. The <a href="../grill-me/SKILL.html"><code>grill-me</code></a> skill drives a relentless interview about the feature intent, walking each branch of the design tree and resolving dependencies between decisions one by one. When a question has an obvious best answer, the agent proposes it for confirmation; otherwise it asks open and waits.</p>
+<p>The interview is not purely ephemeral. Maintain <code>interview.md</code> continuously during Grill Me. It is the primary design-memory artifact for this phase and should capture:</p>
+<ul>
+<li>Settled answers and constraints</li>
+<li>Draft contracts, examples, and configuration shapes</li>
+<li>Concrete file/path references</li>
+<li>Important rationale and rejected alternatives</li>
+<li>Open questions still being resolved</li>
+</ul>
+<p>Operational rule: update <code>interview.md</code> after each settled decision or other high-value design clarification. The goal is to cap potential loss from compaction or interruption to at most one recent item.</p>
+<p><code>design.md</code> is synthesized from <code>interview.md</code> after the interview concludes; the interview and the synthesis are separate steps. The design gate (explicit user approval of <code>design.md</code>) must pass before any spec work begins. If the design is rejected outright, delete the branch; nothing downstream was touched.</p>
+<p><code>design.md</code> is frozen at the design gate and thereafter amendable only with a changelog entry, in the same style as spec amendments.</p>
+<h2>Branch Start</h2>
+<ul>
+<li>Resolve or establish the workspace context and create <code>docs/issues/{featureId}/</code>. The feature-level tracker task (The Tree) exists first and supplies the issue ID embedded in <code>featureId</code> when one is available. Each later sequential PR uses a fresh delivery branch while preserving this folder.</li>
+<li>Create <code>interview.md</code> from template.</li>
+<li>Run the <a href="../grill-me/SKILL.html"><code>grill-me</code></a> interview on the feature intent and keep <code>interview.md</code> current as the interview progresses, ideally updating it after each settled decision or other high-value design clarification.</li>
+<li>Synthesize <code>design.md</code> from <code>interview.md</code>.</li>
+<li>Design gate: the user approves <code>design.md</code> before spec work begins.</li>
+<li>Create <code>spec.md</code> with acceptance criteria and rubric. <code>design.md</code> is the controlling input; <code>interview.md</code> is a required supporting input for examples, draft contracts, rationale, concrete references, and edge-case detail. Pressure-test the spec against the existing codebase (unconditional whenever a codebase exists).</li>
+<li>Validate the spec before planning.</li>
+<li>Create <code>plan.md</code> with stable plan step IDs (<code>P1</code>, <code>P2</code>, ...), each mapped to rubric criteria. <code>spec.md</code> is the controlling input; <code>design.md</code> and <code>interview.md</code> are required supporting inputs for implementation shape, rationale, concrete references, and edge-case detail.</li>
+<li>Create <code>issues.md</code> with the initial task breakdown derived from the plan.</li>
+<li>Sync coarse-grained issues to the external tracker (The Tree) as title + description text blocks.</li>
+<li>Create <code>tracker.md</code> with all rubric criteria initially <code>NOT YET</code>.</li>
+<li>Create <code>scratchpad.md</code> and <code>decisions.md</code> for development-phase decision logging and promotion.</li>
+</ul>
+<p>Use <code>scripts/bootstrap_branch_docs.py</code> for the mechanical bootstrap when useful.</p>
+<h2>Decision Logging</h2>
+<p>Maintain <code>docs/issues/{featureId}/scratchpad.md</code> throughout the feature. Record a decision when any trigger fires.</p>
+<p>Tier 1 triggers, always record:</p>
+<ul>
+<li>Change outside primary task scope</li>
+<li>Cross-repo change</li>
+<li>SQL/schema modification</li>
+<li>Dependency change</li>
+<li>Security-relevant change</li>
+<li>API contract change</li>
+<li>Incidental bug fix</li>
+<li>Reversal of a previous PR decision</li>
+</ul>
+<p>Tier 2 triggers, record when applicable:</p>
+<ul>
+<li>Choosing one approach over an apparently simpler alternative</li>
+<li>Code that would surprise a competent reviewer</li>
+<li>Invariant not visible in the diff</li>
+<li>Constraint not visible in code, such as infrastructure limits or downstream consumers</li>
+</ul>
+<p>Heuristic: if the code would need an explanatory comment, or a peer would ask &quot;why?&quot; in review, record the decision.</p>
+<p>Scratchpad entry format:</p>
+<pre><code>## [N] Short descriptive title
+
+[ ] **Promote**
+
+**Confidence:** HIGH | LOW
+
+**Blast Radius:** what could be affected
+
+Full body here.
+
+**Triggered by:** the symptom or question that surfaced this decision
+
+**Alternatives considered:**
+- Option A - why rejected
+- Option B - why rejected</code></pre>
+<p>At each PR boundary, triage all scratchpad entries:</p>
+<ul>
+<li><code>[x]</code> promotes to <code>decisions.md</code>.</li>
+<li><code>[-]</code> remains dismissed in <code>scratchpad.md</code>.</li>
+<li><code>[ ]</code> blocks triage.</li>
+</ul>
+<h2>Specification Standards</h2>
+<p>Spec drafting uses both design-phase artifacts:</p>
+<ul>
+<li><code>design.md</code> is authoritative after the design gate. It controls scope, product direction, constraints, and rejected alternatives.</li>
+<li><code>interview.md</code> is required supporting material. Use it to recover concrete examples, draft schemas, rationale, file references, and edge cases that were intentionally compressed out of <code>design.md</code>.</li>
+</ul>
+<p>If <code>interview.md</code> contains detail that is consistent with the approved design, the spec may include it. If it contradicts <code>design.md</code>, expands scope, or would change the chosen shape, do not silently include it; amend <code>design.md</code> first or ask the user.</p>
+<p>Verification has three layers:</p>
+<pre><code>Definition of Done
+  Acceptance Criteria
+    Rubric</code></pre>
+<p>The Definition of Done applies to every task. Acceptance criteria and rubric apply when the task has a spec.</p>
+<p>Acceptance criteria must describe observable behavior. They must be independently verifiable and unambiguous. If the user gives a vague feature request, draft AC and rubric and get approval before planning.</p>
+<p>The rubric is a binary pass/fail evaluation instrument derived from the AC. Every criterion must have explicit pass, fail, and evidence expectations. Prefer outcome-level checks over incidental implementation details.</p>
+<p>AC and rubric live in <code>spec.md</code>, not <code>plan.md</code>.</p>
+<h2>Spec Amendments</h2>
+<p>When implementation reveals requirements not covered by the original spec:</p>
+<ul>
+<li>Add a <code>## Changes</code> section entry in <code>spec.md</code>.</li>
+<li>Include date, rationale, new AC, and new rubric criteria.</li>
+<li>Do not remove or weaken original criteria.</li>
+<li>Add new rubric criteria to <code>tracker.md</code> as <code>NOT YET</code> at the next boundary.</li>
+</ul>
+<h2>Planning Standards</h2>
+<p>Planning begins only after the design gate has passed and the spec has been validated. Plan drafting uses three input layers:</p>
+<ul>
+<li><code>spec.md</code> is authoritative. It controls what must be built, what must be verified, and which rubric criteria each plan step advances.</li>
+<li><code>design.md</code> is required context. Use it for the chosen architecture, constraints, implementation boundaries, and rejected alternatives.</li>
+<li><code>interview.md</code> is required supporting material. Use it to recover concrete examples, draft contracts, rationale, file references, and edge cases that make the plan more accurate.</li>
+</ul>
+<p>Every implementation step in <code>plan.md</code> should map to at least one rubric criterion, except explicitly labeled coordination or final verification steps. The plan may choose sequencing, code areas, test strategy, and integration touchpoints, but it must not smuggle in new requirements. If <code>design.md</code> or <code>interview.md</code> reveals necessary work that is not represented by <code>spec.md</code>, add a spec amendment before adding that work to the plan.</p>
+<h2>Task Breakdown</h2>
+<p><code>issues.md</code> is the operational counterpart to <code>plan.md</code>. Each issue has a stable ID and references plan steps plus rubric criteria.</p>
+<pre><code>## I-{N} - Short descriptive title
+
+- **Status:** open | in-progress | blocked | in-review | closed
+- **Estimate:** 0.5d | 1d | 2h | unknown
+- **Plan steps:** P{n}
+- **Rubric criteria:** R{n}
+- **Depends on:** issue IDs or none
+- **PR:** PR number/URL or -
+
+Free-form body.</code></pre>
+<p>Do not reuse issue IDs. Append newly discovered work as new issues rather than expanding old ones silently.</p>
+<h2>PR Boundary</h2>
+<p>When a natural PR boundary is reached:</p>
+<ul>
+<li>Complete provisional verification, commit and push every intended source change, and open or update the draft PR.</li>
+<li>Resolve and persist one authoritative PR context from the clean synchronized checkout. Every formal gate must consume <code>boundary_gate.py</code> output from that same context; no gate may independently infer its upstream, base, head, feature folder, packet, or filename.</li>
+<li>Update <code>tracker.md</code> with plan steps covered and rubric criteria addressed.</li>
+<li>Reconcile <code>issues.md</code> against completed work. Move shipping issues to <code>in-review</code> with the PR number/URL once available.</li>
+<li>Build the per-PR verification matrix and execute it. It must explicitly cover, or explicitly mark as not applicable, each of:</li>
+<li>Build/typecheck.</li>
+<li>Lint/format checks on changed files.</li>
+<li>Unit tests for changed logic.</li>
+<li>Integration tests for changed API contracts, database flows, or cross-repo data flows.</li>
+<li>End-to-end or Playwright/browser smoke tests for user-facing frontend flows when practical.</li>
+<li>Application runtime verification for affected screens or services. Record exact commands, results, and any known unrelated failures.</li>
+<li>Run scoped <code>spec-evaluate</code> for criteria that should be satisfied by the completed work. Update <code>tracker.md</code> from evidence only and write the report to the active packet.</li>
+<li>Run an independent <code>judge</code> pass for specced significant work. Treat <code>FAIL</code> as blocking until fixed or explicitly accepted by the user. Preserve the judge&#x27;s findings in the active packet, tracker, and PR description.</li>
+<li>Run pattern review when applicable, PR/code review, and <a href="../explain-diff/SKILL.html"><code>explain-diff</code></a> on the exact pinned base/head. Persist each artifact at its fixed active-packet path.</li>
+<li>Triage decisions.</li>
+<li>Recheck the remote PR head, finalize the manifest and cumulative tracker link, and open or update the PR description with summary, decisions, verification matrix, judge result, PR-review result, explain-diff artifact, known failures, and manual checks.</li>
+<li>When evidence is tracked, commit and push only declared boundary artifacts. Finalize PR synchronization and run deterministic packet validation from the clean checkout.</li>
+<li>Request human review only after the prior steps complete or are explicitly waived by the user.</li>
+</ul>
+<h2>Feature Completion</h2>
+<ul>
+<li>Use the last real delivery PR as the <code>feature-final</code> boundary. Preserve its immediate slice base and the configured original feature base; do not create a completion pseudo-boundary.</li>
+<li>Detect when all rubric criteria are <code>PASS</code>.</li>
+<li>Run full verification against the complete spec and assembled feature while retaining focused review of the final PR slice.</li>
+<li>Run an independent judge pass. Treat <code>FAIL</code> as blocking until fixed or explicitly waived by the user.</li>
+<li>Confirm zero <code>NOT YET</code> and zero <code>FAIL</code> criteria remain.</li>
+<li>Produce a completion report with concrete evidence and the deterministic feature-record retention status.</li>
+</ul>
+<h2>Feature Close-out</h2>
+<p>After final verification passes:</p>
+<ul>
+<li>Ensure the final PR description is the record of the feature: summary, promoted decisions, verification matrix, and judge result.</li>
+<li>Update the external tracker (The Tree): mark the feature task complete with a closing comment summarizing the outcome and linking the PRs.</li>
+<li>Inspect the retention report. If the centralized feature record is not fully tracked, require an explicit human retention decision before discarding the workspace; do not silently copy it or claim archival.</li>
+<li>Retire the feature folder: <code>issues.md</code> is frozen as the permanent task log; no further edits to any branch document.</li>
+<li>Write a final checkpoint (see Context Primitives) capturing the end state.</li>
+</ul>
+<h2>Definition of Done</h2>
+<p>A task is not complete until all applicable items are true:</p>
+<ul>
+<li>The code builds without errors and without new warnings.</li>
+<li>Linting/formatting passes on changed files.</li>
+<li>New logic has tests:</li>
+<li>Unit tests for new backend/frontend utilities, services, models, and state transitions.</li>
+<li>Integration tests when API contracts, database writes, migrations, webhooks, or cross-repo data flows change.</li>
+<li>End-to-end or Playwright/browser smoke tests for new user-facing frontend workflows when practical.</li>
+<li>Existing and new tests pass. Run the broad suite when feasible, plus targeted suites for changed areas. Do not skip failing tests without explicit human approval; document known unrelated failures with evidence.</li>
+<li>Frontend/backend integration is verified end-to-end when the task spans both. Do not rely on isolated frontend and backend tests when the feature is a cross-stack workflow.</li>
+<li>The application runs and the feature works in the running app when applicable.</li>
+</ul>
+<p>If something cannot be tested because of credentials, services, or environment limits, mark the status as implementation complete pending manual verification and provide exact manual steps. Do not mark it fully complete.</p>
+<h2>Completion Report</h2>
+<p>For all tasks:</p>
+<pre><code>## Completion Report
+
+### Definition of Done
+- **Build status:** PASS/FAIL - command ran
+- **Lint status:** PASS/FAIL - command ran
+- **Tests written:** files and coverage
+- **Test suite status:** PASS/FAIL - command ran and summary
+- **Integration verified:** Yes/No/N/A - what was checked
+- **Application runs:** Yes/No/N/A - what was verified
+- **Pending manual verification:** None or exact steps</code></pre>
+<p>For specced tasks, add:</p>
+<pre><code>### Acceptance Criteria
+| # | Criterion | Status | Evidence |
+|---|-----------|--------|----------|
+
+### Rubric
+| # | Criterion | Result | Scope | Notes |
+|---|-----------|--------|-------|-------|</code></pre>
+<p>At per-PR boundaries, <code>NOT YET</code> is acceptable for out-of-scope criteria. At feature completion, zero <code>NOT YET</code> criteria may remain.</p>
+<h2>Gates and Determinism</h2>
+<p>Every gate is backed, where practical, by a validator script that exits nonzero on failure. The skill or command owning a boundary must run its validator; passage is mechanical, not rhetorical. Validators live in <code>scripts/</code>:</p>
+<ul>
+<li>Branch docs structure: <code>validate_branch_docs.py</code> (exists).</li>
+<li>Spec lint: <code>lint_spec.py</code> - AC entries present and concrete, rubric table parses, every row has explicit pass/fail/evidence cells (exists).</li>
+<li>Issues lint: <code>lint_issues.py</code> - unique IDs, every issue references at least one plan step and one rubric criterion, valid status values (exists).</li>
+<li>Triage gate: <code>gate_triage.py</code> - fail on any unreviewed <code>[ ]</code> scratchpad entry (exists).</li>
+<li>Tracker lint: <code>lint_tracker.py</code> - valid statuses; <code>--final</code> enforces zero <code>NOT YET</code>/<code>FAIL</code> at feature completion (exists).</li>
+</ul>
+<p>Gate inventory: design gate, spec validation, per-PR DoD, per-PR judge (blocking; explicit user waiver is the only bypass), decision triage, human PR review, final verification.</p>
+<h2>Context Primitives</h2>
+<p>Checkpoint and handoff are context-management primitives, not workflow phases. Any phase may invoke them at its boundaries.</p>
+<h3>Checkpoint</h3>
+<p>A checkpoint freezes session state for later resumption by the same agent (or a fresh session of it). Invocation modes:</p>
+<ul>
+<li>At will, whenever the user asks.</li>
+<li>Automatically when the context window nears exhaustion (intentional compaction; on Claude Code a PreCompact hook may trigger it).</li>
+<li>Deterministically when any gate passes.</li>
+</ul>
+<p>Convention: write <code>CHECKPOINT.md</code> (stable latest pointer) plus a timestamped archive copy under <code>.checkpoints/</code> in the worktree root, with header metadata: timestamp, repo, branch, originating session. Checkpoints capture state (goal, current position, in-flight work, exact next action, relevant paths and commands). During the design interview phase, <code>interview.md</code> is the authoritative design-memory file and should be kept current continuously; checkpoints remain secondary resume artifacts. During development phases, checkpoints normally reference <code>scratchpad.md</code>/<code>decisions.md</code> for decisions rather than duplicating them. <code>.checkpoints/</code> stays out of commits via the global gitignore.</p>
+<p>Hooks and other automation should treat checkpointing as a resumability mechanism only. They should not be responsible for authoring or maintaining <code>interview.md</code>; that remains an explicit workflow responsibility of the agent during Grill Me.</p>
+<h3>Handoff</h3>
+<p>A handoff transfers work to a different agent or persona. It is always interactive: before writing, ask the recipient and their objective, plus anything load-bearing that is not obvious from the work so far (a mini-grill).</p>
+<p>Convention: write to <code>.handoffs/</code> in the worktree root, gitignored globally. Schema: goal/intent, current state, decisions plus rationale, dead ends already tried, open questions, exact next action, relevant paths and commands, the recipient, and the recipient&#x27;s objective.</p>
+<h2>Command Adapters</h2>
+<p>Command-level procedures live in <code>commands/</code>. Codex skills and Claude commands should load the relevant command file on demand.</p>
+<p>Supplementary standards (testing protocol, tracker format, spec gates, constraint architecture) live in <code>STANDARDS.md</code> beside this file.</p>
+<h3>Commit</h3>
+<p>Use when the user asks to commit or when a workflow boundary requires a commit.</p>
+<ul>
+<li>Inspect <code>git status --short --branch</code>.</li>
+<li>Inspect the relevant diff. Do not include unrelated user changes.</li>
+<li>Confirm the branch is not protected unless it is an allowed repo exception or the user explicitly directs it.</li>
+<li>For specced work, confirm workflow docs are current:</li>
+<li><code>issues.md</code> status reflects the work.</li>
+<li><code>tracker.md</code> reflects criteria movement when at a boundary.</li>
+<li><code>scratchpad.md</code> has decision entries for triggered decisions.</li>
+<li>Run required verification or clearly report why verification is blocked.</li>
+<li>Stage only intended files.</li>
+<li>Commit with a concise imperative message. Prefer conventional prefixes when the repo uses them.</li>
+<li>Report commit SHA, files included, and verification performed.</li>
+</ul>
+<p>Never use destructive git commands to clean up the worktree unless the user explicitly asks.</p>
+  </article>
+</main>
+</body>
+</html>

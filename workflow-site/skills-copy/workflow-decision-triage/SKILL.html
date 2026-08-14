@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workflow Decision Triage</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Workflow Decision Triage</h1>
+<p class="note">Skill name: <code>workflow-decision-triage</code></p>
+<p class="note">Triage software decision logs at a PR boundary. Use before opening or updating a PR when scratchpad.md entries need promotion to decisions.md, when checking unreviewed decision entries, or when preparing permanent decision records.</p>
+<hr>
+<p>Triage is blocked while any scratchpad entry remains <code>[ ]</code>. Ask the user to mark entries <code>[x]</code> or <code>[-]</code> when human judgment is needed.</p>
+<p>Use the script after markings are resolved:</p>
+<pre><code>python3 /Users/trent.brown/agentic-development-workflow/scripts/decision_triage.py --help</code></pre>
+<h2>Embedded Instructions</h2>
+<h3>Decision Triage</h3>
+<p>Use at every PR boundary before opening or updating the PR for review.</p>
+<ul>
+<li>Read <code>scratchpad.md</code>.</li>
+<li>Ensure every entry is marked:</li>
+<li><code>[x]</code> promote</li>
+<li><code>[-]</code> dismiss</li>
+<li><code>[ ]</code> blocks triage</li>
+<li>Append promoted entries to <code>decisions.md</code>.</li>
+<li>Leave dismissed entries in <code>scratchpad.md</code> as audit trail.</li>
+<li>Add PR number/URL to promoted entries when available.</li>
+</ul>
+<p>Useful script:</p>
+<pre><code>python3 &quot;&lt;plugin-root&gt;/resources/scripts/decision_triage.py&quot; \
+  --branch-dir docs/issues/$(git branch --show-current) \
+  --pr &quot;#123&quot;</code></pre>
+  </article>
+</main>
+</body>
+</html>

@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 1,
+  "plugin": {
+    "id": "agentic-development-workflow",
+    "displayName": "Agentic Software Development Workflow",
+    "initialVersion": "0.1.0",
+    "expectedSkillCount": 27
+  },
+  "skills": [
+    {
+      "name": "software-development-workflow",
+      "group": "core",
+      "state": "existing",
+      "canonicalPath": "shared/skills/software-development-workflow"
+    },
+    {
+      "name": "workflow-branch-bootstrap",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-branch-bootstrap"
+    },
+    {
+      "name": "workflow-commit",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-commit"
+    },
+    {
+      "name": "workflow-decision-record",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-decision-record"
+    },
+    {
+      "name": "workflow-decision-triage",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-decision-triage"
+    },
+    {
+      "name": "workflow-design",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-design"
+    },
+    {
+      "name": "workflow-judge",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-judge"
+    },
+    {
+      "name": "workflow-pr-boundary",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-pr-boundary"
+    },
+    {
+      "name": "workflow-pr-review",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-pr-review"
+    },
+    {
+      "name": "workflow-spec-draft",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-spec-draft"
+    },
+    {
+      "name": "workflow-spec-evaluate",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-spec-evaluate"
+    },
+    {
+      "name": "workflow-spec-validate",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-spec-validate"
+    },
+    {
+      "name": "workflow-setup",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-setup"
+    },
+    {
+      "name": "workflow-doctor",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-doctor"
+    },
+    {
+      "name": "pattern-audit",
+      "group": "pattern",
+      "state": "existing",
+      "canonicalPath": "shared/skills/pattern-audit"
+    },
+    {
+      "name": "pattern-extract",
+      "group": "pattern",
+      "state": "existing",
+      "canonicalPath": "shared/skills/pattern-extract"
+    },
+    {
+      "name": "pattern-harvest",
+      "group": "pattern",
+      "state": "existing",
+      "canonicalPath": "shared/skills/pattern-harvest"
+    },
+    {
+      "name": "pattern-help",
+      "group": "pattern",
+      "state": "existing",
+      "canonicalPath": "shared/skills/pattern-help"
+    },
+    {
+      "name": "pattern-init",
+      "group": "pattern",
+      "state": "existing",
+      "canonicalPath": "shared/skills/pattern-init"
+    },
+    {
+      "name": "pattern-learn",
+      "group": "pattern",
+      "state": "existing",
+      "canonicalPath": "shared/skills/pattern-learn"
+    },
+    {
+      "name": "pattern-promote",
+      "group": "pattern",
+      "state": "existing",
+      "canonicalPath": "shared/skills/pattern-promote"
+    },
+    {
+      "name": "pattern-review",
+      "group": "pattern",
+      "state": "existing",
+      "canonicalPath": "shared/skills/pattern-review"
+    },
+    {
+      "name": "pattern-status",
+      "group": "pattern",
+      "state": "existing",
+      "canonicalPath": "shared/skills/pattern-status"
+    },
+    {
+      "name": "grill-me",
+      "group": "context-and-design",
+      "state": "existing",
+      "canonicalPath": "shared/skills/grill-me"
+    },
+    {
+      "name": "checkpoint",
+      "group": "context-and-design",
+      "state": "existing",
+      "canonicalPath": "shared/skills/checkpoint"
+    },
+    {
+      "name": "handoff",
+      "group": "context-and-design",
+      "state": "existing",
+      "canonicalPath": "shared/skills/handoff"
+    },
+    {
+      "name": "explain-diff",
+      "group": "review",
+      "state": "existing",
+      "canonicalPath": "shared/skills/explain-diff"
+    }
+  ],
+  "resources": {
+    "commands": [
+      "branch-bootstrap.md",
+      "commit.md",
+      "decision-record.md",
+      "decision-triage.md",
+      "design.md",
+      "judge.md",
+      "pattern-audit.md",
+      "pattern-extract.md",
+      "pattern-harvest.md",
+      "pattern-help.md",
+      "pattern-init.md",
+      "pattern-learn.md",
+      "pattern-promote.md",
+      "pattern-review.md",
+      "pattern-status.md",
+      "plan.md",
+      "pr-boundary.md",
+      "pr-review.md",
+      "spec-draft.md",
+      "spec-evaluate.md",
+      "spec-validate.md"
+    ],
+    "scripts": [
+      "boundary_gate.py",
+      "boundary_packet.py",
+      "bootstrap_branch_docs.py",
+      "decision_record.py",
+      "decision_triage.py",
+      "feature_final.py",
+      "gate_triage.py",
+      "lint_issues.py",
+      "lint_spec.py",
+      "lint_tracker.py",
+      "pattern_tool.py",
+      "pr_context.py",
+      "session_start.py",
+      "pattern/__init__.py",
+      "pattern/buckets.py",
+      "pattern/git_context.py",
+      "pattern/harvest.py",
+      "pattern/learning_events.py",
+      "pattern/rules.py",
+      "pattern/simple_yaml.py",
+      "pattern/status.py",
+      "pattern/tests/test_pattern_helpers.py",
+      "tests/test_decision_triage.py",
+      "tests/test_bootstrap_branch_docs.py",
+      "tests/test_boundary_gate.py",
+      "tests/test_boundary_packet.py",
+      "tests/test_feature_final.py",
+      "tests/test_pr_context.py",
+      "tests/test_sequential_workflow_acceptance.py",
+      "tests/test_session_start.py",
+      "tests/test_workflow_context.py",
+      "validate_branch_docs.py",
+      "workflow_common.py",
+      "workflow_context.py",
+      "workflow_doctor.py",
+      "workflow_setup.py",
+      "tests/test_workflow_doctor.py",
+      "tests/test_workflow_setup.py"
+    ],
+  "templates": [
+    "agentic-workflow.json",
+    "decisions.md",
+      "design.md",
+      "interview.md",
+      "issues.md",
+      "plan.md",
+      "scratchpad.md",
+      "spec.md",
+      "tracker.md",
+      "plugin-smoke/greet.py",
+      "plugin-smoke/test_greet.py",
+      "plugin-smoke/acceptance-answers.md"
+    ],
+  "policy": [
+    "EVIDENCE-PACKETS.md",
+    "WORKSPACE-CONTEXT.md",
+    "WORKFLOW.md",
+      "STANDARDS.md",
+      "WORKFLOW.mermaid",
+      "profiles/portable-core.md",
+      "profiles/quality-code.md"
+    ],
+    "resourceGuides": [
+      "RESOURCE-ROOT.md"
+    ],
+    "plannedDocumentation": [
+      "INSTALL.md"
+    ]
+  },
+  "policyProfiles": [
+    {
+      "id": "portable-core",
+      "scope": "all-users",
+      "state": "planned"
+    },
+    {
+      "id": "quality-code",
+      "scope": "maintainer-default",
+      "state": "planned"
+    }
+  ],
+  "runtimePrerequisites": [
+    {
+      "name": "git",
+      "minimumVersion": null,
+      "required": true
+    },
+    {
+      "name": "python3",
+      "minimumVersion": "3.10",
+      "required": true
+    },
+    {
+      "name": "gh",
+      "minimumVersion": null,
+      "required": true,
+      "condition": "authenticated for the private repository"
+    },
+    {
+      "name": "codex",
+      "minimumVersion": null,
+      "required": true
+    },
+    {
+      "name": "claude",
+      "minimumVersion": null,
+      "required": true
+    },
+    {
+      "name": "PyYAML",
+      "minimumVersion": null,
+      "required": false,
+      "condition": "optional enhancement; bundled fallback parser remains supported"
+    }
+  ],
+  "maintainerPrerequisites": [
+    {
+      "name": "node",
+      "minimumVersion": "22.12.0"
+    },
+    {
+      "name": "npm",
+      "minimumVersion": null
+    }
+  ],
+  "optionalIntegrations": [
+    "playwright",
+    "cloudflare",
+    "graphify",
+    "security-best-practices",
+    "remediate-vuln"
+  ]
+}

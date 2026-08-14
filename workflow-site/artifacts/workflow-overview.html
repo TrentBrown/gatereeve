@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workflow Overview</title>
+  <link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Workflow Overview</h1>
+<figure class="mermaid-figure"><img src="diagrams/workflow-overview.svg" alt="Workflow overview diagram"><details class="mermaid-source"><summary>Mermaid source</summary><pre><code>flowchart TD
+    %% ================= DESIGN PHASE =================
+    subgraph PHASE0[&quot;Design Phase&quot;]
+        Idea([&quot;Idea&lt;br/&gt;conversational seed&quot;]) --&gt; Triage{&quot;Non-trivial&lt;br/&gt;feature?&quot;}
+        Triage --&gt;|&quot;no&quot;| Direct[&quot;Implement directly&lt;br/&gt;Definition of Done still applies&quot;]
+        Triage --&gt;|&quot;yes&quot;| BranchFolder[&quot;docs/issues/{branch}/&lt;br/&gt;create branch folder&quot;]
+        BranchFolder --&gt; InterviewTemplate[&quot;interview.md&lt;br/&gt;created from template&quot;]
+        InterviewTemplate --&gt; Grill[/&quot;grill-me interview&lt;br/&gt;resolve design tree&quot;/]
+        Grill --&gt; Interview[&quot;interview.md&lt;br/&gt;settled answers, examples,&lt;br/&gt;rationale, open questions&quot;]
+        Interview --&gt; DesignDoc[&quot;design.md&lt;br/&gt;synthesized from interview.md&quot;]
+        DesignDoc --&gt; GateD{{&quot;GATE 1&lt;br/&gt;Design approved?&quot;}}
+        GateD --&gt;|&quot;revise&quot;| Grill
+        GateD --&gt;|&quot;rejected&quot;| DeleteBranch[&quot;Delete branch&lt;br/&gt;nothing downstream touched&quot;]
+    end
+
+    GateD --&gt;|&quot;approved&quot;| Branch
+
+    %% ================= BRANCH BOOTSTRAP =================
+    subgraph PHASE1[&quot;Branch Start&quot;]
+        Branch[&quot;tb-{issue}-{name}&lt;br/&gt;feature branch&quot;] --&gt; SpecDraft[&quot;spec.md&lt;br/&gt;AC + binary rubric&quot;]
+        SpecDraft --&gt; SpecInputs[&quot;Spec inputs&lt;br/&gt;design.md controls&lt;br/&gt;interview.md supports&quot;]
+        SpecInputs --&gt; Domain[&quot;Pressure-test spec vs codebase&lt;br/&gt;required when codebase exists&quot;]
+        Domain --&gt; SpecVal{{&quot;GATE 2&lt;br/&gt;Spec validation passes?&quot;}}
+        SpecVal --&gt;|&quot;gaps found&quot;| SpecDraft
+        SpecVal --&gt;|&quot;pass&quot;| Plan[&quot;plan.md&lt;br/&gt;P steps mapped to rubric&quot;]
+        Plan --&gt; PlanInputs[&quot;Plan inputs&lt;br/&gt;spec.md controls&lt;br/&gt;design.md + interview.md support&quot;]
+        PlanInputs --&gt; IssuesF[&quot;issues.md&lt;br/&gt;task breakdown&lt;br/&gt;I IDs map to P steps + R criteria&quot;]
+        IssuesF --&gt; SyncT[&quot;Sync coarse issues → Tree&lt;br/&gt;(title + description blocks)&quot;]
+        SyncT --&gt; TrackerF[&quot;tracker.md — all criteria NOT YET&quot;]
+        TrackerF --&gt; DevLogs[&quot;scratchpad.md + decisions.md&lt;br/&gt;development decision logging&quot;]
+    end
+
+    DevLogs --&gt; Work
+
+    %% ================= IMPLEMENTATION LOOP =================
+    subgraph PHASE2[&quot;Implementation Loop&quot;]
+        Work[&quot;Implement issue + tests&lt;br/&gt;(test-first for qualifying bugs)&quot;] --&gt; Scratch[&quot;scratchpad.md&lt;br/&gt;decision logging on triggers&quot;]
+        Scratch --&gt; AmendQ{&quot;New requirement&lt;br/&gt;outside spec?&quot;}
+        AmendQ --&gt;|&quot;yes&quot;| Amend[&quot;spec.md Changes entry&lt;br/&gt;new AC + rubric&lt;br/&gt;tracker adds NOT YET at boundary&quot;]
+        Amend --&gt; Work
+        AmendQ --&gt;|&quot;no&quot;| PRQ{&quot;Natural PR&lt;br/&gt;boundary?&quot;}
+        PRQ --&gt;|&quot;keep working&quot;| Work
+    end
+
+    PRQ --&gt;|&quot;yes&quot;| Recon
+
+    %% ================= PR BOUNDARY PIPELINE =================
+    subgraph PHASE3[&quot;PR Boundary&quot;]
+        Recon[&quot;Update tracker.md&lt;br/&gt;+ reconcile issues.md&quot;] --&gt; Matrix[&quot;Per-PR verification matrix&lt;br/&gt;build, lint, unit, integration,&lt;br/&gt;E2E/smoke, runtime&quot;]
+        Matrix --&gt; DoD{{&quot;GATE 3&lt;br/&gt;Definition of Done passes?&quot;}}
+        DoD --&gt;|&quot;fail&quot;| Work
+        DoD --&gt;|&quot;pass&quot;| Eval[&quot;Scoped spec-evaluate&lt;br/&gt;tracker updated from evidence only&quot;]
+        Eval --&gt; Judge{{&quot;GATE 4&lt;br/&gt;Independent judge passes?&quot;}}
+        Judge --&gt;|&quot;FAIL&quot;| Work
+        Judge --&gt;|&quot;explicit user waiver&quot;| RevPR[&quot;PR/code review&lt;br/&gt;findings lead with file/line refs&quot;]
+        Judge --&gt;|&quot;pass&quot;| RevPR
+        RevPR --&gt; Explain[&quot;explain-diff&lt;br/&gt;reviewer-facing walkthrough&quot;]
+        Explain --&gt; TriGate{{&quot;GATE 5&lt;br/&gt;Decision triage clean?&quot;}}
+        TriGate --&gt;|&quot;unreviewed [ ]&quot;| Scratch
+        TriGate --&gt;|&quot;clean&quot;| OpenPR[&quot;Open or update PR&lt;br/&gt;summary, decisions, verification,&lt;br/&gt;judge, review, explain-diff,&lt;br/&gt;known failures&quot;]
+        OpenPR --&gt; Human{{&quot;GATE 6&lt;br/&gt;Human review&quot;}}
+        Human --&gt;|&quot;changes requested&lt;br/&gt;issues → in-progress&quot;| Work
+    end
+
+    Human --&gt;|&quot;merged — issues → closed&quot;| AllPass{&quot;All rubric&lt;br/&gt;criteria PASS?&quot;}
+    AllPass --&gt;|&quot;NOT YETs remain&quot;| Work
+
+    %% ================= FEATURE COMPLETION =================
+    AllPass --&gt;|&quot;yes&quot;| FullEval
+
+    subgraph PHASE4[&quot;Feature Completion&quot;]
+        FullEval[&quot;Full verification&lt;br/&gt;against complete spec&quot;] --&gt; FinalTracker{{&quot;GATE 7&lt;br/&gt;zero NOT YET&lt;br/&gt;zero FAIL&quot;}}
+        FinalTracker --&gt;|&quot;fail&quot;| Work
+        FinalTracker --&gt;|&quot;pass&quot;| FullJudge{{&quot;GATE 8&lt;br/&gt;Independent judge passes?&quot;}}
+        FullJudge --&gt;|&quot;FAIL&quot;| Work
+        FullJudge --&gt;|&quot;pass / waived&quot;| Report[&quot;Completion Report&lt;br/&gt;DoD + AC + rubric tables&quot;]
+        Report --&gt; Closeout[&quot;Feature close-out&lt;br/&gt;final PR record, Tree complete,&lt;br/&gt;branch folder retired, checkpoint&quot;]
+    end
+
+    Closeout --&gt; Done([&quot;Done&lt;br/&gt;issues.md frozen as permanent task log&quot;])
+    Direct --&gt; Done
+
+    %% ================= AMBIENT PRIMITIVES =================
+    subgraph AMBIENT[&quot;Context Primitives (ambient — not pipeline steps)&quot;]
+        CP[(&quot;checkpoint: at will · auto near&lt;br/&gt;context limit · at every gate pass&quot;)]
+        HO[/&quot;handoff: on any agent switch&lt;br/&gt;mini-grill: recipient + objective&quot;/]
+    end
+
+    subgraph VALIDATORS[&quot;Validator-backed Gates&quot;]
+        VDocs[&quot;validate_branch_docs.py&quot;]
+        VSpec[&quot;lint_spec.py&quot;]
+        VIssues[&quot;lint_issues.py&quot;]
+        VTriage[&quot;gate_triage.py&quot;]
+        VTracker[&quot;lint_tracker.py&lt;br/&gt;--final at completion&quot;]
+    end
+
+    CP -.-&gt; GateD
+    CP -.-&gt; DoD
+    CP -.-&gt; FullJudge
+    HO -.-&gt; Work
+    VDocs -.-&gt; BranchFolder
+    VSpec -.-&gt; SpecVal
+    VIssues -.-&gt; IssuesF
+    VTriage -.-&gt; TriGate
+    VTracker -.-&gt; TrackerF
+    VTracker -.-&gt; FinalTracker
+
+    %% ================= STYLES =================
+    classDef gate fill:#fde68a,stroke:#b45309,stroke-width:2px,color:#111;
+    classDef artifact fill:#bfdbfe,stroke:#1e40af,color:#111;
+    classDef prim fill:#e9d5ff,stroke:#6b21a8,color:#111;
+    classDef cross fill:#fecaca,stroke:#991b1b,color:#111,stroke-dasharray: 5 5;
+    classDef phase fill:#d1fae5,stroke:#047857,color:#111;
+    classDef sync fill:#fed7aa,stroke:#c2410c,color:#111;
+    classDef validator fill:#e5e7eb,stroke:#374151,color:#111,stroke-dasharray: 3 3;
+
+    class Triage,GateD,SpecVal,DoD,Judge,TriGate,Human,AllPass,FinalTracker,FullJudge gate;
+    class BranchFolder,InterviewTemplate,Interview,DesignDoc,SpecDraft,Plan,IssuesF,TrackerF,Scratch,DevLogs,Amend,Report,Closeout artifact;
+    class CP prim;
+    class HO cross;
+    class Grill,Domain,Eval,RevPR,FullEval,SpecInputs,PlanInputs,Matrix phase;
+    class SyncT sync;
+    class VDocs,VSpec,VIssues,VTriage,VTracker validator;
+</code></pre></details></figure>
+  </article>
+</main>
+</body>
+</html>

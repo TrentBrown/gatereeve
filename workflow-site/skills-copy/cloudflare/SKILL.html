@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloudflare Platform Skill</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Cloudflare Platform Skill</h1>
+<p class="note">Skill name: <code>cloudflare</code></p>
+<p class="note">Comprehensive Cloudflare platform skill covering Workers, Pages, storage (KV, D1, R2), AI (Workers AI, Vectorize, Agents SDK), feature flags (Flagship), networking (Tunnel, Spectrum), security (WAF, DDoS), and infrastructure-as-code (Terraform, Pulumi). Use for any Cloudflare development task. Biases towards retrieval from Cloudflare docs over pre-trained knowledge.</p>
+<hr>
+<p>Consolidated skill for building on the Cloudflare platform. Use decision trees below to find the right product, then load detailed references.</p>
+<p>Your knowledge of Cloudflare APIs, types, limits, and pricing may be outdated. <strong>Prefer retrieval over pre-training</strong> — the references in this skill are starting points, not source of truth.</p>
+<h2>Retrieval Sources</h2>
+<p>Fetch the <strong>latest</strong> information before citing specific numbers, API signatures, or configuration options. Do not rely on baked-in knowledge or these reference files alone.</p>
+<table>
+<thead><tr><th>Source</th><th>How to retrieve</th><th>Use for</th></tr></thead>
+<tbody>
+<tr><td>Cloudflare docs</td><td><code>cloudflare-docs</code> search tool or <code>https://developers.cloudflare.com/</code></td><td>Limits, pricing, API reference, compatibility dates/flags</td></tr>
+<tr><td>Workers types</td><td><code>npm pack @cloudflare/workers-types</code> or check <code>node_modules</code></td><td>Type signatures, binding shapes, handler types</td></tr>
+<tr><td>Wrangler config schema</td><td><code>node_modules/wrangler/config-schema.json</code></td><td>Config fields, binding shapes, allowed values</td></tr>
+<tr><td>Product changelogs</td><td><code>https://developers.cloudflare.com/changelog/</code></td><td>Recent changes to limits, features, deprecations</td></tr>
+</tbody>
+</table>
+<p>When a reference file and the docs disagree, <strong>trust the docs</strong>. This is especially important for: numeric limits, pricing tiers, type signatures, and configuration options.</p>
+<h2>Quick Decision Trees</h2>
+<h3>&quot;I need feature flags&quot;</h3>
+<pre><code>Need feature flags?
+└─ Feature toggles, targeting rules, percentage rollouts → flagship/
+   ├─ Evaluate in Workers → Flagship binding (env.FLAGS)
+   ├─ Evaluate in Node.js / browser → OpenFeature SDK (@cloudflare/flagship)
+   └─ Manage flags via API → Flagship REST API</code></pre>
+<h3>&quot;I need to run code&quot;</h3>
+<pre><code>Need to run code?
+├─ Serverless functions at the edge → workers/
+├─ Full-stack web app with Git deploys → pages/
+├─ Stateful coordination/real-time → durable-objects/
+├─ Long-running multi-step jobs → workflows/
+├─ Run containers → containers/
+├─ Multi-tenant (customers deploy code) → workers-for-platforms/
+├─ Scheduled tasks (cron) → cron-triggers/
+├─ Lightweight edge logic (modify HTTP) → snippets/
+├─ Process Worker execution events (logs/observability) → tail-workers/
+└─ Optimize latency to backend infrastructure → smart-placement/</code></pre>
+<h3>&quot;I need to store data&quot;</h3>
+<pre><code>Need storage?
+├─ Key-value (config, sessions, cache) → kv/
+├─ Relational SQL → d1/ (SQLite) or hyperdrive/ (existing Postgres/MySQL)
+├─ Object/file storage (S3-compatible) → r2/
+├─ Versioned file trees (repos, build outputs, checkpoints) → artifacts/
+├─ Message queue (async processing) → queues/
+├─ Vector embeddings (AI/semantic search) → vectorize/
+├─ Strongly-consistent per-entity state → durable-objects/ (DO storage)
+├─ Secrets management → secrets-store/
+├─ Streaming ETL to R2 → pipelines/
+└─ Persistent cache (long-term retention) → cache-reserve/</code></pre>
+<h3>&quot;I need AI/ML&quot;</h3>
+<pre><code>Need AI?
+├─ Run inference (LLMs, embeddings, images) → workers-ai/
+├─ Vector database for RAG/search → vectorize/
+├─ Build stateful AI agents → agents-sdk/
+├─ Gateway for any AI provider (caching, routing) → ai-gateway/
+└─ AI-powered search widget → ai-search/</code></pre>
+<h3>&quot;I need networking/connectivity&quot;</h3>
+<pre><code>Need networking?
+├─ Expose local service to internet → tunnel/
+├─ TCP/UDP proxy (non-HTTP) → spectrum/
+├─ WebRTC TURN server → turn/
+├─ Private network connectivity → network-interconnect/
+├─ Optimize routing → argo-smart-routing/
+├─ Optimize latency to backend (not user) → smart-placement/
+└─ Real-time video/audio → realtimekit/ or realtime-sfu/</code></pre>
+<h3>&quot;I need security&quot;</h3>
+<pre><code>Need security?
+├─ Web Application Firewall → waf/
+├─ DDoS protection → ddos/
+├─ Bot detection/management → bot-management/
+├─ API protection → api-shield/
+├─ CAPTCHA alternative → turnstile/
+└─ Credential leak detection → waf/ (managed ruleset)</code></pre>
+<h3>&quot;I need media/content&quot;</h3>
+<pre><code>Need media?
+├─ Image optimization/transformation → images/
+├─ Video streaming/encoding → stream/
+├─ Browser automation/screenshots → browser-rendering/
+└─ Third-party script management → zaraz/</code></pre>
+<h3>&quot;I need analytics/metrics data&quot;</h3>
+<pre><code>Need analytics?
+├─ Query across all Cloudflare products (HTTP, Workers, DNS, etc.) → graphql-api/
+├─ Custom high-cardinality metrics from Workers → analytics-engine/
+├─ Client-side (RUM) performance data → web-analytics/
+├─ Workers Logs and real-time debugging → observability/
+└─ Raw logs (Logpush to external tools) → Cloudflare docs</code></pre>
+<h3>&quot;I need infrastructure-as-code&quot;</h3>
+<pre><code>Need IaC? → pulumi/ (Pulumi), terraform/ (Terraform), or api/ (REST API)</code></pre>
+<h2>Product Index</h2>
+<h3>Feature Flags</h3>
+<table>
+<thead><tr><th>Product</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td>Flagship</td><td><code>references/flagship/</code></td></tr>
+</tbody>
+</table>
+<h3>Compute &amp; Runtime</h3>
+<table>
+<thead><tr><th>Product</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td>Workers</td><td><code>references/workers/</code></td></tr>
+<tr><td>Pages</td><td><code>references/pages/</code></td></tr>
+<tr><td>Pages Functions</td><td><code>references/pages-functions/</code></td></tr>
+<tr><td>Durable Objects</td><td><code>references/durable-objects/</code></td></tr>
+<tr><td>Workflows</td><td><code>references/workflows/</code></td></tr>
+<tr><td>Containers</td><td><code>references/containers/</code></td></tr>
+<tr><td>Workers for Platforms</td><td><code>references/workers-for-platforms/</code></td></tr>
+<tr><td>Cron Triggers</td><td><code>references/cron-triggers/</code></td></tr>
+<tr><td>Tail Workers</td><td><code>references/tail-workers/</code></td></tr>
+<tr><td>Snippets</td><td><code>references/snippets/</code></td></tr>
+<tr><td>Smart Placement</td><td><code>references/smart-placement/</code></td></tr>
+</tbody>
+</table>
+<h3>Storage &amp; Data</h3>
+<table>
+<thead><tr><th>Product</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td>KV</td><td><code>references/kv/</code></td></tr>
+<tr><td>D1</td><td><code>references/d1/</code></td></tr>
+<tr><td>R2</td><td><code>references/r2/</code></td></tr>
+<tr><td>Artifacts</td><td><code>references/artifacts/</code></td></tr>
+<tr><td>Queues</td><td><code>references/queues/</code></td></tr>
+<tr><td>Hyperdrive</td><td><code>references/hyperdrive/</code></td></tr>
+<tr><td>DO Storage</td><td><code>references/do-storage/</code></td></tr>
+<tr><td>Secrets Store</td><td><code>references/secrets-store/</code></td></tr>
+<tr><td>Pipelines</td><td><code>references/pipelines/</code></td></tr>
+<tr><td>R2 Data Catalog</td><td><code>references/r2-data-catalog/</code></td></tr>
+<tr><td>R2 SQL</td><td><code>references/r2-sql/</code></td></tr>
+</tbody>
+</table>
+<h3>AI &amp; Machine Learning</h3>
+<table>
+<thead><tr><th>Product</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td>Workers AI</td><td><code>references/workers-ai/</code></td></tr>
+<tr><td>Vectorize</td><td><code>references/vectorize/</code></td></tr>
+<tr><td>Agents SDK</td><td><code>references/agents-sdk/</code></td></tr>
+<tr><td>AI Gateway</td><td><code>references/ai-gateway/</code></td></tr>
+<tr><td>AI Search</td><td><code>references/ai-search/</code></td></tr>
+</tbody>
+</table>
+<h3>Networking &amp; Connectivity</h3>
+<table>
+<thead><tr><th>Product</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td>Tunnel</td><td><code>references/tunnel/</code></td></tr>
+<tr><td>Spectrum</td><td><code>references/spectrum/</code></td></tr>
+<tr><td>TURN</td><td><code>references/turn/</code></td></tr>
+<tr><td>Network Interconnect</td><td><code>references/network-interconnect/</code></td></tr>
+<tr><td>Argo Smart Routing</td><td><code>references/argo-smart-routing/</code></td></tr>
+<tr><td>Workers VPC</td><td><code>references/workers-vpc/</code></td></tr>
+</tbody>
+</table>
+<h3>Security</h3>
+<table>
+<thead><tr><th>Product</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td>WAF</td><td><code>references/waf/</code></td></tr>
+<tr><td>DDoS Protection</td><td><code>references/ddos/</code></td></tr>
+<tr><td>Bot Management</td><td><code>references/bot-management/</code></td></tr>
+<tr><td>API Shield</td><td><code>references/api-shield/</code></td></tr>
+<tr><td>Turnstile</td><td><code>references/turnstile/</code></td></tr>
+</tbody>
+</table>
+<h3>Media &amp; Content</h3>
+<table>
+<thead><tr><th>Product</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td>Images</td><td><code>references/images/</code></td></tr>
+<tr><td>Stream</td><td><code>references/stream/</code></td></tr>
+<tr><td>Browser Rendering</td><td><code>references/browser-rendering/</code></td></tr>
+<tr><td>Zaraz</td><td><code>references/zaraz/</code></td></tr>
+</tbody>
+</table>
+<h3>Real-Time Communication</h3>
+<table>
+<thead><tr><th>Product</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td>RealtimeKit</td><td><code>references/realtimekit/</code></td></tr>
+<tr><td>Realtime SFU</td><td><code>references/realtime-sfu/</code></td></tr>
+</tbody>
+</table>
+<h3>Developer Tools</h3>
+<table>
+<thead><tr><th>Product</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td>Wrangler</td><td><code>references/wrangler/</code></td></tr>
+<tr><td>Miniflare</td><td><code>references/miniflare/</code></td></tr>
+<tr><td>C3</td><td><code>references/c3/</code></td></tr>
+<tr><td>Observability</td><td><code>references/observability/</code></td></tr>
+<tr><td>GraphQL Analytics API</td><td><code>references/graphql-api/</code></td></tr>
+<tr><td>Analytics Engine</td><td><code>references/analytics-engine/</code></td></tr>
+<tr><td>Web Analytics</td><td><code>references/web-analytics/</code></td></tr>
+<tr><td>Sandbox</td><td><code>references/sandbox/</code></td></tr>
+<tr><td>Workerd</td><td><code>references/workerd/</code></td></tr>
+<tr><td>Workers Playground</td><td><code>references/workers-playground/</code></td></tr>
+</tbody>
+</table>
+<h3>Infrastructure as Code</h3>
+<table>
+<thead><tr><th>Product</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td>Pulumi</td><td><code>references/pulumi/</code></td></tr>
+<tr><td>Terraform</td><td><code>references/terraform/</code></td></tr>
+<tr><td>API</td><td><code>references/api/</code></td></tr>
+</tbody>
+</table>
+<h3>Other Services</h3>
+<table>
+<thead><tr><th>Product</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td>Email Routing</td><td><code>references/email-routing/</code></td></tr>
+<tr><td>Email Workers</td><td><code>references/email-workers/</code></td></tr>
+<tr><td>Static Assets</td><td><code>references/static-assets/</code></td></tr>
+<tr><td>Bindings</td><td><code>references/bindings/</code></td></tr>
+<tr><td>Cache Reserve</td><td><code>references/cache-reserve/</code></td></tr>
+</tbody>
+</table>
+  </article>
+</main>
+</body>
+</html>

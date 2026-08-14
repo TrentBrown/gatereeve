@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Turnstile Spin skill</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Turnstile Spin skill</h1>
+<p class="note">Skill name: <code>turnstile-spin</code></p>
+<p class="note">Set up Cloudflare Turnstile end-to-end in a project — scan the codebase, create the widget via the Cloudflare API, deploy the managed siteverify Worker, write the frontend snippets, validate, and persist the skill. Load this when a user asks to add Turnstile, set up CAPTCHA, protect a form from bots, or fix a Turnstile integration. Mirrors developers.cloudflare.com/turnstile/spin.</p>
+<hr>
+<p>Turns the prompt &quot;set up Turnstile&quot; into a working end-to-end integration: a widget, a deployed managed siteverify Worker, frontend snippets at every chosen insertion point, and a real validation pass before reporting success.</p>
+<p>You are the agent. Run the wizard below by invoking the scripts under <code>scripts/</code> and branching on their JSON output. The scripts hold the deterministic logic (API calls, retry/error handling); your job is orchestration, codebase reading, confirmation, and the frontend edits.</p>
+<p>Canonical instructions live at <a href="https://developers.cloudflare.com/turnstile/spin/"><code>developers.cloudflare.com/turnstile/spin</code></a>. If the docs page and this file disagree, trust the docs page.</p>
+<h2>When to load this skill</h2>
+<p>Load when the user&#x27;s prompt mentions any of:</p>
+<ul>
+<li>&quot;Turnstile&quot;, &quot;CAPTCHA&quot;, &quot;bot protection&quot;</li>
+<li>&quot;siteverify&quot;, &quot;cf-turnstile-response&quot;</li>
+<li>&quot;protect this form&quot;, &quot;stop bot signups&quot;, &quot;spam signups&quot;</li>
+<li>A specific signup, login, or contact form combined with &quot;Cloudflare&quot; or &quot;bot&quot;</li>
+</ul>
+<p>Do not load for unrelated Cloudflare tasks (Workers, Pages, R2, etc.) unless Turnstile is also mentioned.</p>
+<h2>Conversation flow</h2>
+<p>The user pasted the prompt. You are in a multi-step dialog. Detect what you can, ask only when you have to, confirm before every irreversible step. Each numbered moment is one agent message. Items marked <strong>[wait for user]</strong> require a user response.</p>
+<ul>
+<li><strong>Brief acknowledge.</strong> One sentence: &quot;I&#x27;ll run Turnstile setup end to end. That&#x27;s: check auth, scan the codebase, create the widget, deploy the Worker, wire the frontend, validate. Proceed?&quot; <strong>[wait for user]</strong> Do NOT present a plan yet. Auth + scan come first.</li>
+</ul>
+<ul>
+<li><strong>Wrangler check.</strong> <code>npx wrangler --version</code>. If missing, ask once: &quot;Install wrangler with <code>npm install --save-dev wrangler</code> (Node project) or <code>npm install -g wrangler</code> (other)? Proceed?&quot; <strong>[wait for user]</strong> If install is blocked entirely (corporate policy, blocked npm), fall back to driving Steps 4-5 via <code>curl</code> against <code>api.cloudflare.com/client/v4/</code>.</li>
+</ul>
+<ul>
+<li><strong>Auth + scope probe (FIRST irreversible action).</strong> Run <code>scripts/auth-probe.sh</code>. Branch on <code>status</code>:</li>
+<li><code>ok</code>: continue to Step 4. The script already picked the account (single-account token, or one matching <code>$CLOUDFLARE_ACCOUNT_ID</code>).</li>
+<li><code>missing_token</code>, <code>missing_scope</code>, or <code>missing_workers_scope</code>: ask the user to create a token at https://dash.cloudflare.com/profile/api-tokens → Custom token → permissions <code>Account.Turnstile:Edit</code> <strong>and</strong> <code>Account.Workers Scripts:Edit</code> → include the target account in Account Resources. <strong>Do NOT direct them to <code>wrangler login</code></strong>. Its OAuth scope doesn&#x27;t include <code>Account.Turnstile:Edit</code> or <code>Account.Workers Scripts:Edit</code>. Offer three ways to hand the token over, cleanest first:</li>
+<li><strong>Export + relaunch</strong> (token never enters chat): <code>export CLOUDFLARE_API_TOKEN=&lt;token&gt;</code> then restart the agent from that terminal.</li>
+<li><strong>Save to file</strong> (token in file with user-only perms, not in chat): <code>umask 077 &amp;&amp; printf &#x27;%s&#x27; &#x27;&lt;token&gt;&#x27; &gt; ~/.cf-turnstile-token</code>, then read with <code>TOKEN=$(cat ~/.cf-turnstile-token)</code>.</li>
+<li><strong>Paste in chat</strong> (fastest, but token lands in conversation log; user should rotate it after if the log is ever shared). If the user picks option 3 (paste in chat), you can use the wait to run Steps 5, 6, 7 (Domain, Codebase scan, Insertion plan). Options 1 and 2 will restart your session, so do not pre-fetch state in those cases. When auth is established, re-run <code>scripts/auth-probe.sh</code>, then continue to Step 8.</li>
+<li><code>multiple_accounts</code>: the token covers more than one account and <code>$CLOUDFLARE_ACCOUNT_ID</code> is unset. Present the numbered <code>accounts</code> list. <strong>[wait for user]</strong> Then export <code>CLOUDFLARE_ACCOUNT_ID=&lt;chosen&gt;</code> and re-run <code>scripts/auth-probe.sh</code>.</li>
+<li><code>account_mismatch</code>: <code>$CLOUDFLARE_ACCOUNT_ID</code> is set but isn&#x27;t one of the token&#x27;s accounts. Show the <code>accounts</code> list and ask the user to either <code>unset CLOUDFLARE_ACCOUNT_ID</code> or set it to one of those IDs.</li>
+</ul>
+<ul>
+<li><strong>Account selection.</strong> If <code>scripts/auth-probe.sh</code> returned <code>ok</code> after a <code>multiple_accounts</code> round-trip, this is already done. Otherwise the script picked the single account silently and you continue to Step 5.</li>
+</ul>
+<ul>
+<li><strong>Domain.</strong> Always include <code>localhost</code> and <code>127.0.0.1</code>. For production, scan <code>package.json</code> <code>homepage</code>, <code>wrangler.toml</code>, <code>README.md</code>, <code>AGENTS.md</code>, git remote. Confirm: &quot;I&#x27;ll register for <code>localhost</code>, <code>127.0.0.1</code>, and <code>&lt;domain&gt;</code>. OK?&quot; <strong>[wait for user]</strong> If no production domain is found, ask.</li>
+</ul>
+<ul>
+<li><strong>Codebase scan.</strong> Detect framework + insertion candidates silently.</li>
+</ul>
+<ul>
+<li><strong>Insertion plan.</strong> Show the candidate list with <code>[recommended]</code> / <code>[skip by default]</code> markers; ask the user to confirm (numbers, &quot;all&quot;, &quot;recommended&quot;, or a list). <strong>[wait for user]</strong> If an existing CAPTCHA was detected, present a migration plan instead (see &quot;Migrating from another CAPTCHA&quot;).</li>
+</ul>
+<ul>
+<li><strong>Widget creation.</strong> Run <code>scripts/widget-create.sh --account-id &lt;id&gt; --name &lt;name&gt; --domains &lt;list&gt; --mode managed</code>. Report the sitekey. The secret stays in env; never write it to disk.</li>
+</ul>
+<ul>
+<li><strong>Worker deploy.</strong> Run <code>scripts/worker-deploy.sh --name turnstile-siteverify-&lt;project-slug&gt;</code> with <code>WIDGET_SECRET</code> exported. Report the Worker URL on <code>status: ok</code>. On <code>set_secret_failed</code>, the Worker deployed but <code>TURNSTILE_SECRET_KEY</code> is not set on it; surface the error, then retry with <code>echo &quot;$WIDGET_SECRET&quot; | npx wrangler secret put TURNSTILE_SECRET_KEY --name &lt;returned worker_name&gt;</code> before running validation.</li>
+</ul>
+<ul>
+<li><strong>Frontend edits.</strong> State the contract: &quot;I&#x27;ll add the widget + gate the existing submit handler on <code>success === true</code>. The existing handler logic stays the same.&quot; Ask &quot;yes&quot; / &quot;show&quot;. <strong>[wait for user]</strong> If &quot;show&quot;, print unified diffs and ask again. Do NOT propose alternate behavior (mail delivery, custom backends).</li>
+</ul>
+<ul>
+<li><strong>Validation.</strong> Run <code>scripts/validate.sh</code>. Report each check as it passes. If any fails, surface the error and stop. <strong>[wait for user if anything fails]</strong></li>
+</ul>
+<ul>
+<li><strong>Persist skill.</strong> Ask: &quot;Save the Spin skill to the active harness skill directory so I can reuse it on follow-up tasks?&quot; Default yes. <strong>[wait for user]</strong> Then run <code>scripts/persist-skill.sh --path &lt;agent-specific-path&gt;</code>.</li>
+</ul>
+<ul>
+<li><strong>Final report.</strong> Print the structured summary: what was created, what was validated, what to do next.</li>
+</ul>
+<h3>Things you must NOT do</h3>
+<ul>
+<li>Do not write the Turnstile secret to disk. Only pass it via stdin to <code>wrangler secret put</code> (<code>scripts/worker-deploy.sh</code> handles this).</li>
+<li>Do not skip validation.</li>
+<li>Do not overwrite files without showing a diff.</li>
+<li>Do not deploy a Worker to a different account than the widget was created in.</li>
+<li>Do not call siteverify from the browser. Always: browser → user&#x27;s Worker → siteverify.</li>
+<li>Do not use <code>sudo</code> or install global packages without asking.</li>
+</ul>
+<h3>Hard scope boundary: DO NOT ask the user about</h3>
+<p>Spin validates the Turnstile token via a managed Worker before the user&#x27;s existing form handler runs. Everything else is out of scope:</p>
+<ul>
+<li><strong>Email / SMS / notification delivery.</strong> Leave the existing submit handler alone (just gate it on <code>success === true</code>). Don&#x27;t propose Resend, Mailchannels, SMTP, mailto.</li>
+<li><strong>Custom Worker code.</strong> Deploy the stock Worker template bundled at <code>templates/worker/</code>. Don&#x27;t write a new Worker. Don&#x27;t add features (rate limiting, custom routing, third-party integrations).</li>
+<li><strong>Database / payment / OAuth / form persistence.</strong> Out of scope.</li>
+<li><strong>Frontend framework migration, refactoring, or styling.</strong> Edit only what&#x27;s needed.</li>
+<li><strong>reCAPTCHA v3 score thresholds.</strong> Turnstile returns <code>success: true/false</code>.</li>
+<li><strong>Pre-clearance-only setups.</strong> If <code>clearance_level !== no_clearance</code>, siteverify is optional and Spin doesn&#x27;t apply. Redirect the user and exit.</li>
+</ul>
+<h3>Recovery flow: respect existing widget configuration</h3>
+<p>If the user tells you they already have a Turnstile widget set up and want to wire siteverify to it without rotating the sitekey (e.g. &quot;I have a sitekey but siteverify never worked&quot;, &quot;set up Spin against my existing widget <code>&lt;sitekey&gt;</code>&quot;):</p>
+<ul>
+<li>Skip Step 8 (widget creation). The sitekey already exists; get it from the user.</li>
+<li>Fetch the widget metadata via <code>scripts/fetch-secret.sh --account-id &lt;id&gt; --sitekey &lt;key&gt;</code>. Branch on <code>status</code>:</li>
+<li><code>ok</code>: read <code>secret</code>, <code>clearance_level</code>, and <code>domains</code> from the response. Confirm <code>domains</code> includes the user&#x27;s production hostname; if not, surface the gap before proceeding.</li>
+<li><code>missing_read_scope</code>: tell the user to add <code>Account.Turnstile:Read</code> to the token, or fall back to asking them to paste the secret. In the paste path, you do not have <code>clearance_level</code> or <code>domains</code>; ask the user to confirm both.</li>
+<li>Check <code>clearance_level</code> from the response (or the user&#x27;s answer):</li>
+<li><code>no_clearance</code>: standard recovery (deploy Worker, wire siteverify).</li>
+<li>anything else: ask whether they want siteverify on top of pre-clearance, or exit per the scope boundary.</li>
+<li>Continue from Step 9 (Worker deploy). Site key does not change. Dashboard&#x27;s <code>Deployment</code> column flips from <code>Manual</code> to <code>Spin</code> on the first request carrying <code>data-action=&quot;turnstile-spin-v1&quot;</code>.</li>
+<li>Never recreate the widget to get a fresh secret. That breaks the existing sitekey everywhere it&#x27;s deployed.</li>
+</ul>
+<h3>The frontend-edit contract</h3>
+<p>When wiring an existing form to the Worker (Step 10), the contract is: <strong>gate, don&#x27;t replace.</strong> The user&#x27;s existing submit handler keeps doing what it did. Spin only adds a validation step before it.</p>
+<pre><code>form.addEventListener(&quot;submit&quot;, async (e) =&gt; {
+  e.preventDefault();
+  const token = /* read cf-turnstile-response */;
+  const result = await fetch(WORKER_URL, { method: &#x27;POST&#x27;, body: JSON.stringify({ token }) });
+  const data = await result.json();
+  if (!data.success) return; // show failure
+  // existing handler logic runs here, unchanged
+});</code></pre>
+<p>If the existing handler was a stub, Spin leaves it a stub gated on success. The user can replace the stub later; that&#x27;s not Spin&#x27;s job.</p>
+<h2>Migrating from another CAPTCHA</h2>
+<p>During the Step 6 codebase scan, also look for existing reCAPTCHA or hCaptcha. If found, switch Step 7 to a migration plan.</p>
+<p>Detection signals:</p>
+<ul>
+<li>reCAPTCHA: <code>https://www.google.com/recaptcha/api.js</code>, <code>class=&quot;g-recaptcha&quot;</code>, <code>data-sitekey=&quot;6L...&quot;</code>, backend POST to <code>/recaptcha/api/siteverify</code></li>
+<li>hCaptcha: <code>https://js.hcaptcha.com/1/api.js</code>, <code>class=&quot;h-captcha&quot;</code>, backend POST to <code>https://hcaptcha.com/siteverify</code></li>
+</ul>
+<p>Substitution:</p>
+<ul>
+<li>Replace script tags with <code>https://challenges.cloudflare.com/turnstile/v0/api.js</code> (<code>async defer</code>).</li>
+<li>Replace <code>class=&quot;g-recaptcha&quot;</code> / <code>class=&quot;h-captcha&quot;</code> divs with <code>class=&quot;cf-turnstile&quot;</code>, update <code>data-sitekey</code> to the new Turnstile sitekey, add <code>data-action=&quot;turnstile-spin-v1&quot;</code>.</li>
+<li>Token field changes from <code>g-recaptcha-response</code> to <code>cf-turnstile-response</code>.</li>
+<li>Backend siteverify URL points at the Spin-deployed Worker. Drop <code>RECAPTCHA_SECRET</code> / <code>HCAPTCHA_SECRET</code> env vars.</li>
+</ul>
+<p>Edge cases to surface to the user:</p>
+<ul>
+<li><strong>reCAPTCHA v3 score thresholds.</strong> Turnstile has no score. Tell the user explicitly that migrated code will reject on <code>success === false</code>.</li>
+<li><strong>reCAPTCHA Enterprise.</strong> Don&#x27;t auto-migrate. Point at <a href="https://developers.cloudflare.com/turnstile/migration/recaptcha/">developers.cloudflare.com/turnstile/migration/recaptcha/</a>.</li>
+<li><strong>Custom <code>action=</code> values.</strong> Preserve any custom action the user passed to <code>grecaptcha.execute</code> as <code>data-action</code> on the widget. Use <code>turnstile-spin-v1</code> only when no custom action exists.</li>
+</ul>
+<h2>Edge cases</h2>
+<table>
+<thead><tr><th>Situation</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td><a href="../wrangler/SKILL.html"><code>wrangler</code></a> not installed</td><td>Install path: <code>npm install --save-dev wrangler</code> (Node project) or <code>npm install -g wrangler</code> (other)</td></tr>
+<tr><td>Multiple Cloudflare accounts</td><td><code>scripts/auth-probe.sh</code> returns all accounts; ask the user to choose, export <code>CLOUDFLARE_ACCOUNT_ID</code></td></tr>
+<tr><td>Cloudflare Pages project</td><td>Deploy the managed Worker anyway, OR suggest the <a href="https://developers.cloudflare.com/pages/functions/plugins/turnstile/">Pages Plugin</a></td></tr>
+<tr><td><code>EXPECTED_HOSTNAME</code> mismatch</td><td>Update widget domains via PUT, not PATCH (PATCH returns <code>10405 Method not allowed</code>): <code>curl -X PUT .../widgets/$SITEKEY -d &#x27;{&quot;name&quot;:&quot;...&quot;,&quot;mode&quot;:&quot;managed&quot;,&quot;domains&quot;:[...]}&#x27;</code></td></tr>
+<tr><td>Worker name conflict</td><td><code>scripts/worker-deploy.sh</code> retries automatically with a hash suffix</td></tr>
+<tr><td>Token expired mid-flow</td><td>Stop, re-run <code>scripts/auth-probe.sh</code>, prompt for fresh credentials</td></tr>
+<tr><td>Step 11 returns <code>missing-input-secret</code></td><td>Secret didn&#x27;t propagate. Re-set: `echo &quot;$WIDGET_SECRET&quot; \</td></tr>
+<tr><td><code>scripts/worker-deploy.sh</code> returns <code>set_secret_failed</code></td><td>Worker is deployed but secret is not set. Re-run only the secret-put using the returned <code>worker_name</code>: `echo &quot;$WIDGET_SECRET&quot; \</td></tr>
+</tbody>
+</table>
+<h2>Telemetry marker</h2>
+<p>Every snippet you write must include <code>data-action=&quot;turnstile-spin-v1&quot;</code>. Account-level aggregate telemetry, never per-user. Cloudflare uses it to measure activation. If the user removes the attribute, the integration still works; only the analytics segmentation is lost.</p>
+<h2>Do not</h2>
+<ul>
+<li>Do not write the secret to disk.</li>
+<li>Do not skip validation (Step 11).</li>
+<li>Do not propose features outside the wizard (custom Worker code, custom domains, advanced WAF rules) unless asked.</li>
+<li>Do not call siteverify from the browser.</li>
+<li>Do not deploy the Worker into a different account than the widget.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

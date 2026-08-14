@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Token Burn Dashboard For All Sources</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Token Burn Dashboard For All Sources</h1>
+<p class="note">Skill name: <code>token-burn-all-sources</code></p>
+<p class="note">Build a token-burn dashboard that tracks Codex, Claude Code, Claude chat, and ChatGPT on the same axes, with exact and estimated usage kept visibly separate.</p>
+<hr>
+<p>Use this skill when the user wants one dashboard across Codex, Claude, and ChatGPT.</p>
+<h2>Workflow</h2>
+<ul>
+<li>Copy <code>assets/dashboard-starter/</code> into the user&#x27;s chosen project folder.</li>
+<li>Read <code>references/data-contract.md</code>, <code>references/dashboard-spec.md</code>, and <code>references/privacy-and-public-data.md</code>.</li>
+<li>Read <code>references/source-notes.md</code> for source-by-source collection rules.</li>
+<li>Inventory which sources the user actually uses.</li>
+<li>Pull exact logs first: Codex and Claude Code where available.</li>
+<li>Estimate Claude chat and ChatGPT only after interviewing the user or inspecting user-approved local artifacts.</li>
+<li>Normalize every source into one daily row and one local timezone.</li>
+<li>Run the starter app locally and verify all five views render.</li>
+<li>Scrub private detail before deploy or sharing.</li>
+</ul>
+<h2>Source Rules</h2>
+<ul>
+<li><code>codex_tokens</code>: exact when local Codex logs include token usage.</li>
+<li><code>claude_code_tokens</code>: exact when Claude Code logs include token usage.</li>
+<li><code>claude_code_calls</code>: count meaningful Claude Code sessions or calls.</li>
+<li><code>claude_chat_est</code>: estimated unless exact provider logs exist.</li>
+<li><code>chatgpt_est</code>: estimated unless exact provider logs exist.</li>
+<li><code>total</code>: sum of all source columns.</li>
+</ul>
+<h2>Done Means</h2>
+<ul>
+<li><code>npm install</code> succeeds.</li>
+<li><code>npm run build</code> succeeds.</li>
+<li>All four source lanes appear on the dashboard.</li>
+<li>Exact and estimated labels are obvious.</li>
+<li>The dashboard answers: what work should the computer do next?</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

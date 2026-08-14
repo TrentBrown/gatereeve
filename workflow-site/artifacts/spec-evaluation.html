@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spec Evaluation - PR #46</title>
+  <link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Spec Evaluation - PR #46</h1>
+<p><strong>Verdict:</strong> PASS for planned slice I-4; complete-feature criteria remain <code>NOT YET</code>.</p>
+<h2>Slice evaluation</h2>
+<table>
+<thead><tr><th>Requirement contribution</th><th>Result</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>Consequential preview/execute protocol</td><td>PASS</td><td>Seven action families create five-minute receipts from explicit proposals and fresh evidence, then execute only after daemon-side evidence revalidation.</td></tr>
+<tr><td>Replay and stale refusal</td><td>PASS</td><td>Completed receipts replay their persisted result; incomplete receipts reject expiry, target mismatch, proposal mismatch, and changed evidence without performing the action.</td></tr>
+<tr><td>Action-specific schemas</td><td>PASS</td><td>All 16 I-4 tools have closed, typed input and output schemas rather than generic JSON payloads.</td></tr>
+<tr><td>Canonical document policy</td><td>PASS</td><td>Shared primitives enforce the fixed filename, canonical existing directory, regular-file/no-symlink policy, size bound, validation, fingerprinting, and atomic compare-before-replace.</td></tr>
+<tr><td>Desktop compatibility</td><td>PASS</td><td>The Desktop stack-document adapter now delegates to the same shared safety primitives, with its existing behavior and tests preserved.</td></tr>
+<tr><td>Safe action boundaries</td><td>PASS</td><td>Preview helpers are side-effect free, execute callers submit only receipt plus explicit target, and unsafe any-owner eviction is not exposed.</td></tr>
+</tbody>
+</table>
+<h2>Acceptance criteria status</h2>
+<table>
+<thead><tr><th>AC</th><th>Status after this slice</th><th>Evidence / remaining work</th></tr></thead>
+<tbody>
+<tr><td>AC1</td><td>NOT YET</td><td>Stdio authority remains correct; final packaged macOS/Linux proof remains I-7.</td></tr>
+<tr><td>AC2</td><td>NOT YET</td><td>The bridge now exposes 45 strict tools; six Docker snapshot and launcher-operation tools remain I-5.</td></tr>
+<tr><td>AC3</td><td>PASS</td><td>Already satisfied in I-2 and unchanged by this slice.</td></tr>
+<tr><td>AC4</td><td>NOT YET</td><td>I-3 custody remains intact; launcher-operation credential custody and final leakage proof remain I-5/I-7.</td></tr>
+<tr><td>AC5</td><td>NOT YET</td><td>Consequential action replay passes; Docker snapshot and launcher coordination remain I-5, with final host replay coverage in I-7.</td></tr>
+<tr><td>AC6</td><td>PASS for I-4 contribution</td><td>Every planned consequential family uses a five-minute, evidence-bound preview/execute receipt and refuses stale execution. Final host/process/Docker evidence-change cases remain I-7.</td></tr>
+<tr><td>AC7</td><td>NOT YET</td><td>Canonical structured stack documents are complete; Docker endpoint snapshots and final observability proof remain I-5/I-7.</td></tr>
+<tr><td>AC8</td><td>NOT YET</td><td>Standalone build succeeds; CLI/Desktop setup and full host/platform matrix remain I-6/I-7.</td></tr>
+</tbody>
+</table>
+<p>No incomplete feature-level criterion is marked complete in <code>tracker.md</code>.</p>
+  </article>
+</main>
+</body>
+</html>

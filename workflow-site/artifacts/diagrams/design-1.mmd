@@ -1,0 +1,9 @@
+flowchart LR
+    A1["Agent host A"] -->|"stdio MCP"| B1["PortReeve MCP bridge A"]
+    A2["Agent host B"] -->|"stdio MCP"| B2["PortReeve MCP bridge B"]
+    B1 -->|"official JS client<br/>HTTP/JSON over Unix socket"| D["Single per-user PortReeve daemon"]
+    B2 -->|"official JS client<br/>HTTP/JSON over Unix socket"| D
+    D --> R["Registry and structured history"]
+    D --> E["lsof/process and Docker evidence"]
+    UI["CLI and desktop MCP setup"] -.->|"generate and copy host configuration"| A1
+    UI -.->|"generate and copy host configuration"| A2

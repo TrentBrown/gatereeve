@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workflow Judge</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Workflow Judge</h1>
+<p class="note">Skill name: <code>workflow-judge</code></p>
+<p class="note">Independent compliance evaluation for specced software work. Use for LLM-as-judge style review, PR boundary verification, final feature verification, rubric compliance checks, scope creep checks, gap checks, or contradiction checks against spec.md.</p>
+<hr>
+<p>Keep the judge pass isolated from implementation rationale. If subagents are available and the user has authorized parallel agent work, use one. Otherwise perform the isolated evaluation yourself from the spec and changed files only.</p>
+<h2>Embedded Instructions</h2>
+<h3>Judge</h3>
+<p>Use for an independent spec compliance pass at PR boundaries or feature completion.</p>
+<p>At a formal PR boundary, first resolve the <code>judge</code> gate through <code>boundary_gate.py</code>. Read changed files only from its <code>diffBaseSha</code> through <code>diffHeadSha</code> and write the result only to its <code>outputPath</code>. Do not re-resolve the PR, infer an upstream, or choose a branch-derived report path. Outside a formal boundary, retain the existing standalone diff and output fallback.</p>
+<ul>
+<li>Gather only the materials required for evaluation:</li>
+<li>AC and rubric from <code>spec.md</code>.</li>
+<li>Changed file list from the correct merge base.</li>
+<li>Current changed file contents.</li>
+<li>Keep the judge isolated from implementation rationale and prior self-evaluation.</li>
+<li>Ask the judge to score every in-scope rubric criterion as PASS, FAIL, or PASS WITH CONCERNS, citing file/line evidence.</li>
+<li>Include scope creep, gap, and contradiction checks.</li>
+<li>Treat judge failures as blockers until fixed or explicitly accepted by the user.</li>
+<li>Preserve the result as an auditable artifact. Formal boundaries use the active packet&#x27;s fixed <code>judge.md</code>; standalone evaluations may use an explicitly named report or summarize the verdict plus concerns in <code>tracker.md</code> and the PR body when a separate file would be excessive.</li>
+<li>Do not emit pattern-review learning events by default. The learning-event producer contract is deferred from pattern-review v1 until the review gate has enough real usage to justify the extra structure.</li>
+</ul>
+<p>Judge output must include:</p>
+<pre><code>## Judge Evaluation
+
+**Verdict:** PASS / FAIL / PASS WITH CONCERNS
+
+### Rubric Evaluation
+| # | Criterion | Result | Evidence |
+|---|-----------|--------|----------|
+
+### Scope Check
+- **Scope creep found:** Yes/No
+- **Details:** ...
+
+### Gap Check
+- **Unaddressed AC:** ...
+
+### Contradiction Check
+- **Contradictions found:** ...
+
+### Concerns
+...</code></pre>
+<p>If subagents are available and the user has authorized parallel agent work, use a subagent. Otherwise perform the independent pass yourself by rebuilding the evaluation from source artifacts only.</p>
+  </article>
+</main>
+</body>
+</html>

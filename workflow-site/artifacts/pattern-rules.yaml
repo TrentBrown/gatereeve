@@ -1,0 +1,215 @@
+- id: "client-api-access-through-stores"
+  title: "Client API access must go through stores"
+  description: "Vue components, pages, and utility modules must not call $axios or remote APIs directly; remote data access belongs in Pinia stores."
+  rationale: "Keeping API access in stores preserves a clear boundary between UI behavior and remote data concerns, and it was a repeated reviewer finding in client#689."
+  scope:
+    paths:
+      - "public/**/*.vue"
+      - "public/**/*.js"
+  trigger:
+    mode: "diff"
+    addedContains:
+      - "$axios"
+      - "api/"
+      - "API"
+  severity: "blocker"
+  review:
+    mode: "agentic"
+    instructions: "Inspect changed Vue components, pages, and utility modules. If they call $axios or perform remote API access directly, require moving the call into a Pinia store action. Components may own UI state, browser/DOM behavior, rendering, and interaction state; stores own remote data fetching, API mutation calls, domain data state, and error shaping for remote operations."
+  evidence:
+    instructionFiles:
+      - path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/complaints.md"
+        sourceText: "client-689-T001-C01: API calls should always go through a \"stores\" module."
+        sourceBoundary: "complaint"
+      - path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/complaints.md"
+        sourceText: "client-689-T006-C01: All $axios actions should be in a stores module."
+        sourceBoundary: "complaint"
+      - path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/complaints.md"
+        sourceText: "client-689-T008-C01: This should go into a store module as well. We want to keep all remote data access in that layer, not in the application layer."
+        sourceBoundary: "complaint"
+      - path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/complaints.md"
+        sourceText: "client-689-T009-C01: Ditto. Create a store module for these API calls."
+        sourceBoundary: "complaint"
+    sourceSummary: "The reviewer repeatedly flagged direct client API access outside store modules in client#689."
+  provenance:
+    extractedBy: "pattern-evaluation"
+    extractedAt: "2026-07-06"
+    target:
+      path: "."
+    evaluation:
+      path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/"
+      prs:
+        - "example-org/client#689"
+    promotedFrom: "client-api-access-through-stores"
+    promotedAt: "2026-07-07T13:54:09Z"
+    promotedBy: "pattern-promote"
+  examples:
+    good: "A page calls store.fetchProviderDesign(siteId), and the store action owns the $axios request plus remote error normalization."
+    bad: "A Vue component calls this.$axios.get('/api/sites/' + siteId + '/design') directly from a click handler."
+  exceptions:
+    - "Non-remote browser APIs, local formatting helpers, and purely presentational state may remain in components or utility modules."
+- id: "client-stores-must-not-duplicate-backend-domain-logic"
+  title: "Client stores must not duplicate backend domain logic"
+  description: "Client stores should orchestrate remote data and UI-facing state, not reimplement backend domain rules or duplicate backend-derived relationships."
+  rationale: "Duplicating backend logic in client stores creates inconsistent behavior and was flagged in client#689."
+  scope:
+    paths:
+      - "public/stores/**/*.js"
+      - "public/stores/**/*.ts"
+      - "public/stores/*.js"
+      - "public/stores/*.ts"
+  trigger:
+    mode: "agentic"
+    description: "Trigger when store changes add derived domain relationships, backend-like filtering/authorization logic, or duplicated remote model behavior."
+  severity: "warning"
+  review:
+    mode: "agentic"
+    instructions: "Inspect changed stores for duplicated backend domain behavior. Stores may normalize remote responses and hold client state, but they should not recreate backend authorization, organization/site ownership rules, or durable domain relationships that should come from API responses."
+  evidence:
+    instructionFiles:
+      - path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/complaints.md"
+        sourceText: "client-689-T003-C01: What is this all for? Seems like you're trying to duplicate the backend funtionality?"
+        sourceBoundary: "complaint"
+      - path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/complaints.md"
+        sourceText: "client-689-T004-C01: Same question here. Duplicating backend functionality?"
+        sourceBoundary: "complaint"
+    sourceSummary: "The reviewer flagged duplicated backend functionality in client stores in client#689."
+  provenance:
+    extractedBy: "pattern-evaluation"
+    extractedAt: "2026-07-07"
+    target:
+      path: "."
+    evaluation:
+      path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/"
+      prs:
+        - "example-org/client#689"
+    promotedFrom: "client-stores-must-not-duplicate-backend-domain-logic"
+    promotedAt: "2026-07-07T14:02:32Z"
+    promotedBy: "pattern-promote"
+  examples:
+    good: "A store requests organization-scoped site data from the backend and keeps the returned list in state."
+    bad: "A store reconstructs organization/site ownership rules locally instead of asking the backend for the scoped data."
+  exceptions:
+    - "Pure client presentation derivations, such as sorting an already-authorized list for display, may remain in stores."
+- id: "client-data-access-must-respect-backend-scope-boundaries"
+  title: "Client data access must respect backend scope boundaries"
+  description: "Client changes must not fetch or combine data across organizations, sites, or other backend scope boundaries unless the API explicitly supports that scope."
+  rationale: "The reviewer questioned whether a client store was trying to get locations from a different organization in client#689."
+  scope:
+    paths:
+      - "public/stores/**/*.js"
+      - "public/stores/**/*.ts"
+      - "public/**/*.vue"
+      - "public/**/*.js"
+  trigger:
+    mode: "agentic"
+    description: "Trigger when client code changes how it fetches, filters, joins, or combines organization/site/location-scoped data."
+  severity: "blocker"
+  review:
+    mode: "agentic"
+    instructions: "Inspect data access involving organizations, sites, locations, or maps. Verify the client calls APIs whose backend authorization and scope match the data being shown. Flag client-side cross-scope joins or assumptions that could expose or mix another organization/site's data."
+  evidence:
+    instructionFiles:
+      - path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/complaints.md"
+        sourceText: "client-689-T005-C01: Are you trying to get locations from a different organization?"
+        sourceBoundary: "complaint"
+    sourceSummary: "The reviewer flagged a potential organization-scope data access issue in client#689."
+  provenance:
+    extractedBy: "pattern-evaluation"
+    extractedAt: "2026-07-07"
+    target:
+      path: "."
+    evaluation:
+      path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/"
+      prs:
+        - "example-org/client#689"
+    promotedFrom: "client-data-access-must-respect-backend-scope-boundaries"
+    promotedAt: "2026-07-07T14:03:20Z"
+    promotedBy: "pattern-promote"
+  examples:
+    good: "A store requests locations through a site-scoped endpoint that enforces the current user's organization rights."
+    bad: "A component combines a site from one organization with locations fetched through a separate organization assumption."
+- id: "client-tests-clean-up-generated-temp-files"
+  title: "Client tests should clean up generated temporary files"
+  description: "Tests that generate temporary files should clean them up after successful runs instead of relying on broad ignore rules."
+  rationale: "Leaving generated test artifacts around creates workspace noise and was flagged in client#689."
+  scope:
+    paths:
+      - "public/.gitignore"
+      - ".gitignore"
+      - "public/**/*.test.js"
+      - "public/**/*.spec.js"
+      - "public/test/**/*.js"
+      - "public/tests/**/*.js"
+  trigger:
+    mode: "agentic"
+    description: "Trigger when tests add generated file outputs, temporary data paths, or ignore rules for test artifacts."
+  severity: "warning"
+  review:
+    mode: "agentic"
+    instructions: "Inspect test changes that generate temporary files. Prefer cleanup after successful test runs. Flag broad .gitignore additions for generated test output unless cleanup is impractical and the reason is documented."
+  evidence:
+    instructionFiles:
+      - path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/complaints.md"
+        sourceText: "client-689-T010-C01: A better way of doing this would be to clean up temp files after a successful test run."
+        sourceBoundary: "complaint"
+    sourceSummary: "The reviewer preferred test cleanup over ignore-only handling for generated temp files in client#689."
+  provenance:
+    extractedBy: "pattern-evaluation"
+    extractedAt: "2026-07-07"
+    target:
+      path: "."
+    evaluation:
+      path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/"
+      prs:
+        - "example-org/client#689"
+    promotedFrom: "client-tests-clean-up-generated-temp-files"
+    promotedAt: "2026-07-07T14:04:31Z"
+    promotedBy: "pattern-promote"
+  examples:
+    good: "A test writes a generated map fixture to a temp directory and deletes it in teardown after the assertions pass."
+    bad: "A test writes generated files under public/ and adds them to .gitignore without cleanup."
+- id: "client-remote-error-handling-must-be-explicit"
+  title: "Client remote error handling must be explicit"
+  description: "Store actions and callers must have an explicit strategy for remote errors, including whether to surface alerts, return structured errors, or allow caller-specific handling."
+  rationale: "The reviewer repeatedly asked how design-provider remote errors were surfaced and handled in client#689."
+  scope:
+    paths:
+      - "public/stores/**/*.js"
+      - "public/stores/**/*.ts"
+      - "public/**/*.vue"
+      - "public/**/*.js"
+  trigger:
+    mode: "agentic"
+    description: "Trigger when client code adds or changes remote API calls, catch blocks, error logging, alerts, or store action error returns."
+  severity: "warning"
+  review:
+    mode: "agentic"
+    instructions: "Inspect remote API error handling. Verify each remote failure path has an explicit user-facing or caller-facing strategy. If errors are expected to be handled differently by different callers, the store should return or throw structured information and the calling code should make that choice deliberately."
+  evidence:
+    instructionFiles:
+      - path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/complaints.md"
+        sourceText: "client-689-T011-C01: No alerts on errors? Are the errors handled somehow in the calling code?"
+        sourceBoundary: "complaint"
+      - path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/complaints.md"
+        sourceText: "client-689-T012-C01: Error handling in this file too?"
+        sourceBoundary: "complaint"
+      - path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/complaints.md"
+        sourceText: "client-689-T011-C02: Wait. You're saying that errors are expected in the UI and are handled differently under different circumstances?"
+        sourceBoundary: "complaint"
+    sourceSummary: "Remote error handling was repeatedly questioned in client#689."
+  provenance:
+    extractedBy: "pattern-evaluation"
+    extractedAt: "2026-07-07"
+    target:
+      path: "."
+    evaluation:
+      path: "/Users/trent.brown/agentic-development-workflow/docs/pattern-review/evaluations/example-pr-review/"
+      prs:
+        - "example-org/client#689"
+    promotedFrom: "client-remote-error-handling-must-be-explicit"
+    promotedAt: "2026-07-07T14:05:22Z"
+    promotedBy: "pattern-promote"
+  examples:
+    good: "A store action catches a provider 404, returns a typed notPaired result, and the caller decides whether to show an alert or a quiet empty state."
+    bad: "A store action swallows a failed API call with console logging only, leaving callers unable to distinguish expected empty state from failure."

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloudflare Email Service</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Cloudflare Email Service</h1>
+<p class="note">Skill name: <code>cloudflare-email-service</code></p>
+<p class="note">Send and receive transactional emails with Cloudflare Email Service (Email Sending + Email Routing). Use when building email sending (Workers binding or REST API), email routing, Agents SDK email handling, or integrating email into any app — Workers, Node.js, Python, Go, etc. Also use for email deliverability, SPF/DKIM/DMARC, wrangler email setup, MCP email tools, or when a coding agent needs to send emails. Even for simple requests like &quot;add email to my Worker&quot; — this skill has critical config details.</p>
+<hr>
+<p>Your knowledge of the Cloudflare Email Service, Email Routing or Email Sending may be outdated. <strong>Prefer retrieval over pre-training</strong> for any Cloudflare Email Service task.</p>
+<p>Cloudflare Email Service lets you send transactional emails and route incoming emails, all within the Cloudflare platform. Your knowledge of this product may be outdated — it launched in 2025 and is evolving rapidly. <strong>Prefer retrieval over pre-training</strong> for any Email Service task.</p>
+<p><strong>If there is any discrepancy between this skill and the sources below, always trust the original source.</strong> The Cloudflare docs, REST API spec, <code>@cloudflare/workers-types</code>, and Agents SDK repo are the source of truth. This skill is a convenience guide — it may lag behind the latest changes. When in doubt, retrieve from the sources below and use what they say.</p>
+<h2>Retrieval Sources</h2>
+<table>
+<thead><tr><th>Source</th><th>How to retrieve</th><th>Use for</th></tr></thead>
+<tbody>
+<tr><td>Cloudflare docs</td><td><code>cloudflare-docs</code> search tool or URL <code>https://developers.cloudflare.com/email-service/</code></td><td>API reference, limits, pricing, latest features</td></tr>
+<tr><td>REST API spec</td><td><code>https://developers.cloudflare.com/api/resources/email_sending</code></td><td>OpenAPI spec for the Email Sending REST API</td></tr>
+<tr><td>Workers types</td><td><code>https://www.npmjs.com/package/@cloudflare/workers-types</code></td><td>Type signatures, binding shapes</td></tr>
+<tr><td>Agents SDK docs</td><td>Fetch <code>docs/email.md</code> from <code>https://github.com/cloudflare/agents/tree/main/docs</code></td><td>Email handling in Agents SDK</td></tr>
+</tbody>
+</table>
+<h2>FIRST: Check Prerequisites</h2>
+<p>Before writing any email code, verify the basics are in place:</p>
+<ul>
+<li><strong>Domain onboarded?</strong> Run <code>npx wrangler email sending list</code> to see which domains have email sending enabled. If the domain isn&#x27;t listed, run <code>npx wrangler email sending enable userdomain.com</code> or see <a href="references/cli-and-mcp.md">cli-and-mcp.md</a> for full setup instructions.</li>
+<li><strong>Binding configured?</strong> Look for <code>send_email</code> in <code>wrangler.jsonc</code> (for Workers)</li>
+<li><strong>postal-mime installed?</strong> Run <code>npm ls postal-mime</code> (only needed for receiving/parsing emails)</li>
+</ul>
+<h2>What Do You Need?</h2>
+<p>Start here. Find your situation, then follow the link for full details.</p>
+<table>
+<thead><tr><th>I want to...</th><th>Path</th><th>Reference</th></tr></thead>
+<tbody>
+<tr><td><strong>Send emails from a Cloudflare Worker</strong></td><td>Workers binding (no API keys needed)</td><td><a href="references/sending.md">sending.md</a></td></tr>
+<tr><td><strong>Send emails from an AI agent built with <a href="https://developers.cloudflare.com/agents/">Cloudflare Agents SDK</a></strong></td><td><code>onEmail()</code> + <code>replyToEmail()</code> in Agent class</td><td><a href="references/sending.md">sending.md</a></td></tr>
+<tr><td><strong>Send emails from an external app or agent</strong> (Node.js, Go, Python, etc.)</td><td>REST API with Bearer token</td><td><a href="references/rest-api.md">rest-api.md</a></td></tr>
+<tr><td><strong>Send emails from a coding agent</strong> (Claude Code, Cursor, Copilot, etc.)</td><td>MCP tools, wrangler CLI, or REST API</td><td><a href="references/cli-and-mcp.md">cli-and-mcp.md</a></td></tr>
+<tr><td><strong>Receive and process incoming emails</strong> (Email Routing)</td><td>Workers <code>email()</code> handler</td><td><a href="references/routing.md">routing.md</a></td></tr>
+<tr><td><strong>Set up Email Sending or Email Routing</strong></td><td><code>wrangler email sending enable</code> / <code>wrangler email routing enable</code>, or Dashboard</td><td><a href="references/cli-and-mcp.md">cli-and-mcp.md</a></td></tr>
+<tr><td><strong>Improve deliverability, avoid spam folders</strong></td><td>Authentication, content, compliance</td><td><a href="references/deliverability.md">deliverability.md</a></td></tr>
+</tbody>
+</table>
+<h2>Quick Start — Workers Binding</h2>
+<p>Add the binding to <code>wrangler.jsonc</code>, then call <code>env.EMAIL.send()</code>. The <code>from</code> domain must be onboarded via <code>npx wrangler email sending enable yourdomain.com</code>.</p>
+<pre><code>// wrangler.jsonc
+{ &quot;send_email&quot;: [{ &quot;name&quot;: &quot;EMAIL&quot; }] }</code></pre>
+<pre><code>const response = await env.EMAIL.send({
+  to: &quot;user@example.com&quot;,
+  from: { email: &quot;welcome@yourdomain.com&quot;, name: &quot;My App&quot; },
+  subject: &quot;Welcome!&quot;,
+  html: &quot;&lt;h1&gt;Welcome!&lt;/h1&gt;&quot;,
+  text: &quot;Welcome!&quot;,
+});</code></pre>
+<p>The binding is recommended for Workers — no API keys needed. If a user specifically requests the REST API from within a Worker (e.g., they already have an API token workflow), that works too — see <a href="references/rest-api.md">rest-api.md</a>.</p>
+<p>See <a href="references/sending.md">sending.md</a> for the full API, batch sends, attachments, custom headers, restricted bindings, and Agents SDK integration.</p>
+<h2>Quick Start — REST API</h2>
+<p>For apps outside Workers, or within Workers if the user explicitly requests it. Key differences from the Workers binding:</p>
+<ul>
+<li>Endpoint: <code>POST https://api.cloudflare.com/client/v4/accounts/{account_id}/email/sending/send</code></li>
+<li><code>from</code> object uses <code>address</code> (not <code>email</code>): <code>{ &quot;address&quot;: &quot;...&quot;, &quot;name&quot;: &quot;...&quot; }</code></li>
+<li><code>replyTo</code> is <code>reply_to</code> (snake_case)</li>
+<li>Response returns <code>{ delivered: [], permanent_bounces: [], queued: [] }</code> (not <code>messageId</code>)</li>
+</ul>
+<p>See <a href="references/rest-api.md">rest-api.md</a> for curl examples, response format, and error handling.</p>
+<h2>Common Mistakes</h2>
+<table>
+<thead><tr><th>Mistake</th><th>Why It Happens</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Forgetting <code>send_email</code> binding in wrangler config</td><td>Email Service uses a binding, not an API key</td><td>Add <code>&quot;send_email&quot;: [{ &quot;name&quot;: &quot;EMAIL&quot; }]</code> to wrangler.jsonc</td></tr>
+<tr><td>Sending from an unverified domain</td><td>Domain must be onboarded onto Email Sending before first send</td><td>Run <code>wrangler email sending enable yourdomain.com</code> or onboard in Dashboard</td></tr>
+<tr><td>Reading <code>message.raw</code> twice in email handler</td><td>The raw stream is single-use — second read returns empty</td><td>Buffer first: <code>const raw = await new Response(message.raw).arrayBuffer()</code></td></tr>
+<tr><td>Missing <code>text</code> field (HTML only)</td><td>Some email clients only show plain text; also helps spam scores</td><td>Always include both <code>html</code> and <code>text</code> versions</td></tr>
+<tr><td>Using email for marketing/bulk sends</td><td>Email Service is for transactional email only</td><td>Use a dedicated marketing email platform for newsletters and campaigns</td></tr>
+<tr><td>Forwarding to unverified destinations</td><td><code>message.forward()</code> only works with verified addresses</td><td>Run <code>wrangler email routing addresses create user@gmail.com</code> or add in Dashboard</td></tr>
+<tr><td>Testing with fake addresses</td><td>Bounces from non-existent addresses hurt sender reputation</td><td>Use real addresses you control during development</td></tr>
+<tr><td>Hardcoding API tokens in source code</td><td>Tokens in code get committed and leaked</td><td>Use environment variables or Cloudflare secrets</td></tr>
+<tr><td>Ignoring the <code>from</code> domain requirement</td><td>The <code>from</code> address must use a domain onboarded to Email Service</td><td>Verify the domain first, then send from <code>anything@that-domain.com</code></td></tr>
+<tr><td>Using <code>email</code> key in REST API <code>from</code> object</td><td>REST API uses <code>address</code> not <code>email</code> for <code>from</code> object</td><td>Use <code>{ &quot;address&quot;: &quot;...&quot;, &quot;name&quot;: &quot;...&quot; }</code> for REST, <code>{ &quot;email&quot;: &quot;...&quot;, &quot;name&quot;: &quot;...&quot; }</code> for Workers</td></tr>
+<tr><td>Using <code>replyTo</code> in REST API</td><td>REST API uses snake_case field names</td><td>Use <code>reply_to</code> for REST API, <code>replyTo</code> for Workers binding</td></tr>
+</tbody>
+</table>
+<h2>References</h2>
+<p>Read the reference that matches your situation. You don&#x27;t need all of them.</p>
+<ul>
+<li><strong><a href="references/sending.md">references/sending.md</a></strong> — Workers binding API, attachments, Agents SDK email. For Workers or Agents SDK.</li>
+<li><strong><a href="references/rest-api.md">references/rest-api.md</a></strong> — REST endpoint, curl examples, error handling. For apps NOT on Workers.</li>
+<li><strong><a href="references/routing.md">references/routing.md</a></strong> — Inbound <code>email()</code> handler, forwarding, replying, parsing. For receiving emails.</li>
+<li><strong><a href="references/cli-and-mcp.md">references/cli-and-mcp.md</a></strong> — Domain setup, wrangler commands, MCP tools. For first-time setup.</li>
+<li><strong><a href="references/deliverability.md">references/deliverability.md</a></strong> — SPF/DKIM/DMARC, bounces, suppressions, best practices.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

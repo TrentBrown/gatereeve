@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pattern Promote</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Pattern Promote</h1>
+<p class="note">Skill name: <code>pattern-promote</code></p>
+<p class="note">Interactively approve pattern-review proposals. Use to walk .pattern-review/proposals.yaml one proposal at a time, accept, reject, defer, edit, or skip, and move entries into rules.yaml, rejected.yaml, or deferred.yaml. This is the only pattern workflow that changes active rules.</p>
+<hr>
+<p>Use this as the human governance step for rule changes. It is intentionally interactive.</p>
+<p>Workflow:</p>
+<ul>
+<li>Fail if no applicable <code>.pattern-review</code> directory is found. Tell the caller to run <code>/pattern-init &lt;intended-scope&gt;</code>.</li>
+<li>Display the <code>.pattern-review</code> directory whose proposals will be promoted before mutating any lifecycle file.</li>
+<li>Read <code>.pattern-review/proposals.yaml</code>.</li>
+<li>Generate full promotion packets for the next or selected proposal: <code>python3 /Users/trent.brown/agentic-development-workflow/scripts/pattern_tool.py promote-show &lt;pattern-dir&gt; [proposal-id]</code>. Link the generated HTML packet in chat instead of printing the full proposal by default. The helper also writes a Markdown packet beside it as a plain fallback.</li>
+<li>Present proposals one at a time. In chat, show a compact summary with: <code>id</code>, <code>title</code>, <code>severity</code>, short description, packet link, and the allowed dispositions. The HTML packet should highlight <code>title</code>, <code>description</code>, <code>rationale</code>, good/bad examples, trigger, review instructions, and source evidence. The raw YAML should remain available in a collapsed disclosure. The Markdown packet must contain two clearly separated sections:</li>
+<li><strong>Structured proposal</strong>: exact proposal fields as written in YAML: <code>id</code>, <code>title</code>, <code>description</code>, <code>rationale</code>, <code>scope</code>, <code>trigger</code>, <code>review</code>, <code>severity</code>, <code>examples</code>, <code>exceptions</code>, and provenance.</li>
+<li><strong>Source evidence</strong>: literal source text reconstructed from <code>evidence.instructionFiles</code> by <code>path</code> and <code>line</code>, or the stored <code>sourceText</code> when present. Do not default to ellipsizing either packet section. If source evidence is too large, use deterministic boundaries: full bullet, full paragraph, or direct fenced block, and explicitly say when a larger section continues.</li>
+<li>Ask for one disposition using both full words and single-letter shortcuts: <code>a=accept</code>, <code>r=reject</code>, <code>d=defer</code>, <code>e=edit</code>, <code>s=skip</code>. Accept either the full word or the shortcut.</li>
+<li>On <code>accept</code>:</li>
+<li>for <code>new_rule</code>, append the resolved rule to <code>rules.yaml</code>;</li>
+<li>for <code>modify_rule</code>, replace the target rule with the complete resolved proposed rule;</li>
+<li>preserve compact provenance such as <code>promotedFrom</code>, <code>promotedAt</code>, <code>promotedBy</code>, sources, and learning events;</li>
+<li>remove the proposal from <code>proposals.yaml</code>.</li>
+<li>On <code>reject</code> or <code>defer</code>, move the full proposal shape into <code>rejected.yaml</code> or <code>deferred.yaml</code> with a <code>decision</code> block containing <code>decidedAt</code>, <code>decidedBy</code>, and <code>reason</code>.</li>
+<li>On <code>skip</code>, leave the proposal in <code>proposals.yaml</code> so the process can resume later.</li>
+<li>Use the deterministic helper for bucket movement: <code>python3 /Users/trent.brown/agentic-development-workflow/scripts/pattern_tool.py promote &lt;pattern-dir&gt; &lt;proposal-id&gt; &lt;accept|reject|defer&gt; [--reason &quot;...&quot;]</code>. Do not hand-edit lifecycle buckets for ordinary accept, reject, or defer decisions. Do not use partial field patches for active rules in v1.</li>
+<li>Normalize lifecycle YAML after any accept, reject, defer, or edit: <code>python3 /Users/trent.brown/agentic-development-workflow/scripts/pattern_tool.py normalize-buckets &lt;pattern-dir&gt;</code>.</li>
+<li>Parse the normalized lifecycle files before reporting success. Treat parse failures as command failures.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

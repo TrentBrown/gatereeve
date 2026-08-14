@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pattern Review</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Pattern Review</h1>
+<p class="note">Skill name: <code>pattern-review</code></p>
+<p class="note">Run the pattern-review gate for agentic development work. Use before human review or at PR boundaries to review a repo branch diff against active .pattern-review rules, write a persisted pattern-review.md report, resolve findings, waivers, and manual review items, and rerun until the gate passes or is explicitly waived.</p>
+<hr>
+<p>Use this as a gate, not a checklist. Review the current Git repository&#x27;s branch diff against active pattern rules.</p>
+<p>Deterministic helper:</p>
+<pre><code>python3 /Users/trent.brown/agentic-development-workflow/scripts/pattern_tool.py review-inputs --cwd &lt;repo&gt;</code></pre>
+<p>Workflow:</p>
+<ul>
+<li>Run the helper to collect repo context, base/head, changed files, rule sources, duplicate-ID overrides, and deterministic trigger results.</li>
+<li>If no applicable <code>.pattern-review</code> directory is found after the normal scope walk, fail and tell the caller to run <code>/pattern-init &lt;intended-scope&gt;</code>.</li>
+<li>Display the <code>.pattern-review</code> directories found in the rule stack before evaluating rules so the caller can spot an unexpected scope.</li>
+<li>If no active rules are found in an existing scope, write <code>PASS_WITH_WARNINGS</code> and state that the gate is not meaningfully configured; recommend <a href="../pattern-extract/SKILL.html"><code>pattern-extract</code></a>.</li>
+<li>Evaluate rules whose trigger result is <code>true</code>.</li>
+<li>For <code>agentic</code> triggers, decide whether the rule triggers and record a brief rationale whether it does or does not.</li>
+<li>For triggered <code>agentic</code> reviews, inspect the changed files and return one of <code>pass</code>, <code>fail</code>, <code>warning</code>, <code>not_applicable</code>, or <code>needs_manual_review</code>. Every non-<code>pass</code> result needs file/line evidence or a note explaining why evidence is not file-specific.</li>
+<li>For triggered <code>manual</code> reviews, block until a human disposition is recorded for the current merge-base/head context.</li>
+<li>Treat <code>blocker</code> failures and unresolved manual items as <code>FAIL</code>. Treat warnings as <code>PASS_WITH_WARNINGS</code>. Explicit persisted waivers produce <code>PASS_WITH_WAIVERS</code>, which is an acceptable passing verdict.</li>
+<li>Write the final human-readable report before declaring the gate passed. For normal workflow branches, use <code>docs/issues/&lt;branch&gt;/pattern-review.md</code>. Include review context, rule stack, triggered rules, findings, waivers, manual review dispositions, and final verdict. Reference rules by ID, title, source path, and hash; do not dump full rule text by default.</li>
+<li>If the gate fails, fix the implementation or record a manual review/waiver, then rerun. Do not emit learning events for ordinary findings; emit them only when the gate exposes a rule-system weakness.</li>
+</ul>
+  </article>
+</main>
+</body>
+</html>

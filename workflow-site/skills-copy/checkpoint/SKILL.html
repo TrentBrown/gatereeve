@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkpoint</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Checkpoint</h1>
+<p class="note">Skill name: <code>checkpoint</code></p>
+<p class="note">Freeze session state for later resumption. Use when the user says /checkpoint, when a workflow gate passes, or proactively before context compaction when the context window nears exhaustion.</p>
+<hr>
+<p>A checkpoint freezes the current session state so a fresh session can resume at low context utilization. It may run silently (no questions needed).</p>
+<p>Write two files in the current worktree root:</p>
+<ul>
+<li><code>CHECKPOINT.md</code> - the stable latest pointer; overwrite it.</li>
+<li><code>.checkpoints/CHECKPOINT-{YYYY-MM-DDTHHMM}.md</code> - timestamped archive copy.</li>
+</ul>
+<p>Both are gitignored globally; never commit them.</p>
+<p>Header metadata: timestamp, repo, branch, originating session/agent, and trigger (<code>at-will</code> | <code>gate:{name}</code> | <code>pre-compaction</code>).</p>
+<p>Sections, all required (write &quot;none&quot; rather than omitting):</p>
+<ul>
+<li><code>## Goal</code></li>
+<li><code>## Current position</code></li>
+<li><code>## In-flight work</code></li>
+<li><code>## Exact next action</code></li>
+<li><code>## Open questions</code></li>
+<li><code>## Relevant paths and commands</code></li>
+</ul>
+<p>Capture STATE, not reasoning: reference the branch scratchpad/decisions files for decisions rather than duplicating them. On resumption, a fresh session reads <code>CHECKPOINT.md</code> first.</p>
+<p>Do not use checkpointing as a substitute for maintaining workflow artifacts. During a Grill Me interview, keep <code>interview.md</code> current explicitly; the checkpoint only preserves resumability.</p>
+  </article>
+</main>
+</body>
+</html>

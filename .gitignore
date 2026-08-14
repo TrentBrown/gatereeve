@@ -1,0 +1,8 @@
+CHECKPOINT.md
+.checkpoints/
+.handoffs/
+__pycache__/
+*.pyc
+workflow-site/node_modules/
+cli/node_modules/
+dist/

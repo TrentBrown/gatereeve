@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design - tb-portreeve-mcp</title>
+  <link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Design - tb-portreeve-mcp</h1>
+<p><strong>Feature:</strong> <code>tb-portreeve-mcp</code> <strong>Status:</strong> approved 2026-08-10</p>
+<h2>Problem</h2>
+<p>PortReeve is the single per-user authority for local development ports, claims, stacks, activations, and evidence, but MCP-capable agents cannot use that authority through a native, typed interface. They must currently invoke CLI commands, parse presentation-oriented output, or rely on project-specific wrappers. That adds friction precisely where PortReeve is most useful: several concurrent agents running different worktrees and Docker sandboxes on one development machine.</p>
+<p>Adding MCP directly to the persistent daemon would introduce a second listener, authentication and discovery concerns, and MCP-client lifecycle state. A naive stdio wrapper would avoid the network listener but could still leak lease credentials, duplicate mutations after retries, rely on stale PIDs, silently act on an inferred worktree, or leave an agent with an opaque startup failure when the central service is absent.</p>
+<p>The product also needs a low-friction way to explain and configure the MCP integration without modifying third-party agent settings behind the user&#x27;s back.</p>
+<h2>Intent</h2>
+<p>Add a full-featured, local-only MCP interface that lets same-user agents inspect and coordinate ordinary PortReeve state while preserving the existing daemon as the sole durable authority. The interface should make the safest behavior the easiest behavior: typed inputs and results, explicit mutation targets, idempotent operations, evidence-bound consequential changes, opaque credential handles, bounded lease custody, and actionable diagnostics.</p>
+<p>The existing installation remains one product and one executable. Agent hosts launch <code>portreeve mcp serve</code> from that installation; the CLI and desktop explain how to configure supported hosts. No separate MCP service installation is introduced.</p>
+<h2>Chosen shape</h2>
+<h3>Process and authority topology</h3>
+<p>Each MCP host launches its own lightweight stdio bridge. Every bridge delegates domain work through the official JavaScript client and the existing private HTTP/JSON Unix socket. The persistent PortReeve daemon remains the only owner of the registry, allocation decisions, host and Docker evidence, and durable history.</p>
+<figure class="mermaid-figure"><img src="diagrams/design-1.svg" alt="design diagram 1"><details class="mermaid-source"><summary>Mermaid source</summary><pre><code>flowchart LR
+    A1[&quot;Agent host A&quot;] --&gt;|&quot;stdio MCP&quot;| B1[&quot;PortReeve MCP bridge A&quot;]
+    A2[&quot;Agent host B&quot;] --&gt;|&quot;stdio MCP&quot;| B2[&quot;PortReeve MCP bridge B&quot;]
+    B1 --&gt;|&quot;official JS client&lt;br/&gt;HTTP/JSON over Unix socket&quot;| D[&quot;Single per-user PortReeve daemon&quot;]
+    B2 --&gt;|&quot;official JS client&lt;br/&gt;HTTP/JSON over Unix socket&quot;| D
+    D --&gt; R[&quot;Registry and structured history&quot;]
+    D --&gt; E[&quot;lsof/process and Docker evidence&quot;]
+    UI[&quot;CLI and desktop MCP setup&quot;] -.-&gt;|&quot;generate and copy host configuration&quot;| A1
+    UI -.-&gt;|&quot;generate and copy host configuration&quot;| A2</code></pre></details></figure>
+<p>The bridge owns no database and opens no TCP or Streamable HTTP listener. Its stdout is reserved exclusively for MCP framing; diagnostics use structured MCP results or stderr without corrupting the protocol stream.</p>
+<h3>MCP protocol posture</h3>
+<p>The tool contracts target MCP <code>2026-07-28</code>, whose core is stateless and whose requests carry their own protocol and client metadata. Durable PortReeve IDs and explicit bridge-issued handles carry application state between calls; no design depends on an MCP session identifier or hidden current-worktree context.</p>
+<p>Use the official TypeScript MCP SDK v2. Its maintained compatibility path may serve legacy hosts through stdio, but PortReeve will not implement a second legacy MCP stack or promise support beyond the SDK&#x27;s compatibility window.</p>
+<p>Version one advertises tools only. It does not duplicate inspections as MCP resources and does not advertise prompts. Static orientation belongs in server instructions, tool descriptions, the Guide, and the desktop MCP tab.</p>
+<h3>Bridge-local credential custody</h3>
+<p>Lease tokens and launcher-operation credentials never appear in model-visible tool results and are never persisted by the adapter. A bridge keeps them in a process-local vault and returns opaque handles that are meaningful only to that bridge invocation.</p>
+<p>Pending activation leases are renewed automatically only within a bounded wall-clock custody window. Confirmation, skip, or abandonment immediately removes the corresponding credential from renewal. A typed operation may extend custody within a fixed maximum. When custody ends or the bridge exits, renewal stops and ordinary PortReeve expiry and reconciliation recover the state. A later bridge can inspect and reconcile durable activation state but cannot recover privileged credentials from a previous process.</p>
+<p>Each bridge has a random run identifier and an optional human-readable client label such as <code>codex</code> or <code>codex-backend-worktree</code>. PortReeve records these for diagnostic attribution only. Labels, run IDs, and PIDs never grant authority or prove ownership.</p>
+<h3>Tool contract</h3>
+<p>Tools are focused, operation-specific, and consistently grouped by domain rather than mirroring CLI flags or multiplexing many actions behind one schema. Each tool has a strict input schema, a declared output schema, a concise text summary, accurate safety and idempotency annotations, and stable structured errors with retryability and actionable details.</p>
+<p>Collections are bounded and use opaque cursor pagination. Inspection is global to the current operating-system user&#x27;s PortReeve registry, with supported filters for project, canonical root, component, endpoint, and domain IDs. Mutations always require explicit durable targets and never infer scope from the bridge&#x27;s current working directory.</p>
+<p>All mutations are semantically idempotent. Repeating an operation against the same target and desired state returns the existing or already-achieved result; repeating execution with the same evidence receipt returns its recorded outcome. A truly new generation or replacement must be explicit. Results state whether the call changed state or returned an existing result.</p>
+<p>The initial tool families provide broad parity with the ordinary public server coordination protocol:</p>
+<ul>
+<li>health, compatibility, and typed diagnostics;</li>
+<li>port inventory and inspection, plus evidence-bound normal reclaim;</li>
+<li>claim inspection, reassignment, deletion, and pruning;</li>
+<li>standalone lease acquisition, confirmation, abandonment, and run release;</li>
+<li>stack inspection, canonical definition validation and application, pruning, status, and generation preparation;</li>
+<li>generation inspection and the complete activation lifecycle;</li>
+<li>dependency resolution and redacted Docker-sandbox discovery snapshots;</li>
+<li>launcher coordination sessions without project shell-command execution;</li>
+<li>validated public runtime settings; and</li>
+<li>bounded, filterable structured operational history.</li>
+</ul>
+<p>Current public-client coverage must be expanded where the HTTP/JSON protocol already exposes an included operation. Where the current protocol implements a consequential action as a single request or <code>dryRun</code> flag, the public contract must gain the evidence receipt and idempotent execution semantics required by this design. There is no requirement to preserve unpublished pre-release contract shapes.</p>
+<h3>Mutation safety</h3>
+<p>Routine reads and activation operations already bounded by a bridge-held handle are direct calls. Operations that can affect an external process, durable configuration, or state outside the bridge&#x27;s own pending work use two focused tools: preview and execute.</p>
+<p>Preview reports the observed target, proposed effect, blocking evidence, and a short-lived receipt. Execute accepts that receipt and succeeds only if fresh evidence still matches. A host&#x27;s optional MCP approval dialog is useful user interface but is not part of PortReeve&#x27;s safety proof.</p>
+<p>This protection applies to normal port reclaim, claim reassignment/deletion/ pruning, stack replacement/pruning, and global setting changes. Unsafe any-owner eviction is not exposed.</p>
+<h3>Canonical stack documents</h3>
+<p>MCP stack tools accept a canonical worktree root and a structured stack definition rather than arbitrary file paths or raw JSON text. PortReeve owns the <code>portreeve.stack.json</code> location beneath that root, validates the definition, and returns structured reads.</p>
+<p>Creation or replacement uses preview and execute. Replacement binds the receipt to the expected document fingerprint, so an intervening external edit makes the receipt stale. A successful write returns the canonical path, resulting fingerprint, and durable stack ID. The MCP server is not a general-purpose filesystem API. The existing rule remains that one canonical worktree has one independently runnable stack and nested stacks are unsupported.</p>
+<h3>Availability, compatibility, and observation</h3>
+<p><code>portreeve mcp serve</code> remains alive and advertises tools when the daemon is absent. Diagnostics explain the missing service and provide exact CLI/Desktop recovery guidance; daemon-backed tools return a typed unavailable error and try the socket again on later calls. The bridge never installs, starts, restarts, or upgrades the daemon.</p>
+<p>The bridge verifies PortReeve protocol compatibility before domain work. An incompatible daemon leaves diagnostics available, but every daemon-backed read and mutation fails closed with bridge and daemon versions and restart/update guidance.</p>
+<p>Agents observe change through explicit state reads and bounded history queries with an <code>afterCursor</code>; version one has no push subscriptions or unsolicited notifications. Raw daemon logs, launcher logs, and arbitrary command output remain CLI/filesystem troubleshooting surfaces rather than MCP content.</p>
+<h3>CLI and desktop setup</h3>
+<p>The public CLI gains the <code>mcp</code> command family. <code>portreeve mcp serve</code> runs the stdio bridge. Configuration generation emits a canonical generic stdio descriptor and maintained profiles for Codex and Claude Code, including an optional client label.</p>
+<p>Generated configuration uses the exact stable installed executable path by default because GUI hosts often inherit a restricted <code>PATH</code>. An explicit portable variant emits the bare <code>portreeve</code> command. PortReeve prints or copies configuration and instructions but never edits third-party host files.</p>
+<p>The desktop adds an <strong>MCP</strong> tab. It explains the per-host bridge and single-daemon topology, shows daemon and protocol compatibility, selects a host format and optional client label, renders the exact configuration, and provides copy actions. It links to the Guide&#x27;s best-integration explanation. The desktop does not launch agent hosts, execute project commands, or modify their settings.</p>
+<p>The setup renderer remains unprivileged: executable-path resolution, configuration generation, clipboard access, and diagnostics pass through the existing validated main-process, IPC, preload, and renderer boundaries.</p>
+<h2>Alternatives considered</h2>
+<h3>Shared Streamable HTTP MCP endpoint</h3>
+<p>Rejected for version one. Even on loopback it would require another supervised listener, endpoint discovery, Origin validation, authentication and credential distribution, multi-client lifecycle rules, and a broader security/test matrix. Per-host stdio bridges reuse the existing same-user Unix-socket boundary.</p>
+<h3>MCP implemented directly inside the daemon</h3>
+<p>Rejected. It would couple agent-host transport concerns to the global durable authority and make compatibility or bridge failure capable of destabilizing the daemon. A thin adapter isolates MCP while retaining one authority.</p>
+<h3>Read-only MCP or literal CLI mirroring</h3>
+<p>Rejected. Read-only access cannot coordinate real allocations and activations; literal CLI mirroring would expose host administration, emergency escape hatches, shell execution, and presentation-oriented flags that do not belong in an agent tool contract.</p>
+<h3>Resources alongside tools</h3>
+<p>Rejected initially. Every current read use case is model-initiated and fits a typed tool. Duplicating the same state through tools and resources would create two contracts without a concrete attachable-content workflow.</p>
+<h3>Hidden session state or persisted credentials</h3>
+<p>Rejected. Hidden MCP session state conflicts with the stateless protocol model, and persisted lease credentials would enlarge the privileged recovery surface. Explicit durable IDs plus process-local opaque handles make authority visible without disclosing secrets.</p>
+<h3>Current-directory scoping</h3>
+<p>Rejected. MCP hosts may start configured servers from arbitrary directories, and implicit scope could mutate the wrong worktree. Discovery is global and mutations require explicit targets.</p>
+<h3>Automatic third-party configuration edits</h3>
+<p>Rejected initially. Host files and formats are independently owned and change over time. Exact generated instructions provide low friction without surprising external writes.</p>
+<h3>Push subscriptions and raw log tools</h3>
+<p>Rejected initially. Polling current state and structured history covers normal coordination without subscription lifecycle state. Raw logs are unbounded, weakly structured, and may contain unrelated project output.</p>
+<h2>Constraints</h2>
+<ul>
+<li>Version one is local-only and assumes the MCP host and PortReeve daemon run as the same operating-system user on a supported macOS or Linux machine.</li>
+<li>The existing mode-<code>0600</code> Unix socket and server protocol remain the trust and authority boundary; MCP adds no network listener or authentication system.</li>
+<li>The persistent daemon remains the single source of durable truth. Live port and process conclusions continue to use fresh <code>lsof</code>/process evidence and Docker-provider evidence rather than stored PIDs.</li>
+<li>The feature remains vanilla JavaScript in the Bun workspace and must compile into the existing standalone CLI bundled with the one desktop installation.</li>
+<li>The official TypeScript MCP SDK v2 is the only MCP implementation dependency; its <code>2026-07-28</code> and maintained legacy stdio behavior must be verified against official documentation and executable compatibility tests.</li>
+<li>Modern stateless assumptions follow the official <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">MCP 2026-07-28 release</a> and <a href="https://modelcontextprotocol.io/seps/2575-stateless-mcp">SEP-2575</a>.</li>
+<li>Host-specific Codex and Claude Code output must be checked against their current official configuration contracts during implementation. Generic stdio output remains the universal fallback.</li>
+<li>Existing protocol capability negotiation remains authoritative between the JavaScript client and daemon. MCP compatibility and PortReeve protocol compatibility are distinct checks.</li>
+<li>No model-visible result contains raw lease tokens, launcher-operation credentials, secrets, complete raw logs, or arbitrary command output.</li>
+<li>MCP stdout must contain only valid protocol frames.</li>
+</ul>
+<h2>Open risks</h2>
+<ul>
+<li>The new MCP specification and SDK v2 are recent and may expose packaging or dual-era stdio incompatibilities when compiled as a Bun standalone binary.</li>
+<li>Broad focused-tool parity may produce a large catalog. Names, descriptions, annotations, and grouping must be tested with real Codex and Claude Code discovery behavior so capability does not undermine tool selection quality.</li>
+<li>The official JavaScript client does not yet cover every included server operation. Expanding it and adding receipt-based protocol mutations could reveal inconsistent schemas or idempotency behavior in existing endpoints.</li>
+<li>Evidence receipts need clear expiry, replay, and stale-evidence rules across process evidence, Docker evidence, canonical document fingerprints, and settings revisions.</li>
+<li>The bounded lease-custody default, maximum extension, and renewal cadence need specification-level values derived from configurable lease TTLs and verified against slow service startups and abandoned agent runs.</li>
+<li>Codex and Claude Code configuration formats can drift independently. The generated profiles need isolated formatters, fixtures, and clear fallback to the generic descriptor.</li>
+<li>Desktop MCP setup must surface complete failure details without exposing raw credentials or allowing protocol output to reach the renderer unchecked.</li>
+<li>End-to-end acceptance requires real host tests, concurrent bridges, daemon absence and version mismatch, standalone compiled artifacts, macOS desktop packaging, Linux stdio behavior, and Docker-backed activation evidence.</li>
+</ul>
+<h2>Changes</h2>
+<p>Append approved amendments here. Do not remove or weaken the frozen design.</p>
+  </article>
+</main>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{
+  "name": "agentic-development-workflow",
+  "version": "0.1.0",
+  "description": "A gated agentic software development lifecycle with portable planning, review, and verification skills.",
+  "author": {
+    "name": "QualityCode",
+    "url": "https://qualitycode.io"
+  },
+  "homepage": "https://github.com/TrentBrown/agentic-development-workflow",
+  "repository": "https://github.com/TrentBrown/agentic-development-workflow",
+  "keywords": [
+    "software-development",
+    "workflow",
+    "review",
+    "agentic"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agentic Software Development Workflow",
+    "shortDescription": "Gated design-to-PR workflow for coding agents",
+    "longDescription": "Plan, implement, review, and verify non-trivial software changes through explicit design, specification, decision, and PR-boundary gates.",
+    "developerName": "QualityCode",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Help me design and build a non-trivial software change.",
+      "Run the PR boundary review for my current branch."
+    ],
+    "brandColor": "#247A52"
+  }
+}

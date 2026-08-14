@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spec - tb-portreeve-mcp</title>
+  <link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Spec - tb-portreeve-mcp</h1>
+<p><strong>Feature:</strong> <code>tb-portreeve-mcp</code> <strong>Created:</strong> 2026-08-10</p>
+<h2>Summary</h2>
+<p>Add a full-featured, tools-only MCP interface to the existing PortReeve installation. Each same-user MCP host launches <code>portreeve mcp serve</code> as a stdio bridge. The bridge delegates ordinary coordination through the official JavaScript client and private Unix socket to the single persistent daemon; it does not own another database, listener, or durable authority.</p>
+<p>The initial release must make global PortReeve discovery and ordinary claim, lease, stack, activation, Docker-snapshot, launcher-coordination, settings, and history operations available through focused typed tools. Explicit targets, process-local credential handles, bounded lease custody, semantically idempotent mutations, and evidence-bound preview/execute receipts protect the agent-facing boundary. The CLI and Desktop provide configuration guidance for generic stdio hosts, Codex, and Claude Code without changing third-party files.</p>
+<h2>Definition of Done</h2>
+<p>The global Definition of Done in the software development workflow applies.</p>
+<h2>Acceptance Criteria</h2>
+<ul>
+<li><strong>AC1.</strong> <strong>Transport and authority.</strong> <code>portreeve mcp serve</code> runs a stdio-only MCP bridge from the existing PortReeve executable. Each bridge accesses the single daemon through the official JavaScript client and private Unix socket, owns no durable state, opens no network listener, and reserves stdout exclusively for MCP framing. It supports MCP <code>2026-07-28</code> and the official TypeScript SDK v2 maintained legacy stdio era.</li>
+</ul>
+<ul>
+<li><strong>AC2.</strong> <strong>Tool catalog and structured results.</strong> Version one exposes focused, operation-specific tools covering every approved coordination family in the design, with strict input and output schemas, concise summaries, stable structured errors, accurate safety and idempotency annotations, and tools-only discovery. Collections default to 50 records, permit at most 200, and use opaque continuation cursors. Excluded capabilities are not advertised.</li>
+</ul>
+<ul>
+<li><strong>AC3.</strong> <strong>Discovery, availability, and compatibility.</strong> Global inspection supports explicit domain filters and never infers mutation scope from the bridge working directory. The bridge remains usable when the daemon is absent or protocol-incompatible: diagnostics remain available, daemon-backed tools fail with typed actionable errors, and later calls retry the socket without restarting the MCP host.</li>
+</ul>
+<ul>
+<li><strong>AC4.</strong> <strong>Credential custody.</strong> Raw lease and launcher credentials never enter MCP results, logs, history, configuration, or persistent storage. They remain in a process-local vault behind unguessable handles. Custody lasts ten minutes by default, may be explicitly extended up to sixty minutes from acquisition, and renews no later than one-third of the observed remaining lease TTL or ten seconds, whichever is sooner. Settlement removes credentials immediately; bridge exit or custody expiry stops renewal.</li>
+</ul>
+<ul>
+<li><strong>AC5.</strong> <strong>Coordination lifecycle and retries.</strong> MCP supports standalone acquire, confirm, abandon, and run release plus the complete stack activation lifecycle, including prepare, begin, renew, resolve, confirm, skip, abandon, reconcile, end, Docker snapshots, and launcher coordination without shell execution. Mutations are semantically idempotent: retries return the existing or already-achieved result unless the caller explicitly requests a new generation or replacement.</li>
+</ul>
+<ul>
+<li><strong>AC6.</strong> <strong>Consequential mutation safety.</strong> Normal reclaim, claim reassignment, deletion and pruning, stack creation, replacement and pruning, and public settings changes require preview and execute tools. A receipt is bound to the target, proposed action, caller-visible evidence, and relevant revision or fingerprint; it expires after five minutes. Stale or mismatched evidence is rejected, while replay after successful execution returns the recorded result. Unsafe any-owner eviction remains unavailable.</li>
+</ul>
+<ul>
+<li><strong>AC7.</strong> <strong>Canonical documents, observability, and sandboxing.</strong> Stack-definition tools accept a canonical worktree root and structured definition rather than arbitrary paths or raw file contents. They protect external changes with fingerprints. MCP exposes bounded structured history and redacted Docker-sandbox endpoint snapshots while excluding raw logs, arbitrary output, secrets, and general filesystem access.</li>
+</ul>
+<ul>
+<li><strong>AC8.</strong> <strong>Setup, packaging, and compatibility.</strong> CLI configuration generation and a dedicated Desktop MCP tab provide generic stdio, Codex, and Claude Code configurations, defaulting to the exact installed executable with an explicit portable variant. They never alter third-party settings. The bridge ships in the existing standalone executable and Desktop installation and passes compiled/runtime verification on macOS and Linux, modern and legacy MCP clients, concurrent bridges, unavailable and incompatible daemons, Codex and Claude discovery and tool calls, and Docker-backed activation.</li>
+</ul>
+<h2>Rubric</h2>
+<table>
+<thead><tr><th>#</th><th>Criterion</th><th>Pass</th><th>Fail</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>R1</td><td>Transport and single authority</td><td>The stdio bridge delegates through the official client and private socket with no additional durable authority or listener.</td><td>The bridge owns durable state, shells through the CLI, opens another listener, or permits non-MCP stdout.</td><td>Process, module-graph, socket, stdout-framing, and packaging tests.</td></tr>
+<tr><td>R2</td><td>Complete typed tool surface</td><td>Every included coordination family has focused, strictly typed, bounded tools and every excluded capability is absent.</td><td>A required family is missing, results are unbounded, an action multiplexer replaces focused tools, or excluded authority is exposed.</td><td>Tool-catalog snapshots, input/output schema tests, annotation checks, and real discovery.</td></tr>
+<tr><td>R3</td><td>Availability and explicit scope</td><td>Diagnostics survive daemon absence or incompatibility, later calls retry, global reads support filters, and mutations require explicit durable targets.</td><td>The bridge exits, silently guesses a worktree, stops retrying, or permits incompatible daemon operations.</td><td>Daemon-absence, recovery, protocol-mismatch, filtering, and explicit-target tests.</td></tr>
+<tr><td>R4</td><td>Credential custody</td><td>Credentials remain process-local, model-invisible, and unpersisted; renewal and extension obey the ten-minute default and sixty-minute maximum custody bounds.</td><td>A credential crosses MCP or persistence, remains after settlement, or renews outside the approved custody window.</td><td>Seeded leakage tests, fake-clock renewal/expiry tests, bridge-exit tests, and extension-limit tests.</td></tr>
+<tr><td>R5</td><td>Lifecycle and idempotency</td><td>Approved standalone, stack, activation, Docker, and launcher-coordination operations work, and retries return existing or achieved results without duplicate effects.</td><td>An approved lifecycle operation is absent, shell execution is exposed, credentials are lost during owned work, or retries create ambiguous duplicate state.</td><td>Client/server integration, complete lifecycle fixtures, concurrent-bridge tests, and retry/replay tests.</td></tr>
+<tr><td>R6</td><td>Consequential mutation safety</td><td>Every listed consequential mutation uses a five-minute evidence receipt, rejects stale or mismatched evidence, and returns the recorded result on completed replay.</td><td>A consequential mutation is direct, stale evidence executes, successful replay duplicates effects, or unsafe any-owner eviction is exposed.</td><td>Receipt expiry/replay tests, revision/fingerprint tests, and process/Docker evidence-change tests.</td></tr>
+<tr><td>R7</td><td>Safe documents and observability</td><td>Canonical stack documents, cursored history, and redacted snapshots are bounded and exclude arbitrary filesystem, log, output, and secret access.</td><td>Arbitrary paths or raw files can be accessed, collections are unbounded, external edits are overwritten without rejection, or sensitive data leaks.</td><td>Traversal and symlink tests, external-edit fixtures, pagination tests, structured-history tests, and snapshot redaction tests.</td></tr>
+<tr><td>R8</td><td>Setup and shipped compatibility</td><td>CLI and Desktop generate valid generic, Codex, and Claude configurations without external edits, and the existing shipped products pass the required host and platform matrix.</td><td>Configuration is invalid or applied automatically, a separate installation is required, or any required MCP era, host, runtime, platform, or Docker flow fails.</td><td>CLI/Desktop E2E, packaged-artifact inspection, real Codex/Claude calls, Bun/Electron checks, and macOS/Linux/Docker release gates.</td></tr>
+</tbody>
+</table>
+<h2>Changes</h2>
+<p>Append spec amendments here. Do not remove or weaken original criteria.</p>
+  </article>
+</main>
+</body>
+</html>

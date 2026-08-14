@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Completion Report - tb-portreeve-mcp</title>
+  <link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Completion Report - tb-portreeve-mcp</h1>
+<p><strong>Status:</strong> Complete and awaiting final human approval <strong>Final pull request:</strong> <a href="https://github.com/TrentBrown/portreeve/pull/49">#49</a> <strong>Feature source:</strong> <code>a237358c710509dc14a337f87a4641641a985a94..df50f0633d4e145c6ba7d1461db916598e53d4d8</code></p>
+<h2>Outcome</h2>
+<p>PortReeve now provides a full tools-only MCP service through <code>portreeve mcp serve</code>. Every MCP host launches a lightweight stdio bridge that delegates through the official JavaScript client and private Unix socket to the one persistent PortReeve daemon. The bridge owns no database, durable authority, network listener, project lifecycle, or third-party configuration.</p>
+<p>The released catalog contains 51 focused typed tools spanning diagnostics, global inspection, standalone leases, stacks, activations, Docker snapshots, launcher coordination, consequential receipts, settings, and structured history. Raw lease and launcher credentials remain in bounded process-local custody and never enter model-visible or durable surfaces.</p>
+<p>The CLI and dedicated Desktop MCP tab generate copyable generic, Codex, and Claude Code setup with exact-installed-path defaults and an explicit portable option. They do not edit host settings.</p>
+<h2>Delivery</h2>
+<table>
+<thead><tr><th>Slice</th><th>PR</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Protocol and client foundations</td><td><a href="https://github.com/TrentBrown/portreeve/pull/43">#43</a></td><td>Merged</td></tr>
+<tr><td>Stdio diagnostics and bounded reads</td><td><a href="https://github.com/TrentBrown/portreeve/pull/44">#44</a></td><td>Merged</td></tr>
+<tr><td>Credential custody and coordination</td><td><a href="https://github.com/TrentBrown/portreeve/pull/45">#45</a></td><td>Merged</td></tr>
+<tr><td>Consequential action receipts</td><td><a href="https://github.com/TrentBrown/portreeve/pull/46">#46</a></td><td>Merged</td></tr>
+<tr><td>Complete coordination catalog</td><td><a href="https://github.com/TrentBrown/portreeve/pull/47">#47</a></td><td>Merged</td></tr>
+<tr><td>CLI and Desktop setup guidance</td><td><a href="https://github.com/TrentBrown/portreeve/pull/48">#48</a></td><td>Merged</td></tr>
+<tr><td>Shipped compatibility and final proof</td><td><a href="https://github.com/TrentBrown/portreeve/pull/49">#49</a></td><td>Awaiting approval</td></tr>
+</tbody>
+</table>
+<h2>Final evidence</h2>
+<ul>
+<li>465 repository tests pass with 2,314 assertions and no failures.</li>
+<li>Four standalone platform artifacts build; native macOS ARM64 and Docker-hosted Linux ARM64/x64 execute the compiled bridge.</li>
+<li>Both the <code>2025-11-25</code> initialization era and <code>2026-07-28</code> stateless discovery era return the exact catalog on macOS and both Linux architectures.</li>
+<li>Real Codex 0.146.0 and Claude Code 2.1.220 each discover and call compiled PortReeve MCP diagnostics.</li>
+<li>Concurrent bridges, absent/incompatible daemons, recovery, credential custody, expiry, replay, staleness, redaction, and excluded authority pass.</li>
+<li>A real mixed process/Docker stack activation completes its full evidence lifecycle.</li>
+<li>The packaged macOS Desktop contains the MCP generator, preload API, renderer tab, matching embedded artifact, and passes its real Electron launch smoke.</li>
+</ul>
+<p>All eight acceptance criteria and rubric criteria pass without waiver or deferral.</p>
+  </article>
+</main>
+</body>
+</html>

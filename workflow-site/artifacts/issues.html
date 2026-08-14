@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Issues - tb-portreeve-mcp</title>
+  <link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Issues - tb-portreeve-mcp</h1>
+<p><strong>Feature:</strong> <code>tb-portreeve-mcp</code> <strong>Spec:</strong> <a href="spec.html"><code>spec.md</code></a> <strong>Plan:</strong> <a href="plan.html"><code>plan.md</code></a> <strong>Created:</strong> 2026-08-10</p>
+<p>Operational task breakdown derived from the plan.</p>
+<h2>I-1 - Establish MCP protocol and client foundations</h2>
+<ul>
+<li><strong>Status:</strong> closed</li>
+<li><strong>Estimate:</strong> 3d</li>
+<li><strong>Plan steps:</strong> P1</li>
+<li><strong>Rubric criteria:</strong> R1, R2, R3, R5, R6, R7</li>
+<li><strong>Depends on:</strong> none</li>
+<li><strong>PR:</strong> <a href="https://github.com/TrentBrown/portreeve/pull/43">#43</a></li>
+</ul>
+<p>Freeze the operation-specific tool catalog and implement the protocol, storage, receipt, cursor, attribution, idempotency, and official-client foundations that later bridge slices consume. Add and package the official MCP SDK dependency without exposing MCP transport policy to the daemon.</p>
+<h2>I-2 - Deliver stdio bridge diagnostics and read tools</h2>
+<ul>
+<li><strong>Status:</strong> closed</li>
+<li><strong>Estimate:</strong> 2.5d</li>
+<li><strong>Plan steps:</strong> P2</li>
+<li><strong>Rubric criteria:</strong> R1, R2, R3, R7</li>
+<li><strong>Depends on:</strong> I-1</li>
+<li><strong>PR:</strong> <a href="https://github.com/TrentBrown/portreeve/pull/44">#44</a></li>
+</ul>
+<p>Ship the dual-era stdio bridge, stable error model, stdout discipline, availability/compatibility diagnostics, explicit attribution, and the complete bounded global inspection surface.</p>
+<h2>I-3 - Deliver credential custody and coordination lifecycle</h2>
+<ul>
+<li><strong>Status:</strong> closed</li>
+<li><strong>Estimate:</strong> 3d</li>
+<li><strong>Plan steps:</strong> P3</li>
+<li><strong>Rubric criteria:</strong> R4, R5</li>
+<li><strong>Depends on:</strong> I-1, I-2</li>
+<li><strong>PR:</strong> <a href="https://github.com/TrentBrown/portreeve/pull/45">#45</a></li>
+</ul>
+<p>Implement the process-local handle vault, bounded renewal and extension policy, multi-bridge isolation, standalone leases, stack activations, dependency resolution, confirmation, reconciliation, and safe recovery after custody loss.</p>
+<h2>I-4 - Deliver consequential mutation receipts</h2>
+<ul>
+<li><strong>Status:</strong> closed</li>
+<li><strong>Estimate:</strong> 4d</li>
+<li><strong>Plan steps:</strong> P4</li>
+<li><strong>Rubric criteria:</strong> R5, R6, R7</li>
+<li><strong>Depends on:</strong> I-1, I-2</li>
+<li><strong>PR:</strong> <a href="https://github.com/TrentBrown/portreeve/pull/46">#46</a></li>
+</ul>
+<p>Build the generic preview/execute receipt service and apply it to port, claim, stack, settings, and canonical stack-document changes. Consolidate document safety while retaining external-edit protection and excluding unsafe eviction.</p>
+<h2>I-5 - Complete and audit the MCP tool catalog</h2>
+<ul>
+<li><strong>Status:</strong> closed</li>
+<li><strong>Estimate:</strong> 2d</li>
+<li><strong>Plan steps:</strong> P5</li>
+<li><strong>Rubric criteria:</strong> R2, R5, R7</li>
+<li><strong>Depends on:</strong> I-2, I-3, I-4</li>
+<li><strong>PR:</strong> <a href="https://github.com/TrentBrown/portreeve/pull/47">#47</a></li>
+</ul>
+<p>Complete Docker snapshots, launcher coordination, structured history, and remaining inspections. Prove catalog completeness, excluded-surface absence, bounded results, and the lack of project shell execution.</p>
+<h2>I-6 - Add CLI and Desktop MCP setup</h2>
+<ul>
+<li><strong>Status:</strong> closed</li>
+<li><strong>Estimate:</strong> 3d</li>
+<li><strong>Plan steps:</strong> P6</li>
+<li><strong>Rubric criteria:</strong> R3, R8</li>
+<li><strong>Depends on:</strong> I-2, I-5</li>
+<li><strong>PR:</strong> <a href="https://github.com/TrentBrown/portreeve/pull/48">#48</a></li>
+</ul>
+<p>Generate generic, Codex, and Claude Code setup from the CLI and add the Desktop MCP tab with strict trusted boundaries, exact/portable executable variants, copy actions, safe diagnostics, and no third-party configuration writes.</p>
+<h2>I-7 - Complete packaged and real-host verification</h2>
+<ul>
+<li><strong>Status:</strong> in-review</li>
+<li><strong>Estimate:</strong> 2d</li>
+<li><strong>Plan steps:</strong> P7</li>
+<li><strong>Rubric criteria:</strong> R1, R2, R3, R4, R5, R6, R7, R8</li>
+<li><strong>Depends on:</strong> I-3, I-4, I-5, I-6</li>
+<li><strong>PR:</strong> <a href="https://github.com/TrentBrown/portreeve/pull/49">#49</a></li>
+</ul>
+<p>Run and retain the complete conformance, security, compiled, packaged, multi-bridge, unavailable/incompatible daemon, Codex, Claude Code, macOS, Linux, and Docker verification matrix. Reconcile every rubric criterion and produce the feature-final report.</p>
+  </article>
+</main>
+</body>
+</html>

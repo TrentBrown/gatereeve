@@ -1,0 +1,5 @@
+display_name: Token Burn Dashboard - All Sources
+short_description: Build one token-burn dashboard across Codex, Claude Code, Claude chat, and ChatGPT.
+default_prompt: Build my all-sources token-burn dashboard. Use the bundled starter, pull exact Codex and Claude Code usage when available, estimate chat sources honestly, keep all sources on the same axes, and verify all views locally.
+brand_color: "#18c1e8"
+allow_implicit_invocation: true

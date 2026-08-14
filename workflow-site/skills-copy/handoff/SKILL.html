@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Handoff</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <article class="markdown-body">
+<h1>Handoff</h1>
+<p class="note">Skill name: <code>handoff</code></p>
+<p class="note">Write an inter-agent handoff document. Use when work transfers to a different agent, persona, or tool (planner to implementer, Claude to Codex, etc.), or when the user says /handoff or hand this off.</p>
+<hr>
+<p>A handoff transfers work to a different agent. It is ALWAYS interactive.</p>
+<p>Before writing, ask briefly (a mini-grill, one or two questions):</p>
+<ul>
+<li>Who is the recipient and what is their objective?</li>
+<li>Is anything load-bearing that is not obvious from the work so far?</li>
+</ul>
+<p>Then write the handoff file:</p>
+<ul>
+<li>Location: <code>.handoffs/</code> in the current worktree root (create if absent). The directory is gitignored globally; never commit it.</li>
+<li>Filename: <code>HANDOFF-{recipient}-{YYYY-MM-DDTHHMM}.md</code>.</li>
+<li>Header metadata: timestamp, repo, branch, originating session/agent, recipient, recipient&#x27;s objective.</li>
+<li>Sections, all required (write &quot;none&quot; rather than omitting):</li>
+<li><code>## Goal / intent</code></li>
+<li><code>## Current state</code></li>
+<li><code>## Decisions and rationale</code></li>
+<li><code>## Dead ends already tried</code></li>
+<li><code>## Open questions</code></li>
+<li><code>## Exact next action</code></li>
+<li><code>## Relevant paths and commands</code></li>
+</ul>
+<p>Reference the branch scratchpad/decisions files for decision detail rather than duplicating them. Keep the handoff resumption-focused: what the recipient needs in order to continue, not a narrative of the session.</p>
+  </article>
+</main>
+</body>
+</html>

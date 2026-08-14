@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-07-16",
+  "verifiedClients": {
+    "codex": "0.142.4",
+    "claudeCode": "2.1.195"
+  },
+  "variables": {
+    "repository": "TrentBrown/agentic-development-workflow",
+    "releaseRef": "marketplace",
+    "plugin": "agentic-development-workflow",
+    "marketplace": "quality-code"
+  },
+  "releaseBranchLayout": {
+    "codexCatalog": ".agents/plugins/marketplace.json",
+    "claudeCatalog": ".claude-plugin/marketplace.json",
+    "codexPackage": "plugins/codex/agentic-development-workflow",
+    "claudePackage": "plugins/claude/agentic-development-workflow"
+  },
+  "shared": {
+    "selfContainedPackageRequired": true,
+    "defaultSkillsPath": "skills/",
+    "defaultHooksPath": "hooks/hooks.json",
+    "sessionStartOutput": {
+      "hookSpecificOutput": {
+        "hookEventName": "SessionStart",
+        "additionalContext": "Non-trivial software work must load software-development-workflow unless the user explicitly bypasses it."
+      }
+    }
+  },
+  "codex": {
+    "manifestPath": ".codex-plugin/plugin.json",
+    "manifestRequired": true,
+    "projectManifestBaseline": [
+      "name",
+      "version",
+      "description",
+      "author.name",
+      "skills",
+      "interface.displayName",
+      "interface.shortDescription",
+      "interface.longDescription",
+      "interface.developerName",
+      "interface.category",
+      "interface.capabilities"
+    ],
+    "catalogPath": ".agents/plugins/marketplace.json",
+    "catalogRequiredRootFields": [
+      "name",
+      "plugins"
+    ],
+    "catalogRequiredPluginFields": [
+      "name",
+      "source",
+      "policy.installation",
+      "policy.authentication",
+      "category"
+    ],
+    "catalogPackageSource": {
+      "source": "local",
+      "path": "./plugins/codex/agentic-development-workflow"
+    },
+    "cachePathPattern": "~/.codex/plugins/cache/{marketplace}/{plugin}/{version}/",
+    "hookRootVariable": "PLUGIN_ROOT",
+    "hookDataVariable": "PLUGIN_DATA",
+    "hookCommandForm": "python3 \"$PLUGIN_ROOT/resources/scripts/session_start.py\"",
+    "hookTrustRequired": true,
+    "commands": {
+      "marketplaceAdd": [
+        "codex",
+        "plugin",
+        "marketplace",
+        "add",
+        "TrentBrown/agentic-development-workflow",
+        "--ref",
+        "marketplace"
+      ],
+      "marketplaceList": [
+        "codex",
+        "plugin",
+        "marketplace",
+        "list"
+      ],
+      "marketplaceUpdate": [
+        "codex",
+        "plugin",
+        "marketplace",
+        "upgrade",
+        "quality-code"
+      ],
+      "marketplaceRemove": [
+        "codex",
+        "plugin",
+        "marketplace",
+        "remove",
+        "quality-code"
+      ],
+      "pluginInstallOrRefresh": [
+        "codex",
+        "plugin",
+        "add",
+        "agentic-development-workflow@quality-code"
+      ],
+      "pluginList": [
+        "codex",
+        "plugin",
+        "list",
+        "--json"
+      ],
+      "pluginRemove": [
+        "codex",
+        "plugin",
+        "remove",
+        "agentic-development-workflow@quality-code"
+      ]
+    },
+    "validation": {
+      "kind": "plugin-creator-helper",
+      "helper": "validate_plugin.py"
+    },
+    "notes": [
+      "The default hooks/hooks.json path avoids the current disagreement between the fresh Codex manual and plugin-creator validator guidance about a manifest hooks field.",
+      "Codex 0.142.4 exposes no plugin enable or disable CLI subcommand; that state is managed through supported app/config surfaces."
+    ]
+  },
+  "claudeCode": {
+    "manifestPath": ".claude-plugin/plugin.json",
+    "manifestRequired": false,
+    "projectManifestBaseline": [
+      "name",
+      "displayName",
+      "version",
+      "description",
+      "author",
+      "repository",
+      "skills"
+    ],
+    "catalogPath": ".claude-plugin/marketplace.json",
+    "catalogRequiredRootFields": [
+      "name",
+      "owner",
+      "description",
+      "plugins"
+    ],
+    "catalogRequiredPluginFields": [
+      "name",
+      "source"
+    ],
+    "catalogPackageSource": "./plugins/claude/agentic-development-workflow",
+    "catalogStrictMode": true,
+    "cachePathPattern": "~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/",
+    "hookRootVariable": "CLAUDE_PLUGIN_ROOT",
+    "hookDataVariable": "CLAUDE_PLUGIN_DATA",
+    "hookCommandForm": {
+      "command": "python3",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/resources/scripts/session_start.py"
+      ]
+    },
+    "hookTrustRequired": false,
+    "commands": {
+      "marketplaceAdd": [
+        "claude",
+        "plugin",
+        "marketplace",
+        "add",
+        "TrentBrown/agentic-development-workflow@marketplace"
+      ],
+      "marketplaceList": [
+        "claude",
+        "plugin",
+        "marketplace",
+        "list",
+        "--json"
+      ],
+      "marketplaceUpdate": [
+        "claude",
+        "plugin",
+        "marketplace",
+        "update",
+        "quality-code"
+      ],
+      "marketplaceRemove": [
+        "claude",
+        "plugin",
+        "marketplace",
+        "remove",
+        "quality-code"
+      ],
+      "pluginInstall": [
+        "claude",
+        "plugin",
+        "install",
+        "agentic-development-workflow@quality-code",
+        "--scope",
+        "user"
+      ],
+      "pluginUpdate": [
+        "claude",
+        "plugin",
+        "update",
+        "agentic-development-workflow@quality-code",
+        "--scope",
+        "user"
+      ],
+      "pluginEnable": [
+        "claude",
+        "plugin",
+        "enable",
+        "agentic-development-workflow@quality-code",
+        "--scope",
+        "user"
+      ],
+      "pluginList": [
+        "claude",
+        "plugin",
+        "list",
+        "--json"
+      ],
+      "pluginRemove": [
+        "claude",
+        "plugin",
+        "uninstall",
+        "agentic-development-workflow@quality-code",
+        "--scope",
+        "user"
+      ],
+      "validate": [
+        "claude",
+        "plugin",
+        "validate",
+        ".",
+        "--strict"
+      ]
+    },
+    "validation": {
+      "kind": "native-cli",
+      "command": "claude plugin validate . --strict"
+    },
+    "notes": [
+      "Place version in plugin.json only; do not duplicate it in the marketplace entry.",
+      "Run /reload-plugins or start a fresh session after installation or update."
+    ]
+  },
+  "officialSources": [
+    "https://learn.chatgpt.com/docs/build-plugins",
+    "https://learn.chatgpt.com/docs/plugins",
+    "https://learn.chatgpt.com/docs/hooks",
+    "https://code.claude.com/docs/en/plugins",
+    "https://code.claude.com/docs/en/plugins-reference",
+    "https://code.claude.com/docs/en/plugin-marketplaces",
+    "https://code.claude.com/docs/en/hooks"
+  ]
+}

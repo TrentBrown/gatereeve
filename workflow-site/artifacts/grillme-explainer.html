@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The &quot;Grill Me&quot; Trick for AI</title>
+  <link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main class="artifact-page">
+  <nav class="artifact-actions" aria-label="Artifact actions">
+    <a class="button" href="grillme-explainer.pdf">Open PDF version</a>
+  </nav>
+  <article class="markdown-body">
+<h1>The &quot;Grill Me&quot; Trick for AI</h1>
+<p>Here&#x27;s a simple habit that makes any AI chat (Claude, Gemini, whatever you&#x27;re using) dramatically more useful: instead of asking it to <em>help</em> you, ask it to <em>interrogate</em> you.</p>
+<h2>Why bother</h2>
+<p>LLMs are agreeable by default. If you bring them a half-formed plan, they&#x27;ll happily polish it and tell you it&#x27;s great — which feels nice and teaches you nothing. &quot;Grill Me&quot; flips that. You turn the AI into a skeptical interviewer whose only job is to poke holes in your thinking <em>before</em> you&#x27;ve sunk time, money, or code into it.</p>
+<p>It&#x27;s most valuable right before you commit to something: starting a project, writing up a plan or spec, making a decision, or sending something that matters. Ten minutes of being grilled tends to surface the assumptions you didn&#x27;t know you were making.</p>
+<h2>How to do it</h2>
+<p>Paste this at the start of a session, filling in the blank:</p>
+<pre><code>I want you to grill me on [the thing I&#x27;m about to do or decide].
+
+Act as a sharp, skeptical interviewer whose job is to pressure-test my
+thinking before I commit to it. Ask me ONE question at a time. Each
+question should probe an assumption, expose a gap, or force me to be
+more specific. Wait for my answer before asking the next one. Don&#x27;t be
+agreeable — push on weak reasoning, vague goals, and anything I&#x27;m
+hand-waving past.
+
+Keep a running record as we go. After each answer I give, and before
+you ask the next question, append a short entry to a markdown file
+called grillme-log.md — the question, my answer, and any decision we
+reached. If you can&#x27;t write files in this tool, print that entry as a
+markdown code block each turn instead, so I can save it myself.
+
+When you&#x27;ve covered the important angles, give me a summary of what&#x27;s
+solid, what&#x27;s still shaky, and what I haven&#x27;t figured out yet — and add
+that summary to the same record.</code></pre>
+<p>That&#x27;s the whole thing, and it works in any tool — though <em>where</em> the record lives depends on which one.</p>
+<p><strong>Why the running log:</strong> in a long session the AI quietly forgets the early part of the conversation to make room — so if you wait until the end to ask for a summary, your first and often best decisions can already be gone. Writing each one down as you go means nothing important evaporates before you&#x27;re finished. In Claude Code it&#x27;ll save the file for you automatically; in a chat like Gemini it&#x27;ll show you each entry to keep.</p>
+<h2>Steering it while it goes</h2>
+<p>You&#x27;re in charge of the conversation, so redirect freely:</p>
+<ul>
+<li>&quot;Go deeper on that one.&quot;</li>
+<li>&quot;Move on, that&#x27;s settled.&quot;</li>
+<li>&quot;You&#x27;re being too easy on me — push harder.&quot;</li>
+<li>&quot;That&#x27;s out of scope for now.&quot;</li>
+<li>&quot;Focus on the [budget / timeline / technical] side.&quot;</li>
+</ul>
+<h2>Knowing when you&#x27;re done</h2>
+<p>There&#x27;s no buzzer — it&#x27;s a feel. You&#x27;re done when the questions start landing softly: you can answer them crisply without hesitation, or they&#x27;re getting repetitive and trivial. The AI&#x27;s closing summary helps too — when the &quot;still shaky&quot; list has shrunk to a few things you&#x27;ve <em>consciously decided</em> to live with, you&#x27;ve gotten what you came for. The goal isn&#x27;t zero unknowns; it&#x27;s understanding your own plan better than when you started.</p>
+<h2>One more thing</h2>
+<p>Some tools (Claude Code, for example) let you save a pattern like this as a reusable &quot;skill&quot; or saved command, so it&#x27;s always on tap instead of something you paste in. Nice to have eventually, but honestly overkill here — this prompt is short enough that pasting it does the same job everywhere.</p>
+  </article>
+</main>
+</body>
+</html>
