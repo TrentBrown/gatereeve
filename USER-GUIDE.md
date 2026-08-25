@@ -31,6 +31,43 @@ through explicit design, specification, planning, implementation, and review
 boundaries. You remain **human on the loop**: monitoring and steering the work
 without becoming the manual intermediary for every command, log, or test.
 
+For newly initialized features, the plugin also creates a pinned workflow model
+and append-only event journal. These records let GateReeve reject an illegal or
+stale passage mechanically instead of relying only on an agent's description
+of what happened. Existing in-flight feature folders without these files are
+reported as legacy and may finish under the earlier artifact-driven process.
+
+## See where the workflow is
+
+The plugin supplies authoritative state directly to its skills and at session
+start. If the optional Commander.js CLI is installed, the same information is
+available to you and to automation:
+
+```bash
+gatereeve status
+gatereeve next
+gatereeve graph
+gatereeve history
+```
+
+`status` is the quick operational view: feature state, active slice, active
+boundary attempt, suspension and authorization state, blockers, and next
+actions. `next` focuses on legal semantic commands and explains blocked ones.
+`graph` emits a Mermaid view of the current position; `graph --model` shows the
+complete feature, slice, change, and PR-gate topology. `history` reads the
+durable journal. Add `--json` for the stable machine-readable result envelope.
+
+Hooks and CI can use `gatereeve check governed`, `check not-blocked`,
+`check implementation-authorized`, or `check boundary-ready`. Ordinary queries
+still exit successfully when they report a blocker or stale evidence; `check`
+exits nonzero when the requested assertion is false.
+
+The CLI does not run agents, schedule work, stage or commit files, or provide a
+generic `advance` or force passage. Its `feature`, `slice`, `boundary`, `gate`,
+and `change` families name the specific decision being recorded. Agents use
+the plugin-local adapter, so absence of the PATH command does not weaken these
+rules.
+
 ## Your first feature
 
 ### 1. Start in the right workspace

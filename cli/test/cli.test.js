@@ -161,8 +161,13 @@ test('renders hierarchical help through QP CLI Core', async () => {
 
   assert.match(
     result.stdout,
-    /^cli Maintain the Agentic Software Development Workflow plugin/m
+    /^gatereeve Observe and enforce the GateReeve workflow protocol/m
   );
+  assert.match(result.stdout, /status Show authoritative workflow state and blockers/);
+  assert.match(result.stdout, /feature Govern the feature lifecycle/);
+  assert.match(result.stdout, /slice Govern sequential delivery slices/);
+  assert.match(result.stdout, /gate Record and invalidate PR-boundary evidence/);
+  assert.match(result.stdout, /change Govern discoveries that alter approved work/);
   assert.match(result.stdout, /plugin Build and maintain native workflow plugin packages/);
   assert.match(result.stdout, /build Compose native packages/);
   assert.match(result.stdout, /release Publish, observe, and verify native plugin releases/);
@@ -178,6 +183,7 @@ test('renders hierarchical help through QP CLI Core', async () => {
   assert.match(result.stdout, /verify Verify a complete remote marketplace deployment/);
   assert.match(result.stdout, /prepare Compose a tag-scoped marketplace tree/);
   assert.doesNotMatch(result.stdout, /release-prepare/);
-  assert.doesNotMatch(result.stdout, /migration/);
+  assert.doesNotMatch(result.stdout, /^\s{4}migration\b/m);
+  assert.doesNotMatch(result.stdout, /^\s+advance\b/m);
   assert.match(result.stdout, /Legend:/);
 });

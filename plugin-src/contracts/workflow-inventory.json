@@ -205,6 +205,7 @@
       "lint_issues.py",
       "lint_spec.py",
       "lint_tracker.py",
+      "merge_verified.py",
       "pattern_tool.py",
       "pr_context.py",
       "session_start.py",
@@ -222,6 +223,7 @@
       "tests/test_boundary_gate.py",
       "tests/test_boundary_packet.py",
       "tests/test_feature_final.py",
+      "tests/test_merge_verified.py",
       "tests/test_pr_context.py",
       "tests/test_sequential_workflow_acceptance.py",
       "tests/test_session_start.py",
@@ -233,6 +235,30 @@
       "workflow_setup.py",
       "tests/test_workflow_doctor.py",
       "tests/test_workflow_setup.py"
+    ],
+    "protocol": [
+      "boundary.js",
+      "changes.js",
+      "compatibility.js",
+      "constants.js",
+      "context.js",
+      "errors.js",
+      "feature.js",
+      "fingerprint.js",
+      "guards.js",
+      "graph.js",
+      "index.js",
+      "journal.js",
+      "model.js",
+      "model/workflow-model.json",
+      "observer.js",
+      "package.json",
+      "plugin-adapter.js",
+      "projection.js",
+      "python-guards.js",
+      "result.js",
+      "storage.js",
+      "transitions.js"
     ],
   "templates": [
     "agentic-workflow.json",
@@ -258,6 +284,7 @@
       "profiles/quality-code.md"
     ],
     "resourceGuides": [
+      "PROTOCOL.md",
       "RESOURCE-ROOT.md"
     ],
     "plannedDocumentation": [
@@ -285,6 +312,11 @@
     {
       "name": "python3",
       "minimumVersion": "3.10",
+      "required": true
+    },
+    {
+      "name": "node",
+      "minimumVersion": "22.12.0",
       "required": true
     },
     {

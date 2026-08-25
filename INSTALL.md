@@ -8,9 +8,10 @@ The supported operating systems are macOS and Ubuntu 22.04 or 24.04. Windows
 users should currently run the workflow inside Ubuntu on WSL; native Windows
 installation has not yet been validated.
 
-The workflow plugin itself does not require Node, npm, a checkout of this
-repository, personal instruction-file edits, or skill symlinks. Each agent you
-choose must already be installed and authenticated.
+The workflow plugin requires Node.js 22.12 or newer for its packaged governance
+core. It does not require npm, a checkout of this repository, the optional
+`gatereeve` CLI, personal instruction-file edits, or skill symlinks. Each agent
+you choose must already be installed and authenticated.
 
 ## 1. Pause or resume the workflow at any time
 
@@ -61,9 +62,11 @@ Then complete one or both agent paths:
 
 ## 3. Install and verify shared prerequisites
 
-Installing and running the workflow requires Git and Python 3.10 or newer. The
-complete PR-boundary workflow also uses GitHub CLI and requires it to be
-authenticated for the product repositories where the workflow operates.
+Installing and running the workflow requires Git, Python 3.10 or newer, and
+Node.js 22.12 or newer. The complete PR-boundary workflow also uses GitHub CLI
+and requires it to be authenticated for the product repositories where the
+workflow operates. Install a supported Node release with the version manager
+or package source normally used on the machine before continuing.
 
 The ZIP installation itself does not use GitHub and does not require access to
 the plugin source repository. Current `workflow-doctor` readiness includes the
@@ -91,6 +94,7 @@ sudo apt install -y git python3 curl gh unzip
 
 ```bash
 python3 -c 'import sys; assert sys.version_info >= (3, 10), sys.version'
+node -e 'const [major,minor]=process.versions.node.split(".").map(Number); if (major < 22 || (major === 22 && minor < 12)) process.exit(1)'
 git --version
 gh --version
 ```

@@ -1,0 +1,407 @@
+{
+  "schemaVersion": 1,
+  "modelId": "gatereeve/workflow",
+  "modelVersion": "1.0.0",
+  "eventSchemaVersion": 1,
+  "resultSchemaVersion": 1,
+  "coreCompatibility": {
+    "minimum": "1.0.0",
+    "maximumExclusive": "2.0.0"
+  },
+  "guardIds": [
+    "boundary.context.current",
+    "boundary.requiredGates.current",
+    "change.authority.satisfied",
+    "change.blockers.none",
+    "design.approval.confirmed",
+    "feature.abandonment.confirmed",
+    "feature.closeout.current",
+    "feature.record.absent",
+    "human.review.accepted",
+    "merge.reviewedContent.verified",
+    "model.migration.confirmed",
+    "plan.authorization.current",
+    "slice.active",
+    "slice.noneActive",
+    "slice.readiness.current",
+    "spec.validation.current",
+    "suspension.notPaused"
+  ],
+  "feature": {
+    "initial": "DESIGNING",
+    "terminal": ["COMPLETE", "ABANDONED_FEATURE"],
+    "states": [
+      "DESIGNING",
+      "SPECIFYING",
+      "PLANNING",
+      "DELIVERING_SLICES",
+      "FINALIZING",
+      "COMPLETE",
+      "ABANDONED_FEATURE"
+    ],
+    "transitions": [
+      {
+        "id": "approve-design",
+        "from": "DESIGNING",
+        "to": "SPECIFYING",
+        "eventType": "DESIGN_APPROVED",
+        "authority": "human-confirmation",
+        "guards": ["design.approval.confirmed", "suspension.notPaused"]
+      },
+      {
+        "id": "validate-spec",
+        "from": "SPECIFYING",
+        "to": "PLANNING",
+        "eventType": "SPEC_VALIDATED",
+        "authority": "agent",
+        "guards": ["spec.validation.current", "suspension.notPaused"]
+      },
+      {
+        "id": "authorize-plan",
+        "from": "PLANNING",
+        "to": "DELIVERING_SLICES",
+        "eventType": "PLAN_AUTHORIZED",
+        "authority": "human-confirmation",
+        "guards": ["plan.authorization.current", "suspension.notPaused"]
+      },
+      {
+        "id": "begin-finalizing",
+        "from": "DELIVERING_SLICES",
+        "to": "FINALIZING",
+        "eventType": "SLICE_MERGE_RECORDED",
+        "authority": "agent",
+        "guards": ["merge.reviewedContent.verified", "change.blockers.none"]
+      },
+      {
+        "id": "resume-delivery",
+        "from": "FINALIZING",
+        "to": "DELIVERING_SLICES",
+        "eventType": "SLICE_PROPOSED",
+        "authority": "agent",
+        "guards": ["slice.noneActive", "suspension.notPaused"]
+      },
+      {
+        "id": "complete-feature",
+        "from": "FINALIZING",
+        "to": "COMPLETE",
+        "eventType": "FEATURE_FINALIZED",
+        "authority": "agent",
+        "guards": ["feature.closeout.current", "change.blockers.none"]
+      },
+      {
+        "id": "abandon-designing-feature",
+        "from": "DESIGNING",
+        "to": "ABANDONED_FEATURE",
+        "eventType": "FEATURE_ABANDONED",
+        "authority": "human-confirmation",
+        "guards": ["feature.abandonment.confirmed"]
+      },
+      {
+        "id": "abandon-specifying-feature",
+        "from": "SPECIFYING",
+        "to": "ABANDONED_FEATURE",
+        "eventType": "FEATURE_ABANDONED",
+        "authority": "human-confirmation",
+        "guards": ["feature.abandonment.confirmed"]
+      },
+      {
+        "id": "abandon-planning-feature",
+        "from": "PLANNING",
+        "to": "ABANDONED_FEATURE",
+        "eventType": "FEATURE_ABANDONED",
+        "authority": "human-confirmation",
+        "guards": ["feature.abandonment.confirmed"]
+      },
+      {
+        "id": "abandon-delivering-feature",
+        "from": "DELIVERING_SLICES",
+        "to": "ABANDONED_FEATURE",
+        "eventType": "FEATURE_ABANDONED",
+        "authority": "human-confirmation",
+        "guards": ["feature.abandonment.confirmed"]
+      },
+      {
+        "id": "abandon-finalizing-feature",
+        "from": "FINALIZING",
+        "to": "ABANDONED_FEATURE",
+        "eventType": "FEATURE_ABANDONED",
+        "authority": "human-confirmation",
+        "guards": ["feature.abandonment.confirmed"]
+      }
+    ]
+  },
+  "slice": {
+    "initial": "PROPOSED",
+    "terminal": ["MERGED", "ABANDONED"],
+    "states": [
+      "PROPOSED",
+      "PLANNED",
+      "IMPLEMENTING",
+      "PR_BOUNDARY",
+      "HUMAN_REVIEW",
+      "MERGED",
+      "ABANDONED"
+    ],
+    "transitions": [
+      {
+        "id": "plan-slice",
+        "from": "PROPOSED",
+        "to": "PLANNED",
+        "eventType": "SLICE_PLANNED",
+        "authority": "agent",
+        "guards": []
+      },
+      {
+        "id": "start-slice",
+        "from": "PLANNED",
+        "to": "IMPLEMENTING",
+        "eventType": "SLICE_STARTED",
+        "authority": "agent",
+        "guards": ["slice.noneActive", "slice.readiness.current", "plan.authorization.current", "suspension.notPaused", "change.blockers.none"]
+      },
+      {
+        "id": "begin-boundary",
+        "from": "IMPLEMENTING",
+        "to": "PR_BOUNDARY",
+        "eventType": "BOUNDARY_STARTED",
+        "authority": "agent",
+        "guards": ["slice.active", "suspension.notPaused", "change.blockers.none"]
+      },
+      {
+        "id": "remediate-boundary",
+        "from": "PR_BOUNDARY",
+        "to": "IMPLEMENTING",
+        "eventType": "REMEDIATION_STARTED",
+        "authority": "agent",
+        "guards": ["slice.active", "suspension.notPaused"]
+      },
+      {
+        "id": "request-human-review",
+        "from": "PR_BOUNDARY",
+        "to": "HUMAN_REVIEW",
+        "eventType": "HUMAN_REVIEW_REQUESTED",
+        "authority": "agent",
+        "guards": ["boundary.requiredGates.current", "change.blockers.none", "suspension.notPaused"]
+      },
+      {
+        "id": "apply-review-changes",
+        "from": "HUMAN_REVIEW",
+        "to": "IMPLEMENTING",
+        "eventType": "HUMAN_REVIEW_CHANGES_REQUESTED",
+        "authority": "human-confirmation",
+        "guards": ["suspension.notPaused"]
+      },
+      {
+        "id": "record-merge",
+        "from": "HUMAN_REVIEW",
+        "to": "MERGED",
+        "eventType": "SLICE_MERGE_RECORDED",
+        "authority": "agent",
+        "guards": ["human.review.accepted", "merge.reviewedContent.verified", "change.blockers.none"]
+      },
+      {
+        "id": "abandon-planned-slice",
+        "from": "PLANNED",
+        "to": "ABANDONED",
+        "eventType": "SLICE_ABANDONED",
+        "authority": "agent",
+        "guards": ["change.authority.satisfied"]
+      },
+      {
+        "id": "abandon-implementing-slice",
+        "from": "IMPLEMENTING",
+        "to": "ABANDONED",
+        "eventType": "SLICE_ABANDONED",
+        "authority": "agent",
+        "guards": ["change.authority.satisfied"]
+      }
+    ]
+  },
+  "change": {
+    "initial": "PROPOSED",
+    "terminal": ["REJECTED", "VALIDATED", "SUPERSEDED"],
+    "states": ["PROPOSED", "APPROVED", "REJECTED", "APPLIED", "VALIDATED", "SUPERSEDED"],
+    "authorityByTarget": {
+      "design": "human-confirmation",
+      "spec": "human-confirmation",
+      "plan": "agent",
+      "slice": "agent"
+    },
+    "invalidationByTarget": {
+      "design": {
+        "implementationAuthorization": true,
+        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+      },
+      "spec": {
+        "implementationAuthorization": true,
+        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+      },
+      "plan": {
+        "implementationAuthorization": false,
+        "gateIds": ["reconcile", "verification", "specEvaluation", "patternReview", "judge", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+      },
+      "slice": {
+        "implementationAuthorization": false,
+        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+      }
+    },
+    "transitions": [
+      {
+        "id": "approve-change",
+        "from": "PROPOSED",
+        "to": "APPROVED",
+        "eventType": "CHANGE_APPROVED",
+        "authority": "agent",
+        "guards": ["change.authority.satisfied"]
+      },
+      {
+        "id": "reject-change",
+        "from": "PROPOSED",
+        "to": "REJECTED",
+        "eventType": "CHANGE_REJECTED",
+        "authority": "agent",
+        "guards": ["change.authority.satisfied"]
+      },
+      {
+        "id": "apply-change",
+        "from": "APPROVED",
+        "to": "APPLIED",
+        "eventType": "CHANGE_APPLIED",
+        "authority": "agent",
+        "guards": ["suspension.notPaused"]
+      },
+      {
+        "id": "validate-change",
+        "from": "APPLIED",
+        "to": "VALIDATED",
+        "eventType": "CHANGE_VALIDATED",
+        "authority": "agent",
+        "guards": ["change.authority.satisfied"]
+      },
+      {
+        "id": "supersede-proposed-change",
+        "from": "PROPOSED",
+        "to": "SUPERSEDED",
+        "eventType": "CHANGE_SUPERSEDED",
+        "authority": "agent",
+        "guards": ["change.authority.satisfied"]
+      },
+      {
+        "id": "supersede-applied-change",
+        "from": "APPLIED",
+        "to": "SUPERSEDED",
+        "eventType": "CHANGE_SUPERSEDED",
+        "authority": "agent",
+        "guards": ["change.authority.satisfied"]
+      }
+    ]
+  },
+  "boundary": {
+    "scopes": ["SLICE", "FEATURE_FINAL"],
+    "outcomes": ["UNSET", "PASS", "FAIL", "WAIVED", "NOT_APPLICABLE"],
+    "freshness": ["CURRENT", "STALE", "UNKNOWN"],
+    "scopeRouting": {
+      "SLICE": {
+        "pinContext": "SLICE",
+        "reconcile": "SLICE",
+        "verification": "SLICE",
+        "specEvaluation": "SLICE",
+        "patternReview": "SLICE",
+        "judge": "SLICE",
+        "codeReview": "SLICE",
+        "decisionTriage": "SLICE",
+        "explainDiff": "SLICE",
+        "packetValidation": "SLICE"
+      },
+      "FEATURE_FINAL": {
+        "pinContext": "SLICE",
+        "reconcile": "SLICE",
+        "verification": "FEATURE",
+        "specEvaluation": "FEATURE",
+        "patternReview": "SLICE",
+        "judge": "FEATURE",
+        "codeReview": "SLICE",
+        "decisionTriage": "SLICE",
+        "explainDiff": "SLICE",
+        "packetValidation": "SLICE"
+      }
+    },
+    "gates": [
+      {
+        "id": "pinContext",
+        "dependsOn": [],
+        "optional": false,
+        "waiverAllowed": false,
+        "guards": ["slice.active", "suspension.notPaused"]
+      },
+      {
+        "id": "reconcile",
+        "dependsOn": ["pinContext"],
+        "optional": false,
+        "waiverAllowed": false,
+        "guards": ["boundary.context.current"]
+      },
+      {
+        "id": "verification",
+        "dependsOn": ["reconcile"],
+        "optional": false,
+        "waiverAllowed": true,
+        "guards": ["boundary.context.current"]
+      },
+      {
+        "id": "specEvaluation",
+        "dependsOn": ["verification"],
+        "optional": false,
+        "waiverAllowed": true,
+        "guards": ["boundary.context.current"]
+      },
+      {
+        "id": "patternReview",
+        "dependsOn": ["verification"],
+        "optional": true,
+        "waiverAllowed": true,
+        "guards": ["boundary.context.current"]
+      },
+      {
+        "id": "judge",
+        "dependsOn": ["verification"],
+        "optional": false,
+        "waiverAllowed": true,
+        "guards": ["boundary.context.current"]
+      },
+      {
+        "id": "codeReview",
+        "dependsOn": ["verification"],
+        "optional": false,
+        "waiverAllowed": true,
+        "guards": ["boundary.context.current"]
+      },
+      {
+        "id": "decisionTriage",
+        "dependsOn": ["specEvaluation", "patternReview", "judge", "codeReview"],
+        "optional": false,
+        "waiverAllowed": false,
+        "guards": ["boundary.requiredGates.current"]
+      },
+      {
+        "id": "explainDiff",
+        "dependsOn": ["decisionTriage"],
+        "optional": false,
+        "waiverAllowed": false,
+        "guards": ["boundary.context.current"]
+      },
+      {
+        "id": "packetValidation",
+        "dependsOn": ["explainDiff"],
+        "optional": false,
+        "waiverAllowed": false,
+        "guards": ["boundary.context.current", "boundary.requiredGates.current"]
+      }
+    ]
+  },
+  "presentation": {
+    "featureOrder": ["DESIGNING", "SPECIFYING", "PLANNING", "DELIVERING_SLICES", "FINALIZING", "COMPLETE"],
+    "sliceOrder": ["PROPOSED", "PLANNED", "IMPLEMENTING", "PR_BOUNDARY", "HUMAN_REVIEW", "MERGED"],
+    "defaultGraphDepth": 2
+  }
+}

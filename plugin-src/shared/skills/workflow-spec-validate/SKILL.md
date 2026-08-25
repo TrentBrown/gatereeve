@@ -15,6 +15,7 @@ Read:
 
 - `<plugin-root>/resources/policy/WORKFLOW.md`
 - `<plugin-root>/resources/commands/spec-validate.md`
+- `<plugin-root>/resources/PROTOCOL.md`
 
 Report concrete blocking issues. Offer direct fixes for minor structural gaps.
 Do not approve planning from vague or subjective criteria.

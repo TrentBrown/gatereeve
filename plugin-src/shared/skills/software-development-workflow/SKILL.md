@@ -23,6 +23,16 @@ or cumulative document placement, also load:
 Load that file before substantial implementation, branch planning, workflow doc
 maintenance, PR boundary work, or completion reporting.
 
+For workflow-state observation, preflight, or passage, also load:
+
+`<plugin-root>/resources/PROTOCOL.md`
+
+New features are governed by default. State-affecting skills must use the
+plugin-local protocol adapter for governed features; the optional PATH CLI is
+not a prerequisite. Legacy features may finish without adoption. Never claim a
+gate passed merely from prose when the protocol rejects or has not recorded the
+passage.
+
 ## Command Map
 
 Load the specific command file when the task matches:

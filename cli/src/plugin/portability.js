@@ -4,6 +4,7 @@ import { relative, resolve, sep } from 'node:path';
 const RESOURCE_ROOTS = {
   commands: 'resources/commands',
   scripts: 'resources/scripts',
+  protocol: 'resources/protocol',
   templates: 'resources/templates',
   policy: 'resources/policy',
   resourceGuides: 'resources',

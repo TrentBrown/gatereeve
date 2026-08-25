@@ -25,6 +25,7 @@ from workflow_common import (
 
 PLUGIN_ID = "agentic-development-workflow"
 MINIMUM_PYTHON = (3, 10)
+MINIMUM_NODE = (22, 12)
 REQUIRED_SKILLS = (
     "checkpoint",
     "explain-diff",
@@ -154,6 +155,21 @@ def _default_gh_auth_check(executable: str, environment: Mapping[str, str]) -> b
     return result.returncode == 0
 
 
+def _default_node_version(
+    executable: str, environment: Mapping[str, str]
+) -> tuple[int, int, str]:
+    result = subprocess.run(
+        [executable, "-p", "process.versions.node"],
+        capture_output=True,
+        text=True,
+        env=dict(environment),
+        check=True,
+    )
+    version = result.stdout.strip()
+    parts = version.split(".")
+    return int(parts[0]), int(parts[1]), version
+
+
 def _codex_hook_configuration(codex_home: Path) -> tuple[bool, str]:
     config_path = codex_home / "config.toml"
     if not config_path.exists():
@@ -203,6 +219,9 @@ def run_doctor(
     environment: Mapping[str, str] | None = None,
     executable_lookup: Callable[[str], str | None] = shutil.which,
     gh_auth_check: Callable[[str, Mapping[str, str]], bool] = _default_gh_auth_check,
+    node_version_check: Callable[
+        [str, Mapping[str, str]], tuple[int, int, str]
+    ] = _default_node_version,
 ) -> dict[str, object]:
     plugin_root = plugin_root.resolve()
     home = home.resolve()
@@ -224,7 +243,7 @@ def run_doctor(
         checks.append(check("python", "fail", "Python 3.10 or newer is required", "Upgrade Python"))
 
     executables: dict[str, str] = {}
-    required_commands = ["git", "python3", "gh"]
+    required_commands = ["git", "python3", "node", "gh"]
     if platform in {"codex", "claude"}:
         required_commands.append(platform)
     for name in required_commands:
@@ -234,6 +253,33 @@ def run_doctor(
             checks.append(check(f"executable-{name}", "pass", f"Found {name}: {path}"))
         else:
             checks.append(check(f"executable-{name}", "fail", f"Required command is missing: {name}", f"Install {name} and ensure it is on PATH"))
+
+    node_executable = executables.get("node")
+    if node_executable:
+        try:
+            major, minor, version = node_version_check(
+                node_executable, runtime_environment
+            )
+            if (major, minor) >= MINIMUM_NODE:
+                checks.append(check("node-version", "pass", f"Node {version} is supported"))
+            else:
+                checks.append(
+                    check(
+                        "node-version",
+                        "fail",
+                        f"Node {version} is too old; 22.12 or newer is required",
+                        "Upgrade Node",
+                    )
+                )
+        except (OSError, subprocess.SubprocessError, ValueError, IndexError) as error:
+            checks.append(
+                check(
+                    "node-version",
+                    "fail",
+                    f"Cannot determine Node version: {error}",
+                    "Install Node 22.12 or newer",
+                )
+            )
 
     gh_executable = executables.get("gh")
     if gh_executable:

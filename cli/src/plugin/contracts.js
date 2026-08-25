@@ -53,6 +53,15 @@ function validateWorkflowInventory(inventory) {
     }
   }
 
+  const nodeRuntime = (inventory.runtimePrerequisites ?? []).find(
+    (item) => item.name === 'node'
+  );
+  assert(nodeRuntime?.required === true, 'Node must be a required plugin runtime');
+  assert(
+    nodeRuntime.minimumVersion === '22.12.0',
+    'Node plugin runtime minimum must be 22.12.0'
+  );
+
   return { skillCount: names.length, plannedSkillCount: planned.length };
 }
 

@@ -16,6 +16,7 @@ Read:
 - `<plugin-root>/resources/policy/WORKFLOW.md`
 - `<plugin-root>/resources/policy/WORKSPACE-CONTEXT.md`
 - `<plugin-root>/resources/commands/branch-bootstrap.md`
+- `<plugin-root>/resources/PROTOCOL.md`
 
 Use the bootstrap script when mechanical doc creation is appropriate:
 
