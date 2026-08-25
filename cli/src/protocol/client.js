@@ -2,8 +2,8 @@ import { access, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const ADAPTER_CANDIDATES = [
-  new URL('../../resources/protocol/plugin-adapter.js', import.meta.url),
   new URL('../../../plugin-src/shared/resources/protocol/plugin-adapter.js', import.meta.url),
+  new URL('../../resources/protocol/plugin-adapter.js', import.meta.url),
 ];
 
 let adapterPromise = null;

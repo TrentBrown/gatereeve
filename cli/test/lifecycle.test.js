@@ -226,6 +226,7 @@ test('sequential slices reach a feature-final closeout through human review', as
       recordSliceTransition(featureHome, 'record-merge', sliceId, {
         actor: agent,
         facts: { reviewedContentMerged: true },
+        currentFingerprints,
         payload: { featureFinal },
         eventId: `evt-${offset + 3}-early-merge`,
       }),
@@ -235,9 +236,23 @@ test('sequential slices reach a feature-final closeout through human review', as
       actor: human,
       eventId: `evt-${offset + 3}-review-accepted`,
     });
+    await assert.rejects(
+      recordSliceTransition(featureHome, 'record-merge', sliceId, {
+        actor: agent,
+        facts: { reviewedContentMerged: true },
+        currentFingerprints: {
+          ...currentFingerprints,
+          verification: fingerprint({ changed: 'reviewed source moved' }),
+        },
+        payload: { featureFinal },
+        eventId: `evt-${offset + 4}-stale-merge`,
+      }),
+      /not eligible/
+    );
     return recordSliceTransition(featureHome, 'record-merge', sliceId, {
       actor: agent,
       facts: { reviewedContentMerged: true },
+      currentFingerprints,
       payload: { featureFinal },
       eventId: `evt-${offset + 4}-merge`,
     });

@@ -115,12 +115,14 @@ export function nextActions(projection) {
             gate.eligible &&
             (['UNSET', 'FAIL'].includes(gate.outcome) || gate.freshness !== 'CURRENT')
           ) {
-            actions.push(action(`gate record ${gate.id}`, true, 'agent'));
+            actions.push(
+              action(`gate record ${attempt.id} ${gate.id}`, true, 'agent')
+            );
           }
         }
         actions.push(
           action(
-            `slice request-human-review ${activeSlice.id}`,
+            `boundary request-review ${attempt?.id ?? '<attempt-id>'}`,
             attempt?.requiredCurrentAndNonblocking === true,
             'agent',
             attempt?.requiredCurrentAndNonblocking ? [] : ['boundary gates not current and nonblocking']

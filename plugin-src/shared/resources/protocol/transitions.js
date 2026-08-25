@@ -78,9 +78,15 @@ export function preflightSliceTransition(
   record,
   transitionId,
   sliceId,
-  { actor, facts = {} } = {}
+  { actor, facts = {}, currentFingerprints = {} } = {}
 ) {
-  const projection = projectRecord(record);
+  const baseline = projectRecord(record);
+  const activeAttemptId = currentSlice(baseline, sliceId)?.activeAttemptId;
+  const projection = activeAttemptId
+    ? projectRecord(record, {
+        gateFingerprints: { [activeAttemptId]: currentFingerprints },
+      })
+    : baseline;
   const transition = machineTransition(record.modelLock.model.slice, transitionId);
   if (!transition) throw new ProtocolError('TRANSITION_UNKNOWN', `Unknown slice transition ${transitionId}`);
   const slice = currentSlice(projection, sliceId);
@@ -212,10 +218,21 @@ export async function recordSliceTransition(
   featureHome,
   transitionId,
   sliceId,
-  { actor, facts = {}, payload = {}, eventId, recordedAt } = {}
+  {
+    actor,
+    facts = {},
+    currentFingerprints = {},
+    payload = {},
+    eventId,
+    recordedAt,
+  } = {}
 ) {
   const record = await readFeatureRecord(featureHome);
-  const preflight = preflightSliceTransition(record, transitionId, sliceId, { actor, facts });
+  const preflight = preflightSliceTransition(record, transitionId, sliceId, {
+    actor,
+    facts,
+    currentFingerprints,
+  });
   if (!preflight.eligible) reject(preflight);
   let featurePassage = null;
   if (transitionId === 'record-merge' && payload.featureFinal === true) {

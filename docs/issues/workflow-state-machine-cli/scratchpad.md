@@ -132,3 +132,34 @@ and `interview.md` initialization in an installed CLI package.
   rejected because it would create divergent mechanics and content.
 - Publish a separate core/resources package - deferred because it introduces
   another release unit without improving v1 behavior.
+
+## [5] Revalidate boundary fingerprints before recording merge
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Slice merge passage, boundary freshness projection, CLI
+transition inputs, lifecycle tests, and pinned workflow-model hashes.
+
+The `record-merge` passage now projects the active boundary attempt using
+freshly supplied gate fingerprints and requires every boundary gate to remain
+current and nonblocking. Omitting the fingerprint map fails closed. The
+Commander adapter exposes the same `--fingerprints-file` input, and regression
+coverage proves that a changed post-review fingerprint blocks merge while the
+original current set permits it.
+
+**Triggered by:** Pinned PR review found that evidence could become stale after
+entry into `HUMAN_REVIEW` while `record-merge` checked only review acceptance
+and merged content.
+
+**Alternatives considered:**
+
+- Rely on the earlier transition into `HUMAN_REVIEW` - rejected because source
+  or governing inputs can change afterward.
+- Verify only that reviewed content reached integration - rejected because
+  merge content proof does not establish that automated gate evidence covered
+  the reviewed head.
+- Require fingerprints only when human review is accepted - rejected because
+  merge is the final irreversible protocol passage and must revalidate
+  freshness at that time.

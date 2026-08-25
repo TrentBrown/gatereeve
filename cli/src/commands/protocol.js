@@ -127,12 +127,18 @@ function transitionCommand(name, description, operation, transitionId, { slice =
   if (slice) command.argument('<slice-id>', 'Slice identifier');
   addContextOptions(addEventOptions(command))
     .option('--facts-file <path>', 'JSON object containing freshly inferred guard facts')
+    .option('--fingerprints-file <path>', 'JSON map of current boundary gate fingerprints')
     .option('--payload-file <path>', 'JSON object recorded with the passage')
     .action(async (...args) => {
       const commander = args.at(-1);
       const options = commander.opts();
       const sliceId = slice ? args[0] : null;
       const facts = await optionalJson(options.factsFile, 'Facts file', {});
+      const currentFingerprints = await optionalJson(
+        options.fingerprintsFile,
+        'Fingerprint file',
+        {}
+      );
       const payload = await optionalJson(options.payloadFile, 'Payload file', {});
       await run(
         {
@@ -140,7 +146,7 @@ function transitionCommand(name, description, operation, transitionId, { slice =
           ...contextRequest(options),
           transitionId,
           ...(slice ? { sliceId } : {}),
-          input: eventInput(options, { facts, payload }),
+          input: eventInput(options, { facts, currentFingerprints, payload }),
         },
         options,
         printMutation

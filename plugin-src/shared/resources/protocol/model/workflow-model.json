@@ -197,7 +197,12 @@
         "to": "MERGED",
         "eventType": "SLICE_MERGE_RECORDED",
         "authority": "agent",
-        "guards": ["human.review.accepted", "merge.reviewedContent.verified", "change.blockers.none"]
+        "guards": [
+          "human.review.accepted",
+          "merge.reviewedContent.verified",
+          "boundary.requiredGates.current",
+          "change.blockers.none"
+        ]
       },
       {
         "id": "abandon-planned-slice",

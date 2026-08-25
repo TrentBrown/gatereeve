@@ -7,6 +7,7 @@ import test from 'node:test';
 import {
   fingerprint,
   initializeFeature,
+  nextActions,
   projectRecord,
   proposeSlice,
   readFeatureRecord,
@@ -110,6 +111,11 @@ test('boundary DAG rejects out-of-order gates without recording an event', async
   const attempt = projection.boundaryAttempts[0];
   assert.equal(attempt.gates.find((gate) => gate.id === 'pinContext').eligible, true);
   assert.equal(attempt.gates.find((gate) => gate.id === 'verification').eligible, false);
+  assert(
+    nextActions(projection).some(
+      (item) => item.command === 'gate record attempt-1 pinContext'
+    )
+  );
 });
 
 test('failed gates block dependents and a permitted human waiver unblocks passage', async () => {
@@ -153,6 +159,15 @@ test('failed gates block dependents and a permitted human waiver unblocks passag
   await record(fixture, current, 'decisionTriage');
   await record(fixture, current, 'explainDiff');
   await record(fixture, current, 'packetValidation');
+
+  const readyProjection = projectRecord(await readFeatureRecord(fixture.featureHome), {
+    gateFingerprints: { [fixture.attemptId]: current },
+  });
+  assert(
+    nextActions(readyProjection).some(
+      (item) => item.command === 'boundary request-review attempt-1'
+    )
+  );
 
   const review = await requestBoundaryHumanReview(fixture.featureHome, {
     attemptId: fixture.attemptId,
