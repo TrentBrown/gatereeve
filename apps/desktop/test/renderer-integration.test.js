@@ -1,0 +1,90 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import test from 'node:test';
+
+import { parseHTML } from 'linkedom';
+
+import { createProtocolAdapter } from '../main/protocol-adapter.js';
+import { listSessionContext, readSessionContext } from '../main/session-observer.js';
+
+const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const repositoryRoot = resolve(desktopRoot, '..', '..');
+const featureHome = resolve(repositoryRoot, 'docs/issues/gatereeve-desktop');
+
+async function waitFor(predicate, label) {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    if (predicate()) return;
+    await new Promise((done) => setTimeout(done, 10));
+  }
+  assert.fail(`Timed out waiting for ${label}`);
+}
+
+test('renderer consumes the real canonical GateReeve feature without mutating its journal', async () => {
+  const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
+  const journalPath = resolve(featureHome, 'events.jsonl');
+  const journalBefore = await readFile(journalPath, 'utf8');
+  const protocol = createProtocolAdapter();
+  const sources = {
+    local: { status: 'current', detail: 'Local fixture', checkedAt: null },
+    git: { status: 'not-checked', detail: null, checkedAt: null },
+    github: { status: 'not-checked', detail: null, checkedAt: null },
+  };
+  const snapshot = await protocol.snapshot(featureHome, { sources });
+  const state = {
+    schemaVersion: 1,
+    phase: 'ready',
+    refreshing: false,
+    githubPolling: false,
+    selection: { worktreePath: repositoryRoot, featureHome },
+    snapshot,
+    error: null,
+    preferences: { recentWorktrees: [] },
+  };
+  const { window } = parseHTML(html);
+  window.gatereeveDesktop = {
+    async chooseWorktree() { return state; },
+    async copyText() { return true; },
+    async getState() { return state; },
+    async listSession() { return listSessionContext(repositoryRoot); },
+    async openArtifact() { return true; },
+    async openRecent() { return state; },
+    async readDetail(kind, id) { return protocol.read(featureHome, kind, id, { sources }); },
+    async readSession(id) { return readSessionContext(repositoryRoot, id); },
+    async refresh() { return state; },
+    async revealArtifact() { return true; },
+    subscribe() { return () => {}; },
+  };
+  globalThis.window = window;
+  globalThis.document = window.document;
+  await import(`${pathToFileURL(resolve(desktopRoot, 'renderer/renderer.js')).href}?test=canonical-integration`);
+  await waitFor(() => window.document.querySelectorAll('.state-node').length >= 6, 'pinned state rail');
+
+  assert.equal(window.document.querySelector('#chooser').hidden, true);
+  assert.equal(
+    window.document.querySelectorAll('.state-node').length >= 6,
+    true,
+    `${window.document.querySelector('#chooser-error').textContent} | ${window.document.querySelector('#model-graph').textContent}`,
+  );
+  assert.equal(window.document.querySelectorAll('#slices .card').length, 3);
+  assert.equal(window.document.querySelectorAll('.gate-card').length, 10);
+  assert.equal(window.document.querySelectorAll('[data-artifact-id]').length, snapshot.artifacts.length);
+
+  window.document.querySelector('[data-view="history"]').click();
+  await waitFor(
+    () => window.document.querySelectorAll('[data-event-id]').length === snapshot.events.count,
+    'complete event history',
+  );
+  assert.equal(window.document.querySelectorAll('[data-event-id]').length, snapshot.events.count);
+  window.document.querySelector('[data-view="model"]').click();
+  assert.equal(window.document.querySelectorAll('.model-group').length, 4);
+  assert.match(window.document.querySelector('#model-mermaid').textContent, /flowchart/);
+  window.document.querySelector('[data-view="session"]').click();
+  await waitFor(() => window.document.querySelectorAll('[data-session-id]').length > 0, 'Session context');
+  assert.equal(window.document.querySelectorAll('[data-session-id]').length > 0, true);
+
+  assert.equal(await readFile(journalPath, 'utf8'), journalBefore);
+  delete globalThis.window;
+  delete globalThis.document;
+});

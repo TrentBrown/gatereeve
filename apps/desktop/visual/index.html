@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>GateReeve Desktop visual fixture</title>
+  </head>
+  <body>
+    <script src="visual-fixture.js"></script>
+    <script type="module">
+      const source = await fetch('../renderer/index.html').then((response) => response.text());
+      const parsed = new DOMParser().parseFromString(source, 'text/html');
+      parsed.querySelector('script[src="renderer.js"]')?.remove();
+      const base = document.createElement('base');
+      base.href = '../renderer/';
+      document.head.replaceChildren(base, ...parsed.head.childNodes);
+      document.body.replaceChildren(...parsed.body.childNodes);
+      await import('../renderer/renderer.js');
+    </script>
+  </body>
+</html>

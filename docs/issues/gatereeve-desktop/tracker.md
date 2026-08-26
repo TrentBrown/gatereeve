@@ -5,7 +5,8 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-26
 
-**Active slice:** none — slice 2 merged; the P6-P7 delivery slice has not started
+**Active slice:** `desktop-workflow-experience` — P6-P7 / I-4-I-5 / implementing
+on `gatereeve-desktop-workflow-experience`
 
 ## Rubric Status
 

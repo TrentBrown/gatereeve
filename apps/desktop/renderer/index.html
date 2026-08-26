@@ -4,41 +4,145 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GateReeve Desktop</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2">
   </head>
   <body>
     <header class="masthead">
-      <div>
-        <p class="eyebrow">Workflow observer</p>
-        <h1>GateReeve</h1>
-      </div>
-      <button id="refresh" type="button">Refresh</button>
-    </header>
-    <main>
-      <section id="chooser" class="panel" aria-labelledby="chooser-title">
-        <h2 id="chooser-title">Choose a feature worktree</h2>
-        <p>GateReeve Desktop reads one explicitly selected worktree. It never scans for projects.</p>
-        <button id="choose" type="button">Open worktree…</button>
-        <div id="recents" aria-label="Recent worktrees"></div>
-        <div id="chooser-error" class="error" role="alert" hidden></div>
-      </section>
-      <section id="overview" class="panel" aria-live="polite" hidden>
-        <div class="status-line">
-          <span id="mode" class="badge"></span>
-          <span id="activity"></span>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">GR</span>
+        <div>
+          <p class="eyebrow">Workflow protocol observer</p>
+          <h1>GateReeve</h1>
         </div>
-        <h2 id="feature"></h2>
-        <p id="worktree" class="path"></p>
-        <dl class="facts">
-          <div><dt>Feature state</dt><dd id="feature-state">—</dd></div>
-          <div><dt>Active slice</dt><dd id="active-slice">—</dd></div>
-          <div><dt>Local</dt><dd id="source-local">—</dd></div>
-          <div><dt>Git</dt><dd id="source-git">—</dd></div>
-          <div><dt>GitHub</dt><dd id="source-github">—</dd></div>
-        </dl>
-        <div id="error" class="error" role="alert" hidden></div>
+      </div>
+      <div class="masthead-actions">
+        <span id="activity" class="activity">Choose a worktree</span>
+        <button id="refresh" class="secondary light" type="button" disabled>Refresh</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="chooser" class="chooser panel" aria-labelledby="chooser-title">
+        <p class="section-kicker">Begin observing</p>
+        <h2 id="chooser-title">Choose a feature worktree</h2>
+        <p class="lede">GateReeve reads one explicitly selected worktree. It never scans your machine or advances the workflow.</p>
+        <button id="choose" type="button">Open worktree…</button>
+        <div id="recents" class="recents" aria-label="Recent worktrees"></div>
+        <div id="chooser-error" class="notice danger" role="alert" hidden></div>
       </section>
+
+      <div id="workspace" class="workspace" hidden>
+        <aside class="sidebar" aria-label="GateReeve Desktop views">
+          <div class="identity">
+            <span id="mode" class="badge"></span>
+            <h2 id="feature">—</h2>
+            <p id="worktree" class="path"></p>
+          </div>
+          <nav class="navigation">
+            <button class="nav-item active" type="button" data-view="overview" aria-current="page">Overview</button>
+            <button class="nav-item" type="button" data-view="artifacts">Artifacts</button>
+            <button class="nav-item" type="button" data-view="history">History</button>
+            <button class="nav-item" type="button" data-view="model">Model</button>
+            <button class="nav-item" type="button" data-view="session">Session</button>
+          </nav>
+          <div class="source-stack" aria-label="Observation sources">
+            <h3>Sources</h3>
+            <div id="source-local" class="source"></div>
+            <div id="source-git" class="source"></div>
+            <div id="source-github" class="source"></div>
+          </div>
+        </aside>
+
+        <section id="overview" class="page" data-page="overview" aria-labelledby="overview-title" hidden>
+          <div class="page-heading">
+            <div>
+              <p class="section-kicker">Current position</p>
+              <h2 id="overview-title">Workflow overview</h2>
+            </div>
+            <div class="headline-facts">
+              <span>Feature <strong id="feature-state">—</strong></span>
+              <span>Slice <strong id="active-slice">—</strong></span>
+            </div>
+          </div>
+          <div id="error" class="notice danger" role="alert" hidden></div>
+          <div id="diagnostic" class="notice" role="status" hidden></div>
+          <div id="warnings" class="notice-stack" aria-label="Warnings"></div>
+
+          <section class="surface" aria-labelledby="state-title">
+            <div class="surface-heading">
+              <div><p class="section-kicker">Pinned state machine</p><h3 id="state-title">Feature state rail</h3></div>
+              <button class="text-button" type="button" data-go-view="model">View full model</button>
+            </div>
+            <ol id="state-rail" class="state-rail"></ol>
+            <div id="milestones" class="milestones"></div>
+          </section>
+
+          <div class="two-column">
+            <section class="surface" aria-labelledby="slices-title">
+              <div class="surface-heading"><div><p class="section-kicker">Delivery</p><h3 id="slices-title">PR slices</h3></div></div>
+              <div id="slices" class="stack"></div>
+            </section>
+            <section class="surface" aria-labelledby="attention-title">
+              <div class="surface-heading"><div><p class="section-kicker">Attention</p><h3 id="attention-title">Blockers and warnings</h3></div></div>
+              <div id="attention" class="stack"></div>
+            </section>
+          </div>
+
+          <section class="surface" aria-labelledby="boundary-title">
+            <div class="surface-heading">
+              <div><p class="section-kicker">PR boundary</p><h3 id="boundary-title">Attempts and gate dependencies</h3></div>
+              <label class="select-label">Attempt <select id="attempt-select"></select></label>
+            </div>
+            <div id="boundary-summary" class="muted"></div>
+            <div id="gate-dag" class="gate-dag"></div>
+          </section>
+
+          <section class="surface" aria-labelledby="actions-title">
+            <div class="surface-heading"><div><p class="section-kicker">Governed guidance</p><h3 id="actions-title">Next actions</h3></div></div>
+            <div id="actions" class="action-grid"></div>
+          </section>
+        </section>
+
+        <section class="page" data-page="artifacts" aria-labelledby="artifacts-title" hidden>
+          <div class="page-heading"><div><p class="section-kicker">Evidence and working records</p><h2 id="artifacts-title">Artifacts</h2></div><span id="artifact-count" class="count"></span></div>
+          <div class="split-view">
+            <div id="artifact-list" class="collection" aria-label="Artifact inventory"></div>
+            <article id="artifact-viewer" class="viewer" aria-live="polite">
+              <div class="empty-state"><h3>Select an artifact</h3><p>Content is loaded only when requested.</p></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="page" data-page="history" aria-labelledby="history-title" hidden>
+          <div class="page-heading"><div><p class="section-kicker">Append-only journal</p><h2 id="history-title">History</h2></div><span id="history-count" class="count"></span></div>
+          <div class="split-view">
+            <div id="history-list" class="collection timeline" aria-label="Workflow events"></div>
+            <article id="history-detail" class="viewer" aria-live="polite">
+              <div class="empty-state"><h3>Select an event</h3><p>Inspect its actor, exact ID, payload, and recorded passage.</p></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="page" data-page="model" aria-labelledby="model-title" hidden>
+          <div class="page-heading"><div><p class="section-kicker">Authoritative definition</p><h2 id="model-title">Pinned workflow model</h2></div><button id="copy-mermaid" class="secondary" type="button" disabled>Copy Mermaid</button></div>
+          <div id="model-provenance" class="provenance-grid"></div>
+          <section class="surface"><h3>Feature states and transitions</h3><div id="model-graph" class="model-graph"></div></section>
+          <details class="surface raw"><summary>Mermaid source and exact model IDs</summary><pre id="model-mermaid"></pre></details>
+        </section>
+
+        <section class="page" data-page="session" aria-labelledby="session-title" hidden>
+          <div class="page-heading"><div><p class="section-kicker">Non-authoritative context</p><h2 id="session-title">Session</h2></div><span class="badge neutral">Does not govern passage</span></div>
+          <div class="notice info">Checkpoints and handoffs support resumption and transfer. They are never workflow evidence and do not affect readiness.</div>
+          <div class="split-view">
+            <div id="session-list" class="collection" aria-label="Session context"></div>
+            <article id="session-detail" class="viewer" aria-live="polite">
+              <div class="empty-state"><h3>Select Session context</h3><p>View the latest checkpoint, archives, or handoffs for this worktree.</p></div>
+            </article>
+          </div>
+        </section>
+      </div>
     </main>
-    <script src="renderer.js"></script>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="renderer.js"></script>
   </body>
 </html>

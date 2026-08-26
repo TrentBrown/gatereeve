@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   ipcMain,
   protocol,
@@ -26,15 +27,26 @@ import {
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-protocol.registerSchemesAsPrivileged([{
-  scheme: 'gatereeve-app',
-  privileges: {
-    corsEnabled: false,
-    secure: true,
-    standard: true,
-    supportFetchAPI: true,
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'gatereeve-app',
+    privileges: {
+      corsEnabled: false,
+      secure: true,
+      standard: true,
+      supportFetchAPI: true,
+    },
   },
-}]);
+  {
+    scheme: 'gatereeve-artifact',
+    privileges: {
+      corsEnabled: false,
+      secure: true,
+      standard: true,
+      supportFetchAPI: false,
+    },
+  },
+]);
 app.enableSandbox();
 app.whenReady().then(startDesktop).catch(reportStartupFailure);
 app.on('window-all-closed', () => app.quit());
@@ -44,14 +56,15 @@ async function startDesktop() {
     (_webContents, _permission, callback) => callback(false),
   );
   session.defaultSession.setPermissionCheckHandler(() => false);
-  registerRendererProtocol(protocol, resolve(desktopRoot, 'renderer'));
-
   const preferenceStore = createPreferenceStore(app.getPath('userData'));
   const initialPreferences = await preferenceStore.load();
   const coordinator = createDesktopCoordinator({
     protocol: createProtocolAdapter(),
     preferenceStore,
     initialPreferences,
+  });
+  registerRendererProtocol(protocol, resolve(desktopRoot, 'renderer'), {
+    readArtifact: (artifactId) => coordinator.read('artifact', artifactId),
   });
   const window = new BrowserWindow(browserWindowOptions(
     resolve(desktopRoot, 'preload', 'index.cjs'),
@@ -72,6 +85,7 @@ async function startDesktop() {
     },
     openPath: (path) => shell.openPath(path),
     revealPath: (path) => shell.showItemInFolder(path),
+    copyText: (value) => clipboard.writeText(value),
     windows: () => BrowserWindow.getAllWindows(),
   });
   window.on('resized', () => void coordinator.saveWindow(window.getBounds()));

@@ -10,7 +10,7 @@ const CONTENT_TYPES = Object.freeze({
   '.svg': 'image/svg+xml',
 });
 
-export function registerRendererProtocol(protocol, rendererRoot) {
+export function registerRendererProtocol(protocol, rendererRoot, { readArtifact } = {}) {
   const rootPromise = realpath(rendererRoot);
   protocol.handle('gatereeve-app', async (request) => {
     const url = new URL(request.url);
@@ -33,8 +33,29 @@ export function registerRendererProtocol(protocol, rendererRoot) {
         status: 200,
         headers: {
           'content-type': contentType,
-          'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'",
+          'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; frame-src gatereeve-artifact:; object-src 'none'; base-uri 'none'; form-action 'none'",
         },
+      });
+    } catch {
+      return new Response('Not found', { status: 404 });
+    }
+  });
+  protocol.handle('gatereeve-artifact', async (request) => {
+    if (request.method !== 'GET' || typeof readArtifact !== 'function') {
+      return new Response('Not found', { status: 404 });
+    }
+    try {
+      const url = new URL(request.url);
+      if (url.hostname !== 'desktop') return new Response('Not found', { status: 404 });
+      const artifactId = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+      if (!artifactId) return new Response('Not found', { status: 404 });
+      const detail = await readArtifact(artifactId);
+      if (detail?.kind !== 'artifact' || detail.data?.artifact?.format !== 'html') {
+        return new Response('Not found', { status: 404 });
+      }
+      return new Response(detail.data.content, {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
       });
     } catch {
       return new Response('Not found', { status: 404 });
