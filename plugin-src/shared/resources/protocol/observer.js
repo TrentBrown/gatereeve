@@ -4,6 +4,11 @@ import { currentGraph, modelGraph } from './graph.js';
 import { loadDefaultModel } from './model.js';
 import { projectRecord } from './projection.js';
 import { failureResult, successResult } from './result.js';
+import {
+  buildDetail,
+  buildDiagnosticSnapshot,
+  buildGovernedSnapshot,
+} from './snapshot.js';
 
 function activeAttempt(projection) {
   const activeSlice = projection.slices.find(
@@ -130,7 +135,21 @@ export function nextActions(projection) {
         );
         actions.push(action(`slice remediate ${activeSlice.id}`, true, 'agent'));
       } else if (activeSlice?.state === 'HUMAN_REVIEW') {
-        actions.push(action(`slice accept-review ${activeSlice.id}`, true, 'human-confirmation'));
+        if (projection.acceptedReviewSliceIds.includes(activeSlice.id)) {
+          const attempt = activeAttempt(projection);
+          actions.push(
+            action(
+              `slice record-merge ${activeSlice.id}`,
+              attempt?.requiredCurrentAndNonblocking === true,
+              'agent',
+              attempt?.requiredCurrentAndNonblocking
+                ? []
+                : ['boundary gates not current and nonblocking']
+            )
+          );
+        } else {
+          actions.push(action(`slice accept-review ${activeSlice.id}`, true, 'human-confirmation'));
+        }
         actions.push(action(`slice changes-requested ${activeSlice.id}`, true, 'human-confirmation'));
       }
       break;
@@ -145,29 +164,92 @@ export function nextActions(projection) {
   return actions;
 }
 
-export async function status(featureHome, { gateFingerprints = {}, facts = {} } = {}) {
+async function observe(
+  featureHome,
+  { gateFingerprints = {}, facts = {}, sources = {} } = {}
+) {
   const mode = await discoverFeatureMode(featureHome);
   if (mode.mode !== 'governed') {
-    return successResult('status', {
+    const snapshot = buildDiagnosticSnapshot(mode.mode, mode.featureHome, {
+      reason: mode.reason ?? null,
+      sources,
+    });
+    return {
       mode: mode.mode,
       featureHome: mode.featureHome,
       reason: mode.reason ?? null,
       projection: null,
-      blockers: mode.mode === 'legacy' ? [] : [{ type: mode.mode }],
+      blockers: snapshot.blockers,
       nextActions: [],
       facts,
-    });
+      snapshot,
+    };
   }
-  const record = await readFeatureRecord(featureHome);
+  let record;
+  try {
+    record = await readFeatureRecord(featureHome);
+  } catch (error) {
+    if (error?.code !== 'MODEL_INCOMPATIBLE') throw error;
+    const snapshot = buildDiagnosticSnapshot('incompatible', mode.featureHome, {
+      reason: error.message,
+      sources,
+    });
+    return {
+      mode: 'incompatible',
+      featureHome: mode.featureHome,
+      reason: error.message,
+      projection: null,
+      blockers: snapshot.blockers,
+      nextActions: [],
+      facts,
+      snapshot,
+    };
+  }
   const projection = projectRecord(record, { gateFingerprints });
-  return successResult('status', {
-    mode: 'governed',
+  const blockers = projectionBlockers(projection, facts);
+  const snapshot = await buildGovernedSnapshot(
+    mode.featureHome,
+    record,
+    projection,
+    nextActions(projection),
+    {
+      facts,
+      sources,
+      blockers,
+    }
+  );
+  return {
+    mode: snapshot.mode,
     featureHome: mode.featureHome,
     projection,
-    blockers: projectionBlockers(projection, facts),
-    nextActions: nextActions(projection),
+    blockers: snapshot.blockers,
+    nextActions: snapshot.actions,
     facts,
-  });
+    snapshot,
+  };
+}
+
+export async function status(featureHome, options = {}) {
+  const observed = await observe(featureHome, options);
+  const { snapshot: _snapshot, ...summary } = observed;
+  return successResult('status', summary);
+}
+
+export async function snapshot(featureHome, options = {}) {
+  const observed = await observe(featureHome, options);
+  return successResult('snapshot', observed.snapshot);
+}
+
+export async function readDetail(featureHome, kind, id = null, options = {}) {
+  const observed = await observe(featureHome, options);
+  if (observed.mode !== 'governed') {
+    throw new ProtocolError(
+      'DETAIL_UNAVAILABLE',
+      `Named reads require a governed feature; current mode is ${observed.mode}`
+    );
+  }
+  const record = await readFeatureRecord(featureHome);
+  return successResult('read', await buildDetail(observed.snapshot, record, kind, id));
 }
 
 export async function next(featureHome, options = {}) {
@@ -255,7 +337,7 @@ export async function graphFeature(featureHome, options = {}) {
     });
   }
   return successResult('graph', {
-    mode: 'governed',
+    mode: result.data.mode,
     graph: currentGraph(result.data.projection),
   });
 }

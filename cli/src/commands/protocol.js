@@ -15,7 +15,8 @@ function addContextOptions(command) {
 function addObservationOptions(command) {
   return command
     .option('--fingerprints-file <path>', 'JSON map of current fingerprints by boundary attempt')
-    .option('--facts-file <path>', 'JSON object containing freshly inferred external facts');
+    .option('--facts-file <path>', 'JSON object containing freshly inferred external facts')
+    .option('--sources-file <path>', 'JSON object containing local, Git, and GitHub source statuses');
 }
 
 function addEventOptions(command) {
@@ -57,7 +58,12 @@ async function observationOptions(options) {
   return {
     gateFingerprints: await optionalJson(options.fingerprintsFile, 'Fingerprint file', {}),
     facts: await optionalJson(options.factsFile, 'Facts file', {}),
+    sources: await optionalJson(options.sourcesFile, 'Sources file', {}),
   };
+}
+
+function readinessLabel(action) {
+  return action.readiness ?? (action.eligible ? 'ready' : 'blocked');
 }
 
 function printStatus(data) {
@@ -77,7 +83,8 @@ function printStatus(data) {
   for (const blocker of data.blockers) console.log(`  - ${JSON.stringify(blocker)}`);
   console.log('Next:');
   for (const action of data.nextActions) {
-    console.log(`  - ${action.eligible ? '[ready]' : '[blocked]'} ${action.command}`);
+    console.log(`  - [${readinessLabel(action)}] ${action.command}`);
+    for (const reason of action.reasons ?? []) console.log(`      ${reason}`);
   }
 }
 
@@ -85,7 +92,22 @@ function printNext(data) {
   if (data.actions.length === 0) console.log('No eligible or pending actions.');
   for (const action of data.actions) {
     const reasons = action.reasons.length > 0 ? ` — ${action.reasons.join('; ')}` : '';
-    console.log(`${action.eligible ? '[ready]' : '[blocked]'} ${action.command} (${action.authority})${reasons}`);
+    console.log(`[${readinessLabel(action)}] ${action.command} (${action.authority})${reasons}`);
+  }
+}
+
+function printSnapshot(data) {
+  console.log(`Mode: ${data.mode}`);
+  console.log(`Record: ${data.featureHome}`);
+  if (!data.projection) return;
+  console.log(`Feature: ${data.featureId}`);
+  console.log(`State: ${data.projection.feature.state}`);
+  console.log(`Active slice: ${data.active.sliceId ?? 'none'}`);
+  console.log(`Boundary attempt: ${data.active.boundaryAttemptId ?? 'none'}`);
+  console.log(`Artifacts: ${data.artifacts.length}`);
+  console.log(`Actions: ${data.actions.length}`);
+  for (const action of data.actions) {
+    console.log(`  - [${readinessLabel(action)}] ${action.command}`);
   }
 }
 
@@ -455,6 +477,43 @@ export function protocolCommands() {
     await run({ operation: 'status', ...contextRequest(resolvedOptions), options: await observationOptions(resolvedOptions) }, resolvedOptions, printStatus);
   });
   commands.push(status);
+
+  const snapshot = addObservationOptions(addContextOptions(
+    new Command('snapshot').description('Show the versioned canonical observational snapshot')
+  ));
+  snapshot.action(async (options, commander) => {
+    const resolvedOptions = commander?.opts?.() ?? options;
+    await run(
+      { operation: 'snapshot', ...contextRequest(resolvedOptions), options: await observationOptions(resolvedOptions) },
+      resolvedOptions,
+      printSnapshot
+    );
+  });
+  commands.push(snapshot);
+
+  const read = addObservationOptions(addContextOptions(
+    new Command('read').description('Read one canonical snapshot detail')
+      .argument('<kind>', 'Detail kind', (value) => {
+        const allowed = ['artifact', 'events', 'attempt', 'model'];
+        if (!allowed.includes(value)) throw new Error(`Unknown detail kind: ${value}`);
+        return value;
+      })
+      .argument('[id]', 'Artifact, event, or attempt ID')
+  ));
+  read.action(async (kind, id, options, commander) => {
+    const resolvedOptions = commander?.opts?.() ?? options;
+    await run(
+      {
+        operation: 'read',
+        kind,
+        ...(id ? { id } : {}),
+        ...contextRequest(resolvedOptions),
+        options: await observationOptions(resolvedOptions),
+      },
+      resolvedOptions
+    );
+  });
+  commands.push(read);
 
   const next = addObservationOptions(addContextOptions(new Command('next').description('Show eligible and blocked next semantic actions')));
   next.action(async (options, commander) => {

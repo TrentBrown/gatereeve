@@ -28,9 +28,10 @@ move the durable workflow forward. Gate results carry input fingerprints, so
 changed code or governing artifacts make earlier evidence visibly stale.
 
 The optional Commander.js `gatereeve` CLI observes and operates that same
-protocol core. `gatereeve status`, `next`, `history`, and `graph` make the
-current feature, active slice, boundary attempt, changes, blockers, and legal
-next actions visible; installing the CLI is not required for plugin governance.
+protocol core. `gatereeve status`, `snapshot`, `next`, `read`, `history`, and
+`graph` make the current feature, active slice, boundary attempt, changes,
+readiness, artifacts, blockers, and legal next actions visible; installing the
+CLI is not required for plugin governance.
 
 ## Get started
 
