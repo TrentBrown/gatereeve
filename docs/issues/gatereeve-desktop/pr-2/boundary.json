@@ -11,12 +11,12 @@
     "state": "OPEN",
     "isDraft": true,
     "baseRefName": "main",
-    "baseRefOid": "ecbf6fea460e220c91b846a91712217861ddb559",
+    "baseRefOid": "801cfc82a17f2833ecf69607a7410d36be1f8b90",
     "headRefName": "gatereeve-desktop",
-    "headRefOid": "d5d6c775598c6a21e90e06d8d02f26d4604b45d8"
+    "headRefOid": "737ac3422c6dc502ba02956820301677a3a089be"
   },
-  "mergeBaseSha": "ecbf6fea460e220c91b846a91712217861ddb559",
-  "evaluatedSourceSha": "d5d6c775598c6a21e90e06d8d02f26d4604b45d8",
+  "mergeBaseSha": "801cfc82a17f2833ecf69607a7410d36be1f8b90",
+  "evaluatedSourceSha": "737ac3422c6dc502ba02956820301677a3a089be",
   "featureBaseSha": null,
   "applicability": {
     "specEvaluation": true,

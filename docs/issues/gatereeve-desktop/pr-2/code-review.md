@@ -1,14 +1,15 @@
-# Code Review - PR #2, attempt 3
+# Code Review - PR #2, attempt 4
 
 ## Findings
 
 No findings.
 
-The pinned diff `ecbf6fea460e220c91b846a91712217861ddb559..d5d6c775598c6a21e90e06d8d02f26d4604b45d8`
+The pinned diff `801cfc82a17f2833ecf69607a7410d36be1f8b90..737ac3422c6dc502ba02956820301677a3a089be`
 was reviewed for observer-contract correctness, state/readiness regressions,
 path containment, staging parity, malformed-input handling, query mutation,
 documentation drift, and test gaps. The blocking findings from attempts 1 and
-2 are covered by direct negative tests.
+2 are covered by direct negative tests. The base-only refresh after PR #3 was
+also checked for accidental feature-source changes; none were found.
 
 ## Residual risks and test gaps
 

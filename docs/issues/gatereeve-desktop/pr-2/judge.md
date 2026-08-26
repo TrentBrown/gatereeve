@@ -1,4 +1,4 @@
-# Judge Evaluation - PR #2, attempt 3
+# Judge Evaluation - PR #2, attempt 4
 
 **Verdict:** PASS WITH CONCERNS
 
@@ -29,3 +29,7 @@
 ## Concerns
 
 The artifact/milestone catalog intentionally supports `gatereeve/workflow` major version 1. An otherwise core-readable model outside that catalog is marked `incompatible` with a blocker, but the snapshot may still carry its pinned projection for diagnosis. The future Desktop renderer must treat the mode and blocker as controlling and must not present incompatible actions as executable guidance. This is not a P1-P3 failure because the snapshot makes incompatibility explicit and Desktop remains read-only.
+
+The refreshed range is based on merged PR #3. Its only non-feature change is
+the portable-acceptance fixture correction already reviewed and verified in
+that separate PR; no observer-contract behavior changed after attempt 3.

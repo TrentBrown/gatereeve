@@ -31,4 +31,5 @@ Append PR boundary entries here.
 - **Rubric movement:** R1-R6 advanced but remain `NOT YET` until their Desktop-facing work is complete
 - **Evidence:** [PR #2 packet](pr-2/boundary.json)
 - **Boundary result:** Attempt 3 passed verification, specification evaluation, judge, code review, decision triage, and explain-diff; pattern review is not applicable because no scope is configured
-- **Status:** Review reopened for the approved `main` base update; boundary attempt 4 pending
+- **Boundary refresh:** Attempt 4 passed all gates after merging approved PR #3 and all four Plugin CI jobs passed
+- **Status:** Awaiting renewed human review for the refreshed exact head

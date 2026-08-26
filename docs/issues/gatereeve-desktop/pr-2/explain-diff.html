@@ -57,7 +57,7 @@
     <div class="eyebrow">GateReeve · PR #2 · Slice 1 of 4</div>
     <h1>A stable window into workflow state</h1>
     <p>This change gives GateReeve Desktop a canonical, read-only protocol to observe a governed feature—without teaching the desktop application to replay the event journal, parse CLI text, or trust arbitrary file paths.</p>
-    <div class="range"><strong>Pinned diff</strong><br>ecbf6fea460e220c91b846a91712217861ddb559<br>…<br>d5d6c775598c6a21e90e06d8d02f26d4604b45d8</div>
+    <div class="range"><strong>Pinned diff</strong><br>801cfc82a17f2833ecf69607a7410d36be1f8b90<br>…<br>737ac3422c6dc502ba02956820301677a3a089be</div>
   </header>
 
   <nav aria-label="Table of contents">
@@ -125,7 +125,7 @@
 }</pre>
 
       <h3>An inventory, not a filesystem browser</h3>
-      <p>The snapshot emits stable artifact IDs such as <code>spec</code>, <code>tracker</code>, and <code>attempt-3:judge</code>. A caller can request an artifact by one of those IDs. It cannot submit a path. At read time, GateReeve resolves the inventory entry again, checks lexical containment, resolves symbolic links, checks real-path containment, enforces a 10 MiB ceiling, and then returns format-aware content.</p>
+      <p>The snapshot emits stable artifact IDs such as <code>spec</code>, <code>tracker</code>, and <code>attempt-4:judge</code>. A caller can request an artifact by one of those IDs. It cannot submit a path. At read time, GateReeve resolves the inventory entry again, checks lexical containment, resolves symbolic links, checks real-path containment, enforces a 10 MiB ceiling, and then returns format-aware content.</p>
       <div class="flow" role="img" aria-label="Named artifact read safety checks">
         <div class="node"><b>Artifact ID</b><span>Must exist in canonical inventory</span></div>
         <div class="arrow">→</div>
@@ -190,6 +190,7 @@ export function validateDetail(detail) { /* kind-specific checks */ }</pre>
         <article class="card"><span class="pill">Attempt 1</span><h3>Deep validation</h3><p>The judge found shallow validation. The fix rejects malformed nested snapshot and detail data.</p></article>
         <article class="card"><span class="pill">Attempt 2</span><h3>Symlink inventory</h3><p>Code review found an escaping symlink could look present. The fix marks it unsafe before read time.</p></article>
         <article class="card"><span class="pill">Attempt 3</span><h3>Clean boundary</h3><p>The judge passed with a future-renderer concern; code review reported no findings.</p></article>
+        <article class="card"><span class="pill">Attempt 4</span><h3>Base refresh</h3><p>After the separately approved CI repair landed, the exact refreshed range passed the full boundary and all GitHub jobs without changing observer behavior.</p></article>
       </div>
 
       <h3>5. Documentation and lifecycle artifacts</h3>

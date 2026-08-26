@@ -1,7 +1,7 @@
 # Spec Evaluation - PR #2
 
 **Scope:** Slice 1, `desktop-observer-contract` (P1-P3 / I-1-I-2)
-**Pinned range:** `ecbf6fea460e220c91b846a91712217861ddb559..d5d6c775598c6a21e90e06d8d02f26d4604b45d8`
+**Pinned range:** `801cfc82a17f2833ecf69607a7410d36be1f8b90..737ac3422c6dc502ba02956820301677a3a089be`
 
 ## Result
 

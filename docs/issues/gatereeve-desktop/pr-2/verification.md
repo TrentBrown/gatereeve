@@ -1,6 +1,6 @@
 # Verification - PR #2
 
-**Pinned range:** `ecbf6fea460e220c91b846a91712217861ddb559..d5d6c775598c6a21e90e06d8d02f26d4604b45d8`
+**Pinned range:** `801cfc82a17f2833ecf69607a7410d36be1f8b90..737ac3422c6dc502ba02956820301677a3a089be`
 
 ## Matrix
 
@@ -9,9 +9,10 @@
 | Build/typecheck | `npm start --prefix cli -- plugin build --json` | PASS | Built both native packages; 158 files each; canonical protocol hash `sha256:1e71e3baf9347033e2a20c89ccfea0570fcd61f26659e192623db2441a4a90ba` |
 | Lint/format | `npm start --prefix cli -- plugin validate --json` | PASS | 27 skills, both native platforms |
 | Lint/format | `npm start --prefix cli -- plugin lint --json` | PASS | 153 canonical files inspected |
-| Lint/format | `git diff --check ecbf6fea460e220c91b846a91712217861ddb559..e20bfd548352b7a2fe28793db576d5a62554e2dc` | PASS | No whitespace errors |
+| Lint/format | `git diff --check 801cfc82a17f2833ecf69607a7410d36be1f8b90..737ac3422c6dc502ba02956820301677a3a089be` | PASS | No whitespace errors |
 | Unit and contract tests | `node --test cli/test/snapshot.test.js cli/test/stage-protocol.test.js cli/test/lifecycle.test.js cli/test/observer.test.js cli/test/gatereeve-cli.test.js cli/test/plugin-adapter.test.js cli/test/protocol-contracts.test.js cli/test/portability.test.js cli/test/changes.test.js cli/test/boundary-protocol.test.js` | PASS | 39 passed, 0 failed, including nested malformed-contract rejection, escaping-symlink inventory rejection, and remediation history |
 | Broad regression suite | `npm test --prefix cli` | PASS with unrelated environment limitation | 103 passed; the sole failure is the pre-existing release-bundle test invoking absent system executable `unzip` (`spawn unzip ENOENT`) |
+| GitHub portable acceptance | Plugin CI run `33012123862` | PASS | Ubuntu 22.04/24.04 host and container jobs all passed after merging the separately approved fixture repair from PR #3 |
 | Integration | Included in focused suite | PASS | Plugin adapter and Commander return the same snapshot/read contract; staged resources are executed directly; native packages have identical manifests |
 | End-to-end/browser | Not applicable | N/A | This slice defines a read-only protocol and CLI contract; no graphical application exists yet |
 | Application runtime | CLI/plugin runtime commands above | PASS | Staged plugin adapter initialized and observed a fixture; built native packages validate |
@@ -25,6 +26,14 @@
 - **Integration verified:** Yes - canonical source, staged CLI resources, plugin adapter, and native package manifests
 - **Application runs:** Yes for the affected CLI/plugin surfaces
 - **Pending manual verification:** None for this protocol slice
+
+## Base refresh
+
+Attempt 4 follows the separately approved and merged PR #3 repair to the
+portable-acceptance fixture target. Merging current `main` into the topic
+branch changed no observer-contract product files relative to the new base.
+The focused matrix, plugin validation/lint/build, and all four GitHub portable
+acceptance variants pass on the refreshed exact head.
 
 ## Known unrelated failure
 
