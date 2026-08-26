@@ -84,7 +84,7 @@ for platform in codex claude; do
       --json
 done
 
-for feature in tb-build-plugins tb-sequential-pr-workflow; do
+for feature in workflow-state-machine-cli; do
   feature_home="docs/issues/$feature"
   python3 plugin-src/shared/resources/scripts/lint_spec.py "$feature_home"
   python3 plugin-src/shared/resources/scripts/lint_issues.py "$feature_home"
