@@ -167,6 +167,12 @@ test('named reads are schema-valid, allow-listed, and preserve full event and mo
   await writeFile(outside, '# outside\n');
   await rm(designPath);
   await symlink(outside, designPath);
+  const unsafe = await snapshot(fixture.featureHome);
+  const unsafeDesign = unsafe.data.artifacts.find((item) => item.id === 'design');
+  assert.equal(unsafeDesign.status, 'missing');
+  assert.equal(unsafeDesign.exists, false);
+  assert.equal(unsafeDesign.unsafe, true);
+  assert.equal(unsafeDesign.absolutePath, null);
   await assert.rejects(
     readDetail(fixture.featureHome, 'artifact', 'design'),
     /outside the feature record/

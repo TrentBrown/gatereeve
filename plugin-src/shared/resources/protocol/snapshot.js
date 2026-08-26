@@ -304,6 +304,7 @@ function validateArtifact(artifact, label) {
   assertOneOf(artifact.expectation, ARTIFACT_EXPECTATIONS, `${label}.expectation`);
   assertOneOf(artifact.status, ARTIFACT_STATUSES, `${label}.status`);
   assertBoolean(artifact.exists, `${label}.exists`);
+  assertBoolean(artifact.unsafe, `${label}.unsafe`);
   assertInteger(artifact.size, `${label}.size`, { nullable: true });
   assertString(artifact.modifiedAt, `${label}.modifiedAt`, { nullable: true });
   assertNullableObject(artifact.evidence, `${label}.evidence`);
@@ -396,11 +397,18 @@ async function fileMetadata(featureHome, path) {
     return { exists: false, unsafe: true, absolutePath: null, size: null, modifiedAt: null };
   }
   try {
-    const info = await stat(absolutePath);
+    const [rootPath, artifactPath] = await Promise.all([
+      realpath(featureHome),
+      realpath(absolutePath),
+    ]);
+    if (!isWithin(rootPath, artifactPath)) {
+      return { exists: false, unsafe: true, absolutePath: null, size: null, modifiedAt: null };
+    }
+    const info = await stat(artifactPath);
     return {
       exists: info.isFile(),
       unsafe: false,
-      absolutePath,
+      absolutePath: artifactPath,
       size: info.isFile() ? info.size : null,
       modifiedAt: info.isFile() ? info.mtime.toISOString() : null,
     };
@@ -449,6 +457,7 @@ async function featureArtifacts(featureHome, state, facts) {
       expectation,
       status: artifactStatus(expectation, metadata, override),
       exists: metadata.exists,
+      unsafe: metadata.unsafe,
       size: metadata.size,
       modifiedAt: metadata.modifiedAt,
       evidence: supplied[definition.id]?.evidence ?? supplied[definition.path]?.evidence ?? null,
@@ -507,6 +516,7 @@ async function boundaryArtifacts(featureHome, projection, facts) {
         expectation,
         status,
         exists: metadata.exists,
+        unsafe: metadata.unsafe,
         size: metadata.size,
         modifiedAt: metadata.modifiedAt,
         evidence: supplied[id]?.evidence ?? gate.evidence ?? null,
@@ -1095,6 +1105,9 @@ export function validateSnapshot(snapshot) {
 }
 
 async function safeArtifactContent(featureHome, artifact) {
+  if (artifact.unsafe) {
+    throw new ProtocolError('ARTIFACT_OUTSIDE_FEATURE', 'Artifact resolves outside the feature record');
+  }
   if (!artifact.exists || !artifact.absolutePath) {
     throw new ProtocolError('ARTIFACT_UNAVAILABLE', `Artifact ${artifact.id} is not available`, {
       artifactId: artifact.id,

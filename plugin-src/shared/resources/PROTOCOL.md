@@ -60,4 +60,6 @@ legacy `eligible` field is true only for `ready` actions.
 `read` accepts `kind` as `artifact`, `events`, `attempt`, or `model` plus an
 optional `id`. Artifact IDs must come from the snapshot inventory, so the
 operation cannot be used as an arbitrary path reader. These operations are
-read-only and never append to the event journal.
+read-only and never append to the event journal. Artifact metadata includes an
+`unsafe` boolean; lexical escapes and symlinks resolving outside the feature
+record are unavailable, report `unsafe: true`, and cannot be read.
