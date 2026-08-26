@@ -5,8 +5,7 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-26
 
-**Active slice:** `desktop-shell-observation` — P4-P5 / I-3 / PR boundary on
-`gatereeve-desktop-shell`, [PR #4](https://github.com/TrentBrown/gatereeve/pull/4)
+**Active slice:** none — slice 2 merged; the P6-P7 delivery slice has not started
 
 ## Rubric Status
 
@@ -47,4 +46,5 @@ Append PR boundary entries here.
 - **Rubric movement:** R1, R3, R6, R7, and R8 advanced but remain `NOT YET` where later renderer, notification, accessibility, and supported-runtime work is required
 - **Evidence:** [PR #4 packet](pr-4/boundary.json)
 - **Boundary result:** Attempt 1 passed verification, scoped specification evaluation, independent judge with bounded concerns, code review with no findings, decision triage, explain-diff, and deterministic packet validation; pattern review is not applicable because no scope is configured
-- **Status:** Ready for human review; I-3 in review
+- **Merge:** `0666264d77f5812e82301157b4e0b18752ba8f1b` on `main`
+- **Status:** Merged; I-3 complete

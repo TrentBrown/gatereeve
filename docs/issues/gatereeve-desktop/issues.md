@@ -35,7 +35,7 @@ tests. This completes intended PR slice 1.
 
 ## I-3 - Build the Electron shell and observation coordinator
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P4, P5
 - **Rubric criteria:** R1, R3, R6, R7, R8
