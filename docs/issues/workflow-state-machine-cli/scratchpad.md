@@ -135,7 +135,7 @@ and `interview.md` initialization in an installed CLI package.
 
 ## [5] Revalidate boundary fingerprints before recording merge
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

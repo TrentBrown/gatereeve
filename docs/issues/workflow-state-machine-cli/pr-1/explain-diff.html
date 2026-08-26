@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GateReeve governed workflow protocol — PR #1</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f3eb;
+      --panel: #fffdf7;
+      --ink: #172033;
+      --muted: #5e687a;
+      --line: #d8d2c4;
+      --blue: #2457d6;
+      --green: #13795b;
+      --amber: #a15c00;
+      --red: #b42318;
+      --code: #111827;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 17px/1.62 Georgia, "Times New Roman", serif;
+    }
+    header, main, footer { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+    header { padding: 64px 0 30px; }
+    .eyebrow { color: var(--blue); font: 700 13px/1.2 system-ui; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { max-width: 850px; margin: 10px 0 14px; font-size: clamp(38px, 7vw, 72px); line-height: 1.02; letter-spacing: -.035em; }
+    h2 { margin-top: 66px; font-size: clamp(30px, 5vw, 46px); line-height: 1.1; }
+    h3 { margin-top: 36px; font-size: 25px; line-height: 1.2; }
+    p, li { max-width: 78ch; }
+    .lede { max-width: 76ch; color: var(--muted); font-size: 21px; }
+    nav, .panel, .callout, .diagram, .quiz-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: 0 10px 35px rgb(24 31 45 / .06);
+    }
+    nav { padding: 18px 22px; margin: 24px 0 48px; font-family: system-ui; }
+    nav a { display: inline-block; margin: 5px 18px 5px 0; color: var(--blue); }
+    .panel, .diagram { padding: clamp(20px, 4vw, 38px); margin: 24px 0; }
+    .callout { border-left: 6px solid var(--blue); padding: 18px 22px; margin: 26px 0; }
+    .callout strong { font-family: system-ui; }
+    code { padding: .1em .3em; border-radius: 5px; background: rgb(36 87 214 / .09); font-family: ui-monospace, monospace; }
+    pre {
+      overflow: auto;
+      padding: 20px;
+      border-radius: 12px;
+      background: var(--code);
+      color: #e5e7eb;
+      font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: pre;
+    }
+    .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+    .node { position: relative; min-width: 0; padding: 16px 12px; border: 2px solid #aeb8cb; border-radius: 12px; text-align: center; font-family: system-ui; font-size: 14px; }
+    .node:not(:last-child)::after { content: "→"; position: absolute; right: -19px; top: calc(50% - 13px); z-index: 2; color: var(--blue); font-size: 22px; }
+    .node.active { border-color: var(--blue); background: rgb(36 87 214 / .08); }
+    .node.guard { border-color: var(--green); background: rgb(19 121 91 / .08); }
+    .layers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .layer { padding: 20px; border-radius: 14px; background: rgb(36 87 214 / .06); }
+    .layer h3 { margin: 0 0 8px; font: 700 17px/1.2 system-ui; }
+    .tag { display: inline-block; padding: 3px 9px; margin: 2px; border-radius: 999px; background: rgb(19 121 91 / .11); color: var(--green); font: 700 12px/1.5 system-ui; }
+    .change-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .change { padding: 18px; border-left: 5px solid var(--blue); background: rgb(36 87 214 / .05); border-radius: 8px; }
+    .change strong { font-family: system-ui; }
+    .quiz { display: grid; gap: 20px; }
+    .quiz-card { padding: 24px; }
+    .quiz-card h3 { margin-top: 0; font-size: 20px; }
+    .answers { display: grid; gap: 9px; }
+    button { padding: 12px 14px; border: 1px solid #aeb8cb; border-radius: 9px; background: transparent; color: inherit; text-align: left; font: 15px/1.35 system-ui; cursor: pointer; }
+    button:hover { border-color: var(--blue); }
+    button.correct { border-color: var(--green); background: rgb(19 121 91 / .12); }
+    button.wrong { border-color: var(--red); background: rgb(180 35 24 / .1); }
+    .feedback { min-height: 28px; margin: 12px 0 0; color: var(--muted); font-family: system-ui; }
+    footer { padding: 60px 0 80px; color: var(--muted); }
+    @media (max-width: 760px) {
+      .flow { grid-template-columns: 1fr; }
+      .node:not(:last-child)::after { content: "↓"; right: auto; left: calc(50% - 7px); top: auto; bottom: -24px; }
+      .layers, .change-list { grid-template-columns: 1fr; }
+      header { padding-top: 38px; }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #10141d; --panel: #171d28; --ink: #edf1f7; --muted: #aeb8c8; --line: #343e50; --blue: #8aafff; --green: #6ee7b7; --amber: #fbbf24; --red: #fda29b; }
+      pre { background: #080b11; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">GateReeve · Pull Request #1 · pinned at 8f30769</div>
+    <h1>Deterministic passage, agentic work</h1>
+    <p class="lede">This change gives GateReeve a durable, versioned protocol for feature, slice, change, and PR-boundary state. Agents remain free to reason and implement, but they must pass through explicit guards before the workflow record moves.</p>
+  </header>
+  <main>
+    <nav aria-label="Table of contents">
+      <strong>Contents:</strong>
+      <a href="#background">Background</a>
+      <a href="#intuition">Intuition</a>
+      <a href="#code">Code walkthrough</a>
+      <a href="#review">Review remediation</a>
+      <a href="#quiz">Quiz</a>
+    </nav>
+
+    <section id="background">
+      <h2>Background</h2>
+      <p>Before this PR, GateReeve described a careful software-development process through skills, documents, and deterministic validators. That was already useful, but the durable record did not itself know whether a feature was designing, implementing a slice, waiting at a boundary, or carrying stale evidence. An agent could follow the process well, yet the process had no single protocol object capable of rejecting an illegal passage.</p>
+      <div class="panel">
+        <h3>Three kinds of truth</h3>
+        <div class="layers">
+          <div class="layer"><h3>Recorded</h3><p>Decisions and passages belong in an append-only journal: design approved, slice started, gate passed, change applied.</p></div>
+          <div class="layer"><h3>Inferred</h3><p>Git SHAs, PR facts, artifact hashes, validator output, and merge content are read fresh from their authorities.</p></div>
+          <div class="layer"><h3>Derived</h3><p>Current state, blockers, eligibility, and freshness are replayed from the journal plus current facts.</p></div>
+        </div>
+      </div>
+      <p>The distinction matters. GateReeve does not write a mutable <code>state.json</code> that can drift from history. It pins the workflow model, appends events, and reconstructs the projection. Nor does it become a workflow engine: it does not schedule agents, run retries, stage code, or commit files.</p>
+      <div class="callout"><strong>Compatibility rule.</strong> New features initialize governance. Existing feature folders without the model lock and journal are reported as legacy and may finish without reconstruction.</div>
+    </section>
+
+    <section id="intuition">
+      <h2>Intuition</h2>
+      <p>Think of the protocol as a railway signal system. The agent drives the train: it chooses speed, investigates the route, and handles surprises. GateReeve controls only the signal between durable blocks. A green signal records why passage was safe; a red signal reports exactly what is missing.</p>
+      <div class="diagram" aria-label="Simplified slice state flow">
+        <div class="flow">
+          <div class="node">PLANNED</div>
+          <div class="node active">IMPLEMENTING</div>
+          <div class="node guard">PR_BOUNDARY</div>
+          <div class="node">HUMAN_REVIEW</div>
+          <div class="node">MERGED</div>
+        </div>
+      </div>
+      <p>Inside <code>PR_BOUNDARY</code>, the work is not a fixed serial recipe. It is a dependency graph. Verification unlocks several independent semantic evaluators; their current, nonblocking outcomes unlock decision triage, diff explanation, and packet validation.</p>
+      <pre>pinContext → reconcile → verification ─┬→ specEvaluation ─┐
+                                      ├→ patternReview ──┤
+                                      ├→ judge ──────────┼→ decisionTriage → explainDiff → packetValidation
+                                      └→ codeReview ─────┘</pre>
+      <h3>A concrete freshness example</h3>
+      <p>Suppose verification passed for source <code>abc123</code>. The result stores a fingerprint over the model, attempt, gate, and its inputs. If the source becomes <code>def456</code>, the old outcome remains historically visible as <span class="tag">PASS</span>, but its derived freshness becomes <span class="tag">STALE</span>. Dependents stop being eligible until the changed evidence is rerun.</p>
+      <div class="callout"><strong>Important edge case.</strong> The merge transition rechecks the active boundary fingerprints. Passing into human review is not a permanent freshness exemption; changed evidence must still fail closed before GateReeve records the merge.</div>
+    </section>
+
+    <section id="code">
+      <h2>Code walkthrough</h2>
+      <div class="change-list">
+        <div class="change"><strong>Canonical protocol core</strong><p><code>plugin-src/shared/resources/protocol/</code> owns model validation, storage, journals, replay, transitions, boundary gates, changes, observers, and graphs.</p></div>
+        <div class="change"><strong>Pinned model</strong><p><code>workflow-model.json</code> declares the closed state vocabulary, authorities, trusted guard IDs, gate DAG, scope routing, and invalidation rules.</p></div>
+        <div class="change"><strong>Durable feature record</strong><p>Initialization atomically creates <code>workflow-model.lock.json</code>, <code>events.jsonl</code>, and <code>interview.md</code>. Partial initialization is removed.</p></div>
+        <div class="change"><strong>Replay and mutation</strong><p>Every append re-reads and validates sequence and model history under an exclusive lock. Rejected operations append nothing.</p></div>
+        <div class="change"><strong>Optional Commander CLI</strong><p><code>gatereeve</code> exposes status, next, history, graph, checks, and semantic feature/slice/gate/change commands over the same plugin adapter.</p></div>
+        <div class="change"><strong>Native packaging</strong><p>Codex and Claude packages receive identical canonical resources. The standalone npm package stages the complete resource tree during <code>prepack</code>.</p></div>
+        <div class="change"><strong>Merge proof</strong><p>The Python verifier accepts ancestry when available, or compares exact Git tree entries for every reviewed path after squash or rebase.</p></div>
+        <div class="change"><strong>Operational visibility</strong><p>SessionStart reports governed, legacy, missing, or inconsistent mode. The documentation site visualizes feature and slice lifecycles.</p></div>
+      </div>
+
+      <h3>The stable mutation shape</h3>
+      <pre>{
+  "operation": "slice.transition",
+  "transitionId": "record-merge",
+  "sliceId": "slice-2",
+  "input": {
+    "actor": { "kind": "agent", "label": "GateReeve" },
+    "facts": { "reviewedContentMerged": true },
+    "currentFingerprints": { "verification": "sha256:…" },
+    "payload": { "featureFinal": true }
+  }
+}</pre>
+      <p>The adapter does not expose a generic “set state” command. The request names a semantic operation. The core loads the pinned model, rebuilds the projection, checks authority and guards, and then either appends one normalized event or returns a stable failure envelope.</p>
+
+      <h3>Model migration</h3>
+      <p>An active feature does not silently inherit a new plugin model. Migration first produces an impact report. Human confirmation then writes a transaction marker before replacing the lock and journal. If the process is interrupted between those two file replacements, ordinary reads fail closed and recovery deterministically rolls forward.</p>
+    </section>
+
+    <section id="review">
+      <h2>Review remediation</h2>
+      <p>The first pinned review found three gaps. Each was fixed before the final boundary was repinned.</p>
+      <ol>
+        <li><strong>Post-review freshness:</strong> merge passage now requires a fresh fingerprint projection of the active boundary attempt.</li>
+        <li><strong>Executable next actions:</strong> boundary suggestions now use the actual command family and include attempt identity.</li>
+        <li><strong>Canonical source precedence:</strong> source checkouts prefer plugin resources; installed CLI packages fall back to their generated staged copy.</li>
+      </ol>
+      <p>Focused regressions accompany each repair, and the complete 95-test JavaScript suite plus 94 Python tests pass on the final source.</p>
+    </section>
+
+    <section id="quiz">
+      <h2>Quiz</h2>
+      <div class="quiz">
+        <article class="quiz-card" data-answer="1">
+          <h3>1. Why does GateReeve retain a gate outcome after its evidence becomes stale?</h3>
+          <div class="answers">
+            <button>Because stale outcomes remain eligible as long as they originally passed.</button>
+            <button>Because outcome is historical while freshness is derived; preserving both explains what happened and what must rerun.</button>
+            <button>Because Git history cannot retain evidence artifacts.</button>
+            <button>Because only human review can invalidate an automated gate.</button>
+          </div><p class="feedback" aria-live="polite"></p>
+        </article>
+        <article class="quiz-card" data-answer="2">
+          <h3>2. What makes the optional CLI optional?</h3>
+          <div class="answers">
+            <button>It implements only read-only commands; plugin mutations use another engine.</button>
+            <button>It downloads the core from the active agent manager at runtime.</button>
+            <button>The plugin ships the canonical core itself, while the CLI is another adapter over that same core.</button>
+            <button>It stores a separate state projection that is reconciled at PR boundaries.</button>
+          </div><p class="feedback" aria-live="polite"></p>
+        </article>
+        <article class="quiz-card" data-answer="0">
+          <h3>3. Why must merge passage receive current boundary fingerprints?</h3>
+          <div class="answers">
+            <button>Inputs can change after entry into human review, so the final passage must prove automated evidence still covers the reviewed work.</button>
+            <button>Fingerprints authenticate that the human reviewer personally clicked Approve.</button>
+            <button>They let GateReeve reconstruct a squash commit with the same SHA.</button>
+            <button>They replace the need to verify reviewed content on integration.</button>
+          </div><p class="feedback" aria-live="polite"></p>
+        </article>
+        <article class="quiz-card" data-answer="3">
+          <h3>4. What happens when model migration is interrupted after one durable file changes?</h3>
+          <div class="answers">
+            <button>The feature continues under whichever model file was written last.</button>
+            <button>The journal is discarded and reconstructed from Git history.</button>
+            <button>The plugin silently rolls back both files to the previous model.</button>
+            <button>A transaction marker makes normal reads inconsistent; recovery validates the marker and rolls forward deterministically.</button>
+          </div><p class="feedback" aria-live="polite"></p>
+        </article>
+        <article class="quiz-card" data-answer="1">
+          <h3>5. Which responsibility is deliberately outside this protocol?</h3>
+          <div class="answers">
+            <button>Rejecting a slice transition whose guards do not pass.</button>
+            <button>Choosing and scheduling sub-agents to execute the next gate.</button>
+            <button>Projecting blockers from unresolved change records.</button>
+            <button>Rendering a current-position graph from replayed state.</button>
+          </div><p class="feedback" aria-live="polite"></p>
+        </article>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <p>Generated from the pinned PR #1 range <code>d9127d8..8f30769</code>. The durable verification, judge, and review artifacts live beside this explanation.</p>
+  </footer>
+  <script>
+    document.querySelectorAll('.quiz-card').forEach((card) => {
+      const answer = Number(card.dataset.answer);
+      const buttons = [...card.querySelectorAll('button')];
+      const feedback = card.querySelector('.feedback');
+      buttons.forEach((button, index) => {
+        button.addEventListener('click', () => {
+          buttons.forEach((item) => item.classList.remove('correct', 'wrong'));
+          if (index === answer) {
+            button.classList.add('correct');
+            feedback.textContent = 'Correct. That distinction is central to the protocol.';
+          } else {
+            button.classList.add('wrong');
+            buttons[answer].classList.add('correct');
+            feedback.textContent = 'Not quite. The highlighted answer best matches the pinned design and implementation.';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
