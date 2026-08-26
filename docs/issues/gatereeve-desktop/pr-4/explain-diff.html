@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #4 explained — GateReeve Desktop shell</title>
+  <style>
+    :root { --ink:#241832; --muted:#665c70; --paper:#fbf9fe; --card:#fff; --purple:#60419a; --indigo:#493b8f; --line:#ded5ea; --gold:#d78a2f; --good:#257052; --bad:#a33c50; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--paper); font:16px/1.65 Inter,ui-sans-serif,system-ui,sans-serif; }
+    header { padding:4rem max(1.25rem,calc((100vw - 1080px)/2)); color:#fff; background:linear-gradient(125deg,#2f1d42,var(--indigo) 62%,#7654b5); }
+    header p { max-width:800px; color:#eee7fa; }
+    h1,h2,h3 { font-family:Georgia,serif; line-height:1.15; }
+    h1 { max-width:850px; margin:.4rem 0 1rem; font-size:clamp(2.4rem,7vw,4.8rem); }
+    h2 { margin-top:3.5rem; font-size:2.1rem; }
+    h3 { margin-top:2rem; }
+    .eyebrow { margin:0; text-transform:uppercase; letter-spacing:.14em; font-size:.75rem; }
+    main { max-width:1080px; margin:auto; padding:1.5rem 1.25rem 5rem; }
+    nav { margin-top:-2rem; padding:1.1rem 1.4rem; border:1px solid var(--line); border-radius:1rem; background:var(--card); box-shadow:0 12px 36px rgb(55 35 80 / 10%); }
+    nav a { display:inline-block; margin:.25rem 1rem .25rem 0; color:var(--purple); font-weight:700; }
+    code { padding:.12rem .3rem; border-radius:.25rem; background:#f0ebf6; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+    pre { overflow:auto; padding:1rem; border-radius:.7rem; color:#f7f1ff; background:#271c34; white-space:pre; }
+    .callout { margin:1.4rem 0; padding:1rem 1.2rem; border-left:5px solid var(--gold); background:#fff6e9; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1rem; margin:1.3rem 0; }
+    .card { padding:1rem; border:1px solid var(--line); border-radius:.8rem; background:var(--card); }
+    .card strong { display:block; color:var(--purple); }
+    .flow { display:flex; align-items:stretch; gap:.65rem; overflow:auto; padding:1rem 0; }
+    .node { min-width:170px; padding:1rem; border:2px solid var(--purple); border-radius:.7rem; background:#fff; }
+    .node small { display:block; color:var(--muted); }
+    .arrow { align-self:center; color:var(--purple); font-size:1.6rem; }
+    .source { border-color:var(--good); }
+    .unavailable { border-style:dashed; border-color:var(--bad); }
+    table { width:100%; border-collapse:collapse; margin:1rem 0; }
+    th,td { padding:.7rem; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#f0ebf6; }
+    .quiz { margin:1.25rem 0; padding:1.1rem; border:1px solid var(--line); border-radius:.8rem; background:#fff; }
+    .answers { display:grid; gap:.55rem; }
+    button { padding:.7rem; border:1px solid var(--purple); border-radius:.5rem; color:var(--ink); background:#faf7fd; text-align:left; cursor:pointer; }
+    button:hover,button:focus-visible { outline:3px solid #f1b15f; outline-offset:1px; }
+    button.correct { border-color:var(--good); background:#e9f7f0; }
+    button.wrong { border-color:var(--bad); background:#fff0f2; }
+    .feedback { min-height:1.6rem; margin:.6rem 0 0; font-weight:700; }
+    footer { padding:2rem; color:var(--muted); text-align:center; }
+    @media(max-width:650px){ .flow{flex-direction:column}.arrow{transform:rotate(90deg)} }
+  </style>
+</head>
+<body>
+<header>
+  <p class="eyebrow">Pinned explanation · PR #4</p>
+  <h1>A window onto GateReeve, without a second Reeve</h1>
+  <p>This explains exactly <code>641be135…</code> through <code>d3ba21e…</code>: the Electron shell, its read-only trust boundary, and the observation lifecycle that turns one chosen worktree into a live canonical view.</p>
+</header>
+<main>
+  <nav aria-label="Table of contents">
+    <a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#edge-cases">Edge cases</a><a href="#quiz">Quiz</a>
+  </nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <h3>The beginner's model: state is not a collection of Markdown files</h3>
+    <p>A GateReeve feature has an append-only event journal and a pinned workflow model. The current state—designing, planning, implementing a slice, waiting at a PR boundary—is a projection of those durable inputs. Artifacts such as <code>spec.md</code> and <code>verification.md</code> supply evidence, but a user interface must not infer a competing state from filenames.</p>
+    <div class="flow" aria-label="Canonical observation flow">
+      <div class="node source"><strong>Pinned model</strong><small>declares states and transitions</small></div><span class="arrow">→</span>
+      <div class="node source"><strong>Event journal</strong><small>records passages and gates</small></div><span class="arrow">→</span>
+      <div class="node"><strong>Canonical observer</strong><small>projects snapshot and named details</small></div><span class="arrow">→</span>
+      <div class="node"><strong>Desktop renderer</strong><small>presents; never governs</small></div>
+    </div>
+    <p>PR #2 established that observer contract. PR #4 does not replay the journal again. It packages an exact staged copy and calls the same observer used by the plugin and Commander surface.</p>
+
+    <h3>The narrower problem solved here</h3>
+    <p>An Electron renderer is intentionally unprivileged. It cannot read the filesystem or invoke Node. The main process can, but exposing its power broadly would turn a friendly observer into an alternate workflow engine. The change therefore needs two things at once:</p>
+    <div class="grid">
+      <div class="card"><strong>A narrow waist</strong>Only named reads and benign OS actions may cross IPC.</div>
+      <div class="card"><strong>Live observation</strong>Local, Git, and GitHub knowledge arrive independently and can fail independently.</div>
+      <div class="card"><strong>Limited memory</strong>Only worktree recents and window geometry survive an app restart.</div>
+      <div class="card"><strong>Predictable scope</strong>The user chooses one worktree; there is no machine-wide discovery scan.</div>
+    </div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <p>Think of the application as a telescope. The telescope remembers where you last pointed it, but it does not keep yesterday's sky and call it current. Each refresh begins with the nearby, trustworthy observation and then adds distant information.</p>
+    <div class="flow" aria-label="Progressive observation">
+      <div class="node"><strong>1. Select</strong><small><code>/work/feature</code></small></div><span class="arrow">→</span>
+      <div class="node source"><strong>2. Local now</strong><small>journal, pinned model, artifacts</small></div><span class="arrow">→</span>
+      <div class="node"><strong>3. Git</strong><small>branch, head, dirtiness classes</small></div><span class="arrow">→</span>
+      <div class="node"><strong>4. GitHub</strong><small>PR and checks, or unavailable</small></div>
+    </div>
+    <div class="callout"><strong>Remote failure is incompleteness, not invalidity.</strong> If GitHub is offline, the already validated local snapshot remains useful. The GitHub source says <em>unavailable</em>; it does not erase the feature state.</div>
+
+    <h3>A toy example</h3>
+    <pre>{
+  "mode": "governed",
+  "featureId": "gatereeve-desktop",
+  "active": { "sliceId": "desktop-shell-observation" },
+  "sources": {
+    "local":  { "status": "current" },
+    "git":    { "status": "current" },
+    "github": { "status": "unavailable", "detail": "offline" }
+  }
+}</pre>
+    <p>The source statuses tell the truth independently. A later GitHub success causes another canonical projection with richer facts; there is still only one interpretation of workflow state.</p>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <h3>1. A self-contained package, not a CLI wrapper</h3>
+    <p><code>apps/desktop</code> has its own package metadata, main process, sandboxed preload, renderer, shared contracts, resources, and tests. The staging helper now accepts a validated consumer manifest name and include list. Desktop takes the exact protocol plus the two context-resolution Python helpers; runtime code has no import from <code>cli/</code> and no <code>qp-cli-core</code> dependency.</p>
+
+    <h3>2. The read-only IPC waist</h3>
+    <table>
+      <thead><tr><th>Renderer request</th><th>Main-process constraint</th><th>What is absent</th></tr></thead>
+      <tbody>
+        <tr><td>Choose or reopen worktree</td><td>Absolute existing directory; recent paths must be in preferences</td><td>No global scan</td></tr>
+        <tr><td>Refresh</td><td>No arguments; canonical recomputation</td><td>No transition execution</td></tr>
+        <tr><td>Read detail</td><td>Kind is artifact/events/attempt/model; IDs are validated</td><td>No arbitrary path reader</td></tr>
+        <tr><td>Open or reveal artifact</td><td>ID must resolve to a safe, existing artifact in the current snapshot</td><td>No arbitrary shell command or URL</td></tr>
+      </tbody>
+    </table>
+    <p>Every request must come from the exact top-level <code>gatereeve-app://desktop/index.html</code> frame. Outputs are checked again with the canonical snapshot/detail validators before crossing back.</p>
+
+    <h3>3. A coordinator with generation tokens</h3>
+    <p>Selection and refresh are asynchronous. Without coordination, a slow response from worktree A could arrive after the user selected worktree B. Each operation increments a generation. Results publish only while their token still matches:</p>
+    <pre>const token = ++generation;
+const context = await protocol.resolve(worktreePath);
+if (token !== generation) return false;
+// publish only for the still-current selection</pre>
+    <p>The same rule retires stale Git and GitHub responses. The renderer receives local state immediately, while <code>refreshing</code> remains true until enrichment settles.</p>
+
+    <h3>4. Events locally; a timer only remotely</h3>
+    <p>The watcher observes the selected feature directory and its known first-level packet directories. Bursts are debounced into one full recomputation. GitHub uses a 60-second interval only when the last reliable result says the PR is open or a check is pending. A transient remote error does not cancel an already justified poll. A merge or terminal checks do.</p>
+    <div class="grid">
+      <div class="card"><strong>Focused window</strong>Focus triggers full refresh.</div>
+      <div class="card"><strong>Minimized window</strong>GitHub timer continues; it has no visibility condition.</div>
+      <div class="card"><strong>Closed app</strong>Watcher and timer are closed; there is no service.</div>
+    </div>
+
+    <h3>5. Preferences are deliberately boring</h3>
+    <p>The one JSON file has four fields: schema version, recents, last worktree, and window geometry. Writes use a temporary file, atomic rename, and a serialization queue. Invalid paths and undersized geometry are discarded. Snapshot, artifact, remote, and governance data never enter it.</p>
+
+    <h3>6. A minimal but real shell</h3>
+    <p>The renderer supplies explicit selection, recent paths, refresh, mode, feature state, active slice, and independent sources. It uses native buttons, a live status region, visible focus, the 760×560 minimum, and GateReeve's purple/indigo language. The richer state rail, gate graph, viewers, history, model, and notifications remain later slices rather than being simulated here.</p>
+  </section>
+
+  <section id="edge-cases">
+    <h2>Edge cases and boundaries</h2>
+    <div class="grid">
+      <div class="card"><strong>Missing feature home</strong>The canonical snapshot reports <em>missing</em>; Desktop does not initialize it.</div>
+      <div class="card"><strong>Legacy record</strong>Desktop reports <em>legacy</em>; it does not adopt it.</div>
+      <div class="card"><strong>Half-written governance</strong>A lock without journal, or pending migration, reports <em>inconsistent</em>.</div>
+      <div class="card"><strong>Unsupported pinned model</strong>The observer reports <em>incompatible</em>; the bundled model does not reinterpret history.</div>
+      <div class="card"><strong>Ordinary source work</strong>It is activity, distinct from dirty journal or model governance warnings.</div>
+      <div class="card"><strong>CLI uninstalled</strong>Desktop still reads its packaged canonical core directly.</div>
+    </div>
+    <div class="callout">This PR establishes the shell and observation machinery. Native launch evidence on macOS and supported Ubuntu hosts belongs to the hardening slice; this NUC lacks one Electron GUI library, so the boundary records that check as pending instead of manufacturing success.</div>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <div class="quiz" data-answer="1"><h3>1. Why does Desktop stage the protocol instead of parsing CLI output?</h3><div class="answers"><button>It makes GitHub polling faster by avoiding JSON.</button><button>It preserves one canonical projection while keeping the optional CLI out of the runtime dependency chain.</button><button>Electron cannot launch child processes on Ubuntu.</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><h3>2. What happens first after a worktree is selected?</h3><div class="answers"><button>GitHub must respond before any screen can render.</button><button>The complete repository is scanned for all features.</button><button>A canonical local snapshot is published, then Git and GitHub enrich it independently.</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="0"><h3>3. Which condition keeps GitHub polling active?</h3><div class="answers"><button>The last reliable result has an open PR or pending check.</button><button>The window is visible and focused.</button><button>Any local source file is dirty.</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><h3>4. Why can the renderer not open <code>/etc/passwd</code> through artifact IPC?</h3><div class="answers"><button>CSP blocks all plain-text files.</button><button>Electron permits only Markdown paths.</button><button>The renderer supplies an artifact ID; main resolves it from the validated current inventory and accepts no arbitrary path.</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="1"><h3>5. Which data survives an app restart?</h3><div class="answers"><button>The last snapshot and GitHub response, but not artifact bodies.</button><button>Recent/last worktrees and valid window geometry only.</button><button>The event journal copied into Electron user data.</button></div><p class="feedback"></p></div>
+  </section>
+</main>
+<footer>GateReeve Desktop · PR #4 · pinned source <code>d3ba21e0f674…</code></footer>
+<script>
+  document.querySelectorAll('.quiz').forEach((quiz) => {
+    const answer = Number(quiz.dataset.answer);
+    const buttons = [...quiz.querySelectorAll('button')];
+    buttons.forEach((button, index) => button.addEventListener('click', () => {
+      buttons.forEach((item) => item.classList.remove('correct', 'wrong'));
+      button.classList.add(index === answer ? 'correct' : 'wrong');
+      quiz.querySelector('.feedback').textContent = index === answer
+        ? 'Correct — that is the invariant this slice protects.'
+        : 'Not quite. Revisit the observation flow and read-only boundary above.';
+    }));
+  });
+</script>
+</body>
+</html>

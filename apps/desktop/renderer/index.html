@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GateReeve Desktop</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">Workflow observer</p>
+        <h1>GateReeve</h1>
+      </div>
+      <button id="refresh" type="button">Refresh</button>
+    </header>
+    <main>
+      <section id="chooser" class="panel" aria-labelledby="chooser-title">
+        <h2 id="chooser-title">Choose a feature worktree</h2>
+        <p>GateReeve Desktop reads one explicitly selected worktree. It never scans for projects.</p>
+        <button id="choose" type="button">Open worktree…</button>
+        <div id="recents" aria-label="Recent worktrees"></div>
+        <div id="chooser-error" class="error" role="alert" hidden></div>
+      </section>
+      <section id="overview" class="panel" aria-live="polite" hidden>
+        <div class="status-line">
+          <span id="mode" class="badge"></span>
+          <span id="activity"></span>
+        </div>
+        <h2 id="feature"></h2>
+        <p id="worktree" class="path"></p>
+        <dl class="facts">
+          <div><dt>Feature state</dt><dd id="feature-state">—</dd></div>
+          <div><dt>Active slice</dt><dd id="active-slice">—</dd></div>
+          <div><dt>Local</dt><dd id="source-local">—</dd></div>
+          <div><dt>Git</dt><dd id="source-git">—</dd></div>
+          <div><dt>GitHub</dt><dd id="source-github">—</dd></div>
+        </dl>
+        <div id="error" class="error" role="alert" hidden></div>
+      </section>
+    </main>
+    <script src="renderer.js"></script>
+  </body>
+</html>

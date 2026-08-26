@@ -1,0 +1,30 @@
+{
+  "name": "@quality-code/gatereeve-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Read-only desktop observer for GateReeve workflows",
+  "main": "main/index.js",
+  "files": [
+    "main/",
+    "preload/",
+    "renderer/",
+    "resources/",
+    "shared/"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "check": "npm test",
+    "prepack": "npm run stage:protocol",
+    "pretest": "npm run stage:protocol",
+    "stage:protocol": "node scripts/stage-protocol.mjs",
+    "start": "npm run stage:protocol && electron .",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "electron": "43.2.0",
+    "linkedom": "0.18.12"
+  }
+}

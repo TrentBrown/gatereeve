@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -42,4 +42,37 @@ test('CLI staging records an exact canonical protocol inventory and hash', async
   assert.equal(observed.ok, true);
   assert.equal(observed.data.featureId, 'staged-snapshot');
   assert.equal(observed.data.protocol.snapshotSchemaVersion, 1);
+});
+
+test('consumer staging copies only validated support paths and names its manifest', async () => {
+  const destinationRoot = await mkdtemp(join(tmpdir(), 'gatereeve staged consumer '));
+  const sourceRoot = resolve(import.meta.dirname, '../../plugin-src/shared/resources');
+  const manifest = await stageProtocolResources({
+    sourceRoot,
+    destinationRoot,
+    manifestName: 'desktop-projection.json',
+    includePaths: [
+      'protocol',
+      'scripts/workflow_common.py',
+      'scripts/workflow_context.py',
+    ],
+  });
+  assert.deepEqual(
+    JSON.parse(await readFile(resolve(destinationRoot, 'desktop-projection.json'), 'utf8')),
+    manifest,
+  );
+  await assert.rejects(access(resolve(destinationRoot, 'commands')), /ENOENT/);
+  await assert.rejects(
+    stageProtocolResources({
+      sourceRoot,
+      destinationRoot,
+      manifestName: '../outside.json',
+      includePaths: ['protocol'],
+    }),
+    /plain file name/,
+  );
+  assert.deepEqual(
+    JSON.parse(await readFile(resolve(destinationRoot, 'desktop-projection.json'), 'utf8')),
+    manifest,
+  );
 });

@@ -1,0 +1,43 @@
+// @ts-check
+
+import { readFile, realpath } from 'node:fs/promises';
+import { extname, resolve, sep } from 'node:path';
+
+const CONTENT_TYPES = Object.freeze({
+  '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.svg': 'image/svg+xml',
+});
+
+export function registerRendererProtocol(protocol, rendererRoot) {
+  const rootPromise = realpath(rendererRoot);
+  protocol.handle('gatereeve-app', async (request) => {
+    const url = new URL(request.url);
+    if (url.hostname !== 'desktop' || request.method !== 'GET') {
+      return new Response('Not found', { status: 404 });
+    }
+    let relativePath;
+    try {
+      relativePath = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'index.html';
+    } catch {
+      return new Response('Not found', { status: 404 });
+    }
+    try {
+      const root = await rootPromise;
+      const path = await realpath(resolve(root, relativePath));
+      if (!path.startsWith(`${root}${sep}`)) return new Response('Not found', { status: 404 });
+      const contentType = CONTENT_TYPES[extname(path)];
+      if (contentType === undefined) return new Response('Not found', { status: 404 });
+      return new Response(await readFile(path), {
+        status: 200,
+        headers: {
+          'content-type': contentType,
+          'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'",
+        },
+      });
+    } catch {
+      return new Response('Not found', { status: 404 });
+    }
+  });
+}
