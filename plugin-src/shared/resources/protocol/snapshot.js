@@ -1,12 +1,23 @@
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { extname, isAbsolute, relative, resolve } from 'node:path';
 
-import { PROTOCOL_VERSION } from './constants.js';
+import {
+  BOUNDARY_SCOPES,
+  GATE_FRESHNESS,
+  GATE_OUTCOMES,
+  PROTOCOL_VERSION,
+} from './constants.js';
 import { compareVersions } from './compatibility.js';
 import { ContractError, ProtocolError } from './errors.js';
 import { buildModelMigrationImpact } from './feature.js';
 import { modelGraph } from './graph.js';
-import { createModelLock, hashModel, loadDefaultModel } from './model.js';
+import {
+  createModelLock,
+  hashModel,
+  loadDefaultModel,
+  validateEvent,
+  validateModelLock,
+} from './model.js';
 
 export const SNAPSHOT_SCHEMA_VERSION = 1;
 export const DETAIL_SCHEMA_VERSION = 1;
@@ -23,6 +34,18 @@ const ARTIFACT_STATUSES = new Set([
   'not-applicable',
 ]);
 const DETAIL_KINDS = new Set(['artifact', 'events', 'attempt', 'model']);
+const PREREQUISITE_STATUSES = new Set(['pass', 'fail', 'unknown']);
+const BOUNDARY_SCOPE_SET = new Set(BOUNDARY_SCOPES);
+const GATE_EVALUATION_SCOPES = new Set(['SLICE', 'FEATURE']);
+const GATE_OUTCOME_SET = new Set(GATE_OUTCOMES);
+const GATE_FRESHNESS_SET = new Set(GATE_FRESHNESS);
+const MILESTONE_STATUSES = new Set([
+  'complete', 'active', 'pending', 'available', 'ready', 'blocked',
+]);
+const ARTIFACT_EXPECTATIONS = new Set([
+  'required', 'pending', 'optional', 'not-applicable',
+]);
+const ARTIFACT_FORMATS = new Set(['markdown', 'json', 'jsonl', 'html', 'text']);
 const MAX_TEXT_ARTIFACT_BYTES = 10 * 1024 * 1024;
 
 const FEATURE_ARTIFACTS = Object.freeze([
@@ -114,6 +137,205 @@ function isObject(value) {
 
 function assertObject(value, label) {
   if (!isObject(value)) throw new ContractError(`${label} must be an object`);
+}
+
+function assertArray(value, label) {
+  if (!Array.isArray(value)) throw new ContractError(`${label} must be an array`);
+}
+
+function assertString(value, label, { nullable = false, allowEmpty = false } = {}) {
+  if (nullable && value === null) return;
+  if (typeof value !== 'string' || (!allowEmpty && value.length === 0)) {
+    throw new ContractError(
+      `${label} must be ${nullable ? 'null or ' : ''}a${allowEmpty ? '' : ' nonempty'} string`
+    );
+  }
+}
+
+function assertBoolean(value, label) {
+  if (typeof value !== 'boolean') throw new ContractError(`${label} must be boolean`);
+}
+
+function assertInteger(value, label, { nullable = false, minimum = 0 } = {}) {
+  if (nullable && value === null) return;
+  if (!Number.isInteger(value) || value < minimum) {
+    throw new ContractError(
+      `${label} must be ${nullable ? 'null or ' : ''}an integer of at least ${minimum}`
+    );
+  }
+}
+
+function assertStringArray(value, label) {
+  assertArray(value, label);
+  value.forEach((item, index) => assertString(item, `${label}[${index}]`));
+}
+
+function assertNullableObject(value, label) {
+  if (value !== null) assertObject(value, label);
+}
+
+function assertOneOf(value, allowed, label) {
+  if (!allowed.has(value)) throw new ContractError(`${label} has invalid value ${value}`);
+}
+
+function validateActor(actor, label) {
+  assertObject(actor, label);
+  assertString(actor.kind, `${label}.kind`);
+  assertString(actor.label, `${label}.label`);
+}
+
+function validateGate(gate, label) {
+  assertObject(gate, label);
+  assertString(gate.id, `${label}.id`);
+  assertStringArray(gate.dependsOn, `${label}.dependsOn`);
+  assertOneOf(gate.evaluationScope, GATE_EVALUATION_SCOPES, `${label}.evaluationScope`);
+  assertBoolean(gate.optional, `${label}.optional`);
+  assertBoolean(gate.waiverAllowed, `${label}.waiverAllowed`);
+  assertOneOf(gate.outcome, GATE_OUTCOME_SET, `${label}.outcome`);
+  assertOneOf(gate.freshness, GATE_FRESHNESS_SET, `${label}.freshness`);
+  assertBoolean(gate.eligible, `${label}.eligible`);
+  assertArray(gate.blockers, `${label}.blockers`);
+  gate.blockers.forEach((blocker, index) => assertObject(blocker, `${label}.blockers[${index}]`));
+  assertNullableObject(gate.evidence, `${label}.evidence`);
+  assertString(gate.inputFingerprint, `${label}.inputFingerprint`, { nullable: true });
+  assertString(gate.recordedEventId, `${label}.recordedEventId`, { nullable: true });
+  assertInteger(gate.recordedSequence, `${label}.recordedSequence`, {
+    nullable: true,
+    minimum: 1,
+  });
+  assertInteger(gate.invalidatedSequence, `${label}.invalidatedSequence`, {
+    nullable: true,
+    minimum: 1,
+  });
+  assertString(gate.reason, `${label}.reason`, { nullable: true });
+}
+
+function validateAttempt(attempt, label) {
+  assertObject(attempt, label);
+  assertString(attempt.id, `${label}.id`);
+  assertString(attempt.sliceId, `${label}.sliceId`);
+  assertOneOf(attempt.scope, BOUNDARY_SCOPE_SET, `${label}.scope`);
+  assertNullableObject(attempt.context, `${label}.context`);
+  assertString(attempt.startedBy, `${label}.startedBy`);
+  assertInteger(attempt.startedSequence, `${label}.startedSequence`, { minimum: 1 });
+  assertString(attempt.state, `${label}.state`);
+  assertArray(attempt.gates, `${label}.gates`);
+  attempt.gates.forEach((gate, index) => validateGate(gate, `${label}.gates[${index}]`));
+  assertBoolean(attempt.requiredCurrentAndNonblocking, `${label}.requiredCurrentAndNonblocking`);
+}
+
+function validateProjection(projection, label) {
+  assertObject(projection, label);
+  assertInteger(projection.schemaVersion, `${label}.schemaVersion`, { minimum: 1 });
+  assertString(projection.mode, `${label}.mode`);
+  assertString(projection.featureId, `${label}.featureId`);
+  assertObject(projection.model, `${label}.model`);
+  for (const field of ['id', 'version', 'hash']) {
+    assertString(projection.model[field], `${label}.model.${field}`);
+  }
+  assertObject(projection.feature, `${label}.feature`);
+  assertString(projection.feature.state, `${label}.feature.state`);
+  assertObject(projection.suspension, `${label}.suspension`);
+  assertBoolean(projection.suspension.paused, `${label}.suspension.paused`);
+  assertObject(projection.implementationAuthorization, `${label}.implementationAuthorization`);
+  assertBoolean(
+    projection.implementationAuthorization.current,
+    `${label}.implementationAuthorization.current`
+  );
+  assertArray(projection.slices, `${label}.slices`);
+  projection.slices.forEach((slice, index) => {
+    const item = `${label}.slices[${index}]`;
+    assertObject(slice, item);
+    for (const field of ['id', 'state', 'name', 'proposedBy', 'latestEventId']) {
+      assertString(slice[field], `${item}.${field}`);
+    }
+    assertString(slice.branch, `${item}.branch`, { nullable: true });
+    assertString(slice.scope, `${item}.scope`, { nullable: true });
+    assertStringArray(slice.planSteps, `${item}.planSteps`);
+    assertStringArray(slice.rubricCriteria, `${item}.rubricCriteria`);
+    assertString(slice.activeAttemptId, `${item}.activeAttemptId`, { nullable: true });
+  });
+  assertString(projection.activeSliceId, `${label}.activeSliceId`, { nullable: true });
+  assertArray(projection.boundaryAttempts, `${label}.boundaryAttempts`);
+  projection.boundaryAttempts.forEach((attempt, index) => {
+    validateAttempt(attempt, `${label}.boundaryAttempts[${index}]`);
+  });
+  assertArray(projection.changes, `${label}.changes`);
+  projection.changes.forEach((change, index) => {
+    const item = `${label}.changes[${index}]`;
+    assertObject(change, item);
+    for (const field of ['id', 'target', 'state']) assertString(change[field], `${item}.${field}`);
+  });
+  assertStringArray(projection.blockingChangeIds, `${label}.blockingChangeIds`);
+  assertStringArray(projection.acceptedReviewSliceIds, `${label}.acceptedReviewSliceIds`);
+  assertObject(projection.journal, `${label}.journal`);
+  assertInteger(projection.journal.eventCount, `${label}.journal.eventCount`);
+  assertString(projection.journal.lastEventId, `${label}.journal.lastEventId`);
+  assertInteger(projection.journal.lastSequence, `${label}.journal.lastSequence`, { minimum: 1 });
+}
+
+function validateModelProvenance(model, label) {
+  assertObject(model, label);
+  for (const section of ['pinned', 'bundled', 'catalog', 'migration']) {
+    assertObject(model[section], `${label}.${section}`);
+  }
+  for (const field of ['id', 'version', 'hash', 'coreVersion', 'createdAt']) {
+    assertString(model.pinned[field], `${label}.pinned.${field}`);
+  }
+  for (const field of ['id', 'version', 'hash', 'protocolVersion']) {
+    assertString(model.bundled[field], `${label}.bundled.${field}`);
+  }
+  assertBoolean(model.catalog.supported, `${label}.catalog.supported`);
+  assertInteger(model.catalog.version, `${label}.catalog.version`, { nullable: true, minimum: 1 });
+  assertBoolean(model.migration.available, `${label}.migration.available`);
+  assertString(model.migration.relationship, `${label}.migration.relationship`);
+  assertNullableObject(model.migration.impact, `${label}.migration.impact`);
+}
+
+function validateArtifact(artifact, label) {
+  assertObject(artifact, label);
+  assertString(artifact.id, `${label}.id`);
+  assertString(artifact.label, `${label}.label`);
+  assertObject(artifact.context, `${label}.context`);
+  assertString(artifact.context.kind, `${label}.context.kind`);
+  assertString(artifact.path, `${label}.path`, { nullable: true });
+  assertString(artifact.absolutePath, `${label}.absolutePath`, { nullable: true });
+  if (artifact.format !== null) assertOneOf(artifact.format, ARTIFACT_FORMATS, `${label}.format`);
+  assertOneOf(artifact.expectation, ARTIFACT_EXPECTATIONS, `${label}.expectation`);
+  assertOneOf(artifact.status, ARTIFACT_STATUSES, `${label}.status`);
+  assertBoolean(artifact.exists, `${label}.exists`);
+  assertInteger(artifact.size, `${label}.size`, { nullable: true });
+  assertString(artifact.modifiedAt, `${label}.modifiedAt`, { nullable: true });
+  assertNullableObject(artifact.evidence, `${label}.evidence`);
+}
+
+function validateGraph(graph, label) {
+  assertObject(graph, label);
+  assertInteger(graph.schemaVersion, `${label}.schemaVersion`, { minimum: 1 });
+  assertString(graph.kind, `${label}.kind`);
+  assertArray(graph.nodes, `${label}.nodes`);
+  graph.nodes.forEach((node, index) => {
+    const item = `${label}.nodes[${index}]`;
+    assertObject(node, item);
+    for (const field of ['id', 'label', 'group']) assertString(node[field], `${item}.${field}`);
+    if (node.status !== undefined) assertString(node.status, `${item}.status`);
+  });
+  assertArray(graph.edges, `${label}.edges`);
+  graph.edges.forEach((edge, index) => {
+    const item = `${label}.edges[${index}]`;
+    assertObject(edge, item);
+    for (const field of ['id', 'from', 'to', 'label']) assertString(edge[field], `${item}.${field}`);
+    if (edge.authority !== undefined) assertString(edge.authority, `${item}.authority`);
+  });
+  assertString(graph.mermaid, `${label}.mermaid`);
+}
+
+function validateFullEvent(event, label) {
+  try {
+    validateEvent(event);
+  } catch (error) {
+    throw new ContractError(`${label} is invalid: ${error.message}`);
+  }
 }
 
 function isWithin(root, target) {
@@ -756,31 +978,119 @@ export function validateSnapshot(snapshot) {
     throw new ContractError(`Snapshot has invalid mode ${snapshot.mode}`);
   }
   assertObject(snapshot.protocol, 'Snapshot protocol');
+  assertString(snapshot.protocol.version, 'Snapshot protocol.version');
+  if (snapshot.protocol.snapshotSchemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
+    throw new ContractError(
+      `Snapshot protocol.snapshotSchemaVersion must be ${SNAPSHOT_SCHEMA_VERSION}`
+    );
+  }
+  if (snapshot.protocol.detailSchemaVersion !== DETAIL_SCHEMA_VERSION) {
+    throw new ContractError(
+      `Snapshot protocol.detailSchemaVersion must be ${DETAIL_SCHEMA_VERSION}`
+    );
+  }
+  assertString(snapshot.featureHome, 'Snapshot featureHome');
+  assertString(snapshot.featureId, 'Snapshot featureId', { nullable: true });
+  if (snapshot.model !== null) validateModelProvenance(snapshot.model, 'Snapshot model');
+  if (snapshot.projection !== null) validateProjection(snapshot.projection, 'Snapshot projection');
+  if (snapshot.mode === 'governed') {
+    if (snapshot.model === null || snapshot.projection === null || snapshot.featureId === null) {
+      throw new ContractError('Governed snapshot requires model, projection, and featureId');
+    }
+    if (snapshot.projection.featureId !== snapshot.featureId) {
+      throw new ContractError('Snapshot featureId must match projection.featureId');
+    }
+  }
   assertObject(snapshot.active, 'Snapshot active context');
+  assertString(snapshot.active.sliceId, 'Snapshot active.sliceId', { nullable: true });
+  assertString(
+    snapshot.active.boundaryAttemptId,
+    'Snapshot active.boundaryAttemptId',
+    { nullable: true }
+  );
   assertObject(snapshot.sources, 'Snapshot sources');
   for (const name of ['local', 'git', 'github']) {
-    if (!SOURCE_STATUSES.has(snapshot.sources[name]?.status)) {
-      throw new ContractError(`Snapshot source ${name} has an invalid status`);
-    }
+    const source = snapshot.sources[name];
+    assertObject(source, `Snapshot source ${name}`);
+    assertOneOf(source.status, SOURCE_STATUSES, `Snapshot source ${name}.status`);
+    assertString(source.detail, `Snapshot source ${name}.detail`, { nullable: true });
+    assertString(source.checkedAt, `Snapshot source ${name}.checkedAt`, { nullable: true });
   }
   for (const field of ['blockers', 'actions', 'milestones', 'artifacts', 'warnings']) {
-    if (!Array.isArray(snapshot[field])) throw new ContractError(`Snapshot ${field} must be an array`);
+    assertArray(snapshot[field], `Snapshot ${field}`);
   }
-  for (const action of snapshot.actions) {
-    if (
-      !READINESS_STATES.has(action.readiness) ||
-      typeof action.command !== 'string' ||
-      typeof action.commandTemplate !== 'string' ||
-      !Array.isArray(action.inputs)
-    ) {
-      throw new ContractError('Snapshot action has an invalid readiness contract');
+  snapshot.blockers.forEach((blocker, index) => {
+    assertObject(blocker, `Snapshot blockers[${index}]`);
+    assertString(blocker.type, `Snapshot blockers[${index}].type`);
+  });
+  snapshot.actions.forEach((action, index) => {
+    const label = `Snapshot actions[${index}]`;
+    assertObject(action, label);
+    for (const field of ['id', 'command', 'copyCommand', 'commandTemplate', 'authority']) {
+      assertString(action[field], `${label}.${field}`);
     }
-  }
-  for (const artifact of snapshot.artifacts) {
-    if (!ARTIFACT_STATUSES.has(artifact.status) || typeof artifact.id !== 'string') {
-      throw new ContractError('Snapshot artifact has an invalid status contract');
+    assertString(action.availability, `${label}.availability`);
+    assertOneOf(action.readiness, READINESS_STATES, `${label}.readiness`);
+    assertBoolean(action.eligible, `${label}.eligible`);
+    if (action.eligible !== (action.readiness === 'ready')) {
+      throw new ContractError(`${label}.eligible must be true exactly when readiness is ready`);
     }
-  }
+    assertArray(action.inputs, `${label}.inputs`);
+    action.inputs.forEach((item, inputIndex) => {
+      const inputLabel = `${label}.inputs[${inputIndex}]`;
+      assertObject(item, inputLabel);
+      assertString(item.id, `${inputLabel}.id`);
+      assertString(item.label, `${inputLabel}.label`);
+      assertBoolean(item.required, `${inputLabel}.required`);
+      assertString(item.placeholder, `${inputLabel}.placeholder`, { nullable: true });
+    });
+    assertArray(action.blockers, `${label}.blockers`);
+    action.blockers.forEach((blocker, blockerIndex) => {
+      assertObject(blocker, `${label}.blockers[${blockerIndex}]`);
+    });
+    assertArray(action.prerequisites, `${label}.prerequisites`);
+    action.prerequisites.forEach((item, prerequisiteIndex) => {
+      const prerequisiteLabel = `${label}.prerequisites[${prerequisiteIndex}]`;
+      assertObject(item, prerequisiteLabel);
+      assertString(item.id, `${prerequisiteLabel}.id`);
+      assertOneOf(item.status, PREREQUISITE_STATUSES, `${prerequisiteLabel}.status`);
+      assertString(item.message, `${prerequisiteLabel}.message`);
+    });
+    assertStringArray(action.reasons, `${label}.reasons`);
+  });
+  snapshot.milestones.forEach((milestone, index) => {
+    const label = `Snapshot milestones[${index}]`;
+    assertObject(milestone, label);
+    for (const field of ['id', 'label', 'state']) assertString(milestone[field], `${label}.${field}`);
+    assertOneOf(milestone.status, MILESTONE_STATUSES, `${label}.status`);
+    assertNullableObject(milestone.evidence, `${label}.evidence`);
+  });
+  snapshot.artifacts.forEach((artifact, index) => {
+    validateArtifact(artifact, `Snapshot artifacts[${index}]`);
+  });
+  snapshot.warnings.forEach((warning, index) => {
+    const label = `Snapshot warnings[${index}]`;
+    assertObject(warning, label);
+    assertString(warning.type, `${label}.type`);
+    assertString(warning.severity, `${label}.severity`);
+  });
+  assertObject(snapshot.events, 'Snapshot events');
+  assertInteger(snapshot.events.count, 'Snapshot events.count');
+  assertString(snapshot.events.lastEventId, 'Snapshot events.lastEventId', { nullable: true });
+  assertInteger(snapshot.events.lastSequence, 'Snapshot events.lastSequence', {
+    nullable: true,
+    minimum: 1,
+  });
+  assertArray(snapshot.events.recent, 'Snapshot events.recent');
+  snapshot.events.recent.forEach((event, index) => {
+    const label = `Snapshot events.recent[${index}]`;
+    assertObject(event, label);
+    assertInteger(event.sequence, `${label}.sequence`, { minimum: 1 });
+    for (const field of ['eventId', 'recordedAt', 'type', 'modelHash']) {
+      assertString(event[field], `${label}.${field}`);
+    }
+    validateActor(event.actor, `${label}.actor`);
+  });
   return snapshot;
 }
 
@@ -881,8 +1191,27 @@ export function validateDetail(detail) {
   if (detail.schemaVersion !== DETAIL_SCHEMA_VERSION) {
     throw new ContractError(`Detail schemaVersion must be ${DETAIL_SCHEMA_VERSION}`);
   }
-  if (!DETAIL_KINDS.has(detail.kind) || !('data' in detail)) {
-    throw new ContractError('Detail result has an invalid kind or data contract');
+  assertOneOf(detail.kind, DETAIL_KINDS, 'Detail result kind');
+  assertString(detail.featureId, 'Detail result featureId');
+  assertString(detail.id, 'Detail result id', { nullable: true });
+  assertObject(detail.data, 'Detail result data');
+  if (detail.kind === 'artifact') {
+    validateArtifact(detail.data.artifact, 'Detail result data.artifact');
+    assertString(detail.data.content, 'Detail result data.content', { allowEmpty: true });
+    if (!Object.hasOwn(detail.data, 'structured')) {
+      throw new ContractError('Detail result data.structured is required');
+    }
+  } else if (detail.kind === 'events') {
+    assertArray(detail.data.events, 'Detail result data.events');
+    detail.data.events.forEach((event, index) => {
+      validateFullEvent(event, `Detail result data.events[${index}]`);
+    });
+  } else if (detail.kind === 'attempt') {
+    validateAttempt(detail.data.attempt, 'Detail result data.attempt');
+  } else {
+    validateModelLock(detail.data.lock);
+    validateGraph(detail.data.graph, 'Detail result data.graph');
+    validateModelProvenance(detail.data.provenance, 'Detail result data.provenance');
   }
   return detail;
 }

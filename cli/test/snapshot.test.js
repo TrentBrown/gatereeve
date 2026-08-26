@@ -317,6 +317,47 @@ test('snapshot validators reject malformed readiness and detail contracts', () =
   );
   assert.throws(
     () => validateDetail({ schemaVersion: 1, kind: 'path', data: {} }),
-    /invalid kind/
+    /invalid value/
+  );
+  assert.throws(
+    () => validateDetail({
+      schemaVersion: 1,
+      kind: 'artifact',
+      featureId: 'feature',
+      id: 'design',
+      data: null,
+    }),
+    /Detail result data must be an object/
+  );
+});
+
+test('snapshot validators reject malformed nested contracts', async () => {
+  const fixture = await featureFixture('validation-fixture');
+  const observed = await snapshot(fixture.featureHome);
+
+  const withoutEvents = structuredClone(observed.data);
+  withoutEvents.events = null;
+  assert.throws(() => validateSnapshot(withoutEvents), /Snapshot events must be an object/);
+
+  const mismatchedEligibility = structuredClone(observed.data);
+  mismatchedEligibility.actions[0].eligible = !mismatchedEligibility.actions[0].eligible;
+  assert.throws(
+    () => validateSnapshot(mismatchedEligibility),
+    /eligible must be true exactly when readiness is ready/
+  );
+
+  const malformedArtifact = structuredClone(observed.data);
+  malformedArtifact.artifacts[0].exists = 'yes';
+  assert.throws(
+    () => validateSnapshot(malformedArtifact),
+    /artifacts\[0\]\.exists must be boolean/
+  );
+
+  const model = await readDetail(fixture.featureHome, 'model');
+  const malformedModel = structuredClone(model.data);
+  malformedModel.data.graph.nodes = null;
+  assert.throws(
+    () => validateDetail(malformedModel),
+    /Detail result data\.graph\.nodes must be an array/
   );
 });
