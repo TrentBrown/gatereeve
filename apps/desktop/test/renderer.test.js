@@ -250,3 +250,51 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   delete globalThis.window;
   delete globalThis.document;
 });
+
+test('renderer reloads optional Session context when a refresh begins', async () => {
+  const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
+  const { window } = parseHTML(html);
+  let subscriber;
+  let sessionReads = 0;
+  const state = {
+    ...idleState(),
+    phase: 'ready',
+    selection: { worktreePath: '/repo/current', featureHome: '/repo/current/docs/issues/feature' },
+    snapshot: {
+      schemaVersion: 1,
+      mode: 'governed',
+      featureId: 'feature',
+      model: null,
+      projection: null,
+      sources: {},
+      artifacts: [],
+      events: { count: 0, lastEventId: null, recent: [] },
+    },
+  };
+  window.gatereeveDesktop = {
+    async chooseWorktree() {},
+    async openRecent() {},
+    async refresh() {},
+    async getState() { return state; },
+    async listSession() {
+      sessionReads += 1;
+      return { schemaVersion: 1, items: [] };
+    },
+    subscribe(callback) { subscriber = callback; return () => {}; },
+  };
+  globalThis.window = window;
+  globalThis.document = window.document;
+  await import(`${pathToFileURL(resolve(desktopRoot, 'renderer/renderer.js')).href}?test=session-refresh`);
+  await new Promise((done) => setImmediate(done));
+
+  window.document.querySelector('[data-view="session"]').click();
+  await new Promise((done) => setImmediate(done));
+  assert.equal(sessionReads, 1);
+
+  subscriber({ ...state, refreshing: true });
+  await new Promise((done) => setImmediate(done));
+  assert.equal(sessionReads, 2);
+
+  delete globalThis.window;
+  delete globalThis.document;
+});

@@ -659,6 +659,7 @@ async function ensureSession() {
 
 function render(state) {
   const previousSelection = currentState?.selection?.worktreePath;
+  const refreshStarted = currentState?.refreshing === false && state.refreshing;
   currentState = state;
   const selected = state.selection !== null;
   elements.chooser.hidden = selected;
@@ -678,6 +679,8 @@ function render(state) {
     selectedAttemptId = null;
   } else if (eventsKey !== state.snapshot?.events?.lastEventId) {
     eventsDetail = null;
+    sessionInventory = null;
+  } else if (refreshStarted) {
     sessionInventory = null;
   }
 

@@ -20,12 +20,12 @@ function sessionId(kind, name) {
   return `session:${kind}:${Buffer.from(name).toString('base64url')}`;
 }
 
-async function optionalDirectory(path) {
+async function optionalDirectory(path, accepts = () => true) {
   try {
     const metadata = await lstat(path);
     if (!metadata.isDirectory() || metadata.isSymbolicLink()) return [];
     return (await readdir(path, { withFileTypes: true }))
-      .filter((entry) => entry.isFile())
+      .filter((entry) => entry.isFile() && accepts(entry.name))
       .map((entry) => entry.name)
       .sort();
   } catch (error) {
@@ -68,7 +68,10 @@ async function discover(worktreePath) {
     'Latest checkpoint',
     sessionId('latest-checkpoint', 'CHECKPOINT.md'),
   ));
-  for (const name of await optionalDirectory(resolve(root, '.checkpoints'))) {
+  for (const name of await optionalDirectory(
+    resolve(root, '.checkpoints'),
+    (entry) => entry.endsWith('.md'),
+  )) {
     candidates.push(await candidate(
       root,
       resolve(root, '.checkpoints', name),

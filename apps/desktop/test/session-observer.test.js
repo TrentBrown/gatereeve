@@ -13,6 +13,7 @@ test('Session observer exposes only named checkpoint and handoff files beneath t
   await mkdir(join(root, '.handoffs'));
   await writeFile(join(root, 'CHECKPOINT.md'), '# Latest\n');
   await writeFile(join(root, '.checkpoints', 'CHECKPOINT-1.md'), '# Archive\n');
+  await writeFile(join(root, '.checkpoints', 'notes.txt'), 'not a checkpoint\n');
   await writeFile(join(root, '.handoffs', 'handoff.md'), '# Handoff\n');
   await writeFile(join(outside, 'secret.md'), 'secret\n');
   await symlink(join(outside, 'secret.md'), join(root, '.handoffs', 'outside.md'));
@@ -23,6 +24,7 @@ test('Session observer exposes only named checkpoint and handoff files beneath t
     'latest-checkpoint', 'checkpoint', 'handoff',
   ]);
   assert.equal(inventory.items.some((item) => item.label === 'outside.md'), false);
+  assert.equal(inventory.items.some((item) => item.label === 'notes.txt'), false);
   assert.equal(inventory.items.every((item) => !item.path.startsWith('..')), true);
 
   const handoff = inventory.items.find((item) => item.kind === 'handoff');
