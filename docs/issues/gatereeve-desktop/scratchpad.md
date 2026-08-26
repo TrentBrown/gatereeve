@@ -23,7 +23,7 @@ Replace status outright - rejected because it would break current plugin and CLI
 
 ## [2] Package Electron Desktop as an independent canonical consumer
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -38,7 +38,7 @@ Reuse the CLI process as the Desktop backend - rejected because the CLI is optio
 
 ## [3] Constrain Desktop to a named read-only IPC protocol
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

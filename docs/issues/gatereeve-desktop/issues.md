@@ -35,12 +35,12 @@ tests. This completes intended PR slice 1.
 
 ## I-3 - Build the Electron shell and observation coordinator
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P4, P5
 - **Rubric criteria:** R1, R3, R6, R7, R8
 - **Depends on:** I-2
-- **PR:** -
+- **PR:** [#4](https://github.com/TrentBrown/gatereeve/pull/4)
 
 Create the independent Electron package, read-only IPC boundary, explicit
 worktree lifecycle, preferences, source enrichment, watchers, and targeted
