@@ -5,6 +5,9 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-26
 
+**Active slice:** `desktop-shell-observation` — P4-P5 / I-3 / implementing on
+`gatereeve-desktop-shell`
+
 ## Rubric Status
 
 | # | Criterion (short) | Status | PR | Notes |
@@ -32,4 +35,5 @@ Append PR boundary entries here.
 - **Evidence:** [PR #2 packet](pr-2/boundary.json)
 - **Boundary result:** Attempt 3 passed verification, specification evaluation, judge, code review, decision triage, and explain-diff; pattern review is not applicable because no scope is configured
 - **Boundary refresh:** Attempt 4 passed all gates after merging approved PR #3 and all four Plugin CI jobs passed
-- **Status:** Refreshed human review accepted by Trent Brown; awaiting guarded landing
+- **Merge:** `641be1354eb6c50029fb1cc3826776a1749d4c77` on `main`
+- **Status:** Merged; I-1 and I-2 complete
