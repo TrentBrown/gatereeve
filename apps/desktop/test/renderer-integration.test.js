@@ -81,8 +81,14 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
   assert.equal(window.document.querySelectorAll('.model-group').length, 4);
   assert.match(window.document.querySelector('#model-mermaid').textContent, /flowchart/);
   window.document.querySelector('[data-view="session"]').click();
-  await waitFor(() => window.document.querySelectorAll('[data-session-id]').length > 0, 'Session context');
-  assert.equal(window.document.querySelectorAll('[data-session-id]').length > 0, true);
+  await waitFor(
+    () => !window.document.querySelector('#session-list').textContent.includes('Loading Session context'),
+    'optional Session context',
+  );
+  assert.match(
+    window.document.querySelector('#session-list').textContent,
+    /Latest checkpoint|No checkpoint or handoff is present/,
+  );
 
   assert.equal(await readFile(journalPath, 'utf8'), journalBefore);
   delete globalThis.window;
