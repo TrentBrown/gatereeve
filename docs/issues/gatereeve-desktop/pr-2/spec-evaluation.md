@@ -1,7 +1,7 @@
 # Spec Evaluation - PR #2
 
 **Scope:** Slice 1, `desktop-observer-contract` (P1-P3 / I-1-I-2)
-**Pinned range:** `ecbf6fea460e220c91b846a91712217861ddb559..e20bfd548352b7a2fe28793db576d5a62554e2dc`
+**Pinned range:** `ecbf6fea460e220c91b846a91712217861ddb559..08e472f4a39c5a96fe4d9ceb3799e4bbe1921cc2`
 
 ## Result
 
@@ -14,7 +14,7 @@ slice. No criterion has contrary evidence requiring `FAIL`.
 
 | Criterion | Slice result | Evidence | Remaining work |
 |---|---|---|---|
-| AC1 Canonical read contract | PASS for P1-P3 | Versioned snapshot and named reads in `snapshot.js`; Commander/plugin parity and journal-invariance tests pass | Desktop consumer and packaged-app-without-CLI proof in P4 |
+| AC1 Canonical read contract | PASS for P1-P3 | Versioned snapshot and kind-specific named reads in `snapshot.js`; nested runtime validation, Commander/plugin parity, and journal-invariance tests pass | Desktop consumer and packaged-app-without-CLI proof in P4 |
 | AC2 Accurate readiness | PASS for P1-P3 | Actions report ready/available/blocked, authority, inputs, commands, and reasons; readiness and dirtiness fixtures pass | Desktop presentation in P6 |
 | AC3 Workspace and diagnostics | PASS for protocol portion | Governed, legacy, missing, inconsistent, suspended, and incompatible projections plus independent source statuses are covered without mutation | Worktree lifecycle, preferences, and remote enrichment in P4-P5 |
 | AC4 State-machine visualization | PASS for projection portion | Snapshot exposes pinned-model provenance, feature/slice/milestone/attempt/gate topology and migration relationship | Accessible visual surfaces in P6-P7 |
@@ -40,8 +40,8 @@ slice. No criterion has contrary evidence requiring `FAIL`.
 
 - **Build:** PASS - native plugin packages built with the new protocol inventory.
 - **Lint/format:** PASS - plugin validation/lint and pinned diff whitespace check.
-- **Unit tests:** PASS - 32 focused tests.
-- **Broad tests:** 102 pass; one unrelated environment-only failure because the host lacks `unzip`.
+- **Unit tests:** PASS - 39 focused tests, including the attempt 1 judge reproductions.
+- **Broad tests:** 103 pass; one unrelated environment-only failure because the host lacks `unzip`.
 - **Integration:** PASS - plugin adapter, Commander CLI, staged resources, and package manifests agree.
 - **Browser/Electron:** N/A for this protocol-only slice.
 - **Runtime:** PASS for the affected CLI/plugin surfaces.

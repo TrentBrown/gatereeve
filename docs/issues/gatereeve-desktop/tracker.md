@@ -29,4 +29,4 @@ Append PR boundary entries here.
 - **Plan steps:** P1, P2, P3
 - **Issues:** I-1, I-2
 - **Rubric movement:** R1-R6 advanced but remain `NOT YET` until their Desktop-facing work is complete
-- **Status:** Remediation in progress after attempt 1 judge failure; see `pr-2/judge.md`
+- **Status:** Remediation in progress after attempt 2 code-review failure; see `pr-2/code-review.md`

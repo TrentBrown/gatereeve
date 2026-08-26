@@ -1,31 +1,31 @@
-# Judge Evaluation - PR #2, attempt 1
+# Judge Evaluation - PR #2, attempt 2
 
-**Verdict:** FAIL
+**Verdict:** PASS WITH CONCERNS
 
 ## Rubric Evaluation
 
 | # | Criterion | Result | Evidence |
 |---|---|---|---|
-| R1 | Shared observational contract | FAIL | `plugin-src/shared/resources/protocol/snapshot.js:750-785` validates only a small outer subset of the snapshot and does not validate `events`, `model`, `projection`, milestones, blocker shapes, or kind-specific fields. `snapshot.js:879-887` accepts any `data` value for every named-read kind. Direct probes confirm that artifact detail with `data: null` and a snapshot with `events: null` are accepted. This does not satisfy P1's runtime-validated schema requirement. |
-| R2 | Readiness semantics | PASS WITH CONCERNS | `snapshot.js:381-587` provides the intended three readiness states, inputs, commands, and prerequisites. Stronger validation is still needed to keep malformed readiness payloads from crossing future IPC boundaries. |
-| R3 | Workspace and diagnostics | PASS WITH CONCERNS | Diagnostic modes and independent source statuses exist, but their nested shapes are not fully runtime-validated. |
-| R4 | State visualization contract | PASS WITH CONCERNS | Pinned projection, provenance, milestones, and boundary data are exposed, but the consumer-facing topology contract is only shallowly checked. |
-| R5 | Artifact inspection contract | PASS WITH CONCERNS | Allow-listed reads, realpath containment, size limit, structured JSON, and unchanged HTML are present. Kind-specific artifact result structure is not validated. |
-| R6 | History and action guidance | PASS WITH CONCERNS | Full events, attempts, model graph, and copyable actions are present, but named-read result shapes are not validated. |
+| R1 | Shared observational contract | PASS | `snapshot.js` now validates nested snapshot, projection, provenance, action, artifact, event, attempt, graph, model-lock, and kind-specific detail structures. `snapshot.test.js` reproduces and rejects the malformed `events: null`, artifact `data: null`, eligibility mismatch, invalid artifact field, and malformed model graph cases that failed attempt 1. CLI/plugin parity, staged-package execution, and journal invariance pass. |
+| R2 | Readiness semantics | PASS | Readiness derives ready/available/blocked from structural eligibility and explicit artifact/fact prerequisites; actions include authority, inputs, templates, blockers, and reasons. Tests cover missing evidence, unknown facts, failed facts, and distinct source/governance dirtiness. |
+| R3 | Workspace and diagnostics | PASS for slice scope | Governed, missing, legacy, inconsistent, suspended projection, and incompatible-core behavior are observable without mutation; local/Git/GitHub statuses are independent. Electron worktree lifecycle remains correctly outside P1-P3. |
+| R4 | State visualization contract | PASS for slice scope | The snapshot exposes the pinned projection, active slice/attempt, milestones, gate DAG data, and separate pinned/bundled/catalog/migration provenance. Renderer work remains later scope. |
+| R5 | Artifact inspection contract | PASS for slice scope | The canonical inventory exposes expectations/statuses and allow-listed named reads. Realpath containment rejects symlink escape, JSON/JSONL are structured, and explain-diff HTML is returned unchanged. Desktop viewers remain later scope. |
+| R6 | History and action guidance | PASS for slice scope | Full events retain actor, payload, passage, and model hash; attempt/model reads and exact copyable commands are available without mutation or execution. Desktop presentation remains later scope. |
 
 ## Scope Check
 
 - **Scope creep found:** No.
-- **Details:** Changed product code is confined to P1-P3: canonical observer contracts, CLI/plugin exposure, staging, tests, and documentation.
+- **Details:** Product changes remain confined to P1-P3 plus the necessary validation remediation discovered by the first judge pass.
 
 ## Gap Check
 
-- **Unaddressed AC:** The P1/R1 requirement for runtime-validated snapshot and lazy-read schemas is not met. A future Electron preload could accept malformed payloads that these validators claim are valid.
+- **Unaddressed AC:** None within P1-P3. Feature-level R1-R6 remain `NOT YET` because their specified Electron/renderer portions are intentionally assigned to later slices; R7-R8 are not in this slice.
 
 ## Contradiction Check
 
-- **Contradictions found:** The implementation and documentation call these contracts validated, while the exported validators accept structurally invalid nested data.
+- **Contradictions found:** None. The implementation's runtime-validation claim now matches directly exercised rejection behavior.
 
 ## Concerns
 
-The validator gap is directly testable and central to the slice's purpose, so it is blocking rather than a documentation-only concern. Add complete nested validation for snapshots and kind-specific detail results, add rejection tests, then rerun the pinned boundary on the new source head.
+The artifact/milestone catalog intentionally supports `gatereeve/workflow` major version 1. An otherwise core-readable model outside that catalog is marked `incompatible` with a blocker, but the snapshot may still carry its pinned projection for diagnosis. The future Desktop renderer must treat the mode and blocker as controlling and must not present incompatible actions as executable guidance. This is not a P1-P3 failure because the snapshot makes incompatibility explicit and Desktop remains read-only.
