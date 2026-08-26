@@ -14,7 +14,7 @@ Operational task breakdown derived from the plan.
 - **Plan steps:** P1, P2
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6
 - **Depends on:** none
-- **PR:** -
+- **PR:** [#2](https://github.com/TrentBrown/gatereeve/pull/2)
 
 Create the canonical snapshot and named-read contracts, artifact and milestone
 projection, readiness states, diagnostic modes, model provenance, and
@@ -27,7 +27,7 @@ non-mutating provider behavior. This begins intended PR slice 1.
 - **Plan steps:** P3
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6
 - **Depends on:** I-1
-- **PR:** -
+- **PR:** [#2](https://github.com/TrentBrown/gatereeve/pull/2)
 
 Integrate the accepted contract with the plugin adapter and Commander.js,
 update exact staging, and complete parity, packaging, readiness, and invariance
