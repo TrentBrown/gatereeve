@@ -45,6 +45,7 @@ available to you and to automation:
 
 ```bash
 gatereeve status
+gatereeve snapshot
 gatereeve next
 gatereeve graph
 gatereeve history
@@ -52,7 +53,11 @@ gatereeve history
 
 `status` is the quick operational view: feature state, active slice, active
 boundary attempt, suspension and authorization state, blockers, and next
-actions. `next` focuses on legal semantic commands and explains blocked ones.
+actions. `snapshot` returns the complete compact observational contract used by
+the plugin, CLI, and graphical observers; `gatereeve read artifact <id>`,
+`read events`, `read attempt <id>`, and `read model` lazily retrieve its larger
+details. `next` distinguishes commands that are ready now, merely available in
+principle pending fresh facts, or blocked by named prerequisites.
 `graph` emits a Mermaid view of the current position; `graph --model` shows the
 complete feature, slice, change, and PR-gate topology. `history` reads the
 durable journal. Add `--json` for the stable machine-readable result envelope.

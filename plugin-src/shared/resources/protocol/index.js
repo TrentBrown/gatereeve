@@ -14,4 +14,5 @@ export * from './observer.js';
 export * from './projection.js';
 export * from './python-guards.js';
 export * from './result.js';
+export * from './snapshot.js';
 export * from './transitions.js';

@@ -38,8 +38,8 @@ public user surface.
 }
 ```
 
-Supported internal operations are `status`, `next`, `history`, `explain`,
-`check`, `graph`, `graph.model`, `feature.init`, `feature.transition`,
+Supported internal operations are `status`, `snapshot`, `read`, `next`,
+`history`, `explain`, `check`, `graph`, `graph.model`, `feature.init`, `feature.transition`,
 `feature.abandon`, `feature.pause`, `feature.resume`, `feature.migration-impact`, `feature.migrate-model`,
 `slice.propose`, `slice.transition`, `slice.abandon`, `slice.accept-review`, `boundary.request-review`,
 `gate.record`, `gate.waive`, `gate.invalidate`, `change.propose`,
@@ -50,3 +50,16 @@ cooperative agent observed a human confirmation; it is not an identity or
 security claim. Rejected mutations exit nonzero and append no event. Read-only
 status remains successful when the feature is blocked or evidence is stale;
 `check` exits nonzero when its assertion fails.
+
+`snapshot` is the versioned canonical observational contract. It contains the
+pinned projection, bundled-model provenance, readiness, milestones, artifact
+inventory, independent source statuses, warnings, and compact recent-event
+summaries. Its action readiness is `ready`, `available`, or `blocked`; the
+legacy `eligible` field is true only for `ready` actions.
+
+`read` accepts `kind` as `artifact`, `events`, `attempt`, or `model` plus an
+optional `id`. Artifact IDs must come from the snapshot inventory, so the
+operation cannot be used as an arbitrary path reader. These operations are
+read-only and never append to the event journal. Artifact metadata includes an
+`unsafe` boolean; lexical escapes and symlinks resolving outside the feature
+record are unavailable, report `unsafe: true`, and cannot be read.

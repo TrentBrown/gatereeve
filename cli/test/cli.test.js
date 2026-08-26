@@ -164,6 +164,8 @@ test('renders hierarchical help through QP CLI Core', async () => {
     /^gatereeve Observe and enforce the GateReeve workflow protocol/m
   );
   assert.match(result.stdout, /status Show authoritative workflow state and blockers/);
+  assert.match(result.stdout, /snapshot Show the versioned canonical observational snapshot/);
+  assert.match(result.stdout, /read Read one canonical snapshot detail/);
   assert.match(result.stdout, /feature Govern the feature lifecycle/);
   assert.match(result.stdout, /slice Govern sequential delivery slices/);
   assert.match(result.stdout, /gate Record and invalidate PR-boundary evidence/);

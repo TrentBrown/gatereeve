@@ -34,8 +34,17 @@ proves the supported runtime directly.
 # Concise current position, blockers, and next actions.
 gatereeve status
 
-# Focus on eligible and blocked semantic actions.
+# Read the complete compact, versioned observational contract.
+gatereeve snapshot
+
+# Focus on ready, available-in-principle, and blocked semantic actions.
 gatereeve next
+
+# Lazily read an allow-listed artifact or complete protocol detail.
+gatereeve read artifact design
+gatereeve read events
+gatereeve read attempt attempt-1
+gatereeve read model
 
 # Explain a slice, gate, change, or current feature state.
 gatereeve explain verification
@@ -55,7 +64,14 @@ All workflow commands accept `--json`. Queries exit zero whenever a projection
 can be produced, including a blocked or stale projection. `check` exits nonzero
 when its named assertion fails. Current boundary fingerprints and external
 facts can be supplied to observer commands with `--fingerprints-file` and
-`--facts-file`.
+`--facts-file`. Independent local, Git, and GitHub availability can be supplied
+with `--sources-file` without making enrichment durable workflow state.
+
+`snapshot` is the canonical read model shared with native plugins and Desktop.
+Its actions distinguish `ready`, `available`, and `blocked`: structural
+availability alone never claims that current artifacts, facts, freshness, and
+guards permit passage. `read` returns larger details by an ID advertised in the
+snapshot; it is not an arbitrary filesystem reader.
 
 Mutation families are semantic: `feature`, `slice`, `boundary`, `gate`, and
 `change`. Use recursive help for their exact evidence and guard-input options:

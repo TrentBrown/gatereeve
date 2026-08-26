@@ -28,8 +28,10 @@ import {
   recordGateWaiver,
   recordSliceTransition,
   requestBoundaryHumanReview,
+  readDetail,
   resolveWorkflowContext,
   resumeFeature,
+  snapshot,
   status,
   successResult,
 } from './index.js';
@@ -54,6 +56,10 @@ async function executeResolvedPluginRequest(rawRequest) {
   switch (operation) {
     case 'status':
       return status(featureHome, request.options);
+    case 'snapshot':
+      return snapshot(featureHome, request.options);
+    case 'read':
+      return readDetail(featureHome, request.kind, request.id ?? null, request.options);
     case 'next':
       return next(featureHome, request.options);
     case 'history':

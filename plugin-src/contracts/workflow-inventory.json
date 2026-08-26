@@ -257,6 +257,7 @@
       "projection.js",
       "python-guards.js",
       "result.js",
+      "snapshot.js",
       "storage.js",
       "transitions.js"
     ],

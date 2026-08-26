@@ -8,6 +8,7 @@ import {
   acceptHumanReview,
   fingerprint,
   initializeFeature,
+  nextActions,
   pauseFeature,
   projectRecord,
   proposeSlice,
@@ -236,6 +237,14 @@ test('sequential slices reach a feature-final closeout through human review', as
       actor: human,
       eventId: `evt-${offset + 3}-review-accepted`,
     });
+    const acceptedProjection = projectRecord(await readFeatureRecord(featureHome), {
+      gateFingerprints: { [attemptId]: currentFingerprints },
+    });
+    assert(
+      nextActions(acceptedProjection).some(
+        (item) => item.command === `slice record-merge ${sliceId}`
+      )
+    );
     await assert.rejects(
       recordSliceTransition(featureHome, 'record-merge', sliceId, {
         actor: agent,
