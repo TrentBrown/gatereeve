@@ -1,7 +1,7 @@
 # Spec Evaluation - PR #2
 
 **Scope:** Slice 1, `desktop-observer-contract` (P1-P3 / I-1-I-2)
-**Pinned range:** `ecbf6fea460e220c91b846a91712217861ddb559..08e472f4a39c5a96fe4d9ceb3799e4bbe1921cc2`
+**Pinned range:** `ecbf6fea460e220c91b846a91712217861ddb559..d5d6c775598c6a21e90e06d8d02f26d4604b45d8`
 
 ## Result
 
@@ -18,7 +18,7 @@ slice. No criterion has contrary evidence requiring `FAIL`.
 | AC2 Accurate readiness | PASS for P1-P3 | Actions report ready/available/blocked, authority, inputs, commands, and reasons; readiness and dirtiness fixtures pass | Desktop presentation in P6 |
 | AC3 Workspace and diagnostics | PASS for protocol portion | Governed, legacy, missing, inconsistent, suspended, and incompatible projections plus independent source statuses are covered without mutation | Worktree lifecycle, preferences, and remote enrichment in P4-P5 |
 | AC4 State-machine visualization | PASS for projection portion | Snapshot exposes pinned-model provenance, feature/slice/milestone/attempt/gate topology and migration relationship | Accessible visual surfaces in P6-P7 |
-| AC5 Artifact and session inspection | PASS for contract portion | Allow-listed inventory and named reads cover Markdown, structured JSON, JSONL, raw interactive explain-diff HTML, events, attempts, and model data; path escape is rejected | Desktop viewers and Session surface in P7 |
+| AC5 Artifact and session inspection | PASS for contract portion | Allow-listed inventory and named reads cover Markdown, structured JSON, JSONL, raw interactive explain-diff HTML, events, attempts, and model data; lexical and realpath escape are rejected consistently in inventory and reads | Desktop viewers and Session surface in P7 |
 | AC6 History, model, and guidance | PASS for protocol portion | Full events retain payload/passages; attempt/model detail and copyable input-aware actions are tested; queries are non-mutating | Desktop timeline, clipboard, and read-only IPC in P4/P6-P7 |
 | AC7 Live observation and notifications | NOT YET | Outside P1-P3 | P5 and P8 |
 | AC8 Accessible supported desktop experience | NOT YET | Outside P1-P3 | P4 and P6-P8 |

@@ -8,7 +8,7 @@ entries are appended to `decisions.md`.
 
 ## [1] Add snapshot and allow-listed named reads
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

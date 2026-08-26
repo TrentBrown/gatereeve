@@ -1,29 +1,21 @@
-# Code Review - PR #2, attempt 2
+# Code Review - PR #2, attempt 3
 
 ## Findings
 
-### P1 - Artifact inventory reports an unsafe symlink as present
+No findings.
 
-**Files:** `plugin-src/shared/resources/protocol/snapshot.js:393`, `cli/test/snapshot.test.js:165`
-
-`fileMetadata()` checks only that the lexical artifact path is inside the
-feature home and then calls `stat()`, which follows symlinks. A `design.md`
-symlink resolving outside the feature therefore receives `exists: true`,
-`unsafe: false`, and status `present`. `safeArtifactContent()` performs a later
-realpath containment check and rejects the read, so the canonical inventory and
-the named read disagree about whether the advertised artifact is available.
-
-This is user-visible in Desktop: the artifact can be shown as present and
-clickable, then fail as outside the feature record. Resolve both the feature
-home and artifact realpaths during metadata collection, mark an escaping
-symlink unsafe/unavailable, retain the read-time recheck for race resistance,
-and assert the inventory status in the existing symlink test.
+The pinned diff `ecbf6fea460e220c91b846a91712217861ddb559..d5d6c775598c6a21e90e06d8d02f26d4604b45d8`
+was reviewed for observer-contract correctness, state/readiness regressions,
+path containment, staging parity, malformed-input handling, query mutation,
+documentation drift, and test gaps. The blocking findings from attempts 1 and
+2 are covered by direct negative tests.
 
 ## Residual risks and test gaps
 
-- Boundary evidence paths are portable only when providers use feature-home-relative paths or absolute paths within the selected feature home; the protocol guide should make that convention explicit if external providers will construct evidence directly.
-- The host lacks `unzip`, so one unrelated release-bundle assertion cannot run; all other 103 broad-suite tests pass.
+- The catalog supports `gatereeve/workflow` major version 1. The future Desktop renderer must treat `mode: incompatible` as controlling even when diagnostic pinned projection data is available.
+- Electron IPC, renderer, watcher, notification, accessibility, and platform behavior are later slices and are not exercised here.
+- The host lacks `unzip`, so one unrelated release-bundle assertion cannot run; the other 103 broad-suite tests pass.
 
 ## Verdict
 
-**FAIL** - one blocking correctness finding.
+**PASS**

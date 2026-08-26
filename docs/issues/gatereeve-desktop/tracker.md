@@ -22,11 +22,13 @@
 
 Append PR boundary entries here.
 
-## PR #2 - Canonical observer contract
+### PR #2 - Canonical observer contract
 
 - **URL:** https://github.com/TrentBrown/gatereeve/pull/2
 - **Scope:** Slice 1, `desktop-observer-contract`
 - **Plan steps:** P1, P2, P3
 - **Issues:** I-1, I-2
 - **Rubric movement:** R1-R6 advanced but remain `NOT YET` until their Desktop-facing work is complete
-- **Status:** Remediation in progress after attempt 2 code-review failure; see `pr-2/code-review.md`
+- **Evidence:** [PR #2 packet](pr-2/boundary.json)
+- **Boundary result:** Attempt 3 passed verification, specification evaluation, judge, code review, decision triage, and explain-diff; pattern review is not applicable because no scope is configured
+- **Status:** All formal gates passed; awaiting human review

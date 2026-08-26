@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Define snapshot schemas and readiness semantics
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P1, P2
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6
@@ -22,7 +22,7 @@ non-mutating provider behavior. This begins intended PR slice 1.
 
 ## I-2 - Expose and prove the canonical observer across plugin and CLI
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P3
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6

@@ -1,4 +1,4 @@
-# Judge Evaluation - PR #2, attempt 2
+# Judge Evaluation - PR #2, attempt 3
 
 **Verdict:** PASS WITH CONCERNS
 
@@ -10,13 +10,13 @@
 | R2 | Readiness semantics | PASS | Readiness derives ready/available/blocked from structural eligibility and explicit artifact/fact prerequisites; actions include authority, inputs, templates, blockers, and reasons. Tests cover missing evidence, unknown facts, failed facts, and distinct source/governance dirtiness. |
 | R3 | Workspace and diagnostics | PASS for slice scope | Governed, missing, legacy, inconsistent, suspended projection, and incompatible-core behavior are observable without mutation; local/Git/GitHub statuses are independent. Electron worktree lifecycle remains correctly outside P1-P3. |
 | R4 | State visualization contract | PASS for slice scope | The snapshot exposes the pinned projection, active slice/attempt, milestones, gate DAG data, and separate pinned/bundled/catalog/migration provenance. Renderer work remains later scope. |
-| R5 | Artifact inspection contract | PASS for slice scope | The canonical inventory exposes expectations/statuses and allow-listed named reads. Realpath containment rejects symlink escape, JSON/JSONL are structured, and explain-diff HTML is returned unchanged. Desktop viewers remain later scope. |
+| R5 | Artifact inspection contract | PASS for slice scope | The canonical inventory exposes expectations/statuses and allow-listed named reads. Lexical and realpath containment now agree: an escaping symlink is reported as unsafe and unavailable before the read-time recheck. JSON/JSONL are structured, and explain-diff HTML is returned unchanged. Desktop viewers remain later scope. |
 | R6 | History and action guidance | PASS for slice scope | Full events retain actor, payload, passage, and model hash; attempt/model reads and exact copyable commands are available without mutation or execution. Desktop presentation remains later scope. |
 
 ## Scope Check
 
 - **Scope creep found:** No.
-- **Details:** Product changes remain confined to P1-P3 plus the necessary validation remediation discovered by the first judge pass.
+- **Details:** Product changes remain confined to P1-P3 plus the contract-validation and artifact-containment remediations discovered by boundary attempts 1 and 2.
 
 ## Gap Check
 

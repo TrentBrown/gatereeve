@@ -1,16 +1,16 @@
 # Verification - PR #2
 
-**Pinned range:** `ecbf6fea460e220c91b846a91712217861ddb559..08e472f4a39c5a96fe4d9ceb3799e4bbe1921cc2`
+**Pinned range:** `ecbf6fea460e220c91b846a91712217861ddb559..d5d6c775598c6a21e90e06d8d02f26d4604b45d8`
 
 ## Matrix
 
 | Category | Command | Result | Evidence |
 |---|---|---|---|
-| Build/typecheck | `npm start --prefix cli -- plugin build --json` | PASS | Built both native packages; 158 files each; canonical protocol hash `sha256:12a161cda8186aa1635139e6d9d60c81e718291373aeb4f5309aa974c5515a9e` |
+| Build/typecheck | `npm start --prefix cli -- plugin build --json` | PASS | Built both native packages; 158 files each; canonical protocol hash `sha256:1e71e3baf9347033e2a20c89ccfea0570fcd61f26659e192623db2441a4a90ba` |
 | Lint/format | `npm start --prefix cli -- plugin validate --json` | PASS | 27 skills, both native platforms |
 | Lint/format | `npm start --prefix cli -- plugin lint --json` | PASS | 153 canonical files inspected |
 | Lint/format | `git diff --check ecbf6fea460e220c91b846a91712217861ddb559..e20bfd548352b7a2fe28793db576d5a62554e2dc` | PASS | No whitespace errors |
-| Unit and contract tests | `node --test cli/test/snapshot.test.js cli/test/stage-protocol.test.js cli/test/lifecycle.test.js cli/test/observer.test.js cli/test/gatereeve-cli.test.js cli/test/plugin-adapter.test.js cli/test/protocol-contracts.test.js cli/test/portability.test.js cli/test/changes.test.js cli/test/boundary-protocol.test.js` | PASS | 39 passed, 0 failed, including nested malformed-contract rejection and remediation history |
+| Unit and contract tests | `node --test cli/test/snapshot.test.js cli/test/stage-protocol.test.js cli/test/lifecycle.test.js cli/test/observer.test.js cli/test/gatereeve-cli.test.js cli/test/plugin-adapter.test.js cli/test/protocol-contracts.test.js cli/test/portability.test.js cli/test/changes.test.js cli/test/boundary-protocol.test.js` | PASS | 39 passed, 0 failed, including nested malformed-contract rejection, escaping-symlink inventory rejection, and remediation history |
 | Broad regression suite | `npm test --prefix cli` | PASS with unrelated environment limitation | 103 passed; the sole failure is the pre-existing release-bundle test invoking absent system executable `unzip` (`spawn unzip ENOENT`) |
 | Integration | Included in focused suite | PASS | Plugin adapter and Commander return the same snapshot/read contract; staged resources are executed directly; native packages have identical manifests |
 | End-to-end/browser | Not applicable | N/A | This slice defines a read-only protocol and CLI contract; no graphical application exists yet |
