@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "scope": "slice",
+  "featureId": "workflow-state-machine-cli",
+  "repositoryAlias": "repository",
+  "packetId": "pr-1",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 1,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/1",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "d9127d89c55c667c83876854ccf0fef053aec585",
+    "headRefName": "workflow-state-machine-cli",
+    "headRefOid": "8f30769b6e3928735c786cbf64b48d09e949ec91"
+  },
+  "mergeBaseSha": "d9127d89c55c667c83876854ccf0fef053aec585",
+  "evaluatedSourceSha": "8f30769b6e3928735c786cbf64b48d09e949ec91",
+  "featureBaseSha": null,
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "specEvaluation": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "judge": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "codeReview": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No pattern-review scope is configured for this repository"
+    },
+    "explainDiff": {
+      "disposition": "passed",
+      "reason": null
+    }
+  }
+}

@@ -21,8 +21,27 @@ rubric, plan, decisions, verification evidence, adversarial LLM-as-judge
 review, and closeout proof — so the work stays inspectable instead of
 disappearing into chat history.
 
+New features are governed by a versioned state-machine protocol packaged in
+the plugin. Agents remain free to investigate, design, implement, and
+remediate within the current state, but only declared semantic passages can
+move the durable workflow forward. Gate results carry input fingerprints, so
+changed code or governing artifacts make earlier evidence visibly stale.
+
+The optional Commander.js `gatereeve` CLI observes and operates that same
+protocol core. `gatereeve status`, `next`, `history`, and `graph` make the
+current feature, active slice, boundary attempt, changes, blockers, and legal
+next actions visible; installing the CLI is not required for plugin governance.
+
 ## Get started
 
+- **Plugin users:** follow [`INSTALL.md`](INSTALL.md), then the
+  [`USER-GUIDE.md`](USER-GUIDE.md) first-feature walkthrough.
+- **Plugin developers:** use [`DEVELOPMENT.md`](DEVELOPMENT.md).
+- **Release maintainers:** use [`RELEASING.md`](RELEASING.md).
+- **Rollout coordinators:** use the
+  [behavioral smoke test](docs/PLUGIN-SMOKE-TEST.md).
+- **Workflow authors:** change the canonical
+  [`WORKFLOW.md`](plugin-src/shared/resources/policy/WORKFLOW.md).
 - **[Full overview](https://gatereeve.pages.dev)** — the philosophy, the
   gate spine, workflow layers, artifact flow, and real sample artifacts
   from a completed feature.

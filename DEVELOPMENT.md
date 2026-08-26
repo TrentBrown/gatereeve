@@ -4,8 +4,9 @@ This is the end-to-end guide for maintainers who change the workflow plugin
 itself. It begins with one safe change and then explains the repository,
 maintainer CLI, validation layers, and common maintenance paths in more depth.
 
-Plugin users do not need this checkout, Node, npm, Docker, or the maintainer
-CLI. They should follow [`INSTALL.md`](INSTALL.md), then
+Plugin users do not need this checkout, npm, Docker, or the optional CLI. The
+plugin itself now requires Node 22.12 or newer for its packaged protocol core.
+They should follow [`INSTALL.md`](INSTALL.md), then
 [`USER-GUIDE.md`](USER-GUIDE.md). When a verified change is ready to publish,
 switch to [`RELEASING.md`](RELEASING.md).
 
@@ -18,7 +19,7 @@ flowchart LR
   Shared["plugin-src/shared<br>skills, policy, commands, scripts, templates"]
   Codex["plugin-src/codex<br>thin native overlay"]
   Claude["plugin-src/claude<br>thin native overlay"]
-  CLI["Maintainer CLI<br>validate, lint, build, smoke, release"]
+  CLI["GateReeve CLI<br>workflow protocol + maintainer namespaces"]
   CodexDist["dist/codex<br>generated package"]
   ClaudeDist["dist/claude<br>generated package"]
   Release["tag-triggered CI"]
@@ -91,9 +92,8 @@ sudo apt update
 sudo apt install -y git gh python3 ca-certificates
 ```
 
-Do not continue until `node --version` reports 22.12 or newer. The end-user
-plugin does not require Node; this requirement belongs only to the repository's
-maintainer CLI.
+Do not continue until `node --version` reports 22.12 or newer. The plugin and
+optional CLI share this runtime requirement.
 
 ### 2. Clone and bootstrap the checkout
 
@@ -105,9 +105,8 @@ npm start --prefix cli -- help --recurse
 ```
 
 The last command prints the complete recursive CommanderJS command tree. This
-guide uses the portable `npm start --prefix cli -- ...` form. If the user-level
-`cli()` shell helper is installed, the shorter `cli ...` form runs the same
-repository-local entrypoint from anywhere below this checkout.
+guide uses the portable `npm start --prefix cli -- ...` form. A local or global
+installation exposes the same entrypoint as `gatereeve`.
 
 `qp-cli-core` currently emits an `EBADENGINE` advisory on the supported Node 22
 baseline because its package metadata names an exact Node 23 version. The
@@ -306,7 +305,7 @@ the maintainer explicitly accepts a recorded exception.
 | `plugin-src/claude/` | Claude Code manifest and hook overlay | Canonical |
 | `plugin-src/catalogs/` | Native marketplace catalogs | Canonical |
 | `plugin-src/contracts/` | Machine-readable inventory and platform contracts | Canonical |
-| `cli/` | Private CommanderJS maintainer CLI and tests | Canonical |
+| `cli/` | Optional CommanderJS protocol CLI, maintainer namespaces, and tests | Canonical |
 | `ci/` and `.github/workflows/` | Acceptance and atomic publication automation | Canonical |
 | `docs/` | Branch lifecycle artifacts, release evidence, and supporting design records | Canonical records |
 | `workflow-site/` | Static explanatory mini-site, independent of the distributable plugin | Canonical presentation source plus rendered assets |
@@ -347,9 +346,11 @@ The marketplace release adds both packages, native catalogs, and a top-level
 
 ## Maintainer CLI Reference
 
-The CLI is private repository tooling. It is not published to npm and is not an
-end-user prerequisite. [`cli/README.md`](cli/README.md) is the concise command
-reference; recursive help is the exact live contract:
+The same Commander executable exposes public workflow observation and semantic
+passage commands plus explicit maintainer namespaces. Installing it is not an
+end-user prerequisite because native plugins invoke their packaged adapter
+directly. [`cli/README.md`](cli/README.md) is the concise command reference;
+recursive help is the exact live contract:
 
 ```bash
 npm start --prefix cli -- help --recurse
@@ -357,6 +358,10 @@ npm start --prefix cli -- help --recurse
 
 Command families:
 
+- `status`, `next`, `explain`, `history`, `graph`, and `check` observe or assert
+  the authoritative projection.
+- `feature`, `slice`, `boundary`, `gate`, and `change` submit named semantic
+  operations; they do not orchestrate agent work.
 - `plugin build` and `plugin clean` manage generated `dist/` packages.
 - `plugin validate`, `plugin lint`, and `plugin validate-native` check canonical
   source contracts.
@@ -410,7 +415,7 @@ command. Inspect generated artifact changes before committing them; unlike
 
 ## Troubleshooting
 
-### The `cli` shell command is unavailable
+### The `gatereeve` command is unavailable
 
 Use the repository-portable form from the checkout root:
 
@@ -418,9 +423,9 @@ Use the repository-portable form from the checkout root:
 npm start --prefix cli -- help --recurse
 ```
 
-The optional user-level `cli()` helper discovers an ancestor `cli/package.json`
-whose `bin.cli` points at the repository entrypoint. It is a convenience, not a
-project dependency.
+The source-checkout form above is always available after `npm ci --prefix cli`.
+The PATH command is optional and does not affect governance inside installed
+native plugins.
 
 ### Generated files changed unexpectedly
 

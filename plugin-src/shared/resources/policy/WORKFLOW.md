@@ -388,6 +388,29 @@ feature completion, zero `NOT YET` criteria may remain.
 
 ## Gates and Determinism
 
+### Protocol governance
+
+New features initialize through the plugin-packaged GateReeve protocol core and
+are governed by default. The core writes `workflow-model.lock.json`,
+`events.jsonl`, and `interview.md`, then enters `DESIGNING`. Existing in-flight
+feature folders without a model lock and journal are explicitly legacy and may
+finish under the prior artifact-driven process; v1 does not reconstruct or
+adopt their history.
+
+For governed features, every state-affecting skill follows the same contract:
+
+1. Query the plugin-local protocol adapter for authoritative state, eligibility,
+   blockers, guard inputs, and output locations.
+2. Perform the adaptive agent work inside the current state.
+3. Submit the semantic passage or evidence through the adapter.
+4. Accept passage only when the core freshly revalidates and appends the event.
+
+The adapter and core live inside the native plugin package. A PATH-installed
+Commander CLI is an optional observer/adapter over the same core. Rejected
+mutations append nothing. Hooks and CI may query or assert state but never
+record passage. The core does not stage, commit, launch agents, schedule work,
+or install Git hooks.
+
 Every gate is backed, where practical, by a validator script that exits
 nonzero on failure. The skill or command owning a boundary must run its
 validator; passage is mechanical, not rhetorical. Validators live in

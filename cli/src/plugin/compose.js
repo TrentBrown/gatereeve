@@ -17,6 +17,26 @@ function stableJson(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
+function protocolSourceManifest(sharedFiles) {
+  const prefix = 'resources/protocol/';
+  const files = sharedFiles
+    .filter((entry) => entry.path.startsWith(prefix))
+    .map((entry) => ({
+      path: entry.path.slice(prefix.length),
+      size: entry.size,
+      sha256: entry.sha256,
+    }));
+
+  if (files.length === 0) return null;
+  const hash = createHash('sha256').update(stableJson(files)).digest('hex');
+  return {
+    schemaVersion: 1,
+    sourcePath: 'resources/protocol',
+    hash: `sha256:${hash}`,
+    files,
+  };
+}
+
 async function ensureDirectory(path, label) {
   let details;
   try {
@@ -155,6 +175,7 @@ export async function composePackages({
   await ensureDirectory(sharedRoot, 'Shared plugin source');
   const sharedEntries = await inventoryTree(sharedRoot);
   const sharedFiles = sharedEntries.filter((entry) => entry.type === 'file');
+  const protocolSource = protocolSourceManifest(sharedFiles);
 
   const platformSources = [];
   for (const platform of platforms) {
@@ -202,8 +223,15 @@ export async function composePackages({
         version,
         sourceCommit,
         sourceTag,
+        ...(protocolSource ? { protocolHash: protocolSource.hash } : {}),
       })
     );
+    if (protocolSource) {
+      await writeFile(
+        resolve(buildDirectory, 'protocol-source.json'),
+        stableJson(protocolSource)
+      );
+    }
 
     const outputEntries = await inventoryTree(outputPath);
     packages.push({
@@ -222,6 +250,7 @@ export async function composePackages({
     version,
     sourceCommit,
     sourceTag,
+    protocol: protocolSource,
     packages,
   };
 }

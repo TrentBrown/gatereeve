@@ -9,8 +9,12 @@ branch, or repairing missing workflow docs.
    `.agentic-workflow.json`; legacy mode uses the current Git branch.
 2. Confirm a configured current branch is either the exact feature ID or a
    sequential branch named `<featureId>-<ordinal>-<description>`.
-3. Create `docs/issues/{featureId}/` at the resolved workspace root.
-4. Create missing workflow docs from templates:
+3. Query the plugin protocol adapter. For a missing new feature, initialize it
+   through `feature.init`; this atomically creates the model lock, journal, and
+   active `interview.md` and enters `DESIGNING`. If the resolved feature is
+   legacy, do not adopt it implicitly.
+4. As governed phases pass, create the applicable missing workflow docs from
+   templates:
    - `interview.md`
    - `spec.md`
    - `plan.md`
@@ -32,3 +36,6 @@ Useful script:
 ```bash
 python3 "<plugin-root>/resources/scripts/bootstrap_branch_docs.py"
 ```
+
+The Python bootstrap remains a legacy/repair helper. It is not the passage
+authority for a governed feature.

@@ -15,7 +15,9 @@ Use before planning from a spec.
      requirement.
    - No contradictions.
 6. Report `READY FOR PLANNING` only when blocking gaps are resolved.
-7. Offer to fix minor structural issues directly.
+7. For a governed feature, record the successful semantic `validate-spec`
+   passage through the plugin protocol adapter before planning.
+8. Offer to fix minor structural issues directly.
 
 Report format:
 

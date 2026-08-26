@@ -5,4 +5,5 @@ __pycache__/
 *.pyc
 workflow-site/node_modules/
 cli/node_modules/
+cli/resources/
 dist/

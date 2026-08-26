@@ -746,6 +746,10 @@
       margin-top: 14px;
     }
 
+    .state-flow {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
     .validation-step {
       position: relative;
       min-width: 0;
@@ -1052,6 +1056,7 @@
       <a href="#philosophy">Philosophy</a>
       <a href="#loop-engineering-view">Workflow Loops</a>
       <a href="#workflow-model">Workflow model</a>
+      <a href="#protocol-state">Protocol state</a>
       <a href="#gate-spine">Gate Spine</a>
       <a href="#workflow-layers">Workflow Layers</a>
       <a href="#artifact-lifecycle">Artifact Flow</a>
@@ -1305,6 +1310,49 @@
         </p>
       </div>
     </div>
+  </section>
+
+  <section class="panel soft" id="protocol-state">
+    <h2>Deterministic State, Agentic Work</h2>
+    <p class="note">
+      New features use a versioned GateReeve protocol. The model constrains
+      passage between durable states while agents retain freedom to investigate,
+      implement, review, and remediate inside the current state. The plugin owns
+      this governance; the optional <code>gatereeve</code> CLI observes and
+      submits semantic passages to the same core.
+    </p>
+
+    <h3>Feature lifecycle</h3>
+    <div class="validation-flow state-flow" aria-label="Feature state machine">
+      <div class="validation-step"><strong>DESIGNING</strong>Interview and approve intent.</div>
+      <div class="validation-step"><strong>SPECIFYING</strong>Define and validate observable requirements.</div>
+      <div class="validation-step"><strong>PLANNING</strong>Plan the work and authorize implementation.</div>
+      <div class="validation-step"><strong>DELIVERING_SLICES</strong>Deliver one sequential slice at a time.</div>
+      <div class="validation-step"><strong>FINALIZING</strong>Close out an already merged complete feature.</div>
+      <div class="validation-step"><strong>COMPLETE</strong>Freeze the proven feature record.</div>
+      <div class="validation-step"><strong>ABANDONED_FEATURE</strong>Terminal human-confirmed abandonment.</div>
+    </div>
+
+    <h3>Slice lifecycle</h3>
+    <div class="validation-flow state-flow" aria-label="Delivery slice state machine">
+      <div class="validation-step"><strong>PROPOSED</strong>Name a delivery instance; do not invent a new state.</div>
+      <div class="validation-step"><strong>PLANNED</strong>Bind scope, plan steps, rubric, and branch.</div>
+      <div class="validation-step"><strong>IMPLEMENTING</strong>Agent works autonomously inside approved scope.</div>
+      <div class="validation-step"><strong>PR_BOUNDARY</strong>Nested gates run as a dependency graph.</div>
+      <div class="validation-step"><strong>HUMAN_REVIEW</strong>Wait for the genuine human boundary.</div>
+      <div class="validation-step"><strong>MERGED</strong>Verify reviewed content on integration.</div>
+      <div class="validation-step"><strong>ABANDONED</strong>Terminal slice disposition.</div>
+    </div>
+
+    <p>
+      PR-boundary items are first-class, but they are nested gate records rather
+      than peer feature states. Each records outcome, evidence, fingerprint,
+      freshness, eligibility, and blockers. Design/spec/plan/slice discoveries
+      are likewise first-class change records with their own lifecycle, so
+      learning changes the visible plan without pretending the feature moved
+      backward in time. Use <code>gatereeve status</code> for the operational
+      overview and <code>gatereeve graph</code> for the current projection.
+    </p>
   </section>
 
   <section class="panel" id="gate-spine">

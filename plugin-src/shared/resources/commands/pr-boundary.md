@@ -85,4 +85,6 @@ boundary inside a long-running PR.
     the second derives feature changes from Git where possible and enforces
     packet integrity and prior-packet immutability.
 17. Request human review only after the prior steps complete or are explicitly
-    waived by the user.
+    waived by the user. For governed features, every gate result must first be
+    recorded with its current input fingerprint and the request must pass through
+    the protocol adapter; direct artifact completion does not advance state.

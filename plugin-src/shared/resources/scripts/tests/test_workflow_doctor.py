@@ -88,7 +88,7 @@ class WorkflowDoctorTests(unittest.TestCase):
     def _lookup(self, name: str) -> str | None:
         if name == "git":
             return self.git
-        if name in {"python3", "gh", "codex"}:
+        if name in {"python3", "node", "gh", "codex"}:
             return f"/fixture/{name}"
         return None
 
@@ -103,7 +103,12 @@ class WorkflowDoctorTests(unittest.TestCase):
             environment=self.environment,
         )
 
-    def _run(self, *, activation_observed: bool = True) -> dict[str, object]:
+    def _run(
+        self,
+        *,
+        activation_observed: bool = True,
+        node_version: tuple[int, int, str] = (22, 12, "22.12.0"),
+    ) -> dict[str, object]:
         return run_doctor(
             plugin_root=self.plugin_root,
             home=self.home,
@@ -112,6 +117,7 @@ class WorkflowDoctorTests(unittest.TestCase):
             environment=self.environment,
             executable_lookup=self._lookup,
             gh_auth_check=lambda executable, environment: True,
+            node_version_check=lambda executable, environment: node_version,
         )
 
     @staticmethod
@@ -128,6 +134,12 @@ class WorkflowDoctorTests(unittest.TestCase):
         self.assertTrue(result["ready"])
         optional = next(item for item in result["checks"] if item["id"] == "optional-integrations")
         self.assertEqual(optional["status"], "info")
+
+    def test_old_node_runtime_blocks_readiness(self) -> None:
+        self._configure()
+        result = self._run(node_version=(22, 11, "22.11.0"))
+        self.assertFalse(result["ready"])
+        self.assertIn("node-version", self._failed_ids(result))
 
     def test_missing_configuration_fails_with_actionable_checks(self) -> None:
         result = self._run()
