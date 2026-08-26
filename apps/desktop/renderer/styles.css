@@ -1,0 +1,52 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #211634;
+  background: #f5f2fb;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; min-width: 760px; min-height: 560px; }
+
+button {
+  border: 1px solid #6941a5;
+  border-radius: 0.55rem;
+  padding: 0.62rem 0.9rem;
+  color: #fff;
+  background: #6941a5;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:focus-visible { outline: 3px solid #f0a64b; outline-offset: 2px; }
+button:disabled { opacity: 0.55; cursor: default; }
+
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.75rem;
+  color: #fff;
+  background: linear-gradient(115deg, #37204f, #594099 70%, #7252b5);
+}
+
+.masthead h1 { margin: 0; font-family: Georgia, serif; font-size: 2rem; }
+.eyebrow { margin: 0 0 0.15rem; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.7rem; }
+main { padding: 1.75rem; }
+.panel { max-width: 960px; margin: 0 auto; padding: 1.5rem; border: 1px solid #ddd3ee; border-radius: 0.85rem; background: #fff; box-shadow: 0 10px 30px rgb(62 38 92 / 8%); }
+.panel h2 { margin-top: 0; font-family: Georgia, serif; }
+.status-line { display: flex; justify-content: space-between; gap: 1rem; color: #655b70; }
+.badge { border-radius: 999px; padding: 0.25rem 0.55rem; color: #fff; background: #594099; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.08em; }
+.path { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; color: #655b70; }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.facts div { padding: 0.85rem; border-radius: 0.55rem; background: #f7f4fb; }
+.facts dt { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #6b5e78; }
+.facts dd { margin: 0.25rem 0 0; overflow-wrap: anywhere; }
+#recents { display: grid; gap: 0.5rem; margin-top: 1rem; }
+.recent { text-align: left; color: #47305f; background: #f7f4fb; }
+.error { margin-top: 1rem; padding: 0.75rem; border-left: 4px solid #a8324a; background: #fff0f2; }
+
+@media (max-width: 820px) {
+  .facts { grid-template-columns: 1fr; }
+}
