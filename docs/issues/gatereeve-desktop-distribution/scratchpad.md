@@ -65,3 +65,39 @@ Use supported JSON plugin listings first, retain text fallback where useful, and
 
 **Alternatives considered:**
 Treat a listing failure as missing - rejected because failed observation is not evidence of absence; reuse the install command for updates - rejected because native managers expose distinct update ownership; inspect plugin files directly - rejected because the native manager is the installation authority.
+
+## [5] Select Rolling Vale as the GateReeve icon direction
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop branding assets, macOS iconset, Finder/Dock/notification identity, DMG presentation, and future release documentation
+
+Promote V1 — Rolling Vale as the production GateReeve application-icon direction. Its simple twin-tower gatehouse, pale architectural arch, raised portcullis, and continuous light road through rolling purple hills preserve the medieval GateReeve association while remaining readable at small sizes. Production asset generation may apply optical simplification at the smallest iconset sizes, but must preserve this identity and palette.
+
+**Triggered by:** Human review of the generated icon refinement rounds selected V1 — Rolling Vale
+
+**Alternatives considered:**
+Original A was rejected as too detailed at small sizes; C was rejected as too abstract; A2/V4/V5 were rejected in favor of V1's separate towers, pale arch, and rolling landscape.
+
+## [6] Package the universal application with Electron Packager
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop development dependencies, macOS bundle assembly, universal binary generation, ad-hoc candidate signing, and CI artifact verification
+
+Use the same `@electron/packager` foundation already proven by the PortReeve
+sister project, but target Electron's `universal` architecture rather than
+producing separate ARM and Intel applications. Add `@electron/asar` as an
+explicit verification dependency so packaged-resource checks do not rely on a
+transitive package. Build only development candidates in this slice and seal
+them consistently with an ad-hoc identity; Developer ID signing, notarization,
+and every public release path remain unavailable until P6.
+
+**Triggered by:** P4 requires one inspectable `GateReeve.app` that contains both macOS architectures and runs from the same DMG bytes on Apple Silicon and Intel
+
+**Alternatives considered:**
+Manually splice downloaded Electron distributions - rejected because it duplicates mature universal-bundle logic and increases bundle-signing risk; adopt Electron Forge or Builder - rejected because either introduces a broader packaging framework than this application needs; publish separate architecture bundles as PortReeve currently does - rejected because AC1 explicitly requires one universal application and DMG.

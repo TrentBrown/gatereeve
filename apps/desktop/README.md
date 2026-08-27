@@ -5,6 +5,11 @@ GateReeve feature worktree. It consumes a staged copy of the canonical
 GateReeve protocol directly; the optional Commander CLI is not a runtime
 dependency.
 
+The GateReeve Plugin is the required workflow-governance component. Desktop is
+an optional native observation surface over the durable records that Plugin
+governance creates; installing Desktop without the Plugin does not create a
+useful workflow on its own.
+
 The application presents the pinned feature-state rail, subordinate
 milestones, delivery slices, PR-boundary gate dependencies, blockers,
 readiness-aware action guidance, complete artifact inventory, event and
@@ -46,6 +51,26 @@ or the optional GateReeve CLI. Desktop persists only the explicit selected-agent
 preference, recent and last worktree paths, window geometry, and the native
 notification preference. It does not persist detection results or cache
 snapshots, workflow artifacts, GitHub responses, or governance state.
+
+## macOS candidate packaging
+
+On macOS, build the development candidate with:
+
+```bash
+npm ci
+npm run package:mac
+```
+
+The result is `dist/macos/GateReeve-<version>-macos-universal.dmg`. It contains
+one universal `GateReeve.app`, the approved Rolling Vale icon, bundle identifier
+`com.trentbrown.gatereeve.desktop`, and an Applications shortcut. Open the DMG
+and drag GateReeve to Applications.
+
+This command intentionally produces an ad-hoc signed development candidate. It
+is suitable for identity, architecture, packaged-runtime, and local-install
+verification, but it is not a public release. Developer ID signing,
+notarization, stapling, Gatekeeper proof, and the direct RC are introduced only
+through the later protected release slices.
 
 For renderer-only visual review on a host without Electron runtime libraries,
 serve this package directory and open `/visual/index.html`. The fixture uses

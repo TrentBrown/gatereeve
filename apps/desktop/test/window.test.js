@@ -8,6 +8,7 @@ test('Electron window uses process isolation and denies embedded web content', (
   const options = browserWindowOptions('/app/preload.cjs');
   assert.equal(options.minWidth, 760);
   assert.equal(options.minHeight, 560);
+  assert.equal(options.title, 'GateReeve');
   assert.equal(options.webPreferences.contextIsolation, true);
   assert.equal(options.webPreferences.nodeIntegration, false);
   assert.equal(options.webPreferences.sandbox, true);

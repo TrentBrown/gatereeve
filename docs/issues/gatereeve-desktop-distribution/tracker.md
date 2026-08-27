@@ -5,9 +5,10 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Setup and compatibility P3 / I-2 is at its PR boundary in
-[#8](https://github.com/TrentBrown/gatereeve/pull/8) after runtime foundation
-[#7](https://github.com/TrentBrown/gatereeve/pull/7) merged.
+**Active slice:** Identity and universal DMG P4 / I-3 is in progress after
+setup and compatibility [#8](https://github.com/TrentBrown/gatereeve/pull/8)
+merged. Human review selected V1 - Rolling Vale as the production icon;
+universal packaging and exact-byte ARM/Intel verification are being finalized.
 
 ## Rubric Status
 
@@ -54,4 +55,4 @@ Append PR boundary entries here.
   specification evaluation, independent judge, code review after resolving
   three pre-pin findings, decision triage, explain-diff, and all ten GitHub
   checks; pattern review is not applicable because no scope is configured
-- **Status:** In review
+- **Status:** Merged; I-2 is closed

@@ -10,7 +10,7 @@ export function browserWindowOptions(preload, geometry = null) {
     minWidth: 760,
     minHeight: 560,
     show: false,
-    title: 'GateReeve Desktop',
+    title: 'GateReeve',
     backgroundColor: '#f5f2fb',
     webPreferences: {
       allowRunningInsecureContent: false,
