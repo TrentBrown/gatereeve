@@ -100,10 +100,31 @@ test('release runbook preserves the guarded RC-to-stable lifecycle', async () =>
   assert.ok(oneLine.includes('not the routine human release interface'));
 });
 
+test('Apple release setup is actionable, protected, and team-key only', async () => {
+  const guide = await document('APPLE-RELEASE-SETUP.md');
+  const releaseGuide = await document('RELEASING.md');
+  for (const phrase of [
+    'Enroll as an individual',
+    'Developer ID Application',
+    'team API key',
+    'individual keys cannot use `notaryTool`',
+    'encrypted offline',
+    'release-publication',
+    'GATEREEVE_DEVELOPER_ID_P12_BASE64',
+    'GATEREEVE_NOTARY_KEY_P8_BASE64',
+    'apple_trust=true',
+    'does **not** approve publication',
+  ]) {
+    assert.ok(guide.includes(phrase), `Apple setup guide must include: ${phrase}`);
+  }
+  assert.match(releaseGuide, /APPLE-RELEASE-SETUP\.md/u);
+});
+
 test('keeps developer and release bash examples syntactically valid', async () => {
   const documents = await Promise.all([
     document('DEVELOPMENT.md'),
     document('RELEASING.md'),
+    document('APPLE-RELEASE-SETUP.md'),
   ]);
   const blocks = documents.flatMap((contents) =>
     [...contents.matchAll(/```bash\n([\s\S]*?)```/g)].map((match) =>

@@ -5,10 +5,10 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Coordinated release and recovery P5 / I-4 is in review in PR
-[#10](https://github.com/TrentBrown/gatereeve/pull/10) from
-`gatereeve-desktop-distribution-04-coordinated-release`. PR #9 merged the prior
-identity and universal-DMG boundary as commit `3a340e3` on `main`.
+**Active slice:** Apple trust boundary P6 / I-5 is in progress on
+`gatereeve-desktop-distribution-05-apple-trust`. PR
+[#10](https://github.com/TrentBrown/gatereeve/pull/10) merged coordinated
+release and recovery as commit `20b555e` on `main`.
 
 ## Rubric Status
 
@@ -88,4 +88,4 @@ Append PR boundary entries here.
   evaluation, judge, code review after remediating record-invariant findings,
   decision triage, explain-diff, and hosted CI pass; pattern review is not
   applicable because no scope is configured
-- **Status:** In review; I-4 is in review
+- **Status:** Merged; I-4 is closed

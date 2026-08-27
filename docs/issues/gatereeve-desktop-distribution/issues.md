@@ -51,7 +51,7 @@ and package and inspect one native universal drag-to-Applications DMG.
 
 ## I-4 - Coordinated release and recovery
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P5
 - **Rubric criteria:** R6
@@ -64,7 +64,7 @@ publication.
 
 ## I-5 - Apple trust boundary
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 1d
 - **Plan steps:** P6
 - **Rubric criteria:** R5, R6

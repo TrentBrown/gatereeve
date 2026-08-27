@@ -39,6 +39,20 @@ test('macOS identity and universal packager options are permanent', () => {
   assert.equal(options.arch, 'universal');
   assert.equal(options.asar, true);
   assert.equal(options.osxSign.identity, '-');
+  assert.equal(options.osxSign.optionsForFile().hardenedRuntime, false);
+  const trusted = electronPackagerOptions({
+    stageRoot: '/stage',
+    outputRoot: '/output',
+    iconPath: '/GateReeve.icns',
+    version: '0.1.0-rc.1',
+    signingIdentity: 'Developer ID Application: Trent Brown (ABCDEFGHIJ)',
+    keychain: '/tmp/release.keychain-db',
+  });
+  assert.equal(trusted.osxSign.identityValidation, true);
+  assert.equal(trusted.osxSign.keychain, '/tmp/release.keychain-db');
+  assert.equal(trusted.osxSign.preAutoEntitlements, true);
+  assert.equal(trusted.osxSign.optionsForFile().hardenedRuntime, true);
+  assert.equal(trusted.osxSign.optionsForFile().timestamp, undefined);
   assert.equal(dmgFilename('0.1.0-rc.1'), 'GateReeve-0.1.0-rc.1-macos-universal.dmg');
   assert.equal(electronPackagerOptions({
     stageRoot: '/stage',

@@ -116,3 +116,18 @@ Represent one GateReeve release with an immutable semantic tag and source commit
 
 **Alternatives considered:**
 Copy PortReeve's complete release engine - rejected because GateReeve has only two candidate surfaces and no native-service or architecture matrix; retain the Plugin-only tag publisher and coordinate Desktop informally - rejected because it permits divergent identities and bypasses exact approval; model publication as one atomic state - rejected because Git, marketplace, GitHub Releases, manifest, and website cannot commit atomically.
+
+## [8] Use a team API key for autonomous notarization
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Apple enrollment runbook, release-publication environment, notarization script, secret names, rotation and recovery guidance
+
+Use an Account Holder-created App Store Connect team API key for notarytool, together with a password-protected Developer ID Application .p12. Store only the .p8 and base64 .p12 plus the export password as release-publication environment secrets; store key, issuer, team, and expected identity identifiers as non-secret environment variables. Keep encrypted offline recovery copies under the user's control. Do not support Apple Account app-specific passwords as a parallel CI mode.
+
+**Triggered by:** P6 must support long autonomous CI runs, while Apple explicitly excludes individual App Store Connect API keys from notarytool
+
+**Alternatives considered:**
+Use an individual API key - rejected because Apple states individual keys cannot use notaryTool; use an Apple Account app-specific password - rejected because it couples autonomous releases to a personal login credential and adds a second authentication mode; sign every release manually on the user's Mac - rejected because the approved design assigns repeatable signing to protected CI.
