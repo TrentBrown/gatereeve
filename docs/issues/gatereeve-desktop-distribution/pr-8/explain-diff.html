@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #8 Explained — GateReeve Setup and Compatibility</title>
+  <style>
+    :root { --ink:#21182a; --muted:#685f70; --paper:#fbf9fc; --card:#fff; --line:#ddd5e4; --purple:#7252b5; --purple-dark:#3e285f; --purple-soft:#eee8f8; --green:#267052; --green-soft:#e5f4ec; --amber:#8b5a18; --amber-soft:#fff1d8; --red:#932f49; --shadow:0 16px 45px rgb(45 30 60 / 10%); }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:linear-gradient(180deg,#f2edf7 0,#fbf9fc 24rem); font:17px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    a { color:var(--purple-dark); }
+    code { padding:.08rem .28rem; border-radius:.25rem; background:var(--purple-soft); font: .9em ui-monospace,SFMono-Regular,Consolas,monospace; }
+    pre { overflow:auto; padding:1rem; border-radius:.7rem; color:#f8f5fb; background:#271a33; font:14px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+    header { padding:5rem 1.4rem 4rem; text-align:center; }
+    header p { max-width:54rem; margin:1rem auto 0; color:var(--muted); font-size:1.1rem; }
+    h1,h2,h3 { line-height:1.18; font-family:Georgia,"Times New Roman",serif; }
+    h1 { max-width:60rem; margin:0 auto; font-size:clamp(2.5rem,7vw,5.2rem); letter-spacing:-.04em; }
+    h2 { margin:0 0 1.2rem; font-size:clamp(2rem,4vw,3.2rem); }
+    h3 { margin:1.8rem 0 .6rem; font-size:1.45rem; }
+    .pin { display:inline-block; margin-bottom:1rem; padding:.35rem .65rem; border-radius:99px; color:#fff; background:var(--purple-dark); font:700 .72rem ui-monospace,monospace; }
+    .toc,main { width:min(72rem,calc(100% - 2rem)); margin:auto; }
+    .toc { display:flex; flex-wrap:wrap; gap:.55rem; justify-content:center; margin-bottom:3rem; }
+    .toc a { padding:.55rem .8rem; border:1px solid var(--line); border-radius:99px; background:#fff; text-decoration:none; font-weight:700; }
+    section { margin:0 0 2rem; padding:clamp(1.2rem,4vw,3rem); border:1px solid var(--line); border-radius:1rem; background:rgb(255 255 255 / 90%); box-shadow:var(--shadow); }
+    .lede { max-width:50rem; color:var(--muted); font-size:1.08rem; }
+    .callout { margin:1.2rem 0; padding:1rem 1.15rem; border-left:5px solid var(--purple); border-radius:.4rem; background:var(--purple-soft); }
+    .callout.good { border-color:var(--green); background:var(--green-soft); }
+    .callout.warn { border-color:var(--amber); background:var(--amber-soft); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr)); gap:1rem; }
+    .card { padding:1rem; border:1px solid var(--line); border-radius:.75rem; background:var(--card); }
+    .card h3 { margin-top:0; }
+    .diagram { display:grid; gap:.8rem; margin:1.5rem 0; padding:1.1rem; border-radius:.85rem; background:#f8f5fa; }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.7rem; align-items:stretch; }
+    .node { position:relative; display:grid; min-height:7rem; place-content:center; padding:.75rem; border:1px solid #cfc4da; border-radius:.65rem; background:#fff; text-align:center; }
+    .node:not(:last-child)::after { content:"→"; position:absolute; right:-.62rem; top:42%; z-index:2; color:var(--purple); font-weight:900; }
+    .node strong,.node small { display:block; }
+    .node small { margin-top:.35rem; color:var(--muted); }
+    .state-row { display:grid; grid-template-columns:repeat(3,1fr); gap:.8rem; }
+    .state { padding:1rem; border-radius:.7rem; text-align:center; }
+    .matched { color:#18573e; background:var(--green-soft); }
+    .compatible { color:#4e3477; background:var(--purple-soft); }
+    .incompatible { color:#84233e; background:#f9e3e9; }
+    table { width:100%; border-collapse:collapse; margin:1rem 0; }
+    th,td { padding:.7rem; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; }
+    .quiz { display:grid; gap:1rem; }
+    .question { padding:1rem; border:1px solid var(--line); border-radius:.75rem; background:#fff; }
+    .question h3 { margin-top:0; }
+    .answers { display:grid; gap:.5rem; }
+    .answers button { width:100%; padding:.72rem; border:1px solid #cfc4da; border-radius:.5rem; color:var(--ink); background:#faf8fc; text-align:left; cursor:pointer; }
+    .answers button:hover { border-color:var(--purple); background:var(--purple-soft); }
+    .answers button.correct { border-color:var(--green); background:var(--green-soft); }
+    .answers button.incorrect { border-color:var(--red); background:#f9e3e9; }
+    .feedback { min-height:1.6rem; margin:.65rem 0 0; color:var(--muted); }
+    footer { padding:1rem 1rem 4rem; color:var(--muted); text-align:center; }
+    @media (max-width:780px) { .flow,.state-row { grid-template-columns:1fr; } .node:not(:last-child)::after { content:"↓"; right:50%; top:auto; bottom:-1rem; } section { padding:1.1rem; } }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="pin">dae5c53 → a5a8e93 · PR #8</span>
+    <h1>GateReeve learns to explain whether it is ready</h1>
+    <p>This slice adds a persistent, read-only Setup surface. It observes the tools and agent-native Plugins a user selected, compares exact Desktop/Plugin release pairs, and gives useful next steps without becoming an installer.</p>
+  </header>
+
+  <nav class="toc" aria-label="Table of contents">
+    <a href="#background">Background</a>
+    <a href="#intuition">Intuition</a>
+    <a href="#code">Code</a>
+    <a href="#edge-cases">Edge cases</a>
+    <a href="#quiz">Quiz</a>
+  </nav>
+
+  <main>
+    <section id="background">
+      <h2>Background</h2>
+      <p class="lede">GateReeve has three surfaces with deliberately different jobs. The Plugin governs workflow passage. The optional Commander CLI gives another control and inspection surface over the same protocol. Desktop observes the durable record and makes it understandable. PR #8 does not blur those boundaries.</p>
+
+      <div class="grid">
+        <article class="card"><h3>Plugin</h3><p>Required for governing new or active work. Installed and managed by Codex or Claude Code.</p></article>
+        <article class="card"><h3>Desktop</h3><p>Optional visual observer. It reads state and now reports setup readiness, but never advances the workflow.</p></article>
+        <article class="card"><h3>CLI</h3><p>Optional Commander.js surface. Desktop does not call it and does not require it to exist.</p></article>
+      </div>
+
+      <h3>Why Setup belongs in the observer</h3>
+      <p>A readable feature record can outlive the environment that created it. That creates two distinct questions: “Can I inspect this historical record?” and “Is this machine ready to govern new work?” Before this PR, Desktop answered the first question but had no durable place to answer the second.</p>
+      <div class="callout"><strong>Key distinction:</strong> incomplete setup blocks the claim that active work is operationally ready. It does not hide a safely readable existing record.</div>
+
+      <h3>Why version equality is too strict—and version ranges are too loose</h3>
+      <p>Desktop and Plugin are released together, but native managers can update them at different times. Exact equality would reject harmless, tested skew. A broad semantic-version range would claim compatibility without proof. The chosen middle ground is an explicit table of tested pairs.</p>
+      <div class="state-row" aria-label="Compatibility states">
+        <div class="state matched"><strong>Matched</strong><br>Same coordinated release</div>
+        <div class="state compatible"><strong>Compatible</strong><br>Different, explicitly tested releases</div>
+        <div class="state incompatible"><strong>Incompatible</strong><br>No exact evidence for this pair</div>
+      </div>
+    </section>
+
+    <section id="intuition">
+      <h2>Intuition</h2>
+      <p class="lede">Think of Setup as an inspector with a clipboard. The user tells it which rooms to inspect. It checks fixed facts, writes nothing into those rooms, and reports what it found.</p>
+
+      <div class="diagram">
+        <div class="flow">
+          <div class="node"><strong>User selection</strong><small>Codex, Claude, or both</small></div>
+          <div class="node"><strong>Bounded discovery</strong><small>Known Finder-safe paths</small></div>
+          <div class="node"><strong>Read-only probes</strong><small>Version, auth, plugin list</small></div>
+          <div class="node"><strong>Exact evidence</strong><small>Tested version pair</small></div>
+          <div class="node"><strong>Setup result</strong><small>Ready or incomplete</small></div>
+        </div>
+      </div>
+
+      <h3>A concrete example</h3>
+      <pre>Desktop: 0.1.0
+Selected agents: ["codex", "claude"]
+
+Codex:
+  authenticated: true
+  Plugin: 0.1.0-rc.2 (explicitly compatible)
+
+Claude Code:
+  executable: missing
+
+Shared prerequisites: all present
+
+Result: READY through Codex
+        Claude Code still needs attention</pre>
+      <p>The “at least one” rule matters. Selecting Claude as a second intended environment must not make a functioning Codex environment unusable. Equally, Setup must not erase the incomplete Claude selection merely to make the headline green.</p>
+
+      <div class="callout good"><strong>Freedom inside a deterministic boundary:</strong> agents can work through any selected ready host, while GateReeve states exactly which hosts are ready and why.</div>
+
+      <h3>Facts versus actions</h3>
+      <p>Detection runs fixed read-only commands such as version, authentication status, and plugin listing. Remediation commands are data rendered in a code block. Clicking “Copy native command” writes text to the clipboard; it does not execute the text.</p>
+    </section>
+
+    <section id="code">
+      <h2>Code walkthrough</h2>
+
+      <h3>1. The state contract becomes explicit</h3>
+      <p><code>shared/contracts.js</code> adds exact schemas for selected agents, shared prerequisites, per-agent CLI state, Plugin state, compatibility, and remediation. The Desktop envelope requires preference selection and Setup selection to agree. A ready state requires all shared prerequisites and at least one ready selected agent.</p>
+      <pre>operationalReady =
+  prerequisites.every(item =&gt; item.status === 'present')
+  &amp;&amp; agents.some(agent =&gt; agent.status === 'ready')</pre>
+
+      <h3>2. Compatibility becomes project data</h3>
+      <p><code>shared/setup-compatibility.json</code> records the Desktop version and exact tested Plugin pairs. <code>main/setup-compatibility.js</code> validates the shape, prevents duplicate pairs, and rejects contradictory labels. Lookup is exact: an absent pair is incompatible.</p>
+      <table>
+        <thead><tr><th>Desktop</th><th>Plugin</th><th>State</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>0.1.0</td><td>0.1.0</td><td>Matched</td><td>Coordinated release</td></tr>
+          <tr><td>0.1.0</td><td>0.1.0-rc.2</td><td>Compatible</td><td>Portable acceptance</td></tr>
+          <tr><td>0.1.0</td><td>Anything else</td><td>Incompatible</td><td>No exact pair</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3. Native adapters observe their owners</h3>
+      <p><code>main/setup-observer.js</code> discovers only selected agents and the shared prerequisites. Codex and Claude Code retain ownership of their Plugins. Detection prefers structured JSON, keeps bounded text fallback, and distinguishes an unavailable manager from a confirmed missing Plugin.</p>
+      <div class="callout warn"><strong>Fail closed:</strong> an enabled Plugin with no manager-reported exact version is incompatible. A failed listing is unavailable. Neither becomes operationally ready by guesswork.</div>
+
+      <h3>4. Finder launch no longer means terminal PATH</h3>
+      <p><code>main/executable-discovery.js</code> extends macOS discovery with fixed Homebrew and user-manager locations, the Codex application resource directory, and bounded enumeration under the NVM version root. It does not crawl the home directory or the filesystem.</p>
+
+      <h3>5. Coordination persists intent, not detection</h3>
+      <p><code>main/preferences.js</code> persists the explicit agent selection. <code>main/coordinator.js</code> rechecks at launch and on request. Version, authentication, and Plugin facts stay ephemeral. When the selection changes, stale detection cards are cleared before the new check begins.</p>
+
+      <h3>6. IPC and the renderer expose a narrow surface</h3>
+      <p>The preload adds only <code>recheckSetup</code> and <code>setSelectedAgents</code>. The renderer provides first-launch Setup, permanent Setup navigation, copy-only native commands and official links, visible compatibility evidence, and a historical/offline banner. It never receives a general command runner.</p>
+
+      <h3>7. Tests bind the promises together</h3>
+      <p>The suite covers exact pair classification, malformed metadata, selected-only probing, manager failures, unknown versions, native remediation, one-of-two readiness, selection changes, first-launch rendering, mixed ready/incomplete rendering, package contents, accessibility, and real Electron startup on macOS and Ubuntu.</p>
+    </section>
+
+    <section id="edge-cases">
+      <h2>Edge cases the design makes visible</h2>
+      <div class="grid">
+        <article class="card"><h3>No selection</h3><p>Setup is unconfigured. No agent installation is examined and Recheck is disabled until the user chooses.</p></article>
+        <article class="card"><h3>Listing failed</h3><p>The Plugin is “unavailable,” not “missing.” A failed observation cannot prove absence.</p></article>
+        <article class="card"><h3>Version omitted</h3><p>An enabled Plugin without an exact manager-reported version cannot prove a tested pair and fails closed.</p></article>
+        <article class="card"><h3>Compatible skew</h3><p>Work can continue, evidence is shown, and the native update path is offered as copy-only guidance.</p></article>
+        <article class="card"><h3>One of two works</h3><p>Overall setup is ready through the working agent, while the incomplete selected agent remains visible.</p></article>
+        <article class="card"><h3>Old record, broken setup</h3><p>The record remains readable under an explicit historical/offline label; readiness is not overstated.</p></article>
+      </div>
+    </section>
+
+    <section id="quiz">
+      <h2>Quiz</h2>
+      <p class="lede">Choose one answer for each question. Feedback appears immediately.</p>
+      <div class="quiz">
+        <article class="question" data-answer="1" data-feedback="Readiness requires all shared prerequisites and at least one ready selected agent; other selected agents remain visible as incomplete.">
+          <h3>1. When Codex is ready and selected Claude Code is missing, what is the overall Setup result?</h3>
+          <div class="answers"><button>Incomplete, because every selected agent must be ready.</button><button>Ready through Codex, with Claude Code still shown as needing attention.</button><button>Ready, after silently removing Claude Code from the saved selection.</button></div><p class="feedback" aria-live="polite"></p>
+        </article>
+        <article class="question" data-answer="2" data-feedback="Compatibility is proven only by an exact Desktop/Plugin pair in project-controlled tested metadata.">
+          <h3>2. What makes two different release versions compatible?</h3>
+          <div class="answers"><button>They share the same major and minor semantic version.</button><button>The Plugin manager reports both as enabled.</button><button>The exact pair appears in project-controlled metadata with evidence.</button></div><p class="feedback" aria-live="polite"></p>
+        </article>
+        <article class="question" data-answer="0" data-feedback="A listing failure means the fact is unavailable. Reporting “missing” would claim evidence the observer does not possess.">
+          <h3>3. Both JSON and text Plugin listings fail. What should Setup report?</h3>
+          <div class="answers"><button>Unavailable, with repair guidance and readiness blocked.</button><button>Missing, with the normal installation command.</button><button>Compatible, because the installed version cannot contradict the table.</button></div><p class="feedback" aria-live="polite"></p>
+        </article>
+        <article class="question" data-answer="1" data-feedback="Desktop renders remediation as inert text and offers clipboard copying; the native manager remains the owner of execution.">
+          <h3>4. What happens when a user clicks “Copy native command”?</h3>
+          <div class="answers"><button>Electron runs the command after asking for operating-system approval.</button><button>The command is copied to the clipboard; GateReeve executes nothing.</button><button>The Plugin receives a workflow event instructing it to update itself.</button></div><p class="feedback" aria-live="polite"></p>
+        </article>
+        <article class="question" data-answer="2" data-feedback="Setup readiness and historical readability are deliberately separate: incomplete setup cannot claim active readiness but does not erase durable evidence.">
+          <h3>5. Why can an existing feature record remain visible when Setup is incomplete?</h3>
+          <div class="answers"><button>The record itself proves the currently installed Plugin is still compatible.</button><button>Desktop temporarily relaxes Setup checks whenever a worktree is selected.</button><button>Historical inspection is safe and read-only, while governance readiness is a separate current-machine claim.</button></div><p class="feedback" aria-live="polite"></p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>Generated for GateReeve PR #8 from the pinned diff <code>dae5c53..a5a8e93</code>.</footer>
+  <script>
+    for (const question of document.querySelectorAll('.question')) {
+      const buttons = [...question.querySelectorAll('button')];
+      const answer = Number(question.dataset.answer);
+      buttons.forEach((button, index) => button.addEventListener('click', () => {
+        buttons.forEach((item, itemIndex) => {
+          item.classList.toggle('correct', itemIndex === answer);
+          item.classList.toggle('incorrect', itemIndex === index && index !== answer);
+          item.disabled = true;
+        });
+        question.querySelector('.feedback').textContent = `${index === answer ? 'Correct.' : 'Not quite.'} ${question.dataset.feedback}`;
+      }));
+    }
+  </script>
+</body>
+</html>
