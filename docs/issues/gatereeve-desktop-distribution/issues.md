@@ -26,7 +26,7 @@ packaged-byte execution is completed by I-3.
 
 ## I-2 - Setup and compatibility surface
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P3
 - **Rubric criteria:** R3, R4
@@ -39,12 +39,12 @@ compatibility states.
 
 ## I-3 - Product identity and universal DMG
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R2
 - **Depends on:** I-1, I-2
-- **PR:** -
+- **PR:** [#9](https://github.com/TrentBrown/gatereeve/pull/9)
 
 Create and select the GateReeve icon, establish the permanent macOS identity,
 and package and inspect one native universal drag-to-Applications DMG.

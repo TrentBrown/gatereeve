@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #9 explained — GateReeve universal macOS package</title>
+  <style>
+    :root { color-scheme: light; --ink:#1e1838; --purple:#7357bb; --pale:#f3efff; --cream:#fff8e8; --line:#d8cfee; --good:#176b45; --muted:#655e78; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.62 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:#faf8ff; }
+    header { padding:64px 24px 48px; color:white; background:linear-gradient(135deg,#17112f,#60439f); }
+    header .wrap, main { max-width:980px; margin:auto; }
+    h1 { max-width:780px; margin:0 0 14px; font-size:clamp(2.2rem,6vw,4.3rem); line-height:1.02; letter-spacing:-.045em; }
+    h2 { margin-top:72px; padding-top:18px; border-top:1px solid var(--line); font-size:2rem; }
+    h3 { margin-top:36px; font-size:1.25rem; }
+    p, li { max-width:76ch; }
+    main { padding:30px 24px 80px; }
+    nav { margin:-28px 0 48px; padding:22px 24px; border:1px solid var(--line); border-radius:18px; background:white; box-shadow:0 12px 36px #33226113; }
+    nav a { display:inline-block; margin:4px 18px 4px 0; color:#4d3189; font-weight:700; }
+    code { padding:.12em .36em; border-radius:5px; background:#eee8fa; }
+    pre { overflow:auto; padding:18px; border-radius:14px; color:#f7f3ff; background:#21193c; white-space:pre-wrap; }
+    .meta { color:#e7ddff; }
+    .callout { margin:26px 0; padding:18px 20px; border-left:5px solid var(--purple); border-radius:0 14px 14px 0; background:var(--pale); }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:10px; margin:28px 0; align-items:stretch; }
+    .node { position:relative; padding:16px 12px; border:1px solid var(--line); border-radius:14px; text-align:center; background:white; }
+    .node:not(:last-child)::after { content:"→"; position:absolute; right:-17px; top:38%; z-index:2; color:var(--purple); font-size:1.35rem; font-weight:900; }
+    .node strong { display:block; margin-bottom:5px; }
+    .node small { color:var(--muted); }
+    .split { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:26px 0; }
+    .card { padding:20px; border:1px solid var(--line); border-radius:16px; background:white; }
+    .arch { position:relative; min-height:170px; overflow:hidden; color:white; background:#1d173a; }
+    .arch::before { content:""; position:absolute; left:24%; right:24%; bottom:-22px; height:145px; border:22px solid #cfc2ff; border-bottom:0; border-radius:120px 120px 0 0; }
+    .road { position:absolute; left:42%; bottom:-8px; width:16%; height:110px; background:var(--cream); clip-path:polygon(38% 0,62% 0,100% 100%,0 100%); }
+    .rails { position:absolute; left:33%; right:33%; top:58px; height:50px; border-top:8px solid var(--ink); border-bottom:8px solid var(--ink); }
+    table { width:100%; border-collapse:collapse; margin:24px 0; background:white; }
+    th,td { padding:12px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#eee8fa; }
+    .quiz { margin:24px 0; padding:22px; border:1px solid var(--line); border-radius:16px; background:white; }
+    .quiz button { display:block; width:100%; margin:9px 0; padding:12px 14px; border:1px solid #b9a9de; border-radius:10px; color:var(--ink); text-align:left; background:#faf8ff; cursor:pointer; }
+    .quiz button:hover { background:#eee8fa; }
+    .quiz button.correct { border-color:var(--good); background:#e9f8f0; }
+    .quiz button.wrong { border-color:#a74444; background:#fff0f0; }
+    .feedback { min-height:1.5em; color:var(--muted); font-weight:650; }
+    .badge { display:inline-block; padding:4px 9px; border-radius:99px; color:#fff; background:var(--good); font-size:.82rem; font-weight:800; }
+    @media (max-width:760px) { .flow { grid-template-columns:1fr; } .node:not(:last-child)::after { content:"↓"; right:49%; top:auto; bottom:-22px; } .split { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header><div class="wrap">
+    <span class="badge">Pinned PR #9</span>
+    <h1>From source tree to one native GateReeve DMG</h1>
+    <p class="meta">Explains exactly <code>9ccee2a…0eebfb8</code>: Rolling Vale identity, universal Electron packaging, conventional installation, and exact-byte ARM/Intel proof.</p>
+  </div></header>
+  <main>
+    <nav aria-label="Table of contents">
+      <strong>Contents</strong><br>
+      <a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#evidence">Evidence</a><a href="#quiz">Quiz</a>
+    </nav>
+
+    <section id="background">
+      <h2>Background</h2>
+      <h3>The product has two different jobs</h3>
+      <p>The GateReeve Plugin governs work: it records durable workflow state and enforces passage. GateReeve Desktop observes that record. Desktop is optional, read-only, and useful only when the Plugin has created something to observe. The earlier slices made its observer self-contained and added Setup and compatibility; this slice turns the source application into a Mac product.</p>
+      <div class="split">
+        <div class="card"><strong>Before this PR</strong><p>Developers could run Electron from the repository. The app had no permanent native bundle identity, approved shipping icon, installable DMG, or proof that packaged bytes behaved like source.</p></div>
+        <div class="card"><strong>After this PR</strong><p>A macOS host can derive an iconset, build one ARM-plus-Intel app, seal an ad-hoc candidate, place it beside an Applications shortcut, and verify the emitted DMG on both native architectures.</p></div>
+      </div>
+      <div class="card arch" aria-label="Simplified Rolling Vale icon diagram"><div class="rails"></div><div class="road"></div></div>
+      <p><strong>Rolling Vale</strong> supplies the visual identity: two towers, a pale arch, a raised portcullis, rolling hills, and a light road that continues through the threshold. The reviewed source image is not merely copied by convention; its SHA-256 digest is part of the package contract.</p>
+      <div class="callout"><strong>Trust boundary.</strong> This PR makes an ad-hoc signed development candidate. That proves bundle integrity without claiming Developer ID trust. Signing, notarization, stapling, Gatekeeper acceptance, and public distribution remain later protected work.</div>
+    </section>
+
+    <section id="intuition">
+      <h2>Intuition</h2>
+      <p>The central idea is to treat packaging as a small compiler pipeline. Each phase has one input and one inspectable output. The last two phases use the same DMG rather than two separately built approximations.</p>
+      <div class="flow" role="img" aria-label="Packaging flow from source to native verification">
+        <div class="node"><strong>Allow-listed source</strong><small>Only runtime files and approved art</small></div>
+        <div class="node"><strong>Iconset</strong><small>Ten standard macOS renditions</small></div>
+        <div class="node"><strong>Universal app</strong><small>arm64 + x86_64 in one bundle</small></div>
+        <div class="node"><strong>DMG</strong><small>App + /Applications link</small></div>
+        <div class="node"><strong>Two native runs</strong><small>One downloaded artifact</small></div>
+      </div>
+      <p>Suppose the build emitted <code>D</code>. A weaker test would build <code>D-arm</code> on one host and <code>D-intel</code> on another. Both might pass while differing in resources or behavior. This PR instead uploads <code>D</code> once. The two jobs download that artifact, mount it read-only, inspect it, and launch it natively. The equality is an artifact fact, not an assumption.</p>
+      <pre>build(macOS ARM host) → D
+download(D, ARM host) → inspect + run
+download(D, Intel host) → inspect + run</pre>
+    </section>
+
+    <section id="code">
+      <h2>Code walkthrough</h2>
+      <h3>1. One permanent identity contract</h3>
+      <p><code>macos-package-contract.mjs</code> centralizes the product name, bundle identifier, Electron version, universal architecture, volume name, icon source, icon digest, required ASAR files, and packager options. Tests pin the values. Drift fails before a build can quietly produce a differently named product.</p>
+      <h3>2. A positive staging boundary</h3>
+      <p><code>package-macos.mjs</code> does not copy the whole Desktop project and try to remove dangerous pieces afterward. It copies five known runtime directories and one known image into a clean stage, then writes a dependency-free package manifest. This keeps Python, test fixtures, visual tooling, package scripts, and external Node modules out by construction.</p>
+      <h3>3. Native asset and bundle construction</h3>
+      <p><code>generate-macos-icon.mjs</code> invokes fixed Apple tools to create the standard 16-through-1024-pixel iconset and compile <code>GateReeve.icns</code>. Electron Packager then builds architecture <code>universal</code> and applies an ad-hoc seal. <code>create-macos-dmg.mjs</code> copies the app with <code>ditto</code>, creates a literal Applications link, builds a compressed image, and asks <code>hdiutil</code> to verify it.</p>
+      <h3>4. Verification starts from the deliverable</h3>
+      <p><code>verify-macos-package.mjs</code> starts with the DMG, not the staging tree. It mounts read-only, checks plist identity and icon declaration, runs <code>lipo</code> over the app, Electron framework, and helpers, verifies the deep ad-hoc signature, inventories ASAR, and then launches the packaged executable with isolated preferences and a Finder-like PATH.</p>
+      <table>
+        <thead><tr><th>Question</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Is this really GateReeve?</td><td>Bundle name, display name, ID, version, icon, and source digest.</td></tr>
+          <tr><td>Is it really universal?</td><td>Every principal executable must contain exactly <code>arm64</code> and <code>x86_64</code>.</td></tr>
+          <tr><td>Is it self-contained?</td><td>Required ASAR files exist; Python and development directories do not.</td></tr>
+          <tr><td>Can a user install it conventionally?</td><td>The mounted DMG contains <code>GateReeve.app</code> and a symlink to <code>/Applications</code>.</td></tr>
+          <tr><td>Does the deliverable run?</td><td>The mounted app observes a real governed fixture on both native host types.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="evidence">
+      <h2>What passed</h2>
+      <p>The package job emitted a 243,571,641-byte DMG with SHA-256 <code>fc3c007d…7fe4a</code>. GitHub stored it as artifact ID <code>9661075538</code>. Both native jobs downloaded the same artifact digest, then independently reported successful verification on <code>arm64</code> and <code>x64</code>. The 61-test Desktop suite and every existing Ubuntu, container, contract, and source-runtime job also passed.</p>
+      <div class="callout"><strong>What has not been claimed:</strong> the DMG is not a public release and is not Gatekeeper-trusted. The next release slices must add a coordinated release record, Apple credentials and protected signing, update discovery, explicit publication approval, and finally the Cask.</div>
+    </section>
+
+    <section id="quiz">
+      <h2>Quiz</h2>
+      <div class="quiz" data-answer="2"><strong>1. Why do both native jobs download one artifact?</strong>
+        <button>To make the Intel runner emulate ARM during launch</button><button>To reduce the number of Electron unit tests</button><button>To prove both architectures run identical deliverable bytes</button><p class="feedback"></p></div>
+      <div class="quiz" data-answer="1"><strong>2. What prevents an unreviewed icon from entering the app?</strong>
+        <button>Finder compares the picture visually at first launch</button><button>The package contract pins the approved source path and SHA-256</button><button>Electron downloads the icon from the release page</button><p class="feedback"></p></div>
+      <div class="quiz" data-answer="0"><strong>3. Why is staging based on an allow-list?</strong>
+        <button>New development files stay out unless explicitly promoted into runtime</button><button>It lets the package load arbitrary global Node modules</button><button>It makes the ASAR unnecessary</button><p class="feedback"></p></div>
+      <div class="quiz" data-answer="2"><strong>4. What does the ad-hoc signature establish?</strong>
+        <button>Apple notarized the app for public distribution</button><button>The app was signed by the future Developer ID certificate</button><button>The candidate is consistently sealed, without making a public trust claim</button><p class="feedback"></p></div>
+      <div class="quiz" data-answer="1"><strong>5. Which test best proves packaged runtime independence?</strong>
+        <button>A source-level import test with the repository's Node installation</button><button>The mounted app opens a real governed fixture with packaged JS and a Finder-like PATH</button><button>The DMG filename contains the word universal</button><p class="feedback"></p></div>
+    </section>
+  </main>
+  <script>
+    document.querySelectorAll('.quiz').forEach((quiz) => {
+      const correct = Number(quiz.dataset.answer);
+      const buttons = [...quiz.querySelectorAll('button')];
+      buttons.forEach((button, index) => button.addEventListener('click', () => {
+        buttons.forEach((candidate, candidateIndex) => {
+          candidate.classList.toggle('correct', candidateIndex === correct);
+          candidate.classList.toggle('wrong', candidateIndex === index && index !== correct);
+        });
+        quiz.querySelector('.feedback').textContent = index === correct
+          ? 'Correct — that is the contract this PR actually proves.'
+          : 'Not quite. Revisit the packaging pipeline and its explicit trust boundary.';
+      }));
+    });
+  </script>
+</body>
+</html>

@@ -104,7 +104,7 @@ jobs:
 
   desktop-runtime-macos:
     name: Desktop runtime on macOS
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -123,3 +123,67 @@ jobs:
         env:
           GATEREEVE_DESKTOP_SMOKE: "1"
           GATEREEVE_DESKTOP_SMOKE_WORKTREE: ${{ runner.temp }}/gatereeve-desktop-smoke
+
+  desktop-package-macos:
+    name: Universal macOS package
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --prefix apps/desktop
+      - name: Build the universal application and DMG
+        run: npm run package:mac --prefix apps/desktop
+      - name: Upload the exact candidate DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: gatereeve-universal-dmg
+          path: apps/desktop/dist/macos/GateReeve-*-macos-universal.dmg
+          if-no-files-found: error
+
+  desktop-package-runtime-macos:
+    name: Packaged runtime on ${{ matrix.architecture }}
+    needs: desktop-package-macos
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: Apple Silicon
+            native: arm64
+            runner: macos-15
+          - architecture: Intel
+            native: x64
+            runner: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --ignore-scripts --prefix apps/desktop
+      - uses: actions/download-artifact@v4
+        with:
+          name: gatereeve-universal-dmg
+          path: ${{ runner.temp }}/gatereeve-package
+      - name: Prepare a real governed runtime fixture
+        run: >-
+          node apps/desktop/scripts/create-smoke-fixture.mjs
+          "$RUNNER_TEMP/gatereeve-desktop-smoke"
+      - name: Resolve the coordinated Desktop version
+        id: desktop-metadata
+        run: |
+          node -e "process.stdout.write('version=' + require('./apps/desktop/package.json').version + '\n')" >> "$GITHUB_OUTPUT"
+      - name: Inspect, mount, and launch the exact packaged bytes
+        run: >-
+          node apps/desktop/scripts/verify-macos-package.mjs
+          --dmg "$RUNNER_TEMP/gatereeve-package/GateReeve-${{ steps.desktop-metadata.outputs.version }}-macos-universal.dmg"
+          --version "${{ steps.desktop-metadata.outputs.version }}"
+          --fixture "$RUNNER_TEMP/gatereeve-desktop-smoke"
+          --native-architecture "${{ matrix.native }}"

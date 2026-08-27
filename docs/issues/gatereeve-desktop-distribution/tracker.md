@@ -5,16 +5,18 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Setup and compatibility P3 / I-2 is at its PR boundary in
-[#8](https://github.com/TrentBrown/gatereeve/pull/8) after runtime foundation
-[#7](https://github.com/TrentBrown/gatereeve/pull/7) merged.
+**Active slice:** Identity and universal DMG P4 / I-3 is in review in
+[#9](https://github.com/TrentBrown/gatereeve/pull/9). Human review selected
+V1 - Rolling Vale, and the exact universal DMG candidate passes identity,
+resource, ad-hoc signature, and governed-fixture launch verification on hosted
+Apple Silicon and Intel runners.
 
 ## Rubric Status
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Native identity and universal DMG | NOT YET | - | P4, P8, P10 / I-3, I-7, I-8 |
-| R2 | Packaged runtime independence | NOT YET | [#7](https://github.com/TrentBrown/gatereeve/pull/7) | JavaScript/Python resolver parity, Python-free Desktop staging, Finder-compatible dependency discovery, real governed-fixture runtime smoke, and Ubuntu regression coverage pass; exact packaged-byte execution remains P4 / I-3 |
+| R1 | Native identity and universal DMG | NOT YET | [#9](https://github.com/TrentBrown/gatereeve/pull/9) | Rolling Vale branding, permanent bundle identity, conventional DMG, universal binary inspection, and exact-byte ARM/Intel launch pass for the ad-hoc candidate; trusted public RC and final verification remain P8 and P10 |
+| R2 | Packaged runtime independence | PASS | [#7](https://github.com/TrentBrown/gatereeve/pull/7), [#9](https://github.com/TrentBrown/gatereeve/pull/9) | JavaScript/Python resolver parity, Python-free staging, Finder-compatible discovery, Ubuntu regression coverage, and the same mounted packaged bytes observing a real governed fixture without external Node, Python, or CLI pass on ARM and Intel |
 | R3 | Setup and readiness | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Persistent selected-agent Setup, bounded read-only adapters, native remediation, recheck, one-of-selected readiness, unavailable-state honesty, and historical/offline presentation pass local and exact-head hosted verification |
 | R4 | Compatibility governance | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Exact project-controlled matched/compatible/incompatible pairs, tested skew, update guidance, and fail-closed unknown or unreported versions pass matrix and UI verification |
 | R5 | Apple trust | NOT YET | - | P6, P8, P10 / I-5, I-7, I-8 |
@@ -54,4 +56,20 @@ Append PR boundary entries here.
   specification evaluation, independent judge, code review after resolving
   three pre-pin findings, decision triage, explain-diff, and all ten GitHub
   checks; pattern review is not applicable because no scope is configured
-- **Status:** In review
+- **Status:** Merged; I-2 is closed
+
+### PR #9 - Identity and universal DMG
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/9
+- **Scope:** Delivery boundary 3, identity and universal DMG
+- **Plan steps:** P4
+- **Issues:** I-3
+- **Rubric movement:** R2 moves to `PASS`; R1 advances with complete candidate
+  identity, branding, DMG, architecture, and native runtime evidence but remains
+  `NOT YET` until trusted public RC and final verification
+- **Evidence:** [PR #9 packet](pr-9/boundary.json)
+- **Boundary result:** Attempt 1 passes exact-head verification, scoped
+  specification evaluation, independent judge, code review with no findings,
+  decision triage, explain-diff, and all twelve GitHub CI jobs; pattern review
+  is not applicable because no scope is configured
+- **Status:** In review; I-3 is in review

@@ -33,6 +33,10 @@ import {
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
+if (process.env.GATEREEVE_DESKTOP_SMOKE_USER_DATA) {
+  app.setPath('userData', resolve(process.env.GATEREEVE_DESKTOP_SMOKE_USER_DATA));
+}
+
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'gatereeve-app',
