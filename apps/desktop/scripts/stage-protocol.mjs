@@ -9,9 +9,5 @@ await stageProtocolResources({
   sourceRoot: resolve(desktopRoot, '../../plugin-src/shared/resources'),
   destinationRoot: resolve(desktopRoot, 'resources'),
   manifestName: 'desktop-projection.json',
-  includePaths: [
-    'protocol',
-    'scripts/workflow_common.py',
-    'scripts/workflow_context.py',
-  ],
+  includePaths: ['protocol'],
 });

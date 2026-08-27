@@ -28,6 +28,30 @@ test('Git observer degrades independently when Git is unavailable', async () => 
   assert.deepEqual(result.facts, {});
 });
 
+test('missing Finder executables do not execute bare commands or erase local state', async () => {
+  let executions = 0;
+  const exec = async () => {
+    executions += 1;
+    throw new Error('must not execute');
+  };
+  const git = await observeGit('/worktree', '/worktree/docs/issues/feature', {
+    exec,
+    gitExecutable: null,
+    now: () => new Date('2026-08-26T12:00:00Z'),
+  });
+  const github = await observeGitHub('/worktree', 'topic', {
+    exec,
+    ghExecutable: null,
+    now: () => new Date('2026-08-26T12:00:00Z'),
+  });
+  assert.equal(executions, 0);
+  assert.equal(git.source.status, 'unavailable');
+  assert.match(git.source.detail, /Git executable/u);
+  assert.equal(github.source.status, 'unavailable');
+  assert.match(github.source.detail, /local observation remains available/u);
+  assert.equal(github.needsPolling, false);
+});
+
 test('GitHub polling is conditional on open PRs or pending checks', () => {
   assert.equal(checkIsPending({ status: 'IN_PROGRESS', conclusion: '' }), true);
   assert.equal(checkIsPending({ status: 'COMPLETED', conclusion: 'SUCCESS' }), false);

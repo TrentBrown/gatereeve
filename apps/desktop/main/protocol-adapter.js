@@ -13,10 +13,10 @@ function requireSuccess(result, operation) {
   return result.data;
 }
 
-export function createProtocolAdapter() {
+export function createProtocolAdapter({ gitExecutable = 'git' } = {}) {
   return Object.freeze({
     async resolve(worktreePath) {
-      return resolveWorkflowContext({ cwd: worktreePath });
+      return resolveWorkflowContext({ cwd: worktreePath, gitExecutable });
     },
 
     async snapshot(featureHome, options = {}) {

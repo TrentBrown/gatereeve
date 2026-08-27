@@ -51,17 +51,14 @@ test('consumer staging copies only validated support paths and names its manifes
     sourceRoot,
     destinationRoot,
     manifestName: 'desktop-projection.json',
-    includePaths: [
-      'protocol',
-      'scripts/workflow_common.py',
-      'scripts/workflow_context.py',
-    ],
+    includePaths: ['protocol'],
   });
   assert.deepEqual(
     JSON.parse(await readFile(resolve(destinationRoot, 'desktop-projection.json'), 'utf8')),
     manifest,
   );
   await assert.rejects(access(resolve(destinationRoot, 'commands')), /ENOENT/);
+  await assert.rejects(access(resolve(destinationRoot, 'scripts')), /ENOENT/);
   await assert.rejects(
     stageProtocolResources({
       sourceRoot,

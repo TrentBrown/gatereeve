@@ -23,6 +23,7 @@ export function githubNeedsPolling(pullRequest) {
 
 export async function observeGitHub(repositoryRoot, branch, {
   exec = execute,
+  ghExecutable = 'gh',
   now = () => new Date(),
 } = {}) {
   const checkedAt = now().toISOString();
@@ -33,8 +34,19 @@ export async function observeGitHub(repositoryRoot, branch, {
       needsPolling: false,
     };
   }
+  if (ghExecutable === null) {
+    return {
+      source: source(
+        'unavailable',
+        'GitHub CLI was not found in Finder-compatible locations; local observation remains available',
+        checkedAt,
+      ),
+      pullRequest: null,
+      needsPolling: false,
+    };
+  }
   try {
-    const result = await exec('gh', [
+    const result = await exec(ghExecutable, [
       'pr', 'list', '--head', branch, '--state', 'all', '--limit', '1',
       '--json', 'number,url,state,isDraft,reviewDecision,mergeStateStatus,statusCheckRollup,mergedAt,updatedAt',
     ], {
