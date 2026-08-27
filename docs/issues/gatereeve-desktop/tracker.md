@@ -71,6 +71,6 @@ Append PR boundary entries here.
 - **Issues:** I-6, I-7
 - **Rubric movement:** R7 moves to `PASS`; R1 and R8 await supported-platform runtime evidence, while the feature-final evaluation revalidates R1-R8 against the assembled feature
 - **Evidence:** Pending [PR #6 packet](pr-6/boundary.json)
-- **Boundary result:** In progress against pinned slice head `26cb83aa1d4ed5cd3375dfea5bdd9c9a3e5a0157`
+- **Boundary result:** Attempt 1 returned to remediation when Ubuntu 24.04 exposed an unconfigured Chromium SUID sandbox; attempt 2 returned when both Ubuntu runners showed Electron 43 had not materialized that helper before configuration; attempt 3 will evaluate the explicit installer fix
 - **Retention:** Tracked; every current feature-record file is retained in Git and no human retention decision is required
 - **Status:** Draft; I-6 and I-7 are in review
