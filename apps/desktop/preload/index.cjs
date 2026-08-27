@@ -4,10 +4,13 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const channels = Object.freeze({
   chooseWorktree: 'gatereeve:desktop:choose-worktree',
+  copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
+  listSession: 'gatereeve:desktop:list-session',
   openArtifact: 'gatereeve:desktop:open-artifact',
   openRecent: 'gatereeve:desktop:open-recent',
   readDetail: 'gatereeve:desktop:read-detail',
+  readSession: 'gatereeve:desktop:read-session',
   refresh: 'gatereeve:desktop:refresh',
   revealArtifact: 'gatereeve:desktop:reveal-artifact',
   stateChanged: 'gatereeve:desktop:state-changed',
@@ -46,6 +49,62 @@ function requireArtifactId(artifactId) {
   return artifactId;
 }
 
+function requireClipboardText(value) {
+  if (typeof value !== 'string' || value.length > 262_144) {
+    throw new TypeError('Clipboard text is invalid.');
+  }
+  return value;
+}
+
+function requireSessionId(value) {
+  if (typeof value !== 'string' || !/^session:[a-z-]+:[A-Za-z0-9_-]+$/.test(value)) {
+    throw new TypeError('Session item ID is invalid.');
+  }
+  return value;
+}
+
+function requireSessionInventory(value) {
+  if (
+    typeof value !== 'object'
+    || value === null
+    || value.schemaVersion !== 1
+    || !Array.isArray(value.items)
+    || !value.items.every((item) => (
+      typeof item === 'object'
+      && item !== null
+      && Object.keys(item).sort().join(',') === 'id,kind,label,modifiedAt,path,size'
+      && typeof item.id === 'string'
+      && /^session:[a-z-]+:[A-Za-z0-9_-]+$/.test(item.id)
+      && ['latest-checkpoint', 'checkpoint', 'handoff'].includes(item.kind)
+      && typeof item.label === 'string'
+      && typeof item.path === 'string'
+      && item.path.length > 0
+      && !item.path.startsWith('..')
+      && typeof item.modifiedAt === 'string'
+      && Number.isInteger(item.size)
+      && item.size >= 0
+    ))
+  ) {
+    throw new Error('The main process returned invalid Session context.');
+  }
+  return value;
+}
+
+function requireSessionDetail(value) {
+  if (
+    typeof value !== 'object'
+    || value === null
+    || value.schemaVersion !== 1
+    || typeof value.id !== 'string'
+    || typeof value.content !== 'string'
+    || typeof value.item !== 'object'
+    || value.item?.id !== value.id
+  ) {
+    throw new Error('The main process returned invalid Session detail.');
+  }
+  return value;
+}
+
 function requireDetail(kind, id) {
   if (!['artifact', 'events', 'attempt', 'model'].includes(kind)) {
     throw new TypeError('Detail kind is invalid.');
@@ -61,7 +120,9 @@ function requireDetail(kind, id) {
 
 contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
   chooseWorktree: async () => requireState(await ipcRenderer.invoke(channels.chooseWorktree)),
+  copyText: async (value) => ipcRenderer.invoke(channels.copyText, requireClipboardText(value)),
   getState: async () => requireState(await ipcRenderer.invoke(channels.getState)),
+  listSession: async () => requireSessionInventory(await ipcRenderer.invoke(channels.listSession)),
   openArtifact: async (artifactId) => ipcRenderer.invoke(
     channels.openArtifact,
     { artifactId: requireArtifactId(artifactId) },
@@ -74,6 +135,10 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     channels.readDetail,
     requireDetail(kind, id),
   ),
+  readSession: async (id) => requireSessionDetail(await ipcRenderer.invoke(
+    channels.readSession,
+    requireSessionId(id),
+  )),
   refresh: async () => requireState(await ipcRenderer.invoke(channels.refresh)),
   revealArtifact: async (artifactId) => ipcRenderer.invoke(
     channels.revealArtifact,

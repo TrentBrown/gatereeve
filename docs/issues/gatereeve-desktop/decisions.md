@@ -54,3 +54,37 @@ Expose only worktree selection, refresh, allow-listed named detail reads, and ar
 Expose the shared plugin adapter wholesale - rejected because it contains mutations. Accept arbitrary file paths from the renderer - rejected because named artifacts already provide the required scope. Rely only on renderer validation - rejected because an Electron trust boundary requires main-process validation.
 
 **Promoted:** 2026-08-26. PR: #4.
+
+---
+
+## Keep Session context separate from canonical workflow evidence
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop coordinator, IPC/preload contracts, worktree filesystem reads, Session view, and tests
+
+Discover only `CHECKPOINT.md`, `.checkpoints/*.md`, and `.handoffs/*` beneath the explicitly selected worktree and expose them through validated Session inventory and exact-ID reads. Session files remain Desktop-local, read-only, and visually non-authoritative; they do not enter the canonical snapshot, artifact completeness, freshness, or transition passage.
+
+**Triggered by:** P7 requires checkpoint and handoff inspection while AC5 explicitly says those files are non-authoritative
+
+**Alternatives considered:**
+Add Session files to the canonical artifact inventory - rejected because it would let resumability aids look like governed evidence. Expose a generic path reader - rejected because it violates the named-read boundary. Omit Session context - rejected because it would leave an explicit acceptance requirement unmet.
+
+**Promoted:** 2026-08-27. PR: #5.
+
+---
+
+## Serve trusted explain-diff HTML through an isolated named protocol
+
+**Confidence:** HIGH
+
+**Blast Radius:** Electron protocol registration, renderer CSP, explain-diff viewer, artifact identity validation, and runtime tests
+
+Serve only the currently selected canonical HTML artifact by encoded artifact ID through a dedicated `gatereeve-artifact` protocol and render it directly in its own frame without document-level restrictions. Preserve the artifact's original HTML, styling, and scripts rather than sanitizing, sandboxing, or reconstructing it; ordinary Electron process isolation remains in force, the application renderer has a different origin, and arbitrary file paths remain unavailable.
+
+**Triggered by:** P7 and AC5 require trusted interactive explain-diff HTML to retain its behavior inside the application
+
+**Alternatives considered:**
+Use `srcdoc` - rejected because the application CSP can suppress the artifact's inline behavior. Rebuild or sanitize the document - rejected by the approved design because it loses intended styling and interactivity. Open only in the external browser - rejected because an integrated viewer is required.
+
+**Promoted:** 2026-08-27. PR: #5.

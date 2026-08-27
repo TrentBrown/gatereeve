@@ -7,6 +7,7 @@ import { DESKTOP_STATE_SCHEMA_VERSION, requireDesktopState } from '../shared/con
 import { observeGit } from './git-observer.js';
 import { observeGitHub } from './github-observer.js';
 import { rememberWorktree } from './preferences.js';
+import { listSessionContext, readSessionContext } from './session-observer.js';
 import { createWorktreeWatcher } from './worktree-watcher.js';
 
 const GITHUB_POLL_MS = 60_000;
@@ -247,6 +248,14 @@ export function createDesktopCoordinator({
         facts: currentFacts,
         sources: currentSources,
       });
+    },
+    async listSession() {
+      if (selection === null) throw new Error('Choose a worktree before reading Session context.');
+      return listSessionContext(selection.worktreePath);
+    },
+    async readSession(id) {
+      if (selection === null) throw new Error('Choose a worktree before reading Session context.');
+      return readSessionContext(selection.worktreePath, id);
     },
     artifact(artifactId) {
       const artifact = snapshot?.artifacts?.find((item) => item.id === artifactId);

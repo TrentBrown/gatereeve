@@ -30,10 +30,20 @@ test('IPC authenticates the exact top-level application frame', () => {
   assert.equal(isTrustedRenderer({ senderFrame: { url: 'https://example.com' }, sender: { mainFrame: frame } }), false);
 });
 
-test('IPC exposes only validated named reads, selection, refresh, and artifact OS actions', async () => {
+test('IPC exposes only validated named reads, Session context, clipboard, selection, refresh, and artifact OS actions', async () => {
   const handlers = new Map();
   const opened = [];
   const revealed = [];
+  const copied = [];
+  const sessionId = 'session:checkpoint:Q0hFQ0tQT0lOVC5tZA';
+  const sessionItem = {
+    id: sessionId,
+    kind: 'checkpoint',
+    label: 'CHECKPOINT.md',
+    path: '.checkpoints/CHECKPOINT.md',
+    modifiedAt: '2026-08-26T00:00:00.000Z',
+    size: 12,
+  };
   registerDesktopIpc({
     ipcMain: { handle(channel, handler) { handlers.set(channel, handler); } },
     coordinator: {
@@ -43,12 +53,17 @@ test('IPC exposes only validated named reads, selection, refresh, and artifact O
       async read(kind, id) {
         return { schemaVersion: 1, kind, id, featureId: 'feature', data: { events: [] } };
       },
+      async listSession() { return { schemaVersion: 1, items: [sessionItem] }; },
+      async readSession(id) {
+        return { schemaVersion: 1, id, item: sessionItem, content: '# State' };
+      },
       artifact(artifactId) { return { absolutePath: `/repo/${artifactId}.md` }; },
       subscribe() { return () => {}; },
     },
     async pickWorktree() { return '/repo'; },
     async openPath(path) { opened.push(path); return ''; },
     revealPath(path) { revealed.push(path); },
+    copyText(value) { copied.push(value); },
     windows: () => [],
   });
   assert.equal(handlers.size, Object.keys(IPC_CHANNELS).length - 1);
@@ -71,8 +86,15 @@ test('IPC exposes only validated named reads, selection, refresh, and artifact O
     event,
     { artifactId: 'spec' },
   ), true);
+  assert.deepEqual(await handlers.get(IPC_CHANNELS.listSession)(event), {
+    schemaVersion: 1,
+    items: [sessionItem],
+  });
+  assert.equal((await handlers.get(IPC_CHANNELS.readSession)(event, sessionId)).content, '# State');
+  assert.equal(await handlers.get(IPC_CHANNELS.copyText)(event, 'gatereeve next'), true);
   assert.deepEqual(opened, ['/repo/design.md']);
   assert.deepEqual(revealed, ['/repo/spec.md']);
+  assert.deepEqual(copied, ['gatereeve next']);
   await assert.rejects(
     handlers.get(IPC_CHANNELS.readDetail)(event, { kind: 'file', id: '/etc/passwd' }),
     /invalid/,

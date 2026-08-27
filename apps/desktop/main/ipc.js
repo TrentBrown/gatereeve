@@ -3,8 +3,12 @@
 import {
   IPC_CHANNELS,
   requireArtifactRequest,
+  requireCopyText,
   requireDesktopState,
   requireDetailRequest,
+  requireSessionDetail,
+  requireSessionId,
+  requireSessionInventory,
   requireWorktreePath,
 } from '../shared/contracts.js';
 import { validateDetail, validateSnapshot } from '../resources/protocol/snapshot.js';
@@ -27,6 +31,7 @@ export function registerDesktopIpc({
   pickWorktree,
   openPath,
   revealPath,
+  copyText,
   windows,
 }) {
   function trusted(event) {
@@ -64,6 +69,21 @@ export function registerDesktopIpc({
     if (values.length !== 1) throw new Error('Named read requires one request.');
     const request = requireDetailRequest(values[0]);
     return validateDetail(await coordinator.read(request.kind, request.id));
+  });
+  ipcMain.handle(IPC_CHANNELS.listSession, async (event, ...values) => {
+    noArguments(event, values);
+    return requireSessionInventory(await coordinator.listSession());
+  });
+  ipcMain.handle(IPC_CHANNELS.readSession, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Session read requires one exact ID.');
+    return requireSessionDetail(await coordinator.readSession(requireSessionId(values[0])));
+  });
+  ipcMain.handle(IPC_CHANNELS.copyText, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Clipboard write requires one string.');
+    copyText(requireCopyText(values[0]));
+    return true;
   });
   ipcMain.handle(IPC_CHANNELS.openArtifact, async (event, ...values) => {
     trusted(event);

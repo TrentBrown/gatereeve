@@ -5,21 +5,21 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-26
 
-**Active slice:** `desktop-shell-observation` — P4-P5 / I-3 / PR boundary on
-`gatereeve-desktop-shell`, [PR #4](https://github.com/TrentBrown/gatereeve/pull/4)
+**Active slice:** `desktop-workflow-experience` — P6-P7 / I-4-I-5 / PR boundary
+on `gatereeve-desktop-workflow-experience`, [PR #5](https://github.com/TrentBrown/gatereeve/pull/5)
 
 ## Rubric Status
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
 | R1 | Shared observational contract | NOT YET | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#4](https://github.com/TrentBrown/gatereeve/pull/4) | Desktop directly consumes the exact staged observer and validates snapshots/details without CLI execution or journal writes; packaged runtime proof remains for P8-P9 |
-| R2 | Readiness semantics | NOT YET | [#2](https://github.com/TrentBrown/gatereeve/pull/2) | Canonical ready/available/blocked semantics implemented; renderer presentation in P6 remains |
-| R3 | Workspace and diagnostics | NOT YET | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#4](https://github.com/TrentBrown/gatereeve/pull/4) | Explicit selection, recents/geometry-only persistence, canonical modes, independent source degradation, and no observational cache are implemented; complete diagnostic presentation remains in P6 |
-| R4 | State visualization | NOT YET | [#2](https://github.com/TrentBrown/gatereeve/pull/2) | State/milestone/boundary projection contract implemented; visualization in P6-P7 remains |
-| R5 | Artifact inspection | NOT YET | [#2](https://github.com/TrentBrown/gatereeve/pull/2) | Canonical inventory and named reads implemented; integrated viewers in P7 remain |
-| R6 | History and action guidance | NOT YET | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#4](https://github.com/TrentBrown/gatereeve/pull/4) | Desktop exposes validated named reads but history, model, and command guidance presentation remains in P6-P7 |
+| R2 | Readiness semantics | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Canonical ready/available/blocked semantics and dirtiness distinctions are fully presented with authority, inputs, reasons, meaning, and exact copyable commands |
+| R3 | Workspace and diagnostics | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Explicit selection, preference-only persistence, all canonical modes, independent source degradation, and complete diagnostic presentation are implemented and tested |
+| R4 | State visualization | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Pinned-model rail, milestones, slices, attempts, gate dependencies, provenance, migration impact, and complete grouped model view are rendered and tested |
+| R5 | Artifact inspection | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Complete inventory, Markdown/JSON/JSONL/text/trusted-HTML viewers, external actions, and refreshed non-authoritative Session context are implemented and tested |
+| R6 | History and action guidance | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Complete event/passage and pinned-model detail, exact IDs, command meaning/copy, and a mutation-free IPC allow-list are implemented and tested |
 | R7 | Refresh and notifications | NOT YET | [#4](https://github.com/TrentBrown/gatereeve/pull/4) | Debounced local recomputation, manual/focus refresh, and conditional 60-second GitHub polling are implemented; notifications remain P8 |
-| R8 | Supported accessible experience | NOT YET | [#4](https://github.com/TrentBrown/gatereeve/pull/4) | Isolated Electron shell, minimum dimensions, keyboard-operable selection, initial GateReeve vocabulary, and Ubuntu contract CI are present; full views, accessibility hardening, and macOS/Ubuntu runtime evidence remain P6-P8 |
+| R8 | Supported accessible experience | NOT YET | [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Principal views are semantic, keyboard-native, visibly focused, non-color-dependent, GateReeve-themed, and usable at 760x560; native accessibility hardening and macOS/Ubuntu runtime evidence remain P8 |
 
 ## PR Log
 
@@ -47,4 +47,16 @@ Append PR boundary entries here.
 - **Rubric movement:** R1, R3, R6, R7, and R8 advanced but remain `NOT YET` where later renderer, notification, accessibility, and supported-runtime work is required
 - **Evidence:** [PR #4 packet](pr-4/boundary.json)
 - **Boundary result:** Attempt 1 passed verification, scoped specification evaluation, independent judge with bounded concerns, code review with no findings, decision triage, explain-diff, and deterministic packet validation; pattern review is not applicable because no scope is configured
-- **Status:** Ready for human review; I-3 in review
+- **Merge:** `0666264d77f5812e82301157b4e0b18752ba8f1b` on `main`
+- **Status:** Merged; I-3 complete
+
+### PR #5 - State-first workflow and inspection experience
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/5
+- **Scope:** Slice 3, `desktop-workflow-experience`
+- **Plan steps:** P6, P7
+- **Issues:** I-4, I-5
+- **Rubric movement:** R2-R6 move to `PASS`; R8 advances but remains `NOT YET` for P8 native accessibility and supported-platform evidence
+- **Evidence:** [PR #5 packet](pr-5/boundary.json)
+- **Boundary result:** Attempt 3 passes exact-head verification, scoped specification evaluation, independent judge with bounded concerns, code review after remediation, decision triage, explain-diff, and deterministic packet validation; pattern review is not applicable because no scope is configured
+- **Status:** Awaiting human review

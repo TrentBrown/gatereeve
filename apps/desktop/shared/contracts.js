@@ -4,10 +4,13 @@ export const DESKTOP_STATE_SCHEMA_VERSION = 1;
 
 export const IPC_CHANNELS = Object.freeze({
   chooseWorktree: 'gatereeve:desktop:choose-worktree',
+  copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
+  listSession: 'gatereeve:desktop:list-session',
   openArtifact: 'gatereeve:desktop:open-artifact',
   openRecent: 'gatereeve:desktop:open-recent',
   readDetail: 'gatereeve:desktop:read-detail',
+  readSession: 'gatereeve:desktop:read-session',
   refresh: 'gatereeve:desktop:refresh',
   revealArtifact: 'gatereeve:desktop:reveal-artifact',
   stateChanged: 'gatereeve:desktop:state-changed',
@@ -95,6 +98,63 @@ export function requireArtifactRequest(value) {
 export function requireWorktreePath(value) {
   if (typeof value !== 'string' || value.length === 0 || value.length > 16_384) {
     throw new Error('Worktree path is invalid.');
+  }
+  return value;
+}
+
+export function requireCopyText(value) {
+  if (typeof value !== 'string' || value.length > 262_144) {
+    throw new Error('Clipboard text is invalid.');
+  }
+  return value;
+}
+
+export function requireSessionId(value) {
+  if (typeof value !== 'string' || !/^session:[a-z-]+:[A-Za-z0-9_-]+$/.test(value)) {
+    throw new Error('Session item ID is invalid.');
+  }
+  return value;
+}
+
+function validateSessionItem(item) {
+  return isObject(item)
+    && exactKeys(item, ['id', 'kind', 'label', 'modifiedAt', 'path', 'size'])
+    && typeof item.id === 'string'
+    && /^session:[a-z-]+:[A-Za-z0-9_-]+$/.test(item.id)
+    && ['latest-checkpoint', 'checkpoint', 'handoff'].includes(item.kind)
+    && typeof item.label === 'string'
+    && typeof item.path === 'string'
+    && item.path.length > 0
+    && !item.path.startsWith('..')
+    && Number.isInteger(item.size)
+    && item.size >= 0
+    && typeof item.modifiedAt === 'string';
+}
+
+export function requireSessionInventory(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['items', 'schemaVersion'])
+    || value.schemaVersion !== 1
+    || !Array.isArray(value.items)
+    || !value.items.every(validateSessionItem)
+  ) {
+    throw new Error('Session inventory is invalid.');
+  }
+  return value;
+}
+
+export function requireSessionDetail(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['content', 'id', 'item', 'schemaVersion'])
+    || value.schemaVersion !== 1
+    || typeof value.id !== 'string'
+    || !validateSessionItem(value.item)
+    || value.item.id !== value.id
+    || typeof value.content !== 'string'
+  ) {
+    throw new Error('Session detail is invalid.');
   }
   return value;
 }
