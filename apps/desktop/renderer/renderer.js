@@ -22,7 +22,10 @@ const ids = [
   'actions', 'artifact-count', 'artifact-list', 'artifact-viewer', 'history-count',
   'history-list', 'history-detail', 'model-provenance', 'model-graph', 'model-mermaid',
   'copy-mermaid', 'session-list', 'session-detail', 'toast',
-  'notifications',
+  'notifications', 'open-setup', 'setup-shell', 'setup-summary', 'setup-prerequisites',
+  'setup-agents', 'setup-recheck', 'setup-open-worktree', 'setup-return', 'save-agents',
+  'agent-selection', 'agent-codex', 'agent-claude', 'desktop-version', 'historical-reading',
+  'readiness-banner',
 ];
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
 
@@ -38,6 +41,7 @@ let eventsPromise = null;
 let sessionInventory = null;
 let sessionPromise = null;
 let toastTimer = null;
+let renderedOnce = false;
 
 function statusClass(value) {
   return String(value ?? 'unknown').toLowerCase().replaceAll(/[^a-z-]+/g, '-');
@@ -76,8 +80,13 @@ function sourceText(name, source) {
 
 function switchView(view) {
   currentView = view;
+  const setup = view === 'setup';
+  const selected = currentState?.selection !== null && currentState?.selection !== undefined;
+  elements['setup-shell'].hidden = !setup;
+  elements.chooser.hidden = setup || selected;
+  elements.workspace.hidden = setup || !selected;
   for (const page of document.querySelectorAll('[data-page]')) {
-    page.hidden = page.dataset.page !== view;
+    page.hidden = setup || !selected || page.dataset.page !== view;
   }
   for (const button of document.querySelectorAll('[data-view]')) {
     const active = button.dataset.view === view;
@@ -88,6 +97,109 @@ function switchView(view) {
   if (view === 'history') void ensureHistory();
   if (view === 'model') void ensureModel();
   if (view === 'session') void ensureSession();
+}
+
+function appendRemediation(container, value) {
+  if (!value) return;
+  container.append(node('p', { className: 'remediation-summary', text: value.summary }));
+  if (value.command) {
+    container.append(node('pre', { className: 'command', text: value.command }));
+    const button = node('button', { className: 'secondary', text: 'Copy native command', type: 'button' });
+    button.addEventListener('click', () => void copy(
+      value.command,
+      'Native command copied — GateReeve did not execute it',
+    ));
+    container.append(button);
+  }
+  container.append(node('p', { className: 'guidance-url path', text: value.guideUrl }));
+  const guide = node('button', { className: 'text-button', text: 'Copy official guide link', type: 'button' });
+  guide.addEventListener('click', () => void copy(value.guideUrl, 'Official guidance link copied'));
+  container.append(guide);
+}
+
+function setupCard(title, status, detail, remediationValue = null) {
+  const card = node('article', { className: 'setup-card' }, [
+    node('div', { className: 'card-header' }, [
+      node('h4', { text: title }),
+      statusPill(status),
+    ]),
+    node('p', { text: detail }),
+  ]);
+  appendRemediation(card, remediationValue);
+  return card;
+}
+
+function renderSetup(state) {
+  const setup = state.setup;
+  const selected = state.preferences.selectedAgents;
+  const readyAgents = setup.agents.filter((agent) => agent.status === 'ready');
+  const incompleteAgents = setup.agents.filter((agent) => agent.status !== 'ready');
+  elements['agent-codex'].checked = selected.includes('codex');
+  elements['agent-claude'].checked = selected.includes('claude');
+  elements['desktop-version'].textContent = `Desktop ${setup.desktop.version}`;
+  elements['setup-return'].hidden = state.selection === null;
+  elements['setup-recheck'].disabled = setup.phase === 'checking' || selected.length === 0;
+  elements['save-agents'].disabled = setup.phase === 'checking';
+  elements['historical-reading'].hidden = setup.operationalReady;
+
+  const summary = elements['setup-summary'];
+  summary.className = `notice ${setup.operationalReady ? 'success' : setup.phase === 'checking' ? 'info' : ''}`.trim();
+  summary.textContent = setup.phase === 'unconfigured'
+    ? 'Choose Codex, Claude Code, or both. No agent installation has been examined yet.'
+    : setup.phase === 'checking'
+      ? 'Checking only the selected agents and their workflow prerequisites…'
+      : setup.operationalReady
+        ? `Operational setup is ready through ${readyAgents.map((agent) => agent.label).join(' and ')}.${incompleteAgents.length > 0 ? ` ${incompleteAgents.map((agent) => agent.label).join(' and ')} still needs attention.` : ''}`
+        : 'Operational setup is incomplete. Existing records remain available for historical or offline inspection.';
+
+  clear(elements['setup-prerequisites']);
+  if (setup.prerequisites.length === 0) {
+    elements['setup-prerequisites'].append(node('p', {
+      className: 'muted',
+      text: selected.length === 0 ? 'Save an agent selection to check shared prerequisites.' : 'Checking prerequisites…',
+    }));
+  } else {
+    for (const item of setup.prerequisites) {
+      elements['setup-prerequisites'].append(setupCard(
+        item.label,
+        item.status,
+        item.detail,
+        item.remediation,
+      ));
+    }
+  }
+
+  clear(elements['setup-agents']);
+  if (setup.agents.length === 0) {
+    elements['setup-agents'].append(node('p', {
+      className: 'muted',
+      text: selected.length === 0 ? 'No agents selected.' : 'Checking selected agents…',
+    }));
+  }
+  for (const agent of setup.agents) {
+    const card = node('article', { className: 'setup-agent' }, [
+      node('div', { className: 'card-header' }, [node('h3', { text: agent.label }), statusPill(agent.status)]),
+      setupCard(
+        `Agent${agent.cli.version ? ` ${agent.cli.version}` : ''}`,
+        agent.cli.authenticated === false ? 'unauthenticated' : agent.cli.status,
+        agent.cli.detail,
+        agent.cli.remediation,
+      ),
+      setupCard(
+        `GateReeve Plugin${agent.plugin.version ? ` ${agent.plugin.version}` : ''}`,
+        agent.plugin.compatibility === 'not-checked' ? agent.plugin.status : agent.plugin.compatibility,
+        agent.plugin.detail,
+        agent.plugin.remediation,
+      ),
+    ]);
+    if (agent.plugin.evidence) {
+      card.append(node('p', { className: 'path', text: `Compatibility evidence: ${agent.plugin.evidence}` }));
+    }
+    if (agent.plugin.recommendation) {
+      card.append(node('div', { className: 'notice info', text: agent.plugin.recommendation }));
+    }
+    elements['setup-agents'].append(card);
+  }
 }
 
 function renderRecents(state) {
@@ -663,14 +775,21 @@ function render(state) {
   const refreshStarted = currentState?.refreshing === false && state.refreshing;
   currentState = state;
   const selected = state.selection !== null;
-  elements.chooser.hidden = selected;
-  elements.workspace.hidden = !selected;
   elements.refresh.disabled = !selected || state.refreshing;
   renderRecents(state);
+  renderSetup(state);
   elements.notifications.checked = state.preferences.notificationsEnabled;
   elements['chooser-error'].hidden = selected || state.error === null;
   elements['chooser-error'].textContent = selected ? '' : state.error?.message ?? '';
-  if (!selected) return;
+  if (!renderedOnce && state.preferences.selectedAgents.length === 0) currentView = 'setup';
+  renderedOnce = true;
+  if (!selected) {
+    elements.activity.textContent = state.setup.phase === 'checking'
+      ? 'Checking GateReeve setup…'
+      : state.setup.operationalReady ? 'Setup ready · choose a worktree' : 'Setup incomplete · historical records remain readable';
+    switchView(currentView);
+    return;
+  }
 
   if (previousSelection !== state.selection.worktreePath) {
     modelDetail = null;
@@ -699,6 +818,10 @@ function render(state) {
 
   elements.error.hidden = state.error === null;
   elements.error.textContent = state.error?.message ?? '';
+  elements['readiness-banner'].hidden = state.setup.operationalReady;
+  elements['readiness-banner'].textContent = state.setup.operationalReady
+    ? ''
+    : 'Historical/offline observation: GateReeve Setup is incomplete, so this record remains readable but new or active work is not operationally ready.';
   renderOverview(snapshot);
   renderArtifacts(snapshot);
   switchView(currentView);
@@ -706,6 +829,23 @@ function render(state) {
 }
 
 elements.choose.addEventListener('click', () => void desktop.chooseWorktree());
+elements['open-setup'].addEventListener('click', () => switchView('setup'));
+elements['setup-open-worktree'].addEventListener('click', () => void desktop.chooseWorktree());
+elements['setup-return'].addEventListener('click', () => switchView('overview'));
+elements['setup-recheck'].addEventListener('click', () => void desktop.recheckSetup());
+elements['agent-selection'].addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const selectedAgents = ['codex', 'claude'].filter((id) => elements[`agent-${id}`].checked);
+  elements['save-agents'].disabled = true;
+  try {
+    render(await desktop.setSelectedAgents(selectedAgents));
+    showToast('Agent selection saved; Setup rechecked');
+  } catch (error) {
+    showToast(error.message ?? String(error));
+  } finally {
+    elements['save-agents'].disabled = false;
+  }
+});
 elements.refresh.addEventListener('click', () => void desktop.refresh());
 elements.notifications.addEventListener('change', async () => {
   const enabled = elements.notifications.checked;

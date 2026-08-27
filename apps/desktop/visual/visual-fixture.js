@@ -124,7 +124,46 @@ const state = {
   },
   snapshot,
   error: null,
-  preferences: { notificationsEnabled: false, recentWorktrees: [] },
+  setup: {
+    schemaVersion: 1,
+    phase: 'ready',
+    operationalReady: true,
+    checkedAt: '2026-08-27T12:00:00.000Z',
+    desktop: { version: '0.1.0' },
+    selectedAgents: ['codex'],
+    prerequisites: [
+      {
+        id: 'git', label: 'Git', status: 'present', version: '2.53.0',
+        detail: 'Git 2.53.0 is available.', remediation: null,
+      },
+      {
+        id: 'python', label: 'Python', status: 'present', version: '3.14.4',
+        detail: 'Python 3.14.4 is available.', remediation: null,
+      },
+      {
+        id: 'node', label: 'Node.js', status: 'present', version: '24.19.0',
+        detail: 'Node.js 24.19.0 is available.', remediation: null,
+      },
+      {
+        id: 'github', label: 'GitHub CLI', status: 'present', version: '2.98.0',
+        detail: 'GitHub CLI 2.98.0 is available.', remediation: null,
+      },
+    ],
+    agents: [{
+      id: 'codex',
+      label: 'Codex',
+      status: 'ready',
+      cli: {
+        status: 'present', version: '0.150.1', authenticated: true,
+        detail: 'Codex is authenticated.', remediation: null,
+      },
+      plugin: {
+        status: 'enabled', version: '0.1.0', compatibility: 'matched',
+        evidence: 'release', detail: 'Matched.', recommendation: null, remediation: null,
+      },
+    }],
+  },
+  preferences: { notificationsEnabled: false, recentWorktrees: [], selectedAgents: ['codex'] },
 };
 
 window.gatereeveDesktop = Object.freeze({
@@ -133,6 +172,8 @@ window.gatereeveDesktop = Object.freeze({
   async chooseWorktree() { return state; },
   async openRecent() { return state; },
   async refresh() { return state; },
+  async recheckSetup() { return state; },
+  async setSelectedAgents() { return state; },
   async setNotificationsEnabled(enabled) {
     state.preferences.notificationsEnabled = enabled;
     return state;

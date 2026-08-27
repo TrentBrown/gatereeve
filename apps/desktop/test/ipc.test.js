@@ -14,7 +14,11 @@ function state() {
     selection: { worktreePath: '/repo', featureHome: '/repo/docs/issues/feature' },
     snapshot: null,
     error: null,
-    preferences: { notificationsEnabled: false, recentWorktrees: ['/repo'] },
+    setup: {
+      schemaVersion: 1, phase: 'unconfigured', operationalReady: false, checkedAt: null,
+      desktop: { version: '0.1.0' }, selectedAgents: [], prerequisites: [], agents: [],
+    },
+    preferences: { notificationsEnabled: false, recentWorktrees: ['/repo'], selectedAgents: [] },
   };
 }
 
@@ -50,6 +54,19 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
       current: state,
       async open() { return state(); },
       async refresh() { return state(); },
+      async recheckSetup() { return state(); },
+      async setSelectedAgents(selectedAgents) {
+        return {
+          ...state(),
+          setup: {
+            ...state().setup,
+            phase: 'incomplete',
+            checkedAt: '2026-08-27T12:00:00.000Z',
+            selectedAgents,
+          },
+          preferences: { ...state().preferences, selectedAgents },
+        };
+      },
       async setNotificationsEnabled(enabled) {
         return { ...state(), preferences: { ...state().preferences, notificationsEnabled: enabled } };
       },
@@ -96,6 +113,11 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   assert.equal((await handlers.get(IPC_CHANNELS.readSession)(event, sessionId)).content, '# State');
   assert.equal(await handlers.get(IPC_CHANNELS.copyText)(event, 'gatereeve next'), true);
   assert.equal((await handlers.get(IPC_CHANNELS.setNotificationsEnabled)(event, true)).preferences.notificationsEnabled, true);
+  assert.deepEqual(
+    (await handlers.get(IPC_CHANNELS.setSelectedAgents)(event, ['claude'])).preferences.selectedAgents,
+    ['claude'],
+  );
+  assert.equal((await handlers.get(IPC_CHANNELS.recheckSetup)(event)).setup.phase, 'unconfigured');
   assert.deepEqual(opened, ['/repo/design.md']);
   assert.deepEqual(revealed, ['/repo/spec.md']);
   assert.deepEqual(copied, ['gatereeve next']);

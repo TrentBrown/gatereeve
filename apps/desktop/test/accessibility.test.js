@@ -13,8 +13,10 @@ test('principal controls use keyboard-native elements with visible accessible na
   const { document } = parseHTML(html).window;
   const namedControls = [
     '#choose', '#refresh', '#notifications', '#attempt-select', '#copy-mermaid',
+    '#open-setup', '#setup-open-worktree', '#setup-return', '#setup-recheck',
+    '#agent-codex', '#agent-claude', '#save-agents',
     '[data-view="overview"]', '[data-view="artifacts"]', '[data-view="history"]',
-    '[data-view="model"]', '[data-view="session"]',
+    '[data-view="model"]', '[data-view="session"]', '[data-view="setup"]',
   ];
   for (const selector of namedControls) {
     const control = document.querySelector(selector);
@@ -28,6 +30,7 @@ test('principal controls use keyboard-native elements with visible accessible na
   }
   assert.equal(document.querySelector('#notifications').getAttribute('type'), 'checkbox');
   assert.match(document.querySelector('label[for="notifications"]').textContent, /Native notifications/);
+  assert.match(document.querySelector('label[for="agent-codex"]').textContent, /Codex/);
 });
 
 test('status regions and principal views expose semantic text independent of color', async () => {

@@ -40,7 +40,29 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
     selection: { worktreePath: repositoryRoot, featureHome },
     snapshot,
     error: null,
-    preferences: { notificationsEnabled: false, recentWorktrees: [] },
+    setup: {
+      schemaVersion: 1,
+      phase: 'ready',
+      operationalReady: true,
+      checkedAt: '2026-08-27T12:00:00.000Z',
+      desktop: { version: '0.1.0' },
+      selectedAgents: ['codex'],
+      prerequisites: [],
+      agents: [{
+      id: 'codex',
+      label: 'Codex',
+      status: 'ready',
+      cli: {
+        status: 'present', version: '0.150.1', authenticated: true,
+        detail: 'Codex is authenticated.', remediation: null,
+      },
+      plugin: {
+        status: 'enabled', version: '0.1.0', compatibility: 'matched',
+        evidence: 'release', detail: 'Matched.', recommendation: null, remediation: null,
+      },
+    }],
+    },
+    preferences: { notificationsEnabled: false, recentWorktrees: [], selectedAgents: ['codex'] },
   };
   const { window } = parseHTML(html);
   window.gatereeveDesktop = {
@@ -53,6 +75,8 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
     async readDetail(kind, id) { return protocol.read(featureHome, kind, id, { sources }); },
     async readSession(id) { return readSessionContext(repositoryRoot, id); },
     async refresh() { return state; },
+    async recheckSetup() { return state; },
+    async setSelectedAgents() { return state; },
     async setNotificationsEnabled(enabled) {
       state.preferences.notificationsEnabled = enabled;
       return state;

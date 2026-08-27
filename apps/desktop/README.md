@@ -9,6 +9,15 @@ The application presents the pinned feature-state rail, subordinate
 milestones, delivery slices, PR-boundary gate dependencies, blockers,
 readiness-aware action guidance, complete artifact inventory, event and
 attempt history, the full pinned model, and non-authoritative Session context.
+Its persistent Setup surface remembers an explicit Codex, Claude Code, or both
+selection, checks only those agents, and reports the selected native Plugin plus
+shared workflow prerequisites. Compatibility comes only from exact
+project-controlled tested pairs; Setup never infers it from nearby version
+numbers and never invokes an installer or the optional GateReeve CLI.
+
+Incomplete Setup blocks only the claim that new or active work is operationally
+ready. The application still opens explicitly selected durable feature records
+and labels that use as historical or offline observation.
 Native notifications are off by default. A user can opt in to receive
 transition-deduplicated attention, failed or stale gate, suspension,
 inconsistency, pull-request merge, and feature-completion notices while the
@@ -19,7 +28,7 @@ app is running. Quitting Desktop stops its watchers, polling, and notices.
 Requirements:
 
 - Node.js 22.12 or later
-- Python 3 for the canonical workflow-context resolver
+- Python 3.10 or later for full workflow development and repository acceptance
 - Git and, for optional pull-request enrichment, an authenticated `gh` CLI
 - Electron runtime libraries for the host Ubuntu or macOS environment
 
@@ -31,10 +40,12 @@ npm test
 npm start
 ```
 
-`npm start` stages the canonical protocol before launching the app. Desktop
-persists only recent and last worktree paths, window geometry, and the native
-notification preference. It does not cache snapshots, workflow artifacts,
-GitHub responses, or governance state.
+`npm start` stages the canonical protocol before launching the app. The Desktop
+observation runtime itself does not require Python, a separate Node.js runtime,
+or the optional GateReeve CLI. Desktop persists only the explicit selected-agent
+preference, recent and last worktree paths, window geometry, and the native
+notification preference. It does not persist detection results or cache
+snapshots, workflow artifacts, GitHub responses, or governance state.
 
 For renderer-only visual review on a host without Electron runtime libraries,
 serve this package directory and open `/visual/index.html`. The fixture uses
@@ -48,4 +59,7 @@ artifact IDs from the current snapshot. Trusted interactive explain-diff HTML
 is served only by canonical artifact ID. Checkpoints and handoffs use a
 separate exact-ID Session reader and never become workflow evidence. The
 renderer cannot execute GateReeve transitions, invoke the CLI, launch agents,
-read arbitrary paths, or run arbitrary processes.
+read arbitrary paths, or run arbitrary processes. Setup checks run only in the
+trusted main process, invoke version/status/list operations for explicitly
+selected agents, and expose native remediation as copyable text rather than
+executing it.

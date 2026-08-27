@@ -3,15 +3,33 @@
 import { realpath, stat } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
 
-import { DESKTOP_STATE_SCHEMA_VERSION, requireDesktopState } from '../shared/contracts.js';
+import {
+  DESKTOP_STATE_SCHEMA_VERSION,
+  requireDesktopState,
+  requireSelectedAgents,
+  requireSetupState,
+} from '../shared/contracts.js';
 import { observeGit } from './git-observer.js';
 import { observeGitHub } from './github-observer.js';
 import { createNotificationObserver } from './notification-observer.js';
-import { rememberWorktree } from './preferences.js';
+import { rememberWorktree, selectAgents } from './preferences.js';
 import { listSessionContext, readSessionContext } from './session-observer.js';
 import { createWorktreeWatcher } from './worktree-watcher.js';
 
 const GITHUB_POLL_MS = 60_000;
+
+function defaultSetup() {
+  return {
+    schemaVersion: 1,
+    phase: 'unconfigured',
+    operationalReady: false,
+    checkedAt: null,
+    desktop: { version: '0.1.0' },
+    selectedAgents: [],
+    prerequisites: [],
+    agents: [],
+  };
+}
 
 function timestamp(now) {
   return now().toISOString();
@@ -51,6 +69,8 @@ export function createDesktopCoordinator({
   setIntervalFn = setInterval,
   clearIntervalFn = clearInterval,
   initialPreferences = null,
+  initialSetup = defaultSetup(),
+  setupObserver = async () => defaultSetup(),
   notify = () => {},
 } = {}) {
   let preferences = initialPreferences;
@@ -67,6 +87,7 @@ export function createDesktopCoordinator({
   let currentSources = localSources(now);
   let gitContext = { repositoryRoot: null, branch: null };
   let currentPullRequest = null;
+  let setup = requireSetupState(initialSetup);
   const notificationObserver = createNotificationObserver({ notify });
   const subscribers = new Set();
 
@@ -79,9 +100,11 @@ export function createDesktopCoordinator({
       selection,
       snapshot,
       error,
+      setup,
       preferences: {
         recentWorktrees: preferences?.recentWorktrees ?? [],
         notificationsEnabled: preferences?.notificationsEnabled === true,
+        selectedAgents: preferences?.selectedAgents ?? [],
       },
     });
   }
@@ -182,6 +205,49 @@ export function createDesktopCoordinator({
     return value;
   }
 
+  async function recheckSetup() {
+    const selectedAgents = requireSelectedAgents(preferences?.selectedAgents ?? []);
+    if (selectedAgents.length > 0) {
+      setup = requireSetupState({
+        schemaVersion: 1,
+        phase: 'checking',
+        operationalReady: false,
+        checkedAt: setup.checkedAt,
+        desktop: setup.desktop,
+        selectedAgents,
+        prerequisites: [],
+        agents: [],
+      });
+      publish();
+    }
+    try {
+      setup = requireSetupState(await setupObserver(selectedAgents));
+    } catch (caught) {
+      setup = requireSetupState({
+        schemaVersion: 1,
+        phase: 'incomplete',
+        operationalReady: false,
+        checkedAt: timestamp(now),
+        desktop: setup.desktop,
+        selectedAgents,
+        prerequisites: [{
+          id: 'setup-observer',
+          label: 'Setup detection',
+          status: 'unavailable',
+          version: null,
+          detail: caught instanceof Error ? caught.message : String(caught),
+          remediation: {
+            summary: 'Review the Setup diagnostic and recheck.',
+            command: null,
+            guideUrl: 'https://gatereeve.pages.dev/',
+          },
+        }],
+        agents: [],
+      });
+    }
+    return publish();
+  }
+
   async function open(path) {
     const token = ++generation;
     stopPolling();
@@ -247,7 +313,7 @@ export function createDesktopCoordinator({
     current: state,
     async initialize() {
       preferences ??= await preferenceStore.load();
-      publish();
+      await recheckSetup();
       if (preferences.lastWorktree !== null) return open(preferences.lastWorktree);
       return state();
     },
@@ -287,6 +353,12 @@ export function createDesktopCoordinator({
       notificationObserver.reset(snapshot, currentPullRequest);
       return publish();
     },
+    async setSelectedAgents(selectedAgents) {
+      preferences = selectAgents(preferences, selectedAgents);
+      preferences = await preferenceStore.save(preferences);
+      return recheckSetup();
+    },
+    recheckSetup,
     subscribe(callback) {
       subscribers.add(callback);
       return () => subscribers.delete(callback);

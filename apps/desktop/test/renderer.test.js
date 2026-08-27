@@ -8,6 +8,31 @@ import { parseHTML } from 'linkedom';
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
+function readySetup() {
+  return {
+    schemaVersion: 1,
+    phase: 'ready',
+    operationalReady: true,
+    checkedAt: '2026-08-27T12:00:00.000Z',
+    desktop: { version: '0.1.0' },
+    selectedAgents: ['codex'],
+    prerequisites: [],
+    agents: [{
+      id: 'codex',
+      label: 'Codex',
+      status: 'ready',
+      cli: {
+        status: 'present', version: '0.150.1', authenticated: true,
+        detail: 'Codex is authenticated.', remediation: null,
+      },
+      plugin: {
+        status: 'enabled', version: '0.1.0', compatibility: 'matched',
+        evidence: 'release', detail: 'Matched.', recommendation: null, remediation: null,
+      },
+    }],
+  };
+}
+
 function idleState() {
   return {
     schemaVersion: 1,
@@ -17,7 +42,12 @@ function idleState() {
     selection: null,
     snapshot: null,
     error: null,
-    preferences: { notificationsEnabled: false, recentWorktrees: ['/repo/recent'] },
+    setup: readySetup(),
+    preferences: {
+      notificationsEnabled: false,
+      recentWorktrees: ['/repo/recent'],
+      selectedAgents: ['codex'],
+    },
   };
 }
 
@@ -29,6 +59,8 @@ test('renderer presents selection first and then canonical observation status', 
     async chooseWorktree() {},
     async openRecent() {},
     async refresh() {},
+    async recheckSetup() { return idleState(); },
+    async setSelectedAgents() { return idleState(); },
     async setNotificationsEnabled() { return idleState(); },
     async getState() { return idleState(); },
     subscribe(callback) { subscriber = callback; return () => {}; },
@@ -152,6 +184,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     async chooseWorktree() {},
     async openRecent() {},
     async refresh() {},
+    async recheckSetup() { return readyState; },
+    async setSelectedAgents() { return readyState; },
     async setNotificationsEnabled(enabled) {
       notificationPreferences.push(enabled);
       return { ...readyState, preferences: { ...readyState.preferences, notificationsEnabled: enabled } };
@@ -287,6 +321,8 @@ test('renderer reloads optional Session context when a refresh begins', async ()
     async chooseWorktree() {},
     async openRecent() {},
     async refresh() {},
+    async recheckSetup() { return state; },
+    async setSelectedAgents() { return state; },
     async setNotificationsEnabled() { return state; },
     async getState() { return state; },
     async listSession() {

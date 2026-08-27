@@ -17,6 +17,7 @@
       </div>
       <div class="masthead-actions">
         <span id="activity" class="activity">Choose a worktree</span>
+        <button id="open-setup" class="secondary light" type="button">Setup</button>
         <button id="refresh" class="secondary light" type="button" disabled>Refresh</button>
       </div>
     </header>
@@ -29,6 +30,49 @@
         <button id="choose" type="button">Open worktree…</button>
         <div id="recents" class="recents" aria-label="Recent worktrees"></div>
         <div id="chooser-error" class="notice danger" role="alert" hidden></div>
+      </section>
+
+      <section id="setup-shell" class="setup-shell page" aria-labelledby="setup-title" hidden>
+        <div class="page-heading">
+          <div>
+            <p class="section-kicker">Product readiness</p>
+            <h2 id="setup-title">GateReeve Setup</h2>
+          </div>
+          <div class="viewer-actions">
+            <button id="setup-open-worktree" class="secondary" type="button">Open feature record…</button>
+            <button id="setup-return" class="secondary" type="button" hidden>Return to workflow</button>
+            <button id="setup-recheck" type="button">Recheck</button>
+          </div>
+        </div>
+        <p class="lede">Choose the agents where you intend to use GateReeve. Desktop checks only those agents and never installs, upgrades, enables, disables, or removes another component.</p>
+        <div id="setup-summary" class="notice" role="status"></div>
+        <div class="setup-grid">
+          <form id="agent-selection" class="surface setup-selection">
+            <p class="section-kicker">Selected agents</p>
+            <h3>Where will GateReeve govern work?</h3>
+            <label class="agent-choice" for="agent-codex">
+              <input id="agent-codex" name="agent" type="checkbox" value="codex">
+              <span><strong>Codex</strong><small>Check Codex and its native Plugin installation.</small></span>
+            </label>
+            <label class="agent-choice" for="agent-claude">
+              <input id="agent-claude" name="agent" type="checkbox" value="claude">
+              <span><strong>Claude Code</strong><small>Check Claude Code and its native Plugin installation.</small></span>
+            </label>
+            <button id="save-agents" type="submit">Save selection and check</button>
+          </form>
+          <section class="surface" aria-labelledby="prerequisites-title">
+            <div class="surface-heading">
+              <div><p class="section-kicker">Shared tools</p><h3 id="prerequisites-title">Workflow prerequisites</h3></div>
+              <span id="desktop-version" class="badge neutral"></span>
+            </div>
+            <div id="setup-prerequisites" class="stack"></div>
+          </section>
+        </div>
+        <section class="surface" aria-labelledby="agents-title">
+          <div class="surface-heading"><div><p class="section-kicker">Native ownership</p><h3 id="agents-title">Selected-agent readiness</h3></div></div>
+          <div id="setup-agents" class="setup-agent-grid"></div>
+        </section>
+        <div id="historical-reading" class="notice info">Setup readiness governs new and active work. You can still open an existing feature record for explicitly historical or offline inspection.</div>
       </section>
 
       <div id="workspace" class="workspace" hidden>
@@ -44,6 +88,7 @@
             <button class="nav-item" type="button" data-view="history">History</button>
             <button class="nav-item" type="button" data-view="model">Model</button>
             <button class="nav-item" type="button" data-view="session">Session</button>
+            <button class="nav-item" type="button" data-view="setup">Setup</button>
           </nav>
           <div class="preference-panel">
             <h3>Preferences</h3>
@@ -72,6 +117,7 @@
             </div>
           </div>
           <div id="error" class="notice danger" role="alert" hidden></div>
+          <div id="readiness-banner" class="notice info" role="status" hidden></div>
           <div id="diagnostic" class="notice" role="status" hidden></div>
           <div id="warnings" class="notice-stack" aria-label="Warnings"></div>
 

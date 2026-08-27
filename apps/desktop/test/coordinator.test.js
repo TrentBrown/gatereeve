@@ -96,7 +96,7 @@ test('selection publishes local state before enrichment and polls GitHub only wh
   assert.equal(saved.length, 1);
   assert.deepEqual(Object.keys(saved[0]).sort(), [
     'lastWorktree', 'recentWorktrees', 'schemaVersion', 'window',
-    'notificationsEnabled',
+    'notificationsEnabled', 'selectedAgents',
   ].sort());
 
   intervals[0].callback();
@@ -205,4 +205,96 @@ test('notifications are opt-in, baseline current state, deduplicate refreshes, a
 
   coordinator.close();
   assert.equal(watcherClosed, true);
+});
+
+test('selected-agent Setup persists explicit choice and rechecks without requiring a worktree', async () => {
+  const observed = [];
+  const saved = [];
+  const coordinator = createDesktopCoordinator({
+    protocol: {},
+    preferenceStore: {
+      async load() { return defaultPreferences(); },
+      async save(value) { saved.push(value); return value; },
+    },
+    async setupObserver(selectedAgents) {
+      observed.push([...selectedAgents]);
+      return {
+        schemaVersion: 1,
+        phase: selectedAgents.length === 0 ? 'unconfigured' : 'incomplete',
+        operationalReady: false,
+        checkedAt: selectedAgents.length === 0 ? null : '2026-08-27T12:00:00.000Z',
+        desktop: { version: '0.1.0' },
+        selectedAgents,
+        prerequisites: [],
+        agents: [],
+      };
+    },
+  });
+  await coordinator.initialize();
+  const state = await coordinator.setSelectedAgents(['claude']);
+  assert.deepEqual(observed, [[], ['claude']]);
+  assert.deepEqual(state.preferences.selectedAgents, ['claude']);
+  assert.equal(state.setup.phase, 'incomplete');
+  assert.deepEqual(saved.at(-1).selectedAgents, ['claude']);
+  assert.equal(state.selection, null);
+  await coordinator.recheckSetup();
+  assert.deepEqual(observed.at(-1), ['claude']);
+  coordinator.close();
+});
+
+test('changing agent selection clears stale detection cards before rechecking', async () => {
+  const published = [];
+  const incompleteAgent = (id) => ({
+    id,
+    label: id === 'codex' ? 'Codex' : 'Claude Code',
+    status: 'incomplete',
+    cli: {
+      status: 'missing', version: null, authenticated: null,
+      detail: 'Not found.', remediation: null,
+    },
+    plugin: {
+      status: 'not-checked', version: null, compatibility: 'not-checked', evidence: null,
+      detail: 'Not checked.', recommendation: null, remediation: null,
+    },
+  });
+  const initialPreferences = {
+    ...defaultPreferences(),
+    selectedAgents: ['codex', 'claude'],
+  };
+  const coordinator = createDesktopCoordinator({
+    protocol: {},
+    preferenceStore: {
+      async load() { return initialPreferences; },
+      async save(value) { return value; },
+    },
+    initialPreferences,
+    initialSetup: {
+      schemaVersion: 1,
+      phase: 'incomplete',
+      operationalReady: false,
+      checkedAt: '2026-08-27T12:00:00.000Z',
+      desktop: { version: '0.1.0' },
+      selectedAgents: ['codex', 'claude'],
+      prerequisites: [],
+      agents: [incompleteAgent('codex'), incompleteAgent('claude')],
+    },
+    async setupObserver(selectedAgents) {
+      return {
+        schemaVersion: 1,
+        phase: 'incomplete',
+        operationalReady: false,
+        checkedAt: '2026-08-27T12:01:00.000Z',
+        desktop: { version: '0.1.0' },
+        selectedAgents,
+        prerequisites: [],
+        agents: [],
+      };
+    },
+  });
+  coordinator.subscribe((state) => published.push(state));
+  await coordinator.setSelectedAgents(['codex']);
+  const checking = published.find((state) => state.setup.phase === 'checking');
+  assert.deepEqual(checking.setup.selectedAgents, ['codex']);
+  assert.deepEqual(checking.setup.agents, []);
+  coordinator.close();
 });

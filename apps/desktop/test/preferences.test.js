@@ -10,18 +10,20 @@ import {
   MAX_RECENT_WORKTREES,
   normalizePreferences,
   rememberWorktree,
+  selectAgents,
 } from '../main/preferences.js';
 
 test('preferences persist only recents, last selection, window geometry, and notification opt-in', async () => {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-preferences-'));
   const store = createPreferenceStore(root);
   let value = rememberWorktree(defaultPreferences(), '/tmp/feature-one');
+  value = selectAgents(value, ['claude', 'codex']);
   value = { ...value, window: { x: 4, y: 8, width: 900, height: 640 } };
   await store.save(value);
   assert.deepEqual(await store.load(), value);
   const persisted = JSON.parse(await readFile(store.path, 'utf8'));
   assert.deepEqual(Object.keys(persisted).sort(), [
-    'lastWorktree', 'notificationsEnabled', 'recentWorktrees', 'schemaVersion', 'window',
+    'lastWorktree', 'notificationsEnabled', 'recentWorktrees', 'schemaVersion', 'selectedAgents', 'window',
   ]);
   assert.equal(JSON.stringify(persisted).includes('snapshot'), false);
   assert.equal(JSON.stringify(persisted).includes('github'), false);
@@ -46,7 +48,15 @@ test('preferences discard invalid fields and cap deduplicated recents', () => {
     lastWorktree: null,
     window: null,
     notificationsEnabled: false,
+    selectedAgents: [],
   });
+});
+
+test('agent selection is explicit, canonical, and rejects unsupported agents', () => {
+  assert.deepEqual(selectAgents(defaultPreferences(), ['claude', 'codex']).selectedAgents, [
+    'codex', 'claude',
+  ]);
+  assert.throws(() => selectAgents(defaultPreferences(), ['cursor']), /invalid/);
 });
 
 test('concurrent preference saves are serialized in call order', async () => {

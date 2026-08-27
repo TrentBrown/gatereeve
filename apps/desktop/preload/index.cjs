@@ -12,8 +12,10 @@ const channels = Object.freeze({
   readDetail: 'gatereeve:desktop:read-detail',
   readSession: 'gatereeve:desktop:read-session',
   refresh: 'gatereeve:desktop:refresh',
+  recheckSetup: 'gatereeve:desktop:recheck-setup',
   revealArtifact: 'gatereeve:desktop:reveal-artifact',
   setNotificationsEnabled: 'gatereeve:desktop:set-notifications-enabled',
+  setSelectedAgents: 'gatereeve:desktop:set-selected-agents',
   stateChanged: 'gatereeve:desktop:state-changed',
 });
 
@@ -28,6 +30,16 @@ function requireState(value) {
     || typeof value.preferences !== 'object'
     || !Array.isArray(value.preferences.recentWorktrees)
     || typeof value.preferences.notificationsEnabled !== 'boolean'
+    || !Array.isArray(value.preferences.selectedAgents)
+    || value.preferences.selectedAgents.some((id) => !['codex', 'claude'].includes(id))
+    || typeof value.setup !== 'object'
+    || value.setup === null
+    || value.setup.schemaVersion !== 1
+    || !['unconfigured', 'checking', 'ready', 'incomplete'].includes(value.setup.phase)
+    || typeof value.setup.operationalReady !== 'boolean'
+    || !Array.isArray(value.setup.selectedAgents)
+    || !Array.isArray(value.setup.prerequisites)
+    || !Array.isArray(value.setup.agents)
     || (value.snapshot !== null && (
       typeof value.snapshot !== 'object' || value.snapshot.schemaVersion !== 1
     ))
@@ -35,6 +47,18 @@ function requireState(value) {
     throw new Error('The main process returned invalid GateReeve Desktop state.');
   }
   return value;
+}
+
+function requireSelectedAgents(value) {
+  if (
+    !Array.isArray(value)
+    || value.length > 2
+    || value.some((id) => !['codex', 'claude'].includes(id))
+    || new Set(value).size !== value.length
+  ) {
+    throw new TypeError('Selected agents are invalid.');
+  }
+  return ['codex', 'claude'].filter((id) => value.includes(id));
 }
 
 function requirePath(path) {
@@ -142,10 +166,15 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     requireSessionId(id),
   )),
   refresh: async () => requireState(await ipcRenderer.invoke(channels.refresh)),
+  recheckSetup: async () => requireState(await ipcRenderer.invoke(channels.recheckSetup)),
   setNotificationsEnabled: async (enabled) => {
     if (typeof enabled !== 'boolean') throw new TypeError('Notification preference must be boolean.');
     return requireState(await ipcRenderer.invoke(channels.setNotificationsEnabled, enabled));
   },
+  setSelectedAgents: async (selectedAgents) => requireState(await ipcRenderer.invoke(
+    channels.setSelectedAgents,
+    requireSelectedAgents(selectedAgents),
+  )),
   revealArtifact: async (artifactId) => ipcRenderer.invoke(
     channels.revealArtifact,
     { artifactId: requireArtifactId(artifactId) },

@@ -12,12 +12,16 @@ export const IPC_CHANNELS = Object.freeze({
   readDetail: 'gatereeve:desktop:read-detail',
   readSession: 'gatereeve:desktop:read-session',
   refresh: 'gatereeve:desktop:refresh',
+  recheckSetup: 'gatereeve:desktop:recheck-setup',
   revealArtifact: 'gatereeve:desktop:reveal-artifact',
   setNotificationsEnabled: 'gatereeve:desktop:set-notifications-enabled',
+  setSelectedAgents: 'gatereeve:desktop:set-selected-agents',
   stateChanged: 'gatereeve:desktop:state-changed',
 });
 
 const PHASES = new Set(['idle', 'loading', 'ready', 'error']);
+const SETUP_PHASES = new Set(['unconfigured', 'checking', 'ready', 'incomplete']);
+const AGENT_IDS = Object.freeze(['codex', 'claude']);
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -33,12 +37,113 @@ function nullableString(value) {
   return value === null || typeof value === 'string';
 }
 
+function validRemediation(value) {
+  return value === null || (
+    isObject(value)
+    && exactKeys(value, ['summary', 'command', 'guideUrl'])
+    && typeof value.summary === 'string'
+    && nullableString(value.command)
+    && typeof value.guideUrl === 'string'
+  );
+}
+
+export function requireSelectedAgents(value) {
+  if (
+    !Array.isArray(value)
+    || value.length > AGENT_IDS.length
+    || value.some((id) => !AGENT_IDS.includes(id))
+    || new Set(value).size !== value.length
+  ) {
+    throw new Error('Selected agents are invalid.');
+  }
+  return AGENT_IDS.filter((id) => value.includes(id));
+}
+
+function validPrerequisite(value) {
+  return isObject(value)
+    && exactKeys(value, ['id', 'label', 'status', 'version', 'detail', 'remediation'])
+    && typeof value.id === 'string'
+    && typeof value.label === 'string'
+    && ['present', 'missing', 'unavailable', 'incompatible', 'unauthenticated'].includes(value.status)
+    && nullableString(value.version)
+    && typeof value.detail === 'string'
+    && validRemediation(value.remediation);
+}
+
+function validAgent(value) {
+  return isObject(value)
+    && exactKeys(value, ['id', 'label', 'status', 'cli', 'plugin'])
+    && AGENT_IDS.includes(value.id)
+    && typeof value.label === 'string'
+    && ['ready', 'incomplete'].includes(value.status)
+    && isObject(value.cli)
+    && exactKeys(value.cli, ['status', 'version', 'authenticated', 'detail', 'remediation'])
+    && ['present', 'missing', 'unavailable'].includes(value.cli.status)
+    && nullableString(value.cli.version)
+    && (value.cli.authenticated === null || typeof value.cli.authenticated === 'boolean')
+    && typeof value.cli.detail === 'string'
+    && validRemediation(value.cli.remediation)
+    && isObject(value.plugin)
+    && exactKeys(value.plugin, [
+      'status', 'version', 'compatibility', 'evidence', 'detail', 'recommendation', 'remediation',
+    ])
+    && ['enabled', 'disabled', 'missing', 'unavailable', 'not-checked'].includes(value.plugin.status)
+    && nullableString(value.plugin.version)
+    && ['matched', 'compatible', 'incompatible', 'not-checked'].includes(value.plugin.compatibility)
+    && nullableString(value.plugin.evidence)
+    && typeof value.plugin.detail === 'string'
+    && nullableString(value.plugin.recommendation)
+    && validRemediation(value.plugin.remediation);
+}
+
+export function requireSetupState(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, [
+      'schemaVersion', 'phase', 'operationalReady', 'checkedAt', 'desktop',
+      'selectedAgents', 'prerequisites', 'agents',
+    ])
+    || value.schemaVersion !== 1
+    || !SETUP_PHASES.has(value.phase)
+    || typeof value.operationalReady !== 'boolean'
+    || value.operationalReady !== (value.phase === 'ready')
+    || !nullableString(value.checkedAt)
+    || !isObject(value.desktop)
+    || !exactKeys(value.desktop, ['version'])
+    || typeof value.desktop.version !== 'string'
+    || (() => {
+      try { return requireSelectedAgents(value.selectedAgents).length !== value.selectedAgents.length; }
+      catch { return true; }
+    })()
+    || !Array.isArray(value.prerequisites)
+    || !value.prerequisites.every(validPrerequisite)
+    || !Array.isArray(value.agents)
+    || !value.agents.every(validAgent)
+    || value.agents.some((agent) => !value.selectedAgents.includes(agent.id))
+    || (value.phase === 'unconfigured' && (
+      value.selectedAgents.length !== 0
+      || value.checkedAt !== null
+      || value.prerequisites.length !== 0
+      || value.agents.length !== 0
+    ))
+    || (value.operationalReady && (
+      value.selectedAgents.length === 0
+      || value.agents.length !== value.selectedAgents.length
+      || value.prerequisites.some((item) => item.status !== 'present')
+      || !value.agents.some((agent) => agent.status === 'ready')
+    ))
+  ) {
+    throw new Error('The main process returned invalid GateReeve Setup state.');
+  }
+  return value;
+}
+
 export function requireDesktopState(value) {
   if (
     !isObject(value)
     || !exactKeys(value, [
       'schemaVersion', 'phase', 'refreshing', 'githubPolling', 'selection',
-      'snapshot', 'error', 'preferences',
+      'snapshot', 'error', 'preferences', 'setup',
     ])
     || value.schemaVersion !== DESKTOP_STATE_SCHEMA_VERSION
     || !PHASES.has(value.phase)
@@ -58,10 +163,20 @@ export function requireDesktopState(value) {
       || typeof value.error.message !== 'string'
     ))
     || !isObject(value.preferences)
-    || !exactKeys(value.preferences, ['notificationsEnabled', 'recentWorktrees'])
+    || !exactKeys(value.preferences, ['notificationsEnabled', 'recentWorktrees', 'selectedAgents'])
     || !Array.isArray(value.preferences.recentWorktrees)
     || !value.preferences.recentWorktrees.every((path) => typeof path === 'string')
     || typeof value.preferences.notificationsEnabled !== 'boolean'
+    || (() => {
+      try { return requireSelectedAgents(value.preferences.selectedAgents).length !== value.preferences.selectedAgents.length; }
+      catch { return true; }
+    })()
+    || (() => {
+      try { requireSetupState(value.setup); return false; }
+      catch { return true; }
+    })()
+    || JSON.stringify(requireSelectedAgents(value.preferences.selectedAgents))
+      !== JSON.stringify(requireSelectedAgents(value.setup.selectedAgents))
   ) {
     throw new Error('The main process returned invalid GateReeve Desktop state.');
   }

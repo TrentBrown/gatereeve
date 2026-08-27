@@ -20,3 +20,48 @@ Implement workflow-context discovery and validation once in the canonical JavaSc
 
 **Alternatives considered:**
 Port every Python gate validator to JavaScript in this slice — rejected as unrelated scope with a much larger governance blast radius. Fork a Desktop-only context implementation — rejected because it would create protocol drift. Continue packaging the Python resolver — rejected because installed observation would retain an undeclared system runtime prerequisite.
+
+## [2] Use exact tested pairs for Desktop and Plugin compatibility
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop setup observer, compatibility metadata, readiness projection, release version coordination
+
+Store project-controlled compatibility metadata as an explicit list of tested Desktop and Plugin version pairs. Equal coordinated versions may be marked matched; unequal versions are operational only when an exact pair is marked compatible with evidence. Any absent pair is incompatible. Detection facts remain ephemeral and read-only, while incomplete or incompatible setup never hides an existing durable feature record.
+
+**Triggered by:** P3 requires three evidence-backed compatibility states despite independently updated Plugin and Desktop installations
+
+**Alternatives considered:**
+Infer compatibility from semantic-version ranges - rejected because proximity is not evidence; require exact version equality - rejected because independent native update lifecycles create harmless tested skew; inspect a workflow record to infer Plugin version - rejected because historical records are not installation authority
+
+## [3] Require one ready selected agent, not every selected agent
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop Setup readiness contract, observer and coordinator projections, UI status copy, and tests
+
+Compute operational readiness when all shared prerequisites are present and at least one explicitly selected agent has an authenticated CLI plus a compatible enabled Plugin. Continue displaying incomplete status for every other selected agent so the user can repair it, but do not make an optional second selection block use through the ready agent. Clear prior ephemeral detection cards while a changed selection is being checked so an old, now-unselected agent cannot invalidate or misrepresent the new selection.
+
+**Triggered by:** Pinned PR #8 review found that the observer contradicted approved design constraint D14
+
+**Alternatives considered:**
+Require every selected agent to be ready - rejected because D14 explicitly requires at least one selected supported agent; silently remove incomplete selections - rejected because selection is explicit user intent and Setup must report each selected agent honestly.
+
+## [4] Distinguish Plugin-manager failure from missing installation
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Codex and Claude Setup adapters, Setup contract, native remediation guidance, and tests
+
+Use supported JSON plugin listings first, retain text fallback where useful, and classify failure of every listing attempt as unavailable rather than missing. Use each manager's documented update path for incompatible installations: refresh and reinstall from the quality-code marketplace in Codex, and refresh then invoke plugin update in Claude. Detection remains read-only; commands are copy-only guidance.
+
+**Triggered by:** Pinned PR #8 review found that failed read-only plugin listings were being reported as proof that the Plugin was absent
+
+**Alternatives considered:**
+Treat a listing failure as missing - rejected because failed observation is not evidence of absence; reuse the install command for updates - rejected because native managers expose distinct update ownership; inspect plugin files directly - rejected because the native manager is the installation authority.
