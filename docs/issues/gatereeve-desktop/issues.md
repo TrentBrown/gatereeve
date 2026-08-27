@@ -75,7 +75,7 @@ after the shell contract is stable.
 
 ## I-6 - Add notifications and supported-platform quality
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P8
 - **Rubric criteria:** R7, R8
@@ -88,7 +88,7 @@ Ubuntu and macOS. This begins intended PR slice 4.
 
 ## I-7 - Complete feature verification on the final delivery slice
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P9
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8

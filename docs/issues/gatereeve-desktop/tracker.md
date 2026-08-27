@@ -5,9 +5,9 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-26
 
-**Active slice:** Slice 4 (`desktop-final-quality`) is at its `FEATURE_FINAL`
-PR boundary in [#6](https://github.com/TrentBrown/gatereeve/pull/6). It covers
-P8-P9 / I-6-I-7 and evaluates the assembled feature against R1-R8.
+**Feature status:** Complete. Slice 4 (`desktop-final-quality`) delivered the
+`FEATURE_FINAL` boundary in [#6](https://github.com/TrentBrown/gatereeve/pull/6),
+covering P8-P9 / I-6-I-7 and passing the assembled feature against R1-R8.
 
 ## Rubric Status
 
@@ -73,4 +73,5 @@ Append PR boundary entries here.
 - **Evidence:** [PR #6 packet](pr-6/boundary.json)
 - **Boundary result:** Attempt 1 returned to remediation when Ubuntu 24.04 exposed an unconfigured Chromium SUID sandbox; attempt 2 returned when both Ubuntu runners showed Electron 43 had not materialized that helper before configuration; attempt 3 passes exact-head supported-platform CI and every feature-final evidence gate at pinned head `7b14fbe84796a9ad8d2701d5e4cf8c8bfa591f2f`
 - **Retention:** Tracked; every current feature-record file is retained in Git and no human retention decision is required
-- **Status:** Draft; I-6 and I-7 are in review
+- **Merge:** `7f18ba15e9d2d224557fde454e432ab9f44d7606` on `main`; approved head `3447e99cbcccd69743bbcbfa64b61e4dbdf8f98c` verified as retained
+- **Status:** Merged; I-6 and I-7 complete; feature finalization passed
