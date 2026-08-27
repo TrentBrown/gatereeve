@@ -5,9 +5,9 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-26
 
-**Active slice:** Slice 4 (`desktop-final-quality`) is implementing on
-`gatereeve-desktop-notifications-accessibility`. It is the `FEATURE_FINAL`
-boundary for P8-P9 / I-6-I-7 and covers R1-R8.
+**Active slice:** Slice 4 (`desktop-final-quality`) is at its `FEATURE_FINAL`
+PR boundary in [#6](https://github.com/TrentBrown/gatereeve/pull/6). It covers
+P8-P9 / I-6-I-7 and evaluates the assembled feature against R1-R8.
 
 ## Rubric Status
 
@@ -19,7 +19,7 @@ boundary for P8-P9 / I-6-I-7 and covers R1-R8.
 | R4 | State visualization | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Pinned-model rail, milestones, slices, attempts, gate dependencies, provenance, migration impact, and complete grouped model view are rendered and tested |
 | R5 | Artifact inspection | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Complete inventory, Markdown/JSON/JSONL/text/trusted-HTML viewers, external actions, and refreshed non-authoritative Session context are implemented and tested |
 | R6 | History and action guidance | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Complete event/passage and pinned-model detail, exact IDs, command meaning/copy, and a mutation-free IPC allow-list are implemented and tested |
-| R7 | Refresh and notifications | NOT YET | [#4](https://github.com/TrentBrown/gatereeve/pull/4) | Debounced local recomputation, manual/focus refresh, and conditional 60-second GitHub polling are implemented; notifications remain P8 |
+| R7 | Refresh and notifications | PASS | [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#6](https://github.com/TrentBrown/gatereeve/pull/6) | Debounced local recomputation, manual/focus refresh, conditional 60-second GitHub polling, and opt-in transition-deduplicated native notifications are implemented with fake lifecycle and notification coverage |
 | R8 | Supported accessible experience | NOT YET | [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Principal views are semantic, keyboard-native, visibly focused, non-color-dependent, GateReeve-themed, and usable at 760x560; native accessibility hardening and macOS/Ubuntu runtime evidence remain P8 |
 
 ## PR Log
@@ -62,3 +62,15 @@ Append PR boundary entries here.
 - **Boundary result:** Attempt 3 passes exact-head verification, scoped specification evaluation, independent judge with bounded concerns, code review after remediation, decision triage, explain-diff, and deterministic packet validation; pattern review is not applicable because no scope is configured
 - **Merge:** `2d28fc444574461ca5f4caaeb14641a636927fa2` on `main`
 - **Status:** Merged; I-4 and I-5 complete
+
+### PR #6 - Notifications, accessibility, and final verification
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/6
+- **Scope:** Slice 4 and feature-final boundary, `desktop-final-quality`
+- **Plan steps:** P8, P9
+- **Issues:** I-6, I-7
+- **Rubric movement:** R7 moves to `PASS`; R1 and R8 await supported-platform runtime evidence, while the feature-final evaluation revalidates R1-R8 against the assembled feature
+- **Evidence:** Pending [PR #6 packet](pr-6/boundary.json)
+- **Boundary result:** In progress against pinned slice head `26cb83aa1d4ed5cd3375dfea5bdd9c9a3e5a0157`
+- **Retention:** Tracked; every current feature-record file is retained in Git and no human retention decision is required
+- **Status:** Draft; I-6 and I-7 are in review
