@@ -118,9 +118,13 @@ async function startDesktop() {
     let expectedFeatureId = null;
     if (smokeWorktree) {
       const state = await coordinator.open(smokeWorktree);
-      if (state.phase !== 'ready' || state.snapshot === null) {
+      if (
+        state.phase !== 'ready'
+        || state.snapshot === null
+        || state.snapshot.mode !== 'governed'
+      ) {
         throw new Error(
-          `Governed fixture smoke failed: ${state.error?.message ?? 'no readable snapshot'}`
+          `Governed fixture smoke failed: ${state.error?.message ?? 'no governed snapshot'}`
         );
       }
       expectedFeatureId = state.snapshot.featureId;

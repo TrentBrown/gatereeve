@@ -12,12 +12,12 @@ operational record across sequential delivery branches.
 
 ## I-1 - Self-contained packaged observation
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P1, P2
 - **Rubric criteria:** R2
 - **Depends on:** none
-- **PR:** -
+- **PR:** [#7](https://github.com/TrentBrown/gatereeve/pull/7)
 
 Replace Desktop's Python context boundary with parity-tested shared JavaScript,
 make optional executable discovery honest under Finder launch, and add hermetic
