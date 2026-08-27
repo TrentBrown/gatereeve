@@ -68,7 +68,7 @@ Treat a listing failure as missing - rejected because failed observation is not 
 
 ## [5] Select Rolling Vale as the GateReeve icon direction
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -83,7 +83,7 @@ Original A was rejected as too detailed at small sizes; C was rejected as too ab
 
 ## [6] Package the universal application with Electron Packager
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
