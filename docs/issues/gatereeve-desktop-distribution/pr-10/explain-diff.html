@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #10 explained — coordinated GateReeve releases</title>
+  <style>
+    :root { color-scheme:light; --ink:#21193c; --purple:#7357bb; --pale:#f3efff; --line:#d9d0ed; --good:#176b45; --warn:#a36314; --muted:#655e78; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.62 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:#faf8ff; }
+    header { padding:64px 24px 48px; color:#fff; background:linear-gradient(135deg,#17112f,#60439f); }
+    header .wrap, main { max-width:1000px; margin:auto; }
+    h1 { max-width:820px; margin:0 0 14px; font-size:clamp(2.2rem,6vw,4.3rem); line-height:1.02; letter-spacing:-.045em; }
+    h2 { margin-top:68px; padding-top:18px; border-top:1px solid var(--line); font-size:2rem; }
+    h3 { margin-top:34px; }
+    main { padding:30px 24px 80px; }
+    p,li { max-width:78ch; }
+    code { padding:.12em .36em; border-radius:5px; background:#eee8fa; }
+    pre { overflow:auto; padding:18px; border-radius:14px; color:#f7f3ff; background:#21193c; white-space:pre-wrap; }
+    nav { margin:-28px 0 48px; padding:22px 24px; border:1px solid var(--line); border-radius:18px; background:#fff; box-shadow:0 12px 36px #33226113; }
+    nav a { display:inline-block; margin:4px 18px 4px 0; color:#4d3189; font-weight:700; }
+    .badge { display:inline-block; padding:4px 9px; border-radius:99px; color:#fff; background:var(--good); font-size:.82rem; font-weight:800; }
+    .meta { color:#e7ddff; }
+    .callout { margin:26px 0; padding:18px 20px; border-left:5px solid var(--purple); border-radius:0 14px 14px 0; background:var(--pale); }
+    .cards { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:26px 0; }
+    .card { padding:20px; border:1px solid var(--line); border-radius:16px; background:#fff; }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:10px; margin:30px 0; }
+    .node { position:relative; padding:16px 10px; border:1px solid var(--line); border-radius:14px; text-align:center; background:#fff; }
+    .node:not(:last-child)::after { content:"→"; position:absolute; right:-17px; top:38%; z-index:2; color:var(--purple); font-size:1.35rem; font-weight:900; }
+    .node strong,.node small { display:block; }
+    .node small { color:var(--muted); }
+    table { width:100%; border-collapse:collapse; margin:24px 0; background:#fff; }
+    th,td { padding:12px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#eee8fa; }
+    .quiz { margin:24px 0; padding:22px; border:1px solid var(--line); border-radius:16px; background:#fff; }
+    .quiz button { display:block; width:100%; margin:9px 0; padding:12px 14px; border:1px solid #b9a9de; border-radius:10px; color:var(--ink); text-align:left; background:#faf8ff; cursor:pointer; }
+    .quiz button.correct { border-color:var(--good); background:#e9f8f0; }
+    .quiz button.wrong { border-color:#a74444; background:#fff0f0; }
+    .feedback { min-height:1.5em; color:var(--muted); font-weight:650; }
+    @media (max-width:760px) { .cards,.flow { grid-template-columns:1fr; } .node:not(:last-child)::after { content:"↓"; right:49%; top:auto; bottom:-22px; } }
+  </style>
+</head>
+<body>
+  <header><div class="wrap">
+    <span class="badge">Pinned PR #10</span>
+    <h1>One release identity, five recoverable publication steps</h1>
+    <p class="meta">Explains exactly <code>3a340e3…fd9eddd</code>: coordinated candidates, exact approval, stable lineage, and safe continuation after partial failure.</p>
+  </div></header>
+  <main>
+    <nav aria-label="Table of contents"><strong>Contents</strong><br>
+      <a href="#background">Background</a><a href="#model">Model</a><a href="#recovery">Recovery</a><a href="#code">Code</a><a href="#boundary">Boundary</a><a href="#quiz">Quiz</a>
+    </nav>
+
+    <section id="background">
+      <h2>Background</h2>
+      <p>GateReeve is one product with two independently installed surfaces. The Plugin governs work inside Codex or Claude; Desktop is the optional read-only window onto that work. The previous slices made Desktop self-contained, added Setup and compatibility, and produced one universal Mac DMG. But the old release path still understood only the Plugin.</p>
+      <div class="cards">
+        <div class="card"><strong>The old risk</strong><p>A Plugin tag and a Desktop DMG could be built at different times, from different commits, and then coordinated by convention. A failure halfway through publication had no durable answer to “what already happened?”</p></div>
+        <div class="card"><strong>The new contract</strong><p>Both candidates enter one record with one semantic version, one source commit, checksums, verification evidence, trust state, approval state, and per-surface receipts.</p></div>
+      </div>
+      <div class="callout"><strong>This PR still publishes nothing.</strong> It creates and tests the protocol for preparation and recovery. Apple trust comes next, and the first public RC still requires the user's approval of the exact record.</div>
+    </section>
+
+    <section id="model">
+      <h2>The compact release model</h2>
+      <p>The record is deliberately narrower than a general workflow engine. It answers six release questions: which version, which source, which Plugin tree, which DMG bytes, which evidence and trust, and how far publication has progressed.</p>
+      <table>
+        <thead><tr><th>Part</th><th>What is pinned</th><th>Why it matters</th></tr></thead>
+        <tbody>
+          <tr><td>Source</td><td>Repository, full commit, eventual tag</td><td>Plugin and Desktop cannot quietly diverge.</td></tr>
+          <tr><td>Plugin</td><td>Sorted file inventory and tree digest</td><td>A later file edit makes workspace verification fail.</td></tr>
+          <tr><td>Desktop</td><td>DMG name, byte size, SHA-256</td><td>Publication refers to one universal deliverable.</td></tr>
+          <tr><td>Native proof</td><td>Separate ARM64 and Intel evidence hashes</td><td>Both reports must describe the same version, source, and DMG.</td></tr>
+          <tr><td>Authority</td><td>Apple trust plus approver and plan digest</td><td>Convenience flags cannot invent publication authority.</td></tr>
+          <tr><td>Progress</td><td>Ordered completion receipts</td><td>Recovery knows exactly where to continue.</td></tr>
+        </tbody>
+      </table>
+      <p>RC versions such as <code>0.1.0-rc.4</code> remain the GateReeve product version in the staged package and compatibility metadata. macOS receives the numeric base <code>0.1.0</code> where its bundle field requires it. Verification checks both representations rather than treating the difference as an accident.</p>
+    </section>
+
+    <section id="recovery">
+      <h2>Recovery is convergence, not rollback</h2>
+      <div class="flow" role="img" aria-label="Fixed coordinated publication order">
+        <div class="node"><strong>1. Tag</strong><small>Exact commit</small></div>
+        <div class="node"><strong>2. Plugin</strong><small>Marketplace tree</small></div>
+        <div class="node"><strong>3. Desktop</strong><small>GitHub prerelease</small></div>
+        <div class="node"><strong>4. Manifest</strong><small>Update metadata</small></div>
+        <div class="node"><strong>5. Website</strong><small>Early Access link</small></div>
+      </div>
+      <p>No transaction can atomically change Git, a marketplace branch, GitHub Releases, an update manifest, and a website. The model therefore records a completed prefix. Each adapter means “make this exact identity exist and tell me its durable identity,” not “blindly create another one.”</p>
+      <pre>remote mutation succeeds
+local record write is interrupted
+retry asks the same adapter to converge the same identity
+adapter discovers the existing result
+record persists its receipt and continues</pre>
+      <p>The fault test performs that interruption at every one of the five boundaries. In every case the final record reaches <code>published</code> and each simulated remote receives one mutation—not two.</p>
+    </section>
+
+    <section id="code">
+      <h2>Code walkthrough</h2>
+      <h3>Preparation</h3>
+      <p>The manual GitHub workflow resolves a commit before candidate work. Independent jobs build the Plugin marketplace and universal DMG. Native ARM and Intel jobs inspect the same downloaded DMG and emit evidence. Only after all four jobs pass does the final job create the record and dry-run plan. Workflow permission is read-only and the file contains no tag, release, marketplace, manifest, or website mutation.</p>
+      <h3>Validation and approval</h3>
+      <p><code>assertCoordinatedRelease</code> makes the JSON a real state machine rather than a bag of fields. Identity, stable RC lineage, artifact paths, application version, trust, approval, ordered receipts, and overall state must agree. The approval digest is computed from the immutable identity, candidates, trust evidence, and order. Changing any of those invalidates approval.</p>
+      <h3>The existing Plugin publisher</h3>
+      <p><code>plugin release publish</code> now requires <code>--release-record</code>. Before it reaches the old confirmation and mutation logic, it inventories the workspace again and requires an approved, Developer-ID-notarized record for the exact selected tag and commit. Passing <code>--yes</code> skips a prompt; it does not skip policy.</p>
+      <h3>Review hardening</h3>
+      <p>Review caught two issues before pinning the boundary. The Ubuntu image did not include the workflow file read by a contract test. More importantly, stable lineage was checked at creation but not again when the record was read. Both are fixed, and negative tests now reject missing promotion evidence, contradictory progress state, and an artifact filename that escapes its workspace.</p>
+    </section>
+
+    <section id="boundary">
+      <h2>What this boundary proves</h2>
+      <p>The full Plugin acceptance suite passes 116 Node tests and 94 Python tests; Desktop passes 62 tests; hosted Ubuntu and macOS matrices pass the pinned head. P5 therefore completes the deterministic model and dry-run preparation portion of R6.</p>
+      <div class="callout"><strong>What remains:</strong> P6 supplies real Developer ID and notarization evidence, P7 supplies the update and website surfaces, and P8 obtains exact approval and performs the first live convergence. R6 remains <code>NOT YET</code> until those public-path facts exist.</div>
+    </section>
+
+    <section id="quiz">
+      <h2>Quiz</h2>
+      <div class="quiz" data-answer="1"><strong>1. What grants publication authority?</strong><button>The CLI's <code>--yes</code> flag</button><button>Complete trust plus approval of the exact plan digest</button><button>The presence of a semantic tag string</button><p class="feedback"></p></div>
+      <div class="quiz" data-answer="2"><strong>2. Why are adapters called convergence operations?</strong><button>They delete old history before every retry</button><button>They publish all five surfaces in one database transaction</button><button>They discover or create one exact identity, making retry idempotent</button><p class="feedback"></p></div>
+      <div class="quiz" data-answer="0"><strong>3. What does stable promotion require?</strong><button>The exact source commit of a coordinated RC on the same version line</button><button>Any newer commit with the same package version</button><button>A rebuilt DMG with a stable filename</button><p class="feedback"></p></div>
+      <div class="quiz" data-answer="2"><strong>4. Is Cask part of this five-surface record?</strong><button>Yes, before the Plugin marketplace</button><button>Yes, in place of the website</button><button>No, it remains the final separately approved distribution slice</button><p class="feedback"></p></div>
+    </section>
+  </main>
+  <script>
+    document.querySelectorAll('.quiz').forEach((quiz) => {
+      const answer = Number(quiz.dataset.answer);
+      const buttons = [...quiz.querySelectorAll('button')];
+      buttons.forEach((button, index) => button.addEventListener('click', () => {
+        buttons.forEach((item, itemIndex) => {
+          item.classList.toggle('correct', itemIndex === answer);
+          item.classList.toggle('wrong', itemIndex === index && index !== answer);
+        });
+        quiz.querySelector('.feedback').textContent = index === answer
+          ? 'Correct — that is the invariant this slice proves.'
+          : 'Not quite. Revisit the coordinated record and its trust boundary.';
+      }));
+    });
+  </script>
+</body>
+</html>

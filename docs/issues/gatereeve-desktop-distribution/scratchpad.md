@@ -104,7 +104,7 @@ Manually splice downloaded Electron distributions - rejected because it duplicat
 
 ## [7] Use one compact recoverable record for coordinated publication
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

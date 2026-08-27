@@ -51,12 +51,12 @@ and package and inspect one native universal drag-to-Applications DMG.
 
 ## I-4 - Coordinated release and recovery
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P5
 - **Rubric criteria:** R6
 - **Depends on:** I-3
-- **PR:** -
+- **PR:** [#10](https://github.com/TrentBrown/gatereeve/pull/10)
 
 Bind Plugin and Desktop candidates to one immutable release record, extend the
 guarded preparation surface, and prove deterministic continuation after partial
