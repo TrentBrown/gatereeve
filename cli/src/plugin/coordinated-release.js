@@ -335,11 +335,29 @@ export function assertCoordinatedRelease(value) {
     value.releaseId !== `gatereeve-v${parsed.version}`
     || value.version !== parsed.version
     || !COMMIT.test(value?.source?.commit ?? '')
-    || typeof value?.source?.repository !== 'string'
     || value.channel !== (parsed.prerelease === null ? 'stable' : 'rc')
     || !['prepared', 'approved', 'publishing', 'published'].includes(value.state)
   ) {
     throw new Error('Coordinated release identity is internally inconsistent');
+  }
+  requireString(value.source.repository, 'Source repository');
+  if (parsed.prerelease === null) {
+    let candidate;
+    try {
+      candidate = parseReleaseTag(value?.promotion?.tag ?? '');
+    } catch {
+      throw new Error('Stable coordinated release promotion evidence is invalid');
+    }
+    if (
+      !candidate.prerelease?.match(/^rc\.(?:0|[1-9]\d*)$/u)
+      || candidate.baseVersion !== parsed.baseVersion
+      || value.promotion.releaseId !== `gatereeve-v${candidate.version}`
+      || value.promotion.sourceCommit !== value.source.commit
+    ) {
+      throw new Error('Stable coordinated release promotion evidence is invalid');
+    }
+  } else if (value.promotion !== null) {
+    throw new Error('RC coordinated releases must not contain stable promotion evidence');
   }
   requireTimestamp(value.createdAt, 'Release creation time');
   requireTimestamp(value.updatedAt, 'Release update time');
@@ -353,9 +371,12 @@ export function assertCoordinatedRelease(value) {
     || !Number.isSafeInteger(value.candidates.plugin.artifact.fileCount)
     || value.candidates.plugin.artifact.fileCount < 1
     || typeof value.candidates.desktop.artifact.filename !== 'string'
+    || basename(value.candidates.desktop.artifact.filename)
+      !== value.candidates.desktop.artifact.filename
     || value.candidates.desktop.artifact.path !== `desktop/${value.candidates.desktop.artifact.filename}`
     || !Number.isSafeInteger(value.candidates.desktop.artifact.bytes)
     || value.candidates.desktop.artifact.bytes < 1
+    || value.candidates.desktop.applicationVersion !== value.version
   ) {
     throw new Error('Coordinated release artifact metadata is invalid');
   }
@@ -414,9 +435,9 @@ export function assertCoordinatedRelease(value) {
   const complete = PUBLICATION_SURFACES.every(
     (surface) => value.publication.surfaces[surface].state === 'complete'
   );
-  if ((value.state === 'published') !== complete) {
-    throw new Error('Coordinated release terminal state does not match its surfaces');
-  }
+  const completedCount = PUBLICATION_SURFACES.filter(
+    (surface) => value.publication.surfaces[surface].state === 'complete'
+  ).length;
   if (value.publication.approval.state === 'approved') {
     requireString(value.publication.approval.approvedBy, 'Publication approver');
     requireTimestamp(value.publication.approval.approvedAt, 'Publication approval time');
@@ -426,6 +447,16 @@ export function assertCoordinatedRelease(value) {
     if (value.publication.approval.planSha256 !== publicationPlanSha256(value)) {
       throw new Error('Publication approval no longer matches the exact release plan');
     }
+  }
+  const expectedState = complete
+    ? 'published'
+    : completedCount > 0
+      ? 'publishing'
+      : value.publication.approval.state === 'approved'
+        ? 'approved'
+        : 'prepared';
+  if (value.state !== expectedState) {
+    throw new Error('Coordinated release state does not match approval and publication progress');
   }
   return value;
 }

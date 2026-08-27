@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import {
   approveCoordinatedPublication,
+  assertCoordinatedRelease,
   assertCoordinatedPublicationReady,
   convergeCoordinatedPublication,
   prepareCoordinatedRelease,
@@ -155,6 +156,29 @@ test('stable promotion is bound to the exact coordinated RC source', async () =>
   await assert.rejects(
     preparedFixture('v0.1.0', 'abcdef1234567890abcdef1234567890abcdef12', rc.record),
     /exact source of a coordinated RC/
+  );
+  stable.record.promotion = null;
+  assert.throws(
+    () => assertCoordinatedRelease(stable.record),
+    /promotion evidence is invalid/
+  );
+});
+
+test('rejects contradictory release state and unsafe artifact identity', async () => {
+  const prepared = await preparedFixture();
+  const contradictory = structuredClone(prepared.record);
+  contradictory.state = 'publishing';
+  assert.throws(
+    () => assertCoordinatedRelease(contradictory),
+    /state does not match approval and publication progress/
+  );
+
+  const unsafeArtifact = structuredClone(prepared.record);
+  unsafeArtifact.candidates.desktop.artifact.filename = '../candidate.dmg';
+  unsafeArtifact.candidates.desktop.artifact.path = 'desktop/../candidate.dmg';
+  assert.throws(
+    () => assertCoordinatedRelease(unsafeArtifact),
+    /artifact metadata is invalid/
   );
 });
 
