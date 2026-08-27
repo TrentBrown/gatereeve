@@ -26,12 +26,12 @@ packaged-byte execution is completed by I-3.
 
 ## I-2 - Setup and compatibility surface
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P3
 - **Rubric criteria:** R3, R4
 - **Depends on:** I-1
-- **PR:** -
+- **PR:** [#8](https://github.com/TrentBrown/gatereeve/pull/8)
 
 Implement persistent selected-agent readiness, supported read-only adapters,
 remediation guidance, historical/offline access, and evidence-backed version
