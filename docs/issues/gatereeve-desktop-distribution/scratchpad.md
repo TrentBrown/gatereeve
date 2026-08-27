@@ -23,7 +23,7 @@ Port every Python gate validator to JavaScript in this slice — rejected as unr
 
 ## [2] Use exact tested pairs for Desktop and Plugin compatibility
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
