@@ -5,8 +5,9 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Runtime foundation P1-P2 / I-1 is at its PR boundary in
-[#7](https://github.com/TrentBrown/gatereeve/pull/7).
+**Active slice:** Setup and compatibility P3 / I-2 is implementing on
+`gatereeve-desktop-distribution-02-setup-compatibility` after runtime
+foundation [#7](https://github.com/TrentBrown/gatereeve/pull/7) merged.
 
 ## Rubric Status
 
@@ -39,4 +40,4 @@ Append PR boundary entries here.
   concerns, code review with no findings, decision triage, explain-diff, and
   all ten GitHub checks; pattern review is not applicable because no scope is
   configured
-- **Status:** Draft; I-1 is in review
+- **Status:** Merged; I-1 is closed

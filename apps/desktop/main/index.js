@@ -2,6 +2,7 @@
 
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFile } from 'node:fs/promises';
 import {
   app,
   BrowserWindow,
@@ -22,6 +23,7 @@ import { registerDesktopIpc } from './ipc.js';
 import { createPreferenceStore } from './preferences.js';
 import { createProtocolAdapter } from './protocol-adapter.js';
 import { registerRendererProtocol } from './renderer-protocol.js';
+import { createSetupObserver, createUnconfiguredSetup } from './setup-observer.js';
 import {
   bindFocusRefresh,
   browserWindowOptions,
@@ -63,10 +65,26 @@ async function startDesktop() {
   const preferenceStore = createPreferenceStore(app.getPath('userData'));
   const initialPreferences = await preferenceStore.load();
   const executables = await discoverDesktopExecutables();
+  const setupCompatibility = JSON.parse(await readFile(
+    resolve(desktopRoot, 'shared', 'setup-compatibility.json'),
+    'utf8',
+  ));
+  const unconfiguredSetup = createUnconfiguredSetup(setupCompatibility);
   const coordinator = createDesktopCoordinator({
     protocol: createProtocolAdapter({ gitExecutable: executables.git }),
     preferenceStore,
     initialPreferences,
+    initialSetup: initialPreferences.selectedAgents.length === 0
+      ? unconfiguredSetup
+      : {
+        ...unconfiguredSetup,
+        phase: 'checking',
+        selectedAgents: initialPreferences.selectedAgents,
+      },
+    setupObserver: createSetupObserver({
+      metadata: setupCompatibility,
+      executablePaths: { git: executables.git, github: executables.gh },
+    }),
     gitObserver: (worktreePath, featureHome) => observeGit(
       worktreePath,
       featureHome,
@@ -132,8 +150,23 @@ async function startDesktop() {
     const passed = await window.webContents.executeJavaScript(
       `new Promise((resolve) => {
         let attempts = 0;
+        let setupObserved = false;
         const inspect = () => {
+          if (!setupObserved && document.querySelector('#open-setup')) {
+            document.querySelector('#open-setup').click();
+            setupObserved = Boolean(
+              document.querySelector('#setup-shell')?.hidden === false
+              && document.querySelector('#setup-title')?.textContent === 'GateReeve Setup'
+              && document.querySelector('#agent-codex')
+              && document.querySelector('#agent-claude')
+            );
+            if (setupObserved && document.querySelector('#setup-return')?.hidden === false) {
+              document.querySelector('#setup-return').click();
+            }
+          }
           const ready = Boolean(
+            setupObserved
+            &&
             window.gatereeveDesktop
             && document.querySelector('h1')?.textContent === 'GateReeve'
             && ${expectedFeatureId === null
@@ -150,7 +183,7 @@ async function startDesktop() {
         inspect();
       })`,
     );
-    if (!passed) throw new Error('Renderer smoke contract failed.');
+    if (!passed) throw new Error('Renderer and Setup smoke contract failed.');
     app.quit();
   }
 }

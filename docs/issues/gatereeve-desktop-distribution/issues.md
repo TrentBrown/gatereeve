@@ -12,7 +12,7 @@ operational record across sequential delivery branches.
 
 ## I-1 - Self-contained packaged observation
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P1, P2
 - **Rubric criteria:** R2
@@ -26,7 +26,7 @@ packaged-byte execution is completed by I-3.
 
 ## I-2 - Setup and compatibility surface
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 1d
 - **Plan steps:** P3
 - **Rubric criteria:** R3, R4

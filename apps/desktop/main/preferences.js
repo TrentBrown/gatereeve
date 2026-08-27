@@ -4,6 +4,8 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
+import { requireSelectedAgents } from '../shared/contracts.js';
+
 export const PREFERENCES_SCHEMA_VERSION = 1;
 export const MAX_RECENT_WORKTREES = 10;
 
@@ -14,6 +16,7 @@ export function defaultPreferences() {
     lastWorktree: null,
     window: null,
     notificationsEnabled: false,
+    selectedAgents: [],
   };
 }
 
@@ -38,6 +41,12 @@ export function normalizePreferences(value) {
   const lastWorktree = typeof value.lastWorktree === 'string' && isAbsolute(value.lastWorktree)
     ? value.lastWorktree
     : null;
+  let selectedAgents = [];
+  try {
+    selectedAgents = requireSelectedAgents(value.selectedAgents ?? []);
+  } catch {
+    selectedAgents = [];
+  }
   return {
     schemaVersion: PREFERENCES_SCHEMA_VERSION,
     recentWorktrees,
@@ -49,6 +58,14 @@ export function normalizePreferences(value) {
       height: value.window.height,
     } : null,
     notificationsEnabled: value.notificationsEnabled === true,
+    selectedAgents,
+  };
+}
+
+export function selectAgents(preferences, selectedAgents) {
+  return {
+    ...normalizePreferences(preferences),
+    selectedAgents: requireSelectedAgents(selectedAgents),
   };
 }
 

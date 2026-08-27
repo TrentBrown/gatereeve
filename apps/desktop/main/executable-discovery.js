@@ -1,7 +1,8 @@
 // @ts-check
 
 import { constants } from 'node:fs';
-import { access, stat } from 'node:fs/promises';
+import { access, readdir, stat } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { delimiter, isAbsolute, resolve } from 'node:path';
 
 const FIXED_MACOS_DIRECTORIES = Object.freeze([
@@ -17,6 +18,7 @@ function unique(values) {
 export function executableCandidates(name, {
   environment = process.env,
   platform = process.platform,
+  homeDirectory = homedir(),
 } = {}) {
   const override = environment[`GATEREEVE_${name.toUpperCase()}_PATH`];
   if (typeof override === 'string' && override.length > 0) {
@@ -25,7 +27,15 @@ export function executableCandidates(name, {
   const pathDirectories = (environment.PATH ?? '')
     .split(delimiter)
     .filter(Boolean);
-  const fixedDirectories = platform === 'darwin' ? FIXED_MACOS_DIRECTORIES : [];
+  const fixedDirectories = platform === 'darwin' ? [
+    ...FIXED_MACOS_DIRECTORIES,
+    resolve(homeDirectory, '.local/bin'),
+    resolve(homeDirectory, '.npm-global/bin'),
+    resolve(homeDirectory, '.volta/bin'),
+    resolve(homeDirectory, '.local/share/mise/shims'),
+    resolve(homeDirectory, '.fnm/current/bin'),
+    '/Applications/Codex.app/Contents/Resources',
+  ] : [];
   return unique([...fixedDirectories, ...pathDirectories].map((directory) => resolve(
     directory,
     name
@@ -43,6 +53,7 @@ async function isExecutableFile(path) {
 
 export async function discoverExecutable(name, {
   probe = isExecutableFile,
+  readDirectory = readdir,
   ...options
 } = {}) {
   if (typeof name !== 'string' || name.length === 0 || isAbsolute(name)) {
@@ -50,6 +61,23 @@ export async function discoverExecutable(name, {
   }
   for (const candidate of executableCandidates(name, options)) {
     if (await probe(candidate)) return candidate;
+  }
+  const override = options.environment?.[`GATEREEVE_${name.toUpperCase()}_PATH`]
+    ?? process.env[`GATEREEVE_${name.toUpperCase()}_PATH`];
+  if (override || (options.platform ?? process.platform) !== 'darwin') return null;
+  const homeDirectory = options.homeDirectory ?? homedir();
+  const nvmRoot = resolve(homeDirectory, '.nvm/versions/node');
+  try {
+    const versions = (await readDirectory(nvmRoot, { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort((left, right) => right.localeCompare(left, undefined, { numeric: true }));
+    for (const version of versions) {
+      const candidate = resolve(nvmRoot, version, 'bin', name);
+      if (await probe(candidate)) return candidate;
+    }
+  } catch {
+    // NVM is optional; absence narrows only this known user-level discovery path.
   }
   return null;
 }

@@ -7,6 +7,7 @@ import {
   requireDesktopState,
   requireDetailRequest,
   requireNotificationsEnabled,
+  requireSelectedAgents,
   requireSessionDetail,
   requireSessionId,
   requireSessionInventory,
@@ -65,12 +66,21 @@ export function registerDesktopIpc({
     noArguments(event, values);
     return validatedState(await coordinator.refresh());
   });
+  ipcMain.handle(IPC_CHANNELS.recheckSetup, async (event, ...values) => {
+    noArguments(event, values);
+    return validatedState(await coordinator.recheckSetup());
+  });
   ipcMain.handle(IPC_CHANNELS.setNotificationsEnabled, async (event, ...values) => {
     trusted(event);
     if (values.length !== 1) throw new Error('Notification preference requires one boolean.');
     return validatedState(await coordinator.setNotificationsEnabled(
       requireNotificationsEnabled(values[0]),
     ));
+  });
+  ipcMain.handle(IPC_CHANNELS.setSelectedAgents, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Agent selection requires one list.');
+    return validatedState(await coordinator.setSelectedAgents(requireSelectedAgents(values[0])));
   });
   ipcMain.handle(IPC_CHANNELS.readDetail, async (event, ...values) => {
     trusted(event);

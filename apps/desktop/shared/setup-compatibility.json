@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "desktop": {
+    "version": "0.1.0"
+  },
+  "plugin": {
+    "id": "agentic-development-workflow@quality-code",
+    "displayName": "Agentic Software Development Workflow"
+  },
+  "testedPairs": [
+    {
+      "desktopVersion": "0.1.0",
+      "pluginVersion": "0.1.0",
+      "state": "matched",
+      "evidence": "coordinated-release-0.1.0"
+    },
+    {
+      "desktopVersion": "0.1.0",
+      "pluginVersion": "0.1.0-rc.2",
+      "state": "compatible",
+      "evidence": "protocol-v1-portable-acceptance"
+    }
+  ]
+}

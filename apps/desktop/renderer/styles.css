@@ -244,6 +244,38 @@ main { min-height: calc(100vh - 76px); }
 }
 .notice.danger { border-color: var(--red); color: #742237; background: var(--red-bg); }
 .notice.info { border-color: var(--blue); color: #264a80; background: var(--blue-bg); }
+.notice.success { border-color: var(--green); color: #1f6148; background: var(--green-bg); }
+
+.setup-shell { max-width: 1240px; margin: 0 auto; }
+.setup-shell .page-heading { align-items: flex-start; flex-wrap: wrap; }
+.setup-grid { display: grid; grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr); gap: 1rem; }
+.setup-selection { align-self: start; }
+.setup-selection h3 { margin-top: 0; }
+.agent-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin: 0.65rem 0;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--purple-50);
+  cursor: pointer;
+}
+.agent-choice input { width: 1.1rem; height: 1.1rem; margin-top: 0.12rem; accent-color: var(--purple-700); }
+.agent-choice strong, .agent-choice small { display: block; }
+.agent-choice small { margin-top: 0.2rem; color: var(--muted); line-height: 1.4; }
+.setup-selection > button { width: 100%; margin-top: 0.45rem; }
+.setup-agent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 0.8rem; }
+.setup-agent { padding: 0.85rem; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--purple-50); }
+.setup-agent > .card-header { margin-bottom: 0.7rem; }
+.setup-card { margin-top: 0.55rem; padding: 0.75rem; border: 1px solid var(--line); border-radius: 0.6rem; background: #fff; }
+.setup-card h4, .setup-agent h3 { margin: 0; }
+.setup-card p { margin: 0.45rem 0 0; color: var(--muted); font-size: 0.76rem; line-height: 1.45; }
+.setup-card .remediation-summary { color: var(--ink); font-weight: 700; }
+.setup-card .command { margin-top: 0.55rem; }
+.setup-card button { margin-top: 0.55rem; }
+.setup-card .guidance-url { margin-top: 0.6rem; }
 
 .state-rail {
   display: grid;
@@ -290,10 +322,10 @@ main { min-height: calc(100vh - 76px); }
   font-size: 0.58rem;
   font-weight: 900;
 }
-.status.ready, .status.pass, .status.complete, .status.present, .status.merged, .status.current, .status.clear { color: #1f6248; background: var(--green-bg); }
-.status.active, .status.implementing, .status.available { color: #4f347c; background: var(--purple-100); }
-.status.blocked, .status.fail, .status.missing, .status.stale, .status.inconsistent { color: #84253d; background: var(--red-bg); }
-.status.unknown, .status.pending, .status.changed, .status.unavailable { color: #76470f; background: var(--amber-bg); }
+.status.ready, .status.pass, .status.complete, .status.present, .status.merged, .status.current, .status.clear, .status.matched, .status.enabled { color: #1f6248; background: var(--green-bg); }
+.status.active, .status.implementing, .status.available, .status.compatible { color: #4f347c; background: var(--purple-100); }
+.status.blocked, .status.fail, .status.missing, .status.stale, .status.inconsistent, .status.incompatible, .status.unauthenticated, .status.disabled { color: #84253d; background: var(--red-bg); }
+.status.unknown, .status.pending, .status.changed, .status.unavailable, .status.not-checked { color: #76470f; background: var(--amber-bg); }
 
 .select-label { display: flex; align-items: center; gap: 0.45rem; color: var(--muted); font-size: 0.72rem; }
 select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem; padding: 0.42rem; color: var(--ink); background: #fff; }
@@ -367,13 +399,14 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
   .two-column, .split-view { grid-template-columns: 1fr; }
   .collection { max-height: 260px; border-right: 0; border-bottom: 1px solid var(--line); }
   .state-rail { grid-auto-columns: minmax(105px, 1fr); }
+  .setup-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 800px) {
   .masthead { position: static; }
   .workspace { display: block; }
   .sidebar { position: static; width: 100%; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
-  .navigation { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .navigation { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .nav-item { padding: 0.55rem 0.35rem; text-align: center; font-size: 0.72rem; }
   .source-stack { display: none; }
   .page { padding: 1rem; }

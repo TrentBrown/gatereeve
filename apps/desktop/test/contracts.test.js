@@ -10,7 +10,22 @@ import {
   requireSessionDetail,
   requireSessionId,
   requireSessionInventory,
+  requireSelectedAgents,
+  requireSetupState,
 } from '../shared/contracts.js';
+
+function setup() {
+  return {
+    schemaVersion: 1,
+    phase: 'unconfigured',
+    operationalReady: false,
+    checkedAt: null,
+    desktop: { version: '0.1.0' },
+    selectedAgents: [],
+    prerequisites: [],
+    agents: [],
+  };
+}
 
 function state() {
   return {
@@ -21,7 +36,8 @@ function state() {
     selection: null,
     snapshot: null,
     error: null,
-    preferences: { notificationsEnabled: false, recentWorktrees: [] },
+    setup: setup(),
+    preferences: { notificationsEnabled: false, recentWorktrees: [], selectedAgents: [] },
   };
 }
 
@@ -29,6 +45,13 @@ test('desktop state requires the exact read-only envelope', () => {
   assert.equal(requireDesktopState(state()).phase, 'idle');
   assert.throws(() => requireDesktopState({ ...state(), mutation: null }), /invalid/);
   assert.throws(() => requireDesktopState({ ...state(), refreshing: 'yes' }), /invalid/);
+});
+
+test('Setup state and selected agents are exact, bounded read-only contracts', () => {
+  assert.equal(requireSetupState(setup()).phase, 'unconfigured');
+  assert.deepEqual(requireSelectedAgents(['claude', 'codex']), ['codex', 'claude']);
+  assert.throws(() => requireSelectedAgents(['codex', 'codex']), /invalid/);
+  assert.throws(() => requireSetupState({ ...setup(), installationMutation: true }), /invalid/);
 });
 
 test('named read and artifact requests reject broad or malformed access', () => {
@@ -67,10 +90,12 @@ test('IPC allow-list contains no workflow mutation or process-execution surface'
     'gatereeve:desktop:open-recent',
     'gatereeve:desktop:read-detail',
     'gatereeve:desktop:read-session',
+    'gatereeve:desktop:recheck-setup',
     'gatereeve:desktop:refresh',
     'gatereeve:desktop:reveal-artifact',
     'gatereeve:desktop:set-notifications-enabled',
+    'gatereeve:desktop:set-selected-agents',
     'gatereeve:desktop:state-changed',
   ]);
-  assert.equal(channels.some((channel) => /execute|agent|transition|mutat|record/.test(channel)), false);
+  assert.equal(channels.some((channel) => /execute|transition|advance|install|upgrade|disable|remove|plugin/.test(channel)), false);
 });

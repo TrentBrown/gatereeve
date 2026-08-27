@@ -20,3 +20,18 @@ Implement workflow-context discovery and validation once in the canonical JavaSc
 
 **Alternatives considered:**
 Port every Python gate validator to JavaScript in this slice — rejected as unrelated scope with a much larger governance blast radius. Fork a Desktop-only context implementation — rejected because it would create protocol drift. Continue packaging the Python resolver — rejected because installed observation would retain an undeclared system runtime prerequisite.
+
+## [2] Use exact tested pairs for Desktop and Plugin compatibility
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop setup observer, compatibility metadata, readiness projection, release version coordination
+
+Store project-controlled compatibility metadata as an explicit list of tested Desktop and Plugin version pairs. Equal coordinated versions may be marked matched; unequal versions are operational only when an exact pair is marked compatible with evidence. Any absent pair is incompatible. Detection facts remain ephemeral and read-only, while incomplete or incompatible setup never hides an existing durable feature record.
+
+**Triggered by:** P3 requires three evidence-backed compatibility states despite independently updated Plugin and Desktop installations
+
+**Alternatives considered:**
+Infer compatibility from semantic-version ranges - rejected because proximity is not evidence; require exact version equality - rejected because independent native update lifecycles create harmless tested skew; inspect a workflow record to infer Plugin version - rejected because historical records are not installation authority
