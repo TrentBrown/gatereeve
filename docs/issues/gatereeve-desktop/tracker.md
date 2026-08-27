@@ -5,8 +5,8 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-26
 
-**Active slice:** `desktop-workflow-experience` — P6-P7 / I-4-I-5 / PR boundary
-on `gatereeve-desktop-workflow-experience`, [PR #5](https://github.com/TrentBrown/gatereeve/pull/5)
+**Active slice:** None. Slice 3 (`desktop-workflow-experience`) is merged;
+P8-P9 / I-6-I-7 remain for the final delivery slice.
 
 ## Rubric Status
 
@@ -59,4 +59,5 @@ Append PR boundary entries here.
 - **Rubric movement:** R2-R6 move to `PASS`; R8 advances but remains `NOT YET` for P8 native accessibility and supported-platform evidence
 - **Evidence:** [PR #5 packet](pr-5/boundary.json)
 - **Boundary result:** Attempt 3 passes exact-head verification, scoped specification evaluation, independent judge with bounded concerns, code review after remediation, decision triage, explain-diff, and deterministic packet validation; pattern review is not applicable because no scope is configured
-- **Status:** Awaiting human review
+- **Merge:** `2d28fc444574461ca5f4caaeb14641a636927fa2` on `main`
+- **Status:** Merged; I-4 and I-5 complete
