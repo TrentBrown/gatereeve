@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #5 explained — GateReeve Desktop workflow inspection</title>
+  <style>
+    :root { --ink:#251735; --muted:#6c6175; --paper:#f7f4fa; --card:#fff; --purple:#65449b; --indigo:#40347e; --line:#ddd4e8; --gold:#d58a30; --good:#277055; --bad:#a43950; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--paper); font:16px/1.65 Inter,ui-sans-serif,system-ui,sans-serif; }
+    header { padding:4rem max(1.25rem,calc((100vw - 1100px)/2)); color:#fff; background:linear-gradient(125deg,#29183c,var(--indigo) 58%,#7b58bb); }
+    header p { max-width:820px; color:#eee7f8; }
+    h1,h2,h3 { font-family:Georgia,serif; line-height:1.15; }
+    h1 { max-width:900px; margin:.35rem 0 1rem; font-size:clamp(2.35rem,7vw,4.8rem); }
+    h2 { margin-top:3.5rem; font-size:2.05rem; }
+    h3 { margin-top:2rem; }
+    .eyebrow { margin:0; text-transform:uppercase; letter-spacing:.14em; font-size:.75rem; }
+    main { max-width:1100px; margin:auto; padding:1.5rem 1.25rem 5rem; }
+    nav { margin-top:-2rem; padding:1.1rem 1.4rem; border:1px solid var(--line); border-radius:1rem; background:var(--card); box-shadow:0 12px 36px rgb(50 31 72 / 10%); }
+    nav a { display:inline-block; margin:.25rem 1rem .25rem 0; color:var(--purple); font-weight:750; }
+    code { padding:.12rem .3rem; border-radius:.25rem; background:#eee9f4; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+    pre { overflow:auto; padding:1rem; border-radius:.7rem; color:#f8f3fc; background:#281c35; font:14px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace; white-space:pre-wrap; }
+    .callout { margin:1.4rem 0; padding:1rem 1.2rem; border-left:5px solid var(--gold); background:#fff6e8; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; margin:1.3rem 0; }
+    .card { padding:1rem; border:1px solid var(--line); border-radius:.8rem; background:var(--card); }
+    .card strong { display:block; color:var(--purple); }
+    .flow { display:flex; align-items:stretch; gap:.6rem; overflow:auto; padding:1rem 0; }
+    .node { min-width:175px; padding:1rem; border:2px solid var(--purple); border-radius:.7rem; background:#fff; }
+    .node small { display:block; color:var(--muted); }
+    .source { border-color:var(--good); }
+    .session { border-style:dashed; border-color:var(--gold); }
+    .arrow { align-self:center; color:var(--purple); font-size:1.5rem; }
+    .wire { display:grid; grid-template-columns:220px 1fr; min-height:420px; margin:1.2rem 0; overflow:hidden; border:1px solid var(--line); border-radius:.85rem; background:#fff; box-shadow:0 8px 25px rgb(50 31 72 / 8%); }
+    .side { padding:1rem; color:#fff; background:#34214d; }
+    .side span { display:block; margin:.55rem 0; padding:.45rem .6rem; border-radius:.4rem; background:rgb(255 255 255 / 9%); }
+    .screen { padding:1rem; }
+    .rail { display:grid; grid-template-columns:repeat(6,minmax(90px,1fr)); overflow:auto; }
+    .rail span { padding:.65rem; border-top:3px solid #bbb0c8; background:#f5f1f9; font-size:.72rem; }
+    .rail .now { border-color:var(--purple); background:#e9e0f4; font-weight:800; }
+    .gates { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:.45rem; margin-top:1rem; }
+    .gate { padding:.6rem; border:1px solid var(--line); border-radius:.45rem; font-size:.72rem; }
+    table { width:100%; border-collapse:collapse; margin:1rem 0; }
+    th,td { padding:.7rem; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#eee9f4; }
+    .quiz { margin:1.25rem 0; padding:1.1rem; border:1px solid var(--line); border-radius:.8rem; background:#fff; }
+    .answers { display:grid; gap:.55rem; }
+    button { padding:.7rem; border:1px solid var(--purple); border-radius:.5rem; color:var(--ink); background:#faf7fd; text-align:left; cursor:pointer; }
+    button:hover,button:focus-visible { outline:3px solid #efaa50; outline-offset:1px; }
+    button.correct { border-color:var(--good); background:#e9f7f0; }
+    button.wrong { border-color:var(--bad); background:#fff0f2; }
+    .feedback { min-height:1.6rem; margin:.6rem 0 0; font-weight:700; }
+    footer { padding:2rem; color:var(--muted); text-align:center; }
+    @media(max-width:700px){ .flow{flex-direction:column}.arrow{transform:rotate(90deg)}.wire{grid-template-columns:1fr}.rail{grid-template-columns:repeat(6,110px)} }
+  </style>
+</head>
+<body>
+<header>
+  <p class="eyebrow">Pinned explanation · PR #5</p>
+  <h1>The workflow becomes visible, without becoming negotiable</h1>
+  <p>This page explains exactly <code>1b816b3…</code> through <code>35ddefb…</code>: the state-first GateReeve Desktop experience, its evidence inspectors, and the narrow boundary that lets a friendly GUI observe but never govern.</p>
+</header>
+<main>
+  <nav aria-label="Table of contents"><a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#edge-cases">Edge cases</a><a href="#quiz">Quiz</a></nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <h3>Beginner's model: a journal plus a pinned rulebook</h3>
+    <p>GateReeve does not store “the current phase” in a convenient mutable field. It stores an append-only event journal and pins the workflow model that gives those events meaning. The canonical observer combines them into a projection: feature state, slices, PR-boundary attempts, gates, blockers, actions, and artifacts.</p>
+    <div class="flow" aria-label="Canonical observation pipeline">
+      <div class="node source"><strong>Pinned model</strong><small>states, transitions, authorities</small></div><span class="arrow">→</span>
+      <div class="node source"><strong>Event journal</strong><small>passages and gate outcomes</small></div><span class="arrow">→</span>
+      <div class="node"><strong>Canonical observer</strong><small>snapshot plus named detail reads</small></div><span class="arrow">→</span>
+      <div class="node"><strong>Desktop</strong><small>DOM presentation only</small></div>
+    </div>
+    <p>Earlier PRs established this contract and the Electron shell. This PR fills that shell with the complete observational experience. The crucial constraint remains: Desktop may explain a command and copy it, but it cannot invoke GateReeve transitions or launch an agent.</p>
+
+    <h3>Three kinds of information</h3>
+    <div class="grid">
+      <div class="card"><strong>Governed state</strong>Projection, gates, evidence, artifacts, and actions come from the canonical observer.</div>
+      <div class="card"><strong>Source context</strong>Local, Git, and GitHub observations enrich the view independently and can degrade independently.</div>
+      <div class="card"><strong>Session context</strong>Checkpoints and handoffs help an agent resume, but they never count as evidence or authorize passage.</div>
+    </div>
+    <div class="callout"><strong>The governing rule:</strong> visual convenience must never create a second interpretation of workflow state.</div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <p>Think of Desktop as the instrument panel in front of a mechanical interlock. The panel can show every latch, explain why one is closed, and hand you the exact operating instruction. The panel itself does not defeat the interlock.</p>
+    <div class="wire" aria-label="Simplified GateReeve Desktop overview">
+      <div class="side"><strong>GateReeve</strong><span>Overview</span><span>Artifacts</span><span>History</span><span>Model</span><span>Session</span></div>
+      <div class="screen">
+        <small>PINNED STATE MACHINE</small>
+        <div class="rail"><span>Designing</span><span>Specifying</span><span>Planning</span><span class="now">Delivering slices</span><span>Finalizing</span><span>Complete</span></div>
+        <h3>PR boundary attempt</h3>
+        <div class="gates"><div class="gate">Pin context<br><b>PASS</b></div><div class="gate">Reconcile<br><b>PASS</b></div><div class="gate">Verification<br>after reconcile</div><div class="gate">Judge<br>after verification</div><div class="gate">Review<br>after verification</div><div class="gate">Explain diff<br>after triage</div></div>
+        <h3>Next action</h3><pre>gatereeve boundary request-review desktop-workflow-experience-attempt-3</pre>
+      </div>
+    </div>
+
+    <h3>A concrete example</h3>
+    <p>Suppose a gate says <code>PASS</code>, but one of its inputs has changed. The canonical snapshot reports the outcome and freshness separately. Desktop renders both. It does not simplify this to a reassuring green card, and it does not rerun the gate. Likewise, ordinary uncommitted source code is activity, while an uncommitted journal or pinned model is a governance warning.</p>
+    <table><thead><tr><th>Observation</th><th>Desktop says</th><th>Desktop may do</th></tr></thead><tbody>
+      <tr><td>Action exists but a guard fails</td><td>Available, blocked, named reason</td><td>Explain and copy command</td></tr>
+      <tr><td>GitHub is unavailable</td><td>Remote view incomplete; local view retained</td><td>Refresh later</td></tr>
+      <tr><td>Checkpoint appears</td><td>New non-authoritative Session item</td><td>Read after refresh</td></tr>
+      <tr><td>Explain-diff exists</td><td>Interactive trusted artifact</td><td>Render the named artifact directly</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <h3>1. The overview projects, it does not infer</h3>
+    <p><code>renderer.js</code> receives a validated snapshot and builds the feature rail, milestones, slices, attempt selector, gate cards, warnings, and action cards. The rail order is loaded from the pinned model detail. Gate cards preserve dependency IDs and separate outcome from freshness. Action cards retain the canonical authority, inputs, reasons, readiness, and copy command.</p>
+    <pre>snapshot + pinned model detail
+  → feature rail and milestones
+  → slice and attempt selection
+  → gate dependencies and evidence links
+  → governed action explanation + copy only</pre>
+
+    <h3>2. Detail stays lazy and named</h3>
+    <p>The initial snapshot is compact. Artifacts, the complete journal, exact attempt JSON, and the full model graph load only when requested. Each request names a contract kind and canonical ID. There is no arbitrary path reader.</p>
+    <div class="flow"><div class="node"><strong>Renderer</strong><small>readDetail("artifact", id)</small></div><span class="arrow">→</span><div class="node"><strong>IPC validator</strong><small>exact kind and bounded ID</small></div><span class="arrow">→</span><div class="node source"><strong>Canonical observer</strong><small>allow-listed named result</small></div></div>
+
+    <h3>3. Four viewers, one trusted exception</h3>
+    <p>Markdown becomes a small semantic DOM built from text nodes. JSON and JSONL use the observer's structured value. Plain text stays text. The trusted explain-diff document is the deliberate exception: a dedicated <code>gatereeve-artifact:</code> protocol serves only the currently selected canonical HTML artifact, unchanged, in a separate-origin frame.</p>
+    <pre>markdown → safe text-node DOM
+json/jsonl → structured pretty print
+text → preformatted text
+html → gatereeve-artifact://desktop/&lt;encoded canonical artifact ID&gt;</pre>
+
+    <h3>4. Session is a side channel, not evidence</h3>
+    <p><code>session-observer.js</code> discovers exactly <code>CHECKPOINT.md</code>, <code>.checkpoints/*.md</code>, and regular files under <code>.handoffs/</code>. It rejects symlinks, paths outside the chosen worktree, oversized files, unknown IDs, and non-Markdown checkpoint archives. The renderer labels the view non-authoritative and refreshes its inventory independently of the journal.</p>
+    <div class="flow"><div class="node session"><strong>Checkpoint / handoff</strong><small>resume or transfer context</small></div><span class="arrow">→</span><div class="node"><strong>Session view</strong><small>read-only, exact ID</small></div><span class="arrow">≠</span><div class="node source"><strong>Gate evidence</strong><small>readiness and passage</small></div></div>
+
+    <h3>5. The package boundary remains narrow</h3>
+    <p>The preload and main process add Session reads and clipboard copy, but no transition or command execution channel. The visual fixture imports production renderer code for browser inspection, while the package <code>files</code> allow-list excludes visual and test assets. The final dry-run contains 46 intended runtime files.</p>
+  </section>
+
+  <section id="edge-cases">
+    <h2>Important edge cases</h2>
+    <div class="grid">
+      <div class="card"><strong>Clean CI checkout</strong>Session can be empty. The canonical integration test now accepts both populated local context and the correct empty state.</div>
+      <div class="card"><strong>Symlinked context</strong>A symlinked file or allow-listed directory is omitted; a realpath outside the selected worktree is never read.</div>
+      <div class="card"><strong>Model mismatch</strong>Desktop shows incompatibility or read-only migration impact. It never silently applies the bundled model.</div>
+      <div class="card"><strong>Remote outage</strong>GitHub status becomes incomplete without erasing the valid local projection or Git observation.</div>
+      <div class="card"><strong>Small window</strong>At 760x560, navigation stays available, the page becomes one column, and split viewers stack without horizontal body overflow.</div>
+      <div class="card"><strong>Trusted HTML</strong>The document is intentionally not sanitized or sandboxed; selection is constrained by canonical artifact identity and a dedicated origin.</div>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <div class="quiz" data-answer="1"><h3>1. Why does the feature rail request the pinned model detail?</h3><div class="answers"><button>To let Desktop migrate older features before drawing them.</button><button>To use the feature's authoritative state order instead of inventing a renderer order.</button><button>To replace the event journal with a simpler list of states.</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><h3>2. What makes Session context different from artifact evidence?</h3><div class="answers"><button>Session files are cached globally, while evidence is local.</button><button>Session files may execute commands, while evidence may only be viewed.</button><button>Session helps resume or transfer work but never affects readiness or passage.</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="0"><h3>3. How is trusted explain-diff HTML loaded?</h3><div class="answers"><button>A named custom protocol resolves the current canonical HTML artifact and serves it unchanged.</button><button>The renderer accepts an arbitrary path and inserts its contents with srcdoc.</button><button>The main process sanitizes the file and converts its scripts to renderer actions.</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="1"><h3>4. A transition is available in principle but one guard fails. What should Desktop do?</h3><div class="answers"><button>Hide it until the guard passes, because unavailable actions are confusing.</button><button>Show it as blocked with authority, inputs, exact command, and the named reason.</button><button>Run the transition in dry-run mode and infer whether it is safe.</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><h3>5. Which boundary-review bug was fixed?</h3><div class="answers"><button>The app polled GitHub while minimized and therefore missed local changes.</button><button>The model view used SVG rather than Mermaid for its export format.</button><button>Archived checkpoints admitted non-Markdown files, and Session inventory could remain stale across refresh.</button></div><p class="feedback"></p></div>
+  </section>
+</main>
+<footer>Pinned to PR #5 source <code>35ddefbc6be58531e54aed25250b5895b12399b3</code>.</footer>
+<script>
+  const explanations = [
+    'The rail must reflect the feature\'s pinned rulebook. Desktop may show migration impact, but it cannot reinterpret the record with a bundled model.',
+    'Checkpoints and handoffs are resumability aids; only governed evidence participates in gates and passage.',
+    'The custom protocol accepts a canonical artifact ID, not a renderer-selected path, and deliberately preserves the trusted document.',
+    'Availability and readiness are separate. A blocked action remains visible and explainable without being executed.',
+    'Review tightened the promised .checkpoints/*.md scope and made refresh invalidate the optional Session inventory.'
+  ];
+  document.querySelectorAll('.quiz').forEach((quiz, questionIndex) => {
+    const answer = Number(quiz.dataset.answer);
+    quiz.querySelectorAll('button').forEach((button, index) => button.addEventListener('click', () => {
+      quiz.querySelectorAll('button').forEach((entry) => entry.classList.remove('correct','wrong'));
+      const correct = index === answer;
+      button.classList.add(correct ? 'correct' : 'wrong');
+      quiz.querySelector('.feedback').textContent = correct ? `Correct. ${explanations[questionIndex]}` : `Not quite. ${explanations[questionIndex]}`;
+    }));
+  });
+</script>
+</body>
+</html>

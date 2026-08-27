@@ -48,12 +48,12 @@ remote polling. This is intended PR slice 2.
 
 ## I-4 - Build the state-first workflow experience
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P6
 - **Rubric criteria:** R2, R3, R4, R6, R8
 - **Depends on:** I-3
-- **PR:** -
+- **PR:** [#5](https://github.com/TrentBrown/gatereeve/pull/5)
 
 Deliver the main GateReeve Desktop overview, state rail, milestones, slices,
 boundary DAG, diagnostics, warnings, evidence, and governed action guidance.
@@ -61,12 +61,12 @@ This begins intended PR slice 3.
 
 ## I-5 - Build artifact, history, model, and Session inspection
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P7
 - **Rubric criteria:** R4, R5, R6, R8
 - **Depends on:** I-3
-- **PR:** -
+- **PR:** [#5](https://github.com/TrentBrown/gatereeve/pull/5)
 
 Complete the integrated artifact viewers, direct explain-diff rendering,
 external actions, Session context, event and attempt timeline, and full pinned

@@ -53,7 +53,7 @@ Expose the shared plugin adapter wholesale - rejected because it contains mutati
 
 ## [4] Keep Session context separate from canonical workflow evidence
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -68,7 +68,7 @@ Add Session files to the canonical artifact inventory - rejected because it woul
 
 ## [5] Serve trusted explain-diff HTML through an isolated named protocol
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
