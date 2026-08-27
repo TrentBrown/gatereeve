@@ -37,3 +37,37 @@ Store project-controlled compatibility metadata as an explicit list of tested De
 Infer compatibility from semantic-version ranges - rejected because proximity is not evidence; require exact version equality - rejected because independent native update lifecycles create harmless tested skew; inspect a workflow record to infer Plugin version - rejected because historical records are not installation authority
 
 **Promoted:** 2026-08-27. PR: https://github.com/TrentBrown/gatereeve/pull/8.
+
+---
+
+## Require one ready selected agent, not every selected agent
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop Setup readiness contract, observer and coordinator projections, UI status copy, and tests
+
+Compute operational readiness when all shared prerequisites are present and at least one explicitly selected agent has an authenticated CLI plus a compatible enabled Plugin. Continue displaying incomplete status for every other selected agent so the user can repair it, but do not make an optional second selection block use through the ready agent. Clear prior ephemeral detection cards while a changed selection is being checked so an old, now-unselected agent cannot invalidate or misrepresent the new selection.
+
+**Triggered by:** Pinned PR #8 review found that the observer contradicted approved design constraint D14
+
+**Alternatives considered:**
+Require every selected agent to be ready - rejected because D14 explicitly requires at least one selected supported agent; silently remove incomplete selections - rejected because selection is explicit user intent and Setup must report each selected agent honestly.
+
+**Promoted:** 2026-08-27. PR: https://github.com/TrentBrown/gatereeve/pull/8.
+
+---
+
+## Distinguish Plugin-manager failure from missing installation
+
+**Confidence:** HIGH
+
+**Blast Radius:** Codex and Claude Setup adapters, Setup contract, native remediation guidance, and tests
+
+Use supported JSON plugin listings first, retain text fallback where useful, and classify failure of every listing attempt as unavailable rather than missing. Use each manager's documented update path for incompatible installations: refresh and reinstall from the quality-code marketplace in Codex, and refresh then invoke plugin update in Claude. Detection remains read-only; commands are copy-only guidance.
+
+**Triggered by:** Pinned PR #8 review found that failed read-only plugin listings were being reported as proof that the Plugin was absent
+
+**Alternatives considered:**
+Treat a listing failure as missing - rejected because failed observation is not evidence of absence; reuse the install command for updates - rejected because native managers expose distinct update ownership; inspect plugin files directly - rejected because the native manager is the installation authority.
+
+**Promoted:** 2026-08-27. PR: https://github.com/TrentBrown/gatereeve/pull/8.

@@ -69,6 +69,48 @@ function incompleteState() {
   };
 }
 
+function mixedReadyState() {
+  const agent = (id, status) => ({
+    id,
+    label: id === 'codex' ? 'Codex' : 'Claude Code',
+    status,
+    cli: {
+      status: status === 'ready' ? 'present' : 'missing',
+      version: status === 'ready' ? '0.150.1' : null,
+      authenticated: status === 'ready' ? true : null,
+      detail: status === 'ready' ? 'Codex is authenticated.' : 'Claude Code was not found.',
+      remediation: null,
+    },
+    plugin: {
+      status: status === 'ready' ? 'enabled' : 'not-checked',
+      version: status === 'ready' ? '0.1.0-rc.2' : null,
+      compatibility: status === 'ready' ? 'compatible' : 'not-checked',
+      evidence: status === 'ready' ? 'portable' : null,
+      detail: status === 'ready' ? 'Explicitly tested.' : 'Plugin was not checked.',
+      recommendation: null,
+      remediation: null,
+    },
+  });
+  return {
+    ...unconfiguredState(),
+    setup: {
+      schemaVersion: 1,
+      phase: 'ready',
+      operationalReady: true,
+      checkedAt: '2026-08-27T12:00:00.000Z',
+      desktop: { version: '0.1.0' },
+      selectedAgents: ['codex', 'claude'],
+      prerequisites: [],
+      agents: [agent('codex', 'ready'), agent('claude', 'incomplete')],
+    },
+    preferences: {
+      notificationsEnabled: false,
+      recentWorktrees: [],
+      selectedAgents: ['codex', 'claude'],
+    },
+  };
+}
+
 test('first launch presents persistent non-mutating Setup and preserves historical access', async () => {
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const { window } = parseHTML(html);
@@ -105,6 +147,35 @@ test('first launch presents persistent non-mutating Setup and preserves historic
   window.document.querySelector('#setup-prerequisites button').click();
   await new Promise((done) => setImmediate(done));
   assert.deepEqual(copied, ['brew install git']);
+
+  delete globalThis.window;
+  delete globalThis.document;
+});
+
+test('Setup names the ready path without hiding an incomplete selected agent', async () => {
+  const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
+  const { window } = parseHTML(html);
+  const state = mixedReadyState();
+  window.gatereeveDesktop = {
+    async getState() { return state; },
+    subscribe() { return () => {}; },
+    async chooseWorktree() { return state; },
+    async openRecent() { return state; },
+    async refresh() { return state; },
+    async recheckSetup() { return state; },
+    async setSelectedAgents() { return state; },
+    async setNotificationsEnabled() { return state; },
+    async copyText() { return true; },
+  };
+  globalThis.window = window;
+  globalThis.document = window.document;
+  await import(`${pathToFileURL(resolve(desktopRoot, 'renderer/renderer.js')).href}?test=setup-mixed-ready`);
+  await new Promise((done) => setImmediate(done));
+
+  assert.match(window.document.querySelector('#setup-summary').textContent, /ready through Codex/);
+  assert.match(window.document.querySelector('#setup-summary').textContent, /Claude Code still needs attention/);
+  assert.equal(window.document.querySelector('#historical-reading').hidden, true);
+  assert.match(window.document.querySelector('#setup-agents').textContent, /Claude Code/);
 
   delete globalThis.window;
   delete globalThis.document;

@@ -16,8 +16,9 @@ const AGENTS = Object.freeze({
     versionArguments: ['--version'],
     authArguments: ['login', 'status'],
     installCommand: 'codex plugin add agentic-development-workflow@quality-code',
+    updateCommand: 'codex plugin marketplace upgrade quality-code\ncodex plugin add agentic-development-workflow@quality-code',
     enableCommand: null,
-    guideUrl: 'https://learn.chatgpt.com/docs/build-plugins',
+    guideUrl: 'https://learn.chatgpt.com/docs/plugins',
   }),
   claude: Object.freeze({
     label: 'Claude Code',
@@ -25,6 +26,7 @@ const AGENTS = Object.freeze({
     versionArguments: ['--version'],
     authArguments: ['auth', 'status'],
     installCommand: 'claude plugin install agentic-development-workflow@quality-code --scope user',
+    updateCommand: 'claude plugin marketplace update quality-code\nclaude plugin update agentic-development-workflow@quality-code --scope user',
     enableCommand: 'claude plugin enable agentic-development-workflow@quality-code --scope user',
     guideUrl: 'https://code.claude.com/docs/en/discover-plugins',
   }),
@@ -105,6 +107,17 @@ function atLeast(version, minimum) {
 }
 
 function parseCodexPlugin(outputText) {
+  try {
+    const value = JSON.parse(outputText);
+    const plugin = value.installed?.find((item) => item.pluginId === PLUGIN_ID);
+    if (!plugin) return { status: 'missing', version: null };
+    return {
+      status: plugin.enabled === false ? 'disabled' : 'enabled',
+      version: typeof plugin.version === 'string' ? plugin.version : null,
+    };
+  } catch {
+    // Older managers may not support JSON; parse their stable human table below.
+  }
   const row = outputText.split(/\r?\n/).find((line) => line.trim().startsWith(PLUGIN_ID));
   if (!row) return { status: 'missing', version: null };
   const columns = row.trim().split(/\s{2,}/);
@@ -240,16 +253,17 @@ async function observeAgent(id, { exec, discover, metadata }) {
   };
   let pluginResult;
   if (id === 'codex') {
-    const listing = await command(exec, executable, ['plugin', 'list', '--marketplace', 'quality-code']);
+    let listing = await command(exec, executable, ['plugin', 'list', '--marketplace', 'quality-code', '--json']);
+    if (!listing.ok) listing = await command(exec, executable, ['plugin', 'list', '--marketplace', 'quality-code']);
     pluginResult = listing.ok
       ? parseCodexPlugin(listing.stdout)
-      : { status: 'missing', version: null };
+      : { status: 'unavailable', version: null, diagnostic: listing.stderr.trim() };
   } else {
     let listing = await command(exec, executable, ['plugin', 'list', '--json']);
     if (!listing.ok) listing = await command(exec, executable, ['plugin', 'list']);
     pluginResult = listing.ok
       ? parseClaudePlugin(listing.stdout)
-      : { status: 'missing', version: null };
+      : { status: 'unavailable', version: null, diagnostic: listing.stderr.trim() };
   }
   const compatibility = pluginResult.status === 'enabled'
     ? pluginResult.version === null
@@ -269,8 +283,16 @@ async function observeAgent(id, { exec, discover, metadata }) {
         definition.enableCommand,
         definition.guideUrl,
       )
+      : pluginResult.status === 'unavailable'
+        ? remediation(
+          'Repair the selected agent Plugin manager, then recheck Setup.',
+          null,
+          definition.guideUrl,
+        )
       : compatibility.state === 'incompatible'
-        ? remediation(compatibility.recommendation, definition.installCommand, definition.guideUrl)
+        ? remediation(compatibility.recommendation, definition.updateCommand, definition.guideUrl)
+        : compatibility.state === 'compatible'
+          ? remediation(compatibility.recommendation, definition.updateCommand, definition.guideUrl)
         : compatibility.state === 'not-checked'
           ? remediation(
             'Update or reinstall the GateReeve Plugin so its exact version can be verified.',
@@ -293,7 +315,11 @@ async function observeAgent(id, { exec, discover, metadata }) {
       compatibility: compatibility.state,
       evidence: compatibility.evidence,
       detail: compatibility.state === 'not-checked'
-        ? `The GateReeve Plugin is ${pluginResult.status === 'disabled' ? 'disabled' : 'not installed'}.`
+        ? pluginResult.status === 'disabled'
+          ? 'The GateReeve Plugin is disabled.'
+          : pluginResult.status === 'unavailable'
+            ? pluginResult.diagnostic || 'The selected agent Plugin manager could not be checked.'
+            : 'The GateReeve Plugin is not installed.'
         : compatibility.detail,
       recommendation: compatibility.recommendation,
       remediation: pluginRemediation,
@@ -335,7 +361,7 @@ export function createSetupObserver({
       agents.push(await observeAgent(id, { exec, discover, metadata: compatibilityMetadata }));
     }
     const operationalReady = prerequisites.every((item) => item.status === 'present')
-      && agents.every((agent) => agent.status === 'ready');
+      && agents.some((agent) => agent.status === 'ready');
     return requireSetupState({
       schemaVersion: 1,
       phase: operationalReady ? 'ready' : 'incomplete',

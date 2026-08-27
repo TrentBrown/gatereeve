@@ -209,10 +209,14 @@ export function createDesktopCoordinator({
     const selectedAgents = requireSelectedAgents(preferences?.selectedAgents ?? []);
     if (selectedAgents.length > 0) {
       setup = requireSetupState({
-        ...setup,
+        schemaVersion: 1,
         phase: 'checking',
         operationalReady: false,
+        checkedAt: setup.checkedAt,
+        desktop: setup.desktop,
         selectedAgents,
+        prerequisites: [],
+        agents: [],
       });
       publish();
     }

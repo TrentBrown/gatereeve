@@ -241,3 +241,60 @@ test('selected-agent Setup persists explicit choice and rechecks without requiri
   assert.deepEqual(observed.at(-1), ['claude']);
   coordinator.close();
 });
+
+test('changing agent selection clears stale detection cards before rechecking', async () => {
+  const published = [];
+  const incompleteAgent = (id) => ({
+    id,
+    label: id === 'codex' ? 'Codex' : 'Claude Code',
+    status: 'incomplete',
+    cli: {
+      status: 'missing', version: null, authenticated: null,
+      detail: 'Not found.', remediation: null,
+    },
+    plugin: {
+      status: 'not-checked', version: null, compatibility: 'not-checked', evidence: null,
+      detail: 'Not checked.', recommendation: null, remediation: null,
+    },
+  });
+  const initialPreferences = {
+    ...defaultPreferences(),
+    selectedAgents: ['codex', 'claude'],
+  };
+  const coordinator = createDesktopCoordinator({
+    protocol: {},
+    preferenceStore: {
+      async load() { return initialPreferences; },
+      async save(value) { return value; },
+    },
+    initialPreferences,
+    initialSetup: {
+      schemaVersion: 1,
+      phase: 'incomplete',
+      operationalReady: false,
+      checkedAt: '2026-08-27T12:00:00.000Z',
+      desktop: { version: '0.1.0' },
+      selectedAgents: ['codex', 'claude'],
+      prerequisites: [],
+      agents: [incompleteAgent('codex'), incompleteAgent('claude')],
+    },
+    async setupObserver(selectedAgents) {
+      return {
+        schemaVersion: 1,
+        phase: 'incomplete',
+        operationalReady: false,
+        checkedAt: '2026-08-27T12:01:00.000Z',
+        desktop: { version: '0.1.0' },
+        selectedAgents,
+        prerequisites: [],
+        agents: [],
+      };
+    },
+  });
+  coordinator.subscribe((state) => published.push(state));
+  await coordinator.setSelectedAgents(['codex']);
+  const checking = published.find((state) => state.setup.phase === 'checking');
+  assert.deepEqual(checking.setup.selectedAgents, ['codex']);
+  assert.deepEqual(checking.setup.agents, []);
+  coordinator.close();
+});

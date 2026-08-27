@@ -31,6 +31,19 @@ function successfulExec(calls) {
     if (name === 'codex') {
       if (args[0] === '--version') return { stdout: 'codex-cli 0.150.1\n', stderr: '' };
       if (args[0] === 'login') return { stdout: 'Logged in using ChatGPT\n', stderr: '' };
+      if (args.includes('--json')) {
+        return {
+          stdout: JSON.stringify({
+            installed: [{
+              pluginId: 'agentic-development-workflow@quality-code',
+              version: '0.1.0-rc.2',
+              enabled: true,
+            }],
+            available: [],
+          }),
+          stderr: '',
+        };
+      }
       return {
         stdout: 'PLUGIN                                     STATUS              VERSION     PATH\nagentic-development-workflow@quality-code  installed, enabled  0.1.0-rc.2  /plugin\n',
         stderr: '',
@@ -53,6 +66,10 @@ test('observer checks only selected agents and accepts only an explicit compatib
   assert.equal(setup.operationalReady, true);
   assert.equal(setup.agents[0].plugin.compatibility, 'compatible');
   assert.equal(setup.agents[0].plugin.evidence, 'portable');
+  assert.equal(
+    setup.agents[0].plugin.remediation.command,
+    'codex plugin marketplace upgrade quality-code\ncodex plugin add agentic-development-workflow@quality-code',
+  );
   assert.equal(discovered.includes('codex'), true);
   assert.equal(discovered.includes('claude'), false);
   assert.equal(calls.some((call) => call.some((part) => /install|enable|disable|remove|upgrade/.test(part))), false);
@@ -80,6 +97,32 @@ test('unknown Plugin versions fail readiness while historical reading remains a 
   assert.equal(setup.operationalReady, false);
   assert.equal(setup.agents[0].plugin.compatibility, 'incompatible');
   assert.match(setup.agents[0].plugin.detail, /not an explicitly tested pair/);
+  assert.equal(
+    setup.agents[0].plugin.remediation.command,
+    'codex plugin marketplace upgrade quality-code\ncodex plugin add agentic-development-workflow@quality-code',
+  );
+});
+
+test('a failed native Plugin listing is unavailable, not evidence of absence', async () => {
+  const common = successfulExec([]);
+  const observer = createSetupObserver({
+    metadata,
+    exec: async (executable, args) => {
+      if (executable.endsWith('/codex') && args[0] === 'plugin') {
+        const error = new Error('Plugin manager unavailable');
+        error.stderr = 'Plugin manager unavailable';
+        throw error;
+      }
+      return common(executable, args);
+    },
+    async discover(name) { return `/bin/${name}`; },
+  });
+  const setup = await observer(['codex']);
+  assert.equal(setup.operationalReady, false);
+  assert.equal(setup.agents[0].plugin.status, 'unavailable');
+  assert.equal(setup.agents[0].plugin.compatibility, 'not-checked');
+  assert.match(setup.agents[0].plugin.detail, /Plugin manager unavailable/);
+  assert.equal(setup.agents[0].plugin.remediation.command, null);
 });
 
 test('an enabled Plugin without an exact manager-reported version is incompatible', async () => {
@@ -120,6 +163,19 @@ test('unselected agents are not probed when a selected agent is missing', async 
   assert.equal(setup.operationalReady, false);
   assert.equal(setup.agents[0].cli.status, 'missing');
   assert.equal(discovered.includes('codex'), false);
+});
+
+test('one ready selected agent is enough for operational readiness', async () => {
+  const observer = createSetupObserver({
+    metadata,
+    exec: successfulExec([]),
+    async discover(name) { return name === 'claude' ? null : `/bin/${name}`; },
+  });
+  const setup = await observer(['codex', 'claude']);
+  assert.equal(setup.operationalReady, true);
+  assert.equal(setup.phase, 'ready');
+  assert.equal(setup.agents.find((agent) => agent.id === 'codex').status, 'ready');
+  assert.equal(setup.agents.find((agent) => agent.id === 'claude').status, 'incomplete');
 });
 
 test('shared prerequisite remediation follows the host-native package owner', async () => {

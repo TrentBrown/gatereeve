@@ -132,6 +132,8 @@ function setupCard(title, status, detail, remediationValue = null) {
 function renderSetup(state) {
   const setup = state.setup;
   const selected = state.preferences.selectedAgents;
+  const readyAgents = setup.agents.filter((agent) => agent.status === 'ready');
+  const incompleteAgents = setup.agents.filter((agent) => agent.status !== 'ready');
   elements['agent-codex'].checked = selected.includes('codex');
   elements['agent-claude'].checked = selected.includes('claude');
   elements['desktop-version'].textContent = `Desktop ${setup.desktop.version}`;
@@ -147,7 +149,7 @@ function renderSetup(state) {
     : setup.phase === 'checking'
       ? 'Checking only the selected agents and their workflow prerequisites…'
       : setup.operationalReady
-        ? `Operational setup is ready for ${selected.map(humanize).join(' and ')}.`
+        ? `Operational setup is ready through ${readyAgents.map((agent) => agent.label).join(' and ')}.${incompleteAgents.length > 0 ? ` ${incompleteAgents.map((agent) => agent.label).join(' and ')} still needs attention.` : ''}`
         : 'Operational setup is incomplete. Existing records remain available for historical or offline inspection.';
 
   clear(elements['setup-prerequisites']);

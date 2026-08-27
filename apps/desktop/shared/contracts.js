@@ -87,7 +87,7 @@ function validAgent(value) {
     && exactKeys(value.plugin, [
       'status', 'version', 'compatibility', 'evidence', 'detail', 'recommendation', 'remediation',
     ])
-    && ['enabled', 'disabled', 'missing', 'not-checked'].includes(value.plugin.status)
+    && ['enabled', 'disabled', 'missing', 'unavailable', 'not-checked'].includes(value.plugin.status)
     && nullableString(value.plugin.version)
     && ['matched', 'compatible', 'incompatible', 'not-checked'].includes(value.plugin.compatibility)
     && nullableString(value.plugin.evidence)
@@ -130,7 +130,7 @@ export function requireSetupState(value) {
       value.selectedAgents.length === 0
       || value.agents.length !== value.selectedAgents.length
       || value.prerequisites.some((item) => item.status !== 'present')
-      || value.agents.some((agent) => agent.status !== 'ready')
+      || !value.agents.some((agent) => agent.status === 'ready')
     ))
   ) {
     throw new Error('The main process returned invalid GateReeve Setup state.');
