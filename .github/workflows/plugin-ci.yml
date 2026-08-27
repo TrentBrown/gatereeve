@@ -96,7 +96,7 @@ jobs:
         run: >-
           node apps/desktop/scripts/create-smoke-fixture.mjs
           "$RUNNER_TEMP/gatereeve-desktop-smoke"
-      - name: Launch Electron without Python, Node runtime, or the optional CLI
+      - name: Launch Electron without a Python context runtime or optional CLI
         run: xvfb-run --auto-servernum npm start --prefix apps/desktop
         env:
           GATEREEVE_DESKTOP_SMOKE: "1"
@@ -118,7 +118,7 @@ jobs:
         run: >-
           node apps/desktop/scripts/create-smoke-fixture.mjs
           "$RUNNER_TEMP/gatereeve-desktop-smoke"
-      - name: Launch Electron without Python, Node runtime, or the optional CLI
+      - name: Launch Electron without a Python context runtime or optional CLI
         run: npm start --prefix apps/desktop
         env:
           GATEREEVE_DESKTOP_SMOKE: "1"
