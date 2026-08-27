@@ -129,27 +129,27 @@ npm test
 
 ## Release commands
 
-`release publish` is the normal maintainer entrypoint. The complete eligibility,
-RC evidence, stable promotion, recovery, and post-release procedure lives in
+Release publication now consumes one coordinated Plugin/Desktop record. Build
+that record through the nonpublishing `Coordinated Release Preparation` GitHub
+Actions workflow, download its retained workspace, and inspect the exact plan
+before any public action. The complete procedure lives in
 [`../RELEASING.md`](../RELEASING.md).
 
 ```bash
-# Interactively choose from proposed release versions.
-gatereeve plugin release publish
+# Inspect candidate checksums, trust, approval, and per-surface state.
+gatereeve plugin release inspect-record \
+  --release-record /path/to/coordinated-release/release-record.json
 
-# Nonmutating preflight for the next release candidate.
-gatereeve plugin release publish --next-rc --dry-run
+# The guarded publisher always requires that exact record.
+gatereeve plugin release publish --next-rc --dry-run \
+  --release-record /path/to/coordinated-release/release-record.json
 
 # Promote the deployed RC's exact source commit to stable.
-gatereeve plugin release publish --promote
+gatereeve plugin release publish --promote \
+  --release-record /path/to/stable-coordinated-release/release-record.json
 
-# Begin a new patch, minor, or major line at rc.1.
-gatereeve plugin release publish --bump patch
-gatereeve plugin release publish --bump minor
-gatereeve plugin release publish --bump major
-
-# Retain exact-tag control when needed.
-gatereeve plugin release publish --tag v0.1.0-rc.2
+# Create a record locally from already verified candidate inputs.
+gatereeve plugin release coordinate --help
 
 # Watch a release started elsewhere.
 gatereeve plugin release watch --tag v0.1.0-rc.2
@@ -158,9 +158,10 @@ gatereeve plugin release watch --tag v0.1.0-rc.2
 gatereeve plugin release bundle --tag v0.1.0-rc.2 --output-dir ~/Downloads
 ```
 
-Stable releases also require the Ubuntu RC evidence file; the default path is
-`docs/releases/ubuntu-rc.json`. Automation can use `--yes --json`. A deliberately
-asynchronous publication must use both `--no-wait` and `--no-verify`.
+An ad-hoc development record is intentionally not publishable. The record must
+contain complete Developer ID trust evidence and approval of its exact plan
+digest before `release publish` can create a tag. `--yes` suppresses the CLI's
+interactive prompt only; it never substitutes for record-bound approval.
 
 Computed versions use the currently deployed marketplace `RELEASE.json` as
 their baseline, not merely the highest Git tag. Bare publication is interactive;
@@ -168,9 +169,10 @@ automation must provide `--tag`, `--next-rc`, `--promote`, or `--bump`. Patch,
 minor, and major bumps begin a new RC line. Promotion tags and validates the
 same source commit as the deployed RC, even when `main` has advanced.
 
-`gatereeve plugin release prepare` is the low-level, nonpublishing composer used by
-the GitHub Actions release workflow. `gatereeve plugin smoke-install` remains a
-separate test of native-manager installation into disposable profiles.
+`gatereeve plugin release prepare` is the low-level Plugin-only composer used
+inside CI. `gatereeve plugin release coordinate` binds its output to the exact
+universal DMG and native ARM/Intel verification. Neither command publishes.
+`gatereeve plugin smoke-install` remains a separate native-manager test.
 
 `gatereeve plugin release bundle` verifies the selected deployed release, archives
 the exact marketplace commit, adds the repository's canonical `INSTALL.md` and

@@ -4,25 +4,41 @@ This is the maintainer runbook for publishing the native Codex and Claude Code
 plugins. It assumes the change has passed the development and PR process in
 [`DEVELOPMENT.md`](DEVELOPMENT.md) and has been merged to `main`.
 
-Release publication is intentionally guarded. The normal human entrypoint is:
+Release publication is intentionally guarded. First run the nonpublishing
+`Coordinated Release Preparation` workflow for the intended RC and immutable
+source ref. Download its `gatereeve-<tag>-coordinated-release` artifact, then
+inspect the record and plan:
 
 ```bash
-npm start --prefix cli -- plugin release publish
+RELEASE_RECORD=/path/to/coordinated-release/release-record.json
+npm start --prefix cli -- plugin release inspect-record \
+  --release-record "$RELEASE_RECORD"
 ```
 
 Do not create release tags manually, invoke the low-level marketplace publisher
 directly, or edit the `marketplace` branch. The guarded command validates the
-source, displays the plan, confirms the tag, watches GitHub Actions, and verifies
-the deployed marketplace.
+source and requires this exact coordinated record before it can create a tag.
+The record binds the Plugin candidate, universal Desktop DMG, both native
+verification results, trust evidence, approval digest, and recoverable state for
+the tag, Plugin marketplace, Desktop prerelease, update manifest, and website.
+An ad-hoc development record is inspectable but deliberately not publishable.
 
 ## Release Model
 
-A release has three distinct identities:
+A release has one coordinated identity expressed through distinct evidence:
 
 1. a semantic Git tag such as `v0.2.0-rc.1`;
 2. the exact source commit referenced by that tag; and
-3. the generated `marketplace` branch whose `RELEASE.json` records the deployed
-   tag and source commit.
+3. checksummed Plugin and universal-DMG candidates built from that source;
+4. ARM and Intel Desktop verification plus Apple trust evidence; and
+5. a durable per-surface publication record whose Plugin metadata still records
+   the deployed tag and source commit in `marketplace/RELEASE.json`.
+
+Cross-surface publication is ordered rather than falsely described as atomic:
+tag, Plugin marketplace, Desktop prerelease, update manifest, then Early Access
+website. Every completion is recorded immediately. A retry inspects and
+converges the same identity, skipping completed surfaces instead of deleting or
+replacing history.
 
 GitHub Actions is the only production marketplace publisher:
 
@@ -106,15 +122,16 @@ Resolve any incomplete current deployment before creating another release.
 For the normal next release candidate:
 
 ```bash
-npm start --prefix cli -- plugin release publish --next-rc --dry-run
+npm start --prefix cli -- plugin release publish --next-rc --dry-run \
+  --release-record "$RELEASE_RECORD"
 ```
 
 For a new semantic line, use exactly one of:
 
 ```bash
-npm start --prefix cli -- plugin release publish --bump patch --dry-run
-npm start --prefix cli -- plugin release publish --bump minor --dry-run
-npm start --prefix cli -- plugin release publish --bump major --dry-run
+npm start --prefix cli -- plugin release publish --bump patch --dry-run --release-record "$RELEASE_RECORD"
+npm start --prefix cli -- plugin release publish --bump minor --dry-run --release-record "$RELEASE_RECORD"
+npm start --prefix cli -- plugin release publish --bump major --dry-run --release-record "$RELEASE_RECORD"
 ```
 
 Review the displayed baseline, version action, proposed tag, selected source
@@ -126,7 +143,8 @@ mutation.
 Use the selector whose dry run was approved. The routine path is:
 
 ```bash
-npm start --prefix cli -- plugin release publish --next-rc
+npm start --prefix cli -- plugin release publish --next-rc \
+  --release-record "$RELEASE_RECORD"
 ```
 
 The command:
@@ -245,7 +263,8 @@ git switch main
 git pull --ff-only origin main
 npm start --prefix cli -- plugin release list
 npm start --prefix cli -- plugin release verify
-npm start --prefix cli -- plugin release publish --promote --dry-run
+npm start --prefix cli -- plugin release publish --promote --dry-run \
+  --release-record "$RELEASE_RECORD"
 ```
 
 Promotion differs deliberately from an RC publication:
@@ -262,7 +281,8 @@ Review the proposed stable tag and source commit before proceeding.
 ## 8. Promote the Exact RC
 
 ```bash
-npm start --prefix cli -- plugin release publish --promote
+npm start --prefix cli -- plugin release publish --promote \
+  --release-record "$RELEASE_RECORD"
 ```
 
 The local publisher validates the historical source plus current evidence and
@@ -305,6 +325,7 @@ disabled explicitly:
 ```bash
 npm start --prefix cli -- plugin release publish \
   --next-rc \
+  --release-record "$RELEASE_RECORD" \
   --no-wait \
   --no-verify
 ```

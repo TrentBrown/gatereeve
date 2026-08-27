@@ -39,7 +39,7 @@ compatibility states.
 
 ## I-3 - Product identity and universal DMG
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R2
@@ -51,7 +51,7 @@ and package and inspect one native universal drag-to-Applications DMG.
 
 ## I-4 - Coordinated release and recovery
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 1d
 - **Plan steps:** P5
 - **Rubric criteria:** R6

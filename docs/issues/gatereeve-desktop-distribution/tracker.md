@@ -5,11 +5,10 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Identity and universal DMG P4 / I-3 is in review in
-[#9](https://github.com/TrentBrown/gatereeve/pull/9). Human review selected
-V1 - Rolling Vale, and the exact universal DMG candidate passes identity,
-resource, ad-hoc signature, and governed-fixture launch verification on hosted
-Apple Silicon and Intel runners.
+**Active slice:** Coordinated release and recovery P5 / I-4 is in progress on
+`gatereeve-desktop-distribution-04-coordinated-release`. PR
+[#9](https://github.com/TrentBrown/gatereeve/pull/9) merged the prior identity
+and universal-DMG boundary as commit `3a340e3` on `main`.
 
 ## Rubric Status
 
@@ -72,4 +71,4 @@ Append PR boundary entries here.
   specification evaluation, independent judge, code review with no findings,
   decision triage, explain-diff, and all twelve GitHub CI jobs; pattern review
   is not applicable because no scope is configured
-- **Status:** In review; I-3 is in review
+- **Status:** Merged; I-3 is closed

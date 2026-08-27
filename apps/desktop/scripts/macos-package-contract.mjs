@@ -44,10 +44,16 @@ export const REQUIRED_ASAR_PATHS = Object.freeze([
 
 /** @param {string} version */
 export function dmgFilename(version) {
-  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(version)) {
+  if (!/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u.test(version)) {
     throw new Error(`Invalid Desktop version: ${version}`);
   }
   return `${MACOS_PRODUCT.name}-${version}-macos-universal.dmg`;
+}
+
+/** @param {string} version */
+export function macosBundleVersion(version) {
+  dmgFilename(version);
+  return version.split(/[+-]/u, 1)[0];
 }
 
 /** @param {string} version */
@@ -73,7 +79,7 @@ export function electronPackagerOptions(options) {
     platform: 'darwin',
     arch: MACOS_PRODUCT.architecture,
     electronVersion: MACOS_PRODUCT.electronVersion,
-    appVersion: options.version,
+    appVersion: macosBundleVersion(options.version),
     appBundleId: MACOS_PRODUCT.bundleIdentifier,
     appCategoryType: MACOS_PRODUCT.category,
     icon: options.iconPath,

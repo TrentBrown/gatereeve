@@ -1,0 +1,189 @@
+name: Coordinated Release Preparation
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Eventual coordinated RC tag (for example v0.1.0-rc.3)
+        required: true
+        type: string
+      source_ref:
+        description: Immutable source ref to resolve before candidate work
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-source:
+    runs-on: ubuntu-24.04
+    outputs:
+      commit: ${{ steps.source.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+      - name: Require an RC preparation tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: node -e "if (!/^v(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)-rc\\.(?:0|[1-9]\\d*)$/.test(process.env.RELEASE_TAG)) process.exit(1)"
+      - id: source
+        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  plugin-candidate:
+    needs: resolve-source
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-source.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - run: bash ci/portable-acceptance.sh
+      - name: Prepare the exact Plugin candidate
+        run: >-
+          node cli/bin/workflow.js plugin release prepare
+          --tag "${{ inputs.tag }}"
+          --source-commit "${{ needs.resolve-source.outputs.commit }}"
+          --output-root "$RUNNER_TEMP/plugin-marketplace"
+          --json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coordinated-plugin-candidate
+          path: ${{ runner.temp }}/plugin-marketplace
+          if-no-files-found: error
+
+  desktop-candidate:
+    needs: resolve-source
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-source.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --prefix apps/desktop
+      - name: Package Desktop with the coordinated release version
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: npm run package:mac --prefix apps/desktop -- --version "${RELEASE_TAG#v}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coordinated-desktop-candidate
+          path: apps/desktop/dist/macos/GateReeve-*-macos-universal.dmg
+          if-no-files-found: error
+
+  desktop-verification:
+    needs:
+      - resolve-source
+      - desktop-candidate
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: arm64
+            runner: macos-15
+          - architecture: x64
+            runner: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-source.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --ignore-scripts --prefix apps/desktop
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-desktop-candidate
+          path: ${{ runner.temp }}/desktop
+      - name: Prepare a real governed runtime fixture
+        run: >-
+          node apps/desktop/scripts/create-smoke-fixture.mjs
+          "$RUNNER_TEMP/gatereeve-desktop-smoke"
+      - id: metadata
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+      - name: Verify the exact DMG and emit native evidence
+        run: >-
+          node apps/desktop/scripts/verify-macos-package.mjs
+          --dmg "$RUNNER_TEMP/desktop/GateReeve-${{ steps.metadata.outputs.version }}-macos-universal.dmg"
+          --version "${{ steps.metadata.outputs.version }}"
+          --fixture "$RUNNER_TEMP/gatereeve-desktop-smoke"
+          --native-architecture "${{ matrix.architecture }}"
+          --source-tag "${{ inputs.tag }}"
+          --source-commit "${{ needs.resolve-source.outputs.commit }}"
+          --evidence "$RUNNER_TEMP/desktop-${{ matrix.architecture }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coordinated-desktop-evidence-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/desktop-${{ matrix.architecture }}.json
+          if-no-files-found: error
+
+  coordinated-record:
+    needs:
+      - resolve-source
+      - plugin-candidate
+      - desktop-candidate
+      - desktop-verification
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-source.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-plugin-candidate
+          path: ${{ runner.temp }}/plugin-marketplace
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-desktop-candidate
+          path: ${{ runner.temp }}/desktop
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coordinated-desktop-evidence-*
+          path: ${{ runner.temp }}/evidence
+          merge-multiple: true
+      - id: metadata
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+      - name: Create the immutable coordinated record and dry-run plan
+        run: >-
+          node cli/bin/workflow.js plugin release coordinate
+          --tag "${{ inputs.tag }}"
+          --source-commit "${{ needs.resolve-source.outputs.commit }}"
+          --repository "${{ github.server_url }}/${{ github.repository }}"
+          --plugin-root "$RUNNER_TEMP/plugin-marketplace"
+          --desktop-dmg "$RUNNER_TEMP/desktop/GateReeve-${{ steps.metadata.outputs.version }}-macos-universal.dmg"
+          --desktop-evidence
+          "$RUNNER_TEMP/evidence/desktop-arm64.json"
+          "$RUNNER_TEMP/evidence/desktop-x64.json"
+          --output-root "$RUNNER_TEMP/coordinated-release"
+          --json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gatereeve-${{ inputs.tag }}-coordinated-release
+          path: ${{ runner.temp }}/coordinated-release
+          if-no-files-found: error

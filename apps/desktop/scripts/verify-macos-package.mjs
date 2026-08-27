@@ -1,15 +1,20 @@
 // @ts-check
 
-import { listPackage } from '@electron/asar';
+import { extractFile, listPackage } from '@electron/asar';
 import assert from 'node:assert/strict';
 import { execFile, spawn } from 'node:child_process';
-import { lstat, mkdtemp, readlink, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { lstat, mkdtemp, readFile, readlink, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
-import { MACOS_PRODUCT, REQUIRED_ASAR_PATHS } from './macos-package-contract.mjs';
+import {
+  macosBundleVersion,
+  MACOS_PRODUCT,
+  REQUIRED_ASAR_PATHS,
+} from './macos-package-contract.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -49,7 +54,10 @@ export async function verifyApplication(applicationPath, version) {
   assert.equal(await plistValue(infoPlist, 'CFBundleIdentifier'), MACOS_PRODUCT.bundleIdentifier);
   assert.equal(await plistValue(infoPlist, 'CFBundleName'), MACOS_PRODUCT.name);
   assert.equal(await plistValue(infoPlist, 'CFBundleDisplayName'), MACOS_PRODUCT.name);
-  assert.equal(await plistValue(infoPlist, 'CFBundleShortVersionString'), version);
+  assert.equal(
+    await plistValue(infoPlist, 'CFBundleShortVersionString'),
+    macosBundleVersion(version),
+  );
   const iconFile = await plistValue(infoPlist, 'CFBundleIconFile');
   assert.ok(iconFile.endsWith('.icns'), 'The application must declare a macOS icon file.');
   assert.equal((await lstat(resolve(contents, 'Resources', iconFile))).isFile(), true);
@@ -81,6 +89,21 @@ export async function verifyApplication(applicationPath, version) {
     assert.doesNotMatch(path, /(?:^|\/)(?:node_modules|scripts|test|visual)(?:\/|$)/u);
     assert.doesNotMatch(path, /\.py$/u);
   }
+  const packageMetadata = JSON.parse(extractFile(asarPath, 'package.json').toString('utf8'));
+  const compatibility = JSON.parse(
+    extractFile(asarPath, 'shared/setup-compatibility.json').toString('utf8'),
+  );
+  assert.equal(packageMetadata.version, version);
+  assert.equal(compatibility.desktop.version, version);
+  assert.equal(
+    compatibility.testedPairs.some((pair) => (
+      pair.desktopVersion === version
+      && pair.pluginVersion === version
+      && pair.state === 'matched'
+    )),
+    true,
+    'Packaged Setup must recognize the coordinated Plugin/Desktop version',
+  );
 }
 
 /** @param {string} applicationPath @param {string} fixturePath */
@@ -166,10 +189,50 @@ function argument(name) {
   return index === -1 ? undefined : process.argv[index + 1];
 }
 
+/**
+ * @param {{dmgPath: string, evidencePath: string, fixturePath?: string,
+ *   nativeArchitecture: string, sourceCommit: string, sourceTag: string,
+ *   version: string}} options
+ */
+export async function writeVerificationEvidence(options) {
+  assert.match(options.sourceCommit, /^[a-f0-9]{40}$/u);
+  assert.match(options.sourceTag, /^v/u);
+  assert.ok(['arm64', 'x64'].includes(options.nativeArchitecture));
+  const content = await readFile(resolve(options.dmgPath));
+  const details = await stat(resolve(options.dmgPath));
+  const evidence = {
+    schemaVersion: 1,
+    kind: 'gatereeve-desktop-package-verification',
+    sourceTag: options.sourceTag,
+    sourceCommit: options.sourceCommit,
+    version: options.version,
+    artifact: {
+      filename: basename(resolve(options.dmgPath)),
+      bytes: details.size,
+      sha256: createHash('sha256').update(content).digest('hex'),
+    },
+    runner: { operatingSystem: 'darwin', architecture: options.nativeArchitecture },
+    checks: {
+      dmgVerified: true,
+      applicationIdentity: true,
+      coordinatedVersion: true,
+      universalBinaries: true,
+      governedFixtureSmoke: Boolean(options.fixturePath),
+    },
+    trust: { status: 'development-ad-hoc' },
+    verifiedAt: new Date().toISOString(),
+  };
+  await writeFile(resolve(options.evidencePath), `${JSON.stringify(evidence, null, 2)}\n`);
+  return evidence;
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const dmgPath = argument('--dmg');
+  const evidencePath = argument('--evidence');
   const fixturePath = argument('--fixture');
   const nativeArchitecture = argument('--native-architecture');
+  const sourceCommit = argument('--source-commit');
+  const sourceTag = argument('--source-tag');
   const version = argument('--version');
   if (!dmgPath || !version) {
     throw new Error('Usage: node verify-macos-package.mjs --dmg <path> --version <version> [--fixture <path>] [--native-architecture <arm64|x64>]');
@@ -180,5 +243,19 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     );
   }
   await verifyDmg({ dmgPath, fixturePath, version });
+  if (evidencePath) {
+    if (!nativeArchitecture || !sourceCommit || !sourceTag) {
+      throw new Error('--evidence requires --native-architecture, --source-commit, and --source-tag');
+    }
+    await writeVerificationEvidence({
+      dmgPath,
+      evidencePath,
+      fixturePath,
+      nativeArchitecture,
+      sourceCommit,
+      sourceTag,
+      version,
+    });
+  }
   process.stdout.write(`Verified ${resolve(dmgPath)} on ${process.arch}.\n`);
 }

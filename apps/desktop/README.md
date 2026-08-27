@@ -61,6 +61,12 @@ npm ci
 npm run package:mac
 ```
 
+Coordinated RC preparation supplies the full release identity explicitly, for
+example `npm run package:mac -- --version 0.1.0-rc.3`. That version is embedded
+in the staged Desktop runtime, Setup compatibility, DMG filename, and native
+evidence. The macOS bundle short version remains the Apple-compatible numeric
+base (`0.1.0`).
+
 The result is `dist/macos/GateReeve-<version>-macos-universal.dmg`. It contains
 one universal `GateReeve.app`, the approved Rolling Vale icon, bundle identifier
 `com.trentbrown.gatereeve.desktop`, and an Applications shortcut. Open the DMG
@@ -71,6 +77,13 @@ is suitable for identity, architecture, packaged-runtime, and local-install
 verification, but it is not a public release. Developer ID signing,
 notarization, stapling, Gatekeeper proof, and the direct RC are introduced only
 through the later protected release slices.
+
+The nonpublishing `Coordinated Release Preparation` workflow runs the exact DMG
+on native Apple Silicon and Intel hosts. Each host can emit a JSON evidence file
+with `verify-macos-package.mjs --evidence ... --source-tag ... --source-commit
+...`; `gatereeve plugin release coordinate` accepts only a matching pair and
+binds their common DMG checksum to the prepared Plugin candidate. This record is
+recoverable release evidence, not permission to publish the ad-hoc candidate.
 
 For renderer-only visual review on a host without Electron runtime libraries,
 serve this package directory and open `/visual/index.html`. The fixture uses
