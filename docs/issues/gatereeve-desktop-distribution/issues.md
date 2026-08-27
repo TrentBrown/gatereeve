@@ -69,7 +69,7 @@ publication.
 - **Plan steps:** P6
 - **Rubric criteria:** R5, R6
 - **Depends on:** I-4
-- **PR:** -
+- **PR:** [#11](https://github.com/TrentBrown/gatereeve/pull/11)
 
 Provide the individual enrollment and credential runbook, validate protected
 configuration, sign and notarize with ephemeral CI credentials, and block every
