@@ -35,7 +35,7 @@ body {
     #f4f1f8;
 }
 
-button, select { font: inherit; }
+button, select, input { font: inherit; }
 
 button {
   border: 1px solid var(--purple-700);
@@ -47,7 +47,7 @@ button {
 }
 
 button:hover:not(:disabled) { background: var(--purple-800); }
-button:focus-visible, select:focus-visible, summary:focus-visible, iframe:focus-visible {
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible, iframe:focus-visible {
   outline: 3px solid #f0a64b;
   outline-offset: 2px;
 }
@@ -170,8 +170,14 @@ main { min-height: calc(100vh - 76px); }
 .nav-item:hover:not(:disabled) { color: var(--purple-900); background: var(--purple-50); }
 .nav-item.active { color: var(--purple-900); background: var(--purple-100); box-shadow: inset 3px 0 var(--purple-700); }
 
+.preference-panel { padding: 0 0.5rem 1rem; }
+.preference-panel h3, .source-stack h3 { margin: 0 0 0.55rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.67rem; }
+.toggle-row { display: flex; align-items: flex-start; gap: 0.55rem; color: #51475b; cursor: pointer; font-size: 0.72rem; line-height: 1.35; }
+.toggle-row input { width: 1rem; height: 1rem; margin: 0.1rem 0 0; accent-color: var(--purple-700); }
+.toggle-row strong, .toggle-row small { display: block; }
+.toggle-row small { margin-top: 0.18rem; color: var(--muted); }
+
 .source-stack { padding: 0 0.5rem; }
-.source-stack h3 { margin: 0 0 0.55rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.67rem; }
 .source {
   position: relative;
   margin: 0.42rem 0;

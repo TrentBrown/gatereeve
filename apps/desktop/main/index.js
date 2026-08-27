@@ -8,6 +8,7 @@ import {
   clipboard,
   dialog,
   ipcMain,
+  Notification,
   protocol,
   session,
   shell,
@@ -62,6 +63,10 @@ async function startDesktop() {
     protocol: createProtocolAdapter(),
     preferenceStore,
     initialPreferences,
+    notify({ title, body }) {
+      if (!Notification.isSupported()) return;
+      new Notification({ title, body }).show();
+    },
   });
   registerRendererProtocol(protocol, resolve(desktopRoot, 'renderer'), {
     readArtifact: (artifactId) => coordinator.read('artifact', artifactId),

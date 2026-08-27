@@ -13,6 +13,7 @@ const channels = Object.freeze({
   readSession: 'gatereeve:desktop:read-session',
   refresh: 'gatereeve:desktop:refresh',
   revealArtifact: 'gatereeve:desktop:reveal-artifact',
+  setNotificationsEnabled: 'gatereeve:desktop:set-notifications-enabled',
   stateChanged: 'gatereeve:desktop:state-changed',
 });
 
@@ -26,6 +27,7 @@ function requireState(value) {
     || typeof value.githubPolling !== 'boolean'
     || typeof value.preferences !== 'object'
     || !Array.isArray(value.preferences.recentWorktrees)
+    || typeof value.preferences.notificationsEnabled !== 'boolean'
     || (value.snapshot !== null && (
       typeof value.snapshot !== 'object' || value.snapshot.schemaVersion !== 1
     ))
@@ -140,6 +142,10 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     requireSessionId(id),
   )),
   refresh: async () => requireState(await ipcRenderer.invoke(channels.refresh)),
+  setNotificationsEnabled: async (enabled) => {
+    if (typeof enabled !== 'boolean') throw new TypeError('Notification preference must be boolean.');
+    return requireState(await ipcRenderer.invoke(channels.setNotificationsEnabled, enabled));
+  },
   revealArtifact: async (artifactId) => ipcRenderer.invoke(
     channels.revealArtifact,
     { artifactId: requireArtifactId(artifactId) },

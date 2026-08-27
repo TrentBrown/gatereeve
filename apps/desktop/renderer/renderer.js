@@ -22,6 +22,7 @@ const ids = [
   'actions', 'artifact-count', 'artifact-list', 'artifact-viewer', 'history-count',
   'history-list', 'history-detail', 'model-provenance', 'model-graph', 'model-mermaid',
   'copy-mermaid', 'session-list', 'session-detail', 'toast',
+  'notifications',
 ];
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
 
@@ -666,6 +667,7 @@ function render(state) {
   elements.workspace.hidden = !selected;
   elements.refresh.disabled = !selected || state.refreshing;
   renderRecents(state);
+  elements.notifications.checked = state.preferences.notificationsEnabled;
   elements['chooser-error'].hidden = selected || state.error === null;
   elements['chooser-error'].textContent = selected ? '' : state.error?.message ?? '';
   if (!selected) return;
@@ -705,6 +707,19 @@ function render(state) {
 
 elements.choose.addEventListener('click', () => void desktop.chooseWorktree());
 elements.refresh.addEventListener('click', () => void desktop.refresh());
+elements.notifications.addEventListener('change', async () => {
+  const enabled = elements.notifications.checked;
+  elements.notifications.disabled = true;
+  try {
+    render(await desktop.setNotificationsEnabled(enabled));
+    showToast(enabled ? 'Native notifications enabled' : 'Native notifications disabled');
+  } catch (error) {
+    elements.notifications.checked = !enabled;
+    showToast(error.message ?? String(error));
+  } finally {
+    elements.notifications.disabled = false;
+  }
+});
 elements['attempt-select'].addEventListener('change', (event) => {
   selectedAttemptId = event.target.value;
   renderBoundary(currentState?.snapshot);

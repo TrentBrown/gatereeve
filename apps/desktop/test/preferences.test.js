@@ -12,7 +12,7 @@ import {
   rememberWorktree,
 } from '../main/preferences.js';
 
-test('preferences persist only recents, last selection, and window geometry', async () => {
+test('preferences persist only recents, last selection, window geometry, and notification opt-in', async () => {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-preferences-'));
   const store = createPreferenceStore(root);
   let value = rememberWorktree(defaultPreferences(), '/tmp/feature-one');
@@ -21,7 +21,7 @@ test('preferences persist only recents, last selection, and window geometry', as
   assert.deepEqual(await store.load(), value);
   const persisted = JSON.parse(await readFile(store.path, 'utf8'));
   assert.deepEqual(Object.keys(persisted).sort(), [
-    'lastWorktree', 'recentWorktrees', 'schemaVersion', 'window',
+    'lastWorktree', 'notificationsEnabled', 'recentWorktrees', 'schemaVersion', 'window',
   ]);
   assert.equal(JSON.stringify(persisted).includes('snapshot'), false);
   assert.equal(JSON.stringify(persisted).includes('github'), false);
@@ -45,6 +45,7 @@ test('preferences discard invalid fields and cap deduplicated recents', () => {
     recentWorktrees: ['/tmp/valid'],
     lastWorktree: null,
     window: null,
+    notificationsEnabled: false,
   });
 });
 

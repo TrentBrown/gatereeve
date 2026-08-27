@@ -40,7 +40,7 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
     selection: { worktreePath: repositoryRoot, featureHome },
     snapshot,
     error: null,
-    preferences: { recentWorktrees: [] },
+    preferences: { notificationsEnabled: false, recentWorktrees: [] },
   };
   const { window } = parseHTML(html);
   window.gatereeveDesktop = {
@@ -53,6 +53,10 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
     async readDetail(kind, id) { return protocol.read(featureHome, kind, id, { sources }); },
     async readSession(id) { return readSessionContext(repositoryRoot, id); },
     async refresh() { return state; },
+    async setNotificationsEnabled(enabled) {
+      state.preferences.notificationsEnabled = enabled;
+      return state;
+    },
     async revealArtifact() { return true; },
     subscribe() { return () => {}; },
   };
@@ -67,7 +71,7 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
     true,
     `${window.document.querySelector('#chooser-error').textContent} | ${window.document.querySelector('#model-graph').textContent}`,
   );
-  assert.equal(window.document.querySelectorAll('#slices .card').length, 3);
+  assert.equal(window.document.querySelectorAll('#slices .card').length, 4);
   assert.equal(window.document.querySelectorAll('.gate-card').length, 10);
   assert.equal(window.document.querySelectorAll('[data-artifact-id]').length, snapshot.artifacts.length);
 

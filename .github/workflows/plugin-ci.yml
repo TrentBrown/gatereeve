@@ -68,3 +68,43 @@ jobs:
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
       - run: npm run check --prefix apps/desktop
+
+  desktop-runtime-ubuntu:
+    name: Desktop runtime on Ubuntu ${{ matrix.ubuntu }}
+    runs-on: ubuntu-${{ matrix.ubuntu }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu:
+          - "22.04"
+          - "24.04"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --prefix apps/desktop
+      - name: Launch Electron without the optional CLI
+        run: xvfb-run --auto-servernum npm start --prefix apps/desktop
+        env:
+          GATEREEVE_DESKTOP_SMOKE: "1"
+
+  desktop-runtime-macos:
+    name: Desktop runtime on macOS
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --prefix apps/desktop
+      - name: Launch Electron without the optional CLI
+        run: npm start --prefix apps/desktop
+        env:
+          GATEREEVE_DESKTOP_SMOKE: "1"

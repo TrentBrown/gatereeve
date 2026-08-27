@@ -96,7 +96,8 @@ test('selection publishes local state before enrichment and polls GitHub only wh
   assert.equal(saved.length, 1);
   assert.deepEqual(Object.keys(saved[0]).sort(), [
     'lastWorktree', 'recentWorktrees', 'schemaVersion', 'window',
-  ]);
+    'notificationsEnabled',
+  ].sort());
 
   intervals[0].callback();
   for (let index = 0; index < 4; index += 1) {
@@ -145,4 +146,63 @@ test('unavailable GitHub enrichment preserves a readable local snapshot', async 
   assert.equal(state.error, null);
   assert.equal(state.githubPolling, false);
   coordinator.close();
+});
+
+test('notifications are opt-in, baseline current state, deduplicate refreshes, and stop with the coordinator', async () => {
+  const worktree = await mkdtemp(join(tmpdir(), 'gatereeve-worktree-'));
+  let gate = null;
+  const emitted = [];
+  let watcherClosed = false;
+  const coordinator = createDesktopCoordinator({
+    protocol: {
+      async resolve(path) { return { featureHome: join(path, 'docs/issues/fixture') }; },
+      async snapshot(featureHome, options) {
+        return {
+          ...snapshot(featureHome, options.sources),
+          projection: {
+            feature: { state: 'DELIVERING_SLICES' },
+            suspension: { paused: false },
+            boundaryAttempts: gate === null ? [] : [{ id: 'attempt-1', gates: [gate] }],
+          },
+          events: { recent: [] },
+          actions: [],
+        };
+      },
+      async read() { throw new Error('not used'); },
+    },
+    preferenceStore: {
+      async load() { return defaultPreferences(); },
+      async save(value) { return value; },
+    },
+    gitObserver: async () => ({
+      source: { status: 'current', detail: 'Git current', checkedAt: 'now' },
+      facts: {}, repositoryRoot: worktree, branch: 'topic',
+    }),
+    githubObserver: async () => ({
+      source: { status: 'current', detail: 'No PR', checkedAt: 'now' },
+      pullRequest: null, needsPolling: false,
+    }),
+    watcherFactory: async () => ({ close() { watcherClosed = true; } }),
+    notify: (item) => emitted.push(item),
+  });
+
+  await coordinator.initialize();
+  await coordinator.open(worktree);
+  gate = { id: 'verification', outcome: 'FAIL', freshness: 'CURRENT', reason: null };
+  await coordinator.refresh();
+  assert.deepEqual(emitted, []);
+
+  await coordinator.setNotificationsEnabled(true);
+  await coordinator.refresh();
+  assert.deepEqual(emitted, []);
+  gate = null;
+  await coordinator.refresh();
+  gate = { id: 'verification', outcome: 'FAIL', freshness: 'CURRENT', reason: null };
+  await coordinator.refresh();
+  assert.equal(emitted.length, 1);
+  await coordinator.refresh();
+  assert.equal(emitted.length, 1);
+
+  coordinator.close();
+  assert.equal(watcherClosed, true);
 });

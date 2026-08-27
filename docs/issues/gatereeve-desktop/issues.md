@@ -75,12 +75,12 @@ after the shell contract is stable.
 
 ## I-6 - Add notifications and supported-platform quality
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** P8
 - **Rubric criteria:** R7, R8
 - **Depends on:** I-4, I-5
-- **PR:** -
+- **PR:** Pending (`gatereeve-desktop-notifications-accessibility`)
 
 Implement notification lifecycle and deduplication, close accessibility and
 minimum-layout gaps, gather visual evidence, and prove Electron runtime on
@@ -88,12 +88,12 @@ Ubuntu and macOS. This begins intended PR slice 4.
 
 ## I-7 - Complete feature verification on the final delivery slice
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** P9
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
 - **Depends on:** I-6
-- **PR:** -
+- **PR:** Pending (`gatereeve-desktop-notifications-accessibility`)
 
 Evaluate the assembled feature against every AC and rubric criterion, complete
 the independent and PR-boundary gates, and produce the feature completion

@@ -14,7 +14,7 @@ function state() {
     selection: { worktreePath: '/repo', featureHome: '/repo/docs/issues/feature' },
     snapshot: null,
     error: null,
-    preferences: { recentWorktrees: ['/repo'] },
+    preferences: { notificationsEnabled: false, recentWorktrees: ['/repo'] },
   };
 }
 
@@ -50,6 +50,9 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
       current: state,
       async open() { return state(); },
       async refresh() { return state(); },
+      async setNotificationsEnabled(enabled) {
+        return { ...state(), preferences: { ...state().preferences, notificationsEnabled: enabled } };
+      },
       async read(kind, id) {
         return { schemaVersion: 1, kind, id, featureId: 'feature', data: { events: [] } };
       },
@@ -92,6 +95,7 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   });
   assert.equal((await handlers.get(IPC_CHANNELS.readSession)(event, sessionId)).content, '# State');
   assert.equal(await handlers.get(IPC_CHANNELS.copyText)(event, 'gatereeve next'), true);
+  assert.equal((await handlers.get(IPC_CHANNELS.setNotificationsEnabled)(event, true)).preferences.notificationsEnabled, true);
   assert.deepEqual(opened, ['/repo/design.md']);
   assert.deepEqual(revealed, ['/repo/spec.md']);
   assert.deepEqual(copied, ['gatereeve next']);

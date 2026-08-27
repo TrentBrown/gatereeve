@@ -80,3 +80,18 @@ Serve only the currently selected canonical HTML artifact by encoded artifact ID
 
 **Alternatives considered:**
 Use `srcdoc` - rejected because the application CSP can suppress the artifact's inline behavior. Rebuild or sanitize the document - rejected by the approved design because it loses intended styling and interactivity. Open only in the external browser - rejected because an integrated viewer is required.
+
+## [6] Baseline current observations and notify only on newly entered conditions
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop preferences, coordinator lifecycle, Electron native notifications, read-only IPC/preload contracts, renderer controls, and notification tests
+
+Persist one opt-in `notificationsEnabled` preference, while keeping notification evaluation and native delivery in the Electron main process. Opening a worktree or enabling notifications establishes the current observation as a quiet baseline. Later complete observations emit only conditions that were not active in the preceding observation: human attention, newly failed or stale gates, inconsistency, suspension, PR merge, and feature completion. The same pull-request number deduplicates GitHub and journal evidence for a merge, notification failures never degrade canonical observation, and coordinator shutdown remains the sole lifecycle boundary for watchers, polling, and notification evaluation.
+
+**Triggered by:** P8 adds a persisted preference and a main-process notification contract whose baseline and deduplication semantics are not obvious from individual call sites
+
+**Alternatives considered:**
+Notify for every matching refresh - rejected because refresh itself is not a workflow transition and would create noise. Persist notification history - rejected because Desktop must not grow an observational cache and process-lifetime transition comparison is sufficient. Evaluate notifications in the renderer - rejected because native integration and lifecycle belong to the Electron main process. Notify for all current conditions immediately after opt-in or worktree selection - rejected because those conditions predate the user's observation baseline.

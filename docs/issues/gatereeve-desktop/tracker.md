@@ -5,8 +5,9 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-26
 
-**Active slice:** None. Slice 3 (`desktop-workflow-experience`) is merged;
-P8-P9 / I-6-I-7 remain for the final delivery slice.
+**Active slice:** Slice 4 (`desktop-final-quality`) is implementing on
+`gatereeve-desktop-notifications-accessibility`. It is the `FEATURE_FINAL`
+boundary for P8-P9 / I-6-I-7 and covers R1-R8.
 
 ## Rubric Status
 
