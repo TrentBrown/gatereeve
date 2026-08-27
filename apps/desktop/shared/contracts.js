@@ -13,6 +13,7 @@ export const IPC_CHANNELS = Object.freeze({
   readSession: 'gatereeve:desktop:read-session',
   refresh: 'gatereeve:desktop:refresh',
   revealArtifact: 'gatereeve:desktop:reveal-artifact',
+  setNotificationsEnabled: 'gatereeve:desktop:set-notifications-enabled',
   stateChanged: 'gatereeve:desktop:state-changed',
 });
 
@@ -57,12 +58,18 @@ export function requireDesktopState(value) {
       || typeof value.error.message !== 'string'
     ))
     || !isObject(value.preferences)
-    || !exactKeys(value.preferences, ['recentWorktrees'])
+    || !exactKeys(value.preferences, ['notificationsEnabled', 'recentWorktrees'])
     || !Array.isArray(value.preferences.recentWorktrees)
     || !value.preferences.recentWorktrees.every((path) => typeof path === 'string')
+    || typeof value.preferences.notificationsEnabled !== 'boolean'
   ) {
     throw new Error('The main process returned invalid GateReeve Desktop state.');
   }
+  return value;
+}
+
+export function requireNotificationsEnabled(value) {
+  if (typeof value !== 'boolean') throw new Error('Notification preference is invalid.');
   return value;
 }
 

@@ -89,11 +89,12 @@ const snapshot = {
     slices: [
       { id: 'desktop-observer-contract', name: 'Canonical observer contract', state: 'MERGED', branch: 'gatereeve-desktop', scope: 'SLICE', planSteps: ['P1', 'P2', 'P3'], activeAttemptId: null },
       { id: 'desktop-shell-observation', name: 'Electron shell and observation lifecycle', state: 'MERGED', branch: 'gatereeve-desktop-shell', scope: 'SLICE', planSteps: ['P4', 'P5'], activeAttemptId: null },
-      { id: 'desktop-workflow-experience', name: 'State-first workflow and inspection experience', state: 'IMPLEMENTING', branch: 'gatereeve-desktop-workflow-experience', scope: 'SLICE', planSteps: ['P6', 'P7'], activeAttemptId: null },
+      { id: 'desktop-workflow-experience', name: 'State-first workflow and inspection experience', state: 'MERGED', branch: 'gatereeve-desktop-workflow-experience', scope: 'SLICE', planSteps: ['P6', 'P7'], activeAttemptId: null },
+      { id: 'desktop-final-quality', name: 'Notifications, accessibility, and final verification', state: 'IMPLEMENTING', branch: 'gatereeve-desktop-notifications-accessibility', scope: 'FEATURE_FINAL', planSteps: ['P8', 'P9'], activeAttemptId: null },
     ],
     boundaryAttempts: [attempt],
   },
-  active: { sliceId: 'desktop-workflow-experience', boundaryAttemptId: null },
+  active: { sliceId: 'desktop-final-quality', boundaryAttemptId: null },
   sources: {
     local: { status: 'current', detail: 'Canonical record read locally' },
     git: { status: 'current', detail: 'Topic branch · source changes present' },
@@ -123,7 +124,7 @@ const state = {
   },
   snapshot,
   error: null,
-  preferences: { recentWorktrees: [] },
+  preferences: { notificationsEnabled: false, recentWorktrees: [] },
 };
 
 window.gatereeveDesktop = Object.freeze({
@@ -132,6 +133,10 @@ window.gatereeveDesktop = Object.freeze({
   async chooseWorktree() { return state; },
   async openRecent() { return state; },
   async refresh() { return state; },
+  async setNotificationsEnabled(enabled) {
+    state.preferences.notificationsEnabled = enabled;
+    return state;
+  },
   async copyText() { return true; },
   async openArtifact() { return true; },
   async revealArtifact() { return true; },

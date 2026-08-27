@@ -9,7 +9,10 @@ The application presents the pinned feature-state rail, subordinate
 milestones, delivery slices, PR-boundary gate dependencies, blockers,
 readiness-aware action guidance, complete artifact inventory, event and
 attempt history, the full pinned model, and non-authoritative Session context.
-Notifications and final supported-platform hardening remain in a later slice.
+Native notifications are off by default. A user can opt in to receive
+transition-deduplicated attention, failed or stale gate, suspension,
+inconsistency, pull-request merge, and feature-completion notices while the
+app is running. Quitting Desktop stops its watchers, polling, and notices.
 
 ## Development
 
@@ -29,8 +32,9 @@ npm start
 ```
 
 `npm start` stages the canonical protocol before launching the app. Desktop
-persists only recent and last worktree paths plus window geometry. It does not
-cache snapshots, workflow artifacts, GitHub responses, or governance state.
+persists only recent and last worktree paths, window geometry, and the native
+notification preference. It does not cache snapshots, workflow artifacts,
+GitHub responses, or governance state.
 
 For renderer-only visual review on a host without Electron runtime libraries,
 serve this package directory and open `/visual/index.html`. The fixture uses

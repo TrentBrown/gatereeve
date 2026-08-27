@@ -21,7 +21,7 @@ function state() {
     selection: null,
     snapshot: null,
     error: null,
-    preferences: { recentWorktrees: [] },
+    preferences: { notificationsEnabled: false, recentWorktrees: [] },
   };
 }
 
@@ -69,6 +69,7 @@ test('IPC allow-list contains no workflow mutation or process-execution surface'
     'gatereeve:desktop:read-session',
     'gatereeve:desktop:refresh',
     'gatereeve:desktop:reveal-artifact',
+    'gatereeve:desktop:set-notifications-enabled',
     'gatereeve:desktop:state-changed',
   ]);
   assert.equal(channels.some((channel) => /execute|agent|transition|mutat|record/.test(channel)), false);

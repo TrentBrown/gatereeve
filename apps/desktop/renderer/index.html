@@ -45,6 +45,13 @@
             <button class="nav-item" type="button" data-view="model">Model</button>
             <button class="nav-item" type="button" data-view="session">Session</button>
           </nav>
+          <div class="preference-panel">
+            <h3>Preferences</h3>
+            <label class="toggle-row" for="notifications">
+              <input id="notifications" type="checkbox">
+              <span><strong>Native notifications</strong><small>Only new workflow attention while this app is running</small></span>
+            </label>
+          </div>
           <div class="source-stack" aria-label="Observation sources">
             <h3>Sources</h3>
             <div id="source-local" class="source"></div>
@@ -91,7 +98,7 @@
           <section class="surface" aria-labelledby="boundary-title">
             <div class="surface-heading">
               <div><p class="section-kicker">PR boundary</p><h3 id="boundary-title">Attempts and gate dependencies</h3></div>
-              <label class="select-label">Attempt <select id="attempt-select"></select></label>
+              <label class="select-label" for="attempt-select">Attempt <select id="attempt-select"></select></label>
             </div>
             <div id="boundary-summary" class="muted"></div>
             <div id="gate-dag" class="gate-dag"></div>

@@ -48,7 +48,7 @@ remote polling. This is intended PR slice 2.
 
 ## I-4 - Build the state-first workflow experience
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P6
 - **Rubric criteria:** R2, R3, R4, R6, R8
@@ -61,7 +61,7 @@ This begins intended PR slice 3.
 
 ## I-5 - Build artifact, history, model, and Session inspection
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P7
 - **Rubric criteria:** R4, R5, R6, R8
@@ -75,12 +75,12 @@ after the shell contract is stable.
 
 ## I-6 - Add notifications and supported-platform quality
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P8
 - **Rubric criteria:** R7, R8
 - **Depends on:** I-4, I-5
-- **PR:** -
+- **PR:** [#6](https://github.com/TrentBrown/gatereeve/pull/6)
 
 Implement notification lifecycle and deduplication, close accessibility and
 minimum-layout gaps, gather visual evidence, and prove Electron runtime on
@@ -88,12 +88,12 @@ Ubuntu and macOS. This begins intended PR slice 4.
 
 ## I-7 - Complete feature verification on the final delivery slice
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P9
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
 - **Depends on:** I-6
-- **PR:** -
+- **PR:** [#6](https://github.com/TrentBrown/gatereeve/pull/6)
 
 Evaluate the assembled feature against every AC and rubric criterion, complete
 the independent and PR-boundary gates, and produce the feature completion

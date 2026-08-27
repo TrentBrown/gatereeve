@@ -6,6 +6,7 @@ import {
   requireCopyText,
   requireDesktopState,
   requireDetailRequest,
+  requireNotificationsEnabled,
   requireSessionDetail,
   requireSessionId,
   requireSessionInventory,
@@ -63,6 +64,13 @@ export function registerDesktopIpc({
   ipcMain.handle(IPC_CHANNELS.refresh, async (event, ...values) => {
     noArguments(event, values);
     return validatedState(await coordinator.refresh());
+  });
+  ipcMain.handle(IPC_CHANNELS.setNotificationsEnabled, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Notification preference requires one boolean.');
+    return validatedState(await coordinator.setNotificationsEnabled(
+      requireNotificationsEnabled(values[0]),
+    ));
   });
   ipcMain.handle(IPC_CHANNELS.readDetail, async (event, ...values) => {
     trusted(event);

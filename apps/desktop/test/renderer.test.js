@@ -17,7 +17,7 @@ function idleState() {
     selection: null,
     snapshot: null,
     error: null,
-    preferences: { recentWorktrees: ['/repo/recent'] },
+    preferences: { notificationsEnabled: false, recentWorktrees: ['/repo/recent'] },
   };
 }
 
@@ -29,6 +29,7 @@ test('renderer presents selection first and then canonical observation status', 
     async chooseWorktree() {},
     async openRecent() {},
     async refresh() {},
+    async setNotificationsEnabled() { return idleState(); },
     async getState() { return idleState(); },
     subscribe(callback) { subscriber = callback; return () => {}; },
   };
@@ -71,6 +72,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const { window } = parseHTML(html);
   const copied = [];
+  const notificationPreferences = [];
   const sessionId = 'session:latest-checkpoint:Q0hFQ0tQT0lOVC5tZA';
   const event = {
     sequence: 10,
@@ -150,6 +152,10 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     async chooseWorktree() {},
     async openRecent() {},
     async refresh() {},
+    async setNotificationsEnabled(enabled) {
+      notificationPreferences.push(enabled);
+      return { ...readyState, preferences: { ...readyState.preferences, notificationsEnabled: enabled } };
+    },
     async getState() { return readyState; },
     async copyText(value) { copied.push(value); return true; },
     async openArtifact() { return true; },
@@ -215,6 +221,12 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.equal(window.document.querySelector('.state-node.current small').textContent, 'DELIVERING_SLICES');
   assert.equal(window.document.querySelectorAll('.gate-card').length, 1);
   assert.equal(window.document.querySelectorAll('.action-card').length, 1);
+  const notifications = window.document.querySelector('#notifications');
+  notifications.checked = true;
+  notifications.dispatchEvent(new window.Event('change'));
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(notificationPreferences, [true]);
+  assert.equal(notifications.checked, true);
   window.document.querySelector('.action-card button.secondary').click();
   await new Promise((done) => setImmediate(done));
   assert.deepEqual(copied, ['gatereeve boundary request-review slice-attempt-1']);
@@ -275,6 +287,7 @@ test('renderer reloads optional Session context when a refresh begins', async ()
     async chooseWorktree() {},
     async openRecent() {},
     async refresh() {},
+    async setNotificationsEnabled() { return state; },
     async getState() { return state; },
     async listSession() {
       sessionReads += 1;

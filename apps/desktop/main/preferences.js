@@ -13,6 +13,7 @@ export function defaultPreferences() {
     recentWorktrees: [],
     lastWorktree: null,
     window: null,
+    notificationsEnabled: false,
   };
 }
 
@@ -47,6 +48,7 @@ export function normalizePreferences(value) {
       width: value.window.width,
       height: value.window.height,
     } : null,
+    notificationsEnabled: value.notificationsEnabled === true,
   };
 }
 

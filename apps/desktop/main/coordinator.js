@@ -6,6 +6,7 @@ import { isAbsolute } from 'node:path';
 import { DESKTOP_STATE_SCHEMA_VERSION, requireDesktopState } from '../shared/contracts.js';
 import { observeGit } from './git-observer.js';
 import { observeGitHub } from './github-observer.js';
+import { createNotificationObserver } from './notification-observer.js';
 import { rememberWorktree } from './preferences.js';
 import { listSessionContext, readSessionContext } from './session-observer.js';
 import { createWorktreeWatcher } from './worktree-watcher.js';
@@ -50,6 +51,7 @@ export function createDesktopCoordinator({
   setIntervalFn = setInterval,
   clearIntervalFn = clearInterval,
   initialPreferences = null,
+  notify = () => {},
 } = {}) {
   let preferences = initialPreferences;
   let selection = null;
@@ -64,6 +66,8 @@ export function createDesktopCoordinator({
   let currentFacts = {};
   let currentSources = localSources(now);
   let gitContext = { repositoryRoot: null, branch: null };
+  let currentPullRequest = null;
+  const notificationObserver = createNotificationObserver({ notify });
   const subscribers = new Set();
 
   function state() {
@@ -77,6 +81,7 @@ export function createDesktopCoordinator({
       error,
       preferences: {
         recentWorktrees: preferences?.recentWorktrees ?? [],
+        notificationsEnabled: preferences?.notificationsEnabled === true,
       },
     });
   }
@@ -118,6 +123,7 @@ export function createDesktopCoordinator({
     const context = await protocol.resolve(worktreePath);
     if (token !== generation) return false;
     currentFacts = {};
+    currentPullRequest = null;
     currentSources = localSources(now);
     const nextSnapshot = await protocol.snapshot(context.featureHome, {
       facts: currentFacts,
@@ -148,6 +154,7 @@ export function createDesktopCoordinator({
     const github = await githubObserver(git.repositoryRoot, git.branch);
     if (token !== generation || selection === null) return;
     currentSources = { ...currentSources, github: github.source };
+    currentPullRequest = github.pullRequest;
     currentFacts = { ...currentFacts, github: { pullRequest: github.pullRequest } };
     snapshot = await protocol.snapshot(selection.featureHome, {
       facts: currentFacts,
@@ -163,13 +170,16 @@ export function createDesktopCoordinator({
     const github = await githubObserver(gitContext.repositoryRoot, gitContext.branch);
     if (token !== generation || selection === null) return state();
     currentSources = { ...currentSources, github: github.source };
+    currentPullRequest = github.pullRequest;
     currentFacts = { ...currentFacts, github: { pullRequest: github.pullRequest } };
     snapshot = await protocol.snapshot(selection.featureHome, {
       facts: currentFacts,
       sources: currentSources,
     });
     if (typeof github.needsPolling === 'boolean') updatePolling(github.needsPolling);
-    return publish();
+    const value = publish();
+    if (preferences?.notificationsEnabled) notificationObserver.observe(snapshot, currentPullRequest);
+    return value;
   }
 
   async function open(path) {
@@ -188,6 +198,7 @@ export function createDesktopCoordinator({
       await preferenceStore.save(preferences);
       await replaceWatcher(selection.featureHome, token);
       await enrich(token);
+      notificationObserver.reset(snapshot, currentPullRequest);
       return state();
     } catch (caught) {
       if (token === generation) {
@@ -216,6 +227,7 @@ export function createDesktopCoordinator({
       if (!(await localObservation(path, token))) return state();
       await replaceWatcher(selection.featureHome, token);
       await enrich(token);
+      if (preferences?.notificationsEnabled) notificationObserver.observe(snapshot, currentPullRequest);
       return state();
     } catch (caught) {
       if (token === generation) {
@@ -267,6 +279,13 @@ export function createDesktopCoordinator({
     async saveWindow(bounds) {
       preferences = { ...preferences, window: bounds };
       preferences = await preferenceStore.save(preferences);
+    },
+    async setNotificationsEnabled(enabled) {
+      if (typeof enabled !== 'boolean') throw new TypeError('Notification preference must be boolean.');
+      preferences = { ...preferences, notificationsEnabled: enabled };
+      preferences = await preferenceStore.save(preferences);
+      notificationObserver.reset(snapshot, currentPullRequest);
+      return publish();
     },
     subscribe(callback) {
       subscribers.add(callback);
