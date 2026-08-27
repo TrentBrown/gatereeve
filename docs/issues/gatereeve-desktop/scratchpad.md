@@ -83,7 +83,7 @@ Use `srcdoc` - rejected because the application CSP can suppress the artifact's 
 
 ## [6] Baseline current observations and notify only on newly entered conditions
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

@@ -13,14 +13,14 @@ P8-P9 / I-6-I-7 and evaluates the assembled feature against R1-R8.
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Shared observational contract | NOT YET | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#4](https://github.com/TrentBrown/gatereeve/pull/4) | Desktop directly consumes the exact staged observer and validates snapshots/details without CLI execution or journal writes; packaged runtime proof remains for P8-P9 |
+| R1 | Shared observational contract | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#6](https://github.com/TrentBrown/gatereeve/pull/6) | Contract parity, named-read validation, journal invariance, and exact staging are covered across Plugin, CLI, and Desktop; PR #6 launches the independent Desktop package on Ubuntu 22.04/24.04 and macOS without installing the optional CLI |
 | R2 | Readiness semantics | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Canonical ready/available/blocked semantics and dirtiness distinctions are fully presented with authority, inputs, reasons, meaning, and exact copyable commands |
 | R3 | Workspace and diagnostics | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Explicit selection, preference-only persistence, all canonical modes, independent source degradation, and complete diagnostic presentation are implemented and tested |
 | R4 | State visualization | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Pinned-model rail, milestones, slices, attempts, gate dependencies, provenance, migration impact, and complete grouped model view are rendered and tested |
 | R5 | Artifact inspection | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Complete inventory, Markdown/JSON/JSONL/text/trusted-HTML viewers, external actions, and refreshed non-authoritative Session context are implemented and tested |
 | R6 | History and action guidance | PASS | [#2](https://github.com/TrentBrown/gatereeve/pull/2), [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Complete event/passage and pinned-model detail, exact IDs, command meaning/copy, and a mutation-free IPC allow-list are implemented and tested |
 | R7 | Refresh and notifications | PASS | [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#6](https://github.com/TrentBrown/gatereeve/pull/6) | Debounced local recomputation, manual/focus refresh, conditional 60-second GitHub polling, and opt-in transition-deduplicated native notifications are implemented with fake lifecycle and notification coverage |
-| R8 | Supported accessible experience | NOT YET | [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#5](https://github.com/TrentBrown/gatereeve/pull/5) | Principal views are semantic, keyboard-native, visibly focused, non-color-dependent, GateReeve-themed, and usable at 760x560; native accessibility hardening and macOS/Ubuntu runtime evidence remain P8 |
+| R8 | Supported accessible experience | PASS | [#4](https://github.com/TrentBrown/gatereeve/pull/4), [#5](https://github.com/TrentBrown/gatereeve/pull/5), [#6](https://github.com/TrentBrown/gatereeve/pull/6) | Principal views and notification controls are semantic, keyboard-native, named, visibly focused, non-color-dependent, GateReeve-themed, and usable at 760x560; exact-head Electron smoke passes on Ubuntu 22.04/24.04 and macOS without the CLI |
 
 ## PR Log
 
@@ -69,8 +69,8 @@ Append PR boundary entries here.
 - **Scope:** Slice 4 and feature-final boundary, `desktop-final-quality`
 - **Plan steps:** P8, P9
 - **Issues:** I-6, I-7
-- **Rubric movement:** R7 moves to `PASS`; R1 and R8 await supported-platform runtime evidence, while the feature-final evaluation revalidates R1-R8 against the assembled feature
-- **Evidence:** Pending [PR #6 packet](pr-6/boundary.json)
-- **Boundary result:** Attempt 1 returned to remediation when Ubuntu 24.04 exposed an unconfigured Chromium SUID sandbox; attempt 2 returned when both Ubuntu runners showed Electron 43 had not materialized that helper before configuration; attempt 3 will evaluate the explicit installer fix
+- **Rubric movement:** R1, R7, and R8 move to `PASS`; the feature-final evaluation revalidates all R1-R8 against the assembled feature with zero `NOT YET` or `FAIL` criteria
+- **Evidence:** [PR #6 packet](pr-6/boundary.json)
+- **Boundary result:** Attempt 1 returned to remediation when Ubuntu 24.04 exposed an unconfigured Chromium SUID sandbox; attempt 2 returned when both Ubuntu runners showed Electron 43 had not materialized that helper before configuration; attempt 3 passes exact-head supported-platform CI and every feature-final evidence gate at pinned head `7b14fbe84796a9ad8d2701d5e4cf8c8bfa591f2f`
 - **Retention:** Tracked; every current feature-record file is retained in Git and no human retention decision is required
 - **Status:** Draft; I-6 and I-7 are in review

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #6 explained — notifications, accessibility, and runtime proof</title>
+  <style>
+    :root { color-scheme: light; --ink:#241733; --muted:#6c6175; --purple:#65459a; --deep:#311d49; --soft:#f5f1fa; --line:#ddd3e8; --green:#287255; --amber:#9a5c14; --red:#a63249; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin:0; color:var(--ink); background:#faf8fc; font:17px/1.65 Inter, ui-sans-serif, system-ui, sans-serif; }
+    header { padding:clamp(2.5rem,7vw,6rem) max(1.2rem,calc((100vw - 1100px)/2)); color:white; background:linear-gradient(125deg,var(--deep),var(--purple)); }
+    header p { max-width:800px; color:#e9dff4; }
+    h1,h2,h3 { font-family:Georgia,serif; line-height:1.16; }
+    h1 { max-width:900px; margin:.2rem 0 1rem; font-size:clamp(2.5rem,6vw,5rem); }
+    h2 { margin-top:3.5rem; font-size:clamp(2rem,4vw,3rem); }
+    h3 { margin-top:2rem; font-size:1.45rem; }
+    code,pre,.mono { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+    pre { overflow:auto; padding:1rem; border:1px solid var(--line); border-radius:.7rem; background:#21162d; color:#f5eefb; white-space:pre-wrap; }
+    main { max-width:1100px; margin:auto; padding:0 1.2rem 5rem; }
+    nav { margin-top:-1.4rem; padding:1.2rem 1.4rem; border:1px solid var(--line); border-radius:.9rem; background:white; box-shadow:0 12px 35px #321d4a18; }
+    nav ol { display:flex; flex-wrap:wrap; gap:.5rem 1.7rem; margin:.4rem 0; }
+    a { color:#56368c; }
+    .eyebrow { margin:0; text-transform:uppercase; letter-spacing:.14em; font-size:.74rem; font-weight:800; }
+    .pin { display:inline-block; margin-top:1rem; padding:.35rem .6rem; border:1px solid #ffffff55; border-radius:999px; font-size:.74rem; }
+    .callout { margin:1.5rem 0; padding:1rem 1.2rem; border-left:5px solid var(--purple); background:var(--soft); }
+    .callout strong { display:block; }
+    .diagram { display:grid; gap:1rem; margin:1.5rem 0; padding:1.2rem; border:1px solid var(--line); border-radius:1rem; background:white; }
+    .flow { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.65rem; }
+    .box { min-width:150px; padding:.8rem 1rem; border:2px solid var(--line); border-radius:.75rem; text-align:center; background:var(--soft); }
+    .box.current { border-color:var(--purple); background:#eee6f8; }
+    .box.good { border-color:#75aa94; background:#eaf7f1; }
+    .arrow { color:var(--purple); font-size:1.5rem; font-weight:bold; }
+    .three { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+    .card { padding:1rem; border:1px solid var(--line); border-radius:.8rem; background:white; }
+    .card h3 { margin-top:0; }
+    .timeline { display:grid; grid-template-columns:auto 1fr; gap:.4rem 1rem; align-items:start; }
+    .timeline .dot { width:1rem; height:1rem; margin-top:.45rem; border:3px solid var(--purple); border-radius:50%; background:white; }
+    table { width:100%; border-collapse:collapse; margin:1rem 0 2rem; font-size:.94rem; }
+    th,td { padding:.7rem; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:var(--soft); }
+    .quiz { display:grid; gap:1.2rem; }
+    .question { padding:1.2rem; border:1px solid var(--line); border-radius:.8rem; background:white; }
+    .question h3 { margin:.1rem 0 .8rem; }
+    .answers { display:grid; gap:.5rem; }
+    .answers button { padding:.7rem .8rem; border:1px solid var(--line); border-radius:.5rem; color:var(--ink); background:white; text-align:left; cursor:pointer; }
+    .answers button:hover,.answers button:focus-visible { border-color:var(--purple); outline:3px solid #edb765; outline-offset:2px; }
+    .answers button.correct { border-color:var(--green); background:#eaf7f1; }
+    .answers button.wrong { border-color:var(--red); background:#fff0f2; }
+    .feedback { min-height:1.5rem; margin:.7rem 0 0; font-weight:650; }
+    footer { padding:2rem; color:var(--muted); text-align:center; }
+    @media (max-width:760px) { .three { grid-template-columns:1fr; } .arrow { transform:rotate(90deg); } .flow { flex-direction:column; } table { font-size:.82rem; } }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">GateReeve Desktop · PR #6</p>
+    <h1>Attention without noise, access without ambiguity</h1>
+    <p>This final delivery slice adds opt-in native notifications, tightens the interface's accessible contracts, and proves that the independent Electron application starts on both supported Ubuntu releases and macOS—without installing the optional CLI.</p>
+    <span class="pin">Pinned slice: ba4b22d… → 7b14fbe…</span>
+  </header>
+  <main>
+    <nav aria-label="Table of contents">
+      <strong>On this page</strong>
+      <ol>
+        <li><a href="#background">Background</a></li>
+        <li><a href="#intuition">Intuition</a></li>
+        <li><a href="#code">Code walkthrough</a></li>
+        <li><a href="#evidence">Evidence</a></li>
+        <li><a href="#quiz">Quiz</a></li>
+      </ol>
+    </nav>
+
+    <section id="background">
+      <h2>Background</h2>
+      <h3>The broad picture: observation, not orchestration</h3>
+      <p>GateReeve governs software work through an append-only event journal and a pinned state-machine model. The plugin can enforce transitions; the Commander CLI exposes the same protocol as a control and inspection surface. GateReeve Desktop has a narrower promise: it lets a person understand one selected feature record without becoming another workflow engine.</p>
+      <div class="diagram" role="img" aria-label="Plugin, CLI, and Desktop share one protocol, while only governed commands can change the journal">
+        <div class="flow">
+          <div class="box">Plugin adapter<br><small>read + governed commands</small></div><span class="arrow">→</span>
+          <div class="box current">Canonical protocol<br><small>projection + named reads</small></div><span class="arrow">←</span>
+          <div class="box">Commander CLI<br><small>optional surface</small></div>
+        </div>
+        <div class="flow"><span class="arrow">↑</span><div class="box good">Electron Desktop<br><small>read-only observer</small></div></div>
+      </div>
+      <p>The first three Desktop slices established that architecture, built the Electron shell and observation lifecycle, and rendered the state-first experience. This fourth slice closes two deliberately deferred concerns: drawing human attention at the right time and proving that the application is both accessible and genuinely runnable on its supported systems.</p>
+
+      <h3>The narrow problem: a refresh is not an event</h3>
+      <p>The Desktop recomputes a complete observation whenever local records change, the window regains focus, the user refreshes, or GitHub polling discovers new evidence. If every refresh that contained a failed gate generated a notification, the application would punish the user for looking at it. Conversely, if it compared only the latest GitHub response, it might miss a merge already recorded in the journal or report it twice.</p>
+      <div class="callout"><strong>Key distinction</strong>A notification represents entry into an attention-worthy condition. Re-reading an unchanged condition is silent.</div>
+    </section>
+
+    <section id="intuition">
+      <h2>Intuition</h2>
+      <h3>Take a quiet photograph, then compare</h3>
+      <p>Imagine opening a worktree whose verification gate is already failing. The app takes that observation as its baseline and says nothing. Later the gate passes; later still it fails again. Only the re-entry into failure produces a notification.</p>
+      <div class="diagram">
+        <div class="flow">
+          <div class="box">Open app<br><b>gate failed</b><br><small>quiet baseline</small></div><span class="arrow">→</span>
+          <div class="box good">Next observation<br><b>gate passed</b><br><small>condition clears</small></div><span class="arrow">→</span>
+          <div class="box current">Later observation<br><b>gate failed</b><br><small>notify once</small></div>
+        </div>
+      </div>
+      <p>Enabling notifications works the same way. Opting in does not replay everything already visible on screen. It establishes a fresh baseline and waits for something new.</p>
+
+      <h3>Two kinds of memory</h3>
+      <div class="three">
+        <article class="card"><h3>Active conditions</h3><p>Failure, staleness, inconsistency, suspension, and ready human-confirmation actions can clear and re-enter. Their keys live in the current observation map.</p></article>
+        <article class="card"><h3>One-shot events</h3><p>Review requests, merges, and completion should not replay if a source disappears temporarily. Their identities remain in a process-lifetime observed set.</p></article>
+        <article class="card"><h3>One PR identity</h3><p>A merge seen through GitHub and a merge recorded in the journal both use <span class="mono">merge:pr:12</span>. Whichever arrives first suppresses the duplicate.</p></article>
+      </div>
+
+      <h3>Freedom stays outside the trust boundary</h3>
+      <p>The renderer can ask for one thing: set a boolean notification preference. It cannot construct a native notification, advance a workflow transition, run a command, or choose an arbitrary file. Main process code compares canonical observations and invokes Electron's native notification API.</p>
+      <pre>Renderer checkbox
+  → validated boolean IPC
+    → persisted preference
+      → main-process observer
+        → Electron Notification</pre>
+    </section>
+
+    <section id="code">
+      <h2>Code walkthrough</h2>
+      <h3>1. Candidate extraction and transition comparison</h3>
+      <p><span class="mono">main/notification-observer.js</span> converts a snapshot and optional pull request into a map of stable candidate keys. It keeps presentation text beside each key, while the comparison algorithm deals only in identity.</p>
+      <pre>reset(snapshot, pullRequest) {
+  active = notificationCandidates(snapshot, pullRequest)
+  observedEvents = oneShotKeys(active)
+}
+
+observe(nextSnapshot, pullRequest) {
+  for (const candidate of notificationCandidates(...)) {
+    if (!active.has(candidate.key) &amp;&amp; !observedEvents.has(candidate.key)) {
+      notify(candidate)
+    }
+  }
+}</pre>
+      <p>Notification delivery is wrapped so an OS-level failure cannot turn a valid workflow observation into a Desktop error.</p>
+
+      <h3>2. Coordinator lifecycle</h3>
+      <p><span class="mono">main/coordinator.js</span> now holds the observer beside its watcher and poller. Opening a worktree and changing the opt-in preference reset the baseline. Fully enriched local refreshes and GitHub polling compare observations. Closing the coordinator still owns all teardown.</p>
+      <div class="timeline" aria-label="Coordinator observation sequence">
+        <span class="dot"></span><div><b>Local observation</b><br>Resolve the feature and compute canonical local state.</div>
+        <span class="dot"></span><div><b>Git enrichment</b><br>Add branch, dirtiness, and repository facts.</div>
+        <span class="dot"></span><div><b>GitHub enrichment</b><br>Add pull-request/check evidence and update polling need.</div>
+        <span class="dot"></span><div><b>Notify</b><br>Only now compare the complete observation with the prior baseline.</div>
+      </div>
+
+      <h3>3. A narrow, accessible preference surface</h3>
+      <p>The shared contracts, IPC handler, preload bridge, and renderer each admit the same boolean. The sidebar presents a native checkbox with visible explanatory text, and renderer tests prove state round-trips through the preference control.</p>
+      <p>The accessibility pass also labels the attempt selector explicitly, extends focus treatment to inputs and the trusted HTML frame, keeps status understandable without color, and removes a forced minimum width that could create horizontal overflow at the documented 760×560 window size.</p>
+
+      <h3>4. Runtime proof that preserves sandboxing</h3>
+      <p>The CI workflow adds three runtime jobs: Ubuntu 22.04, Ubuntu 24.04, and macOS 14. Each installs only the Desktop package and launches its smoke mode. Ubuntu's runners need Electron's Chromium SUID helper to be materialized and configured before launch.</p>
+      <pre>node apps/desktop/node_modules/electron/install.js
+sudo chown root:root apps/desktop/node_modules/electron/dist/chrome-sandbox
+sudo chmod 4755 apps/desktop/node_modules/electron/dist/chrome-sandbox
+xvfb-run --auto-servernum npm start --prefix apps/desktop</pre>
+      <div class="callout"><strong>Why this matters</strong>The implementation did not make CI green by adding <span class="mono">--no-sandbox</span>. The proof exercises the secure application configuration users receive.</div>
+    </section>
+
+    <section id="evidence">
+      <h2>Evidence</h2>
+      <table>
+        <thead><tr><th>Claim</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Notification classes and deduplication</td><td>Candidate, quiet-baseline, re-entry, and GitHub/journal merge tests.</td></tr>
+          <tr><td>Lifecycle integration</td><td>Coordinator fakes cover enablement, observation, polling, and shutdown.</td></tr>
+          <tr><td>Read-only boundary retained</td><td>Exact IPC/preload inventory and boolean validation tests; no execution channel added.</td></tr>
+          <tr><td>Accessible named interaction</td><td>DOM tests for landmarks, labels, names, focus rules, text status, and minimum-size CSS.</td></tr>
+          <tr><td>Supported native runtime</td><td>Exact-head Electron smoke on Ubuntu 22.04, Ubuntu 24.04, and macOS 14 with no CLI installation.</td></tr>
+          <tr><td>Feature completeness</td><td>All 36 Desktop tests and all exact-head CI checks pass; rubric R1–R8 is PASS.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="quiz">
+      <h2>Quiz</h2>
+      <p>Choose one answer for each question. Feedback appears immediately.</p>
+      <div class="quiz">
+        <article class="question" data-answer="1"><h3>1. Why does opening a worktree call <span class="mono">reset</span> rather than <span class="mono">observe</span>?</h3><div class="answers"><button>Because Electron cannot display notifications until the second refresh.</button><button>To treat existing conditions as a quiet baseline instead of replaying old attention.</button><button>To persist every current candidate as workflow evidence.</button></div><p class="feedback" role="status"></p></article>
+        <article class="question" data-answer="2"><h3>2. What prevents one PR merge from notifying once through GitHub and again through the journal?</h3><div class="answers"><button>The journal merge is ignored whenever GitHub is available.</button><button>The polling loop stops before the journal watcher can run.</button><button>Both sources produce the stable key <span class="mono">merge:pr:&lt;number&gt;</span>.</button></div><p class="feedback" role="status"></p></article>
+        <article class="question" data-answer="0"><h3>3. Why are failed-gate keys kept in the active map rather than permanently in the observed-event set?</h3><div class="answers"><button>A failure is a condition that can clear and later re-enter, warranting a new notification.</button><button>Gate failures do not have stable attempt and gate identifiers.</button><button>Permanent event memory is available only on macOS.</button></div><p class="feedback" role="status"></p></article>
+        <article class="question" data-answer="1"><h3>4. What does the runtime CI prove about the optional Commander CLI?</h3><div class="answers"><button>The CLI and Desktop are bundled into one package but launch separate processes.</button><button>Desktop starts after installing only its own package, so it has no CLI runtime dependency.</button><button>The CLI is downloaded lazily by Electron after the smoke assertion.</button></div><p class="feedback" role="status"></p></article>
+        <article class="question" data-answer="2"><h3>5. Why configure the Ubuntu SUID helper instead of passing <span class="mono">--no-sandbox</span>?</h3><div class="answers"><button>Because macOS requires the Linux SUID helper to start Electron.</button><button>Because disabling the sandbox would prevent the renderer's DOM tests from running.</button><button>Because supported-runtime evidence should exercise the application's secure sandboxed configuration.</button></div><p class="feedback" role="status"></p></article>
+      </div>
+    </section>
+  </main>
+  <footer>GateReeve Desktop · feature-final delivery slice · PR #6</footer>
+  <script>
+    const explanations = [
+      'Correct: selection and opt-in establish the present as the baseline; only later entry into a condition is news.',
+      'Correct: the source-independent PR-number identity makes the first observation win and the second a duplicate.',
+      'Correct: unlike a merge event, a gate failure may resolve and genuinely recur.',
+      'Correct: each runtime job installs apps/desktop only, then launches Electron smoke mode.',
+      'Correct: keeping Chromium sandboxed makes the CI result evidence for the actual secure product configuration.'
+    ];
+    document.querySelectorAll('.question').forEach((question, questionIndex) => {
+      const correct = Number(question.dataset.answer);
+      const buttons = [...question.querySelectorAll('button')];
+      buttons.forEach((button, answerIndex) => button.addEventListener('click', () => {
+        buttons.forEach(item => item.classList.remove('correct', 'wrong'));
+        button.classList.add(answerIndex === correct ? 'correct' : 'wrong');
+        question.querySelector('.feedback').textContent = answerIndex === correct
+          ? explanations[questionIndex]
+          : 'Not quite. Revisit the explanation above and compare the identities and lifecycle boundaries.';
+      }));
+    });
+  </script>
+</body>
+</html>
