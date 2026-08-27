@@ -34,5 +34,9 @@ Append PR boundary entries here.
 - **Rubric movement:** R2 advances but remains `NOT YET` until P4 executes the
   same governed-fixture contract against the universal packaged application
 - **Evidence:** [PR #7 packet](pr-7/boundary.json)
-- **Boundary result:** In progress
+- **Boundary result:** Attempt 1 passes exact-head verification, scoped
+  specification evaluation, independent judge with bounded packaged-runtime
+  concerns, code review with no findings, decision triage, explain-diff, and
+  all ten GitHub checks; pattern review is not applicable because no scope is
+  configured
 - **Status:** Draft; I-1 is in review

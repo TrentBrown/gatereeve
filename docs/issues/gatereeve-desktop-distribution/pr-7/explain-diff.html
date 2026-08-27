@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #7 — GateReeve runtime foundation</title>
+  <style>
+    :root { color-scheme: light; --ink:#19152b; --purple:#7052c8; --pale:#f4f0ff; --line:#d9d2ed; --good:#17633b; --warn:#885b05; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.62 system-ui,-apple-system,sans-serif; color:var(--ink); background:#faf9fd; }
+    main { max-width:980px; margin:auto; padding:32px 22px 80px; }
+    header { padding:30px; color:white; border-radius:18px; background:linear-gradient(135deg,#241942,#7052c8); }
+    h1 { margin:0 0 8px; font-size:clamp(2rem,5vw,3.6rem); line-height:1.05; }
+    h2 { margin-top:54px; border-bottom:2px solid var(--line); padding-bottom:8px; }
+    h3 { margin-top:30px; }
+    nav { margin:22px 0; padding:16px 20px; border:1px solid var(--line); border-radius:12px; background:white; }
+    nav a { margin-right:18px; color:#5034a5; }
+    code { padding:.12em .35em; border-radius:4px; background:#eee9fa; }
+    pre { overflow:auto; padding:16px; border-radius:10px; color:#f8f5ff; background:#211b31; white-space:pre-wrap; }
+    .callout { margin:22px 0; padding:16px 18px; border-left:5px solid var(--purple); border-radius:8px; background:var(--pale); }
+    .diagram { display:grid; gap:12px; margin:22px 0; padding:18px; border:1px solid var(--line); border-radius:14px; background:white; }
+    .flow { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; }
+    .node { min-width:150px; padding:14px; text-align:center; border:2px solid var(--purple); border-radius:12px; background:var(--pale); }
+    .arrow { font-size:1.6rem; color:var(--purple); }
+    .bad { border-color:#ad4352; background:#fff0f2; }
+    .good { border-color:var(--good); background:#eefaf3; }
+    .columns { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:15px; }
+    .card { padding:18px; border:1px solid var(--line); border-radius:12px; background:white; }
+    .quiz { padding:18px; border:1px solid var(--line); border-radius:12px; background:white; }
+    .quiz button { display:block; width:100%; margin:8px 0; padding:11px; text-align:left; border:1px solid var(--line); border-radius:8px; background:#faf8ff; cursor:pointer; }
+    .quiz button:hover { border-color:var(--purple); }
+    .feedback { min-height:1.5em; font-weight:650; }
+    .correct { color:var(--good); } .incorrect { color:#9a2436; }
+    small { opacity:.8; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <small>GateReeve PR #7 · 7f18ba1…26e86a4</small>
+    <h1>A self-contained observation foundation</h1>
+    <p>How Desktop stopped asking Python to locate a feature, learned to find optional tools in a Finder-launched world, and gained a real governed runtime contract.</p>
+  </header>
+
+  <nav aria-label="Table of contents">
+    <a href="#background">Background</a>
+    <a href="#intuition">Intuition</a>
+    <a href="#code">Code</a>
+    <a href="#quiz">Quiz</a>
+  </nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <h3>The beginner's version</h3>
+    <p>An Electron application contains Chromium for rendering and Node.js APIs
+    for trusted operating-system work. That does not mean it inherits the same
+    environment as a terminal. When macOS Finder starts an application, shell
+    startup files are not consulted and familiar commands may not be on
+    <code>PATH</code>.</p>
+    <p>GateReeve Desktop reads a durable feature record. Before it can read that
+    record, it must answer two questions: which workspace did the user select,
+    and where does that workspace keep the feature record? The old implementation
+    delegated those questions to a bundled Python script. It worked in a source
+    checkout but made Python an undeclared prerequisite for an installed app.</p>
+
+    <div class="diagram">
+      <strong>Before: observation crossed an avoidable runtime boundary</strong>
+      <div class="flow">
+        <div class="node">GateReeve Desktop</div><div class="arrow">→</div>
+        <div class="node bad">system <code>python3</code></div><div class="arrow">→</div>
+        <div class="node">workflow_context.py</div><div class="arrow">→</div>
+        <div class="node">feature record</div>
+      </div>
+    </div>
+
+    <h3>The relevant architecture</h3>
+    <p>The protocol source under <code>plugin-src/shared/resources/protocol</code>
+    is canonical. Plugin packages, the optional Commander CLI, and Desktop stage
+    or import that source. This matters: a Desktop-only replacement would solve
+    packaging today while creating three subtly different notions of “the current
+    feature” tomorrow.</p>
+    <div class="callout"><strong>Invariant:</strong> there is still one context
+    contract. The Python resolver remains temporarily as a migration oracle and
+    for existing workflow tooling, while JavaScript becomes the shared protocol
+    implementation used by Desktop.</div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <p>The key move is to separate canonical local evidence from optional
+    enrichment. Reading <code>.agentic-workflow.json</code> and the journal is
+    local application work. Git adds repository facts. <code>gh</code> adds pull
+    request facts. Failure in the outer rings must not erase the inner ring.</p>
+    <div class="diagram">
+      <strong>After: concentric evidence, with narrow failure</strong>
+      <div class="columns">
+        <div class="card good"><strong>Canonical local</strong><br>JavaScript resolves the workspace and reads the feature record. No subprocess in configured mode.</div>
+        <div class="card"><strong>Git enrichment</strong><br>A discovered executable supplies branch, HEAD, and dirtiness. Missing Git reports “unavailable.”</div>
+        <div class="card"><strong>GitHub enrichment</strong><br>A discovered <code>gh</code> supplies PR state. Missing authentication or executable affects only this source.</div>
+      </div>
+    </div>
+    <p>For example, suppose a user opens <code>/work/client/src</code> and the
+    workspace config names both <code>client</code> and <code>backend</code>.
+    JavaScript walks upward, validates the config, selects the deepest containing
+    repository, and returns the same object Python returns. If <code>gh</code>
+    is absent, the feature remains visible; only the GitHub source card changes.</p>
+    <pre>{
+  "mode": "configured",
+  "featureId": "checkout-redesign",
+  "repository": { "alias": "client", "path": "/work/client" },
+  "featureHome": "/work/docs/issues/checkout-redesign"
+}</pre>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <h3>1. The protocol owns context resolution</h3>
+    <p><code>context.js</code> now implements the complete configured and legacy
+    contract: safe identifiers, external task metadata, repository selection,
+    full object IDs, symlink-aware containment, detached-HEAD rejection, and the
+    stable result envelope. Configured mode reads files only; legacy mode uses
+    the explicitly supplied Git executable because its feature identity is the
+    current branch.</p>
+    <pre>const configPath = await findWorkspaceConfig(start);
+if (configPath === null) {
+  return await legacyContext(start, { gitExecutable, environment, exec });
+}
+const repositories = await parseRepositories(raw.repositories, workspaceRoot, environment);</pre>
+    <p>The parity suite deliberately asks both implementations the same questions:
+    a nested multi-repository selection, explicit alias selection, legacy branch
+    identity, a symlinked config, and unsafe configurations.</p>
+
+    <h3>2. Desktop discovers executables without scanning</h3>
+    <p>The discovery helper probes a bounded set: standard macOS locations,
+    explicit <code>PATH</code> entries, or a narrow override. It verifies that a
+    candidate is an executable file. It never walks arbitrary directories.</p>
+    <pre>const fixedDirectories = platform === 'darwin'
+  ? ['/usr/bin', '/opt/homebrew/bin', '/usr/local/bin']
+  : [];
+return unique([...fixedDirectories, ...pathDirectories]);</pre>
+    <p>The exact paths are injected into context, Git, and GitHub observers. A
+    missing path therefore becomes data rather than an accidental
+    <code>ENOENT</code> from a bare command.</p>
+
+    <h3>3. The Desktop projection drops Python scripts</h3>
+    <p>Desktop now stages only <code>protocol/</code>. The two Python context
+    support files disappear from its runtime resources. This does not remove the
+    Plugin's trusted Python gate providers: Desktop observes persisted gate
+    results but cannot execute workflow passage.</p>
+
+    <h3>4. Runtime smoke observes a governed fixture</h3>
+    <p>A small fixture builder creates a genuine initialized GateReeve record.
+    Ubuntu 22.04, Ubuntu 24.04, and macOS CI launch Electron, open that record,
+    require a <code>governed</code> snapshot, and wait until the renderer shows
+    its exact feature identity.</p>
+    <div class="callout"><strong>Boundary of this PR:</strong> CI exercises the
+    Electron source runtime. The universal packaging slice will reuse this
+    contract against the exact application bundle and prove that no separate
+    Node runtime is needed. R2 correctly remains <code>NOT YET</code>.</div>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <div class="quiz" data-answer="b">
+      <strong>1. Why is configured context resolution forbidden from invoking Git?</strong>
+      <button data-choice="a">Because configured workspaces cannot be Git repositories.</button>
+      <button data-choice="b">Because feature location comes from local config; Git is separate enrichment and may be unavailable.</button>
+      <button data-choice="c">Because Electron cannot start child processes.</button>
+      <p class="feedback"></p>
+    </div>
+    <div class="quiz" data-answer="c">
+      <strong>2. What happens when <code>gh</code> is missing?</strong>
+      <button data-choice="a">Desktop rejects the selected worktree.</button>
+      <button data-choice="b">Desktop treats the feature record as incompatible.</button>
+      <button data-choice="c">GitHub enrichment is unavailable while canonical local observation remains readable.</button>
+      <p class="feedback"></p>
+    </div>
+    <div class="quiz" data-answer="a">
+      <strong>3. Why keep the Python resolver during migration?</strong>
+      <button data-choice="a">It supplies a behavioral oracle for parity tests and remains used by existing workflow tooling.</button>
+      <button data-choice="b">The packaged Desktop still calls it for legacy worktrees.</button>
+      <button data-choice="c">JavaScript cannot validate symlink containment.</button>
+      <p class="feedback"></p>
+    </div>
+    <div class="quiz" data-answer="b">
+      <strong>4. Why does R2 remain <code>NOT YET</code>?</strong>
+      <button data-choice="a">The resolver still uses Python in configured mode.</button>
+      <button data-choice="b">Exact application-bundle execution and separate-Node-runtime proof require packaged bytes created in P4.</button>
+      <button data-choice="c">macOS runtime CI has not run.</button>
+      <p class="feedback"></p>
+    </div>
+    <div class="quiz" data-answer="c">
+      <strong>5. What prevents a repository path symlink from escaping the workspace?</strong>
+      <button data-choice="a">The renderer refuses paths containing dots.</button>
+      <button data-choice="b">Only the string form is checked before filesystem access.</button>
+      <button data-choice="c">Containment is checked before and again after canonical <code>realpath</code> resolution.</button>
+      <p class="feedback"></p>
+    </div>
+  </section>
+</main>
+<script>
+  document.querySelectorAll('.quiz').forEach((quiz) => {
+    quiz.querySelectorAll('button').forEach((button) => {
+      button.addEventListener('click', () => {
+        const correct = button.dataset.choice === quiz.dataset.answer;
+        const feedback = quiz.querySelector('.feedback');
+        feedback.className = 'feedback ' + (correct ? 'correct' : 'incorrect');
+        feedback.textContent = correct
+          ? 'Correct. That distinction is central to the slice.'
+          : 'Not quite. Revisit the evidence-layer and delivery-boundary explanation above.';
+      });
+    });
+  });
+</script>
+</body>
+</html>
