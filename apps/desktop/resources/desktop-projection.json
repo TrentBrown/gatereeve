@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:1e71e3baf9347033e2a20c89ccfea0570fcd61f26659e192623db2441a4a90ba",
+  "protocolHash": "sha256:78f78df08d820415b82139130e0171cebb718dcdaa8a850440196b88a92b6c1c",
   "modelSha256": "04a0a4f6ebedf3b6b15f8eea0201120e3bcfefb820ee573a3cebf832adec8ab3",
   "files": [
     {
@@ -26,8 +26,8 @@
     },
     {
       "path": "context.js",
-      "size": 1195,
-      "sha256": "2ce7ff756a4b4f5641ebfd0025d9f7fa386465848713a1e264132fd3e728f97d"
+      "size": 11260,
+      "sha256": "ad11f60936af3fd111d8cdecb42fe66c1861c4299124fe62f614153448ab84e1"
     },
     {
       "path": "errors.js",

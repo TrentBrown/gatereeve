@@ -54,24 +54,38 @@ export function classifyWorktreeChanges(repositoryRoot, featureHome, porcelainOu
 
 export async function observeGit(worktreePath, featureHome, {
   exec = execute,
+  gitExecutable = 'git',
   now = () => new Date(),
 } = {}) {
   const checkedAt = now().toISOString();
+  if (gitExecutable === null) {
+    return {
+      source: source(
+        'unavailable',
+        'Git executable was not found in Finder-compatible locations',
+        checkedAt,
+      ),
+      facts: {},
+      repositoryRoot: null,
+      branch: null,
+      head: null,
+    };
+  }
   try {
-    const rootResult = await exec('git', ['-C', worktreePath, 'rev-parse', '--show-toplevel'], {
+    const rootResult = await exec(gitExecutable, ['-C', worktreePath, 'rev-parse', '--show-toplevel'], {
       encoding: 'utf8',
       maxBuffer: 1024 * 1024,
       timeout: 10_000,
     });
     const repositoryRoot = rootResult.stdout.trim();
     const [branchResult, headResult, statusResult] = await Promise.all([
-      exec('git', ['-C', repositoryRoot, 'branch', '--show-current'], {
+      exec(gitExecutable, ['-C', repositoryRoot, 'branch', '--show-current'], {
         encoding: 'utf8', maxBuffer: 1024, timeout: 10_000,
       }),
-      exec('git', ['-C', repositoryRoot, 'rev-parse', 'HEAD'], {
+      exec(gitExecutable, ['-C', repositoryRoot, 'rev-parse', 'HEAD'], {
         encoding: 'utf8', maxBuffer: 1024, timeout: 10_000,
       }),
-      exec('git', ['-C', repositoryRoot, 'status', '--porcelain=v1', '-z', '--untracked-files=all'], {
+      exec(gitExecutable, ['-C', repositoryRoot, 'status', '--porcelain=v1', '-z', '--untracked-files=all'], {
         encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, timeout: 15_000,
       }),
     ]);

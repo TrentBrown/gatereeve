@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -25,6 +25,12 @@ test('Desktop stages the exact canonical protocol without a CLI runtime dependen
   }
   const packageJson = JSON.parse(await readFile(resolve(desktopRoot, 'package.json'), 'utf8'));
   assert.equal(packageJson.dependencies, undefined);
+  await assert.rejects(access(resolve(desktopRoot, 'resources/scripts')), /ENOENT/);
+  const contextSource = await readFile(
+    resolve(desktopRoot, 'resources/protocol/context.js'),
+    'utf8',
+  );
+  assert.doesNotMatch(contextSource, /python|workflow_context\.py/iu);
   const runtimeImports = await Promise.all([
     'main/index.js', 'main/protocol-adapter.js', 'preload/index.cjs',
   ].map((path) => readFile(resolve(desktopRoot, path), 'utf8')));

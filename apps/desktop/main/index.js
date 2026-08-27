@@ -15,6 +15,9 @@ import {
 } from 'electron';
 
 import { createDesktopCoordinator } from './coordinator.js';
+import { discoverDesktopExecutables } from './executable-discovery.js';
+import { observeGit } from './git-observer.js';
+import { observeGitHub } from './github-observer.js';
 import { registerDesktopIpc } from './ipc.js';
 import { createPreferenceStore } from './preferences.js';
 import { createProtocolAdapter } from './protocol-adapter.js';
@@ -59,10 +62,21 @@ async function startDesktop() {
   session.defaultSession.setPermissionCheckHandler(() => false);
   const preferenceStore = createPreferenceStore(app.getPath('userData'));
   const initialPreferences = await preferenceStore.load();
+  const executables = await discoverDesktopExecutables();
   const coordinator = createDesktopCoordinator({
-    protocol: createProtocolAdapter(),
+    protocol: createProtocolAdapter({ gitExecutable: executables.git }),
     preferenceStore,
     initialPreferences,
+    gitObserver: (worktreePath, featureHome) => observeGit(
+      worktreePath,
+      featureHome,
+      { gitExecutable: executables.git },
+    ),
+    githubObserver: (repositoryRoot, branch) => observeGitHub(
+      repositoryRoot,
+      branch,
+      { ghExecutable: executables.gh },
+    ),
     notify({ title, body }) {
       if (!Notification.isSupported()) return;
       new Notification({ title, body }).show();
@@ -100,8 +114,37 @@ async function startDesktop() {
   await window.loadURL(RENDERER_URL);
   await coordinator.initialize();
   if (process.env.GATEREEVE_DESKTOP_SMOKE === '1') {
+    const smokeWorktree = process.env.GATEREEVE_DESKTOP_SMOKE_WORKTREE;
+    let expectedFeatureId = null;
+    if (smokeWorktree) {
+      const state = await coordinator.open(smokeWorktree);
+      if (state.phase !== 'ready' || state.snapshot === null) {
+        throw new Error(
+          `Governed fixture smoke failed: ${state.error?.message ?? 'no readable snapshot'}`
+        );
+      }
+      expectedFeatureId = state.snapshot.featureId;
+    }
     const passed = await window.webContents.executeJavaScript(
-      `Boolean(window.gatereeveDesktop && document.querySelector('h1')?.textContent === 'GateReeve')`,
+      `new Promise((resolve) => {
+        let attempts = 0;
+        const inspect = () => {
+          const ready = Boolean(
+            window.gatereeveDesktop
+            && document.querySelector('h1')?.textContent === 'GateReeve'
+            && ${expectedFeatureId === null
+              ? 'true'
+              : `document.querySelector('#workspace')?.hidden === false
+                && document.querySelector('#feature')?.textContent === ${JSON.stringify(expectedFeatureId)}`}
+          );
+          if (ready || attempts >= 120) resolve(ready);
+          else {
+            attempts += 1;
+            requestAnimationFrame(inspect);
+          }
+        };
+        inspect();
+      })`,
     );
     if (!passed) throw new Error('Renderer smoke contract failed.');
     app.quit();

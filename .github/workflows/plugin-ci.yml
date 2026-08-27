@@ -92,10 +92,15 @@ jobs:
           node apps/desktop/node_modules/electron/install.js
           sudo chown root:root apps/desktop/node_modules/electron/dist/chrome-sandbox
           sudo chmod 4755 apps/desktop/node_modules/electron/dist/chrome-sandbox
-      - name: Launch Electron without the optional CLI
+      - name: Prepare a real governed runtime fixture
+        run: >-
+          node apps/desktop/scripts/create-smoke-fixture.mjs
+          "$RUNNER_TEMP/gatereeve-desktop-smoke"
+      - name: Launch Electron without Python, Node runtime, or the optional CLI
         run: xvfb-run --auto-servernum npm start --prefix apps/desktop
         env:
           GATEREEVE_DESKTOP_SMOKE: "1"
+          GATEREEVE_DESKTOP_SMOKE_WORKTREE: ${{ runner.temp }}/gatereeve-desktop-smoke
 
   desktop-runtime-macos:
     name: Desktop runtime on macOS
@@ -109,7 +114,12 @@ jobs:
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
-      - name: Launch Electron without the optional CLI
+      - name: Prepare a real governed runtime fixture
+        run: >-
+          node apps/desktop/scripts/create-smoke-fixture.mjs
+          "$RUNNER_TEMP/gatereeve-desktop-smoke"
+      - name: Launch Electron without Python, Node runtime, or the optional CLI
         run: npm start --prefix apps/desktop
         env:
           GATEREEVE_DESKTOP_SMOKE: "1"
+          GATEREEVE_DESKTOP_SMOKE_WORKTREE: ${{ runner.temp }}/gatereeve-desktop-smoke
