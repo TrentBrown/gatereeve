@@ -26,6 +26,7 @@ COPY README.md DEVELOPMENT.md INSTALL.md RELEASING.md USER-GUIDE.md ./
 COPY cli ./cli
 RUN npm ci --prefix cli
 COPY .github/workflows/plugin-release.yml ./.github/workflows/plugin-release.yml
+COPY .github/workflows/coordinated-release-prepare.yml ./.github/workflows/coordinated-release-prepare.yml
 COPY plugin-src ./plugin-src
 COPY docs ./docs
 COPY ci ./ci

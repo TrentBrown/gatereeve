@@ -5,6 +5,14 @@ import { resolve } from 'node:path';
 import { Command } from 'qp-cli-core';
 
 import { loadAndValidateContracts } from '../plugin/contracts.js';
+import {
+  assertCoordinatedPublicationReady,
+  prepareCoordinatedRelease,
+  publicationPlanSha256,
+  readCoordinatedRelease,
+  renderPublicationPlan,
+  verifyCoordinatedReleaseWorkspace,
+} from '../plugin/coordinated-release.js';
 import { loadAndValidateNativeSources } from '../plugin/native.js';
 import { lintPortability } from '../plugin/portability.js';
 import { prepareRelease, validateReleaseEvidence } from '../plugin/release.js';
@@ -166,14 +174,20 @@ async function validateReleaseSources(
   sourceRoot,
   sourceTag,
   ubuntuRcEvidencePath,
-  sourceCommit
+  sourceCommit,
+  coordinatedReleasePath
 ) {
-  const [contracts, portability, native, releaseEvidence] = await Promise.all([
+  const [contracts, portability, native, releaseEvidence, coordinatedRelease] = await Promise.all([
     loadAndValidateContracts(sourceRoot),
     lintPortability(sourceRoot),
     loadAndValidateNativeSources(sourceRoot),
     validateReleaseEvidence({ sourceTag, ubuntuRcEvidencePath, sourceCommit }),
+    verifyCoordinatedReleaseWorkspace(coordinatedReleasePath),
   ]);
+  assertCoordinatedPublicationReady(coordinatedRelease, {
+    tag: sourceTag,
+    sourceCommit,
+  });
   return {
     contracts: { skillCount: contracts.skillCount },
     portability: {
@@ -192,6 +206,13 @@ async function validateReleaseSources(
           ubuntuVersion: releaseEvidence.ubuntu.version,
         }
       : null,
+    coordinatedRelease: {
+      releaseId: coordinatedRelease.releaseId,
+      recordPath: resolve(coordinatedReleasePath),
+      planSha256: coordinatedRelease.publication.approval.planSha256,
+      pluginSha256: coordinatedRelease.candidates.plugin.artifact.sha256,
+      desktopSha256: coordinatedRelease.candidates.desktop.artifact.sha256,
+    },
   };
 }
 
@@ -217,6 +238,10 @@ export function releaseCommands({ repositoryRoot }) {
       '--ubuntu-rc-evidence <path>',
       'Required evidence for a stable release',
       resolve(repositoryRoot, 'docs/releases/ubuntu-rc.json')
+    )
+    .requiredOption(
+      '--release-record <path>',
+      'Approved coordinated Plugin/Desktop release record'
     )
     .option('--dry-run', 'Validate and show the publication plan without mutation')
     .option('--yes', 'Skip interactive confirmation')
@@ -257,7 +282,8 @@ export function releaseCommands({ repositoryRoot }) {
               sourceRootFor(validationRepositoryRoot),
               versionPlan.tag,
               resolve(options.ubuntuRcEvidence),
-              sourceCommit
+              sourceCommit,
+              resolve(options.releaseRecord)
             ),
           confirm: confirmPublish,
           onPlan: options.json ? () => {} : printPublishPlan,
@@ -290,6 +316,70 @@ export function releaseCommands({ repositoryRoot }) {
             `${result.run.conclusion ?? result.run.status}.`
         );
         if (result.deployment) console.log(formatVerification(result.deployment));
+      }
+    });
+
+  release
+    .command('coordinate')
+    .description('Create an immutable record from verified Plugin and Desktop candidates')
+    .requiredOption('--tag <tag>', 'Eventual semantic-version source tag')
+    .requiredOption('--source-commit <commit>', 'Immutable source commit')
+    .requiredOption('--repository <repository>', 'Canonical source repository URL')
+    .requiredOption('--plugin-root <path>', 'Prepared Plugin marketplace candidate')
+    .requiredOption('--desktop-dmg <path>', 'Verified universal Desktop DMG')
+    .requiredOption(
+      '--desktop-evidence <paths...>',
+      'ARM64 and Intel Desktop verification evidence files'
+    )
+    .requiredOption('--output-root <path>', 'Fresh coordinated release workspace')
+    .option('--promote-from <path>', 'Coordinated RC record for stable-source proof')
+    .option('--json', 'Print machine-readable release results')
+    .action(async (options) => {
+      const result = await prepareCoordinatedRelease({
+        sourceTag: options.tag,
+        sourceCommit: options.sourceCommit,
+        repository: options.repository,
+        pluginRoot: resolve(options.pluginRoot),
+        desktopDmgPath: resolve(options.desktopDmg),
+        desktopEvidencePaths: options.desktopEvidence.map((path) => resolve(path)),
+        outputRoot: resolve(options.outputRoot),
+        stablePromotionRecord: options.promoteFrom
+          ? await readCoordinatedRelease(resolve(options.promoteFrom))
+          : null,
+      });
+      if (options.json) {
+        console.log(JSON.stringify({
+          schemaVersion: result.schemaVersion,
+          outputRoot: result.outputRoot,
+          recordPath: result.recordPath,
+          planPath: result.planPath,
+          planSha256: result.planSha256,
+          releaseId: result.record.releaseId,
+          state: result.record.state,
+        }, null, 2));
+      } else {
+        console.log(`Prepared ${result.record.releaseId} in ${result.outputRoot}`);
+        console.log(`Publication plan: ${result.planPath}`);
+        console.log(`Plan SHA-256: ${result.planSha256}`);
+        console.log('Public publication remains blocked pending Apple trust and exact approval.');
+      }
+    });
+
+  release
+    .command('inspect-record')
+    .description('Inspect a coordinated release record and exact publication plan')
+    .requiredOption('--release-record <path>', 'Coordinated release record')
+    .option('--json', 'Print machine-readable release state')
+    .action(async (options) => {
+      const record = await readCoordinatedRelease(resolve(options.releaseRecord));
+      if (options.json) {
+        console.log(JSON.stringify({
+          record,
+          planSha256: publicationPlanSha256(record),
+        }, null, 2));
+      } else {
+        console.log(renderPublicationPlan(record));
+        console.log(`Plan SHA-256: ${publicationPlanSha256(record)}`);
       }
     });
 

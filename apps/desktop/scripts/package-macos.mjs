@@ -46,11 +46,22 @@ export async function stageDesktopSource(options) {
     resolve(options.stageRoot, 'package.json'),
     `${JSON.stringify(stagedPackage(options.version), null, 2)}\n`,
   );
+  const compatibilityPath = resolve(options.stageRoot, 'shared', 'setup-compatibility.json');
+  const compatibility = JSON.parse(await readFile(compatibilityPath, 'utf8'));
+  compatibility.desktop.version = options.version;
+  compatibility.testedPairs = [{
+    desktopVersion: options.version,
+    pluginVersion: options.version,
+    state: 'matched',
+    evidence: `coordinated-release-${options.version}`,
+  }];
+  await writeFile(compatibilityPath, `${JSON.stringify(compatibility, null, 2)}\n`);
   return resolve(options.stageRoot);
 }
 
 /**
- * @param {{desktopRoot?: string, outputRoot?: string, platform?: NodeJS.Platform}} [options]
+ * @param {{desktopRoot?: string, outputRoot?: string, platform?: NodeJS.Platform,
+ *   version?: string}} [options]
  */
 export async function packageMacos(options = {}) {
   if ((options.platform ?? process.platform) !== 'darwin') {
@@ -59,7 +70,8 @@ export async function packageMacos(options = {}) {
   const sourceRoot = resolve(options.desktopRoot ?? desktopRoot);
   const outputRoot = resolve(options.outputRoot ?? resolve(sourceRoot, 'dist', 'macos'));
   const metadata = JSON.parse(await readFile(resolve(sourceRoot, 'package.json'), 'utf8'));
-  const version = String(metadata.version);
+  const version = String(options.version ?? metadata.version);
+  dmgFilename(version);
   if (metadata.productName !== MACOS_PRODUCT.name) {
     throw new Error(`Desktop productName must be ${MACOS_PRODUCT.name}.`);
   }
@@ -98,5 +110,10 @@ export async function packageMacos(options = {}) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  process.stdout.write(`${JSON.stringify(await packageMacos(), null, 2)}\n`);
+  const versionIndex = process.argv.indexOf('--version');
+  const version = versionIndex === -1 ? undefined : process.argv[versionIndex + 1];
+  if (versionIndex !== -1 && !version) {
+    throw new Error('--version requires a coordinated release version');
+  }
+  process.stdout.write(`${JSON.stringify(await packageMacos({ version }), null, 2)}\n`);
 }

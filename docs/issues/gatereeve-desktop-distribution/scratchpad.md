@@ -101,3 +101,18 @@ and every public release path remain unavailable until P6.
 
 **Alternatives considered:**
 Manually splice downloaded Electron distributions - rejected because it duplicates mature universal-bundle logic and increases bundle-signing risk; adopt Electron Forge or Builder - rejected because either introduces a broader packaging framework than this application needs; publish separate architecture bundles as PortReeve currently does - rejected because AC1 explicitly requires one universal application and DMG.
+
+## [7] Use one compact recoverable record for coordinated publication
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Release CLI, candidate evidence schema, pre-publication CI, Plugin release guard, Desktop package verification, and later P6-P8 publication adapters
+
+Represent one GateReeve release with an immutable semantic tag and source commit, checksummed Plugin and universal-DMG candidates, architecture-specific Desktop verification, explicit trust and approval state, and a fixed publication order: tag, Plugin marketplace, Desktop prerelease, update manifest, then Early Access website. Persist each completed surface immediately and require adapters to converge the exact identity idempotently, so a retry skips durable completions and resumes the same release. Keep Cask publication outside this record until its final slice, and make the existing tag publisher require a publication-ready coordinated record.
+
+**Triggered by:** P5 requires immutable Plugin/Desktop coordination and idempotent recovery without importing PortReeve's broader multi-binary release engine
+
+**Alternatives considered:**
+Copy PortReeve's complete release engine - rejected because GateReeve has only two candidate surfaces and no native-service or architecture matrix; retain the Plugin-only tag publisher and coordinate Desktop informally - rejected because it permits divergent identities and bypasses exact approval; model publication as one atomic state - rejected because Git, marketplace, GitHub Releases, manifest, and website cannot commit atomically.

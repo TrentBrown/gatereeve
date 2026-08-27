@@ -5,11 +5,10 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Identity and universal DMG P4 / I-3 is in review in
-[#9](https://github.com/TrentBrown/gatereeve/pull/9). Human review selected
-V1 - Rolling Vale, and the exact universal DMG candidate passes identity,
-resource, ad-hoc signature, and governed-fixture launch verification on hosted
-Apple Silicon and Intel runners.
+**Active slice:** Coordinated release and recovery P5 / I-4 is in review in PR
+[#10](https://github.com/TrentBrown/gatereeve/pull/10) from
+`gatereeve-desktop-distribution-04-coordinated-release`. PR #9 merged the prior
+identity and universal-DMG boundary as commit `3a340e3` on `main`.
 
 ## Rubric Status
 
@@ -20,7 +19,7 @@ Apple Silicon and Intel runners.
 | R3 | Setup and readiness | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Persistent selected-agent Setup, bounded read-only adapters, native remediation, recheck, one-of-selected readiness, unavailable-state honesty, and historical/offline presentation pass local and exact-head hosted verification |
 | R4 | Compatibility governance | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Exact project-controlled matched/compatible/incompatible pairs, tested skew, update guidance, and fail-closed unknown or unreported versions pass matrix and UI verification |
 | R5 | Apple trust | NOT YET | - | P6, P8, P10 / I-5, I-7, I-8 |
-| R6 | Coordinated release and recovery | NOT YET | - | P5, P6, P8, P10 / I-4, I-5, I-7, I-8 |
+| R6 | Coordinated release and recovery | NOT YET | [#10](https://github.com/TrentBrown/gatereeve/pull/10) | P5's immutable identity, pre-publication preparation, exact approval guard, ordered recovery, and stable-source proof pass; Apple trust, live protected publication, and final verification remain P6, P8, and P10 |
 | R7 | RC publication and update behavior | NOT YET | - | P7, P8, P10 / I-6, I-7, I-8 |
 | R8 | Cask distribution | NOT YET | - | P9, P10 / I-8 |
 
@@ -72,4 +71,21 @@ Append PR boundary entries here.
   specification evaluation, independent judge, code review with no findings,
   decision triage, explain-diff, and all twelve GitHub CI jobs; pattern review
   is not applicable because no scope is configured
-- **Status:** In review; I-3 is in review
+- **Status:** Merged; I-3 is closed
+
+### PR #10 - Coordinated release and recovery
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/10
+- **Scope:** Delivery boundary 4, coordinated release and recovery
+- **Plan steps:** P5
+- **Issues:** I-4
+- **Rubric movement:** R6 advances with an immutable two-surface record,
+  pre-publication preparation, exact approval binding, stable-source proof, and
+  idempotent recovery tests, but remains `NOT YET` until trusted live
+  publication and final verification
+- **Evidence:** [PR #10 packet](pr-10/boundary.json)
+- **Boundary result:** Exact-head verification, scoped specification
+  evaluation, judge, code review after remediating record-invariant findings,
+  decision triage, explain-diff, and hosted CI pass; pattern review is not
+  applicable because no scope is configured
+- **Status:** In review; I-4 is in review

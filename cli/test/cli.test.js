@@ -150,6 +150,21 @@ test('prepares a release through the grouped command path', async () => {
   assert.equal(result.outputRoot, outputRoot);
 });
 
+test('public release entrypoint requires a coordinated release record', async () => {
+  const executable = join(cliRoot, 'bin/workflow.js');
+  await assert.rejects(
+    execFileAsync(
+      process.execPath,
+      [executable, 'plugin', 'release', 'publish', '--tag', 'v0.1.0-rc.99', '--dry-run'],
+      { cwd: cliRoot }
+    ),
+    (error) => {
+      assert.match(error.stderr, /required option '--release-record <path>' not specified/);
+      return true;
+    }
+  );
+});
+
 test('renders hierarchical help through QP CLI Core', async () => {
   const executable = join(cliRoot, 'bin/workflow.js');
 
@@ -174,6 +189,7 @@ test('renders hierarchical help through QP CLI Core', async () => {
   assert.match(result.stdout, /build Compose native packages/);
   assert.match(result.stdout, /release Publish, observe, and verify native plugin releases/);
   assert.match(result.stdout, /publish Validate, tag, watch, and verify a marketplace release/);
+  assert.match(result.stdout, /--release-record <path>/);
   assert.match(result.stdout, /--next-rc/);
   assert.match(result.stdout, /--promote/);
   assert.match(result.stdout, /--bump <type>/);
@@ -184,6 +200,8 @@ test('renders hierarchical help through QP CLI Core', async () => {
   assert.match(result.stdout, /watch Watch the latest or selected release workflow run/);
   assert.match(result.stdout, /verify Verify a complete remote marketplace deployment/);
   assert.match(result.stdout, /prepare Compose a tag-scoped marketplace tree/);
+  assert.match(result.stdout, /coordinate Create an immutable record from verified Plugin and Desktop candidates/);
+  assert.match(result.stdout, /inspect-record Inspect a coordinated release record/);
   assert.doesNotMatch(result.stdout, /release-prepare/);
   assert.doesNotMatch(result.stdout, /^\s{4}migration\b/m);
   assert.doesNotMatch(result.stdout, /^\s+advance\b/m);

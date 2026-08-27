@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { access, lstat, mkdtemp, readFile, readlink, rm } from 'node:fs/promises';
+import { access, lstat, mkdtemp, readFile, readlink, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -15,6 +15,7 @@ import {
   REQUIRED_ASAR_PATHS,
 } from '../scripts/macos-package-contract.mjs';
 import { stageDesktopSource } from '../scripts/package-macos.mjs';
+import { writeVerificationEvidence } from '../scripts/verify-macos-package.mjs';
 
 const desktopRoot = resolve(import.meta.dirname, '..');
 
@@ -39,6 +40,12 @@ test('macOS identity and universal packager options are permanent', () => {
   assert.equal(options.asar, true);
   assert.equal(options.osxSign.identity, '-');
   assert.equal(dmgFilename('0.1.0-rc.1'), 'GateReeve-0.1.0-rc.1-macos-universal.dmg');
+  assert.equal(electronPackagerOptions({
+    stageRoot: '/stage',
+    outputRoot: '/output',
+    iconPath: '/GateReeve.icns',
+    version: '0.1.0-rc.1',
+  }).appVersion, '0.1.0');
   assert.throws(() => dmgFilename('../bad'));
 });
 
@@ -69,10 +76,22 @@ test('Desktop staging contains only self-contained runtime resources', async () 
   const temporaryRoot = await mkdtemp(join(tmpdir(), 'gatereeve-stage-test-'));
   const stageRoot = resolve(temporaryRoot, 'stage');
   try {
-    await stageDesktopSource({ desktopRoot, stageRoot, version: '0.1.0' });
+    await stageDesktopSource({ desktopRoot, stageRoot, version: '0.1.0-rc.7' });
     const metadata = JSON.parse(await readFile(resolve(stageRoot, 'package.json'), 'utf8'));
     assert.equal(metadata.productName, MACOS_PRODUCT.name);
+    assert.equal(metadata.version, '0.1.0-rc.7');
     assert.equal(metadata.dependencies, undefined);
+    const compatibility = JSON.parse(await readFile(
+      resolve(stageRoot, 'shared/setup-compatibility.json'),
+      'utf8',
+    ));
+    assert.equal(compatibility.desktop.version, '0.1.0-rc.7');
+    assert.deepEqual(compatibility.testedPairs, [{
+      desktopVersion: '0.1.0-rc.7',
+      pluginVersion: '0.1.0-rc.7',
+      state: 'matched',
+      evidence: 'coordinated-release-0.1.0-rc.7',
+    }]);
     for (const path of REQUIRED_ASAR_PATHS) {
       await access(resolve(stageRoot, path.slice(1)));
     }
@@ -103,6 +122,31 @@ test('DMG composition adds a conventional Applications shortcut', async () => {
       },
     });
     assert.equal(inspected, true);
+  } finally {
+    await rm(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test('native package evidence binds the exact source and DMG bytes', async () => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'gatereeve-package-evidence-'));
+  try {
+    const dmgPath = join(temporaryRoot, 'GateReeve-0.1.0-rc.7-macos-universal.dmg');
+    const evidencePath = join(temporaryRoot, 'desktop-arm64.json');
+    await writeFile(dmgPath, 'verified universal candidate\n');
+    const evidence = await writeVerificationEvidence({
+      dmgPath,
+      evidencePath,
+      fixturePath: '/governed-fixture',
+      nativeArchitecture: 'arm64',
+      sourceCommit: '1234567890abcdef1234567890abcdef12345678',
+      sourceTag: 'v0.1.0-rc.7',
+      version: '0.1.0-rc.7',
+    });
+    assert.equal(evidence.sourceTag, 'v0.1.0-rc.7');
+    assert.equal(evidence.artifact.filename, 'GateReeve-0.1.0-rc.7-macos-universal.dmg');
+    assert.match(evidence.artifact.sha256, /^[a-f0-9]{64}$/u);
+    assert.equal(evidence.checks.governedFixtureSmoke, true);
+    assert.deepEqual(JSON.parse(await readFile(evidencePath, 'utf8')), evidence);
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
