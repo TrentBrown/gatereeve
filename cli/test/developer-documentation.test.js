@@ -90,12 +90,15 @@ test('release runbook preserves the guarded RC-to-stable lifecycle', async () =>
     'npm start --prefix cli -- plugin release publish --next-rc',
     'npm start --prefix cli -- plugin release publish --promote --dry-run',
     'npm start --prefix cli -- plugin release publish --promote',
+    'npm start --prefix cli -- plugin release publish-coordinated',
   ]) {
     assert.ok(oneLine.includes(command), `RELEASING.md must document: ${command}`);
   }
 
   assert.match(guide, /candidateSourceCommit/);
   assert.match(guide, /exact deployed RC commit/);
+  assert.match(guide, /PLAN_SHA256_FROM_INSPECTION/u);
+  assert.match(guide, /never writes directly to `main`/u);
   assert.match(guide, /Do not create release tags manually/);
   assert.ok(oneLine.includes('not the routine human release interface'));
 });

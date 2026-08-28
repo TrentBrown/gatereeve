@@ -22,7 +22,12 @@ const repositoryRoot = resolve(import.meta.dirname, '../..');
 const sourceRoot = resolve(repositoryRoot, 'plugin-src');
 const sourceCommit = '1234567890abcdef1234567890abcdef12345678';
 
-async function candidateFixture(root, tag = 'v0.1.0-rc.7', commit = sourceCommit) {
+async function candidateFixture(
+  root,
+  tag = 'v0.1.0-rc.7',
+  commit = sourceCommit,
+  trusted = false
+) {
   const pluginRoot = join(root, `plugin-${tag.replaceAll(/[^a-z0-9]/giu, '-')}`);
   let ubuntuRcEvidencePath = null;
   if (!tag.slice(1).includes('-')) {
@@ -68,7 +73,7 @@ async function candidateFixture(root, tag = 'v0.1.0-rc.7', commit = sourceCommit
         universalBinaries: true,
         governedFixtureSmoke: true,
       },
-      trust: { status: 'development-ad-hoc', evidence: [] },
+      trust: trusted ? trustedEvidence() : { status: 'development-ad-hoc', evidence: [] },
       verifiedAt: '2026-08-27T20:00:00.000Z',
     }, null, 2)}\n`);
     evidencePaths.push(path);
@@ -76,9 +81,14 @@ async function candidateFixture(root, tag = 'v0.1.0-rc.7', commit = sourceCommit
   return { pluginRoot, dmgPath, evidencePaths };
 }
 
-async function preparedFixture(tag = 'v0.1.0-rc.7', commit = sourceCommit, promotion = null) {
+async function preparedFixture(
+  tag = 'v0.1.0-rc.7',
+  commit = sourceCommit,
+  promotion = null,
+  trusted = false
+) {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve coordinated release '));
-  const candidate = await candidateFixture(root, tag, commit);
+  const candidate = await candidateFixture(root, tag, commit, trusted);
   return prepareCoordinatedRelease({
     sourceTag: tag,
     sourceCommit: commit,
@@ -86,14 +96,15 @@ async function preparedFixture(tag = 'v0.1.0-rc.7', commit = sourceCommit, promo
     pluginRoot: candidate.pluginRoot,
     desktopDmgPath: candidate.dmgPath,
     desktopEvidencePaths: candidate.evidencePaths,
+    currentUpdateManifestPath: resolve(repositoryRoot, 'workflow-site/releases/desktop.json'),
     outputRoot: join(root, 'coordinated'),
     stablePromotionRecord: promotion,
     now: () => new Date('2026-08-27T20:01:00.000Z'),
   });
 }
 
-function trustedAndApproved(record) {
-  const trusted = recordDesktopTrust(record, {
+function trustedEvidence() {
+  return {
     status: 'developer-id-notarized',
     identity: 'Developer ID Application: Trent Brown (ABCDEFGHIJ)',
     teamId: 'ABCDEFGHIJ',
@@ -109,7 +120,21 @@ function trustedAndApproved(record) {
       'stapler:validated',
       'spctl:accepted',
     ],
-  }, () => new Date('2026-08-27T20:02:00.000Z'));
+  };
+}
+
+function trustedAndApproved(record) {
+  const trusted = recordDesktopTrust(
+    record,
+    trustedEvidence(),
+    () => new Date('2026-08-27T20:02:00.000Z')
+  );
+  trusted.publication.outputs.updateManifest = {
+    path: 'publication/desktop.json',
+    filename: 'desktop.json',
+    bytes: 2,
+    sha256: 'a'.repeat(64),
+  };
   return approveCoordinatedPublication(trusted, {
     approvedBy: 'Trent Brown',
     planSha256: publicationPlanSha256(trusted),
@@ -156,6 +181,27 @@ test('prepares one immutable Plugin and Desktop release record without publicati
     verifyCoordinatedReleaseWorkspace(result.recordPath),
     /Desktop candidate identity changed/
   );
+});
+
+test('trusted preparation seals exact checksum and update-manifest outputs', async () => {
+  const result = await preparedFixture(
+    'v0.1.0-rc.8',
+    sourceCommit,
+    null,
+    true
+  );
+  const record = await readCoordinatedRelease(result.recordPath);
+  assert.equal(record.candidates.desktop.trust.status, 'developer-id-notarized');
+  assert.match(record.publication.outputs.checksums.sha256, /^[a-f0-9]{64}$/u);
+  assert.match(record.publication.outputs.updateManifest.sha256, /^[a-f0-9]{64}$/u);
+  const manifest = JSON.parse(await readFile(
+    join(result.outputRoot, record.publication.outputs.updateManifest.path),
+    'utf8'
+  ));
+  assert.equal(manifest.channels.rc.version, '0.1.0-rc.8');
+  assert.equal(manifest.channels.rc.artifact.sha256, record.candidates.desktop.artifact.sha256);
+  assert.match(await readFile(result.planPath, 'utf8'), /Update manifest SHA-256/u);
+  await assert.doesNotReject(verifyCoordinatedReleaseWorkspace(result.recordPath));
 });
 
 test('stable promotion is bound to the exact coordinated RC source', async () => {
@@ -217,6 +263,7 @@ test('rejects a Desktop candidate whose release version diverges from the Plugin
       pluginRoot: candidate.pluginRoot,
       desktopDmgPath: candidate.dmgPath,
       desktopEvidencePaths: candidate.evidencePaths,
+      currentUpdateManifestPath: resolve(repositoryRoot, 'workflow-site/releases/desktop.json'),
       outputRoot: join(root, 'coordinated'),
     }),
     /Desktop verification evidence does not match/

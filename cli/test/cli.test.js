@@ -165,6 +165,29 @@ test('public release entrypoint requires a coordinated release record', async ()
   );
 });
 
+test('coordinated publication entrypoint requires an exact trusted record', async () => {
+  const executable = join(cliRoot, 'bin/workflow.js');
+  await assert.rejects(
+    execFileAsync(
+      process.execPath,
+      [
+        executable,
+        'plugin',
+        'release',
+        'publish-coordinated',
+        '--plan-sha256',
+        'a'.repeat(64),
+        '--dry-run',
+      ],
+      { cwd: cliRoot }
+    ),
+    (error) => {
+      assert.match(error.stderr, /required option '--release-record <path>' not specified/);
+      return true;
+    }
+  );
+});
+
 test('renders hierarchical help through QP CLI Core', async () => {
   const executable = join(cliRoot, 'bin/workflow.js');
 
@@ -202,6 +225,7 @@ test('renders hierarchical help through QP CLI Core', async () => {
   assert.match(result.stdout, /prepare Compose a tag-scoped marketplace tree/);
   assert.match(result.stdout, /coordinate Create an immutable record from verified Plugin and Desktop candidates/);
   assert.match(result.stdout, /inspect-record Inspect a coordinated release record/);
+  assert.match(result.stdout, /publish-coordinated Publish or recover one exact approved/);
   assert.doesNotMatch(result.stdout, /release-prepare/);
   assert.doesNotMatch(result.stdout, /^\s{4}migration\b/m);
   assert.doesNotMatch(result.stdout, /^\s+advance\b/m);

@@ -77,7 +77,7 @@ public path without complete trust and approval evidence.
 
 ## I-6 - Update discovery and Early Access surfaces
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P7
 - **Rubric criteria:** R7
@@ -89,7 +89,7 @@ that becomes resolvable only for a trusted published release.
 
 ## I-7 - Publish and prove the direct RC
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 0.5d
 - **Plan steps:** P8
 - **Rubric criteria:** R1, R5, R6, R7

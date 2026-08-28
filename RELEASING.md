@@ -30,6 +30,76 @@ verification results, trust evidence, approval digest, and recoverable state for
 the tag, Plugin marketplace, Desktop prerelease, update manifest, and website.
 An ad-hoc development record is inspectable but deliberately not publishable.
 
+### Coordinated Desktop RC publication
+
+The first public Desktop RC uses the complete coordinated path rather than the
+Plugin-only tag publisher described later in this runbook. Preparation is still
+nonpublishing:
+
+```bash
+RC_TAG=v0.1.0-rc.1
+SOURCE_COMMIT=$(git rev-parse origin/main)
+gh workflow run coordinated-release-prepare.yml \
+  -f tag="$RC_TAG" \
+  -f source_ref="$SOURCE_COMMIT" \
+  -f apple_trust=true
+```
+
+After the run passes, download its exact artifact and inspect the plan:
+
+```bash
+PREPARATION_RUN_ID=<RUN_ID>
+RELEASE_ROOT="$HOME/Downloads/gatereeve-$RC_TAG-coordinated-release"
+gh run download "$PREPARATION_RUN_ID" \
+  --name "gatereeve-$RC_TAG-coordinated-release" \
+  --dir "$RELEASE_ROOT"
+RELEASE_RECORD="$RELEASE_ROOT/release-record.json"
+npm start --prefix cli -- plugin release inspect-record \
+  --release-record "$RELEASE_RECORD" \
+  --json
+```
+
+The artifact contains the exact signed DMG, both native verification records,
+`SHA256SUMS`, the future `desktop.json`, its pre-publication base, and the
+publication plan. The plan digest binds all of those bytes. Before approval,
+run remote preflights without mutation:
+
+```bash
+PLAN_SHA256=<PLAN_DIGEST>
+npm start --prefix cli -- plugin release publish-coordinated \
+  --release-record "$RELEASE_RECORD" \
+  --plan-sha256 "$PLAN_SHA256" \
+  --dry-run
+```
+
+Present the exact tag, source commit, Plugin and DMG hashes, Apple trust
+evidence, manifest hashes, and ordered plan for separate human approval. Only
+after that approval may the maintainer run:
+
+`PLAN_SHA256` is the `PLAN_SHA256_FROM_INSPECTION`; do not recalculate or
+substitute it after approval.
+
+```bash
+npm start --prefix cli -- plugin release publish-coordinated \
+  --release-record "$RELEASE_RECORD" \
+  --plan-sha256 "$PLAN_SHA256" \
+  --approved-by "Trent Brown" \
+  --confirm
+```
+
+The command uses the maintainer-authenticated `gh` identity. It creates or
+verifies the exact tag, waits for and verifies Plugin publication, creates or
+verifies the GitHub prerelease and its two assets, transports the immutable
+manifest through one deterministic merge-commit pull request, and finally
+waits until the production Early Access endpoint serves those exact bytes. A
+receipt is persisted after every surface. Rerun the same approved record after
+a partial failure; never delete or replace an already published tag or asset.
+
+The generated manifest pull request is transport and audit evidence for the
+already approved plan, not a second release decision. If repository checks or
+review policy leave it unmergeable, the command stops with that PR intact for
+normal resolution and safe retry. It never writes directly to `main`.
+
 ## Release Model
 
 A release has one coordinated identity expressed through distinct evidence:
