@@ -29,6 +29,13 @@ async function candidateFixture(
   trusted = false
 ) {
   const pluginRoot = join(root, `plugin-${tag.replaceAll(/[^a-z0-9]/giu, '-')}`);
+  const currentUpdateManifestPath = join(root, 'desktop.json');
+  await writeFile(currentUpdateManifestPath, `${JSON.stringify({
+    schemaVersion: 1,
+    product: 'gatereeve-desktop',
+    generatedAt: null,
+    channels: { stable: null, rc: null },
+  }, null, 2)}\n`);
   let ubuntuRcEvidencePath = null;
   if (!tag.slice(1).includes('-')) {
     ubuntuRcEvidencePath = join(root, `ubuntu-${commit}.json`);
@@ -78,7 +85,7 @@ async function candidateFixture(
     }, null, 2)}\n`);
     evidencePaths.push(path);
   }
-  return { pluginRoot, dmgPath, evidencePaths };
+  return { pluginRoot, dmgPath, evidencePaths, currentUpdateManifestPath };
 }
 
 async function preparedFixture(
@@ -96,7 +103,7 @@ async function preparedFixture(
     pluginRoot: candidate.pluginRoot,
     desktopDmgPath: candidate.dmgPath,
     desktopEvidencePaths: candidate.evidencePaths,
-    currentUpdateManifestPath: resolve(repositoryRoot, 'workflow-site/releases/desktop.json'),
+    currentUpdateManifestPath: candidate.currentUpdateManifestPath,
     outputRoot: join(root, 'coordinated'),
     stablePromotionRecord: promotion,
     now: () => new Date('2026-08-27T20:01:00.000Z'),
@@ -263,7 +270,7 @@ test('rejects a Desktop candidate whose release version diverges from the Plugin
       pluginRoot: candidate.pluginRoot,
       desktopDmgPath: candidate.dmgPath,
       desktopEvidencePaths: candidate.evidencePaths,
-      currentUpdateManifestPath: resolve(repositoryRoot, 'workflow-site/releases/desktop.json'),
+      currentUpdateManifestPath: candidate.currentUpdateManifestPath,
       outputRoot: join(root, 'coordinated'),
     }),
     /Desktop verification evidence does not match/
