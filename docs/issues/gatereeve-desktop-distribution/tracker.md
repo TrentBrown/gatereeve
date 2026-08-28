@@ -6,7 +6,8 @@
 **Created:** 2026-08-27
 
 **Active slice:** Apple trust boundary P6 / I-5 remains in progress through the
-I-9 follow-up on `gatereeve-desktop-distribution-05b-keychain-search`. PR
+I-9 follow-up on `gatereeve-desktop-distribution-05b-keychain-search` in draft
+PR [#12](https://github.com/TrentBrown/gatereeve/pull/12). PR
 [#11](https://github.com/TrentBrown/gatereeve/pull/11) merged the protected
 boundary as commit `8a93f4a` on `main`. Protected rehearsal run
 [#33135027205](https://github.com/TrentBrown/gatereeve/actions/runs/33135027205)
@@ -113,3 +114,19 @@ Append PR boundary entries here.
   configured
 - **Status:** Merged; I-5 remains open through the post-merge nonpublishing
   protected rehearsal and I-9 follow-up
+
+### PR #12 - Signing keychain discoverability
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/12
+- **Scope:** Apple trust boundary P6 / I-9 follow-up
+- **Plan steps:** P6
+- **Issues:** I-9
+- **Rubric movement:** R5 and R6 remain `NOT YET`; the fix enables the protected
+  rehearsal to continue from identity validation into real Developer ID signing
+- **Evidence:** [PR #12 packet](pr-12/boundary.json)
+- **Boundary result:** Exact-head workflow-contract verification, feature-doc
+  validation, independent judge, code review with no findings, explain-diff,
+  and all thirteen hosted checks pass; pattern review is not applicable because
+  no scope is configured
+- **Status:** In review; I-9 closes only after the corrected post-merge
+  protected rehearsal passes

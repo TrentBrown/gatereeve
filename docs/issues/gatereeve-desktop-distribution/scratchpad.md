@@ -134,7 +134,7 @@ Use an individual API key - rejected because Apple states individual keys cannot
 
 ## [9] Preserve the runner keychain search list around signing
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
