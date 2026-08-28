@@ -6,14 +6,16 @@
 **Created:** 2026-08-27
 
 **Active slice:** Apple trust boundary P6 / I-5 remains in progress through the
-I-10 follow-up on `gatereeve-desktop-distribution-05c-package-result`. PR
-[#12](https://github.com/TrentBrown/gatereeve/pull/12) merged the I-9 keychain
-repair as commit `f87c03b` on `main`. Protected rehearsal run
-[#33138565845](https://github.com/TrentBrown/gatereeve/actions/runs/33138565845)
-then passed configuration, credential import, exact identity discovery, and the
-signed universal package command. It failed afterward because Electron
-Packager's progress text shared stdout with the final JSON result. I-10 gives
-that result a dedicated file before repeating the nonpublishing rehearsal.
+I-11 follow-up on `gatereeve-desktop-distribution-05d-artifact-layout`. PR
+[#13](https://github.com/TrentBrown/gatereeve/pull/13) merged I-10's isolated
+package-result channel as commit `9508c5a` on `main`. Protected rehearsal run
+[#33140536129](https://github.com/TrentBrown/gatereeve/actions/runs/33140536129)
+then passed configuration, credential import, Developer ID signing, Apple
+notarization, stapling, Gatekeeper assessment, trusted upload, and credential
+cleanup. Both downstream native jobs failed before mounting the valid DMG
+because GitHub preserved the multi-root upload hierarchy while the consumers
+expected flat paths. I-11 stages both trusted files under one upload root before
+repeating the nonpublishing rehearsal.
 
 ## Rubric Status
 
@@ -143,5 +145,6 @@ Append PR boundary entries here.
   feature-doc validation, independent judge, code review with no findings,
   explain-diff, and hosted checks pass; pattern review is not applicable because
   no scope is configured
-- **Status:** In review; I-10 closes only after the corrected post-merge
-  protected rehearsal passes
+- **Status:** Merged; I-10's dedicated result channel passed its live boundary
+  through signing and notarization, while the broader rehearsal continues
+  through I-11

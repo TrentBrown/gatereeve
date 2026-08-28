@@ -37,6 +37,17 @@ test('coordinated preparation is pre-publication, exact-source, and dual-archite
   assert.match(workflow, /--result-file "\$RUNNER_TEMP\/trusted-package\.json"/);
   assert.doesNotMatch(workflow, /> "\$RUNNER_TEMP\/trusted-package\.json"/);
   assert.match(workflow, /notarize-macos\.mjs/);
+  assert.match(workflow, /trusted_bundle="\$RUNNER_TEMP\/coordinated-desktop-trusted"/);
+  assert.match(
+    workflow,
+    /cp \\\n\s+"apps\/desktop\/dist\/macos\/GateReeve-\$\{VERSION\}-macos-universal\.dmg" \\\n\s+"\$trusted_bundle\/"/
+  );
+  assert.match(workflow, /cp "\$RUNNER_TEMP\/apple-trust\.json" "\$trusted_bundle\/"/);
+  assert.match(workflow, /path: \$\{\{ runner\.temp \}\}\/coordinated-desktop-trusted/);
+  assert.doesNotMatch(
+    workflow,
+    /path: \|\n\s+apps\/desktop\/dist\/macos\/GateReeve-\*-macos-universal\.dmg/
+  );
   assert.match(workflow, /coordinated-desktop-trusted-evidence-\$\{\{ matrix\.architecture \}\}/);
   assert.doesNotMatch(workflow, /contents: write/);
   assert.doesNotMatch(workflow, /gh release create/);

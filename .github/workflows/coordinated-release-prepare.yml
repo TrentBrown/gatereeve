@@ -311,12 +311,22 @@ jobs:
           --notary-key "$GATEREEVE_NOTARY_KEY_PATH"
           --notary-key-id "$APPLE_NOTARY_KEY_ID"
           --notary-issuer-id "$APPLE_NOTARY_ISSUER_ID"
+      - name: Stage the trusted Desktop bundle
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          trusted_bundle="$RUNNER_TEMP/coordinated-desktop-trusted"
+          mkdir -p "$trusted_bundle"
+          cp \
+            "apps/desktop/dist/macos/GateReeve-${VERSION}-macos-universal.dmg" \
+            "$trusted_bundle/"
+          cp "$RUNNER_TEMP/apple-trust.json" "$trusted_bundle/"
       - uses: actions/upload-artifact@v4
         with:
           name: coordinated-desktop-trusted
-          path: |
-            apps/desktop/dist/macos/GateReeve-*-macos-universal.dmg
-            ${{ runner.temp }}/apple-trust.json
+          path: ${{ runner.temp }}/coordinated-desktop-trusted
           if-no-files-found: error
       - name: Remove Apple credentials and ephemeral keychain
         if: ${{ always() }}
