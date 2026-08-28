@@ -66,9 +66,19 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
   };
   const { window } = parseHTML(html);
   window.gatereeveDesktop = {
+    async checkForUpdates() { return {
+      schemaVersion: 1, status: 'current', source: 'manual', currentVersion: '0.1.0',
+      checkedAt: '2026-08-28T00:00:00.000Z', available: null,
+      detail: 'GateReeve Desktop is current.',
+    }; },
     async chooseWorktree() { return state; },
     async copyText() { return true; },
     async getState() { return state; },
+    async getUpdateState() { return {
+      schemaVersion: 1, status: 'idle', source: null, currentVersion: '0.1.0',
+      checkedAt: null, available: null, detail: null,
+    }; },
+    async openUpdateRelease() { return true; },
     async listSession() { return listSessionContext(repositoryRoot); },
     async openArtifact() { return true; },
     async openRecent() { return state; },
@@ -83,6 +93,7 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
     },
     async revealArtifact() { return true; },
     subscribe() { return () => {}; },
+    subscribeUpdates() { return () => {}; },
   };
   globalThis.window = window;
   globalThis.document = window.document;

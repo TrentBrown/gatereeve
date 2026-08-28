@@ -64,7 +64,7 @@ publication.
 
 ## I-5 - Apple trust boundary
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P6
 - **Rubric criteria:** R5, R6
@@ -77,7 +77,7 @@ public path without complete trust and approval evidence.
 
 ## I-6 - Update discovery and Early Access surfaces
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 1d
 - **Plan steps:** P7
 - **Rubric criteria:** R7
@@ -141,7 +141,7 @@ then repeat the nonpublishing rehearsal through notarization and verification.
 
 ## I-11 - Flat trusted artifact bundle
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.25d
 - **Plan steps:** P6
 - **Rubric criteria:** R5, R6

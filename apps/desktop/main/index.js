@@ -24,6 +24,8 @@ import { createPreferenceStore } from './preferences.js';
 import { createProtocolAdapter } from './protocol-adapter.js';
 import { registerRendererProtocol } from './renderer-protocol.js';
 import { createSetupObserver, createUnconfiguredSetup } from './setup-observer.js';
+import { createUpdateCacheStore } from './update-cache.js';
+import { createUpdateCoordinator } from './update-coordinator.js';
 import {
   bindFocusRefresh,
   browserWindowOptions,
@@ -104,6 +106,15 @@ async function startDesktop() {
       new Notification({ title, body }).show();
     },
   });
+  const updateCoordinator = createUpdateCoordinator({
+    currentVersion: setupCompatibility.desktop.version,
+    cacheStore: createUpdateCacheStore(app.getPath('userData')),
+    notificationsEnabled: () => coordinator.current().preferences.notificationsEnabled,
+    notify({ title, body }) {
+      if (!Notification.isSupported()) return;
+      new Notification({ title, body }).show();
+    },
+  });
   registerRendererProtocol(protocol, resolve(desktopRoot, 'renderer'), {
     readArtifact: (artifactId) => coordinator.read('artifact', artifactId),
   });
@@ -116,6 +127,7 @@ async function startDesktop() {
   registerDesktopIpc({
     ipcMain,
     coordinator,
+    updateCoordinator,
     async pickWorktree() {
       const result = await dialog.showOpenDialog({
         title: 'Choose a GateReeve feature worktree',
@@ -127,13 +139,18 @@ async function startDesktop() {
     openPath: (path) => shell.openPath(path),
     revealPath: (path) => shell.showItemInFolder(path),
     copyText: (value) => clipboard.writeText(value),
+    openExternal: (url) => shell.openExternal(url),
     windows: () => BrowserWindow.getAllWindows(),
   });
   window.on('resized', () => void coordinator.saveWindow(window.getBounds()));
   window.on('moved', () => void coordinator.saveWindow(window.getBounds()));
-  app.once('before-quit', () => coordinator.close());
+  app.once('before-quit', () => {
+    coordinator.close();
+    updateCoordinator.close();
+  });
   window.once('ready-to-show', () => window.show());
   await window.loadURL(RENDERER_URL);
+  void updateCoordinator.initialize();
   await coordinator.initialize();
   if (process.env.GATEREEVE_DESKTOP_SMOKE === '1') {
     const smokeWorktree = process.env.GATEREEVE_DESKTOP_SMOKE_WORKTREE;

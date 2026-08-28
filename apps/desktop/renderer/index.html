@@ -17,12 +17,21 @@
       </div>
       <div class="masthead-actions">
         <span id="activity" class="activity">Choose a worktree</span>
+        <button id="check-updates" class="secondary light" type="button">Check for Updates</button>
         <button id="open-setup" class="secondary light" type="button">Setup</button>
         <button id="refresh" class="secondary light" type="button" disabled>Refresh</button>
       </div>
     </header>
 
     <main>
+      <section id="update-banner" class="update-banner" role="status" aria-live="polite" hidden>
+        <div>
+          <p class="section-kicker">Desktop update available</p>
+          <h2 id="update-title">A new GateReeve Desktop release is ready</h2>
+          <p id="update-detail"></p>
+        </div>
+        <button id="open-update" type="button">View official release</button>
+      </section>
       <section id="chooser" class="chooser panel" aria-labelledby="chooser-title">
         <p class="section-kicker">Begin observing</p>
         <h2 id="chooser-title">Choose a feature worktree</h2>

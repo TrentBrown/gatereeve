@@ -51,11 +51,21 @@ function idleState() {
   };
 }
 
+function idleUpdate() {
+  return {
+    schemaVersion: 1, status: 'idle', source: null, currentVersion: '0.1.0-rc.3',
+    checkedAt: null, available: null, detail: null,
+  };
+}
+
 test('renderer presents selection first and then canonical observation status', async () => {
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const { window } = parseHTML(html);
   let subscriber;
+  let updateSubscriber;
+  let releaseOpens = 0;
   window.gatereeveDesktop = {
+    async checkForUpdates() { return idleUpdate(); },
     async chooseWorktree() {},
     async openRecent() {},
     async refresh() {},
@@ -63,7 +73,10 @@ test('renderer presents selection first and then canonical observation status', 
     async setSelectedAgents() { return idleState(); },
     async setNotificationsEnabled() { return idleState(); },
     async getState() { return idleState(); },
+    async getUpdateState() { return idleUpdate(); },
+    async openUpdateRelease() { releaseOpens += 1; return true; },
     subscribe(callback) { subscriber = callback; return () => {}; },
+    subscribeUpdates(callback) { updateSubscriber = callback; return () => {}; },
   };
   globalThis.window = window;
   globalThis.document = window.document;
@@ -96,6 +109,16 @@ test('renderer presents selection first and then canonical observation status', 
   assert.equal(window.document.querySelector('#mode').textContent, 'governed');
   assert.equal(window.document.querySelector('#feature-state').textContent, 'DELIVERING_SLICES');
   assert.match(window.document.querySelector('#activity').textContent, /polling GitHub/);
+  updateSubscriber({
+    ...idleUpdate(), status: 'available', source: 'automatic',
+    checkedAt: '2026-08-28T00:00:00.000Z',
+    available: { version: '0.1.0-rc.4', channel: 'rc', publishedAt: '2026-08-28T00:00:00.000Z' },
+  });
+  assert.equal(window.document.querySelector('#update-banner').hidden, false);
+  assert.match(window.document.querySelector('#update-title').textContent, /0\.1\.0-rc\.4/);
+  window.document.querySelector('#open-update').click();
+  await new Promise((done) => setImmediate(done));
+  assert.equal(releaseOpens, 1);
   delete globalThis.window;
   delete globalThis.document;
 });
@@ -181,6 +204,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     snapshot,
   };
   window.gatereeveDesktop = {
+    async checkForUpdates() { return idleUpdate(); },
     async chooseWorktree() {},
     async openRecent() {},
     async refresh() {},
@@ -191,6 +215,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
       return { ...readyState, preferences: { ...readyState.preferences, notificationsEnabled: enabled } };
     },
     async getState() { return readyState; },
+    async getUpdateState() { return idleUpdate(); },
+    async openUpdateRelease() { return true; },
     async copyText(value) { copied.push(value); return true; },
     async openArtifact() { return true; },
     async revealArtifact() { return true; },
@@ -240,6 +266,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
         },
       };
     },
+    subscribeUpdates() { return () => {}; },
     subscribe() { return () => {}; },
   };
   globalThis.window = window;
@@ -318,6 +345,7 @@ test('renderer reloads optional Session context when a refresh begins', async ()
     },
   };
   window.gatereeveDesktop = {
+    async checkForUpdates() { return idleUpdate(); },
     async chooseWorktree() {},
     async openRecent() {},
     async refresh() {},
@@ -325,11 +353,14 @@ test('renderer reloads optional Session context when a refresh begins', async ()
     async setSelectedAgents() { return state; },
     async setNotificationsEnabled() { return state; },
     async getState() { return state; },
+    async getUpdateState() { return idleUpdate(); },
+    async openUpdateRelease() { return true; },
     async listSession() {
       sessionReads += 1;
       return { schemaVersion: 1, items: [] };
     },
     subscribe(callback) { subscriber = callback; return () => {}; },
+    subscribeUpdates() { return () => {}; },
   };
   globalThis.window = window;
   globalThis.document = window.document;

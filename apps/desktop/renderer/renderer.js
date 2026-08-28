@@ -26,10 +26,12 @@ const ids = [
   'setup-agents', 'setup-recheck', 'setup-open-worktree', 'setup-return', 'save-agents',
   'agent-selection', 'agent-codex', 'agent-claude', 'desktop-version', 'historical-reading',
   'readiness-banner',
+  'check-updates', 'update-banner', 'update-title', 'update-detail', 'open-update',
 ];
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
 
 let currentState = null;
+let currentUpdate = null;
 let currentView = 'overview';
 let selectedAttemptId = null;
 let modelDetail = null;
@@ -61,6 +63,21 @@ function showToast(message) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { elements.toast.hidden = true; }, 2_000);
   toastTimer?.unref?.();
+}
+
+function renderUpdate(update) {
+  currentUpdate = update;
+  elements['check-updates'].disabled = update.status === 'checking';
+  elements['check-updates'].textContent = update.status === 'checking'
+    ? 'Checking…'
+    : 'Check for Updates';
+  const available = update.status === 'available' ? update.available : null;
+  elements['update-banner'].hidden = available === null;
+  elements['open-update'].disabled = available === null;
+  if (available !== null) {
+    elements['update-title'].textContent = `GateReeve Desktop ${available.version} is available`;
+    elements['update-detail'].textContent = `${available.channel === 'rc' ? 'Early Access RC' : 'Stable release'} · You have ${update.currentVersion}. GateReeve will open the exact official GitHub release; it will not download or install anything.`;
+  }
 }
 
 async function copy(value, message = 'Copied to clipboard') {
@@ -847,6 +864,21 @@ elements['agent-selection'].addEventListener('submit', async (event) => {
   }
 });
 elements.refresh.addEventListener('click', () => void desktop.refresh());
+elements['check-updates'].addEventListener('click', async () => {
+  try {
+    const update = await desktop.checkForUpdates();
+    renderUpdate(update);
+    if (update.status === 'current') showToast('GateReeve Desktop is current');
+    if (update.status === 'unavailable') showToast('Update information is temporarily unavailable');
+  } catch (error) {
+    showToast(error.message ?? String(error));
+  }
+});
+elements['open-update'].addEventListener('click', async () => {
+  if (currentUpdate?.status !== 'available') return;
+  try { await desktop.openUpdateRelease(); }
+  catch (error) { showToast(error.message ?? String(error)); }
+});
 elements.notifications.addEventListener('change', async () => {
   const enabled = elements.notifications.checked;
   elements.notifications.disabled = true;
@@ -875,7 +907,11 @@ for (const button of document.querySelectorAll('[data-go-view]')) {
 }
 
 desktop.subscribe(render);
+desktop.subscribeUpdates(renderUpdate);
 desktop.getState().then(render).catch((error) => {
   elements['chooser-error'].hidden = false;
   elements['chooser-error'].textContent = error.message ?? String(error);
+});
+desktop.getUpdateState().then(renderUpdate).catch(() => {
+  // Update discovery is intentionally non-disruptive to local observation.
 });

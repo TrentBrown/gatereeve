@@ -236,6 +236,43 @@
       margin: 6px 0 14px;
     }
 
+    .early-access-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.6fr);
+      gap: 20px;
+      margin-top: 22px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--primary);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    .early-access-card h2 { margin: 4px 0 10px; font-size: 27px; }
+    .early-access-card .release-state {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 10px;
+      padding: 18px;
+      border-radius: 8px;
+      background: var(--panel-soft);
+    }
+    .early-access-card .release-status { font-weight: 700; color: var(--muted); }
+    .early-access-card .release-status[data-state="available"] { color: var(--activity); }
+    .early-access-card .release-link {
+      display: inline-flex;
+      border-radius: 7px;
+      padding: 9px 13px;
+      color: #fff;
+      background: var(--primary-strong);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .early-access-card .release-link[hidden] { display: none; }
+    @media (max-width: 760px) { .early-access-card { grid-template-columns: 1fr; } }
+
     .credo {
       margin: 18px 0 16px;
     }
@@ -1054,6 +1091,7 @@
     </div>
     <nav class="top-nav" aria-label="Page sections">
       <a href="#philosophy">Philosophy</a>
+      <a href="#desktop-early-access">Desktop Early Access</a>
       <a href="#loop-engineering-view">Workflow Loops</a>
       <a href="#workflow-model">Workflow model</a>
       <a href="#protocol-state">Protocol state</a>
@@ -1066,6 +1104,19 @@
       <a href="#skill-library">Skill library</a>
       <a href="#artifact-library">Artifact examples</a>
     </nav>
+    <section class="early-access-card" id="desktop-early-access" aria-labelledby="desktop-early-access-title">
+      <div>
+        <div class="kicker">OPTIONAL VISUAL COMPANION · macOS</div>
+        <h2 id="desktop-early-access-title">GateReeve Desktop Early Access</h2>
+        <p><strong>Install the GateReeve Plugin first.</strong> The Plugin is the required governance system inside a supported agent; Desktop is an optional, read-only window into its workflow state and artifacts.</p>
+        <p>Early Access uses a universal DMG for Apple Silicon and Intel. RC installations notify you about later RCs and the eventual stable release, but never download or install updates.</p>
+      </div>
+      <div class="release-state">
+        <span id="desktop-early-access-status" class="release-status">No trusted Desktop RC is published yet</span>
+        <span id="desktop-early-access-detail" class="note">This link activates only after the exact signed and notarized release is publicly verified.</span>
+        <a id="desktop-early-access-link" class="release-link" target="_blank" rel="noopener" hidden>View the exact GitHub prerelease</a>
+      </div>
+    </section>
     <section class="guide-card" id="what">
       <div class="gc-kicker">THE WORKFLOW</div>
       <h2>What is GateReeve?</h2>
@@ -2787,6 +2838,7 @@
   </details>
 
 </main>
+<script type="module" src="desktop-early-access.js"></script>
 <script>
   const gateIds = new Set([
     "design-gate",

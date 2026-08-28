@@ -3,11 +3,14 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const channels = Object.freeze({
+  checkForUpdates: 'gatereeve:desktop:check-for-updates',
   chooseWorktree: 'gatereeve:desktop:choose-worktree',
   copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
+  getUpdateState: 'gatereeve:desktop:get-update-state',
   listSession: 'gatereeve:desktop:list-session',
   openArtifact: 'gatereeve:desktop:open-artifact',
+  openUpdateRelease: 'gatereeve:desktop:open-update-release',
   openRecent: 'gatereeve:desktop:open-recent',
   readDetail: 'gatereeve:desktop:read-detail',
   readSession: 'gatereeve:desktop:read-session',
@@ -17,6 +20,7 @@ const channels = Object.freeze({
   setNotificationsEnabled: 'gatereeve:desktop:set-notifications-enabled',
   setSelectedAgents: 'gatereeve:desktop:set-selected-agents',
   stateChanged: 'gatereeve:desktop:state-changed',
+  updateChanged: 'gatereeve:desktop:update-changed',
 });
 
 function requireState(value) {
@@ -45,6 +49,31 @@ function requireState(value) {
     ))
   ) {
     throw new Error('The main process returned invalid GateReeve Desktop state.');
+  }
+  return value;
+}
+
+function requireUpdateState(value) {
+  const available = value?.available;
+  if (
+    typeof value !== 'object'
+    || value === null
+    || value.schemaVersion !== 1
+    || !['idle', 'checking', 'current', 'available', 'unavailable'].includes(value.status)
+    || ![null, 'cache', 'automatic', 'manual'].includes(value.source)
+    || typeof value.currentVersion !== 'string'
+    || !/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-rc\.(?:0|[1-9]\d*))?$/u.test(value.currentVersion)
+    || (value.checkedAt !== null && typeof value.checkedAt !== 'string')
+    || (available !== null && (
+      typeof available !== 'object'
+      || typeof available.version !== 'string'
+      || !['rc', 'stable'].includes(available.channel)
+      || typeof available.publishedAt !== 'string'
+    ))
+    || (value.status === 'available') !== (available !== null)
+    || (value.detail !== null && typeof value.detail !== 'string')
+  ) {
+    throw new Error('The main process returned invalid GateReeve update state.');
   }
   return value;
 }
@@ -145,9 +174,11 @@ function requireDetail(kind, id) {
 }
 
 contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
+  checkForUpdates: async () => requireUpdateState(await ipcRenderer.invoke(channels.checkForUpdates)),
   chooseWorktree: async () => requireState(await ipcRenderer.invoke(channels.chooseWorktree)),
   copyText: async (value) => ipcRenderer.invoke(channels.copyText, requireClipboardText(value)),
   getState: async () => requireState(await ipcRenderer.invoke(channels.getState)),
+  getUpdateState: async () => requireUpdateState(await ipcRenderer.invoke(channels.getUpdateState)),
   listSession: async () => requireSessionInventory(await ipcRenderer.invoke(channels.listSession)),
   openArtifact: async (artifactId) => ipcRenderer.invoke(
     channels.openArtifact,
@@ -157,6 +188,7 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     channels.openRecent,
     requirePath(path),
   )),
+  openUpdateRelease: async () => ipcRenderer.invoke(channels.openUpdateRelease),
   readDetail: async (kind, id = null) => ipcRenderer.invoke(
     channels.readDetail,
     requireDetail(kind, id),
@@ -184,5 +216,11 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     const listener = (_event, value) => callback(requireState(value));
     ipcRenderer.on(channels.stateChanged, listener);
     return () => ipcRenderer.removeListener(channels.stateChanged, listener);
+  },
+  subscribeUpdates(callback) {
+    if (typeof callback !== 'function') throw new TypeError('Update subscriber must be a function.');
+    const listener = (_event, value) => callback(requireUpdateState(value));
+    ipcRenderer.on(channels.updateChanged, listener);
+    return () => ipcRenderer.removeListener(channels.updateChanged, listener);
   },
 }));
