@@ -67,13 +67,31 @@ test('website fetch uses one same-origin manifest without identifiers', async ()
   assert.equal(request.options.referrerPolicy, 'no-referrer');
 });
 
-test('production site keeps the Plugin prerequisite visible and ships unresolved metadata', async () => {
+test('production site keeps the prerequisite visible and ships the exact trusted RC', async () => {
   const [html, productionManifest] = await Promise.all([
     readFile(new URL('./index.html', import.meta.url), 'utf8'),
     readFile(new URL('./releases/desktop.json', import.meta.url), 'utf8').then(JSON.parse),
   ]);
   assert.match(html, /<strong>Install the GateReeve Plugin first\.<\/strong>/u);
   assert.match(html, /Desktop is an optional, read-only window/u);
+  assert.match(html, /RC installations notify you about later RCs and the eventual stable release/u);
   assert.match(html, /id="desktop-early-access-link"[^>]*hidden/u);
-  assert.equal(requireEarlyAccessManifest(productionManifest).channels.rc, null);
+  assert.deepEqual(requireEarlyAccessManifest(productionManifest).channels.rc, {
+    version: '0.1.0-rc.1',
+    publishedAt: '2026-08-28T15:14:01.037Z',
+    sourceCommit: '117a58511ef20957426d3fc5e801f6d5b1173b32',
+    artifact: {
+      name: 'GateReeve-0.1.0-rc.1-macos-universal.dmg',
+      bytes: 246098110,
+      sha256: '9cbe51065692857ba929e153863fa92c8fe2dc4d275eb29453014a04e1f1ea92',
+    },
+    appleTrust: {
+      developerIdApplication: true,
+      hardenedRuntime: true,
+      secureTimestamp: true,
+      notarized: true,
+      stapled: true,
+      gatekeeperAccepted: true,
+    },
+  });
 });
