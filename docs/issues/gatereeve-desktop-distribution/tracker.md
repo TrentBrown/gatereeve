@@ -6,7 +6,8 @@
 **Created:** 2026-08-27
 
 **Active slice:** Private update discovery and Early Access surfaces P7 / I-6
-are in progress on `gatereeve-desktop-distribution-06-update-discovery`. PR
+are in review in PR [#15](https://github.com/TrentBrown/gatereeve/pull/15) from
+`gatereeve-desktop-distribution-06-update-discovery`. PR
 [#14](https://github.com/TrentBrown/gatereeve/pull/14) merged the flat trusted
 bundle as commit `5b66b98` on `main`. Protected nonpublishing rehearsal run
 [#33144709211](https://github.com/TrentBrown/gatereeve/actions/runs/33144709211)
@@ -26,7 +27,7 @@ closed, and no tag or GitHub release was created.
 | R4 | Compatibility governance | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Exact project-controlled matched/compatible/incompatible pairs, tested skew, update guidance, and fail-closed unknown or unreported versions pass matrix and UI verification |
 | R5 | Apple trust | NOT YET | [#11](https://github.com/TrentBrown/gatereeve/pull/11), [#14](https://github.com/TrentBrown/gatereeve/pull/14) | Enrollment, protected credentials, Developer ID signing, notarization, stapling, Gatekeeper, cleanup, and trusted ARM/Intel rehearsal pass; the trusted public RC and final verification remain P8 and P10 |
 | R6 | Coordinated release and recovery | NOT YET | [#10](https://github.com/TrentBrown/gatereeve/pull/10), [#14](https://github.com/TrentBrown/gatereeve/pull/14) | Immutable identity, pre-publication preparation, exact approval guard, ordered recovery, stable-source proof, and trusted record assembly pass; live protected publication and final verification remain P8 and P10 |
-| R7 | RC publication and update behavior | NOT YET | - | P7, P8, P10 / I-6, I-7, I-8 |
+| R7 | RC publication and update behavior | NOT YET | [#15](https://github.com/TrentBrown/gatereeve/pull/15) | Fixed bounded manifest discovery, 24-hour persistence, RC/stable isolation, quiet failure, notification-only Desktop UI, and unresolved trust-gated Early Access presentation are implemented and under review; live approved publication and final verification remain P8 and P10 |
 | R8 | Cask distribution | NOT YET | - | P9, P10 / I-8 |
 
 ## PR Log
@@ -165,3 +166,20 @@ Append PR boundary entries here.
 - **Status:** Merged; protected rehearsal
   [#33144709211](https://github.com/TrentBrown/gatereeve/actions/runs/33144709211)
   passes the complete nonpublishing P6 path, so I-5 and I-11 are closed
+
+### PR #15 - Private update discovery
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/15
+- **Scope:** Delivery boundary 7, private update discovery and Early Access
+  surfaces
+- **Plan steps:** P7
+- **Issues:** I-6
+- **Rubric movement:** R7 advances with fixed, bounded, identifier-free manifest
+  discovery, exact RC/stable selection, persistent 24-hour throttling, manual
+  freshness, quiet failure, fixed GitHub-tag navigation, notification-only UI,
+  and a website surface that remains unresolved without trusted release
+  evidence; R7 remains `NOT YET` until P8 publishes and proves the approved RC
+  and P10 completes final verification
+- **Evidence:** [PR #15 packet](pr-15/boundary.json)
+- **Boundary result:** Formal exact-head evaluation is in progress
+- **Status:** Draft; I-6 is in review

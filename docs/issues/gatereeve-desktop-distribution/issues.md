@@ -77,12 +77,12 @@ public path without complete trust and approval evidence.
 
 ## I-6 - Update discovery and Early Access surfaces
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P7
 - **Rubric criteria:** R7
 - **Depends on:** I-4
-- **PR:** -
+- **PR:** [#15](https://github.com/TrentBrown/gatereeve/pull/15)
 
 Implement channel-aware private update notifications and website presentation
 that becomes resolvable only for a trusted published release.
