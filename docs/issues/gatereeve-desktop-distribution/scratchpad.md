@@ -180,7 +180,7 @@ rejected because the packaging result is already the authoritative source.
 
 ## [11] Stage multi-root trust outputs before artifact upload
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

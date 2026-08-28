@@ -195,3 +195,31 @@ on upstream logging behavior; infer the application path from naming alone -
 rejected because the packaging result is already the authoritative source.
 
 **Promoted:** 2026-08-28. PR: https://github.com/TrentBrown/gatereeve/pull/13.
+
+---
+
+## Stage multi-root trust outputs before artifact upload
+
+**Confidence:** HIGH
+
+**Blast Radius:** Protected Apple-trust artifact upload, both native trusted-DMG
+verification jobs, and the immutable trusted coordinated record
+
+Copy the already notarized DMG and its apple-trust.json evidence into one
+runner-temp staging directory, then upload that directory as
+coordinated-desktop-trusted. This keeps the download contract flat and stable
+for native verification and coordinated-record assembly without changing
+either file's bytes or trust identity.
+
+**Triggered by:** Protected rehearsal run 33140536129 notarized and uploaded the
+exact DMG successfully, but GitHub preserved the common-root hierarchy of the
+repository DMG and runner-temp trust JSON, so both downstream architectures
+looked for files at nonexistent flat paths.
+
+**Alternatives considered:**
+Teach every consumer the current nested paths - rejected because those paths
+expose runner/workspace layout and are brittle.
+Upload the DMG and trust evidence as separate artifacts - rejected because it
+weakens their atomic bundle identity and complicates every consumer.
+
+**Promoted:** 2026-08-28. PR: 14.

@@ -148,3 +148,20 @@ Append PR boundary entries here.
 - **Status:** Merged; I-10's dedicated result channel passed its live boundary
   through signing and notarization, while the broader rehearsal continues
   through I-11
+
+### PR #14 - Flat trusted artifact bundle
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/14
+- **Scope:** Apple trust boundary P6 / I-11 follow-up
+- **Plan steps:** P6
+- **Issues:** I-11
+- **Rubric movement:** R5 and R6 remain `NOT YET`; the change preserves the
+  notarized DMG and exact trust evidence while giving native verification and
+  coordinated-record assembly their stable flat download contract
+- **Evidence:** [PR #14 packet](pr-14/boundary.json)
+- **Boundary result:** Exact-head workflow-contract verification, feature-doc
+  validation, specification evaluation, independent judge, code review with no
+  findings, decision triage, explain-diff, and hosted checks pass; pattern
+  review is not applicable because no scope is configured
+- **Status:** In review; I-11 closes only after the corrected post-merge
+  protected rehearsal passes
