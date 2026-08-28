@@ -5,7 +5,8 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Final Homebrew Cask P9-P10 / I-8 is in progress on
+**Active slice:** Final Homebrew Cask P9-P10 / I-8 is in review in draft PR
+[#18](https://github.com/TrentBrown/gatereeve/pull/18) from
 `gatereeve-desktop-distribution-08-homebrew-cask`, based on merged `main` commit
 `8748931`. PR [#16](https://github.com/TrentBrown/gatereeve/pull/16) and the
 transport PR [#17](https://github.com/TrentBrown/gatereeve/pull/17) published
@@ -30,7 +31,7 @@ public tap approval.
 | R5 | Apple trust | NOT YET | [#11](https://github.com/TrentBrown/gatereeve/pull/11), [#14](https://github.com/TrentBrown/gatereeve/pull/14) | Enrollment, protected credentials, Developer ID signing, notarization, stapling, Gatekeeper, cleanup, and trusted ARM/Intel rehearsal pass; the trusted public RC and final verification remain P8 and P10 |
 | R6 | Coordinated release and recovery | NOT YET | [#10](https://github.com/TrentBrown/gatereeve/pull/10), [#14](https://github.com/TrentBrown/gatereeve/pull/14) | Immutable identity, pre-publication preparation, exact approval guard, ordered recovery, stable-source proof, and trusted record assembly pass; live protected publication and final verification remain P8 and P10 |
 | R7 | RC publication and update behavior | NOT YET | [#15](https://github.com/TrentBrown/gatereeve/pull/15) | Fixed bounded manifest discovery, 24-hour persistence, RC/stable isolation, quiet failure, notification-only Desktop UI, and unresolved trust-gated Early Access presentation pass; live approved publication and final verification remain P8 and P10 |
-| R8 | Cask distribution | NOT YET | pending | Exact renderer, separate approval packet, idempotent tap publication, and ARM/Intel install/upgrade smoke are in progress in P9-P10 / I-8 |
+| R8 | Cask distribution | NOT YET | [#18](https://github.com/TrentBrown/gatereeve/pull/18) | Exact renderer, separate approval packet, idempotent tap publication, and ARM/Intel install/upgrade smoke are in review in P9-P10 / I-8 |
 
 ## PR Log
 

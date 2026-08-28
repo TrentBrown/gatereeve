@@ -103,12 +103,12 @@ standing intermediate-slice authorization.
 
 ## I-8 - Final Homebrew Cask distribution
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P9, P10
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
 - **Depends on:** I-7
-- **PR:** pending from `gatereeve-desktop-distribution-08-homebrew-cask`
+- **PR:** [#18](https://github.com/TrentBrown/gatereeve/pull/18)
 
 Pin the proven DMG in a Cask, verify native installation and upgrade, obtain
 exact publication approval, and complete the full feature evaluation.

@@ -330,7 +330,7 @@ approved universal DMG; Plugin and CLI lifecycles remain independent.
 
 **Alternatives considered:** Add GateReeve to `homebrew-portreeve` - rejected because the products and release authority are independent; create a multi-product QualityCode tap now - rejected because no such portfolio contract has been designed; add the Cask to the coordinated record - rejected because its approved prerequisite is observed only after direct publication and install; publish directly to a tap branch - rejected because it would discard the established audited PR transport.
 
-**Promoted:** 2026-08-28.
+**Promoted:** 2026-08-28. PR: https://github.com/TrentBrown/gatereeve/pull/18.
 
 ---
 
@@ -350,4 +350,4 @@ running release and portability tests never observe transient Python artifacts.
 
 **Alternatives considered:** Ignore `__pycache__` during composition - rejected because canonical-source purity should remain fail-closed; serialize the complete Node test suite - rejected because it conceals a source mutation and slows unrelated tests; delete caches after every Python call - rejected because prevention is simpler and avoids races.
 
-**Promoted:** 2026-08-28.
+**Promoted:** 2026-08-28. PR: https://github.com/TrentBrown/gatereeve/pull/18.
