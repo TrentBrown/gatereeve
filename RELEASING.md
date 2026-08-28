@@ -4,9 +4,16 @@ This is the maintainer runbook for publishing the native Codex and Claude Code
 plugins. It assumes the change has passed the development and PR process in
 [`DEVELOPMENT.md`](DEVELOPMENT.md) and has been merged to `main`.
 
+Before preparing a publicly distributable Desktop candidate, complete and
+validate [`APPLE-RELEASE-SETUP.md`](APPLE-RELEASE-SETUP.md). The Apple runbook
+owns individual enrollment, Developer ID and team API credentials, encrypted
+recovery, the protected GitHub environment, and the nonpublishing trust
+rehearsal. This document begins only after that prerequisite is ready.
+
 Release publication is intentionally guarded. First run the nonpublishing
 `Coordinated Release Preparation` workflow for the intended RC and immutable
-source ref. Download its `gatereeve-<tag>-coordinated-release` artifact, then
+source ref with `apple_trust=true`. The environment-gated job still publishes
+nothing. Download its `gatereeve-<tag>-coordinated-release` artifact, then
 inspect the record and plan:
 
 ```bash

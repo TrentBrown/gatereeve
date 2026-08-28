@@ -12,6 +12,11 @@ on:
         required: true
         default: main
         type: string
+      apple_trust:
+        description: Enter the protected Apple signing and notarization boundary
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -136,6 +141,7 @@ jobs:
           if-no-files-found: error
 
   coordinated-record:
+    if: ${{ !inputs.apple_trust }}
     needs:
       - resolve-source
       - plugin-candidate
@@ -170,6 +176,235 @@ jobs:
           RELEASE_TAG: ${{ inputs.tag }}
         run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
       - name: Create the immutable coordinated record and dry-run plan
+        run: >-
+          node cli/bin/workflow.js plugin release coordinate
+          --tag "${{ inputs.tag }}"
+          --source-commit "${{ needs.resolve-source.outputs.commit }}"
+          --repository "${{ github.server_url }}/${{ github.repository }}"
+          --plugin-root "$RUNNER_TEMP/plugin-marketplace"
+          --desktop-dmg "$RUNNER_TEMP/desktop/GateReeve-${{ steps.metadata.outputs.version }}-macos-universal.dmg"
+          --desktop-evidence
+          "$RUNNER_TEMP/evidence/desktop-arm64.json"
+          "$RUNNER_TEMP/evidence/desktop-x64.json"
+          --output-root "$RUNNER_TEMP/coordinated-release"
+          --json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gatereeve-${{ inputs.tag }}-coordinated-release
+          path: ${{ runner.temp }}/coordinated-release
+          if-no-files-found: error
+
+  desktop-trust:
+    if: ${{ inputs.apple_trust }}
+    needs:
+      - resolve-source
+      - plugin-candidate
+      - desktop-candidate
+      - desktop-verification
+    runs-on: macos-15
+    timeout-minutes: 45
+    environment:
+      name: release-publication
+      deployment: false
+    env:
+      APPLE_TEAM_ID: ${{ vars.GATEREEVE_APPLE_TEAM_ID }}
+      APPLE_SIGNING_IDENTITY: ${{ vars.GATEREEVE_DEVELOPER_IDENTITY }}
+      APPLE_NOTARY_KEY_ID: ${{ vars.GATEREEVE_NOTARY_KEY_ID }}
+      APPLE_NOTARY_ISSUER_ID: ${{ vars.GATEREEVE_NOTARY_ISSUER_ID }}
+      APPLE_DEVELOPER_ID_P12_BASE64: ${{ secrets.GATEREEVE_DEVELOPER_ID_P12_BASE64 }}
+      APPLE_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.GATEREEVE_DEVELOPER_ID_P12_PASSWORD }}
+      APPLE_NOTARY_KEY_P8_BASE64: ${{ secrets.GATEREEVE_NOTARY_KEY_P8_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-source.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --prefix apps/desktop
+      - name: Validate protected Apple configuration
+        run: >-
+          node --input-type=module -e
+          "import { assertAppleSigningConfiguration } from './apps/desktop/scripts/apple-trust-contract.mjs';
+          assertAppleSigningConfiguration({ identity: process.env.APPLE_SIGNING_IDENTITY,
+          teamId: process.env.APPLE_TEAM_ID, keyId: process.env.APPLE_NOTARY_KEY_ID,
+          issuerId: process.env.APPLE_NOTARY_ISSUER_ID });
+          for (const name of ['APPLE_DEVELOPER_ID_P12_BASE64',
+          'APPLE_DEVELOPER_ID_P12_PASSWORD', 'APPLE_NOTARY_KEY_P8_BASE64'])
+          if (!process.env[name]) throw new Error(name + ' is not configured');"
+      - name: Import the Developer ID identity into an ephemeral keychain
+        shell: bash
+        run: |
+          set -euo pipefail
+          keychain_path="$RUNNER_TEMP/gatereeve-release.keychain-db"
+          keychain_password="$(uuidgen)$(uuidgen)"
+          certificate_path="$RUNNER_TEMP/gatereeve-developer-id.p12"
+          notary_key_path="$RUNNER_TEMP/AuthKey_${APPLE_NOTARY_KEY_ID}.p8"
+          echo "::add-mask::$keychain_password"
+          echo "GATEREEVE_EPHEMERAL_KEYCHAIN=$keychain_path" >> "$GITHUB_ENV"
+          echo "GATEREEVE_CERTIFICATE_PATH=$certificate_path" >> "$GITHUB_ENV"
+          echo "GATEREEVE_NOTARY_KEY_PATH=$notary_key_path" >> "$GITHUB_ENV"
+          node -e 'require("node:fs").writeFileSync(process.argv[1], Buffer.from(process.env.APPLE_DEVELOPER_ID_P12_BASE64, "base64"))' "$certificate_path"
+          node -e 'require("node:fs").writeFileSync(process.argv[1], Buffer.from(process.env.APPLE_NOTARY_KEY_P8_BASE64, "base64"))' "$notary_key_path"
+          chmod 600 "$certificate_path" "$notary_key_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" \
+            -k "$keychain_path" \
+            -P "$APPLE_DEVELOPER_ID_P12_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s \
+            -k "$keychain_password" \
+            "$keychain_path"
+          security find-identity -v -p codesigning "$keychain_path" \
+            | grep -F "$APPLE_SIGNING_IDENTITY"
+      - id: metadata
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+      - id: trusted-package
+        name: Build the Developer ID-signed universal DMG
+        shell: bash
+        run: |
+          npm run stage:protocol --prefix apps/desktop
+          node apps/desktop/scripts/package-macos.mjs \
+            --version "${{ steps.metadata.outputs.version }}" \
+            --signing-identity "$APPLE_SIGNING_IDENTITY" \
+            --keychain "$GATEREEVE_EPHEMERAL_KEYCHAIN" \
+            > "$RUNNER_TEMP/trusted-package.json"
+          node -e '
+            const value = require("node:fs").readFileSync(process.argv[1], "utf8");
+            const result = JSON.parse(value);
+            process.stdout.write(`application=${result.applicationPath}\n`);
+          ' "$RUNNER_TEMP/trusted-package.json" >> "$GITHUB_OUTPUT"
+      - name: Notarize, staple, and assess the exact DMG
+        run: >-
+          node apps/desktop/scripts/notarize-macos.mjs
+          --application "${{ steps.trusted-package.outputs.application }}"
+          --dmg "apps/desktop/dist/macos/GateReeve-${{ steps.metadata.outputs.version }}-macos-universal.dmg"
+          --evidence "$RUNNER_TEMP/apple-trust.json"
+          --source-tag "${{ inputs.tag }}"
+          --source-commit "${{ needs.resolve-source.outputs.commit }}"
+          --version "${{ steps.metadata.outputs.version }}"
+          --identity "$APPLE_SIGNING_IDENTITY"
+          --team-id "$APPLE_TEAM_ID"
+          --notary-key "$GATEREEVE_NOTARY_KEY_PATH"
+          --notary-key-id "$APPLE_NOTARY_KEY_ID"
+          --notary-issuer-id "$APPLE_NOTARY_ISSUER_ID"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coordinated-desktop-trusted
+          path: |
+            apps/desktop/dist/macos/GateReeve-*-macos-universal.dmg
+            ${{ runner.temp }}/apple-trust.json
+          if-no-files-found: error
+      - name: Remove Apple credentials and ephemeral keychain
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [[ -n "${GATEREEVE_EPHEMERAL_KEYCHAIN:-}" ]]; then
+            security delete-keychain "$GATEREEVE_EPHEMERAL_KEYCHAIN" || true
+          fi
+          rm -f \
+            "${GATEREEVE_CERTIFICATE_PATH:-$RUNNER_TEMP/missing-certificate}" \
+            "${GATEREEVE_NOTARY_KEY_PATH:-$RUNNER_TEMP/missing-notary-key}"
+
+  trusted-desktop-verification:
+    if: ${{ inputs.apple_trust }}
+    needs:
+      - resolve-source
+      - desktop-trust
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: arm64
+            runner: macos-15
+          - architecture: x64
+            runner: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-source.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --ignore-scripts --prefix apps/desktop
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-desktop-trusted
+          path: ${{ runner.temp }}/desktop
+      - name: Prepare a real governed runtime fixture
+        run: >-
+          node apps/desktop/scripts/create-smoke-fixture.mjs
+          "$RUNNER_TEMP/gatereeve-desktop-smoke"
+      - id: metadata
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+      - name: Verify the trusted DMG natively
+        run: >-
+          node apps/desktop/scripts/verify-macos-package.mjs
+          --dmg "$RUNNER_TEMP/desktop/GateReeve-${{ steps.metadata.outputs.version }}-macos-universal.dmg"
+          --version "${{ steps.metadata.outputs.version }}"
+          --fixture "$RUNNER_TEMP/gatereeve-desktop-smoke"
+          --native-architecture "${{ matrix.architecture }}"
+          --source-tag "${{ inputs.tag }}"
+          --source-commit "${{ needs.resolve-source.outputs.commit }}"
+          --trust-evidence "$RUNNER_TEMP/desktop/apple-trust.json"
+          --evidence "$RUNNER_TEMP/desktop-${{ matrix.architecture }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coordinated-desktop-trusted-evidence-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/desktop-${{ matrix.architecture }}.json
+          if-no-files-found: error
+
+  coordinated-record-trusted:
+    if: ${{ inputs.apple_trust }}
+    needs:
+      - resolve-source
+      - plugin-candidate
+      - desktop-trust
+      - trusted-desktop-verification
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-source.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-plugin-candidate
+          path: ${{ runner.temp }}/plugin-marketplace
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-desktop-trusted
+          path: ${{ runner.temp }}/desktop
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coordinated-desktop-trusted-evidence-*
+          path: ${{ runner.temp }}/evidence
+          merge-multiple: true
+      - id: metadata
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+      - name: Create the immutable Apple-trusted coordinated record
         run: >-
           node cli/bin/workflow.js plugin release coordinate
           --tag "${{ inputs.tag }}"

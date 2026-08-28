@@ -15,6 +15,11 @@ import {
   MACOS_PRODUCT,
   REQUIRED_ASAR_PATHS,
 } from './macos-package-contract.mjs';
+import {
+  assertAppleTrustEvidence,
+  coordinatedTrustFromEvidence,
+  parseCodesignFacts,
+} from './apple-trust-contract.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -47,8 +52,12 @@ async function requireUniversal(path) {
   );
 }
 
-/** @param {string} applicationPath @param {string} version */
-export async function verifyApplication(applicationPath, version) {
+/**
+ * @param {string} applicationPath
+ * @param {string} version
+ * @param {any} [appleTrust]
+ */
+export async function verifyApplication(applicationPath, version, appleTrust) {
   const contents = resolve(applicationPath, 'Contents');
   const infoPlist = resolve(contents, 'Info.plist');
   assert.equal(await plistValue(infoPlist, 'CFBundleIdentifier'), MACOS_PRODUCT.bundleIdentifier);
@@ -78,7 +87,20 @@ export async function verifyApplication(applicationPath, version) {
 
   await run('/usr/bin/codesign', ['--verify', '--deep', '--strict', applicationPath]);
   const signature = await run('/usr/bin/codesign', ['--display', '--verbose=4', applicationPath]);
-  assert.match(signature.stderr, /Signature=adhoc/u);
+  if (appleTrust) {
+    const facts = parseCodesignFacts(`${signature.stdout}${signature.stderr}`);
+    assert.equal(facts.identity, appleTrust.signature.identity);
+    assert.equal(facts.teamId, appleTrust.signature.teamId);
+    await run('/usr/sbin/spctl', [
+      '--assess',
+      '--type',
+      'exec',
+      '--verbose=4',
+      applicationPath,
+    ]);
+  } else {
+    assert.match(signature.stderr, /Signature=adhoc/u);
+  }
 
   const asarPath = resolve(contents, 'Resources', 'app.asar');
   const asarEntries = new Set(listPackage(asarPath));
@@ -104,6 +126,9 @@ export async function verifyApplication(applicationPath, version) {
     true,
     'Packaged Setup must recognize the coordinated Plugin/Desktop version',
   );
+  return appleTrust
+    ? coordinatedTrustFromEvidence(appleTrust)
+    : { status: 'development-ad-hoc', evidence: [] };
 }
 
 /** @param {string} applicationPath @param {string} fixturePath */
@@ -152,12 +177,49 @@ export async function smokeApplication(applicationPath, fixturePath) {
   }
 }
 
-/** @param {{dmgPath: string, fixturePath?: string, version: string}} options */
+/**
+ * @param {{dmgPath: string, fixturePath?: string, version: string,
+ *   trustEvidencePath?: string, sourceTag?: string, sourceCommit?: string}} options
+ */
 export async function verifyDmg(options) {
   if (process.platform !== 'darwin') {
     throw new Error('GateReeve DMG verification requires macOS.');
   }
-  await run('/usr/bin/hdiutil', ['verify', resolve(options.dmgPath)]);
+  const dmgPath = resolve(options.dmgPath);
+  let appleTrust = null;
+  if (options.trustEvidencePath) {
+    const content = await readFile(dmgPath);
+    appleTrust = assertAppleTrustEvidence(
+      JSON.parse(await readFile(resolve(options.trustEvidencePath), 'utf8')),
+      {
+        sourceTag: options.sourceTag,
+        sourceCommit: options.sourceCommit,
+        version: options.version,
+        filename: basename(dmgPath),
+        bytes: (await stat(dmgPath)).size,
+        sha256: createHash('sha256').update(content).digest('hex'),
+      },
+    );
+    await run('/usr/bin/codesign', ['--verify', '--strict', '--verbose=4', dmgPath]);
+    const signature = await run('/usr/bin/codesign', ['--display', '--verbose=4', dmgPath]);
+    const facts = parseCodesignFacts(
+      `${signature.stdout}${signature.stderr}`,
+      { requireRuntime: false },
+    );
+    assert.equal(facts.identity, appleTrust.signature.identity);
+    assert.equal(facts.teamId, appleTrust.signature.teamId);
+    await run('/usr/bin/xcrun', ['stapler', 'validate', '-v', dmgPath]);
+    await run('/usr/sbin/spctl', [
+      '--assess',
+      '--type',
+      'open',
+      '--context',
+      'context:primary-signature',
+      '--verbose=4',
+      dmgPath,
+    ]);
+  }
+  await run('/usr/bin/hdiutil', ['verify', dmgPath]);
   const mountRoot = await mkdtemp(join(tmpdir(), 'gatereeve-dmg-mount-'));
   let attached = false;
   try {
@@ -167,15 +229,16 @@ export async function verifyDmg(options) {
       '-nobrowse',
       '-mountpoint',
       mountRoot,
-      resolve(options.dmgPath),
+      dmgPath,
     ]);
     attached = true;
     const applicationsLink = resolve(mountRoot, 'Applications');
     assert.equal((await lstat(applicationsLink)).isSymbolicLink(), true);
     assert.equal(await readlink(applicationsLink), '/Applications');
     const applicationPath = resolve(mountRoot, `${MACOS_PRODUCT.name}.app`);
-    await verifyApplication(applicationPath, options.version);
+    const trust = await verifyApplication(applicationPath, options.version, appleTrust);
     if (options.fixturePath) await smokeApplication(applicationPath, options.fixturePath);
+    return { trust };
   } finally {
     if (attached) {
       await run('/usr/bin/hdiutil', ['detach', mountRoot]);
@@ -192,7 +255,7 @@ function argument(name) {
 /**
  * @param {{dmgPath: string, evidencePath: string, fixturePath?: string,
  *   nativeArchitecture: string, sourceCommit: string, sourceTag: string,
- *   version: string}} options
+ *   version: string, trust?: any}} options
  */
 export async function writeVerificationEvidence(options) {
   assert.match(options.sourceCommit, /^[a-f0-9]{40}$/u);
@@ -219,7 +282,7 @@ export async function writeVerificationEvidence(options) {
       universalBinaries: true,
       governedFixtureSmoke: Boolean(options.fixturePath),
     },
-    trust: { status: 'development-ad-hoc' },
+    trust: structuredClone(options.trust ?? { status: 'development-ad-hoc', evidence: [] }),
     verifiedAt: new Date().toISOString(),
   };
   await writeFile(resolve(options.evidencePath), `${JSON.stringify(evidence, null, 2)}\n`);
@@ -233,6 +296,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const nativeArchitecture = argument('--native-architecture');
   const sourceCommit = argument('--source-commit');
   const sourceTag = argument('--source-tag');
+  const trustEvidencePath = argument('--trust-evidence');
   const version = argument('--version');
   if (!dmgPath || !version) {
     throw new Error('Usage: node verify-macos-package.mjs --dmg <path> --version <version> [--fixture <path>] [--native-architecture <arm64|x64>]');
@@ -242,7 +306,14 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       `Expected a ${nativeArchitecture} verification host, received ${process.arch}.`,
     );
   }
-  await verifyDmg({ dmgPath, fixturePath, version });
+  const verification = await verifyDmg({
+    dmgPath,
+    fixturePath,
+    version,
+    trustEvidencePath,
+    sourceTag,
+    sourceCommit,
+  });
   if (evidencePath) {
     if (!nativeArchitecture || !sourceCommit || !sourceTag) {
       throw new Error('--evidence requires --native-architecture, --source-commit, and --source-tag');
@@ -254,6 +325,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       nativeArchitecture,
       sourceCommit,
       sourceTag,
+      trust: verification.trust,
       version,
     });
   }

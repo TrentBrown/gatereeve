@@ -69,9 +69,11 @@ export function stagedPackage(version) {
 }
 
 /**
- * @param {{stageRoot: string, outputRoot: string, iconPath: string, version: string}} options
+ * @param {{stageRoot: string, outputRoot: string, iconPath: string, version: string,
+ *   signingIdentity?: string, keychain?: string}} options
  */
 export function electronPackagerOptions(options) {
+  const developerId = options.signingIdentity !== undefined;
   return {
     dir: options.stageRoot,
     out: options.outputRoot,
@@ -87,12 +89,15 @@ export function electronPackagerOptions(options) {
     overwrite: true,
     prune: false,
     osxSign: {
-      identity: '-',
-      identityValidation: false,
+      identity: options.signingIdentity ?? '-',
+      identityValidation: developerId,
       continueOnError: false,
-      preAutoEntitlements: false,
+      keychain: options.keychain,
+      preAutoEntitlements: developerId,
       preEmbedProvisioningProfile: false,
-      optionsForFile: () => ({ hardenedRuntime: false, timestamp: 'none' }),
+      optionsForFile: () => developerId
+        ? ({ hardenedRuntime: true })
+        : ({ hardenedRuntime: false, timestamp: 'none' }),
     },
   };
 }

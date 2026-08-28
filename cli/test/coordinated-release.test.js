@@ -68,7 +68,7 @@ async function candidateFixture(root, tag = 'v0.1.0-rc.7', commit = sourceCommit
         universalBinaries: true,
         governedFixtureSmoke: true,
       },
-      trust: { status: 'development-ad-hoc' },
+      trust: { status: 'development-ad-hoc', evidence: [] },
       verifiedAt: '2026-08-27T20:00:00.000Z',
     }, null, 2)}\n`);
     evidencePaths.push(path);
@@ -95,7 +95,20 @@ async function preparedFixture(tag = 'v0.1.0-rc.7', commit = sourceCommit, promo
 function trustedAndApproved(record) {
   const trusted = recordDesktopTrust(record, {
     status: 'developer-id-notarized',
-    evidence: ['codesign', 'timestamp', 'notarization', 'stapling', 'gatekeeper'],
+    identity: 'Developer ID Application: Trent Brown (ABCDEFGHIJ)',
+    teamId: 'ABCDEFGHIJ',
+    hardenedRuntime: true,
+    secureTimestamp: true,
+    notarizationId: '12345678-1234-1234-1234-1234567890ab',
+    notarizationStatus: 'Accepted',
+    stapled: true,
+    gatekeeperAccepted: true,
+    evidence: [
+      'codesign:Developer ID Application: Trent Brown (ABCDEFGHIJ)',
+      'notarytool:12345678-1234-1234-1234-1234567890ab',
+      'stapler:validated',
+      'spctl:accepted',
+    ],
   }, () => new Date('2026-08-27T20:02:00.000Z'));
   return approveCoordinatedPublication(trusted, {
     approvedBy: 'Trent Brown',
@@ -179,6 +192,14 @@ test('rejects contradictory release state and unsafe artifact identity', async (
   assert.throws(
     () => assertCoordinatedRelease(unsafeArtifact),
     /artifact metadata is invalid/
+  );
+
+  const contradictoryTrust = trustedAndApproved(prepared.record);
+  contradictoryTrust.candidates.desktop.trust.evidence[0] =
+    'codesign:Developer ID Application: Someone Else (ABCDEFGHIJ)';
+  assert.throws(
+    () => assertCoordinatedRelease(contradictoryTrust),
+    /trust evidence is contradictory/
   );
 });
 

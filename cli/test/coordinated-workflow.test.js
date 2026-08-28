@@ -18,6 +18,14 @@ test('coordinated preparation is pre-publication, exact-source, and dual-archite
   assert.match(workflow, /architecture: x64/);
   assert.match(workflow, /plugin release coordinate/);
   assert.match(workflow, /coordinated-desktop-evidence-\$\{\{ matrix\.architecture \}\}/);
+  assert.match(workflow, /environment:\n\s+name: release-publication\n\s+deployment: false/);
+  assert.match(workflow, /needs:[\s\S]*desktop-verification[\s\S]*environment:/);
+  assert.match(workflow, /GATEREEVE_DEVELOPER_ID_P12_BASE64/);
+  assert.match(workflow, /GATEREEVE_NOTARY_KEY_P8_BASE64/);
+  assert.match(workflow, /security create-keychain/);
+  assert.match(workflow, /security delete-keychain/);
+  assert.match(workflow, /notarize-macos\.mjs/);
+  assert.match(workflow, /coordinated-desktop-trusted-evidence-\$\{\{ matrix\.architecture \}\}/);
   assert.doesNotMatch(workflow, /contents: write/);
   assert.doesNotMatch(workflow, /gh release create/);
   assert.doesNotMatch(workflow, /git push/);

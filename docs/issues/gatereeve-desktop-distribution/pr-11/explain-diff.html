@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GateReeve PR #11 — Apple trust boundary</title>
+  <style>
+    :root { color-scheme: light; --ink:#241936; --muted:#665b73; --line:#d9cee5; --panel:#f7f2fb; --purple:#6f4a91; --green:#27765b; --amber:#a05b16; }
+    * { box-sizing:border-box; } body { margin:0; font:17px/1.62 system-ui,-apple-system,sans-serif; color:var(--ink); background:#fcfaff; }
+    main { max-width:980px; margin:auto; padding:36px 22px 80px; } h1 { font-size:clamp(2.2rem,6vw,4.6rem); line-height:1.02; margin:.3em 0; } h2 { margin-top:2.4em; border-bottom:1px solid var(--line); padding-bottom:.3em; } h3 { margin-top:1.7em; } a { color:var(--purple); } nav,.callout,.diagram,.quiz { border:1px solid var(--line); border-radius:14px; padding:18px 22px; background:var(--panel); margin:22px 0; }
+    .eyebrow { color:var(--purple); font-weight:750; letter-spacing:.08em; text-transform:uppercase; } .muted { color:var(--muted); } .flow { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; align-items:center; } .node { min-height:96px; display:grid; place-items:center; text-align:center; padding:10px; border-radius:10px; background:white; border:2px solid var(--line); } .node.protected { border-color:var(--amber); } .node.proof { border-color:var(--green); } .arrow { text-align:center; color:var(--purple); font-size:1.5rem; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; border-radius:10px; padding:16px; background:#20172b; color:#f7edf9; } code { font-family:ui-monospace,SFMono-Regular,monospace; } .choice { display:block; width:100%; text-align:left; margin:8px 0; border:1px solid var(--line); border-radius:9px; padding:11px; background:white; cursor:pointer; } .choice:hover { border-color:var(--purple); } .feedback { min-height:1.5em; font-weight:650; } .correct { color:var(--green); } .incorrect { color:#9b2738; }
+    @media (max-width:760px) { .flow { grid-template-columns:1fr; } .arrow { transform:rotate(90deg); } }
+  </style>
+</head>
+<body><main>
+  <div class="eyebrow">Pinned diff 20b555e…34d2726</div>
+  <h1>From a buildable DMG to verifiable Apple trust</h1>
+  <p class="muted">PR #11 adds the protected, nonpublishing boundary that can turn GateReeve's already universal development package into a Developer ID-signed, notarized, stapled, Gatekeeper-accepted candidate.</p>
+  <nav><strong>Contents</strong><ol><li><a href="#background">Background</a></li><li><a href="#intuition">Intuition</a></li><li><a href="#code">Code walkthrough</a></li><li><a href="#quiz">Quiz</a></li></ol></nav>
+
+  <section id="background"><h2>Background</h2>
+    <h3>The beginner's version</h3>
+    <p>A macOS application can be structurally correct yet still look untrustworthy to a user's Mac. Developer ID signing says who produced the application. Hardened runtime constrains it in ways Apple expects. Notarization asks Apple's automated service to inspect a submitted package. Stapling attaches the resulting ticket to the downloadable file, and Gatekeeper assessment checks the experience macOS will apply when a user opens it.</p>
+    <p>These claims must refer to one exact file. If a DMG is notarized and then altered, the old result says nothing about the new bytes. That is why this change records the filename, byte count, SHA-256 digest, source commit, release tag, signing identity, team, notarization ID, and the results of stapler and Gatekeeper.</p>
+    <h3>The GateReeve context</h3>
+    <p>Earlier slices already produced one universal DMG, ran its contained application on Apple Silicon and Intel, and coordinated Plugin and Desktop candidates under one recoverable release record. That record deliberately described the existing package as <code>development-ad-hoc</code>. Public publication rejected it.</p>
+    <div class="callout"><strong>Safety invariant.</strong> This PR prepares trust evidence but grants no publication authority. The protected job has read-only repository permissions and emits temporary workflow artifacts only.</div>
+  </section>
+
+  <section id="intuition"><h2>Intuition</h2>
+    <p>The core idea is a chain of custody. Cheap, unprotected jobs first build and test candidates. A protected job receives Apple credentials only after those checks and human environment approval. It rebuilds the same pinned version, signs and notarizes it, and emits exact-byte evidence. Two fresh native runners then distrust the claim and verify it independently before the coordinated record accepts it.</p>
+    <div class="diagram"><div class="flow">
+      <div class="node">Pinned source<br><code>34d2726</code></div><div class="arrow">→</div>
+      <div class="node">Unprotected candidate and native checks</div><div class="arrow">→</div>
+      <div class="node protected">Protected signing + Apple notarization</div>
+    </div><div class="flow" style="margin-top:10px">
+      <div class="node proof">Exact trusted DMG + evidence</div><div class="arrow">→</div>
+      <div class="node proof">ARM64 and Intel re-verification</div><div class="arrow">→</div>
+      <div class="node">Unapproved coordinated record</div>
+    </div></div>
+    <p>For example, suppose the trusted DMG digest is <code>abc…123</code>. Both native verification records must name <code>abc…123</code>, the same notarization ID, and the same Developer ID team. One record naming <code>def…456</code> makes coordination fail. Likewise, even a perfectly trusted record remains unpublishable until a later explicit approval matches the digest of its complete publication plan.</p>
+  </section>
+
+  <section id="code"><h2>Code walkthrough</h2>
+    <h3>1. Trust facts become a strict contract</h3>
+    <p><code>apple-trust-contract.mjs</code> validates protected configuration and the evidence schema. It parses real <code>codesign</code> output instead of accepting a caller's assertion. The coordinated form is deliberately redundant: a status alone is insufficient; every boolean fact and the ordered evidence labels must agree.</p>
+    <pre><code>developer-id-notarized
+  identity + team ID
+  hardened runtime + secure timestamp
+  accepted notarization ID
+  validated staple
+  accepted Gatekeeper assessment</code></pre>
+    <h3>2. Packaging has two explicit modes</h3>
+    <p>The ordinary package remains ad-hoc signed for repeatable PR testing. Supplying a Developer ID identity changes Electron Packager to hardened-runtime signing and passes the ephemeral keychain. The finished DMG itself is also signed and timestamped.</p>
+    <h3>3. The notarization script proves before it records</h3>
+    <p><code>notarize-macos.mjs</code> verifies both app and disk-image signatures, compares their authority and team with protected configuration, submits the DMG through the App Store Connect team key, waits for <code>Accepted</code>, staples, validates, and runs <code>spctl</code>. Only then does it hash the DMG and write evidence.</p>
+    <h3>4. The workflow isolates credentials</h3>
+    <p>The <code>desktop-trust</code> job references the <code>release-publication</code> environment with <code>deployment: false</code>. Credentials are decoded into runner-temporary files, the certificate enters a newly created keychain, and an unconditional final step removes both. Downstream jobs receive the DMG and non-secret evidence, never the keys.</p>
+    <h3>5. Native verification closes the loop</h3>
+    <p>Apple Silicon and Intel jobs download the same trusted artifact. Each repeats codesign, staple, Gatekeeper, universal-binary, package-content, version, and governed-fixture runtime checks. The release-record builder rejects mismatched bytes, architectures, versions, or trust facts.</p>
+    <h3>6. The runbook captures the human half</h3>
+    <p>The setup guide covers individual enrollment, a fresh CSR for each certificate, Developer ID Application rather than Installer, the G2 intermediate chain, login-keychain pairing, team API key authentication, encrypted recovery, protected GitHub values, rehearsal, rotation, and restoration. These details reflect the process actually completed for this repository.</p>
+  </section>
+
+  <section id="quiz"><h2>Quiz</h2><p>Choose one answer for each question.</p>
+    <div class="quiz" data-answer="1"><strong>1. Why do ARM64 and Intel verification jobs compare trust evidence with the DMG digest?</strong><button class="choice">To let either architecture replace a failed notarization result</button><button class="choice">To prove both machines inspected the same signed and notarized bytes</button><button class="choice">To avoid signing universal binaries inside the protected job</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="2"><strong>2. What does <code>deployment: false</code> change here?</strong><button class="choice">It bypasses required reviewers but keeps secrets encrypted</button><button class="choice">It makes secrets available to all earlier candidate jobs</button><button class="choice">It retains environment protection and secrets without creating a deployment record</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="0"><strong>3. Which credential is intended for autonomous <code>notarytool</code> use?</strong><button class="choice">An App Store Connect team API key</button><button class="choice">An individual App Store Connect API key</button><button class="choice">The Developer ID certificate's common-name label</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="1"><strong>4. Why can PR #11 merge before the protected rehearsal passes?</strong><button class="choice">The rehearsal is optional once unit tests model Apple output</button><button class="choice">The main-only environment needs the workflow on main, and the rehearsal cannot publish</button><button class="choice">The standing PR authorization also approves public Apple releases</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="2"><strong>5. What still prevents a trusted coordinated record from publishing?</strong><button class="choice">A second Developer ID Installer certificate</button><button class="choice">Conversion from a universal DMG into a package installer</button><button class="choice">Exact human approval of the record's publication-plan digest</button><div class="feedback"></div></div>
+  </section>
+</main><script>
+  for (const quiz of document.querySelectorAll('.quiz')) {
+    const answer = Number(quiz.dataset.answer); const buttons = [...quiz.querySelectorAll('.choice')]; const feedback = quiz.querySelector('.feedback');
+    buttons.forEach((button, index) => button.addEventListener('click', () => {
+      const ok = index === answer; feedback.className = `feedback ${ok ? 'correct' : 'incorrect'}`;
+      feedback.textContent = ok ? 'Correct. That is the boundary this change enforces.' : 'Not quite. Revisit the chain-of-custody and safety-boundary sections.';
+    }));
+  }
+</script></body></html>

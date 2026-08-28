@@ -128,3 +128,20 @@ and every public release path remain unavailable until P6.
 Manually splice downloaded Electron distributions - rejected because it duplicates mature universal-bundle logic and increases bundle-signing risk; adopt Electron Forge or Builder - rejected because either introduces a broader packaging framework than this application needs; publish separate architecture bundles as PortReeve currently does - rejected because AC1 explicitly requires one universal application and DMG.
 
 **Promoted:** 2026-08-27. PR: https://github.com/TrentBrown/gatereeve/pull/9.
+
+---
+
+## Use a team API key for autonomous notarization
+
+**Confidence:** HIGH
+
+**Blast Radius:** Apple enrollment runbook, release-publication environment, notarization script, secret names, rotation and recovery guidance
+
+Use an Account Holder-created App Store Connect team API key for notarytool, together with a password-protected Developer ID Application .p12. Store only the .p8 and base64 .p12 plus the export password as release-publication environment secrets; store key, issuer, team, and expected identity identifiers as non-secret environment variables. Keep encrypted offline recovery copies under the user's control. Do not support Apple Account app-specific passwords as a parallel CI mode.
+
+**Triggered by:** P6 must support long autonomous CI runs, while Apple explicitly excludes individual App Store Connect API keys from notarytool
+
+**Alternatives considered:**
+Use an individual API key - rejected because Apple states individual keys cannot use notaryTool; use an Apple Account app-specific password - rejected because it couples autonomous releases to a personal login credential and adds a second authentication mode; sign every release manually on the user's Mac - rejected because the approved design assigns repeatable signing to protected CI.
+
+**Promoted:** 2026-08-28. PR: https://github.com/TrentBrown/gatereeve/pull/11.

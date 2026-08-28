@@ -110,11 +110,52 @@ function validateDesktopEvidence(value, expected) {
     || value?.checks?.coordinatedVersion !== true
     || value?.checks?.universalBinaries !== true
     || value?.checks?.governedFixtureSmoke !== true
-    || value?.trust?.status !== 'development-ad-hoc'
   ) {
     throw new Error('Desktop verification evidence does not match the coordinated candidate');
   }
+  validateCoordinatedTrust(value.trust);
   return value;
+}
+
+function validateCoordinatedTrust(trust) {
+  if (!Array.isArray(trust?.evidence) || trust.evidence.some(
+    (item) => typeof item !== 'string' || item === ''
+  )) {
+    throw new Error('Coordinated Desktop trust evidence is invalid');
+  }
+  if (trust.status === 'development-ad-hoc') {
+    if (trust.evidence.length !== 0) {
+      throw new Error('Development Desktop trust must not claim public evidence');
+    }
+    return trust;
+  }
+  if (
+    trust.status !== 'developer-id-notarized'
+    || typeof trust.identity !== 'string'
+    || !trust.identity.startsWith('Developer ID Application: ')
+    || !/^[A-Z0-9]{10}$/u.test(trust.teamId ?? '')
+    || !trust.identity.endsWith(` (${trust.teamId})`)
+    || trust.hardenedRuntime !== true
+    || trust.secureTimestamp !== true
+    || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu.test(
+      trust.notarizationId ?? ''
+    )
+    || trust.notarizationStatus !== 'Accepted'
+    || trust.stapled !== true
+    || trust.gatekeeperAccepted !== true
+  ) {
+    throw new Error('Coordinated Desktop trust evidence is invalid');
+  }
+  const expectedEvidence = [
+    `codesign:${trust.identity}`,
+    `notarytool:${trust.notarizationId}`,
+    'stapler:validated',
+    'spctl:accepted',
+  ];
+  if (JSON.stringify(trust.evidence) !== JSON.stringify(expectedEvidence)) {
+    throw new Error('Coordinated Desktop trust evidence is contradictory');
+  }
+  return trust;
 }
 
 function validateStablePromotion({ sourceTag, sourceCommit, releaseCandidate }) {
@@ -238,6 +279,10 @@ export async function prepareCoordinatedRelease({
   if (desktopVersions.size !== 1) {
     throw new Error('Desktop verification evidence disagrees about the application version');
   }
+  const desktopTrust = structuredClone(evidence[0].trust);
+  if (evidence.some((item) => JSON.stringify(item.trust) !== JSON.stringify(desktopTrust))) {
+    throw new Error('Desktop verification evidence disagrees about Apple trust');
+  }
 
   const output = resolve(outputRoot);
   await requireFreshOutput(output);
@@ -294,7 +339,7 @@ export async function prepareCoordinatedRelease({
             architectures,
             evidence: evidenceRecords,
           },
-          trust: { status: 'development-ad-hoc', evidence: [] },
+          trust: desktopTrust,
         },
       },
       publication: {
@@ -380,15 +425,7 @@ export function assertCoordinatedRelease(value) {
   ) {
     throw new Error('Coordinated release artifact metadata is invalid');
   }
-  const trust = value.candidates.desktop.trust;
-  if (
-    !['development-ad-hoc', 'developer-id-notarized'].includes(trust?.status)
-    || !Array.isArray(trust?.evidence)
-    || trust.evidence.some((item) => typeof item !== 'string' || item === '')
-    || (trust.status === 'developer-id-notarized' && trust.evidence.length === 0)
-  ) {
-    throw new Error('Coordinated Desktop trust evidence is invalid');
-  }
+  validateCoordinatedTrust(value.candidates.desktop.trust);
   const desktopEvidence = value.candidates.desktop.verification.evidence;
   if (
     !Array.isArray(desktopEvidence)
@@ -522,12 +559,10 @@ export function recordDesktopTrust(record, evidence, now = () => new Date()) {
   }
   if (
     evidence?.status !== 'developer-id-notarized'
-    || !Array.isArray(evidence.evidence)
-    || evidence.evidence.length === 0
-    || evidence.evidence.some((item) => typeof item !== 'string' || item === '')
   ) {
     throw new Error('Desktop trust requires Developer ID, notarization, stapling, and Gatekeeper evidence');
   }
+  validateCoordinatedTrust(evidence);
   const next = structuredClone(record);
   next.candidates.desktop.trust = structuredClone(evidence);
   next.updatedAt = now().toISOString();

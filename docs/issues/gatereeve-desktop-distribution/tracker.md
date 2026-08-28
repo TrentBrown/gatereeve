@@ -5,10 +5,15 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Coordinated release and recovery P5 / I-4 is in review in PR
-[#10](https://github.com/TrentBrown/gatereeve/pull/10) from
-`gatereeve-desktop-distribution-04-coordinated-release`. PR #9 merged the prior
-identity and universal-DMG boundary as commit `3a340e3` on `main`.
+**Active slice:** Apple trust boundary P6 / I-5 is in progress on
+`gatereeve-desktop-distribution-05-apple-trust` in draft PR
+[#11](https://github.com/TrentBrown/gatereeve/pull/11). PR
+[#10](https://github.com/TrentBrown/gatereeve/pull/10) merged coordinated
+release and recovery as commit `20b555e` on `main`. The Apple membership,
+Developer ID Application identity, App Store Connect team key, protected
+environment variables, and protected environment secrets are configured. The
+real nonpublishing Apple trust rehearsal remains pending until PR #11 lands on
+`main` and makes that workflow entry point available.
 
 ## Rubric Status
 
@@ -18,7 +23,7 @@ identity and universal-DMG boundary as commit `3a340e3` on `main`.
 | R2 | Packaged runtime independence | PASS | [#7](https://github.com/TrentBrown/gatereeve/pull/7), [#9](https://github.com/TrentBrown/gatereeve/pull/9) | JavaScript/Python resolver parity, Python-free staging, Finder-compatible discovery, Ubuntu regression coverage, and the same mounted packaged bytes observing a real governed fixture without external Node, Python, or CLI pass on ARM and Intel |
 | R3 | Setup and readiness | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Persistent selected-agent Setup, bounded read-only adapters, native remediation, recheck, one-of-selected readiness, unavailable-state honesty, and historical/offline presentation pass local and exact-head hosted verification |
 | R4 | Compatibility governance | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Exact project-controlled matched/compatible/incompatible pairs, tested skew, update guidance, and fail-closed unknown or unreported versions pass matrix and UI verification |
-| R5 | Apple trust | NOT YET | - | P6, P8, P10 / I-5, I-7, I-8 |
+| R5 | Apple trust | NOT YET | [#11](https://github.com/TrentBrown/gatereeve/pull/11) | Membership, identity, team key, protected configuration, P6 implementation, and hosted checks are complete; the real protected rehearsal plus P8 and P10 remain |
 | R6 | Coordinated release and recovery | NOT YET | [#10](https://github.com/TrentBrown/gatereeve/pull/10) | P5's immutable identity, pre-publication preparation, exact approval guard, ordered recovery, and stable-source proof pass; Apple trust, live protected publication, and final verification remain P6, P8, and P10 |
 | R7 | RC publication and update behavior | NOT YET | - | P7, P8, P10 / I-6, I-7, I-8 |
 | R8 | Cask distribution | NOT YET | - | P9, P10 / I-8 |
@@ -88,4 +93,23 @@ Append PR boundary entries here.
   evaluation, judge, code review after remediating record-invariant findings,
   decision triage, explain-diff, and hosted CI pass; pattern review is not
   applicable because no scope is configured
-- **Status:** In review; I-4 is in review
+- **Status:** Merged; I-4 is closed
+
+### PR #11 - Apple trust boundary
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/11
+- **Scope:** Delivery boundary 5, Apple trust boundary
+- **Plan steps:** P6
+- **Issues:** I-5
+- **Rubric movement:** R5 and R6 advance with executed maintainer setup,
+  protected ephemeral signing/notarization, exact trust evidence, native
+  re-verification, and fail-closed publication guards, but remain `NOT YET`
+  until the protected rehearsal, direct public RC, and final verification
+- **Evidence:** [PR #11 packet](pr-11/boundary.json)
+- **Boundary result:** Exact-head implementation verification, scoped
+  specification evaluation, independent judge with the declared live-service
+  concern, code review with no findings, decision triage, explain-diff, and
+  hosted CI pass; pattern review is not applicable because no scope is
+  configured
+- **Status:** In review; I-5 remains open through the post-merge nonpublishing
+  protected rehearsal

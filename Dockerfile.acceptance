@@ -22,7 +22,7 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && useradd --create-home --shell /bin/bash workflow
 
 WORKDIR /workspace
-COPY README.md DEVELOPMENT.md INSTALL.md RELEASING.md USER-GUIDE.md ./
+COPY README.md DEVELOPMENT.md INSTALL.md RELEASING.md APPLE-RELEASE-SETUP.md USER-GUIDE.md ./
 COPY cli ./cli
 RUN npm ci --prefix cli
 COPY .github/workflows/plugin-release.yml ./.github/workflows/plugin-release.yml

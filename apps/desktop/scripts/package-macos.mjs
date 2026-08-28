@@ -4,7 +4,9 @@ import { packager } from '@electron/packager';
 import { createHash } from 'node:crypto';
 import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { execFile } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
 
 import { createMacosDmg } from './create-macos-dmg.mjs';
 import { generateMacosIcon } from './generate-macos-icon.mjs';
@@ -17,6 +19,7 @@ import {
 } from './macos-package-contract.mjs';
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const execFileAsync = promisify(execFile);
 
 /** @param {string} path */
 async function sha256(path) {
@@ -61,7 +64,8 @@ export async function stageDesktopSource(options) {
 
 /**
  * @param {{desktopRoot?: string, outputRoot?: string, platform?: NodeJS.Platform,
- *   version?: string}} [options]
+ *   version?: string, signingIdentity?: string, keychain?: string,
+ *   run?: (file: string, arguments_: string[]) => Promise<unknown>}} [options]
  */
 export async function packageMacos(options = {}) {
   if ((options.platform ?? process.platform) !== 'darwin') {
@@ -93,6 +97,8 @@ export async function packageMacos(options = {}) {
     outputRoot: applicationOutput,
     iconPath: icnsPath,
     version,
+    signingIdentity: options.signingIdentity,
+    keychain: options.keychain,
   }));
   if (paths.length !== 1 || paths[0] === undefined) {
     throw new Error(`Desktop packager returned ${paths.length} output paths.`);
@@ -100,6 +106,18 @@ export async function packageMacos(options = {}) {
   const applicationPath = resolve(paths[0], `${MACOS_PRODUCT.name}.app`);
   const outputPath = resolve(outputRoot, dmgFilename(version));
   await createMacosDmg({ applicationPath, outputPath });
+  if (options.signingIdentity) {
+    const run = options.run ?? ((file, arguments_) => execFileAsync(file, arguments_));
+    await run('/usr/bin/codesign', [
+      '--force',
+      '--timestamp',
+      '--sign',
+      options.signingIdentity,
+      ...(options.keychain ? ['--keychain', options.keychain] : []),
+      outputPath,
+    ]);
+    await run('/usr/bin/codesign', ['--verify', '--strict', '--verbose=4', outputPath]);
+  }
   return Object.freeze({
     applicationPath,
     dmgPath: outputPath,
@@ -115,5 +133,20 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   if (versionIndex !== -1 && !version) {
     throw new Error('--version requires a coordinated release version');
   }
-  process.stdout.write(`${JSON.stringify(await packageMacos({ version }), null, 2)}\n`);
+  const signingIdentityIndex = process.argv.indexOf('--signing-identity');
+  const signingIdentity = signingIdentityIndex === -1
+    ? undefined
+    : process.argv[signingIdentityIndex + 1];
+  const keychainIndex = process.argv.indexOf('--keychain');
+  const keychain = keychainIndex === -1 ? undefined : process.argv[keychainIndex + 1];
+  if (signingIdentityIndex !== -1 && !signingIdentity) {
+    throw new Error('--signing-identity requires a Developer ID Application identity');
+  }
+  if (keychainIndex !== -1 && !keychain) throw new Error('--keychain requires a path');
+  if (keychain && !signingIdentity) throw new Error('--keychain requires --signing-identity');
+  process.stdout.write(`${JSON.stringify(await packageMacos({
+    version,
+    signingIdentity,
+    keychain,
+  }), null, 2)}\n`);
 }
