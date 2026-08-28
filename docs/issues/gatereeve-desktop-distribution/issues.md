@@ -128,7 +128,7 @@ and repeat the protected nonpublishing rehearsal.
 
 ## I-10 - Isolated trusted-package result channel
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.25d
 - **Plan steps:** P6
 - **Rubric criteria:** R5, R6
@@ -138,3 +138,16 @@ and repeat the protected nonpublishing rehearsal.
 Write signed-package metadata to a dedicated JSON result file so Electron
 Packager progress output cannot corrupt the protected workflow's machine input,
 then repeat the nonpublishing rehearsal through notarization and verification.
+
+## I-11 - Flat trusted artifact bundle
+
+- **Status:** in-review
+- **Estimate:** 0.25d
+- **Plan steps:** P6
+- **Rubric criteria:** R5, R6
+- **Depends on:** I-10
+- **PR:** [#14](https://github.com/TrentBrown/gatereeve/pull/14)
+
+Stage the notarized DMG and its trust evidence under one upload root so GitHub
+downloads both files at the stable flat paths consumed by native verification
+and coordinated-record assembly, then repeat the nonpublishing rehearsal.
