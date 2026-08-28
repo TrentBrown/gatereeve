@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "kind": "gatereeve-public-homebrew-cask-smoke",
+  "caskReleaseId": "gatereeve-cask-v0.1.0-rc.1",
+  "source": {
+    "repository": "https://github.com/TrentBrown/gatereeve",
+    "commit": "117a58511ef20957426d3fc5e801f6d5b1173b32",
+    "tag": "v0.1.0-rc.1"
+  },
+  "desktop": {
+    "filename": "GateReeve-0.1.0-rc.1-macos-universal.dmg",
+    "bytes": 246098110,
+    "sha256": "9cbe51065692857ba929e153863fa92c8fe2dc4d275eb29453014a04e1f1ea92",
+    "url": "https://github.com/TrentBrown/gatereeve/releases/download/v0.1.0-rc.1/GateReeve-0.1.0-rc.1-macos-universal.dmg",
+    "trust": {
+      "status": "developer-id-notarized",
+      "identity": "Developer ID Application: Trent Brown (PMWYD5A82A)",
+      "teamId": "PMWYD5A82A",
+      "hardenedRuntime": true,
+      "secureTimestamp": true,
+      "notarizationId": "575a7de0-0e6c-4b42-a6af-fca52d709eb8",
+      "notarizationStatus": "Accepted",
+      "stapled": true,
+      "gatekeeperAccepted": true,
+      "evidence": [
+        "codesign:Developer ID Application: Trent Brown (PMWYD5A82A)",
+        "notarytool:575a7de0-0e6c-4b42-a6af-fca52d709eb8",
+        "stapler:validated",
+        "spctl:accepted"
+      ]
+    }
+  },
+  "publicTap": {
+    "repository": "TrentBrown/homebrew-gatereeve",
+    "tap": "TrentBrown/gatereeve",
+    "token": "gatereeve",
+    "caskSha256": "963fb25d3b800aa1be596a0f57766d276499fecc1527b9958bc20a5f613febb2"
+  },
+  "runner": {
+    "operatingSystem": "darwin",
+    "architecture": "arm64"
+  },
+  "checks": {
+    "literalPublicCommandInstalled": true,
+    "exactPublishedCask": true,
+    "exactCaskInstalled": true,
+    "applicationIdentity": true,
+    "developerIdValid": true,
+    "gatekeeperAccepted": true,
+    "universalBinaries": true,
+    "pluginLifecycleUntouched": true,
+    "cliLifecycleUntouched": true
+  },
+  "installProof": {
+    "bundleIdentifier": "com.trentbrown.gatereeve.desktop",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "dmgSha256": "9cbe51065692857ba929e153863fa92c8fe2dc4d275eb29453014a04e1f1ea92"
+  },
+  "verifiedAt": "2026-08-28T17:41:54.565Z"
+}
