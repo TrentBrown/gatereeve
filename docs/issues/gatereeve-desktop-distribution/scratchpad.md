@@ -158,7 +158,7 @@ ephemeral credential store.
 
 ## [10] Separate package progress from machine-readable results
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

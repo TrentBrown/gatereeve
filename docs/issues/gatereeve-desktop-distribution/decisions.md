@@ -171,3 +171,27 @@ argument - rejected because the signer should remain constrained to the
 ephemeral credential store.
 
 **Promoted:** 2026-08-28. PR: https://github.com/TrentBrown/gatereeve/pull/12.
+
+---
+
+## Separate package progress from machine-readable results
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop packaging CLI and protected signing workflow
+
+Add an optional `--result-file` contract to the macOS packaging command. When
+present, write the final structured package metadata directly to that path
+while leaving Electron Packager progress output on its ordinary channel. Keep
+stdout JSON as the default for existing direct callers.
+
+**Triggered by:** Protected rehearsal run 33138565845 completed the signed package command, then failed because redirected stdout began with Electron Packager progress rather than the final JSON object.
+
+**Alternatives considered:**
+Parse only the last lines of mixed stdout - rejected because log formats and
+line counts are not a machine contract; suppress or redirect all third-party
+progress output - rejected because it removes useful CI diagnostics and depends
+on upstream logging behavior; infer the application path from naming alone -
+rejected because the packaging result is already the authoritative source.
+
+**Promoted:** 2026-08-28. PR: https://github.com/TrentBrown/gatereeve/pull/13.

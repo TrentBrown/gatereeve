@@ -129,3 +129,19 @@ Append PR boundary entries here.
   no scope is configured
 - **Status:** Merged; I-9's keychain repair passed its live boundary, while the
   broader rehearsal continues through I-10
+
+### PR #13 - Isolated trusted-package result
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/13
+- **Scope:** Apple trust boundary P6 / I-10 follow-up
+- **Plan steps:** P6
+- **Issues:** I-10
+- **Rubric movement:** R5 and R6 remain `NOT YET`; the correction preserves the
+  successfully signed package result for notarization and trusted verification
+- **Evidence:** [PR #13 packet](pr-13/boundary.json)
+- **Boundary result:** Exact-head Desktop and workflow-contract verification,
+  feature-doc validation, independent judge, code review with no findings,
+  explain-diff, and hosted checks pass; pattern review is not applicable because
+  no scope is configured
+- **Status:** In review; I-10 closes only after the corrected post-merge
+  protected rehearsal passes

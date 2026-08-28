@@ -115,7 +115,7 @@ exact publication approval, and complete the full feature evaluation.
 
 ## I-9 - Ephemeral signing keychain discoverability
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.25d
 - **Plan steps:** P6
 - **Rubric criteria:** R5, R6
@@ -128,12 +128,12 @@ and repeat the protected nonpublishing rehearsal.
 
 ## I-10 - Isolated trusted-package result channel
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.25d
 - **Plan steps:** P6
 - **Rubric criteria:** R5, R6
 - **Depends on:** I-9
-- **PR:** -
+- **PR:** [#13](https://github.com/TrentBrown/gatereeve/pull/13)
 
 Write signed-package metadata to a dedicated JSON result file so Electron
 Packager progress output cannot corrupt the protected workflow's machine input,
