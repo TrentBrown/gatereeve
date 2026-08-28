@@ -64,7 +64,7 @@ publication.
 
 ## I-5 - Apple trust boundary
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P6
 - **Rubric criteria:** R5, R6

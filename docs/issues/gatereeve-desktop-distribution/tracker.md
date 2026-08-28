@@ -94,3 +94,22 @@ Append PR boundary entries here.
   decision triage, explain-diff, and hosted CI pass; pattern review is not
   applicable because no scope is configured
 - **Status:** Merged; I-4 is closed
+
+### PR #11 - Apple trust boundary
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/11
+- **Scope:** Delivery boundary 5, Apple trust boundary
+- **Plan steps:** P6
+- **Issues:** I-5
+- **Rubric movement:** R5 and R6 advance with executed maintainer setup,
+  protected ephemeral signing/notarization, exact trust evidence, native
+  re-verification, and fail-closed publication guards, but remain `NOT YET`
+  until the protected rehearsal, direct public RC, and final verification
+- **Evidence:** [PR #11 packet](pr-11/boundary.json)
+- **Boundary result:** Exact-head implementation verification, scoped
+  specification evaluation, independent judge with the declared live-service
+  concern, code review with no findings, decision triage, explain-diff, and
+  hosted CI pass; pattern review is not applicable because no scope is
+  configured
+- **Status:** In review; I-5 remains open through the post-merge nonpublishing
+  protected rehearsal

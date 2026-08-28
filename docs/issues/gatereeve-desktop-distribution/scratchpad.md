@@ -119,7 +119,7 @@ Copy PortReeve's complete release engine - rejected because GateReeve has only t
 
 ## [8] Use a team API key for autonomous notarization
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
