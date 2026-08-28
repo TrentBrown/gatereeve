@@ -242,10 +242,13 @@ jobs:
           keychain_password="$(uuidgen)$(uuidgen)"
           certificate_path="$RUNNER_TEMP/gatereeve-developer-id.p12"
           notary_key_path="$RUNNER_TEMP/AuthKey_${APPLE_NOTARY_KEY_ID}.p8"
+          original_keychains_path="$RUNNER_TEMP/gatereeve-original-keychains.txt"
           echo "::add-mask::$keychain_password"
           echo "GATEREEVE_EPHEMERAL_KEYCHAIN=$keychain_path" >> "$GITHUB_ENV"
           echo "GATEREEVE_CERTIFICATE_PATH=$certificate_path" >> "$GITHUB_ENV"
           echo "GATEREEVE_NOTARY_KEY_PATH=$notary_key_path" >> "$GITHUB_ENV"
+          echo "GATEREEVE_ORIGINAL_KEYCHAINS=$original_keychains_path" >> "$GITHUB_ENV"
+          security list-keychains -d user > "$original_keychains_path"
           node -e 'require("node:fs").writeFileSync(process.argv[1], Buffer.from(process.env.APPLE_DEVELOPER_ID_P12_BASE64, "base64"))' "$certificate_path"
           node -e 'require("node:fs").writeFileSync(process.argv[1], Buffer.from(process.env.APPLE_NOTARY_KEY_P8_BASE64, "base64"))' "$notary_key_path"
           chmod 600 "$certificate_path" "$notary_key_path"
@@ -262,6 +265,17 @@ jobs:
             -s \
             -k "$keychain_password" \
             "$keychain_path"
+          original_keychains=()
+          while IFS= read -r original_keychain; do
+            original_keychain="${original_keychain#*\"}"
+            original_keychain="${original_keychain%\"*}"
+            if [[ -n "$original_keychain" ]]; then
+              original_keychains+=("$original_keychain")
+            fi
+          done < "$original_keychains_path"
+          security list-keychains -d user -s \
+            "$keychain_path" \
+            "${original_keychains[@]}"
           security find-identity -v -p codesigning "$keychain_path" \
             | grep -F "$APPLE_SIGNING_IDENTITY"
       - id: metadata
@@ -308,12 +322,27 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: |
+          original_keychains=()
+          if [[ -f "${GATEREEVE_ORIGINAL_KEYCHAINS:-}" ]]; then
+            while IFS= read -r original_keychain; do
+              original_keychain="${original_keychain#*\"}"
+              original_keychain="${original_keychain%\"*}"
+              if [[ -n "$original_keychain" ]]; then
+                original_keychains+=("$original_keychain")
+              fi
+            done < "$GATEREEVE_ORIGINAL_KEYCHAINS"
+          fi
+          if (( ${#original_keychains[@]} > 0 )); then
+            security list-keychains -d user -s \
+              "${original_keychains[@]}" || true
+          fi
           if [[ -n "${GATEREEVE_EPHEMERAL_KEYCHAIN:-}" ]]; then
             security delete-keychain "$GATEREEVE_EPHEMERAL_KEYCHAIN" || true
           fi
           rm -f \
             "${GATEREEVE_CERTIFICATE_PATH:-$RUNNER_TEMP/missing-certificate}" \
-            "${GATEREEVE_NOTARY_KEY_PATH:-$RUNNER_TEMP/missing-notary-key}"
+            "${GATEREEVE_NOTARY_KEY_PATH:-$RUNNER_TEMP/missing-notary-key}" \
+            "${GATEREEVE_ORIGINAL_KEYCHAINS:-$RUNNER_TEMP/missing-keychain-list}"
 
   trusted-desktop-verification:
     if: ${{ inputs.apple_trust }}

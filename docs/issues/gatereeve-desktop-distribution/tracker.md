@@ -5,15 +5,15 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Apple trust boundary P6 / I-5 is in progress on
-`gatereeve-desktop-distribution-05-apple-trust` in draft PR
-[#11](https://github.com/TrentBrown/gatereeve/pull/11). PR
-[#10](https://github.com/TrentBrown/gatereeve/pull/10) merged coordinated
-release and recovery as commit `20b555e` on `main`. The Apple membership,
-Developer ID Application identity, App Store Connect team key, protected
-environment variables, and protected environment secrets are configured. The
-real nonpublishing Apple trust rehearsal remains pending until PR #11 lands on
-`main` and makes that workflow entry point available.
+**Active slice:** Apple trust boundary P6 / I-5 remains in progress through the
+I-9 follow-up on `gatereeve-desktop-distribution-05b-keychain-search`. PR
+[#11](https://github.com/TrentBrown/gatereeve/pull/11) merged the protected
+boundary as commit `8a93f4a` on `main`. Protected rehearsal run
+[#33135027205](https://github.com/TrentBrown/gatereeve/actions/runs/33135027205)
+validated the configured credentials and exact Developer ID identity, then
+failed because the ephemeral keychain was absent from the user search list when
+`codesign` resolved that identity. I-9 preserves, extends, and restores that
+search list before repeating the nonpublishing rehearsal.
 
 ## Rubric Status
 
@@ -111,5 +111,5 @@ Append PR boundary entries here.
   concern, code review with no findings, decision triage, explain-diff, and
   hosted CI pass; pattern review is not applicable because no scope is
   configured
-- **Status:** In review; I-5 remains open through the post-merge nonpublishing
-  protected rehearsal
+- **Status:** Merged; I-5 remains open through the post-merge nonpublishing
+  protected rehearsal and I-9 follow-up

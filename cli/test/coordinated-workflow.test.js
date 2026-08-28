@@ -23,6 +23,16 @@ test('coordinated preparation is pre-publication, exact-source, and dual-archite
   assert.match(workflow, /GATEREEVE_DEVELOPER_ID_P12_BASE64/);
   assert.match(workflow, /GATEREEVE_NOTARY_KEY_P8_BASE64/);
   assert.match(workflow, /security create-keychain/);
+  assert.match(workflow, /GATEREEVE_ORIGINAL_KEYCHAINS/);
+  assert.match(workflow, /security list-keychains -d user -s/);
+  assert.match(
+    workflow,
+    /security list-keychains -d user -s[\s\\]+"\$keychain_path"[\s\\]+"\$\{original_keychains\[@\]\}"/
+  );
+  assert.match(
+    workflow,
+    /security list-keychains -d user -s[\s\\]+"\$\{original_keychains\[@\]\}" \|\| true/
+  );
   assert.match(workflow, /security delete-keychain/);
   assert.match(workflow, /notarize-macos\.mjs/);
   assert.match(workflow, /coordinated-desktop-trusted-evidence-\$\{\{ matrix\.architecture \}\}/);
