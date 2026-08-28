@@ -5,7 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { predecessorCask } from '../../apps/desktop/scripts/smoke-homebrew-cask.mjs';
+import {
+  predecessorCask,
+  smokeHomebrewCask,
+} from '../../apps/desktop/scripts/smoke-homebrew-cask.mjs';
 import {
   assertHomebrewCaskRecord,
   HOMEBREW_CASK_PATH,
@@ -124,7 +127,7 @@ function caskRecord(source = sourceRecord()) {
       bytes: source.candidates.desktop.artifact.bytes,
       sha256: source.candidates.desktop.artifact.sha256,
       url: 'https://github.com/TrentBrown/gatereeve/releases/download/v0.1.0-rc.1/GateReeve-0.1.0-rc.1-macos-universal.dmg',
-      trust: 'developer-id-notarized',
+      trust: structuredClone(source.candidates.desktop.trust),
     },
     directInstallation: {
       status: 'passed',
@@ -229,6 +232,18 @@ test('models an upgrade from a predecessor while preserving exact download bytes
   assert.equal(
     predecessor.match(/^  url .*$/mu)?.[0],
     exact.match(/^  url .*$/mu)?.[0],
+  );
+});
+
+test('rejects architecture labels that do not match the native smoke process', async () => {
+  const wrongArchitecture = process.arch === 'x64' ? 'arm64' : 'x64';
+  await assert.rejects(
+    smokeHomebrewCask({
+      recordPath: '/not/read/because/architecture/is/rejected.json',
+      platform: 'darwin',
+      architecture: wrongArchitecture,
+    }),
+    /Expected .* Homebrew host/u,
   );
 });
 

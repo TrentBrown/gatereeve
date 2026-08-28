@@ -102,6 +102,12 @@ async function verifyInstalledApplication(run, applicationPath, record) {
 export async function smokeHomebrewCask(options) {
   const platform = options.platform ?? process.platform;
   if (platform !== 'darwin') throw new Error('Homebrew Cask smoke requires macOS');
+  const nativeArchitecture = process.arch === 'x64' ? 'x64' : 'arm64';
+  if (options.architecture && options.architecture !== nativeArchitecture) {
+    throw new Error(
+      `Expected a ${options.architecture} Homebrew host, received ${nativeArchitecture}`,
+    );
+  }
   const run = options.run ?? runCommand;
   const record = await verifyHomebrewCaskWorkspace(resolve(options.recordPath));
   const workspace = dirname(resolve(options.recordPath));
@@ -172,7 +178,7 @@ export async function smokeHomebrewCask(options) {
     desktop: structuredClone(record.desktop),
     runner: {
       operatingSystem: 'darwin',
-      architecture: options.architecture ?? (process.arch === 'x64' ? 'x64' : 'arm64'),
+      architecture: nativeArchitecture,
     },
     checks: {
       exactCaskInstalled: true,

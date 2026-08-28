@@ -77,7 +77,7 @@ export function renderHomebrewCask(releaseRecord) {
     neither the Plugin nor the optional GateReeve CLI.
 
     Setup and installation guidance:
-    https://gatereeve.pages.dev/#install
+    https://github.com/TrentBrown/gatereeve/blob/main/INSTALL.md
   EOS
 end
 `;
@@ -92,6 +92,9 @@ function publicationPlanText(record) {
 - Universal DMG: \`${record.desktop.filename}\`
 - Universal DMG bytes: \`${record.desktop.bytes}\`
 - Universal DMG SHA-256: \`${record.desktop.sha256}\`
+- Apple signing identity: \`${record.desktop.trust.identity}\`
+- Apple team ID: \`${record.desktop.trust.teamId}\`
+- Apple notarization ID: \`${record.desktop.trust.notarizationId}\` (\`${record.desktop.trust.notarizationStatus}\`)
 - Direct DMG installation: confirmed by \`${record.directInstallation.confirmedBy}\` at \`${record.directInstallation.confirmedAt}\`
 - Tap repository: \`${record.cask.repository}\`${record.cask.createRepositoryIfAbsent ? ' (create publicly if absent)' : ''}
 - Cask path: \`${record.cask.path}\`
@@ -139,9 +142,33 @@ export function assertHomebrewCaskRecord(value) {
     || value.desktop.bytes < 1
     || !SHA256.test(value.desktop.sha256 ?? '')
     || value.desktop.url !== `https://github.com/${RELEASE_REPOSITORY}/releases/download/${value.source.tag}/${value.desktop.filename}`
-    || value.desktop.trust !== 'developer-id-notarized'
   ) {
     throw new Error('Homebrew Cask Desktop identity is invalid');
+  }
+  const trust = value.desktop.trust;
+  const expectedEvidence = [
+    `codesign:${trust?.identity}`,
+    `notarytool:${trust?.notarizationId}`,
+    'stapler:validated',
+    'spctl:accepted',
+  ];
+  if (
+    trust?.status !== 'developer-id-notarized'
+    || typeof trust.identity !== 'string'
+    || !trust.identity.startsWith('Developer ID Application: ')
+    || !/^[A-Z0-9]{10}$/u.test(trust.teamId ?? '')
+    || !trust.identity.endsWith(` (${trust.teamId})`)
+    || trust.hardenedRuntime !== true
+    || trust.secureTimestamp !== true
+    || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu.test(
+      trust.notarizationId ?? ''
+    )
+    || trust.notarizationStatus !== 'Accepted'
+    || trust.stapled !== true
+    || trust.gatekeeperAccepted !== true
+    || JSON.stringify(trust.evidence) !== JSON.stringify(expectedEvidence)
+  ) {
+    throw new Error('Homebrew Cask Apple trust identity is invalid');
   }
   if (
     value?.directInstallation?.status !== 'passed'
@@ -246,7 +273,7 @@ export async function prepareHomebrewCask({
       bytes: desktop.bytes,
       sha256: desktop.sha256,
       url: releaseUrl(sourceRecord),
-      trust: sourceRecord.candidates.desktop.trust.status,
+      trust: structuredClone(sourceRecord.candidates.desktop.trust),
     },
     directInstallation: {
       status: 'passed',
@@ -314,6 +341,7 @@ export async function verifyHomebrewCaskWorkspace(recordPath) {
     source.source.tag !== record.source.tag
     || source.source.commit !== record.source.commit
     || source.candidates.desktop.artifact.sha256 !== record.desktop.sha256
+    || JSON.stringify(source.candidates.desktop.trust) !== JSON.stringify(record.desktop.trust)
     || renderHomebrewCask(source) !== cask
   ) {
     throw new Error('Prepared Homebrew Cask no longer matches its source release');
