@@ -1,0 +1,76 @@
+name: Homebrew Cask Smoke
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/homebrew-cask-smoke.yml"
+      - "apps/desktop/scripts/smoke-homebrew-cask.mjs"
+      - "cli/src/plugin/homebrew-cask.js"
+      - "cli/src/commands/release.js"
+      - "cli/test/homebrew-cask.test.js"
+      - "cli/test/cli.test.js"
+  workflow_dispatch:
+    inputs:
+      preparation_run_id:
+        description: Successful coordinated preparation run containing the trusted RC
+        required: true
+        default: "33183133044"
+      release_tag:
+        description: Exact trusted public RC tag
+        required: true
+        default: v0.1.0-rc.1
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  cask-smoke:
+    name: Cask install and upgrade (${{ matrix.native }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - native: arm64
+            runner: macos-15
+          - native: x64
+            runner: macos-15-intel
+    env:
+      PREPARATION_RUN_ID: ${{ inputs.preparation_run_id || '33183133044' }}
+      RELEASE_TAG: ${{ inputs.release_tag || 'v0.1.0-rc.1' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - name: Download the exact trusted coordinated RC
+        run: >-
+          gh run download "$PREPARATION_RUN_ID"
+          --repo TrentBrown/gatereeve
+          --name "gatereeve-${RELEASE_TAG}-coordinated-release"
+          --dir "$RUNNER_TEMP/coordinated-release"
+      - name: Prepare the nonpublishing Cask packet
+        run: >-
+          node cli/bin/workflow.js plugin release prepare-cask
+          --release-record "$RUNNER_TEMP/coordinated-release/release-record.json"
+          --output-root "$RUNNER_TEMP/homebrew-cask"
+          --direct-install-confirmed-by "Trent Brown"
+          --direct-install-confirmed-at "2026-08-28T16:00:00.000Z"
+          --json
+      - name: Install and upgrade through a disposable local tap
+        run: >-
+          node apps/desktop/scripts/smoke-homebrew-cask.mjs
+          --record "$RUNNER_TEMP/homebrew-cask/cask-record.json"
+          --evidence "$RUNNER_TEMP/homebrew-cask-smoke-${{ matrix.native }}.json"
+          --architecture "${{ matrix.native }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: homebrew-cask-smoke-${{ matrix.native }}
+          path: ${{ runner.temp }}/homebrew-cask-smoke-${{ matrix.native }}.json
+          if-no-files-found: error

@@ -226,6 +226,9 @@ test('renders hierarchical help through QP CLI Core', async () => {
   assert.match(result.stdout, /coordinate Create an immutable record from verified Plugin and Desktop candidates/);
   assert.match(result.stdout, /inspect-record Inspect a coordinated release record/);
   assert.match(result.stdout, /publish-coordinated Publish or recover one exact approved/);
+  assert.match(result.stdout, /prepare-cask Prepare an exact Homebrew Cask packet/);
+  assert.match(result.stdout, /inspect-cask Inspect an exact Homebrew Cask publication packet/);
+  assert.match(result.stdout, /publish-cask Publish or recover one exact approved GateReeve Homebrew Cask/);
   assert.doesNotMatch(result.stdout, /release-prepare/);
   assert.doesNotMatch(result.stdout, /^\s{4}migration\b/m);
   assert.doesNotMatch(result.stdout, /^\s+advance\b/m);

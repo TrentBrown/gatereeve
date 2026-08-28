@@ -32,6 +32,13 @@ import {
   releaseChoices,
   validateDeployedRelease,
 } from '../plugin/release-version.js';
+import {
+  homebrewCaskPlanSha256,
+  prepareHomebrewCask,
+  publishHomebrewCask,
+  readHomebrewCaskRecord,
+  renderHomebrewCaskPublicationPlan,
+} from '../plugin/homebrew-cask.js';
 
 function positiveInteger(value) {
   const parsed = Number.parseInt(value, 10);
@@ -430,6 +437,105 @@ export function releaseCommands({ repositoryRoot }) {
         console.log(`Preflight passed for ${result.record.releaseId}; no public mutation occurred.`);
       } else {
         console.log(`Published ${result.record.releaseId} through every coordinated surface.`);
+      }
+    });
+
+  release
+    .command('prepare-cask')
+    .description('Prepare an exact Homebrew Cask packet from a proven coordinated RC')
+    .requiredOption('--release-record <path>', 'Trusted coordinated release record workspace')
+    .requiredOption('--output-root <path>', 'Fresh Homebrew Cask packet directory')
+    .requiredOption(
+      '--direct-install-confirmed-by <identity>',
+      'Person who installed and launched the direct DMG'
+    )
+    .requiredOption(
+      '--direct-install-confirmed-at <timestamp>',
+      'ISO timestamp for the direct DMG installation proof'
+    )
+    .option('--json', 'Print machine-readable preparation results')
+    .action(async (options) => {
+      const result = await prepareHomebrewCask({
+        releaseRecordPath: resolve(options.releaseRecord),
+        outputRoot: resolve(options.outputRoot),
+        directInstallConfirmedBy: options.directInstallConfirmedBy,
+        directInstallConfirmedAt: options.directInstallConfirmedAt,
+      });
+      const output = {
+        schemaVersion: result.record.schemaVersion,
+        outputRoot: result.outputRoot,
+        recordPath: result.recordPath,
+        planPath: result.planPath,
+        caskPath: result.caskPath,
+        planSha256: result.planSha256,
+        caskReleaseId: result.record.caskReleaseId,
+        state: result.record.state,
+      };
+      if (options.json) console.log(JSON.stringify(output, null, 2));
+      else {
+        console.log(`Prepared ${result.record.caskReleaseId} in ${result.outputRoot}`);
+        console.log(`Publication plan: ${result.planPath}`);
+        console.log(`Plan SHA-256: ${result.planSha256}`);
+        console.log('Public tap creation and Cask publication remain blocked pending exact approval.');
+      }
+    });
+
+  release
+    .command('inspect-cask')
+    .description('Inspect an exact Homebrew Cask publication packet')
+    .requiredOption('--cask-record <path>', 'Homebrew Cask publication record')
+    .option('--json', 'Print machine-readable Cask state')
+    .action(async (options) => {
+      const record = await readHomebrewCaskRecord(resolve(options.caskRecord));
+      if (options.json) {
+        console.log(JSON.stringify({
+          record,
+          planSha256: homebrewCaskPlanSha256(record),
+        }, null, 2));
+      } else {
+        console.log(renderHomebrewCaskPublicationPlan(record));
+        console.log(`Plan SHA-256: ${homebrewCaskPlanSha256(record)}`);
+      }
+    });
+
+  release
+    .command('publish-cask')
+    .description('Publish or recover one exact approved GateReeve Homebrew Cask')
+    .requiredOption('--cask-record <path>', 'Homebrew Cask publication record')
+    .requiredOption('--plan-sha256 <digest>', 'Exact reviewed Cask plan SHA-256')
+    .option('--approved-by <identity>', 'Human Cask publication approver identity')
+    .option('--confirm', 'Confirm the exact plan and permit public tap mutation')
+    .option('--dry-run', 'Run read-only remote preflights without mutation')
+    .option('--json', 'Print machine-readable publication results')
+    .action(async (options) => {
+      if (options.confirm && options.dryRun) throw new Error('Choose either --confirm or --dry-run');
+      if (!options.confirm && !options.dryRun) {
+        throw new Error('Homebrew Cask publication requires --confirm or --dry-run');
+      }
+      if (options.confirm && !options.approvedBy) {
+        throw new Error('Homebrew Cask publication confirmation requires --approved-by');
+      }
+      const result = await publishHomebrewCask({
+        recordPath: resolve(options.caskRecord),
+        planSha256: options.planSha256,
+        approvedBy: options.approvedBy ?? '',
+        confirm: Boolean(options.confirm),
+        dryRun: Boolean(options.dryRun),
+      });
+      const output = {
+        schemaVersion: result.record.schemaVersion,
+        dryRun: result.dryRun,
+        caskReleaseId: result.record.caskReleaseId,
+        state: result.record.state,
+        planSha256: result.planSha256,
+        tapState: result.tapState,
+        surface: result.record.publication.surface,
+      };
+      if (options.json) console.log(JSON.stringify(output, null, 2));
+      else if (result.dryRun) {
+        console.log(`Preflight passed for ${result.record.caskReleaseId}; no public mutation occurred.`);
+      } else {
+        console.log(`Published ${result.record.caskReleaseId} to ${result.record.cask.repository}.`);
       }
     });
 

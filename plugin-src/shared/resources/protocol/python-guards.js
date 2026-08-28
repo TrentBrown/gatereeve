@@ -45,7 +45,7 @@ export async function runTrustedPythonGuard(
   try {
     const result = await execFileAsync(pythonExecutable, [script, ...args], {
       cwd,
-      env: environment,
+      env: { ...environment, PYTHONDONTWRITEBYTECODE: '1' },
       encoding: 'utf8',
       maxBuffer: 10 * 1024 * 1024,
     });

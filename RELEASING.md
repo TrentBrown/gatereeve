@@ -100,6 +100,72 @@ already approved plan, not a second release decision. If repository checks or
 review policy leave it unmergeable, the command stops with that PR intact for
 normal resolution and safe retry. It never writes directly to `main`.
 
+### Homebrew Cask publication after direct-install proof
+
+Homebrew is a separate final publication surface. It is deliberately absent
+from the coordinated Plugin/Desktop record so a direct DMG can be installed and
+launched before the Cask receives public authority. The Cask pins and downloads
+that exact GitHub Releases DMG; it never rebuilds or repackages the application.
+
+Download the original successful trusted coordinated-release artifact, then
+prepare a fresh Cask packet with the maintainer's observed direct-install proof:
+
+```bash
+RELEASE_RECORD=/path/to/coordinated-release/release-record.json
+CASK_ROOT="$HOME/Downloads/gatereeve-cask-v0.1.0-rc.1"
+
+npm start --prefix cli -- plugin release prepare-cask \
+  --release-record "$RELEASE_RECORD" \
+  --output-root "$CASK_ROOT" \
+  --direct-install-confirmed-by "Trent Brown" \
+  --direct-install-confirmed-at "<ISO_TIMESTAMP>"
+
+npm start --prefix cli -- plugin release inspect-cask \
+  --cask-record "$CASK_ROOT/cask-record.json"
+```
+
+The packet binds the public `TrentBrown/homebrew-gatereeve` tap, the
+`Casks/gatereeve.rb` path, exact Cask bytes, source commit, DMG filename, size,
+checksum, Developer ID trust state, and direct-install assertion. Run the
+read-only remote preflight before requesting the distinct Cask approval:
+
+```bash
+CASK_PLAN_SHA256=<DIGEST_FROM_INSPECTION>
+npm start --prefix cli -- plugin release publish-cask \
+  --cask-record "$CASK_ROOT/cask-record.json" \
+  --plan-sha256 "$CASK_PLAN_SHA256" \
+  --dry-run
+```
+
+Present the complete plan and its digest for exact approval. The plan explicitly
+includes creation of the public tap when it does not yet exist. Only after that
+approval may the maintainer run:
+
+```bash
+npm start --prefix cli -- plugin release publish-cask \
+  --cask-record "$CASK_ROOT/cask-record.json" \
+  --plan-sha256 "$CASK_PLAN_SHA256" \
+  --approved-by "Trent Brown" \
+  --confirm
+```
+
+The publisher creates an initialized public tap only if absent, transports one
+exact Cask file through a generated pull request, merges only a clean one-commit
+change, verifies the bytes on `main`, and records the pull request and merge
+commit. Retry the same packet after a partial failure. Do not recreate the tap,
+substitute a checksum, or publish the Cask by hand.
+
+The nonpublishing `Homebrew Cask Smoke` workflow exercises installation and an
+upgrade transition through a disposable local tap on Apple Silicon and Intel.
+After public publication, verify the user path on a clean machine:
+
+```bash
+brew install --cask TrentBrown/gatereeve/gatereeve
+```
+
+This command installs Desktop only. The required Plugin and optional CLI retain
+their independent native-manager installation and update lifecycles.
+
 ## Release Model
 
 A release has one coordinated identity expressed through distinct evidence:

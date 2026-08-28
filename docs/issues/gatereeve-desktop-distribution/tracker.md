@@ -5,18 +5,19 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Direct public RC P8 / I-7 is in review in draft PR
-[#16](https://github.com/TrentBrown/gatereeve/pull/16) from
-`gatereeve-desktop-distribution-07-public-rc`, based on merged `main` commit
-`5a69ee8`. PR [#15](https://github.com/TrentBrown/gatereeve/pull/15) delivered
-private update discovery and Early Access presentation; P7 / I-6 is closed.
-Protected nonpublishing rehearsal run
-[#33144709211](https://github.com/TrentBrown/gatereeve/actions/runs/33144709211)
-then passed Developer ID signing, Apple notarization, stapling, Gatekeeper,
-flat trusted upload, native ARM64 and Intel verification, credential cleanup,
-and immutable trusted coordinated-record assembly. Its prepared record remains
-unapproved with every publication surface pending; P6 / I-5 and I-11 are
-closed, and no tag or GitHub release has yet been created.
+**Active slice:** Final Homebrew Cask P9-P10 / I-8 is in progress on
+`gatereeve-desktop-distribution-08-homebrew-cask`, based on merged `main` commit
+`8748931`. PR [#16](https://github.com/TrentBrown/gatereeve/pull/16) and the
+transport PR [#17](https://github.com/TrentBrown/gatereeve/pull/17) published
+the exact trusted `v0.1.0-rc.1` packet from preparation run
+[#33183133044](https://github.com/TrentBrown/gatereeve/actions/runs/33183133044):
+source `117a585`, DMG SHA-256
+`9cbe51065692857ba929e153863fa92c8fe2dc4d275eb29453014a04e1f1ea92`,
+Plugin marketplace, GitHub prerelease, update manifest, and production Early
+Access surface all verify. Trent Brown then installed and launched the direct
+DMG on macOS without Gatekeeper trouble, closing P8 / I-7. The remaining slice
+must implement and prove the identical-byte Cask before requesting its distinct
+public tap approval.
 
 ## Rubric Status
 
@@ -29,7 +30,7 @@ closed, and no tag or GitHub release has yet been created.
 | R5 | Apple trust | NOT YET | [#11](https://github.com/TrentBrown/gatereeve/pull/11), [#14](https://github.com/TrentBrown/gatereeve/pull/14) | Enrollment, protected credentials, Developer ID signing, notarization, stapling, Gatekeeper, cleanup, and trusted ARM/Intel rehearsal pass; the trusted public RC and final verification remain P8 and P10 |
 | R6 | Coordinated release and recovery | NOT YET | [#10](https://github.com/TrentBrown/gatereeve/pull/10), [#14](https://github.com/TrentBrown/gatereeve/pull/14) | Immutable identity, pre-publication preparation, exact approval guard, ordered recovery, stable-source proof, and trusted record assembly pass; live protected publication and final verification remain P8 and P10 |
 | R7 | RC publication and update behavior | NOT YET | [#15](https://github.com/TrentBrown/gatereeve/pull/15) | Fixed bounded manifest discovery, 24-hour persistence, RC/stable isolation, quiet failure, notification-only Desktop UI, and unresolved trust-gated Early Access presentation pass; live approved publication and final verification remain P8 and P10 |
-| R8 | Cask distribution | NOT YET | - | P9, P10 / I-8 |
+| R8 | Cask distribution | NOT YET | pending | Exact renderer, separate approval packet, idempotent tap publication, and ARM/Intel install/upgrade smoke are in progress in P9-P10 / I-8 |
 
 ## PR Log
 
@@ -205,4 +206,6 @@ Append PR boundary entries here.
   independent judge, code review with no findings, decision triage,
   explain-diff, and all thirteen hosted checks pass; pattern review is not
   applicable because no scope is configured
-- **Status:** Draft; I-7 is in review
+- **Status:** Merged; the exact `v0.1.0-rc.1` packet was published, all five
+  public surfaces verify, direct DMG installation and launch passed on the
+  maintainer's Mac, and I-7 is closed

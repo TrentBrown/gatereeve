@@ -278,3 +278,42 @@ Use the trusted coordinated record creation timestamp as the reserved publishedA
 
 **Alternatives considered:**
 Choose publishedAt when the manifest PR merges - rejected because it changes output after approval; omit the timestamp - rejected by the existing exact manifest schema; rewrite and reapprove immediately before the manifest surface - rejected because partial publication may already have created the immutable tag and prerelease.
+
+## [17] Publish the Cask from a dedicated GateReeve tap
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Homebrew namespace, public repository creation, Cask token and path, release CLI, approval packet, and native installation guidance
+
+Publish GateReeve Desktop as the `gatereeve` Cask in a dedicated public
+`TrentBrown/homebrew-gatereeve` tap. Bind creation of that repository when
+absent, the sole `Casks/gatereeve.rb` file, and its exact checksum to a separate
+approval plan. Transport the file through the existing one-generated-commit
+pull-request contract. Keep the Cask outside the coordinated Plugin/Desktop
+record because direct installation proof is a prerequisite that becomes known
+after that record has already been published. The Cask installs only the exact
+approved universal DMG; Plugin and CLI lifecycles remain independent.
+
+**Triggered by:** P9 requires the final public Cask surface, no GateReeve tap exists, and the approved hybrid distribution model preserves independent component ownership
+
+**Alternatives considered:** Add GateReeve to `homebrew-portreeve` - rejected because the products and release authority are independent; create a multi-product QualityCode tap now - rejected because no such portfolio contract has been designed; add the Cask to the coordinated record - rejected because its approved prerequisite is observed only after direct publication and install; publish directly to a tap branch - rejected because it would discard the established audited PR transport.
+
+## [18] Keep trusted Python execution from mutating packaged sources
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Canonical trusted-Python guard runner and JavaScript/Python parity test process environment
+
+Set `PYTHONDONTWRITEBYTECODE=1` for Python processes launched against canonical
+packaged scripts. This preserves the existing behavior and evidence while
+preventing interpreter cache directories from appearing inside the source tree.
+Apply the same environment to the direct parity-test invocation so concurrently
+running release and portability tests never observe transient Python artifacts.
+
+**Triggered by:** Full parallel CLI verification created `scripts/__pycache__` while other tests correctly rejected transient files in canonical Plugin sources
+
+**Alternatives considered:** Ignore `__pycache__` during composition - rejected because canonical-source purity should remain fail-closed; serialize the complete Node test suite - rejected because it conceals a source mutation and slows unrelated tests; delete caches after every Python call - rejected because prevention is simpler and avoids races.
