@@ -206,7 +206,7 @@ weakens their atomic bundle identity and complicates every consumer.
 
 ## [12] Keep update metadata declarative and URL-free
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -221,7 +221,7 @@ Allow manifest-controlled URLs - rejected because a compromised or malformed met
 
 ## [13] Isolate update cache from workflow preferences
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -236,7 +236,7 @@ Add cache fields to preferences.json - rejected because network observation is n
 
 ## [14] Use coordinated package metadata for the update channel
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #15 — Private update discovery</title>
+  <style>
+    :root { --ink:#25183a; --muted:#6f6578; --paper:#fbf9fd; --line:#ddd4e9; --purple:#594099; --soft:#f1ebf8; --green:#287255; --amber:#9b5c13; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#f5f2f8; font:16px/1.58 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    header { padding:3rem max(1.2rem,calc((100vw - 980px)/2)); color:white; background:linear-gradient(120deg,#27163d,#7252b5); }
+    header h1 { max-width:850px; margin:.2rem 0 .7rem; font:700 clamp(2.2rem,6vw,4.5rem)/1.02 Georgia,serif; }
+    header p { max-width:760px; margin:0; color:#eee6f7; font-size:1.1rem; }
+    main { max-width:980px; margin:auto; padding:1.5rem 1.2rem 5rem; }
+    nav { display:flex; flex-wrap:wrap; gap:.5rem; margin:0 0 2rem; }
+    nav a { border:1px solid var(--line); border-radius:999px; padding:.45rem .75rem; color:var(--purple); background:white; text-decoration:none; font-weight:700; }
+    section { margin:2.4rem 0; }
+    h2 { margin:0 0 .7rem; font:700 2rem/1.15 Georgia,serif; }
+    h3 { margin:1.5rem 0 .5rem; font-size:1.15rem; }
+    code { border-radius:.25rem; padding:.1rem .3rem; background:var(--soft); }
+    pre { overflow:auto; border-radius:.7rem; padding:1rem; color:#f7f3fb; background:#211632; white-space:pre-wrap; }
+    .callout { border-left:5px solid var(--purple); border-radius:.5rem; padding:1rem 1.15rem; background:white; box-shadow:0 8px 25px #291b3f12; }
+    .diagram { display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:.65rem; overflow:auto; padding:.8rem 0; }
+    .node { position:relative; min-width:120px; border:1px solid var(--line); border-radius:.65rem; padding:.8rem; background:white; text-align:center; }
+    .node:not(:last-child)::after { position:absolute; top:50%; right:-.65rem; width:.65rem; border-top:2px solid #9e91ad; content:""; }
+    .node strong,.node small { display:block; }
+    .node small { margin-top:.3rem; color:var(--muted); }
+    .lanes { display:grid; grid-template-columns:9rem 1fr; gap:.45rem .8rem; align-items:center; }
+    .lane-label { font-weight:800; }
+    .lane { display:flex; gap:.4rem; min-height:3rem; align-items:center; border-radius:.5rem; padding:.5rem; background:white; }
+    .release { border-radius:999px; padding:.35rem .6rem; color:white; background:var(--purple); font-size:.82rem; }
+    .release.stable { background:var(--green); }
+    .release.blocked { color:var(--muted); background:#e7e0ec; text-decoration:line-through; }
+    .screen { border:1px solid var(--line); border-radius:.8rem; overflow:hidden; background:white; box-shadow:0 14px 35px #291b3f18; }
+    .screen-head { display:flex; justify-content:space-between; padding:.8rem 1rem; color:white; background:#37204f; }
+    .banner { display:flex; justify-content:space-between; gap:1rem; padding:1rem; color:#51370e; background:#fff5dc; }
+    .screen-body { display:grid; grid-template-columns:12rem 1fr; min-height:10rem; }
+    .side { padding:1rem; background:#faf8fc; }
+    .content { padding:1rem; }
+    table { width:100%; border-collapse:collapse; background:white; }
+    th,td { border:1px solid var(--line); padding:.65rem; text-align:left; vertical-align:top; }
+    .quiz { display:grid; gap:1rem; }
+    .question { border:1px solid var(--line); border-radius:.7rem; padding:1rem; background:white; }
+    .choices { display:grid; gap:.45rem; margin-top:.7rem; }
+    .choices button { border:1px solid var(--line); border-radius:.45rem; padding:.65rem; color:var(--ink); background:var(--paper); text-align:left; cursor:pointer; }
+    .choices button:hover { border-color:var(--purple); }
+    .choices button.correct { border-color:var(--green); background:#e9f7f0; }
+    .choices button.wrong { border-color:#a8324a; background:#fff0f2; }
+    .feedback { margin:.6rem 0 0; color:var(--muted); }
+    footer { color:var(--muted); }
+    @media(max-width:720px){ .diagram{grid-template-columns:1fr}.node:not(:last-child)::after{display:none}.screen-body{grid-template-columns:1fr}.lanes{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <header>
+    <small>GateReeve PR #15 · pinned at fd9a43e</small>
+    <h1>Knowing that a release exists, without becoming an updater</h1>
+    <p>This change gives GateReeve Desktop a deliberately narrow release sense: it can discover a trusted newer version and point to its official page, but it cannot fetch, replace, restart, or install the application.</p>
+  </header>
+  <main>
+    <nav aria-label="Table of contents">
+      <a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#quiz">Quiz</a>
+    </nav>
+
+    <section id="background">
+      <h2>Background</h2>
+      <p>GateReeve has three independently installed pieces. The Plugin governs work inside an agent. The optional CLI exposes the same protocol to a terminal. Desktop is a read-only observer. That separation matters here: update discovery belongs to the Desktop product, not to a selected feature record and not to the governance state machine.</p>
+      <div class="diagram" aria-label="Existing product structure">
+        <div class="node"><strong>Agent manager</strong><small>Installs Plugin</small></div>
+        <div class="node"><strong>GateReeve Plugin</strong><small>Governs passage</small></div>
+        <div class="node"><strong>Feature record</strong><small>Durable truth</small></div>
+        <div class="node"><strong>Desktop</strong><small>Observes only</small></div>
+        <div class="node"><strong>User</strong><small>Reads and decides</small></div>
+      </div>
+      <p>Before this PR, Desktop could notify about workflow events—failed gates, stale evidence, human review, merges—but knew nothing about releases of itself. The release pipeline already reserved two later public surfaces, <code>updateManifest</code> and <code>earlyAccessWebsite</code>. PR #15 builds their private consumers and checked-in inactive state. It does not publish either surface.</p>
+      <div class="callout"><strong>The invariant:</strong> an empty manifest is valid. Until a trusted GitHub prerelease exists, the correct website behavior is not a broken link or a speculative download. It is no link at all.</div>
+    </section>
+
+    <section id="intuition">
+      <h2>Intuition</h2>
+      <p>Think of the manifest as a small notice board with exactly two slots: latest stable and latest RC. It contains evidence, not instructions. There is no URL in either slot. The application already knows the one project endpoint it may read and the one GitHub repository it may open.</p>
+      <pre>{
+  "schemaVersion": 1,
+  "product": "gatereeve-desktop",
+  "generatedAt": null,
+  "channels": { "stable": null, "rc": null }
+}</pre>
+      <h3>Channel visibility</h3>
+      <div class="lanes" aria-label="RC and stable update selection">
+        <div class="lane-label">0.1.0-rc.3</div>
+        <div class="lane"><span class="release">0.1.0-rc.4</span><span class="release stable">0.1.0</span><span class="release blocked">0.2.0-rc.1</span></div>
+        <div class="lane-label">0.1.0 stable</div>
+        <div class="lane"><span class="release blocked">0.2.0-rc.1</span><span class="release stable">0.1.1</span></div>
+      </div>
+      <p>An RC may see a later RC and the eventual stable release on its exact version line. A stable build sees only later stable builds. There is no channel switcher.</p>
+      <h3>Bounded, quiet observation</h3>
+      <div class="diagram" aria-label="Update check data flow">
+        <div class="node"><strong>Startup/manual</strong><small>Automatic or explicit</small></div>
+        <div class="node"><strong>24-hour cache</strong><small>Skip fresh automatic work</small></div>
+        <div class="node"><strong>Fixed GET</strong><small>10 s · 64 KiB · no identity</small></div>
+        <div class="node"><strong>Validate/select</strong><small>Trust + channel</small></div>
+        <div class="node"><strong>Banner</strong><small>Open official tag only</small></div>
+      </div>
+      <p>Every transport, HTTP, size, parse, schema, and compatibility failure collapses into the same quiet “temporarily unavailable” result. Feature observation starts independently and continues normally.</p>
+      <div class="screen" aria-label="Simplified update banner">
+        <div class="screen-head"><strong>GateReeve</strong><span>Check for Updates · Setup · Refresh</span></div>
+        <div class="banner"><span><strong>GateReeve Desktop 0.1.0-rc.4 is available</strong><br>Early Access RC · You have 0.1.0-rc.3</span><button>View official release</button></div>
+        <div class="screen-body"><div class="side">Overview<br>Artifacts<br>History<br>Model<br>Session</div><div class="content"><strong>Workflow overview</strong><p>The workflow remains readable and independent of update availability.</p></div></div>
+      </div>
+    </section>
+
+    <section id="code">
+      <h2>Code walkthrough</h2>
+      <h3>1. The manifest is strict and URL-free</h3>
+      <p><code>update-manifest.js</code> parses only stable and <code>rc.N</code> versions. A non-null release must match its channel, exact DMG filename, byte size, SHA-256, full source commit, publication time, and all six Apple-trust facts. Exact-key validation rejects hidden extension fields, including a manifest-controlled URL.</p>
+      <h3>2. Transport has hard edges</h3>
+      <p><code>update-client.js</code> performs one GET to the fixed Pages endpoint. It sends no credentials, referrer, identifier, worktree fact, or dynamic query. Redirects fail. A referenced ten-second timer guarantees termination even in a minimal Node host; streamed bytes are cancelled past 64 KiB.</p>
+      <h3>3. Cache and coordination stay outside workflow state</h3>
+      <p><code>update-cache.js</code> writes an atomic mode-0600 <code>update-cache.json</code> under Electron user data. <code>update-coordinator.js</code> loads it, publishes a cached projection immediately, and starts stale automatic work without awaiting it. Manual checks bypass freshness. The current release version comes from staged compatibility metadata, because macOS bundle display versions may strip <code>-rc.N</code>.</p>
+      <h3>4. Electron exposes only named update actions</h3>
+      <p>The main process adds validated IPC for reading update state, requesting a manual check, and opening the derived official tag page. Preload mirrors those narrow calls. There is no file download, installer, updater, restart, arbitrary URL, or process-execution surface.</p>
+      <h3>5. Notification has two layers</h3>
+      <p>The in-app banner ignores the native-notification preference and is always shown for an available version. Native delivery remains opt-in and records the last notified version in the update cache, preventing repeated alerts after relaunch.</p>
+      <h3>6. Early Access starts visibly inactive</h3>
+      <p>The website now explains that the Plugin is required and Desktop is optional. Its release link is checked in without an <code>href</code> and hidden. <code>desktop-early-access.js</code> activates it only from a trusted RC entry and derives the same exact GitHub tag page. P8 will later publish that manifest after the prerelease surface is durable.</p>
+      <table>
+        <thead><tr><th>Concern</th><th>Owner after PR #15</th><th>What is deliberately absent</th></tr></thead>
+        <tbody>
+          <tr><td>Release discovery</td><td>Bounded Desktop observer</td><td>Installation identity or analytics</td></tr>
+          <tr><td>Workflow truth</td><td>Selected feature record</td><td>Update facts in governance state</td></tr>
+          <tr><td>Native alert</td><td>Existing user preference</td><td>Permission bypass or forced alert</td></tr>
+          <tr><td>Bytes</td><td>Future approved GitHub prerelease</td><td>Automatic download or replacement</td></tr>
+          <tr><td>Website link</td><td>Future ordered publication adapter</td><td>Untrusted or missing release target</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="quiz">
+      <h2>Quiz</h2>
+      <div class="quiz">
+        <div class="question" data-answer="1"><strong>1. Why does the public manifest contain no release URL?</strong><div class="choices"><button>It relies on Electron to discover GitHub links from package metadata.</button><button>Navigation must remain project-fixed and derived from a strictly validated version.</button><button>GitHub prereleases do not expose stable URLs until promotion.</button></div><p class="feedback" hidden></p></div>
+        <div class="question" data-answer="2"><strong>2. What may an installation of 0.1.0-rc.3 report?</strong><div class="choices"><button>Any semantically newer RC, including 0.2.0-rc.1.</button><button>Only 0.1.0 stable, because RC-to-RC discovery is disabled.</button><button>A later 0.1.0 RC or 0.1.0 stable, whichever has higher precedence.</button></div><p class="feedback" hidden></p></div>
+        <div class="question" data-answer="0"><strong>3. Why is update cache stored separately from preferences?</strong><div class="choices"><button>It is observed network state, not a user choice or workflow fact.</button><button>Electron preferences cannot safely persist timestamps.</button><button>The cache must be shared with the GateReeve Plugin.</button></div><p class="feedback" hidden></p></div>
+        <div class="question" data-answer="2"><strong>4. What happens when the manifest exceeds 64 KiB?</strong><div class="choices"><button>The client parses the first 64 KiB and ignores the remainder.</button><button>The client retries once without trust metadata.</button><button>The stream is cancelled and update state quietly becomes unavailable.</button></div><p class="feedback" hidden></p></div>
+        <div class="question" data-answer="1"><strong>5. When does the Early Access website link exist?</strong><div class="choices"><button>As soon as a version is named in package.json.</button><button>Only when the RC slot has complete identity, artifact, and Apple-trust evidence.</button><button>Whenever the Desktop DMG workflow has started, even before notarization.</button></div><p class="feedback" hidden></p></div>
+      </div>
+    </section>
+
+    <footer>Explains the exact PR #15 slice from <code>5b66b98…fd9a43e</code>. Public release publication remains a separate, explicitly approved P8 action.</footer>
+  </main>
+  <script>
+    const feedback = [
+      ["Not quite. Package metadata identifies the running version; it does not authorize navigation.","Correct. The manifest supplies evidence while the application owns the only allowed repository URL.","Not quite. GitHub tag pages are stable; the issue is keeping navigation outside mutable metadata."],
+      ["Not quite. RC discovery is intentionally confined to the current version line.","Not quite. Later RCs on the same line remain visible.","Correct. Stable outranks an RC on the same core version; unrelated future RC lines stay hidden."],
+      ["Correct. Preferences remain choices; cache remains non-authoritative observation.","Not quite. Electron user data can persist both safely.","Not quite. Application release discovery is deliberately independent of Plugin governance."],
+      ["Not quite. Partial JSON is never parsed as authoritative.","Not quite. Trust requirements never weaken on retry.","Correct. Bounded failure cannot interfere with local workflow observation."],
+      ["Not quite. Source metadata is not publication evidence.","Correct. All six trust flags plus exact artifact and source identity must validate.","Not quite. A running workflow is not proof that trusted bytes are publicly durable."]
+    ];
+    document.querySelectorAll('.question').forEach((question,index)=>{
+      question.querySelectorAll('button').forEach((button,choice)=>button.addEventListener('click',()=>{
+        question.querySelectorAll('button').forEach(item=>item.classList.remove('correct','wrong'));
+        const correct=choice===Number(question.dataset.answer);
+        button.classList.add(correct?'correct':'wrong');
+        const output=question.querySelector('.feedback'); output.hidden=false; output.textContent=feedback[index][choice];
+      }));
+    });
+  </script>
+</body>
+</html>

@@ -181,5 +181,8 @@ Append PR boundary entries here.
   evidence; R7 remains `NOT YET` until P8 publishes and proves the approved RC
   and P10 completes final verification
 - **Evidence:** [PR #15 packet](pr-15/boundary.json)
-- **Boundary result:** Formal exact-head evaluation is in progress
-- **Status:** Draft; I-6 is in review
+- **Boundary result:** Exact-head workflow-contract verification, feature-doc
+  validation, specification evaluation, independent judge, code review with no
+  findings, decision triage, explain-diff, and all hosted checks pass; pattern
+  review is not applicable because no scope is configured
+- **Status:** Boundary complete; I-6 is in review
