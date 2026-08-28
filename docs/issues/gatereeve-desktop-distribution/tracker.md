@@ -210,3 +210,23 @@ Append PR boundary entries here.
 - **Status:** Merged; the exact `v0.1.0-rc.1` packet was published, all five
   public surfaces verify, direct DMG installation and launch passed on the
   maintainer's Mac, and I-7 is closed
+
+### PR #18 - Guarded Homebrew Cask distribution
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/18
+- **Scope:** Delivery boundary 9, P9 implementation and public-Cask mechanism
+- **Plan steps:** P9; P10 remains after approved public publication
+- **Issues:** I-8
+- **Rubric movement:** R8 advances with exact trusted-byte rendering, complete
+  trust and direct-install binding, distinct plan approval, deterministic tap
+  creation and one-file PR publication, idempotent retry, and real Homebrew
+  install/upgrade smoke on Apple Silicon and Intel; it remains `NOT YET` until
+  the exact Cask is published and installed from the public tap
+- **Evidence:** [PR #18 packet](pr-18/boundary.json)
+- **Boundary result:** Exact-head verification, scoped specification evaluation,
+  independent judge, code review after resolving trust-evidence, architecture,
+  and package-boundary findings, decision triage, explain-diff, and all fifteen
+  hosted checks pass; pattern review is not applicable because no scope is
+  configured
+- **Status:** Ready to merge; public tap creation remains blocked on a fresh
+  merged-main packet and separate exact user approval
