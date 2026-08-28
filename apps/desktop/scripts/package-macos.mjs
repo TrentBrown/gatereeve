@@ -127,6 +127,22 @@ export async function packageMacos(options = {}) {
   });
 }
 
+/**
+ * @param {Readonly<Record<string, unknown>>} result
+ * @param {{resultFile?: string, output?: Pick<NodeJS.WriteStream, 'write'>}} [options]
+ */
+export async function emitPackageResult(result, options = {}) {
+  const serialized = `${JSON.stringify(result, null, 2)}\n`;
+  if (options.resultFile) {
+    const resultPath = resolve(options.resultFile);
+    await mkdir(dirname(resultPath), { recursive: true });
+    await writeFile(resultPath, serialized);
+    return resultPath;
+  }
+  (options.output ?? process.stdout).write(serialized);
+  return undefined;
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const versionIndex = process.argv.indexOf('--version');
   const version = versionIndex === -1 ? undefined : process.argv[versionIndex + 1];
@@ -139,14 +155,17 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     : process.argv[signingIdentityIndex + 1];
   const keychainIndex = process.argv.indexOf('--keychain');
   const keychain = keychainIndex === -1 ? undefined : process.argv[keychainIndex + 1];
+  const resultFileIndex = process.argv.indexOf('--result-file');
+  const resultFile = resultFileIndex === -1 ? undefined : process.argv[resultFileIndex + 1];
   if (signingIdentityIndex !== -1 && !signingIdentity) {
     throw new Error('--signing-identity requires a Developer ID Application identity');
   }
   if (keychainIndex !== -1 && !keychain) throw new Error('--keychain requires a path');
+  if (resultFileIndex !== -1 && !resultFile) throw new Error('--result-file requires a path');
   if (keychain && !signingIdentity) throw new Error('--keychain requires --signing-identity');
-  process.stdout.write(`${JSON.stringify(await packageMacos({
+  await emitPackageResult(await packageMacos({
     version,
     signingIdentity,
     keychain,
-  }), null, 2)}\n`);
+  }), { resultFile });
 }

@@ -14,7 +14,7 @@ import {
   MACOS_PRODUCT,
   REQUIRED_ASAR_PATHS,
 } from '../scripts/macos-package-contract.mjs';
-import { stageDesktopSource } from '../scripts/package-macos.mjs';
+import { emitPackageResult, stageDesktopSource } from '../scripts/package-macos.mjs';
 import { writeVerificationEvidence } from '../scripts/verify-macos-package.mjs';
 
 const desktopRoot = resolve(import.meta.dirname, '..');
@@ -112,6 +112,31 @@ test('Desktop staging contains only self-contained runtime resources', async () 
     for (const excluded of ['scripts', 'test', 'visual', 'node_modules']) {
       await assert.rejects(access(resolve(stageRoot, excluded)), /ENOENT/u);
     }
+  } finally {
+    await rm(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test('package results can use a dedicated machine-readable file', async () => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'gatereeve-package-result-'));
+  const resultPath = resolve(temporaryRoot, 'nested', 'trusted-package.json');
+  const result = {
+    applicationPath: '/output/GateReeve.app',
+    dmgPath: '/output/GateReeve.dmg',
+    version: '0.1.0-rc.3',
+  };
+  try {
+    let resultOutput = '';
+    assert.equal(await emitPackageResult(result, {
+      resultFile: resultPath,
+      output: { write: (value) => { resultOutput += value; } },
+    }), resultPath);
+    assert.equal(resultOutput, '');
+    assert.deepEqual(JSON.parse(await readFile(resultPath, 'utf8')), result);
+
+    let output = '';
+    await emitPackageResult(result, { output: { write: (value) => { output += value; } } });
+    assert.deepEqual(JSON.parse(output), result);
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }

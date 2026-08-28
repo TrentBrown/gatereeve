@@ -125,3 +125,16 @@ exact publication approval, and complete the full feature evaluation.
 Preserve the hosted runner's user keychain search list, prepend the ephemeral
 Developer ID keychain for signing, restore the original list during cleanup,
 and repeat the protected nonpublishing rehearsal.
+
+## I-10 - Isolated trusted-package result channel
+
+- **Status:** in-progress
+- **Estimate:** 0.25d
+- **Plan steps:** P6
+- **Rubric criteria:** R5, R6
+- **Depends on:** I-9
+- **PR:** -
+
+Write signed-package metadata to a dedicated JSON result file so Electron
+Packager progress output cannot corrupt the protected workflow's machine input,
+then repeat the nonpublishing rehearsal through notarization and verification.

@@ -6,15 +6,14 @@
 **Created:** 2026-08-27
 
 **Active slice:** Apple trust boundary P6 / I-5 remains in progress through the
-I-9 follow-up on `gatereeve-desktop-distribution-05b-keychain-search` in draft
-PR [#12](https://github.com/TrentBrown/gatereeve/pull/12). PR
-[#11](https://github.com/TrentBrown/gatereeve/pull/11) merged the protected
-boundary as commit `8a93f4a` on `main`. Protected rehearsal run
-[#33135027205](https://github.com/TrentBrown/gatereeve/actions/runs/33135027205)
-validated the configured credentials and exact Developer ID identity, then
-failed because the ephemeral keychain was absent from the user search list when
-`codesign` resolved that identity. I-9 preserves, extends, and restores that
-search list before repeating the nonpublishing rehearsal.
+I-10 follow-up on `gatereeve-desktop-distribution-05c-package-result`. PR
+[#12](https://github.com/TrentBrown/gatereeve/pull/12) merged the I-9 keychain
+repair as commit `f87c03b` on `main`. Protected rehearsal run
+[#33138565845](https://github.com/TrentBrown/gatereeve/actions/runs/33138565845)
+then passed configuration, credential import, exact identity discovery, and the
+signed universal package command. It failed afterward because Electron
+Packager's progress text shared stdout with the final JSON result. I-10 gives
+that result a dedicated file before repeating the nonpublishing rehearsal.
 
 ## Rubric Status
 
@@ -128,5 +127,5 @@ Append PR boundary entries here.
   validation, independent judge, code review with no findings, explain-diff,
   and all thirteen hosted checks pass; pattern review is not applicable because
   no scope is configured
-- **Status:** In review; I-9 closes only after the corrected post-merge
-  protected rehearsal passes
+- **Status:** Merged; I-9's keychain repair passed its live boundary, while the
+  broader rehearsal continues through I-10
