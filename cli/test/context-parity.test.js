@@ -21,6 +21,7 @@ async function pythonContext(cwd, repository = null) {
   if (repository !== null) args.push('--repository', repository);
   const result = await execute('python3', args, {
     encoding: 'utf8',
+    env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
     maxBuffer: 10 * 1024 * 1024,
   });
   return JSON.parse(result.stdout);

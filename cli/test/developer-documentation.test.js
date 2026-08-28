@@ -91,6 +91,9 @@ test('release runbook preserves the guarded RC-to-stable lifecycle', async () =>
     'npm start --prefix cli -- plugin release publish --promote --dry-run',
     'npm start --prefix cli -- plugin release publish --promote',
     'npm start --prefix cli -- plugin release publish-coordinated',
+    'npm start --prefix cli -- plugin release prepare-cask',
+    'npm start --prefix cli -- plugin release inspect-cask',
+    'npm start --prefix cli -- plugin release publish-cask',
   ]) {
     assert.ok(oneLine.includes(command), `RELEASING.md must document: ${command}`);
   }

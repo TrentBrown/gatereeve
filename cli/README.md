@@ -156,6 +156,13 @@ gatereeve plugin release watch --tag v0.1.0-rc.2
 
 # Bundle a verified release for repository-independent installation.
 gatereeve plugin release bundle --tag v0.1.0-rc.2 --output-dir ~/Downloads
+
+# Prepare and inspect a checksum-pinned Cask packet after direct DMG proof.
+gatereeve plugin release prepare-cask --help
+gatereeve plugin release inspect-cask --cask-record /path/to/cask-record.json
+
+# Preflight or publish the exact separately approved Cask plan.
+gatereeve plugin release publish-cask --help
 ```
 
 An ad-hoc development record is intentionally not publishable. The record must
@@ -172,6 +179,11 @@ same source commit as the deployed RC, even when `main` has advanced.
 `gatereeve plugin release prepare` is the low-level Plugin-only composer used
 inside CI. `gatereeve plugin release coordinate` binds its output to the exact
 universal DMG and native ARM/Intel verification. Neither command publishes.
+`gatereeve plugin release prepare-cask` is also nonpublishing: it accepts only
+a trusted coordinated RC workspace plus observed direct-install proof and
+seals the dedicated tap destination and exact Cask bytes. `publish-cask`
+requires its own inspected plan digest and confirmation; its dry run performs
+remote reads only.
 `gatereeve plugin smoke-install` remains a separate native-manager test.
 
 `gatereeve plugin release bundle` verifies the selected deployed release, archives

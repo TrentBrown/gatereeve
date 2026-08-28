@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #18 · Guarded Homebrew Cask distribution</title>
+  <style>
+    :root { color-scheme: light dark; --ink:#18221c; --paper:#f5f1e8; --card:#fffaf0; --green:#315f45; --gold:#b77b2b; --line:#cfc4ac; }
+    * { box-sizing:border-box } body { margin:0; font:16px/1.55 ui-sans-serif,system-ui,sans-serif; color:var(--ink); background:linear-gradient(135deg,#e6dfcc,var(--paper)); }
+    main { max-width:980px; margin:auto; padding:36px 22px 70px } h1 { font-size:clamp(2rem,5vw,3.7rem); line-height:1.03; margin:.15em 0 } h2 { margin-top:2em; color:var(--green) }
+    .eyebrow { letter-spacing:.14em; text-transform:uppercase; color:var(--gold); font-weight:800 } .lead { font-size:1.2rem; max-width:760px }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin:16px 0; box-shadow:0 8px 28px #3e32131a }
+    .flow { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; align-items:center; text-align:center; font-weight:700 }
+    .flow div { background:#e8efe7; border:1px solid #9cb39f; border-radius:12px; padding:14px 8px; min-height:78px; display:grid; place-items:center }
+    .flow span { color:var(--gold); font-size:1.4rem } code { background:#ede5d3; padding:.12em .35em; border-radius:5px } pre { overflow:auto; background:#17221b; color:#ecf3e9; padding:18px; border-radius:12px }
+    table { border-collapse:collapse; width:100% } th,td { border-bottom:1px solid var(--line); text-align:left; padding:10px } th { color:var(--green) }
+    details { margin:12px 0; border:1px solid var(--line); border-radius:12px; padding:12px 16px; background:var(--card) } summary { cursor:pointer; font-weight:800 }
+    label { display:block; padding:5px } .answer { display:none; margin-top:10px; padding:10px; background:#e8efe7; border-radius:8px } button { border:0; border-radius:9px; background:var(--green); color:white; padding:9px 14px; font-weight:800; cursor:pointer }
+    @media (prefers-color-scheme:dark) { :root { --ink:#e8ede8; --paper:#111712; --card:#19221a; --line:#4a554b } body { background:linear-gradient(135deg,#172019,var(--paper)) } .flow div,.answer { background:#223327 } code { background:#30382f } }
+    @media (max-width:760px) { .flow { grid-template-columns:1fr } .flow span { transform:rotate(90deg) } }
+  </style>
+</head>
+<body><main>
+  <p class="eyebrow">GateReeve · PR #18 · P9 implementation</p>
+  <h1>The same trusted app, now installable with Homebrew</h1>
+  <p class="lead">This change adds a guarded way to publish a Cask for the exact signed, notarized, already-proven GateReeve DMG. It deliberately does not make CI the authority to create a public repository.</p>
+
+  <h2>Background</h2>
+  <div class="card"><p>GateReeve already has a public universal DMG whose bytes, Apple signature, notarization, staple, Gatekeeper result, and direct installation are known. The final distribution requirement is convenience: <code>brew install --cask</code> should install those same bytes—not a rebuild and not a bundle that quietly owns the Plugin or CLI.</p></div>
+
+  <h2>Intuition</h2>
+  <div class="flow" aria-label="Cask publication flow">
+    <div>Trusted release record</div><span>→</span><div>Sealed Cask plan</div><span>→</span><div>Read-only remote check</div><span>→</span><div>Exact human approval</div><span>→</span><div>One-file tap PR</div>
+  </div>
+  <p>Freedom lives inside the boundary: code may render, inspect, test, and retry. The public mutation occurs only when the plan digest the maintainer saw is the digest the command receives.</p>
+
+  <h2>Code map</h2>
+  <table><thead><tr><th>Area</th><th>Responsibility</th></tr></thead><tbody>
+    <tr><td><code>homebrew-cask.js</code></td><td>Renders and seals the Cask, validates trust and direct-install evidence, preflights GitHub, creates the exact tap when approved, and publishes through a deterministic PR.</td></tr>
+    <tr><td><code>release.js</code></td><td>Exposes Commander commands to prepare, inspect, dry-run, confirm, and retry.</td></tr>
+    <tr><td><code>smoke-homebrew-cask.mjs</code></td><td>Uses a disposable local tap to prove install and upgrade without touching an existing user installation.</td></tr>
+    <tr><td><code>homebrew-cask-smoke.yml</code></td><td>Runs the real client proof on hosted Apple Silicon and Intel against the exact trusted artifact.</td></tr>
+    <tr><td>Python guards</td><td>Prevents bytecode caches from contaminating canonical packaged sources during parallel checks.</td></tr>
+  </tbody></table>
+
+  <h2>The generated artifact</h2>
+  <pre><code>cask "gatereeve" do
+  version "0.1.0-rc.1"
+  sha256 "9cbe51065692857ba929e153863fa92c8fe2dc4d275eb29453014a04e1f1ea92"
+  url "https://github.com/TrentBrown/gatereeve/releases/download/v#{version}/GateReeve-#{version}-macos-universal.dmg"
+  app "GateReeve.app"
+end</code></pre>
+  <p>The real renderer also supplies description, homepage, caveats, and cleanup metadata. The important invariants are the exact URL, exact checksum, and the single application payload.</p>
+
+  <h2>Why the smoke test uses an upgrade</h2>
+  <div class="card"><p>A fresh install proves Homebrew can mount the approved DMG and place the application. An upgrade proves the final rendered Cask participates correctly in Homebrew's lifecycle. Both phases verify bundle identity, Developer ID/Gatekeeper trust, and that the executable is universal.</p></div>
+
+  <h2>Review results</h2>
+  <ul>
+    <li>All 15 hosted checks pass.</li>
+    <li>Native Cask install and upgrade pass on ARM and Intel.</li>
+    <li>The public tap remains absent and no publication mutation occurred.</li>
+    <li>Three pre-pin review findings—trust completeness, architecture evidence, and CLI/Desktop package boundaries—were corrected.</li>
+  </ul>
+
+  <h2>Quiz</h2>
+  <div id="quiz">
+    <details><summary>1. Which bytes does the Cask install?</summary><label><input type="radio" name="q1"> A new CI rebuild</label><label><input type="radio" name="q1" data-right> The exact approved public universal DMG</label><label><input type="radio" name="q1"> A source checkout</label><p class="answer">The checksum and URL bind the Cask to the already-proven public DMG.</p></details>
+    <details><summary>2. What else does the Cask install?</summary><label><input type="radio" name="q2"> Plugin and CLI</label><label><input type="radio" name="q2" data-right> Only GateReeve.app</label><label><input type="radio" name="q2"> The Plugin only</label><p class="answer">The Plugin remains required but separately managed; the CLI remains optional and separately managed.</p></details>
+    <details><summary>3. What authorizes public tap creation?</summary><label><input type="radio" name="q3"> A green CI run</label><label><input type="radio" name="q3"> A branch push</label><label><input type="radio" name="q3" data-right> Exact plan digest, named approver, and confirmation</label><p class="answer">CI proves behavior but is not the authority for the distinct public mutation.</p></details>
+    <details><summary>4. Why run on two macOS architectures?</summary><label><input type="radio" name="q4" data-right> To prove the Homebrew lifecycle and universal binary on ARM and Intel</label><label><input type="radio" name="q4"> To build two different DMGs</label><label><input type="radio" name="q4"> Only to compare download speed</label><p class="answer">Both jobs consume the same DMG; they verify native behavior on each platform family.</p></details>
+    <details><summary>5. What happens after this PR merges?</summary><label><input type="radio" name="q5"> The tap appears automatically</label><label><input type="radio" name="q5" data-right> A fresh merged-main packet is inspected and presented for approval</label><label><input type="radio" name="q5"> The feature is declared complete immediately</label><p class="answer">Publication and the final public-tap smoke remain a separate controlled operation.</p></details>
+    <button type="button" onclick="grade()">Check answers</button> <strong id="score" aria-live="polite"></strong>
+  </div>
+  <script>function grade(){let n=0;document.querySelectorAll('details').forEach(d=>{const c=d.querySelector('input:checked');const ok=c&&c.hasAttribute('data-right');if(ok)n++;d.querySelector('.answer').style.display='block';});document.getElementById('score').textContent=` ${n}/5 correct`;}</script>
+</main></body></html>
