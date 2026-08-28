@@ -106,6 +106,11 @@ test('Apple release setup is actionable, protected, and team-key only', async ()
   for (const phrase of [
     'Enroll as an individual',
     'Developer ID Application',
+    'fresh CSR for every certificate request',
+    'G2 Sub-CA',
+    'login → My Certificates',
+    'System Defaults',
+    'Do not set the Developer ID leaf certificate to **Always Trust**',
     'team API key',
     'individual keys cannot use `notaryTool`',
     'encrypted offline',

@@ -25,6 +25,7 @@ Primary references:
 - [Apple Developer Program enrollment](https://developer.apple.com/programs/enroll/)
 - [Create a Developer ID certificate](https://developer.apple.com/help/account/certificates/create-developer-id-certificates/)
 - [Create a certificate signing request](https://developer.apple.com/help/account/certificates/create-a-certificate-signing-request)
+- [Developer ID intermediate certificate](https://developer.apple.com/support/developer-id-intermediate-certificate/)
 - [App Store Connect API team keys](https://developer.apple.com/help/app-store-connect/get-started/app-store-connect-api)
 - [Apple notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow)
 - [GitHub deployment environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
@@ -50,18 +51,30 @@ On the Mac that will hold the offline recovery identity:
 2. Choose **Certificate Assistant → Request a Certificate from a Certificate
    Authority**.
 3. Enter the Apple Account email, use a recognizable common name such as
-   `GateReeve Developer ID`, leave the CA email blank, and save the CSR to disk.
-4. In Apple Developer **Certificates, Identifiers & Profiles**, add a
-   certificate, select **Developer ID**, then **Developer ID Application**.
+   `QualityCode Application`, leave the CA email blank, select **Saved to
+   disk**, and save the CSR. The common name labels the private key on this Mac;
+   it does not change the legal name Apple places in the certificate.
+4. Create a fresh CSR for every certificate request. Apple rejects a CSR that
+   has already generated another certificate, and a fresh CSR also gives the
+   new identity its own private key.
+5. In Apple Developer **Certificates, Identifiers & Profiles**, add a
+   certificate and select **Developer ID Application** from the **Software**
+   list. When Apple asks for a profile type, select **G2 Sub-CA**. The
+   **Previous Sub-CA** option is only for legacy tooling through Xcode 11.4.1.
    GateReeve uses a DMG, not an installer package, so it does not require a
    Developer ID Installer certificate.
-5. Upload the CSR, download the `.cer`, and open it so Keychain Access joins the
-   certificate to the private key created with the CSR.
+6. Upload the fresh CSR and download the `.cer`.
+7. Import the `.cer` into the same **login** keychain that contains the CSR's
+   private key. If opening the file puts it in the System keychain, use
+   **File → Import Items** in Keychain Access and select **login** as the
+   destination instead.
 
-Confirm the identity appears under **My Certificates** and from Terminal:
+Confirm the identity appears under **login → My Certificates** and expands
+to reveal its private key. Then verify it from Terminal:
 
 ```bash
-security find-identity -v -p codesigning
+security find-identity -v -p codesigning \
+  ~/Library/Keychains/login.keychain-db
 ```
 
 Its complete name must have this shape:
@@ -70,9 +83,17 @@ Its complete name must have this shape:
 Developer ID Application: LEGAL NAME (TEAMID1234)
 ```
 
-Export that identity and its private key from **My Certificates** as a `.p12`.
-Use a new high-entropy export password stored in the password manager, not the
-Apple Account password.
+If Keychain Access reports that the leaf certificate is not trusted or the
+command finds no valid identity, install Apple's current
+[Developer ID G2 intermediate certificate](https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer)
+in the **System** keychain, leave its trust setting at **System Defaults**, and
+run the check again. Do not set the Developer ID leaf certificate to **Always Trust**;
+repair the missing certificate chain instead.
+
+Export the expanded **Developer ID Application** identity and its private key
+from **My Certificates** as a `.p12`. Do not accidentally export a Developer ID
+Installer identity. Use a new high-entropy export password stored in the
+password manager, not the Apple Account password.
 
 ## 3. Create a notarization team API key
 

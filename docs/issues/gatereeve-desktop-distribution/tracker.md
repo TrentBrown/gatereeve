@@ -9,7 +9,11 @@
 `gatereeve-desktop-distribution-05-apple-trust` in draft PR
 [#11](https://github.com/TrentBrown/gatereeve/pull/11). PR
 [#10](https://github.com/TrentBrown/gatereeve/pull/10) merged coordinated
-release and recovery as commit `20b555e` on `main`.
+release and recovery as commit `20b555e` on `main`. The Apple membership,
+Developer ID Application identity, App Store Connect team key, protected
+environment variables, and protected environment secrets are configured. The
+real nonpublishing Apple trust rehearsal remains pending until PR #11 lands on
+`main` and makes that workflow entry point available.
 
 ## Rubric Status
 
@@ -19,7 +23,7 @@ release and recovery as commit `20b555e` on `main`.
 | R2 | Packaged runtime independence | PASS | [#7](https://github.com/TrentBrown/gatereeve/pull/7), [#9](https://github.com/TrentBrown/gatereeve/pull/9) | JavaScript/Python resolver parity, Python-free staging, Finder-compatible discovery, Ubuntu regression coverage, and the same mounted packaged bytes observing a real governed fixture without external Node, Python, or CLI pass on ARM and Intel |
 | R3 | Setup and readiness | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Persistent selected-agent Setup, bounded read-only adapters, native remediation, recheck, one-of-selected readiness, unavailable-state honesty, and historical/offline presentation pass local and exact-head hosted verification |
 | R4 | Compatibility governance | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Exact project-controlled matched/compatible/incompatible pairs, tested skew, update guidance, and fail-closed unknown or unreported versions pass matrix and UI verification |
-| R5 | Apple trust | NOT YET | [#11](https://github.com/TrentBrown/gatereeve/pull/11) | P6's implementation and hosted checks are under review; real Apple trust rehearsal plus P8 and P10 remain |
+| R5 | Apple trust | NOT YET | [#11](https://github.com/TrentBrown/gatereeve/pull/11) | Membership, identity, team key, protected configuration, P6 implementation, and hosted checks are complete; the real protected rehearsal plus P8 and P10 remain |
 | R6 | Coordinated release and recovery | NOT YET | [#10](https://github.com/TrentBrown/gatereeve/pull/10) | P5's immutable identity, pre-publication preparation, exact approval guard, ordered recovery, and stable-source proof pass; Apple trust, live protected publication, and final verification remain P6, P8, and P10 |
 | R7 | RC publication and update behavior | NOT YET | - | P7, P8, P10 / I-6, I-7, I-8 |
 | R8 | Cask distribution | NOT YET | - | P9, P10 / I-8 |
