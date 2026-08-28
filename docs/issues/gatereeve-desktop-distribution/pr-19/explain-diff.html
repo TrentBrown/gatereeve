@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #19 · Proving the public GateReeve Cask</title>
+  <style>
+    :root{--ink:#17221c;--paper:#f7f3e9;--card:#fffdf7;--gate:#315f45;--gold:#b87a2b;--line:#cfc4ad;--soft:#e7eee6}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);background:linear-gradient(135deg,#e7dfcb,var(--paper));font:16px/1.6 ui-sans-serif,system-ui,sans-serif}main{max-width:980px;margin:auto;padding:36px 22px 72px}h1{font-size:clamp(2.2rem,6vw,4.4rem);line-height:1.02;margin:.15em 0}h2{margin-top:2.2em;color:var(--gate)}h3{margin-top:1.6em}.eyebrow{color:var(--gold);font-weight:850;letter-spacing:.14em;text-transform:uppercase}.lead{max-width:760px;font-size:1.2rem}.card,.callout,details{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:18px;margin:16px 0;box-shadow:0 8px 28px #3c2f1517}.callout{border-left:6px solid var(--gold)}nav{display:flex;flex-wrap:wrap;gap:9px;margin:24px 0}nav a{color:var(--gate);background:var(--soft);padding:7px 11px;border-radius:999px;text-decoration:none;font-weight:750}.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:8px;align-items:center;text-align:center}.node{min-height:100px;display:grid;place-items:center;padding:12px;border:1px solid #91aa95;border-radius:13px;background:var(--soft);font-weight:800}.arrow{color:var(--gold);font-size:1.7rem}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}.proof{border-top:5px solid var(--gate)}code{background:#ede5d3;border-radius:5px;padding:.12em .35em}pre{white-space:pre-wrap;overflow:auto;background:#17221b;color:#edf4eb;border-radius:12px;padding:18px}table{border-collapse:collapse;width:100%}th,td{padding:10px;text-align:left;border-bottom:1px solid var(--line)}th{color:var(--gate)}summary{cursor:pointer;font-weight:850}label{display:block;padding:6px 2px}.feedback{display:none;margin-top:10px;padding:10px;border-radius:8px;background:var(--soft)}button{border:0;border-radius:9px;padding:10px 15px;background:var(--gate);color:white;font-weight:850;cursor:pointer}#score{font-weight:850;margin-left:10px}@media(max-width:760px){.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}.twocol{grid-template-columns:1fr}}@media(prefers-color-scheme:dark){:root{--ink:#e9eee9;--paper:#101611;--card:#19221a;--line:#49564b;--soft:#223327}body{background:linear-gradient(135deg,#172019,var(--paper))}code{background:#30392f}}
+  </style>
+</head>
+<body><main>
+  <p class="eyebrow">GateReeve · PR #19 · Feature final</p>
+  <h1>From “the Cask exists” to “the public command works”</h1>
+  <p class="lead">The previous slice published an exact, approved Homebrew Cask. This final slice closes the last epistemic gap: clean Apple Silicon and Intel machines use the same command a real user will type, while the verifier checks the public instructions before allowing Homebrew to evaluate them.</p>
+  <nav aria-label="Table of contents"><a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#results">Results</a><a href="#quiz">Quiz</a></nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <h3>The product has three independent surfaces</h3>
+    <div class="twocol">
+      <div class="card"><strong>Plugin</strong><p>The governance system inside a supported coding agent. It is required, but its native manager owns installation and updates.</p></div>
+      <div class="card"><strong>Desktop</strong><p>An optional read-only observer. The Cask installs this application and nothing else.</p></div>
+      <div class="card"><strong>CLI</strong><p>An optional operator surface over the same protocol. It retains its own package lifecycle.</p></div>
+      <div class="card"><strong>Release record</strong><p>The immutable connective tissue: version, source commit, DMG hash, trust evidence, and publication receipts.</p></div>
+    </div>
+    <p>The public Cask points at the already-published universal DMG. It does not build another application. This lets a checksum prove that direct-DMG and Homebrew users receive the same bytes.</p>
+    <div class="callout"><strong>Key distinction:</strong> publishing a byte-identical Cask and testing a local copy are strong evidence, but neither literally exercises <code>TrentBrown/gatereeve/gatereeve</code>. PR #19 adds that last public-path observation.</div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <div class="flow" aria-label="Public Cask verification sequence">
+      <div class="node">Sealed release packet<br><small>expected hashes</small></div><div class="arrow">→</div>
+      <div class="node">Clone public tap<br><small>actual Cask</small></div><div class="arrow">→</div>
+      <div class="node">Compare before install<br><small>bytes and SHA-256</small></div><div class="arrow">→</div>
+      <div class="node">Install and inspect<br><small>identity, trust, architectures</small></div>
+    </div>
+    <p>Imagine the sealed packet says the Cask hash is <code>963f…ebb2</code>. The runner clones the actual public tap and hashes the file Homebrew will read. Only if it also produces <code>963f…ebb2</code> does the test run the literal install command.</p>
+    <p>This ordering matters. A post-install comparison would tell us that unexpected instructions ran. A pre-install comparison prevents that execution and turns remote drift into a safe failure.</p>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <h3>1. A second smoke mode reuses the same application proof</h3>
+    <p><code>smoke-homebrew-cask.mjs</code> already knew how to inspect an installed GateReeve application. The public mode reuses those checks but changes the acquisition path from a disposable local tap to the public tap.</p>
+    <pre><code>brew tap TrentBrown/gatereeve
+# compare cloned Casks/gatereeve.rb with the sealed packet
+brew install --cask --appdir=&lt;temporary&gt; \
+  TrentBrown/gatereeve/gatereeve</code></pre>
+    <p>The runner refuses a pre-existing GateReeve installation or tap. Its evidence therefore describes a clean first installation, not an accidental reuse of machine state.</p>
+
+    <h3>2. Verification is layered</h3>
+    <table><thead><tr><th>Layer</th><th>What it rejects</th></tr></thead><tbody>
+      <tr><td>Cask bytes</td><td>A changed URL, checksum, artifact stanza, caveat, or any other public instruction.</td></tr>
+      <tr><td>Bundle identity</td><td>An application other than <code>com.trentbrown.gatereeve.desktop</code>.</td></tr>
+      <tr><td>Apple trust</td><td>An invalid deep signature or Gatekeeper rejection.</td></tr>
+      <tr><td>Architecture</td><td>Anything other than exactly <code>arm64</code> plus <code>x86_64</code>.</td></tr>
+      <tr><td>Host evidence</td><td>A job claiming an architecture different from its executing Node process.</td></tr>
+    </tbody></table>
+
+    <h3>3. CI runs two complementary experiments</h3>
+    <div class="twocol">
+      <div class="card proof"><strong>Local install and upgrade</strong><p>Proves the exact Cask can enter and advance through Homebrew's lifecycle using the approved DMG bytes.</p></div>
+      <div class="card proof"><strong>Public first install</strong><p>Proves the real tap identity and literal user command on clean ARM and Intel runners.</p></div>
+    </div>
+
+    <h3>4. Final verification corrected a stale website assertion</h3>
+    <p>The website test had been written when no RC existed and still required <code>channels.rc</code> to be null. Publication correctly changed the durable fixture. The test now requires the exact trusted <code>v0.1.0-rc.1</code> metadata while continuing to assert the Plugin prerequisite and RC update explanation.</p>
+  </section>
+
+  <section id="results">
+    <h2>Results</h2>
+    <ul>
+      <li>All 17 exact-head checks pass.</li>
+      <li>Public Cask installation passes on Apple Silicon and Intel.</li>
+      <li>The public Cask hash is <code>963fb25d…3febb2</code>.</li>
+      <li>The installed DMG hash is <code>9cbe5106…1ea92</code>.</li>
+      <li>Developer ID, Gatekeeper, bundle identity, and universal architecture pass on both runners.</li>
+      <li>All eight feature rubric criteria are <strong>PASS</strong>, and every current feature-record file is retained in Git.</li>
+    </ul>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <details><summary>1. Why does the public smoke explicitly tap before running the install command?</summary><label><input type="radio" name="q1"> Homebrew cannot install a fully qualified Cask unless the tap was created in a previous command.</label><label><input type="radio" name="q1" data-right> It lets the runner compare the cloned Cask with the sealed packet before Homebrew evaluates its instructions.</label><label><input type="radio" name="q1"> It changes the Cask from an RC channel to a stable channel before installation.</label><p class="feedback">The fully qualified install could tap automatically, but explicit tapping creates a safe pre-execution inspection point.</p></details>
+    <details><summary>2. What relationship does the Cask have to the direct DMG?</summary><label><input type="radio" name="q2"> It rebuilds the same source into a Homebrew-specific application.</label><label><input type="radio" name="q2"> It wraps the DMG in a second signed installer while retaining the original checksum.</label><label><input type="radio" name="q2" data-right> It downloads the already-approved public DMG and pins that exact byte stream by SHA-256.</label><p class="feedback">There is one application artifact; the Cask is a distribution instruction for those same bytes.</p></details>
+    <details><summary>3. Why are there both local upgrade and public install jobs?</summary><label><input type="radio" name="q3" data-right> One proves Homebrew lifecycle transition; the other proves the actual public tap identity and clean user command.</label><label><input type="radio" name="q3"> One verifies the Plugin while the other verifies the optional CLI.</label><label><input type="radio" name="q3"> One signs the Intel slice while the other notarizes the ARM slice.</label><p class="feedback">The experiments answer different questions without giving the Cask ownership of other components.</p></details>
+    <details><summary>4. What made the old website assertion stale?</summary><label><input type="radio" name="q4"> The website changed from GitHub Pages to Cloudflare Pages.</label><label><input type="radio" name="q4" data-right> The approved publication changed the durable RC manifest from unresolved to the exact trusted release.</label><label><input type="radio" name="q4"> Stable promotion removed the RC entry and moved it into the stable channel.</label><p class="feedback">The product state advanced legitimately; the test was still describing the pre-publication world.</p></details>
+    <details><summary>5. What does the Cask deliberately leave alone?</summary><label><input type="radio" name="q5"> The Desktop app and its macOS bundle identity.</label><label><input type="radio" name="q5"> The DMG checksum and Apple trust chain.</label><label><input type="radio" name="q5" data-right> The required Plugin and optional CLI installation and update lifecycles.</label><p class="feedback">The hybrid distribution model keeps each native manager authoritative for its own component.</p></details>
+    <button type="button" onclick="grade()">Check answers</button><span id="score" aria-live="polite"></span>
+  </section>
+  <script>function grade(){let n=0;document.querySelectorAll('#quiz details').forEach(d=>{const c=d.querySelector('input:checked');if(c&&c.hasAttribute('data-right'))n+=1;d.querySelector('.feedback').style.display='block'});document.getElementById('score').textContent=`${n}/5 correct`}</script>
+</main></body></html>

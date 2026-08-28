@@ -317,3 +317,39 @@ running release and portability tests never observe transient Python artifacts.
 **Triggered by:** Full parallel CLI verification created `scripts/__pycache__` while other tests correctly rejected transient files in canonical Plugin sources
 
 **Alternatives considered:** Ignore `__pycache__` during composition - rejected because canonical-source purity should remain fail-closed; serialize the complete Node test suite - rejected because it conceals a source mutation and slows unrelated tests; delete caches after every Python call - rejected because prevention is simpler and avoids races.
+
+## [19] Assert the published Early Access state after RC publication
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** workflow-site release presentation tests and final feature verification
+
+Update the production-site contract test to require the exact trusted v0.1.0-rc.1 metadata now committed to workflow-site/releases/desktop.json while continuing to require visible Plugin-prerequisite and RC messaging. Publication deliberately changed the durable production fixture from unresolved to trusted; retaining the old assertion would make every post-publication verification fail despite correct production behavior.
+
+**Triggered by:** The final broad website suite failed because it still required channels.rc to be null after the approved RC manifest had been published
+
+**Alternatives considered:**
+- Reset the production manifest to `null` - rejected because it would remove
+  the approved public release.
+- Accept either unresolved or published state - rejected because production
+  must have one exact durable state after publication.
+
+## [20] Verify public Cask bytes before installation
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** public Homebrew smoke ordering and remote Cask execution safety
+
+Tap the exact approved public repository, read and hash Casks/gatereeve.rb, compare it byte-for-byte with the sealed packet, and only then execute the literal fully qualified brew install command. This keeps the user-path proof while ensuring the verifier never evaluates an unexpected public Cask.
+
+**Triggered by:** Final code review observed that the first public smoke implementation compared the cloned Cask only after brew install had evaluated it
+
+**Alternatives considered:**
+- Keep the post-install comparison - rejected because it detects divergence
+  too late.
+- Rely only on the GitHub API preflight - rejected because the runner should
+  verify the exact bytes Homebrew cloned.

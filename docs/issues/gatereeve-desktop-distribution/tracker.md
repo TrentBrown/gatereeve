@@ -5,33 +5,27 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Final Homebrew Cask P9-P10 / I-8 is in review in draft PR
-[#18](https://github.com/TrentBrown/gatereeve/pull/18) from
-`gatereeve-desktop-distribution-08-homebrew-cask`, based on merged `main` commit
-`8748931`. PR [#16](https://github.com/TrentBrown/gatereeve/pull/16) and the
-transport PR [#17](https://github.com/TrentBrown/gatereeve/pull/17) published
-the exact trusted `v0.1.0-rc.1` packet from preparation run
-[#33183133044](https://github.com/TrentBrown/gatereeve/actions/runs/33183133044):
-source `117a585`, DMG SHA-256
-`9cbe51065692857ba929e153863fa92c8fe2dc4d275eb29453014a04e1f1ea92`,
-Plugin marketplace, GitHub prerelease, update manifest, and production Early
-Access surface all verify. Trent Brown then installed and launched the direct
-DMG on macOS without Gatekeeper trouble, closing P8 / I-7. The remaining slice
-must implement and prove the identical-byte Cask before requesting its distinct
-public tap approval.
+**Active slice:** P10 / I-8 feature-final verification is in review in draft PR
+[#19](https://github.com/TrentBrown/gatereeve/pull/19) from
+`gatereeve-desktop-distribution-09-public-cask-proof`, based on merged `main`
+commit `26fb22f`. The approved `v0.1.0-rc.1` release, Plugin marketplace,
+manifest, website, direct DMG, and public `TrentBrown/gatereeve` Cask all
+verify. The literal public Homebrew command installs the exact approved Cask on
+Apple Silicon and Intel after pre-install byte verification. Every feature
+criterion is `PASS`; PR #19 retains the complete feature-final evidence packet.
 
 ## Rubric Status
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Native identity and universal DMG | NOT YET | [#9](https://github.com/TrentBrown/gatereeve/pull/9) | Rolling Vale branding, permanent bundle identity, conventional DMG, universal binary inspection, and exact-byte ARM/Intel launch pass for the ad-hoc candidate; trusted public RC and final verification remain P8 and P10 |
+| R1 | Native identity and universal DMG | PASS | [#9](https://github.com/TrentBrown/gatereeve/pull/9), [#19](https://github.com/TrentBrown/gatereeve/pull/19) | Rolling Vale branding, permanent bundle identity, conventional universal DMG, direct installation, and exact public-byte application verification pass on Apple Silicon and Intel |
 | R2 | Packaged runtime independence | PASS | [#7](https://github.com/TrentBrown/gatereeve/pull/7), [#9](https://github.com/TrentBrown/gatereeve/pull/9) | JavaScript/Python resolver parity, Python-free staging, Finder-compatible discovery, Ubuntu regression coverage, and the same mounted packaged bytes observing a real governed fixture without external Node, Python, or CLI pass on ARM and Intel |
 | R3 | Setup and readiness | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Persistent selected-agent Setup, bounded read-only adapters, native remediation, recheck, one-of-selected readiness, unavailable-state honesty, and historical/offline presentation pass local and exact-head hosted verification |
 | R4 | Compatibility governance | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Exact project-controlled matched/compatible/incompatible pairs, tested skew, update guidance, and fail-closed unknown or unreported versions pass matrix and UI verification |
-| R5 | Apple trust | NOT YET | [#11](https://github.com/TrentBrown/gatereeve/pull/11), [#14](https://github.com/TrentBrown/gatereeve/pull/14) | Enrollment, protected credentials, Developer ID signing, notarization, stapling, Gatekeeper, cleanup, and trusted ARM/Intel rehearsal pass; the trusted public RC and final verification remain P8 and P10 |
-| R6 | Coordinated release and recovery | NOT YET | [#10](https://github.com/TrentBrown/gatereeve/pull/10), [#14](https://github.com/TrentBrown/gatereeve/pull/14) | Immutable identity, pre-publication preparation, exact approval guard, ordered recovery, stable-source proof, and trusted record assembly pass; live protected publication and final verification remain P8 and P10 |
-| R7 | RC publication and update behavior | NOT YET | [#15](https://github.com/TrentBrown/gatereeve/pull/15) | Fixed bounded manifest discovery, 24-hour persistence, RC/stable isolation, quiet failure, notification-only Desktop UI, and unresolved trust-gated Early Access presentation pass; live approved publication and final verification remain P8 and P10 |
-| R8 | Cask distribution | NOT YET | [#18](https://github.com/TrentBrown/gatereeve/pull/18) | Exact renderer, separate approval packet, idempotent tap publication, and ARM/Intel install/upgrade smoke are in review in P9-P10 / I-8 |
+| R5 | Apple trust | PASS | [#11](https://github.com/TrentBrown/gatereeve/pull/11), [#14](https://github.com/TrentBrown/gatereeve/pull/14), [#19](https://github.com/TrentBrown/gatereeve/pull/19) | Individual enrollment guidance, protected ephemeral credentials, hardened-runtime Developer ID signing, secure timestamp, notarization, staple, Gatekeeper, and public ARM/Intel verification all pass without secret leakage |
+| R6 | Coordinated release and recovery | PASS | [#10](https://github.com/TrentBrown/gatereeve/pull/10), [#16](https://github.com/TrentBrown/gatereeve/pull/16), [#19](https://github.com/TrentBrown/gatereeve/pull/19) | One immutable source/release identity, exact approval, ordered per-surface receipts, generated-PR transport, partial-failure continuation, stable-source proof, and live public convergence pass |
+| R7 | RC publication and update behavior | PASS | [#15](https://github.com/TrentBrown/gatereeve/pull/15), [#16](https://github.com/TrentBrown/gatereeve/pull/16), [#19](https://github.com/TrentBrown/gatereeve/pull/19) | Trusted GitHub prerelease, exact production manifest and website link, Plugin prerequisite/RC messaging, bounded private discovery, channel isolation, notification-only UI, and fixed-page navigation pass |
+| R8 | Cask distribution | PASS | [#18](https://github.com/TrentBrown/gatereeve/pull/18), [#19](https://github.com/TrentBrown/gatereeve/pull/19) | Exact approved Cask is public through a generated tap PR; local install/upgrade and literal public-command installation pass on ARM and Intel while Plugin and CLI lifecycles remain independent |
 
 ## PR Log
 
@@ -228,5 +222,25 @@ Append PR boundary entries here.
   and package-boundary findings, decision triage, explain-diff, and all fifteen
   hosted checks pass; pattern review is not applicable because no scope is
   configured
-- **Status:** Ready to merge; public tap creation remains blocked on a fresh
-  merged-main packet and separate exact user approval
+- **Status:** Merged; the separately approved exact plan created the public tap
+  and published Cask through [tap PR #1](https://github.com/TrentBrown/homebrew-gatereeve/pull/1)
+
+### PR #19 - Public Cask proof and feature-final verification
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/19
+- **Scope:** Delivery boundary 10 and `feature-final`, public Cask proof
+- **Plan steps:** P10, completing P9's post-publication proof
+- **Issues:** I-8
+- **Rubric movement:** R1, R5, R6, R7, and R8 move to `PASS`; the complete
+  feature-final evaluation revalidates R1-R8 with zero `NOT YET` or `FAIL`
+- **Evidence:** [PR #19 feature-final packet](pr-19/boundary.json)
+- **Boundary result:** Exact-head full-feature verification, specification
+  evaluation, independent judge, focused final-slice code review, decision
+  triage, explain-diff, all seventeen hosted checks, and public Cask installs on
+  Apple Silicon and Intel pass. Final verification also corrected the stale
+  post-publication website assertion and moved Cask byte comparison before
+  installation.
+- **Retention:** Tracked; every current feature-record file is retained in Git
+  and no human retention decision is required
+- **Status:** Ready to merge; I-8 is in review and the feature has no pending
+  verification item

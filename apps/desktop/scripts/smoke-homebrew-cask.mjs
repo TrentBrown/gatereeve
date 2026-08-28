@@ -1,6 +1,7 @@
 // @ts-check
 
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
@@ -16,6 +17,8 @@ import {
 const execFileAsync = promisify(execFile);
 const SMOKE_TAP = 'gatereeve/smoke';
 const SMOKE_CASK = `${SMOKE_TAP}/${HOMEBREW_CASK_TOKEN}`;
+const PUBLIC_TAP = 'TrentBrown/gatereeve';
+const PUBLIC_CASK = `${PUBLIC_TAP}/${HOMEBREW_CASK_TOKEN}`;
 
 /** @param {string[]} command */
 async function runCommand(command) {
@@ -84,6 +87,22 @@ async function verifyInstalledApplication(run, applicationPath, record) {
   };
 }
 
+function nativeArchitecture() {
+  return process.arch === 'x64' ? 'x64' : 'arm64';
+}
+
+function assertNativeArchitecture(expected) {
+  const actual = nativeArchitecture();
+  if (expected && expected !== actual) {
+    throw new Error(`Expected a ${expected} Homebrew host, received ${actual}`);
+  }
+  return actual;
+}
+
+function sha256(contents) {
+  return createHash('sha256').update(contents).digest('hex');
+}
+
 /**
  * @param {{recordPath: string, evidencePath?: string, run?: typeof runCommand,
  *   platform?: string, architecture?: string, now?: () => Date}} options
@@ -91,12 +110,7 @@ async function verifyInstalledApplication(run, applicationPath, record) {
 export async function smokeHomebrewCask(options) {
   const platform = options.platform ?? process.platform;
   if (platform !== 'darwin') throw new Error('Homebrew Cask smoke requires macOS');
-  const nativeArchitecture = process.arch === 'x64' ? 'x64' : 'arm64';
-  if (options.architecture && options.architecture !== nativeArchitecture) {
-    throw new Error(
-      `Expected a ${options.architecture} Homebrew host, received ${nativeArchitecture}`,
-    );
-  }
+  const hostArchitecture = assertNativeArchitecture(options.architecture);
   const run = options.run ?? runCommand;
   const record = await verifyHomebrewCaskWorkspace(resolve(options.recordPath));
   const workspace = dirname(resolve(options.recordPath));
@@ -167,7 +181,7 @@ export async function smokeHomebrewCask(options) {
     desktop: structuredClone(record.desktop),
     runner: {
       operatingSystem: 'darwin',
-      architecture: nativeArchitecture,
+      architecture: hostArchitecture,
     },
     checks: {
       exactCaskInstalled: true,
@@ -190,6 +204,116 @@ export async function smokeHomebrewCask(options) {
   return evidence;
 }
 
+/**
+ * Install the published Cask through the literal user-facing tap identity.
+ *
+ * @param {{recordPath: string, evidencePath?: string, run?: typeof runCommand,
+ *   platform?: string, architecture?: string, now?: () => Date}} options
+ */
+export async function smokePublicHomebrewCask(options) {
+  const platform = options.platform ?? process.platform;
+  if (platform !== 'darwin') throw new Error('Public Homebrew Cask smoke requires macOS');
+  const hostArchitecture = assertNativeArchitecture(options.architecture);
+  const run = options.run ?? runCommand;
+  const record = await verifyHomebrewCaskWorkspace(resolve(options.recordPath));
+  const expectedCask = await readFile(
+    resolve(dirname(resolve(options.recordPath)), record.cask.outputPath),
+    'utf8',
+  );
+  const stagingRoot = await mkdtemp(resolve(tmpdir(), 'gatereeve-public-cask-smoke-'));
+  const appDirectory = resolve(stagingRoot, 'Applications');
+  let primaryError = null;
+  const cleanupErrors = [];
+  let installProof;
+  let tapCaskSha256;
+
+  try {
+    const existingCask = await run(['brew', 'list', '--cask', HOMEBREW_CASK_TOKEN]);
+    if (existingCask.code === 0) {
+      throw new Error(`Refusing to replace an installed ${HOMEBREW_CASK_TOKEN} Cask`);
+    }
+    const taps = await requireSuccess(run, ['brew', 'tap'], 'Homebrew tap inventory');
+    if (taps.stdout.split(/\r?\n/u).some((tap) => tap.toLowerCase() === PUBLIC_TAP.toLowerCase())) {
+      throw new Error(`Refusing to reuse existing Homebrew tap ${PUBLIC_TAP}`);
+    }
+    await mkdir(appDirectory, { recursive: true });
+    await requireSuccess(run, ['brew', 'tap', PUBLIC_TAP], 'Public tap installation');
+    const tap = await requireSuccess(run, ['brew', '--repository', PUBLIC_TAP], 'Public tap lookup');
+    const publicCask = await readFile(
+      resolve(tap.stdout.trim(), 'Casks', `${HOMEBREW_CASK_TOKEN}.rb`),
+      'utf8',
+    );
+    tapCaskSha256 = sha256(publicCask);
+    if (publicCask !== expectedCask || tapCaskSha256 !== record.cask.sha256) {
+      throw new Error(`Public Cask bytes do not match ${record.cask.sha256}`);
+    }
+    await requireSuccess(run, [
+      'brew', 'install', '--cask', `--appdir=${appDirectory}`, PUBLIC_CASK,
+    ], 'Public Homebrew Cask installation');
+    installProof = await verifyInstalledApplication(
+      run,
+      resolve(appDirectory, 'GateReeve.app'),
+      record,
+    );
+  } catch (error) {
+    primaryError = error;
+  } finally {
+    const installed = await run(['brew', 'list', '--cask', HOMEBREW_CASK_TOKEN]);
+    if (installed.code === 0) {
+      const result = await run(['brew', 'uninstall', '--cask', HOMEBREW_CASK_TOKEN]);
+      if (result.code !== 0) cleanupErrors.push(new Error(`Cask cleanup failed: ${result.stderr}`));
+    }
+    const taps = await run(['brew', 'tap']);
+    if (taps.code === 0 && taps.stdout.split(/\r?\n/u)
+      .some((tap) => tap.toLowerCase() === PUBLIC_TAP.toLowerCase())) {
+      const result = await run(['brew', 'untap', PUBLIC_TAP]);
+      if (result.code !== 0) cleanupErrors.push(new Error(`Tap cleanup failed: ${result.stderr}`));
+    }
+    await rm(stagingRoot, { recursive: true, force: true });
+  }
+  if (primaryError && cleanupErrors.length > 0) {
+    throw new AggregateError([primaryError, ...cleanupErrors], 'Public Cask smoke and cleanup failed');
+  }
+  if (primaryError) throw primaryError;
+  if (cleanupErrors.length > 0) throw new AggregateError(cleanupErrors, 'Public Cask cleanup failed');
+
+  const evidence = {
+    schemaVersion: 1,
+    kind: 'gatereeve-public-homebrew-cask-smoke',
+    caskReleaseId: record.caskReleaseId,
+    source: structuredClone(record.source),
+    desktop: structuredClone(record.desktop),
+    publicTap: {
+      repository: record.cask.repository,
+      tap: record.cask.tap,
+      token: record.cask.token,
+      caskSha256: tapCaskSha256,
+    },
+    runner: {
+      operatingSystem: 'darwin',
+      architecture: hostArchitecture,
+    },
+    checks: {
+      literalPublicCommandInstalled: true,
+      exactPublishedCask: true,
+      exactCaskInstalled: true,
+      applicationIdentity: true,
+      developerIdValid: true,
+      gatekeeperAccepted: true,
+      universalBinaries: true,
+      pluginLifecycleUntouched: true,
+      cliLifecycleUntouched: true,
+    },
+    installProof,
+    verifiedAt: (options.now ?? (() => new Date()))().toISOString(),
+  };
+  if (options.evidencePath) {
+    await mkdir(dirname(resolve(options.evidencePath)), { recursive: true });
+    await writeFile(resolve(options.evidencePath), `${JSON.stringify(evidence, null, 2)}\n`);
+  }
+  return evidence;
+}
+
 function argument(name) {
   const index = process.argv.indexOf(name);
   return index === -1 ? undefined : process.argv[index + 1];
@@ -198,9 +322,12 @@ function argument(name) {
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const recordPath = argument('--record');
   if (!recordPath) {
-    throw new Error('Usage: node smoke-homebrew-cask.mjs --record <cask-record.json> [--evidence <path>] [--architecture <arm64|x64>]');
+    throw new Error('Usage: node smoke-homebrew-cask.mjs --record <cask-record.json> [--public-tap] [--evidence <path>] [--architecture <arm64|x64>]');
   }
-  const evidence = await smokeHomebrewCask({
+  const smoke = process.argv.includes('--public-tap')
+    ? smokePublicHomebrewCask
+    : smokeHomebrewCask;
+  const evidence = await smoke({
     recordPath,
     evidencePath: argument('--evidence'),
     architecture: argument('--architecture'),

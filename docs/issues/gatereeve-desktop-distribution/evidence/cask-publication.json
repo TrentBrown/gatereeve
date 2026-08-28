@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "caskReleaseId": "gatereeve-cask-v0.1.0-rc.1",
+  "approvedBy": "Trent Brown",
+  "approvedAt": "2026-08-28T17:25:08.724Z",
+  "planSha256": "351be56f9f728da48089ce27a9f7270e14e909e4bbecf9469943be6cad7941cd",
+  "repository": "TrentBrown/homebrew-gatereeve",
+  "path": "Casks/gatereeve.rb",
+  "pullRequestUrl": "https://github.com/TrentBrown/homebrew-gatereeve/pull/1",
+  "mergeCommit": "c78575fb07f285a3632b35d371aacca5e3a999aa",
+  "fileSha256": "963fb25d3b800aa1be596a0f57766d276499fecc1527b9958bc20a5f613febb2",
+  "publishedAt": "2026-08-28T17:25:23.411Z"
+}
