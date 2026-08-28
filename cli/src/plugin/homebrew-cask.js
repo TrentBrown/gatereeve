@@ -83,6 +83,17 @@ end
 `;
 }
 
+export function renderPredecessorHomebrewCask(content) {
+  const match = /^  version "(\d+)\.(\d+)\.(\d+)(?:-rc\.(\d+))?"$/mu.exec(content);
+  if (!match) throw new Error('Homebrew upgrade smoke requires a semantic Cask version');
+  const predecessor = match[4] === undefined
+    ? `${match[1]}.${match[2]}.${match[3]}-rc.999`
+    : Number(match[4]) === 0
+      ? `${match[1]}.${match[2]}.${match[3]}-preview.0`
+      : `${match[1]}.${match[2]}.${match[3]}-rc.${Number(match[4]) - 1}`;
+  return content.replace(match[0], `  version "${predecessor}"`);
+}
+
 function publicationPlanText(record) {
   return `# GateReeve ${record.version} Homebrew Cask publication plan
 

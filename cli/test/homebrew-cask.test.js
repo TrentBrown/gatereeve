@@ -6,16 +6,13 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import {
-  predecessorCask,
-  smokeHomebrewCask,
-} from '../../apps/desktop/scripts/smoke-homebrew-cask.mjs';
-import {
   assertHomebrewCaskRecord,
   HOMEBREW_CASK_PATH,
   homebrewCaskPlanSha256,
   publishHomebrewCask,
   renderHomebrewCask,
   renderHomebrewCaskPublicationPlan,
+  renderPredecessorHomebrewCask,
   verifyHomebrewCaskWorkspace,
 } from '../src/plugin/homebrew-cask.js';
 
@@ -222,7 +219,7 @@ test('verifies packet identity and performs an absent-tap dry run without mutati
 
 test('models an upgrade from a predecessor while preserving exact download bytes', () => {
   const exact = renderHomebrewCask(sourceRecord());
-  const predecessor = predecessorCask(exact);
+  const predecessor = renderPredecessorHomebrewCask(exact);
   assert.match(predecessor, /version "0\.1\.0-rc\.0"/u);
   assert.doesNotMatch(predecessor, /version "0\.1\.0-rc\.1"/u);
   assert.equal(
@@ -232,18 +229,6 @@ test('models an upgrade from a predecessor while preserving exact download bytes
   assert.equal(
     predecessor.match(/^  url .*$/mu)?.[0],
     exact.match(/^  url .*$/mu)?.[0],
-  );
-});
-
-test('rejects architecture labels that do not match the native smoke process', async () => {
-  const wrongArchitecture = process.arch === 'x64' ? 'arm64' : 'x64';
-  await assert.rejects(
-    smokeHomebrewCask({
-      recordPath: '/not/read/because/architecture/is/rejected.json',
-      platform: 'darwin',
-      architecture: wrongArchitecture,
-    }),
-    /Expected .* Homebrew host/u,
   );
 });
 

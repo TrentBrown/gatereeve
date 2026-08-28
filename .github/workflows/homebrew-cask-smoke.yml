@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/homebrew-cask-smoke.yml"
       - "apps/desktop/scripts/smoke-homebrew-cask.mjs"
+      - "apps/desktop/test/homebrew-cask-smoke.test.js"
       - "cli/src/plugin/homebrew-cask.js"
       - "cli/src/commands/release.js"
       - "cli/test/homebrew-cask.test.js"
