@@ -131,3 +131,27 @@ Use an Account Holder-created App Store Connect team API key for notarytool, tog
 
 **Alternatives considered:**
 Use an individual API key - rejected because Apple states individual keys cannot use notaryTool; use an Apple Account app-specific password - rejected because it couples autonomous releases to a personal login credential and adds a second authentication mode; sign every release manually on the user's Mac - rejected because the approved design assigns repeatable signing to protected CI.
+
+## [9] Preserve the runner keychain search list around signing
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Protected macOS signing job and credential cleanup
+
+Capture the hosted runner's original user keychain search list before creating
+the ephemeral Developer ID keychain. Prepend the ephemeral keychain for the
+signing interval, then restore the captured list before deleting credentials.
+Keep the explicit keychain argument as defense in depth for identity discovery
+and signing.
+
+**Triggered by:** Protected rehearsal run 33135027205 imported and validated the exact Developer ID identity, but `codesign` could not resolve its fingerprint because the custom keychain was absent from the user search list.
+
+**Alternatives considered:**
+Replace the user search list with only the ephemeral keychain - rejected
+because it unnecessarily hides runner defaults and leaves altered process
+state; install the identity into the login keychain - rejected because it
+weakens credential isolation and cleanup; remove Electron's explicit keychain
+argument - rejected because the signer should remain constrained to the
+ephemeral credential store.

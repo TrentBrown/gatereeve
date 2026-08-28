@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #12 — Signing keychain discoverability</title>
+  <style>
+    :root { color-scheme: light dark; --ink:#20192d; --paper:#fbf9ff; --purple:#7558a6; --pale:#eee8f7; --ok:#287a5b; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:17px/1.6 system-ui,sans-serif; color:var(--ink); background:var(--paper); }
+    main { width:min(900px,92vw); margin:auto; padding:3rem 0 5rem; }
+    h1,h2,h3 { line-height:1.15; }
+    h1 { font-size:clamp(2.2rem,6vw,4.5rem); margin-bottom:.4rem; }
+    h2 { margin-top:3.2rem; border-bottom:2px solid var(--pale); padding-bottom:.4rem; }
+    a { color:var(--purple); }
+    nav, .callout, .diagram, .quiz { border:1px solid #cfc4df; border-radius:14px; padding:1.2rem; background:#fff; }
+    nav a { margin-right:1rem; white-space:nowrap; }
+    .flow { display:grid; grid-template-columns:repeat(3,1fr); gap:.8rem; align-items:center; }
+    .node { padding:1rem; border-radius:12px; background:var(--pale); text-align:center; }
+    .bad { border:2px solid #b34c55; }
+    .good { border:2px solid var(--ok); }
+    pre { white-space:pre-wrap; overflow:auto; padding:1rem; border-radius:10px; background:#211b2b; color:#f8f5ff; }
+    button { display:block; width:100%; margin:.5rem 0; padding:.75rem; text-align:left; border:1px solid #b7aacb; border-radius:9px; background:#fff; color:var(--ink); }
+    button:hover { border-color:var(--purple); }
+    .feedback { min-height:1.5rem; font-weight:650; }
+    @media (prefers-color-scheme:dark) { :root{--ink:#f5f0ff;--paper:#17121f;--pale:#302541} nav,.callout,.diagram,.quiz,button{background:#211a2d} }
+    @media (max-width:650px) { .flow{grid-template-columns:1fr} }
+  </style>
+</head>
+<body><main>
+  <p>GateReeve engineering note</p>
+  <h1>Making the signing key visible</h1>
+  <p>PR #12 fixes the narrow boundary between an imported Developer ID identity and the macOS process that actually signs GateReeve.</p>
+  <nav><strong>Contents:</strong> <a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#quiz">Quiz</a></nav>
+
+  <h2 id="background">Background</h2>
+  <h3>The beginner's version</h3>
+  <p>A macOS signing identity is a certificate paired with a private key. GateReeve imports that pair into a temporary keychain on a protected GitHub runner. The keychain is a container; the user keychain search list tells macOS which containers participate in ordinary identity lookup.</p>
+  <p>The first protected rehearsal proved the contents were correct. The certificate imported, its private key was usable, and an explicit identity check found the expected Developer ID. Yet Electron later passed the identity fingerprint to <code>codesign</code>, which could not finish the lookup.</p>
+  <div class="diagram flow"><div class="node good">Import<br>passed</div><div class="node good">Identity check<br>passed</div><div class="node bad">codesign lookup<br>failed</div></div>
+  <h3>The specific boundary</h3>
+  <p>Electron constrained signing to the temporary keychain, but macOS still needed that keychain in the user's active search list while resolving the private-key item behind the certificate fingerprint. PR #12 makes both constraints agree.</p>
+
+  <h2 id="intuition">Intuition</h2>
+  <p>Imagine a library with a correct catalog card and a locked archive box. Pointing at the box proves where the document should be, but the librarian's active catalog must still include that archive. The fix temporarily adds the archive to the catalog, does the work, and restores the catalog exactly.</p>
+  <div class="callout"><strong>Key idea:</strong> temporary access should be additive and reversible. GateReeve does not replace the runner's normal keychains or install credentials into its login keychain.</div>
+  <pre>before: [ login, system ]
+during: [ gatereeve-ephemeral, login, system ]
+after:  [ login, system ]</pre>
+
+  <h2 id="code">Code</h2>
+  <h3>1. Capture before mutation</h3>
+  <p>The import step writes the current user search list to a runner-temporary file. Its path is carried to the unconditional cleanup step; no credential content is logged.</p>
+  <h3>2. Prepend the isolated identity store</h3>
+  <p>After certificate import and partition authorization, Bash parses the quoted keychain paths into an array. The temporary keychain becomes the first search target, while every original entry remains available. Electron also keeps receiving the explicit temporary keychain path.</p>
+  <h3>3. Restore before deletion</h3>
+  <p>The <code>always()</code> cleanup reconstructs the captured list before deleting the temporary keychain and certificate files. This ordering avoids leaving a deleted keychain in the runner's active list.</p>
+  <h3>4. Pin the contract</h3>
+  <p>The coordinated-workflow test now requires the setup and restoration commands. Feature records connect the live failure, I-9, the decision, and the required post-merge rehearsal.</p>
+
+  <h2 id="quiz">Quiz</h2>
+  <div class="quiz" data-answer="b"><p>1. What did the first rehearsal prove?</p><button data-choice="a">The DMG was fully notarized.</button><button data-choice="b">The credential imported and the exact identity was discoverable.</button><button data-choice="c">The certificate had to be reissued.</button><p class="feedback"></p></div>
+  <div class="quiz" data-answer="a"><p>2. Why preserve the original list?</p><button data-choice="a">To retain runner defaults and restore process state after signing.</button><button data-choice="b">To copy the private key into every existing keychain.</button><button data-choice="c">To avoid using an explicit keychain during signing.</button><p class="feedback"></p></div>
+  <div class="quiz" data-answer="c"><p>3. When is the temporary keychain removed?</p><button data-choice="a">Before package signing begins.</button><button data-choice="b">Only after a successful notarization.</button><button data-choice="c">In unconditional cleanup, after restoring the original list.</button><p class="feedback"></p></div>
+  <div class="quiz" data-answer="b"><p>4. What authority does this PR add?</p><button data-choice="a">Permission to publish GitHub Releases.</button><button data-choice="b">None; the job remains protected, read-only, and nonpublishing.</button><button data-choice="c">Permission for PR jobs to access Apple secrets.</button><p class="feedback"></p></div>
+  <div class="quiz" data-answer="a"><p>5. What evidence remains decisive?</p><button data-choice="a">A corrected post-merge protected rehearsal with real signing and notarization.</button><button data-choice="b">Another Linux unit test with a mocked keychain.</button><button data-choice="c">Re-exporting the already validated certificate.</button><p class="feedback"></p></div>
+</main><script>
+  document.querySelectorAll('.quiz').forEach(q => q.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    const ok = b.dataset.choice === q.dataset.answer;
+    q.querySelector('.feedback').textContent = ok ? 'Correct — that is the boundary this change preserves.' : 'Not quite. Revisit the background and cleanup ordering.';
+    q.querySelector('.feedback').style.color = ok ? 'var(--ok)' : '#b34c55';
+  })));
+</script></body></html>

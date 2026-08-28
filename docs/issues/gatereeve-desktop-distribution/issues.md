@@ -112,3 +112,16 @@ standing intermediate-slice authorization.
 
 Pin the proven DMG in a Cask, verify native installation and upgrade, obtain
 exact publication approval, and complete the full feature evaluation.
+
+## I-9 - Ephemeral signing keychain discoverability
+
+- **Status:** in-review
+- **Estimate:** 0.25d
+- **Plan steps:** P6
+- **Rubric criteria:** R5, R6
+- **Depends on:** I-5
+- **PR:** [#12](https://github.com/TrentBrown/gatereeve/pull/12)
+
+Preserve the hosted runner's user keychain search list, prepend the ephemeral
+Developer ID keychain for signing, restore the original list during cleanup,
+and repeat the protected nonpublishing rehearsal.
