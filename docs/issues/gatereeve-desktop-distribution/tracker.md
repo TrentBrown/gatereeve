@@ -5,17 +5,18 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Private update discovery and Early Access surfaces P7 / I-6
-are in review in PR [#15](https://github.com/TrentBrown/gatereeve/pull/15) from
-`gatereeve-desktop-distribution-06-update-discovery`. PR
-[#14](https://github.com/TrentBrown/gatereeve/pull/14) merged the flat trusted
-bundle as commit `5b66b98` on `main`. Protected nonpublishing rehearsal run
+**Active slice:** Direct public RC P8 / I-7 is in review in draft PR
+[#16](https://github.com/TrentBrown/gatereeve/pull/16) from
+`gatereeve-desktop-distribution-07-public-rc`, based on merged `main` commit
+`5a69ee8`. PR [#15](https://github.com/TrentBrown/gatereeve/pull/15) delivered
+private update discovery and Early Access presentation; P7 / I-6 is closed.
+Protected nonpublishing rehearsal run
 [#33144709211](https://github.com/TrentBrown/gatereeve/actions/runs/33144709211)
 then passed Developer ID signing, Apple notarization, stapling, Gatekeeper,
 flat trusted upload, native ARM64 and Intel verification, credential cleanup,
 and immutable trusted coordinated-record assembly. Its prepared record remains
 unapproved with every publication surface pending; P6 / I-5 and I-11 are
-closed, and no tag or GitHub release was created.
+closed, and no tag or GitHub release has yet been created.
 
 ## Rubric Status
 
@@ -27,7 +28,7 @@ closed, and no tag or GitHub release was created.
 | R4 | Compatibility governance | PASS | [#8](https://github.com/TrentBrown/gatereeve/pull/8) | Exact project-controlled matched/compatible/incompatible pairs, tested skew, update guidance, and fail-closed unknown or unreported versions pass matrix and UI verification |
 | R5 | Apple trust | NOT YET | [#11](https://github.com/TrentBrown/gatereeve/pull/11), [#14](https://github.com/TrentBrown/gatereeve/pull/14) | Enrollment, protected credentials, Developer ID signing, notarization, stapling, Gatekeeper, cleanup, and trusted ARM/Intel rehearsal pass; the trusted public RC and final verification remain P8 and P10 |
 | R6 | Coordinated release and recovery | NOT YET | [#10](https://github.com/TrentBrown/gatereeve/pull/10), [#14](https://github.com/TrentBrown/gatereeve/pull/14) | Immutable identity, pre-publication preparation, exact approval guard, ordered recovery, stable-source proof, and trusted record assembly pass; live protected publication and final verification remain P8 and P10 |
-| R7 | RC publication and update behavior | NOT YET | [#15](https://github.com/TrentBrown/gatereeve/pull/15) | Fixed bounded manifest discovery, 24-hour persistence, RC/stable isolation, quiet failure, notification-only Desktop UI, and unresolved trust-gated Early Access presentation are implemented and under review; live approved publication and final verification remain P8 and P10 |
+| R7 | RC publication and update behavior | NOT YET | [#15](https://github.com/TrentBrown/gatereeve/pull/15) | Fixed bounded manifest discovery, 24-hour persistence, RC/stable isolation, quiet failure, notification-only Desktop UI, and unresolved trust-gated Early Access presentation pass; live approved publication and final verification remain P8 and P10 |
 | R8 | Cask distribution | NOT YET | - | P9, P10 / I-8 |
 
 ## PR Log
@@ -185,4 +186,23 @@ Append PR boundary entries here.
   validation, specification evaluation, independent judge, code review with no
   findings, decision triage, explain-diff, and all hosted checks pass; pattern
   review is not applicable because no scope is configured
-- **Status:** Boundary complete; I-6 is in review
+- **Status:** Merged; I-6 is closed
+
+### PR #16 - Guarded direct RC publication
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/16
+- **Scope:** Delivery boundary 8, guarded direct RC publication and recovery
+- **Plan steps:** P8
+- **Issues:** I-7
+- **Rubric movement:** R5, R6, and R7 advance with exact trusted manifest and
+  checksum outputs, read-only remote preflights, maintainer-authenticated
+  publication, exact tag and prerelease verification, generated-PR manifest
+  transport, production website proof, and per-surface recovery receipts; they
+  remain `NOT YET` until the approved release packet is executed and the public
+  identities are inspected
+- **Evidence:** [PR #16 packet](pr-16/boundary.json)
+- **Boundary result:** Exact-head verification, scoped specification evaluation,
+  independent judge, code review with no findings, decision triage,
+  explain-diff, and all thirteen hosted checks pass; pattern review is not
+  applicable because no scope is configured
+- **Status:** Draft; I-7 is in review

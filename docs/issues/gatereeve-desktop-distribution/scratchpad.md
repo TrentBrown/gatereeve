@@ -248,3 +248,33 @@ Initialize update discovery from shared/setup-compatibility.json, whose Desktop 
 
 **Alternatives considered:**
 Use app.getVersion() - rejected because packaged macOS metadata may return the suffix-free bundle version; parse the DMG or application filename - rejected because filenames are distribution evidence rather than runtime authority; add a second update-only version file - rejected because staged compatibility metadata already has an exact verified identity.
+
+## [15] Publish approved records through the maintainer GitHub identity
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Release CLI, GitHub tag and prerelease creation, Plugin workflow observation, generated manifest pull requests, website verification, and recovery behavior
+
+Keep candidate construction, Apple signing, notarization, and immutable record assembly in protected nonpublishing CI. After the exact record and plan digest receive human approval, run the GateReeve publication command with the maintainer authenticated gh identity. Converge the fixed surfaces in order: create or verify the exact tag, observe and verify the existing Plugin release workflow, create or verify the exact GitHub prerelease assets, merge the exact generated manifest through a deterministic pull request, then verify the production Early Access website serves that manifest. Persist a receipt after each surface so retry resumes without replacing published bytes.
+
+**Triggered by:** P8 must trigger ordinary tag workflows and preserve audited PR transport without introducing another publication credential
+
+**Alternatives considered:**
+Publish from a second GitHub Actions workflow with GITHUB_TOKEN - rejected because tag events created by GITHUB_TOKEN do not trigger ordinary release workflows and a separate App credential is unnecessary for the same repository; commit the manifest directly to main - rejected because it removes PR transport and audit; require manual commands per surface - rejected because it weakens deterministic recovery.
+
+## [16] Reserve the manifest publication timestamp during preparation
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Coordinated release output identity, Desktop update manifest, Early Access website, approval digest, and release audit timestamps
+
+Use the trusted coordinated record creation timestamp as the reserved publishedAt and generatedAt value in the immutable future Desktop manifest. The value identifies when the exact public candidate packet was sealed, not when the last remote adapter completed. Because it is present before approval, SHA256SUMS, desktop.json, the plan digest, and the eventual website bytes remain identical throughout publication and recovery.
+
+**Triggered by:** The exact manifest bytes must be reviewable and hash-bound before any public approval, but the manifest schema requires publishedAt
+
+**Alternatives considered:**
+Choose publishedAt when the manifest PR merges - rejected because it changes output after approval; omit the timestamp - rejected by the existing exact manifest schema; rewrite and reapprove immediately before the manifest surface - rejected because partial publication may already have created the immutable tag and prerelease.

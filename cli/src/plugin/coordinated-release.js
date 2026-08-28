@@ -12,6 +12,13 @@ import {
 } from 'node:fs/promises';
 import { basename, dirname, relative, resolve, sep } from 'node:path';
 
+import {
+  assertDesktopReleaseManifest,
+  createDesktopReleaseManifest,
+  renderDesktopChecksum,
+  renderDesktopReleaseManifest,
+  textIdentity,
+} from './desktop-release-manifest.js';
 import { parseReleaseTag } from './release.js';
 
 export const COORDINATED_RELEASE_SCHEMA_VERSION = 1;
@@ -194,6 +201,14 @@ function publicationPlanText(record) {
     ),
     `- Desktop trust: \`${record.candidates.desktop.trust.status}\``,
     ...record.candidates.desktop.trust.evidence.map((item) => `- Trust evidence: \`${item}\``),
+    `- Checksum asset SHA-256: \`${record.publication.outputs.checksums.sha256}\``,
+    record.publication.outputs.updateManifest === null
+      ? '- Update manifest: unavailable until complete Apple trust exists'
+      : `- Update manifest SHA-256: \`${record.publication.outputs.updateManifest.sha256}\``,
+    `- Update manifest base SHA-256: \`${record.publication.inputs.updateManifest.sha256}\``,
+    '- GitHub release: public prerelease with the exact DMG and SHA256SUMS assets',
+    '- Update destination: `TrentBrown/gatereeve:main/workflow-site/releases/desktop.json` via an exact generated pull request',
+    '- Early Access verification: `https://gatereeve.pages.dev/releases/desktop.json`',
     '',
     '## Deterministic publication order',
     '',
@@ -220,6 +235,7 @@ export async function prepareCoordinatedRelease({
   pluginRoot,
   desktopDmgPath,
   desktopEvidencePaths,
+  currentUpdateManifestPath,
   outputRoot,
   stablePromotionRecord = null,
   now = () => new Date(),
@@ -292,9 +308,11 @@ export async function prepareCoordinatedRelease({
     const pluginOutput = resolve(stagingRoot, 'plugin', 'marketplace');
     const desktopOutput = resolve(stagingRoot, 'desktop', dmg.filename);
     const evidenceRoot = resolve(stagingRoot, 'evidence');
+    const publicationRoot = resolve(stagingRoot, 'publication');
     await mkdir(dirname(pluginOutput), { recursive: true });
     await mkdir(dirname(desktopOutput), { recursive: true });
     await mkdir(evidenceRoot, { recursive: true });
+    await mkdir(publicationRoot, { recursive: true });
     await cp(resolve(pluginRoot), pluginOutput, { recursive: true });
     await cp(dmgPath, desktopOutput);
     const evidenceRecords = [];
@@ -310,6 +328,8 @@ export async function prepareCoordinatedRelease({
     }
 
     const timestamp = now().toISOString();
+    const currentManifestContent = await readFile(resolve(currentUpdateManifestPath), 'utf8');
+    const currentManifest = assertDesktopReleaseManifest(JSON.parse(currentManifestContent));
     const record = {
       schemaVersion: COORDINATED_RELEASE_SCHEMA_VERSION,
       releaseId: `gatereeve-v${parsed.version}`,
@@ -345,6 +365,16 @@ export async function prepareCoordinatedRelease({
       publication: {
         order: [...PUBLICATION_SURFACES],
         approval: { state: 'unapproved' },
+        inputs: {
+          updateManifest: textIdentity(
+            'publication/desktop.base.json',
+            currentManifestContent
+          ),
+        },
+        outputs: {
+          checksums: null,
+          updateManifest: null,
+        },
         surfaces: Object.fromEntries(PUBLICATION_SURFACES.map((surface) => [
           surface,
           { state: 'pending', receipt: null },
@@ -353,6 +383,28 @@ export async function prepareCoordinatedRelease({
       createdAt: timestamp,
       updatedAt: timestamp,
     };
+    const checksumContent = renderDesktopChecksum(record);
+    await writeFile(
+      resolve(stagingRoot, 'publication', 'desktop.base.json'),
+      currentManifestContent
+    );
+    record.publication.outputs.checksums = textIdentity(
+      'publication/SHA256SUMS',
+      checksumContent
+    );
+    await writeFile(resolve(stagingRoot, 'publication', 'SHA256SUMS'), checksumContent);
+    if (desktopTrust.status === 'developer-id-notarized') {
+      const manifestContent = renderDesktopReleaseManifest(createDesktopReleaseManifest({
+        current: currentManifest,
+        record,
+        publishedAt: timestamp,
+      }));
+      record.publication.outputs.updateManifest = textIdentity(
+        'publication/desktop.json',
+        manifestContent
+      );
+      await writeFile(resolve(stagingRoot, 'publication', 'desktop.json'), manifestContent);
+    }
     assertCoordinatedRelease(record);
     await writeFile(resolve(stagingRoot, 'release-record.json'), stableJson(record));
     await writeFile(resolve(stagingRoot, 'publication-plan.md'), renderPublicationPlan(record));
@@ -446,6 +498,30 @@ export function assertCoordinatedRelease(value) {
   ) {
     throw new Error('Coordinated publication policy is invalid');
   }
+  const outputs = value.publication.outputs;
+  if (
+    value.publication.inputs?.updateManifest?.path !== 'publication/desktop.base.json'
+    || value.publication.inputs.updateManifest.filename !== 'desktop.base.json'
+    || !Number.isSafeInteger(value.publication.inputs.updateManifest.bytes)
+    || value.publication.inputs.updateManifest.bytes < 1
+    || !SHA256.test(value.publication.inputs.updateManifest.sha256 ?? '')
+    || outputs?.checksums?.path !== 'publication/SHA256SUMS'
+    || outputs.checksums.filename !== 'SHA256SUMS'
+    || !Number.isSafeInteger(outputs.checksums.bytes)
+    || outputs.checksums.bytes < 1
+    || !SHA256.test(outputs.checksums.sha256 ?? '')
+    || (outputs.updateManifest !== null && (
+      outputs.updateManifest.path !== 'publication/desktop.json'
+      || outputs.updateManifest.filename !== 'desktop.json'
+      || !Number.isSafeInteger(outputs.updateManifest.bytes)
+      || outputs.updateManifest.bytes < 1
+      || !SHA256.test(outputs.updateManifest.sha256 ?? '')
+    ))
+    || (value.candidates.desktop.trust.status !== 'developer-id-notarized'
+      && outputs.updateManifest !== null)
+  ) {
+    throw new Error('Coordinated publication outputs are invalid');
+  }
   let sawPending = false;
   for (const surface of PUBLICATION_SURFACES) {
     const entry = value.publication.surfaces?.[surface];
@@ -527,6 +603,21 @@ export async function verifyCoordinatedReleaseWorkspace(recordPath) {
       throw new Error(`Recorded Desktop ${evidence.architecture} evidence changed`);
     }
   }
+  const publicationFiles = [
+    ...Object.values(record.publication.inputs),
+    ...Object.values(record.publication.outputs).filter(Boolean),
+  ];
+  for (const output of publicationFiles) {
+    const outputPath = resolve(root, output.path);
+    const details = await stat(outputPath);
+    if (
+      !details.isFile()
+      || details.size !== output.bytes
+      || await sha256File(outputPath) !== output.sha256
+    ) {
+      throw new Error(`Recorded publication output changed: ${output.path}`);
+    }
+  }
   const planPath = resolve(root, 'publication-plan.md');
   if (await readFile(planPath, 'utf8') !== renderPublicationPlan(record)) {
     throw new Error('Publication plan does not match the coordinated release record');
@@ -572,7 +663,10 @@ export function recordDesktopTrust(record, evidence, now = () => new Date()) {
 
 export function approveCoordinatedPublication(record, approval, now = () => new Date()) {
   assertCoordinatedRelease(record);
-  if (record.candidates.desktop.trust.status !== 'developer-id-notarized') {
+  if (
+    record.candidates.desktop.trust.status !== 'developer-id-notarized'
+    || record.publication.outputs.updateManifest === null
+  ) {
     throw new Error('Public release approval requires complete Apple trust evidence');
   }
   const expectedPlanSha256 = publicationPlanSha256(record);

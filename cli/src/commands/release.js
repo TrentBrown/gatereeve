@@ -13,6 +13,7 @@ import {
   renderPublicationPlan,
   verifyCoordinatedReleaseWorkspace,
 } from '../plugin/coordinated-release.js';
+import { publishCoordinatedRelease } from '../plugin/coordinated-publication.js';
 import { loadAndValidateNativeSources } from '../plugin/native.js';
 import { lintPortability } from '../plugin/portability.js';
 import { prepareRelease, validateReleaseEvidence } from '../plugin/release.js';
@@ -332,6 +333,11 @@ export function releaseCommands({ repositoryRoot }) {
       'ARM64 and Intel Desktop verification evidence files'
     )
     .requiredOption('--output-root <path>', 'Fresh coordinated release workspace')
+    .option(
+      '--current-update-manifest <path>',
+      'Current project-controlled Desktop update manifest',
+      resolve(repositoryRoot, 'workflow-site/releases/desktop.json')
+    )
     .option('--promote-from <path>', 'Coordinated RC record for stable-source proof')
     .option('--json', 'Print machine-readable release results')
     .action(async (options) => {
@@ -342,6 +348,7 @@ export function releaseCommands({ repositoryRoot }) {
         pluginRoot: resolve(options.pluginRoot),
         desktopDmgPath: resolve(options.desktopDmg),
         desktopEvidencePaths: options.desktopEvidence.map((path) => resolve(path)),
+        currentUpdateManifestPath: resolve(options.currentUpdateManifest),
         outputRoot: resolve(options.outputRoot),
         stablePromotionRecord: options.promoteFrom
           ? await readCoordinatedRelease(resolve(options.promoteFrom))
@@ -380,6 +387,49 @@ export function releaseCommands({ repositoryRoot }) {
       } else {
         console.log(renderPublicationPlan(record));
         console.log(`Plan SHA-256: ${publicationPlanSha256(record)}`);
+      }
+    });
+
+  release
+    .command('publish-coordinated')
+    .description('Publish or recover one exact approved Plugin/Desktop release record')
+    .requiredOption('--release-record <path>', 'Trusted coordinated release record')
+    .requiredOption('--plan-sha256 <digest>', 'Exact reviewed publication-plan SHA-256')
+    .option('--approved-by <identity>', 'Human publication approver identity')
+    .option('--confirm', 'Confirm the exact reviewed plan and permit public mutation')
+    .option('--dry-run', 'Run read-only remote preflights without approval or mutation')
+    .option('--json', 'Print machine-readable publication results')
+    .action(async (options) => {
+      if (options.confirm && options.dryRun) {
+        throw new Error('Choose either --confirm or --dry-run');
+      }
+      if (!options.confirm && !options.dryRun) {
+        throw new Error('Publication requires --confirm or --dry-run');
+      }
+      if (options.confirm && !options.approvedBy) {
+        throw new Error('Publication confirmation requires --approved-by');
+      }
+      const result = await publishCoordinatedRelease({
+        recordPath: resolve(options.releaseRecord),
+        repositoryRoot,
+        planSha256: options.planSha256,
+        approvedBy: options.approvedBy ?? '',
+        confirm: options.confirm,
+        dryRun: options.dryRun,
+      });
+      const output = {
+        schemaVersion: 1,
+        dryRun: result.dryRun,
+        releaseId: result.record.releaseId,
+        state: result.record.state,
+        planSha256: result.planSha256,
+        surfaces: result.record.publication.surfaces,
+      };
+      if (options.json) console.log(JSON.stringify(output, null, 2));
+      else if (result.dryRun) {
+        console.log(`Preflight passed for ${result.record.releaseId}; no public mutation occurred.`);
+      } else {
+        console.log(`Published ${result.record.releaseId} through every coordinated surface.`);
       }
     });
 
