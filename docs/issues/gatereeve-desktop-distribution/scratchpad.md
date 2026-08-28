@@ -335,3 +335,21 @@ Update the production-site contract test to require the exact trusted v0.1.0-rc.
   the approved public release.
 - Accept either unresolved or published state - rejected because production
   must have one exact durable state after publication.
+
+## [20] Verify public Cask bytes before installation
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** public Homebrew smoke ordering and remote Cask execution safety
+
+Tap the exact approved public repository, read and hash Casks/gatereeve.rb, compare it byte-for-byte with the sealed packet, and only then execute the literal fully qualified brew install command. This keeps the user-path proof while ensuring the verifier never evaluates an unexpected public Cask.
+
+**Triggered by:** Final code review observed that the first public smoke implementation compared the cloned Cask only after brew install had evaluated it
+
+**Alternatives considered:**
+- Keep the post-install comparison - rejected because it detects divergence
+  too late.
+- Rely only on the GitHub API preflight - rejected because the runner should
+  verify the exact bytes Homebrew cloned.

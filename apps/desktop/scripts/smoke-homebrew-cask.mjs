@@ -237,10 +237,7 @@ export async function smokePublicHomebrewCask(options) {
       throw new Error(`Refusing to reuse existing Homebrew tap ${PUBLIC_TAP}`);
     }
     await mkdir(appDirectory, { recursive: true });
-    await requireSuccess(run, [
-      'brew', 'install', '--cask', `--appdir=${appDirectory}`, PUBLIC_CASK,
-    ], 'Public Homebrew Cask installation');
-
+    await requireSuccess(run, ['brew', 'tap', PUBLIC_TAP], 'Public tap installation');
     const tap = await requireSuccess(run, ['brew', '--repository', PUBLIC_TAP], 'Public tap lookup');
     const publicCask = await readFile(
       resolve(tap.stdout.trim(), 'Casks', `${HOMEBREW_CASK_TOKEN}.rb`),
@@ -250,6 +247,9 @@ export async function smokePublicHomebrewCask(options) {
     if (publicCask !== expectedCask || tapCaskSha256 !== record.cask.sha256) {
       throw new Error(`Public Cask bytes do not match ${record.cask.sha256}`);
     }
+    await requireSuccess(run, [
+      'brew', 'install', '--cask', `--appdir=${appDirectory}`, PUBLIC_CASK,
+    ], 'Public Homebrew Cask installation');
     installProof = await verifyInstalledApplication(
       run,
       resolve(appDirectory, 'GateReeve.app'),
