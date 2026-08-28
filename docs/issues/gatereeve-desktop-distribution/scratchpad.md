@@ -251,7 +251,7 @@ Use app.getVersion() - rejected because packaged macOS metadata may return the s
 
 ## [15] Publish approved records through the maintainer GitHub identity
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -266,7 +266,7 @@ Publish from a second GitHub Actions workflow with GITHUB_TOKEN - rejected becau
 
 ## [16] Reserve the manifest publication timestamp during preparation
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

@@ -5,8 +5,9 @@
 **Issues:** [`issues.md`](issues.md)
 **Created:** 2026-08-27
 
-**Active slice:** Direct public RC P8 / I-7 is in progress on
-`gatereeve-desktop-distribution-07-public-rc` from merged `main` commit
+**Active slice:** Direct public RC P8 / I-7 is in review in draft PR
+[#16](https://github.com/TrentBrown/gatereeve/pull/16) from
+`gatereeve-desktop-distribution-07-public-rc`, based on merged `main` commit
 `5a69ee8`. PR [#15](https://github.com/TrentBrown/gatereeve/pull/15) delivered
 private update discovery and Early Access presentation; P7 / I-6 is closed.
 Protected nonpublishing rehearsal run
@@ -185,4 +186,23 @@ Append PR boundary entries here.
   validation, specification evaluation, independent judge, code review with no
   findings, decision triage, explain-diff, and all hosted checks pass; pattern
   review is not applicable because no scope is configured
-- **Status:** Boundary complete; I-6 is in review
+- **Status:** Merged; I-6 is closed
+
+### PR #16 - Guarded direct RC publication
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/16
+- **Scope:** Delivery boundary 8, guarded direct RC publication and recovery
+- **Plan steps:** P8
+- **Issues:** I-7
+- **Rubric movement:** R5, R6, and R7 advance with exact trusted manifest and
+  checksum outputs, read-only remote preflights, maintainer-authenticated
+  publication, exact tag and prerelease verification, generated-PR manifest
+  transport, production website proof, and per-surface recovery receipts; they
+  remain `NOT YET` until the approved release packet is executed and the public
+  identities are inspected
+- **Evidence:** [PR #16 packet](pr-16/boundary.json)
+- **Boundary result:** Exact-head verification, scoped specification evaluation,
+  independent judge, code review with no findings, decision triage,
+  explain-diff, and all thirteen hosted checks pass; pattern review is not
+  applicable because no scope is configured
+- **Status:** Draft; I-7 is in review

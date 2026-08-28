@@ -89,12 +89,12 @@ that becomes resolvable only for a trusted published release.
 
 ## I-7 - Publish and prove the direct RC
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P8
 - **Rubric criteria:** R1, R5, R6, R7
 - **Depends on:** I-5, I-6
-- **PR:** -
+- **PR:** [#16](https://github.com/TrentBrown/gatereeve/pull/16)
 
 Assemble the exact candidate evidence, obtain explicit user approval, publish
 through the recoverable release record, and verify the direct signed DMG,
