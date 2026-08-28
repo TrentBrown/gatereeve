@@ -39,6 +39,7 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   const opened = [];
   const revealed = [];
   const copied = [];
+  const external = [];
   const sessionId = 'session:checkpoint:Q0hFQ0tQT0lOVC5tZA';
   const sessionItem = {
     id: sessionId,
@@ -80,13 +81,27 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
       artifact(artifactId) { return { absolutePath: `/repo/${artifactId}.md` }; },
       subscribe() { return () => {}; },
     },
+    updateCoordinator: {
+      current() {
+        return {
+          schemaVersion: 1, status: 'available', source: 'manual', currentVersion: '0.1.0-rc.3',
+          checkedAt: '2026-08-28T00:00:00.000Z',
+          available: { version: '0.1.0-rc.4', channel: 'rc', publishedAt: '2026-08-28T00:00:00.000Z' },
+          detail: null,
+        };
+      },
+      async check() { return this.current(); },
+      releasePage() { return 'https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.4'; },
+      subscribe() { return () => {}; },
+    },
     async pickWorktree() { return '/repo'; },
     async openPath(path) { opened.push(path); return ''; },
     revealPath(path) { revealed.push(path); },
     copyText(value) { copied.push(value); },
+    async openExternal(value) { external.push(value); },
     windows: () => [],
   });
-  assert.equal(handlers.size, Object.keys(IPC_CHANNELS).length - 1);
+  assert.equal(handlers.size, Object.keys(IPC_CHANNELS).length - 2);
   const event = trustedEvent();
   assert.deepEqual(await handlers.get(IPC_CHANNELS.readDetail)(
     event,
@@ -112,6 +127,8 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   });
   assert.equal((await handlers.get(IPC_CHANNELS.readSession)(event, sessionId)).content, '# State');
   assert.equal(await handlers.get(IPC_CHANNELS.copyText)(event, 'gatereeve next'), true);
+  assert.equal((await handlers.get(IPC_CHANNELS.checkForUpdates)(event)).status, 'available');
+  assert.equal(await handlers.get(IPC_CHANNELS.openUpdateRelease)(event), true);
   assert.equal((await handlers.get(IPC_CHANNELS.setNotificationsEnabled)(event, true)).preferences.notificationsEnabled, true);
   assert.deepEqual(
     (await handlers.get(IPC_CHANNELS.setSelectedAgents)(event, ['claude'])).preferences.selectedAgents,
@@ -121,6 +138,7 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   assert.deepEqual(opened, ['/repo/design.md']);
   assert.deepEqual(revealed, ['/repo/spec.md']);
   assert.deepEqual(copied, ['gatereeve next']);
+  assert.deepEqual(external, ['https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.4']);
   await assert.rejects(
     handlers.get(IPC_CHANNELS.readDetail)(event, { kind: 'file', id: '/etc/passwd' }),
     /invalid/,

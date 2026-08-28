@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "render": "python3 render_artifacts.py"
+    "render": "python3 render_artifacts.py",
+    "test": "node --test test-desktop-early-access.mjs"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.9.0"

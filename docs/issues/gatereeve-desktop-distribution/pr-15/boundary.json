@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "scope": "slice",
+  "featureId": "gatereeve-desktop-distribution",
+  "repositoryAlias": "gatereeve",
+  "packetId": "pr-15",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 15,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/15",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "5b66b98de73eb8946293d509ba08db543edb8626",
+    "headRefName": "gatereeve-desktop-distribution-06-update-discovery",
+    "headRefOid": "fd9a43e2c31a4cf492848153235268eca16c3e65"
+  },
+  "mergeBaseSha": "5b66b98de73eb8946293d509ba08db543edb8626",
+  "evaluatedSourceSha": "fd9a43e2c31a4cf492848153235268eca16c3e65",
+  "featureBaseSha": null,
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": { "disposition": "passed", "reason": null },
+    "specEvaluation": { "disposition": "passed", "reason": null },
+    "judge": { "disposition": "passed", "reason": null },
+    "codeReview": { "disposition": "passed", "reason": null },
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No pattern-review scope is configured"
+    },
+    "explainDiff": { "disposition": "passed", "reason": null }
+  }
+}

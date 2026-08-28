@@ -12,6 +12,7 @@ import {
   requireSessionInventory,
   requireSelectedAgents,
   requireSetupState,
+  requireUpdateState,
 } from '../shared/contracts.js';
 
 function setup() {
@@ -54,6 +55,20 @@ test('Setup state and selected agents are exact, bounded read-only contracts', (
   assert.throws(() => requireSetupState({ ...setup(), installationMutation: true }), /invalid/);
 });
 
+test('update state exposes notification-only discovery without a download contract', () => {
+  const update = {
+    schemaVersion: 1,
+    status: 'available',
+    source: 'manual',
+    currentVersion: '0.1.0-rc.3',
+    checkedAt: '2026-08-28T00:00:00.000Z',
+    available: { version: '0.1.0-rc.4', channel: 'rc', publishedAt: '2026-08-28T00:00:00.000Z' },
+    detail: null,
+  };
+  assert.equal(requireUpdateState(update).available.version, '0.1.0-rc.4');
+  assert.throws(() => requireUpdateState({ ...update, downloadUrl: 'https://example.com' }), /invalid/);
+});
+
 test('named read and artifact requests reject broad or malformed access', () => {
   assert.deepEqual(requireDetailRequest({ kind: 'artifact', id: 'design' }), {
     kind: 'artifact', id: 'design',
@@ -82,12 +97,15 @@ test('named read and artifact requests reject broad or malformed access', () => 
 test('IPC allow-list contains no workflow mutation or process-execution surface', () => {
   const channels = Object.values(IPC_CHANNELS).sort();
   assert.deepEqual(channels, [
+    'gatereeve:desktop:check-for-updates',
     'gatereeve:desktop:choose-worktree',
     'gatereeve:desktop:copy-text',
     'gatereeve:desktop:get-state',
+    'gatereeve:desktop:get-update-state',
     'gatereeve:desktop:list-session',
     'gatereeve:desktop:open-artifact',
     'gatereeve:desktop:open-recent',
+    'gatereeve:desktop:open-update-release',
     'gatereeve:desktop:read-detail',
     'gatereeve:desktop:read-session',
     'gatereeve:desktop:recheck-setup',
@@ -96,6 +114,7 @@ test('IPC allow-list contains no workflow mutation or process-execution surface'
     'gatereeve:desktop:set-notifications-enabled',
     'gatereeve:desktop:set-selected-agents',
     'gatereeve:desktop:state-changed',
+    'gatereeve:desktop:update-changed',
   ]);
   assert.equal(channels.some((channel) => /execute|transition|advance|install|upgrade|disable|remove|plugin/.test(channel)), false);
 });

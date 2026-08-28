@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "product": "gatereeve-desktop",
+  "generatedAt": null,
+  "channels": {
+    "stable": null,
+    "rc": null
+  }
+}

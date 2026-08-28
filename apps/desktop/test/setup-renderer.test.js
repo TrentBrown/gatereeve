@@ -6,6 +6,11 @@ import test from 'node:test';
 
 import { parseHTML } from 'linkedom';
 
+const idleUpdate = {
+  schemaVersion: 1, status: 'idle', source: null, currentVersion: '0.1.0',
+  checkedAt: null, available: null, detail: null,
+};
+
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 function unconfiguredState() {
@@ -117,8 +122,12 @@ test('first launch presents persistent non-mutating Setup and preserves historic
   const selections = [];
   const copied = [];
   window.gatereeveDesktop = {
+    async checkForUpdates() { return idleUpdate; },
     async getState() { return unconfiguredState(); },
+    async getUpdateState() { return idleUpdate; },
+    async openUpdateRelease() { return true; },
     subscribe() { return () => {}; },
+    subscribeUpdates() { return () => {}; },
     async chooseWorktree() { return unconfiguredState(); },
     async openRecent() { return unconfiguredState(); },
     async refresh() { return unconfiguredState(); },
@@ -157,8 +166,12 @@ test('Setup names the ready path without hiding an incomplete selected agent', a
   const { window } = parseHTML(html);
   const state = mixedReadyState();
   window.gatereeveDesktop = {
+    async checkForUpdates() { return idleUpdate; },
     async getState() { return state; },
+    async getUpdateState() { return idleUpdate; },
+    async openUpdateRelease() { return true; },
     subscribe() { return () => {}; },
+    subscribeUpdates() { return () => {}; },
     async chooseWorktree() { return state; },
     async openRecent() { return state; },
     async refresh() { return state; },

@@ -11,6 +11,7 @@ import {
   requireSessionDetail,
   requireSessionId,
   requireSessionInventory,
+  requireUpdateState,
   requireWorktreePath,
 } from '../shared/contracts.js';
 import { validateDetail, validateSnapshot } from '../resources/protocol/snapshot.js';
@@ -30,10 +31,12 @@ export function isTrustedRenderer(event) {
 export function registerDesktopIpc({
   ipcMain,
   coordinator,
+  updateCoordinator,
   pickWorktree,
   openPath,
   revealPath,
   copyText,
+  openExternal,
   windows,
 }) {
   function trusted(event) {
@@ -47,6 +50,19 @@ export function registerDesktopIpc({
   ipcMain.handle(IPC_CHANNELS.getState, async (event, ...values) => {
     noArguments(event, values);
     return validatedState(coordinator.current());
+  });
+  ipcMain.handle(IPC_CHANNELS.getUpdateState, async (event, ...values) => {
+    noArguments(event, values);
+    return requireUpdateState(updateCoordinator.current());
+  });
+  ipcMain.handle(IPC_CHANNELS.checkForUpdates, async (event, ...values) => {
+    noArguments(event, values);
+    return requireUpdateState(await updateCoordinator.check('manual'));
+  });
+  ipcMain.handle(IPC_CHANNELS.openUpdateRelease, async (event, ...values) => {
+    noArguments(event, values);
+    await openExternal(updateCoordinator.releasePage());
+    return true;
   });
   ipcMain.handle(IPC_CHANNELS.chooseWorktree, async (event, ...values) => {
     noArguments(event, values);
@@ -119,10 +135,20 @@ export function registerDesktopIpc({
     return true;
   });
 
-  return coordinator.subscribe((state) => {
+  const unsubscribeState = coordinator.subscribe((state) => {
     const value = validatedState(state);
     for (const window of windows()) {
       if (!window.isDestroyed()) window.webContents.send(IPC_CHANNELS.stateChanged, value);
     }
   });
+  const unsubscribeUpdates = updateCoordinator.subscribe((state) => {
+    const value = requireUpdateState(state);
+    for (const window of windows()) {
+      if (!window.isDestroyed()) window.webContents.send(IPC_CHANNELS.updateChanged, value);
+    }
+  });
+  return () => {
+    unsubscribeState();
+    unsubscribeUpdates();
+  };
 }

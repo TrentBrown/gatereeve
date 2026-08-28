@@ -203,3 +203,48 @@ Teach every consumer the current nested paths - rejected because those paths
 expose runner/workspace layout and are brittle.
 Upload the DMG and trust evidence as separate artifacts - rejected because it
 weakens their atomic bundle identity and complicates every consumer.
+
+## [12] Keep update metadata declarative and URL-free
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Public Desktop manifest, Desktop update client, Early Access website, and later publication adapters
+
+Publish a schema-versioned GateReeve Desktop manifest at the fixed project endpoint /releases/desktop.json. The document has exact stable and RC channel slots and contains only validated release identity, artifact checksum, source commit, publication time, and Apple-trust evidence; it contains no download or navigation URL. Desktop and the website derive the exact GitHub tag page from a project-owned constant plus the strictly validated semantic version. An empty manifest is valid before publication, so the Early Access page remains visibly unavailable and cannot point at an unpublished or untrusted build.
+
+**Triggered by:** P7 requires one privacy-preserving fixed manifest, exact trusted release discovery, channel isolation, and fixed official navigation
+
+**Alternatives considered:**
+Allow manifest-controlled URLs - rejected because a compromised or malformed metadata value would control navigation and violate fixed-page behavior; expose only one latest version - rejected because stable and RC installations have different visibility rules; omit trust and artifact identity - rejected because the website must resolve only after exact trusted publication evidence exists.
+
+## [13] Isolate update cache from workflow preferences
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop user-data storage, startup behavior, update IPC state, and native-notification deduplication
+
+Persist the last bounded update-check result and last natively notified version in a dedicated update-cache.json under Electron userData. Keep the existing preferences schema for user choices only and expose a validated ephemeral update projection through Desktop state. Startup publishes cached state immediately and launches a stale automatic check without awaiting it; manual checks always bypass freshness. Every failure collapses to an unavailable update projection and never affects worktree observation or setup readiness.
+
+**Triggered by:** P7 requires persistent 24-hour automatic throttling without making update discovery part of canonical GateReeve workflow state
+
+**Alternatives considered:**
+Add cache fields to preferences.json - rejected because network observation is not a user preference and would unnecessarily migrate that schema; keep cache only in memory - rejected because relaunches could exceed the once-per-24-hour automatic limit; make update discovery part of a feature record - rejected because application release discovery is independent of the selected workflow.
+
+## [14] Use coordinated package metadata for the update channel
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Packaged Desktop update selection, RC/stable isolation, and macOS version metadata
+
+Initialize update discovery from shared/setup-compatibility.json, whose Desktop version is rewritten to the exact coordinated release version during package staging and verified inside the ASAR. Do not use Electron's macOS bundle display version as channel identity, because packaging intentionally converts 0.1.0-rc.N to the bundle-compatible 0.1.0 and would make an RC installation behave as stable.
+
+**Triggered by:** P7 review found that macOS bundle versions strip the prerelease suffix even though the staged application package retains the exact coordinated version
+
+**Alternatives considered:**
+Use app.getVersion() - rejected because packaged macOS metadata may return the suffix-free bundle version; parse the DMG or application filename - rejected because filenames are distribution evidence rather than runtime authority; add a second update-only version file - rejected because staged compatibility metadata already has an exact verified identity.
