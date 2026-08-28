@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR #13 — Separate logs from package data</title>
+<style>
+:root{--ink:#251b32;--paper:#fbf9ff;--purple:#7558a6;--pale:#eee7f7;--green:#267457}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.6 system-ui,sans-serif}main{width:min(900px,92vw);margin:auto;padding:3rem 0 5rem}h1{font-size:clamp(2.2rem,6vw,4.4rem);line-height:1.05}h2{margin-top:3rem;border-bottom:2px solid var(--pale)}nav,.callout,.flow,.quiz{background:white;border:1px solid #cdbfdf;border-radius:14px;padding:1rem;margin:1rem 0}nav a{color:var(--purple);margin-right:1rem}.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem}.node{background:var(--pale);padding:1rem;border-radius:10px;text-align:center}.bad{border:2px solid #b14e58}.good{border:2px solid var(--green)}pre{white-space:pre-wrap;background:#241c30;color:#faf7ff;padding:1rem;border-radius:10px}button{display:block;width:100%;text-align:left;margin:.5rem 0;padding:.7rem;border:1px solid #b8a8cd;border-radius:8px;background:white;color:var(--ink)}.feedback{min-height:1.4rem;font-weight:700}@media(max-width:650px){.flow{grid-template-columns:1fr}}@media(prefers-color-scheme:dark){:root{--ink:#f6f0ff;--paper:#17121f;--pale:#302541}nav,.callout,.flow,.quiz,button{background:#221a2d}}
+</style></head><body><main>
+<p>GateReeve engineering note</p><h1>Logs are not data</h1><p>PR #13 gives the signed macOS package a clean machine-readable result channel.</p>
+<nav><a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#quiz">Quiz</a></nav>
+<h2 id="background">Background</h2>
+<p>Electron Packager reports useful progress while it builds the x64 and ARM64 slices. GateReeve's packaging command also prints a final JSON object containing the application path, DMG path, size, checksum, and version. Both used stdout.</p>
+<p>The protected workflow redirected stdout into a file and assumed the entire file was JSON. The second rehearsal showed why that assumption was false: signing completed, but the file began with “Packaging app…” and JSON parsing stopped before notarization.</p>
+<div class="flow"><div class="node good">Signed package<br>completed</div><div class="node bad">Mixed stdout<br>logs + JSON</div><div class="node bad">JSON parser<br>stopped</div></div>
+<h2 id="intuition">Intuition</h2>
+<p>A terminal transcript is for people; an interchange file is for programs. They may describe the same operation, but they should not share framing rules. The fix adds a named result destination rather than guessing where JSON begins inside a transcript.</p>
+<pre>progress → ordinary process output → CI log
+result   → --result-file PATH    → strict JSON consumer</pre>
+<div class="callout"><strong>Compatibility:</strong> callers that omit <code>--result-file</code> still receive final JSON on stdout, exactly as before.</div>
+<h2 id="code">Code</h2>
+<h3>One result emitter</h3><p><code>emitPackageResult</code> serializes the result once. With a result path it creates the parent directory and writes the file. Otherwise it writes to the supplied stream or process stdout.</p>
+<h3>An opt-in CLI contract</h3><p>The command validates <code>--result-file</code> like its existing arguments and emits only after packaging and signing return successfully.</p>
+<h3>A deterministic workflow consumer</h3><p>The trust job supplies the result path directly. Electron's progress remains visible in Actions, while the following step reads a file whose only permitted content is the final JSON document.</p>
+<h3>Regression tests</h3><p>Tests prove the dedicated file is valid JSON, its parent can be created, selected-file mode does not use the output stream, legacy stdout JSON remains valid, and the workflow cannot return to shell redirection.</p>
+<h2 id="quiz">Quiz</h2>
+<div class="quiz" data-a="b"><p>1. What failed in rehearsal two?</p><button data-v="a">Developer ID signing itself.</button><button data-v="b">Parsing a transcript that mixed progress with JSON.</button><button data-v="c">The protected environment approval.</button><p class="feedback"></p></div>
+<div class="quiz" data-a="a"><p>2. Why not parse the last few lines?</p><button data-v="a">Third-party log formatting is not a stable data contract.</button><button data-v="b">JSON cannot contain line breaks.</button><button data-v="c">GitHub removes the final lines.</button><p class="feedback"></p></div>
+<div class="quiz" data-a="c"><p>3. What happens without --result-file?</p><button data-v="a">No result is emitted.</button><button data-v="b">A default file is silently created.</button><button data-v="c">The existing stdout JSON behavior remains.</button><p class="feedback"></p></div>
+<div class="quiz" data-a="b"><p>4. When is the result written?</p><button data-v="a">Before signing starts.</button><button data-v="b">Only after package creation and signing succeed.</button><button data-v="c">During each architecture slice.</button><p class="feedback"></p></div>
+<div class="quiz" data-a="a"><p>5. What remains to prove?</p><button data-v="a">The post-merge protected continuation through notarization and trust checks.</button><button data-v="b">That Electron can build an unsigned DMG.</button><button data-v="c">That the API key authenticates locally.</button><p class="feedback"></p></div>
+</main><script>document.querySelectorAll('.quiz').forEach(q=>q.querySelectorAll('button').forEach(b=>b.onclick=()=>{const ok=b.dataset.v===q.dataset.a;const f=q.querySelector('.feedback');f.textContent=ok?'Correct — the channels and their contracts stay separate.':'Not quite. Revisit the data-flow explanation.';f.style.color=ok?'var(--green)':'#b14e58'}));</script></body></html>

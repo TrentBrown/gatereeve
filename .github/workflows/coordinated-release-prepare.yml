@@ -291,7 +291,7 @@ jobs:
             --version "${{ steps.metadata.outputs.version }}" \
             --signing-identity "$APPLE_SIGNING_IDENTITY" \
             --keychain "$GATEREEVE_EPHEMERAL_KEYCHAIN" \
-            > "$RUNNER_TEMP/trusted-package.json"
+            --result-file "$RUNNER_TEMP/trusted-package.json"
           node -e '
             const value = require("node:fs").readFileSync(process.argv[1], "utf8");
             const result = JSON.parse(value);

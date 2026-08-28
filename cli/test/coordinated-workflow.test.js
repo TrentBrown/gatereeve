@@ -34,6 +34,8 @@ test('coordinated preparation is pre-publication, exact-source, and dual-archite
     /security list-keychains -d user -s[\s\\]+"\$\{original_keychains\[@\]\}" \|\| true/
   );
   assert.match(workflow, /security delete-keychain/);
+  assert.match(workflow, /--result-file "\$RUNNER_TEMP\/trusted-package\.json"/);
+  assert.doesNotMatch(workflow, /> "\$RUNNER_TEMP\/trusted-package\.json"/);
   assert.match(workflow, /notarize-macos\.mjs/);
   assert.match(workflow, /coordinated-desktop-trusted-evidence-\$\{\{ matrix\.architecture \}\}/);
   assert.doesNotMatch(workflow, /contents: write/);
