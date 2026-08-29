@@ -9,36 +9,36 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Extend projection, artifact, and ordering contracts
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P1
 - **Rubric criteria:** R5, R6
 - **Depends on:** none
-- **PR:** -
+- **PR:** [#27](https://github.com/TrentBrown/gatereeve/pull/27)
 
 Add completion-report inventory support, safe gate-detail data, deterministic
 slice ordinals, dependency stages, and protocol contract tests.
 
 ## I-2 - Migrate preferences to the saved-project registry
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P2
 - **Rubric criteria:** R2, R3
 - **Depends on:** none
-- **PR:** -
+- **PR:** [#27](https://github.com/TrentBrown/gatereeve/pull/27)
 
 Create the schema-v2 persistent project-list model, v1 migration, stable order,
 canonical deduplication, and reference-only list operations.
 
 ## I-3 - Implement project admission and coordinator switching
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P3
 - **Rubric criteria:** R2, R3
 - **Depends on:** I-1, I-2
-- **PR:** -
+- **PR:** [#27](https://github.com/TrentBrown/gatereeve/pull/27)
 
 Add structured validation and diagnostics, bounded startup revalidation,
 last-project restoration, safe switching, active-only observation, and narrow

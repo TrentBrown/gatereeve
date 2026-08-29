@@ -296,23 +296,22 @@ export function createDesktopCoordinator({
       const inspection = await inspect(path);
       if (!inspection.ready) {
         candidateDiagnostic = inspection.project.diagnostic;
-        return state();
+      } else {
+        preferences = addProjectReference(preferences, inspection.project.path);
+        if (preferences.projectPaths.length > 0) await preferenceStore.save(preferences);
+        ({ token } = await activateInspection(inspection));
       }
-      preferences = addProjectReference(preferences, inspection.project.path);
-      if (preferences.projectPaths.length > 0) await preferenceStore.save(preferences);
-      ({ token } = await activateInspection(inspection));
-      return state();
     } catch (caught) {
       if (token === generation) {
         error = safeError(caught);
       }
-      return state();
     } finally {
       if (token === generation) {
         refreshing = false;
         publish();
       }
     }
+    return state();
   }
 
   async function refresh(_reason = 'manual') {
@@ -330,24 +329,25 @@ export function createDesktopCoordinator({
         stopPolling();
         watcher?.close();
         watcher = null;
-        return state();
+      } else {
+        await replaceWatcher(selection.featureHome, token);
+        await enrich(token);
+        if (preferences?.notificationsEnabled) {
+          notificationObserver.observe(snapshot, currentPullRequest);
+        }
       }
-      await replaceWatcher(selection.featureHome, token);
-      await enrich(token);
-      if (preferences?.notificationsEnabled) notificationObserver.observe(snapshot, currentPullRequest);
-      return state();
     } catch (caught) {
       if (token === generation) {
         phase = snapshot === null ? 'error' : 'ready';
         error = safeError(caught);
       }
-      return state();
     } finally {
       if (token === generation) {
         refreshing = false;
         publish();
       }
     }
+    return state();
   }
 
   async function activate(path) {
@@ -373,13 +373,13 @@ export function createDesktopCoordinator({
       }
       if (preferences.projectPaths.length > 0) await preferenceStore.save(preferences);
       ({ token } = await activateInspection(inspection));
-      return state();
     } finally {
       if (token === generation) {
         refreshing = false;
         publish();
       }
     }
+    return state();
   }
 
   async function reorderProjects(orderedPaths) {

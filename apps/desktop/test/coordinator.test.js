@@ -89,6 +89,7 @@ test('selection publishes local state before enrichment and polls GitHub only wh
     branch: 'topic',
   });
   await opening;
+  assert.equal(coordinator.current().refreshing, false);
   assert.equal(coordinator.current().snapshot.sources.git.status, 'current');
   assert.equal(coordinator.current().snapshot.sources.github.detail, 'PR open');
   assert.equal(coordinator.current().githubPolling, true);
@@ -345,6 +346,7 @@ test('failed project admission remains unsaved and leaves the active project int
   assert.equal(rejected.projects.length, 1);
   assert.equal(rejected.candidateDiagnostic.title, 'Legacy feature record');
   assert.equal(rejected.candidateDiagnostic.selectedPath.endsWith(basename(legacyPath)), true);
+  assert.equal(rejected.refreshing, false);
   assert.equal(saved.length, 1);
   coordinator.close();
 });
@@ -427,6 +429,7 @@ test('active project summary follows the enriched canonical workflow state', asy
 
   await coordinator.initialize();
   const current = await coordinator.open(worktree);
+  assert.equal(current.refreshing, false);
   assert.equal(current.snapshot.projection.feature.state, 'DELIVERING_SLICES');
   assert.equal(current.projects[0].workflowState, 'DELIVERING_SLICES');
   coordinator.close();
@@ -475,6 +478,7 @@ test('removing the active project preserves disk and activates the nearest saved
   assert.deepEqual(removed.preferences.projectPaths, [remainingPath]);
   assert.equal(removed.selection.worktreePath, remainingPath);
   assert.equal(removed.projects.length, 1);
+  assert.equal(removed.refreshing, false);
   assert.equal(watcherHomes.length, 2);
   assert.equal(await readFile(sentinel, 'utf8'), 'preserve me\n');
   coordinator.close();
