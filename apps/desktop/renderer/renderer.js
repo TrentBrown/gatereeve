@@ -232,9 +232,9 @@ function renderSetup(state) {
 }
 
 function renderRecents(state) {
-  elements.recents.replaceChildren(...state.preferences.recentWorktrees.map((path) => {
+  elements.recents.replaceChildren(...state.preferences.projectPaths.map((path) => {
     const button = node('button', { className: 'recent', text: path, type: 'button' });
-    button.addEventListener('click', () => void desktop.openRecent(path));
+    button.addEventListener('click', () => void desktop.activateProject(path));
     return button;
   }));
 }
@@ -1088,9 +1088,9 @@ function render(state) {
   if (diagnosticCanShowGovernedViews(snapshot)) void ensureModel();
 }
 
-elements.choose.addEventListener('click', () => void desktop.chooseWorktree());
+elements.choose.addEventListener('click', () => void desktop.addProject());
 elements['open-setup'].addEventListener('click', () => switchView('setup'));
-elements['setup-open-worktree'].addEventListener('click', () => void desktop.chooseWorktree());
+elements['setup-open-worktree'].addEventListener('click', () => void desktop.addProject());
 elements['setup-return'].addEventListener('click', () => switchView('overview'));
 elements['setup-recheck'].addEventListener('click', () => void desktop.recheckSetup());
 elements['agent-selection'].addEventListener('submit', async (event) => {

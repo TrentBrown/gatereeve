@@ -62,7 +62,7 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
       },
     }],
     },
-    preferences: { notificationsEnabled: false, recentWorktrees: [], selectedAgents: ['codex'] },
+    preferences: { notificationsEnabled: false, projectPaths: [], selectedAgents: ['codex'] },
   };
   const { window } = parseHTML(html);
   window.gatereeveDesktop = {
@@ -71,7 +71,7 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
       checkedAt: '2026-08-28T00:00:00.000Z', available: null,
       detail: 'GateReeve Desktop is current.',
     }; },
-    async chooseWorktree() { return state; },
+    async addProject() { return state; },
     async copyText() { return true; },
     async getState() { return state; },
     async getUpdateState() { return {
@@ -81,7 +81,7 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
     async openUpdateRelease() { return true; },
     async listSession() { return listSessionContext(repositoryRoot); },
     async openArtifact() { return true; },
-    async openRecent() { return state; },
+    async activateProject() { return state; },
     async readDetail(kind, id) { return protocol.read(featureHome, kind, id, { sources }); },
     async readSession(id) { return readSessionContext(repositoryRoot, id); },
     async refresh() { return state; },

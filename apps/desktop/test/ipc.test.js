@@ -14,11 +14,13 @@ function state() {
     selection: { worktreePath: '/repo', featureHome: '/repo/docs/issues/feature' },
     snapshot: null,
     error: null,
+    projects: [],
+    candidateDiagnostic: null,
     setup: {
       schemaVersion: 1, phase: 'unconfigured', operationalReady: false, checkedAt: null,
       desktop: { version: '0.1.0' }, selectedAgents: [], prerequisites: [], agents: [],
     },
-    preferences: { notificationsEnabled: false, recentWorktrees: ['/repo'], selectedAgents: [] },
+    preferences: { notificationsEnabled: false, projectPaths: ['/repo'], selectedAgents: [] },
   };
 }
 
@@ -54,6 +56,9 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
     coordinator: {
       current: state,
       async open() { return state(); },
+      async activate() { return state(); },
+      async reorderProjects() { return state(); },
+      async removeProject() { return state(); },
       async refresh() { return state(); },
       async recheckSetup() { return state(); },
       async setSelectedAgents(selectedAgents) {
@@ -94,7 +99,7 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
       releasePage() { return 'https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.4'; },
       subscribe() { return () => {}; },
     },
-    async pickWorktree() { return '/repo'; },
+    async pickProject() { return '/repo'; },
     async openPath(path) { opened.push(path); return ''; },
     revealPath(path) { revealed.push(path); },
     copyText(value) { copied.push(value); },
@@ -103,6 +108,10 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   });
   assert.equal(handlers.size, Object.keys(IPC_CHANNELS).length - 2);
   const event = trustedEvent();
+  assert.equal((await handlers.get(IPC_CHANNELS.addProject)(event)).phase, 'ready');
+  assert.equal((await handlers.get(IPC_CHANNELS.activateProject)(event, '/repo')).phase, 'ready');
+  assert.equal((await handlers.get(IPC_CHANNELS.reorderProjects)(event, ['/repo'])).phase, 'ready');
+  assert.equal((await handlers.get(IPC_CHANNELS.removeProject)(event, '/repo')).phase, 'ready');
   assert.deepEqual(await handlers.get(IPC_CHANNELS.readDetail)(
     event,
     { kind: 'events', id: null },

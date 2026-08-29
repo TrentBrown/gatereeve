@@ -32,7 +32,7 @@ function unconfiguredState() {
       prerequisites: [],
       agents: [],
     },
-    preferences: { notificationsEnabled: false, recentWorktrees: [], selectedAgents: [] },
+    preferences: { notificationsEnabled: false, projectPaths: [], selectedAgents: [] },
   };
 }
 
@@ -70,7 +70,7 @@ function incompleteState() {
         },
       }],
     },
-    preferences: { notificationsEnabled: false, recentWorktrees: [], selectedAgents: ['codex'] },
+    preferences: { notificationsEnabled: false, projectPaths: [], selectedAgents: ['codex'] },
   };
 }
 
@@ -110,7 +110,7 @@ function mixedReadyState() {
     },
     preferences: {
       notificationsEnabled: false,
-      recentWorktrees: [],
+      projectPaths: [],
       selectedAgents: ['codex', 'claude'],
     },
   };
@@ -147,8 +147,8 @@ test('first launch presents persistent non-mutating Setup and preserves historic
     async openUpdateRelease() { return true; },
     subscribe() { return () => {}; },
     subscribeUpdates() { return () => {}; },
-    async chooseWorktree() { return unconfiguredState(); },
-    async openRecent() { return unconfiguredState(); },
+    async addProject() { return unconfiguredState(); },
+    async activateProject() { return unconfiguredState(); },
     async refresh() { return unconfiguredState(); },
     async recheckSetup() { return incompleteState(); },
     async setSelectedAgents(value) { selections.push(value); return incompleteState(); },
@@ -191,8 +191,8 @@ test('Setup names the ready path without hiding an incomplete selected agent', a
     async openUpdateRelease() { return true; },
     subscribe() { return () => {}; },
     subscribeUpdates() { return () => {}; },
-    async chooseWorktree() { return state; },
-    async openRecent() { return state; },
+    async addProject() { return state; },
+    async activateProject() { return state; },
     async refresh() { return state; },
     async recheckSetup() { return state; },
     async setSelectedAgents() { return state; },

@@ -45,7 +45,7 @@ function idleState() {
     setup: readySetup(),
     preferences: {
       notificationsEnabled: false,
-      recentWorktrees: ['/repo/recent'],
+      projectPaths: ['/repo/recent'],
       selectedAgents: ['codex'],
     },
   };
@@ -66,8 +66,8 @@ test('renderer presents selection first and then canonical observation status', 
   let releaseOpens = 0;
   window.gatereeveDesktop = {
     async checkForUpdates() { return idleUpdate(); },
-    async chooseWorktree() {},
-    async openRecent() {},
+    async addProject() {},
+    async activateProject() {},
     async refresh() {},
     async recheckSetup() { return idleState(); },
     async setSelectedAgents() { return idleState(); },
@@ -215,8 +215,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   };
   window.gatereeveDesktop = {
     async checkForUpdates() { return idleUpdate(); },
-    async chooseWorktree() {},
-    async openRecent() {},
+    async addProject() {},
+    async activateProject() {},
     async refresh() {},
     async recheckSetup() { return readyState; },
     async setSelectedAgents() { return readyState; },
@@ -357,8 +357,8 @@ test('renderer reloads optional Session context when a refresh begins', async ()
   };
   window.gatereeveDesktop = {
     async checkForUpdates() { return idleUpdate(); },
-    async chooseWorktree() {},
-    async openRecent() {},
+    async addProject() {},
+    async activateProject() {},
     async refresh() {},
     async recheckSetup() { return state; },
     async setSelectedAgents() { return state; },
@@ -433,8 +433,8 @@ test('selected artifact rereads automatically when its canonical fingerprint cha
   const initial = state(artifact('2026-08-29T01:00:00.000Z', 20));
   window.gatereeveDesktop = {
     async checkForUpdates() { return idleUpdate(); },
-    async chooseWorktree() {},
-    async openRecent() {},
+    async addProject() {},
+    async activateProject() {},
     async refresh() { return initial; },
     async recheckSetup() { return initial; },
     async setSelectedAgents() { return initial; },
@@ -578,8 +578,8 @@ test('artifact Markdown confines external, relative, fragment, and unsafe links'
     async getUpdateState() { return idleUpdate(); },
     async openUpdateRelease() { return true; },
     async openExternalLink(url) { external.push(url); return true; },
-    async chooseWorktree() { return state; },
-    async openRecent() { return state; },
+    async addProject() { return state; },
+    async activateProject() { return state; },
     async refresh() { return state; },
     async recheckSetup() { return state; },
     async setSelectedAgents() { return state; },

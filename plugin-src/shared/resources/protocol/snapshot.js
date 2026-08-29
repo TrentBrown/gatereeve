@@ -118,6 +118,16 @@ const FEATURE_ARTIFACTS = Object.freeze([
     pendingStates: ['PLANNING'],
     requiredStates: ['DELIVERING_SLICES', 'FINALIZING', 'COMPLETE'],
   },
+  {
+    id: 'completion-report',
+    label: 'Feature completion report',
+    path: 'completion-report.md',
+    format: 'markdown',
+    pendingStates: [
+      'DESIGNING', 'SPECIFYING', 'PLANNING', 'DELIVERING_SLICES', 'FINALIZING',
+    ],
+    requiredStates: ['COMPLETE'],
+  },
 ]);
 
 const GATE_ARTIFACT_NAMES = Object.freeze({
@@ -188,6 +198,9 @@ function validateGate(gate, label) {
   assertObject(gate, label);
   assertString(gate.id, `${label}.id`);
   assertStringArray(gate.dependsOn, `${label}.dependsOn`);
+  assertInteger(gate.dependencyStage, `${label}.dependencyStage`, { minimum: 1 });
+  assertString(gate.dependencyBranch, `${label}.dependencyBranch`, { nullable: true });
+  assertString(gate.orderLabel, `${label}.orderLabel`);
   assertOneOf(gate.evaluationScope, GATE_EVALUATION_SCOPES, `${label}.evaluationScope`);
   assertBoolean(gate.optional, `${label}.optional`);
   assertBoolean(gate.waiverAllowed, `${label}.waiverAllowed`);
@@ -246,6 +259,7 @@ function validateProjection(projection, label) {
   projection.slices.forEach((slice, index) => {
     const item = `${label}.slices[${index}]`;
     assertObject(slice, item);
+    assertInteger(slice.deliveryOrdinal, `${item}.deliveryOrdinal`, { minimum: 1 });
     for (const field of ['id', 'state', 'name', 'proposedBy', 'latestEventId']) {
       assertString(slice[field], `${item}.${field}`);
     }

@@ -47,6 +47,9 @@ const attempt = {
     ['packetValidation', ['explainDiff'], 'PASS'],
   ].map(([id, dependsOn, outcome], index) => ({
     id, dependsOn, outcome, freshness: 'CURRENT', blockers: [], reason: null,
+    dependencyStage: index < 3 ? index + 1 : index < 7 ? 4 : index - 2,
+    dependencyBranch: index >= 3 && index < 7 ? String.fromCharCode(97 + index - 3) : null,
+    orderLabel: index >= 3 && index < 7 ? `4${String.fromCharCode(97 + index - 3)}` : String(index < 3 ? index + 1 : index - 2),
     evidence: id === 'patternReview' ? null : { path: `pr-4/${id}.md` },
     recordedEventId: `evt-gate-${index + 1}`,
   })),
@@ -87,10 +90,10 @@ const snapshot = {
     feature: { state: 'DELIVERING_SLICES' },
     suspension: { paused: false },
     slices: [
-      { id: 'desktop-observer-contract', name: 'Canonical observer contract', state: 'MERGED', branch: 'gatereeve-desktop', scope: 'SLICE', planSteps: ['P1', 'P2', 'P3'], activeAttemptId: null },
-      { id: 'desktop-shell-observation', name: 'Electron shell and observation lifecycle', state: 'MERGED', branch: 'gatereeve-desktop-shell', scope: 'SLICE', planSteps: ['P4', 'P5'], activeAttemptId: null },
-      { id: 'desktop-workflow-experience', name: 'State-first workflow and inspection experience', state: 'MERGED', branch: 'gatereeve-desktop-workflow-experience', scope: 'SLICE', planSteps: ['P6', 'P7'], activeAttemptId: null },
-      { id: 'desktop-final-quality', name: 'Notifications, accessibility, and final verification', state: 'IMPLEMENTING', branch: 'gatereeve-desktop-notifications-accessibility', scope: 'FEATURE_FINAL', planSteps: ['P8', 'P9'], activeAttemptId: null },
+      { id: 'desktop-observer-contract', deliveryOrdinal: 1, name: 'Canonical observer contract', state: 'MERGED', branch: 'gatereeve-desktop', scope: 'SLICE', planSteps: ['P1', 'P2', 'P3'], activeAttemptId: null },
+      { id: 'desktop-shell-observation', deliveryOrdinal: 2, name: 'Electron shell and observation lifecycle', state: 'MERGED', branch: 'gatereeve-desktop-shell', scope: 'SLICE', planSteps: ['P4', 'P5'], activeAttemptId: null },
+      { id: 'desktop-workflow-experience', deliveryOrdinal: 3, name: 'State-first workflow and inspection experience', state: 'MERGED', branch: 'gatereeve-desktop-workflow-experience', scope: 'SLICE', planSteps: ['P6', 'P7'], activeAttemptId: null },
+      { id: 'desktop-final-quality', deliveryOrdinal: 4, name: 'Notifications, accessibility, and final verification', state: 'IMPLEMENTING', branch: 'gatereeve-desktop-notifications-accessibility', scope: 'FEATURE_FINAL', planSteps: ['P8', 'P9'], activeAttemptId: null },
     ],
     boundaryAttempts: [attempt],
   },
@@ -124,6 +127,16 @@ const state = {
   },
   snapshot,
   error: null,
+  projects: [{
+    path: '/home/trent/code/tb/gatereeve-desktop',
+    name: 'gatereeve-desktop',
+    status: 'ready',
+    featureHome: '/home/trent/code/tb/gatereeve-desktop/docs/issues/gatereeve-desktop',
+    featureId: 'gatereeve-desktop',
+    workflowState: 'DELIVERING_SLICES',
+    diagnostic: null,
+  }],
+  candidateDiagnostic: null,
   setup: {
     schemaVersion: 1,
     phase: 'ready',
@@ -163,7 +176,11 @@ const state = {
       },
     }],
   },
-  preferences: { notificationsEnabled: false, recentWorktrees: [], selectedAgents: ['codex'] },
+  preferences: {
+    notificationsEnabled: false,
+    projectPaths: ['/home/trent/code/tb/gatereeve-desktop'],
+    selectedAgents: ['codex'],
+  },
 };
 
 const updateState = {
@@ -184,8 +201,10 @@ window.gatereeveDesktop = Object.freeze({
   async checkForUpdates() { return updateState; },
   async openUpdateRelease() { return true; },
   async openExternalLink() { return true; },
-  async chooseWorktree() { return state; },
-  async openRecent() { return state; },
+  async addProject() { return state; },
+  async activateProject() { return state; },
+  async removeProject() { return state; },
+  async reorderProjects() { return state; },
   async refresh() { return state; },
   async recheckSetup() { return state; },
   async setSelectedAgents() { return state; },

@@ -132,10 +132,10 @@ async function startDesktop() {
     ipcMain,
     coordinator,
     updateCoordinator,
-    async pickWorktree() {
+    async pickProject() {
       const result = await dialog.showOpenDialog({
-        title: 'Choose a GateReeve feature worktree',
-        buttonLabel: 'Open worktree',
+        title: 'Choose a GateReeve project',
+        buttonLabel: 'Add project',
         properties: ['openDirectory'],
       });
       return result.canceled ? null : result.filePaths[0] ?? null;
