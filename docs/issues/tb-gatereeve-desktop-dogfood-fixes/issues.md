@@ -157,6 +157,11 @@ confirmed installed AC1-AC3: compatible Python 3.14.7 is selected, the enlarged
 Rolling Vale masthead icon is visible, and repeated Setup/workflow navigation
 preserves the complete sidebar. Installed AC4-AC7 remain.
 
+Trent Brown then confirmed installed AC4-AC5: a selected PortReeve artifact
+updates automatically, manual Refresh retains the selection, and refreshes
+preserve both bottom-pinned and ordinary reading positions. Installed AC6-AC7
+remain.
+
 ## I-10 - Complete the feature rubric and report
 
 - **Status:** open

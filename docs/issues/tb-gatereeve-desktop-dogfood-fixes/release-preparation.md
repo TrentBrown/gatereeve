@@ -110,5 +110,8 @@ The installed application launches and the first
 group passes. The rc.2 Setup view shows Python 3.14.7 as present, the enlarged
 Rolling Vale masthead artwork, and the stable complete sidebar through repeated
 Setup/workflow navigation. Desktop and Plugin both report `0.1.0-rc.2` and
-matched compatibility. AC4-AC7 artifact refresh, reading state, Markdown, and
-link checks remain before R8 can pass.
+matched compatibility. Trent Brown subsequently confirmed that the selected
+artifact updates automatically, manual Refresh retains selection, and bottom
+and ordinary scroll positions survive legitimate PortReeve artifact changes.
+Installed AC4-AC5 therefore pass; AC6-AC7 Markdown and link checks remain
+before R8 can pass.

@@ -122,12 +122,14 @@
   as `91725d7e7aa3a8e0f82ddc2658f51d12a3385900`. The public Cask SHA-256 is
   `0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
   [Hosted run 33262844457](https://github.com/TrentBrown/gatereeve/actions/runs/33262844457)
-  passed public installation and disposable upgrade on arm64 and x64. The
-  Trent Brown's user Mac then upgraded through the public Cask from rc.1 to
+  passed public installation and disposable upgrade on arm64 and x64. Trent
+  Brown's user Mac then upgraded through the public Cask from rc.1 to
   rc.2; the resulting Cask inventory, strict deep signature verification, and
-  Notarized Developer ID Gatekeeper acceptance pass. Application launch and
-  the installed AC1-AC7 checklist remain.
+  Notarized Developer ID Gatekeeper acceptance pass.
   The installed rc.2 app now launches, and Trent Brown confirmed AC1-AC3 in the
   real PortReeve worktree: Python 3.14.7 is selected, the enlarged branded icon
   is visible, and the complete sidebar stays stable through Setup navigation.
-  Installed AC4-AC7 remain, so R8 is still `NOT YET`.
+  Trent Brown subsequently confirmed automatic and manual artifact refresh,
+  retained selection, bottom pinning, and ordinary scroll restoration in the
+  live PortReeve record. Installed AC4-AC5 pass; AC6-AC7 remain, so R8 is
+  still `NOT YET`.
