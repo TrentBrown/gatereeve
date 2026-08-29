@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GateReeve PR #21 — Trusted release preparation</title>
+  <style>
+    :root { color-scheme: light dark; --ink:#211636; --paper:#fbf9ff; --card:#fff; --accent:#6542a5; --line:#d9cfee; --ok:#24724a; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:16px/1.6 system-ui,sans-serif; color:var(--ink); background:var(--paper); }
+    main { max-width:980px; margin:auto; padding:32px 20px 80px; }
+    h1,h2,h3 { line-height:1.2; }
+    h1 { font-size:clamp(2rem,5vw,3.5rem); margin-bottom:.3em; }
+    h2 { margin-top:2.5em; border-bottom:2px solid var(--line); padding-bottom:.3em; }
+    nav,.card,.callout,.flow,.quiz { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin:18px 0; }
+    nav a { margin-right:18px; }
+    code { background:#eee8fa; color:#34244f; border-radius:5px; padding:.1em .35em; }
+    pre { white-space:pre-wrap; overflow:auto; background:#241a35; color:#f6efff; border-radius:10px; padding:16px; }
+    .flow { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; align-items:center; text-align:center; }
+    .node { border:2px solid var(--line); border-radius:10px; padding:12px 8px; min-height:76px; display:grid; place-items:center; }
+    .node.ok { border-color:var(--ok); }
+    .node.wait { border-color:#a06a18; }
+    .arrow { color:var(--accent); font-size:1.5rem; }
+    .callout { border-left:6px solid var(--accent); }
+    button { display:block; width:100%; text-align:left; margin:8px 0; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); cursor:pointer; }
+    button.correct { border-color:var(--ok); background:#e6f5ec; color:#174b31; }
+    button.wrong { border-color:#a33; background:#faeaea; color:#6d2222; }
+    .feedback { min-height:1.5em; font-weight:600; }
+    @media (max-width:760px) { .flow { grid-template-columns:1fr; } .arrow { transform:rotate(90deg); } }
+    @media (prefers-color-scheme:dark) { :root { --ink:#f1eafa; --paper:#17111f; --card:#21182d; --line:#4c3a67; } code { background:#38294d; color:#f3ebff; } }
+  </style>
+</head>
+<body><main>
+  <p>GateReeve · Pull request #21 · Evidence slice</p>
+  <h1>From merged code to a trusted, still-unpublished release</h1>
+  <p>This change preserves proof that the exact GateReeve source merged in PR #20 can become a signed, notarized, native-tested macOS release—without publishing it.</p>
+
+  <nav aria-label="Contents">
+    <a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#quiz">Quiz</a>
+  </nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <h3>Why preparation and publication are separate</h3>
+    <p>Apple trust transforms application bytes. The release pipeline therefore builds a candidate from an immutable commit, signs it with Developer ID, submits it for notarization, staples Apple's ticket, and verifies the resulting DMG on both Apple Silicon and Intel. Only those final bytes may become the release artifact.</p>
+    <div class="flow" aria-label="Release preparation flow">
+      <div class="node ok">Merged source<br><code>1b7c7e5</code></div><div class="arrow">→</div>
+      <div class="node ok">Matched Plugin + Desktop candidates</div><div class="arrow">→</div>
+      <div class="node ok">Signed, notarized, stapled DMG</div>
+    </div>
+    <div class="flow" aria-label="Verification and publication boundary">
+      <div class="node ok">ARM64 native smoke</div><div class="arrow">+</div>
+      <div class="node ok">Intel native smoke</div><div class="arrow">→</div>
+      <div class="node wait">Publication awaits approval</div>
+    </div>
+    <div class="callout"><strong>The important boundary:</strong> approving the protected Apple job only released credentials to a read-only preparation run. It did not create a tag, GitHub release, marketplace update, website change, or Homebrew mutation.</div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <p>Think of the release record as a sealed packing list. It names the source, every output, every checksum, and every required public destination. The packing list is useful before shipment: reviewers can prove that the box is correct without sending it anywhere.</p>
+    <div class="card">
+      <h3>The sealed identity</h3>
+      <pre>source = 1b7c7e519c90a13d140f59c65e0304bb78000753
+version = 0.1.0-rc.2
+dmg.sha256 = ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f
+notarization = Accepted
+publication.approval = unapproved</pre>
+    </div>
+    <p>The dry run checks the shipping route while keeping every destination in the <code>pending</code> state. A later command must present the exact plan digest and explicit approval before it can mutate those destinations.</p>
+  </section>
+
+  <section id="code">
+    <h2>Code and evidence walkthrough</h2>
+    <div class="card"><h3>1. Governed lifecycle state</h3><p><code>events.jsonl</code> records PR #20's verified merge and starts the P8 release-preparation slice. This keeps protocol state aligned with the actual branch sequence.</p></div>
+    <div class="card"><h3>2. Immutable machine evidence</h3><p><code>release-record.json</code> binds the matched Plugin and Desktop candidates to the merge commit. The ARM64 and Intel JSON files independently repeat the trusted DMG identity and native smoke results.</p></div>
+    <div class="card"><h3>3. Human-readable release evidence</h3><p><code>release-preparation.md</code> explains the source, run, trust identity, notarization request, checksums, and safety boundary. The tracker keeps R8 at <code>NOT YET</code>.</p></div>
+    <div class="card"><h3>4. Exact publication preflight</h3><p>The plan digest is <code>88b187…eb76</code>. The dry-run JSON proves that the repository-owned publisher accepted that plan while leaving all five public surfaces untouched.</p></div>
+    <div class="callout"><strong>Why Homebrew waits:</strong> the cask engine requires direct installation proof for this exact DMG. PR #21 does not invent that proof; it leaves cask generation and Mac dogfooding for the approved publication stage.</div>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <div class="quiz" data-answer="1"><h3>1. What did the environment approval authorize?</h3><button>Publication of all release surfaces</button><button>Apple credential access for the nonpublishing trust job</button><button>A Homebrew cask update only</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><h3>2. Which identity selects the trusted DMG?</h3><button>The branch name alone</button><button>The notarization ID alone</button><button>Version, source commit, filename, size, and SHA-256 together</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="0"><h3>3. Why does R8 remain NOT YET?</h3><button>Publication, Homebrew upgrade, and installed-Mac checks are still absent</button><button>The notarization failed</button><button>The Intel package differed from ARM64</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="1"><h3>4. What did the publication dry run change?</h3><button>It created the tag but not the release</button><button>Nothing public; every surface stayed pending</button><button>It updated only the website manifest</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><h3>5. Why is the cask packet deferred?</h3><button>Homebrew cannot install universal DMGs</button><button>The tap repository is private</button><button>The cask contract requires truthful direct-install proof for the exact DMG</button><p class="feedback"></p></div>
+  </section>
+  <script>
+    for (const quiz of document.querySelectorAll('.quiz')) {
+      const buttons = [...quiz.querySelectorAll('button')];
+      buttons.forEach((button, index) => button.addEventListener('click', () => {
+        buttons.forEach(item => item.classList.remove('correct','wrong'));
+        const correct = index === Number(quiz.dataset.answer);
+        button.classList.add(correct ? 'correct' : 'wrong');
+        quiz.querySelector('.feedback').textContent = correct ? 'Correct.' : 'Not quite—review the boundary and evidence above.';
+      }));
+    }
+  </script>
+</main></body></html>

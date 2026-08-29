@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Make Python prerequisite selection compatibility-aware
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P1
 - **Rubric criteria:** R1
@@ -22,7 +22,7 @@ diagnostics.
 
 ## I-2 - Apply GateReeve branding and stable Setup layout
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P2
 - **Rubric criteria:** R2, R3
@@ -34,7 +34,7 @@ selected-worktree layouts without sidebar collapse.
 
 ## I-3 - Keep the selected artifact current and readable
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P3
 - **Rubric criteria:** R4, R5
@@ -46,7 +46,7 @@ retention, stale-content recovery, and canonical-removal behavior.
 
 ## I-4 - Render safe Markdown emphasis
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P4
 - **Rubric criteria:** R6
@@ -58,7 +58,7 @@ identifiers, malformed input, and literal image syntax.
 
 ## I-5 - Confine Markdown link navigation
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P5
 - **Rubric criteria:** R6, R7
@@ -70,7 +70,7 @@ through validated boundaries while keeping unsafe targets inert.
 
 ## I-6 - Verify the assembled Desktop product slice
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P6
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7
@@ -82,7 +82,7 @@ and constraint review before entering the PR boundary.
 
 ## I-7 - Complete and merge the governed product PR
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P7
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7
@@ -94,15 +94,24 @@ the topic branch into `main` without importing a `development*` branch.
 
 ## I-8 - Prepare Apple-trusted coordinated release evidence
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P8
 - **Rubric criteria:** R8
 - **Depends on:** I-7
-- **PR:** -
+- **PR:** [#21](https://github.com/TrentBrown/gatereeve/pull/21)
 
 Prepare matched `v0.1.0-rc.2` artifacts from merged `main`, verify Apple trust
 and both native architectures, and inspect the dry-run publication plan.
+
+Preparation run
+[`33234514595`](https://github.com/TrentBrown/gatereeve/actions/runs/33234514595)
+is pinned to merged `main` commit
+`1b7c7e519c90a13d140f59c65e0304bb78000753`. Candidate creation, Apple trust,
+trusted ARM64/Intel verification, immutable-record inspection, and the
+coordinated publication dry run passed without public mutation. Exact Homebrew
+packet preparation moves to I-9 because it requires direct-install proof from
+the as-yet unpublished DMG.
 
 ## I-9 - Publish and install the approved Homebrew release
 
