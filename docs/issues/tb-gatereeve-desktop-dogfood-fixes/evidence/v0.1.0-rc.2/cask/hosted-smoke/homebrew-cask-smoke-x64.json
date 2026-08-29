@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "gatereeve-homebrew-cask-smoke",
+  "caskReleaseId": "gatereeve-cask-v0.1.0-rc.2",
+  "source": {
+    "repository": "https://github.com/TrentBrown/gatereeve",
+    "commit": "1b7c7e519c90a13d140f59c65e0304bb78000753",
+    "tag": "v0.1.0-rc.2"
+  },
+  "desktop": {
+    "filename": "GateReeve-0.1.0-rc.2-macos-universal.dmg",
+    "bytes": 246106267,
+    "sha256": "ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f",
+    "url": "https://github.com/TrentBrown/gatereeve/releases/download/v0.1.0-rc.2/GateReeve-0.1.0-rc.2-macos-universal.dmg",
+    "trust": {
+      "status": "developer-id-notarized",
+      "identity": "Developer ID Application: Trent Brown (PMWYD5A82A)",
+      "teamId": "PMWYD5A82A",
+      "hardenedRuntime": true,
+      "secureTimestamp": true,
+      "notarizationId": "59e62a4e-bf52-4bf3-bb22-e85768ed75a1",
+      "notarizationStatus": "Accepted",
+      "stapled": true,
+      "gatekeeperAccepted": true,
+      "evidence": [
+        "codesign:Developer ID Application: Trent Brown (PMWYD5A82A)",
+        "notarytool:59e62a4e-bf52-4bf3-bb22-e85768ed75a1",
+        "stapler:validated",
+        "spctl:accepted"
+      ]
+    }
+  },
+  "runner": {
+    "operatingSystem": "darwin",
+    "architecture": "x64"
+  },
+  "checks": {
+    "exactCaskInstalled": true,
+    "upgradeCompleted": true,
+    "applicationIdentity": true,
+    "developerIdValid": true,
+    "gatekeeperAccepted": true,
+    "universalBinaries": true,
+    "pluginLifecycleUntouched": true,
+    "cliLifecycleUntouched": true
+  },
+  "installProof": {
+    "bundleIdentifier": "com.trentbrown.gatereeve.desktop",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "dmgSha256": "ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f"
+  },
+  "upgradeProof": {
+    "bundleIdentifier": "com.trentbrown.gatereeve.desktop",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "dmgSha256": "ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f"
+  },
+  "verifiedAt": "2026-08-29T16:25:06.833Z"
+}

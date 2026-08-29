@@ -1,8 +1,7 @@
 {
   "schemaVersion": 1,
+  "kind": "gatereeve-public-homebrew-cask-smoke",
   "caskReleaseId": "gatereeve-cask-v0.1.0-rc.2",
-  "version": "0.1.0-rc.2",
-  "channel": "rc",
   "source": {
     "repository": "https://github.com/TrentBrown/gatereeve",
     "commit": "1b7c7e519c90a13d140f59c65e0304bb78000753",
@@ -31,40 +30,34 @@
       ]
     }
   },
-  "directInstallation": {
-    "status": "passed",
-    "confirmedBy": "Trent Brown",
-    "confirmedAt": "2026-08-29T15:45:56.000Z"
-  },
-  "cask": {
+  "publicTap": {
     "repository": "TrentBrown/homebrew-gatereeve",
     "tap": "TrentBrown/gatereeve",
     "token": "gatereeve",
-    "path": "Casks/gatereeve.rb",
-    "outputPath": "Casks/gatereeve.rb",
-    "sha256": "0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f",
-    "createRepositoryIfAbsent": true
+    "caskSha256": "0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f"
   },
-  "state": "published",
-  "publication": {
-    "approval": {
-      "state": "approved",
-      "approvedBy": "Trent Brown",
-      "approvedAt": "2026-08-29T16:20:24.886Z",
-      "planSha256": "53095d7e4eafdbb596a694eb670cc5d676bf6b00532a3e8f448ac3c04181974c"
-    },
-    "surface": {
-      "state": "complete",
-      "receipt": {
-        "repository": "TrentBrown/homebrew-gatereeve",
-        "path": "Casks/gatereeve.rb",
-        "pullRequestUrl": "https://github.com/TrentBrown/homebrew-gatereeve/pull/2",
-        "mergeCommit": "91725d7e7aa3a8e0f82ddc2658f51d12a3385900",
-        "fileSha256": "0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f",
-        "publishedAt": "2026-08-29T16:20:35.516Z"
-      }
-    }
+  "runner": {
+    "operatingSystem": "darwin",
+    "architecture": "x64"
   },
-  "createdAt": "2026-08-29T15:46:39.171Z",
-  "updatedAt": "2026-08-29T16:20:35.516Z"
+  "checks": {
+    "literalPublicCommandInstalled": true,
+    "exactPublishedCask": true,
+    "exactCaskInstalled": true,
+    "applicationIdentity": true,
+    "developerIdValid": true,
+    "gatekeeperAccepted": true,
+    "universalBinaries": true,
+    "pluginLifecycleUntouched": true,
+    "cliLifecycleUntouched": true
+  },
+  "installProof": {
+    "bundleIdentifier": "com.trentbrown.gatereeve.desktop",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "dmgSha256": "ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f"
+  },
+  "verifiedAt": "2026-08-29T16:25:47.525Z"
 }

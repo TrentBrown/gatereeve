@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #24: From approved Cask to installed proof</title>
+  <style>
+    :root { color-scheme:light dark; --ink:#24183a; --paper:#fbf9ff; --accent:#6745a7; --soft:#eee7fb; --ok:#176b45; --line:#d7c9ef; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:17px/1.62 system-ui,sans-serif; color:var(--ink); background:var(--paper); }
+    main { width:min(960px,92vw); margin:0 auto; padding:3rem 0 5rem; }
+    h1,h2,h3 { line-height:1.18; }
+    h1 { font-size:clamp(2rem,6vw,4rem); }
+    h2 { margin-top:3rem; border-bottom:2px solid var(--soft); padding-bottom:.35rem; }
+    a { color:var(--accent); }
+    nav,.callout,.flow,.matrix,.quiz { background:var(--soft); border-radius:14px; padding:1.1rem 1.3rem; margin:1.2rem 0; }
+    .flow { display:grid; grid-template-columns:repeat(4,1fr); gap:.7rem; text-align:center; }
+    .flow div,.matrix div { background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:.85rem; }
+    .matrix { display:grid; grid-template-columns:repeat(2,1fr); gap:.8rem; }
+    .stamp { display:inline-block; color:var(--ok); border:1px solid var(--ok); border-radius:999px; padding:.1rem .55rem; font-weight:700; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; background:#1d1728; color:#f6f0ff; border-radius:12px; padding:1rem; overflow:auto; }
+    button { display:block; width:100%; text-align:left; margin:.45rem 0; padding:.7rem; border:1px solid var(--accent); border-radius:8px; background:var(--paper); color:inherit; cursor:pointer; }
+    button.correct { border-color:var(--ok); color:var(--ok); font-weight:700; }
+    button.wrong { opacity:.65; }
+    .feedback { min-height:1.5rem; font-weight:600; }
+    @media (max-width:700px) { .flow,.matrix { grid-template-columns:1fr; } }
+    @media (prefers-color-scheme:dark) { :root { --ink:#f1eaff; --paper:#17121f; --soft:#2a203a; --accent:#c2a6ff; --ok:#75dfa9; --line:#554170; } }
+  </style>
+</head>
+<body><main>
+  <h1>From approved Cask to installed proof</h1>
+  <p>PR #24 records the last operational half of GateReeve's rc.2 delivery: the approved Homebrew Cask became public, passed both architecture paths, upgraded the user's Mac, and proved the corrected application behaviors in the installed notarized build.</p>
+  <nav><strong>Contents</strong>: <a href="#background">Background</a> · <a href="#intuition">Intuition</a> · <a href="#code">Evidence walkthrough</a> · <a href="#quiz">Quiz</a></nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <p>A release can be correctly built and notarized yet still fail its users at the distribution boundary. A Cask might name the wrong digest, an Intel runner might expose a packaging fault, or the installed app might inherit a different process environment from a terminal. That last distinction is especially important for the Python discovery fix that started this feature.</p>
+    <p>Earlier slices established the product implementation, the coordinated rc.2 package, Apple trust, and the exact Cask publication plan. PR #24 does not rebuild any of them. It records what happened when those immutable inputs crossed the public Homebrew boundary.</p>
+    <div class="callout"><strong>Key distinction:</strong> package evidence proves what was produced; installation evidence proves what users actually receive and observe.</div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <p>The evidence forms a chain. Each step consumes the identity established by the previous one instead of inventing a new release:</p>
+    <div class="flow">
+      <div><strong>Approved plan</strong><br>Exact Cask bytes and plan digest</div>
+      <div><strong>Public tap</strong><br>Reviewed PR and byte-for-byte result</div>
+      <div><strong>Hosted matrix</strong><br>Install and upgrade on arm64 and x64</div>
+      <div><strong>User Mac</strong><br>Upgrade, trust, launch, AC1-AC7</div>
+    </div>
+    <pre>plan 53095d… → Cask 0f369a… → tap merge 91725d…
+                  ↓
+DMG ec5061… ← public install + predecessor upgrade
+                  ↓
+Homebrew rc.1 → rc.2 → Notarized Developer ID → installed AC1-AC7 PASS</pre>
+    <p>The result is stronger than a single green workflow. Hosted runners provide a reproducible architecture matrix; the maintainer's Mac provides the real installed environment and the human-visible behavior checks that the runners cannot meaningfully observe.</p>
+  </section>
+
+  <section id="code">
+    <h2>Evidence walkthrough</h2>
+    <h3>1. The publication record becomes complete</h3>
+    <p>The Cask record moves from prepared to published. It preserves the approved plan digest, exact generated Cask digest, public tap pull request, merge commit, and a completed receipt. A post-publication dry run confirms that recovery sees the public surface as already complete.</p>
+
+    <h3>2. Four hosted paths exercise public bytes</h3>
+    <div class="matrix">
+      <div><span class="stamp">PASS</span><br><strong>arm64 public install</strong><br>Fetch the literal public Cask and install rc.2.</div>
+      <div><span class="stamp">PASS</span><br><strong>x64 public install</strong><br>Repeat against Intel packaging and binaries.</div>
+      <div><span class="stamp">PASS</span><br><strong>arm64 disposable upgrade</strong><br>Install the canonical predecessor, then upgrade to rc.2.</div>
+      <div><span class="stamp">PASS</span><br><strong>x64 disposable upgrade</strong><br>Exercise the same transition on Intel.</div>
+    </div>
+    <p>Each tracked JSON result binds the observed app to the release version, bundle identifier, Developer ID authority, Gatekeeper result, DMG digest, and expected universal binaries.</p>
+
+    <h3>3. The real Mac proves the user transition</h3>
+    <p>The maintainer upgraded through the public tap from rc.1 to rc.2. Homebrew replaced the application, strict deep code-signing verification passed, and Gatekeeper reported <code>source=Notarized Developer ID</code>. The installed app then launched normally.</p>
+
+    <h3>4. Dogfooding closes the behavior loop</h3>
+    <p>In a live PortReeve workflow, the Homebrew-installed app found Python 3.14.7, rendered the larger branded masthead, kept the Setup sidebar stable, refreshed artifacts without losing reading state, rendered inline Markdown correctly, and confined external, relative, and fragment links to their intended destinations.</p>
+    <div class="callout"><strong>What this PR changes:</strong> audit evidence and workflow state only. Product code is unchanged, and the final P10 whole-feature evaluation remains separate.</div>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <div class="quiz" data-answer="1"><p>1. Why is the user-Mac check necessary after hosted Cask tests pass?</p><button>Hosted tests cannot verify any SHA-256 digest.</button><button>It proves the real installed environment and human-visible AC1-AC7 behaviors.</button><button>Apple requires a second notarization on every user Mac.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="2"><p>2. What connects the approved plan to the public tap?</p><button>The Homebrew cache directory alone.</button><button>The GateReeve bundle identifier alone.</button><button>The plan digest, exact Cask digest, tap PR, and recorded merge commit.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="0"><p>3. What do the four hosted jobs vary?</p><button>Architecture and fresh-install versus predecessor-upgrade path.</button><button>Notarization provider and Developer ID team.</button><button>Application version and GitHub release tag.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="1"><p>4. Which result establishes macOS trust after the real upgrade?</p><button>The Cask file uses Ruby syntax and Homebrew exits zero.</button><button>Strict signing verification passes and Gatekeeper accepts a Notarized Developer ID.</button><button>The app displays its rc.2 version badge.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="2"><p>5. Why does PR #24 not finish the governed feature?</p><button>The public Cask still needs approval.</button><button>The installed AC6-AC7 checks remain incomplete.</button><button>P10 still requires a whole-feature R1-R8 evaluation and completion report.</button><div class="feedback"></div></div>
+  </section>
+</main>
+<script>
+  for (const quiz of document.querySelectorAll('.quiz')) {
+    const buttons = [...quiz.querySelectorAll('button')];
+    buttons.forEach((button,index) => button.addEventListener('click',() => {
+      buttons.forEach((item,i) => item.className = i === Number(quiz.dataset.answer) ? 'correct' : 'wrong');
+      quiz.querySelector('.feedback').textContent = index === Number(quiz.dataset.answer) ? 'Correct.' : 'Not quite—review the section above.';
+    }));
+  }
+</script></body></html>

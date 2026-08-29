@@ -76,13 +76,50 @@ The Cask publication plan has SHA-256
 `53095d7e4eafdbb596a694eb670cc5d676bf6b00532a3e8f448ac3c04181974c`;
 the generated Cask has SHA-256
 `0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
-The live read-only dry run passes against the existing canonical
-`v0.1.0-rc.1` Cask. It does not mutate the tap and does not constitute
-publication approval.
+The user approved this exact plan in the active conversation. The
+repository-owned publisher merged
+[tap PR #2](https://github.com/TrentBrown/homebrew-gatereeve/pull/2) as
+`91725d7e7aa3a8e0f82ddc2658f51d12a3385900`. The public
+`Casks/gatereeve.rb` now has the exact approved SHA-256
+`0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`,
+and a post-publication dry run reports the Cask surface complete.
+
+The post-publication
+[Homebrew Cask Smoke run](https://github.com/TrentBrown/gatereeve/actions/runs/33262844457)
+passed all four macOS jobs. The literal public-tap install passed on arm64 and
+x64, and the disposable predecessor-to-`v0.1.0-rc.2` upgrade passed on both
+architectures. The tracked
+[hosted evidence](evidence/v0.1.0-rc.2/cask/hosted-smoke/) binds every check to
+the exact public Cask, DMG checksum, bundle identity, Developer ID, Gatekeeper
+acceptance, and universal binaries.
 
 ## Publication boundary
 
-The user explicitly approved public publication in the active conversation.
-The repository-owned publisher completed all five approved coordinated
-surfaces. Homebrew remains a distinct exact-plan approval boundary after direct
-installation proof and cask-packet inspection. That boundary remains pending.
+The user explicitly approved both public coordinated publication and the
+separate exact Homebrew plan in the active conversation. The repository-owned
+publishers completed all coordinated surfaces and the public Cask mutation.
+Trent Brown then completed the real user-Mac Homebrew transition from rc.1 to
+rc.2. The [upgrade evidence](evidence/v0.1.0-rc.2/cask/user-mac-homebrew-upgrade.md)
+records the exact Cask inventory, successful application replacement, strict
+deep code-signing validation, and Gatekeeper acceptance as Notarized Developer
+ID. The installed application behavior checklist remained required before R8
+could pass.
+
+The installed application launches and the first
+[user-Mac checklist](evidence/v0.1.0-rc.2/cask/user-mac-installed-app-checklist.md)
+group passes. The rc.2 Setup view shows Python 3.14.7 as present, the enlarged
+Rolling Vale masthead artwork, and the stable complete sidebar through repeated
+Setup/workflow navigation. Desktop and Plugin both report `0.1.0-rc.2` and
+matched compatibility. Trent Brown subsequently confirmed that the selected
+artifact updates automatically, manual Refresh retains selection, and bottom
+and ordinary scroll positions survive legitimate PortReeve artifact changes.
+Installed AC4-AC5 therefore pass; AC6-AC7 Markdown and link checks remain
+before R8 can pass.
+
+Trent Brown completed the final installed checks. Strong emphasis, ordinary
+emphasis, inline code, and Markdown link labels render correctly; HTTPS links
+open in the system browser without navigating GateReeve; relative canonical
+links select their target inside GateReeve; and same-document fragments scroll
+within the current artifact. The installed AC1-AC7 checklist is complete. R8
+now has complete release, public Cask, Homebrew upgrade, Apple trust, and
+installed-application evidence for formal evaluation.

@@ -123,7 +123,7 @@ PR #21 merged the reviewed preparation record into `main` as
 - **Plan steps:** P9
 - **Rubric criteria:** R8
 - **Depends on:** I-8
-- **PR:** [#23](https://github.com/TrentBrown/gatereeve/pull/23)
+- **PR:** [#23](https://github.com/TrentBrown/gatereeve/pull/23), [#24](https://github.com/TrentBrown/gatereeve/pull/24)
 
 After explicit release approval, publish the coordinated artifacts, update and
 smoke the cask, upgrade the user's Mac, and run the installed-app checklist.
@@ -133,14 +133,40 @@ marketplace commit `22c2d841e833af4d2aec351cf61d54dafaf8fcd3`, signed Desktop
 prerelease, manifest [PR #22](https://github.com/TrentBrown/gatereeve/pull/22),
 and the Early Access website all verify. Trent Brown confirmed direct
 installation of the exact public DMG on the user's Mac at
-`2026-08-29T15:45:56Z`. The exact Cask packet is prepared and its live dry run
-passes against the existing canonical `v0.1.0-rc.1` Cask. Public Cask mutation
-remains pending its separate exact-plan approval.
+`2026-08-29T15:45:56Z`. The exact Cask packet was approved and published
+through [tap PR #2](https://github.com/TrentBrown/homebrew-gatereeve/pull/2),
+merged as `91725d7e7aa3a8e0f82ddc2658f51d12a3385900`. The public Cask bytes
+match the approved SHA-256
+`0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
+Hosted [run 33262844457](https://github.com/TrentBrown/gatereeve/actions/runs/33262844457)
+then passed literal public-tap installation and disposable Cask upgrade on
+both arm64 and x64.
 
-PR #23 reviews the fail-closed predecessor verification and exact prepared
-packet before that public approval. The same issue will return to in-progress
-after the intermediate PR merges because publication and installed-app smoke
-remain outstanding.
+PR #23 merged the fail-closed predecessor verification and exact prepared
+packet into `main` as `18a24fa18746264439a93a09fcc5cdf178a85cd9`.
+The continuation slice
+`desktop-dogfood-cask-publication-and-installation` is at its PR #24 boundary.
+Trent Brown completed the public Homebrew upgrade from rc.1 to rc.2 on the user
+Mac. The installed Cask inventory reports `gatereeve 0.1.0-rc.2`; strict deep
+code-signing verification passes, and Gatekeeper accepts the app as Notarized
+Developer ID. Application launch and the installed AC1-AC7 checklist were the
+remaining I-9 operations at that point.
+
+The installed rc.2 application now launches successfully. Trent Brown
+confirmed installed AC1-AC3: compatible Python 3.14.7 is selected, the enlarged
+Rolling Vale masthead icon is visible, and repeated Setup/workflow navigation
+preserves the complete sidebar. Installed AC4-AC7 remain.
+
+Trent Brown then confirmed installed AC4-AC5: a selected PortReeve artifact
+updates automatically, manual Refresh retains the selection, and refreshes
+preserve both bottom-pinned and ordinary reading positions. Installed AC6-AC7
+remain.
+
+Trent Brown confirmed installed AC6-AC7: Markdown emphasis, inline code, and
+link labels render correctly; HTTPS links use the system browser without
+navigating GateReeve; relative links select canonical artifacts; and fragment
+links scroll within the current artifact. All user-Mac AC1-AC7 checks now pass.
+I-9 is in review at its formal PR #24 boundary.
 
 ## I-10 - Complete the feature rubric and report
 

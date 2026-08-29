@@ -16,7 +16,7 @@
 | R5 | Resilient reading state | PASS | [#20](https://github.com/TrentBrown/gatereeve/pull/20) | Tests cover scroll restoration, near-bottom pinning, transient stale-content retention/recovery, and canonical removal |
 | R6 | Safe Markdown fidelity | PASS | [#20](https://github.com/TrentBrown/gatereeve/pull/20) | Semantic DOM rendering covers strong, emphasis, links, code precedence, malformed input, identifiers, literal images, and the raw-HTML prohibition |
 | R7 | Confined link navigation | PASS | [#20](https://github.com/TrentBrown/gatereeve/pull/20) | External, canonical-relative, and fragment links use narrow validated paths while unsafe, credentialed, unresolved, image, navigation, and popup targets remain denied |
-| R8 | Trusted coordinated delivery | NOT YET | - | Planned for P8-P10 / I-8-I-10 |
+| R8 | Trusted coordinated delivery | PASS | [#24](https://github.com/TrentBrown/gatereeve/pull/24) | Exact coordinated rc.2 publication, Apple trust, public Cask smoke, real Homebrew upgrade, and installed AC1-AC7 verification all pass |
 
 ## PR Log
 
@@ -105,4 +105,40 @@
   applicable because no scope is configured. Review remediation replaced all
   JavaScript-number SemVer operations with arbitrary-precision comparisons and
   required the predecessor release to be publicly non-draft
-- **Status:** Draft review
+- **Status:** Merged into `main` as
+  `18a24fa18746264439a93a09fcc5cdf178a85cd9`; all 17 hosted checks passed and
+  the governed merge is recorded
+
+### PR #24 - Public Cask and installed-app verification
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/24
+- **Branch:** `tb-gatereeve-desktop-dogfood-fixes-04-cask-publication`
+- **Slice:** `desktop-dogfood-cask-publication-and-installation`
+- **Plan steps:** P9
+- **Issues:** I-9
+- **Rubric:** R8 moves to `PASS`
+- **Evidence:** [PR #24 packet](pr-24/boundary.json)
+- **Boundary result:** Verification, scoped specification evaluation,
+  independent judge, and code review pass against evaluated source
+  `96fe6c4ff41bd566372069b8bfa23f2c40efc485`; pattern review is not
+  applicable because no scope is configured. Decision triage, explain-diff,
+  and packet validation pass.
+- **Status:** Ready for reviewed merge. The exact plan SHA-256
+  `53095d7e4eafdbb596a694eb670cc5d676bf6b00532a3e8f448ac3c04181974c`
+  was approved and published through
+  [tap PR #2](https://github.com/TrentBrown/homebrew-gatereeve/pull/2), merged
+  as `91725d7e7aa3a8e0f82ddc2658f51d12a3385900`. The public Cask SHA-256 is
+  `0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
+  [Hosted run 33262844457](https://github.com/TrentBrown/gatereeve/actions/runs/33262844457)
+  passed public installation and disposable upgrade on arm64 and x64. Trent
+  Brown's user Mac then upgraded through the public Cask from rc.1 to
+  rc.2; the resulting Cask inventory, strict deep signature verification, and
+  Notarized Developer ID Gatekeeper acceptance pass.
+  The installed rc.2 app now launches, and Trent Brown confirmed AC1-AC7 in the
+  real PortReeve worktree: Python 3.14.7 is selected; the enlarged branded icon
+  and stable Setup sidebar render correctly; automatic and manual artifact
+  refresh preserve selection and reading position; Markdown styling and link
+  labels render correctly; HTTPS links open externally without navigating
+  GateReeve; relative links select canonical artifacts; and fragments scroll
+  internally. The formal slice evaluation passes R8. P10 remains a separate
+  feature-final evaluation and completion-report boundary.
