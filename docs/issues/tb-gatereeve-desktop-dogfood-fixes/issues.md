@@ -94,12 +94,12 @@ the topic branch into `main` without importing a `development*` branch.
 
 ## I-8 - Prepare Apple-trusted coordinated release evidence
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P8
 - **Rubric criteria:** R8
 - **Depends on:** I-7
-- **PR:** -
+- **PR:** [#21](https://github.com/TrentBrown/gatereeve/pull/21)
 
 Prepare matched `v0.1.0-rc.2` artifacts from merged `main`, verify Apple trust
 and both native architectures, and inspect the dry-run publication plan.

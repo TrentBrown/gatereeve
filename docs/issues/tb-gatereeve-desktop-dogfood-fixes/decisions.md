@@ -86,3 +86,20 @@ requires release artifacts to derive from merged `main` and requires a
 separate publication approval.
 
 **Promoted:** 2026-08-29. PR: https://github.com/TrentBrown/gatereeve/pull/20.
+
+---
+
+## Defer exact Homebrew packet until direct-install proof exists
+
+**Confidence:** HIGH
+
+**Blast Radius:** P8 and P9 sequencing, release evidence, and Homebrew cask publication
+
+Treat the coordinated Apple-trusted packet and coordinated publication dry run as the complete prepublication output of P8. Generate the exact Homebrew cask record, plan, and dry run in P9 only after explicit public-release approval, coordinated publication, and direct installation of the exact published DMG on the user Mac. This preserves the approved no-publication boundary and does not fabricate installation evidence; R8 remains NOT YET until public Homebrew upgrade and installed-app verification pass.
+
+**Triggered by:** The repository-owned prepare-cask command requires a passed direct installation confirmation, while the trusted RC remains intentionally unpublished during P8.
+
+**Alternatives considered:**
+Fabricate or predate direct-install evidence — rejected because it breaks the cask trust contract; publish during P8 — rejected because the approved plan requires a separate release boundary; weaken prepare-cask — rejected because no product defect requires changing the proven release engine.
+
+**Promoted:** 2026-08-29. PR: https://github.com/TrentBrown/gatereeve/pull/21.

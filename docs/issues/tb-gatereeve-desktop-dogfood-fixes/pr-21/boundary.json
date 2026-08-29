@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "scope": "slice",
+  "featureId": "tb-gatereeve-desktop-dogfood-fixes",
+  "repositoryAlias": "gatereeve",
+  "packetId": "pr-21",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 21,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/21",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "1b7c7e519c90a13d140f59c65e0304bb78000753",
+    "headRefName": "tb-gatereeve-desktop-dogfood-fixes-02-release-preparation",
+    "headRefOid": "36612073d888b33119a7012a6e2f881069d3002d"
+  },
+  "mergeBaseSha": "1b7c7e519c90a13d140f59c65e0304bb78000753",
+  "evaluatedSourceSha": "36612073d888b33119a7012a6e2f881069d3002d",
+  "featureBaseSha": null,
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": {"disposition": "passed", "reason": null},
+    "specEvaluation": {"disposition": "passed", "reason": null},
+    "judge": {"disposition": "passed", "reason": null},
+    "codeReview": {"disposition": "passed", "reason": null},
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No applicable .pattern-review scope is configured for this repository"
+    },
+    "explainDiff": {"disposition": "passed", "reason": null}
+  }
+}

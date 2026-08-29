@@ -65,7 +65,7 @@ separate publication approval.
 
 ## [4] Defer exact Homebrew packet until direct-install proof exists
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

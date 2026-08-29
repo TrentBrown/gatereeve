@@ -62,3 +62,19 @@
   cask contract requires direct installation of the exact published DMG
 - **Current boundary:** Release publication remains unapproved; R8 remains
   `NOT YET` until publication, Homebrew upgrade, and installed-app verification
+
+### PR #21 - Trusted release preparation evidence
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/21
+- **Scope:** Release-preparation slice, `desktop-dogfood-release-preparation`
+- **Plan steps:** P8
+- **Issues:** I-8
+- **Rubric movement:** R8 remains `NOT YET`; this PR supplies its
+  prepublication trust and plan evidence, while public installation remains P9
+- **Evidence:** [PR #21 packet](pr-21/boundary.json)
+- **Boundary result:** Verification, scoped specification evaluation,
+  independent judge, code review with no findings, decision triage,
+  explain-diff, and packet validation pass against evaluated source
+  `36612073d888b33119a7012a6e2f881069d3002d`; pattern review is not
+  applicable because no scope is configured
+- **Status:** Draft; I-8 is in review
