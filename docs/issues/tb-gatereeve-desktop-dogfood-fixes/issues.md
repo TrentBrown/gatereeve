@@ -94,7 +94,7 @@ the topic branch into `main` without importing a `development*` branch.
 
 ## I-8 - Prepare Apple-trusted coordinated release evidence
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P8
 - **Rubric criteria:** R8
@@ -113,17 +113,34 @@ coordinated publication dry run passed without public mutation. Exact Homebrew
 packet preparation moves to I-9 because it requires direct-install proof from
 the as-yet unpublished DMG.
 
+PR #21 merged the reviewed preparation record into `main` as
+`44ec46123726393fc25be5a540be3021ac259d35`; the governed merge is recorded.
+
 ## I-9 - Publish and install the approved Homebrew release
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P9
 - **Rubric criteria:** R8
 - **Depends on:** I-8
-- **PR:** -
+- **PR:** [#23](https://github.com/TrentBrown/gatereeve/pull/23)
 
 After explicit release approval, publish the coordinated artifacts, update and
 smoke the cask, upgrade the user's Mac, and run the installed-app checklist.
+
+The approved coordinated publication is complete: tag `v0.1.0-rc.2`, Plugin
+marketplace commit `22c2d841e833af4d2aec351cf61d54dafaf8fcd3`, signed Desktop
+prerelease, manifest [PR #22](https://github.com/TrentBrown/gatereeve/pull/22),
+and the Early Access website all verify. Trent Brown confirmed direct
+installation of the exact public DMG on the user's Mac at
+`2026-08-29T15:45:56Z`. The exact Cask packet is prepared and its live dry run
+passes against the existing canonical `v0.1.0-rc.1` Cask. Public Cask mutation
+remains pending its separate exact-plan approval.
+
+PR #23 reviews the fail-closed predecessor verification and exact prepared
+packet before that public approval. The same issue will return to in-progress
+after the intermediate PR merges because publication and installed-app smoke
+remain outstanding.
 
 ## I-10 - Complete the feature rubric and report
 

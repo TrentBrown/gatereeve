@@ -19,16 +19,19 @@ import {
 const sourceCommit = '117a58511ef20957426d3fc5e801f6d5b1173b32';
 const desktopSha256 = '9cbe51065692857ba929e153863fa92c8fe2dc4d275eb29453014a04e1f1ea92';
 
-function sourceRecord() {
+function sourceRecord({
+  version = '0.1.0-rc.1',
+  desktopDigest = desktopSha256,
+} = {}) {
   return {
     schemaVersion: 1,
-    releaseId: 'gatereeve-v0.1.0-rc.1',
-    version: '0.1.0-rc.1',
+    releaseId: `gatereeve-v${version}`,
+    version,
     channel: 'rc',
     source: {
       repository: 'https://github.com/TrentBrown/gatereeve',
       commit: sourceCommit,
-      tag: 'v0.1.0-rc.1',
+      tag: `v${version}`,
     },
     promotion: null,
     state: 'prepared',
@@ -38,12 +41,12 @@ function sourceRecord() {
         verification: { status: 'passed' },
       },
       desktop: {
-        applicationVersion: '0.1.0-rc.1',
+        applicationVersion: version,
         artifact: {
-          path: 'desktop/GateReeve-0.1.0-rc.1-macos-universal.dmg',
-          filename: 'GateReeve-0.1.0-rc.1-macos-universal.dmg',
+          path: `desktop/GateReeve-${version}-macos-universal.dmg`,
+          filename: `GateReeve-${version}-macos-universal.dmg`,
           bytes: 246098110,
-          sha256: desktopSha256,
+          sha256: desktopDigest,
         },
         verification: {
           status: 'passed',
@@ -115,15 +118,15 @@ function caskRecord(source = sourceRecord()) {
   const content = renderHomebrewCask(source);
   return {
     schemaVersion: 1,
-    caskReleaseId: 'gatereeve-cask-v0.1.0-rc.1',
-    version: '0.1.0-rc.1',
+    caskReleaseId: `gatereeve-cask-v${source.version}`,
+    version: source.version,
     channel: 'rc',
     source: structuredClone(source.source),
     desktop: {
       filename: source.candidates.desktop.artifact.filename,
       bytes: source.candidates.desktop.artifact.bytes,
       sha256: source.candidates.desktop.artifact.sha256,
-      url: 'https://github.com/TrentBrown/gatereeve/releases/download/v0.1.0-rc.1/GateReeve-0.1.0-rc.1-macos-universal.dmg',
+      url: `https://github.com/TrentBrown/gatereeve/releases/download/v${source.version}/GateReeve-${source.version}-macos-universal.dmg`,
       trust: structuredClone(source.candidates.desktop.trust),
     },
     directInstallation: {
@@ -150,9 +153,8 @@ function caskRecord(source = sourceRecord()) {
   };
 }
 
-async function packetFixture() {
+async function packetFixture(source = sourceRecord()) {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve cask packet '));
-  const source = sourceRecord();
   const record = caskRecord(source);
   await mkdir(join(root, 'Casks'));
   await writeFile(join(root, HOMEBREW_CASK_PATH), renderHomebrewCask(source));
@@ -217,6 +219,273 @@ test('verifies packet identity and performs an absent-tap dry run without mutati
   assert.deepEqual(mutations, []);
 });
 
+test('accepts an exact canonical predecessor Cask during an upgrade dry run', async () => {
+  const targetSource = sourceRecord({
+    version: '0.1.0-rc.2',
+    desktopDigest: '8'.repeat(64),
+  });
+  const fixture = await packetFixture(targetSource);
+  const predecessor = renderHomebrewCask(sourceRecord());
+  const result = await publishHomebrewCask({
+    recordPath: fixture.recordPath,
+    planSha256: homebrewCaskPlanSha256(fixture.record),
+    dryRun: true,
+    request: async (request) => {
+      if (request.endpoint.endsWith('/releases/tags/v0.1.0-rc.1')) {
+        return {
+          tag_name: 'v0.1.0-rc.1',
+          draft: false,
+          prerelease: true,
+          assets: [{
+            name: 'GateReeve-0.1.0-rc.1-macos-universal.dmg',
+            digest: `sha256:${desktopSha256}`,
+          }],
+        };
+      }
+      if (request.endpoint.includes('/releases/tags/')) {
+        return {
+          tag_name: fixture.record.source.tag,
+          prerelease: true,
+          target_commitish: fixture.record.source.commit,
+          assets: [{
+            name: fixture.record.desktop.filename,
+            size: fixture.record.desktop.bytes,
+            digest: `sha256:${fixture.record.desktop.sha256}`,
+          }],
+        };
+      }
+      if (request.endpoint === 'repos/TrentBrown/homebrew-gatereeve') {
+        return {
+          full_name: 'TrentBrown/homebrew-gatereeve',
+          private: false,
+          default_branch: 'main',
+          owner: { login: 'TrentBrown' },
+        };
+      }
+      if (request.endpoint === 'repos/TrentBrown/homebrew-gatereeve/branches/main') {
+        return { name: 'main' };
+      }
+      if (request.endpoint.startsWith('repos/TrentBrown/homebrew-gatereeve/contents/')) {
+        return {
+          type: 'file',
+          sha: 'predecessor-blob',
+          content: Buffer.from(predecessor).toString('base64'),
+        };
+      }
+      throw new Error(`Unexpected request: ${request.endpoint}`);
+    },
+  });
+  assert.equal(result.dryRun, true);
+  assert.equal(result.tapState, 'present');
+});
+
+test('orders large semantic-version base identifiers without precision loss', async () => {
+  const predecessorVersion = '9007199254740992.0.0-rc.1';
+  const predecessorDigest = '6'.repeat(64);
+  const targetSource = sourceRecord({
+    version: '9007199254740993.0.0-rc.1',
+    desktopDigest: '8'.repeat(64),
+  });
+  const fixture = await packetFixture(targetSource);
+  const predecessor = renderHomebrewCask(sourceRecord({
+    version: predecessorVersion,
+    desktopDigest: predecessorDigest,
+  }));
+  const result = await publishHomebrewCask({
+    recordPath: fixture.recordPath,
+    planSha256: homebrewCaskPlanSha256(fixture.record),
+    dryRun: true,
+    request: async (request) => {
+      if (request.endpoint.endsWith(`/releases/tags/v${predecessorVersion}`)) {
+        return {
+          tag_name: `v${predecessorVersion}`,
+          draft: false,
+          prerelease: true,
+          assets: [{
+            name: `GateReeve-${predecessorVersion}-macos-universal.dmg`,
+            digest: `sha256:${predecessorDigest}`,
+          }],
+        };
+      }
+      if (request.endpoint.includes('/releases/tags/')) {
+        return {
+          tag_name: fixture.record.source.tag,
+          prerelease: true,
+          target_commitish: fixture.record.source.commit,
+          assets: [{
+            name: fixture.record.desktop.filename,
+            size: fixture.record.desktop.bytes,
+            digest: `sha256:${fixture.record.desktop.sha256}`,
+          }],
+        };
+      }
+      if (request.endpoint === 'repos/TrentBrown/homebrew-gatereeve') {
+        return {
+          full_name: 'TrentBrown/homebrew-gatereeve',
+          private: false,
+          default_branch: 'main',
+          owner: { login: 'TrentBrown' },
+        };
+      }
+      if (request.endpoint === 'repos/TrentBrown/homebrew-gatereeve/branches/main') {
+        return { name: 'main' };
+      }
+      if (request.endpoint.startsWith('repos/TrentBrown/homebrew-gatereeve/contents/')) {
+        return {
+          type: 'file',
+          sha: 'large-predecessor-blob',
+          content: Buffer.from(predecessor).toString('base64'),
+        };
+      }
+      throw new Error(`Unexpected request: ${request.endpoint}`);
+    },
+  });
+  assert.equal(result.dryRun, true);
+  assert.equal(result.tapState, 'present');
+});
+
+test('rejects noncanonical, equal-version, and newer public Cask bytes', async () => {
+  const targetSource = sourceRecord({
+    version: '0.1.0-rc.2',
+    desktopDigest: '8'.repeat(64),
+  });
+  const fixture = await packetFixture(targetSource);
+  const canonicalPredecessor = renderHomebrewCask(sourceRecord());
+  const cases = [
+    {
+      name: 'noncanonical',
+      content: canonicalPredecessor.replace('homepage "https://gatereeve.pages.dev/"', 'homepage "https://example.com/"'),
+      error: /not canonical/u,
+    },
+    {
+      name: 'equal version',
+      content: renderHomebrewCask(sourceRecord({
+        version: '0.1.0-rc.2',
+        desktopDigest: '9'.repeat(64),
+      })),
+      error: /not a strict predecessor/u,
+    },
+    {
+      name: 'newer version',
+      content: renderHomebrewCask(sourceRecord({
+        version: '0.1.0-rc.3',
+        desktopDigest: '9'.repeat(64),
+      })),
+      error: /not a strict predecessor/u,
+    },
+  ];
+  for (const case_ of cases) {
+    await assert.rejects(
+      publishHomebrewCask({
+        recordPath: fixture.recordPath,
+        planSha256: homebrewCaskPlanSha256(fixture.record),
+        dryRun: true,
+        request: async (request) => {
+          if (request.endpoint.includes('/releases/tags/')) {
+            return {
+              tag_name: fixture.record.source.tag,
+              prerelease: true,
+              target_commitish: fixture.record.source.commit,
+              assets: [{
+                name: fixture.record.desktop.filename,
+                size: fixture.record.desktop.bytes,
+                digest: `sha256:${fixture.record.desktop.sha256}`,
+              }],
+            };
+          }
+          if (request.endpoint === 'repos/TrentBrown/homebrew-gatereeve') {
+            return {
+              full_name: 'TrentBrown/homebrew-gatereeve',
+              private: false,
+              default_branch: 'main',
+              owner: { login: 'TrentBrown' },
+            };
+          }
+          if (request.endpoint === 'repos/TrentBrown/homebrew-gatereeve/branches/main') {
+            return { name: 'main' };
+          }
+          if (request.endpoint.startsWith('repos/TrentBrown/homebrew-gatereeve/contents/')) {
+            return {
+              type: 'file',
+              sha: `${case_.name}-blob`,
+              content: Buffer.from(case_.content).toString('base64'),
+            };
+          }
+          throw new Error(`Unexpected request: ${request.endpoint}`);
+        },
+      }),
+      case_.error,
+      case_.name,
+    );
+  }
+});
+
+test('rejects a canonical predecessor without an exact public release', async () => {
+  const targetSource = sourceRecord({
+    version: '0.1.0-rc.2',
+    desktopDigest: '8'.repeat(64),
+  });
+  const fixture = await packetFixture(targetSource);
+  const predecessor = renderHomebrewCask(sourceRecord());
+  const publish = ({ draft, digest }) => publishHomebrewCask({
+    recordPath: fixture.recordPath,
+    planSha256: homebrewCaskPlanSha256(fixture.record),
+    dryRun: true,
+    request: async (request) => {
+      if (request.endpoint.endsWith('/releases/tags/v0.1.0-rc.1')) {
+        return {
+          tag_name: 'v0.1.0-rc.1',
+          draft,
+          prerelease: true,
+          assets: [{
+            name: 'GateReeve-0.1.0-rc.1-macos-universal.dmg',
+            digest: `sha256:${digest}`,
+          }],
+        };
+      }
+      if (request.endpoint.includes('/releases/tags/')) {
+        return {
+          tag_name: fixture.record.source.tag,
+          prerelease: true,
+          target_commitish: fixture.record.source.commit,
+          assets: [{
+            name: fixture.record.desktop.filename,
+            size: fixture.record.desktop.bytes,
+            digest: `sha256:${fixture.record.desktop.sha256}`,
+          }],
+        };
+      }
+      if (request.endpoint === 'repos/TrentBrown/homebrew-gatereeve') {
+        return {
+          full_name: 'TrentBrown/homebrew-gatereeve',
+          private: false,
+          default_branch: 'main',
+          owner: { login: 'TrentBrown' },
+        };
+      }
+      if (request.endpoint === 'repos/TrentBrown/homebrew-gatereeve/branches/main') {
+        return { name: 'main' };
+      }
+      if (request.endpoint.startsWith('repos/TrentBrown/homebrew-gatereeve/contents/')) {
+        return {
+          type: 'file',
+          sha: 'predecessor-blob',
+          content: Buffer.from(predecessor).toString('base64'),
+        };
+      }
+      throw new Error(`Unexpected request: ${request.endpoint}`);
+    },
+  });
+  await assert.rejects(
+    publish({ draft: false, digest: '7'.repeat(64) }),
+    /does not match a published predecessor/u,
+  );
+  await assert.rejects(
+    publish({ draft: true, digest: desktopSha256 }),
+    /does not match a published predecessor/u,
+  );
+});
+
 test('models an upgrade from a predecessor while preserving exact download bytes', () => {
   const exact = renderHomebrewCask(sourceRecord());
   const predecessor = renderPredecessorHomebrewCask(exact);
@@ -229,6 +498,13 @@ test('models an upgrade from a predecessor while preserving exact download bytes
   assert.equal(
     predecessor.match(/^  url .*$/mu)?.[0],
     exact.match(/^  url .*$/mu)?.[0],
+  );
+  const large = renderHomebrewCask(sourceRecord({
+    version: '0.1.0-rc.9007199254740993',
+  }));
+  assert.match(
+    renderPredecessorHomebrewCask(large),
+    /version "0\.1\.0-rc\.9007199254740992"/u,
   );
 });
 

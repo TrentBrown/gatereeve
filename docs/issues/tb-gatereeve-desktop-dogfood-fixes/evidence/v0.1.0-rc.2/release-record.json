@@ -9,7 +9,7 @@
     "tag": "v0.1.0-rc.2"
   },
   "promotion": null,
-  "state": "prepared",
+  "state": "published",
   "candidates": {
     "plugin": {
       "artifact": {
@@ -78,7 +78,10 @@
       "earlyAccessWebsite"
     ],
     "approval": {
-      "state": "unapproved"
+      "state": "approved",
+      "approvedBy": "Trent Brown - active conversation 2026-08-29",
+      "approvedAt": "2026-08-29T15:23:37.170Z",
+      "planSha256": "88b18713d9d91d9d98bb5068d11faf2f235bf172e2b0120bcd327d363612eb76"
     },
     "inputs": {
       "updateManifest": {
@@ -104,27 +107,57 @@
     },
     "surfaces": {
       "tag": {
-        "state": "pending",
-        "receipt": null
+        "state": "complete",
+        "receipt": {
+          "surface": "tag",
+          "tag": "v0.1.0-rc.2",
+          "sourceCommit": "1b7c7e519c90a13d140f59c65e0304bb78000753",
+          "identity": "refs/tags/v0.1.0-rc.2@1b7c7e519c90a13d140f59c65e0304bb78000753",
+          "completedAt": "2026-08-29T15:23:38.279Z"
+        }
       },
       "pluginMarketplace": {
-        "state": "pending",
-        "receipt": null
+        "state": "complete",
+        "receipt": {
+          "surface": "pluginMarketplace",
+          "tag": "v0.1.0-rc.2",
+          "sourceCommit": "1b7c7e519c90a13d140f59c65e0304bb78000753",
+          "identity": "marketplace@22c2d841e833af4d2aec351cf61d54dafaf8fcd3",
+          "completedAt": "2026-08-29T15:24:27.391Z"
+        }
       },
       "desktopPrerelease": {
-        "state": "pending",
-        "receipt": null
+        "state": "complete",
+        "receipt": {
+          "surface": "desktopPrerelease",
+          "tag": "v0.1.0-rc.2",
+          "sourceCommit": "1b7c7e519c90a13d140f59c65e0304bb78000753",
+          "identity": "https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.2",
+          "completedAt": "2026-08-29T15:24:41.972Z"
+        }
       },
       "updateManifest": {
-        "state": "pending",
-        "receipt": null
+        "state": "complete",
+        "receipt": {
+          "surface": "updateManifest",
+          "tag": "v0.1.0-rc.2",
+          "sourceCommit": "1b7c7e519c90a13d140f59c65e0304bb78000753",
+          "identity": "https://github.com/TrentBrown/gatereeve/pull/22@b3adff3c4551ee090967885b3051c23a2ae0adb2",
+          "completedAt": "2026-08-29T15:27:50.858Z"
+        }
       },
       "earlyAccessWebsite": {
-        "state": "pending",
-        "receipt": null
+        "state": "complete",
+        "receipt": {
+          "surface": "earlyAccessWebsite",
+          "tag": "v0.1.0-rc.2",
+          "sourceCommit": "1b7c7e519c90a13d140f59c65e0304bb78000753",
+          "identity": "https://gatereeve.pages.dev/releases/desktop.json#23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b -> https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.2",
+          "completedAt": "2026-08-29T15:28:06.300Z"
+        }
       }
     }
   },
   "createdAt": "2026-08-29T14:01:01.687Z",
-  "updatedAt": "2026-08-29T14:01:01.687Z"
+  "updatedAt": "2026-08-29T15:28:06.300Z"
 }

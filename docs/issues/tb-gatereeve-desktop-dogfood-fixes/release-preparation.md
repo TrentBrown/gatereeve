@@ -57,15 +57,32 @@ The repository-owned inspector accepted the packet. The generated
 The read-only [publication dry run](evidence/v0.1.0-rc.2/publication-dry-run.json)
 passed with all five public surfaces still pending.
 
-Homebrew packet preparation is intentionally deferred to P9. The
-repository-owned `prepare-cask` contract requires truthful direct-installation
-proof for this exact DMG, which cannot exist before the still-unapproved public
-release is available on the user's Mac. Decision 4 in `scratchpad.md` records
-this sequencing constraint.
+The coordinated release was approved against that exact plan digest and is now
+published. The immutable record preserves receipts for tag `v0.1.0-rc.2`,
+Plugin marketplace commit `22c2d841e833af4d2aec351cf61d54dafaf8fcd3`, the
+[signed Desktop prerelease](https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.2),
+manifest [PR #22](https://github.com/TrentBrown/gatereeve/pull/22) merged as
+`b3adff3c4551ee090967885b3051c23a2ae0adb2`, and the production Early Access
+manifest with SHA-256
+`23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b`.
+
+Trent Brown confirmed direct installation of this exact public DMG on macOS at
+`2026-08-29T15:45:56Z`. The repository-owned `prepare-cask` contract sealed
+that proof into the [Cask record](evidence/v0.1.0-rc.2/cask/cask-record.json),
+the exact [Cask bytes](evidence/v0.1.0-rc.2/cask/Casks/gatereeve.rb), and the
+[Cask publication plan](evidence/v0.1.0-rc.2/cask/publication-plan.md).
+
+The Cask publication plan has SHA-256
+`53095d7e4eafdbb596a694eb670cc5d676bf6b00532a3e8f448ac3c04181974c`;
+the generated Cask has SHA-256
+`0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
+The live read-only dry run passes against the existing canonical
+`v0.1.0-rc.1` Cask. It does not mutate the tap and does not constitute
+publication approval.
 
 ## Publication boundary
 
-Environment review grants this run access to the Apple credentials only. It
-does not authorize or perform a tag, GitHub release, marketplace publication,
-update-manifest change, or Homebrew mutation. Those public changes remain a
-separate exact-plan approval boundary.
+The user explicitly approved public publication in the active conversation.
+The repository-owned publisher completed all five approved coordinated
+surfaces. Homebrew remains a distinct exact-plan approval boundary after direct
+installation proof and cask-packet inspection. That boundary remains pending.

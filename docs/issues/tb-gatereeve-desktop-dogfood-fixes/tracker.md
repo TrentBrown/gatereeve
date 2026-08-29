@@ -54,14 +54,21 @@
   credential cleanup passed
 - **Trusted native verification:** ARM64 and Intel both passed against DMG
   SHA-256 `ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f`
-- **Publication preflight:** Immutable record inspection and exact coordinated
-  dry run passed for plan SHA-256
-  `88b18713d9d91d9d98bb5068d11faf2f235bf172e2b0120bcd327d363612eb76`;
-  every public surface remains pending
+- **Publication:** The exact approved plan SHA-256
+  `88b18713d9d91d9d98bb5068d11faf2f235bf172e2b0120bcd327d363612eb76`
+  completed all five surfaces: tag, Plugin marketplace, signed Desktop
+  prerelease, manifest [PR #22](https://github.com/TrentBrown/gatereeve/pull/22)
+  at merge `b3adff3c4551ee090967885b3051c23a2ae0adb2`, and Early Access website
 - **Homebrew sequencing:** Exact cask packet and dry run move to P9 because the
   cask contract requires direct installation of the exact published DMG
-- **Current boundary:** Release publication remains unapproved; R8 remains
-  `NOT YET` until publication, Homebrew upgrade, and installed-app verification
+- **Direct installation:** Trent Brown confirmed the exact public DMG on macOS
+  at `2026-08-29T15:45:56Z`; the resulting Cask packet is bound to plan SHA-256
+  `53095d7e4eafdbb596a694eb670cc5d676bf6b00532a3e8f448ac3c04181974c`
+- **Cask preflight:** The live read-only dry run accepts only the exact target
+  or a canonical, strictly older Cask whose public release asset digest
+  matches; the existing `v0.1.0-rc.1` tap satisfies that invariant
+- **Current boundary:** R8 remains `NOT YET` until separately approved Homebrew
+  publication, public-cask upgrade, and installed-app verification
 
 ### PR #21 - Trusted release preparation evidence
 
@@ -77,4 +84,25 @@
   explain-diff, and packet validation pass against evaluated source
   `36612073d888b33119a7012a6e2f881069d3002d`; pattern review is not
   applicable because no scope is configured
-- **Status:** Draft; I-8 is in review
+- **Status:** Merged into `main` as
+  `44ec46123726393fc25be5a540be3021ac259d35`; governed merge recorded and I-8
+  closed
+
+### PR #23 - Verified Homebrew Cask upgrade preflight
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/23
+- **Scope:** Publication-and-dogfood slice,
+  `desktop-dogfood-publication-and-dogfood`
+- **Plan steps:** P9
+- **Issues:** I-9
+- **Rubric movement:** R8 remains `NOT YET`; this intermediate PR reviews the
+  direct-install proof, exact Cask packet, and fail-closed upgrade-predecessor
+  validation before the separate public Cask approval
+- **Evidence:** [PR #23 packet](pr-23/boundary.json)
+- **Boundary result:** Verification, scoped specification evaluation,
+  independent judge, and code review pass against evaluated source
+  `c7851fcb855d7219dee564a4e84653612adbfa87`; pattern review is not
+  applicable because no scope is configured. Review remediation replaced all
+  JavaScript-number SemVer operations with arbitrary-precision comparisons and
+  required the predecessor release to be publicly non-draft
+- **Status:** Draft review

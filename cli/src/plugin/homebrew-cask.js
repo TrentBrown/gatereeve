@@ -56,14 +56,14 @@ function releaseUrl(record) {
   return `https://github.com/${RELEASE_REPOSITORY}/releases/download/${record.source.tag}/${record.candidates.desktop.artifact.filename}`;
 }
 
-export function renderHomebrewCask(releaseRecord) {
-  assertCoordinatedRelease(releaseRecord);
-  const desktop = releaseRecord.candidates.desktop.artifact;
+function renderHomebrewCaskIdentity({ version, digest }) {
+  parseReleaseTag(`v${version}`);
+  if (!SHA256.test(digest ?? '')) throw new Error('Homebrew Cask SHA-256 is invalid');
   return `cask "${HOMEBREW_CASK_TOKEN}" do
-  version "${releaseRecord.version}"
-  sha256 "${desktop.sha256}"
+  version "${version}"
+  sha256 "${digest}"
 
-  url "${releaseUrl(releaseRecord)}"
+  url "https://github.com/${RELEASE_REPOSITORY}/releases/download/v${version}/GateReeve-${version}-macos-universal.dmg"
   name "GateReeve"
   desc "Visual companion for governed agentic development workflows"
   homepage "https://gatereeve.pages.dev/"
@@ -83,14 +83,80 @@ end
 `;
 }
 
+export function renderHomebrewCask(releaseRecord) {
+  assertCoordinatedRelease(releaseRecord);
+  return renderHomebrewCaskIdentity({
+    version: releaseRecord.version,
+    digest: releaseRecord.candidates.desktop.artifact.sha256,
+  });
+}
+
+function comparePrerelease(left, right) {
+  if (left === right) return 0;
+  if (left === null) return 1;
+  if (right === null) return -1;
+  const leftParts = left.split('.');
+  const rightParts = right.split('.');
+  for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
+    const leftPart = leftParts[index];
+    const rightPart = rightParts[index];
+    if (leftPart === undefined) return -1;
+    if (rightPart === undefined) return 1;
+    if (leftPart === rightPart) continue;
+    const leftNumeric = /^\d+$/u.test(leftPart);
+    const rightNumeric = /^\d+$/u.test(rightPart);
+    if (leftNumeric && rightNumeric) {
+      return BigInt(leftPart) < BigInt(rightPart) ? -1 : 1;
+    }
+    if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1;
+    return leftPart < rightPart ? -1 : 1;
+  }
+  return 0;
+}
+
+function compareSemanticVersions(left, right) {
+  const parsedLeft = parseReleaseTag(`v${left}`);
+  const parsedRight = parseReleaseTag(`v${right}`);
+  const leftBase = parsedLeft.baseVersion.split('.').map((part) => BigInt(part));
+  const rightBase = parsedRight.baseVersion.split('.').map((part) => BigInt(part));
+  for (let index = 0; index < leftBase.length; index += 1) {
+    if (leftBase[index] !== rightBase[index]) {
+      return leftBase[index] < rightBase[index] ? -1 : 1;
+    }
+  }
+  return comparePrerelease(parsedLeft.prerelease, parsedRight.prerelease);
+}
+
+function canonicalPredecessorIdentity(content, targetVersion) {
+  const version = /^  version "([^"]+)"$/mu.exec(content)?.[1];
+  const digest = /^  sha256 "([a-f0-9]{64})"$/mu.exec(content)?.[1];
+  if (
+    version === undefined
+    || digest === undefined
+    || content !== renderHomebrewCaskIdentity({ version, digest })
+  ) {
+    throw new Error('The existing public GateReeve Cask is not canonical');
+  }
+  if (compareSemanticVersions(version, targetVersion) >= 0) {
+    throw new Error('The existing public GateReeve Cask is not a strict predecessor');
+  }
+  return {
+    version,
+    tag: `v${version}`,
+    filename: `GateReeve-${version}-macos-universal.dmg`,
+    digest,
+    prerelease: parseReleaseTag(`v${version}`).prerelease !== null,
+  };
+}
+
 export function renderPredecessorHomebrewCask(content) {
   const match = /^  version "(\d+)\.(\d+)\.(\d+)(?:-rc\.(\d+))?"$/mu.exec(content);
   if (!match) throw new Error('Homebrew upgrade smoke requires a semantic Cask version');
   const predecessor = match[4] === undefined
     ? `${match[1]}.${match[2]}.${match[3]}-rc.999`
-    : Number(match[4]) === 0
+    : BigInt(match[4]) === 0n
       ? `${match[1]}.${match[2]}.${match[3]}-preview.0`
-      : `${match[1]}.${match[2]}.${match[3]}-rc.${Number(match[4]) - 1}`;
+      : `${match[1]}.${match[2]}.${match[3]}-rc.${BigInt(match[4]) - 1n}`;
   return content.replace(match[0], `  version "${predecessor}"`);
 }
 
@@ -393,6 +459,19 @@ function assertExactPublicRelease(release, record) {
   return release;
 }
 
+function assertExactPredecessorRelease(release, predecessor) {
+  const assets = new Map((release?.assets ?? []).map((asset) => [asset.name, asset]));
+  const desktop = assets.get(predecessor.filename);
+  if (
+    release?.tag_name !== predecessor.tag
+    || release.draft !== false
+    || release.prerelease !== predecessor.prerelease
+    || desktop?.digest !== `sha256:${predecessor.digest}`
+  ) {
+    throw new Error('The existing public GateReeve Cask does not match a published predecessor');
+  }
+}
+
 async function inspectTap(request) {
   return request({
     endpoint: `repos/${HOMEBREW_TAP_REPOSITORY}`,
@@ -456,7 +535,11 @@ export async function preflightHomebrewCaskPublication({
     });
     const content = await readFile(resolve(dirname(resolve(recordPath)), record.cask.outputPath), 'utf8');
     if (destination !== null && destination.content !== content) {
-      throw new Error('The public GateReeve Cask path contains different bytes');
+      const predecessor = canonicalPredecessorIdentity(destination.content, record.version);
+      const predecessorRelease = await request({
+        endpoint: `repos/${RELEASE_REPOSITORY}/releases/tags/${encodeURIComponent(predecessor.tag)}`,
+      });
+      assertExactPredecessorRelease(predecessorRelease, predecessor);
     }
   } else if (record.publication.surface.state === 'complete') {
     throw new Error('Published Homebrew Cask record has no public tap');

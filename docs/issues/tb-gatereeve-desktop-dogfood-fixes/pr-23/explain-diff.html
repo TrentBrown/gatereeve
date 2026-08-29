@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #23: Verified Homebrew Cask upgrades</title>
+  <style>
+    :root { color-scheme: light dark; --ink:#24183a; --paper:#fbf9ff; --accent:#6745a7; --soft:#eee7fb; --ok:#176b45; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:17px/1.6 system-ui,sans-serif; color:var(--ink); background:var(--paper); }
+    main { width:min(940px,92vw); margin:0 auto; padding:3rem 0 5rem; }
+    h1,h2,h3 { line-height:1.18; }
+    h1 { font-size:clamp(2rem,6vw,4rem); }
+    h2 { margin-top:3rem; border-bottom:2px solid var(--soft); padding-bottom:.35rem; }
+    a { color:var(--accent); }
+    nav,.callout,.flow,.quiz { background:var(--soft); border-radius:14px; padding:1.1rem 1.3rem; margin:1.2rem 0; }
+    .flow { display:grid; grid-template-columns:repeat(4,1fr); gap:.7rem; text-align:center; }
+    .flow div { background:var(--paper); border:1px solid var(--accent); border-radius:10px; padding:.8rem; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; background:#1d1728; color:#f6f0ff; border-radius:12px; padding:1rem; overflow:auto; }
+    button { display:block; width:100%; text-align:left; margin:.45rem 0; padding:.7rem; border:1px solid var(--accent); border-radius:8px; background:var(--paper); color:inherit; cursor:pointer; }
+    button.correct { border-color:var(--ok); color:var(--ok); font-weight:700; }
+    button.wrong { opacity:.65; }
+    .feedback { min-height:1.5rem; font-weight:600; }
+    @media (max-width:700px) { .flow { grid-template-columns:1fr; } }
+    @media (prefers-color-scheme:dark) { :root { --ink:#f1eaff; --paper:#17121f; --soft:#2a203a; --accent:#c2a6ff; --ok:#75dfa9; } }
+  </style>
+</head>
+<body><main>
+  <h1>Verified Homebrew Cask upgrades</h1>
+  <p>PR #23 turns a valid existing GateReeve Cask from an accidental blocker into a narrowly verified predecessor, without weakening the publisher's overwrite protection.</p>
+  <nav><strong>Contents</strong>: <a href="#background">Background</a> · <a href="#intuition">Intuition</a> · <a href="#code">Code</a> · <a href="#quiz">Quiz</a></nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <p>A Homebrew Cask is a small Ruby file that names an application version, a download URL, and the SHA-256 digest Homebrew must see. GateReeve generates those bytes from an already signed and notarized coordinated release. The Cask publisher never rebuilds the DMG.</p>
+    <p>Before this change, publication was idempotent only when the public Cask already contained the target bytes. That was safe for retrying one release, but it rejected every normal upgrade because an older release necessarily has different bytes.</p>
+    <div class="callout"><strong>The constraint:</strong> accept the existing rc.1 Cask for an rc.2 upgrade, but do not accept arbitrary content merely because it is older-looking.</div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <p>The new preflight recognizes exactly two safe states:</p>
+    <div class="flow">
+      <div><strong>Read tap</strong><br>Fetch Casks/gatereeve.rb</div>
+      <div><strong>Classify</strong><br>Exact target or predecessor</div>
+      <div><strong>Verify</strong><br>Canonical bytes + older SemVer + public asset digest</div>
+      <div><strong>Proceed</strong><br>Dry-run or exact PR publication</div>
+    </div>
+    <p>If the bytes are already the target, recovery remains idempotent. Otherwise, GateReeve extracts only the version and digest, regenerates the entire expected Cask, and demands byte-for-byte equality. It then proves that the version has lower SemVer precedence and that a non-draft GitHub release exposes the named DMG with the same digest.</p>
+    <pre>rc.1 canonical bytes + rc.1 public DMG digest → safe predecessor
+rc.2 different bytes while targeting rc.2       → reject equal version
+rc.3 while targeting rc.2                       → reject newer version
+rc.1 with another homepage or URL               → reject noncanonical
+rc.1 backed only by a draft release             → reject nonpublic</pre>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <h3>1. One canonical renderer</h3>
+    <p>The Cask renderer now has an identity-level core. Release preparation and predecessor validation therefore compare against the same template instead of maintaining two interpretations.</p>
+    <h3>2. Exact SemVer precedence</h3>
+    <p>Base and prerelease numeric identifiers use <code>BigInt</code>. This matters because SemVer permits integers beyond JavaScript's safe-number range. Build metadata remains correctly irrelevant to precedence.</p>
+    <h3>3. Public predecessor proof</h3>
+    <p>The preflight accepts differing public-tap bytes only after canonical rendering, strict older-version comparison, non-draft release verification, and matching asset digest. Any failure occurs before the publisher creates or merges a tap pull request.</p>
+    <h3>4. Evidence and tests</h3>
+    <p>Ten focused tests cover valid upgrades, arbitrary-precision identifiers, malformed and reordered states, release mismatch, draft rejection, exact approved mutation, and packet tampering. The real rc.2 packet also passes a live read-only dry run against the rc.1 tap.</p>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <div class="quiz" data-answer="1"><p>1. Why is an older version string insufficient?</p><button>It makes Homebrew download too slowly.</button><button>Noncanonical bytes could redirect or change the package while looking older.</button><button>Homebrew rejects all prereleases.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="2"><p>2. When may exact target bytes pass?</p><button>Never; every publication must overwrite.</button><button>Only after deleting the tap.</button><button>During idempotent recovery of the same approved target.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="0"><p>3. Why does comparison use BigInt?</p><button>SemVer numeric identifiers can exceed JavaScript's safe integer range.</button><button>DMG checksums are decimal integers.</button><button>GitHub requires BigInt request bodies.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="1"><p>4. What binds the predecessor Cask to real downloadable bytes?</p><button>The homepage field alone.</button><button>The non-draft release tag, asset name, and matching SHA-256 digest.</button><button>The local Git branch name.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="2"><p>5. What remains after PR #23?</p><button>Rebuild and renotarize the DMG.</button><button>Republish the Plugin marketplace.</button><button>Approve the exact Cask plan, publish, upgrade on macOS, and run installed-app checks.</button><div class="feedback"></div></div>
+  </section>
+</main>
+<script>
+  for (const quiz of document.querySelectorAll('.quiz')) {
+    const buttons = [...quiz.querySelectorAll('button')];
+    buttons.forEach((button,index) => button.addEventListener('click',() => {
+      buttons.forEach((item,i) => item.className = i === Number(quiz.dataset.answer) ? 'correct' : 'wrong');
+      quiz.querySelector('.feedback').textContent = index === Number(quiz.dataset.answer) ? 'Correct.' : 'Not quite—review the section above.';
+    }));
+  }
+</script></body></html>
