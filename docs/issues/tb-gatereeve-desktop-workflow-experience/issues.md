@@ -71,7 +71,7 @@ view.
 
 ## I-6 - Implement the hierarchical Overview
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 2d
 - **Plan steps:** P6
 - **Rubric criteria:** R4, R5, R8

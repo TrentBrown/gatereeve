@@ -31,7 +31,14 @@ export function sourceLabel(name, source) {
   return { name: label, status, text: `${humanize(status)}${detail}` };
 }
 
-export function featureStates(snapshot, modelDetail) {
+const STATE_ARTIFACT_IDS = Object.freeze({
+  DESIGNING: 'design',
+  SPECIFYING: 'spec',
+  PLANNING: 'plan',
+  COMPLETE: 'completion-report',
+});
+
+export function featureStates(snapshot, modelDetail, selectedState = null) {
   const model = modelDetail?.data?.lock?.model;
   const states = model?.presentation?.featureOrder ?? model?.feature?.states ?? [];
   const current = snapshot?.projection?.feature?.state ?? null;
@@ -39,8 +46,53 @@ export function featureStates(snapshot, modelDetail) {
   return states.map((id, index) => ({
     id,
     label: humanize(id),
+    current: id === current,
+    selected: id === selectedState,
     position: id === current ? 'current' : currentIndex >= 0 && index < currentIndex ? 'complete' : 'pending',
   }));
+}
+
+export function stateArtifact(snapshot, stateId) {
+  const artifactId = STATE_ARTIFACT_IDS[stateId] ?? null;
+  return artifactId === null
+    ? null
+    : snapshot?.artifacts?.find((artifact) => artifact.id === artifactId) ?? null;
+}
+
+export function selectedSlice(snapshot, selectedSliceId = null) {
+  const slices = snapshot?.projection?.slices ?? [];
+  if (slices.some((slice) => slice.id === selectedSliceId)) return selectedSliceId;
+  const activeSliceId = snapshot?.projection?.activeSliceId ?? snapshot?.active?.sliceId ?? null;
+  if (slices.some((slice) => slice.id === activeSliceId)) return activeSliceId;
+  return slices.at(-1)?.id ?? null;
+}
+
+export function selectedAttempt(snapshot, sliceId, selectedAttemptId = null) {
+  const attempts = (snapshot?.projection?.boundaryAttempts ?? []).filter(
+    (attempt) => attempt.sliceId === sliceId,
+  );
+  if (attempts.some((attempt) => attempt.id === selectedAttemptId)) return selectedAttemptId;
+  const slice = snapshot?.projection?.slices?.find((item) => item.id === sliceId);
+  const activeAttemptId = slice?.activeAttemptId
+    ?? (snapshot?.active?.sliceId === sliceId ? snapshot.active.boundaryAttemptId : null);
+  if (attempts.some((attempt) => attempt.id === activeAttemptId)) return activeAttemptId;
+  return attempts.at(-1)?.id ?? null;
+}
+
+export function attemptArtifact(snapshot, attemptId) {
+  const artifacts = snapshot?.artifacts ?? [];
+  const candidates = artifacts.filter((artifact) => artifact.context?.attemptId === attemptId);
+  return candidates.find((artifact) => artifact.path?.split('/').at(-1) === 'boundary.json')
+    ?? candidates.find((artifact) => artifact.context?.gateId === 'packetValidation' && artifact.path)
+    ?? null;
+}
+
+export function gateArtifact(snapshot, attemptId, gateId) {
+  return snapshot?.artifacts?.find((artifact) => (
+    artifact.context?.attemptId === attemptId
+    && artifact.context?.gateId === gateId
+    && artifact.path !== null
+  )) ?? null;
 }
 
 export function actionMeaning(command) {

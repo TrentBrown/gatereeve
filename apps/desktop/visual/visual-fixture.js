@@ -29,11 +29,11 @@ const model = {
 };
 
 const attempt = {
-  id: 'desktop-shell-observation-attempt-1',
-  sliceId: 'desktop-shell-observation',
-  scope: 'SLICE',
-  state: 'PASSED',
-  context: { pullRequest: 4 },
+  id: 'desktop-final-quality-attempt-1',
+  sliceId: 'desktop-final-quality',
+  scope: 'FEATURE_FINAL',
+  state: 'ACTIVE',
+  context: { pullRequest: 29 },
   gates: [
     ['pinContext', [], 'PASS'],
     ['reconcile', ['pinContext'], 'PASS'],
@@ -50,7 +50,7 @@ const attempt = {
     dependencyStage: index < 3 ? index + 1 : index < 7 ? 4 : index - 2,
     dependencyBranch: index >= 3 && index < 7 ? String.fromCharCode(97 + index - 3) : null,
     orderLabel: index >= 3 && index < 7 ? `4${String.fromCharCode(97 + index - 3)}` : String(index < 3 ? index + 1 : index - 2),
-    evidence: id === 'patternReview' ? null : { path: `pr-4/${id}.md` },
+    evidence: id === 'patternReview' ? null : { path: `pr-29/${id}.md` },
     recordedEventId: `evt-gate-${index + 1}`,
   })),
 };
@@ -61,10 +61,23 @@ const artifacts = [
   ['plan', 'Authorized implementation plan', 'plan.md', 'markdown', 'present'],
   ['tracker', 'Rubric tracker', 'tracker.md', 'markdown', 'changed'],
   ['decisions', 'Permanent decisions', 'decisions.md', 'markdown', 'present'],
-  ['attempt:desktop-shell-observation-attempt-1:gate:explainDiff', 'Explain diff evidence', 'pr-4/explain-diff.html', 'html', 'present'],
+  ['completion-report', 'Completion report', 'completion-report.md', 'markdown', 'present'],
 ].map(([id, label, path, format, status]) => ({
   id, label, path, format, status, exists: true, unsafe: false, context: { kind: 'feature' },
-}));
+})).concat([
+  {
+    id: 'attempt:desktop-final-quality-attempt-1:boundary',
+    label: 'PR boundary', path: 'pr-29/boundary.json', format: 'json', status: 'present',
+    exists: true, unsafe: false,
+    context: { kind: 'attempt', attemptId: 'desktop-final-quality-attempt-1' },
+  },
+  {
+    id: 'attempt:desktop-final-quality-attempt-1:gate:explainDiff',
+    label: 'Explain diff evidence', path: 'pr-29/explain-diff.html', format: 'html', status: 'present',
+    exists: true, unsafe: false,
+    context: { kind: 'gate', attemptId: 'desktop-final-quality-attempt-1', gateId: 'explainDiff' },
+  },
+]);
 
 const events = [
   ['SLICE_MERGE_RECORDED', 'agent'],
@@ -89,15 +102,16 @@ const snapshot = {
   projection: {
     feature: { state: 'DELIVERING_SLICES' },
     suspension: { paused: false },
+    activeSliceId: 'desktop-final-quality',
     slices: [
       { id: 'desktop-observer-contract', deliveryOrdinal: 1, name: 'Canonical observer contract', state: 'MERGED', branch: 'gatereeve-desktop', scope: 'SLICE', planSteps: ['P1', 'P2', 'P3'], activeAttemptId: null },
       { id: 'desktop-shell-observation', deliveryOrdinal: 2, name: 'Electron shell and observation lifecycle', state: 'MERGED', branch: 'gatereeve-desktop-shell', scope: 'SLICE', planSteps: ['P4', 'P5'], activeAttemptId: null },
       { id: 'desktop-workflow-experience', deliveryOrdinal: 3, name: 'State-first workflow and inspection experience', state: 'MERGED', branch: 'gatereeve-desktop-workflow-experience', scope: 'SLICE', planSteps: ['P6', 'P7'], activeAttemptId: null },
-      { id: 'desktop-final-quality', deliveryOrdinal: 4, name: 'Notifications, accessibility, and final verification', state: 'IMPLEMENTING', branch: 'gatereeve-desktop-notifications-accessibility', scope: 'FEATURE_FINAL', planSteps: ['P8', 'P9'], activeAttemptId: null },
+      { id: 'desktop-final-quality', deliveryOrdinal: 4, name: 'Notifications, accessibility, and final verification', state: 'PR_BOUNDARY', branch: 'gatereeve-desktop-notifications-accessibility', scope: 'FEATURE_FINAL', planSteps: ['P8', 'P9'], activeAttemptId: 'desktop-final-quality-attempt-1' },
     ],
     boundaryAttempts: [attempt],
   },
-  active: { sliceId: 'desktop-final-quality', boundaryAttemptId: null },
+  active: { sliceId: 'desktop-final-quality', boundaryAttemptId: 'desktop-final-quality-attempt-1' },
   sources: {
     local: { status: 'current', detail: 'Canonical record read locally' },
     git: { status: 'current', detail: 'Topic branch · source changes present' },
@@ -238,7 +252,7 @@ window.gatereeveDesktop = Object.freeze({
         content: '# GateReeve artifact\n\n**Feature start:** safe and *current*. '
           + '[Read the spec](spec.md) or [jump to details](#details).\n\n'
           + '## Details\n\nThis is a representative visual fixture.',
-        structured: null,
+        structured: artifact?.format === 'json' ? { attemptId: attempt.id, pullRequest: 29 } : null,
       },
     };
   },
