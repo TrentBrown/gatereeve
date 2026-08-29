@@ -66,10 +66,9 @@ comparison.
 
 ## Retention
 
-The feature record is designed to remain tracked in Git. The final boundary's
-deterministic `feature_final.py` result must confirm `tracked` before the PR is
-presented for approval; otherwise an explicit human retention decision is
-required.
+The deterministic feature-final retention check reports `tracked`: all 50
+current feature-record files are tracked by Git, with zero untracked and zero
+ignored feature files. No human retention exception is required.
 
 ## Remaining Human Action
 
