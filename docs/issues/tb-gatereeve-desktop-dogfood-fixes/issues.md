@@ -118,12 +118,12 @@ PR #21 merged the reviewed preparation record into `main` as
 
 ## I-9 - Publish and install the approved Homebrew release
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P9
 - **Rubric criteria:** R8
 - **Depends on:** I-8
-- **PR:** [#23](https://github.com/TrentBrown/gatereeve/pull/23)
+- **PR:** [#23](https://github.com/TrentBrown/gatereeve/pull/23), [#24](https://github.com/TrentBrown/gatereeve/pull/24)
 
 After explicit release approval, publish the coordinated artifacts, update and
 smoke the cask, upgrade the user's Mac, and run the installed-app checklist.
@@ -145,7 +145,7 @@ both arm64 and x64.
 PR #23 merged the fail-closed predecessor verification and exact prepared
 packet into `main` as `18a24fa18746264439a93a09fcc5cdf178a85cd9`.
 The continuation slice
-`desktop-dogfood-cask-publication-and-installation` is implementing. Public
+`desktop-dogfood-cask-publication-and-installation` is at its PR #24 boundary.
 Trent Brown completed the public Homebrew upgrade from rc.1 to rc.2 on the user
 Mac. The installed Cask inventory reports `gatereeve 0.1.0-rc.2`; strict deep
 code-signing verification passes, and Gatekeeper accepts the app as Notarized
@@ -166,7 +166,7 @@ Trent Brown confirmed installed AC6-AC7: Markdown emphasis, inline code, and
 link labels render correctly; HTTPS links use the system browser without
 navigating GateReeve; relative links select canonical artifacts; and fragment
 links scroll within the current artifact. All user-Mac AC1-AC7 checks now pass.
-I-9 is ready for its formal PR boundary.
+I-9 is in review at its formal PR #24 boundary.
 
 ## I-10 - Complete the feature rubric and report
 
