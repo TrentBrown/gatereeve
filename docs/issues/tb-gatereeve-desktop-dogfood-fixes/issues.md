@@ -162,6 +162,12 @@ updates automatically, manual Refresh retains the selection, and refreshes
 preserve both bottom-pinned and ordinary reading positions. Installed AC6-AC7
 remain.
 
+Trent Brown confirmed installed AC6-AC7: Markdown emphasis, inline code, and
+link labels render correctly; HTTPS links use the system browser without
+navigating GateReeve; relative links select canonical artifacts; and fragment
+links scroll within the current artifact. All user-Mac AC1-AC7 checks now pass.
+I-9 is ready for its formal PR boundary.
+
 ## I-10 - Complete the feature rubric and report
 
 - **Status:** open

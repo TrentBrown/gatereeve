@@ -115,3 +115,11 @@ artifact updates automatically, manual Refresh retains selection, and bottom
 and ordinary scroll positions survive legitimate PortReeve artifact changes.
 Installed AC4-AC5 therefore pass; AC6-AC7 Markdown and link checks remain
 before R8 can pass.
+
+Trent Brown completed the final installed checks. Strong emphasis, ordinary
+emphasis, inline code, and Markdown link labels render correctly; HTTPS links
+open in the system browser without navigating GateReeve; relative canonical
+links select their target inside GateReeve; and same-document fragments scroll
+within the current artifact. The installed AC1-AC7 checklist is complete. R8
+now has complete release, public Cask, Homebrew upgrade, Apple trust, and
+installed-application evidence for formal evaluation.

@@ -133,3 +133,7 @@
   retained selection, bottom pinning, and ordinary scroll restoration in the
   live PortReeve record. Installed AC4-AC5 pass; AC6-AC7 remain, so R8 is
   still `NOT YET`.
+  Trent Brown completed installed AC6-AC7: Markdown styling and link labels
+  render correctly, HTTPS links open externally without navigating GateReeve,
+  relative links select canonical artifacts, and fragments scroll internally.
+  All R8 evidence is now present for formal boundary evaluation.
