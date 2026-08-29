@@ -72,7 +72,7 @@ current state was already false.
 
 ## [3] Keep workspace state renderer-owned and layout IPC push-only
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

@@ -46,24 +46,24 @@ IPC/preload contracts.
 
 ## I-4 - Build the application shell and workspace store
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R3, R8
 - **Depends on:** I-3
-- **PR:** -
+- **PR:** [#28](https://github.com/TrentBrown/gatereeve/pull/28)
 
 Create the project sidebar, fixed central tabs, version treatment, per-project
 session workspace state, panel controls, shortcuts, and resizable layout.
 
 ## I-5 - Build the unified artifact inspector
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P5
 - **Rubric criteria:** R6, R8
 - **Depends on:** I-1, I-4
-- **PR:** -
+- **PR:** [#28](https://github.com/TrentBrown/gatereeve/pull/28)
 
 Implement canonical and virtual tab identity, lifecycle and reconciliation,
 unavailable states, safe artifact rendering, and the inventory-only Artifacts
