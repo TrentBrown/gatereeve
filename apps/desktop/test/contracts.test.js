@@ -7,6 +7,7 @@ import {
   requireCopyText,
   requireDesktopState,
   requireDetailRequest,
+  requireExternalLink,
   requireSessionDetail,
   requireSessionId,
   requireSessionInventory,
@@ -79,6 +80,9 @@ test('named read and artifact requests reject broad or malformed access', () => 
   assert.throws(() => requireArtifactRequest({ path: '/tmp/anything' }), /invalid/);
   assert.equal(requireCopyText('gatereeve next'), 'gatereeve next');
   assert.throws(() => requireCopyText(42), /invalid/);
+  assert.equal(requireExternalLink('https://example.com/docs'), 'https://example.com/docs');
+  assert.throws(() => requireExternalLink('file:///etc/passwd'), /HTTP\(S\)/);
+  assert.throws(() => requireExternalLink('https://user@example.com/private'), /HTTP\(S\)/);
   const sessionId = 'session:checkpoint:Q0hFQ0tQT0lOVC5tZA';
   assert.equal(requireSessionId(sessionId), sessionId);
   assert.throws(() => requireSessionId('../CHECKPOINT.md'), /invalid/);
@@ -104,6 +108,7 @@ test('IPC allow-list contains no workflow mutation or process-execution surface'
     'gatereeve:desktop:get-update-state',
     'gatereeve:desktop:list-session',
     'gatereeve:desktop:open-artifact',
+    'gatereeve:desktop:open-external-link',
     'gatereeve:desktop:open-recent',
     'gatereeve:desktop:open-update-release',
     'gatereeve:desktop:read-detail',

@@ -109,6 +109,16 @@ test('renderer presents selection first and then canonical observation status', 
   assert.equal(window.document.querySelector('#mode').textContent, 'governed');
   assert.equal(window.document.querySelector('#feature-state').textContent, 'DELIVERING_SLICES');
   assert.match(window.document.querySelector('#activity').textContent, /polling GitHub/);
+  window.document.querySelector('[data-view="setup"]').click();
+  assert.equal(window.document.querySelector('#workspace').hidden, false);
+  assert.equal(
+    window.document.querySelector('#setup-shell').parentElement,
+    window.document.querySelector('#workspace'),
+  );
+  assert.equal(window.document.querySelector('.sidebar').hidden, false);
+  window.document.querySelector('[data-view="overview"]').click();
+  assert.equal(window.document.querySelector('#workspace').hidden, false);
+  assert.equal(window.document.querySelector('#overview').hidden, false);
   updateSubscriber({
     ...idleUpdate(), status: 'available', source: 'automatic',
     checkedAt: '2026-08-28T00:00:00.000Z',
@@ -300,6 +310,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   window.document.querySelector('[data-artifact-id="attempt:slice-attempt-1:gate:explainDiff"]').click();
   await new Promise((done) => setImmediate(done));
   assert.match(window.document.querySelector('#artifact-viewer iframe').getAttribute('src'), /^gatereeve-artifact:/);
+  assert.match(window.document.querySelector('#artifact-viewer iframe').getAttribute('src'), /\?refresh=\d+$/);
   assert.equal(window.document.querySelector('#artifact-viewer iframe').hasAttribute('sandbox'), false);
 
   window.document.querySelector('[data-view="history"]').click();
@@ -374,6 +385,258 @@ test('renderer reloads optional Session context when a refresh begins', async ()
   subscriber({ ...state, refreshing: true });
   await new Promise((done) => setImmediate(done));
   assert.equal(sessionReads, 2);
+
+  delete globalThis.window;
+  delete globalThis.document;
+});
+
+test('selected artifact rereads automatically when its canonical fingerprint changes', async () => {
+  const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
+  const { window } = parseHTML(html);
+  let subscriber;
+  let artifactReads = 0;
+  let failArtifactRead = false;
+  const queuedArtifactReads = [];
+  const artifact = (modifiedAt, size) => ({
+    id: 'interview',
+    label: 'Design interview',
+    status: 'present',
+    exists: true,
+    unsafe: false,
+    path: 'interview.md',
+    absolutePath: '/repo/docs/issues/feature/interview.md',
+    format: 'markdown',
+    modifiedAt,
+    size,
+    context: { kind: 'feature' },
+  });
+  const state = (item) => ({
+    ...idleState(),
+    phase: 'ready',
+    selection: { worktreePath: '/repo', featureHome: '/repo/docs/issues/feature' },
+    snapshot: {
+      schemaVersion: 1,
+      mode: 'governed',
+      featureId: 'feature',
+      model: null,
+      projection: null,
+      active: {},
+      sources: {},
+      blockers: [],
+      warnings: [],
+      milestones: [],
+      actions: [],
+      artifacts: item === null ? [] : [item],
+      events: { count: 0, lastEventId: null, recent: [] },
+    },
+  });
+  const initial = state(artifact('2026-08-29T01:00:00.000Z', 20));
+  window.gatereeveDesktop = {
+    async checkForUpdates() { return idleUpdate(); },
+    async chooseWorktree() {},
+    async openRecent() {},
+    async refresh() { return initial; },
+    async recheckSetup() { return initial; },
+    async setSelectedAgents() { return initial; },
+    async setNotificationsEnabled() { return initial; },
+    async getState() { return initial; },
+    async getUpdateState() { return idleUpdate(); },
+    async openUpdateRelease() { return true; },
+    async openArtifact() { return true; },
+    async revealArtifact() { return true; },
+    async readDetail(kind, id) {
+      if (kind !== 'artifact') throw new Error('not used');
+      artifactReads += 1;
+      if (failArtifactRead) throw new Error('File is being replaced');
+      if (queuedArtifactReads.length > 0) return queuedArtifactReads.shift().promise;
+      const current = artifactReads === 1
+        ? artifact('2026-08-29T01:00:00.000Z', 20)
+        : artifact('2026-08-29T01:01:00.000Z', 28);
+      return {
+        kind,
+        data: {
+          artifact: current,
+          content: artifactReads === 1 ? '# Interview\nFirst' : '# Interview\nUpdated',
+          structured: null,
+        },
+      };
+    },
+    subscribe(callback) { subscriber = callback; return () => {}; },
+    subscribeUpdates() { return () => {}; },
+  };
+  globalThis.window = window;
+  globalThis.document = window.document;
+  await import(`${pathToFileURL(resolve(desktopRoot, 'renderer/renderer.js')).href}?test=artifact-auto-refresh`);
+  await new Promise((done) => setImmediate(done));
+
+  window.document.querySelector('[data-view="artifacts"]').click();
+  window.document.querySelector('[data-artifact-id="interview"]').click();
+  await new Promise((done) => setImmediate(done));
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /First/);
+
+  const viewer = window.document.querySelector('#artifact-viewer');
+  Object.defineProperty(viewer, 'scrollHeight', { configurable: true, value: 1000 });
+  Object.defineProperty(viewer, 'clientHeight', { configurable: true, value: 200 });
+  viewer.scrollTop = 300;
+
+  subscriber(state(artifact('2026-08-29T01:01:00.000Z', 28)));
+  await new Promise((done) => setImmediate(done));
+  assert.equal(artifactReads, 2);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Updated/);
+  assert.equal(
+    window.document.querySelector('[data-artifact-id="interview"]').classList.contains('selected'),
+    true,
+  );
+  assert.equal(window.document.querySelector('[data-artifact-refresh]').textContent, 'Refresh');
+  assert.equal(viewer.scrollTop, 300);
+
+  viewer.scrollTop = 790;
+  window.document.querySelector('[data-artifact-refresh]').click();
+  await new Promise((done) => setImmediate(done));
+  assert.equal(artifactReads, 3);
+  assert.equal(viewer.scrollTop, 800);
+
+  failArtifactRead = true;
+  subscriber(state(artifact('2026-08-29T01:02:00.000Z', 29)));
+  await new Promise((done) => setImmediate(done));
+  assert.equal(artifactReads, 4);
+  assert.match(viewer.textContent, /Updated/);
+  assert.match(viewer.textContent, /Refresh failed/);
+  assert.ok(window.document.querySelector('[data-artifact-refresh]'));
+
+  failArtifactRead = false;
+  window.document.querySelector('[data-artifact-refresh]').click();
+  await new Promise((done) => setImmediate(done));
+  const deferred = () => {
+    let resolve;
+    const promise = new Promise((done) => { resolve = done; });
+    return { promise, resolve };
+  };
+  const olderRead = deferred();
+  const newerRead = deferred();
+  queuedArtifactReads.push(olderRead, newerRead);
+  subscriber(state(artifact('2026-08-29T01:03:00.000Z', 30)));
+  subscriber(state(artifact('2026-08-29T01:04:00.000Z', 31)));
+  newerRead.resolve({
+    kind: 'artifact',
+    data: {
+      artifact: artifact('2026-08-29T01:04:00.000Z', 31),
+      content: '# Interview\nNewest',
+      structured: null,
+    },
+  });
+  await new Promise((done) => setImmediate(done));
+  olderRead.resolve({
+    kind: 'artifact',
+    data: {
+      artifact: artifact('2026-08-29T01:03:00.000Z', 30),
+      content: '# Interview\nStale',
+      structured: null,
+    },
+  });
+  await new Promise((done) => setImmediate(done));
+  assert.match(viewer.textContent, /Newest/);
+  assert.doesNotMatch(viewer.textContent, /Stale/);
+
+  subscriber(state(null));
+  assert.match(viewer.textContent, /no longer available/i);
+  assert.equal(window.document.querySelector('[data-artifact-id="interview"]'), null);
+
+  delete globalThis.window;
+  delete globalThis.document;
+});
+
+test('artifact Markdown confines external, relative, fragment, and unsafe links', async () => {
+  const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
+  const { window } = parseHTML(html);
+  const external = [];
+  const artifacts = [
+    {
+      id: 'interview', label: 'Interview', status: 'present', exists: true, unsafe: false,
+      path: 'interview.md', absolutePath: '/repo/interview.md', format: 'markdown',
+      modifiedAt: '2026-08-29T01:00:00.000Z', size: 100, context: { kind: 'feature' },
+    },
+    {
+      id: 'spec', label: 'Spec', status: 'present', exists: true, unsafe: false,
+      path: 'spec.md', absolutePath: '/repo/spec.md', format: 'markdown',
+      modifiedAt: '2026-08-29T01:00:00.000Z', size: 20, context: { kind: 'feature' },
+    },
+  ];
+  const state = {
+    ...idleState(),
+    phase: 'ready',
+    selection: { worktreePath: '/repo', featureHome: '/repo/docs/issues/feature' },
+    snapshot: {
+      schemaVersion: 1, mode: 'governed', featureId: 'feature', model: null,
+      projection: null, active: {}, sources: {}, blockers: [], warnings: [], milestones: [],
+      actions: [], artifacts, events: { count: 0, lastEventId: null, recent: [] },
+    },
+  };
+  window.gatereeveDesktop = {
+    async checkForUpdates() { return idleUpdate(); },
+    async getState() { return state; },
+    async getUpdateState() { return idleUpdate(); },
+    async openUpdateRelease() { return true; },
+    async openExternalLink(url) { external.push(url); return true; },
+    async chooseWorktree() { return state; },
+    async openRecent() { return state; },
+    async refresh() { return state; },
+    async recheckSetup() { return state; },
+    async setSelectedAgents() { return state; },
+    async setNotificationsEnabled() { return state; },
+    async openArtifact() { return true; },
+    async revealArtifact() { return true; },
+    async readDetail(kind, id) {
+      const artifact = artifacts.find((item) => item.id === id);
+      return {
+        kind,
+        data: {
+          artifact,
+          content: id === 'interview'
+            ? '# Overview\n[External](https://example.com/docs) [Spec](spec.md) '
+              + '[Details](#details) [Missing](missing.md) '
+              + '[Unsafe](file:///etc/passwd)\n\n## Details\nHere.'
+            : '# Spec\nSelected through the canonical inventory.',
+          structured: null,
+        },
+      };
+    },
+    subscribe() { return () => {}; },
+    subscribeUpdates() { return () => {}; },
+  };
+  globalThis.window = window;
+  globalThis.document = window.document;
+  await import(`${pathToFileURL(resolve(desktopRoot, 'renderer/renderer.js')).href}?test=artifact-links`);
+  await new Promise((done) => setImmediate(done));
+
+  window.document.querySelector('[data-view="artifacts"]').click();
+  window.document.querySelector('[data-artifact-id="interview"]').click();
+  await new Promise((done) => setImmediate(done));
+  const viewer = window.document.querySelector('#artifact-viewer');
+  const links = Object.fromEntries(
+    [...viewer.querySelectorAll('a')].map((link) => [link.textContent, link]),
+  );
+  assert.deepEqual(Object.keys(links), ['External', 'Spec', 'Details']);
+  assert.match(viewer.textContent, /\[Missing\]\(missing\.md\)/);
+  assert.match(viewer.textContent, /\[Unsafe\]\(file:\/\/\/etc\/passwd\)/);
+
+  links.External.dispatchEvent(new window.Event('click', { cancelable: true }));
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(external, ['https://example.com/docs']);
+
+  let fragmentScrolls = 0;
+  viewer.querySelector('#details').scrollIntoView = () => { fragmentScrolls += 1; };
+  links.Details.dispatchEvent(new window.Event('click', { cancelable: true }));
+  await new Promise((done) => setImmediate(done));
+  assert.equal(fragmentScrolls, 1);
+
+  links.Spec.dispatchEvent(new window.Event('click', { cancelable: true }));
+  await new Promise((done) => setImmediate(done));
+  assert.match(viewer.textContent, /Selected through the canonical inventory/);
+  assert.equal(
+    window.document.querySelector('[data-artifact-id="spec"]').classList.contains('selected'),
+    true,
+  );
 
   delete globalThis.window;
   delete globalThis.document;

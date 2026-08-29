@@ -10,6 +10,7 @@ export const IPC_CHANNELS = Object.freeze({
   getUpdateState: 'gatereeve:desktop:get-update-state',
   listSession: 'gatereeve:desktop:list-session',
   openArtifact: 'gatereeve:desktop:open-artifact',
+  openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
   openRecent: 'gatereeve:desktop:open-recent',
   readDetail: 'gatereeve:desktop:read-detail',
@@ -277,6 +278,26 @@ export function requireCopyText(value) {
     throw new Error('Clipboard text is invalid.');
   }
   return value;
+}
+
+export function requireExternalLink(value) {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 8_192) {
+    throw new Error('External link is invalid. Only HTTP(S) links are allowed.');
+  }
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error('External link is invalid. Only HTTP(S) links are allowed.');
+  }
+  if (
+    !['http:', 'https:'].includes(url.protocol)
+    || url.username.length > 0
+    || url.password.length > 0
+  ) {
+    throw new Error('External link is invalid. Only HTTP(S) links are allowed.');
+  }
+  return url.href;
 }
 
 export function requireSessionId(value) {

@@ -76,6 +76,103 @@ test('observer checks only selected agents and accepts only an explicit compatib
   assert.equal(calls.some((call) => call[0].endsWith('/gatereeve')), false);
 });
 
+test('Python prerequisite continues past Apple Python to the first compatible candidate', async () => {
+  const calls = [];
+  const common = successfulExec(calls);
+  const observer = createSetupObserver({
+    metadata,
+    platform: 'darwin',
+    exec: async (executable, args) => {
+      if (executable === '/usr/bin/python3') {
+        calls.push([executable, ...args]);
+        return { stdout: 'Python 3.9.6\n', stderr: '' };
+      }
+      if (executable === '/opt/homebrew/bin/python3') {
+        calls.push([executable, ...args]);
+        return { stdout: 'Python 3.14.4\n', stderr: '' };
+      }
+      return common(executable, args);
+    },
+    async discover(name) {
+      return name === 'python3' ? '/usr/bin/python3' : `/bin/${name}`;
+    },
+    async discoverCandidates(name) {
+      assert.equal(name, 'python3');
+      return ['/usr/bin/python3', '/opt/homebrew/bin/python3'];
+    },
+  });
+
+  const setup = await observer(['codex']);
+  const python = setup.prerequisites.find((item) => item.id === 'python');
+  assert.equal(python.status, 'present');
+  assert.equal(python.version, '3.14.4');
+  assert.deepEqual(
+    calls.filter(([executable]) => executable.endsWith('/python3')),
+    [
+      ['/usr/bin/python3', '--version'],
+      ['/opt/homebrew/bin/python3', '--version'],
+    ],
+  );
+});
+
+test('Python prerequisite retains bounded failure evidence when no candidate is compatible', async () => {
+  const common = successfulExec([]);
+  const observer = createSetupObserver({
+    metadata,
+    platform: 'darwin',
+    exec: async (executable, args) => {
+      if (executable === '/usr/bin/python3') {
+        return { stdout: 'Python 3.9.6\n', stderr: '' };
+      }
+      if (executable === '/opt/homebrew/bin/python3') {
+        const error = new Error('Library load failed');
+        error.stderr = 'Library load failed';
+        throw error;
+      }
+      return common(executable, args);
+    },
+    async discover(name) { return `/bin/${name}`; },
+    async discoverCandidates() {
+      return ['/usr/bin/python3', '/opt/homebrew/bin/python3'];
+    },
+  });
+
+  const setup = await observer(['codex']);
+  const python = setup.prerequisites.find((item) => item.id === 'python');
+  assert.equal(python.status, 'unavailable');
+  assert.equal(python.version, '3.9.6');
+  assert.match(python.detail, /\/usr\/bin\/python3 reported 3\.9\.6/);
+  assert.match(python.detail, /\/opt\/homebrew\/bin\/python3 could not be checked/);
+  assert.equal(python.remediation.command, 'brew install python');
+});
+
+test('explicit Python candidate remains authoritative when it is incompatible', async () => {
+  const calls = [];
+  const common = successfulExec(calls);
+  const observer = createSetupObserver({
+    metadata,
+    platform: 'darwin',
+    exec: async (executable, args) => {
+      if (executable === '/managed/python3') {
+        calls.push([executable, ...args]);
+        return { stdout: 'Python 3.9.6\n', stderr: '' };
+      }
+      return common(executable, args);
+    },
+    async discover(name) { return `/bin/${name}`; },
+    async discoverCandidates() { return ['/managed/python3']; },
+  });
+
+  const setup = await observer(['codex']);
+  const python = setup.prerequisites.find((item) => item.id === 'python');
+  assert.equal(python.status, 'incompatible');
+  assert.equal(python.version, '3.9.6');
+  assert.deepEqual(
+    calls.filter(([executable]) => executable.endsWith('python3')),
+    [['/managed/python3', '--version']],
+  );
+});
+
 test('unknown Plugin versions fail readiness while historical reading remains a UI concern', async () => {
   const calls = [];
   const exec = successfulExec(calls);

@@ -51,20 +51,24 @@ async function isExecutableFile(path) {
   }
 }
 
-export async function discoverExecutable(name, {
+function requireExecutableName(name) {
+  if (typeof name !== 'string' || name.length === 0 || isAbsolute(name)) {
+    throw new TypeError('Executable discovery requires a bare executable name.');
+  }
+}
+
+async function* matchingExecutables(name, {
   probe = isExecutableFile,
   readDirectory = readdir,
   ...options
 } = {}) {
-  if (typeof name !== 'string' || name.length === 0 || isAbsolute(name)) {
-    throw new TypeError('Executable discovery requires a bare executable name.');
-  }
+  requireExecutableName(name);
   for (const candidate of executableCandidates(name, options)) {
-    if (await probe(candidate)) return candidate;
+    if (await probe(candidate)) yield candidate;
   }
   const override = options.environment?.[`GATEREEVE_${name.toUpperCase()}_PATH`]
     ?? process.env[`GATEREEVE_${name.toUpperCase()}_PATH`];
-  if (override || (options.platform ?? process.platform) !== 'darwin') return null;
+  if (override || (options.platform ?? process.platform) !== 'darwin') return;
   const homeDirectory = options.homeDirectory ?? homedir();
   const nvmRoot = resolve(homeDirectory, '.nvm/versions/node');
   try {
@@ -74,11 +78,21 @@ export async function discoverExecutable(name, {
       .sort((left, right) => right.localeCompare(left, undefined, { numeric: true }));
     for (const version of versions) {
       const candidate = resolve(nvmRoot, version, 'bin', name);
-      if (await probe(candidate)) return candidate;
+      if (await probe(candidate)) yield candidate;
     }
   } catch {
     // NVM is optional; absence narrows only this known user-level discovery path.
   }
+}
+
+export async function discoverExecutables(name, options = {}) {
+  const matches = [];
+  for await (const candidate of matchingExecutables(name, options)) matches.push(candidate);
+  return matches;
+}
+
+export async function discoverExecutable(name, options = {}) {
+  for await (const candidate of matchingExecutables(name, options)) return candidate;
   return null;
 }
 

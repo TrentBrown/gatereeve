@@ -116,6 +116,10 @@ async function startDesktop() {
     },
   });
   registerRendererProtocol(protocol, resolve(desktopRoot, 'renderer'), {
+    brandingAsset: resolve(
+      desktopRoot,
+      'assets/branding/gatereeve-rolling-vale.png',
+    ),
     readArtifact: (artifactId) => coordinator.read('artifact', artifactId),
   });
   const window = new BrowserWindow(browserWindowOptions(
