@@ -464,6 +464,7 @@ function assertExactPredecessorRelease(release, predecessor) {
   const desktop = assets.get(predecessor.filename);
   if (
     release?.tag_name !== predecessor.tag
+    || release.draft !== false
     || release.prerelease !== predecessor.prerelease
     || desktop?.digest !== `sha256:${predecessor.digest}`
   ) {
