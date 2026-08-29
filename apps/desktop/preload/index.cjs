@@ -4,7 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const channels = Object.freeze({
   checkForUpdates: 'gatereeve:desktop:check-for-updates',
-  chooseWorktree: 'gatereeve:desktop:choose-worktree',
+  addProject: 'gatereeve:desktop:add-project',
   copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
   getUpdateState: 'gatereeve:desktop:get-update-state',
@@ -12,10 +12,12 @@ const channels = Object.freeze({
   openArtifact: 'gatereeve:desktop:open-artifact',
   openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
-  openRecent: 'gatereeve:desktop:open-recent',
+  activateProject: 'gatereeve:desktop:activate-project',
   readDetail: 'gatereeve:desktop:read-detail',
   readSession: 'gatereeve:desktop:read-session',
   refresh: 'gatereeve:desktop:refresh',
+  removeProject: 'gatereeve:desktop:remove-project',
+  reorderProjects: 'gatereeve:desktop:reorder-projects',
   recheckSetup: 'gatereeve:desktop:recheck-setup',
   revealArtifact: 'gatereeve:desktop:reveal-artifact',
   setNotificationsEnabled: 'gatereeve:desktop:set-notifications-enabled',
@@ -33,10 +35,12 @@ function requireState(value) {
     || typeof value.refreshing !== 'boolean'
     || typeof value.githubPolling !== 'boolean'
     || typeof value.preferences !== 'object'
-    || !Array.isArray(value.preferences.recentWorktrees)
+    || !Array.isArray(value.preferences.projectPaths)
     || typeof value.preferences.notificationsEnabled !== 'boolean'
     || !Array.isArray(value.preferences.selectedAgents)
     || value.preferences.selectedAgents.some((id) => !['codex', 'claude'].includes(id))
+    || !Array.isArray(value.projects)
+    || (value.candidateDiagnostic !== null && typeof value.candidateDiagnostic !== 'object')
     || typeof value.setup !== 'object'
     || value.setup === null
     || value.setup.schemaVersion !== 1
@@ -93,9 +97,20 @@ function requireSelectedAgents(value) {
 
 function requirePath(path) {
   if (typeof path !== 'string' || path.length === 0 || path.length > 16_384) {
-    throw new TypeError('Worktree path is invalid.');
+    throw new TypeError('Project path is invalid.');
   }
   return path;
+}
+
+function requireProjectOrder(value) {
+  if (
+    !Array.isArray(value)
+    || value.some((path) => requirePath(path) !== path)
+    || new Set(value).size !== value.length
+  ) {
+    throw new TypeError('Project order is invalid.');
+  }
+  return [...value];
 }
 
 function requireArtifactId(artifactId) {
@@ -196,7 +211,7 @@ function requireDetail(kind, id) {
 
 contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
   checkForUpdates: async () => requireUpdateState(await ipcRenderer.invoke(channels.checkForUpdates)),
-  chooseWorktree: async () => requireState(await ipcRenderer.invoke(channels.chooseWorktree)),
+  addProject: async () => requireState(await ipcRenderer.invoke(channels.addProject)),
   copyText: async (value) => ipcRenderer.invoke(channels.copyText, requireClipboardText(value)),
   getState: async () => requireState(await ipcRenderer.invoke(channels.getState)),
   getUpdateState: async () => requireUpdateState(await ipcRenderer.invoke(channels.getUpdateState)),
@@ -209,8 +224,8 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     channels.openExternalLink,
     requireExternalLink(url),
   ),
-  openRecent: async (path) => requireState(await ipcRenderer.invoke(
-    channels.openRecent,
+  activateProject: async (path) => requireState(await ipcRenderer.invoke(
+    channels.activateProject,
     requirePath(path),
   )),
   openUpdateRelease: async () => ipcRenderer.invoke(channels.openUpdateRelease),
@@ -223,6 +238,14 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     requireSessionId(id),
   )),
   refresh: async () => requireState(await ipcRenderer.invoke(channels.refresh)),
+  removeProject: async (path) => requireState(await ipcRenderer.invoke(
+    channels.removeProject,
+    requirePath(path),
+  )),
+  reorderProjects: async (paths) => requireState(await ipcRenderer.invoke(
+    channels.reorderProjects,
+    requireProjectOrder(paths),
+  )),
   recheckSetup: async () => requireState(await ipcRenderer.invoke(channels.recheckSetup)),
   setNotificationsEnabled: async (enabled) => {
     if (typeof enabled !== 'boolean') throw new TypeError('Notification preference must be boolean.');

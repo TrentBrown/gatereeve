@@ -72,6 +72,10 @@ test('snapshot distinguishes blocked, available, and ready actions from current 
   ]);
   assert.match(blocked.data.actions[0].copyCommand, /--human-confirmed/);
   assert.equal(blocked.data.artifacts.find((item) => item.id === 'design').status, 'pending');
+  assert.equal(
+    blocked.data.artifacts.find((item) => item.id === 'completion-report').status,
+    'pending'
+  );
 
   await completeInterview(fixture.featureHome);
   const ready = await snapshot(fixture.featureHome);
@@ -142,6 +146,14 @@ test('named reads are schema-valid, allow-listed, and preserve full event and mo
   assert.match(artifact.data.data.content, /^# Design/m);
   assert.equal(artifact.data.data.artifact.format, 'markdown');
 
+  await writeFile(
+    resolve(fixture.featureHome, 'completion-report.md'),
+    '# Completion report\n\nCurrent local evidence.\n'
+  );
+  const completion = await readDetail(fixture.featureHome, 'artifact', 'completion-report');
+  assert.match(completion.data.data.content, /^# Completion report/m);
+  assert.equal(completion.data.data.artifact.format, 'markdown');
+
   const events = await readDetail(fixture.featureHome, 'events');
   assert.equal(events.data.data.events.length, 1);
   assert.equal(events.data.data.events[0].payload.featureState, 'DESIGNING');
@@ -209,6 +221,11 @@ test('boundary snapshots inventory pinned gates and expose attempt detail by ID'
     facts: { sliceReadinessCurrent: true },
     eventId: 'evt-start',
   });
+  await proposeSlice(fixture.featureHome, {
+    sliceId: 'slice-2',
+    actor: agent,
+    eventId: 'evt-propose-2',
+  });
   const packet = resolve(fixture.featureHome, 'pr-1');
   await mkdir(packet);
   await writeFile(resolve(packet, 'boundary.json'), '{"schemaVersion":1}\n');
@@ -227,6 +244,10 @@ test('boundary snapshots inventory pinned gates and expose attempt detail by ID'
   });
 
   const observed = await snapshot(fixture.featureHome);
+  assert.deepEqual(
+    observed.data.projection.slices.map((slice) => [slice.id, slice.deliveryOrdinal]),
+    [['slice-1', 1], ['slice-2', 2]]
+  );
   const gateArtifacts = observed.data.artifacts.filter(
     (item) => item.context.kind === 'gate'
   );
@@ -256,6 +277,26 @@ test('boundary snapshots inventory pinned gates and expose attempt detail by ID'
   const detail = await readDetail(fixture.featureHome, 'attempt', 'attempt-1');
   assert.equal(detail.data.data.attempt.id, 'attempt-1');
   assert.equal(detail.data.data.attempt.gates.length, 10);
+  assert.deepEqual(
+    detail.data.data.attempt.gates.map((gate) => [
+      gate.id,
+      gate.dependencyStage,
+      gate.dependencyBranch,
+      gate.orderLabel,
+    ]),
+    [
+      ['pinContext', 1, null, '1'],
+      ['reconcile', 2, null, '2'],
+      ['verification', 3, null, '3'],
+      ['specEvaluation', 4, 'a', '4a'],
+      ['patternReview', 4, 'b', '4b'],
+      ['judge', 4, 'c', '4c'],
+      ['codeReview', 4, 'd', '4d'],
+      ['decisionTriage', 5, null, '5'],
+      ['explainDiff', 6, null, '6'],
+      ['packetValidation', 7, null, '7'],
+    ]
+  );
 });
 
 test('snapshot exposes missing, legacy, inconsistent, and incompatible modes read-only', async () => {

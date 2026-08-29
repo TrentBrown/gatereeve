@@ -1,8 +1,5 @@
 // @ts-check
 
-import { realpath, stat } from 'node:fs/promises';
-import { isAbsolute } from 'node:path';
-
 import {
   DESKTOP_STATE_SCHEMA_VERSION,
   requireDesktopState,
@@ -12,7 +9,14 @@ import {
 import { observeGit } from './git-observer.js';
 import { observeGitHub } from './github-observer.js';
 import { createNotificationObserver } from './notification-observer.js';
-import { rememberWorktree, selectAgents } from './preferences.js';
+import {
+  activateProjectReference,
+  addProjectReference,
+  removeProjectReference,
+  reorderProjectReferences,
+  selectAgents,
+} from './preferences.js';
+import { inspectProject } from './project-registry.js';
 import { listSessionContext, readSessionContext } from './session-observer.js';
 import { createWorktreeWatcher } from './worktree-watcher.js';
 
@@ -50,15 +54,6 @@ function safeError(error) {
   };
 }
 
-async function requireDirectory(path) {
-  if (typeof path !== 'string' || !isAbsolute(path)) {
-    throw new Error('Choose an absolute worktree path.');
-  }
-  const canonical = await realpath(path);
-  if (!(await stat(canonical)).isDirectory()) throw new Error('The selected worktree is not a directory.');
-  return canonical;
-}
-
 export function createDesktopCoordinator({
   protocol,
   preferenceStore,
@@ -74,6 +69,8 @@ export function createDesktopCoordinator({
   notify = () => {},
 } = {}) {
   let preferences = initialPreferences;
+  let projects = [];
+  let candidateDiagnostic = null;
   let selection = null;
   let snapshot = null;
   let phase = 'idle';
@@ -101,8 +98,10 @@ export function createDesktopCoordinator({
       snapshot,
       error,
       setup,
+      projects,
+      candidateDiagnostic,
       preferences: {
-        recentWorktrees: preferences?.recentWorktrees ?? [],
+        projectPaths: preferences?.projectPaths ?? [],
         notificationsEnabled: preferences?.notificationsEnabled === true,
         selectedAgents: preferences?.selectedAgents ?? [],
       },
@@ -113,6 +112,32 @@ export function createDesktopCoordinator({
     const value = state();
     for (const subscriber of subscribers) subscriber(value);
     return value;
+  }
+
+  function updateProject(project) {
+    const current = projects.findIndex((item) => item.path === project.path);
+    if (current === -1) projects = [...projects, project];
+    else projects = projects.map((item, index) => index === current ? project : item);
+  }
+
+  function syncActiveProject() {
+    if (selection === null || snapshot === null) return;
+    const project = projects.find((item) => item.path === selection.worktreePath);
+    if (!project || project.status !== 'ready') return;
+    updateProject({
+      ...project,
+      featureHome: selection.featureHome,
+      featureId: snapshot.featureId ?? project.featureId,
+      workflowState: snapshot.projection?.feature?.state ?? project.workflowState,
+    });
+  }
+
+  function localProjectSources() {
+    return localSources(now);
+  }
+
+  async function inspect(path) {
+    return inspectProject(path, { protocol, sources: localProjectSources() });
   }
 
   function stopPolling() {
@@ -142,23 +167,33 @@ export function createDesktopCoordinator({
     }
   }
 
-  async function localObservation(worktreePath, token) {
-    const context = await protocol.resolve(worktreePath);
-    if (token !== generation) return false;
+  function applyInspection(inspection) {
+    const project = inspection.project;
+    updateProject(project);
     currentFacts = {};
     currentPullRequest = null;
-    currentSources = localSources(now);
-    const nextSnapshot = await protocol.snapshot(context.featureHome, {
-      facts: currentFacts,
-      sources: currentSources,
-    });
-    if (token !== generation) return false;
-    selection = { worktreePath, featureHome: context.featureHome };
-    snapshot = nextSnapshot;
+    currentSources = localProjectSources();
+    selection = { worktreePath: project.path, featureHome: project.featureHome };
+    snapshot = inspection.snapshot;
     phase = 'ready';
     error = null;
+    candidateDiagnostic = null;
     publish();
-    return true;
+  }
+
+  async function activateInspection(inspection) {
+    const token = ++generation;
+    stopPolling();
+    watcher?.close();
+    watcher = null;
+    refreshing = true;
+    error = null;
+    applyInspection(inspection);
+    if (!inspection.ready) return { token, ready: false };
+    await replaceWatcher(inspection.project.featureHome, token);
+    await enrich(token);
+    notificationObserver.reset(snapshot, currentPullRequest);
+    return { token, ready: true };
   }
 
   async function enrich(token) {
@@ -172,6 +207,7 @@ export function createDesktopCoordinator({
       facts: currentFacts,
       sources: currentSources,
     });
+    syncActiveProject();
     publish();
 
     const github = await githubObserver(git.repositoryRoot, git.branch);
@@ -183,6 +219,7 @@ export function createDesktopCoordinator({
       facts: currentFacts,
       sources: currentSources,
     });
+    syncActiveProject();
     if (typeof github.needsPolling === 'boolean') updatePolling(github.needsPolling);
     publish();
   }
@@ -199,6 +236,7 @@ export function createDesktopCoordinator({
       facts: currentFacts,
       sources: currentSources,
     });
+    syncActiveProject();
     if (typeof github.needsPolling === 'boolean') updatePolling(github.needsPolling);
     const value = publish();
     if (preferences?.notificationsEnabled) notificationObserver.observe(snapshot, currentPullRequest);
@@ -249,29 +287,24 @@ export function createDesktopCoordinator({
   }
 
   async function open(path) {
-    const token = ++generation;
-    stopPolling();
-    watcher?.close();
-    watcher = null;
-    phase = 'loading';
     refreshing = true;
     error = null;
+    candidateDiagnostic = null;
     publish();
+    let token = generation;
     try {
-      const worktreePath = await requireDirectory(path);
-      if (!(await localObservation(worktreePath, token))) return state();
-      preferences = rememberWorktree(preferences, worktreePath);
-      await preferenceStore.save(preferences);
-      await replaceWatcher(selection.featureHome, token);
-      await enrich(token);
-      notificationObserver.reset(snapshot, currentPullRequest);
+      const inspection = await inspect(path);
+      if (!inspection.ready) {
+        candidateDiagnostic = inspection.project.diagnostic;
+        return state();
+      }
+      preferences = addProjectReference(preferences, inspection.project.path);
+      if (preferences.projectPaths.length > 0) await preferenceStore.save(preferences);
+      ({ token } = await activateInspection(inspection));
       return state();
     } catch (caught) {
       if (token === generation) {
-        phase = 'error';
         error = safeError(caught);
-        snapshot = null;
-        selection = null;
       }
       return state();
     } finally {
@@ -290,7 +323,15 @@ export function createDesktopCoordinator({
     error = null;
     publish();
     try {
-      if (!(await localObservation(path, token))) return state();
+      const inspection = await inspect(path);
+      if (token !== generation) return state();
+      applyInspection(inspection);
+      if (!inspection.ready) {
+        stopPolling();
+        watcher?.close();
+        watcher = null;
+        return state();
+      }
       await replaceWatcher(selection.featureHome, token);
       await enrich(token);
       if (preferences?.notificationsEnabled) notificationObserver.observe(snapshot, currentPullRequest);
@@ -309,30 +350,132 @@ export function createDesktopCoordinator({
     }
   }
 
+  async function activate(path) {
+    if (!preferences.projectPaths.includes(path)) throw new Error('Project path is not saved.');
+    refreshing = true;
+    error = null;
+    candidateDiagnostic = null;
+    publish();
+    let token = generation;
+    try {
+      const inspection = await inspect(path);
+      if (inspection.project.path !== path) {
+        const canonicalPaths = preferences.projectPaths.map(
+          (candidate) => candidate === path ? inspection.project.path : candidate
+        );
+        preferences = {
+          ...preferences,
+          projectPaths: [...new Set(canonicalPaths)],
+          lastProjectPath: inspection.project.path,
+        };
+      } else {
+        preferences = activateProjectReference(preferences, path);
+      }
+      if (preferences.projectPaths.length > 0) await preferenceStore.save(preferences);
+      ({ token } = await activateInspection(inspection));
+      return state();
+    } finally {
+      if (token === generation) {
+        refreshing = false;
+        publish();
+      }
+    }
+  }
+
+  async function reorderProjects(orderedPaths) {
+    preferences = reorderProjectReferences(preferences, orderedPaths);
+    const byPath = new Map(projects.map((project) => [project.path, project]));
+    projects = orderedPaths.map((path) => byPath.get(path));
+    await preferenceStore.save(preferences);
+    return publish();
+  }
+
+  async function removeProject(path) {
+    const wasActive = selection?.worktreePath === path;
+    preferences = removeProjectReference(preferences, path);
+    projects = projects.filter((project) => project.path !== path);
+    await preferenceStore.save(preferences);
+    if (!wasActive) return publish();
+
+    generation += 1;
+    stopPolling();
+    watcher?.close();
+    watcher = null;
+    selection = null;
+    snapshot = null;
+    error = null;
+    candidateDiagnostic = null;
+    currentFacts = {};
+    currentSources = localProjectSources();
+    currentPullRequest = null;
+    phase = 'idle';
+    notificationObserver.reset(null, null);
+    if (preferences.lastProjectPath !== null) return activate(preferences.lastProjectPath);
+    return publish();
+  }
+
   return Object.freeze({
     current: state,
     async initialize() {
       preferences ??= await preferenceStore.load();
       await recheckSetup();
-      if (preferences.lastWorktree !== null) return open(preferences.lastWorktree);
+      const inspected = [];
+      const canonicalPaths = [];
+      const canonicalByStoredPath = new Map();
+      for (const path of preferences.projectPaths) {
+        const inspection = await inspect(path);
+        inspected.push(inspection);
+        canonicalByStoredPath.set(path, inspection.project.path);
+        if (!canonicalPaths.includes(inspection.project.path)) {
+          canonicalPaths.push(inspection.project.path);
+          updateProject(inspection.project);
+        }
+      }
+      const restoredPath = preferences.lastProjectPath === null
+        ? null
+        : canonicalByStoredPath.get(preferences.lastProjectPath) ?? preferences.lastProjectPath;
+      preferences = {
+        ...preferences,
+        projectPaths: canonicalPaths,
+        lastProjectPath: restoredPath !== null && canonicalPaths.includes(restoredPath)
+          ? restoredPath
+          : null,
+      };
+      if (preferences.projectPaths.length > 0) await preferenceStore.save(preferences);
+      if (preferences.lastProjectPath !== null) {
+        const inspection = inspected.find(
+          (item) => item.project.path === preferences.lastProjectPath
+        );
+        if (inspection) {
+          const { token } = await activateInspection(inspection);
+          if (token === generation) {
+            refreshing = false;
+            publish();
+          }
+          return state();
+        }
+      }
       return state();
     },
     open,
+    activate,
+    reorderProjects,
+    removeProject,
     refresh,
     focus: () => refresh('focus'),
     async read(kind, id = null) {
-      if (selection === null) throw new Error('Choose a worktree before reading details.');
+      if (selection === null) throw new Error('Choose a project before reading details.');
       return protocol.read(selection.featureHome, kind, id, {
         facts: currentFacts,
         sources: currentSources,
       });
     },
     async listSession() {
-      if (selection === null) throw new Error('Choose a worktree before reading Session context.');
+      if (selection === null) throw new Error('Choose a project before reading Session context.');
       return listSessionContext(selection.worktreePath);
     },
     async readSession(id) {
-      if (selection === null) throw new Error('Choose a worktree before reading Session context.');
+      if (selection === null) throw new Error('Choose a project before reading Session context.');
       return readSessionContext(selection.worktreePath, id);
     },
     artifact(artifactId) {

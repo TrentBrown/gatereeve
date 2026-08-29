@@ -96,6 +96,56 @@ function assertSingleActiveSlice(slices, event) {
   }
 }
 
+function alphabeticBranch(index) {
+  let value = index + 1;
+  let label = '';
+  while (value > 0) {
+    value -= 1;
+    label = String.fromCharCode(97 + (value % 26)) + label;
+    value = Math.floor(value / 26);
+  }
+  return label;
+}
+
+function dependencyOrdering(definitions) {
+  const byId = new Map(definitions.map((definition) => [definition.id, definition]));
+  const stages = new Map();
+  const visiting = new Set();
+
+  function stageFor(id) {
+    if (stages.has(id)) return stages.get(id);
+    if (visiting.has(id)) throw new ContractError(`Boundary gate dependencies contain a cycle at ${id}`);
+    const definition = byId.get(id);
+    if (!definition) throw new ContractError(`Boundary gate dependency ${id} is not defined`);
+    visiting.add(id);
+    const stage = definition.dependsOn.length === 0
+      ? 1
+      : 1 + Math.max(...definition.dependsOn.map(stageFor));
+    visiting.delete(id);
+    stages.set(id, stage);
+    return stage;
+  }
+
+  const grouped = new Map();
+  for (const definition of definitions) {
+    const stage = stageFor(definition.id);
+    const group = grouped.get(stage) ?? [];
+    group.push(definition.id);
+    grouped.set(stage, group);
+  }
+
+  return new Map(definitions.map((definition) => {
+    const stage = stages.get(definition.id);
+    const peers = grouped.get(stage);
+    const branch = peers.length > 1 ? alphabeticBranch(peers.indexOf(definition.id)) : null;
+    return [definition.id, {
+      stage,
+      branch,
+      label: `${stage}${branch ?? ''}`,
+    }];
+  }));
+}
+
 function createAttempt(model, slice, event) {
   const attemptId = event.payload.attemptId;
   if (typeof attemptId !== 'string' || attemptId.length === 0) {
@@ -104,6 +154,7 @@ function createAttempt(model, slice, event) {
   if (!BOUNDARY_SCOPES.includes(event.payload.scope)) {
     throw new ContractError(`Event ${event.eventId} has an invalid boundary scope`);
   }
+  const ordering = dependencyOrdering(model.boundary.gates);
   return {
     id: attemptId,
     sliceId: slice.id,
@@ -115,6 +166,9 @@ function createAttempt(model, slice, event) {
     gates: model.boundary.gates.map((definition) => ({
       id: definition.id,
       dependsOn: [...definition.dependsOn],
+      dependencyStage: ordering.get(definition.id).stage,
+      dependencyBranch: ordering.get(definition.id).branch,
+      orderLabel: ordering.get(definition.id).label,
       evaluationScope: model.boundary.scopeRouting[event.payload.scope][definition.id],
       optional: definition.optional,
       waiverAllowed: definition.waiverAllowed,
@@ -423,6 +477,7 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
         }
         slices.set(sliceId, {
           id: sliceId,
+          deliveryOrdinal: slices.size + 1,
           state: model.slice.initial,
           name: event.payload.name ?? sliceId,
           branch: event.payload.branch ?? null,

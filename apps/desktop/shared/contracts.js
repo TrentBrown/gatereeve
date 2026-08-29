@@ -4,7 +4,7 @@ export const DESKTOP_STATE_SCHEMA_VERSION = 1;
 
 export const IPC_CHANNELS = Object.freeze({
   checkForUpdates: 'gatereeve:desktop:check-for-updates',
-  chooseWorktree: 'gatereeve:desktop:choose-worktree',
+  addProject: 'gatereeve:desktop:add-project',
   copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
   getUpdateState: 'gatereeve:desktop:get-update-state',
@@ -12,10 +12,12 @@ export const IPC_CHANNELS = Object.freeze({
   openArtifact: 'gatereeve:desktop:open-artifact',
   openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
-  openRecent: 'gatereeve:desktop:open-recent',
+  activateProject: 'gatereeve:desktop:activate-project',
   readDetail: 'gatereeve:desktop:read-detail',
   readSession: 'gatereeve:desktop:read-session',
   refresh: 'gatereeve:desktop:refresh',
+  removeProject: 'gatereeve:desktop:remove-project',
+  reorderProjects: 'gatereeve:desktop:reorder-projects',
   recheckSetup: 'gatereeve:desktop:recheck-setup',
   revealArtifact: 'gatereeve:desktop:reveal-artifact',
   setNotificationsEnabled: 'gatereeve:desktop:set-notifications-enabled',
@@ -53,6 +55,38 @@ function validRemediation(value) {
     && nullableString(value.command)
     && typeof value.guideUrl === 'string'
   );
+}
+
+function validProjectDiagnostic(value) {
+  return isObject(value)
+    && exactKeys(value, [
+      'classification', 'title', 'message', 'selectedPath', 'featureHome',
+      'failedChecks', 'pinnedModel', 'supportedModel',
+    ])
+    && typeof value.classification === 'string'
+    && typeof value.title === 'string'
+    && typeof value.message === 'string'
+    && typeof value.selectedPath === 'string'
+    && nullableString(value.featureHome)
+    && Array.isArray(value.failedChecks)
+    && value.failedChecks.every((item) => typeof item === 'string')
+    && nullableString(value.pinnedModel)
+    && nullableString(value.supportedModel);
+}
+
+function validProject(value) {
+  return isObject(value)
+    && exactKeys(value, [
+      'path', 'name', 'status', 'featureHome', 'featureId', 'workflowState', 'diagnostic',
+    ])
+    && typeof value.path === 'string'
+    && typeof value.name === 'string'
+    && ['ready', 'needs-attention'].includes(value.status)
+    && nullableString(value.featureHome)
+    && nullableString(value.featureId)
+    && nullableString(value.workflowState)
+    && (value.diagnostic === null || validProjectDiagnostic(value.diagnostic))
+    && (value.status === 'ready') === (value.diagnostic === null);
 }
 
 export function requireSelectedAgents(value) {
@@ -151,7 +185,7 @@ export function requireDesktopState(value) {
     !isObject(value)
     || !exactKeys(value, [
       'schemaVersion', 'phase', 'refreshing', 'githubPolling', 'selection',
-      'snapshot', 'error', 'preferences', 'setup',
+      'snapshot', 'error', 'preferences', 'setup', 'projects', 'candidateDiagnostic',
     ])
     || value.schemaVersion !== DESKTOP_STATE_SCHEMA_VERSION
     || !PHASES.has(value.phase)
@@ -170,10 +204,13 @@ export function requireDesktopState(value) {
       || typeof value.error.code !== 'string'
       || typeof value.error.message !== 'string'
     ))
+    || !Array.isArray(value.projects)
+    || !value.projects.every(validProject)
+    || (value.candidateDiagnostic !== null && !validProjectDiagnostic(value.candidateDiagnostic))
     || !isObject(value.preferences)
-    || !exactKeys(value.preferences, ['notificationsEnabled', 'recentWorktrees', 'selectedAgents'])
-    || !Array.isArray(value.preferences.recentWorktrees)
-    || !value.preferences.recentWorktrees.every((path) => typeof path === 'string')
+    || !exactKeys(value.preferences, ['notificationsEnabled', 'projectPaths', 'selectedAgents'])
+    || !Array.isArray(value.preferences.projectPaths)
+    || !value.preferences.projectPaths.every((path) => typeof path === 'string')
     || typeof value.preferences.notificationsEnabled !== 'boolean'
     || (() => {
       try { return requireSelectedAgents(value.preferences.selectedAgents).length !== value.preferences.selectedAgents.length; }
@@ -266,11 +303,22 @@ export function requireArtifactRequest(value) {
   return value;
 }
 
-export function requireWorktreePath(value) {
+export function requireProjectPath(value) {
   if (typeof value !== 'string' || value.length === 0 || value.length > 16_384) {
-    throw new Error('Worktree path is invalid.');
+    throw new Error('Project path is invalid.');
   }
   return value;
+}
+
+export function requireProjectOrder(value) {
+  if (
+    !Array.isArray(value)
+    || value.some((path) => requireProjectPath(path) !== path)
+    || new Set(value).size !== value.length
+  ) {
+    throw new Error('Project order is invalid.');
+  }
+  return [...value];
 }
 
 export function requireCopyText(value) {

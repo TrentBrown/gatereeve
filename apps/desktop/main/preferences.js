@@ -6,14 +6,13 @@ import { randomUUID } from 'node:crypto';
 
 import { requireSelectedAgents } from '../shared/contracts.js';
 
-export const PREFERENCES_SCHEMA_VERSION = 1;
-export const MAX_RECENT_WORKTREES = 10;
+export const PREFERENCES_SCHEMA_VERSION = 2;
 
 export function defaultPreferences() {
   return {
     schemaVersion: PREFERENCES_SCHEMA_VERSION,
-    recentWorktrees: [],
-    lastWorktree: null,
+    projectPaths: [],
+    lastProjectPath: null,
     window: null,
     notificationsEnabled: false,
     selectedAgents: [],
@@ -31,15 +30,23 @@ function validGeometry(value) {
 
 export function normalizePreferences(value) {
   const fallback = defaultPreferences();
-  if (!value || typeof value !== 'object' || value.schemaVersion !== PREFERENCES_SCHEMA_VERSION) {
-    return fallback;
-  }
-  const recentWorktrees = Array.isArray(value.recentWorktrees)
-    ? [...new Set(value.recentWorktrees.filter((path) => typeof path === 'string' && isAbsolute(path)))]
-      .slice(0, MAX_RECENT_WORKTREES)
-    : [];
-  const lastWorktree = typeof value.lastWorktree === 'string' && isAbsolute(value.lastWorktree)
-    ? value.lastWorktree
+  if (!value || typeof value !== 'object') return fallback;
+
+  const sourcePaths = value.schemaVersion === 1
+    ? value.recentWorktrees
+    : value.schemaVersion === PREFERENCES_SCHEMA_VERSION
+      ? value.projectPaths
+      : null;
+  if (!Array.isArray(sourcePaths)) return fallback;
+
+  const projectPaths = [
+    ...new Set(sourcePaths.filter((path) => typeof path === 'string' && isAbsolute(path))),
+  ];
+  const sourceLastPath = value.schemaVersion === 1 ? value.lastWorktree : value.lastProjectPath;
+  const lastProjectPath = typeof sourceLastPath === 'string'
+    && isAbsolute(sourceLastPath)
+    && projectPaths.includes(sourceLastPath)
+    ? sourceLastPath
     : null;
   let selectedAgents = [];
   try {
@@ -49,8 +56,8 @@ export function normalizePreferences(value) {
   }
   return {
     schemaVersion: PREFERENCES_SCHEMA_VERSION,
-    recentWorktrees,
-    lastWorktree,
+    projectPaths,
+    lastProjectPath,
     window: validGeometry(value.window) ? {
       x: value.window.x,
       y: value.window.y,
@@ -62,21 +69,60 @@ export function normalizePreferences(value) {
   };
 }
 
+function requireProjectPath(path) {
+  if (!isAbsolute(path)) throw new Error('Project path must be absolute.');
+  return path;
+}
+
+export function addProjectReference(preferences, path) {
+  requireProjectPath(path);
+  const current = normalizePreferences(preferences);
+  return {
+    ...current,
+    projectPaths: current.projectPaths.includes(path)
+      ? current.projectPaths
+      : [...current.projectPaths, path],
+    lastProjectPath: path,
+  };
+}
+
+export function activateProjectReference(preferences, path) {
+  requireProjectPath(path);
+  const current = normalizePreferences(preferences);
+  if (!current.projectPaths.includes(path)) throw new Error('Project path is not saved.');
+  return { ...current, lastProjectPath: path };
+}
+
+export function reorderProjectReferences(preferences, orderedPaths) {
+  const current = normalizePreferences(preferences);
+  if (
+    !Array.isArray(orderedPaths)
+    || orderedPaths.some((path) => typeof path !== 'string' || !isAbsolute(path))
+    || new Set(orderedPaths).size !== orderedPaths.length
+    || orderedPaths.length !== current.projectPaths.length
+    || orderedPaths.some((path) => !current.projectPaths.includes(path))
+  ) {
+    throw new Error('Project order must contain every saved path exactly once.');
+  }
+  return { ...current, projectPaths: [...orderedPaths] };
+}
+
+export function removeProjectReference(preferences, path) {
+  requireProjectPath(path);
+  const current = normalizePreferences(preferences);
+  const index = current.projectPaths.indexOf(path);
+  if (index === -1) throw new Error('Project path is not saved.');
+  const projectPaths = current.projectPaths.filter((candidate) => candidate !== path);
+  const lastProjectPath = current.lastProjectPath === path
+    ? projectPaths[Math.min(index, projectPaths.length - 1)] ?? null
+    : current.lastProjectPath;
+  return { ...current, projectPaths, lastProjectPath };
+}
+
 export function selectAgents(preferences, selectedAgents) {
   return {
     ...normalizePreferences(preferences),
     selectedAgents: requireSelectedAgents(selectedAgents),
-  };
-}
-
-export function rememberWorktree(preferences, path) {
-  if (!isAbsolute(path)) throw new Error('Recent worktree must be an absolute path.');
-  const current = normalizePreferences(preferences);
-  return {
-    ...current,
-    recentWorktrees: [path, ...current.recentWorktrees.filter((item) => item !== path)]
-      .slice(0, MAX_RECENT_WORKTREES),
-    lastWorktree: path,
   };
 }
 

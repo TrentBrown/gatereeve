@@ -8,12 +8,13 @@ import {
   requireDetailRequest,
   requireExternalLink,
   requireNotificationsEnabled,
+  requireProjectOrder,
+  requireProjectPath,
   requireSelectedAgents,
   requireSessionDetail,
   requireSessionId,
   requireSessionInventory,
   requireUpdateState,
-  requireWorktreePath,
 } from '../shared/contracts.js';
 import { validateDetail, validateSnapshot } from '../resources/protocol/snapshot.js';
 import { RENDERER_URL } from './window.js';
@@ -33,7 +34,7 @@ export function registerDesktopIpc({
   ipcMain,
   coordinator,
   updateCoordinator,
-  pickWorktree,
+  pickProject,
   openPath,
   revealPath,
   copyText,
@@ -71,19 +72,29 @@ export function registerDesktopIpc({
     await openExternal(requireExternalLink(values[0]));
     return true;
   });
-  ipcMain.handle(IPC_CHANNELS.chooseWorktree, async (event, ...values) => {
+  ipcMain.handle(IPC_CHANNELS.addProject, async (event, ...values) => {
     noArguments(event, values);
-    const path = await pickWorktree();
+    const path = await pickProject();
     return validatedState(path === null ? coordinator.current() : await coordinator.open(path));
   });
-  ipcMain.handle(IPC_CHANNELS.openRecent, async (event, ...values) => {
+  ipcMain.handle(IPC_CHANNELS.activateProject, async (event, ...values) => {
     trusted(event);
-    if (values.length !== 1) throw new Error('Recent worktree selection requires one path.');
-    const path = requireWorktreePath(values[0]);
-    if (!coordinator.current().preferences.recentWorktrees.includes(path)) {
-      throw new Error('The requested path is not a recent worktree.');
+    if (values.length !== 1) throw new Error('Project activation requires one path.');
+    const path = requireProjectPath(values[0]);
+    if (!coordinator.current().preferences.projectPaths.includes(path)) {
+      throw new Error('The requested path is not a saved project.');
     }
-    return validatedState(await coordinator.open(path));
+    return validatedState(await coordinator.activate(path));
+  });
+  ipcMain.handle(IPC_CHANNELS.reorderProjects, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Project reordering requires one ordered path list.');
+    return validatedState(await coordinator.reorderProjects(requireProjectOrder(values[0])));
+  });
+  ipcMain.handle(IPC_CHANNELS.removeProject, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Project removal requires one path.');
+    return validatedState(await coordinator.removeProject(requireProjectPath(values[0])));
   });
   ipcMain.handle(IPC_CHANNELS.refresh, async (event, ...values) => {
     noArguments(event, values);

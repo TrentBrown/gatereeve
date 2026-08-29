@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:d2a359126af53df1deecb02a608a1d64fb0eff2b870b0ec950a3e8471120631b",
+  "protocolHash": "sha256:3c1c9220164002931f3ee3590d3b74a5f6d1097d1c6c3eb08ba086e80db5ac92",
   "modelSha256": "04a0a4f6ebedf3b6b15f8eea0201120e3bcfefb820ee573a3cebf832adec8ab3",
   "files": [
     {
@@ -91,8 +91,8 @@
     },
     {
       "path": "projection.js",
-      "size": 24504,
-      "sha256": "7c46426099c47c87406fe8015433ce640c993a23ef97ce6bcf0572744cd4e301"
+      "size": 26300,
+      "sha256": "57a64de252c72b79c3bd7a280e88090fa464c45164b66082a0e1e139a689054b"
     },
     {
       "path": "python-guards.js",
@@ -106,8 +106,8 @@
     },
     {
       "path": "snapshot.js",
-      "size": 47987,
-      "sha256": "221bdfb62ff543afc297a5bf32bc40e3942069dd87644c78686c49b0c3fea850"
+      "size": 48577,
+      "sha256": "af8290576334251754feddd2ebaa26a29e23678b0d4f8cf004d8f351f03fa653"
     },
     {
       "path": "storage.js",

@@ -8,6 +8,7 @@ import {
   requireDesktopState,
   requireDetailRequest,
   requireExternalLink,
+  requireProjectOrder,
   requireSessionDetail,
   requireSessionId,
   requireSessionInventory,
@@ -39,7 +40,9 @@ function state() {
     snapshot: null,
     error: null,
     setup: setup(),
-    preferences: { notificationsEnabled: false, recentWorktrees: [], selectedAgents: [] },
+    projects: [],
+    candidateDiagnostic: null,
+    preferences: { notificationsEnabled: false, projectPaths: [], selectedAgents: [] },
   };
 }
 
@@ -83,6 +86,8 @@ test('named read and artifact requests reject broad or malformed access', () => 
   assert.equal(requireExternalLink('https://example.com/docs'), 'https://example.com/docs');
   assert.throws(() => requireExternalLink('file:///etc/passwd'), /HTTP\(S\)/);
   assert.throws(() => requireExternalLink('https://user@example.com/private'), /HTTP\(S\)/);
+  assert.deepEqual(requireProjectOrder(['/one', '/two']), ['/one', '/two']);
+  assert.throws(() => requireProjectOrder(['/one', '/one']), /invalid/);
   const sessionId = 'session:checkpoint:Q0hFQ0tQT0lOVC5tZA';
   assert.equal(requireSessionId(sessionId), sessionId);
   assert.throws(() => requireSessionId('../CHECKPOINT.md'), /invalid/);
@@ -101,25 +106,27 @@ test('named read and artifact requests reject broad or malformed access', () => 
 test('IPC allow-list contains no workflow mutation or process-execution surface', () => {
   const channels = Object.values(IPC_CHANNELS).sort();
   assert.deepEqual(channels, [
+    'gatereeve:desktop:activate-project',
+    'gatereeve:desktop:add-project',
     'gatereeve:desktop:check-for-updates',
-    'gatereeve:desktop:choose-worktree',
     'gatereeve:desktop:copy-text',
     'gatereeve:desktop:get-state',
     'gatereeve:desktop:get-update-state',
     'gatereeve:desktop:list-session',
     'gatereeve:desktop:open-artifact',
     'gatereeve:desktop:open-external-link',
-    'gatereeve:desktop:open-recent',
     'gatereeve:desktop:open-update-release',
     'gatereeve:desktop:read-detail',
     'gatereeve:desktop:read-session',
     'gatereeve:desktop:recheck-setup',
     'gatereeve:desktop:refresh',
+    'gatereeve:desktop:remove-project',
+    'gatereeve:desktop:reorder-projects',
     'gatereeve:desktop:reveal-artifact',
     'gatereeve:desktop:set-notifications-enabled',
     'gatereeve:desktop:set-selected-agents',
     'gatereeve:desktop:state-changed',
     'gatereeve:desktop:update-changed',
   ]);
-  assert.equal(channels.some((channel) => /execute|transition|advance|install|upgrade|disable|remove|plugin/.test(channel)), false);
+  assert.equal(channels.some((channel) => /execute|transition|advance|install|upgrade|disable|plugin/.test(channel)), false);
 });
