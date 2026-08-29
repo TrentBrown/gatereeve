@@ -117,8 +117,8 @@ function comparePrerelease(left, right) {
 function compareSemanticVersions(left, right) {
   const parsedLeft = parseReleaseTag(`v${left}`);
   const parsedRight = parseReleaseTag(`v${right}`);
-  const leftBase = parsedLeft.baseVersion.split('.').map(Number);
-  const rightBase = parsedRight.baseVersion.split('.').map(Number);
+  const leftBase = parsedLeft.baseVersion.split('.').map((part) => BigInt(part));
+  const rightBase = parsedRight.baseVersion.split('.').map((part) => BigInt(part));
   for (let index = 0; index < leftBase.length; index += 1) {
     if (leftBase[index] !== rightBase[index]) {
       return leftBase[index] < rightBase[index] ? -1 : 1;

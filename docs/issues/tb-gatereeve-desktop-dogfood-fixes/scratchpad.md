@@ -80,7 +80,7 @@ Fabricate or predate direct-install evidence — rejected because it breaks the 
 
 ## [5] Resume coordinated publication only after the generated manifest PR is clean
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -105,7 +105,7 @@ the existing approved plan and bytes remained unchanged.
 
 ## [6] Permit only canonical predecessor Cask bytes during an upgrade
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -116,7 +116,9 @@ only if it exactly matches GateReeve's canonical generated Cask template and
 its semantic version is strictly older than the prepared target. Continue to
 accept exact target bytes for idempotent recovery. Reject equal-version
 different bytes, newer versions, malformed content, alternate URLs or hashes,
-and any noncanonical Cask before creating a publication pull request.
+and any noncanonical Cask before creating a publication pull request. Compare
+all semantic-version numeric identifiers without JavaScript number-precision
+loss, preserving the existing release contract for arbitrarily large values.
 
 **Triggered by:** The `v0.1.0-rc.2` cask dry run rejected the valid published
 `v0.1.0-rc.1` Cask as merely "different bytes," making the proven upgrade path

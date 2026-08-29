@@ -87,3 +87,17 @@
 - **Status:** Merged into `main` as
   `44ec46123726393fc25be5a540be3021ac259d35`; governed merge recorded and I-8
   closed
+
+### PR #23 - Verified Homebrew Cask upgrade preflight
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/23
+- **Scope:** Publication-and-dogfood slice,
+  `desktop-dogfood-publication-and-dogfood`
+- **Plan steps:** P9
+- **Issues:** I-9
+- **Rubric movement:** R8 remains `NOT YET`; this intermediate PR reviews the
+  direct-install proof, exact Cask packet, and fail-closed upgrade-predecessor
+  validation before the separate public Cask approval
+- **Evidence:** [PR #23 packet](pr-23/boundary.json)
+- **Boundary result:** Pending
+- **Status:** Draft review

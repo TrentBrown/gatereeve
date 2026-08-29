@@ -103,3 +103,60 @@ Treat the coordinated Apple-trusted packet and coordinated publication dry run a
 Fabricate or predate direct-install evidence — rejected because it breaks the cask trust contract; publish during P8 — rejected because the approved plan requires a separate release boundary; weaken prepare-cask — rejected because no product defect requires changing the proven release engine.
 
 **Promoted:** 2026-08-29. PR: https://github.com/TrentBrown/gatereeve/pull/21.
+
+---
+
+## Resume coordinated publication only after the generated manifest PR is clean
+
+**Confidence:** HIGH
+
+**Blast Radius:** Coordinated publication recovery, generated manifest PR #22, and public release receipts
+
+Preserve the publisher's fail-closed mergeability guard when the generated
+manifest PR is temporarily `UNSTABLE`. Wait for the exact PR head's required
+checks, then rerun the same approved release record and plan digest. The retry
+must retain completed tag, marketplace, and prerelease receipts and resume at
+the pending manifest surface.
+
+**Triggered by:** The first approved publication attempt safely stopped while
+PR #22's packaged-runtime checks were still running; the PR became `CLEAN`
+after both architectures passed, and the idempotent retry completed publication.
+
+**Alternatives considered:**
+Merge PR #22 manually while checks are pending — rejected because it bypasses
+the publisher's exact clean-merge guard. Delete and recreate published surfaces
+— rejected because the release record requires convergent recovery without
+replacing immutable public identities. Generate a new plan — rejected because
+the existing approved plan and bytes remained unchanged.
+
+**Promoted:** 2026-08-29. PR: https://github.com/TrentBrown/gatereeve/pull/23.
+
+---
+
+## Permit only canonical predecessor Cask bytes during an upgrade
+
+**Confidence:** HIGH
+
+**Blast Radius:** Homebrew Cask publication preflight, RC upgrades, and public tap overwrite protection
+
+When `Casks/gatereeve.rb` already exists, accept it as an upgrade predecessor
+only if it exactly matches GateReeve's canonical generated Cask template and
+its semantic version is strictly older than the prepared target. Continue to
+accept exact target bytes for idempotent recovery. Reject equal-version
+different bytes, newer versions, malformed content, alternate URLs or hashes,
+and any noncanonical Cask before creating a publication pull request. Compare
+all semantic-version numeric identifiers without JavaScript number-precision
+loss, preserving the existing release contract for arbitrarily large values.
+
+**Triggered by:** The `v0.1.0-rc.2` cask dry run rejected the valid published
+`v0.1.0-rc.1` Cask as merely "different bytes," making the proven upgrade path
+unpublishable even though P9 and AC8 require installation and upgrade smoke.
+
+**Alternatives considered:**
+Allow any differing existing bytes — rejected because it would weaken the
+tap overwrite guard. Require manually deleting the predecessor — rejected
+because it destroys public history and prevents normal Homebrew upgrades.
+Special-case only `rc.1` to `rc.2` — rejected because the release engine must
+support the same safe invariant for later RC and stable updates.
+
+**Promoted:** 2026-08-29. PR: https://github.com/TrentBrown/gatereeve/pull/23.
