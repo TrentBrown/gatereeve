@@ -11,7 +11,7 @@ supporting detail in `interview.md`.
 
 ## [1] Use a fixture-first local Desktop iteration loop
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

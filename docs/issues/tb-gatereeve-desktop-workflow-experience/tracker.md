@@ -20,7 +20,13 @@
 
 ## PR Log
 
-- **PR #27 - Trusted project and protocol foundation** (draft): P1-P3; protocol
-  ordering and completion-report contracts, schema-v2 saved-project preferences,
-  strict governed admission, project switching, active-only observation, and
-  narrow project IPC. Formal boundary packet: [`pr-27/`](pr-27/).
+### PR #27 - Trusted project and protocol foundation
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/27
+- **Scope:** P1-P3 foundation slice,
+  `slice-01-trusted-project-protocol-foundation`
+- **Issues:** I-1, I-2, I-3
+- **Rubric movement:** R2, R3, R5, and R6 remain `NOT YET`; this PR supplies
+  their trusted protocol, preference, admission, coordinator, and IPC
+  foundations while later UI and integrated verification obligations remain.
+- **Evidence:** [PR #27 packet](pr-27/boundary.json)

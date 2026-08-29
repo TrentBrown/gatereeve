@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #27 · Trusted project and protocol foundation</title>
+  <style>
+    :root { color-scheme: light; --ink:#261d2e; --muted:#716879; --paper:#fbf8fc; --line:#ddd2e2; --plum:#5b346d; --mint:#dff3e9; --gold:#f5e7b8; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.6 system-ui,-apple-system,sans-serif; }
+    main { width:min(980px,calc(100% - 32px)); margin:auto; padding:38px 0 80px; }
+    h1 { font-size:clamp(2rem,5vw,3.6rem); line-height:1.05; margin:.2em 0; }
+    h2 { margin-top:2.3em; border-bottom:1px solid var(--line); padding-bottom:.35em; }
+    h3 { margin-top:1.7em; }
+    a { color:var(--plum); }
+    .eyebrow { color:var(--plum); text-transform:uppercase; letter-spacing:.12em; font-weight:700; font-size:.78rem; }
+    .lede { font-size:1.18rem; color:#4f4555; max-width:760px; }
+    nav,.callout,.diagram,.quiz { border:1px solid var(--line); border-radius:14px; background:white; padding:18px 22px; margin:22px 0; }
+    nav ul { columns:2; padding-left:20px; }
+    .callout { border-left:5px solid var(--plum); }
+    .flow { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; align-items:stretch; }
+    .flow > div { border:1px solid var(--line); border-radius:10px; padding:13px; background:#fff; }
+    .flow strong { display:block; color:var(--plum); }
+    .arrow { display:none; }
+    .stages { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .stage { width:42px; height:42px; border:2px solid #4e3e58; border-radius:50%; display:grid; place-items:center; font-weight:750; background:#fff; }
+    pre { white-space:pre-wrap; overflow:auto; background:#211a26; color:#f7eef9; border-radius:10px; padding:16px; }
+    code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.9em; }
+    table { width:100%; border-collapse:collapse; background:white; }
+    th,td { text-align:left; vertical-align:top; border:1px solid var(--line); padding:10px; }
+    th { background:#f1eaf3; }
+    .answer { display:grid; gap:8px; margin-top:10px; }
+    .answer button { text-align:left; border:1px solid var(--line); background:#fff; border-radius:9px; padding:10px 12px; cursor:pointer; }
+    .answer button:hover,.answer button:focus-visible { border-color:var(--plum); outline:3px solid #e8d9ed; }
+    .feedback { min-height:1.5em; font-weight:650; }
+    .correct { color:#17643d; } .wrong { color:#913b35; }
+    @media (max-width:760px) { .flow { grid-template-columns:1fr; } nav ul { columns:1; } table { font-size:.88rem; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">GateReeve Desktop · PR #27 · P1-P3</p>
+  <h1>Trust the project before building the workspace</h1>
+  <p class="lede">This slice establishes the contracts beneath the coming IDE-like interface: which directories count as projects, how saved projects survive relaunches, how observation moves between them, and how slices and gates receive stable order markers.</p>
+
+  <nav aria-label="Table of contents"><strong>Contents</strong><ul>
+    <li><a href="#background">Background</a></li><li><a href="#intuition">Intuition</a></li>
+    <li><a href="#code">Code walkthrough</a></li><li><a href="#verification">Verification</a></li>
+    <li><a href="#quiz">Quiz</a></li>
+  </ul></nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <h3>The observer before this change</h3>
+    <p>GateReeve Desktop already read one governed feature record through a narrow main-process adapter. The renderer could inspect snapshots, artifacts, attempts, history, model data, and session context. But the application treated directories as a short “recent worktree” list. It lacked a durable project identity, strict admission results, and lifecycle operations suitable for a project sidebar.</p>
+    <p>Electron divides this responsibility deliberately. The renderer is untrusted presentation code. The main process owns filesystem access, path canonicalization, preference writes, protocol reads, watchers, and GitHub polling. The preload exposes only validated named operations. PR #27 preserves that boundary.</p>
+    <div class="diagram flow" aria-label="Desktop trust boundary">
+      <div><strong>User choice</strong>One explicit directory</div>
+      <div><strong>Main process</strong>Canonicalize and inspect</div>
+      <div><strong>Protocol</strong>Classify governed or diagnostic-only</div>
+      <div><strong>Renderer</strong>Receive validated project summaries</div>
+    </div>
+    <div class="callout"><strong>Governed is an admission rule, not a repair action.</strong> Missing, legacy, inconsistent, incompatible, and unreadable records produce diagnostics. GateReeve does not adopt, rewrite, or initialize them.</div>
+
+    <h3>Why protocol order belongs below the UI</h3>
+    <p>The new visual hierarchy will number slices and gate stages. Those markers must describe durable workflow meaning rather than the renderer's current sort order. Therefore slice ordinals and dependency-stage labels are projected by the canonical protocol core and only rendered later.</p>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <h3>A project is a trusted reference</h3>
+    <p>Imagine choosing <code>/work/reef</code>. The main process resolves symlinks, verifies that the result is a directory, resolves its feature record, and reads a snapshot. Only a supported governed snapshot becomes a normal project. The preference file stores the canonical path—not the snapshot, GitHub data, artifacts, or project content.</p>
+    <pre><code>selected path  /work/reef-link
+real path      /work/reef
+snapshot mode  governed
+saved value    /work/reef
+watcher        active project only</code></pre>
+    <p>If that project becomes incompatible next week, it stays in the saved list as <em>Needs attention</em>. That is different from adding a new invalid directory: a new invalid candidate is never admitted.</p>
+
+    <h3>Order is semantic, not cosmetic</h3>
+    <p>Slices receive <code>1, 2, 3…</code> when proposed. Gates receive the longest dependency depth. Gates at the same depth receive alphabetic branches in pinned model order:</p>
+    <div class="diagram stages" aria-label="Gate order labels">
+      <span class="stage">1</span><span>→</span><span class="stage">2</span><span>→</span><span class="stage">3</span><span>→</span>
+      <span class="stage">4a</span><span class="stage">4b</span><span class="stage">4c</span><span class="stage">4d</span><span>→</span>
+      <span class="stage">5</span><span>→</span><span class="stage">6</span><span>→</span><span class="stage">7</span>
+    </div>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <h3>1. Canonical protocol projection</h3>
+    <p><code>projection.js</code> now assigns each proposed slice a stable delivery ordinal. Its dependency walk detects cycles and unknown dependencies, computes stages, and labels parallel peers. <code>snapshot.js</code> validates these fields and adds <code>completion-report.md</code> to the trusted artifact inventory. Canonical source is restaged into the Desktop resource bundle, and parity tests prevent drift.</p>
+
+    <h3>2. Preference schema v2</h3>
+    <p><code>preferences.js</code> replaces capped recents with <code>projectPaths</code> and <code>lastProjectPath</code>. Schema v1 values migrate deterministically. Add never reorders an existing reference; activate changes only the last pointer; reorder requires the exact saved set; removal selects the nearest surviving reference.</p>
+
+    <h3>3. Strict admission</h3>
+    <p><code>project-registry.js</code> turns one selected directory into either a Ready summary or a structured diagnostic containing the selected path, resolved feature home when known, failed checks, and pinned/supported model versions. It performs no writes.</p>
+
+    <h3>4. Coordinator lifecycle</h3>
+    <p>At startup the coordinator validates every saved project once, restores the exact last active path, and creates observation infrastructure only for that active project. Switching increments a generation token, stops old polling and watchers, publishes local state, then enriches Git and GitHub independently. Removal edits preferences only and activates the nearest saved project.</p>
+    <div class="callout"><strong>Review remediation:</strong> the first pinned attempt found that returning inside <code>try</code> captured <code>refreshing: true</code> before <code>finally</code> cleared it. The remediated head returns only after cleanup; direct IPC results and subscriber publications now agree.</div>
+
+    <h3>5. Narrow Electron contract</h3>
+    <p>The IPC/preload surface now names four project-reference operations: add, activate, reorder, and remove. Every request is bounded, the exact top-level application frame remains authenticated, and filesystem/artifact reads are still named rather than arbitrary.</p>
+  </section>
+
+  <section id="verification">
+    <h2>Verification</h2>
+    <table><thead><tr><th>Layer</th><th>Result</th><th>What it proves</th></tr></thead><tbody>
+      <tr><td>Desktop suite</td><td>101 / 101</td><td>Preferences, admission, lifecycle, IPC, rendering, security, resource parity</td></tr>
+      <tr><td>Canonical protocol</td><td>5 / 5 focused</td><td>Completion report, ordinals, dependency labels, contract rejection</td></tr>
+      <tr><td>Browser fixture</td><td>PASS</td><td>Production renderer loads without Electron</td></tr>
+      <tr><td>Electron source smoke</td><td>PASS</td><td>Main, preload, renderer, Setup, and governed fixture integrate</td></tr>
+      <tr><td>Packaging / deployment</td><td>N/A</td><td>Intentionally outside this local implementation slice</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <div class="quiz" data-answer="b"><strong>1. What is persisted for a saved project?</strong><div class="answer"><button data-choice="a">Its latest snapshot and GitHub state</button><button data-choice="b">Its canonical directory path</button><button data-choice="c">A copied feature record</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="c"><strong>2. What happens when a previously saved project later becomes incompatible?</strong><div class="answer"><button data-choice="a">It is silently removed</button><button data-choice="b">GateReeve migrates it automatically</button><button data-choice="c">It remains saved as Needs attention</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="a"><strong>3. Why are gate labels projected by the protocol?</strong><div class="answer"><button data-choice="a">They encode dependency topology independent of UI sorting</button><button data-choice="b">Electron cannot calculate numbers safely</button><button data-choice="c">They are stored in preferences</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="b"><strong>4. Which project receives filesystem watching and GitHub polling?</strong><div class="answer"><button data-choice="a">Every saved Ready project</button><button data-choice="b">Only the active Ready project</button><button data-choice="c">Only the most recently added project</button></div><p class="feedback"></p></div>
+    <div class="quiz" data-answer="c"><strong>5. What did the boundary remediation fix?</strong><div class="answer"><button data-choice="a">Duplicate slice ordinals</button><button data-choice="b">A project-directory write</button><button data-choice="c">Direct results captured before refresh cleanup</button></div><p class="feedback"></p></div>
+  </section>
+</main>
+<script>
+  document.querySelectorAll('.quiz').forEach((quiz) => {
+    quiz.querySelectorAll('button').forEach((button) => button.addEventListener('click', () => {
+      const correct = button.dataset.choice === quiz.dataset.answer;
+      const feedback = quiz.querySelector('.feedback');
+      feedback.className = `feedback ${correct ? 'correct' : 'wrong'}`;
+      feedback.textContent = correct ? 'Correct.' : 'Not quite. Revisit the explanation above and try again.';
+    }));
+  });
+</script>
+</body>
+</html>
