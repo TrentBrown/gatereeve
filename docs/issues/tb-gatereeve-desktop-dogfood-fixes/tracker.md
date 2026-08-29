@@ -163,7 +163,11 @@
   decision triage, explain-diff, and packet validation pass against evaluated
   source `cfc42cd2e4a6fc037e487536c4d8cf243d3e92bb`; pattern review is not
   applicable because no scope is configured
-- **Status:** Final PR boundary awaiting Trent Brown's explicit approval. This PR contains no product change; it
-  evaluates the complete feature from its original base while preserving a
-  focused review of the P10 closeout slice. Merge requires Trent Brown's
-  explicit final approval.
+- **Status:** Merged into `main` as
+  `d46bf19d9893e737f4a324977f6ca781b13180d4` after Trent Brown's explicit
+  approval. Deterministic post-merge verification proves that the integration
+  contains the exact reviewed head
+  `c621e24653b0cb360fbc129267f6eb26967aacb6`; the governed feature-final
+  merge is recorded. This PR contains no product change: it evaluates the
+  complete feature from its original base while preserving focused review of
+  the P10 closeout slice.
