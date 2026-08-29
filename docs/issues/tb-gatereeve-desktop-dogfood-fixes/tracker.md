@@ -77,4 +77,6 @@
   explain-diff, and packet validation pass against evaluated source
   `36612073d888b33119a7012a6e2f881069d3002d`; pattern review is not
   applicable because no scope is configured
-- **Status:** Draft; I-8 is in review
+- **Status:** Merged into `main` as
+  `44ec46123726393fc25be5a540be3021ac259d35`; governed merge recorded and I-8
+  closed

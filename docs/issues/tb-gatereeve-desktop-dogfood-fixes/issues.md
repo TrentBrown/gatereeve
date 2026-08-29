@@ -94,7 +94,7 @@ the topic branch into `main` without importing a `development*` branch.
 
 ## I-8 - Prepare Apple-trusted coordinated release evidence
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P8
 - **Rubric criteria:** R8
@@ -112,6 +112,9 @@ trusted ARM64/Intel verification, immutable-record inspection, and the
 coordinated publication dry run passed without public mutation. Exact Homebrew
 packet preparation moves to I-9 because it requires direct-install proof from
 the as-yet unpublished DMG.
+
+PR #21 merged the reviewed preparation record into `main` as
+`44ec46123726393fc25be5a540be3021ac259d35`; the governed merge is recorded.
 
 ## I-9 - Publish and install the approved Homebrew release
 
