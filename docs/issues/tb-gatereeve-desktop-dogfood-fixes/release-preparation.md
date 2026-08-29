@@ -84,10 +84,19 @@ repository-owned publisher merged
 `0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`,
 and a post-publication dry run reports the Cask surface complete.
 
+The post-publication
+[Homebrew Cask Smoke run](https://github.com/TrentBrown/gatereeve/actions/runs/33262844457)
+passed all four macOS jobs. The literal public-tap install passed on arm64 and
+x64, and the disposable predecessor-to-`v0.1.0-rc.2` upgrade passed on both
+architectures. The tracked
+[hosted evidence](evidence/v0.1.0-rc.2/cask/hosted-smoke/) binds every check to
+the exact public Cask, DMG checksum, bundle identity, Developer ID, Gatekeeper
+acceptance, and universal binaries.
+
 ## Publication boundary
 
 The user explicitly approved both public coordinated publication and the
 separate exact Homebrew plan in the active conversation. The repository-owned
 publishers completed all coordinated surfaces and the public Cask mutation.
-Public Homebrew installation or upgrade and the installed-app checklist on the
-user's Mac remain required before R8 can pass.
+The user's own public Homebrew installation or upgrade and installed-app
+checklist remain required before R8 can pass.

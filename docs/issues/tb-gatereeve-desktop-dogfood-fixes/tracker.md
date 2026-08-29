@@ -121,4 +121,7 @@
   [tap PR #2](https://github.com/TrentBrown/homebrew-gatereeve/pull/2), merged
   as `91725d7e7aa3a8e0f82ddc2658f51d12a3385900`. The public Cask SHA-256 is
   `0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
-  Public Homebrew install/upgrade and the installed-app checklist remain.
+  [Hosted run 33262844457](https://github.com/TrentBrown/gatereeve/actions/runs/33262844457)
+  passed public installation and disposable upgrade on arm64 and x64. The
+  user's own public Homebrew install/upgrade and installed-app checklist
+  remain.

@@ -138,13 +138,16 @@ through [tap PR #2](https://github.com/TrentBrown/homebrew-gatereeve/pull/2),
 merged as `91725d7e7aa3a8e0f82ddc2658f51d12a3385900`. The public Cask bytes
 match the approved SHA-256
 `0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
+Hosted [run 33262844457](https://github.com/TrentBrown/gatereeve/actions/runs/33262844457)
+then passed literal public-tap installation and disposable Cask upgrade on
+both arm64 and x64.
 
 PR #23 merged the fail-closed predecessor verification and exact prepared
 packet into `main` as `18a24fa18746264439a93a09fcc5cdf178a85cd9`.
 The continuation slice
 `desktop-dogfood-cask-publication-and-installation` is implementing. Public
 Homebrew installation or upgrade and the installed-app checklist on the user's
-Mac remain before I-9 can close.
+Mac are the only remaining I-9 operations.
 
 ## I-10 - Complete the feature rubric and report
 
