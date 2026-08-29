@@ -491,6 +491,13 @@ test('models an upgrade from a predecessor while preserving exact download bytes
     predecessor.match(/^  url .*$/mu)?.[0],
     exact.match(/^  url .*$/mu)?.[0],
   );
+  const large = renderHomebrewCask(sourceRecord({
+    version: '0.1.0-rc.9007199254740993',
+  }));
+  assert.match(
+    renderPredecessorHomebrewCask(large),
+    /version "0\.1\.0-rc\.9007199254740992"/u,
+  );
 });
 
 test('creates the dedicated public tap only after exact approval and persists a receipt', async () => {

@@ -154,9 +154,9 @@ export function renderPredecessorHomebrewCask(content) {
   if (!match) throw new Error('Homebrew upgrade smoke requires a semantic Cask version');
   const predecessor = match[4] === undefined
     ? `${match[1]}.${match[2]}.${match[3]}-rc.999`
-    : Number(match[4]) === 0
+    : BigInt(match[4]) === 0n
       ? `${match[1]}.${match[2]}.${match[3]}-preview.0`
-      : `${match[1]}.${match[2]}.${match[3]}-rc.${Number(match[4]) - 1}`;
+      : `${match[1]}.${match[2]}.${match[3]}-rc.${BigInt(match[4]) - 1n}`;
   return content.replace(match[0], `  version "${predecessor}"`);
 }
 
