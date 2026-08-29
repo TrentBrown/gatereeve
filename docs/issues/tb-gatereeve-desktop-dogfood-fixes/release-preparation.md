@@ -66,14 +66,23 @@ manifest [PR #22](https://github.com/TrentBrown/gatereeve/pull/22) merged as
 manifest with SHA-256
 `23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b`.
 
-Homebrew packet preparation remains deferred within P9. The repository-owned
-`prepare-cask` contract requires truthful direct-installation proof for this
-exact public DMG on the user's Mac. Decision 4 records this sequencing
-constraint.
+Trent Brown confirmed direct installation of this exact public DMG on macOS at
+`2026-08-29T15:45:56Z`. The repository-owned `prepare-cask` contract sealed
+that proof into the [Cask record](evidence/v0.1.0-rc.2/cask/cask-record.json),
+the exact [Cask bytes](evidence/v0.1.0-rc.2/cask/Casks/gatereeve.rb), and the
+[Cask publication plan](evidence/v0.1.0-rc.2/cask/publication-plan.md).
+
+The Cask publication plan has SHA-256
+`53095d7e4eafdbb596a694eb670cc5d676bf6b00532a3e8f448ac3c04181974c`;
+the generated Cask has SHA-256
+`0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
+The live read-only dry run passes against the existing canonical
+`v0.1.0-rc.1` Cask. It does not mutate the tap and does not constitute
+publication approval.
 
 ## Publication boundary
 
 The user explicitly approved public publication in the active conversation.
 The repository-owned publisher completed all five approved coordinated
 surfaces. Homebrew remains a distinct exact-plan approval boundary after direct
-installation proof and cask-packet inspection.
+installation proof and cask-packet inspection. That boundary remains pending.

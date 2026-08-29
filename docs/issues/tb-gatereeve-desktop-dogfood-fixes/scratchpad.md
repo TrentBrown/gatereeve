@@ -102,3 +102,29 @@ the publisher's exact clean-merge guard. Delete and recreate published surfaces
 — rejected because the release record requires convergent recovery without
 replacing immutable public identities. Generate a new plan — rejected because
 the existing approved plan and bytes remained unchanged.
+
+## [6] Permit only canonical predecessor Cask bytes during an upgrade
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Homebrew Cask publication preflight, RC upgrades, and public tap overwrite protection
+
+When `Casks/gatereeve.rb` already exists, accept it as an upgrade predecessor
+only if it exactly matches GateReeve's canonical generated Cask template and
+its semantic version is strictly older than the prepared target. Continue to
+accept exact target bytes for idempotent recovery. Reject equal-version
+different bytes, newer versions, malformed content, alternate URLs or hashes,
+and any noncanonical Cask before creating a publication pull request.
+
+**Triggered by:** The `v0.1.0-rc.2` cask dry run rejected the valid published
+`v0.1.0-rc.1` Cask as merely "different bytes," making the proven upgrade path
+unpublishable even though P9 and AC8 require installation and upgrade smoke.
+
+**Alternatives considered:**
+Allow any differing existing bytes — rejected because it would weaken the
+tap overwrite guard. Require manually deleting the predecessor — rejected
+because it destroys public history and prevents normal Homebrew upgrades.
+Special-case only `rc.1` to `rc.2` — rejected because the release engine must
+support the same safe invariant for later RC and stable updates.

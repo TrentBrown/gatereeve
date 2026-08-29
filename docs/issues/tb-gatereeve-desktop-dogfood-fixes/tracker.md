@@ -61,9 +61,14 @@
   at merge `b3adff3c4551ee090967885b3051c23a2ae0adb2`, and Early Access website
 - **Homebrew sequencing:** Exact cask packet and dry run move to P9 because the
   cask contract requires direct installation of the exact published DMG
-- **Current boundary:** R8 remains `NOT YET` until direct DMG installation,
-  separately approved Homebrew publication, public-cask upgrade, and
-  installed-app verification
+- **Direct installation:** Trent Brown confirmed the exact public DMG on macOS
+  at `2026-08-29T15:45:56Z`; the resulting Cask packet is bound to plan SHA-256
+  `53095d7e4eafdbb596a694eb670cc5d676bf6b00532a3e8f448ac3c04181974c`
+- **Cask preflight:** The live read-only dry run accepts only the exact target
+  or a canonical, strictly older Cask whose public release asset digest
+  matches; the existing `v0.1.0-rc.1` tap satisfies that invariant
+- **Current boundary:** R8 remains `NOT YET` until separately approved Homebrew
+  publication, public-cask upgrade, and installed-app verification
 
 ### PR #21 - Trusted release preparation evidence
 

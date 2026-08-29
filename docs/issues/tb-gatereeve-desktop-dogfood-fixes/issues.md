@@ -131,8 +131,11 @@ smoke the cask, upgrade the user's Mac, and run the installed-app checklist.
 The approved coordinated publication is complete: tag `v0.1.0-rc.2`, Plugin
 marketplace commit `22c2d841e833af4d2aec351cf61d54dafaf8fcd3`, signed Desktop
 prerelease, manifest [PR #22](https://github.com/TrentBrown/gatereeve/pull/22),
-and the Early Access website all verify. Direct installation of the exact
-public DMG on the user's Mac is the next required cask-packet input.
+and the Early Access website all verify. Trent Brown confirmed direct
+installation of the exact public DMG on the user's Mac at
+`2026-08-29T15:45:56Z`. The exact Cask packet is prepared and its live dry run
+passes against the existing canonical `v0.1.0-rc.1` Cask. Public Cask mutation
+remains pending its separate exact-plan approval.
 
 ## I-10 - Complete the feature rubric and report
 
