@@ -174,7 +174,7 @@ recorded and I-9 is closed.
 
 ## I-10 - Complete the feature rubric and report
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P10
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
@@ -184,7 +184,8 @@ recorded and I-9 is closed.
 Reconcile all persisted evidence, require a fully passing tracker, and produce
 the completion report and final checkpoint.
 
-All eight rubric criteria are `PASS`. The final slice
-`desktop-dogfood-feature-final` is preparing the complete-feature evaluation,
-retention report, completion report, and final PR #25 boundary. Merge remains
-blocked on Trent Brown's explicit final approval.
+All eight rubric criteria are `PASS`. Trent Brown approved final PR #25, and
+the exact reviewed head `c621e24653b0cb360fbc129267f6eb26967aacb6` merged
+into `main` as `d46bf19d9893e737f4a324977f6ca781b13180d4`. Deterministic
+post-merge verification passed, the governed feature-final merge is recorded,
+and I-10 is closed.
