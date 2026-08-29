@@ -118,7 +118,7 @@ PR #21 merged the reviewed preparation record into `main` as
 
 ## I-9 - Publish and install the approved Homebrew release
 
-- **Status:** in-review
+- **Status:** in-progress
 - **Estimate:** 0.5d
 - **Plan steps:** P9
 - **Rubric criteria:** R8
@@ -137,10 +137,12 @@ installation of the exact public DMG on the user's Mac at
 passes against the existing canonical `v0.1.0-rc.1` Cask. Public Cask mutation
 remains pending its separate exact-plan approval.
 
-PR #23 reviews the fail-closed predecessor verification and exact prepared
-packet before that public approval. The same issue will return to in-progress
-after the intermediate PR merges because publication and installed-app smoke
-remain outstanding.
+PR #23 merged the fail-closed predecessor verification and exact prepared
+packet into `main` as `18a24fa18746264439a93a09fcc5cdf178a85cd9`.
+The planned continuation slice
+`desktop-dogfood-cask-publication-and-installation` remains stopped before
+implementation because publication and installed-app smoke require the
+separate exact Cask-plan approval.
 
 ## I-10 - Complete the feature rubric and report
 
