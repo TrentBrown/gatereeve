@@ -118,7 +118,7 @@ PR #21 merged the reviewed preparation record into `main` as
 
 ## I-9 - Publish and install the approved Homebrew release
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P9
 - **Rubric criteria:** R8
@@ -168,14 +168,23 @@ navigating GateReeve; relative links select canonical artifacts; and fragment
 links scroll within the current artifact. All user-Mac AC1-AC7 checks now pass.
 I-9 is in review at its formal PR #24 boundary.
 
+PR #24 merged the complete public-Cask and installed-app evidence into `main`
+as `ad26c7f318d5a336723c91818f5801c5f429bbce`; the governed merge is
+recorded and I-9 is closed.
+
 ## I-10 - Complete the feature rubric and report
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P10
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
 - **Depends on:** I-9
-- **PR:** -
+- **PR:** [#25](https://github.com/TrentBrown/gatereeve/pull/25)
 
 Reconcile all persisted evidence, require a fully passing tracker, and produce
 the completion report and final checkpoint.
+
+All eight rubric criteria are `PASS`. The final slice
+`desktop-dogfood-feature-final` is preparing the complete-feature evaluation,
+retention report, completion report, and final PR #25 boundary. Merge remains
+blocked on Trent Brown's explicit final approval.

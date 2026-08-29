@@ -123,7 +123,7 @@
   `96fe6c4ff41bd566372069b8bfa23f2c40efc485`; pattern review is not
   applicable because no scope is configured. Decision triage, explain-diff,
   and packet validation pass.
-- **Status:** Ready for reviewed merge. The exact plan SHA-256
+- **Status:** Merged. The exact plan SHA-256
   `53095d7e4eafdbb596a694eb670cc5d676bf6b00532a3e8f448ac3c04181974c`
   was approved and published through
   [tap PR #2](https://github.com/TrentBrown/homebrew-gatereeve/pull/2), merged
@@ -142,3 +142,28 @@
   GateReeve; relative links select canonical artifacts; and fragments scroll
   internally. The formal slice evaluation passes R8. P10 remains a separate
   feature-final evaluation and completion-report boundary.
+- **Merge:** `ad26c7f318d5a336723c91818f5801c5f429bbce`; all 13 final PR checks
+  passed and the governed merge is recorded
+
+### PR #25 - Whole-feature verification and completion
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/25
+- **Branch:** `tb-gatereeve-desktop-dogfood-fixes-05-final-verification`
+- **Slice:** `desktop-dogfood-feature-final`
+- **Scope:** feature-final
+- **Plan steps:** P10
+- **Issues:** I-10
+- **Rubric:** R1-R8 are `PASS`; zero `NOT YET` and zero `FAIL`
+- **Completion:** [Completion report](completion-report.md)
+- **Evidence:** [PR #25 feature-final packet](pr-25/boundary.json)
+- **Retention:** `tracked`; all 50 current feature-record files are in Git and
+  no retention exception is required
+- **Boundary result:** Complete-feature verification and specification
+  evaluation, independent judge, focused code review with no findings,
+  decision triage, explain-diff, and packet validation pass against evaluated
+  source `cfc42cd2e4a6fc037e487536c4d8cf243d3e92bb`; pattern review is not
+  applicable because no scope is configured
+- **Status:** Final PR boundary awaiting Trent Brown's explicit approval. This PR contains no product change; it
+  evaluates the complete feature from its original base while preserving a
+  focused review of the P10 closeout slice. Merge requires Trent Brown's
+  explicit final approval.
