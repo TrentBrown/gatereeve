@@ -69,3 +69,18 @@ current state was already false.
   callers are entitled to a self-consistent direct result.
 - Mutate a previously returned state object in `finally` - rejected because
   Desktop state is validated as an immutable snapshot boundary.
+
+## [3] Keep workspace state renderer-owned and layout IPC push-only
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop renderer workspace store, preload bridge, application menu, and layout tests
+
+Keep selected main view, hierarchy selections, open tabs, active tab, panel visibility, and panel width in a serializable in-memory renderer store keyed by canonical project path. The main process sends only allow-listed toggle-sidebar or toggle-inspector commands through a one-way layoutCommand channel; it does not read, persist, or mutate workspace detail. This keeps application-menu accelerators native while preserving the renderer as the owner of observational UI state and leaves later persistence possible without changing tab identity.
+
+**Triggered by:** P4 requires independent per-project session state plus native application-menu shortcuts without expanding Desktop workflow authority.
+
+**Alternatives considered:**
+Persist workspace state in preferences now - rejected because relaunch restoration is explicitly deferred. Handle shortcuts only in renderer key events - rejected because the approved design also requires native application-menu commands. Add request-response IPC for layout state - rejected because the main process does not need that state or authority.

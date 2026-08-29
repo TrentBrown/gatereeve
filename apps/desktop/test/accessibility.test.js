@@ -13,10 +13,11 @@ test('principal controls use keyboard-native elements with visible accessible na
   const { document } = parseHTML(html).window;
   const namedControls = [
     '#choose', '#refresh', '#notifications', '#attempt-select', '#copy-mermaid',
+    '#choose-empty', '#toggle-sidebar', '#toggle-inspector', '#hide-inspector',
     '#open-setup', '#setup-open-worktree', '#setup-return', '#setup-recheck',
     '#agent-codex', '#agent-claude', '#save-agents',
     '[data-view="overview"]', '[data-view="artifacts"]', '[data-view="history"]',
-    '[data-view="model"]', '[data-view="session"]', '[data-view="setup"]',
+    '[data-view="model"]', '[data-view="session"]',
   ];
   for (const selector of namedControls) {
     const control = document.querySelector(selector);
@@ -31,6 +32,8 @@ test('principal controls use keyboard-native elements with visible accessible na
   assert.equal(document.querySelector('#notifications').getAttribute('type'), 'checkbox');
   assert.match(document.querySelector('label[for="notifications"]').textContent, /Native notifications/);
   assert.match(document.querySelector('label[for="agent-codex"]').textContent, /Codex/);
+  assert.equal(document.querySelector('#inspector-resizer').getAttribute('role'), 'separator');
+  assert.equal(document.querySelector('#inspector-resizer').getAttribute('tabindex'), '0');
 });
 
 test('status regions and principal views expose semantic text independent of color', async () => {
@@ -48,11 +51,14 @@ test('status regions and principal views expose semantic text independent of col
   assert.match(document.querySelector('#state-title').textContent, /Feature state rail/);
 });
 
-test('styles preserve visible focus and a usable 760 by 560 minimum layout', async () => {
+test('styles preserve visible focus, docked regions, and reduced-motion behavior', async () => {
   const css = await readFile(resolve(desktopRoot, 'renderer/styles.css'), 'utf8');
   assert.match(css, /input:focus-visible/);
   assert.match(css, /outline:\s*3px solid/);
   assert.match(css, /@media \(max-width: 800px\)/);
   assert.match(css, /\.workspace\s*\{\s*display:\s*block/);
   assert.match(css, /min-height:\s*560px/);
+  assert.match(css, /grid-template-columns:\s*var\(--project-sidebar-width\)/);
+  assert.match(css, /min\(var\(--inspector-width\),\s*calc\(100% - var\(--project-sidebar-width\) - 300px\)\)/);
+  assert.match(css, /prefers-reduced-motion:\s*reduce/);
 });

@@ -84,7 +84,7 @@ test('renderer presents selection first and then canonical observation status', 
   await new Promise((done) => setImmediate(done));
   assert.equal(window.document.querySelector('#chooser').hidden, false);
   assert.equal(window.document.querySelector('#overview').hidden, true);
-  assert.equal(window.document.querySelectorAll('.recent').length, 1);
+  assert.equal(window.document.querySelectorAll('.project-row').length, 1);
 
   subscriber({
     ...idleState(),
@@ -106,16 +106,12 @@ test('renderer presents selection first and then canonical observation status', 
   });
   assert.equal(window.document.querySelector('#chooser').hidden, true);
   assert.equal(window.document.querySelector('#overview').hidden, false);
-  assert.equal(window.document.querySelector('#mode').textContent, 'governed');
-  assert.equal(window.document.querySelector('#feature-state').textContent, 'DELIVERING_SLICES');
+  assert.match(window.document.querySelector('#project-context').textContent, /DELIVERING SLICES/);
   assert.match(window.document.querySelector('#activity').textContent, /polling GitHub/);
-  window.document.querySelector('[data-view="setup"]').click();
-  assert.equal(window.document.querySelector('#workspace').hidden, false);
-  assert.equal(
-    window.document.querySelector('#setup-shell').parentElement,
-    window.document.querySelector('#workspace'),
-  );
-  assert.equal(window.document.querySelector('.sidebar').hidden, false);
+  window.document.querySelector('#open-setup').click();
+  assert.equal(window.document.querySelector('#workspace').hidden, true);
+  assert.equal(window.document.querySelector('#setup-shell').hidden, false);
+  window.document.querySelector('#setup-return').click();
   window.document.querySelector('[data-view="overview"]').click();
   assert.equal(window.document.querySelector('#workspace').hidden, false);
   assert.equal(window.document.querySelector('#overview').hidden, false);
@@ -305,10 +301,21 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   window.document.querySelector('[data-view="artifacts"]').click();
   window.document.querySelector('[data-artifact-id="design"]').click();
   await new Promise((done) => setImmediate(done));
+  assert.equal(window.document.querySelector('#inspector-panel').hidden, false);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 1);
+  window.document.querySelector('[data-artifact-id="design"]').click();
+  await new Promise((done) => setImmediate(done));
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 1);
   assert.match(window.document.querySelector('#artifact-viewer').textContent, /Approved design/);
   assert.match(window.document.querySelector('#artifact-viewer').textContent, /Approved\./);
+  window.document.querySelector('#hide-inspector').click();
+  assert.equal(window.document.querySelector('#inspector-panel').hidden, true);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 1);
+  window.document.querySelector('#toggle-inspector').click();
+  assert.equal(window.document.querySelector('#inspector-panel').hidden, false);
   window.document.querySelector('[data-artifact-id="attempt:slice-attempt-1:gate:explainDiff"]').click();
   await new Promise((done) => setImmediate(done));
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 2);
   assert.match(window.document.querySelector('#artifact-viewer iframe').getAttribute('src'), /^gatereeve-artifact:/);
   assert.match(window.document.querySelector('#artifact-viewer iframe').getAttribute('src'), /\?refresh=\d+$/);
   assert.equal(window.document.querySelector('#artifact-viewer iframe').hasAttribute('sandbox'), false);
@@ -539,7 +546,7 @@ test('selected artifact rereads automatically when its canonical fingerprint cha
   assert.doesNotMatch(viewer.textContent, /Stale/);
 
   subscriber(state(null));
-  assert.match(viewer.textContent, /no longer available/i);
+  assert.match(viewer.textContent, /unavailable/i);
   assert.equal(window.document.querySelector('[data-artifact-id="interview"]'), null);
 
   delete globalThis.window;

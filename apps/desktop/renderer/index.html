@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GateReeve Desktop</title>
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=3">
   </head>
   <body>
     <header class="masthead">
@@ -12,11 +12,13 @@
         <img class="brand-mark" src="branding/gatereeve-rolling-vale.png" alt="">
         <div>
           <p class="eyebrow">Workflow protocol observer</p>
-          <h1>GateReeve</h1>
+          <div class="brand-line"><h1>GateReeve</h1><span id="brand-version" class="brand-version"></span></div>
         </div>
       </div>
       <div class="masthead-actions">
-        <span id="activity" class="activity">Choose a worktree</span>
+        <span id="activity" class="activity">Choose a project</span>
+        <button id="toggle-sidebar" class="layout-button light" type="button" aria-label="Hide project sidebar" aria-pressed="true" title="Toggle project sidebar (Command or Control+B)">▤</button>
+        <button id="toggle-inspector" class="layout-button light" type="button" aria-label="Show inspector" aria-pressed="false" title="Toggle inspector (Command+Option+B or Control+Alt+B)">◫</button>
         <button id="check-updates" class="secondary light" type="button">Check for Updates</button>
         <button id="open-setup" class="secondary light" type="button">Setup</button>
         <button id="refresh" class="secondary light" type="button" disabled>Refresh</button>
@@ -25,31 +27,16 @@
 
     <main>
       <section id="update-banner" class="update-banner" role="status" aria-live="polite" hidden>
-        <div>
-          <p class="section-kicker">Desktop update available</p>
-          <h2 id="update-title">A new GateReeve Desktop release is ready</h2>
-          <p id="update-detail"></p>
-        </div>
+        <div><p class="section-kicker">Desktop update available</p><h2 id="update-title">A new GateReeve Desktop release is ready</h2><p id="update-detail"></p></div>
         <button id="open-update" type="button">View official release</button>
-      </section>
-      <section id="chooser" class="chooser panel" aria-labelledby="chooser-title">
-        <p class="section-kicker">Begin observing</p>
-        <h2 id="chooser-title">Choose a feature worktree</h2>
-        <p class="lede">GateReeve reads one explicitly selected worktree. It never scans your machine or advances the workflow.</p>
-        <button id="choose" type="button">Open worktree…</button>
-        <div id="recents" class="recents" aria-label="Recent worktrees"></div>
-        <div id="chooser-error" class="notice danger" role="alert" hidden></div>
       </section>
 
       <section id="setup-shell" class="setup-shell page" aria-labelledby="setup-title" hidden>
         <div class="page-heading">
-          <div>
-            <p class="section-kicker">Product readiness</p>
-            <h2 id="setup-title">GateReeve Setup</h2>
-          </div>
+          <div><p class="section-kicker">Product readiness</p><h2 id="setup-title">GateReeve Setup</h2></div>
           <div class="viewer-actions">
-            <button id="setup-open-worktree" class="secondary" type="button">Open feature record…</button>
-            <button id="setup-return" class="secondary" type="button" hidden>Return to workflow</button>
+            <button id="setup-open-worktree" class="secondary" type="button">Add project…</button>
+            <button id="setup-return" class="secondary" type="button">Return to workspace</button>
             <button id="setup-recheck" type="button">Recheck</button>
           </div>
         </div>
@@ -57,151 +44,95 @@
         <div id="setup-summary" class="notice" role="status"></div>
         <div class="setup-grid">
           <form id="agent-selection" class="surface setup-selection">
-            <p class="section-kicker">Selected agents</p>
-            <h3>Where will GateReeve govern work?</h3>
-            <label class="agent-choice" for="agent-codex">
-              <input id="agent-codex" name="agent" type="checkbox" value="codex">
-              <span><strong>Codex</strong><small>Check Codex and its native Plugin installation.</small></span>
-            </label>
-            <label class="agent-choice" for="agent-claude">
-              <input id="agent-claude" name="agent" type="checkbox" value="claude">
-              <span><strong>Claude Code</strong><small>Check Claude Code and its native Plugin installation.</small></span>
-            </label>
+            <p class="section-kicker">Selected agents</p><h3>Where will GateReeve govern work?</h3>
+            <label class="agent-choice" for="agent-codex"><input id="agent-codex" name="agent" type="checkbox" value="codex"><span><strong>Codex</strong><small>Check Codex and its native Plugin installation.</small></span></label>
+            <label class="agent-choice" for="agent-claude"><input id="agent-claude" name="agent" type="checkbox" value="claude"><span><strong>Claude Code</strong><small>Check Claude Code and its native Plugin installation.</small></span></label>
+            <label class="toggle-row setup-notifications" for="notifications"><input id="notifications" type="checkbox"><span><strong>Native notifications</strong><small>Only new workflow attention while this app is running</small></span></label>
             <button id="save-agents" type="submit">Save selection and check</button>
           </form>
           <section class="surface" aria-labelledby="prerequisites-title">
-            <div class="surface-heading">
-              <div><p class="section-kicker">Shared tools</p><h3 id="prerequisites-title">Workflow prerequisites</h3></div>
-              <span id="desktop-version" class="badge neutral"></span>
-            </div>
+            <div class="surface-heading"><div><p class="section-kicker">Shared tools</p><h3 id="prerequisites-title">Workflow prerequisites</h3></div><span id="desktop-version" class="badge neutral"></span></div>
             <div id="setup-prerequisites" class="stack"></div>
           </section>
         </div>
-        <section class="surface" aria-labelledby="agents-title">
-          <div class="surface-heading"><div><p class="section-kicker">Native ownership</p><h3 id="agents-title">Selected-agent readiness</h3></div></div>
-          <div id="setup-agents" class="setup-agent-grid"></div>
-        </section>
-        <div id="historical-reading" class="notice info">Setup readiness governs new and active work. You can still open an existing feature record for explicitly historical or offline inspection.</div>
+        <section class="surface" aria-labelledby="agents-title"><div class="surface-heading"><div><p class="section-kicker">Native ownership</p><h3 id="agents-title">Selected-agent readiness</h3></div></div><div id="setup-agents" class="setup-agent-grid"></div></section>
+        <div id="historical-reading" class="notice info">Setup readiness governs new and active work. Existing feature records remain available for explicitly historical or offline inspection.</div>
       </section>
 
-      <div id="workspace" class="workspace" hidden>
-        <aside class="sidebar" aria-label="GateReeve Desktop views">
-          <div class="identity">
-            <span id="mode" class="badge"></span>
-            <h2 id="feature">—</h2>
-            <p id="worktree" class="path"></p>
-          </div>
-          <nav class="navigation">
-            <button class="nav-item active" type="button" data-view="overview" aria-current="page">Overview</button>
-            <button class="nav-item" type="button" data-view="artifacts">Artifacts</button>
-            <button class="nav-item" type="button" data-view="history">History</button>
-            <button class="nav-item" type="button" data-view="model">Model</button>
-            <button class="nav-item" type="button" data-view="session">Session</button>
-            <button class="nav-item" type="button" data-view="setup">Setup</button>
-          </nav>
-          <div class="preference-panel">
-            <h3>Preferences</h3>
-            <label class="toggle-row" for="notifications">
-              <input id="notifications" type="checkbox">
-              <span><strong>Native notifications</strong><small>Only new workflow attention while this app is running</small></span>
-            </label>
-          </div>
-          <div class="source-stack" aria-label="Observation sources">
-            <h3>Sources</h3>
-            <div id="source-local" class="source"></div>
-            <div id="source-git" class="source"></div>
-            <div id="source-github" class="source"></div>
-          </div>
+      <div id="workspace" class="workspace">
+        <aside id="project-sidebar" class="project-sidebar" aria-label="Saved projects">
+          <div class="project-sidebar-heading"><div><p class="section-kicker">Workspace</p><h2>Projects</h2></div><button id="choose" class="text-button" type="button">+ Add Project</button></div>
+          <div id="recents" class="project-list" role="listbox" aria-label="Saved GateReeve projects"></div>
         </aside>
 
-        <section id="overview" class="page" data-page="overview" aria-labelledby="overview-title" hidden>
-          <div class="page-heading">
-            <div>
-              <p class="section-kicker">Current position</p>
-              <h2 id="overview-title">Workflow overview</h2>
-            </div>
-            <div class="headline-facts">
-              <span>Feature <strong id="feature-state">—</strong></span>
-              <span>Slice <strong id="active-slice">—</strong></span>
-            </div>
-          </div>
-          <div id="error" class="notice danger" role="alert" hidden></div>
-          <div id="readiness-banner" class="notice info" role="status" hidden></div>
-          <div id="diagnostic" class="notice" role="status" hidden></div>
-          <div id="warnings" class="notice-stack" aria-label="Warnings"></div>
-
-          <section class="surface" aria-labelledby="state-title">
-            <div class="surface-heading">
-              <div><p class="section-kicker">Pinned state machine</p><h3 id="state-title">Feature state rail</h3></div>
-              <button class="text-button" type="button" data-go-view="model">View full model</button>
-            </div>
-            <ol id="state-rail" class="state-rail"></ol>
-            <div id="milestones" class="milestones"></div>
-          </section>
-
-          <div class="two-column">
-            <section class="surface" aria-labelledby="slices-title">
-              <div class="surface-heading"><div><p class="section-kicker">Delivery</p><h3 id="slices-title">PR slices</h3></div></div>
-              <div id="slices" class="stack"></div>
+        <section class="workspace-main" aria-label="Project workspace">
+          <nav id="main-tabs" class="main-tabs" aria-label="Project views">
+            <button class="main-tab active" type="button" data-view="overview" aria-current="page">Overview</button>
+            <button class="main-tab" type="button" data-view="artifacts">Artifacts</button>
+            <button class="main-tab" type="button" data-view="history">History</button>
+            <button class="main-tab" type="button" data-view="model">Model</button>
+            <button class="main-tab" type="button" data-view="session">Session</button>
+          </nav>
+          <div class="workspace-content">
+            <section id="chooser" class="chooser panel" aria-labelledby="chooser-title">
+              <p class="section-kicker">Begin observing</p><h2 id="chooser-title">Add a governed project</h2>
+              <p class="lede">A project is one directory with a fully valid, supported GateReeve feature record. GateReeve never scans or modifies it.</p>
+              <button id="choose-empty" type="button">Add project…</button>
+              <div id="chooser-error" class="notice danger" role="alert" hidden></div>
             </section>
-            <section class="surface" aria-labelledby="attention-title">
-              <div class="surface-heading"><div><p class="section-kicker">Attention</p><h3 id="attention-title">Blockers and warnings</h3></div></div>
-              <div id="attention" class="stack"></div>
+
+            <section id="overview" class="page" data-page="overview" aria-labelledby="overview-title" hidden>
+              <div class="page-heading"><div><p class="section-kicker">Current project</p><h2 id="overview-title">Workflow overview</h2><p id="project-context" class="project-context"></p></div></div>
+              <div id="error" class="notice danger" role="alert" hidden></div>
+              <div id="readiness-banner" class="notice info" role="status" hidden></div>
+              <div id="diagnostic" class="notice" role="status" hidden></div>
+              <div id="warnings" class="notice-stack" aria-label="Warnings"></div>
+              <div class="source-context" aria-label="Observation sources"><div id="source-local" class="source"></div><div id="source-git" class="source"></div><div id="source-github" class="source"></div></div>
+
+              <section class="surface" aria-labelledby="state-title">
+                <div class="surface-heading"><div><p class="section-kicker">Pinned state machine</p><h3 id="state-title">Feature state rail</h3></div><button class="text-button" type="button" data-go-view="model">View full model</button></div>
+                <ol id="state-rail" class="state-rail"></ol><div id="milestones" class="milestones"></div>
+              </section>
+              <div class="two-column">
+                <section class="surface" aria-labelledby="slices-title"><div class="surface-heading"><div><p class="section-kicker">Delivery</p><h3 id="slices-title">PR slices</h3></div></div><div id="slices" class="stack"></div></section>
+                <section class="surface" aria-labelledby="attention-title"><div class="surface-heading"><div><p class="section-kicker">Attention</p><h3 id="attention-title">Blockers and warnings</h3></div></div><div id="attention" class="stack"></div></section>
+              </div>
+              <section class="surface" aria-labelledby="boundary-title">
+                <div class="surface-heading"><div><p class="section-kicker">PR boundary</p><h3 id="boundary-title">Attempts and gate dependencies</h3></div><label class="select-label" for="attempt-select">Attempt <select id="attempt-select"></select></label></div>
+                <div id="boundary-summary" class="muted"></div><div id="gate-dag" class="gate-dag"></div>
+              </section>
+              <section class="surface" aria-labelledby="actions-title"><div class="surface-heading"><div><p class="section-kicker">Governed guidance</p><h3 id="actions-title">Next actions</h3></div></div><div id="actions" class="action-grid"></div></section>
+            </section>
+
+            <section class="page" data-page="artifacts" aria-labelledby="artifacts-title" hidden>
+              <div class="page-heading"><div><p class="section-kicker">Evidence and working records</p><h2 id="artifacts-title">Artifacts</h2><p class="muted">Select any expected or present item to open it in the unified inspector.</p></div><span id="artifact-count" class="count"></span></div>
+              <div id="artifact-list" class="artifact-inventory" aria-label="Artifact inventory"></div>
+            </section>
+
+            <section class="page" data-page="history" aria-labelledby="history-title" hidden>
+              <div class="page-heading"><div><p class="section-kicker">Append-only journal</p><h2 id="history-title">History</h2></div><span id="history-count" class="count"></span></div>
+              <div class="split-view"><div id="history-list" class="collection timeline" aria-label="Workflow events"></div><article id="history-detail" class="viewer" aria-live="polite"><div class="empty-state"><h3>Select an event</h3><p>Inspect its actor, exact ID, payload, and recorded passage.</p></div></article></div>
+            </section>
+            <section class="page" data-page="model" aria-labelledby="model-title" hidden>
+              <div class="page-heading"><div><p class="section-kicker">Authoritative definition</p><h2 id="model-title">Pinned workflow model</h2></div><button id="copy-mermaid" class="secondary" type="button" disabled>Copy Mermaid</button></div>
+              <div id="model-provenance" class="provenance-grid"></div><section class="surface"><h3>Feature states and transitions</h3><div id="model-graph" class="model-graph"></div></section><details class="surface raw"><summary>Mermaid source and exact model IDs</summary><pre id="model-mermaid"></pre></details>
+            </section>
+            <section class="page" data-page="session" aria-labelledby="session-title" hidden>
+              <div class="page-heading"><div><p class="section-kicker">Non-authoritative context</p><h2 id="session-title">Session</h2></div><span class="badge neutral">Does not govern passage</span></div>
+              <div class="notice info">Checkpoints and handoffs support resumption and transfer. They are never workflow evidence and do not affect readiness.</div>
+              <div class="split-view"><div id="session-list" class="collection" aria-label="Session context"></div><article id="session-detail" class="viewer" aria-live="polite"><div class="empty-state"><h3>Select Session context</h3><p>View the latest checkpoint, archives, or handoffs for this project.</p></div></article></div>
             </section>
           </div>
-
-          <section class="surface" aria-labelledby="boundary-title">
-            <div class="surface-heading">
-              <div><p class="section-kicker">PR boundary</p><h3 id="boundary-title">Attempts and gate dependencies</h3></div>
-              <label class="select-label" for="attempt-select">Attempt <select id="attempt-select"></select></label>
-            </div>
-            <div id="boundary-summary" class="muted"></div>
-            <div id="gate-dag" class="gate-dag"></div>
-          </section>
-
-          <section class="surface" aria-labelledby="actions-title">
-            <div class="surface-heading"><div><p class="section-kicker">Governed guidance</p><h3 id="actions-title">Next actions</h3></div></div>
-            <div id="actions" class="action-grid"></div>
-          </section>
         </section>
 
-        <section class="page" data-page="artifacts" aria-labelledby="artifacts-title" hidden>
-          <div class="page-heading"><div><p class="section-kicker">Evidence and working records</p><h2 id="artifacts-title">Artifacts</h2></div><span id="artifact-count" class="count"></span></div>
-          <div class="split-view">
-            <div id="artifact-list" class="collection" aria-label="Artifact inventory"></div>
-            <article id="artifact-viewer" class="viewer" aria-live="polite">
-              <div class="empty-state"><h3>Select an artifact</h3><p>Content is loaded only when requested.</p></div>
-            </article>
+        <aside id="inspector-panel" class="inspector-panel" aria-label="Artifact inspector" hidden>
+          <div id="inspector-resizer" class="inspector-resizer" role="separator" aria-label="Resize artifact inspector" aria-orientation="vertical" tabindex="0"></div>
+          <div class="inspector-body">
+            <div class="inspector-heading"><div><p class="section-kicker">Inspector</p><h2>Open artifacts</h2></div><button id="hide-inspector" class="text-button" type="button" aria-label="Hide inspector">Hide</button></div>
+            <div id="inspector-tabs" class="inspector-tabs" role="tablist" aria-label="Open inspector tabs"></div>
+            <article id="artifact-viewer" class="viewer inspector-viewer" aria-live="polite"><div class="empty-state"><h3>No open tabs</h3><p>Open an artifact or protocol detail from the workspace.</p></div></article>
           </div>
-        </section>
-
-        <section class="page" data-page="history" aria-labelledby="history-title" hidden>
-          <div class="page-heading"><div><p class="section-kicker">Append-only journal</p><h2 id="history-title">History</h2></div><span id="history-count" class="count"></span></div>
-          <div class="split-view">
-            <div id="history-list" class="collection timeline" aria-label="Workflow events"></div>
-            <article id="history-detail" class="viewer" aria-live="polite">
-              <div class="empty-state"><h3>Select an event</h3><p>Inspect its actor, exact ID, payload, and recorded passage.</p></div>
-            </article>
-          </div>
-        </section>
-
-        <section class="page" data-page="model" aria-labelledby="model-title" hidden>
-          <div class="page-heading"><div><p class="section-kicker">Authoritative definition</p><h2 id="model-title">Pinned workflow model</h2></div><button id="copy-mermaid" class="secondary" type="button" disabled>Copy Mermaid</button></div>
-          <div id="model-provenance" class="provenance-grid"></div>
-          <section class="surface"><h3>Feature states and transitions</h3><div id="model-graph" class="model-graph"></div></section>
-          <details class="surface raw"><summary>Mermaid source and exact model IDs</summary><pre id="model-mermaid"></pre></details>
-        </section>
-
-        <section class="page" data-page="session" aria-labelledby="session-title" hidden>
-          <div class="page-heading"><div><p class="section-kicker">Non-authoritative context</p><h2 id="session-title">Session</h2></div><span class="badge neutral">Does not govern passage</span></div>
-          <div class="notice info">Checkpoints and handoffs support resumption and transfer. They are never workflow evidence and do not affect readiness.</div>
-          <div class="split-view">
-            <div id="session-list" class="collection" aria-label="Session context"></div>
-            <article id="session-detail" class="viewer" aria-live="polite">
-              <div class="empty-state"><h3>Select Session context</h3><p>View the latest checkpoint, archives, or handoffs for this worktree.</p></div>
-            </article>
-          </div>
-        </section>
+        </aside>
       </div>
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

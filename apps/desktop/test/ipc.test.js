@@ -106,7 +106,7 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
     async openExternal(value) { external.push(value); },
     windows: () => [],
   });
-  assert.equal(handlers.size, Object.keys(IPC_CHANNELS).length - 2);
+  assert.equal(handlers.size, Object.keys(IPC_CHANNELS).length - 3);
   const event = trustedEvent();
   assert.equal((await handlers.get(IPC_CHANNELS.addProject)(event)).phase, 'ready');
   assert.equal((await handlers.get(IPC_CHANNELS.activateProject)(event, '/repo')).phase, 'ready');
