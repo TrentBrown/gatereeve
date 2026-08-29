@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "gatereeve-v0.1.0-rc.2",
+  "version": "0.1.0-rc.2",
+  "channel": "rc",
+  "source": {
+    "repository": "https://github.com/TrentBrown/gatereeve",
+    "commit": "1b7c7e519c90a13d140f59c65e0304bb78000753",
+    "tag": "v0.1.0-rc.2"
+  },
+  "promotion": null,
+  "state": "prepared",
+  "candidates": {
+    "plugin": {
+      "artifact": {
+        "path": "plugin/marketplace",
+        "fileCount": 309,
+        "sha256": "3a86b131f60c0551c083c1030d48a863dc1dc96a66349a00ad160b3f6ddf67ff"
+      },
+      "verification": {
+        "status": "passed",
+        "packageCount": 2,
+        "releaseMetadata": "plugin/marketplace/RELEASE.json"
+      }
+    },
+    "desktop": {
+      "applicationVersion": "0.1.0-rc.2",
+      "artifact": {
+        "path": "desktop/GateReeve-0.1.0-rc.2-macos-universal.dmg",
+        "filename": "GateReeve-0.1.0-rc.2-macos-universal.dmg",
+        "bytes": 246106267,
+        "sha256": "ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f"
+      },
+      "verification": {
+        "status": "passed",
+        "architectures": [
+          "arm64",
+          "x64"
+        ],
+        "evidence": [
+          {
+            "architecture": "arm64",
+            "path": "evidence/desktop-arm64.json",
+            "sha256": "7514186c3b5d9728bcabd03463c3c57a9f0cadd9dae97002594081f70e3584f9"
+          },
+          {
+            "architecture": "x64",
+            "path": "evidence/desktop-x64.json",
+            "sha256": "739d9bca239b025e1f8a2e2858ea3f9c4800c1f72dff01c2e4d860b311238494"
+          }
+        ]
+      },
+      "trust": {
+        "status": "developer-id-notarized",
+        "identity": "Developer ID Application: Trent Brown (PMWYD5A82A)",
+        "teamId": "PMWYD5A82A",
+        "hardenedRuntime": true,
+        "secureTimestamp": true,
+        "notarizationId": "59e62a4e-bf52-4bf3-bb22-e85768ed75a1",
+        "notarizationStatus": "Accepted",
+        "stapled": true,
+        "gatekeeperAccepted": true,
+        "evidence": [
+          "codesign:Developer ID Application: Trent Brown (PMWYD5A82A)",
+          "notarytool:59e62a4e-bf52-4bf3-bb22-e85768ed75a1",
+          "stapler:validated",
+          "spctl:accepted"
+        ]
+      }
+    }
+  },
+  "publication": {
+    "order": [
+      "tag",
+      "pluginMarketplace",
+      "desktopPrerelease",
+      "updateManifest",
+      "earlyAccessWebsite"
+    ],
+    "approval": {
+      "state": "unapproved"
+    },
+    "inputs": {
+      "updateManifest": {
+        "path": "publication/desktop.base.json",
+        "filename": "desktop.base.json",
+        "bytes": 734,
+        "sha256": "b79f9ef8e0dcc8b0fd4e7f737edf40de30711736e0f93bdeba0f1d78b15fe762"
+      }
+    },
+    "outputs": {
+      "checksums": {
+        "path": "publication/SHA256SUMS",
+        "filename": "SHA256SUMS",
+        "bytes": 107,
+        "sha256": "52b196660b49f9e84713f173bb7e999f5e23dacfe959eddc7826c72a802e36b2"
+      },
+      "updateManifest": {
+        "path": "publication/desktop.json",
+        "filename": "desktop.json",
+        "bytes": 734,
+        "sha256": "23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b"
+      }
+    },
+    "surfaces": {
+      "tag": {
+        "state": "pending",
+        "receipt": null
+      },
+      "pluginMarketplace": {
+        "state": "pending",
+        "receipt": null
+      },
+      "desktopPrerelease": {
+        "state": "pending",
+        "receipt": null
+      },
+      "updateManifest": {
+        "state": "pending",
+        "receipt": null
+      },
+      "earlyAccessWebsite": {
+        "state": "pending",
+        "receipt": null
+      }
+    }
+  },
+  "createdAt": "2026-08-29T14:01:01.687Z",
+  "updatedAt": "2026-08-29T14:01:01.687Z"
+}

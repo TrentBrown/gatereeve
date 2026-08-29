@@ -32,7 +32,33 @@
 - **Evidence:** [PR #20 packet](pr-20/boundary.json)
 - **Boundary result:** Exact-source verification, scoped specification
   evaluation, independent judge, code review with no findings, decision
-  triage, and explain-diff pass at pinned head
-  `28a3971f33d11aaa76f4351057272d3e619f603e`; pattern review is not
+  triage, and explain-diff pass for product source
+  `28a3971f33d11aaa76f4351057272d3e619f603e`; the synchronized reviewed PR
+  head was `153e84569629cf495e397eee80ac354f793c19eb`. Pattern review is not
   applicable because no scope is configured
-- **Status:** Draft; I-1-I-7 are in review
+- **Status:** Merged into `main` as
+  `1b7c7e519c90a13d140f59c65e0304bb78000753`; governed merge recorded
+
+### Release preparation - Coordinated `v0.1.0-rc.2` rehearsal
+
+- **Run:**
+  [#33234514595](https://github.com/TrentBrown/gatereeve/actions/runs/33234514595)
+- **Source:** Exact merged `main` commit
+  `1b7c7e519c90a13d140f59c65e0304bb78000753`
+- **Namespace preflight:** No `v0.1.0-rc.2` tag and no GitHub release existed
+  immediately before dispatch
+- **Completed evidence:** Plugin candidate, universal Desktop candidate, and
+  native ARM64/Intel candidate verification passed
+- **Apple trust:** Developer ID signing, hardened runtime, secure timestamp,
+  accepted notarization, validated staple, Gatekeeper assessment, and
+  credential cleanup passed
+- **Trusted native verification:** ARM64 and Intel both passed against DMG
+  SHA-256 `ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f`
+- **Publication preflight:** Immutable record inspection and exact coordinated
+  dry run passed for plan SHA-256
+  `88b18713d9d91d9d98bb5068d11faf2f235bf172e2b0120bcd327d363612eb76`;
+  every public surface remains pending
+- **Homebrew sequencing:** Exact cask packet and dry run move to P9 because the
+  cask contract requires direct installation of the exact published DMG
+- **Current boundary:** Release publication remains unapproved; R8 remains
+  `NOT YET` until publication, Homebrew upgrade, and installed-app verification

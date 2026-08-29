@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "dryRun": true,
+  "releaseId": "gatereeve-v0.1.0-rc.2",
+  "state": "prepared",
+  "planSha256": "88b18713d9d91d9d98bb5068d11faf2f235bf172e2b0120bcd327d363612eb76",
+  "surfaces": {
+    "tag": {
+      "state": "pending",
+      "receipt": null
+    },
+    "pluginMarketplace": {
+      "state": "pending",
+      "receipt": null
+    },
+    "desktopPrerelease": {
+      "state": "pending",
+      "receipt": null
+    },
+    "updateManifest": {
+      "state": "pending",
+      "receipt": null
+    },
+    "earlyAccessWebsite": {
+      "state": "pending",
+      "receipt": null
+    }
+  }
+}
