@@ -9,12 +9,12 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Make Python prerequisite selection compatibility-aware
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P1
 - **Rubric criteria:** R1
 - **Depends on:** none
-- **PR:** -
+- **PR:** [#20](https://github.com/TrentBrown/gatereeve/pull/20)
 
 Write the required failing discovery/Setup cases, then select the first
 compatible bounded Python while retaining authoritative override behavior and
@@ -22,72 +22,72 @@ diagnostics.
 
 ## I-2 - Apply GateReeve branding and stable Setup layout
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P2
 - **Rubric criteria:** R2, R3
 - **Depends on:** none
-- **PR:** -
+- **PR:** [#20](https://github.com/TrentBrown/gatereeve/pull/20)
 
 Use the approved icon and maintain one Setup surface across onboarding and
 selected-worktree layouts without sidebar collapse.
 
 ## I-3 - Keep the selected artifact current and readable
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P3
 - **Rubric criteria:** R4, R5
 - **Depends on:** none
-- **PR:** -
+- **PR:** [#20](https://github.com/TrentBrown/gatereeve/pull/20)
 
 Add test-first automatic/manual refresh, race protection, cache busting, scroll
 retention, stale-content recovery, and canonical-removal behavior.
 
 ## I-4 - Render safe Markdown emphasis
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P4
 - **Rubric criteria:** R6
 - **Depends on:** none
-- **PR:** -
+- **PR:** [#20](https://github.com/TrentBrown/gatereeve/pull/20)
 
 Extend the semantic inline tokenizer for strong/emphasis while protecting code,
 identifiers, malformed input, and literal image syntax.
 
 ## I-5 - Confine Markdown link navigation
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P5
 - **Rubric criteria:** R6, R7
 - **Depends on:** I-4
-- **PR:** -
+- **PR:** [#20](https://github.com/TrentBrown/gatereeve/pull/20)
 
 Support system-browser HTTP(S), canonical relative artifacts, and fragments
 through validated boundaries while keeping unsafe targets inert.
 
 ## I-6 - Verify the assembled Desktop product slice
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P6
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7
 - **Depends on:** I-1, I-2, I-3, I-4, I-5
-- **PR:** -
+- **PR:** [#20](https://github.com/TrentBrown/gatereeve/pull/20)
 
 Run full Desktop checks, package/asset verification, visual and runtime smoke,
 and constraint review before entering the PR boundary.
 
 ## I-7 - Complete and merge the governed product PR
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P7
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7
 - **Depends on:** I-6
-- **PR:** -
+- **PR:** [#20](https://github.com/TrentBrown/gatereeve/pull/20)
 
 Produce all required pinned boundary evidence, obtain human review, and merge
 the topic branch into `main` without importing a `development*` branch.
