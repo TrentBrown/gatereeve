@@ -7,11 +7,17 @@ const CONTENT_TYPES = Object.freeze({
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.png': 'image/png',
   '.svg': 'image/svg+xml',
 });
 
-export function registerRendererProtocol(protocol, rendererRoot, { readArtifact } = {}) {
+export function registerRendererProtocol(
+  protocol,
+  rendererRoot,
+  { brandingAsset = null, readArtifact } = {},
+) {
   const rootPromise = realpath(rendererRoot);
+  const brandingPromise = brandingAsset === null ? null : realpath(brandingAsset);
   protocol.handle('gatereeve-app', async (request) => {
     const url = new URL(request.url);
     if (url.hostname !== 'desktop' || request.method !== 'GET') {
@@ -25,8 +31,14 @@ export function registerRendererProtocol(protocol, rendererRoot, { readArtifact 
     }
     try {
       const root = await rootPromise;
-      const path = await realpath(resolve(root, relativePath));
-      if (!path.startsWith(`${root}${sep}`)) return new Response('Not found', { status: 404 });
+      const brandingRoute = 'branding/gatereeve-rolling-vale.png';
+      const servesBranding = relativePath === brandingRoute && brandingPromise !== null;
+      const path = servesBranding
+        ? await brandingPromise
+        : await realpath(resolve(root, relativePath));
+      if (!servesBranding && !path.startsWith(`${root}${sep}`)) {
+        return new Response('Not found', { status: 404 });
+      }
       const contentType = CONTENT_TYPES[extname(path)];
       if (contentType === undefined) return new Response('Not found', { status: 404 });
       return new Response(await readFile(path), {

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   discoverDesktopExecutables,
+  discoverExecutables,
   executableCandidates,
 } from '../main/executable-discovery.js';
 
@@ -67,4 +68,35 @@ test('explicit executable overrides are narrow and fail closed', async () => {
   });
   assert.deepEqual(result, { git: '/managed/git', gh: null });
   assert.deepEqual(probed, ['/managed/git', '/managed/missing-gh']);
+});
+
+test('multi-candidate discovery retains bounded deterministic order', async () => {
+  const probed = [];
+  const result = await discoverExecutables('python3', {
+    environment: { PATH: '/custom/bin:/usr/bin' },
+    platform: 'darwin',
+    homeDirectory: '/Users/tester',
+    async readDirectory() { return []; },
+    async probe(path) {
+      probed.push(path);
+      return path === '/usr/bin/python3' || path === '/opt/homebrew/bin/python3';
+    },
+  });
+  assert.deepEqual(result, ['/usr/bin/python3', '/opt/homebrew/bin/python3']);
+  assert.equal(probed.includes('/custom/bin/python3'), true);
+  assert.equal(probed.some((path) => path.includes('/Users/tester/Documents')), false);
+});
+
+test('multi-candidate discovery treats an explicit override as the entire search', async () => {
+  const probed = [];
+  const result = await discoverExecutables('python3', {
+    environment: {
+      GATEREEVE_PYTHON3_PATH: '/managed/python3',
+      PATH: '/ignored',
+    },
+    platform: 'darwin',
+    async probe(path) { probed.push(path); return true; },
+  });
+  assert.deepEqual(result, ['/managed/python3']);
+  assert.deepEqual(probed, ['/managed/python3']);
 });

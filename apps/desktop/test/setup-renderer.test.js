@@ -116,9 +116,28 @@ function mixedReadyState() {
   };
 }
 
+test('visual fixture remaps the confined production brand route to the source asset', async () => {
+  const fixture = await readFile(resolve(desktopRoot, 'visual/index.html'), 'utf8');
+  const fixtureApi = await readFile(resolve(desktopRoot, 'visual/visual-fixture.js'), 'utf8');
+  assert.match(fixture, /\.brand-mark/);
+  assert.match(fixture, /\.\.\/assets\/branding\/gatereeve-rolling-vale\.png/);
+  for (const method of [
+    'getUpdateState', 'subscribeUpdates', 'checkForUpdates', 'openUpdateRelease',
+    'openExternalLink',
+  ]) {
+    assert.match(fixtureApi, new RegExp(`\\b${method}\\b`));
+  }
+});
+
 test('first launch presents persistent non-mutating Setup and preserves historical access', async () => {
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const { window } = parseHTML(html);
+  const brand = window.document.querySelector('.brand');
+  const brandIcon = window.document.querySelector('.brand-mark');
+  assert.equal(brand.getAttribute('aria-label'), 'GateReeve');
+  assert.equal(brandIcon.tagName.toLowerCase(), 'img');
+  assert.equal(brandIcon.getAttribute('src'), 'branding/gatereeve-rolling-vale.png');
+  assert.equal(brandIcon.getAttribute('alt'), '');
   const selections = [];
   const copied = [];
   window.gatereeveDesktop = {

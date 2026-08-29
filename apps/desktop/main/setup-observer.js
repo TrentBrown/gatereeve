@@ -4,7 +4,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 import { requireSelectedAgents, requireSetupState } from '../shared/contracts.js';
-import { discoverExecutable } from './executable-discovery.js';
+import { discoverExecutable, discoverExecutables } from './executable-discovery.js';
 import { classifySetupCompatibility, validateSetupCompatibility } from './setup-compatibility.js';
 
 const execute = promisify(execFile);
@@ -157,22 +157,22 @@ function parseClaudePlugin(outputText) {
   }
 }
 
-async function observePrerequisite(item, { exec, discover, executablePaths, platform }) {
-  const executable = executablePaths[item.id] ?? await discover(item.executable);
-  if (executable === null) {
-    return {
-      id: item.id,
-      label: item.label,
-      status: 'missing',
-      version: null,
-      detail: `${item.label} was not found in Finder-compatible locations.`,
-      remediation: remediation(
-        `Install ${item.label} with its native owner.`,
-        installCommand(item, platform),
-        item.guideUrl,
-      ),
-    };
-  }
+function missingPrerequisite(item, platform) {
+  return {
+    id: item.id,
+    label: item.label,
+    status: 'missing',
+    version: null,
+    detail: `${item.label} was not found in Finder-compatible locations.`,
+    remediation: remediation(
+      `Install ${item.label} with its native owner.`,
+      installCommand(item, platform),
+      item.guideUrl,
+    ),
+  };
+}
+
+async function inspectPrerequisite(item, executable, { exec, platform }) {
   const result = await command(exec, executable, item.arguments);
   const version = versionFrom(`${result.stdout}\n${result.stderr}`);
   if (!result.ok) {
@@ -211,6 +211,50 @@ async function observePrerequisite(item, { exec, discover, executablePaths, plat
     id: item.id, label: item.label, status: 'present', version,
     detail: `${item.label}${version ? ` ${version}` : ''} is available.`, remediation: null,
   };
+}
+
+function failedPythonCandidates(item, attempts, platform) {
+  if (attempts.length === 1) return attempts[0].observation;
+  const unavailable = attempts.some(({ observation }) => observation.status === 'unavailable');
+  const detail = attempts.map(({ executable, observation }) => {
+    if (observation.status === 'incompatible') {
+      return `${executable} reported ${observation.version ?? 'an unknown version'}`;
+    }
+    return `${executable} could not be checked: ${observation.detail}`;
+  }).join('; ');
+  return {
+    id: item.id,
+    label: item.label,
+    status: unavailable ? 'unavailable' : 'incompatible',
+    version: attempts.find(({ observation }) => observation.version !== null)?.observation.version ?? null,
+    detail: `No compatible Python was found in Finder-compatible locations. ${detail}.`,
+    remediation: remediation(
+      unavailable
+        ? 'Repair or update Python, then recheck Setup.'
+        : `Update Python to ${item.minimum} or newer.`,
+      installCommand(item, platform),
+      item.guideUrl,
+    ),
+  };
+}
+
+async function observePrerequisite(item, {
+  exec, discover, discoverCandidates, executablePaths, platform,
+}) {
+  if (item.id === 'python' && executablePaths[item.id] === undefined) {
+    const candidates = await discoverCandidates(item.executable);
+    if (candidates.length === 0) return missingPrerequisite(item, platform);
+    const attempts = [];
+    for (const executable of candidates) {
+      const observation = await inspectPrerequisite(item, executable, { exec, platform });
+      if (observation.status === 'present') return observation;
+      attempts.push({ executable, observation });
+    }
+    return failedPythonCandidates(item, attempts, platform);
+  }
+  const executable = executablePaths[item.id] ?? await discover(item.executable);
+  if (executable === null) return missingPrerequisite(item, platform);
+  return inspectPrerequisite(item, executable, { exec, platform });
 }
 
 async function observeAgent(id, { exec, discover, metadata }) {
@@ -345,6 +389,7 @@ export function createSetupObserver({
   metadata,
   exec = execute,
   discover = discoverExecutable,
+  discoverCandidates = discoverExecutables,
   executablePaths = {},
   platform = process.platform,
   now = () => new Date(),
@@ -354,7 +399,7 @@ export function createSetupObserver({
     const selected = requireSelectedAgents(selectedAgents);
     if (selected.length === 0) return createUnconfiguredSetup(compatibilityMetadata);
     const prerequisites = await Promise.all(PREREQUISITES.map((item) => observePrerequisite(item, {
-      exec, discover, executablePaths, platform,
+      exec, discover, discoverCandidates, executablePaths, platform,
     })));
     const agents = [];
     for (const id of selected) {

@@ -129,6 +129,10 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   assert.equal(await handlers.get(IPC_CHANNELS.copyText)(event, 'gatereeve next'), true);
   assert.equal((await handlers.get(IPC_CHANNELS.checkForUpdates)(event)).status, 'available');
   assert.equal(await handlers.get(IPC_CHANNELS.openUpdateRelease)(event), true);
+  assert.equal(await handlers.get(IPC_CHANNELS.openExternalLink)(
+    event,
+    'https://example.com/workflow?q=1',
+  ), true);
   assert.equal((await handlers.get(IPC_CHANNELS.setNotificationsEnabled)(event, true)).preferences.notificationsEnabled, true);
   assert.deepEqual(
     (await handlers.get(IPC_CHANNELS.setSelectedAgents)(event, ['claude'])).preferences.selectedAgents,
@@ -138,7 +142,14 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   assert.deepEqual(opened, ['/repo/design.md']);
   assert.deepEqual(revealed, ['/repo/spec.md']);
   assert.deepEqual(copied, ['gatereeve next']);
-  assert.deepEqual(external, ['https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.4']);
+  assert.deepEqual(external, [
+    'https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.4',
+    'https://example.com/workflow?q=1',
+  ]);
+  await assert.rejects(
+    handlers.get(IPC_CHANNELS.openExternalLink)(event, 'file:///etc/passwd'),
+    /HTTP\(S\)/,
+  );
   await assert.rejects(
     handlers.get(IPC_CHANNELS.readDetail)(event, { kind: 'file', id: '/etc/passwd' }),
     /invalid/,

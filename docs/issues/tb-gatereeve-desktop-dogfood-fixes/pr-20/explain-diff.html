@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #20 · GateReeve Desktop dogfooding fixes</title>
+  <style>
+    :root { color-scheme: light; --ink:#211634; --muted:#685d72; --purple:#594099; --pale:#f5f1fa; --line:#ddd3e8; --green:#206448; --amber:#87520f; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#fbf9fd; font:16px/1.62 Inter,ui-sans-serif,system-ui,sans-serif; }
+    header { padding:4rem max(1.4rem,calc((100vw - 1040px)/2)); color:white; background:linear-gradient(120deg,#28173d,#594099 70%,#7857bd); }
+    header p { max-width:780px; color:#e7def1; }
+    main { max-width:1040px; margin:auto; padding:2rem 1.4rem 5rem; }
+    nav { position:sticky; top:0; z-index:2; display:flex; gap:.7rem; padding:.75rem 1rem; overflow:auto; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.96); }
+    nav a { color:var(--purple); font-weight:700; text-decoration:none; white-space:nowrap; }
+    section { padding-top:2.6rem; }
+    h1,h2,h3 { font-family:Georgia,serif; line-height:1.18; }
+    h1 { margin:0; font-size:clamp(2rem,6vw,4rem); }
+    h2 { font-size:2rem; }
+    h3 { margin-top:1.8rem; }
+    .meta { font:13px/1.5 ui-monospace,SFMono-Regular,monospace; overflow-wrap:anywhere; }
+    .callout { margin:1.4rem 0; padding:1rem 1.2rem; border-left:5px solid var(--purple); border-radius:8px; background:var(--pale); }
+    .flow { display:grid; grid-template-columns:repeat(4,1fr); gap:.8rem; margin:1.4rem 0; }
+    .flow article { position:relative; min-height:120px; padding:1rem; border:1px solid var(--line); border-radius:12px; background:white; box-shadow:0 8px 24px rgb(45 28 66 / 7%); }
+    .flow article:not(:last-child)::after { content:"→"; position:absolute; right:-.72rem; top:42%; z-index:1; color:var(--purple); font-size:1.4rem; font-weight:900; }
+    .flow strong { display:block; color:var(--purple); }
+    .screen { display:grid; grid-template-columns:210px 1fr; min-height:300px; overflow:hidden; border:1px solid var(--line); border-radius:14px; background:white; box-shadow:0 10px 30px rgb(45 28 66 / 8%); }
+    .screen header { grid-column:1/-1; display:flex; align-items:center; gap:1rem; padding:1rem; background:#49306b; }
+    .screen .icon { width:60px; height:60px; display:grid; place-items:center; border-radius:14px; background:linear-gradient(#ddeecf,#7c9d6f); color:#243820; font-weight:900; }
+    .sidebar { padding:1rem; color:white; background:#302040; }
+    .sidebar div { margin:.5rem 0; padding:.45rem; border-radius:6px; background:rgb(255 255 255 / 8%); }
+    .content { padding:1.2rem; }
+    .cards { display:grid; grid-template-columns:repeat(2,1fr); gap:.8rem; }
+    .cards div { padding:1rem; border:1px solid var(--line); border-radius:10px; }
+    pre { max-width:100%; overflow:auto; padding:1rem; border-radius:10px; color:#f4edf9; background:#261a31; white-space:pre-wrap; }
+    code { font-family:ui-monospace,SFMono-Regular,monospace; }
+    table { width:100%; border-collapse:collapse; background:white; }
+    th,td { padding:.75rem; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:var(--pale); }
+    .quiz article { margin:1rem 0; padding:1.1rem; border:1px solid var(--line); border-radius:12px; background:white; }
+    .quiz button { display:block; width:100%; margin:.45rem 0; padding:.7rem; border:1px solid var(--line); border-radius:8px; text-align:left; color:var(--ink); background:#fff; cursor:pointer; }
+    .quiz button:hover { background:var(--pale); }
+    .feedback { min-height:1.6rem; font-weight:700; }
+    .correct { color:var(--green); } .wrong { color:#9b2944; }
+    @media(max-width:760px) { .flow { grid-template-columns:1fr; } .flow article:not(:last-child)::after { content:"↓"; right:50%; top:auto; bottom:-1.25rem; } .screen { grid-template-columns:1fr; } .sidebar { display:flex; flex-wrap:wrap; } .cards { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="meta">PR #20 · c030c142…28a3971f</p>
+    <h1>GateReeve becomes pleasant to dogfood</h1>
+    <p>Python discovery now finds the installation the user actually installed; Setup no longer distorts the workspace; workflow artifacts stay current; and Markdown gains safe emphasis and links without turning the observer into a browser or file explorer.</p>
+  </header>
+  <main>
+    <nav aria-label="Table of contents">
+      <a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#safety">Safety</a><a href="#quiz">Quiz</a>
+    </nav>
+
+    <section id="background">
+      <h2>Background</h2>
+      <p>GateReeve Desktop is an observer over one explicitly selected worktree. The Electron main process owns privileged operations: filesystem-backed canonical reads, native dialogs, and opening a validated URL. A sandboxed preload exposes a small named API. The renderer presents only the canonical snapshot and requests artifact details by their canonical IDs.</p>
+      <div class="flow" aria-label="GateReeve observation architecture">
+        <article><strong>Filesystem and tools</strong><span>Git, Python, agents, and governed feature files</span></article>
+        <article><strong>Main process</strong><span>Canonical observer, Setup probes, confined protocols, IPC validation</span></article>
+        <article><strong>Sandboxed preload</strong><span>Named operations, no shell and no arbitrary path API</span></article>
+        <article><strong>Renderer</strong><span>Setup, artifacts, state, history, and safe Markdown DOM</span></article>
+      </div>
+      <h3>Why the bugs appeared together</h3>
+      <p>They all sat at the seam between an observed external fact and its desktop presentation. Finder-launched applications inherit a restricted environment, so the first executable Python was Apple's old 3.9 even after Homebrew installed a newer one. Setup had been structurally separated from the normal workspace, so selecting it changed the grid. Artifact selection remembered an ID but not the file fingerprint, so snapshot changes did not cause a new named read. Finally, the intentionally small Markdown renderer recognized blocks and code but not ordinary inline emphasis or navigation.</p>
+      <div class="callout"><strong>Invariant:</strong> improving convenience must preserve observation boundaries. GateReeve may choose a canonical artifact or open a validated web URL, but Markdown can never nominate a filesystem path for the main process to read.</div>
+    </section>
+
+    <section id="intuition">
+      <h2>Intuition</h2>
+      <h3>1. Select by compatibility, not mere existence</h3>
+      <pre><code>candidates = [/usr/bin/python3, /opt/homebrew/bin/python3]
+/usr/bin/python3       → 3.9.6  → keep looking
+/opt/homebrew/bin/...  → 3.14.0 → select</code></pre>
+      <p>The discovery layer now returns every executable match in deterministic bounded order. Setup owns the policy question—“is this Python new enough?”—and stops at the first compatible answer. An explicit override is still authoritative and therefore never falls back.</p>
+      <h3>2. Move one Setup surface; do not duplicate it</h3>
+      <div class="screen" aria-label="Simplified selected-worktree Setup layout">
+        <header><div class="icon">vale</div><strong>GateReeve</strong></header>
+        <aside class="sidebar"><div>Overview</div><div>Setup</div><div>Artifacts</div><div>History</div></aside>
+        <div class="content"><h3>GateReeve Setup</h3><div class="cards"><div>Python<br><strong>Present</strong></div><div>Codex<br><strong>Ready</strong></div></div></div>
+      </div>
+      <p>With no worktree, Setup belongs in onboarding. With a worktree, the same DOM node moves into the ordinary workspace content area. The sidebar never changes owners or width.</p>
+      <h3>3. Treat the artifact fingerprint as cache coherence</h3>
+      <pre><code>selected = { id: "interview", fingerprint: modifiedAt + size }
+new snapshot arrives
+if same id and different fingerprint:
+    issue a new named read
+    accept only the newest request sequence</code></pre>
+      <p>The snapshot watcher was already the correct change trigger. The renderer now compares fingerprints and rereads only the selected item—no poller is added. A sequence number prevents an older asynchronous response from replacing newer content.</p>
+      <h3>4. Parse Markdown into nodes, then resolve links by capability</h3>
+      <p>The tokenizer emits text, <code>code</code>, <code>strong</code>, <code>em</code>, and accepted anchor nodes. Link resolution is separate: HTTP(S) becomes a validated native-open request; a relative path must exactly match the current canonical artifact inventory; a fragment stays in the current viewer. Everything else remains visible literal text.</p>
+    </section>
+
+    <section id="code">
+      <h2>Code walkthrough</h2>
+      <table>
+        <thead><tr><th>Area</th><th>Change</th><th>Why it is shaped this way</th></tr></thead>
+        <tbody>
+          <tr><td>Executable discovery</td><td>Adds an ordered multi-match API while retaining the old first-match API.</td><td>Python can apply compatibility policy without changing Git, GitHub CLI, Node, or agent discovery behavior.</td></tr>
+          <tr><td>Setup observer</td><td>Probes all bounded Python candidates, returns the first passing version, and aggregates failures.</td><td>Existence and compatibility are different observations; override semantics remain fail-closed.</td></tr>
+          <tr><td>Brand protocol and masthead</td><td>Serves one exact Rolling Vale route, replaces the monogram, and sizes the masthead explicitly.</td><td>The renderer receives the approved packaged asset without gaining a broad asset filesystem route.</td></tr>
+          <tr><td>Setup renderer</td><td>Reparents the existing Setup shell based on worktree selection.</td><td>One UI surface avoids divergent states while preserving onboarding and workspace layouts.</td></tr>
+          <tr><td>Artifact state</td><td>Tracks selected, successful, in-flight, and failed fingerprints plus a read sequence.</td><td>Automatic refresh is bounded, race-safe, retryable, and resilient to transient replacement failures.</td></tr>
+          <tr><td>Markdown DOM</td><td>Adds semantic inline tokenization, deterministic heading IDs, and accepted-link activation.</td><td>Text-node construction prevents HTML injection and gives fragments stable destinations.</td></tr>
+          <tr><td>External link IPC</td><td>Adds one HTTP(S)-only operation, validated in preload, shared contract, and main.</td><td>The renderer cannot smuggle credentials, another scheme, a path, or a generic native operation across the trust boundary.</td></tr>
+        </tbody>
+      </table>
+      <h3>Artifact failure states</h3>
+      <p>A failed reread does not blank the document. GateReeve keeps the last good DOM, inserts a visible stale warning, and leaves Refresh available. If the artifact disappears from canonical inventory, it does clear the viewer because retaining it would falsely imply that the file is still governed and available.</p>
+    </section>
+
+    <section id="safety">
+      <h2>Safety and evidence</h2>
+      <ul>
+        <li>No dependency or lockfile changed.</li>
+        <li>No continuous polling was added; existing snapshot publications trigger refresh.</li>
+        <li>No artifact content is assigned through <code>innerHTML</code>.</li>
+        <li>Markdown images remain literal and cannot load local or remote content.</li>
+        <li>Relative links can select only existing, safe entries in the current canonical inventory.</li>
+        <li>External URLs are limited to credential-free HTTP(S) and revalidated at the privileged boundary.</li>
+        <li>Window navigation and popup denial remain in force.</li>
+      </ul>
+      <div class="callout"><strong>Verification:</strong> 92/92 Desktop tests pass. The production renderer visual fixture passes at ordinary and minimum dimensions. Packaged macOS signing, notarization, architecture, Homebrew, and installed-app checks intentionally remain in the post-merge release phase.</div>
+    </section>
+
+    <section id="quiz" class="quiz">
+      <h2>Quiz</h2>
+      <p>Choose an answer. Feedback appears immediately.</p>
+      <article data-answer="b"><h3>1. Why does discovery return multiple Python executables?</h3><button data-choice="a">To merge all Python search paths into the application environment</button><button data-choice="b">To let Setup continue until a bounded candidate satisfies the minimum version</button><button data-choice="c">To run prerequisite checks concurrently across every executable</button><div class="feedback"></div></article>
+      <article data-answer="c"><h3>2. What happens when an explicit Python override is incompatible?</h3><button data-choice="a">GateReeve tries Homebrew next but retains an override warning</button><button data-choice="b">GateReeve ignores the override if Finder cannot see its parent directory</button><button data-choice="c">GateReeve reports that exact override as incompatible and does not fall back</button><div class="feedback"></div></article>
+      <article data-answer="a"><h3>3. What triggers automatic artifact refresh?</h3><button data-choice="a">A canonical snapshot publishes a different modified-time or size fingerprint for the selected artifact</button><button data-choice="b">A new renderer poll detects different Markdown text every five seconds</button><button data-choice="c">The user revisits the Artifacts tab after a watcher event</button><div class="feedback"></div></article>
+      <article data-answer="b"><h3>4. Why can a relative Markdown link not read an arbitrary file?</h3><button data-choice="a">Electron strips all parent-directory components before forwarding the path to the main process</button><button data-choice="b">The renderer resolves it only to a current canonical inventory entry and sends that artifact's ID</button><button data-choice="c">The application protocol permits reads only from the user's home directory</button><div class="feedback"></div></article>
+      <article data-answer="c"><h3>5. Why is the last good artifact content retained after a transient failure?</h3><button data-choice="a">The canonical observer guarantees the previous bytes remain current until the next successful read</button><button data-choice="b">The iframe cache is authoritative when the named read reports an error</button><button data-choice="c">It preserves reading continuity while a visible stale warning and manual retry prevent false confidence</button><div class="feedback"></div></article>
+    </section>
+  </main>
+  <script>
+    const explanations = {
+      a: 'Review the distinction between canonical snapshot triggers, polling, and named reads.',
+      b: 'Review how compatibility policy and canonical inventory constrain otherwise broad-looking actions.',
+      c: 'Review the fail-closed override and resilient last-good-content contracts.'
+    };
+    for (const card of document.querySelectorAll('[data-answer]')) {
+      for (const button of card.querySelectorAll('button')) {
+        button.addEventListener('click', () => {
+          const correct = button.dataset.choice === card.dataset.answer;
+          const output = card.querySelector('.feedback');
+          output.className = `feedback ${correct ? 'correct' : 'wrong'}`;
+          output.textContent = correct ? 'Correct — that preserves the bounded observer contract.' : `Not quite. ${explanations[button.dataset.choice]}`;
+        });
+      }
+    }
+  </script>
+</body>
+</html>

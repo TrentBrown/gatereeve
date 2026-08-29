@@ -166,9 +166,24 @@ const state = {
   preferences: { notificationsEnabled: false, recentWorktrees: [], selectedAgents: ['codex'] },
 };
 
+const updateState = {
+  schemaVersion: 1,
+  status: 'idle',
+  source: null,
+  currentVersion: '0.1.0',
+  checkedAt: null,
+  available: null,
+  detail: null,
+};
+
 window.gatereeveDesktop = Object.freeze({
   async getState() { return state; },
   subscribe() { return () => {}; },
+  async getUpdateState() { return updateState; },
+  subscribeUpdates() { return () => {}; },
+  async checkForUpdates() { return updateState; },
+  async openUpdateRelease() { return true; },
+  async openExternalLink() { return true; },
   async chooseWorktree() { return state; },
   async openRecent() { return state; },
   async refresh() { return state; },
@@ -197,6 +212,15 @@ window.gatereeveDesktop = Object.freeze({
     if (kind === 'events') return { kind, data: { events } };
     if (kind === 'attempt') return { kind, data: { attempt } };
     const artifact = artifacts.find((item) => item.id === id);
-    return { kind, data: { artifact, content: '# GateReeve artifact\n\nThis is a representative visual fixture.', structured: null } };
+    return {
+      kind,
+      data: {
+        artifact,
+        content: '# GateReeve artifact\n\n**Feature start:** safe and *current*. '
+          + '[Read the spec](spec.md) or [jump to details](#details).\n\n'
+          + '## Details\n\nThis is a representative visual fixture.',
+        structured: null,
+      },
+    };
   },
 });

@@ -10,6 +10,7 @@ const channels = Object.freeze({
   getUpdateState: 'gatereeve:desktop:get-update-state',
   listSession: 'gatereeve:desktop:list-session',
   openArtifact: 'gatereeve:desktop:open-artifact',
+  openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
   openRecent: 'gatereeve:desktop:open-recent',
   readDetail: 'gatereeve:desktop:read-detail',
@@ -111,6 +112,26 @@ function requireClipboardText(value) {
   return value;
 }
 
+function requireExternalLink(value) {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 8_192) {
+    throw new TypeError('External link is invalid. Only HTTP(S) links are allowed.');
+  }
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new TypeError('External link is invalid. Only HTTP(S) links are allowed.');
+  }
+  if (
+    !['http:', 'https:'].includes(url.protocol)
+    || url.username.length > 0
+    || url.password.length > 0
+  ) {
+    throw new TypeError('External link is invalid. Only HTTP(S) links are allowed.');
+  }
+  return url.href;
+}
+
 function requireSessionId(value) {
   if (typeof value !== 'string' || !/^session:[a-z-]+:[A-Za-z0-9_-]+$/.test(value)) {
     throw new TypeError('Session item ID is invalid.');
@@ -183,6 +204,10 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
   openArtifact: async (artifactId) => ipcRenderer.invoke(
     channels.openArtifact,
     { artifactId: requireArtifactId(artifactId) },
+  ),
+  openExternalLink: async (url) => ipcRenderer.invoke(
+    channels.openExternalLink,
+    requireExternalLink(url),
   ),
   openRecent: async (path) => requireState(await ipcRenderer.invoke(
     channels.openRecent,

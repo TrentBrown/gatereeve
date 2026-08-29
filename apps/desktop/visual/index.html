@@ -5,11 +5,15 @@
     <title>GateReeve Desktop visual fixture</title>
   </head>
   <body>
-    <script src="visual-fixture.js"></script>
     <script type="module">
+      await import(`./visual-fixture.js${window.location.search}`);
       const source = await fetch('../renderer/index.html').then((response) => response.text());
       const parsed = new DOMParser().parseFromString(source, 'text/html');
       parsed.querySelector('script[src="renderer.js"]')?.remove();
+      parsed.querySelector('.brand-mark')?.setAttribute(
+        'src',
+        '../assets/branding/gatereeve-rolling-vale.png',
+      );
       const base = document.createElement('base');
       base.href = '../renderer/';
       document.head.replaceChildren(base, ...parsed.head.childNodes);

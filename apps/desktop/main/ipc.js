@@ -6,6 +6,7 @@ import {
   requireCopyText,
   requireDesktopState,
   requireDetailRequest,
+  requireExternalLink,
   requireNotificationsEnabled,
   requireSelectedAgents,
   requireSessionDetail,
@@ -62,6 +63,12 @@ export function registerDesktopIpc({
   ipcMain.handle(IPC_CHANNELS.openUpdateRelease, async (event, ...values) => {
     noArguments(event, values);
     await openExternal(updateCoordinator.releasePage());
+    return true;
+  });
+  ipcMain.handle(IPC_CHANNELS.openExternalLink, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('External link opening requires one URL.');
+    await openExternal(requireExternalLink(values[0]));
     return true;
   });
   ipcMain.handle(IPC_CHANNELS.chooseWorktree, async (event, ...values) => {

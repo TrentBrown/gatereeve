@@ -29,6 +29,7 @@ const ids = [
   'check-updates', 'update-banner', 'update-title', 'update-detail', 'open-update',
 ];
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
+const onboardingSetupParent = elements['setup-shell'].parentElement;
 
 let currentState = null;
 let currentUpdate = null;
@@ -42,6 +43,12 @@ let eventsKey = null;
 let eventsPromise = null;
 let sessionInventory = null;
 let sessionPromise = null;
+let selectedArtifactId = null;
+let selectedArtifactFingerprint = null;
+let artifactInFlightFingerprint = null;
+let artifactFailedFingerprint = null;
+let artifactReadSequence = 0;
+let artifactHasContent = false;
 let toastTimer = null;
 let renderedOnce = false;
 
@@ -99,9 +106,14 @@ function switchView(view) {
   currentView = view;
   const setup = view === 'setup';
   const selected = currentState?.selection !== null && currentState?.selection !== undefined;
+  if (setup && selected && elements['setup-shell'].parentElement !== elements.workspace) {
+    elements.workspace.append(elements['setup-shell']);
+  } else if (setup && !selected && elements['setup-shell'].parentElement !== onboardingSetupParent) {
+    onboardingSetupParent.insertBefore(elements['setup-shell'], elements.workspace);
+  }
   elements['setup-shell'].hidden = !setup;
   elements.chooser.hidden = setup || selected;
-  elements.workspace.hidden = setup || !selected;
+  elements.workspace.hidden = !selected;
   for (const page of document.querySelectorAll('[data-page]')) {
     page.hidden = setup || !selected || page.dataset.page !== view;
   }
@@ -509,8 +521,31 @@ function artifactButton(artifact) {
     exactId(artifact.id),
   ]);
   button.dataset.artifactId = artifact.id;
+  button.classList.toggle('selected', artifact.id === selectedArtifactId);
   button.addEventListener('click', () => void openArtifact(artifact));
   return button;
+}
+
+function artifactFingerprint(artifact) {
+  return `${artifact.modifiedAt ?? 'unknown'}\0${artifact.size ?? 'unknown'}`;
+}
+
+function resetArtifactSelection(message = 'Select an artifact') {
+  artifactReadSequence += 1;
+  selectedArtifactId = null;
+  selectedArtifactFingerprint = null;
+  artifactInFlightFingerprint = null;
+  artifactFailedFingerprint = null;
+  artifactHasContent = false;
+  selectCollection('[data-artifact-id]', '', 'artifactId');
+  clear(elements['artifact-viewer']).append(node('div', { className: 'empty-state' }, [
+    node('h3', { text: message }),
+    node('p', {
+      text: message === 'Select an artifact'
+        ? 'Content is loaded only when requested.'
+        : 'Choose another artifact from the canonical inventory.',
+    }),
+  ]));
 }
 
 function renderArtifacts(snapshot) {
@@ -519,9 +554,27 @@ function renderArtifacts(snapshot) {
   clear(elements['artifact-list']);
   if (artifacts.length === 0) {
     elements['artifact-list'].append(node('p', { className: 'muted', text: 'No artifact inventory is available in this mode.' }));
+    if (selectedArtifactId !== null) {
+      resetArtifactSelection('The selected artifact is no longer available');
+    }
     return;
   }
   for (const artifact of artifacts) elements['artifact-list'].append(artifactButton(artifact));
+  if (selectedArtifactId === null) return;
+  const selected = artifacts.find((artifact) => artifact.id === selectedArtifactId);
+  if (!selected?.exists || selected.unsafe) {
+    resetArtifactSelection('The selected artifact is no longer available');
+    return;
+  }
+  selectCollection('[data-artifact-id]', selected.id, 'artifactId');
+  const fingerprint = artifactFingerprint(selected);
+  if (
+    fingerprint !== selectedArtifactFingerprint
+    && fingerprint !== artifactInFlightFingerprint
+    && fingerprint !== artifactFailedFingerprint
+  ) {
+    void readArtifact(selected, { preserveContent: artifactHasContent });
+  }
 }
 
 function selectCollection(selector, value, dataKey) {
@@ -530,49 +583,236 @@ function selectCollection(selector, value, dataKey) {
   }
 }
 
-async function openArtifact(artifact) {
-  selectCollection('[data-artifact-id]', artifact.id, 'artifactId');
-  const viewer = clear(elements['artifact-viewer']);
-  viewer.append(node('div', { className: 'empty-state' }, [
-    node('h3', { text: 'Loading artifact…' }),
-  ]));
+function captureArtifactScroll() {
+  const viewer = elements['artifact-viewer'];
+  const scrollTop = Number(viewer.scrollTop) || 0;
+  const scrollHeight = Number(viewer.scrollHeight) || 0;
+  const clientHeight = Number(viewer.clientHeight) || 0;
+  const maximum = Math.max(0, scrollHeight - clientHeight);
+  return { scrollTop, nearBottom: maximum - scrollTop <= 48 };
+}
+
+function restoreArtifactScroll(position) {
+  if (position === null) return;
+  const viewer = elements['artifact-viewer'];
+  const maximum = Math.max(
+    0,
+    (Number(viewer.scrollHeight) || 0) - (Number(viewer.clientHeight) || 0),
+  );
+  viewer.scrollTop = position.nearBottom
+    ? maximum
+    : Math.min(position.scrollTop, maximum);
+}
+
+function artifactActions(artifact) {
+  const actions = node('div', { className: 'viewer-actions' });
+  const refresh = node('button', {
+    className: 'secondary',
+    text: 'Refresh',
+    type: 'button',
+    attributes: { 'data-artifact-refresh': '' },
+  });
+  refresh.addEventListener('click', () => {
+    const current = currentState?.snapshot?.artifacts?.find(
+      (item) => item.id === selectedArtifactId && item.exists && !item.unsafe,
+    );
+    if (current) void readArtifact(current, { preserveContent: artifactHasContent, force: true });
+  });
+  const open = node('button', { className: 'secondary', text: 'Open externally', type: 'button' });
+  open.addEventListener('click', () => void desktop.openArtifact(artifact.id));
+  const reveal = node('button', { className: 'secondary', text: 'Reveal', type: 'button' });
+  reveal.addEventListener('click', () => void desktop.revealArtifact(artifact.id));
+  actions.append(refresh, open, reveal);
+  return actions;
+}
+
+function normalizeArtifactPath(currentPath, targetPath) {
+  if (
+    targetPath === ''
+    || targetPath.startsWith('/')
+    || targetPath.includes('\\')
+    || targetPath.includes('?')
+  ) return null;
+  let decoded;
   try {
-    const detail = await desktop.readDetail('artifact', artifact.id);
-    const current = detail.data.artifact;
-    const toolbar = node('div', { className: 'viewer-toolbar' }, [
-      node('div', {}, [
-        node('h3', { text: current.label }),
-        node('p', { className: 'path', text: `${current.path} · ${current.id}` }),
-      ]),
-    ]);
-    const actions = node('div', { className: 'viewer-actions' });
-    const open = node('button', { className: 'secondary', text: 'Open externally', type: 'button' });
-    open.addEventListener('click', () => void desktop.openArtifact(current.id));
-    const reveal = node('button', { className: 'secondary', text: 'Reveal', type: 'button' });
-    reveal.addEventListener('click', () => void desktop.revealArtifact(current.id));
-    actions.append(open, reveal);
-    toolbar.append(actions);
-    clear(viewer).append(toolbar);
-    const content = node('div');
-    viewer.append(content);
-    if (current.format === 'markdown') {
-      renderMarkdown(content, detail.data.content);
-    } else if (current.format === 'json' || current.format === 'jsonl') {
-      renderJson(content, detail.data.structured);
-    } else if (current.format === 'html') {
-      const frame = node('iframe', {
-        title: `${current.label} interactive explanation`,
-        attributes: {
-          src: `gatereeve-artifact://desktop/${encodeURIComponent(current.id)}`,
-        },
-      });
-      content.append(frame);
-    } else {
-      content.append(node('pre', { text: detail.data.content }));
+    decoded = decodeURIComponent(targetPath);
+  } catch {
+    return null;
+  }
+  if (decoded.startsWith('/') || decoded.includes('\\') || decoded.includes('?')) return null;
+  const segments = String(currentPath).split('/').slice(0, -1);
+  for (const segment of decoded.split('/')) {
+    if (segment === '' || segment === '.') continue;
+    if (segment === '..') {
+      if (segments.length === 0) return null;
+      segments.pop();
+      continue;
+    }
+    segments.push(segment);
+  }
+  return segments.join('/');
+}
+
+function resolveMarkdownLink(currentArtifact, rawTarget) {
+  const target = String(rawTarget).trim();
+  if (target === '') return null;
+  if (/^https?:/iu.test(target)) {
+    try {
+      const url = new URL(target);
+      if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return null;
+      return { kind: 'external', url: url.href };
+    } catch {
+      return null;
+    }
+  }
+  if (/^[a-z][a-z\d+.-]*:/iu.test(target) || target.startsWith('//')) return null;
+  if (target.startsWith('#')) {
+    try {
+      return { kind: 'fragment', fragment: decodeURIComponent(target.slice(1)) };
+    } catch {
+      return null;
+    }
+  }
+  const hash = target.indexOf('#');
+  const pathTarget = hash === -1 ? target : target.slice(0, hash);
+  let fragment = null;
+  if (hash !== -1) {
+    try {
+      fragment = decodeURIComponent(target.slice(hash + 1));
+    } catch {
+      return null;
+    }
+  }
+  const resolvedPath = normalizeArtifactPath(currentArtifact.path, pathTarget);
+  if (resolvedPath === null) return null;
+  const artifact = currentState?.snapshot?.artifacts?.find(
+    (candidate) => candidate.path === resolvedPath && candidate.exists && !candidate.unsafe,
+  );
+  if (!artifact) return null;
+  return { kind: 'artifact', artifactId: artifact.id, fragment };
+}
+
+function scrollToArtifactFragment(fragment) {
+  if (!fragment) return;
+  const target = [...elements['artifact-viewer'].querySelectorAll('[id]')]
+    .find((candidate) => candidate.id === fragment);
+  target?.scrollIntoView?.();
+}
+
+async function activateMarkdownLink(link) {
+  try {
+    if (link.kind === 'external') {
+      await desktop.openExternalLink(link.url);
+      return;
+    }
+    if (link.kind === 'fragment') {
+      scrollToArtifactFragment(link.fragment);
+      return;
+    }
+    if (link.kind === 'artifact') {
+      const artifact = currentState?.snapshot?.artifacts?.find(
+        (candidate) => candidate.id === link.artifactId && candidate.exists && !candidate.unsafe,
+      );
+      if (!artifact) return;
+      await openArtifact(artifact);
+      scrollToArtifactFragment(link.fragment);
     }
   } catch (error) {
-    clear(viewer).append(node('div', { className: 'notice danger', text: error.message ?? String(error) }));
+    showToast(error.message ?? String(error));
   }
+}
+
+function renderArtifactDetail(detail, requestSequence, position) {
+  const viewer = clear(elements['artifact-viewer']);
+  const current = detail.data.artifact;
+  const toolbar = node('div', { className: 'viewer-toolbar' }, [
+    node('div', {}, [
+      node('h3', { text: current.label }),
+      node('p', { className: 'path', text: `${current.path} · ${current.id}` }),
+    ]),
+    artifactActions(current),
+  ]);
+  viewer.append(toolbar);
+  const content = node('div');
+  viewer.append(content);
+  if (current.format === 'markdown') {
+    renderMarkdown(content, detail.data.content, {
+      resolveLink: (target) => resolveMarkdownLink(current, target),
+      activateLink: (link) => void activateMarkdownLink(link),
+    });
+  } else if (current.format === 'json' || current.format === 'jsonl') {
+    renderJson(content, detail.data.structured);
+  } else if (current.format === 'html') {
+    const frame = node('iframe', {
+      title: `${current.label} interactive explanation`,
+      attributes: {
+        src: `gatereeve-artifact://desktop/${encodeURIComponent(current.id)}?refresh=${requestSequence}`,
+      },
+    });
+    content.append(frame);
+  } else {
+    content.append(node('pre', { text: detail.data.content }));
+  }
+  artifactHasContent = true;
+  restoreArtifactScroll(position);
+}
+
+function showArtifactRefreshFailure(artifact, error) {
+  const viewer = elements['artifact-viewer'];
+  viewer.querySelector('.artifact-refresh-warning')?.remove();
+  if (!artifactHasContent) {
+    const toolbar = node('div', { className: 'viewer-toolbar' }, [
+      node('div', {}, [
+        node('h3', { text: artifact.label }),
+        node('p', { className: 'path', text: `${artifact.path} · ${artifact.id}` }),
+      ]),
+      artifactActions(artifact),
+    ]);
+    clear(viewer).append(toolbar);
+  }
+  const warning = node('div', {
+    className: 'notice danger artifact-refresh-warning',
+    text: `Refresh failed. Showing the last successfully loaded content when available. ${error.message ?? String(error)}`,
+  });
+  const toolbar = viewer.querySelector('.viewer-toolbar');
+  viewer.insertBefore(warning, toolbar?.nextSibling ?? viewer.firstChild);
+}
+
+async function readArtifact(artifact, { preserveContent = false, force = false } = {}) {
+  selectedArtifactId = artifact.id;
+  const fingerprint = artifactFingerprint(artifact);
+  artifactInFlightFingerprint = fingerprint;
+  if (force) artifactFailedFingerprint = null;
+  selectCollection('[data-artifact-id]', artifact.id, 'artifactId');
+  const position = preserveContent ? captureArtifactScroll() : null;
+  const requestSequence = ++artifactReadSequence;
+  if (!preserveContent) {
+    artifactHasContent = false;
+    clear(elements['artifact-viewer']).append(node('div', { className: 'empty-state' }, [
+      node('h3', { text: 'Loading artifact…' }),
+    ]));
+  }
+  try {
+    const detail = await desktop.readDetail('artifact', artifact.id);
+    if (requestSequence !== artifactReadSequence || selectedArtifactId !== artifact.id) return;
+    renderArtifactDetail(detail, requestSequence, position);
+    selectedArtifactFingerprint = fingerprint;
+    artifactFailedFingerprint = null;
+  } catch (error) {
+    if (requestSequence !== artifactReadSequence || selectedArtifactId !== artifact.id) return;
+    artifactFailedFingerprint = fingerprint;
+    showArtifactRefreshFailure(artifact, error);
+    restoreArtifactScroll(position);
+  } finally {
+    if (requestSequence === artifactReadSequence) artifactInFlightFingerprint = null;
+  }
+}
+
+async function openArtifact(artifact) {
+  selectedArtifactFingerprint = null;
+  artifactFailedFingerprint = null;
+  artifactHasContent = false;
+  await readArtifact(artifact);
 }
 
 function renderHistoryList(events) {
@@ -801,6 +1041,7 @@ function render(state) {
   if (!renderedOnce && state.preferences.selectedAgents.length === 0) currentView = 'setup';
   renderedOnce = true;
   if (!selected) {
+    if (previousSelection !== undefined) resetArtifactSelection();
     elements.activity.textContent = state.setup.phase === 'checking'
       ? 'Checking GateReeve setup…'
       : state.setup.operationalReady ? 'Setup ready · choose a worktree' : 'Setup incomplete · historical records remain readable';
@@ -809,6 +1050,7 @@ function render(state) {
   }
 
   if (previousSelection !== state.selection.worktreePath) {
+    resetArtifactSelection();
     modelDetail = null;
     modelKey = null;
     eventsDetail = null;
@@ -821,6 +1063,7 @@ function render(state) {
   } else if (refreshStarted) {
     sessionInventory = null;
   }
+  if (refreshStarted) artifactFailedFingerprint = null;
 
   const snapshot = state.snapshot;
   elements.mode.textContent = snapshot?.mode ?? state.phase;
