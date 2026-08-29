@@ -146,8 +146,11 @@ PR #23 merged the fail-closed predecessor verification and exact prepared
 packet into `main` as `18a24fa18746264439a93a09fcc5cdf178a85cd9`.
 The continuation slice
 `desktop-dogfood-cask-publication-and-installation` is implementing. Public
-Homebrew installation or upgrade and the installed-app checklist on the user's
-Mac are the only remaining I-9 operations.
+Trent Brown completed the public Homebrew upgrade from rc.1 to rc.2 on the user
+Mac. The installed Cask inventory reports `gatereeve 0.1.0-rc.2`; strict deep
+code-signing verification passes, and Gatekeeper accepts the app as Notarized
+Developer ID. Application launch and the installed AC1-AC7 checklist are the
+only remaining I-9 operations.
 
 ## I-10 - Complete the feature rubric and report
 

@@ -123,5 +123,7 @@
   `0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
   [Hosted run 33262844457](https://github.com/TrentBrown/gatereeve/actions/runs/33262844457)
   passed public installation and disposable upgrade on arm64 and x64. The
-  user's own public Homebrew install/upgrade and installed-app checklist
-  remain.
+  Trent Brown's user Mac then upgraded through the public Cask from rc.1 to
+  rc.2; the resulting Cask inventory, strict deep signature verification, and
+  Notarized Developer ID Gatekeeper acceptance pass. Application launch and
+  the installed AC1-AC7 checklist remain.

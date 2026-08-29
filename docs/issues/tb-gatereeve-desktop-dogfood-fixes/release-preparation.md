@@ -98,5 +98,9 @@ acceptance, and universal binaries.
 The user explicitly approved both public coordinated publication and the
 separate exact Homebrew plan in the active conversation. The repository-owned
 publishers completed all coordinated surfaces and the public Cask mutation.
-The user's own public Homebrew installation or upgrade and installed-app
-checklist remain required before R8 can pass.
+Trent Brown then completed the real user-Mac Homebrew transition from rc.1 to
+rc.2. The [upgrade evidence](evidence/v0.1.0-rc.2/cask/user-mac-homebrew-upgrade.md)
+records the exact Cask inventory, successful application replacement, strict
+deep code-signing validation, and Gatekeeper acceptance as Notarized Developer
+ID. Application launch and the installed AC1-AC7 checklist remain required
+before R8 can pass.
