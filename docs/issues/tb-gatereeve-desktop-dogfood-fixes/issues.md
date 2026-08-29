@@ -118,7 +118,7 @@ PR #21 merged the reviewed preparation record into `main` as
 
 ## I-9 - Publish and install the approved Homebrew release
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 0.5d
 - **Plan steps:** P9
 - **Rubric criteria:** R8
@@ -127,6 +127,12 @@ PR #21 merged the reviewed preparation record into `main` as
 
 After explicit release approval, publish the coordinated artifacts, update and
 smoke the cask, upgrade the user's Mac, and run the installed-app checklist.
+
+The approved coordinated publication is complete: tag `v0.1.0-rc.2`, Plugin
+marketplace commit `22c2d841e833af4d2aec351cf61d54dafaf8fcd3`, signed Desktop
+prerelease, manifest [PR #22](https://github.com/TrentBrown/gatereeve/pull/22),
+and the Early Access website all verify. Direct installation of the exact
+public DMG on the user's Mac is the next required cask-packet input.
 
 ## I-10 - Complete the feature rubric and report
 

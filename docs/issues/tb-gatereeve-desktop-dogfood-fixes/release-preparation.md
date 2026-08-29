@@ -57,15 +57,23 @@ The repository-owned inspector accepted the packet. The generated
 The read-only [publication dry run](evidence/v0.1.0-rc.2/publication-dry-run.json)
 passed with all five public surfaces still pending.
 
-Homebrew packet preparation is intentionally deferred to P9. The
-repository-owned `prepare-cask` contract requires truthful direct-installation
-proof for this exact DMG, which cannot exist before the still-unapproved public
-release is available on the user's Mac. Decision 4 in `scratchpad.md` records
-this sequencing constraint.
+The coordinated release was approved against that exact plan digest and is now
+published. The immutable record preserves receipts for tag `v0.1.0-rc.2`,
+Plugin marketplace commit `22c2d841e833af4d2aec351cf61d54dafaf8fcd3`, the
+[signed Desktop prerelease](https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.2),
+manifest [PR #22](https://github.com/TrentBrown/gatereeve/pull/22) merged as
+`b3adff3c4551ee090967885b3051c23a2ae0adb2`, and the production Early Access
+manifest with SHA-256
+`23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b`.
+
+Homebrew packet preparation remains deferred within P9. The repository-owned
+`prepare-cask` contract requires truthful direct-installation proof for this
+exact public DMG on the user's Mac. Decision 4 records this sequencing
+constraint.
 
 ## Publication boundary
 
-Environment review grants this run access to the Apple credentials only. It
-does not authorize or perform a tag, GitHub release, marketplace publication,
-update-manifest change, or Homebrew mutation. Those public changes remain a
-separate exact-plan approval boundary.
+The user explicitly approved public publication in the active conversation.
+The repository-owned publisher completed all five approved coordinated
+surfaces. Homebrew remains a distinct exact-plan approval boundary after direct
+installation proof and cask-packet inspection.

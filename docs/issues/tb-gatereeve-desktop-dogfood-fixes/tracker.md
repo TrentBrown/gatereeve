@@ -54,14 +54,16 @@
   credential cleanup passed
 - **Trusted native verification:** ARM64 and Intel both passed against DMG
   SHA-256 `ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f`
-- **Publication preflight:** Immutable record inspection and exact coordinated
-  dry run passed for plan SHA-256
-  `88b18713d9d91d9d98bb5068d11faf2f235bf172e2b0120bcd327d363612eb76`;
-  every public surface remains pending
+- **Publication:** The exact approved plan SHA-256
+  `88b18713d9d91d9d98bb5068d11faf2f235bf172e2b0120bcd327d363612eb76`
+  completed all five surfaces: tag, Plugin marketplace, signed Desktop
+  prerelease, manifest [PR #22](https://github.com/TrentBrown/gatereeve/pull/22)
+  at merge `b3adff3c4551ee090967885b3051c23a2ae0adb2`, and Early Access website
 - **Homebrew sequencing:** Exact cask packet and dry run move to P9 because the
   cask contract requires direct installation of the exact published DMG
-- **Current boundary:** Release publication remains unapproved; R8 remains
-  `NOT YET` until publication, Homebrew upgrade, and installed-app verification
+- **Current boundary:** R8 remains `NOT YET` until direct DMG installation,
+  separately approved Homebrew publication, public-cask upgrade, and
+  installed-app verification
 
 ### PR #21 - Trusted release preparation evidence
 

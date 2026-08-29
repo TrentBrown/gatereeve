@@ -77,3 +77,28 @@ Treat the coordinated Apple-trusted packet and coordinated publication dry run a
 
 **Alternatives considered:**
 Fabricate or predate direct-install evidence — rejected because it breaks the cask trust contract; publish during P8 — rejected because the approved plan requires a separate release boundary; weaken prepare-cask — rejected because no product defect requires changing the proven release engine.
+
+## [5] Resume coordinated publication only after the generated manifest PR is clean
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Coordinated publication recovery, generated manifest PR #22, and public release receipts
+
+Preserve the publisher's fail-closed mergeability guard when the generated
+manifest PR is temporarily `UNSTABLE`. Wait for the exact PR head's required
+checks, then rerun the same approved release record and plan digest. The retry
+must retain completed tag, marketplace, and prerelease receipts and resume at
+the pending manifest surface.
+
+**Triggered by:** The first approved publication attempt safely stopped while
+PR #22's packaged-runtime checks were still running; the PR became `CLEAN`
+after both architectures passed, and the idempotent retry completed publication.
+
+**Alternatives considered:**
+Merge PR #22 manually while checks are pending — rejected because it bypasses
+the publisher's exact clean-merge guard. Delete and recreate published surfaces
+— rejected because the release record requires convergent recovery without
+replacing immutable public identities. Generate a new plan — rejected because
+the existing approved plan and bytes remained unchanged.
