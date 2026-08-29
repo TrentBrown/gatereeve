@@ -7,7 +7,7 @@ export function browserWindowOptions(preload, geometry = null) {
     width: geometry?.width ?? 1180,
     height: geometry?.height ?? 780,
     ...(geometry ? { x: geometry.x, y: geometry.y } : {}),
-    minWidth: 760,
+    minWidth: 940,
     minHeight: 560,
     show: false,
     title: 'GateReeve',
@@ -26,6 +26,46 @@ export function browserWindowOptions(preload, geometry = null) {
       webviewTag: false,
     },
   };
+}
+
+export function layoutAccelerators(platform = process.platform) {
+  return {
+    sidebar: 'CommandOrControl+B',
+    inspector: platform === 'darwin' ? 'Command+Alt+B' : 'Control+Alt+B',
+  };
+}
+
+export function applicationMenuTemplate({
+  platform = process.platform,
+  onToggleSidebar,
+  onToggleInspector,
+}) {
+  const accelerators = layoutAccelerators(platform);
+  return [
+    ...(platform === 'darwin' ? [{ role: 'appMenu' }] : []),
+    { role: 'editMenu' },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { type: 'separator' },
+        {
+          label: 'Toggle Project Sidebar',
+          accelerator: accelerators.sidebar,
+          click: onToggleSidebar,
+        },
+        {
+          label: 'Toggle Inspector',
+          accelerator: accelerators.inspector,
+          click: onToggleInspector,
+        },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    { role: 'windowMenu' },
+  ];
 }
 
 export function secureWindowNavigation(window) {

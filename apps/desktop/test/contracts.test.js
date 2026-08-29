@@ -112,6 +112,7 @@ test('IPC allow-list contains no workflow mutation or process-execution surface'
     'gatereeve:desktop:copy-text',
     'gatereeve:desktop:get-state',
     'gatereeve:desktop:get-update-state',
+    'gatereeve:desktop:layout-command',
     'gatereeve:desktop:list-session',
     'gatereeve:desktop:open-artifact',
     'gatereeve:desktop:open-external-link',

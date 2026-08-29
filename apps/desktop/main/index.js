@@ -9,6 +9,7 @@ import {
   clipboard,
   dialog,
   ipcMain,
+  Menu,
   Notification,
   protocol,
   session,
@@ -16,6 +17,7 @@ import {
 } from 'electron';
 
 import { createDesktopCoordinator } from './coordinator.js';
+import { IPC_CHANNELS } from '../shared/contracts.js';
 import { discoverDesktopExecutables } from './executable-discovery.js';
 import { observeGit } from './git-observer.js';
 import { observeGitHub } from './github-observer.js';
@@ -29,6 +31,7 @@ import { createUpdateCoordinator } from './update-coordinator.js';
 import {
   bindFocusRefresh,
   browserWindowOptions,
+  applicationMenuTemplate,
   RENDERER_URL,
   secureWindowNavigation,
 } from './window.js';
@@ -128,6 +131,10 @@ async function startDesktop() {
   ));
   secureWindowNavigation(window);
   bindFocusRefresh(window, coordinator);
+  Menu.setApplicationMenu(Menu.buildFromTemplate(applicationMenuTemplate({
+    onToggleSidebar: () => window.webContents.send(IPC_CHANNELS.layoutCommand, 'toggle-sidebar'),
+    onToggleInspector: () => window.webContents.send(IPC_CHANNELS.layoutCommand, 'toggle-inspector'),
+  })));
   registerDesktopIpc({
     ipcMain,
     coordinator,
@@ -197,7 +204,7 @@ async function startDesktop() {
             && ${expectedFeatureId === null
               ? 'true'
               : `document.querySelector('#workspace')?.hidden === false
-                && document.querySelector('#feature')?.textContent === ${JSON.stringify(expectedFeatureId)}`}
+                && document.querySelector('#project-context')?.textContent.includes(${JSON.stringify(expectedFeatureId)})`}
           );
           if (ready || attempts >= 120) resolve(ready);
           else {

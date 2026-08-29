@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #28 · Application shell and unified inspector</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #20172d;
+      --muted: #71677b;
+      --purple: #5c4092;
+      --purple-dark: #2b183f;
+      --purple-soft: #f1ebf8;
+      --green: #246b4d;
+      --green-soft: #eaf7f0;
+      --amber: #8c5816;
+      --amber-soft: #fff5dd;
+      --line: #ded5e7;
+      --paper: #fff;
+      --canvas: #f7f4fa;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; color: var(--ink); background: var(--canvas); font: 16px/1.62 Inter, ui-sans-serif, system-ui, sans-serif; }
+    header { padding: 4.5rem max(1.25rem, calc((100vw - 1080px) / 2)); color: #fff; background: linear-gradient(130deg, var(--purple-dark), var(--purple) 72%, #8061b7); }
+    header p { max-width: 760px; margin: 1rem 0 0; color: #e9def5; font-size: 1.12rem; }
+    h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.15; }
+    h1 { max-width: 900px; margin: 0; font-size: clamp(2.45rem, 6vw, 4.9rem); }
+    h2 { margin: 0 0 1.2rem; font-size: clamp(2rem, 4vw, 3.1rem); }
+    h3 { margin: 1.7rem 0 0.7rem; font-size: 1.4rem; }
+    code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    code { padding: 0.12rem 0.3rem; border-radius: 0.3rem; background: var(--purple-soft); font-size: 0.9em; }
+    pre { margin: 1rem 0; padding: 1rem; overflow: auto; border-radius: 0.75rem; color: #f7f2fb; background: var(--purple-dark); white-space: pre-wrap; }
+    nav { position: sticky; top: 0; z-index: 10; display: flex; gap: 0.35rem; padding: 0.8rem max(1rem, calc((100vw - 1080px) / 2)); overflow-x: auto; border-bottom: 1px solid var(--line); background: rgb(255 255 255 / 94%); backdrop-filter: blur(12px); }
+    nav a { flex: none; padding: 0.45rem 0.7rem; border-radius: 999px; color: var(--purple); text-decoration: none; font-weight: 750; }
+    nav a:hover, nav a:focus-visible { color: #fff; background: var(--purple); }
+    main { width: min(1080px, calc(100% - 2rem)); margin: 0 auto; }
+    section { padding: 4.2rem 0; border-bottom: 1px solid var(--line); }
+    .lede { max-width: 830px; color: #4f4459; font-size: 1.12rem; }
+    .meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.6rem; }
+    .pill { padding: 0.35rem 0.65rem; border: 1px solid rgb(255 255 255 / 35%); border-radius: 999px; color: #fff; font-size: 0.82rem; }
+    .callout { margin: 1.3rem 0; padding: 1rem 1.1rem; border-left: 4px solid var(--purple); border-radius: 0.55rem; background: var(--purple-soft); }
+    .callout strong { display: block; margin-bottom: 0.25rem; }
+    .callout.caution { border-color: var(--amber); background: var(--amber-soft); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; }
+    .card { min-width: 0; padding: 1rem; border: 1px solid var(--line); border-radius: 0.8rem; background: var(--paper); box-shadow: 0 10px 30px rgb(40 24 58 / 6%); }
+    .card h3 { margin-top: 0; }
+    .card p:last-child { margin-bottom: 0; }
+    .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; align-items: stretch; margin: 1.4rem 0; }
+    .flow-step { position: relative; padding: 1rem; border: 1px solid var(--line); border-radius: 0.75rem; background: #fff; }
+    .flow-step:not(:last-child)::after { position: absolute; top: 50%; right: -0.62rem; z-index: 2; color: var(--purple); content: "→"; font-size: 1.25rem; font-weight: 900; }
+    .flow-step small { display: block; color: var(--muted); }
+    .shell { display: grid; grid-template-columns: 0.7fr 1.6fr 1fr; min-height: 260px; margin: 1.4rem 0; overflow: hidden; border: 1px solid var(--line); border-radius: 0.9rem; background: #fff; box-shadow: 0 12px 34px rgb(40 24 58 / 8%); }
+    .shell > div { min-width: 0; padding: 1rem; }
+    .shell .left { border-right: 1px solid var(--line); background: #fbf9fd; }
+    .shell .center { background: linear-gradient(#fff, #faf7fd); }
+    .shell .right { border-left: 4px solid #cfc0df; background: #fff; }
+    .mini-tab { display: inline-block; margin: 0 0.2rem 0.4rem 0; padding: 0.28rem 0.48rem; border-bottom: 2px solid var(--purple); color: var(--purple); font-size: 0.78rem; font-weight: 800; }
+    .project { margin: 0.45rem 0; padding: 0.55rem; border-radius: 0.5rem; background: var(--purple-soft); font-weight: 750; }
+    .artifact { margin: 0.45rem 0; padding: 0.55rem; border: 1px solid var(--line); border-radius: 0.5rem; }
+    .state-example { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1.2rem 0; }
+    .state-panel { padding: 1rem; border: 1px solid var(--line); border-radius: 0.75rem; background: #fff; }
+    .state-panel ul { margin-bottom: 0; }
+    .file-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.7rem; }
+    .file { padding: 0.8rem; border: 1px solid var(--line); border-radius: 0.6rem; background: #fff; }
+    .file strong { display: block; color: var(--purple); }
+    .quiz { display: grid; gap: 1rem; }
+    .question { padding: 1.2rem; border: 1px solid var(--line); border-radius: 0.8rem; background: #fff; }
+    .question h3 { margin: 0 0 0.9rem; font: 750 1rem/1.45 Inter, ui-sans-serif, system-ui, sans-serif; }
+    .answers { display: grid; gap: 0.55rem; }
+    .answer { width: 100%; padding: 0.7rem; border: 1px solid var(--line); border-radius: 0.55rem; color: var(--ink); background: #fff; text-align: left; cursor: pointer; }
+    .answer:hover, .answer:focus-visible { border-color: var(--purple); background: var(--purple-soft); }
+    .answer.correct { border-color: var(--green); background: var(--green-soft); }
+    .answer.incorrect { border-color: var(--amber); background: var(--amber-soft); }
+    .feedback { min-height: 1.5rem; margin: 0.75rem 0 0; color: var(--muted); }
+    footer { padding: 2rem; color: var(--muted); text-align: center; }
+    @media (max-width: 760px) {
+      .flow, .shell, .state-example { grid-template-columns: 1fr; }
+      .flow-step:not(:last-child)::after { right: 50%; top: auto; bottom: -1rem; transform: rotate(90deg); }
+      .shell .left, .shell .right { border: 0; border-bottom: 1px solid var(--line); }
+    }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>From a long page to a working workspace</h1>
+    <p>PR #28 gives GateReeve Desktop an IDE-like application shell and one unified artifact inspector, while keeping governed workflow state strictly read-only.</p>
+    <div class="meta">
+      <span class="pill">PR #28</span>
+      <span class="pill">P4 + P5</span>
+      <span class="pill">106 automated tests</span>
+      <span class="pill mono">aa9797b..c9554a3</span>
+    </div>
+  </header>
+  <nav aria-label="Table of contents">
+    <a href="#background">Background</a>
+    <a href="#intuition">Intuition</a>
+    <a href="#code">Code</a>
+    <a href="#edges">Edge cases</a>
+    <a href="#quiz">Quiz</a>
+  </nav>
+  <main>
+    <section id="background">
+      <h2>Background</h2>
+      <p class="lede">GateReeve is an observer over a governed feature record. It reads a canonical snapshot and presents what the workflow says; the Desktop UI must never turn a click, a tab, or a project switch into workflow mutation.</p>
+
+      <h3>Electron in three layers</h3>
+      <div class="grid">
+        <article class="card"><h3>Main process</h3><p>Owns the native window, application menu, project coordinator, and narrowly validated IPC endpoints.</p></article>
+        <article class="card"><h3>Preload bridge</h3><p>Exposes an allow-listed API into a sandboxed renderer. It validates messages at the process boundary.</p></article>
+        <article class="card"><h3>Renderer</h3><p>Owns visual selection and session-only workspace state. It reads snapshots and named artifacts but cannot advance the protocol.</p></article>
+      </div>
+
+      <h3>What existed before</h3>
+      <p>The Desktop already had trusted project admission, a persistent ordered project registry, active-only observation, safe artifact readers, and a functional long-form workflow page. Its navigation and detail presentation were still linear: one left navigation column, one central page, and embedded viewers inside individual sections.</p>
+      <div class="callout"><strong>The structural problem</strong>A project is the root of a working context, but the old layout treated project identity, application navigation, workflow hierarchy, and artifact detail as siblings. That made later progressive disclosure difficult and encouraged multiple detail viewers.</div>
+
+      <h3>The trust boundary stays put</h3>
+      <div class="flow" aria-label="Read-only data flow">
+        <div class="flow-step"><strong>Canonical record</strong><small>Feature state, slices, attempts, gates, named artifacts</small></div>
+        <div class="flow-step"><strong>Coordinator snapshot</strong><small>Validated, read-only, active-project observation</small></div>
+        <div class="flow-step"><strong>Workspace selection</strong><small>Tabs, panel visibility, selected view; never journal events</small></div>
+      </div>
+    </section>
+
+    <section id="intuition">
+      <h2>Intuition</h2>
+      <p class="lede">The change introduces two kinds of state on purpose. Durable project references remain in preferences. Rich navigation state belongs to a short-lived workspace keyed by the project's canonical path.</p>
+
+      <div class="shell" aria-label="New three-region shell">
+        <div class="left"><strong>Projects</strong><div class="project">reef-api</div><div class="project">desktop-shell</div><small>Persistent order<br>Reference-only remove</small></div>
+        <div class="center"><span class="mini-tab">Overview</span><span class="mini-tab">Artifacts</span><span class="mini-tab">History</span><span class="mini-tab">Model</span><span class="mini-tab">Session</span><h3>Project workspace</h3><p>The central views are fixed application navigation, not closable documents.</p></div>
+        <div class="right"><strong>Inspector</strong><div class="mini-tab">design.md ×</div><div class="mini-tab">4c · judge ×</div><div class="artifact">One active document or protocol detail</div></div>
+      </div>
+
+      <h3>A toy example</h3>
+      <p>Suppose Alice opens <code>design.md</code> from the Artifacts inventory, then follows a link to the same document from a future state hierarchy. Both entry points identify <code>document:design.md</code>, so the second action activates the existing tab. If Alice opens an artifact-less Judge gate from attempts A and B, those are different virtual details: <code>gate:A:judge</code> and <code>gate:B:judge</code>.</p>
+
+      <div class="state-example">
+        <article class="state-panel"><strong>Project /reef-a</strong><ul><li>Main view: Artifacts</li><li>Inspector: visible, 530px</li><li>Tabs: design.md</li></ul></article>
+        <article class="state-panel"><strong>Project /reef-b</strong><ul><li>Main view: Overview</li><li>Inspector: hidden</li><li>Tabs: none</li></ul></article>
+      </div>
+
+      <div class="callout caution"><strong>Why not persist all of this yet?</strong>The approved scope deliberately defers relaunch restoration. The store is serializable so persistence can be added later without redesigning tab identity, but this PR avoids prematurely choosing storage, migration, and stale-tab policy.</div>
+    </section>
+
+    <section id="code">
+      <h2>Code walkthrough</h2>
+
+      <h3>1. The workspace store makes identity explicit</h3>
+      <p><code>renderer/workspace-state.js</code> centralizes each project's main view, hierarchy selections, panel geometry, ordered tabs, and active tab. Opening and closing become deterministic state transitions rather than scattered DOM side effects.</p>
+      <pre>document:design.md
+gate:slice-attempt-1:judge
+
+close(activeIndex) → tabs[min(activeIndex, lastIndex)]</pre>
+
+      <h3>2. The HTML becomes an application shell</h3>
+      <p>The masthead now holds Setup, version, refresh, and panel controls. Beneath it, the grid has three independent regions: the saved-project sidebar, a central workspace with fixed main tabs, and the docked inspector. Artifacts is reduced to an inventory.</p>
+
+      <h3>3. Rendering reconciles open tabs with fresh snapshots</h3>
+      <p>Every canonical refresh runs the open artifact tabs against the new inventory. A disappeared or unsafe document does not leave old content on screen: its tab becomes unavailable. Successful content refreshes preserve a reasonable scroll position, while stale async reads are rejected by sequence guards.</p>
+
+      <h3>4. Native shortcuts remain push-only</h3>
+      <p>The main process builds standard application-menu accelerators. Their callbacks send only <code>toggle-sidebar</code> or <code>toggle-inspector</code> through the preload bridge. The main process never asks for or stores the renderer's workspace state.</p>
+
+      <h3>5. CSS constrains, rather than merely sizes, the inspector</h3>
+      <p>The requested inspector width is clamped in state, then the grid caps the actual track to the space remaining after a 300px central workspace. This matters at the 940px supported window width: all three regions remain present without document-level horizontal overflow.</p>
+      <pre>projects | minmax(300px, 1fr) | min(requested, remaining space)</pre>
+
+      <h3>Changed-file map</h3>
+      <div class="file-list">
+        <div class="file"><strong>workspace-state.js</strong>Per-project state, identity, close semantics, reconciliation.</div>
+        <div class="file"><strong>renderer.js + index.html + styles.css</strong>Shell, controls, inspector rendering, focus and resize behavior.</div>
+        <div class="file"><strong>window.js + main/index.js</strong>Native menus and platform accelerators.</div>
+        <div class="file"><strong>preload/index.cjs + contracts.js</strong>One-way allow-listed layout command channel.</div>
+        <div class="file"><strong>test/*.test.js</strong>Store behavior, renderer integration, accessibility, IPC, menus, source smoke.</div>
+        <div class="file"><strong>feature records</strong>Slice state, issues, decision, and rubric movement.</div>
+      </div>
+    </section>
+
+    <section id="edges">
+      <h2>Important edge cases</h2>
+      <div class="grid">
+        <article class="card"><h3>Same document, many doors</h3><p>Deduplication uses canonical path, not the button or hierarchy context that opened it.</p></article>
+        <article class="card"><h3>Same gate, two attempts</h3><p>Virtual gate detail includes attempt identity, so historical and current attempts cannot overwrite each other.</p></article>
+        <article class="card"><h3>Panel hidden</h3><p>Visibility changes; tabs, active identity, and requested width remain intact.</p></article>
+        <article class="card"><h3>Artifact disappears</h3><p>The tab remains honest and useful, but content is replaced by an unavailable state instead of stale evidence.</p></article>
+        <article class="card"><h3>Project removed</h3><p>The coordinator removes only GateReeve's reference. The renderer discards only that project's in-memory workspace after success.</p></article>
+        <article class="card"><h3>Small window</h3><p>The central region keeps 300px, the inspector yields width, main tabs scroll locally, and the page itself does not overflow horizontally.</p></article>
+      </div>
+    </section>
+
+    <section id="quiz">
+      <h2>Check your understanding</h2>
+      <p class="lede">Choose an answer. Each response explains the underlying design rule.</p>
+      <div class="quiz">
+        <article class="question" data-correct="1">
+          <h3>1. A future hierarchy link and the Artifacts inventory both open <code>design.md</code>. What should happen?</h3>
+          <div class="answers"><button class="answer">Two tabs remain because opening context is part of document identity.</button><button class="answer">The existing canonical document tab becomes active.</button><button class="answer">The first tab closes and a new tab is appended.</button></div><p class="feedback"></p>
+        </article>
+        <article class="question" data-correct="2">
+          <h3>2. Why is the layout IPC channel one-way?</h3>
+          <div class="answers"><button class="answer">Electron cannot receive renderer state through request-response IPC.</button><button class="answer">It keeps project preferences encrypted inside the renderer.</button><button class="answer">The main process needs to invoke native commands, but it does not need ownership of observational workspace state.</button></div><p class="feedback"></p>
+        </article>
+        <article class="question" data-correct="0">
+          <h3>3. What happens when an open artifact no longer appears in the canonical snapshot?</h3>
+          <div class="answers"><button class="answer">Its tab becomes explicitly unavailable and stale content is not shown.</button><button class="answer">The tab silently keeps its last successful content until relaunch.</button><button class="answer">The tab is always closed because missing artifacts cannot have identity.</button></div><p class="feedback"></p>
+        </article>
+        <article class="question" data-correct="1">
+          <h3>4. Which state survives a GateReeve relaunch after this PR?</h3>
+          <div class="answers"><button class="answer">Open tabs, selected attempt, and inspector width for every project.</button><button class="answer">The ordered project registry and last active reference, but not detailed workspace selections.</button><button class="answer">Only the current project; order and other project references are session-only.</button></div><p class="feedback"></p>
+        </article>
+        <article class="question" data-correct="2">
+          <h3>5. Why can two Judge gates have two inspector tabs?</h3>
+          <div class="answers"><button class="answer">Gate tabs intentionally ignore identity so every click appends.</button><button class="answer">Their labels differ because gate order is globally unique.</button><button class="answer">Virtual detail identity includes both the boundary attempt and gate ID.</button></div><p class="feedback"></p>
+        </article>
+      </div>
+    </section>
+  </main>
+  <footer>GateReeve Desktop · PR #28 · pinned source <span class="mono">c9554a3</span></footer>
+  <script>
+    const explanations = [
+      'Canonical documents deduplicate by path, independent of the surface that opened them.',
+      'The main process owns native menu dispatch; the renderer remains the sole owner of session workspace state.',
+      'Reconciliation preserves the tab but replaces stale detail with an explicit unavailable state.',
+      'Project references are persistent, while tabs and hierarchy selections are deliberately session-scoped.',
+      'Attempt-plus-gate identity prevents historical and active protocol details from colliding.'
+    ];
+    document.querySelectorAll('.question').forEach((question, questionIndex) => {
+      const correct = Number(question.dataset.correct);
+      const answers = [...question.querySelectorAll('.answer')];
+      answers.forEach((answer, answerIndex) => answer.addEventListener('click', () => {
+        answers.forEach((item, index) => {
+          item.classList.toggle('correct', index === correct);
+          item.classList.toggle('incorrect', index === answerIndex && index !== correct);
+        });
+        question.querySelector('.feedback').textContent = `${answerIndex === correct ? 'Correct.' : 'Not quite.'} ${explanations[questionIndex]}`;
+      }));
+    });
+  </script>
+</body>
+</html>

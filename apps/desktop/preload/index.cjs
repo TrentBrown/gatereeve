@@ -9,6 +9,7 @@ const channels = Object.freeze({
   getState: 'gatereeve:desktop:get-state',
   getUpdateState: 'gatereeve:desktop:get-update-state',
   listSession: 'gatereeve:desktop:list-session',
+  layoutCommand: 'gatereeve:desktop:layout-command',
   openArtifact: 'gatereeve:desktop:open-artifact',
   openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
@@ -270,5 +271,16 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     const listener = (_event, value) => callback(requireUpdateState(value));
     ipcRenderer.on(channels.updateChanged, listener);
     return () => ipcRenderer.removeListener(channels.updateChanged, listener);
+  },
+  subscribeLayoutCommands(callback) {
+    if (typeof callback !== 'function') throw new TypeError('Layout command subscriber must be a function.');
+    const listener = (_event, command) => {
+      if (!['toggle-sidebar', 'toggle-inspector'].includes(command)) {
+        throw new Error('The main process sent an invalid layout command.');
+      }
+      callback(command);
+    };
+    ipcRenderer.on(channels.layoutCommand, listener);
+    return () => ipcRenderer.removeListener(channels.layoutCommand, listener);
   },
 }));

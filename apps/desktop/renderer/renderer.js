@@ -1,4 +1,5 @@
 import { clear, node, renderJson, renderMarkdown } from './dom.js';
+import { createWorkspaceStore, workspaceDefaults } from './workspace-state.js';
 import {
   actionMeaning,
   artifactContext,
@@ -15,8 +16,10 @@ import {
 const desktop = window.gatereeveDesktop;
 
 const ids = [
-  'chooser', 'choose', 'recents', 'chooser-error', 'workspace', 'refresh', 'mode', 'activity',
-  'feature', 'worktree', 'feature-state', 'active-slice', 'source-local',
+  'chooser', 'choose', 'choose-empty', 'recents', 'chooser-error', 'workspace', 'refresh', 'activity',
+  'brand-version', 'project-context', 'project-sidebar', 'main-tabs', 'toggle-sidebar',
+  'toggle-inspector', 'inspector-panel', 'inspector-resizer', 'inspector-tabs', 'hide-inspector',
+  'source-local',
   'source-git', 'source-github', 'error', 'diagnostic', 'warnings', 'state-rail',
   'milestones', 'slices', 'attention', 'attempt-select', 'boundary-summary', 'gate-dag',
   'actions', 'artifact-count', 'artifact-list', 'artifact-viewer', 'history-count',
@@ -29,7 +32,7 @@ const ids = [
   'check-updates', 'update-banner', 'update-title', 'update-detail', 'open-update',
 ];
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
-const onboardingSetupParent = elements['setup-shell'].parentElement;
+const workspaceStore = createWorkspaceStore();
 
 let currentState = null;
 let currentUpdate = null;
@@ -51,6 +54,14 @@ let artifactReadSequence = 0;
 let artifactHasContent = false;
 let toastTimer = null;
 let renderedOnce = false;
+
+function projectPath() {
+  return currentState?.selection?.worktreePath ?? '__empty__';
+}
+
+function workspaceState() {
+  return workspaceStore.get(projectPath());
+}
 
 function statusClass(value) {
   return String(value ?? 'unknown').toLowerCase().replaceAll(/[^a-z-]+/g, '-');
@@ -103,17 +114,17 @@ function sourceText(name, source) {
 }
 
 function switchView(view) {
-  currentView = view;
   const setup = view === 'setup';
   const selected = currentState?.selection !== null && currentState?.selection !== undefined;
-  if (setup && selected && elements['setup-shell'].parentElement !== elements.workspace) {
-    elements.workspace.append(elements['setup-shell']);
-  } else if (setup && !selected && elements['setup-shell'].parentElement !== onboardingSetupParent) {
-    onboardingSetupParent.insertBefore(elements['setup-shell'], elements.workspace);
+  if (!setup && !workspaceDefaults.mainViews.includes(view)) return;
+  if (!setup) {
+    currentView = view;
+    workspaceStore.setMainView(projectPath(), view);
   }
   elements['setup-shell'].hidden = !setup;
+  elements.workspace.hidden = setup;
   elements.chooser.hidden = setup || selected;
-  elements.workspace.hidden = !selected;
+  elements['main-tabs'].hidden = setup || !selected;
   for (const page of document.querySelectorAll('[data-page]')) {
     page.hidden = setup || !selected || page.dataset.page !== view;
   }
@@ -166,7 +177,7 @@ function renderSetup(state) {
   elements['agent-codex'].checked = selected.includes('codex');
   elements['agent-claude'].checked = selected.includes('claude');
   elements['desktop-version'].textContent = `Desktop ${setup.desktop.version}`;
-  elements['setup-return'].hidden = state.selection === null;
+  elements['setup-return'].hidden = false;
   elements['setup-recheck'].disabled = setup.phase === 'checking' || selected.length === 0;
   elements['save-agents'].disabled = setup.phase === 'checking';
   elements['historical-reading'].hidden = setup.operationalReady;
@@ -232,11 +243,82 @@ function renderSetup(state) {
 }
 
 function renderRecents(state) {
-  elements.recents.replaceChildren(...state.preferences.projectPaths.map((path) => {
-    const button = node('button', { className: 'recent', text: path, type: 'button' });
-    button.addEventListener('click', () => void desktop.activateProject(path));
-    return button;
+  clear(elements.recents);
+  const activePath = state.selection?.worktreePath ?? null;
+  const projects = state.projects ?? state.preferences.projectPaths.map((path) => ({
+    path,
+    name: path.split('/').filter(Boolean).at(-1) ?? path,
+    status: 'ready',
+    featureId: null,
+    workflowState: null,
   }));
+  const names = new Map();
+  for (const project of projects) {
+    if (!names.has(project.name)) names.set(project.name, []);
+    names.get(project.name).push(project);
+  }
+  for (const [index, project] of projects.entries()) {
+    const duplicate = names.get(project.name).length > 1;
+    const parent = project.path.split('/').filter(Boolean).at(-2) ?? project.path;
+    const context = [
+      duplicate ? parent : null,
+      project.featureId,
+      project.workflowState ? humanize(project.workflowState) : null,
+    ].filter(Boolean).join(' · ');
+    const select = node('button', {
+      className: 'project-select',
+      type: 'button',
+      attributes: {
+        role: 'option',
+        'aria-current': project.path === activePath ? 'true' : 'false',
+        'aria-selected': project.path === activePath ? 'true' : 'false',
+        'aria-label': `${project.name}${project.status === 'needs-attention' ? ', Needs attention' : ''}`,
+      },
+    }, [
+      node('strong', { text: project.name }),
+      node('small', { text: context || project.path }),
+      ...(project.status === 'needs-attention'
+        ? [node('small', { className: 'needs-attention', text: '⚠ Needs attention' })]
+        : []),
+    ]);
+    select.addEventListener('click', () => void desktop.activateProject(project.path));
+    const reorder = async (offset) => {
+      const paths = projects.map((item) => item.path);
+      const target = index + offset;
+      if (target < 0 || target >= paths.length) return;
+      [paths[index], paths[target]] = [paths[target], paths[index]];
+      render(await desktop.reorderProjects(paths));
+    };
+    const up = node('button', { className: 'project-action', text: '↑', type: 'button', disabled: index === 0, attributes: { 'aria-label': `Move ${project.name} up` } });
+    const down = node('button', { className: 'project-action', text: '↓', type: 'button', disabled: index === projects.length - 1, attributes: { 'aria-label': `Move ${project.name} down` } });
+    const remove = node('button', { className: 'project-action', text: '×', type: 'button', attributes: { 'aria-label': `Remove ${project.name} from GateReeve`, title: 'Remove only GateReeve’s saved reference; the directory is never changed.' } });
+    up.addEventListener('click', () => void reorder(-1));
+    down.addEventListener('click', () => void reorder(1));
+    remove.addEventListener('click', async () => {
+      const next = await desktop.removeProject(project.path);
+      workspaceStore.discard(project.path);
+      render(next);
+      showToast('Removed saved reference only; project files were not changed');
+    });
+    const row = node('div', { className: 'project-row', attributes: { draggable: 'true', 'data-project-path': project.path } }, [
+      select,
+      node('div', { className: 'project-actions' }, [up, down, remove]),
+    ]);
+    row.addEventListener('dragstart', (event) => event.dataTransfer?.setData('text/plain', project.path));
+    row.addEventListener('dragover', (event) => event.preventDefault());
+    row.addEventListener('drop', (event) => {
+      event.preventDefault();
+      const source = event.dataTransfer?.getData('text/plain');
+      if (!source || source === project.path) return;
+      const paths = projects.map((item) => item.path).filter((path) => path !== source);
+      paths.splice(paths.indexOf(project.path), 0, source);
+      void desktop.reorderProjects(paths).then(render);
+    });
+    elements.recents.append(row);
+  }
+  if (projects.length === 0) {
+    elements.recents.append(node('p', { className: 'muted', text: 'No saved projects yet.' }));
+  }
 }
 
 function renderWarnings(snapshot) {
@@ -324,6 +406,7 @@ function renderSlices(snapshot) {
       });
       button.addEventListener('click', () => {
         selectedAttemptId = targetAttempt;
+        workspaceStore.setHierarchy(projectPath(), { selectedAttemptId: targetAttempt });
         renderBoundary(snapshot);
         document.getElementById('gate-dag')?.scrollIntoView?.({ block: 'center' });
       });
@@ -380,25 +463,20 @@ function renderGateDetail(attempt, gate) {
     for (const blocker of gate.blockers) list.append(node('li', { text: blockerText(blocker) }));
     container.append(list);
   }
-  if (gate.evidence?.path) {
-    const artifact = currentState?.snapshot?.artifacts?.find(
-      (item) => item.context?.attemptId === attempt.id && item.context?.gateId === gate.id,
-    );
-    if (artifact?.exists && !artifact.unsafe) {
-      const button = node('button', { className: 'text-button', text: 'View evidence', type: 'button' });
-      button.addEventListener('click', () => {
-        switchView('artifacts');
-        void openArtifact(artifact);
-      });
-      container.append(button);
-    }
+  const artifact = currentState?.snapshot?.artifacts?.find(
+    (item) => item.context?.attemptId === attempt.id && item.context?.gateId === gate.id,
+  );
+  if (artifact) void openArtifact(artifact);
+  else {
+    workspaceStore.openGate(projectPath(), attempt.id, gate);
+    renderInspector(currentState?.snapshot);
   }
 }
 
 function renderBoundary(snapshot) {
   const attempts = snapshot?.projection?.boundaryAttempts ?? [];
   const select = elements['attempt-select'];
-  const previous = selectedAttemptId;
+  const previous = workspaceState().selectedAttemptId ?? selectedAttemptId;
   clear(select);
   if (attempts.length === 0) {
     select.disabled = true;
@@ -415,6 +493,7 @@ function renderBoundary(snapshot) {
   selectedAttemptId = attempts.some((item) => item.id === previous)
     ? previous
     : snapshot.active?.boundaryAttemptId ?? attempts.at(-1).id;
+  workspaceStore.setHierarchy(projectPath(), { selectedAttemptId });
   for (const option of select.querySelectorAll('option')) {
     if (option.value === selectedAttemptId) option.setAttribute('selected', '');
     else option.removeAttribute('selected');
@@ -507,11 +586,10 @@ function renderOverview(snapshot) {
 }
 
 function artifactButton(artifact) {
-  const readable = artifact.exists && !artifact.unsafe;
   const button = node('button', {
     className: 'collection-item',
     type: 'button',
-    disabled: !readable,
+    disabled: artifact.unsafe === true,
   }, [
     node('div', { className: 'card-header' }, [
       node('strong', { text: artifact.label }),
@@ -521,7 +599,10 @@ function artifactButton(artifact) {
     exactId(artifact.id),
   ]);
   button.dataset.artifactId = artifact.id;
-  button.classList.toggle('selected', artifact.id === selectedArtifactId);
+  const activeTab = workspaceState().tabs.find((tab) => tab.id === workspaceState().activeTabId);
+  button.classList.toggle('selected', activeTab?.kind === 'artifact' && (
+    activeTab.path === artifact.path || activeTab.artifactId === artifact.id
+  ));
   button.addEventListener('click', () => void openArtifact(artifact));
   return button;
 }
@@ -537,7 +618,6 @@ function resetArtifactSelection(message = 'Select an artifact') {
   artifactInFlightFingerprint = null;
   artifactFailedFingerprint = null;
   artifactHasContent = false;
-  selectCollection('[data-artifact-id]', '', 'artifactId');
   clear(elements['artifact-viewer']).append(node('div', { className: 'empty-state' }, [
     node('h3', { text: message }),
     node('p', {
@@ -554,26 +634,176 @@ function renderArtifacts(snapshot) {
   clear(elements['artifact-list']);
   if (artifacts.length === 0) {
     elements['artifact-list'].append(node('p', { className: 'muted', text: 'No artifact inventory is available in this mode.' }));
-    if (selectedArtifactId !== null) {
-      resetArtifactSelection('The selected artifact is no longer available');
-    }
     return;
   }
   for (const artifact of artifacts) elements['artifact-list'].append(artifactButton(artifact));
-  if (selectedArtifactId === null) return;
-  const selected = artifacts.find((artifact) => artifact.id === selectedArtifactId);
-  if (!selected?.exists || selected.unsafe) {
-    resetArtifactSelection('The selected artifact is no longer available');
+}
+
+function applyLayout() {
+  const workspace = workspaceState();
+  elements.workspace.classList.toggle('sidebar-hidden', !workspace.sidebarVisible);
+  elements['project-sidebar'].hidden = !workspace.sidebarVisible;
+  elements['inspector-panel'].hidden = !workspace.inspectorVisible;
+  elements.workspace.style.setProperty(
+    '--inspector-width',
+    workspace.inspectorVisible ? `${workspace.inspectorWidth}px` : '0px',
+  );
+  elements['toggle-sidebar'].setAttribute('aria-pressed', String(workspace.sidebarVisible));
+  elements['toggle-sidebar'].setAttribute('aria-label', `${workspace.sidebarVisible ? 'Hide' : 'Show'} project sidebar`);
+  elements['toggle-inspector'].setAttribute('aria-pressed', String(workspace.inspectorVisible));
+  elements['toggle-inspector'].setAttribute('aria-label', `${workspace.inspectorVisible ? 'Hide' : 'Show'} inspector`);
+  elements['inspector-resizer'].setAttribute('aria-valuenow', String(workspace.inspectorWidth));
+  elements['inspector-resizer'].setAttribute('aria-valuemin', String(workspaceDefaults.minInspectorWidth));
+  elements['inspector-resizer'].setAttribute('aria-valuemax', String(workspaceDefaults.maxInspectorWidth));
+}
+
+function renderInspectorTabs() {
+  const workspace = workspaceState();
+  clear(elements['inspector-tabs']);
+  for (const tab of workspace.tabs) {
+    const active = tab.id === workspace.activeTabId;
+    const activate = node('button', {
+      className: 'inspector-tab',
+      text: tab.label,
+      type: 'button',
+      title: tab.path ?? `${tab.attemptId ?? ''} ${tab.gateId ?? ''}`.trim(),
+      attributes: {
+        role: 'tab',
+        'aria-selected': String(active),
+        tabindex: active ? '0' : '-1',
+      },
+    });
+    activate.addEventListener('click', () => {
+      workspaceStore.activateTab(projectPath(), tab.id);
+      selectedArtifactFingerprint = null;
+      artifactFailedFingerprint = null;
+      renderInspector(currentState?.snapshot);
+    });
+    const close = node('button', {
+      className: 'close-tab',
+      text: '×',
+      type: 'button',
+      attributes: { 'aria-label': `Close ${tab.label}` },
+    });
+    close.addEventListener('click', () => {
+      const wasActive = workspace.activeTabId === tab.id;
+      workspaceStore.closeTab(projectPath(), tab.id);
+      if (wasActive) {
+        artifactReadSequence += 1;
+        selectedArtifactId = null;
+        selectedArtifactFingerprint = null;
+        artifactFailedFingerprint = null;
+        artifactHasContent = false;
+      }
+      renderInspector(currentState?.snapshot);
+      document.querySelector('[role="tab"][aria-selected="true"]')?.focus?.();
+    });
+    elements['inspector-tabs'].append(node('div', {
+      className: `inspector-tab-wrap${active ? ' active' : ''}`,
+    }, [activate, close]));
+  }
+}
+
+function renderUnavailableTab(tab) {
+  artifactReadSequence += 1;
+  selectedArtifactId = null;
+  artifactHasContent = false;
+  clear(elements['artifact-viewer']).append(
+    node('div', { className: 'viewer-toolbar' }, [
+      node('div', {}, [node('h3', { text: tab.label }), node('p', { className: 'path', text: tab.path ?? tab.id })]),
+      statusPill(tab.status ?? 'unavailable'),
+    ]),
+    node('div', { className: 'notice unavailable-detail', text: 'This expected artifact is unavailable in the current canonical snapshot. GateReeve will not show stale content.' }),
+  );
+}
+
+function renderGateTab(tab, snapshot) {
+  artifactReadSequence += 1;
+  selectedArtifactId = null;
+  artifactHasContent = false;
+  const attempt = snapshot?.projection?.boundaryAttempts?.find((item) => item.id === tab.attemptId);
+  const gate = attempt?.gates?.find((item) => item.id === tab.gateId);
+  if (!attempt || !gate) {
+    renderUnavailableTab({ ...tab, status: 'unavailable' });
     return;
   }
-  selectCollection('[data-artifact-id]', selected.id, 'artifactId');
-  const fingerprint = artifactFingerprint(selected);
+  const viewer = clear(elements['artifact-viewer']);
+  viewer.append(node('div', { className: 'viewer-toolbar' }, [
+    node('div', {}, [node('h3', { text: humanize(gate.id) }), node('p', { className: 'path', text: `${attempt.id} · ${gate.id}` })]),
+    statusPill(gate.outcome),
+  ]));
+  const facts = node('dl', { className: 'facts' }, [
+    node('div', {}, [node('dt', { text: 'Outcome' }), node('dd', { text: humanize(gate.outcome) })]),
+    node('div', {}, [node('dt', { text: 'Freshness' }), node('dd', { text: humanize(gate.freshness) })]),
+    node('div', {}, [node('dt', { text: 'Dependencies' }), node('dd', { text: gate.dependsOn?.length ? gate.dependsOn.join(', ') : 'Entry gate' })]),
+    node('div', {}, [node('dt', { text: 'Recorded event' }), node('dd', { className: 'path', text: gate.recordedEventId ?? 'None' })]),
+  ]);
+  viewer.append(facts, node('div', { className: 'notice info', text: 'No standalone artifact. This detail is projected from the trusted protocol record.' }));
+  if (gate.reason) viewer.append(node('p', { text: gate.reason }));
+  if (gate.blockers?.length) {
+    const list = node('ul');
+    for (const blocker of gate.blockers) list.append(node('li', { text: blockerText(blocker) }));
+    viewer.append(node('h3', { text: 'Blockers' }), list);
+  }
+}
+
+function renderInspector(snapshot) {
+  const workspace = workspaceStore.reconcile(projectPath(), snapshot?.artifacts ?? []);
+  applyLayout();
+  renderInspectorTabs();
+  renderArtifacts(snapshot);
+  const tab = workspace.tabs.find((item) => item.id === workspace.activeTabId) ?? null;
+  if (tab === null) {
+    resetArtifactSelection('No open tabs');
+    return;
+  }
+  if (tab.kind === 'gate') {
+    renderGateTab(tab, snapshot);
+    return;
+  }
+  if (!tab.available) {
+    renderUnavailableTab(tab);
+    return;
+  }
+  const artifact = snapshot?.artifacts?.find((item) => (
+    (tab.path !== null && item.path === tab.path) || item.id === tab.artifactId
+  ));
+  if (!artifact?.exists || artifact.unsafe) {
+    renderUnavailableTab({ ...tab, status: 'unavailable' });
+    return;
+  }
+  selectedArtifactId = artifact.id;
+  const fingerprint = artifactFingerprint(artifact);
   if (
     fingerprint !== selectedArtifactFingerprint
     && fingerprint !== artifactInFlightFingerprint
     && fingerprint !== artifactFailedFingerprint
   ) {
-    void readArtifact(selected, { preserveContent: artifactHasContent });
+    void readArtifact(artifact, { preserveContent: artifactHasContent });
+  }
+}
+
+function toggleSidebar(force = undefined) {
+  const activeInside = elements['project-sidebar'].contains(document.activeElement);
+  const workspace = workspaceStore.toggleSidebar(projectPath(), force);
+  applyLayout();
+  if (!workspace.sidebarVisible && activeInside) elements['toggle-sidebar'].focus();
+  if (workspace.sidebarVisible) {
+    const target = elements.recents.querySelector('[aria-current="true"]') ?? elements.choose;
+    target.focus();
+  }
+}
+
+function toggleInspector(force = undefined) {
+  const activeInside = elements['inspector-panel'].contains(document.activeElement);
+  const workspace = workspaceStore.toggleInspector(projectPath(), force);
+  applyLayout();
+  if (!workspace.inspectorVisible && activeInside) elements['toggle-inspector'].focus();
+  if (workspace.inspectorVisible) {
+    renderInspector(currentState?.snapshot);
+    const target = elements['inspector-tabs'].querySelector('[aria-selected="true"]')
+      ?? elements['hide-inspector'];
+    target.focus();
   }
 }
 
@@ -809,10 +1039,11 @@ async function readArtifact(artifact, { preserveContent = false, force = false }
 }
 
 async function openArtifact(artifact) {
+  workspaceStore.openArtifact(projectPath(), artifact);
   selectedArtifactFingerprint = null;
   artifactFailedFingerprint = null;
   artifactHasContent = false;
-  await readArtifact(artifact);
+  renderInspector(currentState?.snapshot);
 }
 
 function renderHistoryList(events) {
@@ -1035,28 +1266,37 @@ function render(state) {
   elements.refresh.disabled = !selected || state.refreshing;
   renderRecents(state);
   renderSetup(state);
+  elements['brand-version'].textContent = `v${state.setup.desktop.version}`;
   elements.notifications.checked = state.preferences.notificationsEnabled;
-  elements['chooser-error'].hidden = selected || state.error === null;
-  elements['chooser-error'].textContent = selected ? '' : state.error?.message ?? '';
+  const chooserMessage = state.candidateDiagnostic?.message ?? state.error?.message ?? null;
+  elements['chooser-error'].hidden = selected || chooserMessage === null;
+  elements['chooser-error'].textContent = selected ? '' : chooserMessage ?? '';
   if (!renderedOnce && state.preferences.selectedAgents.length === 0) currentView = 'setup';
   renderedOnce = true;
   if (!selected) {
-    if (previousSelection !== undefined) resetArtifactSelection();
+    if (currentView !== 'setup') currentView = workspaceState().mainView;
     elements.activity.textContent = state.setup.phase === 'checking'
       ? 'Checking GateReeve setup…'
-      : state.setup.operationalReady ? 'Setup ready · choose a worktree' : 'Setup incomplete · historical records remain readable';
+      : state.setup.operationalReady ? 'Setup ready · add a project' : 'Setup incomplete · historical records remain readable';
     switchView(currentView);
+    applyLayout();
     return;
   }
 
   if (previousSelection !== state.selection.worktreePath) {
-    resetArtifactSelection();
+    artifactReadSequence += 1;
+    selectedArtifactId = null;
+    selectedArtifactFingerprint = null;
+    artifactInFlightFingerprint = null;
+    artifactFailedFingerprint = null;
+    artifactHasContent = false;
     modelDetail = null;
     modelKey = null;
     eventsDetail = null;
     eventsKey = null;
     sessionInventory = null;
-    selectedAttemptId = null;
+    currentView = workspaceState().mainView;
+    selectedAttemptId = workspaceState().selectedAttemptId;
   } else if (eventsKey !== state.snapshot?.events?.lastEventId) {
     eventsDetail = null;
     sessionInventory = null;
@@ -1066,14 +1306,14 @@ function render(state) {
   if (refreshStarted) artifactFailedFingerprint = null;
 
   const snapshot = state.snapshot;
-  elements.mode.textContent = snapshot?.mode ?? state.phase;
   elements.activity.textContent = state.refreshing
     ? 'Refreshing canonical observation…'
     : state.githubPolling ? 'Watching local changes · polling GitHub' : 'Watching local changes';
-  elements.feature.textContent = snapshot?.featureId ?? 'Ungoverned worktree';
-  elements.worktree.textContent = state.selection.worktreePath;
-  elements['feature-state'].textContent = snapshot?.projection?.feature?.state ?? humanize(snapshot?.mode ?? 'unknown');
-  elements['active-slice'].textContent = snapshot?.active?.sliceId ?? 'None';
+  elements['project-context'].textContent = [
+    snapshot?.featureId ?? 'Ungoverned project',
+    snapshot?.projection?.feature?.state ? humanize(snapshot.projection.feature.state) : humanize(snapshot?.mode ?? state.phase),
+    state.selection.worktreePath,
+  ].join(' · ');
   for (const source of ['local', 'git', 'github']) sourceText(source, snapshot?.sources?.[source]);
 
   elements.error.hidden = state.error === null;
@@ -1085,13 +1325,15 @@ function render(state) {
   renderOverview(snapshot);
   renderArtifacts(snapshot);
   switchView(currentView);
+  renderInspector(snapshot);
   if (diagnosticCanShowGovernedViews(snapshot)) void ensureModel();
 }
 
 elements.choose.addEventListener('click', () => void desktop.addProject());
+elements['choose-empty'].addEventListener('click', () => void desktop.addProject());
 elements['open-setup'].addEventListener('click', () => switchView('setup'));
 elements['setup-open-worktree'].addEventListener('click', () => void desktop.addProject());
-elements['setup-return'].addEventListener('click', () => switchView('overview'));
+elements['setup-return'].addEventListener('click', () => switchView(workspaceState().mainView));
 elements['setup-recheck'].addEventListener('click', () => void desktop.recheckSetup());
 elements['agent-selection'].addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -1137,6 +1379,7 @@ elements.notifications.addEventListener('change', async () => {
 });
 elements['attempt-select'].addEventListener('change', (event) => {
   selectedAttemptId = event.target.value;
+  workspaceStore.setHierarchy(projectPath(), { selectedAttemptId });
   renderBoundary(currentState?.snapshot);
 });
 elements['copy-mermaid'].addEventListener('click', () => {
@@ -1149,8 +1392,45 @@ for (const button of document.querySelectorAll('[data-go-view]')) {
   button.addEventListener('click', () => switchView(button.dataset.goView));
 }
 
+elements['toggle-sidebar'].addEventListener('click', () => toggleSidebar());
+elements['toggle-inspector'].addEventListener('click', () => toggleInspector());
+elements['hide-inspector'].addEventListener('click', () => toggleInspector(false));
+
+let resizeStart = null;
+elements['inspector-resizer'].addEventListener('pointerdown', (event) => {
+  resizeStart = { x: event.clientX, width: workspaceState().inspectorWidth };
+  elements['inspector-resizer'].setPointerCapture?.(event.pointerId);
+});
+elements['inspector-resizer'].addEventListener('pointermove', (event) => {
+  if (resizeStart === null) return;
+  workspaceStore.setInspectorWidth(projectPath(), resizeStart.width + resizeStart.x - event.clientX);
+  applyLayout();
+});
+elements['inspector-resizer'].addEventListener('pointerup', () => { resizeStart = null; });
+elements['inspector-resizer'].addEventListener('keydown', (event) => {
+  const changes = { ArrowLeft: 20, ArrowRight: -20, Home: -10_000, End: 10_000 };
+  if (!(event.key in changes)) return;
+  event.preventDefault();
+  workspaceStore.setInspectorWidth(projectPath(), workspaceState().inspectorWidth + changes[event.key]);
+  applyLayout();
+});
+
+window.addEventListener('keydown', (event) => {
+  const primary = window.navigator.platform?.toLowerCase().includes('mac')
+    ? event.metaKey
+    : event.ctrlKey;
+  if (!primary || event.shiftKey || event.key.toLowerCase() !== 'b') return;
+  event.preventDefault();
+  if (event.altKey) toggleInspector();
+  else toggleSidebar();
+});
+
 desktop.subscribe(render);
 desktop.subscribeUpdates(renderUpdate);
+desktop.subscribeLayoutCommands?.((command) => {
+  if (command === 'toggle-sidebar') toggleSidebar();
+  if (command === 'toggle-inspector') toggleInspector();
+});
 desktop.getState().then(render).catch((error) => {
   elements['chooser-error'].hidden = false;
   elements['chooser-error'].textContent = error.message ?? String(error);
