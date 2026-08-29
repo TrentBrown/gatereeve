@@ -149,8 +149,13 @@ The continuation slice
 Trent Brown completed the public Homebrew upgrade from rc.1 to rc.2 on the user
 Mac. The installed Cask inventory reports `gatereeve 0.1.0-rc.2`; strict deep
 code-signing verification passes, and Gatekeeper accepts the app as Notarized
-Developer ID. Application launch and the installed AC1-AC7 checklist are the
-only remaining I-9 operations.
+Developer ID. Application launch and the installed AC1-AC7 checklist were the
+remaining I-9 operations at that point.
+
+The installed rc.2 application now launches successfully. Trent Brown
+confirmed installed AC1-AC3: compatible Python 3.14.7 is selected, the enlarged
+Rolling Vale masthead icon is visible, and repeated Setup/workflow navigation
+preserves the complete sidebar. Installed AC4-AC7 remain.
 
 ## I-10 - Complete the feature rubric and report
 

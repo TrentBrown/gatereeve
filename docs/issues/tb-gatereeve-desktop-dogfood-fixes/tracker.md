@@ -127,3 +127,7 @@
   rc.2; the resulting Cask inventory, strict deep signature verification, and
   Notarized Developer ID Gatekeeper acceptance pass. Application launch and
   the installed AC1-AC7 checklist remain.
+  The installed rc.2 app now launches, and Trent Brown confirmed AC1-AC3 in the
+  real PortReeve worktree: Python 3.14.7 is selected, the enlarged branded icon
+  is visible, and the complete sidebar stays stable through Setup navigation.
+  Installed AC4-AC7 remain, so R8 is still `NOT YET`.

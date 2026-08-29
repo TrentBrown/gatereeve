@@ -102,5 +102,13 @@ Trent Brown then completed the real user-Mac Homebrew transition from rc.1 to
 rc.2. The [upgrade evidence](evidence/v0.1.0-rc.2/cask/user-mac-homebrew-upgrade.md)
 records the exact Cask inventory, successful application replacement, strict
 deep code-signing validation, and Gatekeeper acceptance as Notarized Developer
-ID. Application launch and the installed AC1-AC7 checklist remain required
-before R8 can pass.
+ID. The installed application behavior checklist remained required before R8
+could pass.
+
+The installed application launches and the first
+[user-Mac checklist](evidence/v0.1.0-rc.2/cask/user-mac-installed-app-checklist.md)
+group passes. The rc.2 Setup view shows Python 3.14.7 as present, the enlarged
+Rolling Vale masthead artwork, and the stable complete sidebar through repeated
+Setup/workflow navigation. Desktop and Plugin both report `0.1.0-rc.2` and
+matched compatibility. AC4-AC7 artifact refresh, reading state, Markdown, and
+link checks remain before R8 can pass.
