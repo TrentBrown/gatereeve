@@ -133,16 +133,18 @@ marketplace commit `22c2d841e833af4d2aec351cf61d54dafaf8fcd3`, signed Desktop
 prerelease, manifest [PR #22](https://github.com/TrentBrown/gatereeve/pull/22),
 and the Early Access website all verify. Trent Brown confirmed direct
 installation of the exact public DMG on the user's Mac at
-`2026-08-29T15:45:56Z`. The exact Cask packet is prepared and its live dry run
-passes against the existing canonical `v0.1.0-rc.1` Cask. Public Cask mutation
-remains pending its separate exact-plan approval.
+`2026-08-29T15:45:56Z`. The exact Cask packet was approved and published
+through [tap PR #2](https://github.com/TrentBrown/homebrew-gatereeve/pull/2),
+merged as `91725d7e7aa3a8e0f82ddc2658f51d12a3385900`. The public Cask bytes
+match the approved SHA-256
+`0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
 
 PR #23 merged the fail-closed predecessor verification and exact prepared
 packet into `main` as `18a24fa18746264439a93a09fcc5cdf178a85cd9`.
-The planned continuation slice
-`desktop-dogfood-cask-publication-and-installation` remains stopped before
-implementation because publication and installed-app smoke require the
-separate exact Cask-plan approval.
+The continuation slice
+`desktop-dogfood-cask-publication-and-installation` is implementing. Public
+Homebrew installation or upgrade and the installed-app checklist on the user's
+Mac remain before I-9 can close.
 
 ## I-10 - Complete the feature rubric and report
 

@@ -109,12 +109,16 @@
   `18a24fa18746264439a93a09fcc5cdf178a85cd9`; all 17 hosted checks passed and
   the governed merge is recorded
 
-### Planned continuation - Public Cask and installed-app verification
+### Active continuation - Public Cask and installed-app verification
 
 - **Branch:** `tb-gatereeve-desktop-dogfood-fixes-04-cask-publication`
 - **Slice:** `desktop-dogfood-cask-publication-and-installation`
 - **Plan steps:** P9
 - **Rubric:** R8 remains `NOT YET`
-- **State:** Planned; implementation requires explicit approval of exact Cask
-  plan SHA-256
+- **State:** Implementing. The exact plan SHA-256
   `53095d7e4eafdbb596a694eb670cc5d676bf6b00532a3e8f448ac3c04181974c`
+  was approved and published through
+  [tap PR #2](https://github.com/TrentBrown/homebrew-gatereeve/pull/2), merged
+  as `91725d7e7aa3a8e0f82ddc2658f51d12a3385900`. The public Cask SHA-256 is
+  `0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
+  Public Homebrew install/upgrade and the installed-app checklist remain.

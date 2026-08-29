@@ -45,16 +45,26 @@
     "sha256": "0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f",
     "createRepositoryIfAbsent": true
   },
-  "state": "prepared",
+  "state": "published",
   "publication": {
     "approval": {
-      "state": "unapproved"
+      "state": "approved",
+      "approvedBy": "Trent Brown",
+      "approvedAt": "2026-08-29T16:20:24.886Z",
+      "planSha256": "53095d7e4eafdbb596a694eb670cc5d676bf6b00532a3e8f448ac3c04181974c"
     },
     "surface": {
-      "state": "pending",
-      "receipt": null
+      "state": "complete",
+      "receipt": {
+        "repository": "TrentBrown/homebrew-gatereeve",
+        "path": "Casks/gatereeve.rb",
+        "pullRequestUrl": "https://github.com/TrentBrown/homebrew-gatereeve/pull/2",
+        "mergeCommit": "91725d7e7aa3a8e0f82ddc2658f51d12a3385900",
+        "fileSha256": "0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f",
+        "publishedAt": "2026-08-29T16:20:35.516Z"
+      }
     }
   },
   "createdAt": "2026-08-29T15:46:39.171Z",
-  "updatedAt": "2026-08-29T15:46:39.171Z"
+  "updatedAt": "2026-08-29T16:20:35.516Z"
 }

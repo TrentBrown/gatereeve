@@ -76,13 +76,18 @@ The Cask publication plan has SHA-256
 `53095d7e4eafdbb596a694eb670cc5d676bf6b00532a3e8f448ac3c04181974c`;
 the generated Cask has SHA-256
 `0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`.
-The live read-only dry run passes against the existing canonical
-`v0.1.0-rc.1` Cask. It does not mutate the tap and does not constitute
-publication approval.
+The user approved this exact plan in the active conversation. The
+repository-owned publisher merged
+[tap PR #2](https://github.com/TrentBrown/homebrew-gatereeve/pull/2) as
+`91725d7e7aa3a8e0f82ddc2658f51d12a3385900`. The public
+`Casks/gatereeve.rb` now has the exact approved SHA-256
+`0f369a3651876036042ce2ca4c1785bcd0077641c114647379899178980b3e8f`,
+and a post-publication dry run reports the Cask surface complete.
 
 ## Publication boundary
 
-The user explicitly approved public publication in the active conversation.
-The repository-owned publisher completed all five approved coordinated
-surfaces. Homebrew remains a distinct exact-plan approval boundary after direct
-installation proof and cask-packet inspection. That boundary remains pending.
+The user explicitly approved both public coordinated publication and the
+separate exact Homebrew plan in the active conversation. The repository-owned
+publishers completed all coordinated surfaces and the public Cask mutation.
+Public Homebrew installation or upgrade and the installed-app checklist on the
+user's Mac remain required before R8 can pass.
