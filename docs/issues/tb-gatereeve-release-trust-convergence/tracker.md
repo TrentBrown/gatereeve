@@ -9,18 +9,35 @@
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1, P3, and P7 locally complete; reviewed assembly and live acceptance remain P8-P9 |
-| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1-P4 plus finalization/version-burn operations are locally complete; P8-P9 remain |
+| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1, P3, P7, and reviewed P8 assembly complete; protected P9 evidence remains |
+| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1-P4, finalization/version-burn operations, and reviewed P8 assembly complete; protected P9 evidence remains |
 | R3 | Credential custody | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Disjoint workflow authority and migration contract implemented through P7; live cutover remains P9 |
-| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Durable bounded recovery and operator prohibition/migration contract complete; reviewed assembly and live evidence remain P8-P9 |
-| R5 | Native verification | NOT YET | - | P3-P4, P8-P9 / I-3-I-4, I-8-I-9 |
-| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Exact schema-v2 seal, read-only rehearsal, hosted approval, receipts, and retry implemented; P8-P9 remain |
-| R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, and idempotent receipt implemented; P8-P9 remain |
-| R8 | Conformance and acceptance | NOT YET | - | P3, P8-P9 / I-3, I-8-I-9 |
+| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Durable bounded recovery, operator prohibition/migration contract, and reviewed P8 assembly complete; live request evidence remains P9 |
+| R5 | Native verification | NOT YET | - | Repository and hosted preflight evidence plus P8 assembly complete; fresh protected native evidence remains P9 |
+| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Exact schema-v2 seal, read-only rehearsal, hosted approval, receipts, retry, and reviewed P8 assembly complete; live dry-run evidence remains P9 |
+| R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, idempotent receipt, and P8 assembly complete; final P9 conformance remains |
+| R8 | Conformance and acceptance | NOT YET | - | Shared fixtures and reviewed P8 assembly complete; environment cutover and protected zero-mutation rehearsal remain P9 |
 
 ## PR Log
 
 Append PR boundary entries here.
+
+### Mainline acceptance preflight
+
+- PR #34 merged to `main` as
+  `ee29569afedd8950b7278f5b1d21183c19e02803`; reviewed head
+  `1e5497e2e1165ac2687e2112acef252a305fc738` is ancestral.
+- Slice `s4-mainline-acceptance` is governed as `FEATURE_FINAL` for P8-P9 and
+  I-8-I-9. I-8 is complete; I-9 is in progress.
+- CLI 158 passed, Desktop 125 passed, portable acceptance passed, and branch
+  documents validated against the assembled mainline.
+- The name-only live audit found `release-trust` absent and the historical
+  `release-publication` environment still holding four Apple variables and
+  three Apple secrets. No secret value was inspected.
+- `v0.1.0-rc.3` is absent as both tag and release and is the proposed fresh
+  acceptance identity.
+- Initial public identities are retained in [`live-acceptance.md`](live-acceptance.md).
+- No live environment or public surface has been mutated by this preflight.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 
