@@ -11,12 +11,12 @@
 |---|-------------------|--------|----|-------|
 | R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 produced a valid nine-stage schema-v2 trust lifecycle; corrected protected rehearsal and final P9 evaluation remain |
 | R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 binds exact reviewed main, submitted/final DMG hashes, and immutable Apple request history; corrected rehearsal and finalization remain |
-| R3 | Credential custody | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Secret placement succeeded, but `deployment: false` suppressed the required-reviewer gate; fresh correction slice blocks acceptance |
+| R3 | Credential custody | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Credential separation is configured and the deployment-suppression correction is merged; fresh RC.4 reviewer-wait evidence and final custody cleanup remain |
 | R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 retained accepted request `faa0580d-941c-4df3-90b8-38570ff52ac4` and bounded history; final corrected rehearsal remains |
 | R5 | Native verification | NOT YET | - | RC.3 passed exact-DMG native ARM64 and x64 verification without Rosetta; final corrected rehearsal remains |
 | R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Exact schema-v2 seal, read-only rehearsal, hosted approval, receipts, retry, and reviewed P8 assembly complete; live dry-run evidence remains P9 |
 | R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, idempotent receipt, and P8 assembly complete; final P9 conformance remains |
-| R8 | Conformance and acceptance | NOT YET | - | RC.3 trust/native evidence and zero preparation mutation passed; missing reviewer enforcement blocks the full protected rehearsal |
+| R8 | Conformance and acceptance | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | RC.3 trust/native evidence and zero preparation mutation passed; corrected reviewer enforcement is merged and awaits fresh RC.4 proof |
 
 ## PR Log
 
@@ -58,10 +58,11 @@ Append PR boundary entries here.
   current reviewed `main` `93da66d10736b7bbf58be1d2765808c1f7b4a75c`.
   It removes deployment suppression from all six protected jobs; YAML parsing,
   10 focused tests, the 158-test CLI suite, the 125-test Desktop suite, and
-  portable acceptance pass locally. Draft
+  portable acceptance pass locally.
   [PR #37](https://github.com/TrentBrown/gatereeve/pull/37) carries the
-  correction and its hosted checks; live reviewer-gate proof remains pending
-  merge and a fresh candidate.
+  correction and passed final approval-head CI before merging to `main` as
+  `57fe66ba90ae1db1df970bf6988053136b567f23`. Live reviewer-gate proof remains
+  pending with a fresh candidate.
 
 ### PR #37 - Protected approval boundary correction
 
@@ -83,6 +84,15 @@ Append PR boundary entries here.
 - **Safety:** RC.3 and Apple request
   `faa0580d-941c-4df3-90b8-38570ff52ac4` remain immutable; no public surface
   or credential inventory was mutated by this slice.
+- **Review and merge:** User approval is recorded at event sequence 109. Final
+  approval-head CI run
+  [33342818826](https://github.com/TrentBrown/gatereeve/actions/runs/33342818826)
+  passed all required jobs. PR #37 merged as
+  `57fe66ba90ae1db1df970bf6988053136b567f23`; both evaluated source
+  `3a7d447c444aff12100d6ff30a9c5e9aa0a4fda2` and final approved PR head
+  `92a9937d80e0d93454564a3d9daa0e4b095a56c6` are verified ancestors.
+- **Continuation:** Governed slice `s6-final-acceptance` resumed I-9 from the
+  exact reviewed merge and will use fresh candidate `v0.1.0-rc.4`.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 

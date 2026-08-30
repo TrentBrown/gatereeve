@@ -106,7 +106,7 @@ reviewed topic changes on `main` before live environment mutation.
 
 ## I-9 - Complete live cutover and nonpublishing acceptance
 
-- **Status:** blocked
+- **Status:** in-progress
 - **Estimate:** 1d plus Apple processing time
 - **Plan steps:** P9
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
@@ -117,12 +117,13 @@ Coordinate user-operated secret migration, audit the separated environments,
 run a fresh protected RC rehearsal and hosted publication dry run, retain zero-
 mutation evidence, and complete full rubric/judge verification.
 
-Blocked by I-10 after RC.3 proved Apple trust and native evidence but exposed
-that protected jobs suppress GitHub deployment/reviewer enforcement.
+I-10 is resolved on reviewed `main`. RC.3 remains immutable trust/native
+evidence only; a fresh RC.4 rehearsal must now prove the corrected GitHub
+deployment/reviewer enforcement before final acceptance can proceed.
 
 ## I-10 - Enforce protected environment deployment approvals
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d plus protected rehearsal time
 - **Plan steps:** P4, P5, P6, P9
 - **Rubric criteria:** R3, R6, R7, R8
@@ -133,3 +134,8 @@ Remove deployment suppression from every `release-trust` and
 `release-publication` job, add workflow-contract coverage for real environment
 deployments, deliver the correction through a fresh reviewed slice, and prove
 required-reviewer waits with a fresh RC before resuming I-9.
+
+PR #37 merged to `main` as
+`57fe66ba90ae1db1df970bf6988053136b567f23`; reviewed correction head
+`3a7d447c444aff12100d6ff30a9c5e9aa0a4fda2` and final approved PR head
+`92a9937d80e0d93454564a3d9daa0e4b095a56c6` are both verified ancestors.

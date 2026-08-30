@@ -1,17 +1,20 @@
 # Live Acceptance - tb-gatereeve-release-trust-convergence
 
 **Feature:** `tb-gatereeve-release-trust-convergence`
-**Slice:** `s4-mainline-acceptance`
-**Status:** blocked on required-reviewer enforcement correction
+**Slice:** `s6-final-acceptance`
+**Status:** in progress on corrected mainline acceptance
 
 ## Reviewed mainline
 
-- Reviewed slices: PRs [#32](https://github.com/TrentBrown/gatereeve/pull/32), [#33](https://github.com/TrentBrown/gatereeve/pull/33), and [#34](https://github.com/TrentBrown/gatereeve/pull/34).
-- Assembled `origin/main`: `ee29569afedd8950b7278f5b1d21183c19e02803`.
+- Reviewed slices: PRs [#32](https://github.com/TrentBrown/gatereeve/pull/32), [#33](https://github.com/TrentBrown/gatereeve/pull/33), [#34](https://github.com/TrentBrown/gatereeve/pull/34), and approval-boundary correction [#37](https://github.com/TrentBrown/gatereeve/pull/37).
+- Current reviewed `origin/main`: `57fe66ba90ae1db1df970bf6988053136b567f23`.
 - PR #34 reviewed head: `1e5497e2e1165ac2687e2112acef252a305fc738`.
 - PR #34 merge ancestry: verified.
+- PR #37 evaluated head: `3a7d447c444aff12100d6ff30a9c5e9aa0a4fda2`.
+- PR #37 final approved head: `92a9937d80e0d93454564a3d9daa0e4b095a56c6`.
+- PR #37 merge ancestry: both heads verified.
 - `development` or `development-*` merged or rebased into the feature: no.
-- Fresh acceptance candidate: `v0.1.0-rc.3` (tag and release absent at the audit).
+- Fresh corrected acceptance candidate: `v0.1.0-rc.4` (tag and release absent at the 2026-08-30T23:56:21Z audit).
 
 The original feature base predates an unrelated reviewed Desktop delivery that
 also reached `main`. Feature-final evaluation must distinguish those existing
@@ -139,6 +142,8 @@ release remained absent. Preparation therefore caused zero public mutation.
    independent native ARM64/Intel evidence. **Complete.**
 5. Correct the suppressed deployment/reviewer boundary in a fresh reviewed
    slice, merge that correction to `main`, and use a fresh RC identity.
+   **Complete:** PR #37 merged as `57fe66ba90ae1db1df970bf6988053136b567f23`;
+   RC.4 is reserved and absent before dispatch.
 6. Approve the corrected `release-trust` job only after verifying its source
    and inputs, then retain the fresh exact trust packet.
 7. Seal the exact packet and run the corrected protected primary publication
@@ -169,4 +174,36 @@ all six jobs and reject `deployment: false`. Current local evidence: all four
 edited workflows parse as YAML, the 10 focused workflow/documentation tests
 pass, all 158 CLI tests pass, all 125 Desktop tests pass, and portable
 acceptance passes. A fresh hosted rehearsal and candidate remain required after
-this correction passes review and merges.
+this now-merged correction.
+
+PR #37 passed its full governed boundary, final approval-head CI, and user
+review. It merged to `main` as
+`57fe66ba90ae1db1df970bf6988053136b567f23`; the evaluated correction and final
+approved PR heads are both verified ancestors. Slice `s6-final-acceptance`
+started from that exact reviewed merge without merging or rebasing any
+`development*` branch.
+
+## RC.4 corrected-rehearsal baseline
+
+Baseline time: 2026-08-30T23:56:21Z. Only environment metadata, variable
+names, and secret names were inspected; no secret value was read or copied.
+
+| Check | Initial identity |
+|---|---|
+| Reviewed source | `57fe66ba90ae1db1df970bf6988053136b567f23` |
+| Candidate tag `v0.1.0-rc.4` | absent |
+| Candidate GitHub release | absent |
+| `release-trust` required reviewer | `TrentBrown`; self-review permitted |
+| `release-trust` deployment policy | custom branch `main` only |
+| `release-trust` variable names | four expected Apple identity variables |
+| `release-trust` secret names | three expected Apple credential secrets |
+| Marketplace head | `22c2d841e833af4d2aec351cf61d54dafaf8fcd3` |
+| Mainline Desktop manifest blob | `e6c94d8699fc4fb1c54eb2c0fc4b1f99f84cb9b6` |
+| Early Access response SHA-256 | `23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b` |
+| Homebrew tap head | `91725d7e7aa3a8e0f82ddc2658f51d12a3385900` |
+| Homebrew Cask blob | `f08840728d0b329a9dfe037467782d8c335c396e` |
+
+The served Desktop manifest remains on public `0.1.0-rc.2` with universal-DMG
+SHA-256 `ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f`.
+This baseline is the zero-public-mutation comparator for the corrected
+nonpublishing RC.4 rehearsal.
