@@ -46,7 +46,7 @@
     <div class="eyebrow">PR #33 · Slice 2 · reviewer guide</div>
     <h1>Protected Apple trust, recoverable exact bytes, and native authority</h1>
     <p class="lede">This slice turns GateReeve’s existing universal-DMG release into a protected trust-production pipeline with durable recovery and independent Apple Silicon and Intel proof—without importing PortReeve’s separate-DMG or CLI topology.</p>
-    <div class="meta"><strong>Pinned range</strong><br><code>a01361aaf3c5779129e49972a33539c5984d0da0</code><br>through <code>92f609b5eb410df9a51f9896018f256cd14b5dcd</code></div>
+    <div class="meta"><strong>Pinned range</strong><br><code>a01361aaf3c5779129e49972a33539c5984d0da0</code><br>through <code>c4b48421ef038d6ca917c03da7e24fdd07af69df</code></div>
     <nav aria-label="Table of contents"><a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code tour</a><a href="#review">Review focus</a><a href="#quiz">Quiz</a></nav>
   </header>
 
@@ -129,13 +129,13 @@ environment:
     <div class="grid"><article class="card"><h3>Desktop verification</h3><p><strong>125 tests passed.</strong> Apple attempts, trust finalization, history ambiguity, exact DMG verification, and native-host detection are covered.</p></article><article class="card"><h3>CLI verification</h3><p><strong>149 tests passed.</strong> Workflow boundaries, native aggregation, lifecycle construction, conformance fixtures, and cross-RC Plugin rejection are covered.</p></article></div>
 
     <h3>Review found and closed two exact-authority gaps</h3>
-    <p>The first boundary attempt correctly failed. It found that recovery could select a Plugin artifact from another RC at the same source commit, and that an unexpected translation-probe failure was treated as native. Hosted CI then established the documented empty missing-key result on native Intel and found that the acceptance image omitted the new recovery workflow. The final head validates Plugin metadata, distinguishes native missing-key from real probe failure, and tests the recovery workflow inside both container images.</p>
+    <p>The first boundary attempt correctly failed. It found that recovery could select a Plugin artifact from another RC at the same source commit, and that an unexpected translation-probe failure was treated as native. Hosted CI then established the documented empty missing-key result on native Intel and found that the acceptance image omitted the new recovery workflow. The final head validates Plugin metadata, distinguishes native missing-key from real probe failure, and tests the recovery workflow inside both container images. Final hosted run 33331377471 passed all 13 jobs, including native Apple Silicon and Intel packaged-runtime launches and both acceptance containers.</p>
   </section>
 
   <section id="review">
     <h2>Reviewer focus</h2>
     <ol><li>Confirm only exact current reviewed <code>main</code> can start protected production.</li><li>Confirm <code>release-trust</code> cannot publish and recovery cannot sign or rebuild.</li><li>Confirm the submitted DMG remains the request authority while the final stapled DMG becomes the native/publication authority.</li><li>Confirm uncertain submission never automatically resubmits and all retries are bounded.</li><li>Confirm ARM64 and Intel evidence are complete, independent, non-Rosetta, create-once, and agree on exact bytes and request.</li><li>Confirm the lifecycle stops before finalization/publication and keeps GateReeve’s universal topology.</li></ol>
-    <p class="callout warn"><strong>Residual evidence:</strong> real Apple signing/notarization, GitHub runner labels, protected environment contents, and live native documents are deliberately deferred to the P9 nonpublishing rehearsal with a fresh RC.</p>
+    <p class="callout warn"><strong>Residual evidence:</strong> real Apple signing/notarization, protected environment contents, and signed/notarized native documents are deliberately deferred to the P9 nonpublishing rehearsal with a fresh RC. Ordinary hosted runner labels and packaged-runtime launches passed on both native architectures.</p>
   </section>
 
   <section id="quiz">

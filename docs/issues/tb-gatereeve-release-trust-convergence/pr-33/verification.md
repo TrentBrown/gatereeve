@@ -2,7 +2,7 @@
 
 **Verdict:** PASS
 
-**Pinned diff:** `a01361aaf3c5779129e49972a33539c5984d0da0..92f609b5eb410df9a51f9896018f256cd14b5dcd`
+**Pinned diff:** `a01361aaf3c5779129e49972a33539c5984d0da0..c4b48421ef038d6ca917c03da7e24fdd07af69df`
 
 ## Verification Matrix
 
@@ -14,6 +14,7 @@
 | Desktop suite | PASS | `npm test` in `apps/desktop` passed 125 tests with 0 failures. |
 | CLI suite | PASS | `npm test` in `cli` passed 149 tests with 0 failures. |
 | Integration | PASS | Tests exercise exact submitted/final DMG identities, request-history reconciliation, bounded recovery, source pinning, generic-rerun rejection, native architecture aggregation, Rosetta rejection, lifecycle stage construction, retention, and credential-boundary workflow contracts. |
+| Hosted CI | PASS | [Run 33331377471](https://github.com/TrentBrown/gatereeve/actions/runs/33331377471) passed all 13 jobs: both Linux versions and acceptance containers, Desktop contracts/runtimes, universal macOS packaging, and packaged-runtime launches on native Apple Silicon and Intel runners. |
 | End-to-end/browser | NOT APPLICABLE | This slice changes release automation and evidence contracts; it has no product UI or browser flow. |
 | Live protected Apple run | DEFERRED | This PR boundary has no Apple secrets and does not mutate protected environments. A fresh GitHub-hosted macOS notarization/native rehearsal is explicitly assigned to P9/I-9 after user-authorized environment cutover. |
 
@@ -46,8 +47,10 @@
   abandoned GateReeve test-fixture directories were present. Only exact
   GateReeve temporary fixture patterns were removed; both complete suites then
   passed. No repository or user document was deleted.
-- Workflow syntax was checked locally, but GitHub-hosted runner behavior and
-  Apple service behavior require the protected nonpublishing rehearsal.
+- Workflow syntax and ordinary GitHub-hosted runner behavior passed, including
+  native ARM64/Intel packaged-runtime execution. Real Apple signing,
+  notarization, stapling, and Gatekeeper behavior still require the protected
+  nonpublishing rehearsal.
 
 ## Known Failures
 

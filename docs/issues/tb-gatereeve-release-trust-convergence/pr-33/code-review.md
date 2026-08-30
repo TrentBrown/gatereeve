@@ -2,7 +2,7 @@
 
 **Verdict:** PASS - no findings
 
-**Pinned diff:** `a01361aaf3c5779129e49972a33539c5984d0da0..92f609b5eb410df9a51f9896018f256cd14b5dcd`
+**Pinned diff:** `a01361aaf3c5779129e49972a33539c5984d0da0..c4b48421ef038d6ca917c03da7e24fdd07af69df`
 
 ## Findings
 
@@ -15,14 +15,18 @@ The attempt-1 review found two blockers. They are closed in the current head:
   `cli/test/trusted-release-lifecycle-v2.test.js:130-150` rejects a different
   RC at the same source commit.
 - `apps/desktop/scripts/verify-macos-package.mjs:33-46` accepts only Apple's
-  documented `1`, `0`, or missing-key results and propagates actual probe
-  failures; tests cover every path.
+  documented translated, native-zero, and native missing-key/empty results,
+  rejects unexpected output, and propagates actual probe failures; tests cover
+  every path. Hosted run 33331377471 confirms the native Intel path.
+- `Dockerfile.acceptance` now includes the recovery workflow consumed by the
+  coordinated-workflow contract. Both Ubuntu acceptance containers pass in
+  hosted run 33331377471.
 
 ## Residual Risk
 
-- GitHub-hosted macOS runner labels, real Developer ID signing, Apple history
-  response shape, stapling, Gatekeeper assessments, and the native smoke test
-  still require the planned protected nonpublishing rehearsal.
+- Real Developer ID signing, Apple history response shape, stapling, and
+  Gatekeeper assessments still require the planned protected nonpublishing
+  rehearsal. Ordinary native ARM64/Intel packaged-runtime smoke tests pass.
 - Live `release-trust`/`release-publication` environment contents and reviewer
   rules are outside the repository diff and remain P9 cutover evidence.
 - The workflow intentionally stops at `desktop-trust-verified`; P5 must add

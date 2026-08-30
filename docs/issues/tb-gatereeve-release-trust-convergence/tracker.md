@@ -51,7 +51,7 @@ Append PR boundary entries here.
 - **PR:** [#33](https://github.com/TrentBrown/gatereeve/pull/33)
 - **Evidence packet:** [packet](pr-33/)
 - **Evaluated source:**
-  `92f609b5eb410df9a51f9896018f256cd14b5dcd` based on reviewed `main`
+  `c4b48421ef038d6ca917c03da7e24fdd07af69df` based on reviewed `main`
   `a01361aaf3c5779129e49972a33539c5984d0da0`.
 - **Scope:** P3-P4 / I-3-I-4 / R1, R2, R3, R4, R5, R8 foundations.
 - **Summary:** Moves Apple trust production to the protected `release-trust`
@@ -62,6 +62,10 @@ Append PR boundary entries here.
 - **Verification:** Desktop 125 passed; CLI 149 passed after review
   remediation; focused contract,
   syntax, YAML, documentation-example, and diff checks passed.
+- **Hosted checks:** [Run 33331377471](https://github.com/TrentBrown/gatereeve/actions/runs/33331377471)
+  passed all 13 jobs, including both acceptance containers, the universal
+  macOS package, and packaged-runtime launches on native Apple Silicon and
+  Intel runners.
 - **Boundary remediation:** Attempt 1 found and blocked a same-source/
   different-RC Plugin recovery mix and fail-open Rosetta probe errors. The
   lifecycle builder now validates `RELEASE.json`, native Intel authority uses
@@ -70,9 +74,9 @@ Append PR boundary entries here.
   the acceptance image omitted the new recovery workflow; its Dockerfile now
   copies that contract for container verification.
 - **Live limitation:** This PR boundary does not possess Apple credentials and
-  therefore does not execute a live notarization request or GitHub-hosted
-  native runner rehearsal. Those protected, nonpublishing checks remain part
-  of P9/I-9 after the environment cutover is explicitly authorized.
+  therefore does not execute a live notarization request. The protected,
+  nonpublishing notarization rehearsal remains part of P9/I-9 after the
+  environment cutover is explicitly authorized.
 
 ## Slice Evidence
 
@@ -84,11 +88,13 @@ Append PR boundary entries here.
 - Branch:
   `tb-gatereeve-release-trust-convergence-02-protected-trust-native-evidence`.
 - Draft PR: [#33](https://github.com/TrentBrown/gatereeve/pull/33).
-- Evaluated source: `92f609b5eb410df9a51f9896018f256cd14b5dcd`.
+- Evaluated source: `c4b48421ef038d6ca917c03da7e24fdd07af69df`.
 - Desktop suite: 125 passed, 0 failed; CLI suite: 149 passed, 0 failed after
   review remediation.
-- Live Apple trust and native-host rehearsal are intentionally deferred to
-  P9/I-9 because this boundary neither receives nor mutates protected secrets.
+- Hosted CI run 33331377471 passed all 13 jobs, including both native macOS
+  packaged-runtime launches and both Linux acceptance containers.
+- Live Apple trust is intentionally deferred to P9/I-9 because this boundary
+  neither receives nor mutates protected secrets.
 - No `development` or `development-*` branch was merged or rebased.
 
 ### s1-lifecycle-recovery-contracts
