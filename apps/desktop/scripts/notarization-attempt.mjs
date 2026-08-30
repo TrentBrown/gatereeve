@@ -19,6 +19,17 @@ const STATES = new Set([
   'rejected',
   'superseded',
 ]);
+const ALLOWED_TRANSITIONS = Object.freeze({
+  prepared: new Set(['submitting', 'superseded']),
+  submitting: new Set(['submission-uncertain', 'prepared', 'submitted', 'accepted', 'rejected', 'superseded']),
+  'submission-uncertain': new Set(['prepared', 'submitted', 'accepted', 'rejected', 'superseded']),
+  submitted: new Set(['polling', 'superseded']),
+  polling: new Set(['polling', 'timed-out', 'accepted', 'rejected', 'superseded']),
+  'timed-out': new Set(['polling', 'superseded']),
+  accepted: new Set(['superseded']),
+  rejected: new Set(['superseded']),
+  superseded: new Set(),
+});
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
@@ -258,13 +269,63 @@ export function assertNotarizationAttempt(value) {
     if (event.eventSha256 !== eventDigest(value, event)) {
       throw new Error('Notarization attempt history digest is invalid');
     }
+    if (
+      (index === 0 && event.state !== 'prepared')
+      || (index > 0 && !ALLOWED_TRANSITIONS[value.history[index - 1].state].has(event.state))
+    ) {
+      throw new Error('Notarization attempt history transition is invalid');
+    }
     previousEventSha256 = event.eventSha256;
   });
+  if (
+    value.history[0].recordedAt !== value.createdAt
+    || value.history[0].detail.candidateSha256 !== value.candidate.identitySha256
+  ) {
+    throw new Error('Notarization attempt creation does not match history');
+  }
   if (value.history.at(-1).state !== value.state) {
     throw new Error('Notarization attempt state does not match history');
   }
   if (value.history.at(-1).recordedAt !== value.updatedAt) {
     throw new Error('Notarization attempt update time does not match history');
+  }
+  const requestEvents = value.history.filter((event) => UUID.test(event.detail.requestId ?? ''));
+  if (
+    (hasRequestId && requestEvents.length < 1)
+    || requestEvents.some((event) => event.detail.requestId !== value.requestId)
+  ) {
+    throw new Error('Notarization Apple request does not match attempt history');
+  }
+  const reconciliationEvents = value.history.filter(
+    (event) => ['absent', 'found'].includes(event.detail.reconciliation),
+  );
+  if (value.reconciliation === null) {
+    if (reconciliationEvents.length !== 0) {
+      throw new Error('Notarization reconciliation summary does not match history');
+    }
+  } else {
+    const event = reconciliationEvents.at(-1);
+    if (
+      event === undefined
+      || event.detail.reconciliation !== value.reconciliation.result
+      || event.detail.evidenceSha256 !== value.reconciliation.evidenceSha256
+      || event.recordedAt !== value.reconciliation.reconciledAt
+    ) {
+      throw new Error('Notarization reconciliation summary does not match history');
+    }
+  }
+  if (value.state === 'superseded') {
+    const event = value.history.at(-1);
+    if (
+      event.detail.replacementAttemptId !== value.supersession.attemptId
+      || event.detail.replacement?.sourceTag !== value.supersession.sourceTag
+      || event.detail.replacement?.sourceCommit !== value.supersession.sourceCommit
+      || event.detail.replacement?.version !== value.supersession.version
+      || event.detail.reason !== value.supersession.reason
+      || event.recordedAt !== value.supersession.supersededAt
+    ) {
+      throw new Error('Notarization supersession summary does not match history');
+    }
   }
   for (const session of value.pollingSessions) {
     const starts = value.history.filter((event) => (

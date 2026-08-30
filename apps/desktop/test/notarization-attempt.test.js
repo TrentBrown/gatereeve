@@ -149,6 +149,12 @@ test('uncertain submission fails closed until Apple history proves found or abse
   });
   assert.equal(found.state, 'submitted');
   assert.equal(found.requestId, requestId);
+  const alteredReconciliation = structuredClone(found);
+  alteredReconciliation.reconciliation.evidenceSha256 = 'f'.repeat(64);
+  assert.throws(
+    () => assertNotarizationAttempt(alteredReconciliation),
+    /reconciliation summary does not match history/u,
+  );
   assert.throws(
     () => reconcileNotarizationSubmission(uncertain, {
       matches: [
@@ -234,4 +240,10 @@ test('supersession preserves the old attempt and requires a fresh candidate vers
   assert.equal(superseded.pollingSessions[0].state, 'superseded');
   assert.equal(superseded.supersession.version, '0.1.0-rc.10');
   assert.equal(assertNotarizationAttempt(superseded), superseded);
+  const alteredSupersession = structuredClone(superseded);
+  alteredSupersession.supersession.reason = 'rewritten reason';
+  assert.throws(
+    () => assertNotarizationAttempt(alteredSupersession),
+    /supersession summary does not match history/u,
+  );
 });

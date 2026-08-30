@@ -9,24 +9,24 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Implement schema-v2 lifecycle and v1 compatibility
 
-- **Status:** completed
+- **Status:** in-review
 - **Estimate:** 1.5d
 - **Plan steps:** P1
 - **Rubric criteria:** R1, R2
 - **Depends on:** none
-- **PR:** -
+- **PR:** [#32](https://github.com/TrentBrown/gatereeve/pull/32)
 
 Add strict schema dispatch, guarded v2 stages, immutable identity/digest
 binding, and compatibility fixtures without mutating historical v1 records.
 
 ## I-2 - Implement candidate reservation and Apple attempt recovery
 
-- **Status:** completed
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P2
 - **Rubric criteria:** R2, R4
 - **Depends on:** I-1
-- **PR:** -
+- **PR:** [#32](https://github.com/TrentBrown/gatereeve/pull/32)
 
 Replace synchronous opaque notarization with durable submit/reconcile/poll
 records, finite polling, version burn, and fail-closed negative coverage.
