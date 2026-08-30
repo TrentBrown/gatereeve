@@ -28,7 +28,7 @@ const ids = [
   'brand-version', 'project-sidebar', 'main-tabs', 'toggle-sidebar',
   'toggle-inspector', 'inspector-panel', 'inspector-resizer', 'inspector-tabs',
   'source-dialog', 'source-dialog-close', 'source-dialog-list', 'global-alerts', 'state-rail',
-  'slices-surface', 'slices',
+  'milestones', 'slices-surface', 'slices',
   'boundary-surface', 'attempt-select', 'boundary-summary', 'gate-dag',
   'closeout-surface', 'closeout-status', 'closeout-summary',
   'actions-surface', 'actions', 'guidance-context', 'artifact-count', 'artifact-list', 'artifact-viewer', 'history-count',
@@ -444,6 +444,25 @@ function renderStateRail(snapshot) {
   }
 }
 
+function renderMilestones(snapshot) {
+  const container = clear(elements.milestones);
+  const selectedFeatureState = workspaceState().selectedFeatureState
+    ?? snapshot?.projection?.feature?.state;
+  const milestones = (snapshot?.milestones ?? []).filter(
+    (item) => item.state === selectedFeatureState,
+  );
+  container.hidden = milestones.length === 0;
+  for (const milestone of milestones) {
+    const item = node('span', {
+      className: 'milestone',
+      text: milestone.label,
+      title: `Exact milestone ID: ${milestone.id}`,
+    });
+    item.dataset.status = milestone.status;
+    container.append(item);
+  }
+}
+
 function renderSlices(snapshot) {
   clear(elements.slices);
   const slices = snapshot?.projection?.slices ?? [];
@@ -744,6 +763,7 @@ function renderActions(snapshot) {
 function renderOverview(snapshot) {
   renderGlobalAlert(snapshot);
   renderStateRail(snapshot);
+  renderMilestones(snapshot);
   const selectedFeatureState = workspaceState().selectedFeatureState;
   const delivering = selectedFeatureState === 'DELIVERING_SLICES';
   const finalizing = selectedFeatureState === 'FINALIZING';

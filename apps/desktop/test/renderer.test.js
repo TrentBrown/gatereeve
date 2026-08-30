@@ -384,7 +384,9 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.match(window.document.querySelector('.slice-card.selected').getAttribute('aria-label'), /Active delivery slice/);
   assert.match(window.document.querySelector('.slice-card.selected').getAttribute('aria-label'), /Selected for inspection/);
   assert.doesNotMatch(window.document.querySelector('.slice-card.selected').textContent, /Active|Selected/);
-  assert.equal(window.document.querySelector('#milestones'), null);
+  assert.equal(window.document.querySelector('#milestones').hidden, false);
+  assert.equal(window.document.querySelector('#milestones').textContent, 'PR boundary active');
+  assert.doesNotMatch(window.document.querySelector('#milestones').textContent, /No milestones/);
   assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
   assert.equal(window.document.querySelector('#global-alerts').hidden, true);
   assert.equal(window.document.querySelector('#attention-title'), null);
@@ -402,7 +404,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.equal(window.document.querySelector('.state-node.current .state-select').getAttribute('aria-pressed'), 'false');
   assert.equal(window.document.querySelector('.state-node.selected .state-select').getAttribute('aria-pressed'), 'true');
   assert.equal(window.document.querySelector('#slices-surface').hidden, true);
-  assert.equal(window.document.querySelector('#milestones'), null);
+  assert.equal(window.document.querySelector('#milestones').hidden, false);
+  assert.equal(window.document.querySelector('#milestones').textContent, 'Design approved');
   assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
   assert.match(window.document.querySelector('#guidance-context').textContent, /Current: Implementing/);
   assert.equal(window.document.querySelector('#actions-surface').hidden, false);
@@ -410,6 +413,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   const finalizing = [...window.document.querySelectorAll('.state-select')]
     .find((button) => button.textContent.includes('Finalizing'));
   finalizing.click();
+  assert.equal(window.document.querySelector('#milestones').hidden, true);
+  assert.equal(window.document.querySelector('#milestones').textContent, '');
   assert.equal(window.document.querySelector('#closeout-surface').hidden, false);
   assert.equal(window.document.querySelector('#closeout-status').textContent, 'In progress');
   assert.match(window.document.querySelector('#closeout-summary').textContent, /must finish before closeout is ready/);
@@ -419,7 +424,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     .find((button) => button.textContent.includes('Implementing'));
   delivering.click();
   assert.equal(window.document.querySelector('#slices-surface').hidden, false);
-  assert.equal(window.document.querySelector('#milestones'), null);
+  assert.equal(window.document.querySelector('#milestones').hidden, false);
+  assert.equal(window.document.querySelector('#milestones').textContent, 'PR boundary active');
 
   [...window.document.querySelectorAll('.slice-card')]
     .find((button) => button.textContent.includes('Final quality')).click();
