@@ -64,10 +64,16 @@ test('renderer presents selection first and then canonical observation status', 
   let subscriber;
   let updateSubscriber;
   let releaseOpens = 0;
+  let projectChooserOpens = 0;
+  let activationState = null;
+  const activatedProjects = [];
   window.gatereeveDesktop = {
     async checkForUpdates() { return idleUpdate(); },
-    async addProject() {},
-    async activateProject() {},
+    async addProject() { projectChooserOpens += 1; },
+    async activateProject(path) {
+      activatedProjects.push(path);
+      return activationState ?? idleState();
+    },
     async refresh() {},
     async recheckSetup() { return idleState(); },
     async setSelectedAgents() { return idleState(); },
@@ -85,8 +91,25 @@ test('renderer presents selection first and then canonical observation status', 
   assert.equal(window.document.querySelector('#chooser').hidden, false);
   assert.equal(window.document.querySelector('#overview').hidden, true);
   assert.equal(window.document.querySelectorAll('.project-row').length, 1);
+  activationState = {
+    ...idleState(),
+    candidateDiagnostic: {
+      classification: 'incompatible',
+      title: 'Project not opened',
+      message: 'The feature record is not compatible.',
+      selectedPath: '/repo/recent',
+      featureHome: '/repo/recent/docs/issues/feature',
+      failedChecks: ['Pinned model is unsupported.'],
+      pinnedModel: 'gatereeve/workflow@2.0.0',
+      supportedModel: 'gatereeve/workflow@1.0.0',
+    },
+  };
+  window.document.querySelector('[role="option"]').click();
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(activatedProjects, ['/repo/recent']);
+  assert.equal(window.document.querySelector('#candidate-diagnostic').hidden, false);
 
-  subscriber({
+  const selectedState = {
     ...idleState(),
     phase: 'ready',
     githubPolling: true,
@@ -103,12 +126,35 @@ test('renderer presents selection first and then canonical observation status', 
         github: { status: 'current', detail: 'PR open' },
       },
     },
-  });
+  };
+  subscriber(selectedState);
   assert.equal(window.document.querySelector('#chooser').hidden, true);
   assert.equal(window.document.querySelector('#overview').hidden, false);
   assert.match(window.document.querySelector('#project-context').textContent, /DELIVERING SLICES/);
   assert.match(window.document.querySelector('#activity').textContent, /polling GitHub/);
   assert.equal(window.document.querySelector('#actions-surface').hidden, true);
+  subscriber({
+    ...selectedState,
+    candidateDiagnostic: {
+      classification: 'incompatible',
+      title: 'Model-incompatible feature record',
+      message: 'The pinned model is not supported by this GateReeve Desktop.',
+      selectedPath: '/repo/rejected',
+      featureHome: '/repo/rejected/docs/issues/feature',
+      failedChecks: ['Pinned workflow model 2.0.0 is newer than the bundled model.'],
+      pinnedModel: 'gatereeve/workflow@2.0.0',
+      supportedModel: 'gatereeve/workflow@1.0.0',
+    },
+  });
+  const diagnostic = window.document.querySelector('#candidate-diagnostic');
+  assert.equal(diagnostic.hidden, false);
+  assert.equal(diagnostic.open, true);
+  assert.match(diagnostic.textContent, /\/repo\/rejected/);
+  assert.match(diagnostic.textContent, /gatereeve\/workflow@2\.0\.0/);
+  assert.match(diagnostic.textContent, /GateReeve has not saved, modified, migrated, or deleted anything/);
+  assert.equal(window.document.querySelector('#overview').hidden, false);
+  window.document.querySelector('#candidate-diagnostic-choose-another').click();
+  assert.equal(projectChooserOpens, 1);
   window.document.querySelector('#open-setup').click();
   assert.equal(window.document.querySelector('#workspace').hidden, true);
   assert.equal(window.document.querySelector('#setup-shell').hidden, false);

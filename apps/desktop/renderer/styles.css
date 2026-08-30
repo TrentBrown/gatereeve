@@ -458,7 +458,7 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
   grid-template-columns:
     var(--project-sidebar-width)
     minmax(300px, 1fr)
-    min(var(--inspector-width), calc(100% - var(--project-sidebar-width) - 300px));
+    var(--inspector-width);
   min-height: calc(100vh - var(--masthead-height));
   transition: grid-template-columns 150ms ease;
 }
@@ -501,6 +501,17 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
 .workspace-content { min-width: 0; }
 .workspace-content > .page { max-width: none; }
 .workspace-content > .panel { margin: 8vh auto; }
+.diagnostic-report { margin: 1rem 1rem 0; padding: 0; overflow: hidden; }
+.diagnostic-report > summary { display: flex; align-items: baseline; gap: 0.65rem; padding: 0.75rem 0.85rem; cursor: pointer; }
+.diagnostic-report > summary .section-kicker { margin: 0; color: inherit; }
+.diagnostic-report-body { padding: 0 0.85rem 0.9rem; }
+.diagnostic-report-body .lede { margin-top: 0; color: inherit; }
+.diagnostic-report-body h3 { margin: 0.85rem 0 0.25rem; font-size: 0.86rem; }
+.diagnostic-report-body ul, .diagnostic-report-body ol { margin: 0.3rem 0; padding-left: 1.25rem; }
+.diagnostic-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.45rem; margin: 0; }
+.diagnostic-facts div { min-width: 0; padding: 0.48rem 0.55rem; border: 1px solid rgb(168 50 74 / 24%); border-radius: 0.4rem; background: rgb(255 255 255 / 55%); }
+.diagnostic-facts dt { font-weight: 800; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.diagnostic-facts dd { margin: 0.18rem 0 0; overflow-wrap: anywhere; font: 0.7rem/1.4 ui-monospace, monospace; }
 .project-context { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.76rem; }
 .project-sources { margin-top: 0.45rem; color: var(--muted); font-size: 0.7rem; }
 .project-sources > summary { width: max-content; cursor: pointer; font-weight: 750; }
@@ -534,7 +545,13 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
 
 @media (max-width: 1100px) {
   .workspace { --project-sidebar-width: 205px; }
+  .masthead { gap: 0.55rem; padding: 0.7rem 0.75rem; }
+  .brand { min-width: 0; gap: 0.5rem; }
+  .brand-mark { width: 52px; height: 52px; }
+  .brand h1 { font-size: 1.85rem; }
+  .brand .eyebrow { font-size: 0.58rem; letter-spacing: 0.12em; }
   .masthead-actions { gap: 0.45rem; }
+  .masthead-actions .secondary { padding: 0.55rem 0.65rem; font-size: 0.8rem; }
   .activity { display: none; }
 }
 

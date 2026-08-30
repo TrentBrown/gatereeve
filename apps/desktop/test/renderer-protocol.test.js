@@ -31,6 +31,7 @@ test('renderer protocols confine application files and serve only named trusted 
     method: 'GET', url: 'gatereeve-app://desktop/index.html',
   });
   assert.equal(appResponse.status, 200);
+  assert.equal(appResponse.headers.get('cache-control'), 'no-store');
   assert.match(appResponse.headers.get('content-security-policy'), /frame-src gatereeve-artifact:/);
   assert.equal(await appResponse.text(), '<h1>GateReeve</h1>');
   const brandingResponse = await handlers.get('gatereeve-app')({

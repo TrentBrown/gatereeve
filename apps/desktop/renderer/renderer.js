@@ -22,6 +22,8 @@ const desktop = window.gatereeveDesktop;
 
 const ids = [
   'chooser', 'choose', 'choose-empty', 'recents', 'chooser-error', 'workspace', 'refresh', 'activity',
+  'candidate-diagnostic', 'candidate-diagnostic-title', 'candidate-diagnostic-message',
+  'candidate-diagnostic-facts', 'candidate-diagnostic-checks', 'candidate-diagnostic-choose-another',
   'brand-version', 'project-context', 'project-sidebar', 'main-tabs', 'toggle-sidebar',
   'toggle-inspector', 'inspector-panel', 'inspector-resizer', 'inspector-tabs', 'hide-inspector',
   'source-local',
@@ -60,6 +62,7 @@ let artifactReadSequence = 0;
 let artifactHasContent = false;
 let toastTimer = null;
 let renderedOnce = false;
+let renderedDiagnosticKey = null;
 
 function projectPath() {
   return currentState?.selection?.worktreePath ?? '__empty__';
@@ -287,7 +290,7 @@ function renderRecents(state) {
         ? [node('small', { className: 'needs-attention', text: '⚠ Needs attention' })]
         : []),
     ]);
-    select.addEventListener('click', () => void desktop.activateProject(project.path));
+    select.addEventListener('click', async () => render(await desktop.activateProject(project.path)));
     const reorder = async (offset) => {
       const paths = projects.map((item) => item.path);
       const target = index + offset;
@@ -325,6 +328,40 @@ function renderRecents(state) {
   if (projects.length === 0) {
     elements.recents.append(node('p', { className: 'muted', text: 'No saved projects yet.' }));
   }
+}
+
+function renderCandidateDiagnostic(diagnostic) {
+  const report = elements['candidate-diagnostic'];
+  if (diagnostic === null || diagnostic === undefined) {
+    report.hidden = true;
+    renderedDiagnosticKey = null;
+    return;
+  }
+  const diagnosticKey = [diagnostic.classification, diagnostic.selectedPath, diagnostic.message].join('\u0000');
+  if (diagnosticKey !== renderedDiagnosticKey) report.open = true;
+  renderedDiagnosticKey = diagnosticKey;
+  elements['candidate-diagnostic-title'].textContent = diagnostic.title;
+  elements['candidate-diagnostic-message'].textContent = diagnostic.message;
+  clear(elements['candidate-diagnostic-facts']);
+  const facts = [
+    ['Classification', humanize(diagnostic.classification)],
+    ['Selected directory', diagnostic.selectedPath],
+    ['Feature record', diagnostic.featureHome ?? 'Not resolved'],
+    ['Pinned model', diagnostic.pinnedModel ?? 'Not reported'],
+    ['Supported model', diagnostic.supportedModel ?? 'Not reported'],
+  ];
+  for (const [label, value] of facts) {
+    elements['candidate-diagnostic-facts'].append(
+      node('div', {}, [node('dt', { text: label }), node('dd', { text: value })]),
+    );
+  }
+  clear(elements['candidate-diagnostic-checks']);
+  for (const check of diagnostic.failedChecks.length > 0
+    ? diagnostic.failedChecks
+    : ['The selected directory did not pass governed-project admission.']) {
+    elements['candidate-diagnostic-checks'].append(node('li', { text: check }));
+  }
+  report.hidden = false;
 }
 
 function renderGlobalAlert(snapshot) {
@@ -899,7 +936,7 @@ function toggleSidebar(force = undefined) {
   if (!workspace.sidebarVisible && activeInside) elements['toggle-sidebar'].focus();
   if (workspace.sidebarVisible) {
     const target = elements.recents.querySelector('[aria-current="true"]') ?? elements.choose;
-    target.focus();
+    target.focus({ preventScroll: true });
   }
 }
 
@@ -912,7 +949,7 @@ function toggleInspector(force = undefined) {
     renderInspector(currentState?.snapshot);
     const target = elements['inspector-tabs'].querySelector('[aria-selected="true"]')
       ?? elements['hide-inspector'];
-    target.focus();
+    target.focus({ preventScroll: true });
   }
 }
 
@@ -1376,11 +1413,12 @@ function render(state) {
   const selected = state.selection !== null;
   elements.refresh.disabled = !selected || state.refreshing;
   renderRecents(state);
+  renderCandidateDiagnostic(state.candidateDiagnostic);
   renderSetup(state);
   elements['brand-version'].textContent = `v${state.setup.desktop.version}`;
   elements.notifications.checked = state.preferences.notificationsEnabled;
   elements['open-setup'].textContent = state.setup.operationalReady ? 'Setup' : 'Setup · Needs attention';
-  const chooserMessage = state.candidateDiagnostic?.message ?? state.error?.message ?? null;
+  const chooserMessage = state.error?.message ?? null;
   elements['chooser-error'].hidden = selected || chooserMessage === null;
   elements['chooser-error'].textContent = selected ? '' : chooserMessage ?? '';
   if (!renderedOnce && state.preferences.selectedAgents.length === 0) currentView = 'setup';
@@ -1437,6 +1475,7 @@ function render(state) {
 
 elements.choose.addEventListener('click', () => void desktop.addProject());
 elements['choose-empty'].addEventListener('click', () => void desktop.addProject());
+elements['candidate-diagnostic-choose-another'].addEventListener('click', () => void desktop.addProject());
 elements['open-setup'].addEventListener('click', () => switchView('setup'));
 elements['setup-open-worktree'].addEventListener('click', () => void desktop.addProject());
 elements['setup-return'].addEventListener('click', () => switchView(workspaceState().mainView));
