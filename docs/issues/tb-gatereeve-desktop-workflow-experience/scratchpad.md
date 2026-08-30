@@ -87,7 +87,7 @@ Persist workspace state in preferences now - rejected because relaunch restorati
 
 ## [4] Invalidate artifact reads when hierarchy selection changes
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
