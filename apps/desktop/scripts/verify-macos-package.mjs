@@ -16,6 +16,7 @@ import {
   REQUIRED_ASAR_PATHS,
 } from './macos-package-contract.mjs';
 import {
+  appleTrustEvidenceSha256 as digestAppleTrustEvidence,
   assertAppleTrustEvidence,
   coordinatedTrustFromEvidence,
   parseCodesignFacts,
@@ -26,6 +27,19 @@ const execFileAsync = promisify(execFile);
 /** @param {string} file @param {string[]} args */
 async function run(file, args) {
   return execFileAsync(file, args, { maxBuffer: 8 * 1024 * 1024 });
+}
+
+/** @param {(file: string, args: string[]) => Promise<{stdout?: string}>} [command] */
+export async function detectRosettaTranslation(command = run) {
+  try {
+    const result = await command('/usr/sbin/sysctl', ['-in', 'sysctl.proc_translated']);
+    const translated = result.stdout?.trim();
+    if (translated === '1') return true;
+    if (translated === '0' || translated === '') return false;
+    throw new Error(`Unexpected sysctl.proc_translated value: ${translated ?? '<missing>'}`);
+  } catch (error) {
+    throw new Error('Unable to establish native process authority', { cause: error });
+  }
 }
 
 /** @param {string} plistPath @param {string} key */
@@ -187,10 +201,12 @@ export async function verifyDmg(options) {
   }
   const dmgPath = resolve(options.dmgPath);
   let appleTrust = null;
+  let appleTrustEvidenceSha256 = null;
   if (options.trustEvidencePath) {
     const content = await readFile(dmgPath);
+    const trustContent = await readFile(resolve(options.trustEvidencePath));
     appleTrust = assertAppleTrustEvidence(
-      JSON.parse(await readFile(resolve(options.trustEvidencePath), 'utf8')),
+      JSON.parse(trustContent.toString('utf8')),
       {
         sourceTag: options.sourceTag,
         sourceCommit: options.sourceCommit,
@@ -200,6 +216,7 @@ export async function verifyDmg(options) {
         sha256: createHash('sha256').update(content).digest('hex'),
       },
     );
+    appleTrustEvidenceSha256 = digestAppleTrustEvidence(appleTrust);
     await run('/usr/bin/codesign', ['--verify', '--strict', '--verbose=4', dmgPath]);
     const signature = await run('/usr/bin/codesign', ['--display', '--verbose=4', dmgPath]);
     const facts = parseCodesignFacts(
@@ -238,7 +255,7 @@ export async function verifyDmg(options) {
     const applicationPath = resolve(mountRoot, `${MACOS_PRODUCT.name}.app`);
     const trust = await verifyApplication(applicationPath, options.version, appleTrust);
     if (options.fixturePath) await smokeApplication(applicationPath, options.fixturePath);
-    return { trust };
+    return { trust, appleTrust, appleTrustEvidenceSha256 };
   } finally {
     if (attached) {
       await run('/usr/bin/hdiutil', ['detach', mountRoot]);
@@ -255,7 +272,8 @@ function argument(name) {
 /**
  * @param {{dmgPath: string, evidencePath: string, fixturePath?: string,
  *   nativeArchitecture: string, sourceCommit: string, sourceTag: string,
- *   version: string, trust?: any}} options
+ *   version: string, trust?: any, appleTrust?: any,
+ *   appleTrustEvidenceSha256?: string | null, rosettaTranslated?: boolean}} options
  */
 export async function writeVerificationEvidence(options) {
   assert.match(options.sourceCommit, /^[a-f0-9]{40}$/u);
@@ -263,7 +281,8 @@ export async function writeVerificationEvidence(options) {
   assert.ok(['arm64', 'x64'].includes(options.nativeArchitecture));
   const content = await readFile(resolve(options.dmgPath));
   const details = await stat(resolve(options.dmgPath));
-  const evidence = {
+  const trusted = options.appleTrust ?? null;
+  const evidence = trusted === null ? {
     schemaVersion: 1,
     kind: 'gatereeve-desktop-package-verification',
     sourceTag: options.sourceTag,
@@ -284,8 +303,56 @@ export async function writeVerificationEvidence(options) {
     },
     trust: structuredClone(options.trust ?? { status: 'development-ad-hoc', evidence: [] }),
     verifiedAt: new Date().toISOString(),
+  } : {
+    schemaVersion: 2,
+    kind: 'gatereeve-native-trust-verification',
+    source: { tag: options.sourceTag, commit: options.sourceCommit },
+    candidate: {
+      id: `gatereeve-${options.sourceTag}`,
+      version: options.version,
+      sourceCommit: options.sourceCommit,
+    },
+    artifact: {
+      filename: basename(resolve(options.dmgPath)),
+      bytes: details.size,
+      sha256: createHash('sha256').update(content).digest('hex'),
+    },
+    runner: {
+      operatingSystem: 'darwin',
+      architecture: options.nativeArchitecture,
+      processArchitecture: process.arch,
+      native: true,
+      rosettaTranslated: options.rosettaTranslated ?? false,
+    },
+    checks: {
+      dmgVerified: true,
+      applicationIdentity: true,
+      coordinatedVersion: true,
+      universalBinaries: true,
+      universalSlices: ['arm64', 'x86_64'],
+      strictDeveloperIdSignature: true,
+      hardenedRuntime: true,
+      secureTimestamp: true,
+      notarizationAccepted: true,
+      stapleValidated: true,
+      dmgGatekeeperAccepted: true,
+      mountedApplicationGatekeeperAccepted: true,
+      governedFixtureSmoke: Boolean(options.fixturePath),
+    },
+    notarization: {
+      attemptId: trusted.notarization.attemptId,
+      requestId: trusted.notarization.requestId,
+      status: trusted.notarization.status,
+    },
+    trust: structuredClone(options.trust),
+    appleTrustEvidenceSha256: options.appleTrustEvidenceSha256,
+    verifiedAt: new Date().toISOString(),
   };
-  await writeFile(resolve(options.evidencePath), `${JSON.stringify(evidence, null, 2)}\n`);
+  await writeFile(
+    resolve(options.evidencePath),
+    `${JSON.stringify(evidence, null, 2)}\n`,
+    trusted === null ? undefined : { flag: 'wx' },
+  );
   return evidence;
 }
 
@@ -305,6 +372,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     throw new Error(
       `Expected a ${nativeArchitecture} verification host, received ${process.arch}.`,
     );
+  }
+  const rosettaTranslated = await detectRosettaTranslation();
+  if (rosettaTranslated) {
+    throw new Error('Rosetta-translated execution is not authoritative native Intel evidence.');
   }
   const verification = await verifyDmg({
     dmgPath,
@@ -326,6 +397,9 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       sourceCommit,
       sourceTag,
       trust: verification.trust,
+      appleTrust: verification.appleTrust,
+      appleTrustEvidenceSha256: verification.appleTrustEvidenceSha256,
+      rosettaTranslated,
       version,
     });
   }

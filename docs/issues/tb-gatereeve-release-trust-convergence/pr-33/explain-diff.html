@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GateReeve protected trust and native evidence — PR #33</title>
+  <style>
+    :root { color-scheme: light dark; --bg:#08111f; --panel:#111d31; --panel2:#172741; --text:#e8eef8; --muted:#a8b7ce; --line:#304766; --mint:#65d3b1; --blue:#86b8ff; --amber:#ffd074; --good:#71dc94; --bad:#ff9292; --code:#060d18; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:radial-gradient(circle at 90% 0,#193b5f 0,var(--bg) 38rem); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; line-height:1.62; }
+    main { width:min(1120px,calc(100% - 2rem)); margin:auto; padding:2.5rem 0 6rem; }
+    header,section { background:color-mix(in srgb,var(--panel) 95%,transparent); border:1px solid var(--line); border-radius:18px; padding:clamp(1.2rem,3vw,2.2rem); margin-bottom:1.2rem; box-shadow:0 18px 50px rgb(0 0 0 / 22%); }
+    h1,h2,h3 { line-height:1.2; margin-top:0; }
+    h1 { font-size:clamp(2rem,5vw,3.45rem); letter-spacing:-.04em; }
+    h2 { color:var(--mint); }
+    h3 { color:var(--blue); margin-top:1.5rem; }
+    p,li { max-width:82ch; }
+    a,code { color:#cde2ff; }
+    nav a { display:inline-block; margin:.2rem .55rem .2rem 0; }
+    pre { margin:1rem 0; padding:1rem; overflow:auto; border:1px solid var(--line); border-radius:12px; background:var(--code); white-space:pre; tab-size:2; font-size:.88rem; line-height:1.5; }
+    pre code { white-space:inherit; }
+    .eyebrow { color:var(--mint); font-weight:800; text-transform:uppercase; letter-spacing:.12em; }
+    .lede { font-size:1.17rem; color:#d8e5f7; }
+    .meta,.callout { background:var(--panel2); border-left:4px solid var(--blue); padding:1rem; border-radius:8px; }
+    .callout.warn { border-left-color:var(--amber); }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+    .card { border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:1rem; }
+    .card h3 { margin-top:0; }
+    .flow { display:flex; align-items:stretch; flex-wrap:wrap; gap:.55rem; margin:1rem 0; }
+    .node { flex:1 1 150px; min-width:140px; padding:.8rem; border:1px solid var(--line); background:var(--panel2); border-radius:10px; text-align:center; }
+    .node strong { display:block; color:var(--mint); }
+    .arrow { display:grid; place-items:center; color:var(--blue); font-size:1.4rem; }
+    .tag { display:inline-block; margin:.15rem .25rem .15rem 0; padding:.14rem .55rem; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:.85rem; }
+    .quiz-item { border-top:1px solid var(--line); padding-top:1.2rem; margin-top:1.2rem; }
+    label { display:block; padding:.45rem .65rem; margin:.35rem 0; border-radius:8px; cursor:pointer; }
+    label:hover { background:var(--panel2); }
+    button { border:0; border-radius:9px; padding:.72rem 1rem; background:var(--mint); color:#061811; font-weight:800; cursor:pointer; }
+    .feedback { min-height:1.5rem; margin-top:.6rem; font-weight:700; }
+    .feedback.good { color:var(--good); } .feedback.bad { color:var(--bad); }
+    @media (max-width:760px) { .grid { grid-template-columns:1fr; } .arrow { transform:rotate(90deg); } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">PR #33 · Slice 2 · reviewer guide</div>
+    <h1>Protected Apple trust, recoverable exact bytes, and native authority</h1>
+    <p class="lede">This slice turns GateReeve’s existing universal-DMG release into a protected trust-production pipeline with durable recovery and independent Apple Silicon and Intel proof—without importing PortReeve’s separate-DMG or CLI topology.</p>
+    <div class="meta"><strong>Pinned range</strong><br><code>a01361aaf3c5779129e49972a33539c5984d0da0</code><br>through <code>c4b48421ef038d6ca917c03da7e24fdd07af69df</code></div>
+    <nav aria-label="Table of contents"><a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code tour</a><a href="#review">Review focus</a><a href="#quiz">Quiz</a></nav>
+  </header>
+
+  <section id="background">
+    <h2>Background</h2>
+    <p>GateReeve already built one universal macOS DMG and coordinated it with the Plugin. It also signed, notarized, stapled, Gatekeeper-assessed, and checked the app on native runners. What it lacked was a strict authority boundary: the old preparation workflow accepted an arbitrary source ref, mixed trusted production with the publication environment, and had no durable hosted route for resuming an interrupted Apple request.</p>
+    <div class="grid">
+      <article class="card"><h3>Product topology remains local</h3><p>One Plugin candidate, one universal DMG, two native verification authorities, and a later linked Cask record.</p><span class="tag">Plugin</span><span class="tag">universal DMG</span><span class="tag">ARM64</span><span class="tag">Intel</span></article>
+      <article class="card"><h3>Trust semantics converge</h3><p>Reviewed-source pinning, exact-byte identities, separated credentials, request continuity, bounded recovery, create-once evidence, and publication-free rehearsal.</p><span class="tag">release-trust</span><span class="tag">SHA-256</span><span class="tag">request ID</span><span class="tag">fail closed</span></article>
+    </div>
+    <p class="callout warn"><strong>Important boundary:</strong> this PR stops at <code>desktop-trust-verified</code>. It does not finalize distribution metadata, authorize publication, create releases, change Cask bytes, or move live secrets. Those are later governed steps.</p>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <h3>1. Trust production starts from one reviewed fact</h3>
+    <p>The preparation workflow accepts only an RC tag. It checks out the dispatch SHA, proves the dispatch ref is <code>main</code>, fetches current <code>origin/main</code>, and requires all three commits to be identical. Every later job checks out that resolved SHA. Per-tag concurrency queues duplicate work rather than cancelling a run whose Apple history may already exist.</p>
+    <div class="flow" aria-label="source authority flow"><div class="node"><strong>dispatch main</strong>one input: RC tag</div><div class="arrow">→</div><div class="node"><strong>resolve SHA</strong>HEAD = dispatch = origin/main</div><div class="arrow">→</div><div class="node"><strong>protected trust</strong>read-only repository</div><div class="arrow">→</div><div class="node"><strong>native evidence</strong>same SHA and DMG</div></div>
+
+    <h3>2. “The DMG” is really two related byte identities</h3>
+    <p>Apple receives the signed but unstapled DMG. Stapling intentionally derives the distributable DMG and may change its bytes. The new contract names both instead of pretending they must hash identically.</p>
+    <div class="flow" aria-label="DMG byte lineage"><div class="node"><strong>submitted DMG</strong>bound to attempt + Apple request</div><div class="arrow">→</div><div class="node"><strong>Accepted</strong>same request ID</div><div class="arrow">→</div><div class="node"><strong>copy + staple</strong>authorized trust derivation</div><div class="arrow">→</div><div class="node"><strong>final DMG</strong>bound to native proof + publication</div></div>
+    <p>Both identities and their lineage are retained for 30 days. Recovery always starts from the submitted bytes. Native verification and every future public action must use the final stapled bytes.</p>
+
+    <h3>3. Recovery resumes evidence, not execution</h3>
+    <p>A generic GitHub “re-run jobs” command can repeat signing or submission without knowing what the earlier runner accomplished. Both workflows therefore reject <code>github.run_attempt != 1</code>. The dedicated recovery dispatch downloads the retained attempt, submitted DMG, and signed app archive.</p>
+    <div class="flow" aria-label="recovery flow"><div class="node"><strong>retained attempt</strong>prepared/submitted/timed-out/uncertain</div><div class="arrow">→</div><div class="node"><strong>history reconcile</strong>exactly one match</div><div class="arrow">→</div><div class="node"><strong>bounded poll</strong>original request only</div><div class="arrow">→</div><div class="node"><strong>finalize trust</strong>copy, staple, assess</div></div>
+    <p>Zero or multiple history matches fail closed. Recovery receives the notarization key but no signing certificate, so it cannot rebuild or resign the candidate.</p>
+
+    <h3>4. Two runners establish authority over one universal artifact</h3>
+    <p>The universal DMG is verified separately on Apple Silicon and Intel. Each runner checks both binary slices, strict Developer ID facts, hardened runtime, timestamp, accepted request, staple, DMG Gatekeeper, mounted-app Gatekeeper, coordinated version, and real app smoke. Aggregation accepts exactly one create-once document from each architecture.</p>
+    <p class="callout">Rosetta is not Intel authority. A translated process is rejected. Apple's documented missing-key result means native execution and appears as empty output under the chosen CLI flags; unexpected output or an actual probe failure remains indeterminate and fails closed.</p>
+  </section>
+
+  <section id="code">
+    <h2>Code tour</h2>
+    <h3>The preparation and recovery workflows</h3>
+    <p><code>coordinated-release-prepare.yml</code> owns initial production. Apple secrets appear only on the steps that import or use them inside <code>release-trust</code>; the job has no write permission or publication command. Cleanup runs under <code>always()</code>.</p>
+    <pre><code>permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: gatereeve-release-trust-${{ inputs.tag }}
+  cancel-in-progress: false
+
+environment:
+  name: release-trust</code></pre>
+    <p><code>coordinated-release-trust-recover.yml</code> verifies the source SHA and approved workflow path for retained runs, restores <code>GateReeve.app.tar</code> without losing executable modes, reconciles uncertainty through <code>notarytool history</code>, and reruns native verification plus lifecycle construction.</p>
+
+    <h3>Apple evidence records lineage</h3>
+    <p><code>notarize-macos.mjs</code> keeps the attempt bound to the submitted file. After acceptance it copies that file to the final path, staples and validates the copy, Gatekeeper-assesses it, and writes schema-v2 evidence once.</p>
+    <pre><code>{
+  "submittedArtifact": { "sha256": "…request-bound…" },
+  "artifact": { "sha256": "…final-stapled…" },
+  "notarization": {
+    "attemptId": "…",
+    "requestId": "…",
+    "status": "Accepted",
+    "submittedArtifactSha256": "…request-bound…"
+  }
+}</code></pre>
+
+    <h3>Native evidence is structured and aggregateable</h3>
+    <p><code>native-trust-evidence-v2.js</code> defines twelve required checks and exact source, candidate, artifact, request, runner, signature, and timestamp fields. The aggregate recomputes each document digest and insists on the set <code>[arm64, x64]</code>.</p>
+    <pre><code>const REQUIRED_CHECKS = [
+  'dmgVerified', 'applicationIdentity', 'coordinatedVersion',
+  'universalBinaries', 'strictDeveloperIdSignature',
+  'hardenedRuntime', 'secureTimestamp', 'notarizationAccepted',
+  'stapleValidated', 'dmgGatekeeperAccepted',
+  'mountedApplicationGatekeeperAccepted', 'governedFixtureSmoke'
+];</code></pre>
+
+    <h3>The trusted lifecycle ends exactly where this slice ends</h3>
+    <p><code>trusted-release-lifecycle-v2.js</code> revalidates Apple and native evidence, inventories the Plugin tree, and now verifies the Plugin’s own <code>RELEASE.json</code> before binding it. This matters during recovery: two RC tags may share one source commit, so source equality alone cannot prove candidate equality.</p>
+    <pre><code>source-pinned → policy-resolved → plugin-candidate-built
+→ universal-desktop-packaged → artifact-digests-established
+→ candidate-qualified → trusted-universal-dmg-established
+→ authoritative-native-verified → desktop-trust-verified</code></pre>
+    <div class="grid"><article class="card"><h3>Desktop verification</h3><p><strong>125 tests passed.</strong> Apple attempts, trust finalization, history ambiguity, exact DMG verification, and native-host detection are covered.</p></article><article class="card"><h3>CLI verification</h3><p><strong>149 tests passed.</strong> Workflow boundaries, native aggregation, lifecycle construction, conformance fixtures, and cross-RC Plugin rejection are covered.</p></article></div>
+
+    <h3>Review found and closed two exact-authority gaps</h3>
+    <p>The first boundary attempt correctly failed. It found that recovery could select a Plugin artifact from another RC at the same source commit, and that an unexpected translation-probe failure was treated as native. Hosted CI then established the documented empty missing-key result on native Intel and found that the acceptance image omitted the new recovery workflow. The final head validates Plugin metadata, distinguishes native missing-key from real probe failure, and tests the recovery workflow inside both container images. Final hosted run 33331377471 passed all 13 jobs, including native Apple Silicon and Intel packaged-runtime launches and both acceptance containers.</p>
+  </section>
+
+  <section id="review">
+    <h2>Reviewer focus</h2>
+    <ol><li>Confirm only exact current reviewed <code>main</code> can start protected production.</li><li>Confirm <code>release-trust</code> cannot publish and recovery cannot sign or rebuild.</li><li>Confirm the submitted DMG remains the request authority while the final stapled DMG becomes the native/publication authority.</li><li>Confirm uncertain submission never automatically resubmits and all retries are bounded.</li><li>Confirm ARM64 and Intel evidence are complete, independent, non-Rosetta, create-once, and agree on exact bytes and request.</li><li>Confirm the lifecycle stops before finalization/publication and keeps GateReeve’s universal topology.</li></ol>
+    <p class="callout warn"><strong>Residual evidence:</strong> real Apple signing/notarization, protected environment contents, and signed/notarized native documents are deliberately deferred to the P9 nonpublishing rehearsal with a fresh RC. Ordinary hosted runner labels and packaged-runtime launches passed on both native architectures.</p>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <p>Choose one answer for each question, then check it.</p>
+    <div class="quiz-item" data-answer="b" data-explain="The request must remain bound to the submitted unstapled bytes; native verification and publication bind the final stapled derivation."><h3>1. Which DMG identity is bound to the Apple request?</h3><label><input type="radio" name="q1" value="a"> The final stapled DMG only</label><label><input type="radio" name="q1" value="b"> The signed, unstapled submitted DMG</label><label><input type="radio" name="q1" value="c"> Whichever DMG is newest in artifact storage</label><button type="button">Check answer</button><div class="feedback" aria-live="polite"></div></div>
+    <div class="quiz-item" data-answer="c" data-explain="Generic reruns are prohibited; the dedicated recovery workflow consumes retained bytes and request history."><h3>2. What is the approved response to a timed-out protected preparation?</h3><label><input type="radio" name="q2" value="a"> Re-run only the failed GitHub job</label><label><input type="radio" name="q2" value="b"> Submit the rebuilt DMG under the same RC</label><label><input type="radio" name="q2" value="c"> Dispatch bounded recovery against retained artifacts</label><button type="button">Check answer</button><div class="feedback" aria-live="polite"></div></div>
+    <div class="quiz-item" data-answer="a" data-explain="One source commit can back multiple RC identities; RELEASE.json proves which Plugin candidate was retained."><h3>3. Why validate Plugin RELEASE.json during recovery?</h3><label><input type="radio" name="q3" value="a"> Source SHA alone does not distinguish two RC tags from one commit</label><label><input type="radio" name="q3" value="b"> The Plugin tree is rebuilt by the recovery job</label><label><input type="radio" name="q3" value="c"> GitHub artifact digests cannot cover JSON files</label><button type="button">Check answer</button><div class="feedback" aria-live="polite"></div></div>
+    <div class="quiz-item" data-answer="b" data-explain="Apple defines an absent sysctl.proc_translated key as native; unexpected output and real command failures still reject authority."><h3>4. Which Rosetta probe result may establish native Intel evidence?</h3><label><input type="radio" name="q4" value="a"> Any command error when process.arch is x64</label><label><input type="radio" name="q4" value="b"> The documented absent-key result represented as empty output</label><label><input type="radio" name="q4" value="c"> Any result when the runner label contains intel</label><button type="button">Check answer</button><div class="feedback" aria-live="polite"></div></div>
+    <div class="quiz-item" data-answer="c" data-explain="This slice establishes trust through desktop-trust-verified; sealed planning and publication belong to P5 and later."><h3>5. What public mutation may PR #33 authorize?</h3><label><input type="radio" name="q5" value="a"> A draft GitHub release using the final DMG</label><label><input type="radio" name="q5" value="b"> A Homebrew Cask PR after both native jobs pass</label><label><input type="radio" name="q5" value="c"> None; publication authority is outside this slice</label><button type="button">Check answer</button><div class="feedback" aria-live="polite"></div></div>
+  </section>
+</main>
+<script>
+  for (const item of document.querySelectorAll('.quiz-item')) {
+    item.querySelector('button').addEventListener('click', () => {
+      const selected = item.querySelector('input:checked');
+      const feedback = item.querySelector('.feedback');
+      if (!selected) { feedback.textContent = 'Choose an answer first.'; feedback.className = 'feedback bad'; return; }
+      const correct = selected.value === item.dataset.answer;
+      feedback.textContent = `${correct ? 'Correct.' : 'Not quite.'} ${item.dataset.explain}`;
+      feedback.className = `feedback ${correct ? 'good' : 'bad'}`;
+    });
+  }
+</script>
+</body>
+</html>

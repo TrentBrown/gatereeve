@@ -35,8 +35,67 @@ Append PR boundary entries here.
 - **Independent judgment:** PASS WITH CONCERNS. No blocking defect; protected
   hosted Apple rehearsal and environment/publication boundaries remain
   intentionally assigned to later slices.
+- **Review:** Approved by the user; governed review acceptance recorded at
+  event sequence 30.
+- **Merge:** `a01361aaf3c5779129e49972a33539c5984d0da0` on `main`; exact reviewed
+  content verified by ancestry.
+- **Hosted checks:** All 15 candidate/build/runtime/native checks passed. The
+  two public-Cask baseline checks failed because the currently downloaded
+  public bytes do not match the historical RC.1 Cask record SHA-256
+  `963fb25d3b800aa1be596a0f57766d276499fecc1527b9958bc20a5f613febb2`.
+  Candidate Cask install/upgrade passed on both architectures; linked public
+  Cask reconciliation remains in planned P6/I-6 scope.
+
+### PR #33 - Protected trust and native evidence
+
+- **PR:** [#33](https://github.com/TrentBrown/gatereeve/pull/33)
+- **Evidence packet:** [packet](pr-33/)
+- **Evaluated source:**
+  `c4b48421ef038d6ca917c03da7e24fdd07af69df` based on reviewed `main`
+  `a01361aaf3c5779129e49972a33539c5984d0da0`.
+- **Scope:** P3-P4 / I-3-I-4 / R1, R2, R3, R4, R5, R8 foundations.
+- **Summary:** Moves Apple trust production to the protected `release-trust`
+  boundary, pins it to exact reviewed `main`, separates the submitted DMG from
+  the final stapled DMG, retains recoverable request history, rejects generic
+  reruns, and requires independent native Apple Silicon and Intel evidence
+  before recording desktop trust.
+- **Verification:** Desktop 125 passed; CLI 149 passed after review
+  remediation; focused contract,
+  syntax, YAML, documentation-example, and diff checks passed.
+- **Hosted checks:** [Run 33331377471](https://github.com/TrentBrown/gatereeve/actions/runs/33331377471)
+  passed all 13 jobs, including both acceptance containers, the universal
+  macOS package, and packaged-runtime launches on native Apple Silicon and
+  Intel runners.
+- **Boundary remediation:** Attempt 1 found and blocked a same-source/
+  different-RC Plugin recovery mix and fail-open Rosetta probe errors. The
+  lifecycle builder now validates `RELEASE.json`, native Intel authority uses
+  Apple's documented missing-key semantics while propagating actual probe
+  errors, and both negatives have tests. Attempt 2 hosted CI also found that
+  the acceptance image omitted the new recovery workflow; its Dockerfile now
+  copies that contract for container verification.
+- **Live limitation:** This PR boundary does not possess Apple credentials and
+  therefore does not execute a live notarization request. The protected,
+  nonpublishing notarization rehearsal remains part of P9/I-9 after the
+  environment cutover is explicitly authorized.
 
 ## Slice Evidence
+
+### s2-protected-trust-native-evidence
+
+- Governed implementation started at event sequence 34 from reviewed `main`
+  merge `a01361aaf3c5779129e49972a33539c5984d0da0`.
+- Scope: P3-P4 / I-3-I-4 / R1, R2, R3, R4, R5, R8.
+- Branch:
+  `tb-gatereeve-release-trust-convergence-02-protected-trust-native-evidence`.
+- Draft PR: [#33](https://github.com/TrentBrown/gatereeve/pull/33).
+- Evaluated source: `c4b48421ef038d6ca917c03da7e24fdd07af69df`.
+- Desktop suite: 125 passed, 0 failed; CLI suite: 149 passed, 0 failed after
+  review remediation.
+- Hosted CI run 33331377471 passed all 13 jobs, including both native macOS
+  packaged-runtime launches and both Linux acceptance containers.
+- Live Apple trust is intentionally deferred to P9/I-9 because this boundary
+  neither receives nor mutates protected secrets.
+- No `development` or `development-*` branch was merged or rebased.
 
 ### s1-lifecycle-recovery-contracts
 

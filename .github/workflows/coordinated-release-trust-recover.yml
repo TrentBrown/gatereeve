@@ -1,0 +1,296 @@
+name: Coordinated Release Trust Recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      preparation_run_id:
+        description: Original coordinated preparation run containing the Plugin candidate
+        required: true
+        type: string
+      trust_artifact_run_id:
+        description: Latest preparation or recovery run containing coordinated-desktop-trusted
+        required: true
+        type: string
+      tag:
+        description: Exact candidate RC tag
+        required: true
+        type: string
+      source_commit:
+        description: Exact reviewed main commit used by the preparation run
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: gatereeve-release-trust-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  resolve-recovery:
+    runs-on: ubuntu-24.04
+    outputs:
+      commit: ${{ steps.source.outputs.commit }}
+      version: ${{ steps.source.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
+      - name: Require an eligible immutable source and candidate
+        id: source
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" refs/remotes/origin/main
+          node -e "if (!/^v(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)-rc\\.(?:0|[1-9]\\d*)$/.test(process.env.RELEASE_TAG)) process.exit(1)"
+          echo "commit=$SOURCE_COMMIT" >> "$GITHUB_OUTPUT"
+          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+      - name: Bind both source runs to the exact source commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREPARATION_RUN_ID: ${{ inputs.preparation_run_id }}
+          TRUST_ARTIFACT_RUN_ID: ${{ inputs.trust_artifact_run_id }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for run_id in "$PREPARATION_RUN_ID" "$TRUST_ARTIFACT_RUN_ID"; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$RUNNER_TEMP/run-$run_id.json"
+            node -e '
+              const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+              if (run.event !== "workflow_dispatch" || run.head_sha !== process.env.SOURCE_COMMIT) {
+                throw new Error("Recovery run source does not match the retained candidate");
+              }
+              if (!/(coordinated-release-prepare|coordinated-release-trust-recover)\.yml/u.test(run.path)) {
+                throw new Error("Recovery source run is not an approved trust workflow");
+              }
+            ' "$RUNNER_TEMP/run-$run_id.json"
+          done
+
+  recover-trust:
+    needs: resolve-recovery
+    runs-on: macos-15
+    timeout-minutes: 40
+    environment:
+      name: release-trust
+      deployment: false
+    env:
+      APPLE_TEAM_ID: ${{ vars.GATEREEVE_APPLE_TEAM_ID }}
+      APPLE_SIGNING_IDENTITY: ${{ vars.GATEREEVE_DEVELOPER_IDENTITY }}
+      APPLE_NOTARY_KEY_ID: ${{ vars.GATEREEVE_NOTARY_KEY_ID }}
+      APPLE_NOTARY_ISSUER_ID: ${{ vars.GATEREEVE_NOTARY_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-recovery.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --ignore-scripts --prefix apps/desktop
+      - name: Reject generic reruns and prepare only the notarization credential
+        env:
+          APPLE_NOTARY_KEY_P8_BASE64: ${{ secrets.GATEREEVE_NOTARY_KEY_P8_BASE64 }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUN_ATTEMPT" = "1" || { echo "Use a new bounded recovery dispatch with the latest retained bundle" >&2; exit 1; }
+          node --input-type=module -e '
+            import { assertAppleSigningConfiguration } from "./apps/desktop/scripts/apple-trust-contract.mjs";
+            assertAppleSigningConfiguration({ identity: process.env.APPLE_SIGNING_IDENTITY,
+              teamId: process.env.APPLE_TEAM_ID, keyId: process.env.APPLE_NOTARY_KEY_ID,
+              issuerId: process.env.APPLE_NOTARY_ISSUER_ID });
+            if (!process.env.APPLE_NOTARY_KEY_P8_BASE64) throw new Error("Notary key is not configured");
+          '
+          notary_key_path="$RUNNER_TEMP/AuthKey_${APPLE_NOTARY_KEY_ID}.p8"
+          node -e 'require("node:fs").writeFileSync(process.argv[1], Buffer.from(process.env.APPLE_NOTARY_KEY_P8_BASE64, "base64"))' "$notary_key_path"
+          chmod 600 "$notary_key_path"
+          echo "GATEREEVE_NOTARY_KEY_PATH=$notary_key_path" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-desktop-trusted
+          path: ${{ runner.temp }}/coordinated-desktop-trusted
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.trust_artifact_run_id }}
+      - name: Restore the exact signed app and reconcile an uncertain submission
+        id: recovery-paths
+        env:
+          TRUST_ROOT: ${{ runner.temp }}/coordinated-desktop-trusted
+        shell: bash
+        run: |
+          set -euo pipefail
+          application_root="$RUNNER_TEMP/recovery-application"
+          mkdir -p "$application_root"
+          tar -xf "$TRUST_ROOT/submitted/GateReeve.app.tar" -C "$application_root"
+          echo "application=$application_root/GateReeve.app" >> "$GITHUB_OUTPUT"
+          attempt="$TRUST_ROOT/notarization-attempt.json"
+          state="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).state' "$attempt")"
+          if [[ "$state" == "submitting" || "$state" == "submission-uncertain" ]]; then
+            history="$TRUST_ROOT/apple-notarization-history.json"
+            xcrun notarytool history \
+              --key "$GATEREEVE_NOTARY_KEY_PATH" \
+              --key-id "$APPLE_NOTARY_KEY_ID" \
+              --issuer "$APPLE_NOTARY_ISSUER_ID" \
+              --output-format json > "$history"
+            node apps/desktop/scripts/reconcile-notarization-history.mjs \
+              --attempt "$attempt" \
+              --history "$history"
+          fi
+      - name: Poll the retained request and finalize exact trusted bytes
+        env:
+          TRUST_ROOT: ${{ runner.temp }}/coordinated-desktop-trusted
+        run: >-
+          node apps/desktop/scripts/notarize-macos.mjs
+          --application "${{ steps.recovery-paths.outputs.application }}"
+          --dmg "$TRUST_ROOT/submitted/GateReeve-${{ needs.resolve-recovery.outputs.version }}-macos-universal.dmg"
+          --trusted-dmg "$TRUST_ROOT/GateReeve-${{ needs.resolve-recovery.outputs.version }}-macos-universal.dmg"
+          --attempt "$TRUST_ROOT/notarization-attempt.json"
+          --evidence "$TRUST_ROOT/apple-trust.json"
+          --source-tag "${{ inputs.tag }}"
+          --source-commit "${{ needs.resolve-recovery.outputs.commit }}"
+          --version "${{ needs.resolve-recovery.outputs.version }}"
+          --identity "$APPLE_SIGNING_IDENTITY"
+          --team-id "$APPLE_TEAM_ID"
+          --notary-key "$GATEREEVE_NOTARY_KEY_PATH"
+          --notary-key-id "$APPLE_NOTARY_KEY_ID"
+          --notary-issuer-id "$APPLE_NOTARY_ISSUER_ID"
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: coordinated-desktop-trusted
+          path: ${{ runner.temp }}/coordinated-desktop-trusted
+          if-no-files-found: error
+          retention-days: 30
+      - name: Remove the temporary notarization credential
+        if: ${{ always() }}
+        run: rm -f "${GATEREEVE_NOTARY_KEY_PATH:-$RUNNER_TEMP/missing-notary-key}"
+
+  recovered-native-verification:
+    needs:
+      - resolve-recovery
+      - recover-trust
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: arm64
+            runner: macos-15
+          - architecture: x64
+            runner: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-recovery.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --ignore-scripts --prefix apps/desktop
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-desktop-trusted
+          path: ${{ runner.temp }}/desktop
+      - run: node apps/desktop/scripts/create-smoke-fixture.mjs "$RUNNER_TEMP/gatereeve-desktop-smoke"
+      - name: Verify recovered trusted bytes natively
+        run: >-
+          node apps/desktop/scripts/verify-macos-package.mjs
+          --dmg "$RUNNER_TEMP/desktop/GateReeve-${{ needs.resolve-recovery.outputs.version }}-macos-universal.dmg"
+          --version "${{ needs.resolve-recovery.outputs.version }}"
+          --fixture "$RUNNER_TEMP/gatereeve-desktop-smoke"
+          --native-architecture "${{ matrix.architecture }}"
+          --source-tag "${{ inputs.tag }}"
+          --source-commit "${{ needs.resolve-recovery.outputs.commit }}"
+          --trust-evidence "$RUNNER_TEMP/desktop/apple-trust.json"
+          --evidence "$RUNNER_TEMP/desktop-${{ matrix.architecture }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coordinated-desktop-trusted-evidence-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/desktop-${{ matrix.architecture }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+  recovered-native-aggregate:
+    needs:
+      - resolve-recovery
+      - recover-trust
+      - recovered-native-verification
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-recovery.outputs.commit }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-desktop-trusted
+          path: ${{ runner.temp }}/desktop
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coordinated-desktop-trusted-evidence-*
+          path: ${{ runner.temp }}/evidence
+          merge-multiple: true
+      - run: >-
+          node cli/scripts/aggregate-native-trust.js
+          --apple-trust "$RUNNER_TEMP/desktop/apple-trust.json"
+          --arm64 "$RUNNER_TEMP/evidence/desktop-arm64.json"
+          --x64 "$RUNNER_TEMP/evidence/desktop-x64.json"
+          --output "$RUNNER_TEMP/native-trust-aggregate.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coordinated-native-trust-aggregate
+          path: ${{ runner.temp }}/native-trust-aggregate.json
+          if-no-files-found: error
+          retention-days: 30
+
+  recovered-trusted-lifecycle:
+    needs:
+      - resolve-recovery
+      - recover-trust
+      - recovered-native-verification
+      - recovered-native-aggregate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-recovery.outputs.commit }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-plugin-candidate
+          path: ${{ runner.temp }}/plugin-marketplace
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.preparation_run_id }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-desktop-trusted
+          path: ${{ runner.temp }}/desktop
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-native-trust-aggregate
+          path: ${{ runner.temp }}/evidence
+      - run: >-
+          node cli/scripts/build-trusted-release-lifecycle.js
+          --repository "${{ github.server_url }}/${{ github.repository }}"
+          --tag "${{ inputs.tag }}"
+          --source-commit "${{ needs.resolve-recovery.outputs.commit }}"
+          --plugin-root "$RUNNER_TEMP/plugin-marketplace"
+          --apple-trust "$RUNNER_TEMP/desktop/apple-trust.json"
+          --native-aggregate "$RUNNER_TEMP/evidence/native-trust-aggregate.json"
+          --output "$RUNNER_TEMP/coordinated-release/release-record.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gatereeve-${{ inputs.tag }}-coordinated-release
+          path: ${{ runner.temp }}/coordinated-release
+          if-no-files-found: error
+          retention-days: 30

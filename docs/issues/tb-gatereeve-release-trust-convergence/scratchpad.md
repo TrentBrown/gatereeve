@@ -73,3 +73,70 @@ bounded recovery, fail-closed ambiguity, and prohibition of generic reruns.
   timeout, rejection, and uncertainty are facts, not completed trust gates.
 - Automatically resubmit after timeout or interruption - rejected because it
   can create multiple Apple requests for changed or ambiguous bytes.
+
+## [3] Distinguish submitted and final stapled DMG identities
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Apple trust evidence v2, notarization recovery, retained artifacts, native verification, schema-v2 lifecycle binding, and later publication
+
+Treat the signed, unstapled universal DMG submitted to Apple and the final stapled universal DMG as two explicit immutable identities in one authorized trust derivation. The notarization attempt and Apple request remain bound to the submitted artifact. After acceptance, trust finalization copies the retained submitted artifact to a distinct final path, staples and validates that copy, then records both identities and their lineage. Native ARM64/Intel verification, the trusted-universal-DMG lifecycle stage, finalization, and publication bind only the final stapled artifact. The retained submitted artifact plus attempt history remains the recovery authority and both are retained for at least 30 days. This is not permission to rebuild or substitute bytes under the candidate version.
+
+**Triggered by:** The existing trust script hashes the DMG before stapling even though stapling may change the distributable file, making exact-byte authority and recovery ambiguous
+
+**Alternatives considered:**
+Assume stapling preserves the DMG digest - rejected because the contract must not depend on that implementation detail; staple the only retained DMG in place - rejected because a recovery invocation could no longer match the attempt-bound submitted bytes; treat post-staple drift as requiring a new RC - rejected because stapling is the intended trust-finalization derivation, not an arbitrary rebuild
+
+## [4] Revalidate Plugin identity at every cross-run recovery boundary
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** trusted lifecycle construction, retained Plugin artifacts,
+recovery-run selection, and candidate-identity tests
+
+The schema-v2 lifecycle builder reads and validates the retained Plugin
+candidate's `RELEASE.json` against the exact requested tag, version, source
+commit, Plugin ID, and marketplace before hashing its tree. Binding a GitHub
+run to the same source commit is insufficient because multiple RC identities
+can legitimately use one commit.
+
+**Triggered by:** PR #33 independent review found that recovery could combine a
+same-source Plugin tree from a different RC with the current Apple candidate.
+
+**Alternatives considered:**
+- Trust the preparation run ID and source SHA alone - rejected because neither
+  proves the candidate tag.
+- Query only the original workflow inputs - rejected because the retained
+  artifact already contains authoritative self-identifying metadata and must
+  remain independently verifiable.
+
+## [5] Fail closed when native Intel authority cannot be established
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** native macOS evidence, Intel runner compatibility, Rosetta
+rejection, and protected rehearsal behavior
+
+Native verification accepts `sysctl.proc_translated=0` directly and rejects
+`=1`. Apple's documented missing-key result means the process is native; the
+CLI's `-i` form represents that result as successful empty output, which is
+also accepted. Unexpected nonempty output or an actual command failure is
+indeterminate and fails closed.
+
+**Triggered by:** PR #33 independent review found that every translation-probe
+error was previously converted into `rosettaTranslated: false`.
+
+**Alternatives considered:**
+- Treat any missing translation key as native - rejected because an
+  operational probe failure on Apple Silicon could authorize Rosetta evidence.
+- Reject the documented missing-key result - rejected because Apple defines
+  `ENOENT` as a native process and GitHub's Intel runner exhibits that case.
+- Use `hw.optional.arm64` as a fallback - rejected after hosted evidence because
+  the key is also absent on the Intel runner and is unnecessary when the
+  primary API's documented missing-key semantics are preserved.

@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Implement schema-v2 lifecycle and v1 compatibility
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1.5d
 - **Plan steps:** P1
 - **Rubric criteria:** R1, R2
@@ -21,7 +21,7 @@ binding, and compatibility fixtures without mutating historical v1 records.
 
 ## I-2 - Implement candidate reservation and Apple attempt recovery
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P2
 - **Rubric criteria:** R2, R4
@@ -33,24 +33,24 @@ records, finite polling, version burn, and fail-closed negative coverage.
 
 ## I-3 - Version native trust evidence and add conformance fixtures
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 1.5d
 - **Plan steps:** P3
 - **Rubric criteria:** R1, R2, R5, R8
 - **Depends on:** I-1, I-2
-- **PR:** -
+- **PR:** [#33](https://github.com/TrentBrown/gatereeve/pull/33)
 
 Align exact universal-DMG evidence, native aggregation, and shared semantic
 fixtures while retaining GateReeve-specific trust surfaces.
 
 ## I-4 - Separate and harden protected trust production
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P4
 - **Rubric criteria:** R2, R3, R4, R5
 - **Depends on:** I-2, I-3
-- **PR:** -
+- **PR:** [#33](https://github.com/TrentBrown/gatereeve/pull/33)
 
 Rework the hosted preparation workflow for reviewed-main authority,
 per-version serialization, `release-trust`, cleanup, recovery, retention, and

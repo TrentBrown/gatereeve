@@ -15,7 +15,10 @@ import {
   REQUIRED_ASAR_PATHS,
 } from '../scripts/macos-package-contract.mjs';
 import { emitPackageResult, stageDesktopSource } from '../scripts/package-macos.mjs';
-import { writeVerificationEvidence } from '../scripts/verify-macos-package.mjs';
+import {
+  detectRosettaTranslation,
+  writeVerificationEvidence,
+} from '../scripts/verify-macos-package.mjs';
 
 const desktopRoot = resolve(import.meta.dirname, '..');
 
@@ -189,4 +192,18 @@ test('native package evidence binds the exact source and DMG bytes', async () =>
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
+});
+
+test('native authority detects and rejects Rosetta substitution evidence', async () => {
+  assert.equal(await detectRosettaTranslation(async () => ({ stdout: '1\n' })), true);
+  assert.equal(await detectRosettaTranslation(async () => ({ stdout: '0\n' })), false);
+  assert.equal(await detectRosettaTranslation(async () => ({ stdout: '' })), false);
+  await assert.rejects(
+    detectRosettaTranslation(async () => ({ stdout: 'indeterminate\n' })),
+    /Unable to establish native process authority/u,
+  );
+  await assert.rejects(
+    detectRosettaTranslation(async () => { throw new Error('all probes failed'); }),
+    /Unable to establish native process authority/u,
+  );
 });

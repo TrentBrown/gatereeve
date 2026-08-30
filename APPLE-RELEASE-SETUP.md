@@ -13,7 +13,7 @@ GateReeve uses:
 - one **Developer ID Application** certificate exported with its private key as
   a password-protected `.p12`;
 - one App Store Connect **team API key** for `notarytool`; and
-- the protected GitHub environment `release-publication`.
+- the protected GitHub environment `release-trust`.
 
 An individual App Store Connect API key is not a substitute: Apple explicitly
 states that individual keys cannot use `notaryTool`. GateReeve also does not
@@ -148,11 +148,16 @@ rewriting already published GateReeve history.
 
 ## 5. Configure the protected GitHub environment
 
-The repository environment is named `release-publication`. It requires Trent
+The Apple credential environment is named `release-trust`. It requires Trent
 Brown's approval, permits self-review because this personal project has one
 human actor, and accepts deployments only from `main`. Candidate jobs run and
 pass before a job enters this environment; its secrets are unavailable until
-the environment approval is granted.
+the environment approval is granted. Approval grants the workflow temporary
+access to credentials already stored in GitHub; it does not require the
+maintainer to provide the `.p12`, password, or `.p8` again for each release.
+
+Keep `release-publication` separate. It contains only public-distribution
+authority and must not contain any Apple private credential material.
 
 Set these non-secret environment variables:
 
@@ -164,19 +169,19 @@ GATEREEVE_NOTARY_ISSUER_ID=12345678-1234-1234-1234-1234567890ab
 
 gh variable set GATEREEVE_APPLE_TEAM_ID \
   --repo TrentBrown/gatereeve \
-  --env release-publication \
+  --env release-trust \
   --body "$GATEREEVE_APPLE_TEAM_ID"
 gh variable set GATEREEVE_DEVELOPER_IDENTITY \
   --repo TrentBrown/gatereeve \
-  --env release-publication \
+  --env release-trust \
   --body "$GATEREEVE_DEVELOPER_IDENTITY"
 gh variable set GATEREEVE_NOTARY_KEY_ID \
   --repo TrentBrown/gatereeve \
-  --env release-publication \
+  --env release-trust \
   --body "$GATEREEVE_NOTARY_KEY_ID"
 gh variable set GATEREEVE_NOTARY_ISSUER_ID \
   --repo TrentBrown/gatereeve \
-  --env release-publication \
+  --env release-trust \
   --body "$GATEREEVE_NOTARY_ISSUER_ID"
 ```
 
@@ -190,50 +195,52 @@ NOTARY_KEY_P8=/absolute/path/to/AuthKey_KEYID12345.p8
 openssl base64 -A -in "$DEVELOPER_ID_P12" \
   | gh secret set GATEREEVE_DEVELOPER_ID_P12_BASE64 \
       --repo TrentBrown/gatereeve \
-      --env release-publication
+      --env release-trust
 gh secret set GATEREEVE_DEVELOPER_ID_P12_PASSWORD \
   --repo TrentBrown/gatereeve \
-  --env release-publication
+  --env release-trust
 openssl base64 -A -in "$NOTARY_KEY_P8" \
   | gh secret set GATEREEVE_NOTARY_KEY_P8_BASE64 \
       --repo TrentBrown/gatereeve \
-      --env release-publication
+      --env release-trust
 ```
 
 The middle command prompts securely for the `.p12` export password. Confirm
 only names and timestamps—never values:
 
 ```bash
-gh variable list --repo TrentBrown/gatereeve --env release-publication
-gh secret list --repo TrentBrown/gatereeve --env release-publication
+gh variable list --repo TrentBrown/gatereeve --env release-trust
+gh secret list --repo TrentBrown/gatereeve --env release-trust
 ```
 
 ## 6. Run a nonpublishing protected rehearsal
 
 After this workflow code is merged to `main`, choose a fresh RC identity and
-dispatch preparation with Apple trust enabled:
+dispatch preparation from `main`:
 
 ```bash
 RELEASE_TAG=v0.1.0-rc.1
 
 gh workflow run coordinated-release-prepare.yml \
   --repo TrentBrown/gatereeve \
-  -f tag="$RELEASE_TAG" \
-  -f source_ref=main \
-  -f apple_trust=true
+  --ref main \
+  -f tag="$RELEASE_TAG"
 ```
 
-The unprotected jobs first build and natively verify the development candidate.
-The signing job then waits at `release-publication`. Review the source commit
-and candidate job results before approving environment access. Approval grants
-secret access for that run; it does **not** approve publication.
+The workflow binds the dispatch SHA to the exact current `origin/main`; it fails
+if `main` advances before source resolution. The signing job waits at
+`release-trust`. Review the source commit and Plugin candidate result before
+approving environment access. Approval grants secret access for that run; it
+does **not** approve publication.
 
 The protected job creates an ephemeral keychain, imports the `.p12`, builds the
 same version from the pinned source, Developer ID-signs the app and DMG with
 hardened runtime and secure timestamps, notarizes the DMG with `notarytool`,
-staples the ticket, runs Gatekeeper assessment, uploads only the trusted
-candidate and non-secret evidence, then deletes the keychain and credential
-files. ARM and Intel jobs independently inspect and run the exact trusted DMG.
+staples a separate final copy, runs Gatekeeper assessment, uploads the retained
+submitted bytes, final trusted candidate, durable attempt history, and
+non-secret evidence, then deletes the keychain and credential files. ARM and
+Intel jobs independently inspect and run the exact final trusted DMG. All trust
+artifacts are retained for at least 30 days.
 
 Download and inspect the final artifact:
 
@@ -247,12 +254,37 @@ gh run download RUN_ID \
   --name "gatereeve-$RELEASE_TAG-coordinated-release"
 ```
 
-`release-record.json` must report `developer-id-notarized`, the expected legal
-identity and Team ID, hardened runtime, secure timestamp, an accepted
-notarization ID, validated staple, accepted Gatekeeper assessment, identical
-ARM/Intel evidence, and the exact DMG SHA-256. The workflow has only
+`release-record.json` must use schema v2 and end at
+`desktop-trust-verified`. Its ordered evidence must bind the expected legal
+identity and Team ID, hardened runtime, secure timestamp, accepted request,
+validated staple, accepted Gatekeeper assessments, exactly one ARM and Intel
+document, and the final DMG SHA-256. The workflow has only
 `contents: read`; it cannot create a tag, release, marketplace update, manifest,
 website change, or Cask.
+
+Do not use GitHub's generic **Re-run jobs** after protected production begins.
+For a timeout or recoverable interruption, dispatch the bounded recovery
+workflow with the original preparation run and the latest run that retained the
+trust bundle:
+
+```bash
+PREPARATION_RUN_ID=<ORIGINAL_RUN_ID>
+TRUST_ARTIFACT_RUN_ID=<LATEST_TRUST_OR_RECOVERY_RUN_ID>
+SOURCE_COMMIT=<EXACT_PREPARATION_SHA>
+
+gh workflow run coordinated-release-trust-recover.yml \
+  --repo TrentBrown/gatereeve \
+  --ref main \
+  -f preparation_run_id="$PREPARATION_RUN_ID" \
+  -f trust_artifact_run_id="$TRUST_ARTIFACT_RUN_ID" \
+  -f tag="$RELEASE_TAG" \
+  -f source_commit="$SOURCE_COMMIT"
+```
+
+Recovery never rebuilds or re-signs. It polls the recorded Apple request. If
+submission was interrupted before the request ID was persisted, it queries
+Apple history and continues only when exactly one candidate request matches;
+absence or ambiguity remains fail-closed and authorizes no resubmission.
 
 ## 7. Rotation and recovery
 

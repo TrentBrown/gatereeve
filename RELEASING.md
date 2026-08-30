@@ -11,10 +11,12 @@ recovery, the protected GitHub environment, and the nonpublishing trust
 rehearsal. This document begins only after that prerequisite is ready.
 
 Release publication is intentionally guarded. First run the nonpublishing
-`Coordinated Release Preparation` workflow for the intended RC and immutable
-source ref with `apple_trust=true`. The environment-gated job still publishes
-nothing. Download its `gatereeve-<tag>-coordinated-release` artifact, then
-inspect the record and plan:
+`Coordinated Release Preparation` workflow for the intended RC from `main`.
+It binds the workflow-dispatch SHA to the exact current reviewed `origin/main`
+and enters the separately approved `release-trust` environment. The protected
+job still publishes nothing. Download its
+`gatereeve-<tag>-coordinated-release` artifact, then inspect the schema-v2
+lifecycle record:
 
 ```bash
 RELEASE_RECORD=/path/to/coordinated-release/release-record.json
@@ -25,10 +27,11 @@ npm start --prefix cli -- plugin release inspect-record \
 Do not create release tags manually, invoke the low-level marketplace publisher
 directly, or edit the `marketplace` branch. The guarded command validates the
 source and requires this exact coordinated record before it can create a tag.
-The record binds the Plugin candidate, universal Desktop DMG, both native
-verification results, trust evidence, approval digest, and recoverable state for
-the tag, Plugin marketplace, Desktop prerelease, update manifest, and website.
-An ad-hoc development record is inspectable but deliberately not publishable.
+The record binds the Plugin candidate, submitted and final universal Desktop
+DMG identities, Apple request, both native verification results, and trust
+evidence through `desktop-trust-verified`. P5 finalization adds distribution
+metadata and the sealed hosted-publication plan; this trust-preparation step has
+neither publication credentials nor publication authority.
 
 ### Coordinated Desktop RC publication
 
@@ -38,11 +41,9 @@ nonpublishing:
 
 ```bash
 RC_TAG=v0.1.0-rc.1
-SOURCE_COMMIT=$(git rev-parse origin/main)
 gh workflow run coordinated-release-prepare.yml \
-  -f tag="$RC_TAG" \
-  -f source_ref="$SOURCE_COMMIT" \
-  -f apple_trust=true
+  --ref main \
+  -f tag="$RC_TAG"
 ```
 
 After the run passes, download its exact artifact and inspect the plan:
@@ -59,10 +60,12 @@ npm start --prefix cli -- plugin release inspect-record \
   --json
 ```
 
-The artifact contains the exact signed DMG, both native verification records,
-`SHA256SUMS`, the future `desktop.json`, its pre-publication base, and the
-publication plan. The plan digest binds all of those bytes. Before approval,
-run remote preflights without mutation:
+The artifact contains the schema-v2 lifecycle record. The same run retains the
+exact submitted and final DMGs, Apple attempt history, Apple evidence, both
+native verification records, and their aggregate as separate 30-day artifacts.
+Do not use the legacy coordinated publisher on this intermediate trust record.
+After P5 finalization produces a sealed plan, run remote preflights without
+mutation:
 
 ```bash
 PLAN_SHA256=<PLAN_DIGEST>
