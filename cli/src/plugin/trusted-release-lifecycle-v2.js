@@ -11,6 +11,7 @@ import {
   assertNativeTrustAggregateV2,
   trustDigest,
 } from './native-trust-evidence-v2.js';
+import { validateDeployedRelease } from './release-version.js';
 
 const SHA256 = /^[a-f0-9]{64}$/u;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu;
@@ -54,6 +55,31 @@ async function inventoryTree(root) {
     files,
     sha256: createHash('sha256').update(stableJson(files)).digest('hex'),
   };
+}
+
+async function assertPluginCandidateIdentity(root, source) {
+  let metadata;
+  try {
+    metadata = JSON.parse(await readFile(resolve(root, 'RELEASE.json'), 'utf8'));
+  } catch (error) {
+    throw new Error('Trusted release Plugin candidate is missing valid RELEASE.json metadata', {
+      cause: error,
+    });
+  }
+  let release;
+  try {
+    release = validateDeployedRelease(metadata);
+  } catch (error) {
+    throw new Error('Trusted release Plugin candidate metadata is invalid', { cause: error });
+  }
+  if (
+    release.tag !== source.tag
+    || release.version !== source.tag.slice(1)
+    || release.sourceCommit !== source.commit
+  ) {
+    throw new Error('Trusted release Plugin candidate does not match the exact tag and source commit');
+  }
+  return release;
 }
 
 function assertArtifact(value, label) {
@@ -106,6 +132,7 @@ export async function buildTrustedReleaseLifecycleV2({
   now = () => new Date(),
 }) {
   assertTrustedInputs({ source, appleTrust, nativeAggregate });
+  const pluginRelease = await assertPluginCandidateIdentity(pluginRoot, source);
   const plugin = await inventoryTree(pluginRoot);
   let record = createReleaseLifecycleV2({ source, now });
   record = advanceReleaseStageV2(record, 'policy-resolved', {
@@ -114,6 +141,11 @@ export async function buildTrustedReleaseLifecycleV2({
     topology: { plugin: true, desktop: 'universal-dmg', nativeAuthorities: ['arm64', 'x64'] },
   }, now);
   record = advanceReleaseStageV2(record, 'plugin-candidate-built', {
+    release: {
+      tag: pluginRelease.tag,
+      version: pluginRelease.version,
+      sourceCommit: pluginRelease.sourceCommit,
+    },
     treeSha256: plugin.sha256,
     files: plugin.files,
   }, now);

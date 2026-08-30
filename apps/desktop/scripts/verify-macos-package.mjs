@@ -33,9 +33,30 @@ async function run(file, args) {
 export async function detectRosettaTranslation(command = run) {
   try {
     const result = await command('/usr/sbin/sysctl', ['-in', 'sysctl.proc_translated']);
-    return result.stdout?.trim() === '1';
-  } catch {
-    return false;
+    const translated = result.stdout?.trim();
+    if (translated === '1') return true;
+    if (translated === '0') return false;
+    throw new Error(`Unexpected sysctl.proc_translated value: ${translated ?? '<missing>'}`);
+  } catch (translationError) {
+    try {
+      const result = await command('/usr/sbin/sysctl', ['-in', 'hw.optional.arm64']);
+      const arm64Capable = result.stdout?.trim();
+      if (arm64Capable === '0') return false;
+      if (arm64Capable === '1') {
+        throw new Error('Rosetta translation state is indeterminate on Apple Silicon', {
+          cause: translationError,
+        });
+      }
+      throw new Error(`Unexpected hw.optional.arm64 value: ${arm64Capable ?? '<missing>'}`);
+    } catch (capabilityError) {
+      if (capabilityError instanceof Error
+        && capabilityError.message === 'Rosetta translation state is indeterminate on Apple Silicon') {
+        throw capabilityError;
+      }
+      throw new Error('Unable to establish native Intel authority', {
+        cause: capabilityError,
+      });
+    }
   }
 }
 

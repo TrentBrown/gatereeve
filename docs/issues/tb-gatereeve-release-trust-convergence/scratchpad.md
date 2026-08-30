@@ -88,3 +88,52 @@ Treat the signed, unstapled universal DMG submitted to Apple and the final stapl
 
 **Alternatives considered:**
 Assume stapling preserves the DMG digest - rejected because the contract must not depend on that implementation detail; staple the only retained DMG in place - rejected because a recovery invocation could no longer match the attempt-bound submitted bytes; treat post-staple drift as requiring a new RC - rejected because stapling is the intended trust-finalization derivation, not an arbitrary rebuild
+
+## [4] Revalidate Plugin identity at every cross-run recovery boundary
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** trusted lifecycle construction, retained Plugin artifacts,
+recovery-run selection, and candidate-identity tests
+
+The schema-v2 lifecycle builder reads and validates the retained Plugin
+candidate's `RELEASE.json` against the exact requested tag, version, source
+commit, Plugin ID, and marketplace before hashing its tree. Binding a GitHub
+run to the same source commit is insufficient because multiple RC identities
+can legitimately use one commit.
+
+**Triggered by:** PR #33 independent review found that recovery could combine a
+same-source Plugin tree from a different RC with the current Apple candidate.
+
+**Alternatives considered:**
+- Trust the preparation run ID and source SHA alone - rejected because neither
+  proves the candidate tag.
+- Query only the original workflow inputs - rejected because the retained
+  artifact already contains authoritative self-identifying metadata and must
+  remain independently verifiable.
+
+## [5] Fail closed when native Intel authority cannot be established
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** native macOS evidence, Intel runner compatibility, Rosetta
+rejection, and protected rehearsal behavior
+
+Native verification accepts `sysctl.proc_translated=0` directly and rejects
+`=1`. If that key is unavailable, verification accepts the host only when
+`hw.optional.arm64=0` positively identifies Intel hardware. Apple Silicon,
+unknown output, or failure of both probes is indeterminate and fails closed.
+
+**Triggered by:** PR #33 independent review found that every translation-probe
+error was previously converted into `rosettaTranslated: false`.
+
+**Alternatives considered:**
+- Treat any missing translation key as native - rejected because an
+  operational probe failure on Apple Silicon could authorize Rosetta evidence.
+- Reject every missing translation key - rejected because native Intel hosts
+  may not expose `sysctl.proc_translated`; the independent hardware-capability
+  probe distinguishes that valid case.

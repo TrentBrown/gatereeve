@@ -58,10 +58,24 @@ const nativeAggregate = {
   ],
 };
 
+async function writePluginCandidate(root, overrides = {}) {
+  await writeFile(join(root, 'plugin.json'), '{"name":"gatereeve"}\n');
+  await writeFile(join(root, 'RELEASE.json'), `${JSON.stringify({
+    schemaVersion: 1,
+    plugin: 'agentic-development-workflow',
+    marketplace: 'quality-code',
+    version: source.tag.slice(1),
+    sourceTag: source.tag,
+    sourceCommit: source.commit,
+    ubuntuRcEvidence: null,
+    ...overrides,
+  }, null, 2)}\n`);
+}
+
 test('trusted production creates a schema-v2 lifecycle through Desktop trust', async () => {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-trusted-lifecycle-'));
   try {
-    await writeFile(join(root, 'plugin.json'), '{"name":"gatereeve"}\n');
+    await writePluginCandidate(root);
     const record = await buildTrustedReleaseLifecycleV2({
       source,
       pluginRoot: root,
@@ -85,6 +99,11 @@ test('trusted production creates a schema-v2 lifecycle through Desktop trust', a
       record.stages[6].evidence.submittedArtifact.sha256,
       submittedArtifact.sha256,
     );
+    assert.deepEqual(record.stages[2].evidence.release, {
+      tag: source.tag,
+      version: source.tag.slice(1),
+      sourceCommit: source.commit,
+    });
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -92,7 +111,7 @@ test('trusted production creates a schema-v2 lifecycle through Desktop trust', a
 test('trusted production rejects cross-request or changed-byte aggregation', async () => {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-trusted-lifecycle-reject-'));
   try {
-    await writeFile(join(root, 'plugin.json'), '{}\n');
+    await writePluginCandidate(root);
     const altered = structuredClone(nativeAggregate);
     altered.artifact.sha256 = 'e'.repeat(64);
     await assert.rejects(
@@ -103,6 +122,27 @@ test('trusted production rejects cross-request or changed-byte aggregation', asy
         nativeAggregate: altered,
       }),
       /does not match/u,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('trusted production rejects a same-source Plugin candidate from another RC', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'gatereeve-trusted-lifecycle-plugin-identity-'));
+  try {
+    await writePluginCandidate(root, {
+      version: '0.1.0-rc.8',
+      sourceTag: 'v0.1.0-rc.8',
+    });
+    await assert.rejects(
+      buildTrustedReleaseLifecycleV2({
+        source,
+        pluginRoot: root,
+        appleTrust,
+        nativeAggregate,
+      }),
+      /does not match the exact tag and source commit/u,
     );
   } finally {
     await rm(root, { recursive: true, force: true });

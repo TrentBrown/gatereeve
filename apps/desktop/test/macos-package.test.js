@@ -197,5 +197,22 @@ test('native package evidence binds the exact source and DMG bytes', async () =>
 test('native authority detects and rejects Rosetta substitution evidence', async () => {
   assert.equal(await detectRosettaTranslation(async () => ({ stdout: '1\n' })), true);
   assert.equal(await detectRosettaTranslation(async () => ({ stdout: '0\n' })), false);
-  assert.equal(await detectRosettaTranslation(async () => { throw new Error('unknown sysctl'); }), false);
+  const nativeIntelCalls = [];
+  assert.equal(await detectRosettaTranslation(async (_file, args) => {
+    nativeIntelCalls.push(args.at(-1));
+    if (args.at(-1) === 'sysctl.proc_translated') throw new Error('unknown sysctl');
+    return { stdout: '0\n' };
+  }), false);
+  assert.deepEqual(nativeIntelCalls, ['sysctl.proc_translated', 'hw.optional.arm64']);
+  await assert.rejects(
+    detectRosettaTranslation(async (_file, args) => {
+      if (args.at(-1) === 'sysctl.proc_translated') throw new Error('probe failed');
+      return { stdout: '1\n' };
+    }),
+    /indeterminate on Apple Silicon/u,
+  );
+  await assert.rejects(
+    detectRosettaTranslation(async () => { throw new Error('all probes failed'); }),
+    /Unable to establish native Intel authority/u,
+  );
 });

@@ -46,6 +46,31 @@ Append PR boundary entries here.
   Candidate Cask install/upgrade passed on both architectures; linked public
   Cask reconciliation remains in planned P6/I-6 scope.
 
+### PR #33 - Protected trust and native evidence
+
+- **PR:** [#33](https://github.com/TrentBrown/gatereeve/pull/33)
+- **Evidence packet:** [packet](pr-33/)
+- **Evaluated source:**
+  `dcabb44f49c251ae3126c072200a4b9163ed8a8a` based on reviewed `main`
+  `a01361aaf3c5779129e49972a33539c5984d0da0`.
+- **Scope:** P3-P4 / I-3-I-4 / R1, R2, R3, R4, R5, R8 foundations.
+- **Summary:** Moves Apple trust production to the protected `release-trust`
+  boundary, pins it to exact reviewed `main`, separates the submitted DMG from
+  the final stapled DMG, retains recoverable request history, rejects generic
+  reruns, and requires independent native Apple Silicon and Intel evidence
+  before recording desktop trust.
+- **Verification:** Desktop 125 passed; CLI 149 passed after review
+  remediation; focused contract,
+  syntax, YAML, documentation-example, and diff checks passed.
+- **Boundary remediation:** Attempt 1 found and blocked a same-source/
+  different-RC Plugin recovery mix and fail-open Rosetta probe errors. The
+  lifecycle builder now validates `RELEASE.json`, native Intel authority uses
+  a fail-closed hardware-capability fallback, and both negatives have tests.
+- **Live limitation:** This PR boundary does not possess Apple credentials and
+  therefore does not execute a live notarization request or GitHub-hosted
+  native runner rehearsal. Those protected, nonpublishing checks remain part
+  of P9/I-9 after the environment cutover is explicitly authorized.
+
 ## Slice Evidence
 
 ### s2-protected-trust-native-evidence
@@ -55,6 +80,12 @@ Append PR boundary entries here.
 - Scope: P3-P4 / I-3-I-4 / R1, R2, R3, R4, R5, R8.
 - Branch:
   `tb-gatereeve-release-trust-convergence-02-protected-trust-native-evidence`.
+- Draft PR: [#33](https://github.com/TrentBrown/gatereeve/pull/33).
+- Evaluated source: `dcabb44f49c251ae3126c072200a4b9163ed8a8a`.
+- Desktop suite: 125 passed, 0 failed; CLI suite: 149 passed, 0 failed after
+  review remediation.
+- Live Apple trust and native-host rehearsal are intentionally deferred to
+  P9/I-9 because this boundary neither receives nor mutates protected secrets.
 - No `development` or `development-*` branch was merged or rebased.
 
 ### s1-lifecycle-recovery-contracts
