@@ -143,7 +143,7 @@ error was previously converted into `rosettaTranslated: false`.
 
 ## [6] Retain repository-local publishers behind a schema-v2 hosted authority
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -158,7 +158,7 @@ Copy PortReeve's publication engine - rejected because GateReeve already has pro
 
 ## [7] Advance the immutable public-Cask smoke fixture with public history
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

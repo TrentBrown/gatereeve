@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR 34 — Hosted release trust and publication</title>
+  <style>
+    :root { color-scheme: light dark; --ink:#18202b; --muted:#5d6b7c; --paper:#f6f8fb; --card:#fff; --line:#cad3df; --blue:#2457d6; --green:#16794b; --amber:#9a5a00; --red:#a12828; }
+    @media (prefers-color-scheme: dark) { :root { --ink:#e9eef5; --muted:#aeb9c7; --paper:#111720; --card:#19222e; --line:#394657; --blue:#83a7ff; --green:#76d5a5; --amber:#ffc36b; --red:#ff9292; } }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { width:min(1080px,calc(100% - 32px)); margin:0 auto; padding:40px 0 80px; }
+    h1 { font-size:clamp(2rem,5vw,3.7rem); line-height:1.05; margin:.2em 0; letter-spacing:-.035em; }
+    h2 { margin-top:2.4em; border-bottom:1px solid var(--line); padding-bottom:.35em; }
+    h3 { margin-top:1.8em; }
+    a { color:var(--blue); }
+    .lede { max-width:780px; font-size:1.2rem; color:var(--muted); }
+    .meta,.callout,.card,.quiz { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+    .meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:24px 0; }
+    .meta strong { display:block; font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+    nav ul { columns:2; padding-left:22px; }
+    .callout { border-left:5px solid var(--blue); margin:22px 0; }
+    .warning { border-left-color:var(--amber); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:18px 0; }
+    .card h3 { margin-top:0; }
+    .flow { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; align-items:stretch; margin:26px 0; }
+    .node { position:relative; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 12px; text-align:center; }
+    .node:not(:last-child)::after { content:"→"; position:absolute; right:-16px; top:calc(50% - 14px); z-index:2; color:var(--blue); font-size:24px; font-weight:700; }
+    .node b { display:block; color:var(--blue); }
+    .split { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .authority { border-top:5px solid var(--green); }
+    .publication { border-top:5px solid var(--amber); }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; background:#0d1420; color:#e8eef8; border-radius:10px; padding:16px; overflow:auto; font-size:.9rem; }
+    code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    table { width:100%; border-collapse:collapse; margin:18px 0; }
+    th,td { border:1px solid var(--line); padding:10px; text-align:left; vertical-align:top; }
+    th { background:color-mix(in srgb,var(--card),var(--blue) 8%); }
+    .quiz { margin:16px 0; }
+    .answers { display:grid; gap:8px; margin-top:12px; }
+    button { text-align:left; border:1px solid var(--line); background:var(--paper); color:var(--ink); border-radius:9px; padding:10px 12px; cursor:pointer; }
+    button:hover { border-color:var(--blue); }
+    button.correct { border-color:var(--green); background:color-mix(in srgb,var(--card),var(--green) 16%); }
+    button.incorrect { border-color:var(--red); background:color-mix(in srgb,var(--card),var(--red) 12%); }
+    .feedback { min-height:1.6em; margin-top:10px; font-weight:600; }
+    .small { color:var(--muted); font-size:.92rem; }
+    @media (max-width:760px) { nav ul { columns:1; } .flow { grid-template-columns:1fr; } .node:not(:last-child)::after { content:"↓"; right:auto; left:calc(50% - 8px); top:auto; bottom:-22px; } .split { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="small">GateReeve release-trust convergence · PR #34</p>
+  <h1>Trusted bytes become published bytes—without changing hands</h1>
+  <p class="lede">This change completes GateReeve’s repository-side path from a verified universal macOS DMG to a sealed, approved, recoverable publication, followed by a separately approved Homebrew Cask. It adopts PortReeve’s trust semantics while retaining GateReeve’s Plugin/Desktop topology.</p>
+
+  <div class="meta">
+    <div><strong>Reviewed base</strong><code>3b0e719…</code></div>
+    <div><strong>Evaluated head</strong><code>c9813f3…</code></div>
+    <div><strong>Scope</strong>P5–P7 / I-5–I-7</div>
+    <div><strong>Product topology</strong>Plugin + universal DMG + linked Cask</div>
+  </div>
+
+  <nav class="card" aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ul>
+      <li><a href="#background">Background</a></li>
+      <li><a href="#intuition">Core intuition</a></li>
+      <li><a href="#code">Code walkthrough</a></li>
+      <li><a href="#recovery">Failure and recovery</a></li>
+      <li><a href="#conformance">What is shared—and what is not</a></li>
+      <li><a href="#quiz">Knowledge check</a></li>
+    </ul>
+  </nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <h3>The beginner’s version: signing is not publication</h3>
+    <p>A release crosses several different authority boundaries. Building creates bytes. Developer ID signing says who produced them. Apple notarization records Apple’s acceptance. Stapling attaches that result to the distributable DMG. Native Gatekeeper checks prove that both Apple Silicon and Intel hosts accept the same universal artifact. Publication then changes public systems: a tag, Plugin marketplace branch, GitHub prerelease, update manifest, website, and eventually a Homebrew Cask.</p>
+    <p>Those steps should not share one all-powerful credential. A signing job should be unable to publish, and a publishing job should be unable to rebuild or sign. Otherwise an approval intended for one action silently authorizes another.</p>
+
+    <div class="split">
+      <article class="card authority">
+        <h3>Trust production</h3>
+        <p>Uses Apple credentials, creates the final notarized universal DMG, and emits native ARM64/Intel evidence.</p>
+        <p><strong>Cannot:</strong> create tags, releases, marketplace updates, manifest PRs, website changes, or Cask PRs.</p>
+      </article>
+      <article class="card publication">
+        <h3>Publication</h3>
+        <p>Consumes retained exact bytes plus a reviewed plan digest and converges public surfaces.</p>
+        <p><strong>Cannot:</strong> build, sign, notarize, staple, or replace trusted bytes.</p>
+      </article>
+    </div>
+
+    <h3>The system before this PR</h3>
+    <p>Earlier slices established schema-v2 lifecycle stages, durable notarization attempts, protected Apple production, and independent native evidence. GateReeve also already had deterministic repository-local adapters for publishing the Plugin, Desktop assets, update metadata, website state, and Cask. The missing piece was a hosted authority that sealed those existing transports behind the schema-v2 record and separate approval environments.</p>
+
+    <div class="callout"><strong>Load-bearing distinction:</strong> the old adapters remain useful mechanisms. They are no longer the authority to invent a plan. The schema-v2 packet and protected hosted workflow are the authority; adapters may only converge to that exact plan.</div>
+  </section>
+
+  <section id="intuition">
+    <h2>Core intuition</h2>
+    <p>Imagine a tamper-evident shipping manifest. The warehouse lists every box by weight and fingerprint, seals the manifest, and hands both to a courier. The courier may deliver missing boxes and record receipts, but may not repack them or edit the manifest. A retry checks which exact boxes already arrived and continues from the first missing receipt.</p>
+
+    <div class="flow" role="img" aria-label="Release data flow from trusted evidence through Cask publication">
+      <div class="node"><b>Trusted packet</b>Plugin tree<br>universal DMG<br>native evidence</div>
+      <div class="node"><b>Finalization</b>rebind bytes<br>derive outputs<br>seal plan</div>
+      <div class="node"><b>Dry run</b>read-only<br>remote preflights<br>zero mutation</div>
+      <div class="node"><b>Primary publish</b>five ordered<br>receipts</div>
+      <div class="node"><b>Linked Cask</b>public install proof<br>separate plan</div>
+    </div>
+
+    <h3>A toy example</h3>
+    <pre><code>source      = v0.2.0-rc.3 @ abc123…
+trusted DMG = GateReeve-0.2.0-rc.3-macos-universal.dmg
+DMG digest  = 7f4e…9a21
+plan digest = 12bc…88ef
+
+receipts = [
+  tag,
+  pluginMarketplace,
+  desktopPrerelease,
+  updateManifest,
+  earlyAccessWebsite
+]</code></pre>
+    <p>If the process stops after the Desktop prerelease, a retry does not rebuild anything. It first proves that the tag, marketplace, and prerelease already match the sealed record. It then resumes at the update manifest. If any completed surface differs, recovery fails closed.</p>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <div class="grid">
+      <article class="card"><h3>1. Finalize v2</h3><p><code>hosted-publication-v2.js</code> verifies the lifecycle ends exactly at Desktop trust, inventories the Plugin tree, checks final DMG and both native documents, derives checksums/manifest, and appends <code>distribution-finalized</code>.</p></article>
+      <article class="card"><h3>2. Seal a plan</h3><p>The packet stores exact inputs and outputs plus <code>publication-plan.md</code>. Re-rendering must produce identical bytes and the same SHA-256.</p></article>
+      <article class="card"><h3>3. Publish in order</h3><p>The hosted publisher preflights all five surfaces, records an approval bound to the plan digest, converges one surface at a time, and atomically appends its receipt.</p></article>
+      <article class="card"><h3>4. Link Cask later</h3><p><code>homebrew-cask-v2.js</code> requires primary <code>published</code>, binds its record/stage/plan/receipt digests, and adds exact public-DMG install and launch evidence.</p></article>
+    </div>
+
+    <h3>Hosted workflow boundaries</h3>
+    <table>
+      <thead><tr><th>Workflow</th><th>Authority</th><th>Important prohibition</th></tr></thead>
+      <tbody>
+        <tr><td>Coordinated Release Finalization</td><td>Read retained artifacts; emit sealed packet</td><td>No protected environment, no secret, no public write</td></tr>
+        <tr><td>Primary publication dry run</td><td>Protected review plus read-only remote preflight</td><td>No publication secret and no mutation</td></tr>
+        <tr><td>Primary real publication</td><td>Scoped repository workflow token</td><td>No Apple credential and no rebuild</td></tr>
+        <tr><td>Cask finalization</td><td>Read completed primary packet and human installation attestation</td><td>Cannot publish the tap</td></tr>
+        <tr><td>Cask real publication</td><td>Tap-limited publication token</td><td>Cannot sign, notarize, or alter primary history</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Why the v1 projection exists</h3>
+    <p>The mature transport adapters expect the historical coordinated-record shape. The new code constructs that shape in memory from immutable v2 stages and validates it with the old reader. It does not write a synthetic mutable v1 history. This lets GateReeve reuse proven product-specific transports without weakening the new authority model.</p>
+
+    <h3>The marketplace rollback guard</h3>
+    <p>Directly publishing retained Plugin bytes is necessary because a tag created with GitHub’s workflow token does not start another tag workflow. Direct transport is safe only if it cannot overwrite newer history. The new semantic version comparison therefore accepts either the exact completed target or a strict successor to the deployed marketplace release; equal-different and newer deployments fail.</p>
+  </section>
+
+  <section id="recovery">
+    <h2>Failure and recovery</h2>
+    <table>
+      <thead><tr><th>Failure point</th><th>Durable fact</th><th>Recovery</th></tr></thead>
+      <tbody>
+        <tr><td>Before approval</td><td>Finalized packet and plan digest</td><td>Repeat read-only dry run; no public history exists</td></tr>
+        <tr><td>After approval, before first surface</td><td>Approval bound to exact digest</td><td>Reapprove the same packet in a new protected run and converge</td></tr>
+        <tr><td>After some primary surfaces</td><td>Remote exact state; partial result may also contain receipts</td><td>Start from retained finalization packet, preflight remote state, deterministically reconstruct the ordered prefix, continue</td></tr>
+        <tr><td>Cask remains pending</td><td>Primary record is already <code>published</code></td><td>Primary stays complete; Cask can be prepared and approved later</td></tr>
+        <tr><td>Tap PR partially completed</td><td>Self-identifying branch/PR and exact Cask digest</td><td>Retry converges to the same PR or verifies the already merged bytes</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warning"><strong>What recovery never means:</strong> rerun a trust job that rebuilds bytes, change the plan digest, resubmit a notarization request without evidence, force an older marketplace version, or reuse a candidate version after Apple-bound byte drift.</div>
+  </section>
+
+  <section id="conformance">
+    <h2>Conformance with PortReeve</h2>
+    <p>The two products now share the same semantic spine: immutable source, exact-byte authority, explicit lifecycle stages, protected trust production, independent native Apple evidence, separated publication approval, sealed plans, bounded recovery, ordered receipts, and immutable published history.</p>
+    <p>They intentionally do not share an artifact graph. GateReeve keeps one universal DMG and coordinated Plugin/Desktop/Cask surfaces. PortReeve keeps architecture-specific DMGs and native CLI surfaces. Conformance means equivalent guarantees at matching boundaries, not identical files, runners, or runtime code.</p>
+  </section>
+
+  <section id="quiz">
+    <h2>Knowledge check</h2>
+    <div class="quiz" data-answer="2"><strong>1. Why does finalization re-read the Plugin tree and native evidence?</strong><div class="answers"><button>To make the packet smaller before upload</button><button>To regenerate evidence in a Linux runner</button><button>To prove the retained inputs are exactly the authorities recorded by the trust lifecycle</button><button>To convert every record back to schema v1</button></div><div class="feedback" aria-live="polite"></div></div>
+    <div class="quiz" data-answer="1"><strong>2. What may a protected dry run do?</strong><div class="answers"><button>Create a draft tag but no release</button><button>Perform read-only remote preflights against the sealed plan</button><button>Upload missing assets and then roll them back</button><button>Record publication approval without receipts</button></div><div class="feedback" aria-live="polite"></div></div>
+    <div class="quiz" data-answer="3"><strong>3. Why is Cask publication a separate lifecycle?</strong><div class="answers"><button>Homebrew cannot install universal binaries</button><button>The Cask must use Apple credentials after notarization</button><button>The Plugin marketplace must wait for the Cask</button><button>It requires proof from the already public DMG and should not reopen completed primary publication</button></div><div class="feedback" aria-live="polite"></div></div>
+    <div class="quiz" data-answer="0"><strong>4. A retry finds the first three primary surfaces already exact. What happens?</strong><div class="answers"><button>It verifies them, reconstructs the ordered prefix, and resumes at the update manifest</button><button>It force-pushes all three again to refresh timestamps</button><button>It burns a new RC automatically</button><button>It skips preflight and trusts the prior run conclusion</button></div><div class="feedback" aria-live="polite"></div></div>
+    <div class="quiz" data-answer="2"><strong>5. In what sense are GateReeve and PortReeve conformant?</strong><div class="answers"><button>They now publish identical artifact filenames</button><button>Both now use architecture-specific DMGs</button><button>They enforce matching trust semantics while retaining product-specific topology and repository-local code</button><button>GateReeve imports PortReeve’s runtime release engine</button></div><div class="feedback" aria-live="polite"></div></div>
+  </section>
+</main>
+<script>
+  document.querySelectorAll('.quiz').forEach((quiz) => {
+    const answer = Number(quiz.dataset.answer);
+    const buttons = [...quiz.querySelectorAll('button')];
+    const feedback = quiz.querySelector('.feedback');
+    buttons.forEach((button, index) => button.addEventListener('click', () => {
+      buttons.forEach((item) => item.classList.remove('correct', 'incorrect'));
+      button.classList.add(index === answer ? 'correct' : 'incorrect');
+      buttons[answer].classList.add('correct');
+      feedback.textContent = index === answer
+        ? 'Correct. That preserves the authority boundary described in the PR.'
+        : 'Not quite. The highlighted answer matches the exact-byte and approval contracts.';
+    }));
+  });
+</script>
+</body>
+</html>

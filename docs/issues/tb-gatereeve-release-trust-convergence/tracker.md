@@ -85,6 +85,34 @@ Append PR boundary entries here.
 - **Merge:** `3b0e719af9258e5b7ee8bc9b6b8a7dd908a5bc41` on `main`; exact evaluated
   source and the final evidence-only PR head were verified by ancestry.
 
+### PR #34 - Hosted publication, Cask, and operations
+
+- **PR:** [#34](https://github.com/TrentBrown/gatereeve/pull/34)
+- **Evidence packet:** [packet](pr-34/)
+- **Evaluated source:**
+  `c9813f3c6d66f6b6c7a7e886e299772594b40d68` based on reviewed `main`
+  `3b0e719af9258e5b7ee8bc9b6b8a7dd908a5bc41`.
+- **Scope:** P5-P7 / I-5-I-7 / R1, R2, R3, R4, R6, R7.
+- **Summary:** Adds schema-v2 distribution finalization, sealed hosted primary
+  publication with read-only rehearsal and ordered receipts, a separately
+  linked v2 Cask record/publisher, and the one-time credential/environment
+  migration and recovery runbook.
+- **Verification:** CLI 158/158, Desktop 125/125, focused integration 26/26,
+  portable acceptance, JavaScript syntax, workflow YAML, and diff checks
+  passed. [Plugin/Desktop run 33333444341](https://github.com/TrentBrown/gatereeve/actions/runs/33333444341)
+  passed all 12 jobs; [Cask run 33333444342](https://github.com/TrentBrown/gatereeve/actions/runs/33333444342)
+  passed public install and local upgrade on native ARM64 and Intel.
+- **Boundary remediation:** Attempt 1 found that the public-Cask smoke fixture
+  still pinned RC.1 after immutable tap history advanced to RC.2. The fixture
+  now binds retained RC.2 preparation run `33234514595`, preserves RC.1
+  history, and passes all four native jobs.
+- **Independent judgment:** PASS WITH CONCERNS. P5-P7 are complete in
+  repository scope; live environment contents, Apple authority, and protected
+  zero-mutation rehearsal remain P8-P9.
+- **Code review:** PASS with no open findings after remediation.
+- **Live limitation:** No environment, Apple credential, tag, release,
+  marketplace, manifest, website, or Cask was mutated by this PR boundary.
+
 ## Slice Evidence
 
 ### s3-hosted-publication-cask-operations
@@ -105,8 +133,15 @@ Append PR boundary entries here.
   the primary record/stage/plan/receipt digests, public DMG install-and-launch
   proof, exact Cask bytes, and deterministic tap receipt.
 - Local verification: CLI 158 passed; Desktop 125 passed; portable acceptance,
-  focused 35-test publication/Cask/workflow/documentation suite, JavaScript
+  focused publication/Cask/workflow/documentation and native smoke suites,
+  JavaScript
   syntax, YAML parse, and diff checks passed.
+- Hosted verification: run 33333444341 passed all 12 Plugin/Desktop jobs and
+  run 33333444342 passed all four native public/local Cask jobs on evaluated
+  source `c9813f3c6d66f6b6c7a7e886e299772594b40d68`.
+- Boundary attempt 1 correctly failed against stale RC.1 public-Cask authority;
+  attempt 2 evaluates the remediated explicit RC.2 fixture without rewriting
+  historical bytes or evidence.
 - No live environment, Apple credential, tag, release, marketplace, manifest,
   website, or Cask mutation occurred in this slice implementation.
 - No `development` or `development-*` branch was merged or rebased.
