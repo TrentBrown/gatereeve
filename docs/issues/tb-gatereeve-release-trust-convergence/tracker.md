@@ -66,6 +66,9 @@ Append PR boundary entries here.
   passed all 13 jobs, including both acceptance containers, the universal
   macOS package, and packaged-runtime launches on native Apple Silicon and
   Intel runners.
+- **Final-head checks:** [Run 33331833526](https://github.com/TrentBrown/gatereeve/actions/runs/33331833526)
+  passed all 13 required checks on final PR head
+  `9cfcf635e4a7225335bf1d7b3570e658ddcac3cf`.
 - **Boundary remediation:** Attempt 1 found and blocked a same-source/
   different-RC Plugin recovery mix and fail-open Rosetta probe errors. The
   lifecycle builder now validates `RELEASE.json`, native Intel authority uses
@@ -77,6 +80,10 @@ Append PR boundary entries here.
   therefore does not execute a live notarization request. The protected,
   nonpublishing notarization rehearsal remains part of P9/I-9 after the
   environment cutover is explicitly authorized.
+- **Review:** Approved by the user; governed review acceptance recorded at
+  event sequence 66.
+- **Merge:** `3b0e719af9258e5b7ee8bc9b6b8a7dd908a5bc41` on `main`; exact evaluated
+  source and the final evidence-only PR head were verified by ancestry.
 
 ## Slice Evidence
 
@@ -93,6 +100,9 @@ Append PR boundary entries here.
   review remediation.
 - Hosted CI run 33331377471 passed all 13 jobs, including both native macOS
   packaged-runtime launches and both Linux acceptance containers.
+- Final-head CI run 33331833526 also passed all 13 required checks.
+- Merged to `main` as `3b0e719af9258e5b7ee8bc9b6b8a7dd908a5bc41`;
+  governed merge verification is event sequence 67.
 - Live Apple trust is intentionally deferred to P9/I-9 because this boundary
   neither receives nor mutates protected secrets.
 - No `development` or `development-*` branch was merged or rebased.
