@@ -129,10 +129,10 @@ npm test
 
 ## Release commands
 
-Release publication now consumes one coordinated Plugin/Desktop record. Build
-that record through the nonpublishing `Coordinated Release Preparation` GitHub
-Actions workflow, download its retained workspace, and inspect the exact plan
-before any public action. The complete procedure lives in
+New coordinated releases use schema-v2 hosted preparation, read-only
+finalization, protected dry run, and separately approved publication. Local CLI
+commands inspect retained packets and support exact-record recovery; they are
+not an alternate production authority. The complete procedure lives in
 [`../RELEASING.md`](../RELEASING.md).
 
 ```bash
@@ -140,13 +140,15 @@ before any public action. The complete procedure lives in
 gatereeve plugin release inspect-record \
   --release-record /path/to/coordinated-release/release-record.json
 
-# The guarded publisher always requires that exact record.
-gatereeve plugin release publish --next-rc --dry-run \
-  --release-record /path/to/coordinated-release/release-record.json
+# Inspect the sealed schema-v2 primary publication packet.
+gatereeve plugin release inspect-hosted \
+  --release-record /path/to/hosted-publication/release-record.json
 
-# Promote the deployed RC's exact source commit to stable.
-gatereeve plugin release publish --promote \
-  --release-record /path/to/stable-coordinated-release/release-record.json
+# Run read-only preflights against the exact sealed primary plan.
+gatereeve plugin release publish-hosted \
+  --release-record /path/to/hosted-publication/release-record.json \
+  --plan-sha256 <PLAN_SHA256> \
+  --dry-run
 
 # Create a record locally from already verified candidate inputs.
 gatereeve plugin release coordinate --help
@@ -157,18 +159,22 @@ gatereeve plugin release watch --tag v0.1.0-rc.2
 # Bundle a verified release for repository-independent installation.
 gatereeve plugin release bundle --tag v0.1.0-rc.2 --output-dir ~/Downloads
 
-# Prepare and inspect a checksum-pinned Cask packet after direct DMG proof.
-gatereeve plugin release prepare-cask --help
-gatereeve plugin release inspect-cask --cask-record /path/to/cask-record.json
+# Inspect the separate Cask record linked to completed primary publication.
+gatereeve plugin release inspect-cask-hosted \
+  --cask-record /path/to/linked-cask/cask-record.json
 
-# Preflight or publish the exact separately approved Cask plan.
-gatereeve plugin release publish-cask --help
+# Run read-only Cask preflights against its separately sealed plan.
+gatereeve plugin release publish-cask-hosted \
+  --cask-record /path/to/linked-cask/cask-record.json \
+  --plan-sha256 <CASK_PLAN_SHA256> \
+  --dry-run
 ```
 
-An ad-hoc development record is intentionally not publishable. The record must
-contain complete Developer ID trust evidence and approval of its exact plan
-digest before `release publish` can create a tag. `--yes` suppresses the CLI's
-interactive prompt only; it never substitutes for record-bound approval.
+An ad-hoc development record is intentionally not publishable. Hosted
+publication requires complete Developer ID trust evidence, both native
+verification authorities, exact finalization, the inspected plan digest, and
+approval from `release-publication`. A dry run records no approval and has no
+write token.
 
 Computed versions use the currently deployed marketplace `RELEASE.json` as
 their baseline, not merely the highest Git tag. Bare publication is interactive;
@@ -176,14 +182,13 @@ automation must provide `--tag`, `--next-rc`, `--promote`, or `--bump`. Patch,
 minor, and major bumps begin a new RC line. Promotion tags and validates the
 same source commit as the deployed RC, even when `main` has advanced.
 
-`gatereeve plugin release prepare` is the low-level Plugin-only composer used
-inside CI. `gatereeve plugin release coordinate` binds its output to the exact
-universal DMG and native ARM/Intel verification. Neither command publishes.
-`gatereeve plugin release prepare-cask` is also nonpublishing: it accepts only
-a trusted coordinated RC workspace plus observed direct-install proof and
-seals the dedicated tap destination and exact Cask bytes. `publish-cask`
-requires its own inspected plan digest and confirmation; its dry run performs
-remote reads only.
+`gatereeve plugin release prepare`, `coordinate`, `finalize-hosted`, and
+`prepare-cask-hosted` are low-level nonpublishing workflow operations.
+`finalize-hosted` rejects Plugin, DMG, or native evidence inputs that differ
+from the trusted lifecycle. `prepare-cask-hosted` accepts only a completed
+primary record and binds direct public-DMG installation and launch proof.
+Schema-v1 coordinated and Cask commands remain readable for immutable history;
+they are not upgraded or used for new hosted publication.
 `gatereeve plugin smoke-install` remains a separate native-manager test.
 
 `gatereeve plugin release bundle` verifies the selected deployed release, archives

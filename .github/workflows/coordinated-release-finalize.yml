@@ -1,0 +1,135 @@
+name: Coordinated Release Finalization
+
+on:
+  workflow_dispatch:
+    inputs:
+      preparation_run_id:
+        description: Original trust-preparation run containing the exact Plugin candidate
+        required: true
+        type: string
+      trust_artifact_run_id:
+        description: Preparation or recovery run containing the completed trust packet
+        required: true
+        type: string
+      tag:
+        description: Exact candidate RC tag
+        required: true
+        type: string
+      source_commit:
+        description: Exact reviewed main commit used for trust production
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: gatereeve-release-finalize-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  seal-publication-packet:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - name: Bind retained runs to the exact reviewed source and approved workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREPARATION_RUN_ID: ${{ inputs.preparation_run_id }}
+          TRUST_ARTIFACT_RUN_ID: ${{ inputs.trust_artifact_run_id }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" refs/remotes/origin/main
+          node -e "if (!/^v(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)-rc\\.(?:0|[1-9]\\d*)$/.test(process.env.RELEASE_TAG)) process.exit(1)"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PREPARATION_RUN_ID" > "$RUNNER_TEMP/preparation-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$TRUST_ARTIFACT_RUN_ID" > "$RUNNER_TEMP/trust-run.json"
+          node -e '
+            const fs = require("node:fs");
+            const [preparationPath, trustPath] = process.argv.slice(1);
+            const preparation = JSON.parse(fs.readFileSync(preparationPath, "utf8"));
+            const trust = JSON.parse(fs.readFileSync(trustPath, "utf8"));
+            for (const run of [preparation, trust]) {
+              if (run.event !== "workflow_dispatch" || run.head_sha !== process.env.SOURCE_COMMIT) {
+                throw new Error("Finalization source run does not match the exact candidate");
+              }
+            }
+            if (trust.conclusion !== "success") {
+              throw new Error("Finalization requires a successful completed trust workflow");
+            }
+            if (!/coordinated-release-prepare\.yml$/u.test(preparation.path)) {
+              throw new Error("Plugin candidate is not from the approved preparation workflow");
+            }
+            if (!/(coordinated-release-prepare|coordinated-release-trust-recover)\.yml$/u.test(trust.path)) {
+              throw new Error("Trust packet is not from an approved trust workflow");
+            }
+          ' "$RUNNER_TEMP/preparation-run.json" "$RUNNER_TEMP/trust-run.json"
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-plugin-candidate
+          path: ${{ runner.temp }}/plugin-marketplace
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.preparation_run_id }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-desktop-trusted
+          path: ${{ runner.temp }}/desktop
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.trust_artifact_run_id }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coordinated-desktop-trusted-evidence-*
+          path: ${{ runner.temp }}/evidence
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.trust_artifact_run_id }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: gatereeve-${{ inputs.tag }}-coordinated-release
+          path: ${{ runner.temp }}/trusted-lifecycle
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.trust_artifact_run_id }}
+      - name: Seal checksums, update metadata, exact assets, and publication plan
+        env:
+          VERSION: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${VERSION#v}"
+          node cli/bin/workflow.js plugin release finalize-hosted \
+            --trusted-record "$RUNNER_TEMP/trusted-lifecycle/release-record.json" \
+            --plugin-root "$RUNNER_TEMP/plugin-marketplace" \
+            --desktop-dmg "$RUNNER_TEMP/desktop/GateReeve-${version}-macos-universal.dmg" \
+            --desktop-evidence \
+              "$RUNNER_TEMP/evidence/desktop-arm64.json" \
+              "$RUNNER_TEMP/evidence/desktop-x64.json" \
+            --current-update-manifest workflow-site/releases/desktop.json \
+            --output-root "$RUNNER_TEMP/hosted-publication" \
+            --json > "$RUNNER_TEMP/finalization.json"
+          node cli/bin/workflow.js plugin release inspect-hosted \
+            --release-record "$RUNNER_TEMP/hosted-publication/release-record.json" \
+            --json
+          node -e '
+            const result = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+            process.stdout.write(`Sealed publication plan SHA-256: ${result.planSha256}\n`);
+          ' "$RUNNER_TEMP/finalization.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gatereeve-${{ inputs.tag }}-hosted-publication
+          path: ${{ runner.temp }}/hosted-publication
+          if-no-files-found: error
+          retention-days: 30

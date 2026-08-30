@@ -28,6 +28,10 @@ RUN npm ci --prefix cli
 COPY .github/workflows/plugin-release.yml ./.github/workflows/plugin-release.yml
 COPY .github/workflows/coordinated-release-prepare.yml ./.github/workflows/coordinated-release-prepare.yml
 COPY .github/workflows/coordinated-release-trust-recover.yml ./.github/workflows/coordinated-release-trust-recover.yml
+COPY .github/workflows/coordinated-release-finalize.yml ./.github/workflows/coordinated-release-finalize.yml
+COPY .github/workflows/coordinated-release-publish.yml ./.github/workflows/coordinated-release-publish.yml
+COPY .github/workflows/homebrew-cask-finalize.yml ./.github/workflows/homebrew-cask-finalize.yml
+COPY .github/workflows/homebrew-cask-publish.yml ./.github/workflows/homebrew-cask-publish.yml
 COPY plugin-src ./plugin-src
 COPY docs ./docs
 COPY ci ./ci

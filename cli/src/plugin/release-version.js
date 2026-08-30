@@ -18,6 +18,40 @@ function rcNumber(parsed) {
   return match?.[1] ?? null;
 }
 
+function comparePrerelease(left, right) {
+  if (left === right) return 0;
+  if (left === null) return 1;
+  if (right === null) return -1;
+  const leftParts = left.split('.');
+  const rightParts = right.split('.');
+  for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
+    const leftPart = leftParts[index];
+    const rightPart = rightParts[index];
+    if (leftPart === undefined) return -1;
+    if (rightPart === undefined) return 1;
+    if (leftPart === rightPart) continue;
+    const leftNumeric = /^\d+$/u.test(leftPart);
+    const rightNumeric = /^\d+$/u.test(rightPart);
+    if (leftNumeric && rightNumeric) return BigInt(leftPart) < BigInt(rightPart) ? -1 : 1;
+    if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1;
+    return leftPart < rightPart ? -1 : 1;
+  }
+  return 0;
+}
+
+export function compareReleaseTags(leftTag, rightTag) {
+  const left = parseReleaseTag(leftTag);
+  const right = parseReleaseTag(rightTag);
+  const leftBase = left.baseVersion.split('.').map((part) => BigInt(part));
+  const rightBase = right.baseVersion.split('.').map((part) => BigInt(part));
+  for (let index = 0; index < leftBase.length; index += 1) {
+    if (leftBase[index] !== rightBase[index]) {
+      return leftBase[index] < rightBase[index] ? -1 : 1;
+    }
+  }
+  return comparePrerelease(left.prerelease, right.prerelease);
+}
+
 export function validateDeployedRelease(release) {
   let parsed;
   try {

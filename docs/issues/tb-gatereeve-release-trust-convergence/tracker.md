@@ -9,13 +9,13 @@
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Schema lifecycle | NOT YET | - | P1 complete: guarded v2 prefix, exact v1 dispatch, immutable RC.2 fixture; P3, P7-P9 remain |
-| R2 | Source and byte authority | NOT YET | - | P1-P2 complete: reservation plus source/DMG binding and changed-byte rejection; P3-P4, P7-P9 remain |
-| R3 | Credential custody | NOT YET | - | P4-P9 / I-4-I-9 |
-| R4 | Notarization recovery | NOT YET | - | P2 complete: durable submitting/request/poll/timeout/reconcile/reject/supersede contracts; P4, P7-P9 remain |
+| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1, P3, and P7 locally complete; reviewed assembly and live acceptance remain P8-P9 |
+| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1-P4 plus finalization/version-burn operations are locally complete; P8-P9 remain |
+| R3 | Credential custody | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Disjoint workflow authority and migration contract implemented through P7; live cutover remains P9 |
+| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Durable bounded recovery and operator prohibition/migration contract complete; reviewed assembly and live evidence remain P8-P9 |
 | R5 | Native verification | NOT YET | - | P3-P4, P8-P9 / I-3-I-4, I-8-I-9 |
-| R6 | Finalization and publication | NOT YET | - | P5, P7-P9 / I-5, I-7-I-9 |
-| R7 | Cask linkage | NOT YET | - | P6-P9 / I-6-I-9 |
+| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Exact schema-v2 seal, read-only rehearsal, hosted approval, receipts, and retry implemented; P8-P9 remain |
+| R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, and idempotent receipt implemented; P8-P9 remain |
 | R8 | Conformance and acceptance | NOT YET | - | P3, P8-P9 / I-3, I-8-I-9 |
 
 ## PR Log
@@ -66,6 +66,9 @@ Append PR boundary entries here.
   passed all 13 jobs, including both acceptance containers, the universal
   macOS package, and packaged-runtime launches on native Apple Silicon and
   Intel runners.
+- **Final-head checks:** [Run 33331833526](https://github.com/TrentBrown/gatereeve/actions/runs/33331833526)
+  passed all 13 required checks on final PR head
+  `9cfcf635e4a7225335bf1d7b3570e658ddcac3cf`.
 - **Boundary remediation:** Attempt 1 found and blocked a same-source/
   different-RC Plugin recovery mix and fail-open Rosetta probe errors. The
   lifecycle builder now validates `RELEASE.json`, native Intel authority uses
@@ -77,8 +80,71 @@ Append PR boundary entries here.
   therefore does not execute a live notarization request. The protected,
   nonpublishing notarization rehearsal remains part of P9/I-9 after the
   environment cutover is explicitly authorized.
+- **Review:** Approved by the user; governed review acceptance recorded at
+  event sequence 66.
+- **Merge:** `3b0e719af9258e5b7ee8bc9b6b8a7dd908a5bc41` on `main`; exact evaluated
+  source and the final evidence-only PR head were verified by ancestry.
+
+### PR #34 - Hosted publication, Cask, and operations
+
+- **PR:** [#34](https://github.com/TrentBrown/gatereeve/pull/34)
+- **Evidence packet:** [packet](pr-34/)
+- **Evaluated source:**
+  `c9813f3c6d66f6b6c7a7e886e299772594b40d68` based on reviewed `main`
+  `3b0e719af9258e5b7ee8bc9b6b8a7dd908a5bc41`.
+- **Scope:** P5-P7 / I-5-I-7 / R1, R2, R3, R4, R6, R7.
+- **Summary:** Adds schema-v2 distribution finalization, sealed hosted primary
+  publication with read-only rehearsal and ordered receipts, a separately
+  linked v2 Cask record/publisher, and the one-time credential/environment
+  migration and recovery runbook.
+- **Verification:** CLI 158/158, Desktop 125/125, focused integration 26/26,
+  portable acceptance, JavaScript syntax, workflow YAML, and diff checks
+  passed. [Plugin/Desktop run 33333444341](https://github.com/TrentBrown/gatereeve/actions/runs/33333444341)
+  passed all 12 jobs; [Cask run 33333444342](https://github.com/TrentBrown/gatereeve/actions/runs/33333444342)
+  passed public install and local upgrade on native ARM64 and Intel.
+- **Boundary remediation:** Attempt 1 found that the public-Cask smoke fixture
+  still pinned RC.1 after immutable tap history advanced to RC.2. The fixture
+  now binds retained RC.2 preparation run `33234514595`, preserves RC.1
+  history, and passes all four native jobs.
+- **Independent judgment:** PASS WITH CONCERNS. P5-P7 are complete in
+  repository scope; live environment contents, Apple authority, and protected
+  zero-mutation rehearsal remain P8-P9.
+- **Code review:** PASS with no open findings after remediation.
+- **Live limitation:** No environment, Apple credential, tag, release,
+  marketplace, manifest, website, or Cask was mutated by this PR boundary.
 
 ## Slice Evidence
+
+### s3-hosted-publication-cask-operations
+
+- Proposed and planned under the approved P5-P7 delivery boundary after the
+  exact PR #33 merge reached `main`.
+- Scope: P5-P7 / I-5-I-7 / R1, R2, R3, R4, R6, R7.
+- Branch:
+  `tb-gatereeve-release-trust-convergence-03-hosted-publication-cask-operations`.
+- Integration base: `3b0e719af9258e5b7ee8bc9b6b8a7dd908a5bc41`.
+- Draft PR: [#34](https://github.com/TrentBrown/gatereeve/pull/34).
+- Implementation source: `5e7e9eb43b602454d99942db245e51ac73dbd1c5`.
+- Primary publication now seals a schema-v2 packet from the exact trusted
+  Plugin tree, universal DMG, and native evidence; the protected dry run has
+  read-only permission and no secret, while real publication appends ordered
+  idempotent receipts without rebuilding.
+- Cask remains a separately approved post-publication schema-v2 record binding
+  the primary record/stage/plan/receipt digests, public DMG install-and-launch
+  proof, exact Cask bytes, and deterministic tap receipt.
+- Local verification: CLI 158 passed; Desktop 125 passed; portable acceptance,
+  focused publication/Cask/workflow/documentation and native smoke suites,
+  JavaScript
+  syntax, YAML parse, and diff checks passed.
+- Hosted verification: run 33333444341 passed all 12 Plugin/Desktop jobs and
+  run 33333444342 passed all four native public/local Cask jobs on evaluated
+  source `c9813f3c6d66f6b6c7a7e886e299772594b40d68`.
+- Boundary attempt 1 correctly failed against stale RC.1 public-Cask authority;
+  attempt 2 evaluates the remediated explicit RC.2 fixture without rewriting
+  historical bytes or evidence.
+- No live environment, Apple credential, tag, release, marketplace, manifest,
+  website, or Cask mutation occurred in this slice implementation.
+- No `development` or `development-*` branch was merged or rebased.
 
 ### s2-protected-trust-native-evidence
 
@@ -93,6 +159,9 @@ Append PR boundary entries here.
   review remediation.
 - Hosted CI run 33331377471 passed all 13 jobs, including both native macOS
   packaged-runtime launches and both Linux acceptance containers.
+- Final-head CI run 33331833526 also passed all 13 required checks.
+- Merged to `main` as `3b0e719af9258e5b7ee8bc9b6b8a7dd908a5bc41`;
+  governed merge verification is event sequence 67.
 - Live Apple trust is intentionally deferred to P9/I-9 because this boundary
   neither receives nor mutates protected secrets.
 - No `development` or `development-*` branch was merged or rebased.

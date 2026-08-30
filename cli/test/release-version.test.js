@@ -6,6 +6,7 @@ import {
   resolveVersionPlan,
 } from '../src/commands/release.js';
 import {
+  compareReleaseTags,
   planReleaseVersion,
   releaseChoices,
   validateDeployedRelease,
@@ -23,6 +24,18 @@ function deployed(sourceTag = 'v0.1.0-rc.1', commit = sourceCommit) {
     sourceCommit: commit,
   };
 }
+
+test('orders candidate tags without numeric precision loss', () => {
+  assert.equal(compareReleaseTags('v0.1.0-rc.2', 'v0.1.0-rc.1'), 1);
+  assert.equal(compareReleaseTags('v0.1.0', 'v0.1.0-rc.999'), 1);
+  assert.equal(compareReleaseTags('v0.2.0-rc.1', 'v0.1.999999999999999999999'), 1);
+  assert.equal(
+    compareReleaseTags('v9007199254740993.0.0-rc.1', 'v9007199254740992.999.999'),
+    1,
+  );
+  assert.equal(compareReleaseTags('v1.0.0-rc.1', 'v1.0.0-rc.1'), 0);
+  assert.equal(compareReleaseTags('v1.0.0-rc.1', 'v1.0.0'), -1);
+});
 
 test('plans next RC, promotion, and release-line bumps from an RC', () => {
   const baseline = deployed();

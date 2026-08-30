@@ -1,0 +1,174 @@
+name: Linked Homebrew Cask Publication
+
+on:
+  workflow_dispatch:
+    inputs:
+      cask_finalization_run_id:
+        description: Finalization run containing the exact linked Cask packet
+        required: true
+        type: string
+      tag:
+        description: Exact published GateReeve tag
+        required: true
+        type: string
+      source_commit:
+        description: Exact reviewed main commit bound by the Cask packet
+        required: true
+        type: string
+      plan_sha256:
+        description: Exact separately reviewed Cask plan SHA-256
+        required: true
+        type: string
+      mode:
+        description: Nonmutating rehearsal or separately approved Cask publication
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - publish
+      approved_by:
+        description: Human Cask approver identity; required only for publication
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: gatereeve-cask-publication-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  protected-cask-rehearsal:
+    if: ${{ inputs.mode == 'dry-run' }}
+    runs-on: ubuntu-24.04
+    environment:
+      name: release-publication
+      deployment: false
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - name: Bind the Cask packet to exact read-only finalization
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CASK_FINALIZATION_RUN_ID: ${{ inputs.cask_finalization_run_id }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          APPROVED_BY: ${{ inputs.approved_by }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$APPROVED_BY" || { echo "Cask dry run must not carry approval" >&2; exit 1; }
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CASK_FINALIZATION_RUN_ID" > "$RUNNER_TEMP/cask-finalization-run.json"
+          node -e '
+            const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+            if (run.event !== "workflow_dispatch"
+              || run.conclusion !== "success"
+              || run.head_sha !== process.env.SOURCE_COMMIT
+              || !/homebrew-cask-finalize\.yml$/u.test(run.path)) {
+              throw new Error("Cask packet is not from the exact approved finalization workflow");
+            }
+          ' "$RUNNER_TEMP/cask-finalization-run.json"
+      - uses: actions/download-artifact@v4
+        with:
+          name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask
+          path: ${{ runner.temp }}/homebrew-cask
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.cask_finalization_run_id }}
+      - name: Preflight the exact Cask plan without mutation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLAN_SHA256: ${{ inputs.plan_sha256 }}
+        run: |
+          node cli/bin/workflow.js plugin release publish-cask-hosted \
+            --cask-record "$RUNNER_TEMP/homebrew-cask/cask-record.json" \
+            --plan-sha256 "$PLAN_SHA256" \
+            --dry-run \
+            --json
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask-rehearsal
+          path: ${{ runner.temp }}/homebrew-cask
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-exact-cask-plan:
+    if: ${{ inputs.mode == 'publish' }}
+    runs-on: ubuntu-24.04
+    environment:
+      name: release-publication
+      deployment: false
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - name: Bind the Cask packet to exact read-only finalization
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CASK_FINALIZATION_RUN_ID: ${{ inputs.cask_finalization_run_id }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          APPROVED_BY: ${{ inputs.approved_by }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$APPROVED_BY" || { echo "Cask publication requires approved_by" >&2; exit 1; }
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CASK_FINALIZATION_RUN_ID" > "$RUNNER_TEMP/cask-finalization-run.json"
+          node -e '
+            const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+            if (run.event !== "workflow_dispatch"
+              || run.conclusion !== "success"
+              || run.head_sha !== process.env.SOURCE_COMMIT
+              || !/homebrew-cask-finalize\.yml$/u.test(run.path)) {
+              throw new Error("Cask packet is not from the exact approved finalization workflow");
+            }
+          ' "$RUNNER_TEMP/cask-finalization-run.json"
+      - uses: actions/download-artifact@v4
+        with:
+          name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask
+          path: ${{ runner.temp }}/homebrew-cask
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.cask_finalization_run_id }}
+      - name: Publish only the separately approved exact Cask plan
+        env:
+          GH_TOKEN: ${{ secrets.GATEREEVE_PUBLICATION_TOKEN }}
+          PLAN_SHA256: ${{ inputs.plan_sha256 }}
+          APPROVED_BY: ${{ inputs.approved_by }}
+        run: |
+          node cli/bin/workflow.js plugin release publish-cask-hosted \
+            --cask-record "$RUNNER_TEMP/homebrew-cask/cask-record.json" \
+            --plan-sha256 "$PLAN_SHA256" \
+            --approved-by "$APPROVED_BY" \
+            --confirm \
+            --json
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask-result
+          path: ${{ runner.temp }}/homebrew-cask
+          if-no-files-found: error
+          retention-days: 30

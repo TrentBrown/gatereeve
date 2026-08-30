@@ -140,3 +140,47 @@ error was previously converted into `rosettaTranslated: false`.
 - Use `hw.optional.arm64` as a fallback - rejected after hosted evidence because
   the key is also absent on the Intel runner and is unnecessary when the
   primary API's documented missing-key semantics are preserved.
+
+## [6] Retain repository-local publishers behind a schema-v2 hosted authority
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** schema-v2 finalization, hosted publication workflows, receipt recovery, Cask linkage, CLI compatibility, and migration documentation
+
+Keep the existing repository-local GitHub, Plugin, manifest, website, and Homebrew transport adapters as the implementation of deterministic convergence. Add a schema-v2 finalization and receipt layer as the only new-release authority, and invoke the adapters only from protected hosted release-publication jobs that consume retained exact packets and sealed plan digests. Do not persist or mutate a newly synthesized schema-v1 release record; schema v1 remains historical/read-only. The local commands remain inspection and exact-record recovery surfaces, not an alternate authority for changing plans or trusted bytes.
+
+**Triggered by:** P5-P7 audit found deterministic local primary and Cask engines but no hosted publication workflow and no schema-v2 finalization or linked Cask record
+
+**Alternatives considered:**
+Copy PortReeve's publication engine - rejected because GateReeve already has product-specific Plugin/Desktop/Cask adapters; keep local CLI publication as production authority - rejected because it bypasses hosted environment approval and custody; replace all existing adapters - rejected because their dry-run, exact-remote preflight, PR transport, and idempotent receipt behavior already satisfy the desired semantics; create a shared runtime package - rejected until both repository-local paths stabilize.
+
+## [7] Advance the immutable public-Cask smoke fixture with public history
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** native Homebrew smoke CI, immutable public release fixtures,
+and future Cask-maintenance procedure
+
+Pin public-Cask smoke to the newest immutable Cask actually present in the
+public tap, currently `v0.1.0-rc.2` from coordinated preparation run
+`33234514595`. Keep the older RC.1 release and evidence immutable; do not
+rewrite it. When an approved Cask publication advances the tap, advance this
+explicit smoke fixture to the matching retained release packet in repository
+history. Also trigger the smoke workflow when the schema-v2 Cask implementation
+changes.
+
+**Triggered by:** PR #34 hosted run 33333176807 proved both native local-tap
+install/upgrade paths, but both public-tap jobs correctly rejected the stale
+RC.1 expectation after the tap advanced to RC.2.
+
+**Alternatives considered:**
+- Accept any public Cask bytes - rejected because it would discard exact-byte
+  authority.
+- Rewrite or remove the RC.1 fixture - rejected because published history is
+  immutable and remains useful historical evidence.
+- Discover an unpinned latest release at runtime - rejected because the smoke
+  must bind an explicit retained packet and cannot silently change authority.

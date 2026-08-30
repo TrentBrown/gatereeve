@@ -3,9 +3,38 @@ import { createHash } from 'node:crypto';
 import test from 'node:test';
 
 import {
+  assertMarketplacePublicationOrder,
   readBoundedText,
   waitForEarlyAccessManifest,
 } from '../src/plugin/coordinated-publication.js';
+
+function deployed(tag) {
+  return {
+    schemaVersion: 1,
+    plugin: 'agentic-development-workflow',
+    marketplace: 'quality-code',
+    version: tag.slice(1),
+    sourceTag: tag,
+    sourceCommit: '1'.repeat(40),
+  };
+}
+
+test('refuses to force the marketplace over an equal or newer deployment', () => {
+  assert.doesNotThrow(() => assertMarketplacePublicationOrder({
+    tag: 'v1.0.0-rc.2',
+    verification: { complete: false, release: deployed('v1.0.0-rc.1') },
+  }));
+  for (const existing of ['v1.0.0-rc.2', 'v1.0.0', 'v2.0.0-rc.1']) {
+    assert.throws(() => assertMarketplacePublicationOrder({
+      tag: 'v1.0.0-rc.2',
+      verification: { complete: false, release: deployed(existing) },
+    }), /is not newer than deployed/u);
+  }
+  assert.doesNotThrow(() => assertMarketplacePublicationOrder({
+    tag: 'v1.0.0-rc.2',
+    verification: { complete: true, release: deployed('v1.0.0-rc.2') },
+  }));
+});
 
 test('waits for the exact production manifest without query or credential leakage', async () => {
   const expected = '{"release":"0.1.0-rc.1"}\n';

@@ -22,6 +22,7 @@ import {
   verifyMarketplaceRelease,
   watchRelease,
 } from './release-operations.js';
+import { compareReleaseTags, validateDeployedRelease } from './release-version.js';
 
 const RELEASES_URL = 'https://github.com/TrentBrown/gatereeve/releases';
 const MANIFEST_PATH = 'workflow-site/releases/desktop.json';
@@ -120,24 +121,48 @@ function createTagAdapter({ request, repository }) {
   };
 }
 
-function createPluginAdapter({ repositoryRoot, runner }) {
+export function assertMarketplacePublicationOrder({ tag, verification }) {
+  if (verification.complete || verification.release === null) return verification;
+  const deployed = validateDeployedRelease(verification.release);
+  if (compareReleaseTags(tag, deployed.tag) <= 0) {
+    throw new Error(`Plugin publication ${tag} is not newer than deployed ${deployed.tag}`);
+  }
+  return verification;
+}
+
+function createPluginAdapter({ repositoryRoot, workspaceRoot, runner, marketplacePublishUrl }) {
+  async function inspect(record) {
+    const verification = await verifyMarketplaceRelease({
+      repositoryRoot,
+      tag: record.source.tag,
+      runner,
+    });
+    return assertMarketplacePublicationOrder({ tag: record.source.tag, verification });
+  }
   return {
-    async preflight() {},
+    async preflight(record) {
+      await inspect(record);
+    },
     async converge({ record }) {
-      let verification = await verifyMarketplaceRelease({
-        repositoryRoot,
-        tag: record.source.tag,
-        runner,
-      });
+      let verification = await inspect(record);
       if (!verification.complete) {
-        await watchRelease({
-          repositoryRoot,
-          tag: record.source.tag,
-          runner,
-          json: true,
-          attempts: 30,
-          delayMs: 2_000,
-        });
+        if (marketplacePublishUrl) {
+          runCommand(runner, 'bash', [
+            'ci/publish-marketplace.sh',
+            resolve(workspaceRoot, record.candidates.plugin.artifact.path),
+            marketplacePublishUrl,
+            record.source.tag,
+          ], repositoryRoot);
+        } else {
+          await watchRelease({
+            repositoryRoot,
+            tag: record.source.tag,
+            runner,
+            json: true,
+            attempts: 30,
+            delayMs: 2_000,
+          });
+        }
         verification = await verifyMarketplaceRelease({
           repositoryRoot,
           tag: record.source.tag,
@@ -342,6 +367,52 @@ export async function waitForEarlyAccessManifest({
   throw new Error(`Early Access website did not serve ${tag} in time`);
 }
 
+export function createCoordinatedPublicationAdapters({
+  record,
+  repositoryRoot,
+  workspaceRoot,
+  planSha256,
+  request = requestGitHubApi,
+  runner = defaultCommandRunner,
+  fetchFn = globalThis.fetch,
+  sleep = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
+  websiteAttempts = 60,
+  websiteIntervalMilliseconds = 5_000,
+  marketplacePublishUrl = process.env.GATEREEVE_MARKETPLACE_PUBLISH_URL,
+}) {
+  assertCoordinatedReleaseV1(record);
+  const repository = repositoryName(record.source.repository);
+  return {
+    tag: createTagAdapter({ request, repository }),
+    pluginMarketplace: createPluginAdapter({
+      repositoryRoot,
+      workspaceRoot,
+      runner,
+      marketplacePublishUrl,
+    }),
+    desktopPrerelease: createDesktopAdapter({
+      request,
+      runner,
+      repository,
+      repositoryRoot,
+      workspaceRoot,
+    }),
+    updateManifest: createManifestAdapter({
+      request,
+      repository,
+      workspaceRoot,
+      planSha256,
+    }),
+    earlyAccessWebsite: createWebsiteAdapter({
+      fetchFn,
+      sleep,
+      attempts: websiteAttempts,
+      intervalMilliseconds: websiteIntervalMilliseconds,
+      workspaceRoot,
+    }),
+  };
+}
+
 export async function publishCoordinatedRelease({
   recordPath,
   repositoryRoot,
@@ -359,7 +430,6 @@ export async function publishCoordinatedRelease({
 }) {
   let record = await verifyCoordinatedReleaseWorkspace(recordPath);
   const workspaceRoot = dirname(resolve(recordPath));
-  const repository = repositoryName(record.source.repository);
   const exactPlanSha256 = publicationPlanSha256(record);
   if (approvedPlanSha256 !== exactPlanSha256) {
     throw new Error(`Publication plan digest differs; expected ${exactPlanSha256}`);
@@ -367,30 +437,18 @@ export async function publishCoordinatedRelease({
   if (record.publication.outputs.updateManifest === null) {
     throw new Error('Public publication requires an immutable trusted update manifest output');
   }
-  const adapters = {
-    tag: createTagAdapter({ request, repository }),
-    pluginMarketplace: createPluginAdapter({ repositoryRoot, runner }),
-    desktopPrerelease: createDesktopAdapter({
-      request,
-      runner,
-      repository,
-      repositoryRoot,
-      workspaceRoot,
-    }),
-    updateManifest: createManifestAdapter({
-      request,
-      repository,
-      workspaceRoot,
-      planSha256: exactPlanSha256,
-    }),
-    earlyAccessWebsite: createWebsiteAdapter({
-      fetchFn,
-      sleep,
-      attempts: websiteAttempts,
-      intervalMilliseconds: websiteIntervalMilliseconds,
-      workspaceRoot,
-    }),
-  };
+  const adapters = createCoordinatedPublicationAdapters({
+    record,
+    repositoryRoot,
+    workspaceRoot,
+    planSha256: exactPlanSha256,
+    request,
+    runner,
+    fetchFn,
+    sleep,
+    websiteAttempts,
+    websiteIntervalMilliseconds,
+  });
   for (const surface of record.publication.order) {
     await adapters[surface].preflight(record);
   }

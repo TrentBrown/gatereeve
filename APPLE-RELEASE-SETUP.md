@@ -157,7 +157,9 @@ access to credentials already stored in GitHub; it does not require the
 maintainer to provide the `.p12`, password, or `.p8` again for each release.
 
 Keep `release-publication` separate. It contains only public-distribution
-authority and must not contain any Apple private credential material.
+authority and must not contain any Apple private credential material. Its
+protected reviewer and `main` policy may match `release-trust`, but approval of
+one environment never grants authority in the other.
 
 Set these non-secret environment variables:
 
@@ -213,6 +215,48 @@ gh variable list --repo TrentBrown/gatereeve --env release-trust
 gh secret list --repo TrentBrown/gatereeve --env release-trust
 ```
 
+Configure `release-publication` with no Apple identity variables and exactly
+one secret, `GATEREEVE_PUBLICATION_TOKEN`, when the linked Cask publisher needs
+cross-repository write access to `TrentBrown/homebrew-gatereeve`. Use a
+fine-grained token limited to the GateReeve tap's contents and pull requests;
+do not grant Apple, package-build, organization-administration, or unrelated
+repository access. The primary publisher uses its scoped workflow token. The
+protected primary and Cask rehearsals receive neither the publication token nor
+any Apple secret.
+
+Set the publication token once through a secure prompt. It remains stored in
+the GitHub environment and is not re-entered for each release:
+
+```bash
+gh secret set GATEREEVE_PUBLICATION_TOKEN \
+  --repo TrentBrown/gatereeve \
+  --env release-publication
+```
+
+Audit names and protection metadata only:
+
+```bash
+gh variable list --repo TrentBrown/gatereeve --env release-publication
+gh secret list --repo TrentBrown/gatereeve --env release-publication
+gh api repos/TrentBrown/gatereeve/environments/release-trust
+gh api repos/TrentBrown/gatereeve/environments/release-publication
+```
+
+The intended name-only inventory is:
+
+| Environment | Variables | Secrets |
+|---|---|---|
+| `release-trust` | `GATEREEVE_APPLE_TEAM_ID`, `GATEREEVE_DEVELOPER_IDENTITY`, `GATEREEVE_NOTARY_KEY_ID`, `GATEREEVE_NOTARY_ISSUER_ID` | `GATEREEVE_DEVELOPER_ID_P12_BASE64`, `GATEREEVE_DEVELOPER_ID_P12_PASSWORD`, `GATEREEVE_NOTARY_KEY_P8_BASE64` |
+| `release-publication` | none required | `GATEREEVE_PUBLICATION_TOKEN` |
+
+For migration from the historical combined environment, first populate and
+validate `release-trust`, complete a protected nonpublishing trust run, and
+confirm all retained evidence. Only then remove the three Apple secrets and
+four Apple variables from `release-publication`. Never copy their values to
+Playpen, a local handoff, logs, or artifacts. If the trust validation fails,
+leave the old environment untouched, correct `release-trust`, and repeat with
+a fresh RC if Apple-bound bytes or request history already exists.
+
 ## 6. Run a nonpublishing protected rehearsal
 
 After this workflow code is merged to `main`, choose a fresh RC identity and
@@ -261,6 +305,14 @@ validated staple, accepted Gatekeeper assessments, exactly one ARM and Intel
 document, and the final DMG SHA-256. The workflow has only
 `contents: read`; it cannot create a tag, release, marketplace update, manifest,
 website change, or Cask.
+
+Finalization and the hosted publication dry run are the remaining
+nonpublishing acceptance steps. Finalization has read-only repository access
+and no protected environment. The dry-run job enters `release-publication` but
+has read-only permissions and receives no publication secret. Capture public
+state before and after the dry run and prove that the tag, GitHub release,
+marketplace head, manifest, website response, and Cask did not change. See
+`RELEASING.md` for exact dispatch inputs.
 
 Do not use GitHub's generic **Re-run jobs** after protected production begins.
 For a timeout or recoverable interruption, dispatch the bounded recovery

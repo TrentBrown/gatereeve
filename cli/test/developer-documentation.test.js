@@ -60,7 +60,7 @@ test('developer guide covers the complete canonical-to-PR lifecycle', async () =
   }
 });
 
-test('release runbook preserves the guarded RC-to-stable lifecycle', async () => {
+test('release runbook preserves hosted coordinated release and legacy stable guidance', async () => {
   const guide = await document('RELEASING.md');
   const oneLine = normalized(guide);
 
@@ -90,10 +90,13 @@ test('release runbook preserves the guarded RC-to-stable lifecycle', async () =>
     'npm start --prefix cli -- plugin release publish --next-rc',
     'npm start --prefix cli -- plugin release publish --promote --dry-run',
     'npm start --prefix cli -- plugin release publish --promote',
-    'npm start --prefix cli -- plugin release publish-coordinated',
-    'npm start --prefix cli -- plugin release prepare-cask',
-    'npm start --prefix cli -- plugin release inspect-cask',
-    'npm start --prefix cli -- plugin release publish-cask',
+    'gh workflow run coordinated-release-prepare.yml',
+    'gh workflow run coordinated-release-finalize.yml',
+    'gh workflow run coordinated-release-publish.yml',
+    'npm start --prefix cli -- plugin release inspect-hosted',
+    'gh workflow run homebrew-cask-finalize.yml',
+    'gh workflow run homebrew-cask-publish.yml',
+    'plugin release inspect-cask-hosted',
   ]) {
     assert.ok(oneLine.includes(command), `RELEASING.md must document: ${command}`);
   }
@@ -101,7 +104,9 @@ test('release runbook preserves the guarded RC-to-stable lifecycle', async () =>
   assert.match(guide, /candidateSourceCommit/);
   assert.match(guide, /exact deployed RC commit/);
   assert.match(guide, /PLAN_SHA256_FROM_INSPECTION/u);
-  assert.match(guide, /never writes directly to `main`/u);
+  assert.match(guide, /read-only permissions, receives no publication\nsecret/u);
+  assert.match(guide, /Primary publication may remain complete while Cask is pending/u);
+  assert.match(guide, /schema-v1 compatibility path/u);
   assert.match(guide, /Do not create release tags manually/);
   assert.ok(oneLine.includes('not the routine human release interface'));
 });
@@ -125,9 +130,12 @@ test('Apple release setup is actionable, protected, and team-key only', async ()
     'GATEREEVE_NOTARY_KEY_P8_BASE64',
     'coordinated-release-trust-recover.yml',
     'does **not** approve publication',
+    'GATEREEVE_PUBLICATION_TOKEN',
+    'not re-entered for each release',
   ]) {
     assert.ok(guide.includes(phrase), `Apple setup guide must include: ${phrase}`);
   }
+  assert.match(guide, /public\s+state before and after/u);
   assert.match(releaseGuide, /APPLE-RELEASE-SETUP\.md/u);
 });
 
