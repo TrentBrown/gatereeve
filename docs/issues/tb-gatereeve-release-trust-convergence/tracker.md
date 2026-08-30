@@ -37,7 +37,12 @@ Append PR boundary entries here.
 - `v0.1.0-rc.3` is absent as both tag and release and is the proposed fresh
   acceptance identity.
 - Initial public identities are retained in [`live-acceptance.md`](live-acceptance.md).
-- No live environment or public surface has been mutated by this preflight.
+- After explicit user authorization, `release-trust` was created with required
+  reviewer `TrentBrown`, self-review permitted, custom `main` deployment
+  policy, and the four audited non-secret Apple identity variables. Its three
+  Apple secrets remain pending direct user population.
+- No secret value was inspected or transported and no public surface has been
+  mutated.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 

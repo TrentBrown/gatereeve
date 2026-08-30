@@ -2,7 +2,7 @@
 
 **Feature:** `tb-gatereeve-release-trust-convergence`
 **Slice:** `s4-mainline-acceptance`
-**Status:** awaiting authorized environment cutover
+**Status:** awaiting user secret population
 
 ## Reviewed mainline
 
@@ -32,6 +32,25 @@ The historical `release-publication` inventory contains no publication token.
 That token is not needed for the required primary dry run, but must be stored
 once before a future real linked-Cask publication.
 
+## Authorized cutover progress
+
+The user explicitly authorized creation and non-secret configuration of the
+new trust environment on 2026-08-30.
+
+| Check | Result |
+|---|---|
+| `release-trust` created | PASS |
+| Required reviewer | PASS: `TrentBrown` |
+| Self-review for the single maintainer | PASS: permitted |
+| Deployment policy | PASS: custom branch `main` only |
+| Four Apple identity variables copied | PASS: names and timestamps verified |
+| Three Apple credential secrets populated | PENDING USER ACTION |
+
+The historical Apple entries remain intact in `release-publication` as the
+rollback path until the protected rehearsal succeeds. This bounded overlap is
+not the final accepted custody state. No secret value was read, printed,
+transported through Playpen, or written to the repository.
+
 ## Initial public inventory
 
 | Surface | Initial identity |
@@ -60,9 +79,10 @@ SHA-256 `ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f`.
 ## Required live sequence
 
 1. Create `release-trust` with Trent Brown as required reviewer, self-review
-   permitted, and a custom `main` deployment policy.
+   permitted, and a custom `main` deployment policy. **Complete.**
 2. Copy the four non-secret Apple identity variables from the historical
-   environment by name and securely populate the three Apple secrets once.
+   environment by name. **Complete.** Securely populate the three Apple
+   secrets once. **Pending user action.**
    Secret values must never transit Playpen, logs, artifacts, or this record.
 3. Audit names and protection metadata, then dispatch `v0.1.0-rc.3` from the
    exact current reviewed `main`.
