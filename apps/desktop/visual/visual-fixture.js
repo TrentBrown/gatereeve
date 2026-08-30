@@ -130,6 +130,29 @@ const snapshot = {
   events: { count: 72, lastEventId: events.at(-1).eventId, recent: events },
 };
 
+const fixtureScenario = new URLSearchParams(window.location.search).get('scenario') ?? 'source-activity';
+const fixtureScenarios = {
+  'source-activity': () => {},
+  'governance': () => {
+    snapshot.warnings = [
+      { type: 'journal-uncommitted', severity: 'warning' },
+      { type: 'model-uncommitted', severity: 'warning' },
+    ];
+  },
+  'suspended': () => { snapshot.projection.suspension.paused = true; },
+  'inconsistent': () => { snapshot.mode = 'inconsistent'; },
+  'incompatible': () => { snapshot.mode = 'incompatible'; },
+  'runtime': () => {},
+  'no-actions': () => { snapshot.actions = []; },
+  'gate-blocked': () => {
+    const verification = attempt.gates.find((gate) => gate.id === 'verification');
+    verification.outcome = 'FAIL';
+    verification.reason = 'The verification evidence is not current for this boundary.';
+    verification.blockers = [{ message: 'Refresh verification before requesting review.' }];
+  },
+};
+fixtureScenarios[fixtureScenario]?.();
+
 const state = {
   schemaVersion: 1,
   phase: 'ready',
@@ -140,7 +163,7 @@ const state = {
     featureHome: '/home/trent/code/tb/gatereeve-desktop/docs/issues/gatereeve-desktop',
   },
   snapshot,
-  error: null,
+  error: fixtureScenario === 'runtime' ? { message: 'The canonical observer failed to refresh.' } : null,
   projects: [{
     path: '/home/trent/code/tb/gatereeve-desktop',
     name: 'gatereeve-desktop',

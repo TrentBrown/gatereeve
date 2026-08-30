@@ -75,7 +75,7 @@ button:disabled { opacity: 0.5; cursor: default; }
   background: linear-gradient(115deg, var(--purple-950), var(--purple-700) 68%, #7857bd);
   box-shadow: 0 2px 18px rgb(39 22 61 / 25%);
 }
-.brand, .masthead-actions, .page-heading, .surface-heading, .headline-facts {
+.brand, .masthead-actions, .page-heading, .surface-heading {
   display: flex;
   align-items: center;
 }
@@ -222,17 +222,6 @@ main { min-height: calc(100vh - var(--masthead-height)); }
 }
 .page-heading { justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
 .page-heading h2 { margin: 0; font-size: clamp(1.65rem, 2.4vw, 2.3rem); }
-.headline-facts { flex-wrap: wrap; justify-content: flex-end; gap: 0.6rem; }
-.headline-facts span {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 0.42rem 0.68rem;
-  color: var(--muted);
-  background: #fff;
-  font-size: 0.75rem;
-}
-.headline-facts strong { color: var(--ink); font-family: ui-monospace, SFMono-Regular, monospace; }
-
 .surface {
   margin-bottom: 1rem;
   padding: 1rem;
@@ -259,6 +248,8 @@ main { min-height: calc(100vh - var(--masthead-height)); }
 .notice.danger { border-color: var(--red); color: #742237; background: var(--red-bg); }
 .notice.info { border-color: var(--blue); color: #264a80; background: var(--blue-bg); }
 .notice.success { border-color: var(--green); color: #1f6148; background: var(--green-bg); }
+.notice > strong { display: block; }
+.notice > ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
 
 .setup-shell { max-width: 1240px; margin: 0 auto; }
 .workspace > .setup-shell { grid-column: 2; }
@@ -366,11 +357,18 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
 .gate-card strong, .gate-card small { display: block; }
 .gate-card small { margin-top: 0.3rem; color: var(--muted); }
 .dependencies { display: block; margin-top: 0.35rem; color: var(--muted); font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.62rem; }
+.object-condition { display: block; margin-top: 0.45rem; border-left: 3px solid var(--amber); padding-left: 0.45rem; color: #76470f; font-size: 0.68rem; line-height: 1.4; }
 
 .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.7rem; }
-.action-card { display: grid; gap: 0.6rem; padding: 0.8rem; }
+.action-card { padding: 0; }
+.action-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.7rem; padding: 0.8rem; cursor: pointer; }
+.action-summary > span:first-child { min-width: 0; }
+.action-summary strong { display: block; }
+.action-detail { display: grid; gap: 0.6rem; padding: 0 0.8rem 0.8rem; border-top: 1px solid var(--line); }
+.action-detail > p { padding-top: 0.7rem; }
 .action-card p { margin: 0; color: var(--muted); font-size: 0.76rem; line-height: 1.45; }
 .action-meta { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.action-reasons, .action-inputs { margin: -0.2rem 0 0; padding-left: 1.2rem; color: var(--muted); font-size: 0.74rem; line-height: 1.45; }
 .command { margin: 0; padding: 0.55rem; overflow: auto; border-radius: 0.4rem; color: #f3edf8; background: var(--purple-950); font-size: 0.67rem; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .count { color: var(--muted); font-size: 0.78rem; }
@@ -504,8 +502,10 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
 .workspace-content > .page { max-width: none; }
 .workspace-content > .panel { margin: 8vh auto; }
 .project-context { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.76rem; }
-.source-context { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 0 0 1rem; }
-.source-context .source { flex: 1 1 180px; margin: 0; padding: 0.58rem 0.65rem 0.58rem 1.7rem; border: 1px solid var(--line); border-radius: 0.55rem; background: rgb(255 255 255 / 80%); }
+.project-sources { margin-top: 0.45rem; color: var(--muted); font-size: 0.7rem; }
+.project-sources > summary { width: max-content; cursor: pointer; font-weight: 750; }
+.source-context { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.45rem; }
+.source-context .source { flex: 1 1 180px; margin: 0; padding: 0.48rem 0.55rem 0.48rem 1.55rem; border: 1px solid var(--line); border-radius: 0.5rem; background: rgb(255 255 255 / 55%); font-size: 0.68rem; }
 .source-context .source::before { top: 0.88rem; left: 0.72rem; }
 .setup-notifications { margin: 1rem 0; padding-top: 0.85rem; border-top: 1px solid var(--line); }
 

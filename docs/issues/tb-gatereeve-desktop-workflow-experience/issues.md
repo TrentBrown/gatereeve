@@ -84,7 +84,7 @@ ordering markers.
 
 ## I-7 - Consolidate alerts and current workflow guidance
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 1d
 - **Plan steps:** P7
 - **Rubric criteria:** R7, R8

@@ -40,14 +40,17 @@ test('status regions and principal views expose semantic text independent of col
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const { document } = parseHTML(html).window;
   assert.equal(document.querySelector('#chooser-error').getAttribute('role'), 'alert');
-  assert.equal(document.querySelector('#error').getAttribute('role'), 'alert');
-  assert.equal(document.querySelector('#diagnostic').getAttribute('role'), 'status');
+  assert.equal(document.querySelector('#global-alerts').getAttribute('role'), 'alert');
+  assert.equal(document.querySelector('#error'), null);
+  assert.equal(document.querySelector('#diagnostic'), null);
   assert.equal(document.querySelector('#toast').getAttribute('aria-live'), 'polite');
   for (const page of document.querySelectorAll('[data-page]')) {
     const labelledBy = page.getAttribute('aria-labelledby');
     assert.ok(labelledBy && document.getElementById(labelledBy), 'each principal view has a visible heading');
   }
-  assert.match(document.querySelector('#attention-title').textContent, /Blockers and warnings/);
+  assert.equal(document.querySelector('#attention-title'), null);
+  assert.match(document.querySelector('#actions-title').textContent, /Current workflow guidance/);
+  assert.match(document.querySelector('.project-sources > summary').textContent, /Sources/);
   assert.match(document.querySelector('#state-title').textContent, /Feature state rail/);
 });
 
