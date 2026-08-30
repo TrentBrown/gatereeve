@@ -9,14 +9,14 @@
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1, P3, P7, and reviewed P8 assembly complete; protected P9 evidence remains |
-| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1-P4, finalization/version-burn operations, and reviewed P8 assembly complete; protected P9 evidence remains |
-| R3 | Credential custody | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Disjoint workflow authority and migration contract implemented through P7; live cutover remains P9 |
-| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Durable bounded recovery, operator prohibition/migration contract, and reviewed P8 assembly complete; live request evidence remains P9 |
-| R5 | Native verification | NOT YET | - | Repository and hosted preflight evidence plus P8 assembly complete; fresh protected native evidence remains P9 |
+| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 produced a valid nine-stage schema-v2 trust lifecycle; corrected protected rehearsal and final P9 evaluation remain |
+| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 binds exact reviewed main, submitted/final DMG hashes, and immutable Apple request history; corrected rehearsal and finalization remain |
+| R3 | Credential custody | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Secret placement succeeded, but `deployment: false` suppressed the required-reviewer gate; fresh correction slice blocks acceptance |
+| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 retained accepted request `faa0580d-941c-4df3-90b8-38570ff52ac4` and bounded history; final corrected rehearsal remains |
+| R5 | Native verification | NOT YET | - | RC.3 passed exact-DMG native ARM64 and x64 verification without Rosetta; final corrected rehearsal remains |
 | R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Exact schema-v2 seal, read-only rehearsal, hosted approval, receipts, retry, and reviewed P8 assembly complete; live dry-run evidence remains P9 |
 | R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, idempotent receipt, and P8 assembly complete; final P9 conformance remains |
-| R8 | Conformance and acceptance | NOT YET | - | Shared fixtures and reviewed P8 assembly complete; environment cutover and protected zero-mutation rehearsal remain P9 |
+| R8 | Conformance and acceptance | NOT YET | - | RC.3 trust/native evidence and zero preparation mutation passed; missing reviewer enforcement blocks the full protected rehearsal |
 
 ## PR Log
 
@@ -39,10 +39,21 @@ Append PR boundary entries here.
 - Initial public identities are retained in [`live-acceptance.md`](live-acceptance.md).
 - After explicit user authorization, `release-trust` was created with required
   reviewer `TrentBrown`, self-review permitted, custom `main` deployment
-  policy, and the four audited non-secret Apple identity variables. Its three
-  Apple secrets remain pending direct user population.
+  policy, and the four audited non-secret Apple identity variables. The user
+  then populated its three Apple secrets directly in GitHub.
 - No secret value was inspected or transported and no public surface has been
   mutated.
+- The user populated all three `release-trust` secrets directly in GitHub;
+  only their names and update timestamps were inspected.
+- Protected preparation run
+  [33340560850](https://github.com/TrentBrown/gatereeve/actions/runs/33340560850)
+  passed signing, notarization, stapling, Gatekeeper, native ARM64/Intel, and
+  lifecycle assembly for immutable RC.3.
+- The run exposed a blocking live defect: `deployment: false` suppressed both
+  the environment deployment record and required-reviewer wait. RC.3 remains
+  valid trust evidence but cannot satisfy the approval-boundary criterion.
+- Finalization, publication dry-run, and credential deletion are paused until
+  a fresh reviewed correction slice and fresh candidate prove the boundary.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 
