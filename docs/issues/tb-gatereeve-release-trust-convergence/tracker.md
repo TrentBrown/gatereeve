@@ -35,6 +35,16 @@ Append PR boundary entries here.
 - **Independent judgment:** PASS WITH CONCERNS. No blocking defect; protected
   hosted Apple rehearsal and environment/publication boundaries remain
   intentionally assigned to later slices.
+- **Review:** Approved by the user; governed review acceptance recorded at
+  event sequence 30.
+- **Merge:** `a01361aaf3c5779129e49972a33539c5984d0da0` on `main`; exact reviewed
+  content verified by ancestry.
+- **Hosted checks:** All 15 candidate/build/runtime/native checks passed. The
+  two public-Cask baseline checks failed because the currently downloaded
+  public bytes do not match the historical RC.1 Cask record SHA-256
+  `963fb25d3b800aa1be596a0f57766d276499fecc1527b9958bc20a5f613febb2`.
+  Candidate Cask install/upgrade passed on both architectures; linked public
+  Cask reconciliation remains in planned P6/I-6 scope.
 
 ## Slice Evidence
 
