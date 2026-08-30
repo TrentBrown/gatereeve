@@ -2,7 +2,7 @@
 
 **Verdict:** PASS
 
-**Pinned diff:** `a01361aaf3c5779129e49972a33539c5984d0da0..dcabb44f49c251ae3126c072200a4b9163ed8a8a`
+**Pinned diff:** `a01361aaf3c5779129e49972a33539c5984d0da0..92f609b5eb410df9a51f9896018f256cd14b5dcd`
 
 ## Verification Matrix
 
@@ -12,7 +12,7 @@
 | Lint/format | PASS | `git diff --check` and `npx --yes yaml-lint` for both changed workflows passed. The repository defines no ESLint or formatter command for these packages. |
 | Unit tests | PASS | Focused Apple trust, DMG verification, history reconciliation, native evidence, lifecycle-v2, workflow contract, and documentation-example suites passed. |
 | Desktop suite | PASS | `npm test` in `apps/desktop` passed 125 tests with 0 failures. |
-| CLI suite | PASS | `npm test` in `cli` passed 148 tests with 0 failures. |
+| CLI suite | PASS | `npm test` in `cli` passed 149 tests with 0 failures. |
 | Integration | PASS | Tests exercise exact submitted/final DMG identities, request-history reconciliation, bounded recovery, source pinning, generic-rerun rejection, native architecture aggregation, Rosetta rejection, lifecycle stage construction, retention, and credential-boundary workflow contracts. |
 | End-to-end/browser | NOT APPLICABLE | This slice changes release automation and evidence contracts; it has no product UI or browser flow. |
 | Live protected Apple run | DEFERRED | This PR boundary has no Apple secrets and does not mutate protected environments. A fresh GitHub-hosted macOS notarization/native rehearsal is explicitly assigned to P9/I-9 after user-authorized environment cutover. |
@@ -34,6 +34,11 @@
   aggregate to exactly one authoritative result per architecture.
 - Schema-v2 trust evidence and lifecycle history are create-once, while the
   published schema-v1 reader remains compatibility-only.
+- Review remediation validates the retained Plugin candidate's self-identifying
+  `RELEASE.json` against the exact tag and source commit before binding its
+  tree, including a same-source/different-RC negative.
+- Native authority accepts Apple's documented absent translation key as native
+  while propagating actual probe errors as indeterminate.
 
 ## Environment Notes
 

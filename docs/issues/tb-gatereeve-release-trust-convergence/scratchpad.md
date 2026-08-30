@@ -76,7 +76,7 @@ bounded recovery, fail-closed ambiguity, and prohibition of generic reruns.
 
 ## [3] Distinguish submitted and final stapled DMG identities
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -91,7 +91,7 @@ Assume stapling preserves the DMG digest - rejected because the contract must no
 
 ## [4] Revalidate Plugin identity at every cross-run recovery boundary
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -116,7 +116,7 @@ same-source Plugin tree from a different RC with the current Apple candidate.
 
 ## [5] Fail closed when native Intel authority cannot be established
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -124,9 +124,10 @@ same-source Plugin tree from a different RC with the current Apple candidate.
 rejection, and protected rehearsal behavior
 
 Native verification accepts `sysctl.proc_translated=0` directly and rejects
-`=1`. If that key is unavailable, verification accepts the host only when
-`hw.optional.arm64=0` positively identifies Intel hardware. Apple Silicon,
-unknown output, or failure of both probes is indeterminate and fails closed.
+`=1`. Apple's documented missing-key result means the process is native; the
+CLI's `-i` form represents that result as successful empty output, which is
+also accepted. Unexpected nonempty output or an actual command failure is
+indeterminate and fails closed.
 
 **Triggered by:** PR #33 independent review found that every translation-probe
 error was previously converted into `rosettaTranslated: false`.
@@ -134,6 +135,8 @@ error was previously converted into `rosettaTranslated: false`.
 **Alternatives considered:**
 - Treat any missing translation key as native - rejected because an
   operational probe failure on Apple Silicon could authorize Rosetta evidence.
-- Reject every missing translation key - rejected because native Intel hosts
-  may not expose `sysctl.proc_translated`; the independent hardware-capability
-  probe distinguishes that valid case.
+- Reject the documented missing-key result - rejected because Apple defines
+  `ENOENT` as a native process and GitHub's Intel runner exhibits that case.
+- Use `hw.optional.arm64` as a fallback - rejected after hosted evidence because
+  the key is also absent on the Intel runner and is unnecessary when the
+  primary API's documented missing-key semantics are preserved.

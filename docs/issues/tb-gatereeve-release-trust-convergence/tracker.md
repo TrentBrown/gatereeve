@@ -51,7 +51,7 @@ Append PR boundary entries here.
 - **PR:** [#33](https://github.com/TrentBrown/gatereeve/pull/33)
 - **Evidence packet:** [packet](pr-33/)
 - **Evaluated source:**
-  `dcabb44f49c251ae3126c072200a4b9163ed8a8a` based on reviewed `main`
+  `92f609b5eb410df9a51f9896018f256cd14b5dcd` based on reviewed `main`
   `a01361aaf3c5779129e49972a33539c5984d0da0`.
 - **Scope:** P3-P4 / I-3-I-4 / R1, R2, R3, R4, R5, R8 foundations.
 - **Summary:** Moves Apple trust production to the protected `release-trust`
@@ -65,7 +65,10 @@ Append PR boundary entries here.
 - **Boundary remediation:** Attempt 1 found and blocked a same-source/
   different-RC Plugin recovery mix and fail-open Rosetta probe errors. The
   lifecycle builder now validates `RELEASE.json`, native Intel authority uses
-  a fail-closed hardware-capability fallback, and both negatives have tests.
+  Apple's documented missing-key semantics while propagating actual probe
+  errors, and both negatives have tests. Attempt 2 hosted CI also found that
+  the acceptance image omitted the new recovery workflow; its Dockerfile now
+  copies that contract for container verification.
 - **Live limitation:** This PR boundary does not possess Apple credentials and
   therefore does not execute a live notarization request or GitHub-hosted
   native runner rehearsal. Those protected, nonpublishing checks remain part
@@ -81,7 +84,7 @@ Append PR boundary entries here.
 - Branch:
   `tb-gatereeve-release-trust-convergence-02-protected-trust-native-evidence`.
 - Draft PR: [#33](https://github.com/TrentBrown/gatereeve/pull/33).
-- Evaluated source: `dcabb44f49c251ae3126c072200a4b9163ed8a8a`.
+- Evaluated source: `92f609b5eb410df9a51f9896018f256cd14b5dcd`.
 - Desktop suite: 125 passed, 0 failed; CLI suite: 149 passed, 0 failed after
   review remediation.
 - Live Apple trust and native-host rehearsal are intentionally deferred to
