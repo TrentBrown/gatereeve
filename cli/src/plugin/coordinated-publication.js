@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 
 import {
   approveCoordinatedPublication,
-  assertCoordinatedRelease,
+  assertCoordinatedReleaseV1,
   convergeCoordinatedPublication,
   publicationPlanSha256,
   verifyCoordinatedReleaseWorkspace,
@@ -407,7 +407,7 @@ export async function publishCoordinatedRelease({
     }, now);
     await writeCoordinatedRelease(recordPath, record);
   } else {
-    assertCoordinatedRelease(record);
+    assertCoordinatedReleaseV1(record);
   }
   const published = await convergeCoordinatedPublication({
     recordPath,
