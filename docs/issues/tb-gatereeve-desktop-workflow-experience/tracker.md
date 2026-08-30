@@ -17,6 +17,7 @@
 | R6 | Unified artifact panel | PASS | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Trusted canonical and virtual tabs deduplicate, close, hide/reopen, reconcile unavailable content, and keep Artifacts inventory-only. |
 | R7 | Alert policy | PASS | [#30](https://github.com/TrentBrown/gatereeve/pull/30), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Exceptional alerts, local object conditions, quiet Sources, Setup preferences, and current-only guidance pass the fixture matrix. |
 | R8 | Accessibility and constrained layout | PASS | [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#29](https://github.com/TrentBrown/gatereeve/pull/29), [#30](https://github.com/TrentBrown/gatereeve/pull/30), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Keyboard/focus behavior, semantic text, reduced motion, 940 x 560 layout, and maximum-width inspector constraint pass. |
+| R9 | Interface polish fidelity | NOT YET | pending | The approved fixture must be promoted into production and verified. |
 
 ## PR Log
 

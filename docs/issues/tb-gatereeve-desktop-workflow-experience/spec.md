@@ -8,8 +8,9 @@
 
 GateReeve Desktop must become a quieter, IDE-like workflow inspector. A saved
 project is the root context; the central workspace progressively discloses
-feature state, slice, PR-boundary attempt, and gate detail; and one docked,
-tabbed right panel presents canonical artifacts and protocol details. Governed
+feature state, slice, PR-boundary attempt, and gate detail; and one docked
+right panel presents the most recently selected canonical artifact or protocol
+detail. Governed
 workflow state remains distinct from observational UI selection throughout.
 
 The application must persist a stable list of explicitly selected, fully
@@ -25,7 +26,8 @@ The global Definition of Done in the software development workflow applies.
 
 - **AC1.** GateReeve presents a collapsible saved-project sidebar, fixed
   non-closable main tabs for Overview, Artifacts, History, Model, and Session,
-  and a collapsible, resizable, tabbed right panel. Setup remains in the
+  and a collapsible, resizable right panel backed by a per-project internal tab
+  collection while presenting only the most recently selected item. Setup remains in the
   masthead. The running version appears unobtrusively beside the GateReeve name
   on the same baseline. The prescribed platform shortcuts and visible layout
   commands toggle both side panels without losing their state.
@@ -63,13 +65,14 @@ The global Definition of Done in the software development workflow applies.
   topology correctly.
 
 - **AC6.** All artifact entry points use one application-level right panel.
-  Canonical documents deduplicate into one tab regardless of their opening
-  context; protocol-detail tabs use their scoped identity. Tabs are closable,
-  hiding the panel preserves them, and reopening an existing artifact activates
-  its tab. Missing or invalidated content becomes explicitly unavailable rather
-  than stale. The Artifacts main view is an inventory without an embedded
-  second viewer, and `completion-report.md` participates in the trusted
-  artifact contract.
+  Canonical documents deduplicate within the internal per-project tab
+  collection regardless of their opening context; protocol details use their
+  scoped identity. The visible tab strip is suppressed, hiding the panel
+  preserves its collection, and reopening an existing artifact activates it as
+  the one visible item. Missing or invalidated content becomes explicitly
+  unavailable rather than stale. The Artifacts main view is an inventory
+  without an embedded second viewer, and `completion-report.md` participates
+  in the trusted artifact contract.
 
 - **AC7.** The Attention card and duplicate heading facts are absent. Only
   exceptional workflow-wide conditions appear in the consolidated
@@ -85,6 +88,17 @@ The global Definition of Done in the software development workflow applies.
   color alone. Motion respects reduced-motion preferences, and the three-region
   layout remains usable at the minimum supported window size.
 
+- **AC9.** The approved interface-polish fixture is implemented in the actual
+  Electron renderer. State, slice, and gate selection use consistent,
+  layout-stable card semantics; the state rail uses sentence capitalization
+  and presents `DELIVERING_SLICES` as `Implementing`; and the boundary renders
+  its serial/parallel topology as an explicit seven-stage graph. Redundant
+  subtitles, pills, empty messages, dependency prose, and model link are
+  absent. The inspector shows the most recently selected item in a compact
+  rendered/source-capable toolbar with copy, split Open, and expand actions.
+  Source state is available from a modal, invalid projects show an exclusive
+  diagnostic, and hiding either sidebar never displaces the central workspace.
+
 ## Rubric
 
 | # | Criterion | Pass | Fail | Evidence |
@@ -94,10 +108,14 @@ The global Definition of Done in the software development workflow applies.
 | R3 | Project lifecycle | Ordering, accessible reordering, launch restoration, revalidation, per-project session state, removal, and empty-state behavior match AC3. | Ordering moves unexpectedly, restoration chooses another project, state leaks between projects, or removal affects disk. | Preference migration and unit tests plus restart and switching end-to-end tests. |
 | R4 | Feature-state inspection | Current and Selected remain distinct; all initialization, refresh, milestone, artifact, and disclosure behaviors match AC4 without journal mutation. | Selection changes governance state, steals or loses inspection unexpectedly, or exposes the wrong state content. | Snapshot-driven UI tests, accessibility assertions, and a journal-invariance check. |
 | R5 | Slice and boundary hierarchy | Slice, attempt, gate, empty-state, artifact, and semantic-ordering behaviors match AC5 across serial and parallel fixtures. | Any hierarchy level shows unrelated data, defaults incorrectly, or numbering implies a false order. | Protocol fixture tests, hierarchy end-to-end tests, and visual verification. |
-| R6 | Unified artifact panel | Every opening surface uses correctly deduplicated, closable panel tabs and trusted unavailable states. | Duplicate canonical tabs, arbitrary file access, stale content, lost hidden tabs, or a second embedded viewer remains. | Tab-state unit tests, named-reader security tests, and panel end-to-end tests. |
+| R6 | Unified artifact panel | Every opening surface uses the correctly deduplicated internal tab collection while the panel presents only the active item and preserves trusted unavailable states. | Duplicate canonical identities, a visible tab strip, arbitrary file access, stale content, lost hidden state, or a second embedded viewer remains. | Tab-state unit tests, named-reader security tests, and panel end-to-end tests. |
 | R7 | Alert policy | The exception matrix renders each condition once at its approved scope, and workflow guidance follows current state only. | Routine conditions become global alerts, conditions are duplicated, or guidance follows inspection selection. | Warning and action fixture matrices, UI integration tests, and screenshots. |
 | R8 | Accessibility and constrained layout | Every interaction and semantic distinction in AC8 is keyboard- and assistive-technology-accessible at supported widths and motion settings. | A required control is unreachable, focus becomes lost, meaning relies only on color, or the minimum layout is unusable. | Keyboard walkthrough, accessibility audit, and reduced-motion and minimum-width runtime checks. |
+| R9 | Interface polish fidelity | Every behavior and removal in AC9 works in the production renderer and retains independent accessible current, selected, focus, and status semantics. | The change exists only in the visual fixture, a redundant surface remains, selection changes layout, graph topology is misleading, inspector actions fail, or hiding a sidebar corrupts layout. | Renderer DOM and accessibility tests, full Desktop suite, and live production-fixture browser verification. |
 
 ## Changes
 
-No amendments.
+- **2026-08-30:** Added AC9 and R9 after approval of the live interface-polish
+  fixture, before moving the prototype behavior into production code.
+- **2026-08-30:** Reconciled AC1, AC6, and R6 with the approved active-item-only
+  inspector while retaining the serializable internal tab collection.

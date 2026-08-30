@@ -58,6 +58,19 @@ const STATE_ARTIFACT_IDS = Object.freeze({
   COMPLETE: 'completion-report',
 });
 
+const FEATURE_STATE_LABELS = Object.freeze({
+  DESIGNING: 'Designing',
+  SPECIFYING: 'Specifying',
+  PLANNING: 'Planning',
+  DELIVERING_SLICES: 'Implementing',
+  FINALIZING: 'Finalizing',
+  COMPLETE: 'Complete',
+});
+
+export function featureStateLabel(id) {
+  return FEATURE_STATE_LABELS[id] ?? humanize(id);
+}
+
 export function featureStates(snapshot, modelDetail, selectedState = null) {
   const model = modelDetail?.data?.lock?.model;
   const states = model?.presentation?.featureOrder ?? model?.feature?.states ?? [];
@@ -65,7 +78,7 @@ export function featureStates(snapshot, modelDetail, selectedState = null) {
   const currentIndex = states.indexOf(current);
   return states.map((id, index) => ({
     id,
-    label: humanize(id),
+    label: featureStateLabel(id),
     current: id === current,
     selected: id === selectedState,
     position: id === current ? 'current' : currentIndex >= 0 && index < currentIndex ? 'complete' : 'pending',

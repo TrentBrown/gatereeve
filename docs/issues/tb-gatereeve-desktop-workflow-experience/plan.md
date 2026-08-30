@@ -16,7 +16,7 @@
 
 ## Strategy
 
-Deliver the feature as four sequential PR slices behind one cumulative feature
+Deliver the feature as five sequential PR slices behind one cumulative feature
 record. Establish protocol, preference, coordinator, and IPC contracts before
 moving navigation state into the renderer. Build the application shell and
 unified inspector next, then add the hierarchical Overview and signal policy.
@@ -43,6 +43,7 @@ fully valid and supported.
 2. **Application shell and unified inspector:** P4-P5.
 3. **Hierarchical workflow and signal policy:** P6-P7.
 4. **Integrated accessibility and runtime hardening:** P8.
+5. **Interface hierarchy and artifact-inspection polish:** P9.
 
 Each slice carries its own unit and integration verification. Later slices
 begin from the updated integration branch after the preceding PR merges, while
@@ -147,6 +148,15 @@ authorized by this plan.
   independent workflow gates, address findings, and produce the completion
   report at feature closeout. **Advances:** R1, R2, R3, R4, R5, R6, R7, R8.
 
+- **P9. Promote the approved interface-polish fixture into production.** Move
+  the shared selection surfaces, dependency graph, compact single-artifact
+  inspector, source-observation modal, exclusive invalid-project diagnostic,
+  masthead icon controls, and explicit three-column layout behavior into the
+  Electron renderer. Remove fixture-only monkey patches once the fixture uses
+  production behavior directly. Update renderer and accessibility coverage,
+  run the complete Desktop suite, and exercise the production fixture in a
+  browser at normal and constrained widths. **Advances:** R9.
+
 ## Integration touchpoints
 
 - **Preferences and main process:** `apps/desktop/main/preferences.js`,
@@ -183,5 +193,5 @@ authorized by this plan.
 - At each PR boundary, run the required verification matrix, spec evaluation,
   independent judge, pattern review when applicable, code review, and decision
   triage against the exact pinned boundary.
-- **Final step:** Run full rubric evaluation against R1-R8 and produce the
+- **Final step:** Run full rubric evaluation against R1-R9 and update the
   completion report.

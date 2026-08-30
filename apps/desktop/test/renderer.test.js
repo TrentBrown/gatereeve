@@ -130,8 +130,12 @@ test('renderer presents selection first and then canonical observation status', 
   subscriber(selectedState);
   assert.equal(window.document.querySelector('#chooser').hidden, true);
   assert.equal(window.document.querySelector('#overview').hidden, false);
-  assert.match(window.document.querySelector('#project-context').textContent, /DELIVERING SLICES/);
+  assert.equal(window.document.querySelector('#project-context'), null);
+  assert.equal(window.document.querySelector('#workspace').dataset.featureId, 'feature');
   assert.match(window.document.querySelector('#activity').textContent, /polling GitHub/);
+  window.document.querySelector('#activity').click();
+  assert.match(window.document.querySelector('#source-dialog-list').textContent, /Local.*Current.*Local read/s);
+  assert.match(window.document.querySelector('#source-dialog-list').textContent, /GitHub.*Current.*PR open/s);
   assert.equal(window.document.querySelector('#actions-surface').hidden, true);
   subscriber({
     ...selectedState,
@@ -152,7 +156,7 @@ test('renderer presents selection first and then canonical observation status', 
   assert.match(diagnostic.textContent, /\/repo\/rejected/);
   assert.match(diagnostic.textContent, /gatereeve\/workflow@2\.0\.0/);
   assert.match(diagnostic.textContent, /GateReeve has not saved, modified, migrated, or deleted anything/);
-  assert.equal(window.document.querySelector('#overview').hidden, false);
+  assert.equal(window.document.body.classList.contains('diagnostic-only'), true);
   window.document.querySelector('#candidate-diagnostic-choose-another').click();
   assert.equal(projectChooserOpens, 1);
   window.document.querySelector('#open-setup').click();
@@ -371,39 +375,40 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     4,
     `${window.document.querySelector('#model-graph').textContent} | ${window.document.querySelector('#chooser-error').textContent}`,
   );
-  assert.equal(window.document.querySelector('.state-node.current small').textContent, 'DELIVERING_SLICES');
+  assert.equal(window.document.querySelector('.state-node.current strong').textContent, 'Implementing');
   assert.equal(window.document.querySelector('.state-node.current .state-select').getAttribute('aria-pressed'), 'true');
   assert.equal(window.document.querySelectorAll('.gate-card').length, 2);
   assert.equal(window.document.querySelector('#slices-surface').hidden, false);
   assert.equal(window.document.querySelectorAll('.slice-card').length, 3);
   assert.equal(window.document.querySelector('.slice-card.selected .order-marker').textContent, '2');
-  assert.match(window.document.querySelector('.slice-card.selected').textContent, /Active/);
-  assert.match(window.document.querySelector('.slice-card.selected').textContent, /Selected/);
-  assert.match(window.document.querySelector('#milestones').textContent, /PR boundary active/);
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 1);
+  assert.match(window.document.querySelector('.slice-card.selected').getAttribute('aria-label'), /Active delivery slice/);
+  assert.match(window.document.querySelector('.slice-card.selected').getAttribute('aria-label'), /Selected for inspection/);
+  assert.doesNotMatch(window.document.querySelector('.slice-card.selected').textContent, /Active|Selected/);
+  assert.equal(window.document.querySelector('#milestones'), null);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
   assert.equal(window.document.querySelector('#global-alerts').hidden, true);
   assert.equal(window.document.querySelector('#attention-title'), null);
-  assert.ok(window.document.querySelector('.project-sources'));
+  assert.equal(window.document.querySelector('.project-sources'), null);
   assert.equal(window.document.querySelector('#actions-surface').hidden, false);
-  assert.match(window.document.querySelector('#guidance-context').textContent, /Current: DELIVERING SLICES/);
+  assert.match(window.document.querySelector('#guidance-context').textContent, /Current: Implementing/);
   assert.equal(window.document.querySelector('.action-card').hasAttribute('open'), false);
 
   const designing = [...window.document.querySelectorAll('.state-select')]
-    .find((button) => button.textContent.includes('DESIGNING'));
+    .find((button) => button.textContent.includes('Designing'));
   designing.click();
   await new Promise((done) => setImmediate(done));
-  assert.equal(window.document.querySelector('.state-node.current small').textContent, 'DELIVERING_SLICES');
-  assert.equal(window.document.querySelector('.state-node.selected small').textContent, 'DESIGNING');
+  assert.equal(window.document.querySelector('.state-node.current strong').textContent, 'Implementing');
+  assert.equal(window.document.querySelector('.state-node.selected strong').textContent, 'Designing');
   assert.equal(window.document.querySelector('.state-node.current .state-select').getAttribute('aria-pressed'), 'false');
   assert.equal(window.document.querySelector('.state-node.selected .state-select').getAttribute('aria-pressed'), 'true');
   assert.equal(window.document.querySelector('#slices-surface').hidden, true);
-  assert.match(window.document.querySelector('#milestones').textContent, /Design approved/);
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 2);
-  assert.match(window.document.querySelector('#guidance-context').textContent, /Current: DELIVERING SLICES/);
+  assert.equal(window.document.querySelector('#milestones'), null);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
+  assert.match(window.document.querySelector('#guidance-context').textContent, /Current: Implementing/);
   assert.equal(window.document.querySelector('#actions-surface').hidden, false);
 
   const finalizing = [...window.document.querySelectorAll('.state-select')]
-    .find((button) => button.textContent.includes('FINALIZING'));
+    .find((button) => button.textContent.includes('Finalizing'));
   finalizing.click();
   assert.equal(window.document.querySelector('#closeout-surface').hidden, false);
   assert.equal(window.document.querySelector('#closeout-status').textContent, 'In progress');
@@ -411,10 +416,10 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.match(window.document.querySelector('#closeout-summary').textContent, /Additional delivery slice/);
 
   const delivering = [...window.document.querySelectorAll('.state-select')]
-    .find((button) => button.textContent.includes('DELIVERING_SLICES'));
+    .find((button) => button.textContent.includes('Implementing'));
   delivering.click();
   assert.equal(window.document.querySelector('#slices-surface').hidden, false);
-  assert.match(window.document.querySelector('#milestones').textContent, /PR boundary active/);
+  assert.equal(window.document.querySelector('#milestones'), null);
 
   [...window.document.querySelectorAll('.slice-card')]
     .find((button) => button.textContent.includes('Final quality')).click();
@@ -432,10 +437,10 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.match(window.document.querySelector('.gate-card .object-condition').textContent, /reconciliation evidence/);
   window.document.querySelectorAll('.gate-card')[0].click();
   assert.equal(window.document.querySelector('.gate-card.selected').getAttribute('aria-pressed'), 'true');
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 3);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
   window.document.querySelectorAll('.gate-card')[1].click();
   for (let index = 0; index < 2; index += 1) await new Promise((done) => setImmediate(done));
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 4);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
   const selectedGateFrame = window.document.querySelector('#artifact-viewer iframe');
   assert.ok(selectedGateFrame, `${window.document.querySelector('#inspector-tabs').textContent} | ${window.document.querySelector('#artifact-viewer').textContent}`);
   assert.match(selectedGateFrame.getAttribute('src'), /^gatereeve-artifact:/);
@@ -460,20 +465,35 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   window.document.querySelector('[data-artifact-id="design"]').click();
   await new Promise((done) => setImmediate(done));
   assert.equal(window.document.querySelector('#inspector-panel').hidden, false);
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 4);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
   window.document.querySelector('[data-artifact-id="design"]').click();
   await new Promise((done) => setImmediate(done));
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 4);
-  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Approved design/);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /design\.md/);
+  assert.equal(window.document.querySelector('#artifact-viewer h1')?.textContent, 'Design');
   assert.match(window.document.querySelector('#artifact-viewer').textContent, /Approved\./);
-  window.document.querySelector('#hide-inspector').click();
+  assert.equal(window.document.querySelectorAll('.view-modes .viewer-icon').length, 2);
+  window.document.querySelector('[aria-label="Show Markdown source"]').click();
+  assert.match(window.document.querySelector('.artifact-source').textContent, /# Design/);
+  window.document.querySelector('[aria-label="Show rendered Markdown"]').click();
+  assert.equal(window.document.querySelector('.artifact-source'), null);
+  window.document.querySelector('[aria-label="Copy artifact contents"]').click();
+  await new Promise((done) => setImmediate(done));
+  assert.equal(copied.at(-1), '# Design\nApproved.');
+  const expandInspector = window.document.querySelector('[data-expand-inspector]');
+  expandInspector.click();
+  assert.equal(window.document.body.classList.contains('inspector-expanded'), true);
+  assert.equal(expandInspector.getAttribute('aria-label'), 'Restore artifact viewer');
+  expandInspector.click();
+  assert.equal(window.document.body.classList.contains('inspector-expanded'), false);
+  window.document.querySelector('#toggle-inspector').click();
   assert.equal(window.document.querySelector('#inspector-panel').hidden, true);
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 4);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
   window.document.querySelector('#toggle-inspector').click();
   assert.equal(window.document.querySelector('#inspector-panel').hidden, false);
   window.document.querySelector('[data-artifact-id="attempt:slice-attempt-1:gate:explainDiff"]').click();
   await new Promise((done) => setImmediate(done));
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 4);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
   assert.match(window.document.querySelector('#artifact-viewer iframe').getAttribute('src'), /^gatereeve-artifact:/);
   assert.match(window.document.querySelector('#artifact-viewer iframe').getAttribute('src'), /\?refresh=\d+$/);
   assert.equal(window.document.querySelector('#artifact-viewer iframe').hasAttribute('sandbox'), false);
@@ -652,26 +672,21 @@ test('selected artifact rereads automatically when its canonical fingerprint cha
     window.document.querySelector('[data-artifact-id="interview"]').classList.contains('selected'),
     true,
   );
-  assert.equal(window.document.querySelector('[data-artifact-refresh]').textContent, 'Refresh');
+  assert.equal(window.document.querySelector('[data-artifact-refresh]'), null);
   assert.equal(viewer.scrollTop, 300);
-
-  viewer.scrollTop = 790;
-  window.document.querySelector('[data-artifact-refresh]').click();
-  await new Promise((done) => setImmediate(done));
-  assert.equal(artifactReads, 3);
-  assert.equal(viewer.scrollTop, 800);
 
   failArtifactRead = true;
   subscriber(state(artifact('2026-08-29T01:02:00.000Z', 29)));
   await new Promise((done) => setImmediate(done));
-  assert.equal(artifactReads, 4);
+  assert.equal(artifactReads, 3);
   assert.match(viewer.textContent, /Updated/);
   assert.match(viewer.textContent, /Refresh failed/);
-  assert.ok(window.document.querySelector('[data-artifact-refresh]'));
+  assert.equal(window.document.querySelector('[data-artifact-refresh]'), null);
 
   failArtifactRead = false;
-  window.document.querySelector('[data-artifact-refresh]').click();
+  subscriber(state(artifact('2026-08-29T01:03:00.000Z', 30)));
   await new Promise((done) => setImmediate(done));
+  assert.equal(artifactReads, 4);
   const deferred = () => {
     let resolve;
     const promise = new Promise((done) => { resolve = done; });
@@ -680,12 +695,12 @@ test('selected artifact rereads automatically when its canonical fingerprint cha
   const olderRead = deferred();
   const newerRead = deferred();
   queuedArtifactReads.push(olderRead, newerRead);
-  subscriber(state(artifact('2026-08-29T01:03:00.000Z', 30)));
   subscriber(state(artifact('2026-08-29T01:04:00.000Z', 31)));
+  subscriber(state(artifact('2026-08-29T01:05:00.000Z', 32)));
   newerRead.resolve({
     kind: 'artifact',
     data: {
-      artifact: artifact('2026-08-29T01:04:00.000Z', 31),
+      artifact: artifact('2026-08-29T01:05:00.000Z', 32),
       content: '# Interview\nNewest',
       structured: null,
     },
@@ -694,7 +709,7 @@ test('selected artifact rereads automatically when its canonical fingerprint cha
   olderRead.resolve({
     kind: 'artifact',
     data: {
-      artifact: artifact('2026-08-29T01:03:00.000Z', 30),
+      artifact: artifact('2026-08-29T01:04:00.000Z', 31),
       content: '# Interview\nStale',
       structured: null,
     },

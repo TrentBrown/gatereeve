@@ -112,3 +112,34 @@ prevented its content from loading.
 - Serialize all inspector selections behind the prior read - rejected because
   hierarchy navigation should remain immediate and stale reads are already
   generation-guarded.
+
+## [5] Preserve inspector tab state while presenting one active artifact
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop renderer workspace state, inspector presentation, and
+artifact interaction tests
+
+Keep the existing serializable, per-project tab collection and canonical tab
+identity internally, but suppress the visible tab strip and present only the
+active, most recently selected artifact. This implements the approved simpler
+experience without discarding deduplication, close/reconciliation behavior, or
+the state shape intended for later relaunch persistence. The interface-polish
+work remains a sixth slice of the existing Desktop workflow-experience feature
+because it refines the same hierarchy and inspector rather than introducing a
+separate product capability.
+
+**Triggered by:** The user approved the live interface-polish fixture after the
+feature-final PR and explicitly asked to move all of those changes into the
+underlying Electron code before release.
+
+**Alternatives considered:**
+
+- Delete the tab collection and replace it with one artifact field - rejected
+  because it creates needless migration work when tabs are exposed again.
+- Leave the tab strip visible but compress it - rejected because the approved
+  simplification explicitly suppresses tabs for now.
+- Start a separate feature - rejected because the changes revise the same
+  approved hierarchy, shell, and inspector immediately before release.

@@ -200,7 +200,7 @@ async function startDesktop() {
               document.querySelector('#setup-return').click();
             }
           }
-          if (!shellChecked && document.querySelector('#project-context')?.textContent) {
+          if (!shellChecked && document.querySelector('#workspace')?.dataset.featureId) {
             shellChecked = true;
             document.querySelector('#workspace').style.transition = 'none';
             const sidebarToggle = document.querySelector('#toggle-sidebar');
@@ -241,7 +241,7 @@ async function startDesktop() {
             const inspectorRestored = Boolean(
               inspector?.hidden === false
               && resizedWidth === initialWidth - 20
-              && document.activeElement === document.querySelector('#hide-inspector')
+              && document.activeElement === document.querySelector('#artifact-viewer')
             );
             const tabLabels = mainTabs.map((tab) => tab.textContent).join('|');
             const versionText = document.querySelector('#brand-version')?.textContent;
@@ -335,7 +335,7 @@ async function startDesktop() {
             && ${expectedFeatureId === null
               ? 'true'
               : `document.querySelector('#workspace')?.hidden === false
-                && document.querySelector('#project-context')?.textContent.includes(${JSON.stringify(expectedFeatureId)})`}
+                && document.querySelector('#workspace')?.dataset.featureId === ${JSON.stringify(expectedFeatureId)}`}
           );
           const evidence = {
             setupObserved,
@@ -343,7 +343,7 @@ async function startDesktop() {
             shellChecked,
             shellEvidence,
             heading: document.querySelector('h1')?.textContent ?? null,
-            projectContext: document.querySelector('#project-context')?.textContent ?? null,
+            projectContext: document.querySelector('#workspace')?.dataset.featureId ?? null,
           };
           if (ready || (shellChecked && !shellObserved) || attempts >= 120) {
             resolve({ passed: ready, evidence });
