@@ -46,7 +46,6 @@ jobs:
     runs-on: ubuntu-24.04
     environment:
       name: release-publication
-      deployment: false
     permissions:
       actions: read
       contents: read
@@ -118,7 +117,6 @@ jobs:
     runs-on: ubuntu-24.04
     environment:
       name: release-publication
-      deployment: false
     permissions:
       actions: read
       contents: write

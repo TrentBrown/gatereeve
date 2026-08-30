@@ -184,3 +184,52 @@ RC.1 expectation after the tap advanced to RC.2.
   immutable and remains useful historical evidence.
 - Discover an unpinned latest release at runtime - rejected because the smoke
   must bind an explicit retained packet and cannot silently change authority.
+
+## [8] Cut over Apple custody through validated overlap
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** GitHub release-trust and release-publication environments, Apple credential custody, protected RC rehearsal, and rollback safety
+
+Create release-trust with the required Trent Brown reviewer, self-review permitted, and a custom main-only policy; copy only the four non-secret Apple identity variables automatically. The user places the three Apple secrets directly into GitHub once. Preserve the historical Apple entries in release-publication until a fresh protected RC.3 rehearsal succeeds and its retained evidence is validated. Only then remove Apple variables and secrets from release-publication and re-audit disjoint custody. This temporary overlap is a bounded migration state, not an accepted steady state.
+
+**Triggered by:** The approved live audit found release-trust absent while release-publication retained the historical combined Apple custody
+
+**Alternatives considered:**
+Delete historical Apple entries before validating release-trust - rejected because it removes the rollback path; transmit or copy secret values through the Playpen agent - rejected because Apple secrets must never reach the Linux host, logs, artifacts, or chat; leave the combined environment in place - rejected because it violates the approved trust/publication separation.
+
+## [9] Require real GitHub environment deployments for protected authority
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** protected trust production, trust recovery, primary and Cask
+publication approval, live rehearsal evidence, and candidate-version handling
+
+Treat `deployment: false` on a job environment as a blocking authorization
+defect because it suppresses the GitHub deployment record and therefore the
+configured required-reviewer gate. Preserve RC.3 and its retained exact bytes,
+Apple request history, and native evidence as immutable successful trust
+production, but do not count that run as approval-boundary evidence. Remove
+deployment suppression through a fresh reviewed correction slice, test every
+trust/publication environment job, and prove the reviewer wait with a fresh RC
+identity before completing P9. Keep the temporary Apple-credential overlap in
+place until that corrected rehearsal passes.
+
+**Triggered by:** Protected RC.3 run `33340560850` entered `release-trust`, read
+its secrets, and completed without a pending deployment or deployment record
+despite the environment's required-reviewer rule.
+
+**Alternatives considered:**
+- Accept successful secret use as proof of protection - rejected because it
+  proves credential availability, not reviewer authorization.
+- Continue to finalization and publication dry-run with the same setting -
+  rejected because it would reproduce the missing approval boundary.
+- Modify the workflow directly in the feature-final acceptance branch -
+  rejected because the approved plan requires a fresh reviewed delivery slice
+  for code corrections discovered during live acceptance.
+- Delete the rollback credentials from `release-publication` now - rejected
+  until the corrected trust boundary has passed end-to-end.

@@ -9,18 +9,80 @@
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1, P3, and P7 locally complete; reviewed assembly and live acceptance remain P8-P9 |
-| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1-P4 plus finalization/version-burn operations are locally complete; P8-P9 remain |
-| R3 | Credential custody | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Disjoint workflow authority and migration contract implemented through P7; live cutover remains P9 |
-| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Durable bounded recovery and operator prohibition/migration contract complete; reviewed assembly and live evidence remain P8-P9 |
-| R5 | Native verification | NOT YET | - | P3-P4, P8-P9 / I-3-I-4, I-8-I-9 |
-| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Exact schema-v2 seal, read-only rehearsal, hosted approval, receipts, and retry implemented; P8-P9 remain |
-| R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, and idempotent receipt implemented; P8-P9 remain |
-| R8 | Conformance and acceptance | NOT YET | - | P3, P8-P9 / I-3, I-8-I-9 |
+| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 produced a valid nine-stage schema-v2 trust lifecycle; corrected protected rehearsal and final P9 evaluation remain |
+| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 binds exact reviewed main, submitted/final DMG hashes, and immutable Apple request history; corrected rehearsal and finalization remain |
+| R3 | Credential custody | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Secret placement succeeded, but `deployment: false` suppressed the required-reviewer gate; fresh correction slice blocks acceptance |
+| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 retained accepted request `faa0580d-941c-4df3-90b8-38570ff52ac4` and bounded history; final corrected rehearsal remains |
+| R5 | Native verification | NOT YET | - | RC.3 passed exact-DMG native ARM64 and x64 verification without Rosetta; final corrected rehearsal remains |
+| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Exact schema-v2 seal, read-only rehearsal, hosted approval, receipts, retry, and reviewed P8 assembly complete; live dry-run evidence remains P9 |
+| R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, idempotent receipt, and P8 assembly complete; final P9 conformance remains |
+| R8 | Conformance and acceptance | NOT YET | - | RC.3 trust/native evidence and zero preparation mutation passed; missing reviewer enforcement blocks the full protected rehearsal |
 
 ## PR Log
 
 Append PR boundary entries here.
+
+### Mainline acceptance preflight
+
+- PR #34 merged to `main` as
+  `ee29569afedd8950b7278f5b1d21183c19e02803`; reviewed head
+  `1e5497e2e1165ac2687e2112acef252a305fc738` is ancestral.
+- Slice `s4-mainline-acceptance` is governed as `FEATURE_FINAL` for P8-P9 and
+  I-8-I-9. I-8 is complete; I-9 is in progress.
+- CLI 158 passed, Desktop 125 passed, portable acceptance passed, and branch
+  documents validated against the assembled mainline.
+- The name-only live audit found `release-trust` absent and the historical
+  `release-publication` environment still holding four Apple variables and
+  three Apple secrets. No secret value was inspected.
+- `v0.1.0-rc.3` is absent as both tag and release and is the proposed fresh
+  acceptance identity.
+- Initial public identities are retained in [`live-acceptance.md`](live-acceptance.md).
+- After explicit user authorization, `release-trust` was created with required
+  reviewer `TrentBrown`, self-review permitted, custom `main` deployment
+  policy, and the four audited non-secret Apple identity variables. The user
+  then populated its three Apple secrets directly in GitHub.
+- No secret value was inspected or transported and no public surface has been
+  mutated.
+- The user populated all three `release-trust` secrets directly in GitHub;
+  only their names and update timestamps were inspected.
+- Protected preparation run
+  [33340560850](https://github.com/TrentBrown/gatereeve/actions/runs/33340560850)
+  passed signing, notarization, stapling, Gatekeeper, native ARM64/Intel, and
+  lifecycle assembly for immutable RC.3.
+- The run exposed a blocking live defect: `deployment: false` suppressed both
+  the environment deployment record and required-reviewer wait. RC.3 remains
+  valid trust evidence but cannot satisfy the approval-boundary criterion.
+- Finalization, publication dry-run, and credential deletion are paused until
+  a fresh reviewed correction slice and fresh candidate prove the boundary.
+- Governed correction slice `s5-approval-boundary-correction` started from
+  current reviewed `main` `93da66d10736b7bbf58be1d2765808c1f7b4a75c`.
+  It removes deployment suppression from all six protected jobs; YAML parsing,
+  10 focused tests, the 158-test CLI suite, the 125-test Desktop suite, and
+  portable acceptance pass locally. Draft
+  [PR #37](https://github.com/TrentBrown/gatereeve/pull/37) carries the
+  correction and its hosted checks; live reviewer-gate proof remains pending
+  merge and a fresh candidate.
+
+### PR #37 - Protected approval boundary correction
+
+- **PR:** [#37](https://github.com/TrentBrown/gatereeve/pull/37)
+- **Evidence packet:** [packet](pr-37/)
+- **Evaluated source:**
+  `3a7d447c444aff12100d6ff30a9c5e9aa0a4fda2` based on current reviewed
+  `main` `93da66d10736b7bbf58be1d2765808c1f7b4a75c`.
+- **Scope:** P4/P5/P6/P9 / I-10 / R3, R6, R7, R8.
+- **Summary:** Removes `deployment: false` from every protected trust,
+  recovery, primary-publication, and Cask-publication job so GitHub creates a
+  real environment deployment and enforces configured required reviewers.
+- **Verification:** 10 focused workflow/documentation tests, CLI 158/158,
+  Desktop 125/125, portable acceptance, YAML parsing, and diff checks passed
+  locally. Hosted CI is tracked in the boundary packet.
+- **Live limitation:** This correction PR does not dispatch Apple trust or
+  publication. A fresh candidate after merge must visibly wait for the
+  `release-trust` reviewer before I-9 can resume.
+- **Safety:** RC.3 and Apple request
+  `faa0580d-941c-4df3-90b8-38570ff52ac4` remain immutable; no public surface
+  or credential inventory was mutated by this slice.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 

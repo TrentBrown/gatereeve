@@ -155,6 +155,10 @@ pass before a job enters this environment; its secrets are unavailable until
 the environment approval is granted. Approval grants the workflow temporary
 access to credentials already stored in GitHub; it does not require the
 maintainer to provide the `.p12`, password, or `.p8` again for each release.
+Every job that names `release-trust` must create a real GitHub environment
+deployment so the required-reviewer rule is enforced. Do not suppress
+deployment creation: a job with no deployment record has not proved protected
+approval, even if it can read environment secrets.
 
 Keep `release-publication` separate. It contains only public-distribution
 authority and must not contain any Apple private credential material. Its
@@ -276,6 +280,12 @@ if `main` advances before source resolution. The signing job waits at
 `release-trust`. Review the source commit and Plugin candidate result before
 approving environment access. Approval grants secret access for that run; it
 does **not** approve publication.
+
+Before treating the run as protected evidence, verify that GitHub shows the
+`release-trust` deployment waiting for review and then records the approval.
+An absent pending deployment or deployment record is a blocking custody defect;
+stop before finalization or publication and correct the workflow through a
+reviewed slice.
 
 The protected job creates an ephemeral keychain, imports the `.p12`, builds the
 same version from the pinned source, Developer ID-signs the app and DMG with
