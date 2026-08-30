@@ -110,12 +110,12 @@ full feature evidence.
 
 ## I-9 - Implement approved interface polish in production
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P9
 - **Rubric criteria:** R9
 - **Depends on:** I-8
-- **PR:** pending
+- **PR:** [#36](https://github.com/TrentBrown/gatereeve/pull/36)
 
 Replace fixture-only presentation overrides with production renderer behavior,
 cover the revised interaction and accessibility contracts, and verify the

@@ -17,7 +17,7 @@
 | R6 | Unified artifact panel | PASS | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Trusted canonical and virtual tabs deduplicate, close, hide/reopen, reconcile unavailable content, and keep Artifacts inventory-only. |
 | R7 | Alert policy | PASS | [#30](https://github.com/TrentBrown/gatereeve/pull/30), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Exceptional alerts, local object conditions, quiet Sources, Setup preferences, and current-only guidance pass the fixture matrix. |
 | R8 | Accessibility and constrained layout | PASS | [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#29](https://github.com/TrentBrown/gatereeve/pull/29), [#30](https://github.com/TrentBrown/gatereeve/pull/30), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Keyboard/focus behavior, semantic text, reduced motion, 940 x 560 layout, and maximum-width inspector constraint pass. |
-| R9 | Interface polish fidelity | NOT YET | pending | The approved fixture must be promoted into production and verified. |
+| R9 | Interface polish fidelity | PASS | [#36](https://github.com/TrentBrown/gatereeve/pull/36) | Production renderer, DOM/accessibility tests, live production-backed fixture, source Electron, and packaged universal-app verification pass. |
 
 ## PR Log
 
@@ -82,3 +82,17 @@
   Git and no human retention decision is required.
 - **Evidence:** [PR #31 packet](pr-31/boundary.json),
   [feature completion report](completion-report.md)
+
+### PR #36 - Interface hierarchy and artifact-inspection polish
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/36
+- **Scope:** P9 feature-final interface-polish slice,
+  `slice-06-interface-polish`
+- **Issues:** I-9
+- **Rubric movement:** R9 moves to `PASS`. The slice promotes the approved fixture
+  into the production renderer, simplifies the active-item inspector, aligns
+  hierarchy selection and state accents, renders the seven-stage dependency
+  graph, and hardens panel geometry and packaged-runtime smoke coverage.
+- **Retention:** `tracked`; every current feature-record file is retained in
+  Git and no human retention decision is required.
+- **Evidence:** [PR #36 packet](pr-36/boundary.json)

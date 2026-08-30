@@ -1,17 +1,17 @@
 ## Completion Report
 
 **Feature:** `tb-gatereeve-desktop-workflow-experience`
-**Final pull request:** [#31](https://github.com/TrentBrown/gatereeve/pull/31)
+**Final pull request:** [#36](https://github.com/TrentBrown/gatereeve/pull/36)
 **Retention status:** `tracked` - every current feature-record file is retained in Git; no human retention decision is required.
 
 ### Definition of Done
 
-- **Build status:** PASS - no compiled build or separate typecheck is defined; changed JavaScript passed `node --check`.
+- **Build status:** PASS - changed JavaScript passed `node --check`; the universal ad-hoc development `GateReeve.app` and DMG built and passed package verification on native Apple Silicon.
 - **Lint status:** PASS - `git diff --check`, branch-doc validation, issues lint, and tracker lint passed.
-- **Tests written:** Project registry, coordinator, preferences, contracts, IPC, presentation, renderer, workspace state, accessibility, renderer protocol/cache, canonical snapshot, and visual fixture coverage across P1-P8.
-- **Test suite status:** PASS - `apps/desktop npm test` passed 110/110; `cli npm test` passed 137/137.
-- **Integration verified:** Yes - real canonical feature reads, multi-project live DOM behavior, invalid-admission diagnostics, named read confinement, and journal invariance.
-- **Application runs:** Yes - source-launched Electron at 940 x 560 verified Setup, project/sidebar state, five main tabs, version, inspector tabs/toggles/focus, 420-to-400 keyboard resizing, a constrained 720px request, and zero horizontal overflow.
+- **Tests written:** Project registry, coordinator, preferences, contracts, IPC, presentation, renderer, workspace state, accessibility, renderer protocol/cache, canonical snapshot, package, and production-backed visual fixture coverage across P1-P9.
+- **Test suite status:** PASS - `apps/desktop npm test` passed 125/125; `cli npm test` passed 158/158.
+- **Integration verified:** Yes - real canonical feature reads, multi-project live DOM behavior, invalid-admission diagnostics, named read confinement, hierarchy selection, graph topology, source modal, and panel geometry.
+- **Application runs:** Yes - source-launched and packaged Electron verified Setup, project/sidebar state, five main tabs, version, active-item inspector toggles/focus, 420-to-400 keyboard resizing, a constrained 720px request, real selected-state milestones, and zero horizontal overflow.
 - **Pending manual verification:** None. Windows/Linux native accelerators are contract-tested because those platforms were unavailable for runtime inspection.
 
 ### Acceptance Criteria
@@ -23,9 +23,10 @@
 | AC3 | PASS | Persistent ordering, accessible reorder controls, relaunch revalidation/restoration, isolated session state, and reference-only removal. |
 | AC4 | PASS | Independent Current/Selected state, refresh preservation, filtered milestones, all lifecycle disclosures, and no journal mutation. |
 | AC5 | PASS | Stable slice ordinals, scoped attempts/gates, honest no-boundary/detail behavior, and correct serial/parallel markers. |
-| AC6 | PASS | One trusted tabbed inspector with deduplication, close/hide/reopen, unavailable reconciliation, inventory-only Artifacts, and completion report contract. |
+| AC6 | PASS | One trusted active-item inspector backed by deduplicated internal tab identity, hide/reopen preservation, unavailable reconciliation, inventory-only Artifacts, and completion report contract. |
 | AC7 | PASS | Exception-only global alerts, local object conditions, quiet Sources, Setup preferences, and current-state guidance. |
 | AC8 | PASS | Keyboard/focus semantics, color-independent text, reduced motion, and usable constrained three-pane layout. |
+| AC9 | PASS | Production renderer uses the approved unified selection grammar, Implementing label, seven-stage dependency graph, compact active-item inspector, source modal, exclusive diagnostics, and stable sidebar geometry. |
 
 ### Rubric
 
@@ -36,9 +37,10 @@
 | R3 | Project lifecycle | PASS | Feature | Persistence, restoration, switching, revalidation, ordering, and removal pass. |
 | R4 | Feature-state inspection | PASS | Feature | Observational selection never mutates or follows governance unexpectedly. |
 | R5 | Slice and boundary hierarchy | PASS | Feature | Hierarchy scope and semantic ordering pass serial/parallel fixtures. |
-| R6 | Unified artifact panel | PASS | Feature | Trusted application-level tab behavior and unavailable reconciliation pass. |
+| R6 | Unified artifact panel | PASS | Feature | Trusted internal identity, active-item presentation, hidden-state preservation, and unavailable reconciliation pass. |
 | R7 | Alert policy | PASS | Feature | Conditions appear once at the approved scope and guidance follows current state. |
 | R8 | Accessibility and constrained layout | PASS | Feature | Keyboard, focus, semantics, reduced motion, and minimum-size runtime pass. |
+| R9 | Interface polish fidelity | PASS | Feature | Production DOM, accessibility, live fixture, source runtime, and packaged runtime evidence pass. |
 
 ### Delivery history
 
@@ -47,3 +49,4 @@
 - PR #29 - progressive workflow hierarchy.
 - PR #30 - alert and attention policy.
 - PR #31 - integrated accessibility and runtime hardening plus feature-final evidence.
+- PR #36 - production interface polish, packaged-runtime verification, and renewed feature-final evidence.
