@@ -11,7 +11,7 @@ import {
 import { basename, dirname, resolve } from 'node:path';
 
 import {
-  assertCoordinatedRelease,
+  assertCoordinatedReleaseV1,
   readCoordinatedRelease,
   verifyCoordinatedReleaseWorkspace,
 } from './coordinated-release.js';
@@ -84,7 +84,7 @@ end
 }
 
 export function renderHomebrewCask(releaseRecord) {
-  assertCoordinatedRelease(releaseRecord);
+  assertCoordinatedReleaseV1(releaseRecord);
   return renderHomebrewCaskIdentity({
     version: releaseRecord.version,
     digest: releaseRecord.candidates.desktop.artifact.sha256,

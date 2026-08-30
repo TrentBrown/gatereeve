@@ -20,6 +20,7 @@ import {
   textIdentity,
 } from './desktop-release-manifest.js';
 import { parseReleaseTag } from './release.js';
+import { dispatchReleaseRecordSchema } from './release-lifecycle-v2.js';
 
 export const COORDINATED_RELEASE_SCHEMA_VERSION = 1;
 export const PUBLICATION_SURFACES = Object.freeze([
@@ -168,7 +169,7 @@ function validateCoordinatedTrust(trust) {
 function validateStablePromotion({ sourceTag, sourceCommit, releaseCandidate }) {
   const stable = parseReleaseTag(sourceTag);
   if (stable.prerelease !== null) return null;
-  assertCoordinatedRelease(releaseCandidate);
+  assertCoordinatedReleaseV1(releaseCandidate);
   const candidate = parseReleaseTag(releaseCandidate.source.tag);
   if (
     !candidate.prerelease?.match(/^rc\.(?:0|[1-9]\d*)$/u)
@@ -220,7 +221,7 @@ function publicationPlanText(record) {
 }
 
 export function renderPublicationPlan(record) {
-  assertCoordinatedRelease(record);
+  assertCoordinatedReleaseV1(record);
   return publicationPlanText(record);
 }
 
@@ -405,7 +406,7 @@ export async function prepareCoordinatedRelease({
       );
       await writeFile(resolve(stagingRoot, 'publication', 'desktop.json'), manifestContent);
     }
-    assertCoordinatedRelease(record);
+    assertCoordinatedReleaseV1(record);
     await writeFile(resolve(stagingRoot, 'release-record.json'), stableJson(record));
     await writeFile(resolve(stagingRoot, 'publication-plan.md'), renderPublicationPlan(record));
     await rename(stagingRoot, output);
@@ -423,7 +424,7 @@ export async function prepareCoordinatedRelease({
   }
 }
 
-export function assertCoordinatedRelease(value) {
+export function assertCoordinatedReleaseV1(value) {
   if (value?.schemaVersion !== COORDINATED_RELEASE_SCHEMA_VERSION) {
     throw new Error('Unsupported coordinated release record schema');
   }
@@ -574,8 +575,20 @@ export function assertCoordinatedRelease(value) {
   return value;
 }
 
+export function inspectCoordinatedRelease(value) {
+  return dispatchReleaseRecordSchema(value, { assertLegacy: assertCoordinatedReleaseV1 });
+}
+
+export function assertCoordinatedRelease(value) {
+  return inspectCoordinatedRelease(value).record;
+}
+
 export async function readCoordinatedRelease(path) {
-  return assertCoordinatedRelease(JSON.parse(await readFile(resolve(path), 'utf8')));
+  return assertCoordinatedReleaseV1(JSON.parse(await readFile(resolve(path), 'utf8')));
+}
+
+export async function readVersionedCoordinatedRelease(path) {
+  return inspectCoordinatedRelease(JSON.parse(await readFile(resolve(path), 'utf8')));
 }
 
 export async function verifyCoordinatedReleaseWorkspace(recordPath) {
@@ -626,7 +639,7 @@ export async function verifyCoordinatedReleaseWorkspace(recordPath) {
 }
 
 export async function writeCoordinatedRelease(path, record) {
-  assertCoordinatedRelease(record);
+  assertCoordinatedReleaseV1(record);
   const output = resolve(path);
   await mkdir(dirname(output), { recursive: true });
   const temporary = `${output}.${randomUUID()}.tmp`;
@@ -639,7 +652,7 @@ export async function writeCoordinatedRelease(path, record) {
 }
 
 export function recordDesktopTrust(record, evidence, now = () => new Date()) {
-  assertCoordinatedRelease(record);
+  assertCoordinatedReleaseV1(record);
   if (
     record.publication.approval.state !== 'unapproved'
     || PUBLICATION_SURFACES.some(
@@ -657,12 +670,12 @@ export function recordDesktopTrust(record, evidence, now = () => new Date()) {
   const next = structuredClone(record);
   next.candidates.desktop.trust = structuredClone(evidence);
   next.updatedAt = now().toISOString();
-  assertCoordinatedRelease(next);
+  assertCoordinatedReleaseV1(next);
   return next;
 }
 
 export function approveCoordinatedPublication(record, approval, now = () => new Date()) {
-  assertCoordinatedRelease(record);
+  assertCoordinatedReleaseV1(record);
   if (
     record.candidates.desktop.trust.status !== 'developer-id-notarized'
     || record.publication.outputs.updateManifest === null
@@ -683,12 +696,12 @@ export function approveCoordinatedPublication(record, approval, now = () => new 
   };
   next.state = 'approved';
   next.updatedAt = next.publication.approval.approvedAt;
-  assertCoordinatedRelease(next);
+  assertCoordinatedReleaseV1(next);
   return next;
 }
 
 export function assertCoordinatedPublicationReady(record, expected = {}) {
-  assertCoordinatedRelease(record);
+  assertCoordinatedReleaseV1(record);
   if (
     (expected.tag && expected.tag !== record.source.tag)
     || (expected.sourceCommit && expected.sourceCommit !== record.source.commit)
