@@ -10,8 +10,8 @@ import {
   featureStates,
   formatTime,
   gateArtifact,
+  globalAlert,
   humanize,
-  modeMessage,
   selectedAttempt,
   selectedSlice,
   sourceLabel,
@@ -25,17 +25,16 @@ const ids = [
   'brand-version', 'project-context', 'project-sidebar', 'main-tabs', 'toggle-sidebar',
   'toggle-inspector', 'inspector-panel', 'inspector-resizer', 'inspector-tabs', 'hide-inspector',
   'source-local',
-  'source-git', 'source-github', 'error', 'diagnostic', 'warnings', 'state-rail',
-  'milestone-context', 'milestones', 'slices-surface', 'slices', 'attention',
+  'source-git', 'source-github', 'global-alerts', 'state-rail',
+  'milestone-context', 'milestones', 'slices-surface', 'slices',
   'boundary-surface', 'attempt-select', 'boundary-summary', 'gate-dag',
   'closeout-surface', 'closeout-status', 'closeout-summary',
-  'actions', 'artifact-count', 'artifact-list', 'artifact-viewer', 'history-count',
+  'actions-surface', 'actions', 'guidance-context', 'artifact-count', 'artifact-list', 'artifact-viewer', 'history-count',
   'history-list', 'history-detail', 'model-provenance', 'model-graph', 'model-mermaid',
   'copy-mermaid', 'session-list', 'session-detail', 'toast',
   'notifications', 'open-setup', 'setup-shell', 'setup-summary', 'setup-prerequisites',
   'setup-agents', 'setup-recheck', 'setup-open-worktree', 'setup-return', 'save-agents',
   'agent-selection', 'agent-codex', 'agent-claude', 'desktop-version', 'historical-reading',
-  'readiness-banner',
   'check-updates', 'update-banner', 'update-title', 'update-detail', 'open-update',
 ];
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
@@ -328,17 +327,16 @@ function renderRecents(state) {
   }
 }
 
-function renderWarnings(snapshot) {
-  clear(elements.warnings);
-  for (const warning of snapshot?.warnings ?? []) {
-    const activity = warning.severity === 'activity';
-    elements.warnings.append(node('div', {
-      className: `notice ${activity ? 'info' : ''}`,
-      text: activity
-        ? `${humanize(warning.type)} is ordinary source activity and does not block workflow passage.`
-        : `${humanize(warning.type)} requires governance attention.`,
-    }));
-  }
+function renderGlobalAlert(snapshot) {
+  const alert = globalAlert(snapshot, currentState?.error);
+  const container = clear(elements['global-alerts']);
+  container.hidden = alert === null;
+  if (alert === null) return;
+  container.className = `notice ${alert.tone === 'danger' ? 'danger' : ''}`.trim();
+  container.append(node('strong', { text: alert.title }));
+  const list = node('ul');
+  for (const item of alert.items) list.append(node('li', { text: item }));
+  container.append(list);
 }
 
 function renderStateRail(snapshot) {
@@ -483,35 +481,6 @@ function blockerText(blocker) {
   return blocker.message ?? blocker.reason ?? blocker.type ?? 'Unknown blocker';
 }
 
-function renderAttention(snapshot) {
-  clear(elements.attention);
-  const items = [
-    ...(snapshot?.blockers ?? []).map((item) => ({ ...item, category: 'blocker' })),
-    ...(snapshot?.warnings ?? []).filter((item) => item.severity !== 'activity').map(
-      (item) => ({ ...item, category: 'warning' }),
-    ),
-  ];
-  if (items.length === 0) {
-    elements.attention.append(node('div', { className: 'card' }, [
-      node('div', { className: 'card-header' }, [
-        node('h4', { text: 'No current blockers' }),
-        statusPill('clear'),
-      ]),
-      node('p', { text: 'The observer reports no blocking feature-level condition.' }),
-    ]));
-    return;
-  }
-  for (const item of items) {
-    elements.attention.append(node('div', { className: 'card' }, [
-      node('div', { className: 'card-header' }, [
-        node('h4', { text: humanize(item.type) }),
-        statusPill(item.category),
-      ]),
-      node('p', { text: blockerText(item) }),
-    ]));
-  }
-}
-
 function renderGateDetail(attempt, gate) {
   workspaceStore.setHierarchy(projectPath(), { selectedGateId: gate.id });
   renderBoundary(currentState?.snapshot);
@@ -600,6 +569,11 @@ function renderBoundary(snapshot) {
           className: 'dependencies',
           text: gate.dependsOn.length ? `After: ${gate.dependsOn.join(', ')}` : 'Entry gate',
         }),
+        ...(gate.reason ? [node('span', { className: 'object-condition', text: gate.reason })] : []),
+        ...((gate.blockers ?? []).map((blocker) => node('span', {
+          className: 'object-condition',
+          text: blockerText(blocker),
+        }))),
         ...(selected ? [node('span', { className: 'state-semantic selected-label', text: 'Selected' })] : []),
       ]),
     ]);
@@ -657,41 +631,50 @@ function renderCloseout(snapshot) {
 function renderActions(snapshot) {
   clear(elements.actions);
   const actions = snapshot?.actions ?? [];
+  elements['actions-surface'].hidden = actions.length === 0;
+  elements['guidance-context'].textContent = snapshot?.projection?.feature?.state
+    ? `Current: ${humanize(snapshot.projection.feature.state)}`
+    : 'Current governed state unavailable';
   if (actions.length === 0) {
-    elements.actions.append(node('p', { className: 'muted', text: 'No action is currently proposed by the pinned workflow model.' }));
     return;
   }
   for (const action of actions) {
-    const card = node('article', { className: 'action-card' });
+    const card = node('details', { className: 'action-card' });
     card.append(
-      node('div', { className: 'card-header' }, [
-        node('div', {}, [node('h4', { text: humanize(action.command) }), exactId(action.id)]),
+      node('summary', { className: 'action-summary' }, [
+        node('span', {}, [node('strong', { text: humanize(action.command) }), exactId(action.id)]),
         statusPill(action.readiness),
       ]),
-      node('p', { text: actionMeaning(action.command) }),
-      node('div', { className: 'action-meta' }, [
-        statusPill(action.authority),
-        node('span', { className: 'status', text: `${action.inputs.length} input${action.inputs.length === 1 ? '' : 's'}` }),
+      node('div', { className: 'action-detail' }, [
+        node('p', { text: actionMeaning(action.command) }),
+        node('div', { className: 'action-meta' }, [
+          statusPill(action.authority),
+          node('span', { className: 'status', text: `${action.inputs.length} input${action.inputs.length === 1 ? '' : 's'}` }),
+        ]),
       ]),
     );
     if (action.reasons?.length) {
-      const list = node('ul', { className: 'muted' });
+      const list = node('ul', { className: 'action-reasons' });
       for (const reason of action.reasons) list.append(node('li', { text: reason }));
-      card.append(list);
+      card.querySelector('.action-detail').append(node('strong', { text: 'Conditions' }), list);
     }
-    card.append(node('pre', { className: 'command', text: action.copyCommand }));
+    if (action.inputs.length > 0) {
+      const list = node('ul', { className: 'action-inputs' });
+      for (const input of action.inputs) list.append(node('li', {
+        text: typeof input === 'string' ? input : input.label ?? input.id ?? JSON.stringify(input),
+      }));
+      card.querySelector('.action-detail').append(node('strong', { text: 'Required inputs' }), list);
+    }
+    card.querySelector('.action-detail').append(node('pre', { className: 'command', text: action.copyCommand }));
     const button = node('button', { className: 'secondary', text: 'Copy command', type: 'button' });
     button.addEventListener('click', () => void copy(action.copyCommand, 'Command copied — GateReeve Desktop did not execute it'));
-    card.append(button);
+    card.querySelector('.action-detail').append(button);
     elements.actions.append(card);
   }
 }
 
 function renderOverview(snapshot) {
-  const diagnostic = modeMessage(snapshot);
-  elements.diagnostic.hidden = diagnostic === null;
-  elements.diagnostic.textContent = diagnostic ?? '';
-  renderWarnings(snapshot);
+  renderGlobalAlert(snapshot);
   renderStateRail(snapshot);
   renderMilestones(snapshot);
   const selectedFeatureState = workspaceState().selectedFeatureState;
@@ -708,7 +691,6 @@ function renderOverview(snapshot) {
     clear(elements['gate-dag']);
   }
   if (finalizing) renderCloseout(snapshot);
-  renderAttention(snapshot);
   renderActions(snapshot);
 }
 
@@ -1397,6 +1379,7 @@ function render(state) {
   renderSetup(state);
   elements['brand-version'].textContent = `v${state.setup.desktop.version}`;
   elements.notifications.checked = state.preferences.notificationsEnabled;
+  elements['open-setup'].textContent = state.setup.operationalReady ? 'Setup' : 'Setup · Needs attention';
   const chooserMessage = state.candidateDiagnostic?.message ?? state.error?.message ?? null;
   elements['chooser-error'].hidden = selected || chooserMessage === null;
   elements['chooser-error'].textContent = selected ? '' : chooserMessage ?? '';
@@ -1445,12 +1428,6 @@ function render(state) {
   ].join(' · ');
   for (const source of ['local', 'git', 'github']) sourceText(source, snapshot?.sources?.[source]);
 
-  elements.error.hidden = state.error === null;
-  elements.error.textContent = state.error?.message ?? '';
-  elements['readiness-banner'].hidden = state.setup.operationalReady;
-  elements['readiness-banner'].textContent = state.setup.operationalReady
-    ? ''
-    : 'Historical/offline observation: GateReeve Setup is incomplete, so this record remains readable but new or active work is not operationally ready.';
   renderOverview(snapshot);
   renderArtifacts(snapshot);
   switchView(currentView);

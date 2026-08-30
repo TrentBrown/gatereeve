@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PR #30 — Alert and attention policy</title>
+  <style>
+    :root { --ink:#211634; --muted:#6f6578; --purple:#594099; --pale:#f4f1f8; --line:#ddd4e9; --green:#287255; --amber:#9b5c13; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:linear-gradient(140deg,#f8f5fc,#f1edf5); font:16px/1.65 Inter,system-ui,sans-serif; }
+    header { padding:4rem clamp(1.2rem,6vw,6rem); color:white; background:linear-gradient(120deg,#27163d,#594099); }
+    header p { max-width:76ch; color:#e9e1f4; }
+    header code { color:white; }
+    main { max-width:1050px; margin:auto; padding:2rem 1.2rem 5rem; }
+    h1,h2,h3 { font-family:Georgia,serif; line-height:1.2; }
+    h1 { max-width:18ch; font-size:clamp(2.3rem,6vw,4.7rem); }
+    h2 { margin-top:3rem; font-size:2rem; }
+    h3 { margin-top:2rem; }
+    nav,.card,.callout,.diagram,.quiz { border:1px solid var(--line); border-radius:1rem; background:white; box-shadow:0 10px 30px rgb(43 27 62 / 7%); }
+    nav { padding:1rem 1.4rem; }
+    nav ol { columns:2; }
+    a { color:var(--purple); font-weight:700; }
+    code,pre { font-family:ui-monospace,SFMono-Regular,monospace; }
+    pre { padding:1rem; overflow:auto; border-radius:.7rem; color:#f7f2fa; background:#27163d; white-space:pre-wrap; }
+    .callout { margin:1.2rem 0; padding:1rem 1.2rem; border-left:5px solid var(--amber); }
+    .callout strong { display:block; }
+    .diagram { display:grid; gap:1rem; padding:1.2rem; }
+    .flow { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; align-items:stretch; }
+    .node { padding:1rem; border:2px solid var(--line); border-radius:.75rem; background:#faf8fc; }
+    .node strong,.node small { display:block; }
+    .node small { margin-top:.35rem; color:var(--muted); }
+    .global { border-color:#b76d1c; background:#fff5dc; }
+    .local { border-color:#7252b5; background:#f8f5fc; }
+    .quiet { border-color:#8da99d; background:#eef8f3; }
+    .before-after { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .card { padding:1.2rem; }
+    .mock { display:grid; gap:.55rem; margin-top:.8rem; }
+    .bar { padding:.7rem; border:1px solid var(--line); border-radius:.55rem; background:#faf8fc; }
+    .bar.alert { border-left:5px solid var(--amber); background:#fff5dc; }
+    .bar.subtle { color:var(--muted); font-size:.86rem; }
+    .bar.removed { color:#8e4353; text-decoration:line-through; background:#fff0f2; }
+    .pill { display:inline-block; margin:.1rem; padding:.15rem .45rem; border-radius:999px; color:#564c60; background:#ece8ef; font-size:.75rem; }
+    .quiz { margin:1rem 0; padding:1.2rem; }
+    .quiz button { display:block; width:100%; margin:.45rem 0; padding:.7rem; border:1px solid var(--line); border-radius:.55rem; color:var(--ink); background:#faf8fc; text-align:left; cursor:pointer; }
+    .quiz button:hover { border-color:var(--purple); }
+    .feedback { min-height:1.7rem; color:var(--muted); font-weight:700; }
+    .feedback.correct { color:var(--green); }
+    .feedback.wrong { color:#a8324a; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { padding:.7rem; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    @media (max-width:720px) { .flow,.before-after { grid-template-columns:1fr; } nav ol { columns:1; } }
+  </style>
+</head>
+<body>
+<header>
+  <p>GateReeve Desktop · PR #30 · Pinned review</p>
+  <h1>Attention should be rare—and guidance should tell the truth.</h1>
+  <p>This walkthrough explains the exact diff from <code>68e0c17c…</code> to <code>f1af98bc…</code>. The change removes a noisy Attention card, gives one high-visibility surface to exceptional conditions, and keeps ordinary detail beside the object that owns it.</p>
+</header>
+<main>
+  <nav aria-label="Table of contents"><strong>Contents</strong><ol><li><a href="#background">Background</a></li><li><a href="#intuition">Intuition</a></li><li><a href="#code">Code walkthrough</a></li><li><a href="#cases">Behavior matrix</a></li><li><a href="#quiz">Quiz</a></li></ol></nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <h3>The two states a reader must not confuse</h3>
+    <p>GateReeve presents a governed workflow state, such as <em>Delivering Slices</em>, and a separate inspection selection. A reader may select <em>Designing</em> to reread <code>design.md</code> while the workflow remains in delivery. The selection changes the hierarchy being inspected; it must never rewrite the meaning of current workflow guidance.</p>
+    <div class="diagram flow">
+      <div class="node"><strong>Governed current state</strong><small>Authoritative protocol projection: DELIVERING_SLICES</small></div>
+      <div class="node"><strong>Inspection selection</strong><small>Reader chooses DESIGNING to inspect an older artifact</small></div>
+      <div class="node"><strong>Current guidance</strong><small>Still derives from DELIVERING_SLICES</small></div>
+    </div>
+
+    <h3>Why the old overview became noisy</h3>
+    <p>The overview used several visually strong surfaces at once: runtime error, setup readiness, mode diagnostic, warning stack, source boxes, a permanent Attention card, and permanent Next Actions. Their semantic boundaries were unclear. A routine dirty source tree could receive a colored notice near a genuine incompatible-record failure.</p>
+    <div class="before-after">
+      <article class="card"><h3>Before</h3><div class="mock"><div class="bar removed">Diagnostic banner</div><div class="bar removed">Warning banner</div><div class="bar removed">Source status boxes</div><div class="bar removed">Attention: no current blockers</div><div class="bar removed">Next actions: always present</div></div></article>
+      <article class="card"><h3>After</h3><div class="mock"><div class="bar alert">Exceptional workflow attention—only when needed</div><div class="bar subtle">Sources ▸ inside project context</div><div class="bar">Feature state hierarchy</div><div class="bar">Current workflow guidance ▸ only when actions exist</div></div></article>
+    </div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition: severity and ownership are different questions</h2>
+    <p>The change asks two questions for each condition. First, is it important enough to interrupt the whole workflow overview? Second, which object owns the detail? Only workflow-wide exceptions reach the consolidated alert. Everything else is placed beside its owner.</p>
+    <div class="diagram flow">
+      <div class="node global"><strong>Global exception</strong><small>Observer failure, inconsistent or incompatible record, suspension, uncommitted journal/model governance inputs.</small></div>
+      <div class="node local"><strong>Object-local condition</strong><small>A failed or stale gate, blocked action, or incomplete Setup prerequisite stays on that object.</small></div>
+      <div class="node quiet"><strong>Routine context</strong><small>Source changes and unavailable enrichment remain quiet inside Sources.</small></div>
+    </div>
+    <div class="callout"><strong>Toy example</strong>A dirty application source file is useful context, but it does not prevent workflow passage. An uncommitted event journal changes governance evidence. The former belongs in Sources; the latter deserves the overview alert.</div>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <h3>1. One pure alert policy</h3>
+    <p><code>globalAlert</code> collects a runtime error, a governed-mode diagnostic, and non-activity warnings. It discards activity warnings, removes duplicates, and returns one presentation model with a title, tone, and item list.</p>
+    <pre>if (warning.severity === 'activity') continue;
+const items = [...new Set(messages)];
+return { title, tone, items };</pre>
+    <p>Because the policy is pure, the unit test can cover ordinary activity, repeated governance warnings, incompatible mode, and runtime failure without launching Electron.</p>
+
+    <h3>2. The overview loses duplicate surfaces</h3>
+    <p>The markup now has one <code>role="alert"</code>. Sources move into a native disclosure under the project context. The Attention section disappears. Current workflow guidance starts hidden and is rendered only when the canonical snapshot actually proposes actions.</p>
+
+    <h3>3. Conditions follow their owners</h3>
+    <p>Gate reasons and blocker messages render inside the gate card. Setup incompleteness changes the header control to <em>Setup · Needs attention</em> while the detailed remediation remains in Setup. Action reasons, required inputs, authority, and copyable command stay inside the expanded action disclosure.</p>
+
+    <h3>4. Guidance cannot drift with inspection</h3>
+    <p>The hierarchy still reads <code>workspaceState().selectedFeatureState</code> to decide which subordinate cards to show. Guidance does not. It reads <code>snapshot.projection.feature.state</code>, so selecting Designing cannot make delivery guidance masquerade as design guidance.</p>
+    <pre>elements['guidance-context'].textContent =
+  `Current: ${humanize(snapshot.projection.feature.state)}`;</pre>
+
+    <h3>5. The fixture becomes a matrix</h3>
+    <p>The Electron-free visual fixture accepts a <code>scenario</code> query parameter. Its eight cases cover routine source activity, governance warnings, suspension, inconsistent and incompatible modes, observer failure, no actions, and a blocked gate. This makes visual review repeatable without a package or deployment cycle.</p>
+  </section>
+
+  <section id="cases">
+    <h2>Behavior matrix</h2>
+    <table><thead><tr><th>Condition</th><th>Location</th><th>Why</th></tr></thead><tbody>
+      <tr><td>Source file changed</td><td>Sources disclosure</td><td>Routine observation, not a workflow-wide exception</td></tr>
+      <tr><td>Journal or model uncommitted</td><td>Consolidated alert</td><td>Governance input is not safely recorded</td></tr>
+      <tr><td>Feature suspended</td><td>Consolidated alert</td><td>Workflow passage is globally paused</td></tr>
+      <tr><td>Gate failed or stale</td><td>Gate card and detail tab</td><td>The boundary object owns the condition</td></tr>
+      <tr><td>Action blocked</td><td>Expanded guidance item</td><td>The prerequisite explains one proposed action</td></tr>
+      <tr><td>No action proposed</td><td>No guidance section</td><td>An empty card adds noise but no meaning</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <div class="quiz" data-answer="1"><strong>1. A user selects Designing while the feature is delivering slices. What should current guidance describe?</strong><button>Design approval actions, because Designing is selected</button><button>The governed Delivering Slices state</button><button>Both states merged into one action list</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><strong>2. Which condition should remain quiet inside Sources?</strong><button>An incompatible workflow model</button><button>A suspended feature</button><button>Ordinary uncommitted application source</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="0"><strong>3. Why is the alert policy a pure presentation helper?</strong><button>It can be tested across the condition matrix without Electron or DOM setup</button><button>It lets the renderer mutate protocol warnings before display</button><button>It makes every warning use the same severity</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><strong>4. Where does a failed verification gate explain its blocker?</strong><button>In a permanent global Attention card</button><button>Only in the event journal</button><button>On the gate card and scoped gate detail</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="1"><strong>5. What happens when the canonical snapshot proposes no actions?</strong><button>An empty guidance card says no action is available</button><button>The Current workflow guidance section is hidden</button><button>The last known action remains visible but disabled</button><p class="feedback"></p></div>
+  </section>
+</main>
+<script>
+  const explanations = [
+    'Correct. Inspection is observational; governed state remains the source of guidance.',
+    'Correct. Routine source activity is context, not a workflow-wide exception.',
+    'Correct. The policy matrix is deterministic and cheap to test.',
+    'Correct. Gate-specific problems stay with the boundary object that owns them.',
+    'Correct. No actions means no guidance surface.'
+  ];
+  document.querySelectorAll('.quiz').forEach((quiz, quizIndex) => {
+    quiz.querySelectorAll('button').forEach((button, answerIndex) => button.addEventListener('click', () => {
+      const correct = answerIndex === Number(quiz.dataset.answer);
+      const feedback = quiz.querySelector('.feedback');
+      feedback.className = `feedback ${correct ? 'correct' : 'wrong'}`;
+      feedback.textContent = correct ? explanations[quizIndex] : 'Not quite. Revisit the ownership and current-versus-selected rules above.';
+    }));
+  });
+</script>
+</body>
+</html>

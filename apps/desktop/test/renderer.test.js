@@ -108,6 +108,7 @@ test('renderer presents selection first and then canonical observation status', 
   assert.equal(window.document.querySelector('#overview').hidden, false);
   assert.match(window.document.querySelector('#project-context').textContent, /DELIVERING SLICES/);
   assert.match(window.document.querySelector('#activity').textContent, /polling GitHub/);
+  assert.equal(window.document.querySelector('#actions-surface').hidden, true);
   window.document.querySelector('#open-setup').click();
   assert.equal(window.document.querySelector('#workspace').hidden, true);
   assert.equal(window.document.querySelector('#setup-shell').hidden, false);
@@ -156,8 +157,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
       dependsOn: ['reconcile'],
       outcome: 'PASS',
       freshness: 'CURRENT',
-      blockers: [],
-      reason: null,
+      blockers: [{ message: 'Reconcile must be current first.' }],
+      reason: 'Verification depends on current reconciliation evidence.',
       evidence: { path: 'pr-8/verification.md' },
       recordedEventId: 'evt-gate',
     }, {
@@ -236,7 +237,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     actions: [{
       id: 'boundary.request.review', command: 'boundary request-review slice-attempt-1',
       copyCommand: 'gatereeve boundary request-review slice-attempt-1',
-      authority: 'agent', readiness: 'ready', inputs: [], reasons: [],
+      authority: 'agent', readiness: 'ready', inputs: [{ id: 'reviewPacket', label: 'Review packet' }],
+      reasons: ['All prior gates must remain current.'],
     }],
     artifacts,
     events: { count: 1, lastEventId: event.eventId, recent: [event] },
@@ -333,6 +335,12 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.match(window.document.querySelector('.slice-card.selected').textContent, /Selected/);
   assert.match(window.document.querySelector('#milestones').textContent, /PR boundary active/);
   assert.equal(window.document.querySelectorAll('.inspector-tab').length, 1);
+  assert.equal(window.document.querySelector('#global-alerts').hidden, true);
+  assert.equal(window.document.querySelector('#attention-title'), null);
+  assert.ok(window.document.querySelector('.project-sources'));
+  assert.equal(window.document.querySelector('#actions-surface').hidden, false);
+  assert.match(window.document.querySelector('#guidance-context').textContent, /Current: DELIVERING SLICES/);
+  assert.equal(window.document.querySelector('.action-card').hasAttribute('open'), false);
 
   const designing = [...window.document.querySelectorAll('.state-select')]
     .find((button) => button.textContent.includes('DESIGNING'));
@@ -345,6 +353,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.equal(window.document.querySelector('#slices-surface').hidden, true);
   assert.match(window.document.querySelector('#milestones').textContent, /Design approved/);
   assert.equal(window.document.querySelectorAll('.inspector-tab').length, 2);
+  assert.match(window.document.querySelector('#guidance-context').textContent, /Current: DELIVERING SLICES/);
+  assert.equal(window.document.querySelector('#actions-surface').hidden, false);
 
   const finalizing = [...window.document.querySelectorAll('.state-select')]
     .find((button) => button.textContent.includes('FINALIZING'));
@@ -373,6 +383,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     [...window.document.querySelectorAll('.gate-card .order-marker')].map((marker) => marker.textContent),
     ['1', '4a'],
   );
+  assert.match(window.document.querySelector('.gate-card .object-condition').textContent, /reconciliation evidence/);
   window.document.querySelectorAll('.gate-card')[0].click();
   assert.equal(window.document.querySelector('.gate-card.selected').getAttribute('aria-pressed'), 'true');
   assert.equal(window.document.querySelectorAll('.inspector-tab').length, 3);
@@ -383,6 +394,12 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.ok(selectedGateFrame, `${window.document.querySelector('#inspector-tabs').textContent} | ${window.document.querySelector('#artifact-viewer').textContent}`);
   assert.match(selectedGateFrame.getAttribute('src'), /^gatereeve-artifact:/);
   assert.equal(window.document.querySelectorAll('.action-card').length, 1);
+  const action = window.document.querySelector('.action-card');
+  action.open = true;
+  assert.match(action.textContent, /All prior gates must remain current/);
+  assert.match(action.textContent, /Review packet/);
+  assert.match(action.textContent, /Agent/);
+  assert.match(action.textContent, /gatereeve boundary request-review/);
   const notifications = window.document.querySelector('#notifications');
   notifications.checked = true;
   notifications.dispatchEvent(new window.Event('change'));

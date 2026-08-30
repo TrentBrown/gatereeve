@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GateReeve Desktop</title>
-    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=5">
   </head>
   <body>
     <header class="masthead">
@@ -82,12 +82,8 @@
             </section>
 
             <section id="overview" class="page" data-page="overview" aria-labelledby="overview-title" hidden>
-              <div class="page-heading"><div><p class="section-kicker">Current project</p><h2 id="overview-title">Workflow overview</h2><p id="project-context" class="project-context"></p></div></div>
-              <div id="error" class="notice danger" role="alert" hidden></div>
-              <div id="readiness-banner" class="notice info" role="status" hidden></div>
-              <div id="diagnostic" class="notice" role="status" hidden></div>
-              <div id="warnings" class="notice-stack" aria-label="Warnings"></div>
-              <div class="source-context" aria-label="Observation sources"><div id="source-local" class="source"></div><div id="source-git" class="source"></div><div id="source-github" class="source"></div></div>
+              <div class="page-heading"><div><p class="section-kicker">Current project</p><h2 id="overview-title">Workflow overview</h2><p id="project-context" class="project-context"></p><details class="project-sources"><summary>Sources</summary><div class="source-context" aria-label="Observation sources"><div id="source-local" class="source"></div><div id="source-git" class="source"></div><div id="source-github" class="source"></div></div></details></div></div>
+              <div id="global-alerts" class="notice" role="alert" hidden></div>
 
               <section class="surface" aria-labelledby="state-title">
                 <div class="surface-heading"><div><p class="section-kicker">Pinned state machine</p><h3 id="state-title">Feature state rail</h3></div><button class="text-button" type="button" data-go-view="model">View full model</button></div>
@@ -104,8 +100,7 @@
                 <div class="surface-heading"><div><p class="section-kicker">Selected state · Closeout</p><h3 id="closeout-title">Feature closeout</h3></div><span id="closeout-status" class="status"></span></div>
                 <div id="closeout-summary" class="stack"></div>
               </section>
-              <section class="surface" aria-labelledby="attention-title"><div class="surface-heading"><div><p class="section-kicker">Attention</p><h3 id="attention-title">Blockers and warnings</h3></div></div><div id="attention" class="stack"></div></section>
-              <section class="surface" aria-labelledby="actions-title"><div class="surface-heading"><div><p class="section-kicker">Governed guidance</p><h3 id="actions-title">Next actions</h3></div></div><div id="actions" class="action-grid"></div></section>
+              <section id="actions-surface" class="surface" aria-labelledby="actions-title" hidden><div class="surface-heading"><div><p class="section-kicker">Governed current state</p><h3 id="actions-title">Current workflow guidance</h3><p id="guidance-context" class="selection-context"></p></div></div><div id="actions" class="action-grid"></div></section>
             </section>
 
             <section class="page" data-page="artifacts" aria-labelledby="artifacts-title" hidden>

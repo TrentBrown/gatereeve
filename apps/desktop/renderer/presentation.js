@@ -24,6 +24,26 @@ export function modeMessage(snapshot) {
   return message ? `${message}${reason ? ` ${reason}` : ''}` : null;
 }
 
+export function globalAlert(snapshot, runtimeError = null) {
+  const messages = [];
+  const runtimeMessage = runtimeError?.message ?? (typeof runtimeError === 'string' ? runtimeError : null);
+  if (runtimeMessage) messages.push(runtimeMessage);
+  const diagnostic = modeMessage(snapshot);
+  if (diagnostic) messages.push(diagnostic);
+  for (const warning of snapshot?.warnings ?? []) {
+    if (warning.severity === 'activity') continue;
+    messages.push(`${humanize(warning.type)} requires governance attention.`);
+  }
+  const items = [...new Set(messages)];
+  if (items.length === 0) return null;
+  const danger = Boolean(runtimeMessage) || ['inconsistent', 'incompatible'].includes(snapshot?.mode);
+  return {
+    title: items.length === 1 ? 'Workflow attention' : `${items.length} workflow conditions require attention`,
+    tone: danger ? 'danger' : 'warning',
+    items,
+  };
+}
+
 export function sourceLabel(name, source) {
   const status = source?.status ?? 'not-checked';
   const detail = source?.detail ? ` — ${source.detail}` : '';

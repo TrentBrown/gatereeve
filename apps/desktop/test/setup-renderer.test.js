@@ -127,6 +127,12 @@ test('visual fixture remaps the confined production brand route to the source as
   ]) {
     assert.match(fixtureApi, new RegExp(`\\b${method}\\b`));
   }
+  for (const scenario of [
+    'source-activity', 'governance', 'suspended', 'inconsistent', 'incompatible',
+    'no-actions', 'gate-blocked', 'runtime',
+  ]) {
+    assert.match(fixtureApi, new RegExp(`['\"]${scenario}['\"]`));
+  }
 });
 
 test('first launch presents persistent non-mutating Setup and preserves historical access', async () => {

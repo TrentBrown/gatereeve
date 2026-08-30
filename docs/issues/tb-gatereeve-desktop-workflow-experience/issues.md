@@ -84,12 +84,12 @@ ordering markers.
 
 ## I-7 - Consolidate alerts and current workflow guidance
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P7
 - **Rubric criteria:** R7, R8
 - **Depends on:** I-4, I-6
-- **PR:** -
+- **PR:** [#30](https://github.com/TrentBrown/gatereeve/pull/30)
 
 Remove duplicated notification surfaces, locate conditions at their approved
 scope, relocate Sources and notification preferences, and implement conditional

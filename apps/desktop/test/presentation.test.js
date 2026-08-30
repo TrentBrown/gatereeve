@@ -6,6 +6,7 @@ import {
   attemptArtifact,
   featureStates,
   gateArtifact,
+  globalAlert,
   humanize,
   modeMessage,
   selectedAttempt,
@@ -105,4 +106,31 @@ test('diagnostic and action explanations distinguish observation from workflow p
     mode: 'governed', blockers: [], projection: { suspension: { paused: true } },
   }), /suspended/i);
   assert.match(actionMeaning('slice record-merge one'), /exact reviewed content/i);
+});
+
+test('global alerts reserve headline visibility for exceptional workflow conditions', () => {
+  assert.equal(globalAlert({
+    mode: 'governed',
+    warnings: [{ type: 'source-uncommitted', severity: 'activity' }],
+  }), null);
+
+  const governance = globalAlert({
+    mode: 'governed',
+    warnings: [
+      { type: 'journal-uncommitted', severity: 'warning' },
+      { type: 'model-uncommitted', severity: 'warning' },
+      { type: 'journal-uncommitted', severity: 'warning' },
+    ],
+  });
+  assert.equal(governance.tone, 'warning');
+  assert.equal(governance.items.length, 2);
+  assert.match(governance.items.join(' '), /Journal uncommitted/);
+
+  const incompatible = globalAlert({ mode: 'incompatible', warnings: [], blockers: [] });
+  assert.equal(incompatible.tone, 'danger');
+  assert.match(incompatible.items[0], /will not reinterpret or migrate/i);
+
+  const runtime = globalAlert({ mode: 'governed', warnings: [] }, new Error('Observer failed'));
+  assert.equal(runtime.tone, 'danger');
+  assert.deepEqual(runtime.items, ['Observer failed']);
 });
