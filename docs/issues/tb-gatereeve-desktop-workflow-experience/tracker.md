@@ -15,8 +15,8 @@
 | R4 | Feature-state inspection | NOT YET | [#29](https://github.com/TrentBrown/gatereeve/pull/29) | Current and Selected semantics, preserved observational selection, state-filtered milestones, state artifacts, progressive disclosures, and journal-invariant renderer coverage are implemented in P6; final integrated P8 verification remains. |
 | R5 | Slice and boundary hierarchy | NOT YET | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#29](https://github.com/TrentBrown/gatereeve/pull/29) | Stable slice ordinals, deterministic serial and parallel gate labels, selected-slice attempt filtering, explicit no-boundary state, and canonical or virtual detail tabs are implemented; final P8 verification remains. |
 | R6 | Unified artifact panel | NOT YET | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#28](https://github.com/TrentBrown/gatereeve/pull/28) | Completion-report and named gate-detail contracts plus canonical application-level tabs, deduplication, close/hide behavior, reconciliation, and inventory-only Artifacts UI are implemented; later hierarchy entry points and final P8 verification remain. |
-| R7 | Alert policy | NOT YET | - | Planned for P7, P8 / I-7, I-8 |
-| R8 | Accessibility and constrained layout | NOT YET | [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#29](https://github.com/TrentBrown/gatereeve/pull/29) | P4-P6 controls, focus restoration, reduced motion, keyboard resizing, semantic tabs, explicit Current/Selected/Active labels, pressed states, and outlined natural-number markers are implemented and fixture-checked; alert-policy and final P8 obligations remain. |
+| R7 | Alert policy | NOT YET | [#30](https://github.com/TrentBrown/gatereeve/pull/30) | P7 implements one consolidated exceptional-alert surface, quiet project Sources, local gate/Setup/action conditions, selection-independent current guidance, and an eight-scenario fixture matrix; final P8 running-application visual verification remains. |
+| R8 | Accessibility and constrained layout | NOT YET | [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#29](https://github.com/TrentBrown/gatereeve/pull/29), [#30](https://github.com/TrentBrown/gatereeve/pull/30) | P4-P7 controls, focus restoration, reduced motion, keyboard resizing, semantic tabs, explicit Current/Selected/Active labels, outlined natural-number markers, native details disclosures, and text-bearing alert/guidance states are implemented and fixture-checked; final P8 runtime accessibility and constrained-layout verification remain. |
 
 ## PR Log
 
@@ -54,3 +54,15 @@
   disclosure, scoped attempt and gate inspection, closeout disclosure, and
   semantic ordering while P7 alert policy and final P8 verification remain.
 - **Evidence:** [PR #29 packet](pr-29/boundary.json)
+
+### PR #30 - Alert and attention policy
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/30
+- **Scope:** P7 alert-policy slice, `slice-04-alert-attention-policy`
+- **Issues:** I-7
+- **Rubric movement:** R7 and R8 remain `NOT YET`; this PR supplies the
+  exception-only alert policy, object-local conditions, quiet Sources context,
+  conditional current-state guidance, semantic disclosure behavior, and fixture
+  matrix while P8 retains final running-application and constrained-layout
+  verification.
+- **Evidence:** [PR #30 packet](pr-30/boundary.json)
