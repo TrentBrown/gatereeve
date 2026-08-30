@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Implement schema-v2 lifecycle and v1 compatibility
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1.5d
 - **Plan steps:** P1
 - **Rubric criteria:** R1, R2
@@ -21,7 +21,7 @@ binding, and compatibility fixtures without mutating historical v1 records.
 
 ## I-2 - Implement candidate reservation and Apple attempt recovery
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P2
 - **Rubric criteria:** R2, R4
