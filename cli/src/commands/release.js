@@ -14,6 +14,11 @@ import {
   verifyCoordinatedReleaseWorkspace,
 } from '../plugin/coordinated-release.js';
 import { publishCoordinatedRelease } from '../plugin/coordinated-publication.js';
+import {
+  finalizeHostedPublicationV2,
+  publishHostedReleaseV2,
+  verifyHostedPublicationPacket,
+} from '../plugin/hosted-publication-v2.js';
 import { loadAndValidateNativeSources } from '../plugin/native.js';
 import { lintPortability } from '../plugin/portability.js';
 import { prepareRelease, validateReleaseEvidence } from '../plugin/release.js';
@@ -39,6 +44,13 @@ import {
   readHomebrewCaskRecord,
   renderHomebrewCaskPublicationPlan,
 } from '../plugin/homebrew-cask.js';
+import {
+  homebrewCaskPlanSha256V2,
+  prepareHomebrewCaskV2,
+  publishHomebrewCaskV2,
+  renderHomebrewCaskPublicationPlanV2,
+  verifyHomebrewCaskWorkspaceV2,
+} from '../plugin/homebrew-cask-v2.js';
 
 function positiveInteger(value) {
   const parsed = Number.parseInt(value, 10);
@@ -398,6 +410,98 @@ export function releaseCommands({ repositoryRoot }) {
     });
 
   release
+    .command('finalize-hosted')
+    .description('Seal exact trusted schema-v2 inputs for hosted publication')
+    .requiredOption('--trusted-record <path>', 'Desktop-trust-verified schema-v2 lifecycle')
+    .requiredOption('--plugin-root <path>', 'Retained exact Plugin candidate')
+    .requiredOption('--desktop-dmg <path>', 'Retained final trusted universal DMG')
+    .requiredOption('--desktop-evidence <paths...>', 'Retained ARM64 and Intel evidence')
+    .requiredOption('--current-update-manifest <path>', 'Exact update-manifest base input')
+    .requiredOption('--output-root <path>', 'Fresh sealed publication packet directory')
+    .option('--json', 'Print machine-readable finalization results')
+    .action(async (options) => {
+      const result = await finalizeHostedPublicationV2({
+        trustedRecordPath: resolve(options.trustedRecord),
+        pluginRoot: resolve(options.pluginRoot),
+        desktopDmgPath: resolve(options.desktopDmg),
+        desktopEvidencePaths: options.desktopEvidence.map((path) => resolve(path)),
+        currentUpdateManifestPath: resolve(options.currentUpdateManifest),
+        outputRoot: resolve(options.outputRoot),
+      });
+      const value = {
+        schemaVersion: 2,
+        releaseId: result.record.releaseId,
+        state: result.record.stages.at(-1).stage,
+        outputRoot: result.outputRoot,
+        recordPath: result.recordPath,
+        planPath: result.planPath,
+        planSha256: result.planSha256,
+      };
+      if (options.json) console.log(JSON.stringify(value, null, 2));
+      else {
+        console.log(`Finalized ${value.releaseId} for hosted publication.`);
+        console.log(`Plan SHA-256: ${value.planSha256}`);
+      }
+    });
+
+  release
+    .command('inspect-hosted')
+    .description('Verify one sealed schema-v2 hosted publication packet')
+    .requiredOption('--release-record <path>', 'Finalized schema-v2 release record')
+    .option('--json', 'Print machine-readable packet state')
+    .action(async (options) => {
+      const result = await verifyHostedPublicationPacket(resolve(options.releaseRecord));
+      const value = {
+        schemaVersion: 2,
+        releaseId: result.record.releaseId,
+        state: result.record.stages.at(-1).stage,
+        planSha256: result.receipts.planSha256,
+        receipts: result.receipts.receipts,
+      };
+      if (options.json) console.log(JSON.stringify(value, null, 2));
+      else console.log(JSON.stringify(value, null, 2));
+    });
+
+  release
+    .command('publish-hosted')
+    .description('Dry-run, publish, or recover one exact hosted schema-v2 packet')
+    .requiredOption('--release-record <path>', 'Finalized schema-v2 release record')
+    .requiredOption('--plan-sha256 <digest>', 'Exact sealed publication-plan SHA-256')
+    .option('--approved-by <identity>', 'Human publication approver identity')
+    .option('--confirm', 'Confirm the exact plan and permit public mutation')
+    .option('--dry-run', 'Run read-only remote preflights without mutation')
+    .option('--json', 'Print machine-readable publication results')
+    .action(async (options) => {
+      if (options.confirm && options.dryRun) throw new Error('Choose either --confirm or --dry-run');
+      if (!options.confirm && !options.dryRun) {
+        throw new Error('Hosted publication requires --confirm or --dry-run');
+      }
+      if (options.confirm && !options.approvedBy) {
+        throw new Error('Hosted publication confirmation requires --approved-by');
+      }
+      const result = await publishHostedReleaseV2({
+        recordPath: resolve(options.releaseRecord),
+        repositoryRoot,
+        planSha256: options.planSha256,
+        approvedBy: options.approvedBy ?? '',
+        confirm: Boolean(options.confirm),
+        dryRun: Boolean(options.dryRun),
+      });
+      const value = {
+        schemaVersion: 2,
+        dryRun: result.dryRun,
+        releaseId: result.record.releaseId,
+        state: result.record.stages.at(-1).stage,
+        planSha256: result.planSha256,
+        receipts: result.receipts.receipts,
+      };
+      if (options.json) console.log(JSON.stringify(value, null, 2));
+      else if (result.dryRun) {
+        console.log(`Hosted preflight passed for ${value.releaseId}; no public mutation occurred.`);
+      } else console.log(`Published ${value.releaseId} through every hosted primary surface.`);
+    });
+
+  release
     .command('publish-coordinated')
     .description('Publish or recover one exact approved Plugin/Desktop release record')
     .requiredOption('--release-record <path>', 'Trusted coordinated release record')
@@ -478,6 +582,105 @@ export function releaseCommands({ repositoryRoot }) {
         console.log(`Plan SHA-256: ${result.planSha256}`);
         console.log('Public tap creation and Cask publication remain blocked pending exact approval.');
       }
+    });
+
+  release
+    .command('prepare-cask-hosted')
+    .description('Prepare a linked schema-v2 Cask packet from completed primary publication')
+    .requiredOption('--primary-record <path>', 'Published hosted primary release record')
+    .requiredOption('--output-root <path>', 'Fresh linked Homebrew Cask packet directory')
+    .requiredOption(
+      '--direct-install-confirmed-by <identity>',
+      'Person who installed the exact public DMG and launched GateReeve'
+    )
+    .requiredOption(
+      '--direct-install-confirmed-at <timestamp>',
+      'ISO timestamp for exact public-DMG installation and launch proof'
+    )
+    .option('--json', 'Print machine-readable linked Cask preparation results')
+    .action(async (options) => {
+      const result = await prepareHomebrewCaskV2({
+        primaryRecordPath: resolve(options.primaryRecord),
+        outputRoot: resolve(options.outputRoot),
+        directInstallConfirmedBy: options.directInstallConfirmedBy,
+        directInstallConfirmedAt: options.directInstallConfirmedAt,
+      });
+      const value = {
+        schemaVersion: 2,
+        outputRoot: result.outputRoot,
+        recordPath: result.recordPath,
+        planPath: result.planPath,
+        caskPath: result.caskPath,
+        planSha256: result.planSha256,
+        caskReleaseId: result.record.caskReleaseId,
+        primaryRecordSha256: result.record.primary.recordSha256,
+        state: result.record.state,
+      };
+      if (options.json) console.log(JSON.stringify(value, null, 2));
+      else {
+        console.log(`Prepared linked ${value.caskReleaseId} in ${value.outputRoot}`);
+        console.log(`Cask plan SHA-256: ${value.planSha256}`);
+      }
+    });
+
+  release
+    .command('inspect-cask-hosted')
+    .description('Verify an exact linked schema-v2 Homebrew Cask packet')
+    .requiredOption('--cask-record <path>', 'Linked schema-v2 Cask publication record')
+    .option('--json', 'Print machine-readable linked Cask state')
+    .action(async (options) => {
+      const result = await verifyHomebrewCaskWorkspaceV2(resolve(options.caskRecord));
+      const value = {
+        schemaVersion: 2,
+        caskReleaseId: result.record.caskReleaseId,
+        primary: result.record.primary,
+        state: result.record.state,
+        planSha256: homebrewCaskPlanSha256V2(result.record),
+        surface: result.record.publication.surface,
+      };
+      if (options.json) console.log(JSON.stringify(value, null, 2));
+      else {
+        console.log(renderHomebrewCaskPublicationPlanV2(result.record));
+        console.log(`Plan SHA-256: ${value.planSha256}`);
+      }
+    });
+
+  release
+    .command('publish-cask-hosted')
+    .description('Dry-run, publish, or recover one linked schema-v2 Cask packet')
+    .requiredOption('--cask-record <path>', 'Linked schema-v2 Cask publication record')
+    .requiredOption('--plan-sha256 <digest>', 'Exact separately approved Cask plan SHA-256')
+    .option('--approved-by <identity>', 'Human Cask publication approver identity')
+    .option('--confirm', 'Confirm the exact Cask plan and permit tap mutation')
+    .option('--dry-run', 'Run read-only remote Cask preflights without mutation')
+    .option('--json', 'Print machine-readable linked Cask publication results')
+    .action(async (options) => {
+      if (options.confirm === options.dryRun) {
+        throw new Error('Linked Cask publication requires exactly one of --confirm or --dry-run');
+      }
+      if (options.confirm && !options.approvedBy) {
+        throw new Error('Linked Cask publication confirmation requires --approved-by');
+      }
+      const result = await publishHomebrewCaskV2({
+        recordPath: resolve(options.caskRecord),
+        planSha256: options.planSha256,
+        approvedBy: options.approvedBy ?? '',
+        confirm: Boolean(options.confirm),
+        dryRun: Boolean(options.dryRun),
+      });
+      const value = {
+        schemaVersion: 2,
+        dryRun: result.dryRun,
+        caskReleaseId: result.record.caskReleaseId,
+        state: result.record.state,
+        planSha256: result.planSha256,
+        tapState: result.tapState,
+        surface: result.record.publication.surface,
+      };
+      if (options.json) console.log(JSON.stringify(value, null, 2));
+      else if (result.dryRun) {
+        console.log(`Linked Cask preflight passed for ${value.caskReleaseId}; no mutation occurred.`);
+      } else console.log(`Published linked ${value.caskReleaseId}.`);
     });
 
   release

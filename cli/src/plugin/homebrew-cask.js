@@ -56,7 +56,7 @@ function releaseUrl(record) {
   return `https://github.com/${RELEASE_REPOSITORY}/releases/download/${record.source.tag}/${record.candidates.desktop.artifact.filename}`;
 }
 
-function renderHomebrewCaskIdentity({ version, digest }) {
+export function renderHomebrewCaskIdentity({ version, digest }) {
   parseReleaseTag(`v${version}`);
   if (!SHA256.test(digest ?? '')) throw new Error('Homebrew Cask SHA-256 is invalid');
   return `cask "${HOMEBREW_CASK_TOKEN}" do
@@ -518,6 +518,19 @@ export async function preflightHomebrewCaskPublication({
   request = requestGitHubApi,
 }) {
   const record = await verifyHomebrewCaskWorkspace(recordPath);
+  const result = await preflightHomebrewCaskRecord({
+    record,
+    workspaceRoot: dirname(resolve(recordPath)),
+    request,
+  });
+  return { record, ...result };
+}
+
+export async function preflightHomebrewCaskRecord({
+  record,
+  workspaceRoot,
+  request = requestGitHubApi,
+}) {
   const release = await request({
     endpoint: `repos/${RELEASE_REPOSITORY}/releases/tags/${encodeURIComponent(record.source.tag)}`,
   });
@@ -533,7 +546,10 @@ export async function preflightHomebrewCaskPublication({
       reference: 'main',
       allowNotFound: true,
     });
-    const content = await readFile(resolve(dirname(resolve(recordPath)), record.cask.outputPath), 'utf8');
+    const content = await readFile(resolve(workspaceRoot, record.cask.outputPath), 'utf8');
+    if (record.publication.surface.state === 'complete' && destination?.content !== content) {
+      throw new Error('Published Homebrew Cask record differs from the public tap');
+    }
     if (destination !== null && destination.content !== content) {
       const predecessor = canonicalPredecessorIdentity(destination.content, record.version);
       const predecessorRelease = await request({
@@ -544,7 +560,30 @@ export async function preflightHomebrewCaskPublication({
   } else if (record.publication.surface.state === 'complete') {
     throw new Error('Published Homebrew Cask record has no public tap');
   }
-  return { record, tapState: repository === null ? 'absent' : 'present' };
+  return { tapState: repository === null ? 'absent' : 'present' };
+}
+
+export async function convergeHomebrewCaskPublication({
+  record,
+  workspaceRoot,
+  planSha256,
+  request = requestGitHubApi,
+  publishFile = publishRepositoryFileViaPullRequest,
+}) {
+  await ensureTapRepository(request);
+  const content = await readFile(resolve(workspaceRoot, record.cask.outputPath), 'utf8');
+  return publishFile({
+    request,
+    repository: HOMEBREW_TAP_REPOSITORY,
+    baseBranch: 'main',
+    version: record.version,
+    sourceCommit: record.source.commit,
+    planSha256,
+    title: `Publish GateReeve ${record.version} Homebrew Cask`,
+    path: HOMEBREW_CASK_PATH,
+    content,
+    fileSha256: record.cask.sha256,
+  });
 }
 
 export async function publishHomebrewCask({
@@ -581,20 +620,13 @@ export async function publishHomebrewCask({
   if (record.publication.surface.state === 'complete') {
     return { dryRun: false, record, planSha256: exactPlanSha256, tapState: 'present' };
   }
-  await ensureTapRepository(request);
   const root = dirname(resolve(recordPath));
-  const content = await readFile(resolve(root, record.cask.outputPath), 'utf8');
-  const receipt = await publishFile({
-    request,
-    repository: HOMEBREW_TAP_REPOSITORY,
-    baseBranch: 'main',
-    version: record.version,
-    sourceCommit: record.source.commit,
+  const receipt = await convergeHomebrewCaskPublication({
+    record,
+    workspaceRoot: root,
     planSha256: exactPlanSha256,
-    title: `Publish GateReeve ${record.version} Homebrew Cask`,
-    path: HOMEBREW_CASK_PATH,
-    content,
-    fileSha256: record.cask.sha256,
+    request,
+    publishFile,
   });
   const publishedAt = now().toISOString();
   record = structuredClone(record);

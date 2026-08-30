@@ -10,164 +10,186 @@ owns individual enrollment, Developer ID and team API credentials, encrypted
 recovery, the protected GitHub environment, and the nonpublishing trust
 rehearsal. This document begins only after that prerequisite is ready.
 
-Release publication is intentionally guarded. First run the nonpublishing
-`Coordinated Release Preparation` workflow for the intended RC from `main`.
-It binds the workflow-dispatch SHA to the exact current reviewed `origin/main`
-and enters the separately approved `release-trust` environment. The protected
-job still publishes nothing. Download its
-`gatereeve-<tag>-coordinated-release` artifact, then inspect the schema-v2
-lifecycle record:
+New coordinated Plugin/Desktop RCs use four distinct hosted boundaries:
 
-```bash
-RELEASE_RECORD=/path/to/coordinated-release/release-record.json
-npm start --prefix cli -- plugin release inspect-record \
-  --release-record "$RELEASE_RECORD"
-```
+1. `coordinated-release-prepare.yml` produces Apple-trusted bytes and native
+   evidence under `release-trust`, with read-only repository permission.
+2. `coordinated-release-finalize.yml` seals those retained exact bytes,
+   checksums, update metadata, and publication plan without an environment or
+   mutation authority.
+3. `coordinated-release-publish.yml` first runs a protected, read-only dry run;
+   a later, separately approved dispatch may publish only that sealed plan.
+4. Homebrew Cask finalization and publication occur later under their own
+   linked record and approval.
 
-Do not create release tags manually, invoke the low-level marketplace publisher
-directly, or edit the `marketplace` branch. The guarded command validates the
-source and requires this exact coordinated record before it can create a tag.
-The record binds the Plugin candidate, submitted and final universal Desktop
-DMG identities, Apple request, both native verification results, and trust
-evidence through `desktop-trust-verified`. P5 finalization adds distribution
-metadata and the sealed hosted-publication plan; this trust-preparation step has
-neither publication credentials nor publication authority.
+Approving `release-trust` or a publication dry run is not approval to publish.
+GitHub stores configured credentials between releases; an environment approval
+grants a job temporary access and never requires the maintainer to re-enter
+credentials or secret values. Do not create release tags manually, invoke the
+low-level marketplace script, edit `marketplace`, or run local publication
+commands as an alternate production path.
 
-### Coordinated Desktop RC publication
+### 1. Produce the trusted RC packet
 
-The first public Desktop RC uses the complete coordinated path rather than the
-Plugin-only tag publisher described later in this runbook. Preparation is still
-nonpublishing:
+Start from a fresh, unused RC identity and the exact current reviewed `main`:
 
 ```bash
 RC_TAG=v0.1.0-rc.1
 gh workflow run coordinated-release-prepare.yml \
+  --repo TrentBrown/gatereeve \
   --ref main \
   -f tag="$RC_TAG"
 ```
 
-After the run passes, download its exact artifact and inspect the plan:
+Record the successful preparation run ID and its exact `headSha`. The retained
+artifacts include the Plugin candidate, submitted and final universal DMGs,
+durable Apple attempt history, Apple evidence, exact native ARM64 and Intel
+documents, and a schema-v2 lifecycle through `desktop-trust-verified`. Every
+artifact is retained for 30 days.
+
+Do not use GitHub's generic **Re-run jobs** once protected trust production has
+begun. If polling times out or a run is interrupted, use the bounded recovery
+workflow documented in `APPLE-RELEASE-SETUP.md`. Recovery consumes retained
+bytes and request history; it never rebuilds, re-signs, or silently resubmits.
+If trusted bytes must change, burn the RC identity and begin with a new RC.
+
+### 2. Seal the primary publication packet
+
+Use the original preparation run for the Plugin and the latest successful
+preparation/recovery run for trusted Desktop artifacts:
 
 ```bash
 PREPARATION_RUN_ID=<RUN_ID>
-RELEASE_ROOT="$HOME/Downloads/gatereeve-$RC_TAG-coordinated-release"
-gh run download "$PREPARATION_RUN_ID" \
-  --name "gatereeve-$RC_TAG-coordinated-release" \
-  --dir "$RELEASE_ROOT"
-RELEASE_RECORD="$RELEASE_ROOT/release-record.json"
-npm start --prefix cli -- plugin release inspect-record \
-  --release-record "$RELEASE_RECORD" \
+TRUST_ARTIFACT_RUN_ID=<RUN_ID>
+SOURCE_COMMIT=<SOURCE_SHA>
+
+gh workflow run coordinated-release-finalize.yml \
+  --repo TrentBrown/gatereeve \
+  --ref main \
+  -f preparation_run_id="$PREPARATION_RUN_ID" \
+  -f trust_artifact_run_id="$TRUST_ARTIFACT_RUN_ID" \
+  -f tag="$RC_TAG" \
+  -f source_commit="$SOURCE_COMMIT"
+```
+
+Download the finalization artifact and inspect it locally without mutation:
+
+```bash
+FINALIZATION_RUN_ID=<RUN_ID>
+PUBLICATION_ROOT="$HOME/Downloads/gatereeve-$RC_TAG-hosted-publication"
+gh run download "$FINALIZATION_RUN_ID" \
+  --repo TrentBrown/gatereeve \
+  --name "gatereeve-$RC_TAG-hosted-publication" \
+  --dir "$PUBLICATION_ROOT"
+npm start --prefix cli -- plugin release inspect-hosted \
+  --release-record "$PUBLICATION_ROOT/release-record.json" \
   --json
 ```
 
-The artifact contains the schema-v2 lifecycle record. The same run retains the
-exact submitted and final DMGs, Apple attempt history, Apple evidence, both
-native verification records, and their aggregate as separate 30-day artifacts.
-Do not use the legacy coordinated publisher on this intermediate trust record.
-After P5 finalization produces a sealed plan, run remote preflights without
-mutation:
+Record `PLAN_SHA256_FROM_INSPECTION`. Review the source, Plugin tree, final DMG,
+native evidence, Apple trust, generated assets, manifest base/output, and exact
+surface order. The finalizer is read-only and rejects any input that differs
+from the already trusted lifecycle.
+
+### 3. Run the protected nonpublishing rehearsal
+
+Before dispatch, inventory the public tag, release, marketplace head, manifest,
+website response, and Cask. Then run the protected dry-run mode:
 
 ```bash
-PLAN_SHA256=<PLAN_DIGEST>
-npm start --prefix cli -- plugin release publish-coordinated \
-  --release-record "$RELEASE_RECORD" \
-  --plan-sha256 "$PLAN_SHA256" \
-  --dry-run
+PLAN_SHA256_FROM_INSPECTION=<PLAN_DIGEST>
+gh workflow run coordinated-release-publish.yml \
+  --repo TrentBrown/gatereeve \
+  --ref main \
+  -f finalization_run_id="$FINALIZATION_RUN_ID" \
+  -f tag="$RC_TAG" \
+  -f source_commit="$SOURCE_COMMIT" \
+  -f plan_sha256="$PLAN_SHA256_FROM_INSPECTION" \
+  -f mode=dry-run
 ```
 
-Present the exact tag, source commit, Plugin and DMG hashes, Apple trust
-evidence, manifest hashes, and ordered plan for separate human approval. Only
-after that approval may the maintainer run:
+Approve the `release-publication` environment only after checking the exact
+inputs. The dry-run job has read-only permissions, receives no publication
+secret, records no publication approval, and cannot mutate a tag, release,
+marketplace branch, manifest PR, website, or Cask. Repeat the public inventory
+afterward and retain the before/after evidence.
 
-`PLAN_SHA256` is the `PLAN_SHA256_FROM_INSPECTION`; do not recalculate or
-substitute it after approval.
+### 4. Publish the separately approved exact primary plan
+
+Public publication requires a new dispatch and a separate decision. Present
+the sealed plan and digest for approval, then use the same finalization run and
+digest:
 
 ```bash
-npm start --prefix cli -- plugin release publish-coordinated \
-  --release-record "$RELEASE_RECORD" \
-  --plan-sha256 "$PLAN_SHA256" \
-  --approved-by "Trent Brown" \
-  --confirm
+gh workflow run coordinated-release-publish.yml \
+  --repo TrentBrown/gatereeve \
+  --ref main \
+  -f finalization_run_id="$FINALIZATION_RUN_ID" \
+  -f tag="$RC_TAG" \
+  -f source_commit="$SOURCE_COMMIT" \
+  -f plan_sha256="$PLAN_SHA256_FROM_INSPECTION" \
+  -f mode=publish \
+  -f approved_by="Trent Brown"
 ```
 
-The command uses the maintainer-authenticated `gh` identity. It creates or
-verifies the exact tag, waits for and verifies Plugin publication, creates or
-verifies the GitHub prerelease and its two assets, transports the immutable
-manifest through one deterministic merge-commit pull request, and finally
-waits until the production Early Access endpoint serves those exact bytes. A
-receipt is persisted after every surface. Rerun the same approved record after
-a partial failure; never delete or replace an already published tag or asset.
+The hosted publisher creates or verifies the exact tag, publishes the retained
+Plugin tree without rebuilding it, creates or verifies the GitHub prerelease
+and exact assets, transports update metadata through one deterministic PR, and
+waits for the exact Early Access response. It appends a receipt after each
+surface. Retry the same dispatch inputs and retained packet after partial
+failure; never delete, move, replace, or republish completed history.
 
-The generated manifest pull request is transport and audit evidence for the
-already approved plan, not a second release decision. If repository checks or
-review policy leave it unmergeable, the command stops with that PR intact for
-normal resolution and safe retry. It never writes directly to `main`.
+### 5. Publish the linked Homebrew Cask later
 
-### Homebrew Cask publication after direct-install proof
-
-Homebrew is a separate final publication surface. It is deliberately absent
-from the coordinated Plugin/Desktop record so a direct DMG can be installed and
-launched before the Cask receives public authority. The Cask pins and downloads
-that exact GitHub Releases DMG; it never rebuilds or repackages the application.
-
-Download the original successful trusted coordinated-release artifact, then
-prepare a fresh Cask packet with the maintainer's observed direct-install proof:
+Primary publication may remain complete while Cask is pending. First install
+the exact public DMG directly and launch `GateReeve.app`. Record the confirmer
+and timestamp only after both actions succeed. Cask finalization binds that
+attestation, the completed primary record digest, primary plan and receipts,
+source SHA, trusted DMG, Apple trust, and exact Cask bytes:
 
 ```bash
-RELEASE_RECORD=/path/to/coordinated-release/release-record.json
-CASK_ROOT="$HOME/Downloads/gatereeve-cask-v0.1.0-rc.1"
-
-npm start --prefix cli -- plugin release prepare-cask \
-  --release-record "$RELEASE_RECORD" \
-  --output-root "$CASK_ROOT" \
-  --direct-install-confirmed-by "Trent Brown" \
-  --direct-install-confirmed-at "<ISO_TIMESTAMP>"
-
-npm start --prefix cli -- plugin release inspect-cask \
-  --cask-record "$CASK_ROOT/cask-record.json"
+PRIMARY_PUBLICATION_RUN_ID=<RUN_ID>
+DIRECT_INSTALL_AT=<ISO_TIMESTAMP>
+gh workflow run homebrew-cask-finalize.yml \
+  --repo TrentBrown/gatereeve \
+  --ref main \
+  -f primary_publication_run_id="$PRIMARY_PUBLICATION_RUN_ID" \
+  -f tag="$RC_TAG" \
+  -f source_commit="$SOURCE_COMMIT" \
+  -f direct_install_confirmed_by="Trent Brown" \
+  -f direct_install_confirmed_at="$DIRECT_INSTALL_AT"
 ```
 
-The packet binds the public `TrentBrown/homebrew-gatereeve` tap, the
-`Casks/gatereeve.rb` path, exact Cask bytes, source commit, DMG filename, size,
-checksum, Developer ID trust state, and direct-install assertion. Run the
-read-only remote preflight before requesting the distinct Cask approval:
+Inspect the resulting packet with `plugin release inspect-cask-hosted`, retain
+its separate Cask plan digest, and run the protected dry run:
 
 ```bash
-CASK_PLAN_SHA256=<DIGEST_FROM_INSPECTION>
-npm start --prefix cli -- plugin release publish-cask \
-  --cask-record "$CASK_ROOT/cask-record.json" \
-  --plan-sha256 "$CASK_PLAN_SHA256" \
-  --dry-run
+CASK_FINALIZATION_RUN_ID=<RUN_ID>
+CASK_PLAN_SHA256=<PLAN_DIGEST>
+gh workflow run homebrew-cask-publish.yml \
+  --repo TrentBrown/gatereeve \
+  --ref main \
+  -f cask_finalization_run_id="$CASK_FINALIZATION_RUN_ID" \
+  -f tag="$RC_TAG" \
+  -f source_commit="$SOURCE_COMMIT" \
+  -f plan_sha256="$CASK_PLAN_SHA256" \
+  -f mode=dry-run
 ```
 
-Present the complete plan and its digest for exact approval. The plan explicitly
-includes creation of the public tap when it does not yet exist. Only after that
-approval may the maintainer run:
+After distinct Cask approval, dispatch the same workflow with `mode=publish`
+and `approved_by="Trent Brown"`. Only that real job receives the stored
+`GATEREEVE_PUBLICATION_TOKEN`; the rehearsal receives no secret. The publisher
+transports one exact `Casks/gatereeve.rb` through a deterministic tap PR and
+records its URL, merge commit, and file digest. Retry the same packet after
+partial failure. Do not substitute a checksum or publish the Cask by hand.
 
-```bash
-npm start --prefix cli -- plugin release publish-cask \
-  --cask-record "$CASK_ROOT/cask-record.json" \
-  --plan-sha256 "$CASK_PLAN_SHA256" \
-  --approved-by "Trent Brown" \
-  --confirm
-```
-
-The publisher creates an initialized public tap only if absent, transports one
-exact Cask file through a generated pull request, merges only a clean one-commit
-change, verifies the bytes on `main`, and records the pull request and merge
-commit. Retry the same packet after a partial failure. Do not recreate the tap,
-substitute a checksum, or publish the Cask by hand.
-
-The nonpublishing `Homebrew Cask Smoke` workflow exercises installation and an
-upgrade transition through a disposable local tap on Apple Silicon and Intel.
-After public publication, verify the user path on a clean machine:
+Afterward, verify the user path on a clean Mac:
 
 ```bash
 brew install --cask TrentBrown/gatereeve/gatereeve
 ```
 
-This command installs Desktop only. The required Plugin and optional CLI retain
-their independent native-manager installation and update lifecycles.
+This installs Desktop only. Plugin and optional CLI lifecycles remain separate.
 
 ## Release Model
 
@@ -177,8 +199,9 @@ A release has one coordinated identity expressed through distinct evidence:
 2. the exact source commit referenced by that tag; and
 3. checksummed Plugin and universal-DMG candidates built from that source;
 4. ARM and Intel Desktop verification plus Apple trust evidence; and
-5. a durable per-surface publication record whose Plugin metadata still records
-   the deployed tag and source commit in `marketplace/RELEASE.json`.
+5. a sealed primary plan plus append-only per-surface receipts whose Plugin
+   metadata records the deployed tag and source commit; and
+6. an optional, separately approved Cask record linked by primary record digest.
 
 Cross-surface publication is ordered rather than falsely described as atomic:
 tag, Plugin marketplace, Desktop prerelease, update manifest, then Early Access
@@ -186,27 +209,34 @@ website. Every completion is recorded immediately. A retry inspects and
 converges the same identity, skipping completed surfaces instead of deleting or
 replacing history.
 
-GitHub Actions is the only production marketplace publisher:
+GitHub Actions is the only production publisher for new coordinated releases:
 
 ```mermaid
 flowchart LR
   Main["clean main commit"]
-  Tag["annotated v* tag"]
-  Workflow["Plugin Release workflow<br>test and compose"]
-  Tree["complete generated marketplace tree"]
-  Branch["marketplace branch<br>atomic replacement"]
-  Verify["remote package and provenance verification"]
+  Trust["release-trust<br>exact Plugin + universal DMG"]
+  Seal["read-only finalization<br>sealed plan"]
+  Rehearse["release-publication<br>read-only rehearsal"]
+  Publish["separate approval<br>ordered receipts"]
+  Cask["linked Cask<br>separate approval"]
 
-  Main --> Tag
-  Tag --> Workflow
-  Workflow --> Tree
-  Tree --> Branch
-  Branch --> Verify
+  Main --> Trust
+  Trust --> Seal
+  Seal --> Rehearse
+  Rehearse --> Publish
+  Publish --> Cask
 ```
 
-The deployed marketplace is the successful release baseline. A newer tag may
-exist because a workflow failed, so computed version actions use the deployed
-`RELEASE.json`, not the highest tag.
+The deployed marketplace remains the successful Plugin baseline. A newer tag
+may exist because publication stopped after the tag receipt, so inspection uses
+the deployed `RELEASE.json`, the schema-v2 packet, and recorded receipts rather
+than assuming the highest tag is complete.
+
+The remaining numbered RC-to-stable instructions describe the retained
+Plugin-only schema-v1 compatibility path. They are not an alternate production
+interface for a coordinated Plugin/Desktop release, cannot mutate schema-v1
+history into schema v2, and must not be used to bypass the hosted boundaries
+above.
 
 ## Release States and Version Actions
 

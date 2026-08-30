@@ -140,3 +140,18 @@ error was previously converted into `rosettaTranslated: false`.
 - Use `hw.optional.arm64` as a fallback - rejected after hosted evidence because
   the key is also absent on the Intel runner and is unnecessary when the
   primary API's documented missing-key semantics are preserved.
+
+## [6] Retain repository-local publishers behind a schema-v2 hosted authority
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** schema-v2 finalization, hosted publication workflows, receipt recovery, Cask linkage, CLI compatibility, and migration documentation
+
+Keep the existing repository-local GitHub, Plugin, manifest, website, and Homebrew transport adapters as the implementation of deterministic convergence. Add a schema-v2 finalization and receipt layer as the only new-release authority, and invoke the adapters only from protected hosted release-publication jobs that consume retained exact packets and sealed plan digests. Do not persist or mutate a newly synthesized schema-v1 release record; schema v1 remains historical/read-only. The local commands remain inspection and exact-record recovery surfaces, not an alternate authority for changing plans or trusted bytes.
+
+**Triggered by:** P5-P7 audit found deterministic local primary and Cask engines but no hosted publication workflow and no schema-v2 finalization or linked Cask record
+
+**Alternatives considered:**
+Copy PortReeve's publication engine - rejected because GateReeve already has product-specific Plugin/Desktop/Cask adapters; keep local CLI publication as production authority - rejected because it bypasses hosted environment approval and custody; replace all existing adapters - rejected because their dry-run, exact-remote preflight, PR transport, and idempotent receipt behavior already satisfy the desired semantics; create a shared runtime package - rejected until both repository-local paths stabilize.

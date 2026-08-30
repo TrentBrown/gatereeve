@@ -120,12 +120,7 @@ function validateDesktopEvidence(value, expected) {
       || value.artifact.bytes !== expected.bytes
       || value.artifact.sha256 !== expected.sha256
     ) throw new Error('Desktop verification evidence does not match the coordinated candidate');
-    return {
-      ...value,
-      sourceTag: value.source.tag,
-      sourceCommit: value.source.commit,
-      version: value.candidate.version,
-    };
+    return value;
   }
   if (
     value?.schemaVersion !== 1
@@ -317,7 +312,9 @@ export async function prepareCoordinatedRelease({
   if (JSON.stringify(architectures) !== JSON.stringify([...DESKTOP_ARCHITECTURES].sort())) {
     throw new Error('Desktop evidence must contain one native ARM64 and one native Intel verification');
   }
-  const desktopVersions = new Set(evidence.map((item) => item.version));
+  const desktopVersions = new Set(evidence.map((item) => (
+    item.schemaVersion === 2 ? item.candidate.version : item.version
+  )));
   if (desktopVersions.size !== 1) {
     throw new Error('Desktop verification evidence disagrees about the application version');
   }

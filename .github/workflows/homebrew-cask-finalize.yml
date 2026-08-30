@@ -1,0 +1,101 @@
+name: Linked Homebrew Cask Finalization
+
+on:
+  workflow_dispatch:
+    inputs:
+      primary_publication_run_id:
+        description: Successful primary publication run containing the exact completed packet
+        required: true
+        type: string
+      tag:
+        description: Exact published GateReeve tag
+        required: true
+        type: string
+      source_commit:
+        description: Exact reviewed main commit bound by primary publication
+        required: true
+        type: string
+      direct_install_confirmed_by:
+        description: Person who installed the exact public DMG and launched GateReeve
+        required: true
+        type: string
+      direct_install_confirmed_at:
+        description: ISO timestamp of exact public-DMG installation and launch
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: gatereeve-cask-finalize-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  seal-linked-cask-packet:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - name: Bind the primary packet to exact hosted publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIMARY_PUBLICATION_RUN_ID: ${{ inputs.primary_publication_run_id }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" refs/remotes/origin/main
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRIMARY_PUBLICATION_RUN_ID" > "$RUNNER_TEMP/primary-publication-run.json"
+          node -e '
+            const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+            if (run.event !== "workflow_dispatch"
+              || run.conclusion !== "success"
+              || run.head_sha !== process.env.SOURCE_COMMIT
+              || !/coordinated-release-publish\.yml$/u.test(run.path)) {
+              throw new Error("Cask source is not an exact successful hosted primary publication");
+            }
+          ' "$RUNNER_TEMP/primary-publication-run.json"
+      - uses: actions/download-artifact@v4
+        with:
+          name: gatereeve-${{ inputs.tag }}-hosted-publication-result
+          path: ${{ runner.temp }}/primary-publication
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.primary_publication_run_id }}
+      - name: Seal the separately linked Cask plan
+        env:
+          CONFIRMED_BY: ${{ inputs.direct_install_confirmed_by }}
+          CONFIRMED_AT: ${{ inputs.direct_install_confirmed_at }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node cli/bin/workflow.js plugin release prepare-cask-hosted \
+            --primary-record "$RUNNER_TEMP/primary-publication/release-record.json" \
+            --output-root "$RUNNER_TEMP/homebrew-cask" \
+            --direct-install-confirmed-by "$CONFIRMED_BY" \
+            --direct-install-confirmed-at "$CONFIRMED_AT" \
+            --json > "$RUNNER_TEMP/cask-finalization.json"
+          node cli/bin/workflow.js plugin release inspect-cask-hosted \
+            --cask-record "$RUNNER_TEMP/homebrew-cask/cask-record.json" \
+            --json
+          node -e '
+            const result = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+            process.stdout.write(`Sealed Cask plan SHA-256: ${result.planSha256}\n`);
+          ' "$RUNNER_TEMP/cask-finalization.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask
+          path: ${{ runner.temp }}/homebrew-cask
+          if-no-files-found: error
+          retention-days: 30

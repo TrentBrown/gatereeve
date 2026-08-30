@@ -368,6 +368,10 @@ Command families:
 - `plugin smoke-install` proves both native-manager package layouts in isolated
   profiles.
 - `plugin release list`, `watch`, and `verify` inspect release state.
+- `plugin release inspect-record`, `inspect-hosted`, and
+  `inspect-cask-hosted` verify immutable lifecycle and publication packets.
+- Hosted finalization/publication commands are CI and exact-record recovery
+  surfaces; routine production authority remains in protected GitHub Actions.
 - `plugin release bundle` creates a verified offline marketplace ZIP and
   checksum for repository-independent delivery.
 - `plugin release publish` is the guarded human publication entrypoint.
