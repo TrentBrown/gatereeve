@@ -66,7 +66,7 @@ test('styles preserve visible focus, docked regions, and reduced-motion behavior
   assert.match(css, /\.workspace\s*\{\s*display:\s*block/);
   assert.match(css, /min-height:\s*560px/);
   assert.match(css, /grid-template-columns:\s*var\(--project-sidebar-width\)/);
-  assert.match(css, /minmax\(300px, 1fr\)\s*var\(--inspector-width\)/);
+  assert.match(css, /minmax\(300px, 1fr\)\s*min\(var\(--inspector-width\),\s*max\(0px,\s*calc\(100vw - var\(--project-sidebar-width\) - 320px\)\)\)/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /\.order-marker\s*\{/);
   assert.match(css, /border:\s*2px solid #4e3c63/);

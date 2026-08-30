@@ -226,6 +226,15 @@ async function startDesktop() {
             resizer?.focus();
             resizer?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
             const resizedWidth = Number(resizer?.getAttribute('aria-valuenow'));
+            resizer?.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+            const maximumRequestedWidth = Number(resizer?.getAttribute('aria-valuenow'));
+            const maximumRenderedWidth = Math.round(inspector?.getBoundingClientRect().width ?? 0);
+            const maximumWidthScroll = document.documentElement.scrollWidth;
+            resizer?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+            for (let index = 0; index < 5; index += 1) {
+              resizer?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+            }
+            const restoredWidth = Number(resizer?.getAttribute('aria-valuenow'));
             inspectorToggle?.click();
             const inspectorHidden = inspector?.hidden === true;
             inspectorToggle?.click();
@@ -278,6 +287,10 @@ async function startDesktop() {
               inspectorRestored,
               initialWidth,
               resizedWidth,
+              maximumRequestedWidth,
+              maximumRenderedWidth,
+              maximumWidthScroll,
+              restoredWidth,
               tabLabels,
               versionText,
               scrollWidth,
@@ -301,6 +314,10 @@ async function startDesktop() {
               && inspectorShown
               && inspectorHidden
               && inspectorRestored
+              && maximumRequestedWidth === 720
+              && maximumRenderedWidth < maximumRequestedWidth
+              && maximumWidthScroll <= viewportWidth
+              && restoredWidth === resizedWidth
               && mainTabs.length === 5
               && tabLabels === 'Overview|Artifacts|History|Model|Session'
               && versionText === ${JSON.stringify(`v${app.getVersion()}`)}

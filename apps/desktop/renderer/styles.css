@@ -458,7 +458,7 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
   grid-template-columns:
     var(--project-sidebar-width)
     minmax(300px, 1fr)
-    var(--inspector-width);
+    min(var(--inspector-width), max(0px, calc(100vw - var(--project-sidebar-width) - 320px)));
   min-height: calc(100vh - var(--masthead-height));
   transition: grid-template-columns 150ms ease;
 }
