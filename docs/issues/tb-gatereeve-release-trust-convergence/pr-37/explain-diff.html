@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #37 — Restoring GateReeve's protected approval boundary</title>
+  <style>
+    :root { color-scheme: light dark; --ink:#172033; --muted:#586174; --paper:#f7f8fb; --card:#fff; --line:#d8deea; --trust:#175cd3; --publish:#7a3db8; --good:#137333; --warn:#9a6700; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.6 system-ui,-apple-system,sans-serif; color:var(--ink); background:var(--paper); }
+    main { width:min(980px,92vw); margin:auto; padding:2rem 0 5rem; }
+    h1 { font-size:clamp(2rem,5vw,3.5rem); line-height:1.05; margin:.4rem 0 1rem; }
+    h2 { margin-top:3.2rem; padding-top:1rem; border-top:1px solid var(--line); }
+    h3 { margin-top:2rem; }
+    p, li { max-width:78ch; }
+    .eyebrow { color:var(--trust); font-weight:750; letter-spacing:.08em; text-transform:uppercase; font-size:.8rem; }
+    .lede { font-size:1.2rem; color:var(--muted); }
+    nav,.card,.callout,.quiz { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:1.1rem 1.3rem; margin:1.2rem 0; }
+    nav a { margin-right:1rem; white-space:nowrap; }
+    .flow { display:grid; grid-template-columns:repeat(4,1fr); gap:.7rem; align-items:stretch; margin:1.5rem 0; }
+    .node { background:var(--card); border:2px solid var(--line); border-radius:12px; padding:1rem; position:relative; }
+    .node:not(:last-child)::after { content:"→"; position:absolute; right:-.72rem; top:38%; color:var(--muted); font-weight:800; z-index:2; }
+    .trust { border-color:var(--trust); }
+    .publish { border-color:var(--publish); }
+    .bad { border-color:#c62828; background:#fff6f5; }
+    .good { border-color:var(--good); background:#f1fbf4; }
+    .tag { display:inline-block; border-radius:999px; padding:.12rem .55rem; font-size:.78rem; font-weight:700; background:#e8eefb; color:#24406f; }
+    .callout { border-left:5px solid var(--warn); }
+    pre { white-space:pre-wrap; overflow:auto; padding:1rem; border-radius:10px; background:#111827; color:#e5edf9; }
+    code { font-family:ui-monospace,SFMono-Regular,monospace; }
+    .columns { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    button { display:block; width:100%; text-align:left; margin:.55rem 0; padding:.8rem; border:1px solid var(--line); border-radius:9px; background:var(--paper); color:inherit; cursor:pointer; }
+    button:hover { border-color:var(--trust); }
+    button.correct { border-color:var(--good); background:#eaf8ee; }
+    button.wrong { border-color:#c62828; background:#fff0ef; }
+    .feedback { min-height:1.6rem; font-weight:650; }
+    footer { margin-top:3rem; color:var(--muted); }
+    @media (max-width:760px) { .flow,.columns { grid-template-columns:1fr; } .node:not(:last-child)::after { content:"↓"; right:50%; top:auto; bottom:-1.2rem; } }
+    @media (prefers-color-scheme:dark) { :root { --ink:#edf2ff; --muted:#aeb8cc; --paper:#101522; --card:#171e2e; --line:#34405a; } .bad{background:#331b20}.good{background:#173020}.tag{background:#263653;color:#cfe0ff} }
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">GateReeve · PR #37 · pinned review</div>
+  <h1>The approval gate existed in configuration, but the jobs walked around it.</h1>
+  <p class="lede">This correction removes one misleading setting from six protected jobs. The result is that GitHub creates a deployment, pauses for the configured reviewer, and retains the approval record before releasing trust or publication authority.</p>
+
+  <nav aria-label="Table of contents">
+    <strong>Contents:</strong>
+    <a href="#background">Background</a>
+    <a href="#intuition">Intuition</a>
+    <a href="#code">Code</a>
+    <a href="#quiz">Quiz</a>
+  </nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <h3>The beginner's model: a protected job is a temporary capability grant</h3>
+    <p>GateReeve stores Apple signing credentials in <code>release-trust</code> and publication authority in <code>release-publication</code>. A job names one of those environments when it needs that capability. GitHub's environment protection rule is meant to pause the job, show the proposed deployment to a reviewer, and expose the environment's secrets only after approval.</p>
+    <div class="flow" aria-label="Expected protected workflow">
+      <div class="node"><span class="tag">1</span><h3>Reviewed main</h3><p>Exact source SHA and candidate identity.</p></div>
+      <div class="node trust"><span class="tag">2</span><h3>Deployment wait</h3><p>Reviewer inspects and approves the protected job.</p></div>
+      <div class="node trust"><span class="tag">3</span><h3>Trust work</h3><p>Ephemeral Apple credentials sign and notarize exact bytes.</p></div>
+      <div class="node"><span class="tag">4</span><h3>Evidence</h3><p>Approval and artifact history remain auditable.</p></div>
+    </div>
+
+    <h3>The narrow defect</h3>
+    <p>The workflows named the correct environments but also set <code>deployment: false</code>. The RC.3 rehearsal proved that signing, notarization, stapling, Gatekeeper assessment, and native verification all worked. Yet GitHub created no pending deployment and no deployment record, so the configured required reviewer never participated.</p>
+    <div class="columns">
+      <div class="card bad"><h3>Before</h3><pre><code>environment:
+  name: release-trust
+  deployment: false</code></pre><p>The job could use environment material without producing the required deployment/reviewer evidence.</p></div>
+      <div class="card good"><h3>After</h3><pre><code>environment:
+  name: release-trust</code></pre><p>GitHub follows the normal environment-deployment path, where the configured protection rule can pause and record approval.</p></div>
+    </div>
+    <div class="callout"><strong>Two facts remain separate.</strong> RC.3 is valid Apple and native trust evidence for its immutable bytes. It is not valid evidence that a human reviewer authorized access at the protected boundary.</div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <p>Think of the environment as a locked tool cabinet and the deployment as the checkout slip. Naming the cabinet identifies which tools a job wants. The checkout slip is what routes the request to an approver and leaves an audit trail. The old setting effectively said, “use this cabinet, but do not create a checkout.” PR #37 removes that exception.</p>
+    <div class="flow" aria-label="Separated trust and publication authority">
+      <div class="node"><h3>Exact packet</h3><p>Source, Plugin, universal DMG, native evidence, and plan digests.</p></div>
+      <div class="node trust"><h3>release-trust</h3><p>Apple credentials only. Cannot publish.</p></div>
+      <div class="node"><h3>Sealed record</h3><p>Trusted bytes and evidence, unchanged downstream.</p></div>
+      <div class="node publish"><h3>release-publication</h3><p>Publication authority only. Cannot sign or rebuild.</p></div>
+    </div>
+    <p>The fix applies symmetrically to six jobs: initial trust production, bounded trust recovery, primary dry run, primary publication, Cask dry run, and Cask publication. It does not merge those authorities. It makes each existing boundary real.</p>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <h3>1. Restore deployment creation</h3>
+    <p>Four workflow files lose six <code>deployment: false</code> lines. Names, permissions, source checks, concurrency, artifact transport, dry-run separation, and exact-plan behavior remain unchanged.</p>
+    <ul>
+      <li><code>coordinated-release-prepare.yml</code>: protected Apple trust production.</li>
+      <li><code>coordinated-release-trust-recover.yml</code>: same-byte, same-request recovery.</li>
+      <li><code>coordinated-release-publish.yml</code>: primary rehearsal and publication.</li>
+      <li><code>homebrew-cask-publish.yml</code>: linked Cask rehearsal and publication.</li>
+    </ul>
+
+    <h3>2. Turn the defect into a regression contract</h3>
+    <p>The workflow tests now require the expected environment name and independently reject deployment suppression. Checking both matters: merely deleting the environment would also make <code>deployment: false</code> disappear, but would be even less protected.</p>
+    <pre><code>assert.match(workflow, /environment:\n\s+name: release-trust/);
+assert.doesNotMatch(workflow, /deployment:\s*false/);</code></pre>
+
+    <h3>3. Make operators verify the live fact</h3>
+    <p>The setup and release guides now say that a protected run without a pending deployment or recorded approval is blocking. This is defense in depth: repository tests protect the declaration; the operator checks GitHub's actual enforcement.</p>
+
+    <h3>4. Preserve candidate and publication safety</h3>
+    <p>The correction does not rerun RC.3, reinterpret its absent approval, or publish anything. After merge, a fresh RC identity must demonstrate the wait. Only then may the bounded credential overlap be removed and final nonpublishing acceptance resume.</p>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <p>Choose one answer for each question. Feedback appears immediately.</p>
+    <div class="quiz" data-answer="1"><h3>1. Why was naming <code>release-trust</code> insufficient in RC.3?</h3><button>It used a universal DMG rather than per-architecture DMGs.</button><button>Deployment creation was suppressed, so no reviewer wait or deployment record existed.</button><button>The Apple notarization request was rejected before approval.</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><h3>2. What does PR #37 change about credentials?</h3><button>It moves Apple credentials back into <code>release-publication</code>.</button><button>It requires maintainers to upload the P12 and P8 for every run.</button><button>It changes no secret value; it restores the approval path controlling access to already stored credentials.</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="0"><h3>3. Why do tests check both the environment name and absence of suppression?</h3><button>Because either check alone could pass an incorrectly unprotected workflow.</button><button>Because GitHub requires environment names to equal workflow filenames.</button><button>Because dry-run jobs are allowed to omit all environments.</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="1"><h3>4. How should RC.3 be treated?</h3><button>Delete its Apple request and reuse the version after merge.</button><button>Preserve its exact trust evidence, but do not count it as reviewer-authorization evidence.</button><button>Publish it because notarization and native verification passed.</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><h3>5. What is required after this PR merges?</h3><button>Replace GateReeve's universal DMG with ARM64 and x64 DMGs.</button><button>Run real primary and Cask publication immediately.</button><button>Use a fresh RC to prove the live reviewer wait, then continue the nonpublishing acceptance sequence.</button><p class="feedback"></p></div>
+  </section>
+
+  <footer>Evaluated source: <code>3a7d447c444aff12100d6ff30a9c5e9aa0a4fda2</code>. Base: <code>93da66d10736b7bbf58be1d2765808c1f7b4a75c</code>.</footer>
+</main>
+<script>
+  document.querySelectorAll('.quiz').forEach((quiz) => {
+    const expected = Number(quiz.dataset.answer);
+    const buttons = [...quiz.querySelectorAll('button')];
+    const feedback = quiz.querySelector('.feedback');
+    buttons.forEach((button, index) => button.addEventListener('click', () => {
+      buttons.forEach((item) => item.classList.remove('correct', 'wrong'));
+      button.classList.add(index === expected ? 'correct' : 'wrong');
+      feedback.textContent = index === expected
+        ? 'Correct — that is the contract this change restores.'
+        : 'Not quite. Revisit the approval-path and immutable-evidence sections above.';
+    }));
+  });
+</script>
+</body>
+</html>

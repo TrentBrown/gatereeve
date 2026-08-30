@@ -122,12 +122,12 @@ that protected jobs suppress GitHub deployment/reviewer enforcement.
 
 ## I-10 - Enforce protected environment deployment approvals
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.5d plus protected rehearsal time
 - **Plan steps:** P4, P5, P6, P9
 - **Rubric criteria:** R3, R6, R7, R8
 - **Depends on:** I-4, I-5, I-6
-- **PR:** -
+- **PR:** [#37](https://github.com/TrentBrown/gatereeve/pull/37)
 
 Remove deployment suppression from every `release-trust` and
 `release-publication` job, add workflow-contract coverage for real environment

@@ -58,8 +58,31 @@ Append PR boundary entries here.
   current reviewed `main` `93da66d10736b7bbf58be1d2765808c1f7b4a75c`.
   It removes deployment suppression from all six protected jobs; YAML parsing,
   10 focused tests, the 158-test CLI suite, the 125-test Desktop suite, and
-  portable acceptance pass locally. Live reviewer-gate proof remains pending
+  portable acceptance pass locally. Draft
+  [PR #37](https://github.com/TrentBrown/gatereeve/pull/37) carries the
+  correction and its hosted checks; live reviewer-gate proof remains pending
   merge and a fresh candidate.
+
+### PR #37 - Protected approval boundary correction
+
+- **PR:** [#37](https://github.com/TrentBrown/gatereeve/pull/37)
+- **Evidence packet:** [packet](pr-37/)
+- **Evaluated source:**
+  `3a7d447c444aff12100d6ff30a9c5e9aa0a4fda2` based on current reviewed
+  `main` `93da66d10736b7bbf58be1d2765808c1f7b4a75c`.
+- **Scope:** P4/P5/P6/P9 / I-10 / R3, R6, R7, R8.
+- **Summary:** Removes `deployment: false` from every protected trust,
+  recovery, primary-publication, and Cask-publication job so GitHub creates a
+  real environment deployment and enforces configured required reviewers.
+- **Verification:** 10 focused workflow/documentation tests, CLI 158/158,
+  Desktop 125/125, portable acceptance, YAML parsing, and diff checks passed
+  locally. Hosted CI is tracked in the boundary packet.
+- **Live limitation:** This correction PR does not dispatch Apple trust or
+  publication. A fresh candidate after merge must visibly wait for the
+  `release-trust` reviewer before I-9 can resume.
+- **Safety:** RC.3 and Apple request
+  `faa0580d-941c-4df3-90b8-38570ff52ac4` remain immutable; no public surface
+  or credential inventory was mutated by this slice.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 

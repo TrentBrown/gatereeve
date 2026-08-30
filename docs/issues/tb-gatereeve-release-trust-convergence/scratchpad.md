@@ -187,7 +187,7 @@ RC.1 expectation after the tap advanced to RC.2.
 
 ## [8] Cut over Apple custody through validated overlap
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -202,7 +202,7 @@ Delete historical Apple entries before validating release-trust - rejected becau
 
 ## [9] Require real GitHub environment deployments for protected authority
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
