@@ -8,6 +8,7 @@ export const NOTARIZATION_POLLS_PER_SESSION = 60;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu;
 const COMMIT = /^[a-f0-9]{40}$/u;
 const SHA256 = /^[a-f0-9]{64}$/u;
+const VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 const STATES = new Set([
   'prepared',
   'submitting',
@@ -71,7 +72,8 @@ function assertCandidate(candidate) {
     || candidate.sourceTag === ''
     || !COMMIT.test(candidate.sourceCommit ?? '')
     || typeof candidate.version !== 'string'
-    || candidate.version === ''
+    || !VERSION.test(candidate.version)
+    || candidate.sourceTag !== `v${candidate.version}`
     || typeof candidate.artifact?.filename !== 'string'
     || candidate.artifact.filename === ''
     || candidate.artifact.filename.includes('/')
@@ -554,7 +556,8 @@ export function supersedeNotarizationAttempt(
     || replacement.sourceTag === ''
     || !COMMIT.test(replacement.sourceCommit ?? '')
     || typeof replacement.version !== 'string'
-    || replacement.version === ''
+    || !VERSION.test(replacement.version)
+    || replacement.sourceTag !== `v${replacement.version}`
     || (
       replacement.sourceTag === attempt.candidate.sourceTag
       && replacement.version === attempt.candidate.version

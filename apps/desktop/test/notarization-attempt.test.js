@@ -169,6 +169,15 @@ test('uncertain submission fails closed until Apple history proves found or abse
 });
 
 test('attempt validation rejects candidate identity drift and Apple rejection is terminal', () => {
+  assert.throws(
+    () => createNotarizationAttempt({
+      attemptId: '12345678-1234-1234-1234-1234567890ab',
+      ...candidate,
+      sourceTag: 'v0.1.0-rc.10',
+      now: at(0),
+    }),
+    /candidate identity digest is invalid/u,
+  );
   let attempt = createNotarizationAttempt({
     attemptId: '12345678-1234-1234-1234-1234567890ab',
     ...candidate,
@@ -221,6 +230,19 @@ test('supersession preserves the old attempt and requires a fresh candidate vers
         version: candidate.version,
       },
       reason: 'changed bytes require a fresh RC',
+      now: at(4),
+    }),
+    /fresh version identity/u,
+  );
+  assert.throws(
+    () => supersedeNotarizationAttempt(attempt, {
+      replacementAttemptId: '22222222-2222-2222-2222-222222222222',
+      replacement: {
+        sourceTag: 'v0.1.0-rc.10',
+        sourceCommit: candidate.sourceCommit,
+        version: '0.1.0-rc.11',
+      },
+      reason: 'mismatched replacement identity',
       now: at(4),
     }),
     /fresh version identity/u,

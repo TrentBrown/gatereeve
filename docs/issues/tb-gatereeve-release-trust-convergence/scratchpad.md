@@ -58,8 +58,10 @@ successful release stages. Recovery resumes the same request ID; `submitting`
 or uncertain submission must be reconciled against Apple history, and a new
 submission is allowed only after durable evidence that no request exists.
 Changed bytes require a fresh candidate version and a linked superseding
-attempt. Release-stage passage later consumes only an accepted attempt with
-matching bytes.
+attempt. Candidate and replacement tag/version pairs must match exactly, and
+every Apple status response must identify the recorded request ID.
+Release-stage passage later consumes only an accepted attempt with matching
+bytes.
 
 **Triggered by:** P2 and AC4 require request continuity across runner failure,
 bounded recovery, fail-closed ambiguity, and prohibition of generic reruns.

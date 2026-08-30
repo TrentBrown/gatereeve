@@ -26,13 +26,14 @@ Append PR boundary entries here.
 
 ### s1-lifecycle-recovery-contracts
 
-- Desktop suite: `npm test` in `apps/desktop` - 120 passed, 0 failed.
+- Desktop suite: `npm test` in `apps/desktop` - 121 passed, 0 failed.
 - CLI suite: `npm test` in `cli` - 142 passed, 0 failed.
 - Static checks: `git diff --check` and `node --check` for every changed
   executable module - passed.
 - Contract negatives cover skipped/reordered/tampered stages, changed Apple
   bytes under the same version, malformed submission output, abrupt/explicit
   submission uncertainty, exactly 60 pending polls, request-preserving retry,
-  Apple rejection, and fresh-version supersession.
+  Apple rejection, missing/mismatched Apple request identity, and fresh-version
+  supersession.
 - Historical compatibility uses the committed published RC.2 release record
   as a byte-for-byte unchanged schema-v1 fixture.

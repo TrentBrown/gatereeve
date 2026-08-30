@@ -245,8 +245,8 @@ export async function notarizeMacos(options) {
         'json',
       ]);
       const result = parseJsonObject(response.stdout, 'Apple notarization status');
-      if (typeof result.id === 'string' && result.id !== attempt.requestId) {
-        throw new Error('Apple notarization status returned a different request ID');
+      if (result.id !== attempt.requestId) {
+        throw new Error('Apple notarization status did not identify the recorded request ID');
       }
       attempt = recordNotarizationPoll(attempt, {
         sessionId: session.sessionId,

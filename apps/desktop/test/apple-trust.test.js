@@ -313,6 +313,17 @@ test('malformed submission output and Apple rejection become durable fail-closed
       expectedError: /rejected request/u,
       expectedState: 'rejected',
     },
+    {
+      name: 'status response without the recorded request ID',
+      submission: {
+        stdout: JSON.stringify({ id: 'abcdef12-1234-1234-1234-1234567890ab' }),
+        stderr: '',
+      },
+      status: 'Accepted',
+      omitInfoId: true,
+      expectedError: /did not identify the recorded request ID/u,
+      expectedState: 'polling',
+    },
   ]) {
     await t.test(scenario.name, async () => {
       const root = await mkdtemp(join(tmpdir(), 'gatereeve-notarization-failure-'));
@@ -349,7 +360,9 @@ test('malformed submission output and Apple rejection become durable fail-closed
             if (arguments_.includes('info')) {
               return {
                 stdout: JSON.stringify({
-                  id: 'abcdef12-1234-1234-1234-1234567890ab',
+                  ...(scenario.omitInfoId
+                    ? {}
+                    : { id: 'abcdef12-1234-1234-1234-1234567890ab' }),
                   status: scenario.status,
                 }),
                 stderr: '',
