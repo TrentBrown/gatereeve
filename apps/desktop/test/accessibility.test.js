@@ -13,9 +13,9 @@ test('principal controls use keyboard-native elements with visible accessible na
   const { document } = parseHTML(html).window;
   const namedControls = [
     '#choose', '#refresh', '#notifications', '#attempt-select', '#copy-mermaid',
-    '#choose-empty', '#toggle-sidebar', '#toggle-inspector', '#hide-inspector',
+    '#choose-empty', '#toggle-sidebar', '#toggle-inspector', '#activity',
     '#open-setup', '#setup-open-worktree', '#setup-return', '#setup-recheck',
-    '#candidate-diagnostic-choose-another',
+    '#candidate-diagnostic-choose-another', '#source-dialog-close',
     '#agent-codex', '#agent-claude', '#save-agents',
     '[data-view="overview"]', '[data-view="artifacts"]', '[data-view="history"]',
     '[data-view="model"]', '[data-view="session"]',
@@ -54,7 +54,8 @@ test('status regions and principal views expose semantic text independent of col
   }
   assert.equal(document.querySelector('#attention-title'), null);
   assert.match(document.querySelector('#actions-title').textContent, /Current workflow guidance/);
-  assert.match(document.querySelector('.project-sources > summary').textContent, /Sources/);
+  assert.equal(document.querySelector('.project-sources'), null);
+  assert.match(document.querySelector('#source-dialog-title').textContent, /Watching project sources/);
   assert.match(document.querySelector('#state-title').textContent, /Feature state rail/);
 });
 
@@ -70,4 +71,6 @@ test('styles preserve visible focus, docked regions, and reduced-motion behavior
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /\.order-marker\s*\{/);
   assert.match(css, /border:\s*2px solid #4e3c63/);
+  assert.match(css, /\.workspace-main\s*\{\s*grid-column:\s*2/);
+  assert.match(css, /\.inspector-tabs\s*\{\s*display:\s*none/);
 });

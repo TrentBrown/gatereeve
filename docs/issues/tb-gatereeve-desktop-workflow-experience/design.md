@@ -34,7 +34,8 @@ hierarchy:
 3. Overview selection drills from feature state to slice to boundary attempt to
    gate.
 4. Canonical artifacts and protocol details open beside that hierarchy in one
-   docked, tabbed right panel.
+   docked right panel that presents the most recently selected item while
+   retaining serializable tab identity internally.
 
 The design must keep observation separate from mutation. Selecting a project,
 state, slice, attempt, gate, or artifact changes only what GateReeve shows. It
@@ -54,8 +55,8 @@ Use a three-region desktop shell:
 - A collapsible left sidebar contains saved projects.
 - The central workspace contains fixed, non-closable tabs for `Overview`,
   `Artifacts`, `History`, `Model`, and `Session`.
-- A collapsible and resizable right panel contains closable artifact and
-  protocol-detail tabs.
+- A collapsible and resizable right panel presents one active artifact or
+  protocol detail from an internal per-project tab collection.
 
 `Setup` remains a masthead action rather than a main tab. Notification
 preferences move into Setup. Source status moves into the selected project's
@@ -124,12 +125,11 @@ Keep the feature-state rail substantially recognizable but make each presented
 state selectable. Governed-current state and inspection selection are separate
 properties:
 
-- Current state retains the protocol status marker, explicit `Current` text,
-  and `aria-current="step"`.
+- Current state retains the protocol status marker and `aria-current="step"`.
 - Selected state receives its own selection treatment and
   `aria-pressed="true"`.
-- When an item is both current and selected, both meanings remain visible and
-  neither relies on color alone.
+- When an item is both current and selected, both meanings remain accessible
+  and layout-stable and neither relies on color alone.
 
 Opening a project initially selects its governed current state. Later snapshot
 refreshes and workflow transitions may move the Current indicator but never
@@ -167,26 +167,24 @@ Selecting an attempt makes it the gate-graph context and opens its canonical
 
 Selecting a gate opens its canonical evidence artifact when one exists. An
 artifact-less gate such as reconciliation or decision triage opens a
-protocol-detail tab scoped to the attempt and gate. That virtual tab reports
-canonical outcome, freshness, dependencies, blockers, and event context and
-explicitly says `No standalone artifact`; it is never presented as a file.
+protocol-detail item scoped to the attempt and gate. That virtual item reports
+canonical outcome, dependencies, blockers, and event context without claiming
+to be a file or adding a redundant empty-artifact notice.
 
 ### Right artifact panel
 
 The right panel behaves like an IDE editor companion: opening inspectable
-content reveals the panel, tabs remain open across main-view navigation and
-snapshot refreshes, each tab can be closed independently, and the entire panel
-can be hidden without closing anything. Closing the active tab activates the
-nearest remaining tab. Closing the last tab leaves a clear empty panel until
-the user hides it or opens another item.
+content reveals the panel, and the entire panel can be hidden without losing
+the internal collection. For the current simplified experience, the visible
+tab strip is suppressed and only the most recently selected item is presented.
 
-Document tabs are deduplicated by underlying canonical artifact identity, not
-by the control that opened them. An attempt and gates that all refer to the
-same `boundary.json` activate one shared document tab. Virtual gate-detail tabs
-use attempt-and-gate identity. Tab state stores only serializable identity and
-ordering metadata; content is always reread through GateReeve's trusted
-artifact boundary. This supports later persistence without implementing it
-now.
+Internal document entries are deduplicated by underlying canonical artifact
+identity, not by the control that opened them. An attempt and gates that all
+refer to the same `boundary.json` activate one shared document identity.
+Virtual gate details use attempt-and-gate identity. Tab state stores only
+serializable identity and ordering metadata; content is always reread through
+GateReeve's trusted artifact boundary. This keeps later restoration and a
+future visible tab strip possible without implementing either now.
 
 The Artifacts main view becomes the complete expected-and-present artifact
 inventory. It opens the same application-level tabs and no longer owns a
@@ -265,8 +263,8 @@ inputs, authority, and its copyable non-executing command.
 - Only the active project owns live watchers and polling after startup.
 - Healthy status should be quiet. Current, selected, active, warning, and
   unavailable semantics require accessible text/state and cannot rely on color.
-- Fixed main tabs and right-panel tabs must remain visually and semantically
-  distinct.
+- Fixed main tabs and the active-item inspector must remain visually and
+  semantically distinct.
 - Reduced-motion, keyboard access, focus behavior, and screen-reader naming are
   part of the interaction contract, not optional polish.
 - Exact dimensions, typography, colors, and animation timing are settled by
@@ -294,4 +292,38 @@ inputs, authority, and its copyable non-executing command.
 
 ## Changes
 
-No amendments.
+### 2026-08-30 - Interface hierarchy and artifact-inspection polish
+
+The approved live fixture refines the original design without changing its
+read-only authority boundary. Current workflow state remains independent from
+inspection selection, but the distinction is expressed through stable card
+treatments and accessibility state rather than layout-shifting `Current` and
+`Selected` pills. Feature-state, slice, and gate choices share one restrained
+light-surface, full-card hover, selected outline, and focus treatment. Status
+continues to use color plus text, with a top accent for the horizontal state
+rail and a left accent for vertical slice and gate cards. Human-facing state
+names use sentence capitalization, and `DELIVERING_SLICES` is presented as
+`Implementing` while retaining its canonical protocol value.
+
+The boundary is rendered as its actual dependency graph: stages 1 through 3,
+parallel stage 4 branches (`4a` through `4d`), then stages 5 through 7. Connector
+lines replace repetitive dependency prose. Redundant enum subtitles,
+selection summaries, empty milestone messages, active-slice repetition,
+workflow-context subtitles, and the `View full model` link are removed.
+
+The right panel temporarily presents only the most recently selected artifact;
+the serializable tab model remains internal for future restoration. Its compact
+toolbar contains rendered/source controls when applicable, filename and quiet
+type text, copy, a split Open menu for default-open/reveal/copy-path actions,
+and an expand/restore control. The redundant Inspector heading, open-artifact
+count, internal Hide control, large document title, artifact Refresh action,
+and artifact-less gate notice are absent.
+
+Source observations move out of Overview into a modal opened from `Watching
+local changes`. It summarizes independent Local record, Git, and GitHub state,
+keeping healthy details visually quiet. A project that fails admission gets an
+exclusive central diagnostic: the project list remains available, while tabs,
+hierarchy, and inspector content from the previously valid project are hidden.
+Explicit grid placement keeps the central workspace stable when either sidebar
+is hidden. Standard icon controls occupy the far right of the masthead; Add
+Project continues to use the existing native directory-chooser implementation.

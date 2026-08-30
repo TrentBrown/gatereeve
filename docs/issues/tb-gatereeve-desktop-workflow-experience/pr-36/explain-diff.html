@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GateReeve PR #36 - Interface polish</title>
+  <style>
+    :root { color-scheme: light; --ink:#21172f; --muted:#6f6678; --line:#ddd4e6; --purple:#5d3d91; --wash:#f7f3fa; --green:#247a56; --amber:#9a6715; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#f1edf5; font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { width:min(1040px,calc(100% - 32px)); margin:28px auto 60px; }
+    header,section { margin-bottom:18px; border:1px solid var(--line); border-radius:16px; padding:24px; background:#fff; box-shadow:0 8px 28px rgb(48 31 65 / 6%); }
+    h1,h2,h3 { margin-top:0; font-family:Georgia,"Times New Roman",serif; line-height:1.15; }
+    h1 { margin-bottom:8px; font-size:2.25rem; } h2 { font-size:1.45rem; } h3 { font-size:1.05rem; }
+    p:last-child { margin-bottom:0; } code { border-radius:5px; padding:2px 5px; background:var(--wash); }
+    .kicker { margin:0 0 6px; color:var(--purple); font-size:.75rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+    .muted { color:var(--muted); } .pass { color:var(--green); font-weight:800; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px; }
+    .card { border:1px solid var(--line); border-radius:12px; padding:16px; background:var(--wash); }
+    .before { border-left:5px solid #b8adbf; } .after { border-left:5px solid var(--purple); }
+    .flow { display:grid; grid-template-columns:repeat(7,minmax(74px,1fr)); align-items:center; gap:8px; overflow-x:auto; padding:12px 0; }
+    .stage { min-width:74px; border:1px solid var(--line); border-top:4px solid var(--purple); border-radius:9px; padding:10px 6px; background:var(--wash); text-align:center; font-size:.78rem; }
+    .branches { display:grid; gap:4px; } .branches .stage { border-top-color:var(--amber); }
+    .arrow { color:var(--muted); text-align:center; font-weight:900; }
+    table { width:100%; border-collapse:collapse; } th,td { border-bottom:1px solid var(--line); padding:9px 8px; text-align:left; vertical-align:top; } th { font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; }
+    .quiz button { display:block; width:100%; margin:8px 0; border:1px solid var(--line); border-radius:9px; padding:11px 12px; color:var(--ink); background:#fff; text-align:left; cursor:pointer; }
+    .quiz button:hover { background:var(--wash); } .feedback { min-height:1.5rem; color:var(--purple); font-weight:700; }
+    @media (max-width:700px) { header,section { padding:18px; } .flow { grid-template-columns:repeat(7,130px); } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="kicker">PR #36 · feature-final review</p>
+    <h1>Quieter hierarchy, sharper inspection</h1>
+    <p>GateReeve’s approved interface-polish prototype is now the production Electron renderer. The change refines how users distinguish governed current state from what they are inspecting, makes the PR boundary read as a dependency graph, and reduces the right panel to one active artifact without throwing away its internal identity model.</p>
+    <p class="muted">Focused diff: <code>ee29569..3b45e64</code>. Developer ID signing, notarization, publication, and deployment are not part of this PR.</p>
+  </header>
+
+  <section>
+    <p class="kicker">1 · Selection grammar</p>
+    <h2>Current and selected stay different without moving the layout</h2>
+    <div class="grid">
+      <article class="card before"><h3>Before</h3><p>Dark hover fills reduced legibility. Current, Selected, enum subtitles, selection summaries, and empty milestone prose competed for space and appeared or disappeared as selection changed.</p></article>
+      <article class="card after"><h3>After</h3><p>Rail, slice, and gate items share a light surface, full-card hover, inset selected outline, visible focus, and status-colored edge. <code>aria-current</code>, <code>aria-pressed</code>, labels, and status text preserve independent meaning.</p></article>
+    </div>
+    <p>Human-facing labels use sentence capitalization, and canonical <code>DELIVERING_SLICES</code> appears as <strong>Implementing</strong>. Real selected-state milestones still render; only the noisy empty message is gone.</p>
+  </section>
+
+  <section>
+    <p class="kicker">2 · PR boundary</p>
+    <h2>The dependency topology is explicit</h2>
+    <div class="flow" aria-label="Seven dependency stages">
+      <div class="stage">1<br>Pin context</div><div class="arrow">→</div>
+      <div class="stage">2<br>Reconcile</div><div class="arrow">→</div>
+      <div class="stage">3<br>Verify</div><div class="arrow">→</div>
+      <div class="branches"><div class="stage">4a</div><div class="stage">4b</div><div class="stage">4c</div><div class="stage">4d</div></div>
+    </div>
+    <div class="flow" aria-hidden="true" style="grid-template-columns:repeat(5,minmax(90px,1fr))">
+      <div class="stage">Parallel review</div><div class="arrow">→</div><div class="stage">5<br>Decision triage</div><div class="arrow">→</div><div class="stage">6-7<br>Explain + packet</div>
+    </div>
+    <p>Gate cards are grouped by protocol <code>orderLabel</code>; parallel stage-four gates share a stage and branch letters. Connector lines replace repetitive “After” prose, and the graph keeps a readable minimum canvas with local horizontal panning when the main pane is narrow.</p>
+  </section>
+
+  <section>
+    <p class="kicker">3 · Artifact companion</p>
+    <h2>One active item, compact controls</h2>
+    <div class="grid">
+      <article class="card"><h3>Presentation</h3><p>The visible tab strip, Inspector heading, count, large artifact title, and artifact Refresh action are suppressed. Filename and quiet type metadata sit on one toolbar line.</p></article>
+      <article class="card"><h3>Actions</h3><p>Markdown toggles between rendered and source views. Copy, split Open/reveal/copy-path, and expand/restore controls use named icon buttons. Escape restores an expanded inspector.</p></article>
+      <article class="card"><h3>Reversibility</h3><p>The serializable per-project tab collection and canonical identity remain internal. Hiding the panel preserves it, and reopening an artifact activates its existing identity.</p></article>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker">4 · Quiet context and stable geometry</p>
+    <h2>Details appear where they help</h2>
+    <ul>
+      <li><strong>Watching local changes</strong> opens a modal summarizing independent Local, Git, and GitHub observation.</li>
+      <li>An invalid candidate leaves the project list available but hides stale tabs, hierarchy, and inspector content behind one exclusive diagnostic.</li>
+      <li>Explicit grid columns keep the central workspace in the correct track when the project sidebar or inspector is hidden.</li>
+      <li>Settings, refresh, and the two sidebar controls use familiar masthead icons aligned at the far right.</li>
+      <li>The visual fixture now imports production HTML, CSS, and renderer modules directly with cache-busting; there is no fixture-only presentation patch.</li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="kicker">5 · Verification</p>
+    <h2>The packaged application is testable before public release</h2>
+    <table>
+      <thead><tr><th>Check</th><th>Result</th><th>What it proves</th></tr></thead>
+      <tbody>
+        <tr><td>Desktop suite</td><td class="pass">125/125 PASS</td><td>Renderer, accessibility, contracts, IPC, package, workspace state, and integration behavior.</td></tr>
+        <tr><td>CLI/protocol suite</td><td class="pass">158/158 PASS</td><td>Lifecycle, boundary, snapshot, adapter, packaging, trust, and release contracts remain sound.</td></tr>
+        <tr><td>Live production-backed fixture</td><td class="pass">PASS</td><td>Selection, graph, modal, inspector, diagnostics, expansion, and sidebar geometry work in the DOM.</td></tr>
+        <tr><td>Source Electron smoke</td><td class="pass">PASS</td><td>Setup, exact feature identity, toggles, focus, resize, and constrained layout work in the real app.</td></tr>
+        <tr><td>Universal app + DMG</td><td class="pass">PASS</td><td>Ad-hoc development package has correct bundle identity, icon, ASAR, ARM64/x86_64 slices, mount, and governed runtime.</td></tr>
+      </tbody>
+    </table>
+    <p>The review caught and fixed one attempt-1 regression: deleting the empty milestone message had also hidden real milestones. Attempt 2 restores real milestones, stays quiet when none exist, and passes the full suite and package smoke.</p>
+  </section>
+
+  <section class="quiz">
+    <p class="kicker">Review check</p>
+    <h2>Three quick questions</h2>
+    <div data-answer="b"><h3>Does selecting a state advance the workflow?</h3><button data-choice="a">Yes, when it is the current state</button><button data-choice="b">No, selection is observational only</button><p class="feedback"></p></div>
+    <div data-answer="c"><h3>What happened to inspector tabs?</h3><button data-choice="a">They were persisted to disk</button><button data-choice="b">They were deleted from the state model</button><button data-choice="c">Their internal identity remains, while the visible strip is suppressed</button><p class="feedback"></p></div>
+    <div data-answer="a"><h3>Is this the signed public release?</h3><button data-choice="a">No, it is an ad-hoc local development package</button><button data-choice="b">Yes, it is notarized and ready to publish</button><p class="feedback"></p></div>
+  </section>
+</main>
+<script>
+  for (const group of document.querySelectorAll('[data-answer]')) {
+    for (const button of group.querySelectorAll('button')) {
+      button.addEventListener('click', () => {
+        const correct = button.dataset.choice === group.dataset.answer;
+        group.querySelector('.feedback').textContent = correct ? 'Correct.' : 'Not quite - review the section above.';
+      });
+    }
+  }
+</script>
+</body>
+</html>

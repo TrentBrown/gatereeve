@@ -7,7 +7,8 @@
   <body>
     <script type="module">
       await import(`./visual-fixture.js${window.location.search}`);
-      const source = await fetch('../renderer/index.html').then((response) => response.text());
+      const fixtureVersion = Date.now();
+      const source = await fetch(`../renderer/index.html?fixture=${fixtureVersion}`).then((response) => response.text());
       const parsed = new DOMParser().parseFromString(source, 'text/html');
       parsed.querySelector('script[src="renderer.js"]')?.remove();
       parsed.querySelector('.brand-mark')?.setAttribute(
@@ -18,7 +19,7 @@
       base.href = '../renderer/';
       document.head.replaceChildren(base, ...parsed.head.childNodes);
       document.body.replaceChildren(...parsed.body.childNodes);
-      await import('../renderer/renderer.js');
+      await import(`../renderer/renderer.js?fixture=${fixtureVersion}`);
     </script>
   </body>
 </html>

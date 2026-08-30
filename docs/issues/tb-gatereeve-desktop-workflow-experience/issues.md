@@ -97,7 +97,7 @@ expandable current guidance.
 
 ## I-8 - Complete integrated accessibility and runtime verification
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P8
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
@@ -107,3 +107,16 @@ expandable current guidance.
 Exercise the assembled experience through automated, visual, accessibility,
 security-boundary, and running-application checks; resolve findings and prepare
 full feature evidence.
+
+## I-9 - Implement approved interface polish in production
+
+- **Status:** in-review
+- **Estimate:** 2d
+- **Plan steps:** P9
+- **Rubric criteria:** R9
+- **Depends on:** I-8
+- **PR:** [#36](https://github.com/TrentBrown/gatereeve/pull/36)
+
+Replace fixture-only presentation overrides with production renderer behavior,
+cover the revised interaction and accessibility contracts, and verify the
+result through the full Desktop suite and live production fixture.

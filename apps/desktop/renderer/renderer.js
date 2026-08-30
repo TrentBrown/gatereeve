@@ -7,6 +7,7 @@ import {
   attemptLabel,
   diagnosticCanShowGovernedViews,
   eventLabel,
+  featureStateLabel,
   featureStates,
   formatTime,
   gateArtifact,
@@ -24,11 +25,10 @@ const ids = [
   'chooser', 'choose', 'choose-empty', 'recents', 'chooser-error', 'workspace', 'refresh', 'activity',
   'candidate-diagnostic', 'candidate-diagnostic-title', 'candidate-diagnostic-message',
   'candidate-diagnostic-facts', 'candidate-diagnostic-checks', 'candidate-diagnostic-choose-another',
-  'brand-version', 'project-context', 'project-sidebar', 'main-tabs', 'toggle-sidebar',
-  'toggle-inspector', 'inspector-panel', 'inspector-resizer', 'inspector-tabs', 'hide-inspector',
-  'source-local',
-  'source-git', 'source-github', 'global-alerts', 'state-rail',
-  'milestone-context', 'milestones', 'slices-surface', 'slices',
+  'brand-version', 'project-sidebar', 'main-tabs', 'toggle-sidebar',
+  'toggle-inspector', 'inspector-panel', 'inspector-resizer', 'inspector-tabs',
+  'source-dialog', 'source-dialog-close', 'source-dialog-list', 'global-alerts', 'state-rail',
+  'milestones', 'slices-surface', 'slices',
   'boundary-surface', 'attempt-select', 'boundary-summary', 'gate-dag',
   'closeout-surface', 'closeout-status', 'closeout-summary',
   'actions-surface', 'actions', 'guidance-context', 'artifact-count', 'artifact-list', 'artifact-viewer', 'history-count',
@@ -63,6 +63,7 @@ let artifactHasContent = false;
 let toastTimer = null;
 let renderedOnce = false;
 let renderedDiagnosticKey = null;
+let inspectorExpanded = false;
 
 function projectPath() {
   return currentState?.selection?.worktreePath ?? '__empty__';
@@ -112,14 +113,28 @@ async function copy(value, message = 'Copied to clipboard') {
   showToast(message);
 }
 
-function sourceText(name, source) {
+function sourceItem(name, source) {
   const presented = sourceLabel(name, source);
-  const box = elements[`source-${name}`];
-  box.dataset.status = presented.status;
-  clear(box).append(
-    node('strong', { text: `${presented.name} · ${humanize(presented.status)}` }),
-    document.createTextNode(source?.detail ?? 'No additional detail'),
-  );
+  return node('section', { className: 'source-dialog-item' }, [
+    node('div', { className: 'card-header' }, [
+      node('strong', { text: presented.name }),
+      statusPill(presented.status),
+    ]),
+    node('p', { text: source?.detail ?? 'No additional detail.' }),
+  ]);
+}
+
+function openSourceDialog() {
+  if (!currentState?.selection) return;
+  const list = clear(elements['source-dialog-list']);
+  for (const name of ['local', 'git', 'github']) {
+    list.append(sourceItem(name, currentState.snapshot?.sources?.[name]));
+  }
+  if (typeof elements['source-dialog'].showModal === 'function') {
+    elements['source-dialog'].showModal();
+  } else {
+    elements['source-dialog'].setAttribute('open', '');
+  }
 }
 
 function switchView(view) {
@@ -272,7 +287,7 @@ function renderRecents(state) {
     const context = [
       duplicate ? parent : null,
       project.featureId,
-      project.workflowState ? humanize(project.workflowState) : null,
+      project.workflowState ? featureStateLabel(project.workflowState) : null,
     ].filter(Boolean).join(' · ');
     const select = node('button', {
       className: 'project-select',
@@ -334,6 +349,7 @@ function renderCandidateDiagnostic(diagnostic) {
   const report = elements['candidate-diagnostic'];
   if (diagnostic === null || diagnostic === undefined) {
     report.hidden = true;
+    document.body.classList.remove('diagnostic-only');
     renderedDiagnosticKey = null;
     return;
   }
@@ -362,6 +378,8 @@ function renderCandidateDiagnostic(diagnostic) {
     elements['candidate-diagnostic-checks'].append(node('li', { text: check }));
   }
   report.hidden = false;
+  if (inspectorExpanded) setInspectorExpanded(false);
+  document.body.classList.add('diagnostic-only');
 }
 
 function renderGlobalAlert(snapshot) {
@@ -399,9 +417,6 @@ function renderStateRail(snapshot) {
     return;
   }
   for (const state of states) {
-    const semantics = [];
-    if (state.current) semantics.push(node('span', { className: 'state-semantic current-label', text: 'Current' }));
-    if (state.selected) semantics.push(node('span', { className: 'state-semantic selected-label', text: 'Selected' }));
     const button = node('button', {
       className: 'state-select',
       type: 'button',
@@ -411,8 +426,6 @@ function renderStateRail(snapshot) {
       },
     }, [
       node('strong', { text: state.label }),
-      node('small', { text: state.id }),
-      node('span', { className: 'state-semantics' }, semantics),
     ]);
     button.addEventListener('click', () => {
       workspaceStore.setHierarchy(projectPath(), { selectedFeatureState: state.id });
@@ -432,19 +445,13 @@ function renderStateRail(snapshot) {
 }
 
 function renderMilestones(snapshot) {
-  clear(elements.milestones);
-  const featureState = workspaceState().selectedFeatureState
+  const container = clear(elements.milestones);
+  const selectedFeatureState = workspaceState().selectedFeatureState
     ?? snapshot?.projection?.feature?.state;
-  elements['milestone-context'].textContent = featureState
-    ? `Selected: ${humanize(featureState)}`
-    : 'No feature state selected';
   const milestones = (snapshot?.milestones ?? []).filter(
-    (item) => item.state === featureState,
+    (item) => item.state === selectedFeatureState,
   );
-  if (milestones.length === 0) {
-    elements.milestones.append(node('span', { className: 'muted', text: 'No milestones are defined for this state.' }));
-    return;
-  }
+  container.hidden = milestones.length === 0;
   for (const milestone of milestones) {
     const item = node('span', {
       className: 'milestone',
@@ -452,7 +459,7 @@ function renderMilestones(snapshot) {
       title: `Exact milestone ID: ${milestone.id}`,
     });
     item.dataset.status = milestone.status;
-    elements.milestones.append(item);
+    container.append(item);
   }
 }
 
@@ -470,11 +477,8 @@ function renderSlices(snapshot) {
   for (const slice of slices) {
     const selected = slice.id === selectedSliceId;
     const active = slice.id === activeSliceId;
-    const semantics = [];
-    if (active) semantics.push(node('span', { className: 'state-semantic current-label', text: 'Active' }));
-    if (selected) semantics.push(node('span', { className: 'state-semantic selected-label', text: 'Selected' }));
     const card = node('button', {
-      className: `card slice-card ordered-item${selected ? ' selected' : ''}`,
+      className: `card slice-card ordered-item status-${statusClass(slice.state)}${selected ? ' selected' : ''}`,
       type: 'button',
       attributes: {
         'aria-pressed': String(selected),
@@ -493,7 +497,6 @@ function renderSlices(snapshot) {
           statusPill(slice.state),
         ]),
         node('span', { className: 'slice-meta', text: [slice.branch, slice.planSteps?.join(', '), slice.scope].filter(Boolean).join(' · ') }),
-        node('span', { className: 'state-semantics' }, semantics),
       ]),
     ]);
     card.addEventListener('click', () => {
@@ -516,6 +519,63 @@ function renderSlices(snapshot) {
 
 function blockerText(blocker) {
   return blocker.message ?? blocker.reason ?? blocker.type ?? 'Unknown blocker';
+}
+
+function gateStatusPill(value) {
+  const pill = statusPill(value);
+  if (value === 'NOT_APPLICABLE') {
+    pill.textContent = 'N/A';
+    pill.title = 'Not applicable';
+    pill.setAttribute('aria-label', 'Not applicable');
+  }
+  return pill;
+}
+
+function gateConnector(fromCount, toCount) {
+  const kind = toCount > 1 ? 'fan-out' : fromCount > 1 ? 'fan-in' : 'simple';
+  const branchCount = Math.max(fromCount, toCount);
+  const connector = node('div', {
+    className: `gate-connector gate-connector-${kind}`,
+    attributes: { 'aria-hidden': 'true' },
+  });
+  connector.style.setProperty('--branch-count', String(branchCount));
+  connector.append(node('span', { className: 'connector-trunk' }));
+  if (kind !== 'simple') {
+    connector.append(node('span', { className: 'connector-bar' }));
+    for (let index = 0; index < branchCount; index += 1) {
+      const stem = node('span', { className: 'connector-stem' });
+      stem.style.setProperty('--stem-index', String(index));
+      connector.append(stem);
+    }
+  }
+  return connector;
+}
+
+function gateCard(attempt, gate, selected) {
+  const displayedStatus = gate.outcome === 'UNSET' ? gate.freshness : gate.outcome;
+  const button = node('button', {
+    className: `gate-card ordered-item status-${statusClass(displayedStatus)}${selected ? ' selected' : ''}`,
+    type: 'button',
+    attributes: {
+      'aria-pressed': String(selected),
+      'aria-label': `Gate ${gate.orderLabel}, ${humanize(gate.id)}, ${humanize(displayedStatus)}${selected ? ', Selected for inspection' : ''}`,
+    },
+  }, [
+    node('span', { className: 'order-marker', text: gate.orderLabel, attributes: { 'aria-hidden': 'true' } }),
+    node('span', { className: 'ordered-content' }, [
+      node('span', { className: 'card-header' }, [
+        node('strong', { text: humanize(gate.id), title: `Exact gate ID: ${gate.id}` }),
+        gateStatusPill(displayedStatus),
+      ]),
+      ...(gate.reason ? [node('span', { className: 'object-condition', text: gate.reason })] : []),
+      ...((gate.blockers ?? []).map((blocker) => node('span', {
+        className: 'object-condition',
+        text: blockerText(blocker),
+      }))),
+    ]),
+  ]);
+  button.addEventListener('click', () => renderGateDetail(attempt, gate));
+  return button;
 }
 
 function renderGateDetail(attempt, gate) {
@@ -584,39 +644,29 @@ function renderBoundary(snapshot) {
     }
   });
   elements['boundary-summary'].append(inspect);
-  clear(elements['gate-dag']);
+  const graph = clear(elements['gate-dag']);
+  const stages = [];
   for (const gate of attempt.gates) {
-    const selected = gate.id === selectedGateId;
-    const button = node('button', {
-      className: `gate-card ordered-item${selected ? ' selected' : ''}`,
-      type: 'button',
-      attributes: {
-        'aria-pressed': String(selected),
-        'aria-label': `Gate ${gate.orderLabel}, ${humanize(gate.id)}, ${humanize(gate.outcome === 'UNSET' ? gate.freshness : gate.outcome)}${selected ? ', Selected for inspection' : ''}`,
-      },
-    }, [
-      node('span', { className: 'order-marker', text: gate.orderLabel, attributes: { 'aria-hidden': 'true' } }),
-      node('span', { className: 'ordered-content' }, [
-        node('span', { className: 'card-header' }, [
-          node('strong', { text: humanize(gate.id), title: `Exact gate ID: ${gate.id}` }),
-          statusPill(gate.outcome === 'UNSET' ? gate.freshness : gate.outcome),
-        ]),
-        node('small', { text: `Freshness: ${humanize(gate.freshness)}` }),
-        node('span', {
-          className: 'dependencies',
-          text: gate.dependsOn.length ? `After: ${gate.dependsOn.join(', ')}` : 'Entry gate',
-        }),
-        ...(gate.reason ? [node('span', { className: 'object-condition', text: gate.reason })] : []),
-        ...((gate.blockers ?? []).map((blocker) => node('span', {
-          className: 'object-condition',
-          text: blockerText(blocker),
-        }))),
-        ...(selected ? [node('span', { className: 'state-semantic selected-label', text: 'Selected' })] : []),
-      ]),
-    ]);
-    button.addEventListener('click', () => renderGateDetail(attempt, gate));
-    elements['gate-dag'].append(button);
+    const stageNumber = Number.parseInt(gate.orderLabel, 10);
+    let stage = stages.find((candidate) => candidate.number === stageNumber);
+    if (!stage) {
+      stage = { number: stageNumber, gates: [] };
+      stages.push(stage);
+    }
+    stage.gates.push(gate);
   }
+  stages.forEach((stage, index) => {
+    if (index > 0) graph.append(gateConnector(stages[index - 1].gates.length, stage.gates.length));
+    const wrapper = node('div', {
+      className: `gate-stage${stage.gates.length > 1 ? ' gate-stage-branch' : ''}`,
+      attributes: { 'aria-label': `Gate dependency stage ${stage.number}` },
+    });
+    wrapper.style.setProperty('--stage-columns', String(stage.gates.length));
+    for (const gate of stage.gates) {
+      wrapper.append(gateCard(attempt, gate, gate.id === selectedGateId));
+    }
+    graph.append(wrapper);
+  });
   if (initialized) {
     const artifact = attemptArtifact(snapshot, selectedAttemptId);
     if (artifact) void openArtifact(artifact);
@@ -670,7 +720,7 @@ function renderActions(snapshot) {
   const actions = snapshot?.actions ?? [];
   elements['actions-surface'].hidden = actions.length === 0;
   elements['guidance-context'].textContent = snapshot?.projection?.feature?.state
-    ? `Current: ${humanize(snapshot.projection.feature.state)}`
+    ? `Current: ${featureStateLabel(snapshot.projection.feature.state)}`
     : 'Current governed state unavailable';
   if (actions.length === 0) {
     return;
@@ -875,8 +925,8 @@ function renderGateTab(tab, snapshot) {
   }
   const viewer = clear(elements['artifact-viewer']);
   viewer.append(node('div', { className: 'viewer-toolbar' }, [
-    node('div', {}, [node('h3', { text: humanize(gate.id) }), node('p', { className: 'path', text: `${attempt.id} · ${gate.id}` })]),
-    statusPill(gate.outcome),
+    node('p', { className: 'path', text: `${attempt.id} · ${gate.id}` }),
+    gateStatusPill(gate.outcome),
   ]));
   const facts = node('dl', { className: 'facts' }, [
     node('div', {}, [node('dt', { text: 'Outcome' }), node('dd', { text: humanize(gate.outcome) })]),
@@ -884,7 +934,7 @@ function renderGateTab(tab, snapshot) {
     node('div', {}, [node('dt', { text: 'Dependencies' }), node('dd', { text: gate.dependsOn?.length ? gate.dependsOn.join(', ') : 'Entry gate' })]),
     node('div', {}, [node('dt', { text: 'Recorded event' }), node('dd', { className: 'path', text: gate.recordedEventId ?? 'None' })]),
   ]);
-  viewer.append(facts, node('div', { className: 'notice info', text: 'No standalone artifact. This detail is projected from the trusted protocol record.' }));
+  viewer.append(facts);
   if (gate.reason) viewer.append(node('p', { text: gate.reason }));
   if (gate.blockers?.length) {
     const list = node('ul');
@@ -896,7 +946,6 @@ function renderGateTab(tab, snapshot) {
 function renderInspector(snapshot) {
   const workspace = workspaceStore.reconcile(projectPath(), snapshot?.artifacts ?? []);
   applyLayout();
-  renderInspectorTabs();
   renderArtifacts(snapshot);
   const tab = workspace.tabs.find((item) => item.id === workspace.activeTabId) ?? null;
   if (tab === null) {
@@ -943,13 +992,12 @@ function toggleSidebar(force = undefined) {
 function toggleInspector(force = undefined) {
   const activeInside = elements['inspector-panel'].contains(document.activeElement);
   const workspace = workspaceStore.toggleInspector(projectPath(), force);
+  if (!workspace.inspectorVisible && inspectorExpanded) setInspectorExpanded(false);
   applyLayout();
   if (!workspace.inspectorVisible && activeInside) elements['toggle-inspector'].focus();
   if (workspace.inspectorVisible) {
     renderInspector(currentState?.snapshot);
-    const target = elements['inspector-tabs'].querySelector('[aria-selected="true"]')
-      ?? elements['hide-inspector'];
-    target.focus({ preventScroll: true });
+    elements['artifact-viewer'].focus?.({ preventScroll: true });
   }
 }
 
@@ -980,25 +1028,66 @@ function restoreArtifactScroll(position) {
     : Math.min(position.scrollTop, maximum);
 }
 
-function artifactActions(artifact) {
-  const actions = node('div', { className: 'viewer-actions' });
-  const refresh = node('button', {
-    className: 'secondary',
-    text: 'Refresh',
+function iconMarkup(name) {
+  const icons = {
+    rendered: '<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="2.6"></circle>',
+    source: '<path d="m8 9-3 3 3 3"></path><path d="m16 9 3 3-3 3"></path><path d="m14 6-4 12"></path>',
+    copy: '<rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>',
+    expand: '<path d="M8 3H3v5"></path><path d="m3 3 6 6"></path><path d="M16 3h5v5"></path><path d="m21 3-6 6"></path><path d="M8 21H3v-5"></path><path d="m3 21 6-6"></path><path d="M16 21h5v-5"></path><path d="m21 21-6-6"></path>',
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
+}
+
+function iconButton(name, label) {
+  const button = node('button', {
+    className: 'secondary viewer-icon',
     type: 'button',
-    attributes: { 'data-artifact-refresh': '' },
+    title: label,
+    attributes: { 'aria-label': label },
   });
-  refresh.addEventListener('click', () => {
-    const current = currentState?.snapshot?.artifacts?.find(
-      (item) => item.id === selectedArtifactId && item.exists && !item.unsafe,
-    );
-    if (current) void readArtifact(current, { preserveContent: artifactHasContent, force: true });
+  button.innerHTML = iconMarkup(name);
+  return button;
+}
+
+function setInspectorExpanded(expanded) {
+  inspectorExpanded = expanded;
+  document.body.classList.toggle('inspector-expanded', expanded);
+  const button = elements['artifact-viewer'].querySelector('[data-expand-inspector]');
+  if (!button) return;
+  button.setAttribute('aria-pressed', String(expanded));
+  button.setAttribute('aria-label', expanded ? 'Restore artifact viewer' : 'Expand artifact viewer');
+  button.title = expanded ? 'Restore artifact viewer (Escape)' : 'Expand artifact viewer';
+}
+
+function artifactActions(artifact, detail = null) {
+  const actions = node('div', { className: 'viewer-actions' });
+  const copyContent = iconButton('copy', 'Copy artifact contents');
+  copyContent.disabled = detail === null;
+  copyContent.addEventListener('click', () => {
+    const value = detail?.data?.content
+      ?? (detail?.data?.structured === undefined ? '' : JSON.stringify(detail.data.structured, null, 2));
+    void copy(value, 'Artifact contents copied');
   });
-  const open = node('button', { className: 'secondary', text: 'Open externally', type: 'button' });
+  const open = node('button', { className: 'secondary', text: 'Open', type: 'button' });
   open.addEventListener('click', () => void desktop.openArtifact(artifact.id));
-  const reveal = node('button', { className: 'secondary', text: 'Reveal', type: 'button' });
+  const reveal = node('button', { className: 'secondary', text: 'Reveal in Finder', type: 'button' });
   reveal.addEventListener('click', () => void desktop.revealArtifact(artifact.id));
-  actions.append(refresh, open, reveal);
+  const copyPath = node('button', { className: 'secondary', text: 'Copy path', type: 'button' });
+  copyPath.addEventListener('click', () => void copy(artifact.absolutePath ?? artifact.path, 'Artifact path copied'));
+  const menuItems = node('div', { className: 'open-menu-items' }, [reveal, copyPath]);
+  const menu = node('details', { className: 'open-menu' }, [
+    node('summary', { text: '⌄', title: 'More file actions', attributes: { 'aria-label': 'More file actions' } }),
+    menuItems,
+  ]);
+  for (const button of menuItems.querySelectorAll('button')) {
+    button.addEventListener('click', () => { menu.open = false; });
+  }
+  const split = node('div', { className: 'open-split' }, [open, menu]);
+  const expand = iconButton('expand', inspectorExpanded ? 'Restore artifact viewer' : 'Expand artifact viewer');
+  expand.dataset.expandInspector = '';
+  expand.setAttribute('aria-pressed', String(inspectorExpanded));
+  expand.addEventListener('click', () => setInspectorExpanded(!inspectorExpanded));
+  actions.append(copyContent, split, expand);
   return actions;
 }
 
@@ -1101,34 +1190,57 @@ async function activateMarkdownLink(link) {
 function renderArtifactDetail(detail, requestSequence, position) {
   const viewer = clear(elements['artifact-viewer']);
   const current = detail.data.artifact;
-  const toolbar = node('div', { className: 'viewer-toolbar' }, [
-    node('div', {}, [
-      node('h3', { text: current.label }),
-      node('p', { className: 'path', text: `${current.path} · ${current.id}` }),
-    ]),
-    artifactActions(current),
+  const filename = current.path?.split('/').filter(Boolean).at(-1) ?? current.label;
+  const type = filename.includes('.') ? filename.split('.').at(-1).toUpperCase() : current.format.toUpperCase();
+  const identity = node('div', { className: 'artifact-identity' }, [
+    node('p', { className: 'path', text: filename, title: current.absolutePath ?? current.path }),
+    node('span', { className: 'artifact-type', text: type }),
   ]);
-  viewer.append(toolbar);
+  const actions = artifactActions(current, detail);
   const content = node('div');
-  viewer.append(content);
+  const renderContent = (mode = 'rendered') => {
+    if (current.format === 'markdown' && mode === 'source') {
+      clear(content).append(node('pre', { className: 'artifact-source', text: detail.data.content }));
+    } else if (current.format === 'markdown') {
+      renderMarkdown(content, detail.data.content, {
+        resolveLink: (target) => resolveMarkdownLink(current, target),
+        activateLink: (link) => void activateMarkdownLink(link),
+      });
+    } else if (current.format === 'json' || current.format === 'jsonl') {
+      renderJson(content, detail.data.structured);
+    } else if (current.format === 'html') {
+      clear(content).append(node('iframe', {
+        title: `${current.label} interactive explanation`,
+        attributes: {
+          src: `gatereeve-artifact://desktop/${encodeURIComponent(current.id)}?refresh=${requestSequence}`,
+        },
+      }));
+    } else {
+      clear(content).append(node('pre', { text: detail.data.content }));
+    }
+  };
   if (current.format === 'markdown') {
-    renderMarkdown(content, detail.data.content, {
-      resolveLink: (target) => resolveMarkdownLink(current, target),
-      activateLink: (link) => void activateMarkdownLink(link),
-    });
-  } else if (current.format === 'json' || current.format === 'jsonl') {
-    renderJson(content, detail.data.structured);
-  } else if (current.format === 'html') {
-    const frame = node('iframe', {
-      title: `${current.label} interactive explanation`,
-      attributes: {
-        src: `gatereeve-artifact://desktop/${encodeURIComponent(current.id)}?refresh=${requestSequence}`,
-      },
-    });
-    content.append(frame);
-  } else {
-    content.append(node('pre', { text: detail.data.content }));
+    const modes = node('div', { className: 'view-modes' });
+    const rendered = iconButton('rendered', 'Show rendered Markdown');
+    const source = iconButton('source', 'Show Markdown source');
+    rendered.setAttribute('aria-pressed', 'true');
+    source.setAttribute('aria-pressed', 'false');
+    const selectMode = (mode) => {
+      renderContent(mode);
+      rendered.setAttribute('aria-pressed', String(mode === 'rendered'));
+      source.setAttribute('aria-pressed', String(mode === 'source'));
+    };
+    rendered.addEventListener('click', () => selectMode('rendered'));
+    source.addEventListener('click', () => selectMode('source'));
+    modes.append(rendered, source);
+    actions.prepend(modes);
   }
+  const toolbar = node('div', { className: 'viewer-toolbar' }, [
+    identity,
+    actions,
+  ]);
+  viewer.append(toolbar, content);
+  renderContent();
   artifactHasContent = true;
   restoreArtifactScroll(position);
 }
@@ -1139,8 +1251,7 @@ function showArtifactRefreshFailure(artifact, error) {
   if (!artifactHasContent) {
     const toolbar = node('div', { className: 'viewer-toolbar' }, [
       node('div', {}, [
-        node('h3', { text: artifact.label }),
-        node('p', { className: 'path', text: `${artifact.path} · ${artifact.id}` }),
+        node('p', { className: 'path', text: artifact.path?.split('/').at(-1) ?? artifact.label }),
       ]),
       artifactActions(artifact),
     ]);
@@ -1417,17 +1528,21 @@ function render(state) {
   renderSetup(state);
   elements['brand-version'].textContent = `v${state.setup.desktop.version}`;
   elements.notifications.checked = state.preferences.notificationsEnabled;
-  elements['open-setup'].textContent = state.setup.operationalReady ? 'Setup' : 'Setup · Needs attention';
+  elements['open-setup'].classList.toggle('needs-attention', !state.setup.operationalReady);
+  elements['open-setup'].title = state.setup.operationalReady ? 'Settings' : 'Settings · Needs attention';
+  elements['open-setup'].setAttribute('aria-label', elements['open-setup'].title);
   const chooserMessage = state.error?.message ?? null;
   elements['chooser-error'].hidden = selected || chooserMessage === null;
   elements['chooser-error'].textContent = selected ? '' : chooserMessage ?? '';
   if (!renderedOnce && state.preferences.selectedAgents.length === 0) currentView = 'setup';
   renderedOnce = true;
   if (!selected) {
+    delete elements.workspace.dataset.featureId;
     if (currentView !== 'setup') currentView = workspaceState().mainView;
     elements.activity.textContent = state.setup.phase === 'checking'
       ? 'Checking GateReeve setup…'
       : state.setup.operationalReady ? 'Setup ready · add a project' : 'Setup incomplete · historical records remain readable';
+    elements.activity.disabled = true;
     switchView(currentView);
     applyLayout();
     return;
@@ -1456,15 +1571,12 @@ function render(state) {
   if (refreshStarted) artifactFailedFingerprint = null;
 
   const snapshot = state.snapshot;
+  if (snapshot?.featureId) elements.workspace.dataset.featureId = snapshot.featureId;
+  else delete elements.workspace.dataset.featureId;
+  elements.activity.disabled = false;
   elements.activity.textContent = state.refreshing
     ? 'Refreshing canonical observation…'
     : state.githubPolling ? 'Watching local changes · polling GitHub' : 'Watching local changes';
-  elements['project-context'].textContent = [
-    snapshot?.featureId ?? 'Ungoverned project',
-    snapshot?.projection?.feature?.state ? humanize(snapshot.projection.feature.state) : humanize(snapshot?.mode ?? state.phase),
-    state.selection.worktreePath,
-  ].join(' · ');
-  for (const source of ['local', 'git', 'github']) sourceText(source, snapshot?.sources?.[source]);
 
   renderOverview(snapshot);
   renderArtifacts(snapshot);
@@ -1494,6 +1606,11 @@ elements['agent-selection'].addEventListener('submit', async (event) => {
   }
 });
 elements.refresh.addEventListener('click', () => void desktop.refresh());
+elements.activity.addEventListener('click', openSourceDialog);
+elements['source-dialog-close'].addEventListener('click', () => {
+  if (typeof elements['source-dialog'].close === 'function') elements['source-dialog'].close();
+  else elements['source-dialog'].removeAttribute('open');
+});
 elements['check-updates'].addEventListener('click', async () => {
   try {
     const update = await desktop.checkForUpdates();
@@ -1541,7 +1658,6 @@ for (const button of document.querySelectorAll('[data-go-view]')) {
 
 elements['toggle-sidebar'].addEventListener('click', () => toggleSidebar());
 elements['toggle-inspector'].addEventListener('click', () => toggleInspector());
-elements['hide-inspector'].addEventListener('click', () => toggleInspector(false));
 
 let resizeStart = null;
 elements['inspector-resizer'].addEventListener('pointerdown', (event) => {
@@ -1563,6 +1679,11 @@ elements['inspector-resizer'].addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && inspectorExpanded) {
+    event.preventDefault();
+    setInspectorExpanded(false);
+    return;
+  }
   const primary = window.navigator.platform?.toLowerCase().includes('mac')
     ? event.metaKey
     : event.ctrlKey;
