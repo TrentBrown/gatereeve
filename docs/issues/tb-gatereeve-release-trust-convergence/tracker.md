@@ -48,6 +48,15 @@ Append PR boundary entries here.
 
 ## Slice Evidence
 
+### s2-protected-trust-native-evidence
+
+- Governed implementation started at event sequence 34 from reviewed `main`
+  merge `a01361aaf3c5779129e49972a33539c5984d0da0`.
+- Scope: P3-P4 / I-3-I-4 / R1, R2, R3, R4, R5, R8.
+- Branch:
+  `tb-gatereeve-release-trust-convergence-02-protected-trust-native-evidence`.
+- No `development` or `development-*` branch was merged or rebased.
+
 ### s1-lifecycle-recovery-contracts
 
 - Desktop suite: `npm test` in `apps/desktop` - 121 passed, 0 failed.
