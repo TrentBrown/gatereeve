@@ -19,6 +19,7 @@ import {
   renderDesktopReleaseManifest,
   textIdentity,
 } from './desktop-release-manifest.js';
+import { assertNativeTrustEvidenceV2 } from './native-trust-evidence-v2.js';
 import { parseReleaseTag } from './release.js';
 import { dispatchReleaseRecordSchema } from './release-lifecycle-v2.js';
 
@@ -102,6 +103,30 @@ async function requireFreshOutput(path) {
 }
 
 function validateDesktopEvidence(value, expected) {
+  if (value?.schemaVersion === 2) {
+    try {
+      assertNativeTrustEvidenceV2(value);
+    } catch (error) {
+      throw new Error('Desktop verification evidence does not satisfy native trust v2', {
+        cause: error,
+      });
+    }
+    if (
+      value?.source?.tag !== expected.sourceTag
+      || value.source.commit !== expected.sourceCommit
+      || value?.candidate?.version !== expected.desktopVersion
+      || value.candidate.id !== `gatereeve-${expected.sourceTag}`
+      || value?.artifact?.filename !== expected.filename
+      || value.artifact.bytes !== expected.bytes
+      || value.artifact.sha256 !== expected.sha256
+    ) throw new Error('Desktop verification evidence does not match the coordinated candidate');
+    return {
+      ...value,
+      sourceTag: value.source.tag,
+      sourceCommit: value.source.commit,
+      version: value.candidate.version,
+    };
+  }
   if (
     value?.schemaVersion !== 1
     || value.kind !== 'gatereeve-desktop-package-verification'

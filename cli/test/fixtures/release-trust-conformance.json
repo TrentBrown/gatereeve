@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "fixture": "release-trust-semantic-conformance",
+  "commonAnchors": [
+    "source-pinned",
+    "policy-resolved",
+    "artifact-digests-established",
+    "candidate-qualified",
+    "authoritative-native-verified",
+    "desktop-trust-verified",
+    "distribution-finalized",
+    "publication-approved",
+    "published"
+  ],
+  "gateReeveTopology": {
+    "plugin": true,
+    "desktop": "universal-dmg",
+    "nativeAuthorities": ["arm64", "x64"],
+    "standaloneCli": false,
+    "nativeService": false
+  },
+  "sharedInvariants": [
+    "immutable-source",
+    "exact-byte-identity",
+    "append-only-stage-history",
+    "attempts-are-not-success-stages",
+    "notarization-request-continuity",
+    "native-intel-is-not-rosetta",
+    "separate-trust-and-publication-authority"
+  ]
+}

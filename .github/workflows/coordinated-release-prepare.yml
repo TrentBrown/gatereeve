@@ -7,19 +7,14 @@ on:
         description: Eventual coordinated RC tag (for example v0.1.0-rc.3)
         required: true
         type: string
-      source_ref:
-        description: Immutable source ref to resolve before candidate work
-        required: true
-        default: main
-        type: string
-      apple_trust:
-        description: Enter the protected Apple signing and notarization boundary
-        required: true
-        default: false
-        type: boolean
 
 permissions:
+  actions: read
   contents: read
+
+concurrency:
+  group: gatereeve-release-trust-${{ inputs.tag }}
+  cancel-in-progress: false
 
 jobs:
   resolve-source:
@@ -29,7 +24,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.source_ref }}
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Require the exact current reviewed main commit
+        env:
+          DISPATCH_SHA: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$DISPATCH_REF" = "refs/heads/main"
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$DISPATCH_SHA"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)"
       - name: Require an RC preparation tag
         env:
           RELEASE_TAG: ${{ inputs.tag }}
@@ -63,157 +70,22 @@ jobs:
           name: coordinated-plugin-candidate
           path: ${{ runner.temp }}/plugin-marketplace
           if-no-files-found: error
-
-  desktop-candidate:
-    needs: resolve-source
-    runs-on: macos-15
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.resolve-source.outputs.commit }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.17.0
-          cache: npm
-          cache-dependency-path: apps/desktop/package-lock.json
-      - run: npm ci --prefix apps/desktop
-      - name: Package Desktop with the coordinated release version
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: npm run package:mac --prefix apps/desktop -- --version "${RELEASE_TAG#v}"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: coordinated-desktop-candidate
-          path: apps/desktop/dist/macos/GateReeve-*-macos-universal.dmg
-          if-no-files-found: error
-
-  desktop-verification:
-    needs:
-      - resolve-source
-      - desktop-candidate
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - architecture: arm64
-            runner: macos-15
-          - architecture: x64
-            runner: macos-15-intel
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.resolve-source.outputs.commit }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.17.0
-          cache: npm
-          cache-dependency-path: apps/desktop/package-lock.json
-      - run: npm ci --ignore-scripts --prefix apps/desktop
-      - uses: actions/download-artifact@v4
-        with:
-          name: coordinated-desktop-candidate
-          path: ${{ runner.temp }}/desktop
-      - name: Prepare a real governed runtime fixture
-        run: >-
-          node apps/desktop/scripts/create-smoke-fixture.mjs
-          "$RUNNER_TEMP/gatereeve-desktop-smoke"
-      - id: metadata
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
-      - name: Verify the exact DMG and emit native evidence
-        run: >-
-          node apps/desktop/scripts/verify-macos-package.mjs
-          --dmg "$RUNNER_TEMP/desktop/GateReeve-${{ steps.metadata.outputs.version }}-macos-universal.dmg"
-          --version "${{ steps.metadata.outputs.version }}"
-          --fixture "$RUNNER_TEMP/gatereeve-desktop-smoke"
-          --native-architecture "${{ matrix.architecture }}"
-          --source-tag "${{ inputs.tag }}"
-          --source-commit "${{ needs.resolve-source.outputs.commit }}"
-          --evidence "$RUNNER_TEMP/desktop-${{ matrix.architecture }}.json"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: coordinated-desktop-evidence-${{ matrix.architecture }}
-          path: ${{ runner.temp }}/desktop-${{ matrix.architecture }}.json
-          if-no-files-found: error
-
-  coordinated-record:
-    if: ${{ !inputs.apple_trust }}
-    needs:
-      - resolve-source
-      - plugin-candidate
-      - desktop-candidate
-      - desktop-verification
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.resolve-source.outputs.commit }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.17.0
-          cache: npm
-          cache-dependency-path: cli/package-lock.json
-      - run: npm ci --prefix cli
-      - uses: actions/download-artifact@v4
-        with:
-          name: coordinated-plugin-candidate
-          path: ${{ runner.temp }}/plugin-marketplace
-      - uses: actions/download-artifact@v4
-        with:
-          name: coordinated-desktop-candidate
-          path: ${{ runner.temp }}/desktop
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: coordinated-desktop-evidence-*
-          path: ${{ runner.temp }}/evidence
-          merge-multiple: true
-      - id: metadata
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
-      - name: Create the immutable coordinated record and dry-run plan
-        run: >-
-          node cli/bin/workflow.js plugin release coordinate
-          --tag "${{ inputs.tag }}"
-          --source-commit "${{ needs.resolve-source.outputs.commit }}"
-          --repository "${{ github.server_url }}/${{ github.repository }}"
-          --plugin-root "$RUNNER_TEMP/plugin-marketplace"
-          --desktop-dmg "$RUNNER_TEMP/desktop/GateReeve-${{ steps.metadata.outputs.version }}-macos-universal.dmg"
-          --desktop-evidence
-          "$RUNNER_TEMP/evidence/desktop-arm64.json"
-          "$RUNNER_TEMP/evidence/desktop-x64.json"
-          --output-root "$RUNNER_TEMP/coordinated-release"
-          --json
-      - uses: actions/upload-artifact@v4
-        with:
-          name: gatereeve-${{ inputs.tag }}-coordinated-release
-          path: ${{ runner.temp }}/coordinated-release
-          if-no-files-found: error
+          retention-days: 30
 
   desktop-trust:
-    if: ${{ inputs.apple_trust }}
     needs:
       - resolve-source
       - plugin-candidate
-      - desktop-candidate
-      - desktop-verification
     runs-on: macos-15
     timeout-minutes: 45
     environment:
-      name: release-publication
+      name: release-trust
       deployment: false
     env:
       APPLE_TEAM_ID: ${{ vars.GATEREEVE_APPLE_TEAM_ID }}
       APPLE_SIGNING_IDENTITY: ${{ vars.GATEREEVE_DEVELOPER_IDENTITY }}
       APPLE_NOTARY_KEY_ID: ${{ vars.GATEREEVE_NOTARY_KEY_ID }}
       APPLE_NOTARY_ISSUER_ID: ${{ vars.GATEREEVE_NOTARY_ISSUER_ID }}
-      APPLE_DEVELOPER_ID_P12_BASE64: ${{ secrets.GATEREEVE_DEVELOPER_ID_P12_BASE64 }}
-      APPLE_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.GATEREEVE_DEVELOPER_ID_P12_PASSWORD }}
-      APPLE_NOTARY_KEY_P8_BASE64: ${{ secrets.GATEREEVE_NOTARY_KEY_P8_BASE64 }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -224,20 +96,28 @@ jobs:
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
+      - name: Reject generic reruns after protected trust production begins
+        env:
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: node -e "if (process.env.RUN_ATTEMPT !== '1') throw new Error('Use retained release-trust artifacts and bounded recovery; generic reruns are prohibited')"
       - name: Validate protected Apple configuration
         run: >-
           node --input-type=module -e
           "import { assertAppleSigningConfiguration } from './apps/desktop/scripts/apple-trust-contract.mjs';
           assertAppleSigningConfiguration({ identity: process.env.APPLE_SIGNING_IDENTITY,
           teamId: process.env.APPLE_TEAM_ID, keyId: process.env.APPLE_NOTARY_KEY_ID,
-          issuerId: process.env.APPLE_NOTARY_ISSUER_ID });
-          for (const name of ['APPLE_DEVELOPER_ID_P12_BASE64',
-          'APPLE_DEVELOPER_ID_P12_PASSWORD', 'APPLE_NOTARY_KEY_P8_BASE64'])
-          if (!process.env[name]) throw new Error(name + ' is not configured');"
+          issuerId: process.env.APPLE_NOTARY_ISSUER_ID });"
       - name: Import the Developer ID identity into an ephemeral keychain
+        env:
+          APPLE_DEVELOPER_ID_P12_BASE64: ${{ secrets.GATEREEVE_DEVELOPER_ID_P12_BASE64 }}
+          APPLE_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.GATEREEVE_DEVELOPER_ID_P12_PASSWORD }}
+          APPLE_NOTARY_KEY_P8_BASE64: ${{ secrets.GATEREEVE_NOTARY_KEY_P8_BASE64 }}
         shell: bash
         run: |
           set -euo pipefail
+          for secret_name in APPLE_DEVELOPER_ID_P12_BASE64 APPLE_DEVELOPER_ID_P12_PASSWORD APPLE_NOTARY_KEY_P8_BASE64; do
+            test -n "${!secret_name:-}" || { echo "$secret_name is not configured" >&2; exit 1; }
+          done
           keychain_path="$RUNNER_TEMP/gatereeve-release.keychain-db"
           keychain_password="$(uuidgen)$(uuidgen)"
           certificate_path="$RUNNER_TEMP/gatereeve-developer-id.p12"
@@ -297,12 +177,35 @@ jobs:
             const result = JSON.parse(value);
             process.stdout.write(`application=${result.applicationPath}\n`);
           ' "$RUNNER_TEMP/trusted-package.json" >> "$GITHUB_OUTPUT"
+      - name: Stage immutable submitted bytes and recovery paths
+        id: trust-paths
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          trusted_bundle="$RUNNER_TEMP/coordinated-desktop-trusted"
+          submitted_root="$trusted_bundle/submitted"
+          mkdir -p "$submitted_root"
+          submitted_dmg="$submitted_root/GateReeve-${VERSION}-macos-universal.dmg"
+          trusted_dmg="$trusted_bundle/GateReeve-${VERSION}-macos-universal.dmg"
+          application="${{ steps.trusted-package.outputs.application }}"
+          cp "apps/desktop/dist/macos/GateReeve-${VERSION}-macos-universal.dmg" "$submitted_dmg"
+          tar -cf "$submitted_root/GateReeve.app.tar" \
+            -C "$(dirname "$application")" \
+            "$(basename "$application")"
+          echo "bundle=$trusted_bundle" >> "$GITHUB_OUTPUT"
+          echo "submitted_dmg=$submitted_dmg" >> "$GITHUB_OUTPUT"
+          echo "application=$application" >> "$GITHUB_OUTPUT"
+          echo "trusted_dmg=$trusted_dmg" >> "$GITHUB_OUTPUT"
       - name: Notarize, staple, and assess the exact DMG
         run: >-
           node apps/desktop/scripts/notarize-macos.mjs
-          --application "${{ steps.trusted-package.outputs.application }}"
-          --dmg "apps/desktop/dist/macos/GateReeve-${{ steps.metadata.outputs.version }}-macos-universal.dmg"
-          --evidence "$RUNNER_TEMP/apple-trust.json"
+          --application "${{ steps.trust-paths.outputs.application }}"
+          --dmg "${{ steps.trust-paths.outputs.submitted_dmg }}"
+          --trusted-dmg "${{ steps.trust-paths.outputs.trusted_dmg }}"
+          --attempt "${{ steps.trust-paths.outputs.bundle }}/notarization-attempt.json"
+          --evidence "${{ steps.trust-paths.outputs.bundle }}/apple-trust.json"
           --source-tag "${{ inputs.tag }}"
           --source-commit "${{ needs.resolve-source.outputs.commit }}"
           --version "${{ steps.metadata.outputs.version }}"
@@ -311,23 +214,13 @@ jobs:
           --notary-key "$GATEREEVE_NOTARY_KEY_PATH"
           --notary-key-id "$APPLE_NOTARY_KEY_ID"
           --notary-issuer-id "$APPLE_NOTARY_ISSUER_ID"
-      - name: Stage the trusted Desktop bundle
-        env:
-          VERSION: ${{ steps.metadata.outputs.version }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          trusted_bundle="$RUNNER_TEMP/coordinated-desktop-trusted"
-          mkdir -p "$trusted_bundle"
-          cp \
-            "apps/desktop/dist/macos/GateReeve-${VERSION}-macos-universal.dmg" \
-            "$trusted_bundle/"
-          cp "$RUNNER_TEMP/apple-trust.json" "$trusted_bundle/"
       - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
         with:
           name: coordinated-desktop-trusted
           path: ${{ runner.temp }}/coordinated-desktop-trusted
           if-no-files-found: error
+          retention-days: 30
       - name: Remove Apple credentials and ephemeral keychain
         if: ${{ always() }}
         shell: bash
@@ -355,7 +248,6 @@ jobs:
             "${GATEREEVE_ORIGINAL_KEYCHAINS:-$RUNNER_TEMP/missing-keychain-list}"
 
   trusted-desktop-verification:
-    if: ${{ inputs.apple_trust }}
     needs:
       - resolve-source
       - desktop-trust
@@ -407,14 +299,48 @@ jobs:
           name: coordinated-desktop-trusted-evidence-${{ matrix.architecture }}
           path: ${{ runner.temp }}/desktop-${{ matrix.architecture }}.json
           if-no-files-found: error
+          retention-days: 30
 
-  coordinated-record-trusted:
-    if: ${{ inputs.apple_trust }}
+  native-trust-aggregate:
+    needs:
+      - resolve-source
+      - desktop-trust
+      - trusted-desktop-verification
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-source.outputs.commit }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-desktop-trusted
+          path: ${{ runner.temp }}/desktop
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coordinated-desktop-trusted-evidence-*
+          path: ${{ runner.temp }}/evidence
+          merge-multiple: true
+      - name: Require exactly one native document from each architecture
+        run: >-
+          node cli/scripts/aggregate-native-trust.js
+          --apple-trust "$RUNNER_TEMP/desktop/apple-trust.json"
+          --arm64 "$RUNNER_TEMP/evidence/desktop-arm64.json"
+          --x64 "$RUNNER_TEMP/evidence/desktop-x64.json"
+          --output "$RUNNER_TEMP/native-trust-aggregate.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coordinated-native-trust-aggregate
+          path: ${{ runner.temp }}/native-trust-aggregate.json
+          if-no-files-found: error
+          retention-days: 30
+
+  trusted-release-lifecycle:
     needs:
       - resolve-source
       - plugin-candidate
       - desktop-trust
       - trusted-desktop-verification
+      - native-trust-aggregate
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -439,25 +365,23 @@ jobs:
           pattern: coordinated-desktop-trusted-evidence-*
           path: ${{ runner.temp }}/evidence
           merge-multiple: true
-      - id: metadata
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
-      - name: Create the immutable Apple-trusted coordinated record
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-native-trust-aggregate
+          path: ${{ runner.temp }}/evidence
+      - name: Create the immutable schema-v2 trusted lifecycle
         run: >-
-          node cli/bin/workflow.js plugin release coordinate
+          node cli/scripts/build-trusted-release-lifecycle.js
+          --repository "${{ github.server_url }}/${{ github.repository }}"
           --tag "${{ inputs.tag }}"
           --source-commit "${{ needs.resolve-source.outputs.commit }}"
-          --repository "${{ github.server_url }}/${{ github.repository }}"
           --plugin-root "$RUNNER_TEMP/plugin-marketplace"
-          --desktop-dmg "$RUNNER_TEMP/desktop/GateReeve-${{ steps.metadata.outputs.version }}-macos-universal.dmg"
-          --desktop-evidence
-          "$RUNNER_TEMP/evidence/desktop-arm64.json"
-          "$RUNNER_TEMP/evidence/desktop-x64.json"
-          --output-root "$RUNNER_TEMP/coordinated-release"
-          --json
+          --apple-trust "$RUNNER_TEMP/desktop/apple-trust.json"
+          --native-aggregate "$RUNNER_TEMP/evidence/native-trust-aggregate.json"
+          --output "$RUNNER_TEMP/coordinated-release/release-record.json"
       - uses: actions/upload-artifact@v4
         with:
           name: gatereeve-${{ inputs.tag }}-coordinated-release
           path: ${{ runner.temp }}/coordinated-release
           if-no-files-found: error
+          retention-days: 30

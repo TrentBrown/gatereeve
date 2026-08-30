@@ -73,3 +73,18 @@ bounded recovery, fail-closed ambiguity, and prohibition of generic reruns.
   timeout, rejection, and uncertainty are facts, not completed trust gates.
 - Automatically resubmit after timeout or interruption - rejected because it
   can create multiple Apple requests for changed or ambiguous bytes.
+
+## [3] Distinguish submitted and final stapled DMG identities
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Apple trust evidence v2, notarization recovery, retained artifacts, native verification, schema-v2 lifecycle binding, and later publication
+
+Treat the signed, unstapled universal DMG submitted to Apple and the final stapled universal DMG as two explicit immutable identities in one authorized trust derivation. The notarization attempt and Apple request remain bound to the submitted artifact. After acceptance, trust finalization copies the retained submitted artifact to a distinct final path, staples and validates that copy, then records both identities and their lineage. Native ARM64/Intel verification, the trusted-universal-DMG lifecycle stage, finalization, and publication bind only the final stapled artifact. The retained submitted artifact plus attempt history remains the recovery authority and both are retained for at least 30 days. This is not permission to rebuild or substitute bytes under the candidate version.
+
+**Triggered by:** The existing trust script hashes the DMG before stapling even though stapling may change the distributable file, making exact-byte authority and recovery ambiguous
+
+**Alternatives considered:**
+Assume stapling preserves the DMG digest - rejected because the contract must not depend on that implementation detail; staple the only retained DMG in place - rejected because a recovery invocation could no longer match the attempt-bound submitted bytes; treat post-staple drift as requiring a new RC - rejected because stapling is the intended trust-finalization derivation, not an arbitrary rebuild

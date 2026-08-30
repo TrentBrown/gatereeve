@@ -120,10 +120,10 @@ test('Apple release setup is actionable, protected, and team-key only', async ()
     'team API key',
     'individual keys cannot use `notaryTool`',
     'encrypted offline',
-    'release-publication',
+    'release-trust',
     'GATEREEVE_DEVELOPER_ID_P12_BASE64',
     'GATEREEVE_NOTARY_KEY_P8_BASE64',
-    'apple_trust=true',
+    'coordinated-release-trust-recover.yml',
     'does **not** approve publication',
   ]) {
     assert.ok(guide.includes(phrase), `Apple setup guide must include: ${phrase}`);

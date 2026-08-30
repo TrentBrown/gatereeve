@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -148,6 +148,77 @@ test('notarization emits complete non-secret evidence for the exact disk image',
   }
 });
 
+test('trust finalization preserves submitted bytes and makes final evidence create-once', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'gatereeve-apple-trust-final-'));
+  const dmgPath = join(root, 'submitted', 'GateReeve-0.1.0-rc.8-macos-universal.dmg');
+  const trustedDmgPath = join(root, 'trusted', 'GateReeve-0.1.0-rc.8-macos-universal.dmg');
+  const applicationPath = join(root, 'GateReeve.app');
+  const evidencePath = join(root, 'apple-trust.json');
+  const attemptPath = join(root, 'notarization-attempt.json');
+  const keyPath = join(root, 'AuthKey_KLMNOPQRST.p8');
+  let submissions = 0;
+  let staples = 0;
+  try {
+    await mkdir(join(root, 'submitted'));
+    await writeFile(dmgPath, 'signed submitted bytes\n');
+    await writeFile(applicationPath, 'signed application fixture\n');
+    await writeFile(keyPath, 'private key fixture\n');
+    const options = {
+      applicationPath,
+      dmgPath,
+      trustedDmgPath,
+      evidencePath,
+      attemptPath,
+      attemptId: '11111111-1111-1111-1111-111111111111',
+      pollingSessionId: '22222222-2222-2222-2222-222222222222',
+      sourceTag: 'v0.1.0-rc.8',
+      sourceCommit: '1234567890abcdef1234567890abcdef12345678',
+      version: '0.1.0-rc.8',
+      identity,
+      teamId: 'ABCDEFGHIJ',
+      notaryKeyPath: keyPath,
+      notaryKeyId: 'KLMNOPQRST',
+      notaryIssuerId: '12345678-1234-1234-1234-1234567890ab',
+      async sleep() {},
+      async run(executable, arguments_) {
+        if (arguments_.includes('submit')) {
+          submissions += 1;
+          return { stdout: JSON.stringify({ id: 'abcdef12-1234-1234-1234-1234567890ab' }) };
+        }
+        if (arguments_.includes('info')) {
+          return { stdout: JSON.stringify({
+            id: 'abcdef12-1234-1234-1234-1234567890ab',
+            status: 'Accepted',
+          }) };
+        }
+        if (arguments_.includes('staple')) {
+          staples += 1;
+          await appendFile(trustedDmgPath, 'stapled ticket bytes\n');
+        }
+        if (executable === '/usr/bin/codesign' && arguments_[0] === '--display') {
+          return {
+            stdout: '',
+            stderr: arguments_.at(-1) === dmgPath
+              ? signatureOutput.replace('(runtime)', '')
+              : signatureOutput,
+          };
+        }
+        return { stdout: '', stderr: '' };
+      },
+    };
+    const evidence = await notarizeMacos(options);
+    assert.notEqual(evidence.submittedArtifact.sha256, evidence.artifact.sha256);
+    assert.equal((await readFile(dmgPath, 'utf8')), 'signed submitted bytes\n');
+    assert.equal(submissions, 1);
+    assert.equal(staples, 1);
+    assert.deepEqual(await notarizeMacos(options), evidence);
+    assert.equal(submissions, 1);
+    assert.equal(staples, 1);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('notarization timeout is durable and recovery polls the same request without resubmitting', async () => {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-notarization-recovery-'));
   const dmgPath = join(root, 'GateReeve-0.1.0-rc.9-macos-universal.dmg');
@@ -225,7 +296,7 @@ test('notarization timeout is durable and recovery polls the same request withou
     assert.equal(attempt.state, 'accepted');
     assert.equal(attempt.pollingSessions.length, 2);
     assert.equal(submissions, 1);
-    assert.equal(evidence.notarization.id, attempt.requestId);
+    assert.equal(evidence.notarization.requestId, attempt.requestId);
 
     await writeFile(dmgPath, 'different signed disk image bytes\n');
     await assert.rejects(

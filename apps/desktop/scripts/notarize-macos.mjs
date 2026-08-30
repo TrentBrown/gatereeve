@@ -2,7 +2,7 @@
 
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, link, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { setTimeout as sleepFor } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
@@ -61,6 +61,19 @@ async function writeJsonAtomically(path, value) {
   }
 }
 
+/** @param {string} path @param {unknown} value */
+async function writeJsonCreateOnce(path, value) {
+  const resolved = resolve(path);
+  await mkdir(dirname(resolved), { recursive: true });
+  const temporary = `${resolved}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });
+    await link(temporary, resolved);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+}
+
 /** @param {string} path */
 async function readAttempt(path) {
   try {
@@ -107,6 +120,7 @@ async function defaultSleep(milliseconds) {
  *   sourceCommit: string, version: string, identity: string, teamId: string,
  *   notaryKeyPath: string, notaryKeyId: string, notaryIssuerId: string,
  *   attemptPath?: string, attemptId?: string, pollingSessionId?: string,
+ *   trustedDmgPath?: string,
  *   sleep?: (milliseconds: number) => Promise<void>, now?: () => Date,
  *   run?: (executable: string, arguments_: string[]) => Promise<{stdout?: string, stderr?: string}>}}
  *   options
@@ -119,6 +133,7 @@ export async function notarizeMacos(options) {
     issuerId: options.notaryIssuerId,
   });
   const dmgPath = resolve(options.dmgPath);
+  const trustedDmgPath = resolve(options.trustedDmgPath ?? options.dmgPath);
   const applicationPath = resolve(options.applicationPath);
   const run = options.run ?? defaultRun;
   const sleep = options.sleep ?? defaultSleep;
@@ -162,12 +177,12 @@ export async function notarizeMacos(options) {
   ) {
     throw new Error('Signed disk image identity does not match the protected configuration');
   }
-  const artifact = await fileIdentity(dmgPath);
+  const submittedArtifact = await fileIdentity(dmgPath);
   const candidateIdentity = {
     sourceTag: options.sourceTag,
     sourceCommit: options.sourceCommit,
     version: options.version,
-    artifact,
+    artifact: submittedArtifact,
   };
   let attempt = await readAttempt(attemptPath);
   if (attempt === null) {
@@ -179,6 +194,29 @@ export async function notarizeMacos(options) {
     await writeJsonAtomically(attemptPath, attempt);
   } else {
     assertCandidateIdentity(attempt, candidateIdentity);
+  }
+  try {
+    const existingEvidence = assertAppleTrustEvidence(
+      JSON.parse(await readFile(resolve(options.evidencePath), 'utf8')),
+      {
+        sourceTag: options.sourceTag,
+        sourceCommit: options.sourceCommit,
+        version: options.version,
+      },
+    );
+    const finalArtifact = await fileIdentity(trustedDmgPath);
+    if (
+      existingEvidence.schemaVersion !== 2
+      || existingEvidence.submittedArtifact.sha256 !== submittedArtifact.sha256
+      || existingEvidence.submittedArtifact.bytes !== submittedArtifact.bytes
+      || existingEvidence.artifact.sha256 !== finalArtifact.sha256
+      || existingEvidence.artifact.bytes !== finalArtifact.bytes
+      || existingEvidence.notarization.attemptId !== attempt.attemptId
+      || existingEvidence.notarization.requestId !== attempt.requestId
+    ) throw new Error('Existing Apple trust evidence does not match retained exact bytes');
+    return existingEvidence;
+  } catch (error) {
+    if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'ENOENT') throw error;
   }
   if (attempt.state === 'submitting' || attempt.state === 'submission-uncertain') {
     throw new Error('Notarization submission outcome is uncertain; reconcile Apple history before retrying');
@@ -269,8 +307,12 @@ export async function notarizeMacos(options) {
   if (attempt.state !== 'accepted' || attempt.requestId === null) {
     throw new Error(`Apple notarization attempt cannot establish trust from state ${attempt.state}`);
   }
-  await run('/usr/bin/xcrun', ['stapler', 'staple', '-v', dmgPath]);
-  await run('/usr/bin/xcrun', ['stapler', 'validate', '-v', dmgPath]);
+  if (trustedDmgPath !== dmgPath) {
+    await mkdir(dirname(trustedDmgPath), { recursive: true });
+    await copyFile(dmgPath, trustedDmgPath, 0);
+  }
+  await run('/usr/bin/xcrun', ['stapler', 'staple', '-v', trustedDmgPath]);
+  await run('/usr/bin/xcrun', ['stapler', 'validate', '-v', trustedDmgPath]);
   await run('/usr/sbin/spctl', [
     '--assess',
     '--type',
@@ -278,24 +320,34 @@ export async function notarizeMacos(options) {
     '--context',
     'context:primary-signature',
     '--verbose=4',
-    dmgPath,
+    trustedDmgPath,
   ]);
+  const artifact = await fileIdentity(trustedDmgPath);
   const evidence = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     kind: 'gatereeve-apple-trust',
     status: APPLE_TRUST_STATUS,
-    sourceTag: options.sourceTag,
-    sourceCommit: options.sourceCommit,
-    version: options.version,
+    source: { tag: options.sourceTag, commit: options.sourceCommit },
+    candidate: {
+      id: `gatereeve-${options.sourceTag}`,
+      version: options.version,
+      sourceCommit: options.sourceCommit,
+    },
+    submittedArtifact,
     artifact,
     signature: signatureFacts,
-    notarization: { id: attempt.requestId, status: 'Accepted' },
+    notarization: {
+      attemptId: attempt.attemptId,
+      requestId: attempt.requestId,
+      status: 'Accepted',
+      submittedArtifactSha256: submittedArtifact.sha256,
+    },
     staple: { validated: true },
     gatekeeper: { diskImage: 'accepted' },
     verifiedAt: now().toISOString(),
   };
   assertAppleTrustEvidence(evidence);
-  await writeJsonAtomically(resolve(options.evidencePath), evidence);
+  await writeJsonCreateOnce(resolve(options.evidencePath), evidence);
   return evidence;
 }
 
@@ -303,6 +355,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const options = {
     applicationPath: argument('--application'),
     dmgPath: argument('--dmg'),
+    trustedDmgPath: argument('--trusted-dmg'),
     evidencePath: argument('--evidence'),
     attemptPath: argument('--attempt'),
     attemptId: argument('--attempt-id'),
