@@ -184,3 +184,18 @@ RC.1 expectation after the tap advanced to RC.2.
   immutable and remains useful historical evidence.
 - Discover an unpinned latest release at runtime - rejected because the smoke
   must bind an explicit retained packet and cannot silently change authority.
+
+## [8] Cut over Apple custody through validated overlap
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** GitHub release-trust and release-publication environments, Apple credential custody, protected RC rehearsal, and rollback safety
+
+Create release-trust with the required Trent Brown reviewer, self-review permitted, and a custom main-only policy; copy only the four non-secret Apple identity variables automatically. The user places the three Apple secrets directly into GitHub once. Preserve the historical Apple entries in release-publication until a fresh protected RC.3 rehearsal succeeds and its retained evidence is validated. Only then remove Apple variables and secrets from release-publication and re-audit disjoint custody. This temporary overlap is a bounded migration state, not an accepted steady state.
+
+**Triggered by:** The approved live audit found release-trust absent while release-publication retained the historical combined Apple custody
+
+**Alternatives considered:**
+Delete historical Apple entries before validating release-trust - rejected because it removes the rollback path; transmit or copy secret values through the Playpen agent - rejected because Apple secrets must never reach the Linux host, logs, artifacts, or chat; leave the combined environment in place - rejected because it violates the approved trust/publication separation.
