@@ -9,13 +9,13 @@
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Schema lifecycle | NOT YET | - | P1 complete: guarded v2 prefix, exact v1 dispatch, immutable RC.2 fixture; P3, P7-P9 remain |
-| R2 | Source and byte authority | NOT YET | - | P1-P2 complete: reservation plus source/DMG binding and changed-byte rejection; P3-P4, P7-P9 remain |
-| R3 | Credential custody | NOT YET | - | P4-P9 / I-4-I-9 |
-| R4 | Notarization recovery | NOT YET | - | P2 complete: durable submitting/request/poll/timeout/reconcile/reject/supersede contracts; P4, P7-P9 remain |
+| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1, P3, and P7 locally complete; reviewed assembly and live acceptance remain P8-P9 |
+| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | P1-P4 plus finalization/version-burn operations are locally complete; P8-P9 remain |
+| R3 | Credential custody | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Disjoint workflow authority and migration contract implemented through P7; live cutover remains P9 |
+| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Durable bounded recovery and operator prohibition/migration contract complete; reviewed assembly and live evidence remain P8-P9 |
 | R5 | Native verification | NOT YET | - | P3-P4, P8-P9 / I-3-I-4, I-8-I-9 |
-| R6 | Finalization and publication | NOT YET | - | P5, P7-P9 / I-5, I-7-I-9 |
-| R7 | Cask linkage | NOT YET | - | P6-P9 / I-6-I-9 |
+| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Exact schema-v2 seal, read-only rehearsal, hosted approval, receipts, and retry implemented; P8-P9 remain |
+| R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, and idempotent receipt implemented; P8-P9 remain |
 | R8 | Conformance and acceptance | NOT YET | - | P3, P8-P9 / I-3, I-8-I-9 |
 
 ## PR Log
@@ -95,6 +95,20 @@ Append PR boundary entries here.
 - Branch:
   `tb-gatereeve-release-trust-convergence-03-hosted-publication-cask-operations`.
 - Integration base: `3b0e719af9258e5b7ee8bc9b6b8a7dd908a5bc41`.
+- Draft PR: [#34](https://github.com/TrentBrown/gatereeve/pull/34).
+- Implementation source: `5e7e9eb43b602454d99942db245e51ac73dbd1c5`.
+- Primary publication now seals a schema-v2 packet from the exact trusted
+  Plugin tree, universal DMG, and native evidence; the protected dry run has
+  read-only permission and no secret, while real publication appends ordered
+  idempotent receipts without rebuilding.
+- Cask remains a separately approved post-publication schema-v2 record binding
+  the primary record/stage/plan/receipt digests, public DMG install-and-launch
+  proof, exact Cask bytes, and deterministic tap receipt.
+- Local verification: CLI 158 passed; Desktop 125 passed; portable acceptance,
+  focused 35-test publication/Cask/workflow/documentation suite, JavaScript
+  syntax, YAML parse, and diff checks passed.
+- No live environment, Apple credential, tag, release, marketplace, manifest,
+  website, or Cask mutation occurred in this slice implementation.
 - No `development` or `development-*` branch was merged or rebased.
 
 ### s2-protected-trust-native-evidence

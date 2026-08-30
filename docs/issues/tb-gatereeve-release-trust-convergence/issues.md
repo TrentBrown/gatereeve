@@ -58,36 +58,36 @@ workflow-contract tests.
 
 ## I-5 - Implement hosted primary publication
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P5
 - **Rubric criteria:** R3, R6
 - **Depends on:** I-1, I-3, I-4
-- **PR:** -
+- **PR:** [#34](https://github.com/TrentBrown/gatereeve/pull/34)
 
 Seal the v2 packet after trust, add exact-plan protected dry-run/publication,
 and preserve deterministic receipt-based recovery.
 
 ## I-6 - Implement linked hosted Cask publication
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1.5d
 - **Plan steps:** P6
 - **Rubric criteria:** R3, R7
 - **Depends on:** I-5
-- **PR:** -
+- **PR:** [#34](https://github.com/TrentBrown/gatereeve/pull/34)
 
 Version and bind the separate Cask record, retain direct-install proof, and add
 publication-only approval plus partial-retry tests.
 
 ## I-7 - Update release operations and migration documentation
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P7
 - **Rubric criteria:** R1, R2, R3, R4, R6, R7
 - **Depends on:** I-4, I-5, I-6
-- **PR:** -
+- **PR:** [#34](https://github.com/TrentBrown/gatereeve/pull/34)
 
 Document and test the one-time environment cutover, ordinary approvals,
 bounded recovery, version burn, hosted publication, and immutable history.
