@@ -33,7 +33,7 @@ records, finite polling, version burn, and fail-closed negative coverage.
 
 ## I-3 - Version native trust evidence and add conformance fixtures
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1.5d
 - **Plan steps:** P3
 - **Rubric criteria:** R1, R2, R5, R8
@@ -45,7 +45,7 @@ fixtures while retaining GateReeve-specific trust surfaces.
 
 ## I-4 - Separate and harden protected trust production
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P4
 - **Rubric criteria:** R2, R3, R4, R5
