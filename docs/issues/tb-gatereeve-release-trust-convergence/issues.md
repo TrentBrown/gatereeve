@@ -106,7 +106,7 @@ reviewed topic changes on `main` before live environment mutation.
 
 ## I-9 - Complete live cutover and nonpublishing acceptance
 
-- **Status:** in-progress
+- **Status:** blocked
 - **Estimate:** 1d plus Apple processing time
 - **Plan steps:** P9
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
@@ -116,3 +116,20 @@ reviewed topic changes on `main` before live environment mutation.
 Coordinate user-operated secret migration, audit the separated environments,
 run a fresh protected RC rehearsal and hosted publication dry run, retain zero-
 mutation evidence, and complete full rubric/judge verification.
+
+Blocked by I-10 after RC.3 proved Apple trust and native evidence but exposed
+that protected jobs suppress GitHub deployment/reviewer enforcement.
+
+## I-10 - Enforce protected environment deployment approvals
+
+- **Status:** open
+- **Estimate:** 0.5d plus protected rehearsal time
+- **Plan steps:** P4, P5, P6, P9
+- **Rubric criteria:** R3, R6, R7, R8
+- **Depends on:** I-4, I-5, I-6
+- **PR:** -
+
+Remove deployment suppression from every `release-trust` and
+`release-publication` job, add workflow-contract coverage for real environment
+deployments, deliver the correction through a fresh reviewed slice, and prove
+required-reviewer waits with a fresh RC before resuming I-9.
