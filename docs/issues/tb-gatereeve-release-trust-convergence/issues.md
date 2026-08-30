@@ -58,7 +58,7 @@ workflow-contract tests.
 
 ## I-5 - Implement hosted primary publication
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 2d
 - **Plan steps:** P5
 - **Rubric criteria:** R3, R6
@@ -70,7 +70,7 @@ and preserve deterministic receipt-based recovery.
 
 ## I-6 - Implement linked hosted Cask publication
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 1.5d
 - **Plan steps:** P6
 - **Rubric criteria:** R3, R7
@@ -82,7 +82,7 @@ publication-only approval plus partial-retry tests.
 
 ## I-7 - Update release operations and migration documentation
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 1d
 - **Plan steps:** P7
 - **Rubric criteria:** R1, R2, R3, R4, R6, R7

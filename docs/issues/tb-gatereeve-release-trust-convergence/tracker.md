@@ -87,6 +87,16 @@ Append PR boundary entries here.
 
 ## Slice Evidence
 
+### s3-hosted-publication-cask-operations
+
+- Proposed and planned under the approved P5-P7 delivery boundary after the
+  exact PR #33 merge reached `main`.
+- Scope: P5-P7 / I-5-I-7 / R1, R2, R3, R4, R6, R7.
+- Branch:
+  `tb-gatereeve-release-trust-convergence-03-hosted-publication-cask-operations`.
+- Integration base: `3b0e719af9258e5b7ee8bc9b6b8a7dd908a5bc41`.
+- No `development` or `development-*` branch was merged or rebased.
+
 ### s2-protected-trust-native-evidence
 
 - Governed implementation started at event sequence 34 from reviewed `main`
