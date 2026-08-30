@@ -94,7 +94,7 @@ bounded recovery, version burn, hosted publication, and immutable history.
 
 ## I-8 - Complete sequential PR boundaries and mainline assembly
 
-- **Status:** open
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P8
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
@@ -106,7 +106,7 @@ reviewed topic changes on `main` before live environment mutation.
 
 ## I-9 - Complete live cutover and nonpublishing acceptance
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 1d plus Apple processing time
 - **Plan steps:** P9
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
