@@ -46,7 +46,7 @@ IPC/preload contracts.
 
 ## I-4 - Build the application shell and workspace store
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R3, R8
@@ -58,7 +58,7 @@ session workspace state, panel controls, shortcuts, and resizable layout.
 
 ## I-5 - Build the unified artifact inspector
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P5
 - **Rubric criteria:** R6, R8
@@ -71,7 +71,7 @@ view.
 
 ## I-6 - Implement the hierarchical Overview
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P6
 - **Rubric criteria:** R4, R5, R8
@@ -84,7 +84,7 @@ ordering markers.
 
 ## I-7 - Consolidate alerts and current workflow guidance
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P7
 - **Rubric criteria:** R7, R8
@@ -97,12 +97,12 @@ expandable current guidance.
 
 ## I-8 - Complete integrated accessibility and runtime verification
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P8
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
 - **Depends on:** I-3, I-4, I-5, I-6, I-7
-- **PR:** -
+- **PR:** [#31](https://github.com/TrentBrown/gatereeve/pull/31)
 
 Exercise the assembled experience through automated, visual, accessibility,
 security-boundary, and running-application checks; resolve findings and prepare

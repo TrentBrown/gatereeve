@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "scope": "feature-final",
+  "featureId": "tb-gatereeve-desktop-workflow-experience",
+  "repositoryAlias": "repository",
+  "packetId": "pr-31",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 31,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/31",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "4a6a680be51b5b0c2b9454497a8950df739e1805",
+    "headRefName": "tb-gatereeve-desktop-workflow-experience-05-integrated-accessibility-runtime-hardening",
+    "headRefOid": "48d75d25c70e249bda7ddcb0e1afed9a98a0135a"
+  },
+  "mergeBaseSha": "4a6a680be51b5b0c2b9454497a8950df739e1805",
+  "evaluatedSourceSha": "48d75d25c70e249bda7ddcb0e1afed9a98a0135a",
+  "featureBaseSha": "3cfbf858d502f34cd363fbfeec2d29f2791b39d5",
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": { "disposition": "passed", "reason": null },
+    "specEvaluation": { "disposition": "passed", "reason": null },
+    "judge": { "disposition": "passed", "reason": null },
+    "codeReview": { "disposition": "passed", "reason": null },
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No applicable .pattern-review scope is configured for this repository"
+    },
+    "explainDiff": { "disposition": "passed", "reason": null }
+  }
+}
