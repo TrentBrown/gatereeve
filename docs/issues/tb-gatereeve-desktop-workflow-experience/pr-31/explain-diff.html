@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PR #31 explained — Integrated desktop hardening</title>
+  <style>
+    :root{--ink:#241832;--muted:#6d6375;--purple:#5b3f92;--lav:#f4f0fa;--line:#ded5e9;--green:#267057;--amber:#925812;--paper:#fff;--bg:#f7f5f9}
+    *{box-sizing:border-box} body{margin:0;color:var(--ink);background:var(--bg);font:16px/1.62 Inter,ui-sans-serif,system-ui,sans-serif}
+    header{padding:3.5rem clamp(1.2rem,5vw,5rem);color:#fff;background:linear-gradient(125deg,#29183d,#6544a0)}
+    header p{max-width:68ch;margin:.75rem 0 0;color:#e9e0f4} h1,h2,h3{font-family:Georgia,serif;line-height:1.16} h1{max-width:18ch;margin:0;font-size:clamp(2.25rem,5vw,4.6rem)}
+    main{max-width:1120px;margin:auto;padding:2rem clamp(1rem,4vw,3rem) 5rem} nav{position:sticky;top:0;z-index:4;display:flex;gap:.5rem;padding:.75rem 1rem;overflow:auto;border-bottom:1px solid var(--line);background:rgba(255,255,255,.94);backdrop-filter:blur(12px)}
+    nav a{flex:none;color:var(--purple);font-weight:750;text-decoration:none} section{scroll-margin-top:4rem;margin:2rem 0;padding:clamp(1.1rem,3vw,2.2rem);border:1px solid var(--line);border-radius:18px;background:var(--paper);box-shadow:0 12px 30px rgba(37,24,52,.06)}
+    h2{margin:.1rem 0 1rem;font-size:clamp(1.7rem,3vw,2.6rem)} h3{margin:1.4rem 0 .45rem} code{padding:.12rem .3rem;border-radius:.3rem;background:var(--lav);font-family:ui-monospace,monospace;font-size:.9em} pre{white-space:pre-wrap;overflow:auto;padding:1rem;border-radius:12px;color:#f7f3fb;background:#2b2037;font:13px/1.55 ui-monospace,monospace}
+    .lede{font-size:1.12rem;color:#4f425b}.callout{margin:1rem 0;padding:1rem 1.1rem;border-left:5px solid var(--purple);border-radius:8px;background:var(--lav)} .callout strong{display:block}
+    .flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem;margin:1rem 0}.node{position:relative;padding:1rem;border:1px solid var(--line);border-radius:12px;background:#fff}.node:not(:last-child)::after{position:absolute;right:-.65rem;top:50%;content:"→";color:var(--purple);font-weight:900}.node b,.node small{display:block}.node small{margin-top:.3rem;color:var(--muted)}
+    .shell{display:grid;grid-template-columns:1fr 1.6fr 1.25fr;min-height:230px;margin:1rem 0;border:2px solid #4e3c63;border-radius:14px;overflow:hidden}.pane{padding:1rem;border-right:1px solid var(--line);background:#fff}.pane:last-child{border:0}.pane b{display:block;margin-bottom:.6rem;color:var(--purple)}.rail{height:14px;margin:.5rem 0;border-radius:99px;background:#e9e2f2}.rail.short{width:60%}.alert{padding:.6rem;border-left:4px solid #a8324a;background:#fff0f2;font-size:.86rem}
+    .comparison{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.comparison article{padding:1rem;border:1px solid var(--line);border-radius:12px}.bad{border-top:5px solid #a8324a!important}.good{border-top:5px solid var(--green)!important}
+    .file-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:.7rem;padding:0;list-style:none}.file-list li{padding:.85rem;border:1px solid var(--line);border-radius:10px;background:var(--lav)}
+    .quiz{display:grid;gap:1rem}.question{padding:1rem;border:1px solid var(--line);border-radius:12px}.choices{display:grid;gap:.5rem;margin-top:.7rem}.choice{padding:.7rem;text-align:left;border:1px solid var(--line);border-radius:8px;color:var(--ink);background:#fff;cursor:pointer}.choice:hover{background:var(--lav)}.choice.correct{border-color:var(--green);background:#eaf7f1}.choice.wrong{border-color:#a8324a;background:#fff0f2}.feedback{min-height:1.5rem;margin:.55rem 0 0;font-weight:700}
+    .meta{font-family:ui-monospace,monospace;font-size:.82rem;color:#ded1ed} @media(max-width:760px){.flow,.comparison,.shell{grid-template-columns:1fr}.node::after{display:none}.pane{border-right:0;border-bottom:1px solid var(--line)}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="meta">PR #31 · 4a6a680..48d75d2 · FEATURE_FINAL</div>
+    <h1>The hardening pass that makes the whole desktop trustworthy</h1>
+    <p>GateReeve already had its new hierarchy. This final slice tests the assembled experience under pressure, turns rejected projects into useful diagnostics, and makes the real Electron runtime fail loudly when the UI contract breaks.</p>
+  </header>
+  <nav aria-label="Contents"><a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#evidence">Evidence</a><a href="#quiz">Quiz</a></nav>
+  <main>
+    <section id="background">
+      <h2>Background</h2>
+      <p class="lede">GateReeve Desktop is a read-only observer over a governed feature record. The central rule is easy to say and surprisingly demanding to preserve: looking at workflow information must never become workflow passage.</p>
+      <div class="flow" aria-label="Authority flow">
+        <div class="node"><b>Project directory</b><small>Canonical feature record and artifacts</small></div>
+        <div class="node"><b>Protocol adapter</b><small>Validates and projects governed truth</small></div>
+        <div class="node"><b>Desktop coordinator</b><small>Observes one active project</small></div>
+        <div class="node"><b>Renderer</b><small>Changes selection, never governance</small></div>
+      </div>
+      <p>The previous four PRs supplied the pieces: admission and saved projects; the three-region shell and inspector; the feature → slice → attempt → gate hierarchy; and the quieter attention policy. PR #31 is the integration pass. It asks whether those pieces still behave correctly when the window is small, the inspector is wide, a saved project is incompatible, focus moves between panels, or Electron itself reports a failed smoke contract.</p>
+      <div class="shell" aria-label="GateReeve shell diagram">
+        <div class="pane"><b>Saved projects</b><div class="rail"></div><div class="rail short"></div><div class="alert">Needs attention stays a saved reference</div></div>
+        <div class="pane"><b>Fixed workspace tabs</b><div class="rail"></div><div class="rail"></div><div class="rail short"></div></div>
+        <div class="pane"><b>Artifact inspector</b><div class="rail"></div><div class="rail short"></div><p>Closable tabs; hiding preserves state.</p></div>
+      </div>
+      <div class="callout"><strong>Why a browser fixture and Electron?</strong>The fixture imports the production renderer for a sub-second edit-render loop. Electron remains the checkpoint for native window geometry, menu/focus behavior, custom protocols, and real process exit semantics.</div>
+    </section>
+
+    <section id="intuition">
+      <h2>Intuition</h2>
+      <h3>1. A failed choice is not a failed application</h3>
+      <p>Suppose Project A is valid and active. The user tries Project B, whose feature record pins an unsupported model. The old presentation could bury that failure because A remained selected. The new presentation keeps A active <em>and</em> opens a full diagnostic for B. Selection safety and useful feedback no longer compete.</p>
+      <div class="comparison">
+        <article class="bad"><h3>Before</h3><p>B is not admitted, but the valid workspace for A can make the reason feel absent or detached.</p></article>
+        <article class="good"><h3>After</h3><p>A remains selected. A collapsible alert names B's directory, feature record, pinned model, failed checks, safe next steps, and non-mutation guarantee.</p></article>
+      </div>
+      <h3>2. Desired width and rendered width are different facts</h3>
+      <p>The workspace store may remember a desired inspector width of 720px. At a 940px window, the sidebar and the central workspace still need room. PR #31 keeps 720 as the user's session value while capping the rendered track to what the viewport can safely contain.</p>
+      <pre>rendered inspector = min(
+  requested inspector,
+  viewport - sidebar - minimum center - scrollbar allowance
+)</pre>
+      <p>This distinction matters because resizing the window should not destroy the user's preference. A later, wider window can honor more of the requested width.</p>
+      <h3>3. A smoke test must fail the process, not merely print a complaint</h3>
+      <p>The previous startup handler set an exit code and then asked Electron to quit, but the command could still finish successfully. The new handler calls <code>app.exit(1)</code>. A broken renderer contract now produces both structured evidence and a nonzero command result.</p>
+    </section>
+
+    <section id="code">
+      <h2>Code walkthrough</h2>
+      <ul class="file-list">
+        <li><code>renderer/index.html</code><br>Defines the native <code>&lt;details role="alert"&gt;</code> diagnostic surface.</li>
+        <li><code>renderer/renderer.js</code><br>Renders diagnostic facts, preserves the active project, and restores panel focus without scrolling the document.</li>
+        <li><code>renderer/styles.css</code><br>Styles the diagnostic, compacts the masthead, and viewport-caps the inspector track.</li>
+        <li><code>main/index.js</code><br>Expands real Electron smoke coverage and makes failure exit nonzero.</li>
+        <li><code>main/renderer-protocol.js</code><br>Serves the local application shell with <code>Cache-Control: no-store</code>.</li>
+        <li><code>visual/visual-fixture.js</code><br>Adds incompatible, multi-project, and incomplete-Setup scenarios with realistic in-memory operations.</li>
+      </ul>
+      <h3>The diagnostic is independent of active selection</h3>
+      <pre>renderRecents(state);
+renderCandidateDiagnostic(state.candidateDiagnostic);
+renderSetup(state);
+
+// The active project may still be valid and visible.
+// The rejected candidate remains a separate diagnostic fact.</pre>
+      <h3>Focus moves without dragging the document</h3>
+      <pre>if (workspace.inspectorVisible) {
+  renderInspector(currentState?.snapshot);
+  const target = selectedTab ?? hideInspectorButton;
+  target.focus({ preventScroll: true });
+}</pre>
+      <h3>The smoke contract measures rendered geometry</h3>
+      <p>The runtime check no longer trusts only <code>hidden</code> or ARIA state. It measures all three workspace children, requests the maximum inspector width, proves the actual track is constrained, returns to 400px, checks focus restoration, and rejects any document-level overflow.</p>
+      <div class="callout"><strong>Review finding resolved inside the slice</strong>The first formal attempt found that the normal 400px case passed while a 720px request could overflow. The attempt was returned to remediation; the viewport cap and expanded smoke are part of the reviewed head.</div>
+    </section>
+
+    <section id="evidence">
+      <h2>Evidence</h2>
+      <div class="flow">
+        <div class="node"><b>110 / 110</b><small>Desktop unit and integration tests</small></div>
+        <div class="node"><b>137 / 137</b><small>CLI and protocol tests</small></div>
+        <div class="node"><b>940 = 940</b><small>Browser viewport and scroll width</small></div>
+        <div class="node"><b>Unchanged SHA-256</b><small>Governed fixture journal</small></div>
+      </div>
+      <p>The Playwright fixture reordered projects, rejected an incompatible candidate without changing the active project, opened every diagnostic detail, and showed no horizontal overflow. The real Electron smoke verified Setup, fixed tabs, version text, panel toggles, focus, keyboard resizing, the constrained 720px request, and governed context at the minimum window.</p>
+      <p>Packaging and deployment were deliberately not run. This is source iteration and feature verification, not release publication.</p>
+    </section>
+
+    <section id="quiz">
+      <h2>Quiz</h2>
+      <p>Choose one answer for each question. Feedback appears immediately.</p>
+      <div class="quiz">
+        <div class="question" data-answer="1"><b>1. Why does the incompatible-project diagnostic render separately from the chooser error?</b><div class="choices"><button class="choice">Because chooser errors may contain HTML while diagnostics cannot.</button><button class="choice">Because a rejected candidate can coexist with a valid active project, so selection and admission feedback are independent.</button><button class="choice">Because Electron permits only one alert inside the central workspace.</button></div><p class="feedback"></p></div>
+        <div class="question" data-answer="2"><b>2. Why retain a requested inspector width larger than its rendered minimum-window track?</b><div class="choices"><button class="choice">To make ARIA values intentionally differ from keyboard behavior.</button><button class="choice">To avoid recalculating CSS custom properties after every artifact opens.</button><button class="choice">So a wider future window can honor the session preference without allowing the current viewport to overflow.</button></div><p class="feedback"></p></div>
+        <div class="question" data-answer="0"><b>3. What did <code>app.exit(1)</code> fix?</b><div class="choices"><button class="choice">It makes a failed startup or smoke contract terminate the Electron command nonzero.</button><button class="choice">It bypasses the renderer sandbox so diagnostics can be captured.</button><button class="choice">It prevents the application from saving ordinary window bounds.</button></div><p class="feedback"></p></div>
+        <div class="question" data-answer="1"><b>4. What does <code>preventScroll: true</code> protect during panel restoration?</b><div class="choices"><button class="choice">It disables scrolling inside long Markdown artifacts.</button><button class="choice">It moves keyboard focus into the restored panel without horizontally shifting the entire document during layout change.</button><button class="choice">It prevents the resizer from receiving arrow-key events.</button></div><p class="feedback"></p></div>
+        <div class="question" data-answer="2"><b>5. Why does the final verification use both the visual fixture and Electron?</b><div class="choices"><button class="choice">The fixture tests release packaging while Electron tests only CSS.</button><button class="choice">They are redundant, but running both compensates for the lack of unit tests.</button><button class="choice">The fixture gives a rapid production-renderer loop; Electron proves native window, focus, protocol, and process-exit behavior.</button></div><p class="feedback"></p></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    document.querySelectorAll('.question').forEach((question) => {
+      const correct = Number(question.dataset.answer);
+      const buttons = [...question.querySelectorAll('.choice')];
+      buttons.forEach((button, index) => button.addEventListener('click', () => {
+        buttons.forEach((item, itemIndex) => item.classList.toggle('correct', itemIndex === correct));
+        button.classList.toggle('wrong', index !== correct);
+        const feedback = question.querySelector('.feedback');
+        feedback.textContent = index === correct ? 'Correct — that is the contract this PR preserves.' : 'Not quite. The highlighted answer best matches the reviewed implementation.';
+        feedback.style.color = index === correct ? 'var(--green)' : '#a8324a';
+      }));
+    });
+  </script>
+</body>
+</html>

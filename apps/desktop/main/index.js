@@ -2,7 +2,7 @@
 
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import {
   app,
   BrowserWindow,
@@ -164,6 +164,7 @@ async function startDesktop() {
   void updateCoordinator.initialize();
   await coordinator.initialize();
   if (process.env.GATEREEVE_DESKTOP_SMOKE === '1') {
+    window.setSize(940, 560);
     const smokeWorktree = process.env.GATEREEVE_DESKTOP_SMOKE_WORKTREE;
     let expectedFeatureId = null;
     if (smokeWorktree) {
@@ -179,10 +180,13 @@ async function startDesktop() {
       }
       expectedFeatureId = state.snapshot.featureId;
     }
-    const passed = await window.webContents.executeJavaScript(
+    const smoke = await window.webContents.executeJavaScript(
       `new Promise((resolve) => {
         let attempts = 0;
         let setupObserved = false;
+        let shellObserved = false;
+        let shellChecked = false;
+        let shellEvidence = null;
         const inspect = () => {
           if (!setupObserved && document.querySelector('#open-setup')) {
             document.querySelector('#open-setup').click();
@@ -196,8 +200,135 @@ async function startDesktop() {
               document.querySelector('#setup-return').click();
             }
           }
+          if (!shellChecked && document.querySelector('#project-context')?.textContent) {
+            shellChecked = true;
+            document.querySelector('#workspace').style.transition = 'none';
+            const sidebarToggle = document.querySelector('#toggle-sidebar');
+            const inspectorToggle = document.querySelector('#toggle-inspector');
+            const selectedProject = document.querySelector('[role="option"][aria-selected="true"]');
+            const mainTabs = [...document.querySelectorAll('#main-tabs .main-tab')];
+            const initialProject = selectedProject?.textContent;
+            sidebarToggle?.click();
+            const sidebarHidden = document.querySelector('#project-sidebar')?.hidden === true;
+            sidebarToggle?.click();
+            const sidebarRestored = Boolean(
+              document.querySelector('#project-sidebar')?.hidden === false
+              && document.activeElement?.getAttribute('role') === 'option'
+              && document.querySelector('[role="option"][aria-selected="true"]')?.textContent === initialProject
+            );
+            const inspector = document.querySelector('#inspector-panel');
+            const resizer = document.querySelector('#inspector-resizer');
+            if (inspector?.hidden === false) inspectorToggle?.click();
+            const inspectorBaselineHidden = inspector?.hidden === true;
+            inspectorToggle?.click();
+            const inspectorShown = inspector?.hidden === false;
+            const initialWidth = Number(resizer?.getAttribute('aria-valuenow'));
+            resizer?.focus();
+            resizer?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+            const resizedWidth = Number(resizer?.getAttribute('aria-valuenow'));
+            resizer?.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+            const maximumRequestedWidth = Number(resizer?.getAttribute('aria-valuenow'));
+            const maximumRenderedWidth = Math.round(inspector?.getBoundingClientRect().width ?? 0);
+            const maximumWidthScroll = document.documentElement.scrollWidth;
+            resizer?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+            for (let index = 0; index < 5; index += 1) {
+              resizer?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+            }
+            const restoredWidth = Number(resizer?.getAttribute('aria-valuenow'));
+            inspectorToggle?.click();
+            const inspectorHidden = inspector?.hidden === true;
+            inspectorToggle?.click();
+            const inspectorRestored = Boolean(
+              inspector?.hidden === false
+              && resizedWidth === initialWidth - 20
+              && document.activeElement === document.querySelector('#hide-inspector')
+            );
+            const tabLabels = mainTabs.map((tab) => tab.textContent).join('|');
+            const versionText = document.querySelector('#brand-version')?.textContent;
+            const scrollWidth = document.documentElement.scrollWidth;
+            const viewportWidth = window.innerWidth;
+            const workspace = document.querySelector('#workspace');
+            const workspaceChildren = workspace
+              ? [...workspace.children].map((element) => {
+                  const rect = element.getBoundingClientRect();
+                  return {
+                    element: element.id ? '#' + element.id : element.tagName.toLowerCase(),
+                    hidden: element.hidden,
+                    left: Math.round(rect.left),
+                    right: Math.round(rect.right),
+                    width: Math.round(rect.width),
+                    scrollWidth: element.scrollWidth,
+                    minWidth: getComputedStyle(element).minWidth,
+                  };
+                })
+              : [];
+            const overflowers = [...document.querySelectorAll('body *')]
+              .map((element) => {
+                const rect = element.getBoundingClientRect();
+                return {
+                  element: element.id
+                    ? '#' + element.id
+                    : element.tagName.toLowerCase() + '.' + element.className,
+                  left: Math.round(rect.left),
+                  right: Math.round(rect.right),
+                  width: Math.round(rect.width),
+                  scrollWidth: element.scrollWidth,
+                  clientWidth: element.clientWidth,
+                };
+              })
+              .filter((item) => item.right > viewportWidth + 1 || item.left < -1)
+              .slice(0, 12);
+            shellEvidence = {
+              sidebarHidden,
+              sidebarRestored,
+              inspectorBaselineHidden,
+              inspectorShown,
+              inspectorHidden,
+              inspectorRestored,
+              initialWidth,
+              resizedWidth,
+              maximumRequestedWidth,
+              maximumRenderedWidth,
+              maximumWidthScroll,
+              restoredWidth,
+              tabLabels,
+              versionText,
+              scrollWidth,
+              viewportWidth,
+              documentScrollLeft: document.documentElement.scrollLeft,
+              inspectorWidthProperty: workspace
+                ? getComputedStyle(workspace).getPropertyValue('--inspector-width')
+                : null,
+              inspectorWidthInline: workspace?.style.getPropertyValue('--inspector-width') ?? null,
+              workspaceGridColumns: workspace ? getComputedStyle(workspace).gridTemplateColumns : null,
+              workspaceChildren,
+              overflowers,
+              activeElement: document.activeElement?.id ?? document.activeElement?.getAttribute('role') ?? null,
+            };
+            const inspectorRenderedWidth = workspaceChildren
+              .find((item) => item.element === '#inspector-panel')?.width ?? 0;
+            shellObserved = Boolean(
+              sidebarHidden
+              && sidebarRestored
+              && inspectorBaselineHidden
+              && inspectorShown
+              && inspectorHidden
+              && inspectorRestored
+              && maximumRequestedWidth === 720
+              && maximumRenderedWidth < maximumRequestedWidth
+              && maximumWidthScroll <= viewportWidth
+              && restoredWidth === resizedWidth
+              && mainTabs.length === 5
+              && tabLabels === 'Overview|Artifacts|History|Model|Session'
+              && versionText === ${JSON.stringify(`v${app.getVersion()}`)}
+              && scrollWidth <= viewportWidth
+              && viewportWidth <= 940
+              && inspectorRenderedWidth >= resizedWidth - 1
+            );
+          }
           const ready = Boolean(
             setupObserved
+            && shellObserved
             &&
             window.gatereeveDesktop
             && document.querySelector('h1')?.textContent === 'GateReeve'
@@ -206,7 +337,17 @@ async function startDesktop() {
               : `document.querySelector('#workspace')?.hidden === false
                 && document.querySelector('#project-context')?.textContent.includes(${JSON.stringify(expectedFeatureId)})`}
           );
-          if (ready || attempts >= 120) resolve(ready);
+          const evidence = {
+            setupObserved,
+            shellObserved,
+            shellChecked,
+            shellEvidence,
+            heading: document.querySelector('h1')?.textContent ?? null,
+            projectContext: document.querySelector('#project-context')?.textContent ?? null,
+          };
+          if (ready || (shellChecked && !shellObserved) || attempts >= 120) {
+            resolve({ passed: ready, evidence });
+          }
           else {
             attempts += 1;
             requestAnimationFrame(inspect);
@@ -215,15 +356,20 @@ async function startDesktop() {
         inspect();
       })`,
     );
-    if (!passed) throw new Error('Renderer and Setup smoke contract failed.');
+    if (!smoke.passed) {
+      throw new Error(`Renderer and Setup smoke contract failed: ${JSON.stringify(smoke.evidence)}`);
+    }
+    if (process.env.GATEREEVE_DESKTOP_SMOKE_SCREENSHOT) {
+      const image = await window.webContents.capturePage();
+      await writeFile(resolve(process.env.GATEREEVE_DESKTOP_SMOKE_SCREENSHOT), image.toPNG());
+    }
     app.quit();
   }
 }
 
 function reportStartupFailure(error) {
-  process.exitCode = 1;
   process.stderr.write(
     `[gatereeve-desktop] startup failed: ${error instanceof Error ? error.message : String(error)}\n`,
   );
-  app.quit();
+  app.exit(1);
 }

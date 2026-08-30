@@ -45,6 +45,7 @@ export function registerRendererProtocol(
         status: 200,
         headers: {
           'content-type': contentType,
+          'cache-control': 'no-store',
           'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; frame-src gatereeve-artifact:; object-src 'none'; base-uri 'none'; form-action 'none'",
         },
       });

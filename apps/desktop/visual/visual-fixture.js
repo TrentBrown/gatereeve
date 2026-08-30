@@ -144,6 +144,9 @@ const fixtureScenarios = {
   'incompatible': () => { snapshot.mode = 'incompatible'; },
   'runtime': () => {},
   'no-actions': () => { snapshot.actions = []; },
+  'candidate-diagnostic': () => {},
+  'multi-project': () => {},
+  'setup-incomplete': () => {},
   'gate-blocked': () => {
     const verification = attempt.gates.find((gate) => gate.id === 'verification');
     verification.outcome = 'FAIL';
@@ -220,6 +223,32 @@ const state = {
   },
 };
 
+const incompatibleDiagnostic = {
+  classification: 'incompatible',
+  title: 'Model-incompatible feature record',
+  message: 'This project pins a workflow model that this GateReeve Desktop cannot interpret safely.',
+  selectedPath: '/home/trent/code/tb/future-gatereeve-project',
+  featureHome: '/home/trent/code/tb/future-gatereeve-project/docs/issues/future-workflow',
+  failedChecks: ['Pinned gatereeve/workflow@2.0.0 does not match supported gatereeve/workflow@1.0.0.'],
+  pinnedModel: 'gatereeve/workflow@2.0.0',
+  supportedModel: 'gatereeve/workflow@1.0.0',
+};
+
+if (fixtureScenario === 'candidate-diagnostic') state.candidateDiagnostic = incompatibleDiagnostic;
+if (fixtureScenario === 'setup-incomplete') state.setup.operationalReady = false;
+if (fixtureScenario === 'multi-project') {
+  state.projects.push({
+    path: incompatibleDiagnostic.selectedPath,
+    name: 'future-gatereeve-project',
+    status: 'needs-attention',
+    featureHome: incompatibleDiagnostic.featureHome,
+    featureId: 'future-workflow',
+    workflowState: null,
+    diagnostic: incompatibleDiagnostic,
+  });
+  state.preferences.projectPaths.push(incompatibleDiagnostic.selectedPath);
+}
+
 const updateState = {
   schemaVersion: 1,
   status: 'idle',
@@ -239,9 +268,34 @@ window.gatereeveDesktop = Object.freeze({
   async openUpdateRelease() { return true; },
   async openExternalLink() { return true; },
   async addProject() { return state; },
-  async activateProject() { return state; },
-  async removeProject() { return state; },
-  async reorderProjects() { return state; },
+  async activateProject(path) {
+    const project = state.projects.find((item) => item.path === path);
+    if (project?.diagnostic) state.candidateDiagnostic = project.diagnostic;
+    else if (project) {
+      state.candidateDiagnostic = null;
+      state.selection = { worktreePath: project.path, featureHome: project.featureHome };
+    }
+    return state;
+  },
+  async removeProject(path) {
+    const index = state.projects.findIndex((item) => item.path === path);
+    if (index < 0) return state;
+    const removingActive = state.selection?.worktreePath === path;
+    state.projects.splice(index, 1);
+    state.preferences.projectPaths = state.projects.map((item) => item.path);
+    if (removingActive) {
+      const nearest = state.projects[Math.min(index, state.projects.length - 1)] ?? null;
+      state.selection = nearest ? { worktreePath: nearest.path, featureHome: nearest.featureHome } : null;
+      state.snapshot = nearest ? snapshot : null;
+    }
+    return state;
+  },
+  async reorderProjects(paths) {
+    const projects = new Map(state.projects.map((item) => [item.path, item]));
+    state.projects = paths.map((path) => projects.get(path));
+    state.preferences.projectPaths = [...paths];
+    return state;
+  },
   async refresh() { return state; },
   async recheckSetup() { return state; },
   async setSelectedAgents() { return state; },

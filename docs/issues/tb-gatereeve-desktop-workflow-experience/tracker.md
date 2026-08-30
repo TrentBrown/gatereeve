@@ -9,14 +9,14 @@
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Application shell | NOT YET | [#28](https://github.com/TrentBrown/gatereeve/pull/28) | Three-region shell, fixed central tabs, version treatment, native shortcuts, state-preserving panel controls, resizing, and source-runtime smoke implemented in P4; final integrated P8 verification remains. |
-| R2 | Project admission | NOT YET | [#27](https://github.com/TrentBrown/gatereeve/pull/27) | Trusted admission, canonical deduplication, diagnostics, and non-mutation tests implemented; diagnostic UI and final integrated verification remain. |
-| R3 | Project lifecycle | NOT YET | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#28](https://github.com/TrentBrown/gatereeve/pull/28) | Preference migration, ordering, restoration, revalidation, active-only observation, reference-only removal, accessible project controls, and isolated per-project session workspace state are implemented; restart and final P8 verification remain. |
-| R4 | Feature-state inspection | NOT YET | [#29](https://github.com/TrentBrown/gatereeve/pull/29) | Current and Selected semantics, preserved observational selection, state-filtered milestones, state artifacts, progressive disclosures, and journal-invariant renderer coverage are implemented in P6; final integrated P8 verification remains. |
-| R5 | Slice and boundary hierarchy | NOT YET | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#29](https://github.com/TrentBrown/gatereeve/pull/29) | Stable slice ordinals, deterministic serial and parallel gate labels, selected-slice attempt filtering, explicit no-boundary state, and canonical or virtual detail tabs are implemented; final P8 verification remains. |
-| R6 | Unified artifact panel | NOT YET | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#28](https://github.com/TrentBrown/gatereeve/pull/28) | Completion-report and named gate-detail contracts plus canonical application-level tabs, deduplication, close/hide behavior, reconciliation, and inventory-only Artifacts UI are implemented; later hierarchy entry points and final P8 verification remain. |
-| R7 | Alert policy | NOT YET | [#30](https://github.com/TrentBrown/gatereeve/pull/30) | P7 implements one consolidated exceptional-alert surface, quiet project Sources, local gate/Setup/action conditions, selection-independent current guidance, and an eight-scenario fixture matrix; final P8 running-application visual verification remains. |
-| R8 | Accessibility and constrained layout | NOT YET | [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#29](https://github.com/TrentBrown/gatereeve/pull/29), [#30](https://github.com/TrentBrown/gatereeve/pull/30) | P4-P7 controls, focus restoration, reduced motion, keyboard resizing, semantic tabs, explicit Current/Selected/Active labels, outlined natural-number markers, native details disclosures, and text-bearing alert/guidance states are implemented and fixture-checked; final P8 runtime accessibility and constrained-layout verification remain. |
+| R1 | Application shell | PASS | [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Three-region shell, fixed tabs, version, shortcuts, preserved panel state, keyboard resizing, and minimum-size runtime smoke pass. |
+| R2 | Project admission | PASS | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Canonical admission and all rejection classes fail closed with complete non-mutating diagnostics. |
+| R3 | Project lifecycle | PASS | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Migration, order, restoration, revalidation, active-only observation, session isolation, reorder, and reference-only removal pass. |
+| R4 | Feature-state inspection | PASS | [#29](https://github.com/TrentBrown/gatereeve/pull/29), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Current and Selected remain independent across refresh with correct milestones, artifacts, disclosure, and journal invariance. |
+| R5 | Slice and boundary hierarchy | PASS | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#29](https://github.com/TrentBrown/gatereeve/pull/29), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Stable slice ordinals, scoped attempts, boundary and gate detail, empty states, and serial/parallel markers pass. |
+| R6 | Unified artifact panel | PASS | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Trusted canonical and virtual tabs deduplicate, close, hide/reopen, reconcile unavailable content, and keep Artifacts inventory-only. |
+| R7 | Alert policy | PASS | [#30](https://github.com/TrentBrown/gatereeve/pull/30), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Exceptional alerts, local object conditions, quiet Sources, Setup preferences, and current-only guidance pass the fixture matrix. |
+| R8 | Accessibility and constrained layout | PASS | [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#29](https://github.com/TrentBrown/gatereeve/pull/29), [#30](https://github.com/TrentBrown/gatereeve/pull/30), [#31](https://github.com/TrentBrown/gatereeve/pull/31) | Keyboard/focus behavior, semantic text, reduced motion, 940 x 560 layout, and maximum-width inspector constraint pass. |
 
 ## PR Log
 
@@ -66,3 +66,18 @@
   matrix while P8 retains final running-application and constrained-layout
   verification.
 - **Evidence:** [PR #30 packet](pr-30/boundary.json)
+
+### PR #31 - Integrated accessibility and runtime hardening
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/31
+- **Scope:** P8 feature-final hardening,
+  `slice-05-integrated-accessibility-runtime-hardening`
+- **Issues:** I-8
+- **Rubric movement:** R1-R8 move to `PASS`. This PR adds the
+  rejected-project diagnostic surface, minimum-window and renderer-cache
+  hardening, deterministic real-Electron smoke failure signaling, expanded
+  multi-project fixtures, and integrated browser/runtime evidence.
+- **Retention:** `tracked`; every current feature-record file is retained in
+  Git and no human retention decision is required.
+- **Evidence:** [PR #31 packet](pr-31/boundary.json),
+  [feature completion report](completion-report.md)

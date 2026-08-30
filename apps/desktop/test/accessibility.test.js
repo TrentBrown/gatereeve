@@ -15,6 +15,7 @@ test('principal controls use keyboard-native elements with visible accessible na
     '#choose', '#refresh', '#notifications', '#attempt-select', '#copy-mermaid',
     '#choose-empty', '#toggle-sidebar', '#toggle-inspector', '#hide-inspector',
     '#open-setup', '#setup-open-worktree', '#setup-return', '#setup-recheck',
+    '#candidate-diagnostic-choose-another',
     '#agent-codex', '#agent-claude', '#save-agents',
     '[data-view="overview"]', '[data-view="artifacts"]', '[data-view="history"]',
     '[data-view="model"]', '[data-view="session"]',
@@ -40,6 +41,9 @@ test('status regions and principal views expose semantic text independent of col
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const { document } = parseHTML(html).window;
   assert.equal(document.querySelector('#chooser-error').getAttribute('role'), 'alert');
+  assert.equal(document.querySelector('#candidate-diagnostic').getAttribute('role'), 'alert');
+  assert.equal(document.querySelector('#candidate-diagnostic').tagName, 'DETAILS');
+  assert.match(document.querySelector('#candidate-diagnostic').textContent, /Safe next steps/);
   assert.equal(document.querySelector('#global-alerts').getAttribute('role'), 'alert');
   assert.equal(document.querySelector('#error'), null);
   assert.equal(document.querySelector('#diagnostic'), null);
@@ -62,7 +66,7 @@ test('styles preserve visible focus, docked regions, and reduced-motion behavior
   assert.match(css, /\.workspace\s*\{\s*display:\s*block/);
   assert.match(css, /min-height:\s*560px/);
   assert.match(css, /grid-template-columns:\s*var\(--project-sidebar-width\)/);
-  assert.match(css, /min\(var\(--inspector-width\),\s*calc\(100% - var\(--project-sidebar-width\) - 300px\)\)/);
+  assert.match(css, /minmax\(300px, 1fr\)\s*min\(var\(--inspector-width\),\s*max\(0px,\s*calc\(100vw - var\(--project-sidebar-width\) - 320px\)\)\)/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /\.order-marker\s*\{/);
   assert.match(css, /border:\s*2px solid #4e3c63/);

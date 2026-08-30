@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GateReeve Desktop</title>
-    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="styles.css?v=7">
   </head>
   <body>
     <header class="masthead">
@@ -74,6 +74,16 @@
             <button class="main-tab" type="button" data-view="session">Session</button>
           </nav>
           <div class="workspace-content">
+            <details id="candidate-diagnostic" class="diagnostic-report notice danger" role="alert" aria-labelledby="candidate-diagnostic-title" hidden>
+              <summary><span class="section-kicker">Project not opened</span><strong id="candidate-diagnostic-title"></strong></summary>
+              <div class="diagnostic-report-body">
+                <p id="candidate-diagnostic-message" class="lede"></p>
+                <dl id="candidate-diagnostic-facts" class="diagnostic-facts"></dl>
+                <section aria-labelledby="candidate-diagnostic-checks-title"><h3 id="candidate-diagnostic-checks-title">Failed checks</h3><ul id="candidate-diagnostic-checks"></ul></section>
+                <section aria-labelledby="candidate-diagnostic-options-title"><h3 id="candidate-diagnostic-options-title">Safe next steps</h3><ol><li>Choose another directory.</li><li>Repair or replace the feature record outside GateReeve, then try again.</li><li>Start over in another directory if the existing record is not needed.</li></ol><p class="muted">GateReeve has not saved, modified, migrated, or deleted anything in this directory.</p></section>
+                <button id="candidate-diagnostic-choose-another" class="secondary" type="button">Choose another directory…</button>
+              </div>
+            </details>
             <section id="chooser" class="chooser panel" aria-labelledby="chooser-title">
               <p class="section-kicker">Begin observing</p><h2 id="chooser-title">Add a governed project</h2>
               <p class="lede">A project is one directory with a fully valid, supported GateReeve feature record. GateReeve never scans or modifies it.</p>
