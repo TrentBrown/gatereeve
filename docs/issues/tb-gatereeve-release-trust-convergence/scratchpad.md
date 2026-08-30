@@ -155,3 +155,32 @@ Keep the existing repository-local GitHub, Plugin, manifest, website, and Homebr
 
 **Alternatives considered:**
 Copy PortReeve's publication engine - rejected because GateReeve already has product-specific Plugin/Desktop/Cask adapters; keep local CLI publication as production authority - rejected because it bypasses hosted environment approval and custody; replace all existing adapters - rejected because their dry-run, exact-remote preflight, PR transport, and idempotent receipt behavior already satisfy the desired semantics; create a shared runtime package - rejected until both repository-local paths stabilize.
+
+## [7] Advance the immutable public-Cask smoke fixture with public history
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** native Homebrew smoke CI, immutable public release fixtures,
+and future Cask-maintenance procedure
+
+Pin public-Cask smoke to the newest immutable Cask actually present in the
+public tap, currently `v0.1.0-rc.2` from coordinated preparation run
+`33234514595`. Keep the older RC.1 release and evidence immutable; do not
+rewrite it. When an approved Cask publication advances the tap, advance this
+explicit smoke fixture to the matching retained release packet in repository
+history. Also trigger the smoke workflow when the schema-v2 Cask implementation
+changes.
+
+**Triggered by:** PR #34 hosted run 33333176807 proved both native local-tap
+install/upgrade paths, but both public-tap jobs correctly rejected the stale
+RC.1 expectation after the tap advanced to RC.2.
+
+**Alternatives considered:**
+- Accept any public Cask bytes - rejected because it would discard exact-byte
+  authority.
+- Rewrite or remove the RC.1 fixture - rejected because published history is
+  immutable and remains useful historical evidence.
+- Discover an unpinned latest release at runtime - rejected because the smoke
+  must bind an explicit retained packet and cannot silently change authority.

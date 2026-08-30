@@ -7,6 +7,7 @@ on:
       - "apps/desktop/scripts/smoke-homebrew-cask.mjs"
       - "apps/desktop/test/homebrew-cask-smoke.test.js"
       - "cli/src/plugin/homebrew-cask.js"
+      - "cli/src/plugin/homebrew-cask-v2.js"
       - "cli/src/commands/release.js"
       - "cli/test/homebrew-cask.test.js"
       - "cli/test/cli.test.js"
@@ -15,11 +16,11 @@ on:
       preparation_run_id:
         description: Successful coordinated preparation run containing the trusted RC
         required: true
-        default: "33183133044"
+        default: "33234514595"
       release_tag:
         description: Exact trusted public RC tag
         required: true
-        default: v0.1.0-rc.1
+        default: v0.1.0-rc.2
 
 permissions:
   actions: read
@@ -39,8 +40,8 @@ jobs:
           - native: x64
             runner: macos-15-intel
     env:
-      PREPARATION_RUN_ID: ${{ inputs.preparation_run_id || '33183133044' }}
-      RELEASE_TAG: ${{ inputs.release_tag || 'v0.1.0-rc.1' }}
+      PREPARATION_RUN_ID: ${{ inputs.preparation_run_id || '33234514595' }}
+      RELEASE_TAG: ${{ inputs.release_tag || 'v0.1.0-rc.2' }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +63,7 @@ jobs:
           --release-record "$RUNNER_TEMP/coordinated-release/release-record.json"
           --output-root "$RUNNER_TEMP/homebrew-cask"
           --direct-install-confirmed-by "Trent Brown"
-          --direct-install-confirmed-at "2026-08-28T16:00:00.000Z"
+          --direct-install-confirmed-at "2026-08-29T16:00:00.000Z"
           --json
       - name: Install and upgrade through a disposable local tap
         run: >-
@@ -89,8 +90,8 @@ jobs:
           - native: x64
             runner: macos-15-intel
     env:
-      PREPARATION_RUN_ID: ${{ inputs.preparation_run_id || '33183133044' }}
-      RELEASE_TAG: ${{ inputs.release_tag || 'v0.1.0-rc.1' }}
+      PREPARATION_RUN_ID: ${{ inputs.preparation_run_id || '33234514595' }}
+      RELEASE_TAG: ${{ inputs.release_tag || 'v0.1.0-rc.2' }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
@@ -112,7 +113,7 @@ jobs:
           --release-record "$RUNNER_TEMP/coordinated-release/release-record.json"
           --output-root "$RUNNER_TEMP/homebrew-cask"
           --direct-install-confirmed-by "Trent Brown"
-          --direct-install-confirmed-at "2026-08-28T16:00:00.000Z"
+          --direct-install-confirmed-at "2026-08-29T16:00:00.000Z"
           --json
       - name: Install through the literal public tap command
         run: >-
