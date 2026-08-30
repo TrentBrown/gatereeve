@@ -615,15 +615,25 @@ function renderBoundary(snapshot) {
 function renderCloseout(snapshot) {
   const blockers = snapshot?.blockers ?? [];
   const blockedActions = (snapshot?.actions ?? []).filter((action) => action.readiness === 'blocked');
-  const ready = blockers.length === 0 && blockedActions.length === 0;
-  elements['closeout-status'].className = `status ${ready ? 'ready' : 'blocked'}`;
-  elements['closeout-status'].textContent = ready ? 'Ready' : 'Blocked';
+  const activeSliceId = snapshot?.projection?.activeSliceId ?? null;
+  const blocked = blockers.length > 0 || blockedActions.length > 0;
+  const readiness = blocked ? 'blocked' : activeSliceId ? 'active' : 'ready';
+  elements['closeout-status'].className = `status ${readiness}`;
+  elements['closeout-status'].textContent = readiness === 'active' ? 'In progress' : humanize(readiness);
   const summary = clear(elements['closeout-summary']);
   summary.append(node('article', { className: 'card' }, [
-    node('strong', { text: ready ? 'Completion readiness is clear' : 'Completion has outstanding conditions' }),
-    node('p', { text: ready
-      ? 'No projected workflow blocker currently prevents closeout review.'
-      : `${blockers.length + blockedActions.length} projected condition${blockers.length + blockedActions.length === 1 ? '' : 's'} remain.` }),
+    node('strong', {
+      text: blocked
+        ? 'Completion has outstanding conditions'
+        : activeSliceId ? 'Completion remains in progress' : 'Completion readiness is clear',
+    }),
+    node('p', {
+      text: blocked
+        ? `${blockers.length + blockedActions.length} projected condition${blockers.length + blockedActions.length === 1 ? '' : 's'} remain.`
+        : activeSliceId
+          ? `The active delivery slice ${activeSliceId} must finish before closeout is ready.`
+          : 'No projected workflow blocker currently prevents closeout review.',
+    }),
   ]));
   const conditions = [
     ...blockers.map((item) => blockerText(item)),
@@ -634,12 +644,11 @@ function renderCloseout(snapshot) {
     for (const condition of conditions) list.append(node('li', { text: condition }));
     summary.append(node('article', { className: 'card' }, [node('strong', { text: 'Outstanding closeout conditions' }), list]));
   }
-  const activeSliceId = snapshot?.projection?.activeSliceId ?? null;
   summary.append(node('article', { className: 'card' }, [
     node('strong', { text: 'Additional delivery slice' }),
     node('p', { text: activeSliceId
       ? `Required work remains active in ${activeSliceId}.`
-      : ready
+      : readiness === 'ready'
         ? 'No additional delivery slice is indicated by the current projection.'
         : 'Another delivery slice may be required to clear the outstanding conditions.' }),
   ]));

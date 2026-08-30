@@ -350,6 +350,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     .find((button) => button.textContent.includes('FINALIZING'));
   finalizing.click();
   assert.equal(window.document.querySelector('#closeout-surface').hidden, false);
+  assert.equal(window.document.querySelector('#closeout-status').textContent, 'In progress');
+  assert.match(window.document.querySelector('#closeout-summary').textContent, /must finish before closeout is ready/);
   assert.match(window.document.querySelector('#closeout-summary').textContent, /Additional delivery slice/);
 
   const delivering = [...window.document.querySelectorAll('.state-select')]

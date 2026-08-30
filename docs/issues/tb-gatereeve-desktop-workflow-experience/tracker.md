@@ -12,11 +12,11 @@
 | R1 | Application shell | NOT YET | [#28](https://github.com/TrentBrown/gatereeve/pull/28) | Three-region shell, fixed central tabs, version treatment, native shortcuts, state-preserving panel controls, resizing, and source-runtime smoke implemented in P4; final integrated P8 verification remains. |
 | R2 | Project admission | NOT YET | [#27](https://github.com/TrentBrown/gatereeve/pull/27) | Trusted admission, canonical deduplication, diagnostics, and non-mutation tests implemented; diagnostic UI and final integrated verification remain. |
 | R3 | Project lifecycle | NOT YET | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#28](https://github.com/TrentBrown/gatereeve/pull/28) | Preference migration, ordering, restoration, revalidation, active-only observation, reference-only removal, accessible project controls, and isolated per-project session workspace state are implemented; restart and final P8 verification remain. |
-| R4 | Feature-state inspection | NOT YET | - | Planned for P6, P8 / I-6, I-8 |
-| R5 | Slice and boundary hierarchy | NOT YET | [#27](https://github.com/TrentBrown/gatereeve/pull/27) | Stable slice ordinals and deterministic gate dependency-stage labels implemented; hierarchy UI remains. |
+| R4 | Feature-state inspection | NOT YET | [#29](https://github.com/TrentBrown/gatereeve/pull/29) | Current and Selected semantics, preserved observational selection, state-filtered milestones, state artifacts, progressive disclosures, and journal-invariant renderer coverage are implemented in P6; final integrated P8 verification remains. |
+| R5 | Slice and boundary hierarchy | NOT YET | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#29](https://github.com/TrentBrown/gatereeve/pull/29) | Stable slice ordinals, deterministic serial and parallel gate labels, selected-slice attempt filtering, explicit no-boundary state, and canonical or virtual detail tabs are implemented; final P8 verification remains. |
 | R6 | Unified artifact panel | NOT YET | [#27](https://github.com/TrentBrown/gatereeve/pull/27), [#28](https://github.com/TrentBrown/gatereeve/pull/28) | Completion-report and named gate-detail contracts plus canonical application-level tabs, deduplication, close/hide behavior, reconciliation, and inventory-only Artifacts UI are implemented; later hierarchy entry points and final P8 verification remain. |
 | R7 | Alert policy | NOT YET | - | Planned for P7, P8 / I-7, I-8 |
-| R8 | Accessibility and constrained layout | NOT YET | [#28](https://github.com/TrentBrown/gatereeve/pull/28) | P4-P5 controls, focus restoration, reduced motion, keyboard resizing, semantic tabs, and minimum-width inspector fit are implemented and fixture-checked; P6-P8 obligations remain. |
+| R8 | Accessibility and constrained layout | NOT YET | [#28](https://github.com/TrentBrown/gatereeve/pull/28), [#29](https://github.com/TrentBrown/gatereeve/pull/29) | P4-P6 controls, focus restoration, reduced motion, keyboard resizing, semantic tabs, explicit Current/Selected/Active labels, pressed states, and outlined natural-number markers are implemented and fixture-checked; alert-policy and final P8 obligations remain. |
 
 ## PR Log
 
@@ -42,3 +42,15 @@
   foundations while later hierarchy and final integrated verification obligations
   remain.
 - **Evidence:** [PR #28 packet](pr-28/boundary.json)
+
+### PR #29 - Progressive workflow hierarchy
+
+- **URL:** https://github.com/TrentBrown/gatereeve/pull/29
+- **Scope:** P6 progressive-hierarchy slice,
+  `slice-03-progressive-workflow-hierarchy`
+- **Issues:** I-6
+- **Rubric movement:** R4, R5, and R8 remain `NOT YET`; this PR supplies
+  observational feature-state selection, progressive slice and boundary
+  disclosure, scoped attempt and gate inspection, closeout disclosure, and
+  semantic ordering while P7 alert policy and final P8 verification remain.
+- **Evidence:** [PR #29 packet](pr-29/boundary.json)
