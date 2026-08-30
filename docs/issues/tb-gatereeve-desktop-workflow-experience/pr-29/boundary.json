@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "scope": "slice",
+  "featureId": "tb-gatereeve-desktop-workflow-experience",
+  "repositoryAlias": "repository",
+  "packetId": "pr-29",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 29,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/29",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "8756df127623c0092c8e542d0727a36f90033d00",
+    "headRefName": "tb-gatereeve-desktop-workflow-experience-03-progressive-workflow-hierarchy",
+    "headRefOid": "bd2444abb13ae45d929163f0da5bbf3f55080fe1"
+  },
+  "mergeBaseSha": "8756df127623c0092c8e542d0727a36f90033d00",
+  "evaluatedSourceSha": "bd2444abb13ae45d929163f0da5bbf3f55080fe1",
+  "featureBaseSha": null,
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": { "disposition": "passed", "reason": null },
+    "specEvaluation": { "disposition": "passed", "reason": null },
+    "judge": { "disposition": "passed", "reason": null },
+    "codeReview": { "disposition": "passed", "reason": null },
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No applicable .pattern-review scope is configured for this repository"
+    },
+    "explainDiff": { "disposition": "passed", "reason": null }
+  }
+}

@@ -15,6 +15,7 @@ function createWorkspace() {
     selectedFeatureState: null,
     selectedSliceId: null,
     selectedAttemptId: null,
+    selectedGateId: null,
     sidebarVisible: true,
     inspectorVisible: false,
     inspectorWidth: DEFAULT_INSPECTOR_WIDTH,

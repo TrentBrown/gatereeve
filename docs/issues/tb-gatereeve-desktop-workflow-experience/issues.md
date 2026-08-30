@@ -71,12 +71,12 @@ view.
 
 ## I-6 - Implement the hierarchical Overview
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P6
 - **Rubric criteria:** R4, R5, R8
 - **Depends on:** I-1, I-4, I-5
-- **PR:** -
+- **PR:** [#29](https://github.com/TrentBrown/gatereeve/pull/29)
 
 Add selectable feature state, state-owned milestones, slice and boundary
 drill-down, attempts, gates, Finalizing and Complete behavior, and semantic

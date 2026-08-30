@@ -85,3 +85,33 @@ Keep selected main view, hierarchy selections, open tabs, active tab, panel visi
 Persist workspace state in preferences now - rejected because relaunch restoration is explicitly deferred. Handle shortcuts only in renderer key events - rejected because the approved design also requires native application-menu commands. Add request-response IPC for layout state - rejected because the main process does not need that state or authority.
 
 **Promoted:** 2026-08-29. PR: https://github.com/TrentBrown/gatereeve/pull/28.
+
+---
+
+## Invalidate artifact reads when hierarchy selection changes
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop inspector artifact selection and rapid hierarchy navigation
+
+Treat every artifact-opening hierarchy selection as a new inspector read generation:
+invalidate the prior request sequence and clear its in-flight fingerprint before
+rendering the newly active tab. Artifact fingerprints describe file freshness,
+not selection identity; two fixture or canonical artifacts may legitimately have
+the same or unavailable metadata. A prior read must therefore never suppress the
+newly selected artifact solely because their fingerprints match.
+
+**Triggered by:** The progressive-hierarchy renderer test selected an
+artifactless virtual gate and then an HTML-backed gate while an earlier artifact
+read was unresolved. The new tab opened, but the stale in-flight fingerprint
+prevented its content from loading.
+
+**Alternatives considered:**
+
+- Include the artifact ID in the freshness fingerprint - rejected because the
+  fingerprint is also used to decide whether the same selected artifact changed.
+- Serialize all inspector selections behind the prior read - rejected because
+  hierarchy navigation should remain immediate and stale reads are already
+  generation-guarded.
+
+**Promoted:** 2026-08-29. PR: https://github.com/TrentBrown/gatereeve/pull/29.

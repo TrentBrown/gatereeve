@@ -152,6 +152,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     context: { pullRequest: 8 },
     gates: [{
       id: 'verification',
+      orderLabel: '1',
       dependsOn: ['reconcile'],
       outcome: 'PASS',
       freshness: 'CURRENT',
@@ -159,12 +160,35 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
       reason: null,
       evidence: { path: 'pr-8/verification.md' },
       recordedEventId: 'evt-gate',
+    }, {
+      id: 'explainDiff',
+      orderLabel: '4a',
+      dependsOn: ['verification'],
+      outcome: 'PASS',
+      freshness: 'CURRENT',
+      blockers: [],
+      reason: null,
+      evidence: { path: 'pr-8/explain-diff.html' },
+      recordedEventId: 'evt-explain',
     }],
+  };
+  const previousAttempt = {
+    id: 'slice-old-attempt-1',
+    sliceId: 'slice-old',
+    scope: 'SLICE',
+    state: 'MERGED',
+    context: { pullRequest: 7 },
+    gates: [],
   };
   const artifacts = [
     {
       id: 'design', label: 'Approved design', status: 'present', exists: true, unsafe: false,
       path: 'design.md', format: 'markdown', context: { kind: 'feature' },
+    },
+    {
+      id: 'attempt:slice-attempt-1:boundary', label: 'PR boundary', status: 'present',
+      exists: true, unsafe: false, path: 'pr-8/boundary.json', format: 'json',
+      context: { kind: 'attempt', attemptId: 'slice-attempt-1' },
     },
     {
       id: 'attempt:slice-attempt-1:gate:explainDiff', label: 'Explain diff', status: 'present',
@@ -180,11 +204,22 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     projection: {
       feature: { state: 'DELIVERING_SLICES' },
       suspension: { paused: false },
-      slices: [{
-        id: 'slice', name: 'Workflow experience', state: 'PR_BOUNDARY', branch: 'topic',
-        scope: 'SLICE', planSteps: ['P6', 'P7'], activeAttemptId: 'slice-attempt-1',
-      }],
-      boundaryAttempts: [attempt],
+      activeSliceId: 'slice',
+      slices: [
+        {
+          id: 'slice-old', deliveryOrdinal: 1, name: 'Observer contract', state: 'MERGED', branch: 'topic-old',
+          scope: 'SLICE', planSteps: ['P1'], activeAttemptId: null,
+        },
+        {
+          id: 'slice', deliveryOrdinal: 2, name: 'Workflow experience', state: 'PR_BOUNDARY', branch: 'topic',
+          scope: 'SLICE', planSteps: ['P6', 'P7'], activeAttemptId: 'slice-attempt-1',
+        },
+        {
+          id: 'slice-next', deliveryOrdinal: 3, name: 'Final quality', state: 'PLANNED', branch: 'topic-next',
+          scope: 'FEATURE_FINAL', planSteps: ['P8'], activeAttemptId: null,
+        },
+      ],
+      boundaryAttempts: [previousAttempt, attempt],
     },
     active: { sliceId: 'slice', boundaryAttemptId: 'slice-attempt-1' },
     sources: {
@@ -194,7 +229,10 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     },
     blockers: [],
     warnings: [{ type: 'source-uncommitted', severity: 'activity' }],
-    milestones: [{ id: 'delivery.boundary', label: 'PR boundary active', state: 'DELIVERING_SLICES', status: 'active' }],
+    milestones: [
+      { id: 'design.approved', label: 'Design approved', state: 'DESIGNING', status: 'complete' },
+      { id: 'delivery.boundary', label: 'PR boundary active', state: 'DELIVERING_SLICES', status: 'active' },
+    ],
     actions: [{
       id: 'boundary.request.review', command: 'boundary request-review slice-attempt-1',
       copyCommand: 'gatereeve boundary request-review slice-attempt-1',
@@ -240,7 +278,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
       if (kind === 'model') return {
         kind,
         data: {
-          lock: { model: { presentation: { featureOrder: ['DESIGNING', 'DELIVERING_SLICES', 'COMPLETE'] } } },
+          lock: { model: { presentation: { featureOrder: ['DESIGNING', 'DELIVERING_SLICES', 'FINALIZING', 'COMPLETE'] } } },
           provenance: {
             pinned: { id: 'workflow', version: '1', hash: 'sha256:model' },
             bundled: { id: 'workflow', version: '1', hash: 'sha256:model' },
@@ -282,11 +320,68 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
 
   assert.equal(
     window.document.querySelectorAll('.state-node').length,
-    3,
+    4,
     `${window.document.querySelector('#model-graph').textContent} | ${window.document.querySelector('#chooser-error').textContent}`,
   );
   assert.equal(window.document.querySelector('.state-node.current small').textContent, 'DELIVERING_SLICES');
-  assert.equal(window.document.querySelectorAll('.gate-card').length, 1);
+  assert.equal(window.document.querySelector('.state-node.current .state-select').getAttribute('aria-pressed'), 'true');
+  assert.equal(window.document.querySelectorAll('.gate-card').length, 2);
+  assert.equal(window.document.querySelector('#slices-surface').hidden, false);
+  assert.equal(window.document.querySelectorAll('.slice-card').length, 3);
+  assert.equal(window.document.querySelector('.slice-card.selected .order-marker').textContent, '2');
+  assert.match(window.document.querySelector('.slice-card.selected').textContent, /Active/);
+  assert.match(window.document.querySelector('.slice-card.selected').textContent, /Selected/);
+  assert.match(window.document.querySelector('#milestones').textContent, /PR boundary active/);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 1);
+
+  const designing = [...window.document.querySelectorAll('.state-select')]
+    .find((button) => button.textContent.includes('DESIGNING'));
+  designing.click();
+  await new Promise((done) => setImmediate(done));
+  assert.equal(window.document.querySelector('.state-node.current small').textContent, 'DELIVERING_SLICES');
+  assert.equal(window.document.querySelector('.state-node.selected small').textContent, 'DESIGNING');
+  assert.equal(window.document.querySelector('.state-node.current .state-select').getAttribute('aria-pressed'), 'false');
+  assert.equal(window.document.querySelector('.state-node.selected .state-select').getAttribute('aria-pressed'), 'true');
+  assert.equal(window.document.querySelector('#slices-surface').hidden, true);
+  assert.match(window.document.querySelector('#milestones').textContent, /Design approved/);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 2);
+
+  const finalizing = [...window.document.querySelectorAll('.state-select')]
+    .find((button) => button.textContent.includes('FINALIZING'));
+  finalizing.click();
+  assert.equal(window.document.querySelector('#closeout-surface').hidden, false);
+  assert.equal(window.document.querySelector('#closeout-status').textContent, 'In progress');
+  assert.match(window.document.querySelector('#closeout-summary').textContent, /must finish before closeout is ready/);
+  assert.match(window.document.querySelector('#closeout-summary').textContent, /Additional delivery slice/);
+
+  const delivering = [...window.document.querySelectorAll('.state-select')]
+    .find((button) => button.textContent.includes('DELIVERING_SLICES'));
+  delivering.click();
+  assert.equal(window.document.querySelector('#slices-surface').hidden, false);
+  assert.match(window.document.querySelector('#milestones').textContent, /PR boundary active/);
+
+  [...window.document.querySelectorAll('.slice-card')]
+    .find((button) => button.textContent.includes('Final quality')).click();
+  assert.match(window.document.querySelector('#boundary-summary').textContent, /No PR boundary has started/);
+  assert.equal(window.document.querySelectorAll('.gate-card').length, 0);
+
+  [...window.document.querySelectorAll('.slice-card')]
+    .find((button) => button.textContent.includes('Workflow experience')).click();
+  assert.equal(window.document.querySelectorAll('.gate-card').length, 2);
+  assert.equal(window.document.querySelectorAll('#attempt-select option').length, 1);
+  assert.deepEqual(
+    [...window.document.querySelectorAll('.gate-card .order-marker')].map((marker) => marker.textContent),
+    ['1', '4a'],
+  );
+  window.document.querySelectorAll('.gate-card')[0].click();
+  assert.equal(window.document.querySelector('.gate-card.selected').getAttribute('aria-pressed'), 'true');
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 3);
+  window.document.querySelectorAll('.gate-card')[1].click();
+  for (let index = 0; index < 2; index += 1) await new Promise((done) => setImmediate(done));
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 4);
+  const selectedGateFrame = window.document.querySelector('#artifact-viewer iframe');
+  assert.ok(selectedGateFrame, `${window.document.querySelector('#inspector-tabs').textContent} | ${window.document.querySelector('#artifact-viewer').textContent}`);
+  assert.match(selectedGateFrame.getAttribute('src'), /^gatereeve-artifact:/);
   assert.equal(window.document.querySelectorAll('.action-card').length, 1);
   const notifications = window.document.querySelector('#notifications');
   notifications.checked = true;
@@ -302,20 +397,20 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   window.document.querySelector('[data-artifact-id="design"]').click();
   await new Promise((done) => setImmediate(done));
   assert.equal(window.document.querySelector('#inspector-panel').hidden, false);
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 1);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 4);
   window.document.querySelector('[data-artifact-id="design"]').click();
   await new Promise((done) => setImmediate(done));
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 1);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 4);
   assert.match(window.document.querySelector('#artifact-viewer').textContent, /Approved design/);
   assert.match(window.document.querySelector('#artifact-viewer').textContent, /Approved\./);
   window.document.querySelector('#hide-inspector').click();
   assert.equal(window.document.querySelector('#inspector-panel').hidden, true);
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 1);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 4);
   window.document.querySelector('#toggle-inspector').click();
   assert.equal(window.document.querySelector('#inspector-panel').hidden, false);
   window.document.querySelector('[data-artifact-id="attempt:slice-attempt-1:gate:explainDiff"]').click();
   await new Promise((done) => setImmediate(done));
-  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 2);
+  assert.equal(window.document.querySelectorAll('.inspector-tab').length, 4);
   assert.match(window.document.querySelector('#artifact-viewer iframe').getAttribute('src'), /^gatereeve-artifact:/);
   assert.match(window.document.querySelector('#artifact-viewer iframe').getAttribute('src'), /\?refresh=\d+$/);
   assert.equal(window.document.querySelector('#artifact-viewer iframe').hasAttribute('sandbox'), false);

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GateReeve Desktop</title>
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
   </head>
   <body>
     <header class="masthead">
@@ -91,16 +91,20 @@
 
               <section class="surface" aria-labelledby="state-title">
                 <div class="surface-heading"><div><p class="section-kicker">Pinned state machine</p><h3 id="state-title">Feature state rail</h3></div><button class="text-button" type="button" data-go-view="model">View full model</button></div>
-                <ol id="state-rail" class="state-rail"></ol><div id="milestones" class="milestones"></div>
+                <ol id="state-rail" class="state-rail"></ol>
+                <div class="milestone-heading"><p id="milestone-context" class="selection-context"></p></div>
+                <div id="milestones" class="milestones"></div>
               </section>
-              <div class="two-column">
-                <section class="surface" aria-labelledby="slices-title"><div class="surface-heading"><div><p class="section-kicker">Delivery</p><h3 id="slices-title">PR slices</h3></div></div><div id="slices" class="stack"></div></section>
-                <section class="surface" aria-labelledby="attention-title"><div class="surface-heading"><div><p class="section-kicker">Attention</p><h3 id="attention-title">Blockers and warnings</h3></div></div><div id="attention" class="stack"></div></section>
-              </div>
-              <section class="surface" aria-labelledby="boundary-title">
+              <section id="slices-surface" class="surface hierarchy-surface" aria-labelledby="slices-title" hidden><div class="surface-heading"><div><p class="section-kicker">Selected state · Delivery</p><h3 id="slices-title">PR slices</h3></div></div><div id="slices" class="stack"></div></section>
+              <section id="boundary-surface" class="surface hierarchy-surface" aria-labelledby="boundary-title" hidden>
                 <div class="surface-heading"><div><p class="section-kicker">PR boundary</p><h3 id="boundary-title">Attempts and gate dependencies</h3></div><label class="select-label" for="attempt-select">Attempt <select id="attempt-select"></select></label></div>
                 <div id="boundary-summary" class="muted"></div><div id="gate-dag" class="gate-dag"></div>
               </section>
+              <section id="closeout-surface" class="surface hierarchy-surface" aria-labelledby="closeout-title" hidden>
+                <div class="surface-heading"><div><p class="section-kicker">Selected state · Closeout</p><h3 id="closeout-title">Feature closeout</h3></div><span id="closeout-status" class="status"></span></div>
+                <div id="closeout-summary" class="stack"></div>
+              </section>
+              <section class="surface" aria-labelledby="attention-title"><div class="surface-heading"><div><p class="section-kicker">Attention</p><h3 id="attention-title">Blockers and warnings</h3></div></div><div id="attention" class="stack"></div></section>
               <section class="surface" aria-labelledby="actions-title"><div class="surface-heading"><div><p class="section-kicker">Governed guidance</p><h3 id="actions-title">Next actions</h3></div></div><div id="actions" class="action-grid"></div></section>
             </section>
 

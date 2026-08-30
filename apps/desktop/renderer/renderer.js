@@ -3,14 +3,19 @@ import { createWorkspaceStore, workspaceDefaults } from './workspace-state.js';
 import {
   actionMeaning,
   artifactContext,
+  attemptArtifact,
   attemptLabel,
   diagnosticCanShowGovernedViews,
   eventLabel,
   featureStates,
   formatTime,
+  gateArtifact,
   humanize,
   modeMessage,
+  selectedAttempt,
+  selectedSlice,
   sourceLabel,
+  stateArtifact,
 } from './presentation.js';
 
 const desktop = window.gatereeveDesktop;
@@ -21,7 +26,9 @@ const ids = [
   'toggle-inspector', 'inspector-panel', 'inspector-resizer', 'inspector-tabs', 'hide-inspector',
   'source-local',
   'source-git', 'source-github', 'error', 'diagnostic', 'warnings', 'state-rail',
-  'milestones', 'slices', 'attention', 'attempt-select', 'boundary-summary', 'gate-dag',
+  'milestone-context', 'milestones', 'slices-surface', 'slices', 'attention',
+  'boundary-surface', 'attempt-select', 'boundary-summary', 'gate-dag',
+  'closeout-surface', 'closeout-status', 'closeout-summary',
   'actions', 'artifact-count', 'artifact-list', 'artifact-viewer', 'history-count',
   'history-list', 'history-detail', 'model-provenance', 'model-graph', 'model-mermaid',
   'copy-mermaid', 'session-list', 'session-detail', 'toast',
@@ -336,35 +343,73 @@ function renderWarnings(snapshot) {
 
 function renderStateRail(snapshot) {
   clear(elements['state-rail']);
-  const states = featureStates(snapshot, modelDetail);
+  const workspace = workspaceState();
+  const currentStateId = snapshot?.projection?.feature?.state ?? null;
+  const presented = featureStates(snapshot, modelDetail, workspace.selectedFeatureState);
+  const stateIds = presented.map((state) => state.id);
+  const previous = workspace.selectedFeatureState;
+  const selectedFeatureState = stateIds.includes(previous)
+    ? previous
+    : currentStateId ?? stateIds[0] ?? null;
+  const initialized = previous === null && selectedFeatureState !== null;
+  workspaceStore.setHierarchy(projectPath(), { selectedFeatureState });
+  const states = featureStates(snapshot, modelDetail, selectedFeatureState);
   if (states.length === 0) {
     elements['state-rail'].append(node('li', {
-      className: 'state-node current',
-      text: snapshot?.projection?.feature?.state
-        ? humanize(snapshot.projection.feature.state)
+      className: 'state-node current selected',
+      text: currentStateId
+        ? `${humanize(currentStateId)} · Current · Selected`
         : 'Pinned model detail unavailable',
     }));
     return;
   }
   for (const state of states) {
-    elements['state-rail'].append(node('li', {
-      className: `state-node ${state.position}`,
+    const semantics = [];
+    if (state.current) semantics.push(node('span', { className: 'state-semantic current-label', text: 'Current' }));
+    if (state.selected) semantics.push(node('span', { className: 'state-semantic selected-label', text: 'Selected' }));
+    const button = node('button', {
+      className: 'state-select',
+      type: 'button',
       attributes: {
-        'aria-current': state.position === 'current' ? 'step' : 'false',
+        'aria-pressed': String(state.selected),
+        'aria-label': [state.label, state.current ? 'Current workflow state' : null, state.selected ? 'Selected for inspection' : null].filter(Boolean).join(', '),
       },
     }, [
       node('strong', { text: state.label }),
       node('small', { text: state.id }),
-    ]));
+      node('span', { className: 'state-semantics' }, semantics),
+    ]);
+    button.addEventListener('click', () => {
+      workspaceStore.setHierarchy(projectPath(), { selectedFeatureState: state.id });
+      renderOverview(snapshot);
+      const artifact = stateArtifact(snapshot, state.id);
+      if (artifact) void openArtifact(artifact);
+    });
+    elements['state-rail'].append(node('li', {
+      className: `state-node ${state.position}${state.selected ? ' selected' : ''}`,
+      attributes: { 'aria-current': state.current ? 'step' : 'false' },
+    }, [button]));
+  }
+  if (initialized) {
+    const artifact = stateArtifact(snapshot, selectedFeatureState);
+    if (artifact) void openArtifact(artifact);
   }
 }
 
 function renderMilestones(snapshot) {
   clear(elements.milestones);
-  const featureState = snapshot?.projection?.feature?.state;
+  const featureState = workspaceState().selectedFeatureState
+    ?? snapshot?.projection?.feature?.state;
+  elements['milestone-context'].textContent = featureState
+    ? `Selected: ${humanize(featureState)}`
+    : 'No feature state selected';
   const milestones = (snapshot?.milestones ?? []).filter(
-    (item) => item.state === featureState || item.status === 'active' || item.status === 'ready',
+    (item) => item.state === featureState,
   );
+  if (milestones.length === 0) {
+    elements.milestones.append(node('span', { className: 'muted', text: 'No milestones are defined for this state.' }));
+    return;
+  }
   for (const milestone of milestones) {
     const item = node('span', {
       className: 'milestone',
@@ -383,35 +428,53 @@ function renderSlices(snapshot) {
     elements.slices.append(node('p', { className: 'muted', text: 'No delivery slices have been proposed.' }));
     return;
   }
+  const workspace = workspaceState();
+  const selectedSliceId = selectedSlice(snapshot, workspace.selectedSliceId);
+  workspaceStore.setHierarchy(projectPath(), { selectedSliceId });
+  const activeSliceId = snapshot?.projection?.activeSliceId ?? snapshot?.active?.sliceId ?? null;
   for (const slice of slices) {
-    const card = node('article', { className: 'card' });
-    card.append(node('div', { className: 'card-header' }, [
-      node('div', {}, [node('h4', { text: slice.name }), exactId(slice.id)]),
-      statusPill(slice.state),
-    ]));
-    card.append(node('p', {
-      text: [slice.branch, slice.planSteps?.join(', '), slice.scope].filter(Boolean).join(' · '),
-    }));
-    const attempts = (snapshot.projection?.boundaryAttempts ?? []).filter(
-      (attempt) => attempt.sliceId === slice.id,
-    );
-    if (attempts.length > 0) {
-      const targetAttempt = slice.activeAttemptId ?? attempts.at(-1).id;
-      const button = node('button', {
-        className: 'text-button',
-        text: slice.activeAttemptId
-          ? 'Inspect active boundary'
-          : `View ${attempts.length} boundary attempt${attempts.length === 1 ? '' : 's'}`,
-        type: 'button',
+    const selected = slice.id === selectedSliceId;
+    const active = slice.id === activeSliceId;
+    const semantics = [];
+    if (active) semantics.push(node('span', { className: 'state-semantic current-label', text: 'Active' }));
+    if (selected) semantics.push(node('span', { className: 'state-semantic selected-label', text: 'Selected' }));
+    const card = node('button', {
+      className: `card slice-card ordered-item${selected ? ' selected' : ''}`,
+      type: 'button',
+      attributes: {
+        'aria-pressed': String(selected),
+        'aria-label': [
+          `Slice ${slice.deliveryOrdinal}, ${slice.name}`,
+          humanize(slice.state),
+          active ? 'Active delivery slice' : null,
+          selected ? 'Selected for inspection' : null,
+        ].filter(Boolean).join(', '),
+      },
+    }, [
+      node('span', { className: 'order-marker', text: String(slice.deliveryOrdinal), attributes: { 'aria-hidden': 'true' } }),
+      node('span', { className: 'ordered-content' }, [
+        node('span', { className: 'card-header' }, [
+          node('span', {}, [node('strong', { text: slice.name }), exactId(slice.id)]),
+          statusPill(slice.state),
+        ]),
+        node('span', { className: 'slice-meta', text: [slice.branch, slice.planSteps?.join(', '), slice.scope].filter(Boolean).join(' · ') }),
+        node('span', { className: 'state-semantics' }, semantics),
+      ]),
+    ]);
+    card.addEventListener('click', () => {
+      const targetAttemptId = selectedAttempt(snapshot, slice.id, null);
+      workspaceStore.setHierarchy(projectPath(), {
+        selectedSliceId: slice.id,
+        selectedAttemptId: targetAttemptId,
+        selectedGateId: null,
       });
-      button.addEventListener('click', () => {
-        selectedAttemptId = targetAttempt;
-        workspaceStore.setHierarchy(projectPath(), { selectedAttemptId: targetAttempt });
-        renderBoundary(snapshot);
-        document.getElementById('gate-dag')?.scrollIntoView?.({ block: 'center' });
-      });
-      card.append(button);
-    }
+      selectedAttemptId = targetAttemptId;
+      renderSlices(snapshot);
+      renderBoundary(snapshot);
+      const artifact = attemptArtifact(snapshot, targetAttemptId);
+      if (artifact) void openArtifact(artifact);
+      elements['boundary-surface'].scrollIntoView?.({ block: 'nearest' });
+    });
     elements.slices.append(card);
   }
 }
@@ -450,22 +513,9 @@ function renderAttention(snapshot) {
 }
 
 function renderGateDetail(attempt, gate) {
-  const container = elements['boundary-summary'];
-  clear(container);
-  container.append(
-    node('strong', { text: humanize(gate.id) }),
-    document.createTextNode(` · ${humanize(gate.outcome)} · ${humanize(gate.freshness)}`),
-    exactId(gate.recordedEventId ?? gate.id),
-  );
-  if (gate.reason) container.append(node('p', { text: gate.reason }));
-  if (gate.blockers?.length) {
-    const list = node('ul');
-    for (const blocker of gate.blockers) list.append(node('li', { text: blockerText(blocker) }));
-    container.append(list);
-  }
-  const artifact = currentState?.snapshot?.artifacts?.find(
-    (item) => item.context?.attemptId === attempt.id && item.context?.gateId === gate.id,
-  );
+  workspaceStore.setHierarchy(projectPath(), { selectedGateId: gate.id });
+  renderBoundary(currentState?.snapshot);
+  const artifact = gateArtifact(currentState?.snapshot, attempt.id, gate.id);
   if (artifact) void openArtifact(artifact);
   else {
     workspaceStore.openGate(projectPath(), attempt.id, gate);
@@ -474,13 +524,17 @@ function renderGateDetail(attempt, gate) {
 }
 
 function renderBoundary(snapshot) {
-  const attempts = snapshot?.projection?.boundaryAttempts ?? [];
+  const sliceId = workspaceState().selectedSliceId;
+  const attempts = (snapshot?.projection?.boundaryAttempts ?? []).filter(
+    (attempt) => attempt.sliceId === sliceId,
+  );
   const select = elements['attempt-select'];
   const previous = workspaceState().selectedAttemptId ?? selectedAttemptId;
   clear(select);
   if (attempts.length === 0) {
     select.disabled = true;
-    clear(elements['boundary-summary']).append(node('p', { text: 'No PR-boundary attempt has been recorded.' }));
+    workspaceStore.setHierarchy(projectPath(), { selectedAttemptId: null, selectedGateId: null });
+    clear(elements['boundary-summary']).append(node('p', { text: 'No PR boundary has started for the selected slice.' }));
     clear(elements['gate-dag']);
     return;
   }
@@ -490,15 +544,18 @@ function renderBoundary(snapshot) {
     option.value = attempt.id;
     select.append(option);
   }
-  selectedAttemptId = attempts.some((item) => item.id === previous)
-    ? previous
-    : snapshot.active?.boundaryAttemptId ?? attempts.at(-1).id;
-  workspaceStore.setHierarchy(projectPath(), { selectedAttemptId });
+  selectedAttemptId = selectedAttempt(snapshot, sliceId, previous);
+  const attempt = attempts.find((item) => item.id === selectedAttemptId) ?? attempts.at(-1);
+  const previousGateId = workspaceState().selectedGateId;
+  const selectedGateId = attempt.gates.some((gate) => gate.id === previousGateId)
+    ? previousGateId
+    : null;
+  const initialized = previous === null;
+  workspaceStore.setHierarchy(projectPath(), { selectedAttemptId, selectedGateId });
   for (const option of select.querySelectorAll('option')) {
     if (option.value === selectedAttemptId) option.setAttribute('selected', '');
     else option.removeAttribute('selected');
   }
-  const attempt = attempts.find((item) => item.id === selectedAttemptId) ?? attempts.at(-1);
   clear(elements['boundary-summary']).append(
     statusPill(attempt.state),
     document.createTextNode(` ${attempt.scope} boundary for ${attempt.sliceId}`),
@@ -523,20 +580,78 @@ function renderBoundary(snapshot) {
   elements['boundary-summary'].append(inspect);
   clear(elements['gate-dag']);
   for (const gate of attempt.gates) {
-    const button = node('button', { className: 'gate-card', type: 'button' }, [
-      node('div', { className: 'card-header' }, [
-        node('strong', { text: humanize(gate.id), title: `Exact gate ID: ${gate.id}` }),
-        statusPill(gate.outcome === 'UNSET' ? gate.freshness : gate.outcome),
+    const selected = gate.id === selectedGateId;
+    const button = node('button', {
+      className: `gate-card ordered-item${selected ? ' selected' : ''}`,
+      type: 'button',
+      attributes: {
+        'aria-pressed': String(selected),
+        'aria-label': `Gate ${gate.orderLabel}, ${humanize(gate.id)}, ${humanize(gate.outcome === 'UNSET' ? gate.freshness : gate.outcome)}${selected ? ', Selected for inspection' : ''}`,
+      },
+    }, [
+      node('span', { className: 'order-marker', text: gate.orderLabel, attributes: { 'aria-hidden': 'true' } }),
+      node('span', { className: 'ordered-content' }, [
+        node('span', { className: 'card-header' }, [
+          node('strong', { text: humanize(gate.id), title: `Exact gate ID: ${gate.id}` }),
+          statusPill(gate.outcome === 'UNSET' ? gate.freshness : gate.outcome),
+        ]),
+        node('small', { text: `Freshness: ${humanize(gate.freshness)}` }),
+        node('span', {
+          className: 'dependencies',
+          text: gate.dependsOn.length ? `After: ${gate.dependsOn.join(', ')}` : 'Entry gate',
+        }),
+        ...(selected ? [node('span', { className: 'state-semantic selected-label', text: 'Selected' })] : []),
       ]),
-      node('small', { text: `Freshness: ${humanize(gate.freshness)}` }),
-      node('div', {
-        className: 'dependencies',
-        text: gate.dependsOn.length ? `After: ${gate.dependsOn.join(', ')}` : 'Entry gate',
-      }),
     ]);
     button.addEventListener('click', () => renderGateDetail(attempt, gate));
     elements['gate-dag'].append(button);
   }
+  if (initialized) {
+    const artifact = attemptArtifact(snapshot, selectedAttemptId);
+    if (artifact) void openArtifact(artifact);
+  }
+}
+
+function renderCloseout(snapshot) {
+  const blockers = snapshot?.blockers ?? [];
+  const blockedActions = (snapshot?.actions ?? []).filter((action) => action.readiness === 'blocked');
+  const activeSliceId = snapshot?.projection?.activeSliceId ?? null;
+  const blocked = blockers.length > 0 || blockedActions.length > 0;
+  const readiness = blocked ? 'blocked' : activeSliceId ? 'active' : 'ready';
+  elements['closeout-status'].className = `status ${readiness}`;
+  elements['closeout-status'].textContent = readiness === 'active' ? 'In progress' : humanize(readiness);
+  const summary = clear(elements['closeout-summary']);
+  summary.append(node('article', { className: 'card' }, [
+    node('strong', {
+      text: blocked
+        ? 'Completion has outstanding conditions'
+        : activeSliceId ? 'Completion remains in progress' : 'Completion readiness is clear',
+    }),
+    node('p', {
+      text: blocked
+        ? `${blockers.length + blockedActions.length} projected condition${blockers.length + blockedActions.length === 1 ? '' : 's'} remain.`
+        : activeSliceId
+          ? `The active delivery slice ${activeSliceId} must finish before closeout is ready.`
+          : 'No projected workflow blocker currently prevents closeout review.',
+    }),
+  ]));
+  const conditions = [
+    ...blockers.map((item) => blockerText(item)),
+    ...blockedActions.flatMap((action) => action.reasons?.length ? action.reasons : [humanize(action.command)]),
+  ];
+  if (conditions.length > 0) {
+    const list = node('ul');
+    for (const condition of conditions) list.append(node('li', { text: condition }));
+    summary.append(node('article', { className: 'card' }, [node('strong', { text: 'Outstanding closeout conditions' }), list]));
+  }
+  summary.append(node('article', { className: 'card' }, [
+    node('strong', { text: 'Additional delivery slice' }),
+    node('p', { text: activeSliceId
+      ? `Required work remains active in ${activeSliceId}.`
+      : readiness === 'ready'
+        ? 'No additional delivery slice is indicated by the current projection.'
+        : 'Another delivery slice may be required to clear the outstanding conditions.' }),
+  ]));
 }
 
 function renderActions(snapshot) {
@@ -579,9 +694,21 @@ function renderOverview(snapshot) {
   renderWarnings(snapshot);
   renderStateRail(snapshot);
   renderMilestones(snapshot);
-  renderSlices(snapshot);
+  const selectedFeatureState = workspaceState().selectedFeatureState;
+  const delivering = selectedFeatureState === 'DELIVERING_SLICES';
+  const finalizing = selectedFeatureState === 'FINALIZING';
+  elements['slices-surface'].hidden = !delivering;
+  elements['boundary-surface'].hidden = !delivering;
+  elements['closeout-surface'].hidden = !finalizing;
+  if (delivering) {
+    renderSlices(snapshot);
+    renderBoundary(snapshot);
+  } else {
+    clear(elements.slices);
+    clear(elements['gate-dag']);
+  }
+  if (finalizing) renderCloseout(snapshot);
   renderAttention(snapshot);
-  renderBoundary(snapshot);
   renderActions(snapshot);
 }
 
@@ -1039,8 +1166,10 @@ async function readArtifact(artifact, { preserveContent = false, force = false }
 }
 
 async function openArtifact(artifact) {
+  artifactReadSequence += 1;
   workspaceStore.openArtifact(projectPath(), artifact);
   selectedArtifactFingerprint = null;
+  artifactInFlightFingerprint = null;
   artifactFailedFingerprint = null;
   artifactHasContent = false;
   renderInspector(currentState?.snapshot);
@@ -1379,8 +1508,10 @@ elements.notifications.addEventListener('change', async () => {
 });
 elements['attempt-select'].addEventListener('change', (event) => {
   selectedAttemptId = event.target.value;
-  workspaceStore.setHierarchy(projectPath(), { selectedAttemptId });
+  workspaceStore.setHierarchy(projectPath(), { selectedAttemptId, selectedGateId: null });
   renderBoundary(currentState?.snapshot);
+  const artifact = attemptArtifact(currentState?.snapshot, selectedAttemptId);
+  if (artifact) void openArtifact(artifact);
 });
 elements['copy-mermaid'].addEventListener('click', () => {
   if (modelDetail) void copy(modelDetail.data.graph.mermaid, 'Mermaid source copied');
