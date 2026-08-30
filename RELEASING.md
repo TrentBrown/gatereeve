@@ -29,6 +29,12 @@ credentials or secret values. Do not create release tags manually, invoke the
 low-level marketplace script, edit `marketplace`, or run local publication
 commands as an alternate production path.
 
+Every job under `release-trust` or `release-publication` must create a GitHub
+environment deployment. Never disable deployment creation on these jobs: the
+deployment is what applies the configured reviewer gate and preserves the
+approval record. If a protected job starts without waiting for review, stop the
+release sequence and treat the run as unauthorized boundary evidence.
+
 ### 1. Produce the trusted RC packet
 
 Start from a fresh, unused RC identity and the exact current reviewed `main`:

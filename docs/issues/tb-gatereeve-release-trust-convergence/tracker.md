@@ -54,6 +54,12 @@ Append PR boundary entries here.
   valid trust evidence but cannot satisfy the approval-boundary criterion.
 - Finalization, publication dry-run, and credential deletion are paused until
   a fresh reviewed correction slice and fresh candidate prove the boundary.
+- Governed correction slice `s5-approval-boundary-correction` started from
+  current reviewed `main` `93da66d10736b7bbf58be1d2765808c1f7b4a75c`.
+  It removes deployment suppression from all six protected jobs; YAML parsing,
+  10 focused tests, the 158-test CLI suite, the 125-test Desktop suite, and
+  portable acceptance pass locally. Live reviewer-gate proof remains pending
+  merge and a fresh candidate.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 

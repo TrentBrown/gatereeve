@@ -150,3 +150,23 @@ release remained absent. Preparation therefore caused zero public mutation.
 10. Run feature-final spec evaluation and independent judgment.
 
 No public primary or Cask publication is authorized by this sequence.
+
+## Corrective delivery slice
+
+The original feature-final attempt was abandoned without merge after retaining
+its evidence. Governed slice `s5-approval-boundary-correction` started at event
+sequence 96 on branch
+`tb-gatereeve-release-trust-convergence-05-approval-boundary-correction` from
+current `origin/main` `93da66d10736b7bbf58be1d2765808c1f7b4a75c`.
+That mainline commit is reviewed PR #36 from
+`tb-gatereeve-desktop-workflow-experience-06-interface-polish`; it is not a
+`development*` integration and is unrelated product-UI work.
+
+The correction removes deployment suppression from protected preparation,
+bounded trust recovery, primary rehearsal/publication, and Cask
+rehearsal/publication. Contract tests now require the correct environment on
+all six jobs and reject `deployment: false`. Current local evidence: all four
+edited workflows parse as YAML, the 10 focused workflow/documentation tests
+pass, all 158 CLI tests pass, all 125 Desktop tests pass, and portable
+acceptance passes. A fresh hosted rehearsal and candidate remain required after
+this correction passes review and merges.

@@ -122,7 +122,7 @@ that protected jobs suppress GitHub deployment/reviewer enforcement.
 
 ## I-10 - Enforce protected environment deployment approvals
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** 0.5d plus protected rehearsal time
 - **Plan steps:** P4, P5, P6, P9
 - **Rubric criteria:** R3, R6, R7, R8

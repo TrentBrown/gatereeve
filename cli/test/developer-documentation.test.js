@@ -132,6 +132,8 @@ test('Apple release setup is actionable, protected, and team-key only', async ()
     'does **not** approve publication',
     'GATEREEVE_PUBLICATION_TOKEN',
     'not re-entered for each release',
+    'must create a real GitHub environment',
+    'An absent pending deployment or deployment record is a blocking custody defect',
   ]) {
     assert.ok(guide.includes(phrase), `Apple setup guide must include: ${phrase}`);
   }

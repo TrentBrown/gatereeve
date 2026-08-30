@@ -81,7 +81,6 @@ jobs:
     timeout-minutes: 40
     environment:
       name: release-trust
-      deployment: false
     env:
       APPLE_TEAM_ID: ${{ vars.GATEREEVE_APPLE_TEAM_ID }}
       APPLE_SIGNING_IDENTITY: ${{ vars.GATEREEVE_DEVELOPER_IDENTITY }}
