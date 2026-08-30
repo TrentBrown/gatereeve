@@ -22,6 +22,20 @@
 
 Append PR boundary entries here.
 
+### PR #32 - Lifecycle and notarization recovery contracts
+
+- **PR:** [#32](https://github.com/TrentBrown/gatereeve/pull/32)
+- **Evidence packet:** [packet](pr-32/)
+- **Scope:** P1-P2 / I-1-I-2 / R1, R2, R4 foundations.
+- **Summary:** Adds strict schema-v2 lifecycle history, immutable candidate and
+  Apple-artifact identity, explicit schema-v1 compatibility, and append-only
+  recoverable notarization attempts with bounded polling and fail-closed
+  submission reconciliation.
+- **Verification:** Desktop 121 passed; CLI 142 passed; static checks passed.
+- **Independent judgment:** PASS WITH CONCERNS. No blocking defect; protected
+  hosted Apple rehearsal and environment/publication boundaries remain
+  intentionally assigned to later slices.
+
 ## Slice Evidence
 
 ### s1-lifecycle-recovery-contracts

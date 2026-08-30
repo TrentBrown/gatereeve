@@ -8,7 +8,7 @@ entries are appended to `decisions.md`.
 
 ## [1] Model schema v2 as append-only ordered stage history
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -40,7 +40,7 @@ placement, immutable history, and binary conformance tests.
 
 ## [2] Keep notarization attempts separate from successful release stages
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

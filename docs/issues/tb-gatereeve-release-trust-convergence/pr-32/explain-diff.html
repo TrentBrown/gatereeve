@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GateReeve release-trust convergence — PR #32</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1220;
+      --panel: #111b2e;
+      --panel-2: #17233a;
+      --text: #e7edf7;
+      --muted: #aab7cc;
+      --line: #30415f;
+      --accent: #69d2b0;
+      --accent-2: #83b7ff;
+      --warn: #ffc96b;
+      --bad: #ff8b8b;
+      --good: #68d391;
+      --code: #08101d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top right, #172b4d 0, var(--bg) 38rem);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.62;
+    }
+    main { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 6rem; }
+    header, section {
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: clamp(1.2rem, 3vw, 2.2rem);
+      margin-bottom: 1.25rem;
+      box-shadow: 0 18px 50px rgb(0 0 0 / 22%);
+    }
+    h1, h2, h3 { line-height: 1.2; margin-top: 0; }
+    h1 { font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -0.04em; }
+    h2 { color: var(--accent); margin-bottom: 1rem; }
+    h3 { color: var(--accent-2); margin-top: 1.6rem; }
+    p, li { max-width: 78ch; }
+    code { color: #cce1ff; }
+    pre {
+      margin: 1rem 0;
+      padding: 1rem;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--code);
+      white-space: pre;
+      tab-size: 2;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+    pre code { white-space: inherit; }
+    .eyebrow { color: var(--accent); font-weight: 750; text-transform: uppercase; letter-spacing: .12em; }
+    .lede { font-size: 1.18rem; color: #d7e3f6; }
+    .meta, .callout { background: var(--panel-2); border-left: 4px solid var(--accent-2); padding: 1rem; border-radius: 8px; }
+    .callout.warn { border-left-color: var(--warn); }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .card { border: 1px solid var(--line); background: var(--panel-2); border-radius: 12px; padding: 1rem; }
+    .card h3 { margin-top: 0; }
+    .flow { display: flex; align-items: stretch; flex-wrap: wrap; gap: .55rem; margin: 1rem 0; }
+    .node { flex: 1 1 145px; min-width: 135px; padding: .75rem; border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px; text-align: center; }
+    .node strong { display: block; color: var(--accent); }
+    .arrow { display: grid; place-items: center; color: var(--accent-2); font-size: 1.4rem; }
+    .split { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .8rem; }
+    .tag { display: inline-block; margin: .15rem .3rem .15rem 0; padding: .15rem .55rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .85rem; }
+    .quiz-item { border-top: 1px solid var(--line); padding-top: 1.2rem; margin-top: 1.2rem; }
+    label { display: block; padding: .45rem .65rem; margin: .35rem 0; border-radius: 8px; cursor: pointer; }
+    label:hover { background: var(--panel-2); }
+    button { border: 0; border-radius: 9px; padding: .75rem 1rem; background: var(--accent); color: #061811; font-weight: 800; cursor: pointer; }
+    .feedback { min-height: 1.5rem; margin-top: .6rem; font-weight: 700; }
+    .feedback.good { color: var(--good); }
+    .feedback.bad { color: var(--bad); }
+    .muted { color: var(--muted); }
+    @media (max-width: 760px) {
+      .grid, .split { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">PR #32 · Slice 1 · reviewer guide</div>
+    <h1>GateReeve release-trust convergence</h1>
+    <p class="lede">This slice establishes the two foundations the remaining release work will build on: a tamper-evident GateReeve lifecycle record and a recoverable Apple notarization attempt record.</p>
+    <div class="meta">
+      <strong>Pinned review range</strong><br>
+      <code>4a6a680be51b5b0c2b9454497a8950df739e1805</code><br>
+      through <code>6641b2842a94100a3a72d1e8806ddc7f3f05cbcf</code>
+    </div>
+  </header>
+
+  <section id="background">
+    <h2>Background</h2>
+    <p>GateReeve already knows how to build, sign, notarize, staple, verify, and distribute its universal macOS DMG. The missing contract is not another packaging engine. It is durable proof that every later action refers to the same source, candidate version, exact bytes, Apple request, and approved sequence of release stages.</p>
+    <div class="grid">
+      <article class="card">
+        <h3>What stays GateReeve-specific</h3>
+        <p>One universal DMG, coordinated Plugin/Desktop releases, and the existing Homebrew Cask surface.</p>
+        <span class="tag">universal DMG</span><span class="tag">Plugin</span><span class="tag">Desktop</span><span class="tag">Cask</span>
+      </article>
+      <article class="card">
+        <h3>What converges with PortReeve</h3>
+        <p>Immutable identity, exact-byte authority, append-only evidence, bounded recovery, and fail-closed handling of uncertain Apple submissions.</p>
+        <span class="tag">source pinning</span><span class="tag">evidence chain</span><span class="tag">request continuity</span>
+      </article>
+    </div>
+    <p class="callout warn"><strong>Not in this slice:</strong> protected GitHub environments, hosted trust production, native ARM/Intel evidence workflows, sealed publication planning, or public release mutation. Those depend on these records and arrive in later governed slices.</p>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <h3>1. A release is an append-only receipt book</h3>
+    <p>Schema v2 replaces an ambiguous current-state view with an ordered prefix of product-specific stages. Each entry hashes its evidence and the preceding entry. The record may advance exactly one stage, but it cannot skip, reorder, duplicate, or rewrite history.</p>
+    <div class="flow" aria-label="release lifecycle stages">
+      <div class="node"><strong>source-pinned</strong>repository + SHA + tag</div><div class="arrow">→</div>
+      <div class="node"><strong>candidate-qualified</strong>bytes may be bound</div><div class="arrow">→</div>
+      <div class="node"><strong>trusted universal DMG</strong>same bound bytes</div><div class="arrow">→</div>
+      <div class="node"><strong>native + desktop verified</strong>structured evidence</div><div class="arrow">→</div>
+      <div class="node"><strong>approved + published</strong>later slices</div>
+    </div>
+    <p>The complete list contains twelve stages, including GateReeve’s universal Desktop and Plugin coordination points. Semantic conformance does not mean copying PortReeve’s two-architecture DMG graph.</p>
+
+    <h3>2. An Apple attempt is not a successful release stage</h3>
+    <p>A notarization submission may time out, be rejected, or become ambiguous because a runner disappeared after Apple received bytes. Those are durable operational facts—not successful trust milestones.</p>
+    <div class="split">
+      <div class="card">
+        <strong>Release lifecycle</strong>
+        <p>Records completed product gates. It consumes an accepted attempt only when source, version, tag, and artifact identity all match.</p>
+      </div>
+      <div class="arrow">⇄</div>
+      <div class="card">
+        <strong>Notarization attempt</strong>
+        <p>Records prepared, submitting, uncertain, submitted, polling, timeout, accepted, rejected, and superseded states.</p>
+      </div>
+    </div>
+
+    <h3>3. Recovery follows the request, not the workflow run</h3>
+    <div class="flow" aria-label="notarization recovery flow">
+      <div class="node"><strong>persist prepared</strong>exact candidate identity</div><div class="arrow">→</div>
+      <div class="node"><strong>persist submitting</strong>before invoking Apple</div><div class="arrow">→</div>
+      <div class="node"><strong>persist request ID</strong>before polling</div><div class="arrow">→</div>
+      <div class="node"><strong>bounded poll</strong>60 × 30 seconds</div><div class="arrow">→</div>
+      <div class="node"><strong>resume</strong>same retained request</div>
+    </div>
+    <p>If execution ends while submission is ambiguous, recovery reconciles retained candidate identity with Apple history. It does not blindly submit again. Changed bytes require a fresh candidate version and a linked superseding attempt.</p>
+  </section>
+
+  <section id="code">
+    <h2>Code tour</h2>
+    <h3>Lifecycle v2 is an ordered, hashed prefix</h3>
+    <p><code>cli/src/plugin/release-lifecycle-v2.js</code> owns schema-v2 creation, validation, stage advancement, and the immutable Apple-artifact binding.</p>
+    <pre><code>export const RELEASE_STAGE_SEQUENCE_V2 = Object.freeze([
+  'source-pinned',
+  'policy-resolved',
+  'plugin-candidate-built',
+  'universal-desktop-packaged',
+  'artifact-digests-established',
+  'candidate-qualified',
+  'trusted-universal-dmg-established',
+  'authoritative-native-verified',
+  'desktop-trust-verified',
+  'distribution-finalized',
+  'publication-approved',
+  'published',
+]);</code></pre>
+    <p>The validator recomputes the evidence digest and stage digest at every position. The next mutation must equal <code>RELEASE_STAGE_SEQUENCE_V2[record.stages.length]</code>. Trusted-DMG evidence must identify the exact artifact previously bound to the candidate.</p>
+    <pre><code>if (
+  entry.sequence !== index + 1
+  || entry.stage !== RELEASE_STAGE_SEQUENCE_V2[index]
+  || entry.previousStageSha256 !== previousStageSha256
+  || digest(assertEvidence(entry.evidence)) !== entry.evidenceSha256
+) {
+  throw new Error(
+    'Release stages must form an ordered prefix with immutable evidence'
+  );
+}</code></pre>
+    <p><code>coordinated-release.js</code> now dispatches reads by schema version. Existing publication and Cask consumers explicitly call the v1 validator, preventing accidental v2 mutation through legacy paths. The published RC.2 v1 fixture is tested byte-for-byte unchanged.</p>
+
+    <h3>Notarization attempts preserve every material transition</h3>
+    <p><code>apps/desktop/scripts/notarization-attempt.mjs</code> defines a separate append-only state machine. Each event hashes the candidate, sequence, state, time, detail, and preceding event.</p>
+    <pre><code>const STATES = new Set([
+  'prepared', 'submitting', 'submission-uncertain',
+  'submitted', 'polling', 'timed-out',
+  'accepted', 'rejected', 'superseded',
+]);
+
+export const NOTARIZATION_POLL_INTERVAL_SECONDS = 30;
+export const NOTARIZATION_POLLS_PER_SESSION = 60;</code></pre>
+    <p>The validator cross-checks materialized summaries against the append-only history, including request identity, reconciliation, polling sessions, supersession, timestamps, and allowed transitions. A forged summary without matching history fails.</p>
+
+    <h3>The macOS script persists before risky edges</h3>
+    <p><code>apps/desktop/scripts/notarize-macos.mjs</code> writes records atomically, changes to <code>submitting</code> before calling <code>notarytool submit</code>, records the returned UUID before polling, and uses <code>notarytool info</code> to resume a retained request. Every status response must name the same request ID.</p>
+    <pre><code>// Simplified operational order
+await writeAttemptAtomic(markSubmitting(attempt));
+const submission = await submitWithoutWait(exactDmgPath);
+await writeAttemptAtomic(recordRequestId(attempt, submission.id));
+await pollBounded(submission.id, { intervalSeconds: 30, polls: 60 });</code></pre>
+    <div class="grid">
+      <article class="card"><h3>Desktop verification</h3><p><strong>121 tests passed</strong>, including normal acceptance, interruption, reconciliation, timeout, rejection, supersession, changed-byte refusal, and request-ID mismatch.</p></article>
+      <article class="card"><h3>CLI verification</h3><p><strong>142 tests passed</strong>, including v2 ordering/evidence integrity, strict schema dispatch, immutable candidate binding, and legacy v1 preservation.</p></article>
+    </div>
+  </section>
+
+  <section id="review-focus">
+    <h2>Reviewer focus</h2>
+    <ol>
+      <li>Confirm every successful lifecycle transition is a strict ordered append and remains GateReeve-specific.</li>
+      <li>Confirm Apple attempts cannot be mistaken for completed trust stages.</li>
+      <li>Confirm ambiguous submission requires reconciliation and cannot silently produce a duplicate request.</li>
+      <li>Confirm candidate source tag, semantic version, commit, filename, byte length, and SHA-256 remain exact across recovery.</li>
+      <li>Confirm v1 released history is inspectable but not mutated through v2 helpers.</li>
+    </ol>
+    <p class="callout"><strong>Independent judgment:</strong> PASS WITH CONCERNS. The concerns are expected future-slice work: no hosted Apple rehearsal has run yet, and no protected environment or publication boundary is introduced here. No blocking defect was found in this pinned slice.</p>
+  </section>
+
+  <section id="quiz">
+    <h2>Knowledge check</h2>
+    <p class="muted">Choose one answer for each question, then check it.</p>
+    <div class="quiz-item" data-answer="b">
+      <h3>1. Why is notarization attempt history separate?</h3>
+      <label><input type="radio" name="q1" value="a"> To support architecture-specific DMGs</label>
+      <label><input type="radio" name="q1" value="b"> Failed, uncertain, and timed-out attempts are facts, not completed release stages</label>
+      <label><input type="radio" name="q1" value="c"> To avoid retaining an Apple request ID</label>
+      <button type="button">Check answer</button><div class="feedback" aria-live="polite"></div>
+    </div>
+    <div class="quiz-item" data-answer="c">
+      <h3>2. When may a v2 lifecycle advance?</h3>
+      <label><input type="radio" name="q2" value="a"> To any stage whose evidence exists</label>
+      <label><input type="radio" name="q2" value="b"> Only after rewriting the prior stage</label>
+      <label><input type="radio" name="q2" value="c"> Only to the next stage in the product-specific sequence</label>
+      <button type="button">Check answer</button><div class="feedback" aria-live="polite"></div>
+    </div>
+    <div class="quiz-item" data-answer="a">
+      <h3>3. A runner disappears after submission begins and no request ID was retained. What happens?</h3>
+      <label><input type="radio" name="q3" value="a"> The attempt becomes uncertain and must be reconciled against Apple history</label>
+      <label><input type="radio" name="q3" value="b"> GitHub generically reruns the job and submits again</label>
+      <label><input type="radio" name="q3" value="c"> The attempt is considered accepted</label>
+      <button type="button">Check answer</button><div class="feedback" aria-live="polite"></div>
+    </div>
+    <div class="quiz-item" data-answer="c">
+      <h3>4. What happens if the DMG bytes change after live Apple history exists?</h3>
+      <label><input type="radio" name="q4" value="a"> Reuse the version if the filename is unchanged</label>
+      <label><input type="radio" name="q4" value="b"> Update the digest inside the same attempt</label>
+      <label><input type="radio" name="q4" value="c"> Reserve a fresh candidate version and link a superseding attempt</label>
+      <button type="button">Check answer</button><div class="feedback" aria-live="polite"></div>
+    </div>
+    <div class="quiz-item" data-answer="b">
+      <h3>5. What does cross-project conformance require here?</h3>
+      <label><input type="radio" name="q5" value="a"> Replace GateReeve's universal DMG with PortReeve's two-DMG graph</label>
+      <label><input type="radio" name="q5" value="b"> Share trust semantics while preserving repository-local product topology</label>
+      <label><input type="radio" name="q5" value="c"> Import PortReeve as a runtime dependency</label>
+      <button type="button">Check answer</button><div class="feedback" aria-live="polite"></div>
+    </div>
+  </section>
+</main>
+<script>
+  document.querySelectorAll('.quiz-item').forEach((item) => {
+    item.querySelector('button').addEventListener('click', () => {
+      const selected = item.querySelector('input:checked');
+      const feedback = item.querySelector('.feedback');
+      if (!selected) {
+        feedback.textContent = 'Choose an answer first.';
+        feedback.className = 'feedback bad';
+        return;
+      }
+      const correct = selected.value === item.dataset.answer;
+      feedback.textContent = correct ? 'Correct.' : 'Not quite—review the explanation above and try again.';
+      feedback.className = `feedback ${correct ? 'good' : 'bad'}`;
+    });
+  });
+</script>
+</body>
+</html>
