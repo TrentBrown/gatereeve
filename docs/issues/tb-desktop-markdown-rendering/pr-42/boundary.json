@@ -11,12 +11,12 @@
     "state": "OPEN",
     "isDraft": true,
     "baseRefName": "main",
-    "baseRefOid": "fb2e5fb16c8acd8b02d446b5ddd399a09771ddd4",
+    "baseRefOid": "1d10d6da7b4acac054c31e65993a2f03bcbf0ee3",
     "headRefName": "tb-desktop-markdown-rendering",
-    "headRefOid": "06e722b9b59df1dc095e2bd1b0250e531284176b"
+    "headRefOid": "a981e3ed42a42cd2e2c173f041a732214b5151e4"
   },
-  "mergeBaseSha": "fb2e5fb16c8acd8b02d446b5ddd399a09771ddd4",
-  "evaluatedSourceSha": "06e722b9b59df1dc095e2bd1b0250e531284176b",
+  "mergeBaseSha": "1d10d6da7b4acac054c31e65993a2f03bcbf0ee3",
+  "evaluatedSourceSha": "a981e3ed42a42cd2e2c173f041a732214b5151e4",
   "featureBaseSha": "1220138bf4248a72c1717955c4f62e3f1cda0599",
   "applicability": {
     "specEvaluation": true,

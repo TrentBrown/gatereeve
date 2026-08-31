@@ -1,6 +1,6 @@
 # Code Review - PR 42
 
-**Pinned diff:** `fb2e5fb16c8acd8b02d446b5ddd399a09771ddd4..06e722b9b59df1dc095e2bd1b0250e531284176b`
+**Pinned diff:** `1d10d6da7b4acac054c31e65993a2f03bcbf0ee3..a981e3ed42a42cd2e2c173f041a732214b5151e4`
 **Verdict:** PASS
 
 ## Findings
