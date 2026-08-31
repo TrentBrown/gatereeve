@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "scope": "feature-final",
+  "featureId": "tb-gatereeve-release-trust-convergence",
+  "repositoryAlias": "gatereeve",
+  "packetId": "pr-38",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 38,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/38",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "57fe66ba90ae1db1df970bf6988053136b567f23",
+    "headRefName": "tb-gatereeve-release-trust-convergence-06-final-acceptance",
+    "headRefOid": "fd0b14795e4aa4e21d773813c3bebb7d2a04822b"
+  },
+  "mergeBaseSha": "57fe66ba90ae1db1df970bf6988053136b567f23",
+  "evaluatedSourceSha": "fd0b14795e4aa4e21d773813c3bebb7d2a04822b",
+  "featureBaseSha": "4a6a680be51b5b0c2b9454497a8950df739e1805",
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "specEvaluation": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "judge": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "codeReview": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No applicable .pattern-review scope is configured; run pattern-init before a future boundary if repository pattern rules are desired"
+    },
+    "explainDiff": {
+      "disposition": "passed",
+      "reason": null
+    }
+  }
+}

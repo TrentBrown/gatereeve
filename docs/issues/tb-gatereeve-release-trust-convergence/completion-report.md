@@ -2,6 +2,8 @@
 
 **Status:** Acceptance complete; governed feature-final PR review pending
 
+**Final pull request:** [#38](https://github.com/TrentBrown/gatereeve/pull/38)
+
 ## Outcome
 
 GateReeve now implements the release-trust lifecycle semantics proven by

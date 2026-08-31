@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #38 — GateReeve release-trust acceptance</title>
+  <style>
+    :root { color-scheme: dark; --ink:#edf2f7; --muted:#9fb0c3; --panel:#142033; --line:#31435d; --blue:#78b7ff; --green:#64d79b; --amber:#ffd37a; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.6 system-ui,sans-serif; background:#09111d; color:var(--ink); }
+    main { width:min(980px,calc(100% - 32px)); margin:auto; padding:42px 0 80px; }
+    h1 { font-size:clamp(2rem,5vw,3.8rem); line-height:1.05; margin:.2em 0; }
+    h2 { margin-top:2.4em; border-bottom:1px solid var(--line); padding-bottom:.3em; }
+    h3 { margin-top:1.8em; }
+    a { color:var(--blue); }
+    nav,.card,.callout,.diagram,.quiz { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; margin:18px 0; }
+    nav ol { columns:2; margin-bottom:0; }
+    .eyebrow { color:var(--green); font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .muted { color:var(--muted); }
+    .flow { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; align-items:stretch; }
+    .node { background:#0d1726; border:1px solid var(--line); border-radius:10px; padding:14px; text-align:center; }
+    .node strong { color:var(--green); display:block; }
+    .arrow { color:var(--blue); font-size:1.2em; }
+    .split { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; background:#070d16; border:1px solid var(--line); border-radius:10px; padding:16px; }
+    code { color:#b8dcff; }
+    button { display:block; width:100%; text-align:left; margin:8px 0; padding:12px; color:var(--ink); background:#0d1726; border:1px solid var(--line); border-radius:9px; cursor:pointer; }
+    button:hover { border-color:var(--blue); }
+    button.correct { border-color:var(--green); background:#103025; }
+    button.wrong { border-color:#ff8d8d; background:#32171b; }
+    .feedback { min-height:1.6em; color:var(--muted); }
+    .pill { display:inline-block; padding:2px 9px; border:1px solid var(--green); border-radius:999px; color:var(--green); font-size:.85em; }
+    @media(max-width:720px){ nav ol{columns:1}.flow,.split{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">GateReeve · PR #38 · feature final</p>
+  <h1>The proof that closes the trust loop</h1>
+  <p class="muted">Focused diff: <code>57fe66b..fd0b147</code>. This PR changes five lifecycle documents, not production code or public release state.</p>
+
+  <nav aria-label="Table of contents"><strong>Contents</strong><ol>
+    <li><a href="#background">Background</a></li><li><a href="#intuition">Intuition</a></li>
+    <li><a href="#code">Document changes</a></li><li><a href="#safety">Safety boundaries</a></li>
+    <li><a href="#quiz">Quiz</a></li>
+  </ol></nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <p>A release system is trustworthy only if it can answer four questions: which source produced the artifact, which exact bytes Apple accepted, who authorized each privileged operation, and how an interrupted operation resumes without silently changing identity.</p>
+    <p>The implementation work landed earlier in PRs #32, #33, #34, and #37. It introduced schema-v2 lifecycle records, durable notarization attempts, protected signing, native architecture evidence, sealed publication plans, and linked Cask recovery. PR #38 is the last mile: it records what happened when those contracts met real GitHub environments and Apple infrastructure.</p>
+    <div class="callout"><strong>Topology stays GateReeve-shaped.</strong> One Plugin tree, one universal macOS DMG, and a separately approved Homebrew Cask. Conformance with PortReeve means shared trust semantics, not identical artifact graphs.</div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <p>Think of RC.4 as a sealed evidence specimen. It was allowed to pass through every trust and authorization checkpoint, but the experiment deliberately stopped before public mutation.</p>
+    <div class="diagram flow" aria-label="Release evidence flow">
+      <div class="node"><strong>Reviewed source</strong><code>57fe66b</code><br>main only</div>
+      <div class="node"><strong>Trust</strong>signed + notarized<br><code>2de56a0a…</code></div>
+      <div class="node"><strong>Native proof</strong>ARM64 + x64<br>same final DMG</div>
+      <div class="node"><strong>Sealed rehearsal</strong><code>a9a1b7ef…</code><br>zero receipts</div>
+    </div>
+    <p>The important distinction is between <em>approval to inspect exact bytes</em> and <em>approval to publish them</em>. The protected dry run exercised the former. Its write-capable sibling stayed skipped.</p>
+    <div class="split">
+      <div class="card"><span class="pill">release-trust</span><h3>Produces trusted bytes</h3><p>Keeps Apple certificate, password, notarization key, and identity variables. It cannot publish a release or Cask.</p></div>
+      <div class="card"><span class="pill">release-publication</span><h3>May publish a sealed plan</h3><p>Now has zero Apple variables and zero Apple secrets. It cannot rebuild, sign, or notarize the artifact.</p></div>
+    </div>
+  </section>
+
+  <section id="code">
+    <h2>What the focused diff changes</h2>
+    <h3>1. The live acceptance record becomes complete</h3>
+    <p><code>live-acceptance.md</code> records the real reviewer waits, RC.4 request and hashes, native evidence, finalization digest, byte-identical rehearsal, custody cleanup, and final public-state comparison.</p>
+    <pre>RC.4 final DMG: f932c9ef…
+Apple request:    2de56a0a-b817-4c4a-a805-cdbec173b48c
+Sealed plan:      a9a1b7ef…
+Publication receipts: 0
+Public mutation:      0</pre>
+
+    <h3>2. The rubric changes from pending to proven</h3>
+    <p><code>tracker.md</code> moves R1–R8 from <code>NOT YET</code> to <code>PASS</code>. Each row points to implementation PRs plus the live evidence needed to close the criterion.</p>
+
+    <h3>3. Completed implementation issues close</h3>
+    <p><code>issues.md</code> closes the hosted publication, linked Cask, and operations items already merged in PR #34. I-9 stays in progress until this feature-final review completes.</p>
+
+    <h3>4. A durable completion report appears</h3>
+    <p><code>completion-report.md</code> gathers the Definition of Done, AC1–AC8, R1–R8, immutable hashes, hosted run IDs, and the only remaining human action: review and merge this evidence PR.</p>
+
+    <h3>5. Governance history remains append-only</h3>
+    <p><code>events.jsonl</code> adds the corrected final-acceptance slice and its boundary events. It preserves RC.3 as useful trust evidence while refusing to count its suppressed deployment as reviewer-gate proof.</p>
+  </section>
+
+  <section id="safety">
+    <h2>Safety boundaries</h2>
+    <div class="card">
+      <ul>
+        <li>RC.4 is not tagged and has no GitHub release.</li>
+        <li>The marketplace, manifest, website response, tap head, and Cask blob are unchanged.</li>
+        <li>Future signing credentials remain available in <code>release-trust</code>.</li>
+        <li>No Apple credential remains in <code>release-publication</code>.</li>
+        <li>No <code>development*</code> branch was merged or rebased.</li>
+        <li>Merging PR #38 does not authorize future primary or Cask publication.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>Check your understanding</h2>
+    <div class="quiz" data-answer="1"><strong>1. Why is RC.4 not a public release?</strong><button>It failed notarization.</button><button>The workflow deliberately stopped after a protected dry run with zero receipts.</button><button>The universal DMG lacked Intel code.</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><strong>2. Where do future Apple signing secrets live?</strong><button>In both environments for rollback.</button><button>Only on the Playpen host.</button><button>Only in the protected release-trust environment.</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="0"><strong>3. What does GateReeve share with PortReeve?</strong><button>Trust, evidence, approval, recovery, and exact-byte semantics.</button><button>An identical architecture-specific DMG graph.</button><button>A shared runtime package and native service.</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="2"><strong>4. Why was RC.3 insufficient for final acceptance?</strong><button>Its Apple request was rejected.</button><button>Its DMG hash changed after publication.</button><button>Deployment suppression bypassed the required-reviewer wait.</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="1"><strong>5. What does merging PR #38 authorize?</strong><button>Immediate Cask publication.</button><button>Completion of the governed evidence record only.</button><button>Reuse of RC.4 with rebuilt bytes.</button><p class="feedback"></p></div>
+  </section>
+</main>
+<script>
+  document.querySelectorAll('.quiz').forEach((quiz) => {
+    quiz.querySelectorAll('button').forEach((button, index) => {
+      button.addEventListener('click', () => {
+        const correct = index === Number(quiz.dataset.answer);
+        quiz.querySelectorAll('button').forEach((item, itemIndex) => {
+          item.classList.toggle('correct', itemIndex === Number(quiz.dataset.answer));
+          item.classList.toggle('wrong', itemIndex === index && !correct);
+        });
+        quiz.querySelector('.feedback').textContent = correct
+          ? 'Correct — that is the contract this boundary proves.'
+          : 'Not quite. Review the trust flow and safety boundary above.';
+      });
+    });
+  });
+</script>
+</body>
+</html>

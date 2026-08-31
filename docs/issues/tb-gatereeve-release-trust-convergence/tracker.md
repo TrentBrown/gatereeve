@@ -22,6 +22,29 @@
 
 Append PR boundary entries here.
 
+### PR #38 - Feature-final live acceptance and closeout evidence
+
+- **PR:** [#38](https://github.com/TrentBrown/gatereeve/pull/38)
+- **Evidence packet:** [packet](pr-38/)
+- **Pinned source:** `fd0b14795e4aa4e21d773813c3bebb7d2a04822b`
+  over focused evidence-only base
+  `57fe66ba90ae1db1df970bf6988053136b567f23`.
+- **Scope:** P8-P9 / I-9 / R1-R8, feature-final.
+- **Summary:** Retains corrected RC.4 protected trust, native architecture,
+  read-only finalization, protected zero-mutation publication rehearsal,
+  credential cutover, final public inventory, and complete-feature results.
+- **Verification:** CLI 158/158, Desktop 125/125, portable acceptance, final
+  lifecycle validators, RC.4 trust run 33343210101, finalization run
+  33410776654, and publication dry run 33411027926 all pass.
+- **Evaluation:** AC1-AC8 and R1-R8 PASS; independent judge PASS; focused code
+  review reports no findings; pattern review is not applicable because no rule
+  scope is configured; no untriaged decision remains.
+- **Safety:** RC.4 remains unpublished with zero receipts and unchanged public
+  surfaces. Apple credentials remain intact only in `release-trust`; this PR
+  does not authorize primary or Cask publication.
+- **Branch direction:** No `development` or `development-*` branch was merged
+  or rebased into this topic.
+
 ### Mainline acceptance preflight
 
 - PR #34 merged to `main` as

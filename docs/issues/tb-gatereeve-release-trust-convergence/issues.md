@@ -106,12 +106,12 @@ reviewed topic changes on `main` before live environment mutation.
 
 ## I-9 - Complete live cutover and nonpublishing acceptance
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1d plus Apple processing time
 - **Plan steps:** P9
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
 - **Depends on:** I-8
-- **PR:** -
+- **PR:** [#38](https://github.com/TrentBrown/gatereeve/pull/38)
 
 Coordinate user-operated secret migration, audit the separated environments,
 run a fresh protected RC rehearsal and hosted publication dry run, retain zero-
