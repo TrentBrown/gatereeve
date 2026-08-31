@@ -9,6 +9,7 @@ import {
   globalAlert,
   humanize,
   modeMessage,
+  phaseContext,
   selectedAttempt,
   selectedSlice,
   stateArtifact,
@@ -55,6 +56,56 @@ test('presentation keeps governed workflow state distinct from observational sel
   assert.equal(stateArtifact(snapshot, 'PLANNING').path, 'plan.md');
   assert.equal(stateArtifact(snapshot, 'DELIVERING_SLICES'), null);
   assert.equal(stateArtifact(snapshot, 'COMPLETE').path, 'completion-report.md');
+});
+
+test('phase context resolves approved recipes against canonical artifact inventory', () => {
+  const snapshot = {
+    artifacts: [
+      { id: 'interview', path: 'interview.md', status: 'present', exists: true, unsafe: false },
+      { id: 'design', path: 'design.md', status: 'changed', exists: true, unsafe: false },
+      { id: 'spec', path: 'spec.md', status: 'pending', exists: false, unsafe: false },
+      { id: 'plan', path: 'plan.md', status: 'pending', exists: false, unsafe: false },
+      { id: 'issues', path: 'issues.md', status: 'missing', exists: false, unsafe: true },
+      { id: 'tracker', path: 'tracker.md', status: 'present', exists: true, unsafe: false },
+    ],
+  };
+
+  const designing = phaseContext(snapshot, 'DESIGNING');
+  assert.equal(designing.title, 'Design synthesis');
+  assert.deepEqual(designing.uses.map(({ kind, id }) => ({ kind, id })), [
+    { kind: 'artifact', id: 'interview' },
+    { kind: 'source', id: 'existing-codebase' },
+  ]);
+  assert.equal(designing.produces[0].artifact, snapshot.artifacts[1]);
+  assert.equal(designing.produces[0].status, 'changed');
+
+  const specifying = phaseContext(snapshot, 'SPECIFYING');
+  assert.deepEqual(specifying.uses.map(({ id }) => id), [
+    'design', 'interview', 'existing-codebase', 'architecture-contracts',
+  ]);
+  assert.equal(specifying.produces[0].status, 'pending');
+  assert.equal(specifying.produces[0].disabled, false);
+
+  const planning = phaseContext(snapshot, 'PLANNING');
+  assert.deepEqual(planning.uses.map(({ id }) => id), [
+    'spec', 'design', 'interview', 'repository-structure', 'tests-and-commands',
+  ]);
+  assert.deepEqual(planning.produces.map(({ id }) => id), ['plan', 'issues', 'tracker']);
+  assert.equal(planning.produces[1].disabled, true);
+  for (const state of ['DELIVERING_SLICES', 'FINALIZING', 'COMPLETE']) {
+    assert.equal(phaseContext(snapshot, state), null);
+  }
+});
+
+test('phase context keeps a disabled unavailable entry when inventory metadata is absent', () => {
+  const context = phaseContext({ artifacts: [] }, 'DESIGNING');
+  assert.deepEqual(
+    context.uses[0],
+    {
+      kind: 'artifact', id: 'interview', fileName: 'interview.md', artifact: null,
+      status: 'unavailable', disabled: true,
+    },
+  );
 });
 
 test('hierarchy selection stays scoped to the selected slice and attempt', () => {

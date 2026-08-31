@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GateReeve Desktop</title>
-    <link rel="stylesheet" href="styles.css?v=8">
+    <link rel="stylesheet" href="styles.css?v=10">
   </head>
   <body>
     <header class="masthead">
@@ -99,6 +99,13 @@
                 <div class="surface-heading"><div><p class="section-kicker">Pinned state machine</p><h3 id="state-title">Feature state rail</h3></div></div>
                 <ol id="state-rail" class="state-rail"></ol>
                 <div id="milestones" class="milestones" hidden></div>
+              </section>
+              <section id="phase-context-surface" class="surface hierarchy-surface phase-context-surface" aria-labelledby="phase-context-title" hidden>
+                <div class="surface-heading"><div><p id="phase-context-kicker" class="section-kicker"></p><h3 id="phase-context-title"></h3><p id="phase-context-description" class="phase-context-description"></p></div></div>
+                <div class="phase-context-grid">
+                  <section aria-labelledby="phase-context-uses-title"><h4 id="phase-context-uses-title">Uses</h4><div id="phase-context-uses" class="phase-context-list"></div></section>
+                  <section aria-labelledby="phase-context-produces-title"><h4 id="phase-context-produces-title">Produces</h4><div id="phase-context-produces" class="phase-context-list"></div></section>
+                </div>
               </section>
               <section id="slices-surface" class="surface hierarchy-surface" aria-labelledby="slices-title" hidden><div class="surface-heading"><div><p class="section-kicker">Selected state · Delivery</p><h3 id="slices-title">PR slices</h3></div></div><div id="slices" class="stack"></div></section>
               <section id="boundary-surface" class="surface hierarchy-surface" aria-labelledby="boundary-title" hidden>

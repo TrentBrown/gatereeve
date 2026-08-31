@@ -235,8 +235,28 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   };
   const artifacts = [
     {
-      id: 'design', label: 'Approved design', status: 'present', exists: true, unsafe: false,
+      id: 'interview', label: 'Design interview', status: 'present', exists: true, unsafe: false,
+      path: 'interview.md', format: 'markdown', context: { kind: 'feature' },
+    },
+    {
+      id: 'design', label: 'Approved design', status: 'changed', exists: true, unsafe: false,
       path: 'design.md', format: 'markdown', context: { kind: 'feature' },
+    },
+    {
+      id: 'spec', label: 'Validated specification', status: 'present', exists: true, unsafe: false,
+      path: 'spec.md', format: 'markdown', context: { kind: 'feature' },
+    },
+    {
+      id: 'plan', label: 'Authorized implementation plan', status: 'present', exists: true, unsafe: false,
+      path: 'plan.md', format: 'markdown', context: { kind: 'feature' },
+    },
+    {
+      id: 'issues', label: 'Operational issues', status: 'pending', exists: false, unsafe: false,
+      path: 'issues.md', format: 'markdown', context: { kind: 'feature' },
+    },
+    {
+      id: 'tracker', label: 'Rubric tracker', status: 'missing', exists: false, unsafe: true,
+      path: 'tracker.md', format: 'markdown', context: { kind: 'feature' },
     },
     {
       id: 'attempt:slice-attempt-1:boundary', label: 'PR boundary', status: 'present',
@@ -337,7 +357,9 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
       if (kind === 'model') return {
         kind,
         data: {
-          lock: { model: { presentation: { featureOrder: ['DESIGNING', 'DELIVERING_SLICES', 'FINALIZING', 'COMPLETE'] } } },
+          lock: { model: { presentation: { featureOrder: [
+            'DESIGNING', 'SPECIFYING', 'PLANNING', 'DELIVERING_SLICES', 'FINALIZING', 'COMPLETE',
+          ] } } },
           provenance: {
             pinned: { id: 'workflow', version: '1', hash: 'sha256:model' },
             bundled: { id: 'workflow', version: '1', hash: 'sha256:model' },
@@ -379,7 +401,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
 
   assert.equal(
     window.document.querySelectorAll('.state-node').length,
-    4,
+    6,
     `${window.document.querySelector('#model-graph').textContent} | ${window.document.querySelector('#chooser-error').textContent}`,
   );
   assert.equal(window.document.querySelector('.state-node.current strong').textContent, 'Implementing');
@@ -401,6 +423,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.equal(window.document.querySelector('#actions-surface').hidden, false);
   assert.match(window.document.querySelector('#guidance-context').textContent, /Current: Implementing/);
   assert.equal(window.document.querySelector('.action-card').hasAttribute('open'), false);
+  assert.equal(window.document.querySelector('#phase-context-surface').hidden, true);
 
   const designing = [...window.document.querySelectorAll('.state-select')]
     .find((button) => button.textContent.includes('Designing'));
@@ -413,13 +436,79 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.equal(window.document.querySelector('#slices-surface').hidden, true);
   assert.equal(window.document.querySelector('#milestones').hidden, false);
   assert.equal(window.document.querySelector('#milestones').textContent, 'Design approved');
+  assert.equal(window.document.querySelector('#phase-context-surface').hidden, false);
+  assert.equal(window.document.querySelector('#phase-context-kicker').textContent, 'Selected state · Designing');
+  assert.equal(window.document.querySelector('#phase-context-title').textContent, 'Design synthesis');
+  assert.match(window.document.querySelector('#phase-context-description').textContent, /approved design intent/);
+  assert.deepEqual(
+    [...window.document.querySelectorAll('#phase-context-uses .phase-context-entry')]
+      .map((item) => [item.dataset.phaseEntryId, item.dataset.kind]),
+    [['interview', 'artifact'], ['existing-codebase', 'source']],
+  );
+  const codebaseSource = window.document.querySelector('[data-phase-entry-id="existing-codebase"]');
+  assert.equal(codebaseSource.tagName, 'SPAN');
+  assert.match(codebaseSource.textContent, /SourceExisting codebase/);
+  assert.equal(window.document.querySelector('#phase-context-produces [data-phase-entry-id="design"]').dataset.status, 'changed');
+  assert.match(
+    window.document.querySelector('#phase-context-produces [data-phase-entry-id="design"] .phase-context-status').className,
+    /status changed/,
+  );
+  assert.match(
+    window.document.querySelector('[data-phase-entry-id="interview"]').getAttribute('aria-label'),
+    /interview\.md, artifact, Present, open in inspector/,
+  );
+  window.document.querySelector('[data-phase-entry-id="interview"]').click();
+  for (let index = 0; index < 2; index += 1) await new Promise((done) => setImmediate(done));
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /interview\.md/);
   assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
   assert.match(window.document.querySelector('#guidance-context').textContent, /Current: Implementing/);
   assert.equal(window.document.querySelector('#actions-surface').hidden, false);
 
+  const specifying = [...window.document.querySelectorAll('.state-select')]
+    .find((button) => button.textContent.includes('Specifying'));
+  specifying.click();
+  assert.equal(window.document.querySelector('#phase-context-title').textContent, 'Specification drafting');
+  assert.deepEqual(
+    [...window.document.querySelectorAll('#phase-context-uses .phase-context-entry')]
+      .map((item) => item.dataset.phaseEntryId),
+    ['design', 'interview', 'existing-codebase', 'architecture-contracts'],
+  );
+  assert.deepEqual(
+    [...window.document.querySelectorAll('#phase-context-produces .phase-context-entry')]
+      .map((item) => item.dataset.phaseEntryId),
+    ['spec'],
+  );
+
+  const planning = [...window.document.querySelectorAll('.state-select')]
+    .find((button) => button.textContent.includes('Planning'));
+  planning.click();
+  assert.equal(window.document.querySelector('#phase-context-title').textContent, 'Implementation planning');
+  assert.deepEqual(
+    [...window.document.querySelectorAll('#phase-context-uses .phase-context-entry')]
+      .map((item) => item.dataset.phaseEntryId),
+    ['spec', 'design', 'interview', 'repository-structure', 'tests-and-commands'],
+  );
+  assert.deepEqual(
+    [...window.document.querySelectorAll('#phase-context-produces .phase-context-entry')]
+      .map((item) => item.dataset.phaseEntryId),
+    ['plan', 'issues', 'tracker'],
+  );
+  const pendingIssues = window.document.querySelector('[data-phase-entry-id="issues"]');
+  assert.equal(pendingIssues.disabled, false);
+  assert.match(pendingIssues.getAttribute('aria-label'), /Pending, open in inspector/);
+  assert.match(pendingIssues.querySelector('.phase-context-status').className, /status pending/);
+  pendingIssues.click();
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /issues\.md/);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /unavailable in the current canonical snapshot/);
+  const unsafeTracker = window.document.querySelector('[data-phase-entry-id="tracker"]');
+  assert.equal(unsafeTracker.disabled, true);
+  assert.match(unsafeTracker.getAttribute('aria-label'), /Missing, unavailable/);
+
   const finalizing = [...window.document.querySelectorAll('.state-select')]
     .find((button) => button.textContent.includes('Finalizing'));
   finalizing.click();
+  assert.equal(window.document.querySelector('#phase-context-surface').hidden, true);
+  assert.equal(window.document.querySelector('#phase-context-uses').textContent, '');
   assert.equal(window.document.querySelector('#milestones').hidden, true);
   assert.equal(window.document.querySelector('#milestones').textContent, '');
   assert.equal(window.document.querySelector('#closeout-surface').hidden, false);
