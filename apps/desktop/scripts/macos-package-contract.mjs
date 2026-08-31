@@ -109,7 +109,7 @@ export function electronPackagerOptions(options) {
     appCategoryType: MACOS_PRODUCT.category,
     icon: options.iconPath,
     asar: {
-      unpack: 'node_modules/node-pty/prebuilds/**/*',
+      unpack: '**/node_modules/node-pty/prebuilds/**/*',
     },
     osxUniversal: {
       mergeASARs: true,

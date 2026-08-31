@@ -210,7 +210,7 @@ that the initial renderer integration test did not exercise.
 
 ## [8] Allow only required scoped-package parent directories in ASAR
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -233,3 +233,32 @@ required `@xterm` parent directory before it could launch the application.
   approved terminal renderer.
 - Ignore directory entries globally - rejected because the verifier's bounded
   package inventory is useful security and release evidence.
+
+## [9] Match node-pty unpack paths against absolute ASAR source names
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** macOS ASAR construction, native-addon loading, signing, and
+packaged runtime verification.
+
+Prefix the exact `node-pty/prebuilds` ASAR unpack glob with `**/` because the
+ASAR library evaluates file patterns against absolute source filenames. Keep
+the narrower prebuild subtree rather than unpacking all of `node-pty`, and
+prove the configuration by constructing a real ASAR in a platform-independent
+unit test and checking both `pty.node` and `spawn-helper` in
+`app.asar.unpacked`.
+
+**Triggered by:** Native Apple Silicon and Intel CI both found the expected
+native addon absent from `app.asar.unpacked` despite successful universal DMG
+construction.
+
+**Alternatives considered:**
+
+- Unpack every `.node` file through the packager default - rejected because it
+  would not unpack `spawn-helper` and would broaden the package layout.
+- Disable ASAR - rejected because it would unnecessarily change the established
+  Desktop package structure.
+- Extract native files after packaging - rejected because signing and universal
+  merging should consume a deterministic packager-owned layout.

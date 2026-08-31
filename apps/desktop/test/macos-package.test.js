@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import { createPackageWithOptions } from '@electron/asar';
 import { createHash } from 'node:crypto';
-import { access, lstat, mkdtemp, readFile, readlink, rm, writeFile } from 'node:fs/promises';
+import { access, lstat, mkdir, mkdtemp, readFile, readlink, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -44,7 +45,7 @@ test('macOS identity and universal packager options are permanent', () => {
   assert.equal(options.name, 'GateReeve');
   assert.equal(options.appBundleId, 'com.trentbrown.gatereeve.desktop');
   assert.equal(options.arch, 'universal');
-  assert.deepEqual(options.asar, { unpack: 'node_modules/node-pty/prebuilds/**/*' });
+  assert.deepEqual(options.asar, { unpack: '**/node_modules/node-pty/prebuilds/**/*' });
   assert.deepEqual(options.osxUniversal, {
     mergeASARs: true,
     singleArchFiles: 'node_modules/node-pty/prebuilds/darwin-*/**/*',
@@ -81,6 +82,29 @@ test('runtime package allowlist admits scoped parents but rejects unstaged sibli
   assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm/unapproved'), false);
   assert.equal(isApprovedRuntimePackagePath('/node_modules/node-pty/lib/index.js'), true);
   assert.equal(isApprovedRuntimePackagePath('/node_modules/electron'), false);
+});
+
+test('ASAR packaging unpacks node-pty native binaries and helper executables', async () => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'gatereeve-asar-test-'));
+  const sourceRoot = resolve(temporaryRoot, 'source');
+  const prebuildRoot = resolve(sourceRoot, 'node_modules/node-pty/prebuilds/darwin-arm64');
+  const asarPath = resolve(temporaryRoot, 'app.asar');
+  try {
+    await mkdir(prebuildRoot, { recursive: true });
+    await writeFile(resolve(prebuildRoot, 'pty.node'), 'native-addon');
+    await writeFile(resolve(prebuildRoot, 'spawn-helper'), 'helper');
+    const options = electronPackagerOptions({
+      stageRoot: sourceRoot,
+      outputRoot: temporaryRoot,
+      iconPath: '/GateReeve.icns',
+      version: '0.1.0',
+    });
+    await createPackageWithOptions(sourceRoot, asarPath, options.asar);
+    await access(resolve(`${asarPath}.unpacked`, 'node_modules/node-pty/prebuilds/darwin-arm64/pty.node'));
+    await access(resolve(`${asarPath}.unpacked`, 'node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper'));
+  } finally {
+    await rm(temporaryRoot, { recursive: true, force: true });
+  }
 });
 
 test('icon generation creates every standard macOS iconset size', async () => {

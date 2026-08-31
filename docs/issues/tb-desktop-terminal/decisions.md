@@ -219,3 +219,31 @@ that the initial renderer integration test did not exercise.
   navigation must remain responsive and terminal loading is optional.
 
 **Promoted:** 2026-08-31. PR: https://github.com/TrentBrown/gatereeve/pull/43.
+
+---
+
+## Allow only required scoped-package parent directories in ASAR
+
+**Confidence:** HIGH
+
+**Blast Radius:** Universal macOS package verification only.
+
+Treat an ASAR directory entry for the parent scope of an explicitly staged
+package (currently `/node_modules/@xterm`) as structural metadata, while still
+requiring every package and descendant path under that scope to match the exact
+runtime-package allowlist. This keeps package verification fail-closed without
+rejecting the directory shape emitted by Electron ASAR.
+
+**Triggered by:** Hosted Apple Silicon verification of PR #43 rejected the
+required `@xterm` parent directory before it could launch the application.
+
+**Alternatives considered:**
+
+- Allow every path beneath `/node_modules/@xterm` - rejected because an
+  unstaged sibling package would evade the exact runtime allowlist.
+- Remove scoped packages from the package - rejected because xterm is the
+  approved terminal renderer.
+- Ignore directory entries globally - rejected because the verifier's bounded
+  package inventory is useful security and release evidence.
+
+**Promoted:** 2026-08-31. PR: https://github.com/TrentBrown/gatereeve/pull/43.
