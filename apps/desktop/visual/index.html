@@ -20,6 +20,68 @@
       document.head.replaceChildren(base, ...parsed.head.childNodes);
       document.body.replaceChildren(...parsed.body.childNodes);
       await import(`../renderer/renderer.js?fixture=${fixtureVersion}`);
+
+      const fixtureStyle = document.createElement('style');
+      fixtureStyle.textContent = `
+        .fixture-console { position: fixed; left: 0.75rem; bottom: 0.75rem; z-index: 100; width: min(23rem, calc(100vw - 1.5rem)); overflow: hidden; border: 1px solid #c9bed5; border-radius: 0.65rem; color: #2f1d40; background: rgb(255 255 255 / 96%); box-shadow: 0 12px 34px rgb(39 22 61 / 22%); font: 0.72rem/1.4 system-ui, sans-serif; }
+        .fixture-console summary { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.65rem; cursor: pointer; font-weight: 800; list-style: none; }
+        .fixture-console summary::-webkit-details-marker { display: none; }
+        .fixture-console summary::before { content: '▸'; }
+        .fixture-console[open] summary::before { content: '▾'; }
+        .fixture-badge { margin-left: auto; border-radius: 999px; padding: 0.12rem 0.4rem; color: #5d466f; background: #eee8f3; font-size: 0.58rem; letter-spacing: 0.05em; text-transform: uppercase; }
+        .fixture-console-body { border-top: 1px solid #ddd4e5; padding: 0.55rem 0.65rem 0.65rem; }
+        .fixture-console-help { margin: 0 0 0.5rem; color: #705f7e; }
+        .fixture-console-actions { display: flex; gap: 0.4rem; margin-bottom: 0.5rem; }
+        .fixture-console-actions button { border: 1px solid #694687; border-radius: 0.35rem; padding: 0.3rem 0.45rem; color: #4b2d64; background: #fff; cursor: pointer; font: inherit; font-weight: 700; }
+        .fixture-action-log { display: grid; max-height: 9rem; margin: 0; padding: 0; overflow: auto; gap: 0.3rem; list-style: none; }
+        .fixture-action-log li { padding: 0.35rem 0.45rem; border-radius: 0.35rem; background: #f7f4f9; }
+        .fixture-action-log strong, .fixture-action-log span { display: block; }
+        .fixture-action-log span { color: #705f7e; overflow-wrap: anywhere; }
+        .fixture-action-empty { color: #705f7e; font-style: italic; }
+      `;
+      document.head.append(fixtureStyle);
+
+      const consoleElement = document.createElement('details');
+      consoleElement.className = 'fixture-console';
+      consoleElement.open = true;
+      consoleElement.innerHTML = `
+        <summary>Fixture actions <span class="fixture-badge">Simulated</span></summary>
+        <div class="fixture-console-body">
+          <p class="fixture-console-help">Native editor, Finder, dialog, and GitHub handoffs are recorded here without changing the host.</p>
+          <div class="fixture-console-actions">
+            <button type="button" data-fixture-fail>Fail next action</button>
+            <button type="button" data-fixture-clear>Clear</button>
+          </div>
+          <ol class="fixture-action-log" aria-live="polite"><li class="fixture-action-empty">Choose an artifact action to exercise the UI.</li></ol>
+        </div>
+      `;
+      document.body.append(consoleElement);
+      const actionLog = consoleElement.querySelector('.fixture-action-log');
+      const renderAction = (event) => {
+        actionLog.querySelector('.fixture-action-empty')?.remove();
+        const item = document.createElement('li');
+        const title = document.createElement('strong');
+        const detail = document.createElement('span');
+        title.textContent = event.action;
+        detail.textContent = event.detail;
+        item.append(title, detail);
+        actionLog.prepend(item);
+      };
+      for (const event of window.gatereeveFixture.actions()) renderAction(event);
+      window.addEventListener('gatereeve:fixture-action', (event) => renderAction(event.detail));
+      window.addEventListener('gatereeve:fixture-actions-cleared', () => {
+        actionLog.replaceChildren();
+        const empty = document.createElement('li');
+        empty.className = 'fixture-action-empty';
+        empty.textContent = 'Choose an artifact action to exercise the UI.';
+        actionLog.append(empty);
+      });
+      consoleElement.querySelector('[data-fixture-fail]').addEventListener('click', () => {
+        window.gatereeveFixture.armFailure();
+      });
+      consoleElement.querySelector('[data-fixture-clear]').addEventListener('click', () => {
+        window.gatereeveFixture.clear();
+      });
     </script>
   </body>
 </html>

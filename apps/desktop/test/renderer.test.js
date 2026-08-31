@@ -184,6 +184,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const { window } = parseHTML(html);
   const copied = [];
+  const openedArtifacts = [];
+  const fileActions = [];
   const notificationPreferences = [];
   const sessionId = 'session:latest-checkpoint:Q0hFQ0tQT0lOVC5tZA';
   const event = {
@@ -314,7 +316,12 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     async getUpdateState() { return idleUpdate(); },
     async openUpdateRelease() { return true; },
     async copyText(value) { copied.push(value); return true; },
-    async openArtifact() { return true; },
+    async getArtifactActions() { return fileActionCapabilities(); },
+    async openArtifact(...args) { openedArtifacts.push(args); return true; },
+    async chooseArtifactApplication(id) { fileActions.push(['choose', id]); return true; },
+    async saveArtifactAs(id) { fileActions.push(['save-as', id]); return true; },
+    async saveArtifactDownloads(id) { fileActions.push(['downloads', id]); return true; },
+    async openArtifactGithub(id) { fileActions.push(['github', id]); return true; },
     async revealArtifact() { return true; },
     async listSession() {
       return { schemaVersion: 1, items: [{
@@ -479,6 +486,28 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.equal(window.document.querySelector('#artifact-viewer h1')?.textContent, 'Design');
   assert.match(window.document.querySelector('#artifact-viewer').textContent, /Approved\./);
   assert.equal(window.document.querySelectorAll('.view-modes .viewer-icon').length, 2);
+  window.document.querySelector('[aria-label="Open in default application"]').click();
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(openedArtifacts, [['design']]);
+  const fileMenu = window.document.querySelector('.open-menu');
+  fileMenu.open = true;
+  assert.deepEqual(
+    [...fileMenu.querySelectorAll('.open-menu-heading')].map((heading) => heading.textContent),
+    ['Open with', 'File location', 'Save a copy', 'Utilities'],
+  );
+  [...fileMenu.querySelectorAll('button')].find((button) => button.textContent === 'VS Code').click();
+  [...fileMenu.querySelectorAll('button')].find((button) => button.textContent === 'Open on GitHub').click();
+  [...fileMenu.querySelectorAll('button')].find((button) => button.textContent === 'Save As…').click();
+  [...fileMenu.querySelectorAll('button')].find((button) => button.textContent === 'Save to Downloads').click();
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(openedArtifacts, [['design'], ['design', 'vscode', true]]);
+  assert.equal(
+    window.document.querySelector('.open-split > button').getAttribute('aria-label'),
+    'Open in VS Code',
+  );
+  assert.deepEqual(fileActions, [
+    ['github', 'design'], ['save-as', 'design'], ['downloads', 'design'],
+  ]);
   window.document.querySelector('[aria-label="Show Markdown source"]').click();
   assert.match(window.document.querySelector('.artifact-source').textContent, /# Design/);
   window.document.querySelector('[aria-label="Show rendered Markdown"]').click();
@@ -633,6 +662,7 @@ test('selected artifact rereads automatically when its canonical fingerprint cha
     async getState() { return initial; },
     async getUpdateState() { return idleUpdate(); },
     async openUpdateRelease() { return true; },
+    async getArtifactActions() { return fileActionCapabilities(); },
     async openArtifact() { return true; },
     async revealArtifact() { return true; },
     async readDetail(kind, id) {
@@ -770,6 +800,7 @@ test('artifact Markdown confines external, relative, fragment, and unsafe links'
     async recheckSetup() { return state; },
     async setSelectedAgents() { return state; },
     async setNotificationsEnabled() { return state; },
+    async getArtifactActions() { return fileActionCapabilities(); },
     async openArtifact() { return true; },
     async revealArtifact() { return true; },
     async readDetail(kind, id) {
@@ -827,3 +858,12 @@ test('artifact Markdown confines external, relative, fragment, and unsafe links'
   delete globalThis.window;
   delete globalThis.document;
 });
+function fileActionCapabilities(overrides = {}) {
+  return {
+    schemaVersion: 1,
+    editors: [{ id: 'vscode', label: 'VS Code' }],
+    preferredEditorId: null,
+    githubAvailable: true,
+    ...overrides,
+  };
+}

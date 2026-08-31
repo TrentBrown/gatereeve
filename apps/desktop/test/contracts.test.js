@@ -3,6 +3,8 @@ import test from 'node:test';
 
 import {
   IPC_CHANNELS,
+  requireArtifactActions,
+  requireArtifactOpenRequest,
   requireArtifactRequest,
   requireCopyText,
   requireDesktopState,
@@ -81,6 +83,18 @@ test('named read and artifact requests reject broad or malformed access', () => 
   assert.throws(() => requireDetailRequest({ kind: 'events', id: 'one' }), /invalid/);
   assert.deepEqual(requireArtifactRequest({ artifactId: 'design' }), { artifactId: 'design' });
   assert.throws(() => requireArtifactRequest({ path: '/tmp/anything' }), /invalid/);
+  assert.deepEqual(requireArtifactOpenRequest({
+    artifactId: 'design', editorId: 'vscode', remember: true,
+  }), { artifactId: 'design', editorId: 'vscode', remember: true });
+  assert.throws(() => requireArtifactOpenRequest({
+    artifactId: 'design', editorId: '/Applications/Evil.app', remember: true,
+  }), /invalid/);
+  assert.equal(requireArtifactActions({
+    schemaVersion: 1,
+    editors: [{ id: 'vscode', label: 'VS Code' }],
+    preferredEditorId: 'vscode',
+    githubAvailable: true,
+  }).preferredEditorId, 'vscode');
   assert.equal(requireCopyText('gatereeve next'), 'gatereeve next');
   assert.throws(() => requireCopyText(42), /invalid/);
   assert.equal(requireExternalLink('https://example.com/docs'), 'https://example.com/docs');
@@ -109,12 +123,15 @@ test('IPC allow-list contains no workflow mutation or process-execution surface'
     'gatereeve:desktop:activate-project',
     'gatereeve:desktop:add-project',
     'gatereeve:desktop:check-for-updates',
+    'gatereeve:desktop:choose-artifact-application',
     'gatereeve:desktop:copy-text',
+    'gatereeve:desktop:get-artifact-actions',
     'gatereeve:desktop:get-state',
     'gatereeve:desktop:get-update-state',
     'gatereeve:desktop:layout-command',
     'gatereeve:desktop:list-session',
     'gatereeve:desktop:open-artifact',
+    'gatereeve:desktop:open-artifact-github',
     'gatereeve:desktop:open-external-link',
     'gatereeve:desktop:open-update-release',
     'gatereeve:desktop:read-detail',
@@ -124,6 +141,8 @@ test('IPC allow-list contains no workflow mutation or process-execution surface'
     'gatereeve:desktop:remove-project',
     'gatereeve:desktop:reorder-projects',
     'gatereeve:desktop:reveal-artifact',
+    'gatereeve:desktop:save-artifact-as',
+    'gatereeve:desktop:save-artifact-downloads',
     'gatereeve:desktop:set-notifications-enabled',
     'gatereeve:desktop:set-selected-agents',
     'gatereeve:desktop:state-changed',

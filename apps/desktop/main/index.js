@@ -1,8 +1,10 @@
 // @ts-check
 
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { readFile, writeFile } from 'node:fs/promises';
+import { promisify } from 'node:util';
 import {
   app,
   BrowserWindow,
@@ -17,6 +19,7 @@ import {
 } from 'electron';
 
 import { createDesktopCoordinator } from './coordinator.js';
+import { createArtifactActions, createEditorPreferenceStore } from './artifact-actions.js';
 import { IPC_CHANNELS } from '../shared/contracts.js';
 import { discoverDesktopExecutables } from './executable-discovery.js';
 import { observeGit } from './git-observer.js';
@@ -37,6 +40,7 @@ import {
 } from './window.js';
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const execute = promisify(execFile);
 
 if (process.env.GATEREEVE_DESKTOP_SMOKE_USER_DATA) {
   app.setPath('userData', resolve(process.env.GATEREEVE_DESKTOP_SMOKE_USER_DATA));
@@ -118,6 +122,38 @@ async function startDesktop() {
       new Notification({ title, body }).show();
     },
   });
+  const artifactActions = createArtifactActions({
+    homePath: app.getPath('home'),
+    downloadsPath: app.getPath('downloads'),
+    preferenceStore: createEditorPreferenceStore(app.getPath('userData')),
+    gitExecutable: executables.git,
+    openDefault: (path) => shell.openPath(path),
+    openApplication: (applicationPath, path) => execute(
+      '/usr/bin/open',
+      ['-a', applicationPath, path],
+      { timeout: 15_000 },
+    ),
+    async chooseApplication() {
+      const result = await dialog.showOpenDialog({
+        title: 'Choose an application',
+        buttonLabel: 'Open',
+        defaultPath: '/Applications',
+        properties: ['openFile'],
+        filters: [{ name: 'Applications', extensions: ['app'] }],
+      });
+      return result.canceled ? null : result.filePaths[0] ?? null;
+    },
+    async chooseSavePath(filename) {
+      const result = await dialog.showSaveDialog({
+        title: 'Save a copy',
+        buttonLabel: 'Save Copy',
+        defaultPath: join(app.getPath('documents'), filename),
+      });
+      return result.canceled ? null : result.filePath ?? null;
+    },
+    openExternal: (url) => shell.openExternal(url),
+  });
+  await artifactActions.initialize();
   registerRendererProtocol(protocol, resolve(desktopRoot, 'renderer'), {
     brandingAsset: resolve(
       desktopRoot,
@@ -138,6 +174,7 @@ async function startDesktop() {
   registerDesktopIpc({
     ipcMain,
     coordinator,
+    artifactActions,
     updateCoordinator,
     async pickProject() {
       const result = await dialog.showOpenDialog({
@@ -147,7 +184,6 @@ async function startDesktop() {
       });
       return result.canceled ? null : result.filePaths[0] ?? null;
     },
-    openPath: (path) => shell.openPath(path),
     revealPath: (path) => shell.showItemInFolder(path),
     copyText: (value) => clipboard.writeText(value),
     openExternal: (url) => shell.openExternal(url),

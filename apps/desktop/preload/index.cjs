@@ -7,10 +7,15 @@ const channels = Object.freeze({
   addProject: 'gatereeve:desktop:add-project',
   copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
+  getArtifactActions: 'gatereeve:desktop:get-artifact-actions',
   getUpdateState: 'gatereeve:desktop:get-update-state',
   listSession: 'gatereeve:desktop:list-session',
   layoutCommand: 'gatereeve:desktop:layout-command',
   openArtifact: 'gatereeve:desktop:open-artifact',
+  chooseArtifactApplication: 'gatereeve:desktop:choose-artifact-application',
+  saveArtifactAs: 'gatereeve:desktop:save-artifact-as',
+  saveArtifactDownloads: 'gatereeve:desktop:save-artifact-downloads',
+  openArtifactGithub: 'gatereeve:desktop:open-artifact-github',
   openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
   activateProject: 'gatereeve:desktop:activate-project',
@@ -121,6 +126,38 @@ function requireArtifactId(artifactId) {
   return artifactId;
 }
 
+function requireEditorId(editorId) {
+  if (
+    editorId !== null
+    && (typeof editorId !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/.test(editorId))
+  ) {
+    throw new TypeError('Editor ID is invalid.');
+  }
+  return editorId;
+}
+
+function requireArtifactActions(value) {
+  if (
+    typeof value !== 'object'
+    || value === null
+    || value.schemaVersion !== 1
+    || !Array.isArray(value.editors)
+    || value.editors.some((editor) => (
+      typeof editor !== 'object'
+      || editor === null
+      || typeof editor.id !== 'string'
+      || !/^[a-z][a-z0-9-]{0,63}$/.test(editor.id)
+      || typeof editor.label !== 'string'
+    ))
+    || (value.preferredEditorId !== null
+      && !value.editors.some((editor) => editor.id === value.preferredEditorId))
+    || typeof value.githubAvailable !== 'boolean'
+  ) {
+    throw new Error('The main process returned invalid artifact actions.');
+  }
+  return value;
+}
+
 function requireClipboardText(value) {
   if (typeof value !== 'string' || value.length > 262_144) {
     throw new TypeError('Clipboard text is invalid.');
@@ -215,10 +252,37 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
   addProject: async () => requireState(await ipcRenderer.invoke(channels.addProject)),
   copyText: async (value) => ipcRenderer.invoke(channels.copyText, requireClipboardText(value)),
   getState: async () => requireState(await ipcRenderer.invoke(channels.getState)),
+  getArtifactActions: async (artifactId) => requireArtifactActions(await ipcRenderer.invoke(
+    channels.getArtifactActions,
+    { artifactId: requireArtifactId(artifactId) },
+  )),
   getUpdateState: async () => requireUpdateState(await ipcRenderer.invoke(channels.getUpdateState)),
   listSession: async () => requireSessionInventory(await ipcRenderer.invoke(channels.listSession)),
-  openArtifact: async (artifactId) => ipcRenderer.invoke(
-    channels.openArtifact,
+  openArtifact: async (artifactId, editorId = null, remember = false) => {
+    if (typeof remember !== 'boolean') throw new TypeError('Remember editor must be boolean.');
+    return ipcRenderer.invoke(
+      channels.openArtifact,
+      {
+        artifactId: requireArtifactId(artifactId),
+        editorId: requireEditorId(editorId),
+        remember,
+      },
+    );
+  },
+  chooseArtifactApplication: async (artifactId) => ipcRenderer.invoke(
+    channels.chooseArtifactApplication,
+    { artifactId: requireArtifactId(artifactId) },
+  ),
+  saveArtifactAs: async (artifactId) => ipcRenderer.invoke(
+    channels.saveArtifactAs,
+    { artifactId: requireArtifactId(artifactId) },
+  ),
+  saveArtifactDownloads: async (artifactId) => ipcRenderer.invoke(
+    channels.saveArtifactDownloads,
+    { artifactId: requireArtifactId(artifactId) },
+  ),
+  openArtifactGithub: async (artifactId) => ipcRenderer.invoke(
+    channels.openArtifactGithub,
     { artifactId: requireArtifactId(artifactId) },
   ),
   openExternalLink: async (url) => ipcRenderer.invoke(

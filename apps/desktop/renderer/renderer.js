@@ -1059,7 +1059,7 @@ function setInspectorExpanded(expanded) {
   button.title = expanded ? 'Restore artifact viewer (Escape)' : 'Expand artifact viewer';
 }
 
-function artifactActions(artifact, detail = null) {
+function artifactActions(artifact, capabilities, detail = null) {
   const actions = node('div', { className: 'viewer-actions' });
   const copyContent = iconButton('copy', 'Copy artifact contents');
   copyContent.disabled = detail === null;
@@ -1068,13 +1068,109 @@ function artifactActions(artifact, detail = null) {
       ?? (detail?.data?.structured === undefined ? '' : JSON.stringify(detail.data.structured, null, 2));
     void copy(value, 'Artifact contents copied');
   });
-  const open = node('button', { className: 'secondary', text: 'Open', type: 'button' });
-  open.addEventListener('click', () => void desktop.openArtifact(artifact.id));
+  const preferred = capabilities.editors.find(
+    (editor) => editor.id === capabilities.preferredEditorId,
+  );
+  const openLabel = preferred ? `Open in ${preferred.label}` : 'Open in default application';
+  const runAction = async (operation, successMessage = null) => {
+    try {
+      const completed = await operation();
+      if (completed !== false && successMessage) showToast(successMessage);
+      return completed;
+    } catch (error) {
+      showToast(error.message ?? String(error));
+      return false;
+    }
+  };
+  const open = node('button', {
+    className: 'secondary', text: 'Open', type: 'button', title: openLabel,
+    attributes: { 'aria-label': openLabel },
+  });
+  open.addEventListener('click', () => void runAction(
+    () => desktop.openArtifact(artifact.id),
+  ));
   const reveal = node('button', { className: 'secondary', text: 'Reveal in Finder', type: 'button' });
-  reveal.addEventListener('click', () => void desktop.revealArtifact(artifact.id));
+  reveal.addEventListener('click', () => void runAction(
+    () => desktop.revealArtifact(artifact.id),
+  ));
   const copyPath = node('button', { className: 'secondary', text: 'Copy path', type: 'button' });
   copyPath.addEventListener('click', () => void copy(artifact.absolutePath ?? artifact.path, 'Artifact path copied'));
-  const menuItems = node('div', { className: 'open-menu-items' }, [reveal, copyPath]);
+  const menuItems = node('div', { className: 'open-menu-items' });
+  const group = (label, buttons) => {
+    if (buttons.length === 0) return;
+    const headingId = `artifact-menu-${label.toLowerCase().replaceAll(' ', '-')}`;
+    menuItems.append(node('div', {
+      className: 'open-menu-group',
+      attributes: { role: 'group', 'aria-labelledby': headingId },
+    }, [
+      node('p', { className: 'open-menu-heading', text: label, attributes: { id: headingId } }),
+      ...buttons,
+    ]));
+  };
+  const editorButtons = capabilities.editors.map((editor) => {
+    const selected = editor.id === capabilities.preferredEditorId;
+    const button = node('button', {
+      className: 'secondary',
+      text: `${selected ? '✓ ' : ''}${editor.label}`,
+      type: 'button',
+      title: `Open in ${editor.label} and use it for Open`,
+    });
+    button.addEventListener('click', () => void (async () => {
+      if (await runAction(() => desktop.openArtifact(artifact.id, editor.id, true))) {
+        applyPreferredEditor(editor.id);
+      }
+    })());
+    return button;
+  });
+  const defaultApp = node('button', {
+    className: 'secondary',
+    text: `${capabilities.preferredEditorId === null ? '✓ ' : ''}Default application`,
+    type: 'button',
+    title: 'Open in the default application and use it for Open',
+  });
+  const applyPreferredEditor = (editorId) => {
+    const selectedEditor = capabilities.editors.find((editor) => editor.id === editorId);
+    const label = selectedEditor ? `Open in ${selectedEditor.label}` : 'Open in default application';
+    open.title = label;
+    open.setAttribute('aria-label', label);
+    editorButtons.forEach((button, index) => {
+      const editor = capabilities.editors[index];
+      button.textContent = `${editor.id === editorId ? '✓ ' : ''}${editor.label}`;
+    });
+    defaultApp.textContent = `${editorId === null ? '✓ ' : ''}Default application`;
+  };
+  defaultApp.addEventListener('click', () => void (async () => {
+    if (await runAction(() => desktop.openArtifact(artifact.id, 'default', true))) {
+      applyPreferredEditor(null);
+    }
+  })());
+  const chooseApplication = node('button', { className: 'secondary', text: 'Choose Application…', type: 'button' });
+  chooseApplication.addEventListener('click', () => void runAction(
+    () => desktop.chooseArtifactApplication(artifact.id),
+  ));
+  group('Open with', [...editorButtons, defaultApp, chooseApplication]);
+  reveal.textContent = 'Show in Finder';
+  const locationButtons = [reveal];
+  if (capabilities.githubAvailable) {
+    const github = node('button', { className: 'secondary', text: 'Open on GitHub', type: 'button' });
+    github.addEventListener('click', () => void runAction(
+      () => desktop.openArtifactGithub(artifact.id),
+    ));
+    locationButtons.push(github);
+  }
+  group('File location', locationButtons);
+  const saveAs = node('button', { className: 'secondary', text: 'Save As…', type: 'button' });
+  saveAs.addEventListener('click', () => void runAction(
+    () => desktop.saveArtifactAs(artifact.id),
+    'Artifact copy saved',
+  ));
+  const saveDownloads = node('button', { className: 'secondary', text: 'Save to Downloads', type: 'button' });
+  saveDownloads.addEventListener('click', () => void runAction(
+    () => desktop.saveArtifactDownloads(artifact.id),
+    'Artifact saved to Downloads',
+  ));
+  group('Save a copy', [saveAs, saveDownloads]);
+  group('Utilities', [copyPath]);
   const menu = node('details', { className: 'open-menu' }, [
     node('summary', { text: '⌄', title: 'More file actions', attributes: { 'aria-label': 'More file actions' } }),
     menuItems,
@@ -1187,7 +1283,7 @@ async function activateMarkdownLink(link) {
   }
 }
 
-function renderArtifactDetail(detail, requestSequence, position) {
+function renderArtifactDetail(detail, capabilities, requestSequence, position) {
   const viewer = clear(elements['artifact-viewer']);
   const current = detail.data.artifact;
   const filename = current.path?.split('/').filter(Boolean).at(-1) ?? current.label;
@@ -1196,7 +1292,7 @@ function renderArtifactDetail(detail, requestSequence, position) {
     node('p', { className: 'path', text: filename, title: current.absolutePath ?? current.path }),
     node('span', { className: 'artifact-type', text: type }),
   ]);
-  const actions = artifactActions(current, detail);
+  const actions = artifactActions(current, capabilities, detail);
   const content = node('div');
   const renderContent = (mode = 'rendered') => {
     if (current.format === 'markdown' && mode === 'source') {
@@ -1280,9 +1376,12 @@ async function readArtifact(artifact, { preserveContent = false, force = false }
     ]));
   }
   try {
-    const detail = await desktop.readDetail('artifact', artifact.id);
+    const [detail, capabilities] = await Promise.all([
+      desktop.readDetail('artifact', artifact.id),
+      desktop.getArtifactActions(artifact.id),
+    ]);
     if (requestSequence !== artifactReadSequence || selectedArtifactId !== artifact.id) return;
-    renderArtifactDetail(detail, requestSequence, position);
+    renderArtifactDetail(detail, capabilities, requestSequence, position);
     selectedArtifactFingerprint = fingerprint;
     artifactFailedFingerprint = null;
   } catch (error) {

@@ -259,14 +259,42 @@ const updateState = {
   detail: null,
 };
 
+const fixtureActions = [];
+let fixturePreferredEditorId = 'vscode';
+let fixtureFailureArmed = false;
+
+function simulateFixtureAction(action, detail) {
+  const event = Object.freeze({
+    action,
+    detail,
+    recordedAt: new Date().toISOString(),
+  });
+  fixtureActions.push(event);
+  window.dispatchEvent(new CustomEvent('gatereeve:fixture-action', { detail: event }));
+  if (fixtureFailureArmed) {
+    fixtureFailureArmed = false;
+    throw new Error(`Simulated fixture failure: ${action}`);
+  }
+  return true;
+}
+
+window.gatereeveFixture = Object.freeze({
+  actions: () => [...fixtureActions],
+  armFailure() { fixtureFailureArmed = true; },
+  clear() {
+    fixtureActions.length = 0;
+    window.dispatchEvent(new CustomEvent('gatereeve:fixture-actions-cleared'));
+  },
+});
+
 window.gatereeveDesktop = Object.freeze({
   async getState() { return state; },
   subscribe() { return () => {}; },
   async getUpdateState() { return updateState; },
   subscribeUpdates() { return () => {}; },
   async checkForUpdates() { return updateState; },
-  async openUpdateRelease() { return true; },
-  async openExternalLink() { return true; },
+  async openUpdateRelease() { return simulateFixtureAction('Open update release', 'Official GitHub release'); },
+  async openExternalLink(url) { return simulateFixtureAction('Open external link', url); },
   async addProject() { return state; },
   async activateProject(path) {
     const project = state.projects.find((item) => item.path === path);
@@ -303,9 +331,41 @@ window.gatereeveDesktop = Object.freeze({
     state.preferences.notificationsEnabled = enabled;
     return state;
   },
-  async copyText() { return true; },
-  async openArtifact() { return true; },
-  async revealArtifact() { return true; },
+  async copyText(value) { return simulateFixtureAction('Copy text', `${String(value).length} characters`); },
+  async getArtifactActions() {
+    return {
+      schemaVersion: 1,
+      editors: [
+        { id: 'vscode', label: 'VS Code' },
+        { id: 'cursor', label: 'Cursor' },
+        { id: 'zed', label: 'Zed' },
+        { id: 'sublime-text', label: 'Sublime Text' },
+      ],
+      preferredEditorId: fixturePreferredEditorId,
+      githubAvailable: true,
+    };
+  },
+  async openArtifact(artifactId, editorId = null, remember = false) {
+    const selected = editorId === null ? fixturePreferredEditorId ?? 'default' : editorId;
+    const completed = simulateFixtureAction('Open artifact', `${artifactId} with ${selected}`);
+    if (remember) fixturePreferredEditorId = selected === 'default' ? null : selected;
+    return completed;
+  },
+  async chooseArtifactApplication(artifactId) {
+    return simulateFixtureAction('Choose Application…', `${artifactId} with a one-time app`);
+  },
+  async saveArtifactAs(artifactId) {
+    return simulateFixtureAction('Save As…', `${artifactId} to a selected path`);
+  },
+  async saveArtifactDownloads(artifactId) {
+    return simulateFixtureAction('Save to Downloads', `${artifactId} to ~/Downloads`);
+  },
+  async openArtifactGithub(artifactId) {
+    return simulateFixtureAction('Open on GitHub', `${artifactId} at a commit-pinned URL`);
+  },
+  async revealArtifact(artifactId) {
+    return simulateFixtureAction('Show in Finder', artifactId);
+  },
   async listSession() {
     return { schemaVersion: 1, items: [{
       id: 'session:latest-checkpoint:Q0hFQ0tQT0lOVC5tZA',
