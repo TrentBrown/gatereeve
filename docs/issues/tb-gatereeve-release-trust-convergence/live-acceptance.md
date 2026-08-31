@@ -2,7 +2,7 @@
 
 **Feature:** `tb-gatereeve-release-trust-convergence`
 **Slice:** `s6-final-acceptance`
-**Status:** in progress on corrected mainline acceptance
+**Status:** corrected mainline acceptance complete; feature-final review pending
 
 ## Reviewed mainline
 
@@ -145,14 +145,15 @@ release remained absent. Preparation therefore caused zero public mutation.
    **Complete:** PR #37 merged as `57fe66ba90ae1db1df970bf6988053136b567f23`;
    RC.4 is reserved and absent before dispatch.
 6. Approve the corrected `release-trust` job only after verifying its source
-   and inputs, then retain the fresh exact trust packet.
+   and inputs, then retain the fresh exact trust packet. **Complete.**
 7. Seal the exact packet and run the corrected protected primary publication
-   dry run after its distinct reviewer approval.
+   dry run after its distinct reviewer approval. **Complete.**
 8. Compare the final public inventory with the initial inventory and require
-   zero mutation.
+   zero mutation. **Complete.**
 9. Only after the corrected trust rehearsal succeeds, delete the Apple variables and
-   secrets from `release-publication` and re-audit custody.
-10. Run feature-final spec evaluation and independent judgment.
+   secrets from `release-publication` and re-audit custody. **Complete.**
+10. Run feature-final spec evaluation and independent judgment. **In progress
+    at the governed feature-final PR boundary.**
 
 No public primary or Cask publication is authorized by this sequence.
 
@@ -336,3 +337,26 @@ No secret value was read or transported. The deleted duplicate secret
 instances cannot be recovered from `release-publication`; their authoritative
 instances remain in `release-trust`. This completes the intended disjoint
 custody state.
+
+## Final acceptance audit
+
+The final 2026-08-31 name-only environment audit and public-state audit
+reconfirmed the accepted state after cleanup:
+
+| Check | Result |
+|---|---|
+| Reviewed source | PASS: `origin/main` remains `57fe66ba90ae1db1df970bf6988053136b567f23` |
+| Development-branch direction | PASS: no `origin/development*` branch exists and none was merged or rebased into the feature |
+| `release-trust` custody | PASS: exactly four expected Apple variables and three expected Apple secrets remain |
+| `release-publication` custody | PASS: zero variables and zero secrets |
+| Environment protection | PASS: both environments retain required reviewer `TrentBrown`, self-review permission, and custom deployment-branch policy |
+| RC.4 tag and release | PASS: both remain absent |
+| Marketplace branch | PASS: unchanged at `22c2d841e833af4d2aec351cf61d54dafaf8fcd3` |
+| Mainline Desktop manifest blob | PASS: unchanged at `e6c94d8699fc4fb1c54eb2c0fc4b1f99f84cb9b6` |
+| Served Early Access response | PASS: unchanged SHA-256 `23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b` and still advertises RC.2 |
+| Homebrew tap and Cask | PASS: head unchanged at `91725d7e7aa3a8e0f82ddc2658f51d12a3385900`; Cask blob unchanged at `f08840728d0b329a9dfe037467782d8c335c396e` |
+
+The final local verification also passes: CLI 158/158, Desktop 125/125,
+portable Linux acceptance, all branch-document validators, decision triage,
+and `git diff --check`. No public primary or Cask publication occurred or is
+authorized by this feature-final evidence.

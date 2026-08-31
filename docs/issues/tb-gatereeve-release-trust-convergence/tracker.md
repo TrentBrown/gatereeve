@@ -9,14 +9,14 @@
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Corrected RC.4 produced a valid nine-stage schema-v2 trust lifecycle; finalization and feature-final evaluation remain |
-| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 binds exact reviewed main, recomputed submitted/final DMG hashes, and immutable Apple request history; finalization remains |
-| R3 | Credential custody | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Real trust/publication reviewer waits passed; Apple entries now exist only in `release-trust`; final evaluation remains |
-| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 retained accepted request `2de56a0a-b817-4c4a-a805-cdbec173b48c` and bounded nine-event history; final evaluation remains |
-| R5 | Native verification | NOT YET | - | RC.4 passed exact-DMG native ARM64 and x64 verification without Rosetta; final evaluation remains |
-| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 exact finalization and distinct protected read-only dry run passed with zero receipts/mutation; final feature evaluation remains |
-| R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, idempotent receipt, and P8 assembly complete; final P9 conformance remains |
-| R8 | Conformance and acceptance | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Corrected RC.4 trust/publication gates, trust/native evidence, zero mutation, and disjoint custody passed; final gates remain |
+| R1 | Schema lifecycle | PASS | [#32](https://github.com/TrentBrown/gatereeve/pull/32), [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 passed the complete schema-v2 trust lifecycle and read-only finalization; v1 compatibility and mutation rejection remain covered by the full suite |
+| R2 | Source and byte authority | PASS | [#32](https://github.com/TrentBrown/gatereeve/pull/32), [#33](https://github.com/TrentBrown/gatereeve/pull/33), [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 binds exact reviewed main, candidate identity, recomputed submitted/final DMG hashes, native evidence, and sealed plan without rebuild or version reuse |
+| R3 | Credential custody | PASS | [#33](https://github.com/TrentBrown/gatereeve/pull/33), [#34](https://github.com/TrentBrown/gatereeve/pull/34), [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Real trust/publication reviewer waits passed; all Apple entries remain only in `release-trust`, with zero Apple entries in `release-publication` |
+| R4 | Notarization recovery | PASS | [#32](https://github.com/TrentBrown/gatereeve/pull/32), [#33](https://github.com/TrentBrown/gatereeve/pull/33) | Bounded recovery tests pass and RC.4 retains accepted request `2de56a0a-b817-4c4a-a805-cdbec173b48c` with immutable attempt history |
+| R5 | Native verification | PASS | [#33](https://github.com/TrentBrown/gatereeve/pull/33) | RC.4 passed exact-final-DMG native ARM64 and x64 verification, aggregation, Gatekeeper assessment, and runtime smoke without Rosetta substitution |
+| R6 | Finalization and publication | PASS | [#34](https://github.com/TrentBrown/gatereeve/pull/34), [#37](https://github.com/TrentBrown/gatereeve/pull/37) | RC.4 exact finalization and distinct protected read-only dry run passed with the same sealed plan, zero receipts, and zero public mutation |
+| R7 | Cask linkage | PASS | [#34](https://github.com/TrentBrown/gatereeve/pull/34), [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Linked v2 Cask record, post-primary proof, separate approval, exact bytes, native smoke, and idempotent receipt behavior pass; no Cask publication was authorized |
+| R8 | Conformance and acceptance | PASS | [#33](https://github.com/TrentBrown/gatereeve/pull/33), [#34](https://github.com/TrentBrown/gatereeve/pull/34), [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Shared invariants, corrected protected gates, live trust/native evidence, sealed dry run, disjoint custody, and final zero-mutation audit all pass with no UI scope |
 
 ## PR Log
 

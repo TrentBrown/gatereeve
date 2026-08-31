@@ -58,7 +58,7 @@ workflow-contract tests.
 
 ## I-5 - Implement hosted primary publication
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P5
 - **Rubric criteria:** R3, R6
@@ -70,7 +70,7 @@ and preserve deterministic receipt-based recovery.
 
 ## I-6 - Implement linked hosted Cask publication
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1.5d
 - **Plan steps:** P6
 - **Rubric criteria:** R3, R7
@@ -82,7 +82,7 @@ publication-only approval plus partial-retry tests.
 
 ## I-7 - Update release operations and migration documentation
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P7
 - **Rubric criteria:** R1, R2, R3, R4, R6, R7
@@ -118,8 +118,10 @@ run a fresh protected RC rehearsal and hosted publication dry run, retain zero-
 mutation evidence, and complete full rubric/judge verification.
 
 I-10 is resolved on reviewed `main`. RC.3 remains immutable trust/native
-evidence only; a fresh RC.4 rehearsal must now prove the corrected GitHub
-deployment/reviewer enforcement before final acceptance can proceed.
+evidence only. RC.4 subsequently proved the corrected GitHub reviewer gates,
+exact trust and native evidence, sealed read-only publication rehearsal, zero
+public mutation, and disjoint live credential custody. Feature-final review is
+the only remaining I-9 action.
 
 ## I-10 - Enforce protected environment deployment approvals
 
