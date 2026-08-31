@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR 41 · Phase context explained</title>
+  <style>
+    :root { color-scheme: light; --ink:#292039; --muted:#6d6378; --line:#d9cfe4; --paper:#fcfaff; --purple:#7652b5; --purple-soft:#f0e9fb; --green:#1f6248; --green-soft:#e3f5ed; --amber:#76470f; --amber-soft:#fff1d6; }
+    * { box-sizing: border-box; }
+    body { margin:0; color:var(--ink); background:#f5f1f8; font:16px/1.6 Inter, ui-sans-serif, system-ui, sans-serif; }
+    main { width:min(1080px, calc(100% - 2rem)); margin:2rem auto 5rem; }
+    header, section, nav { border:1px solid var(--line); border-radius:18px; background:var(--paper); box-shadow:0 12px 32px rgb(51 35 67 / 6%); }
+    header, section { padding:clamp(1.2rem, 4vw, 2.5rem); margin-bottom:1.2rem; }
+    nav { position:sticky; top:.75rem; z-index:3; display:flex; flex-wrap:wrap; gap:.5rem; padding:.75rem; margin:1rem 0; }
+    nav a { border-radius:999px; padding:.35rem .7rem; color:#563986; background:var(--purple-soft); text-decoration:none; font-size:.86rem; font-weight:750; }
+    h1 { margin:.2rem 0 .7rem; font:800 clamp(2rem, 6vw, 4.4rem)/1.05 Georgia, serif; letter-spacing:-.04em; }
+    h2 { margin:0 0 1rem; font:800 clamp(1.45rem, 3vw, 2.2rem)/1.15 Georgia, serif; }
+    h3 { margin:1.4rem 0 .5rem; }
+    p { max-width:78ch; }
+    code { color:#633da1; font-weight:700; }
+    pre { overflow:auto; border:1px solid #c9b8dc; border-radius:12px; padding:1rem; background:#211a2d; color:#f8f4ff; white-space:pre-wrap; }
+    .eyebrow { margin:0; color:var(--purple); text-transform:uppercase; letter-spacing:.12em; font-size:.75rem; font-weight:900; }
+    .lede { color:var(--muted); font-size:1.12rem; }
+    .meta { display:flex; flex-wrap:wrap; gap:.5rem; }
+    .pill { border-radius:999px; padding:.25rem .6rem; background:var(--purple-soft); font-size:.76rem; font-weight:850; }
+    .diagram { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:.75rem; margin:1.2rem 0; }
+    .stage { position:relative; min-width:0; border:1px solid #cdbce0; border-radius:14px; padding:1rem; background:white; }
+    .stage:not(:last-child)::after { content:"→"; position:absolute; right:-.7rem; top:46%; z-index:2; display:grid; width:1.4rem; height:1.4rem; place-items:center; border-radius:50%; color:white; background:var(--purple); font-weight:900; }
+    .stage strong, .stage span { display:block; }
+    .stage span { color:var(--muted); font-size:.84rem; }
+    .flow { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:1rem; margin:1rem 0; }
+    .box { border:1px solid var(--line); border-radius:14px; padding:1rem; background:white; }
+    .arrow { color:var(--purple); font-size:2rem; font-weight:900; }
+    .chips { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.65rem; }
+    .chip { display:inline-flex; align-items:center; gap:.35rem; border:1px solid #bda9d4; border-radius:9px; padding:.35rem .5rem; background:white; font-size:.8rem; }
+    .chip.source { border-style:dashed; background:#f2eff4; }
+    .status { border-radius:999px; padding:.15rem .4rem; text-transform:uppercase; letter-spacing:.05em; font-size:.62rem; font-weight:900; }
+    .present { color:var(--green); background:var(--green-soft); }
+    .changed { color:var(--amber); background:var(--amber-soft); }
+    .callout { border-left:5px solid var(--purple); border-radius:10px; padding:.8rem 1rem; background:var(--purple-soft); }
+    .walkthrough { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.8rem; }
+    .quiz { border:1px solid var(--line); border-radius:14px; padding:1rem; margin:1rem 0; background:white; }
+    .answers { display:grid; gap:.45rem; margin-top:.7rem; }
+    .answers button { border:1px solid #b9a7cf; border-radius:9px; padding:.7rem; color:var(--ink); background:#fff; text-align:left; cursor:pointer; }
+    .answers button:hover { background:var(--purple-soft); }
+    .answers button:focus-visible { outline:3px solid #8b69c0; outline-offset:2px; }
+    .feedback { min-height:1.6rem; margin:.65rem 0 0; font-weight:750; }
+    .feedback.good { color:var(--green); } .feedback.bad { color:#84253d; }
+    @media (max-width:720px) { .diagram, .walkthrough { grid-template-columns:1fr; } .stage::after { display:none !important; } .flow { grid-template-columns:1fr; } .arrow { transform:rotate(90deg); text-align:center; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">GateReeve Desktop · PR 41</p>
+    <h1>Seeing what each early phase consumes—and leaves behind</h1>
+    <p class="lede">This change turns three mostly empty historical state selections into useful explanations of durable context, while keeping GateReeve an observer rather than a workflow mutator.</p>
+    <div class="meta"><span class="pill">Pinned base fb2e5fb</span><span class="pill">Pinned head f7172c3</span><span class="pill">131 tests pass</span></div>
+  </header>
+  <nav aria-label="Contents"><a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#quiz">Quiz</a></nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <h3>The broad model: observation and governance are separate</h3>
+    <p>GateReeve Desktop reads a canonical workflow snapshot. The pinned state machine says which phase is current, while the user may select another state for historical inspection. That distinction is load-bearing: looking at Designing must never move a feature back to Designing.</p>
+    <div class="diagram" aria-label="Three layers of the existing renderer">
+      <div class="stage"><strong>Canonical snapshot</strong><span>State, artifacts, statuses, safety</span></div>
+      <div class="stage"><strong>Presentation helpers</strong><span>Read-only view models</span></div>
+      <div class="stage"><strong>Renderer DOM</strong><span>Inspection and artifact opening</span></div>
+    </div>
+    <p>Before PR 41, selecting Designing, Specifying, or Planning mainly changed the selected rail node, milestones, and primary artifact. The space below the rail had little to say about how those phases transform context.</p>
+    <h3>The narrow model: artifacts have identity, sources do not pretend to be files</h3>
+    <p>Workflow artifacts such as <code>spec.md</code> already have canonical IDs and safety metadata in the snapshot. Living inputs such as the existing codebase or repository structure do not. The new surface preserves that difference instead of making every chip look clickable.</p>
+    <div class="callout"><strong>Key invariant:</strong> an artifact path is display text, never authority. Opening still uses the canonical artifact object supplied by the snapshot.</div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <p>Think of each phase as a small transformation card: the left side answers “what does this phase read?” and the right side answers “what durable artifact does it produce?” The card follows the state selected for inspection, not the actual governed state.</p>
+    <div class="flow">
+      <div class="box"><strong>Uses</strong><div class="chips"><span class="chip">Artifact <code>interview.md</code> <span class="status present">Present</span></span><span class="chip source">Source Existing codebase</span></div></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="box"><strong>Produces</strong><div class="chips"><span class="chip">Artifact <code>design.md</code> <span class="status changed">Changed</span></span></div></div>
+    </div>
+    <p>The same recipe scales forward. Specification drafting accumulates design, interview, codebase, and architecture contracts. Planning accumulates spec, design, interview, repository structure, and tests/commands, then produces the plan and its two ledgers.</p>
+    <pre><code>selected state → approved recipe → join artifact IDs to snapshot
+                               ↘ keep living sources inert
+                                ↘ render Uses / Produces</code></pre>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <div class="walkthrough">
+      <div class="box"><h3>1. Encode recipes</h3><p><code>PHASE_CONTEXTS</code> freezes the exact three contracts. The helper returns <code>null</code> for Implementing, Finalizing, and Complete, so unsupported states cannot leak stale content.</p></div>
+      <div class="box"><h3>2. Resolve safely</h3><p><code>phaseContext()</code> builds an ID map from <code>snapshot.artifacts</code>. Missing inventory becomes an unavailable disabled entry; unsafe metadata also disables opening.</p></div>
+      <div class="box"><h3>3. Render semantics</h3><p>Living sources become inert <code>span</code> elements. Artifacts become native buttons with filename, status, explicit accessible names, and the existing <code>openArtifact()</code> route.</p></div>
+      <div class="box"><h3>4. Fit the workspace</h3><p>A container query keeps Uses and Produces in two columns when possible and stacks them below 720px of actual card width—not merely viewport width.</p></div>
+      <div class="box"><h3>5. Reuse visual language</h3><p>Status text receives GateReeve's existing <code>.status</code> plus normalized status class. Present is green, Changed/Pending amber, and Missing/Stale red.</p></div>
+      <div class="box"><h3>6. Prove boundaries</h3><p>Tests assert exact recipes, selected/current independence, inspector behavior, missing/unsafe handling, hiding, semantic labels, responsive CSS, and colored status wiring.</p></div>
+    </div>
+    <h3>A representative safety path</h3>
+    <pre><code>const artifact = artifacts.get(entry.id) ?? null;
+return {
+  artifact,
+  status: artifact?.status ?? 'unavailable',
+  disabled: artifact === null || artifact.unsafe === true,
+};</code></pre>
+    <p>This makes the failure mode honest. A known pending artifact may still open the existing unavailable presentation; an unknown or unsafe artifact cannot become an accidental file-system capability.</p>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <p>Choose one answer for each question. Feedback appears immediately.</p>
+    <div class="quiz" data-answer="1"><strong>1. What determines which phase context card is shown?</strong><div class="answers"><button data-choice="0">The governed current state only</button><button data-choice="1">The state selected for inspection, falling back to current state</button><button data-choice="2">The primary artifact currently open in the inspector</button></div><p class="feedback" aria-live="polite"></p></div>
+    <div class="quiz" data-answer="2"><strong>2. Why are living sources rendered as spans?</strong><div class="answers"><button data-choice="0">They are too large to fit inside buttons</button><button data-choice="1">Their statuses are always unknown</button><button data-choice="2">They are context concepts, not canonical openable artifacts</button></div><p class="feedback" aria-live="polite"></p></div>
+    <div class="quiz" data-answer="0"><strong>3. Which value authorizes artifact opening?</strong><div class="answers"><button data-choice="0">The canonical artifact object resolved by snapshot ID</button><button data-choice="1">The displayed filename extracted from the path</button><button data-choice="2">The recipe's fallback filename</button></div><p class="feedback" aria-live="polite"></p></div>
+    <div class="quiz" data-answer="1"><strong>4. Why use a container query for stacking?</strong><div class="answers"><button data-choice="0">It avoids all media queries throughout the application</button><button data-choice="1">The card responds to its available central-pane width</button><button data-choice="2">It makes artifact statuses update without JavaScript</button></div><p class="feedback" aria-live="polite"></p></div>
+    <div class="quiz" data-answer="2"><strong>5. What happens when the user selects Implementing?</strong><div class="answers"><button data-choice="0">The Planning recipe remains visible but disabled</button><button data-choice="1">A fourth recipe is synthesized from current artifacts</button><button data-choice="2">The surface hides and its Uses/Produces DOM is cleared</button></div><p class="feedback" aria-live="polite"></p></div>
+  </section>
+</main>
+<script>
+  const explanations = [
+    'Correct. The surface is observational and follows selectedFeatureState, with the governed state only as a fallback.',
+    'Correct. Source concepts remain visibly distinct and non-interactive because no canonical artifact authority exists.',
+    'Correct. IDs resolve to snapshot artifact objects; filenames are presentation only.',
+    'Correct. The central pane can be constrained independently of the browser viewport.',
+    'Correct. Unsupported selections return null, hide the surface, and clear both entry lists.'
+  ];
+  document.querySelectorAll('.quiz').forEach((quiz, index) => {
+    quiz.querySelectorAll('button').forEach((button) => button.addEventListener('click', () => {
+      const correct = button.dataset.choice === quiz.dataset.answer;
+      const feedback = quiz.querySelector('.feedback');
+      feedback.className = `feedback ${correct ? 'good' : 'bad'}`;
+      feedback.textContent = correct ? explanations[index] : 'Not quite. Reconsider the observer boundary and the distinction between artifact identity and display text.';
+    }));
+  });
+</script>
+</body>
+</html>
