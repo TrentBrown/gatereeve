@@ -14,9 +14,9 @@
 | R3 | Credential custody | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Real `release-trust` reviewer wait and approval passed; publication dry-run approval and final custody cleanup remain |
 | R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 retained accepted request `2de56a0a-b817-4c4a-a805-cdbec173b48c` and bounded nine-event history; final evaluation remains |
 | R5 | Native verification | NOT YET | - | RC.4 passed exact-DMG native ARM64 and x64 verification without Rosetta; final evaluation remains |
-| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 exact schema-v2 finalization sealed plan `a9a1b7ef...c503e`; distinct protected live dry-run evidence remains P9 |
+| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 exact finalization and distinct protected read-only dry run passed with zero receipts/mutation; final feature evaluation remains |
 | R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, idempotent receipt, and P8 assembly complete; final P9 conformance remains |
-| R8 | Conformance and acceptance | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Corrected RC.4 reviewer gate, trust/native evidence, and zero preparation mutation passed; publication dry run and final gates remain |
+| R8 | Conformance and acceptance | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Corrected RC.4 trust and publication reviewer gates, trust/native evidence, and zero mutation passed; custody cleanup and final gates remain |
 
 ## PR Log
 
@@ -117,6 +117,15 @@ Append PR boundary entries here.
   created `release-publication` deployment `6184570626`. Its read-only
   rehearsal job is waiting for `TrentBrown`; the write-capable publication job
   is skipped and no approval identity was supplied.
+- **Completed publication rehearsal:** The user approved deployment
+  `6184570626`; the read-only job passed, the write-capable job remained
+  skipped, and the retained packet is byte-identical to finalization with the
+  same plan digest and zero receipts. The final public inventory exactly
+  matches the RC.4 baseline.
+- **Custody cleanup preflight:** `release-publication` now contains exactly the
+  historical four Apple variables and three Apple secrets, with no publication
+  token. Their deletion is pending explicit user authorization; authoritative
+  copies in `release-trust` remain intact.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 

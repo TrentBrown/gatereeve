@@ -292,3 +292,32 @@ waiting for required reviewer `TrentBrown`, while the write-capable
 `publish-exact-plan` job is skipped. The waiting job has only `actions: read`
 and `contents: read`; approval permits read-only remote preflights and does not
 authorize public publication.
+
+The user approved deployment `6184570626` in GitHub. It recorded `queued` at
+2026-08-31T16:00:37Z, `in_progress` at 2026-08-31T16:00:40Z, and `success` at
+2026-08-31T16:01:10Z. The protected rehearsal job passed in 30 seconds; the
+write-capable publication job remained skipped.
+
+The retained rehearsal packet passed `inspect-hosted`, remained at
+`distribution-finalized`, retained exact plan
+`a9a1b7efeeb1dbeeac6bfa400c5c6cc9b8f0a14ca49cbcffeab32954759c503e`,
+and retained zero receipts. A recursive byte comparison against the finalizer
+packet found no difference. Its universal DMG remains exact SHA-256
+`f932c9efb738c88fa234e843f9e4ad751e41e0eb9e8f96f5a6501e789fd16957`.
+
+The final after-snapshot matches the RC.4 baseline on every public surface:
+the RC.4 tag and GitHub release remain absent; Marketplace head, mainline
+Desktop manifest blob, served Early Access response, Homebrew tap head, and
+Homebrew Cask blob are byte-for-byte unchanged. The complete protected
+preparation, finalization, and publication rehearsal therefore caused zero
+public mutation.
+
+## Custody cleanup preflight
+
+A fresh name-only audit confirms `release-publication` contains exactly the
+four historical Apple identity variables and three historical Apple credential
+secrets listed in the initial audit. It contains no publication token. The
+protected corrected trust rehearsal is complete, so these seven Apple entries
+are now eligible for deliberate deletion from `release-publication`; the
+authoritative copies in `release-trust` must remain intact. No entry has been
+deleted without explicit user authorization.
