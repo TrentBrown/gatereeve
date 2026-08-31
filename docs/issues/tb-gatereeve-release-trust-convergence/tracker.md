@@ -112,6 +112,11 @@ Append PR boundary entries here.
   `distribution-finalized`. Publication-plan SHA-256 is
   `a9a1b7efeeb1dbeeac6bfa400c5c6cc9b8f0a14ca49cbcffeab32954759c503e`;
   receipts are empty and no public mutation is authorized.
+- **Publication rehearsal gate:** Dry-run publication workflow
+  [33411027926](https://github.com/TrentBrown/gatereeve/actions/runs/33411027926)
+  created `release-publication` deployment `6184570626`. Its read-only
+  rehearsal job is waiting for `TrentBrown`; the write-capable publication job
+  is skipped and no approval identity was supplied.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 

@@ -275,3 +275,20 @@ an empty receipt list, and ordered future surfaces `tag`,
 `pluginMarketplace`, `desktopPrerelease`, `updateManifest`, and
 `earlyAccessWebsite`. No publication approval has been recorded and no public
 mutation is authorized.
+
+## Protected primary publication dry-run wait
+
+Publication run
+[33411027926](https://github.com/TrentBrown/gatereeve/actions/runs/33411027926)
+was dispatched in `dry-run` mode with finalization run `33410776654`, exact
+source `57fe66ba90ae1db1df970bf6988053136b567f23`, candidate
+`v0.1.0-rc.4`, and sealed plan
+`a9a1b7efeeb1dbeeac6bfa400c5c6cc9b8f0a14ca49cbcffeab32954759c503e`.
+The input carries no `approved_by` value.
+
+GitHub created `release-publication` deployment `6184570626` at
+2026-08-31T15:53:38Z. The `protected-nonpublishing-rehearsal` job is visibly
+waiting for required reviewer `TrentBrown`, while the write-capable
+`publish-exact-plan` job is skipped. The waiting job has only `actions: read`
+and `contents: read`; approval permits read-only remote preflights and does not
+authorize public publication.
