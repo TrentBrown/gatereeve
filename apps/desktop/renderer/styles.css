@@ -528,7 +528,7 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
 .inspector-resizer { position: relative; cursor: col-resize; background: transparent; touch-action: none; }
 .inspector-resizer::before { position: absolute; inset: 0 2px; background: var(--line); content: ""; }
 .inspector-resizer:hover::before, .inspector-resizer:focus-visible::before { background: var(--purple-600); }
-.inspector-body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-width: 0; height: 100%; }
+.inspector-body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-width: 0; min-height: 0; height: 100%; }
 .inspector-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; padding: 0.8rem 0.85rem 0.55rem; }
 .inspector-tabs { display: flex; gap: 0.2rem; min-width: 0; padding: 0 0.55rem; overflow-x: auto; border-bottom: 1px solid var(--line); }
 .inspector-tab-wrap { display: flex; flex: 0 1 190px; min-width: 115px; max-width: 230px; border: 1px solid transparent; border-bottom: 0; border-radius: 0.45rem 0.45rem 0 0; background: var(--purple-50); }
@@ -537,7 +537,7 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
 .inspector-tab:hover:not(:disabled) { color: var(--purple-900); background: transparent; }
 .close-tab { flex: none; width: 1.65rem; border: 0; padding: 0; color: var(--muted); background: transparent; }
 .close-tab:hover:not(:disabled) { color: var(--red); background: var(--red-bg); }
-.inspector-viewer { padding: 0.9rem; }
+.inspector-viewer { min-height: 0; padding: 0.9rem; overflow: auto; }
 .inspector-viewer .empty-state { min-height: 30vh; }
 .gate-detail-grid { display: grid; gap: 0.6rem; }
 .gate-detail-grid .facts { grid-template-columns: 1fr; }
