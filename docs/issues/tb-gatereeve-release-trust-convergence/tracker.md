@@ -14,7 +14,7 @@
 | R3 | Credential custody | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Real `release-trust` reviewer wait and approval passed; publication dry-run approval and final custody cleanup remain |
 | R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 retained accepted request `2de56a0a-b817-4c4a-a805-cdbec173b48c` and bounded nine-event history; final evaluation remains |
 | R5 | Native verification | NOT YET | - | RC.4 passed exact-DMG native ARM64 and x64 verification without Rosetta; final evaluation remains |
-| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Exact schema-v2 seal, read-only rehearsal, hosted approval, receipts, retry, and reviewed P8 assembly complete; live dry-run evidence remains P9 |
+| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 exact schema-v2 finalization sealed plan `a9a1b7ef...c503e`; distinct protected live dry-run evidence remains P9 |
 | R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, idempotent receipt, and P8 assembly complete; final P9 conformance remains |
 | R8 | Conformance and acceptance | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Corrected RC.4 reviewer gate, trust/native evidence, and zero preparation mutation passed; publication dry run and final gates remain |
 
@@ -106,6 +106,12 @@ Append PR boundary entries here.
   assembly all passed. Recomputed final DMG SHA-256 is
   `f932c9efb738c88fa234e843f9e4ad751e41e0eb9e8f96f5a6501e789fd16957`.
   Every public baseline identity remains unchanged.
+- **Sealed packet:** Read-only finalization run
+  [33410776654](https://github.com/TrentBrown/gatereeve/actions/runs/33410776654)
+  bound the exact retained RC.4 inputs and passed `inspect-hosted` at
+  `distribution-finalized`. Publication-plan SHA-256 is
+  `a9a1b7efeeb1dbeeac6bfa400c5c6cc9b8f0a14ca49cbcffeab32954759c503e`;
+  receipts are empty and no public mutation is authorized.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 

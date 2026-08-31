@@ -257,3 +257,21 @@ post-preparation inventory exactly matches the RC.4 baseline: the tag and
 release remain absent; Marketplace, mainline manifest, served Early Access
 manifest, Homebrew tap, and Cask identities are all unchanged. Preparation
 therefore caused zero public mutation.
+
+## RC.4 sealed publication packet
+
+Read-only finalization run
+[33410776654](https://github.com/TrentBrown/gatereeve/actions/runs/33410776654)
+completed successfully from preparation/trust run `33343210101`, exact source
+`57fe66ba90ae1db1df970bf6988053136b567f23`, and candidate
+`v0.1.0-rc.4`. The finalizer had only `actions: read` and `contents: read`.
+
+The retained packet passed the repository-owned `inspect-hosted` validator at
+stage `distribution-finalized`. Its exact publication-plan SHA-256 is
+`a9a1b7efeeb1dbeeac6bfa400c5c6cc9b8f0a14ca49cbcffeab32954759c503e`.
+The packet contains the same final universal DMG SHA-256
+`f932c9efb738c88fa234e843f9e4ad751e41e0eb9e8f96f5a6501e789fd16957`,
+an empty receipt list, and ordered future surfaces `tag`,
+`pluginMarketplace`, `desktopPrerelease`, `updateManifest`, and
+`earlyAccessWebsite`. No publication approval has been recorded and no public
+mutation is authorized.
