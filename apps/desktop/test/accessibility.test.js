@@ -72,5 +72,7 @@ test('styles preserve visible focus, docked regions, and reduced-motion behavior
   assert.match(css, /\.order-marker\s*\{/);
   assert.match(css, /border:\s*2px solid #4e3c63/);
   assert.match(css, /\.workspace-main\s*\{\s*grid-column:\s*2/);
+  assert.match(css, /\.inspector-body\s*\{[^}]*min-height:\s*0/);
+  assert.match(css, /\.inspector-viewer\s*\{[^}]*overflow:\s*auto/);
   assert.match(css, /\.inspector-tabs\s*\{\s*display:\s*none/);
 });
