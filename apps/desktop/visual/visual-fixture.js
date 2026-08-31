@@ -377,7 +377,12 @@ window.gatereeveDesktop = Object.freeze({
   },
   async readSession(id) {
     const item = (await this.listSession()).items[0];
-    return { schemaVersion: 1, id, item, content: '# Current position\n\nThe workflow experience slice is implementing.' };
+    return {
+      schemaVersion: 1,
+      id,
+      item,
+      content: '# Current position\n\n- [x] Renderer bundle ready\n- [ ] Human review\n\nSession links such as [external context](https://example.com) remain inert.',
+    };
   },
   async readDetail(kind, id) {
     if (kind === 'model') return model;
@@ -388,9 +393,12 @@ window.gatereeveDesktop = Object.freeze({
       kind,
       data: {
         artifact,
-        content: '# GateReeve artifact\n\n**Feature start:** safe and *current*. '
+        content: '# GateReeve artifact\n\n**Feature start:** safe, *current*, and ~~ad hoc~~ complete. '
           + '[Read the spec](spec.md) or [jump to details](#details).\n\n'
-          + '## Details\n\nThis is a representative visual fixture.',
+          + '## Details\n\n- [x] CommonMark\n- [x] GitHub-flavored extensions\n\n'
+          + '| Surface | Status |\n| :--- | ---: |\n| Artifacts | Ready |\n| Session | Ready |\n\n'
+          + 'A footnote stays navigable.[^1]\n\n[^1]: Rendered with a safe semantic DOM.\n\n'
+          + '```mermaid\ngraph TD; Source-->Code\n```',
         structured: artifact?.format === 'json' ? { attemptId: attempt.id, pullRequest: 29 } : null,
       },
     };

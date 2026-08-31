@@ -351,7 +351,22 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     },
     async readSession(id) {
       const item = (await this.listSession()).items[0];
-      return { schemaVersion: 1, id, item, content: '# Current position\nReady.' };
+      return {
+        schemaVersion: 1,
+        id,
+        item,
+        content: [
+          '# Current position',
+          '',
+          '- [x] Ready.',
+          '',
+          '| Check | State |',
+          '| --- | --- |',
+          '| Markdown | Complete |',
+          '',
+          '[External context](https://example.com/context)',
+        ].join('\n'),
+      };
     },
     async readDetail(kind, id) {
       if (kind === 'model') return {
@@ -639,6 +654,13 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   await new Promise((done) => setImmediate(done));
   assert.match(window.document.querySelector('#session-detail').textContent, /non-authoritative/);
   assert.match(window.document.querySelector('#session-detail').textContent, /Current position/);
+  assert.equal(window.document.querySelector('#session-detail table') !== null, true);
+  assert.equal(window.document.querySelector('#session-detail input:disabled') !== null, true);
+  assert.match(
+    window.document.querySelector('#session-detail').textContent,
+    /\[External context\]\(https:\/\/example\.com\/context\)/u,
+  );
+  assert.equal(window.document.querySelector('#session-detail a'), null);
 
   delete globalThis.window;
   delete globalThis.document;
@@ -903,7 +925,9 @@ test('artifact Markdown confines external, relative, fragment, and unsafe links'
           content: id === 'interview'
             ? '# Overview\n[External](https://example.com/docs) [Spec](spec.md) '
               + '[Details](#details) [Missing](missing.md) '
-              + '[Unsafe](file:///etc/passwd)\n\n## Details\nHere.'
+              + '[Unsafe](file:///etc/passwd) '
+              + '[Credential](https://user:pass@example.com/private) '
+              + '[Protocol relative](//example.com/path)\n\n## Details\nHere.'
             : '# Spec\nSelected through the canonical inventory.',
           structured: null,
         },
@@ -927,13 +951,20 @@ test('artifact Markdown confines external, relative, fragment, and unsafe links'
   assert.deepEqual(Object.keys(links), ['External', 'Spec', 'Details']);
   assert.match(viewer.textContent, /\[Missing\]\(missing\.md\)/);
   assert.match(viewer.textContent, /\[Unsafe\]\(file:\/\/\/etc\/passwd\)/);
+  assert.match(
+    viewer.textContent,
+    /\[Credential\]\(https:\/\/user:pass@example\.com\/private\)/u,
+  );
+  assert.match(viewer.textContent, /\[Protocol relative\]\(\/\/example\.com\/path\)/u);
 
   links.External.dispatchEvent(new window.Event('click', { cancelable: true }));
   await new Promise((done) => setImmediate(done));
   assert.deepEqual(external, ['https://example.com/docs']);
 
   let fragmentScrolls = 0;
-  viewer.querySelector('#details').scrollIntoView = () => { fragmentScrolls += 1; };
+  viewer.querySelector('[data-markdown-fragment="details"]').scrollIntoView = () => {
+    fragmentScrolls += 1;
+  };
   links.Details.dispatchEvent(new window.Event('click', { cancelable: true }));
   await new Promise((done) => setImmediate(done));
   assert.equal(fragmentScrolls, 1);

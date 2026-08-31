@@ -36,6 +36,7 @@ export const REQUIRED_ASAR_PATHS = Object.freeze([
   '/main/index.js',
   '/preload/index.cjs',
   '/renderer/index.html',
+  '/renderer/generated/markdown-renderer.js',
   '/resources/desktop-projection.json',
   '/resources/protocol/context.js',
   '/shared/setup-compatibility.json',
