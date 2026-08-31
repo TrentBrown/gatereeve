@@ -26,6 +26,28 @@
 - Evidence packet: [pr-44](pr-44/boundary.json)
 - Scope: slice
 
-P1-P3 are implemented and P4 is in review. R1, R4, R5, and R6 pass; R2 and
+P1-P4 are complete. R1, R4, R5, and R6 pass; R2 and
 R3 retain their real hosted RC.6 evidence requirement, and R7-R8 remain later
 feature work.
+
+#### Merge and mainline verification
+
+- Human review was accepted and PR #44 merged source
+  `b3729bc76375f9cbe49659c87f1baabe6e8c646c` into `main` as
+  `10a726411fd46f58263f8c989ac83f1a65bdf33f`.
+- `merge_verified.py` passed by ancestry for the exact reviewed source.
+- Mainline Plugin CI run
+  [33451532082](https://github.com/TrentBrown/gatereeve/actions/runs/33451532082)
+  passed after retrying only the failed unprotected packaging job. Its first
+  `hdiutil create` attempt returned runner-level `Resource busy`; protected
+  trust production had not begun. The retry passed the universal DMG plus
+  native Apple Silicon and Intel packaged-runtime jobs.
+- No `development` or `development-*` branch was merged or rebased into the
+  topic or `main`.
+
+### RC.6 primary acceptance
+
+- Slice: `s2-rc6-primary-acceptance`
+- Branch: `tb-gatereeve-release-artifact-integrity-02-rc6-acceptance`
+- Scope: P5 / R2, R3, R4, R6, R7
+- Status: implementing from exact corrected `main` merge `10a7264`.
