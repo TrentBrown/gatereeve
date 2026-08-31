@@ -1,17 +1,20 @@
 # Live Acceptance - tb-gatereeve-release-trust-convergence
 
 **Feature:** `tb-gatereeve-release-trust-convergence`
-**Slice:** `s4-mainline-acceptance`
-**Status:** blocked on required-reviewer enforcement correction
+**Slice:** `s6-final-acceptance`
+**Status:** corrected mainline acceptance complete; feature-final review pending
 
 ## Reviewed mainline
 
-- Reviewed slices: PRs [#32](https://github.com/TrentBrown/gatereeve/pull/32), [#33](https://github.com/TrentBrown/gatereeve/pull/33), and [#34](https://github.com/TrentBrown/gatereeve/pull/34).
-- Assembled `origin/main`: `ee29569afedd8950b7278f5b1d21183c19e02803`.
+- Reviewed slices: PRs [#32](https://github.com/TrentBrown/gatereeve/pull/32), [#33](https://github.com/TrentBrown/gatereeve/pull/33), [#34](https://github.com/TrentBrown/gatereeve/pull/34), and approval-boundary correction [#37](https://github.com/TrentBrown/gatereeve/pull/37).
+- Current reviewed `origin/main`: `57fe66ba90ae1db1df970bf6988053136b567f23`.
 - PR #34 reviewed head: `1e5497e2e1165ac2687e2112acef252a305fc738`.
 - PR #34 merge ancestry: verified.
+- PR #37 evaluated head: `3a7d447c444aff12100d6ff30a9c5e9aa0a4fda2`.
+- PR #37 final approved head: `92a9937d80e0d93454564a3d9daa0e4b095a56c6`.
+- PR #37 merge ancestry: both heads verified.
 - `development` or `development-*` merged or rebased into the feature: no.
-- Fresh acceptance candidate: `v0.1.0-rc.3` (tag and release absent at the audit).
+- Fresh corrected acceptance candidate: `v0.1.0-rc.4` (tag and release absent at the 2026-08-30T23:56:21Z audit).
 
 The original feature base predates an unrelated reviewed Desktop delivery that
 also reached `main`. Feature-final evaluation must distinguish those existing
@@ -139,15 +142,18 @@ release remained absent. Preparation therefore caused zero public mutation.
    independent native ARM64/Intel evidence. **Complete.**
 5. Correct the suppressed deployment/reviewer boundary in a fresh reviewed
    slice, merge that correction to `main`, and use a fresh RC identity.
+   **Complete:** PR #37 merged as `57fe66ba90ae1db1df970bf6988053136b567f23`;
+   RC.4 is reserved and absent before dispatch.
 6. Approve the corrected `release-trust` job only after verifying its source
-   and inputs, then retain the fresh exact trust packet.
+   and inputs, then retain the fresh exact trust packet. **Complete.**
 7. Seal the exact packet and run the corrected protected primary publication
-   dry run after its distinct reviewer approval.
+   dry run after its distinct reviewer approval. **Complete.**
 8. Compare the final public inventory with the initial inventory and require
-   zero mutation.
+   zero mutation. **Complete.**
 9. Only after the corrected trust rehearsal succeeds, delete the Apple variables and
-   secrets from `release-publication` and re-audit custody.
-10. Run feature-final spec evaluation and independent judgment.
+   secrets from `release-publication` and re-audit custody. **Complete.**
+10. Run feature-final spec evaluation and independent judgment. **Complete:
+    both pass in the governed PR #38 boundary packet.**
 
 No public primary or Cask publication is authorized by this sequence.
 
@@ -169,4 +175,188 @@ all six jobs and reject `deployment: false`. Current local evidence: all four
 edited workflows parse as YAML, the 10 focused workflow/documentation tests
 pass, all 158 CLI tests pass, all 125 Desktop tests pass, and portable
 acceptance passes. A fresh hosted rehearsal and candidate remain required after
-this correction passes review and merges.
+this now-merged correction.
+
+PR #37 passed its full governed boundary, final approval-head CI, and user
+review. It merged to `main` as
+`57fe66ba90ae1db1df970bf6988053136b567f23`; the evaluated correction and final
+approved PR heads are both verified ancestors. Slice `s6-final-acceptance`
+started from that exact reviewed merge without merging or rebasing any
+`development*` branch.
+
+## RC.4 corrected-rehearsal baseline
+
+Baseline time: 2026-08-30T23:56:21Z. Only environment metadata, variable
+names, and secret names were inspected; no secret value was read or copied.
+
+| Check | Initial identity |
+|---|---|
+| Reviewed source | `57fe66ba90ae1db1df970bf6988053136b567f23` |
+| Candidate tag `v0.1.0-rc.4` | absent |
+| Candidate GitHub release | absent |
+| `release-trust` required reviewer | `TrentBrown`; self-review permitted |
+| `release-trust` deployment policy | custom branch `main` only |
+| `release-trust` variable names | four expected Apple identity variables |
+| `release-trust` secret names | three expected Apple credential secrets |
+| Marketplace head | `22c2d841e833af4d2aec351cf61d54dafaf8fcd3` |
+| Mainline Desktop manifest blob | `e6c94d8699fc4fb1c54eb2c0fc4b1f99f84cb9b6` |
+| Early Access response SHA-256 | `23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b` |
+| Homebrew tap head | `91725d7e7aa3a8e0f82ddc2658f51d12a3385900` |
+| Homebrew Cask blob | `f08840728d0b329a9dfe037467782d8c335c396e` |
+
+The served Desktop manifest remains on public `0.1.0-rc.2` with universal-DMG
+SHA-256 `ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f`.
+This baseline is the zero-public-mutation comparator for the corrected
+nonpublishing RC.4 rehearsal.
+
+## RC.4 protected reviewer wait
+
+Preparation run
+[33343210101](https://github.com/TrentBrown/gatereeve/actions/runs/33343210101)
+was dispatched for `v0.1.0-rc.4` from exact reviewed `main`
+`57fe66ba90ae1db1df970bf6988053136b567f23`. Source resolution and the Plugin
+candidate job passed. At 2026-08-30T23:59:41Z, the `desktop-trust` job entered
+GitHub status `waiting` before any Apple trust production began.
+
+GitHub created deployment `6172763830` for environment `release-trust`, ref
+`main`, and the exact reviewed source SHA. The pending-deployments API reports
+required reviewer `TrentBrown` and confirms that account can approve. This is
+the real environment deployment/reviewer wait that RC.3 failed to create and
+therefore proves the PR #37 boundary correction up to the human authorization
+point. At that checkpoint the protected job remained unapproved pending
+explicit user action in GitHub.
+
+The user approved the pending deployment in GitHub. Deployment `6172763830`
+recorded `queued` at 2026-08-31T15:37:17Z and `in_progress` at
+2026-08-31T15:37:20Z before the protected job began trust production.
+
+## RC.4 protected preparation evidence
+
+Run [33343210101](https://github.com/TrentBrown/gatereeve/actions/runs/33343210101)
+completed successfully without a retry. The retained artifact bytes were
+downloaded and their hashes recomputed locally.
+
+| Check | Result |
+|---|---|
+| Workflow conclusion | PASS: all seven jobs completed successfully |
+| Protected approval | PASS: real `release-trust` deployment `6172763830` waited for and received required reviewer approval |
+| Trusted lifecycle | PASS: schema v2, nine-stage digest chain ending at `desktop-trust-verified` |
+| Submitted DMG | PASS: 246,140,822 bytes; SHA-256 `5241a504dd9b3c83e2910f6cceb8eb2aefe496d85f28565fe7ea01e8a43dc9f6` |
+| Final stapled DMG | PASS: 246,143,121 bytes; SHA-256 `f932c9efb738c88fa234e843f9e4ad751e41e0eb9e8f96f5a6501e789fd16957` |
+| Developer ID | PASS: `Developer ID Application: Trent Brown (PMWYD5A82A)` with hardened runtime and secure timestamp |
+| Notarization | PASS: request `2de56a0a-b817-4c4a-a805-cdbec173b48c`, attempt `eb21739a-a83b-4e6d-a93b-6354805cf726`, status `Accepted` |
+| Staple and Gatekeeper | PASS: staple validated; DMG assessment accepted |
+| Native Apple Silicon | PASS: native ARM64 evidence digest `deadd5c258cccd692f91749c1586b5f385961984cffe42aa32eb49dcc5b0dd51` |
+| Native Intel | PASS: native x64 evidence digest `1ed6e5c29c823bd3ae67788d6d869c9ded4b016d4ef2a15b84ed7f4ee63f5ed1` |
+| Apple trust canonical digest | PASS: `274c9231d4be43a6f36ca6f49fcedc44ad90ce4be2b66bee9271a0c485a9dca6` |
+| Native aggregate canonical digest | PASS: `ebdbfb412845dc57004c9ffcd05f777cdf1392a556a86abe49a32ae753526270` |
+| Final lifecycle stage digest | PASS: `9c642a49897fa085c3ff3e283fe6ec3e93361ecb860cb16f7eb71c4d6ef202b1` |
+
+RC.4 is permanently bound to this final DMG and Apple request history. Do not
+use generic job reruns or reuse the version with changed bytes. The
+post-preparation inventory exactly matches the RC.4 baseline: the tag and
+release remain absent; Marketplace, mainline manifest, served Early Access
+manifest, Homebrew tap, and Cask identities are all unchanged. Preparation
+therefore caused zero public mutation.
+
+## RC.4 sealed publication packet
+
+Read-only finalization run
+[33410776654](https://github.com/TrentBrown/gatereeve/actions/runs/33410776654)
+completed successfully from preparation/trust run `33343210101`, exact source
+`57fe66ba90ae1db1df970bf6988053136b567f23`, and candidate
+`v0.1.0-rc.4`. The finalizer had only `actions: read` and `contents: read`.
+
+The retained packet passed the repository-owned `inspect-hosted` validator at
+stage `distribution-finalized`. Its exact publication-plan SHA-256 is
+`a9a1b7efeeb1dbeeac6bfa400c5c6cc9b8f0a14ca49cbcffeab32954759c503e`.
+The packet contains the same final universal DMG SHA-256
+`f932c9efb738c88fa234e843f9e4ad751e41e0eb9e8f96f5a6501e789fd16957`,
+an empty receipt list, and ordered future surfaces `tag`,
+`pluginMarketplace`, `desktopPrerelease`, `updateManifest`, and
+`earlyAccessWebsite`. No publication approval has been recorded and no public
+mutation is authorized.
+
+## Protected primary publication dry-run wait
+
+Publication run
+[33411027926](https://github.com/TrentBrown/gatereeve/actions/runs/33411027926)
+was dispatched in `dry-run` mode with finalization run `33410776654`, exact
+source `57fe66ba90ae1db1df970bf6988053136b567f23`, candidate
+`v0.1.0-rc.4`, and sealed plan
+`a9a1b7efeeb1dbeeac6bfa400c5c6cc9b8f0a14ca49cbcffeab32954759c503e`.
+The input carries no `approved_by` value.
+
+GitHub created `release-publication` deployment `6184570626` at
+2026-08-31T15:53:38Z. The `protected-nonpublishing-rehearsal` job is visibly
+waiting for required reviewer `TrentBrown`, while the write-capable
+`publish-exact-plan` job is skipped. The waiting job has only `actions: read`
+and `contents: read`; approval permits read-only remote preflights and does not
+authorize public publication.
+
+The user approved deployment `6184570626` in GitHub. It recorded `queued` at
+2026-08-31T16:00:37Z, `in_progress` at 2026-08-31T16:00:40Z, and `success` at
+2026-08-31T16:01:10Z. The protected rehearsal job passed in 30 seconds; the
+write-capable publication job remained skipped.
+
+The retained rehearsal packet passed `inspect-hosted`, remained at
+`distribution-finalized`, retained exact plan
+`a9a1b7efeeb1dbeeac6bfa400c5c6cc9b8f0a14ca49cbcffeab32954759c503e`,
+and retained zero receipts. A recursive byte comparison against the finalizer
+packet found no difference. Its universal DMG remains exact SHA-256
+`f932c9efb738c88fa234e843f9e4ad751e41e0eb9e8f96f5a6501e789fd16957`.
+
+The final after-snapshot matches the RC.4 baseline on every public surface:
+the RC.4 tag and GitHub release remain absent; Marketplace head, mainline
+Desktop manifest blob, served Early Access response, Homebrew tap head, and
+Homebrew Cask blob are byte-for-byte unchanged. The complete protected
+preparation, finalization, and publication rehearsal therefore caused zero
+public mutation.
+
+## Custody cleanup preflight
+
+A fresh name-only audit confirms `release-publication` contains exactly the
+four historical Apple identity variables and three historical Apple credential
+secrets listed in the initial audit. It contains no publication token. The
+protected corrected trust rehearsal is complete, so these seven Apple entries
+are now eligible for deliberate deletion from `release-publication`; the
+authoritative copies in `release-trust` must remain intact. No entry has been
+deleted without explicit user authorization.
+
+The user explicitly authorized deletion after clarification that future builds
+use the authoritative `release-trust` copies. The four exact Apple variables
+and three exact Apple secrets were deleted only from `release-publication`.
+A fresh name-only audit proves:
+
+| Environment | Apple variables | Apple secrets | Protection | Result |
+|---|---:|---:|---|---|
+| `release-trust` | 4 expected | 3 expected | Required reviewer `TrentBrown`; self-review permitted; custom `main` policy | PASS: future trust production remains enabled |
+| `release-publication` | 0 | 0 | Required reviewer `TrentBrown`; self-review permitted; custom `main` policy | PASS: no Apple credential custody |
+
+No secret value was read or transported. The deleted duplicate secret
+instances cannot be recovered from `release-publication`; their authoritative
+instances remain in `release-trust`. This completes the intended disjoint
+custody state.
+
+## Final acceptance audit
+
+The final 2026-08-31 name-only environment audit and public-state audit
+reconfirmed the accepted state after cleanup:
+
+| Check | Result |
+|---|---|
+| Reviewed source | PASS: `origin/main` remains `57fe66ba90ae1db1df970bf6988053136b567f23` |
+| Development-branch direction | PASS: no `origin/development*` branch exists and none was merged or rebased into the feature |
+| `release-trust` custody | PASS: exactly four expected Apple variables and three expected Apple secrets remain |
+| `release-publication` custody | PASS: zero variables and zero secrets |
+| Environment protection | PASS: both environments retain required reviewer `TrentBrown`, self-review permission, and custom deployment-branch policy |
+| RC.4 tag and release | PASS: both remain absent |
+| Marketplace branch | PASS: unchanged at `22c2d841e833af4d2aec351cf61d54dafaf8fcd3` |
+| Mainline Desktop manifest blob | PASS: unchanged at `e6c94d8699fc4fb1c54eb2c0fc4b1f99f84cb9b6` |
+| Served Early Access response | PASS: unchanged SHA-256 `23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b` and still advertises RC.2 |
+| Homebrew tap and Cask | PASS: head unchanged at `91725d7e7aa3a8e0f82ddc2658f51d12a3385900`; Cask blob unchanged at `f08840728d0b329a9dfe037467782d8c335c396e` |
+
+The final local verification also passes: CLI 158/158, Desktop 125/125,
+portable Linux acceptance, all branch-document validators, decision triage,
+and `git diff --check`. No public primary or Cask publication occurred or is
+authorized by this feature-final evidence.

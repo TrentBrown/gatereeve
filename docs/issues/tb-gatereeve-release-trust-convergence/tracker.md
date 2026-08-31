@@ -9,18 +9,44 @@
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 produced a valid nine-stage schema-v2 trust lifecycle; corrected protected rehearsal and final P9 evaluation remain |
-| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 binds exact reviewed main, submitted/final DMG hashes, and immutable Apple request history; corrected rehearsal and finalization remain |
-| R3 | Credential custody | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Secret placement succeeded, but `deployment: false` suppressed the required-reviewer gate; fresh correction slice blocks acceptance |
-| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 retained accepted request `faa0580d-941c-4df3-90b8-38570ff52ac4` and bounded history; final corrected rehearsal remains |
-| R5 | Native verification | NOT YET | - | RC.3 passed exact-DMG native ARM64 and x64 verification without Rosetta; final corrected rehearsal remains |
-| R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Exact schema-v2 seal, read-only rehearsal, hosted approval, receipts, retry, and reviewed P8 assembly complete; live dry-run evidence remains P9 |
-| R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, idempotent receipt, and P8 assembly complete; final P9 conformance remains |
-| R8 | Conformance and acceptance | NOT YET | - | RC.3 trust/native evidence and zero preparation mutation passed; missing reviewer enforcement blocks the full protected rehearsal |
+| R1 | Schema lifecycle | PASS | [#32](https://github.com/TrentBrown/gatereeve/pull/32), [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 passed the complete schema-v2 trust lifecycle and read-only finalization; v1 compatibility and mutation rejection remain covered by the full suite |
+| R2 | Source and byte authority | PASS | [#32](https://github.com/TrentBrown/gatereeve/pull/32), [#33](https://github.com/TrentBrown/gatereeve/pull/33), [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 binds exact reviewed main, candidate identity, recomputed submitted/final DMG hashes, native evidence, and sealed plan without rebuild or version reuse |
+| R3 | Credential custody | PASS | [#33](https://github.com/TrentBrown/gatereeve/pull/33), [#34](https://github.com/TrentBrown/gatereeve/pull/34), [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Real trust/publication reviewer waits passed; all Apple entries remain only in `release-trust`, with zero Apple entries in `release-publication` |
+| R4 | Notarization recovery | PASS | [#32](https://github.com/TrentBrown/gatereeve/pull/32), [#33](https://github.com/TrentBrown/gatereeve/pull/33) | Bounded recovery tests pass and RC.4 retains accepted request `2de56a0a-b817-4c4a-a805-cdbec173b48c` with immutable attempt history |
+| R5 | Native verification | PASS | [#33](https://github.com/TrentBrown/gatereeve/pull/33) | RC.4 passed exact-final-DMG native ARM64 and x64 verification, aggregation, Gatekeeper assessment, and runtime smoke without Rosetta substitution |
+| R6 | Finalization and publication | PASS | [#34](https://github.com/TrentBrown/gatereeve/pull/34), [#37](https://github.com/TrentBrown/gatereeve/pull/37) | RC.4 exact finalization and distinct protected read-only dry run passed with the same sealed plan, zero receipts, and zero public mutation |
+| R7 | Cask linkage | PASS | [#34](https://github.com/TrentBrown/gatereeve/pull/34), [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Linked v2 Cask record, post-primary proof, separate approval, exact bytes, native smoke, and idempotent receipt behavior pass; no Cask publication was authorized |
+| R8 | Conformance and acceptance | PASS | [#33](https://github.com/TrentBrown/gatereeve/pull/33), [#34](https://github.com/TrentBrown/gatereeve/pull/34), [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Shared invariants, corrected protected gates, live trust/native evidence, sealed dry run, disjoint custody, and final zero-mutation audit all pass with no UI scope |
 
 ## PR Log
 
 Append PR boundary entries here.
+
+### PR #38 - Feature-final live acceptance and closeout evidence
+
+- **PR:** [#38](https://github.com/TrentBrown/gatereeve/pull/38)
+- **Evidence packet:** [packet](pr-38/)
+- **Pinned source:** `fd0b14795e4aa4e21d773813c3bebb7d2a04822b`
+  over focused evidence-only base
+  `57fe66ba90ae1db1df970bf6988053136b567f23`.
+- **Scope:** P8-P9 / I-9 / R1-R8, feature-final.
+- **Summary:** Retains corrected RC.4 protected trust, native architecture,
+  read-only finalization, protected zero-mutation publication rehearsal,
+  credential cutover, final public inventory, and complete-feature results.
+- **Verification:** CLI 158/158, Desktop 125/125, portable acceptance, final
+  lifecycle validators, RC.4 trust run 33343210101, finalization run
+  33410776654, and publication dry run 33411027926 all pass.
+- **Evaluation:** AC1-AC8 and R1-R8 PASS; independent judge PASS; focused code
+  review reports no findings; pattern review is not applicable because no rule
+  scope is configured; no untriaged decision remains.
+- **Safety:** RC.4 remains unpublished with zero receipts and unchanged public
+  surfaces. Apple credentials remain intact only in `release-trust`; this PR
+  does not authorize primary or Cask publication.
+- **Branch direction:** No `development` or `development-*` branch was merged
+  or rebased into this topic.
+- **Boundary result:** All required gates are current and nonblocking at pinned
+  source `fd0b14795e4aa4e21d773813c3bebb7d2a04822b`; packet validation passes,
+  retention is `tracked`, and governed human review is requested.
 
 ### Mainline acceptance preflight
 
@@ -58,10 +84,11 @@ Append PR boundary entries here.
   current reviewed `main` `93da66d10736b7bbf58be1d2765808c1f7b4a75c`.
   It removes deployment suppression from all six protected jobs; YAML parsing,
   10 focused tests, the 158-test CLI suite, the 125-test Desktop suite, and
-  portable acceptance pass locally. Draft
+  portable acceptance pass locally.
   [PR #37](https://github.com/TrentBrown/gatereeve/pull/37) carries the
-  correction and its hosted checks; live reviewer-gate proof remains pending
-  merge and a fresh candidate.
+  correction and passed final approval-head CI before merging to `main` as
+  `57fe66ba90ae1db1df970bf6988053136b567f23`. Live reviewer-gate proof remains
+  pending with a fresh candidate.
 
 ### PR #37 - Protected approval boundary correction
 
@@ -83,6 +110,54 @@ Append PR boundary entries here.
 - **Safety:** RC.3 and Apple request
   `faa0580d-941c-4df3-90b8-38570ff52ac4` remain immutable; no public surface
   or credential inventory was mutated by this slice.
+- **Review and merge:** User approval is recorded at event sequence 109. Final
+  approval-head CI run
+  [33342818826](https://github.com/TrentBrown/gatereeve/actions/runs/33342818826)
+  passed all required jobs. PR #37 merged as
+  `57fe66ba90ae1db1df970bf6988053136b567f23`; both evaluated source
+  `3a7d447c444aff12100d6ff30a9c5e9aa0a4fda2` and final approved PR head
+  `92a9937d80e0d93454564a3d9daa0e4b095a56c6` are verified ancestors.
+- **Continuation:** Governed slice `s6-final-acceptance` resumed I-9 from the
+  exact reviewed merge and will use fresh candidate `v0.1.0-rc.4`.
+- **Corrected live proof:** Preparation run
+  [33343210101](https://github.com/TrentBrown/gatereeve/actions/runs/33343210101)
+  is pinned to `57fe66ba90ae1db1df970bf6988053136b567f23`. GitHub created
+  `release-trust` deployment `6172763830`, and `desktop-trust` visibly waited
+  for required reviewer `TrentBrown` before Apple trust production.
+- **Completed trust rehearsal:** The user approved deployment `6172763830`.
+  Run `33343210101` then completed all seven jobs without retry: exact universal
+  DMG signing, accepted Apple request
+  `2de56a0a-b817-4c4a-a805-cdbec173b48c`, stapling, Gatekeeper assessment,
+  native ARM64/x64 verification, aggregation, and nine-stage lifecycle
+  assembly all passed. Recomputed final DMG SHA-256 is
+  `f932c9efb738c88fa234e843f9e4ad751e41e0eb9e8f96f5a6501e789fd16957`.
+  Every public baseline identity remains unchanged.
+- **Sealed packet:** Read-only finalization run
+  [33410776654](https://github.com/TrentBrown/gatereeve/actions/runs/33410776654)
+  bound the exact retained RC.4 inputs and passed `inspect-hosted` at
+  `distribution-finalized`. Publication-plan SHA-256 is
+  `a9a1b7efeeb1dbeeac6bfa400c5c6cc9b8f0a14ca49cbcffeab32954759c503e`;
+  receipts are empty and no public mutation is authorized.
+- **Publication rehearsal gate:** Dry-run publication workflow
+  [33411027926](https://github.com/TrentBrown/gatereeve/actions/runs/33411027926)
+  created `release-publication` deployment `6184570626`. Its read-only
+  rehearsal job is waiting for `TrentBrown`; the write-capable publication job
+  is skipped and no approval identity was supplied.
+- **Completed publication rehearsal:** The user approved deployment
+  `6184570626`; the read-only job passed, the write-capable job remained
+  skipped, and the retained packet is byte-identical to finalization with the
+  same plan digest and zero receipts. The final public inventory exactly
+  matches the RC.4 baseline.
+- **Custody cleanup preflight:** `release-publication` now contains exactly the
+  historical four Apple variables and three Apple secrets, with no publication
+  token. Their deletion is pending explicit user authorization; authoritative
+  copies in `release-trust` remain intact.
+- **Custody cleanup complete:** After explicit user authorization, only the
+  four duplicate Apple variables and three duplicate Apple secrets were
+  deleted from `release-publication`. A fresh name-only audit confirms all
+  seven authoritative entries remain in `release-trust`, while
+  `release-publication` has zero variables and zero secrets. Both required-
+  reviewer and `main`-only policies remain intact.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 
