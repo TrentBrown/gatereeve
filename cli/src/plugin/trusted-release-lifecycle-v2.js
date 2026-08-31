@@ -1,6 +1,5 @@
-import { createHash } from 'node:crypto';
-import { readFile, readdir, stat } from 'node:fs/promises';
-import { relative, resolve, sep } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
 import {
   advanceReleaseStageV2,
@@ -11,51 +10,12 @@ import {
   assertNativeTrustAggregateV2,
   trustDigest,
 } from './native-trust-evidence-v2.js';
+import { verifyPluginCandidateIntegrity } from './plugin-candidate-integrity.js';
 import { validateDeployedRelease } from './release-version.js';
 
 const SHA256 = /^[a-f0-9]{64}$/u;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu;
 const TEAM_ID = /^[A-Z0-9]{10}$/u;
-
-function stableJson(value) {
-  return `${JSON.stringify(value, null, 2)}\n`;
-}
-
-async function fileIdentity(path) {
-  const content = await readFile(path);
-  const details = await stat(path);
-  return {
-    filename: path.split(sep).at(-1),
-    bytes: details.size,
-    sha256: createHash('sha256').update(content).digest('hex'),
-  };
-}
-
-async function inventoryTree(root) {
-  const resolvedRoot = resolve(root);
-  const files = [];
-  async function visit(directory) {
-    const entries = await readdir(directory, { withFileTypes: true });
-    entries.sort((left, right) => left.name.localeCompare(right.name));
-    for (const entry of entries) {
-      const path = resolve(directory, entry.name);
-      if (entry.isSymbolicLink()) {
-        throw new Error(`Trusted release inputs must not contain symbolic links: ${path}`);
-      }
-      if (entry.isDirectory()) await visit(path);
-      else if (entry.isFile()) {
-        const identity = await fileIdentity(path);
-        files.push({ ...identity, path: relative(resolvedRoot, path).split(sep).join('/') });
-      } else throw new Error(`Unsupported trusted release input: ${path}`);
-    }
-  }
-  await visit(resolvedRoot);
-  if (files.length === 0) throw new Error('Trusted release Plugin candidate is empty');
-  return {
-    files,
-    sha256: createHash('sha256').update(stableJson(files)).digest('hex'),
-  };
-}
 
 async function assertPluginCandidateIdentity(root, source) {
   let metadata;
@@ -127,13 +87,19 @@ function assertTrustedInputs({ source, appleTrust, nativeAggregate }) {
 export async function buildTrustedReleaseLifecycleV2({
   source,
   pluginRoot,
+  pluginIntegrityPath,
   appleTrust,
   nativeAggregate,
   now = () => new Date(),
 }) {
   assertTrustedInputs({ source, appleTrust, nativeAggregate });
   const pluginRelease = await assertPluginCandidateIdentity(pluginRoot, source);
-  const plugin = await inventoryTree(pluginRoot);
+  const plugin = await verifyPluginCandidateIntegrity({
+    pluginRoot,
+    integrityPath: pluginIntegrityPath,
+    sourceTag: source.tag,
+    sourceCommit: source.commit,
+  });
   let record = createReleaseLifecycleV2({ source, now });
   record = advanceReleaseStageV2(record, 'policy-resolved', {
     trustEnvironment: 'release-trust',
@@ -146,14 +112,20 @@ export async function buildTrustedReleaseLifecycleV2({
       version: pluginRelease.version,
       sourceCommit: pluginRelease.sourceCommit,
     },
-    treeSha256: plugin.sha256,
+    treeSha256: plugin.treeSha256,
     files: plugin.files,
+    integrityManifest: {
+      schemaVersion: plugin.manifest.schemaVersion,
+      bytes: plugin.manifestBytes,
+      sha256: plugin.manifestSha256,
+      treeSha256: plugin.treeSha256,
+    },
   }, now);
   record = advanceReleaseStageV2(record, 'universal-desktop-packaged', {
     submittedArtifact: appleTrust.submittedArtifact,
   }, now);
   record = advanceReleaseStageV2(record, 'artifact-digests-established', {
-    pluginTreeSha256: plugin.sha256,
+    pluginTreeSha256: plugin.treeSha256,
     submittedDmgSha256: appleTrust.submittedArtifact.sha256,
     finalTrustedDmgSha256: appleTrust.artifact.sha256,
     appleTrustEvidenceSha256: trustDigest(appleTrust),

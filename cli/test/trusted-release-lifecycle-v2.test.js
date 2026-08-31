@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -7,6 +7,7 @@ import test from 'node:test';
 import { assertReleaseLifecycleV2 } from '../src/plugin/release-lifecycle-v2.js';
 import { trustDigest } from '../src/plugin/native-trust-evidence-v2.js';
 import { buildTrustedReleaseLifecycleV2 } from '../src/plugin/trusted-release-lifecycle-v2.js';
+import { writePluginCandidateFixture } from './helpers/plugin-candidate.js';
 
 const source = {
   repository: 'https://github.com/TrentBrown/gatereeve',
@@ -59,26 +60,24 @@ const nativeAggregate = {
 };
 
 async function writePluginCandidate(root, overrides = {}) {
-  await writeFile(join(root, 'plugin.json'), '{"name":"gatereeve"}\n');
-  await writeFile(join(root, 'RELEASE.json'), `${JSON.stringify({
-    schemaVersion: 1,
-    plugin: 'agentic-development-workflow',
-    marketplace: 'quality-code',
-    version: source.tag.slice(1),
-    sourceTag: source.tag,
-    sourceCommit: source.commit,
-    ubuntuRcEvidence: null,
-    ...overrides,
-  }, null, 2)}\n`);
+  const integrityPath = await writePluginCandidateFixture({ root, source });
+  if (Object.keys(overrides).length > 0) {
+    const releasePath = join(root, 'RELEASE.json');
+    const release = JSON.parse(await readFile(releasePath, 'utf8'));
+    await writeFile(releasePath, `${JSON.stringify({ ...release, ...overrides }, null, 2)}\n`);
+  }
+  return integrityPath;
 }
 
 test('trusted production creates a schema-v2 lifecycle through Desktop trust', async () => {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-trusted-lifecycle-'));
+  const pluginRoot = join(root, 'marketplace');
   try {
-    await writePluginCandidate(root);
+    const pluginIntegrityPath = await writePluginCandidate(pluginRoot);
     const record = await buildTrustedReleaseLifecycleV2({
       source,
-      pluginRoot: root,
+      pluginRoot,
+      pluginIntegrityPath,
       appleTrust,
       nativeAggregate,
     });
@@ -110,14 +109,16 @@ test('trusted production creates a schema-v2 lifecycle through Desktop trust', a
 });
 test('trusted production rejects cross-request or changed-byte aggregation', async () => {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-trusted-lifecycle-reject-'));
+  const pluginRoot = join(root, 'marketplace');
   try {
-    await writePluginCandidate(root);
+    const pluginIntegrityPath = await writePluginCandidate(pluginRoot);
     const altered = structuredClone(nativeAggregate);
     altered.artifact.sha256 = 'e'.repeat(64);
     await assert.rejects(
       buildTrustedReleaseLifecycleV2({
         source,
-        pluginRoot: root,
+        pluginRoot,
+        pluginIntegrityPath,
         appleTrust,
         nativeAggregate: altered,
       }),
@@ -130,15 +131,17 @@ test('trusted production rejects cross-request or changed-byte aggregation', asy
 
 test('trusted production rejects a same-source Plugin candidate from another RC', async () => {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-trusted-lifecycle-plugin-identity-'));
+  const pluginRoot = join(root, 'marketplace');
   try {
-    await writePluginCandidate(root, {
+    const pluginIntegrityPath = await writePluginCandidate(pluginRoot, {
       version: '0.1.0-rc.8',
       sourceTag: 'v0.1.0-rc.8',
     });
     await assert.rejects(
       buildTrustedReleaseLifecycleV2({
         source,
-        pluginRoot: root,
+        pluginRoot,
+        pluginIntegrityPath,
         appleTrust,
         nativeAggregate,
       }),

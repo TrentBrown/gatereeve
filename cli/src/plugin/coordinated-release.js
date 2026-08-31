@@ -20,6 +20,7 @@ import {
   textIdentity,
 } from './desktop-release-manifest.js';
 import { assertNativeTrustEvidenceV2 } from './native-trust-evidence-v2.js';
+import { verifyPluginCandidateIntegrity } from './plugin-candidate-integrity.js';
 import { parseReleaseTag } from './release.js';
 import { dispatchReleaseRecordSchema } from './release-lifecycle-v2.js';
 
@@ -254,6 +255,7 @@ export async function prepareCoordinatedRelease({
   sourceCommit,
   repository,
   pluginRoot,
+  pluginIntegrityPath = null,
   desktopDmgPath,
   desktopEvidencePaths,
   currentUpdateManifestPath,
@@ -287,7 +289,15 @@ export async function prepareCoordinatedRelease({
   ) {
     throw new Error('Plugin candidate does not match the coordinated tag and source commit');
   }
-  const pluginFiles = await inventoryTree(resolve(pluginRoot));
+  const pluginIntegrity = pluginIntegrityPath
+    ? await verifyPluginCandidateIntegrity({
+        pluginRoot,
+        integrityPath: pluginIntegrityPath,
+        sourceTag,
+        sourceCommit,
+      })
+    : null;
+  const pluginFiles = pluginIntegrity?.files ?? await inventoryTree(resolve(pluginRoot));
   if (pluginFiles.length === 0) throw new Error('Plugin candidate is empty');
 
   const dmgPath = resolve(desktopDmgPath);
@@ -329,6 +339,7 @@ export async function prepareCoordinatedRelease({
   const stagingRoot = await mkdtemp(resolve(dirname(output), '.gatereeve-release-'));
   try {
     const pluginOutput = resolve(stagingRoot, 'plugin', 'marketplace');
+    const pluginIntegrityOutput = resolve(stagingRoot, 'plugin', 'integrity.json');
     const desktopOutput = resolve(stagingRoot, 'desktop', dmg.filename);
     const evidenceRoot = resolve(stagingRoot, 'evidence');
     const publicationRoot = resolve(stagingRoot, 'publication');
@@ -337,6 +348,7 @@ export async function prepareCoordinatedRelease({
     await mkdir(evidenceRoot, { recursive: true });
     await mkdir(publicationRoot, { recursive: true });
     await cp(resolve(pluginRoot), pluginOutput, { recursive: true });
+    if (pluginIntegrityPath) await cp(resolve(pluginIntegrityPath), pluginIntegrityOutput);
     await cp(dmgPath, desktopOutput);
     const evidenceRecords = [];
     for (const item of evidence) {
@@ -368,6 +380,14 @@ export async function prepareCoordinatedRelease({
             fileCount: pluginFiles.length,
             sha256: treeDigest(pluginFiles),
           },
+          commitment: pluginIntegrity
+            ? {
+                path: 'plugin/integrity.json',
+                bytes: pluginIntegrity.manifestBytes,
+                sha256: pluginIntegrity.manifestSha256,
+                treeSha256: pluginIntegrity.treeSha256,
+              }
+            : null,
           verification: {
             status: 'passed',
             packageCount: 2,
@@ -500,6 +520,14 @@ export function assertCoordinatedReleaseV1(value) {
   ) {
     throw new Error('Coordinated release artifact metadata is invalid');
   }
+  const commitment = value.candidates.plugin.commitment;
+  if (commitment !== null && commitment !== undefined && (
+    commitment?.path !== 'plugin/integrity.json'
+    || !Number.isSafeInteger(commitment.bytes)
+    || commitment.bytes < 1
+    || !SHA256.test(commitment.sha256 ?? '')
+    || commitment.treeSha256 !== value.candidates.plugin.artifact.sha256
+  )) throw new Error('Coordinated Plugin integrity commitment is invalid');
   validateCoordinatedTrust(value.candidates.desktop.trust);
   const desktopEvidence = value.candidates.desktop.verification.evidence;
   if (
@@ -617,7 +645,26 @@ export async function verifyCoordinatedReleaseWorkspace(recordPath) {
   const path = resolve(recordPath);
   const root = dirname(path);
   const record = await readCoordinatedRelease(path);
-  const pluginFiles = await inventoryTree(resolve(root, record.candidates.plugin.artifact.path));
+  let pluginFiles;
+  if (record.candidates.plugin.commitment) {
+    const commitment = record.candidates.plugin.commitment;
+    const integrityPath = resolve(root, commitment.path);
+    const details = await stat(integrityPath);
+    if (
+      !details.isFile()
+      || details.size !== commitment.bytes
+      || await sha256File(integrityPath) !== commitment.sha256
+    ) throw new Error('Recorded Plugin integrity commitment changed');
+    const verified = await verifyPluginCandidateIntegrity({
+      pluginRoot: resolve(root, record.candidates.plugin.artifact.path),
+      integrityPath,
+      sourceTag: record.source.tag,
+      sourceCommit: record.source.commit,
+    });
+    pluginFiles = verified.files;
+  } else {
+    pluginFiles = await inventoryTree(resolve(root, record.candidates.plugin.artifact.path));
+  }
   if (
     pluginFiles.length !== record.candidates.plugin.artifact.fileCount
     || treeDigest(pluginFiles) !== record.candidates.plugin.artifact.sha256
