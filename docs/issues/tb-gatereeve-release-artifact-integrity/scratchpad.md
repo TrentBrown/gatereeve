@@ -8,7 +8,7 @@ entries are appended to `decisions.md`.
 
 ## [1] Bind Plugin transport to an external full-tree commitment
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -23,7 +23,7 @@ Required-path checks only — rejected because arbitrary missing or changed file
 
 ## [2] Recover forward from RC.5 without rewriting history
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

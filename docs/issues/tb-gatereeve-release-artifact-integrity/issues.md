@@ -9,47 +9,47 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Implement the Plugin tree integrity contract
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P1
 - **Rubric criteria:** R1, R3, R4, R5
 - **Depends on:** none
-- **PR:** -
+- **PR:** [#44](https://github.com/TrentBrown/gatereeve/pull/44)
 
 Create the producer commitment and strict exact-tree plus semantic verifier.
 
 ## I-2 - Harden hosted artifact handoffs and ordering
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P2
 - **Rubric criteria:** R2, R3, R4, R6
 - **Depends on:** I-1
-- **PR:** -
+- **PR:** [#44](https://github.com/TrentBrown/gatereeve/pull/44)
 
 Preserve hidden files, verify each consumer, and gate Apple authority on the
 first round trip.
 
 ## I-3 - Add regression coverage and operator documentation
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P3
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6
 - **Depends on:** I-1, I-2
-- **PR:** -
+- **PR:** [#44](https://github.com/TrentBrown/gatereeve/pull/44)
 
 Cover every named failure class and document the immutable RC.5/forward-fix
 recovery rule.
 
 ## I-4 - Deliver and verify the correction on main
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6
 - **Depends on:** I-1, I-2, I-3
-- **PR:** -
+- **PR:** [#44](https://github.com/TrentBrown/gatereeve/pull/44)
 
 Complete the governed boundary, human review, permitted merge, and mainline CI.
 
