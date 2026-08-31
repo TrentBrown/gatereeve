@@ -10,7 +10,7 @@
 |---|---|---|---|
 | Build | `cd apps/desktop && npm run build:renderer` | PASS | Browser-ready ESM bundle built at 421,335 bytes. Two final consecutive builds produced SHA-256 `2470eb5f5e74e2e2263a5f93b71816d344c7d2aabc8525bb6a71d8e8e7aaf508`; gzip size was 88,651 bytes. |
 | Formatting/static | `git diff --check` | PASS | No whitespace errors. New renderer source contains no artifact-content `innerHTML`, HTML serialization, or resource-URL insertion path. |
-| Unit/integration | `cd apps/desktop && npm test` | PASS | Final run: 131 tests passed. Coverage includes CommonMark/GFM DOM, hostile input, links, anchors, both surfaces, accessibility, staging, and existing Desktop behavior. |
+| Unit/integration | `cd apps/desktop && npm test` | PASS | Final rebased run: 135 tests passed. Coverage includes CommonMark/GFM DOM, hostile input, links, anchors, both surfaces, accessibility, staging, existing Desktop behavior, and the file-action work already on `main`. |
 | Dependency audit | `cd apps/desktop && npm audit --audit-level=high` | PASS | Zero known vulnerabilities reported. |
 | Browser runtime | T3 collaborative browser, `/visual/index.html` | PASS | Production modules loaded in a real browser. CommonMark/GFM structures, disabled tasks, footnote relationships, prefixed heading IDs, and Mermaid-as-code were present; the Markdown subtree contained no Mermaid SVG. At 1280px, document `scrollWidth` equaled `clientWidth`. |
 | Hostile browser input | Dynamic import of production `renderer/dom.js` in the browser fixture | PASS | Raw `<img>`, Markdown image, and `javascript:` link stayed literal; no forbidden DOM element and no external resource performance entry appeared. |
