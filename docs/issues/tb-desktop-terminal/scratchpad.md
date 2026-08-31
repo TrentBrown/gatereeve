@@ -8,7 +8,7 @@ entries are appended to `decisions.md`.
 
 ## [1] Pin xterm packages and the fixed node-pty beta
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -38,7 +38,7 @@ npm package contents during planning.
 
 ## [2] Keep PTY ownership and spawn configuration in Electron main
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -66,7 +66,7 @@ but no general renderer-selected process API is introduced.
 
 ## [3] Stage explicit terminal assets and verify both macOS runtime paths
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -95,7 +95,7 @@ and universal-macOS architecture.
 
 ## [4] Permit terminal geometry styles without relaxing script policy
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -124,7 +124,7 @@ under the existing strict custom-protocol CSP.
 
 ## [5] Terminate the captured descendant tree as well as the PTY group
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -151,7 +151,7 @@ background `sleep` survived the original process-group-only shutdown.
 
 ## [6] Keep Rosetta verification explicit and non-authoritative
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -179,7 +179,7 @@ preferred hosted evidence.
 
 ## [7] Revalidate project ownership after lazy terminal loading
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -207,3 +207,29 @@ that the initial renderer integration test did not exercise.
   lost.
 - Serialize all project activation behind xterm loading - rejected because UI
   navigation must remain responsive and terminal loading is optional.
+
+## [8] Allow only required scoped-package parent directories in ASAR
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Universal macOS package verification only.
+
+Treat an ASAR directory entry for the parent scope of an explicitly staged
+package (currently `/node_modules/@xterm`) as structural metadata, while still
+requiring every package and descendant path under that scope to match the exact
+runtime-package allowlist. This keeps package verification fail-closed without
+rejecting the directory shape emitted by Electron ASAR.
+
+**Triggered by:** Hosted Apple Silicon verification of PR #43 rejected the
+required `@xterm` parent directory before it could launch the application.
+
+**Alternatives considered:**
+
+- Allow every path beneath `/node_modules/@xterm` - rejected because an
+  unstaged sibling package would evade the exact runtime allowlist.
+- Remove scoped packages from the package - rejected because xterm is the
+  approved terminal renderer.
+- Ignore directory entries globally - rejected because the verifier's bounded
+  package inventory is useful security and release evidence.

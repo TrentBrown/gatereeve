@@ -61,6 +61,18 @@ export function requireMacosExecutionAuthority({
   return rosettaTranslated ? 'rosetta-translated' : 'native';
 }
 
+export function isApprovedRuntimePackagePath(path) {
+  return STAGED_RUNTIME_PACKAGES.some((packageName) => {
+    const packagePath = `/node_modules/${packageName}`;
+    const scopePath = packageName.startsWith('@')
+      ? `/node_modules/${packageName.split('/')[0]}`
+      : null;
+    return path === packagePath
+      || path.startsWith(`${packagePath}/`)
+      || (scopePath !== null && path === scopePath);
+  });
+}
+
 /** @param {string} plistPath @param {string} key */
 async function plistValue(plistPath, key) {
   const { stdout } = await run('/usr/bin/plutil', [
@@ -143,10 +155,7 @@ export async function verifyApplication(applicationPath, version, appleTrust) {
   for (const path of asarEntries) {
     if (path.startsWith('/node_modules/')) {
       assert.equal(
-        STAGED_RUNTIME_PACKAGES.some((packageName) => (
-          path === `/node_modules/${packageName}`
-          || path.startsWith(`/node_modules/${packageName}/`)
-        )),
+        isApprovedRuntimePackagePath(path),
         true,
         `Packaged application contains an unapproved runtime package path: ${path}`,
       );

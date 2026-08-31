@@ -19,6 +19,7 @@ import {
 import { emitPackageResult, stageDesktopSource } from '../scripts/package-macos.mjs';
 import {
   detectRosettaTranslation,
+  isApprovedRuntimePackagePath,
   requireMacosExecutionAuthority,
   writeVerificationEvidence,
 } from '../scripts/verify-macos-package.mjs';
@@ -71,6 +72,15 @@ test('macOS identity and universal packager options are permanent', () => {
     version: '0.1.0-rc.1',
   }).appVersion, '0.1.0');
   assert.throws(() => dmgFilename('../bad'));
+});
+
+test('runtime package allowlist admits scoped parents but rejects unstaged siblings', () => {
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm'), true);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm/xterm'), true);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm/xterm/lib/xterm.mjs'), true);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm/unapproved'), false);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/node-pty/lib/index.js'), true);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/electron'), false);
 });
 
 test('icon generation creates every standard macOS iconset size', async () => {
