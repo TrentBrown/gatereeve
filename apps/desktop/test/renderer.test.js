@@ -615,7 +615,7 @@ test('selected artifact rereads automatically when its canonical fingerprint cha
   const { window } = parseHTML(html);
   let subscriber;
   let artifactReads = 0;
-  let failArtifactRead = false;
+  let failArtifactRead = true;
   const queuedArtifactReads = [];
   const artifact = (modifiedAt, size) => ({
     id: 'interview',
@@ -693,13 +693,15 @@ test('selected artifact rereads automatically when its canonical fingerprint cha
   window.document.querySelector('[data-view="artifacts"]').click();
   window.document.querySelector('[data-artifact-id="interview"]').click();
   await new Promise((done) => setImmediate(done));
-  assert.match(window.document.querySelector('#artifact-viewer').textContent, /First/);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Refresh failed/);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Open with/);
 
   const viewer = window.document.querySelector('#artifact-viewer');
   Object.defineProperty(viewer, 'scrollHeight', { configurable: true, value: 1000 });
   Object.defineProperty(viewer, 'clientHeight', { configurable: true, value: 200 });
   viewer.scrollTop = 300;
 
+  failArtifactRead = false;
   subscriber(state(artifact('2026-08-29T01:01:00.000Z', 28)));
   await new Promise((done) => setImmediate(done));
   assert.equal(artifactReads, 2);

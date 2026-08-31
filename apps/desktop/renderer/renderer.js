@@ -1059,7 +1059,11 @@ function setInspectorExpanded(expanded) {
   button.title = expanded ? 'Restore artifact viewer (Escape)' : 'Expand artifact viewer';
 }
 
-function artifactActions(artifact, capabilities, detail = null) {
+function artifactActions(artifact, capabilities = {
+  editors: [],
+  preferredEditorId: null,
+  githubAvailable: false,
+}, detail = null) {
   const actions = node('div', { className: 'viewer-actions' });
   const copyContent = iconButton('copy', 'Copy artifact contents');
   copyContent.disabled = detail === null;

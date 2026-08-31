@@ -9,14 +9,15 @@
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Bounded open routes | PASS | - | Contract, service, IPC, and renderer tests cover default/preferred/one-time routes. |
-| R2 | Accurate copy/location actions | PASS | - | Copy tests preserve source bytes, avoid Downloads overwrites, and cover cancellation-aware UI routes. |
-| R3 | Provenance-driven GitHub action | PASS | - | URL derivation rejects non-GitHub/untracked failures and renderer omits unavailable action. |
-| R4 | Coherent accessible UI | PASS | - | Grouped/labelled menu renderer test and 1280x800 fixture inspection passed without overflow. |
+| R1 | Bounded open routes | PASS | #40 | Contract, service, IPC, and renderer tests cover default/preferred/one-time routes. |
+| R2 | Accurate copy/location actions | PASS | #40 | Copy tests preserve source bytes, avoid Downloads overwrites, and cover cancellation-aware UI routes. |
+| R3 | Provenance-driven GitHub action | PASS | #40 | URL derivation rejects non-GitHub/untracked failures and renderer omits unavailable action. |
+| R4 | Coherent accessible UI | PASS | #40 | Grouped/labelled menu renderer test and 1280x800 fixture inspection passed without overflow. |
 
 ## PR Log
 
-Append PR boundary entries here.
+- [#40](https://github.com/TrentBrown/gatereeve/pull/40) — feature-final
+  desktop artifact file-actions boundary.
 
 Implementation is complete pending native macOS runtime verification of editor
 discovery, application chooser, and OS handoff.
