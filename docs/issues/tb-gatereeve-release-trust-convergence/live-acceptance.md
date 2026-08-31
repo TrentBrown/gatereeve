@@ -207,3 +207,20 @@ The served Desktop manifest remains on public `0.1.0-rc.2` with universal-DMG
 SHA-256 `ec50610dfbeffe9bf0004f313e1413ae6d62c58a88cc3b0fa2c25b30b280754f`.
 This baseline is the zero-public-mutation comparator for the corrected
 nonpublishing RC.4 rehearsal.
+
+## RC.4 protected reviewer wait
+
+Preparation run
+[33343210101](https://github.com/TrentBrown/gatereeve/actions/runs/33343210101)
+was dispatched for `v0.1.0-rc.4` from exact reviewed `main`
+`57fe66ba90ae1db1df970bf6988053136b567f23`. Source resolution and the Plugin
+candidate job passed. At 2026-08-30T23:59:41Z, the `desktop-trust` job entered
+GitHub status `waiting` before any Apple trust production began.
+
+GitHub created deployment `6172763830` for environment `release-trust`, ref
+`main`, and the exact reviewed source SHA. The pending-deployments API reports
+required reviewer `TrentBrown` and confirms that account can approve. This is
+the real environment deployment/reviewer wait that RC.3 failed to create and
+therefore proves the PR #37 boundary correction up to the human authorization
+point. The protected job remains unapproved pending explicit user action in
+GitHub.
