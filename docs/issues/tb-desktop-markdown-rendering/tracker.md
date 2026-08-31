@@ -25,3 +25,5 @@
 - Pull request: [#42](https://github.com/TrentBrown/gatereeve/pull/42)
 - Evidence packet: [pr-42](pr-42/boundary.json)
 - Scope: feature-final
+
+Merged as `0aac0e525bc59368301e22f305198ac70a09aef5` after all 13 required checks passed.
