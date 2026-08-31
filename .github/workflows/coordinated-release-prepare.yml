@@ -63,19 +63,50 @@ jobs:
           node cli/bin/workflow.js plugin release prepare
           --tag "${{ inputs.tag }}"
           --source-commit "${{ needs.resolve-source.outputs.commit }}"
-          --output-root "$RUNNER_TEMP/plugin-marketplace"
+          --output-root "$RUNNER_TEMP/coordinated-plugin-candidate/marketplace"
+          --integrity-manifest "$RUNNER_TEMP/coordinated-plugin-candidate/integrity.json"
           --json
       - uses: actions/upload-artifact@v4
         with:
           name: coordinated-plugin-candidate
-          path: ${{ runner.temp }}/plugin-marketplace
+          path: ${{ runner.temp }}/coordinated-plugin-candidate
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+
+  plugin-candidate-round-trip:
+    needs:
+      - resolve-source
+      - plugin-candidate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-source.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - uses: actions/download-artifact@v4
+        with:
+          name: coordinated-plugin-candidate
+          path: ${{ runner.temp }}/coordinated-plugin-candidate
+      - name: Verify the first Plugin artifact round trip before Apple authority
+        run: >-
+          node cli/bin/workflow.js plugin release verify-plugin-integrity
+          --plugin-root "$RUNNER_TEMP/coordinated-plugin-candidate/marketplace"
+          --integrity-manifest "$RUNNER_TEMP/coordinated-plugin-candidate/integrity.json"
+          --tag "${{ inputs.tag }}"
+          --source-commit "${{ needs.resolve-source.outputs.commit }}"
+          --json
 
   desktop-trust:
     needs:
       - resolve-source
       - plugin-candidate
+      - plugin-candidate-round-trip
     runs-on: macos-15
     timeout-minutes: 45
     environment:
@@ -337,6 +368,7 @@ jobs:
     needs:
       - resolve-source
       - plugin-candidate
+      - plugin-candidate-round-trip
       - desktop-trust
       - trusted-desktop-verification
       - native-trust-aggregate
@@ -354,7 +386,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: coordinated-plugin-candidate
-          path: ${{ runner.temp }}/plugin-marketplace
+          path: ${{ runner.temp }}/coordinated-plugin-candidate
       - uses: actions/download-artifact@v4
         with:
           name: coordinated-desktop-trusted
@@ -374,7 +406,8 @@ jobs:
           --repository "${{ github.server_url }}/${{ github.repository }}"
           --tag "${{ inputs.tag }}"
           --source-commit "${{ needs.resolve-source.outputs.commit }}"
-          --plugin-root "$RUNNER_TEMP/plugin-marketplace"
+          --plugin-root "$RUNNER_TEMP/coordinated-plugin-candidate/marketplace"
+          --plugin-integrity "$RUNNER_TEMP/coordinated-plugin-candidate/integrity.json"
           --apple-trust "$RUNNER_TEMP/desktop/apple-trust.json"
           --native-aggregate "$RUNNER_TEMP/evidence/native-trust-aggregate.json"
           --output "$RUNNER_TEMP/coordinated-release/release-record.json"

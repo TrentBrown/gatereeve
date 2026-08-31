@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -22,6 +22,7 @@ import {
   trustDigest,
 } from '../src/plugin/native-trust-evidence-v2.js';
 import { buildTrustedReleaseLifecycleV2 } from '../src/plugin/trusted-release-lifecycle-v2.js';
+import { writePluginCandidateFixture } from './helpers/plugin-candidate.js';
 
 const source = {
   repository: 'https://github.com/TrentBrown/gatereeve',
@@ -36,17 +37,7 @@ function sha256(value) {
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-hosted-publication-'));
   const pluginRoot = join(root, 'plugin');
-  await mkdir(pluginRoot);
-  await writeFile(join(pluginRoot, 'plugin.json'), '{"name":"gatereeve"}\n');
-  await writeFile(join(pluginRoot, 'RELEASE.json'), `${JSON.stringify({
-    schemaVersion: 1,
-    plugin: 'agentic-development-workflow',
-    marketplace: 'quality-code',
-    version: source.tag.slice(1),
-    sourceTag: source.tag,
-    sourceCommit: source.commit,
-    ubuntuRcEvidence: null,
-  }, null, 2)}\n`);
+  const pluginIntegrityPath = await writePluginCandidateFixture({ root: pluginRoot, source });
   const dmgContent = Buffer.from('final trusted universal dmg\n');
   const dmgPath = join(root, `GateReeve-${source.tag.slice(1)}-macos-universal.dmg`);
   await writeFile(dmgPath, dmgContent);
@@ -138,6 +129,7 @@ async function fixture() {
   const trusted = await buildTrustedReleaseLifecycleV2({
     source,
     pluginRoot,
+    pluginIntegrityPath,
     appleTrust,
     nativeAggregate,
     now: () => new Date('2026-08-30T20:03:00.000Z'),
@@ -154,6 +146,7 @@ async function fixture() {
   return {
     root,
     pluginRoot,
+    pluginIntegrityPath,
     dmgPath,
     evidencePaths,
     trustedRecordPath,
@@ -168,6 +161,7 @@ test('finalizes trusted schema-v2 bytes into one sealed hosted publication packe
     const result = await finalizeHostedPublicationV2({
       trustedRecordPath: value.trustedRecordPath,
       pluginRoot: value.pluginRoot,
+      pluginIntegrityPath: value.pluginIntegrityPath,
       desktopDmgPath: value.dmgPath,
       desktopEvidencePaths: value.evidencePaths,
       currentUpdateManifestPath: value.currentUpdateManifestPath,
@@ -181,6 +175,17 @@ test('finalizes trusted schema-v2 bytes into one sealed hosted publication packe
     assert.equal(verified.projected.schemaVersion, 1);
     assert.equal(verified.receipts.schemaVersion, 2);
     assert.equal(verified.receipts.receipts.length, 0);
+    const catalogPath = join(
+      result.outputRoot,
+      'plugin/marketplace/.agents/plugins/marketplace.json',
+    );
+    const catalogBytes = await readFile(catalogPath);
+    await writeFile(catalogPath, '{"changed":true}\n');
+    await assert.rejects(
+      verifyHostedPublicationPacket(result.recordPath),
+      /producer integrity manifest/u,
+    );
+    await writeFile(catalogPath, catalogBytes);
     const changed = JSON.parse(await readFile(result.recordPath, 'utf8'));
     changed.stages.at(-1).evidence.planSha256 = '0'.repeat(64);
     await writeFile(result.recordPath, `${JSON.stringify(changed, null, 2)}\n`);
@@ -197,11 +202,12 @@ test('rejects finalization inputs that differ from the trusted lifecycle', async
     await assert.rejects(finalizeHostedPublicationV2({
       trustedRecordPath: value.trustedRecordPath,
       pluginRoot: value.pluginRoot,
+      pluginIntegrityPath: value.pluginIntegrityPath,
       desktopDmgPath: value.dmgPath,
       desktopEvidencePaths: value.evidencePaths,
       currentUpdateManifestPath: value.currentUpdateManifestPath,
       outputRoot: value.outputRoot,
-    }), /Plugin candidate differs from the trusted lifecycle/u);
+    }), /Plugin candidate tree differs from its producer integrity manifest/u);
   } finally {
     await rm(value.root, { recursive: true, force: true });
   }
@@ -213,6 +219,7 @@ test('dry run performs only preflights and real retry records each surface once'
     const finalized = await finalizeHostedPublicationV2({
       trustedRecordPath: value.trustedRecordPath,
       pluginRoot: value.pluginRoot,
+      pluginIntegrityPath: value.pluginIntegrityPath,
       desktopDmgPath: value.dmgPath,
       desktopEvidencePaths: value.evidencePaths,
       currentUpdateManifestPath: value.currentUpdateManifestPath,
@@ -273,6 +280,7 @@ test('keeps Cask pending until primary publication and then links one idempotent
     const finalized = await finalizeHostedPublicationV2({
       trustedRecordPath: value.trustedRecordPath,
       pluginRoot: value.pluginRoot,
+      pluginIntegrityPath: value.pluginIntegrityPath,
       desktopDmgPath: value.dmgPath,
       desktopEvidencePaths: value.evidencePaths,
       currentUpdateManifestPath: value.currentUpdateManifestPath,

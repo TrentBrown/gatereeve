@@ -277,7 +277,12 @@ gh workflow run coordinated-release-prepare.yml \
 
 The workflow binds the dispatch SHA to the exact current `origin/main`; it fails
 if `main` advances before source resolution. The signing job waits at
-`release-trust`. Review the source commit and Plugin candidate result before
+`release-trust`. Before that environment can begin Apple work, a read-only
+Ubuntu consumer downloads the Plugin candidate and verifies every visible and
+hidden file against the producer's companion path/size/SHA-256 manifest and
+deterministic tree digest. It also revalidates the Codex and Claude catalogs,
+manifests, hooks, provenance, shared inventories, release identity, and parity.
+Review the source commit and successful Plugin round-trip result before
 approving environment access. Approval grants secret access for that run; it
 does **not** approve publication.
 
@@ -312,7 +317,8 @@ gh run download RUN_ID \
 `desktop-trust-verified`. Its ordered evidence must bind the expected legal
 identity and Team ID, hardened runtime, secure timestamp, accepted request,
 validated staple, accepted Gatekeeper assessments, exactly one ARM and Intel
-document, and the final DMG SHA-256. The workflow has only
+document, the final DMG SHA-256, and the exact producer-side Plugin integrity
+manifest and tree digest. The workflow has only
 `contents: read`; it cannot create a tag, release, marketplace update, manifest,
 website change, or Cask.
 

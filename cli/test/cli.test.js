@@ -127,6 +127,8 @@ test('prepares a release through the grouped command path', async () => {
   const root = await mkdtemp(join(tmpdir(), 'workflow release command '));
   const executable = join(cliRoot, 'bin/workflow.js');
   const outputRoot = join(root, 'marketplace');
+  const integrityManifestPath = join(root, 'integrity.json');
+  const sourceCommit = '1234567890abcdef1234567890abcdef12345678';
   const prepared = await execFileAsync(
     process.execPath,
     [
@@ -137,17 +139,44 @@ test('prepares a release through the grouped command path', async () => {
       '--tag',
       'v0.1.0-rc.99',
       '--source-commit',
-      'deadbeef',
+      sourceCommit,
       '--output-root',
       outputRoot,
+      '--integrity-manifest',
+      integrityManifestPath,
       '--json',
     ],
     { cwd: cliRoot }
   );
   const result = JSON.parse(prepared.stdout);
   assert.equal(result.sourceTag, 'v0.1.0-rc.99');
-  assert.equal(result.sourceCommit, 'deadbeef');
+  assert.equal(result.sourceCommit, sourceCommit);
   assert.equal(result.outputRoot, outputRoot);
+  assert.equal(result.integrity.path, integrityManifestPath);
+
+  const verification = await execFileAsync(
+    process.execPath,
+    [
+      executable,
+      'plugin',
+      'release',
+      'verify-plugin-integrity',
+      '--plugin-root',
+      outputRoot,
+      '--integrity-manifest',
+      integrityManifestPath,
+      '--tag',
+      'v0.1.0-rc.99',
+      '--source-commit',
+      sourceCommit,
+      '--json',
+    ],
+    { cwd: cliRoot }
+  );
+  const verified = JSON.parse(verification.stdout);
+  assert.equal(verified.status, 'passed');
+  assert.equal(verified.sourceCommit, sourceCommit);
+  assert.match(verified.treeSha256, /^[a-f0-9]{64}$/u);
 });
 
 test('public release entrypoint requires a coordinated release record', async () => {

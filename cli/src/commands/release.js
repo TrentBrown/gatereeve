@@ -51,6 +51,7 @@ import {
   renderHomebrewCaskPublicationPlanV2,
   verifyHomebrewCaskWorkspaceV2,
 } from '../plugin/homebrew-cask-v2.js';
+import { verifyPluginCandidateIntegrity } from '../plugin/plugin-candidate-integrity.js';
 
 function positiveInteger(value) {
   const parsed = Number.parseInt(value, 10);
@@ -414,6 +415,7 @@ export function releaseCommands({ repositoryRoot }) {
     .description('Seal exact trusted schema-v2 inputs for hosted publication')
     .requiredOption('--trusted-record <path>', 'Desktop-trust-verified schema-v2 lifecycle')
     .requiredOption('--plugin-root <path>', 'Retained exact Plugin candidate')
+    .requiredOption('--plugin-integrity <path>', 'Producer-side Plugin integrity manifest')
     .requiredOption('--desktop-dmg <path>', 'Retained final trusted universal DMG')
     .requiredOption('--desktop-evidence <paths...>', 'Retained ARM64 and Intel evidence')
     .requiredOption('--current-update-manifest <path>', 'Exact update-manifest base input')
@@ -423,6 +425,7 @@ export function releaseCommands({ repositoryRoot }) {
       const result = await finalizeHostedPublicationV2({
         trustedRecordPath: resolve(options.trustedRecord),
         pluginRoot: resolve(options.pluginRoot),
+        pluginIntegrityPath: resolve(options.pluginIntegrity),
         desktopDmgPath: resolve(options.desktopDmg),
         desktopEvidencePaths: options.desktopEvidence.map((path) => resolve(path)),
         currentUpdateManifestPath: resolve(options.currentUpdateManifest),
@@ -859,11 +862,39 @@ export function releaseCommands({ repositoryRoot }) {
     });
 
   release
+    .command('verify-plugin-integrity')
+    .description('Verify an exact retained Plugin candidate against its producer commitment')
+    .requiredOption('--plugin-root <path>', 'Retained Plugin marketplace candidate')
+    .requiredOption('--integrity-manifest <path>', 'Producer-side Plugin integrity manifest')
+    .requiredOption('--tag <tag>', 'Exact release tag')
+    .requiredOption('--source-commit <commit>', 'Exact release source commit')
+    .option('--json', 'Print machine-readable verification results')
+    .action(async (options) => {
+      const result = await verifyPluginCandidateIntegrity({
+        pluginRoot: resolve(options.pluginRoot),
+        integrityPath: resolve(options.integrityManifest),
+        sourceTag: options.tag,
+        sourceCommit: options.sourceCommit,
+      });
+      const value = {
+        schemaVersion: 1,
+        status: 'passed',
+        tag: options.tag,
+        sourceCommit: options.sourceCommit,
+        fileCount: result.files.length,
+        treeSha256: result.treeSha256,
+        manifestSha256: result.manifestSha256,
+      };
+      console.log(options.json ? JSON.stringify(value, null, 2) : `Verified ${value.fileCount} Plugin files.`);
+    });
+
+  release
     .command('prepare')
     .description('Compose a tag-scoped marketplace tree for atomic publication')
     .requiredOption('--tag <tag>', 'Semantic-version source tag')
     .requiredOption('--source-commit <commit>', 'Tagged source commit')
     .requiredOption('--output-root <path>', 'Fresh release output directory')
+    .option('--integrity-manifest <path>', 'Write a producer-side Plugin integrity manifest')
     .option('--source-root <path>', 'Plugin source root', resolve(repositoryRoot, 'plugin-src'))
     .option('--ubuntu-rc-evidence <path>', 'Required evidence for a stable release')
     .option('--json', 'Print machine-readable release results')
@@ -874,6 +905,9 @@ export function releaseCommands({ repositoryRoot }) {
         sourceTag: options.tag,
         sourceCommit: options.sourceCommit,
         ubuntuRcEvidencePath: options.ubuntuRcEvidence,
+        integrityManifestPath: options.integrityManifest
+          ? resolve(options.integrityManifest)
+          : null,
       });
       console.log(
         options.json

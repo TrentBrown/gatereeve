@@ -267,7 +267,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: coordinated-plugin-candidate
-          path: ${{ runner.temp }}/plugin-marketplace
+          path: ${{ runner.temp }}/coordinated-plugin-candidate
           github-token: ${{ github.token }}
           run-id: ${{ inputs.preparation_run_id }}
       - uses: actions/download-artifact@v4
@@ -283,7 +283,8 @@ jobs:
           --repository "${{ github.server_url }}/${{ github.repository }}"
           --tag "${{ inputs.tag }}"
           --source-commit "${{ needs.resolve-recovery.outputs.commit }}"
-          --plugin-root "$RUNNER_TEMP/plugin-marketplace"
+          --plugin-root "$RUNNER_TEMP/coordinated-plugin-candidate/marketplace"
+          --plugin-integrity "$RUNNER_TEMP/coordinated-plugin-candidate/integrity.json"
           --apple-trust "$RUNNER_TEMP/desktop/apple-trust.json"
           --native-aggregate "$RUNNER_TEMP/evidence/native-trust-aggregate.json"
           --output "$RUNNER_TEMP/coordinated-release/release-record.json"

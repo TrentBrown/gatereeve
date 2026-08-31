@@ -48,10 +48,19 @@ gh workflow run coordinated-release-prepare.yml \
 ```
 
 Record the successful preparation run ID and its exact `headSha`. The retained
-artifacts include the Plugin candidate, submitted and final universal DMGs,
-durable Apple attempt history, Apple evidence, exact native ARM64 and Intel
-documents, and a schema-v2 lifecycle through `desktop-trust-verified`. Every
-artifact is retained for 30 days.
+artifacts include the complete Plugin candidate plus its companion integrity
+manifest, submitted and final universal DMGs, durable Apple attempt history,
+Apple evidence, exact native ARM64 and Intel documents, and a schema-v2
+lifecycle through `desktop-trust-verified`. The Plugin manifest is outside the
+publishable marketplace tree and commits to every regular file by relative
+path, byte count, SHA-256, and one deterministic tree digest.
+
+The first Plugin upload explicitly includes hidden files. A separate
+nonpublishing Ubuntu job downloads it, verifies exact agreement with that
+producer manifest, and gates the `desktop-trust` job. Missing catalogs,
+manifests, provenance, hooks, or any other missing, added, or changed file must
+therefore fail before Developer ID signing or notarization. Every artifact is
+retained for 30 days.
 
 Do not use GitHub's generic **Re-run jobs** once protected trust production has
 begun. If polling times out or a run is interrupted, use the bounded recovery
@@ -94,8 +103,12 @@ npm start --prefix cli -- plugin release inspect-hosted \
 
 Record `PLAN_SHA256_FROM_INSPECTION`. Review the source, Plugin tree, final DMG,
 native evidence, Apple trust, generated assets, manifest base/output, and exact
-surface order. The finalizer is read-only and rejects any input that differs
-from the already trusted lifecycle.
+surface order. The finalizer is read-only and re-verifies the original Plugin
+integrity manifest, semantic marketplace structure, and trusted lifecycle. It
+rejects any input that differs from those retained authorities. The sealed
+packet retains both the exact publishable Plugin tree and the original
+companion manifest; rehearsal, publication, and linked Cask finalization verify
+them again before proceeding.
 
 ### 3. Run the protected nonpublishing rehearsal
 
@@ -144,6 +157,13 @@ and exact assets, transports update metadata through one deterministic PR, and
 waits for the exact Early Access response. It appends a receipt after each
 surface. Retry the same dispatch inputs and retained packet after partial
 failure; never delete, move, replace, or republish completed history.
+
+If a failed attempt has already created an immutable tag or Apple request
+history and its sealed Plugin packet is incomplete, do not repair, retarget,
+delete, or reuse that version. Preserve the failed attempt, restore only a
+mutable public surface to a separately verified predecessor when explicitly
+approved, fix the workflow through review, and use a fresh RC identity. RC.5
+is the concrete historical example of this forward-only rule.
 
 ### 5. Publish the linked Homebrew Cask later
 
@@ -614,6 +634,12 @@ interface.
 The tag-triggered workflow calls this command with an explicit tag, tagged
 source commit, and fresh output directory. It composes both packages, creates
 the complete marketplace layout, and writes `RELEASE.json` without publishing.
+The coordinated workflow also supplies `--integrity-manifest` at a sibling
+path outside that output directory. Preparation validates the catalogs,
+package manifests, hooks, provenance, shared-file inventories, and platform
+parity before writing the full-tree commitment. `plugin release
+verify-plugin-integrity` verifies any retained handoff against the same source
+tag and commit.
 
 For stable tags, CI reads `docs/releases/ubuntu-rc.json` from `origin/main` and
 passes it to `prepare`. Source code, dependencies, tests, and package contents

@@ -12,12 +12,13 @@ const repository = argument('--repository');
 const tag = argument('--tag');
 const sourceCommit = argument('--source-commit');
 const pluginRoot = argument('--plugin-root');
+const pluginIntegrityPath = argument('--plugin-integrity');
 const appleTrustPath = argument('--apple-trust');
 const nativeAggregatePath = argument('--native-aggregate');
 const outputPath = argument('--output');
-if (!repository || !tag || !sourceCommit || !pluginRoot || !appleTrustPath
+if (!repository || !tag || !sourceCommit || !pluginRoot || !pluginIntegrityPath || !appleTrustPath
   || !nativeAggregatePath || !outputPath) {
-  throw new Error('Usage: build-trusted-release-lifecycle --repository <url> --tag <tag> --source-commit <sha> --plugin-root <dir> --apple-trust <json> --native-aggregate <json> --output <json>');
+  throw new Error('Usage: build-trusted-release-lifecycle --repository <url> --tag <tag> --source-commit <sha> --plugin-root <dir> --plugin-integrity <json> --apple-trust <json> --native-aggregate <json> --output <json>');
 }
 const [appleTrust, nativeAggregate] = await Promise.all(
   [appleTrustPath, nativeAggregatePath].map(async (path) => (
@@ -27,6 +28,7 @@ const [appleTrust, nativeAggregate] = await Promise.all(
 const record = await buildTrustedReleaseLifecycleV2({
   source: { repository, tag, commit: sourceCommit },
   pluginRoot,
+  pluginIntegrityPath,
   appleTrust,
   nativeAggregate,
 });

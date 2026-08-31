@@ -81,7 +81,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: coordinated-plugin-candidate
-          path: ${{ runner.temp }}/plugin-marketplace
+          path: ${{ runner.temp }}/coordinated-plugin-candidate
           github-token: ${{ github.token }}
           run-id: ${{ inputs.preparation_run_id }}
       - uses: actions/download-artifact@v4
@@ -112,7 +112,8 @@ jobs:
           version="${VERSION#v}"
           node cli/bin/workflow.js plugin release finalize-hosted \
             --trusted-record "$RUNNER_TEMP/trusted-lifecycle/release-record.json" \
-            --plugin-root "$RUNNER_TEMP/plugin-marketplace" \
+            --plugin-root "$RUNNER_TEMP/coordinated-plugin-candidate/marketplace" \
+            --plugin-integrity "$RUNNER_TEMP/coordinated-plugin-candidate/integrity.json" \
             --desktop-dmg "$RUNNER_TEMP/desktop/GateReeve-${version}-macos-universal.dmg" \
             --desktop-evidence \
               "$RUNNER_TEMP/evidence/desktop-arm64.json" \
@@ -131,5 +132,6 @@ jobs:
         with:
           name: gatereeve-${{ inputs.tag }}-hosted-publication
           path: ${{ runner.temp }}/hosted-publication
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

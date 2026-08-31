@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #44 — Plugin Artifact Integrity</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b1020; --panel:#141b2d; --panel2:#1b2540; --text:#edf2ff; --muted:#aebbd7; --line:#33415f; --blue:#66a6ff; --green:#65d6a6; --amber:#ffc66d; --red:#ff7f91; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.6 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:radial-gradient(circle at 20% 0,#1a2b50 0,transparent 34rem),var(--bg); color:var(--text); }
+    main { width:min(1120px,calc(100% - 32px)); margin:auto; padding:48px 0 80px; }
+    header { padding:34px; border:1px solid var(--line); border-radius:22px; background:linear-gradient(145deg,rgba(27,37,64,.96),rgba(15,22,39,.96)); box-shadow:0 22px 70px rgba(0,0,0,.3); }
+    h1,h2,h3 { line-height:1.2; margin-top:0; }
+    h1 { font-size:clamp(2.1rem,5vw,4.5rem); max-width:900px; letter-spacing:-.045em; margin-bottom:16px; }
+    h2 { font-size:clamp(1.5rem,3vw,2.25rem); margin-bottom:14px; }
+    h3 { font-size:1.05rem; }
+    p { max-width:78ch; }
+    a { color:var(--blue); }
+    code { color:#d9e7ff; }
+    pre { overflow:auto; white-space:pre; padding:18px; border:1px solid var(--line); border-radius:12px; background:#090e1b; font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace; }
+    section { margin-top:26px; padding:28px; border:1px solid var(--line); border-radius:18px; background:rgba(20,27,45,.93); }
+    .eyebrow { color:var(--green); text-transform:uppercase; letter-spacing:.14em; font-size:.78rem; font-weight:800; }
+    .lede { font-size:1.18rem; color:#dce7ff; }
+    .muted { color:var(--muted); }
+    .meta,.grid,.flow,.stats { display:grid; gap:14px; }
+    .meta { grid-template-columns:repeat(3,1fr); margin-top:24px; }
+    .grid { grid-template-columns:repeat(2,1fr); }
+    .stats { grid-template-columns:repeat(4,1fr); }
+    .card,.stat,.step { padding:18px; border:1px solid var(--line); border-radius:14px; background:var(--panel2); }
+    .stat strong { display:block; font-size:1.55rem; color:var(--green); }
+    .flow { grid-template-columns:repeat(5,1fr); align-items:stretch; margin:24px 0; }
+    .step { position:relative; min-height:150px; }
+    .step:not(:last-child)::after { content:"→"; position:absolute; right:-14px; top:50%; z-index:2; width:27px; height:27px; border-radius:99px; background:var(--blue); color:#061226; text-align:center; line-height:27px; font-weight:900; }
+    .step b { display:block; margin-bottom:8px; color:var(--blue); }
+    .failure { border-color:#744153; background:#271724; }
+    .success { border-color:#287457; background:#10291f; }
+    .badge { display:inline-block; padding:3px 9px; margin:2px 3px 2px 0; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:.78rem; }
+    ul { padding-left:22px; }
+    .quiz-item { padding:18px 0; border-top:1px solid var(--line); }
+    .quiz-item:first-of-type { border-top:0; }
+    label { display:block; padding:9px 12px; margin:7px 0; border:1px solid var(--line); border-radius:9px; cursor:pointer; background:#11192b; }
+    label:hover { border-color:var(--blue); }
+    button { border:0; border-radius:10px; padding:12px 18px; background:var(--blue); color:#071225; font-weight:800; cursor:pointer; }
+    #result { margin-left:12px; font-weight:800; }
+    .callout { padding:16px 18px; border-left:4px solid var(--amber); background:#282214; border-radius:0 10px 10px 0; }
+    @media (max-width:850px) { .meta,.grid,.stats { grid-template-columns:1fr 1fr; } .flow { grid-template-columns:1fr; } .step:not(:last-child)::after { content:"↓"; right:calc(50% - 13px); top:auto; bottom:-14px; } }
+    @media (max-width:560px) { main { width:min(100% - 20px,1120px); padding-top:20px; } header,section { padding:20px; } .meta,.grid,.stats { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">GateReeve · PR #44 · pinned review</div>
+    <h1>Preserve the complete Plugin release tree</h1>
+    <p class="lede">This change closes the transport-integrity defect exposed by RC.5. GateReeve now commits to every Plugin file before upload, proves that GitHub preserved the exact tree before Apple work begins, and checks the same commitment again before publication.</p>
+    <div class="meta">
+      <div class="card"><strong>Base</strong><br><code>0aac0e5</code><br><span class="muted">main</span></div>
+      <div class="card"><strong>Reviewed source</strong><br><code>6531b39</code><br><span class="muted">immutable pinned diff</span></div>
+      <div class="card"><strong>Topology retained</strong><br>Universal DMG<br><span class="muted">Plugin + Desktop coordination</span></div>
+    </div>
+  </header>
+
+  <section id="background">
+    <div class="eyebrow">Background</div>
+    <h2>RC.5 proved the bytes were trusted, but not that every Plugin byte arrived</h2>
+    <div class="grid">
+      <div class="card failure">
+        <h3>What failed</h3>
+        <p>The Plugin marketplace was uploaded as a directory. GitHub artifact transport omitted dot-prefixed files. The resulting 309-file tree no longer contained the catalogs, package manifests, and build provenance that made the candidate complete.</p>
+      </div>
+      <div class="card success">
+        <h3>What worked</h3>
+        <p>Remote publication verification rejected the incomplete deployment before the Desktop GitHub release and later surfaces were published. RC.5 remains immutable evidence; the mutable marketplace branch was restored to verified RC.2.</p>
+      </div>
+    </div>
+    <p class="callout"><strong>Recovery rule:</strong> RC.5 is not retried, repaired, deleted, or retargeted. This code supports a fresh RC.6 through the complete protected lifecycle.</p>
+  </section>
+
+  <section id="intuition">
+    <div class="eyebrow">Intuition</div>
+    <h2>A tamper-evident chain of custody for one directory tree</h2>
+    <p>The integrity manifest lives beside the marketplace, never inside it. It records every safe regular-file path, byte count, SHA-256 digest, and a deterministic aggregate tree digest. It is the producer's commitment to the exact publishable tree.</p>
+    <div class="flow" aria-label="Release integrity flow">
+      <div class="step"><b>1 · Compose</b>Build the Plugin marketplace exactly once.</div>
+      <div class="step"><b>2 · Commit</b>Write external <code>integrity.json</code> over every file.</div>
+      <div class="step"><b>3 · Round-trip</b>Upload with hidden files, download, and verify.</div>
+      <div class="step"><b>4 · Trust</b>Only then allow signing, notarization, and native evidence.</div>
+      <div class="step"><b>5 · Publish</b>Reverify retained bytes before every public mutation.</div>
+    </div>
+    <p>There are two independent protections: byte identity catches missing, extra, or modified files; semantic validation catches a self-consistent but malformed marketplace. Passing one never substitutes for passing the other.</p>
+  </section>
+
+  <section id="code">
+    <div class="eyebrow">Code</div>
+    <h2>The implementation in four layers</h2>
+    <div class="stats">
+      <div class="stat"><strong>30</strong>files in pinned change</div>
+      <div class="stat"><strong>169</strong>Node tests passing</div>
+      <div class="stat"><strong>94</strong>Python tests passing</div>
+      <div class="stat"><strong>0</strong>audit vulnerabilities</div>
+    </div>
+
+    <h3>1. Deterministic full-tree commitment</h3>
+    <p><code>plugin-candidate-integrity.js</code> inventories only safe regular files. It rejects traversal, duplicates, unsorted records, symlinks, special files, unexpected additions, omissions, and byte mutations.</p>
+    <pre><code>marketplace/
+  .claude-plugin/marketplace.json   bytes + sha256
+  .cursor-plugin/marketplace.json   bytes + sha256
+  hooks/hooks.json                  bytes + sha256
+  skills/...                        bytes + sha256
+  RELEASE                           bytes + sha256
+
+integrity.json                      external manifest + tree digest</code></pre>
+
+    <h3>2. Fail-closed command and record boundaries</h3>
+    <p>The CLI can produce and verify the commitment. Hosted finalization requires it. Trusted-lifecycle and coordinated-release records carry its identity, and schema-v2 publication cross-checks the original manifest against both records.</p>
+    <pre><code>prepare --integrity-manifest &lt;path&gt;
+verify-plugin-integrity --marketplace &lt;dir&gt; --manifest &lt;path&gt;
+finalize-hosted --plugin-integrity &lt;path&gt;   # required</code></pre>
+
+    <h3>3. Transport proof before Apple authority</h3>
+    <p>The preparation workflow uploads a narrow wrapper directory containing <code>marketplace/</code> and <code>integrity.json</code>, with hidden-file inclusion explicit. A read-only round-trip job downloads and verifies it; <code>desktop-trust</code> and trusted assembly depend on that result.</p>
+    <pre><code>coordinated-plugin-candidate/
+├── marketplace/
+└── integrity.json
+
+prepare → plugin-candidate-round-trip → desktop-trust → finalization</code></pre>
+
+    <h3>4. Regression and operational contracts</h3>
+    <p>Tests cover missing hidden and visible files, extra files, byte mutation, malformed and self-consistent semantic incompleteness, symlinks, evidence placed inside the tree, CLI round-trips, packet mutation, and workflow dependency ordering.</p>
+    <div>
+      <span class="badge">exact bytes</span><span class="badge">semantic completeness</span><span class="badge">hidden files</span><span class="badge">least privilege</span><span class="badge">retained-byte recovery</span><span class="badge">historical v1 compatibility</span>
+    </div>
+  </section>
+
+  <section id="boundaries">
+    <div class="eyebrow">Unchanged boundaries</div>
+    <h2>What this correction deliberately does not alter</h2>
+    <div class="grid">
+      <div class="card"><h3>Product shape</h3><p>GateReeve keeps its universal macOS DMG and coordinated Plugin/Desktop release graph. No PortReeve CLI or native-service topology is imported.</p></div>
+      <div class="card"><h3>Authority</h3><p><code>release-trust</code> and <code>release-publication</code> remain separate. This change neither reads nor rotates secrets and grants no publication authority.</p></div>
+      <div class="card"><h3>History</h3><p>RC.5 and its Apple request history remain immutable. The next candidate is RC.6, built only after this correction reaches main.</p></div>
+      <div class="card"><h3>Remaining proof</h3><p>Actual GitHub artifact transport, protected Apple work, public RC.6 deployment, and Mac/Homebrew installation are later governed steps—not claims made by this PR.</p></div>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <div class="eyebrow">Quiz</div>
+    <h2>Check your understanding</h2>
+    <form id="quiz-form">
+      <div class="quiz-item" data-answer="b">
+        <h3>1. Why is <code>integrity.json</code> outside the marketplace?</h3>
+        <label><input type="radio" name="q1" value="a"> GitHub cannot upload JSON inside directories.</label>
+        <label><input type="radio" name="q1" value="b"> The evidence must commit to the publishable tree without becoming part of that tree.</label>
+        <label><input type="radio" name="q1" value="c"> Apple notarization rejects embedded JSON.</label>
+      </div>
+      <div class="quiz-item" data-answer="c">
+        <h3>2. What authorizes Apple trust production?</h3>
+        <label><input type="radio" name="q2" value="a"> Successful Plugin composition alone.</label>
+        <label><input type="radio" name="q2" value="b"> A matching file count after upload.</label>
+        <label><input type="radio" name="q2" value="c"> Successful download and exact verification of the producer commitment.</label>
+      </div>
+      <div class="quiz-item" data-answer="a">
+        <h3>3. Can a self-consistent manifest make an incomplete marketplace valid?</h3>
+        <label><input type="radio" name="q3" value="a"> No; independent semantic checks are also required.</label>
+        <label><input type="radio" name="q3" value="b"> Yes; matching hashes are the complete contract.</label>
+        <label><input type="radio" name="q3" value="c"> Yes, but only on ARM64.</label>
+      </div>
+      <div class="quiz-item" data-answer="c">
+        <h3>4. What happens to RC.5?</h3>
+        <label><input type="radio" name="q4" value="a"> Its tag is moved to the corrected code.</label>
+        <label><input type="radio" name="q4" value="b"> Missing files are appended to its sealed packet.</label>
+        <label><input type="radio" name="q4" value="c"> It remains immutable failed-attempt evidence; recovery moves forward as RC.6.</label>
+      </div>
+      <div class="quiz-item" data-answer="b">
+        <h3>5. What proof is still outside this code-review slice?</h3>
+        <label><input type="radio" name="q5" value="a"> Unit tests for missing hidden files.</label>
+        <label><input type="radio" name="q5" value="b"> Live hosted RC.6, protected Apple evidence, publication, and Mac installation.</label>
+        <label><input type="radio" name="q5" value="c"> Separation of trust and publication credentials.</label>
+      </div>
+      <button type="submit">Score quiz</button><span id="result" aria-live="polite"></span>
+    </form>
+  </section>
+</main>
+<script>
+  document.getElementById('quiz-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const items = [...document.querySelectorAll('.quiz-item')];
+    let score = 0;
+    items.forEach((item, index) => {
+      const selected = document.querySelector('input[name="q' + (index + 1) + '"]:checked');
+      if (selected && selected.value === item.dataset.answer) score += 1;
+    });
+    const result = document.getElementById('result');
+    result.textContent = score + ' / ' + items.length + (score === items.length ? ' — chain of custody understood.' : ' — review the highlighted concepts above.');
+    result.style.color = score === items.length ? 'var(--green)' : 'var(--amber)';
+  });
+</script>
+</body>
+</html>
