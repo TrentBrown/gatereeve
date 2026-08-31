@@ -16,6 +16,12 @@ import {
   requireSessionInventory,
   requireSelectedAgents,
   requireSetupState,
+  requireTerminalDimensionsRequest,
+  requireTerminalEvent,
+  requireTerminalInputRequest,
+  requireTerminalResizeRequest,
+  requireTerminalSession,
+  requireTerminalSessionRequest,
   requireUpdateState,
 } from '../shared/contracts.js';
 
@@ -44,11 +50,13 @@ function state() {
     setup: setup(),
     projects: [],
     candidateDiagnostic: null,
-    preferences: { notificationsEnabled: false, projectPaths: [], selectedAgents: [] },
+    preferences: {
+      notificationsEnabled: false, projectPaths: [], selectedAgents: [], terminalHeight: 260,
+    },
   };
 }
 
-test('desktop state requires the exact read-only envelope', () => {
+test('desktop state requires the exact bounded application envelope', () => {
   assert.equal(requireDesktopState(state()).phase, 'idle');
   assert.throws(() => requireDesktopState({ ...state(), mutation: null }), /invalid/);
   assert.throws(() => requireDesktopState({ ...state(), refreshing: 'yes' }), /invalid/);
@@ -117,7 +125,49 @@ test('named read and artifact requests reject broad or malformed access', () => 
   assert.equal(requireSessionDetail({ schemaVersion: 1, id: sessionId, item, content: '# State' }).content, '# State');
 });
 
-test('IPC allow-list contains no workflow mutation or process-execution surface', () => {
+test('terminal contracts are exact, bounded, and expose no spawn configuration', () => {
+  const running = {
+    schemaVersion: 1,
+    id: 'terminal_abc-123',
+    projectName: 'project',
+    shell: 'zsh',
+    status: 'running',
+    cols: 80,
+    rows: 24,
+    output: '',
+    exit: null,
+    error: null,
+  };
+  assert.equal(requireTerminalSession(running).id, running.id);
+  assert.deepEqual(requireTerminalDimensionsRequest({ cols: 80, rows: 24 }), {
+    cols: 80, rows: 24,
+  });
+  assert.deepEqual(requireTerminalInputRequest({
+    sessionId: running.id, data: 'echo ready\r',
+  }), { sessionId: running.id, data: 'echo ready\r' });
+  assert.deepEqual(requireTerminalResizeRequest({
+    sessionId: running.id, cols: 100, rows: 40,
+  }), { sessionId: running.id, cols: 100, rows: 40 });
+  assert.deepEqual(requireTerminalSessionRequest({ sessionId: running.id }), {
+    sessionId: running.id,
+  });
+  assert.equal(requireTerminalEvent({
+    schemaVersion: 1, type: 'data', sessionId: running.id, data: 'ready',
+  }).data, 'ready');
+  assert.throws(() => requireTerminalDimensionsRequest({ cols: 0, rows: 24 }), /invalid/);
+  assert.throws(() => requireTerminalInputRequest({
+    sessionId: running.id, data: 'x'.repeat(65_537),
+  }), /invalid/);
+  assert.throws(() => requireTerminalResizeRequest({
+    sessionId: running.id, cols: 80, rows: 24, pid: 123,
+  }), /invalid/);
+  assert.throws(() => requireTerminalSession({ ...running, executable: '/bin/sh' }), /invalid/);
+  assert.throws(() => requireTerminalEvent({
+    schemaVersion: 1, type: 'exited', session: { ...running, status: 'running' },
+  }), /invalid|inconsistent/);
+});
+
+test('IPC allow-list adds only the bounded terminal authority surface', () => {
   const channels = Object.values(IPC_CHANNELS).sort();
   assert.deepEqual(channels, [
     'gatereeve:desktop:activate-project',
@@ -145,8 +195,15 @@ test('IPC allow-list contains no workflow mutation or process-execution surface'
     'gatereeve:desktop:save-artifact-downloads',
     'gatereeve:desktop:set-notifications-enabled',
     'gatereeve:desktop:set-selected-agents',
+    'gatereeve:desktop:set-terminal-height',
     'gatereeve:desktop:state-changed',
+    'gatereeve:desktop:terminal-changed',
+    'gatereeve:desktop:terminal-ensure',
+    'gatereeve:desktop:terminal-resize',
+    'gatereeve:desktop:terminal-restart',
+    'gatereeve:desktop:terminal-terminate',
+    'gatereeve:desktop:terminal-write',
     'gatereeve:desktop:update-changed',
   ]);
-  assert.equal(channels.some((channel) => /execute|transition|advance|install|upgrade|disable|plugin/.test(channel)), false);
+  assert.equal(channels.some((channel) => /execute|spawn|transition|advance|install|upgrade|disable|plugin/.test(channel)), false);
 });

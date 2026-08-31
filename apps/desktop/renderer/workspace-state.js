@@ -17,6 +17,7 @@ function createWorkspace() {
     selectedAttemptId: null,
     selectedGateId: null,
     sidebarVisible: true,
+    terminalVisible: false,
     inspectorVisible: false,
     inspectorWidth: DEFAULT_INSPECTOR_WIDTH,
     tabs: [],
@@ -80,6 +81,11 @@ export function createWorkspaceStore() {
     toggleSidebar(projectPath, visible = undefined) {
       const workspace = ensure(projectPath);
       workspace.sidebarVisible = visible ?? !workspace.sidebarVisible;
+      return workspace;
+    },
+    toggleTerminal(projectPath, visible = undefined) {
+      const workspace = ensure(projectPath);
+      workspace.terminalVisible = visible ?? !workspace.terminalVisible;
       return workspace;
     },
     toggleInspector(projectPath, visible = undefined) {

@@ -12,6 +12,7 @@ test('workspace state is isolated per canonical project and remains serializable
   const store = createWorkspaceStore();
   store.setMainView('/project/a', 'artifacts');
   store.openArtifact('/project/a', design);
+  store.toggleTerminal('/project/a', true);
   store.setInspectorWidth('/project/a', 530);
   store.setHierarchy('/project/a', {
     selectedFeatureState: 'DELIVERING_SLICES',
@@ -22,6 +23,7 @@ test('workspace state is isolated per canonical project and remains serializable
 
   assert.equal(store.get('/project/a').mainView, 'artifacts');
   assert.equal(store.get('/project/a').tabs.length, 1);
+  assert.equal(store.get('/project/a').terminalVisible, true);
   assert.deepEqual({
     selectedFeatureState: store.get('/project/a').selectedFeatureState,
     selectedSliceId: store.get('/project/a').selectedSliceId,
@@ -35,6 +37,7 @@ test('workspace state is isolated per canonical project and remains serializable
   });
   assert.equal(store.get('/project/b').mainView, 'overview');
   assert.equal(store.get('/project/b').tabs.length, 0);
+  assert.equal(store.get('/project/b').terminalVisible, false);
   assert.equal(store.get('/project/b').selectedFeatureState, null);
   assert.deepEqual(JSON.parse(JSON.stringify(store.snapshot('/project/a'))), store.snapshot('/project/a'));
 });

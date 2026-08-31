@@ -24,7 +24,12 @@ test('Desktop stages the exact canonical protocol without a CLI runtime dependen
     assert.deepEqual(staged, canonical, entry.path);
   }
   const packageJson = JSON.parse(await readFile(resolve(desktopRoot, 'package.json'), 'utf8'));
-  assert.equal(packageJson.dependencies, undefined);
+  assert.deepEqual(packageJson.dependencies, {
+    '@xterm/addon-fit': '0.11.0',
+    '@xterm/xterm': '6.0.0',
+    'node-pty': '1.2.0-beta.15',
+  });
+  assert.equal(Object.keys(packageJson.dependencies).some((name) => /cli|commander/iu.test(name)), false);
   await assert.rejects(access(resolve(desktopRoot, 'resources/scripts')), /ENOENT/);
   const contextSource = await readFile(
     resolve(desktopRoot, 'resources/protocol/context.js'),

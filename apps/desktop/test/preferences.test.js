@@ -13,6 +13,7 @@ import {
   removeProjectReference,
   reorderProjectReferences,
   selectAgents,
+  setTerminalHeight,
 } from '../main/preferences.js';
 
 test('preferences persist only saved project references and ordinary application settings', async () => {
@@ -26,7 +27,7 @@ test('preferences persist only saved project references and ordinary application
   const persisted = JSON.parse(await readFile(store.path, 'utf8'));
   assert.deepEqual(Object.keys(persisted).sort(), [
     'lastProjectPath', 'notificationsEnabled', 'projectPaths', 'schemaVersion',
-    'selectedAgents', 'window',
+    'selectedAgents', 'terminalHeight', 'window',
   ]);
   assert.equal(JSON.stringify(persisted).includes('snapshot'), false);
   assert.equal(JSON.stringify(persisted).includes('github'), false);
@@ -45,12 +46,13 @@ test('schema v1 recent worktrees migrate in place to ordered project references'
     selectedAgents: ['codex'],
   }));
   assert.deepEqual(await store.load(), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     projectPaths: ['/tmp/recent', '/tmp/older'],
     lastProjectPath: '/tmp/older',
     window: null,
     notificationsEnabled: true,
     selectedAgents: ['codex'],
+    terminalHeight: 260,
   });
 });
 
@@ -82,12 +84,13 @@ test('preferences discard invalid fields and require the last path to be saved',
     window: { x: 0, y: 0, width: 10, height: 10 },
     snapshot: { forbidden: true },
   }), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     projectPaths: ['/tmp/valid'],
     lastProjectPath: null,
     window: null,
     notificationsEnabled: false,
     selectedAgents: [],
+    terminalHeight: 260,
   });
 });
 
@@ -96,6 +99,13 @@ test('agent selection is explicit, canonical, and rejects unsupported agents', (
     'codex', 'claude',
   ]);
   assert.throws(() => selectAgents(defaultPreferences(), ['cursor']), /invalid/);
+});
+
+test('terminal height is device-local, clamped, and migrated from older schemas', () => {
+  assert.equal(setTerminalHeight(defaultPreferences(), 340).terminalHeight, 340);
+  assert.equal(setTerminalHeight(defaultPreferences(), 20).terminalHeight, 140);
+  assert.equal(setTerminalHeight(defaultPreferences(), 2_000).terminalHeight, 720);
+  assert.throws(() => setTerminalHeight(defaultPreferences(), 'large'), /invalid/);
 });
 
 test('concurrent preference saves are serialized in call order', async () => {

@@ -6,7 +6,10 @@ import { randomUUID } from 'node:crypto';
 
 import { requireSelectedAgents } from '../shared/contracts.js';
 
-export const PREFERENCES_SCHEMA_VERSION = 2;
+export const PREFERENCES_SCHEMA_VERSION = 3;
+export const DEFAULT_TERMINAL_HEIGHT = 260;
+export const MIN_TERMINAL_HEIGHT = 140;
+export const MAX_TERMINAL_HEIGHT = 720;
 
 export function defaultPreferences() {
   return {
@@ -16,6 +19,7 @@ export function defaultPreferences() {
     window: null,
     notificationsEnabled: false,
     selectedAgents: [],
+    terminalHeight: DEFAULT_TERMINAL_HEIGHT,
   };
 }
 
@@ -34,7 +38,7 @@ export function normalizePreferences(value) {
 
   const sourcePaths = value.schemaVersion === 1
     ? value.recentWorktrees
-    : value.schemaVersion === PREFERENCES_SCHEMA_VERSION
+    : [2, PREFERENCES_SCHEMA_VERSION].includes(value.schemaVersion)
       ? value.projectPaths
       : null;
   if (!Array.isArray(sourcePaths)) return fallback;
@@ -66,6 +70,12 @@ export function normalizePreferences(value) {
     } : null,
     notificationsEnabled: value.notificationsEnabled === true,
     selectedAgents,
+    terminalHeight: Number.isFinite(Number(value.terminalHeight))
+      ? Math.min(
+        MAX_TERMINAL_HEIGHT,
+        Math.max(MIN_TERMINAL_HEIGHT, Math.round(Number(value.terminalHeight))),
+      )
+      : DEFAULT_TERMINAL_HEIGHT,
   };
 }
 
@@ -124,6 +134,11 @@ export function selectAgents(preferences, selectedAgents) {
     ...normalizePreferences(preferences),
     selectedAgents: requireSelectedAgents(selectedAgents),
   };
+}
+
+export function setTerminalHeight(preferences, height) {
+  if (!Number.isFinite(Number(height))) throw new TypeError('Terminal panel height is invalid.');
+  return normalizePreferences({ ...preferences, terminalHeight: height });
 }
 
 export function createPreferenceStore(userDataPath) {

@@ -8,12 +8,15 @@ import { registerRendererProtocol } from '../main/renderer-protocol.js';
 
 test('renderer protocols confine application files and serve only named trusted HTML artifacts', async () => {
   const rendererRoot = await mkdtemp(join(tmpdir(), 'gatereeve-renderer-'));
+  const vendorRoot = await mkdtemp(join(tmpdir(), 'gatereeve-terminal-vendor-'));
   const brandingAsset = join(rendererRoot, 'approved-icon.png');
   await writeFile(join(rendererRoot, 'index.html'), '<h1>GateReeve</h1>');
   await writeFile(brandingAsset, Buffer.from([137, 80, 78, 71]));
+  await writeFile(join(vendorRoot, 'xterm.mjs'), 'export class Terminal {}');
   const handlers = new Map();
   registerRendererProtocol({ handle(scheme, handler) { handlers.set(scheme, handler); } }, rendererRoot, {
     brandingAsset,
+    terminalAssets: { 'vendor/xterm.mjs': join(vendorRoot, 'xterm.mjs') },
     async readArtifact(id) {
       if (id !== 'attempt:one:gate:explainDiff') throw new Error('unknown');
       return {
@@ -33,6 +36,8 @@ test('renderer protocols confine application files and serve only named trusted 
   assert.equal(appResponse.status, 200);
   assert.equal(appResponse.headers.get('cache-control'), 'no-store');
   assert.match(appResponse.headers.get('content-security-policy'), /frame-src gatereeve-artifact:/);
+  assert.match(appResponse.headers.get('content-security-policy'), /style-src-elem 'self'/);
+  assert.match(appResponse.headers.get('content-security-policy'), /style-src-attr 'unsafe-inline'/);
   assert.equal(await appResponse.text(), '<h1>GateReeve</h1>');
   const brandingResponse = await handlers.get('gatereeve-app')({
     method: 'GET', url: 'gatereeve-app://desktop/branding/gatereeve-rolling-vale.png',
@@ -40,6 +45,15 @@ test('renderer protocols confine application files and serve only named trusted 
   assert.equal(brandingResponse.status, 200);
   assert.equal(brandingResponse.headers.get('content-type'), 'image/png');
   assert.deepEqual(Buffer.from(await brandingResponse.arrayBuffer()), Buffer.from([137, 80, 78, 71]));
+  const terminalResponse = await handlers.get('gatereeve-app')({
+    method: 'GET', url: 'gatereeve-app://desktop/vendor/xterm.mjs',
+  });
+  assert.equal(terminalResponse.status, 200);
+  assert.equal(terminalResponse.headers.get('content-type'), 'text/javascript; charset=utf-8');
+  assert.equal(await terminalResponse.text(), 'export class Terminal {}');
+  assert.equal((await handlers.get('gatereeve-app')({
+    method: 'GET', url: 'gatereeve-app://desktop/vendor/unknown.mjs',
+  })).status, 404);
   assert.equal((await handlers.get('gatereeve-app')({
     method: 'GET', url: 'gatereeve-app://desktop/..%2Foutside.txt',
   })).status, 404);

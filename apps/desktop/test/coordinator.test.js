@@ -97,7 +97,7 @@ test('selection publishes local state before enrichment and polls GitHub only wh
   assert.equal(saved.length, 1);
   assert.deepEqual(Object.keys(saved[0]).sort(), [
     'lastProjectPath', 'projectPaths', 'schemaVersion', 'window',
-    'notificationsEnabled', 'selectedAgents',
+    'notificationsEnabled', 'selectedAgents', 'terminalHeight',
   ].sort());
 
   intervals[0].callback();

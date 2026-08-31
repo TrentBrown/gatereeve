@@ -32,7 +32,9 @@ function unconfiguredState() {
       prerequisites: [],
       agents: [],
     },
-    preferences: { notificationsEnabled: false, projectPaths: [], selectedAgents: [] },
+    preferences: {
+      notificationsEnabled: false, projectPaths: [], selectedAgents: [], terminalHeight: 260,
+    },
   };
 }
 
@@ -70,7 +72,9 @@ function incompleteState() {
         },
       }],
     },
-    preferences: { notificationsEnabled: false, projectPaths: [], selectedAgents: ['codex'] },
+    preferences: {
+      notificationsEnabled: false, projectPaths: [], selectedAgents: ['codex'], terminalHeight: 260,
+    },
   };
 }
 
@@ -112,6 +116,7 @@ function mixedReadyState() {
       notificationsEnabled: false,
       projectPaths: [],
       selectedAgents: ['codex', 'claude'],
+      terminalHeight: 260,
     },
   };
 }
