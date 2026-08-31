@@ -152,8 +152,8 @@ release remained absent. Preparation therefore caused zero public mutation.
    zero mutation. **Complete.**
 9. Only after the corrected trust rehearsal succeeds, delete the Apple variables and
    secrets from `release-publication` and re-audit custody. **Complete.**
-10. Run feature-final spec evaluation and independent judgment. **In progress
-    at the governed feature-final PR boundary.**
+10. Run feature-final spec evaluation and independent judgment. **Complete:
+    both pass in the governed PR #38 boundary packet.**
 
 No public primary or Cask publication is authorized by this sequence.
 
