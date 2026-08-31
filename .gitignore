@@ -6,5 +6,6 @@ __pycache__/
 workflow-site/node_modules/
 cli/node_modules/
 apps/desktop/node_modules/
+apps/desktop/renderer/generated/
 cli/resources/
 dist/

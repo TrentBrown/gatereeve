@@ -115,6 +115,10 @@ test('Desktop staging contains only self-contained runtime resources', async () 
     for (const excluded of ['scripts', 'test', 'visual', 'node_modules']) {
       await assert.rejects(access(resolve(stageRoot, excluded)), /ENOENT/u);
     }
+    await assert.rejects(
+      access(resolve(stageRoot, 'renderer/markdown-source.js')),
+      /ENOENT/u,
+    );
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }

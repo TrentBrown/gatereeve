@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
 import { createMacosDmg } from './create-macos-dmg.mjs';
+import { buildRenderer } from './build-renderer.mjs';
 import { generateMacosIcon } from './generate-macos-icon.mjs';
 import {
   dmgFilename,
@@ -30,6 +31,7 @@ async function sha256(path) {
  * @param {{desktopRoot: string, stageRoot: string, version: string}} options
  */
 export async function stageDesktopSource(options) {
+  await buildRenderer({ desktopRoot: options.desktopRoot });
   await rm(options.stageRoot, { recursive: true, force: true });
   await mkdir(options.stageRoot, { recursive: true });
   for (const directory of STAGED_DIRECTORIES) {
@@ -39,6 +41,7 @@ export async function stageDesktopSource(options) {
       { recursive: true },
     );
   }
+  await rm(resolve(options.stageRoot, 'renderer', 'markdown-source.js'));
   const brandingRoot = resolve(options.stageRoot, 'assets', 'branding');
   await mkdir(brandingRoot, { recursive: true });
   await cp(

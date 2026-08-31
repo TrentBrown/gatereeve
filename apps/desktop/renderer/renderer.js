@@ -1322,7 +1322,10 @@ function resolveMarkdownLink(currentArtifact, rawTarget) {
 function scrollToArtifactFragment(fragment) {
   if (!fragment) return;
   const target = [...elements['artifact-viewer'].querySelectorAll('[id]')]
-    .find((candidate) => candidate.id === fragment);
+    .find((candidate) => (
+      candidate.id === fragment
+      || candidate.dataset.markdownFragment === fragment
+    ));
   target?.scrollIntoView?.();
 }
 

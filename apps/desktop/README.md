@@ -86,7 +86,8 @@ binds their common DMG checksum to the prepared Plugin candidate. This record is
 recoverable release evidence, not permission to publish the ad-hoc candidate.
 
 For renderer-only visual review on a host without Electron runtime libraries,
-serve this package directory and open `/visual/index.html`. The fixture uses
+run `npm run build:renderer`, serve this package directory, and open
+`/visual/index.html`. The fixture uses
 the production HTML, CSS, and renderer modules but is excluded from packages.
 
 ## Read-only boundary
