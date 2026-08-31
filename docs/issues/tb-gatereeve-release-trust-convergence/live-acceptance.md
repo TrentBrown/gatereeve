@@ -2,7 +2,7 @@
 
 **Feature:** `tb-gatereeve-release-trust-convergence`
 **Slice:** `s6-final-acceptance`
-**Status:** corrected mainline acceptance complete; feature-final review pending
+**Status:** COMPLETE - corrected acceptance merged through feature-final PR #38
 
 ## Reviewed mainline
 
@@ -360,3 +360,15 @@ The final local verification also passes: CLI 158/158, Desktop 125/125,
 portable Linux acceptance, all branch-document validators, decision triage,
 and `git diff --check`. No public primary or Cask publication occurred or is
 authorized by this feature-final evidence.
+
+## Feature-final merge
+
+The user approved PR #38. Approval-head Plugin CI run
+[33417134683](https://github.com/TrentBrown/gatereeve/actions/runs/33417134683)
+passed all 13 checks at final PR head
+`431ceba0d34785a7dd55d226e28e733d5789f5d4`, including the universal macOS
+package and native Apple Silicon and Intel packaged-runtime jobs. PR #38 merged
+to `main` as `1220138bf4248a72c1717955c4f62e3f1cda0599`; exact reviewed source
+`fd0b14795e4aa4e21d773813c3bebb7d2a04822b` and the final approved PR head are
+both verified ancestors of `origin/main`. The merge performed no release or
+Cask publication.
