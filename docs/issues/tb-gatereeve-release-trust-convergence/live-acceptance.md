@@ -222,5 +222,38 @@ GitHub created deployment `6172763830` for environment `release-trust`, ref
 required reviewer `TrentBrown` and confirms that account can approve. This is
 the real environment deployment/reviewer wait that RC.3 failed to create and
 therefore proves the PR #37 boundary correction up to the human authorization
-point. The protected job remains unapproved pending explicit user action in
-GitHub.
+point. At that checkpoint the protected job remained unapproved pending
+explicit user action in GitHub.
+
+The user approved the pending deployment in GitHub. Deployment `6172763830`
+recorded `queued` at 2026-08-31T15:37:17Z and `in_progress` at
+2026-08-31T15:37:20Z before the protected job began trust production.
+
+## RC.4 protected preparation evidence
+
+Run [33343210101](https://github.com/TrentBrown/gatereeve/actions/runs/33343210101)
+completed successfully without a retry. The retained artifact bytes were
+downloaded and their hashes recomputed locally.
+
+| Check | Result |
+|---|---|
+| Workflow conclusion | PASS: all seven jobs completed successfully |
+| Protected approval | PASS: real `release-trust` deployment `6172763830` waited for and received required reviewer approval |
+| Trusted lifecycle | PASS: schema v2, nine-stage digest chain ending at `desktop-trust-verified` |
+| Submitted DMG | PASS: 246,140,822 bytes; SHA-256 `5241a504dd9b3c83e2910f6cceb8eb2aefe496d85f28565fe7ea01e8a43dc9f6` |
+| Final stapled DMG | PASS: 246,143,121 bytes; SHA-256 `f932c9efb738c88fa234e843f9e4ad751e41e0eb9e8f96f5a6501e789fd16957` |
+| Developer ID | PASS: `Developer ID Application: Trent Brown (PMWYD5A82A)` with hardened runtime and secure timestamp |
+| Notarization | PASS: request `2de56a0a-b817-4c4a-a805-cdbec173b48c`, attempt `eb21739a-a83b-4e6d-a93b-6354805cf726`, status `Accepted` |
+| Staple and Gatekeeper | PASS: staple validated; DMG assessment accepted |
+| Native Apple Silicon | PASS: native ARM64 evidence digest `deadd5c258cccd692f91749c1586b5f385961984cffe42aa32eb49dcc5b0dd51` |
+| Native Intel | PASS: native x64 evidence digest `1ed6e5c29c823bd3ae67788d6d869c9ded4b016d4ef2a15b84ed7f4ee63f5ed1` |
+| Apple trust canonical digest | PASS: `274c9231d4be43a6f36ca6f49fcedc44ad90ce4be2b66bee9271a0c485a9dca6` |
+| Native aggregate canonical digest | PASS: `ebdbfb412845dc57004c9ffcd05f777cdf1392a556a86abe49a32ae753526270` |
+| Final lifecycle stage digest | PASS: `9c642a49897fa085c3ff3e283fe6ec3e93361ecb860cb16f7eb71c4d6ef202b1` |
+
+RC.4 is permanently bound to this final DMG and Apple request history. Do not
+use generic job reruns or reuse the version with changed bytes. The
+post-preparation inventory exactly matches the RC.4 baseline: the tag and
+release remain absent; Marketplace, mainline manifest, served Early Access
+manifest, Homebrew tap, and Cask identities are all unchanged. Preparation
+therefore caused zero public mutation.

@@ -9,14 +9,14 @@
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 produced a valid nine-stage schema-v2 trust lifecycle; corrected protected rehearsal and final P9 evaluation remain |
-| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 binds exact reviewed main, submitted/final DMG hashes, and immutable Apple request history; corrected rehearsal and finalization remain |
-| R3 | Credential custody | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Credential separation is configured and the deployment-suppression correction is merged; fresh RC.4 reviewer-wait evidence and final custody cleanup remain |
-| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.3 retained accepted request `faa0580d-941c-4df3-90b8-38570ff52ac4` and bounded history; final corrected rehearsal remains |
-| R5 | Native verification | NOT YET | - | RC.3 passed exact-DMG native ARM64 and x64 verification without Rosetta; final corrected rehearsal remains |
+| R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Corrected RC.4 produced a valid nine-stage schema-v2 trust lifecycle; finalization and feature-final evaluation remain |
+| R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 binds exact reviewed main, recomputed submitted/final DMG hashes, and immutable Apple request history; finalization remains |
+| R3 | Credential custody | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Real `release-trust` reviewer wait and approval passed; publication dry-run approval and final custody cleanup remain |
+| R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 retained accepted request `2de56a0a-b817-4c4a-a805-cdbec173b48c` and bounded nine-event history; final evaluation remains |
+| R5 | Native verification | NOT YET | - | RC.4 passed exact-DMG native ARM64 and x64 verification without Rosetta; final evaluation remains |
 | R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Exact schema-v2 seal, read-only rehearsal, hosted approval, receipts, retry, and reviewed P8 assembly complete; live dry-run evidence remains P9 |
 | R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, idempotent receipt, and P8 assembly complete; final P9 conformance remains |
-| R8 | Conformance and acceptance | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | RC.3 trust/native evidence and zero preparation mutation passed; corrected reviewer enforcement is merged and awaits fresh RC.4 proof |
+| R8 | Conformance and acceptance | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Corrected RC.4 reviewer gate, trust/native evidence, and zero preparation mutation passed; publication dry run and final gates remain |
 
 ## PR Log
 
@@ -96,8 +96,16 @@ Append PR boundary entries here.
 - **Corrected live proof:** Preparation run
   [33343210101](https://github.com/TrentBrown/gatereeve/actions/runs/33343210101)
   is pinned to `57fe66ba90ae1db1df970bf6988053136b567f23`. GitHub created
-  `release-trust` deployment `6172763830`, and `desktop-trust` is visibly
-  waiting for required reviewer `TrentBrown` before Apple trust production.
+  `release-trust` deployment `6172763830`, and `desktop-trust` visibly waited
+  for required reviewer `TrentBrown` before Apple trust production.
+- **Completed trust rehearsal:** The user approved deployment `6172763830`.
+  Run `33343210101` then completed all seven jobs without retry: exact universal
+  DMG signing, accepted Apple request
+  `2de56a0a-b817-4c4a-a805-cdbec173b48c`, stapling, Gatekeeper assessment,
+  native ARM64/x64 verification, aggregation, and nine-stage lifecycle
+  assembly all passed. Recomputed final DMG SHA-256 is
+  `f932c9efb738c88fa234e843f9e4ad751e41e0eb9e8f96f5a6501e789fd16957`.
+  Every public baseline identity remains unchanged.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 
