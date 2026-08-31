@@ -321,3 +321,18 @@ protected corrected trust rehearsal is complete, so these seven Apple entries
 are now eligible for deliberate deletion from `release-publication`; the
 authoritative copies in `release-trust` must remain intact. No entry has been
 deleted without explicit user authorization.
+
+The user explicitly authorized deletion after clarification that future builds
+use the authoritative `release-trust` copies. The four exact Apple variables
+and three exact Apple secrets were deleted only from `release-publication`.
+A fresh name-only audit proves:
+
+| Environment | Apple variables | Apple secrets | Protection | Result |
+|---|---:|---:|---|---|
+| `release-trust` | 4 expected | 3 expected | Required reviewer `TrentBrown`; self-review permitted; custom `main` policy | PASS: future trust production remains enabled |
+| `release-publication` | 0 | 0 | Required reviewer `TrentBrown`; self-review permitted; custom `main` policy | PASS: no Apple credential custody |
+
+No secret value was read or transported. The deleted duplicate secret
+instances cannot be recovered from `release-publication`; their authoritative
+instances remain in `release-trust`. This completes the intended disjoint
+custody state.

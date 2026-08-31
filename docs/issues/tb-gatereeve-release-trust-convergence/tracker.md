@@ -11,12 +11,12 @@
 |---|-------------------|--------|----|-------|
 | R1 | Schema lifecycle | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Corrected RC.4 produced a valid nine-stage schema-v2 trust lifecycle; finalization and feature-final evaluation remain |
 | R2 | Source and byte authority | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 binds exact reviewed main, recomputed submitted/final DMG hashes, and immutable Apple request history; finalization remains |
-| R3 | Credential custody | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Real `release-trust` reviewer wait and approval passed; publication dry-run approval and final custody cleanup remain |
+| R3 | Credential custody | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Real trust/publication reviewer waits passed; Apple entries now exist only in `release-trust`; final evaluation remains |
 | R4 | Notarization recovery | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 retained accepted request `2de56a0a-b817-4c4a-a805-cdbec173b48c` and bounded nine-event history; final evaluation remains |
 | R5 | Native verification | NOT YET | - | RC.4 passed exact-DMG native ARM64 and x64 verification without Rosetta; final evaluation remains |
 | R6 | Finalization and publication | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | RC.4 exact finalization and distinct protected read-only dry run passed with zero receipts/mutation; final feature evaluation remains |
 | R7 | Cask linkage | NOT YET | [#34](https://github.com/TrentBrown/gatereeve/pull/34) | Linked v2 record, post-primary proof, separate hosted approval, idempotent receipt, and P8 assembly complete; final P9 conformance remains |
-| R8 | Conformance and acceptance | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Corrected RC.4 trust and publication reviewer gates, trust/native evidence, and zero mutation passed; custody cleanup and final gates remain |
+| R8 | Conformance and acceptance | NOT YET | [#37](https://github.com/TrentBrown/gatereeve/pull/37) | Corrected RC.4 trust/publication gates, trust/native evidence, zero mutation, and disjoint custody passed; final gates remain |
 
 ## PR Log
 
@@ -126,6 +126,12 @@ Append PR boundary entries here.
   historical four Apple variables and three Apple secrets, with no publication
   token. Their deletion is pending explicit user authorization; authoritative
   copies in `release-trust` remain intact.
+- **Custody cleanup complete:** After explicit user authorization, only the
+  four duplicate Apple variables and three duplicate Apple secrets were
+  deleted from `release-publication`. A fresh name-only audit confirms all
+  seven authoritative entries remain in `release-trust`, while
+  `release-publication` has zero variables and zero secrets. Both required-
+  reviewer and `main`-only policies remain intact.
 
 ### PR #32 - Lifecycle and notarization recovery contracts
 
