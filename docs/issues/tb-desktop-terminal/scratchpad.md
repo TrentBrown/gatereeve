@@ -176,3 +176,34 @@ preferred hosted evidence.
 - Require a local Intel Mac - rejected by the approved availability constraint.
 - Let a universal app choose its slice implicitly - rejected because a manual
   Intel-slice smoke must force `x86_64` to be meaningful.
+
+## [7] Revalidate project ownership after lazy terminal loading
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Renderer terminal creation, project switching, startup output,
+and the one-session-per-project invariant.
+
+Treat every asynchronous terminal-library boundary as a point where the active
+project may have changed. After xterm loads, recheck the selected project and
+that project's explicit terminal visibility before creating a view or invoking
+the main-process ensure operation; also reuse a view created by a concurrent
+toggle. When PTY data arrives before the ensure response, reconcile it with the
+bounded output snapshot by removing only their exact suffix/prefix overlap so
+startup output is neither duplicated nor discarded.
+
+**Triggered by:** Isolated PR review found project-switch and early-output races
+that the initial renderer integration test did not exercise.
+
+**Alternatives considered:**
+
+- Capture the originally selected project in a renderer-supplied ensure request
+  - rejected because the renderer must not choose or widen trusted project
+  routing.
+- Drop all early data events whenever an ensure snapshot arrives - rejected
+  because output emitted after the snapshot but before the response could be
+  lost.
+- Serialize all project activation behind xterm loading - rejected because UI
+  navigation must remain responsive and terminal loading is optional.

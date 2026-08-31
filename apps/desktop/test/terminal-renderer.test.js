@@ -89,6 +89,7 @@ test('renderer lazily preserves one terminal view per project and presents exit/
     );
   }
   const xtermModule = dataModule(`
+    await globalThis.__terminalLibraryBarrier;
     export class Terminal {
       constructor() { this.cols = 80; this.rows = 24; this.output = ''; this.disposables = []; }
       loadAddon(addon) { addon.activate?.(this); }
@@ -118,6 +119,10 @@ test('renderer lazily preserves one terminal view per project and presents exit/
   let terminalSubscriber;
   let current = state('/repo/a');
   const calls = [];
+  let releaseTerminalLibrary;
+  globalThis.__terminalLibraryBarrier = new Promise((resolve) => {
+    releaseTerminalLibrary = resolve;
+  });
   window.gatereeveDesktop = {
     async getState() { return current; },
     async getUpdateState() {
@@ -132,7 +137,18 @@ test('renderer lazily preserves one terminal view per project and presents exit/
     async ensureTerminal(cols, rows) {
       const name = current.selection.worktreePath.endsWith('/a') ? 'a' : 'b';
       calls.push(['ensure', name, cols, rows]);
-      return session(`terminal_${name}`, name);
+      const created = session(`terminal_${name}`, name, 'running', {
+        output: name === 'a' ? 'early-output' : '',
+      });
+      if (name === 'a') {
+        terminalSubscriber({
+          schemaVersion: 1,
+          type: 'data',
+          sessionId: created.id,
+          data: 'early-output',
+        });
+      }
+      return created;
     },
     async resizeTerminal(id, cols, rows) {
       calls.push(['resize', id, cols, rows]);
@@ -169,8 +185,22 @@ test('renderer lazily preserves one terminal view per project and presents exit/
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(window.document.querySelector('#terminal-panel').hidden, false);
     assert.equal(window.document.querySelector('#toggle-terminal').getAttribute('aria-pressed'), 'true');
+
+    current = state('/repo/b');
+    stateSubscriber(current);
+    releaseTerminalLibrary();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(calls.filter(([name]) => name === 'ensure').length, 0);
+
+    current = state('/repo/a');
+    stateSubscriber(current);
+    await new Promise((resolve) => setImmediate(resolve));
     assert.equal(calls.filter(([name]) => name === 'ensure').length, 1);
     assert.equal(window.document.querySelector('#terminal-title').textContent, 'a');
+    assert.equal(
+      window.document.querySelector('[data-terminal-project="/repo/a"]').dataset.output,
+      'early-output',
+    );
     assert.equal(
       window.document.querySelector('[data-terminal-project="/repo/a"]').dataset.focused,
       'true',
@@ -223,5 +253,6 @@ test('renderer lazily preserves one terminal view per project and presents exit/
     delete globalThis.window;
     delete globalThis.document;
     delete globalThis.requestAnimationFrame;
+    delete globalThis.__terminalLibraryBarrier;
   }
 });

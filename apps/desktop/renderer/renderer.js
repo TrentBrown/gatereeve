@@ -961,23 +961,31 @@ function renderTerminalStatus(view = activeTerminalView()) {
 }
 
 function setTerminalSession(view, session, { replaceOutput = false } = {}) {
-  view.session = session;
+  const pendingStatus = pendingTerminalStatus.get(session.id);
+  const effectiveSession = pendingStatus ?? session;
+  pendingTerminalStatus.delete(session.id);
+  view.session = effectiveSession;
   if (replaceOutput) {
     view.terminal.reset();
-    if (session.output) view.terminal.write(session.output);
-    if (session.status === 'failed' && session.error) {
-      view.terminal.writeln(`\r\nGateReeve could not start the terminal: ${session.error}`);
+    if (effectiveSession.output) view.terminal.write(effectiveSession.output);
+    if (effectiveSession.status === 'failed' && effectiveSession.error) {
+      view.terminal.writeln(`\r\nGateReeve could not start the terminal: ${effectiveSession.error}`);
     }
   }
   const pendingData = pendingTerminalData.get(session.id);
   if (pendingData) {
-    view.terminal.write(pendingData);
+    let overlap = 0;
+    if (replaceOutput && effectiveSession.output) {
+      const maximum = Math.min(effectiveSession.output.length, pendingData.length);
+      for (let length = maximum; length > 0; length -= 1) {
+        if (effectiveSession.output.endsWith(pendingData.slice(0, length))) {
+          overlap = length;
+          break;
+        }
+      }
+    }
+    if (overlap < pendingData.length) view.terminal.write(pendingData.slice(overlap));
     pendingTerminalData.delete(session.id);
-  }
-  const pendingStatus = pendingTerminalStatus.get(session.id);
-  if (pendingStatus) {
-    view.session = pendingStatus;
-    pendingTerminalStatus.delete(session.id);
   }
   if (view === activeTerminalView()) renderTerminalStatus(view);
 }
@@ -1006,6 +1014,14 @@ async function ensureTerminalView() {
   const existing = terminalViews.get(project.path);
   if (existing) return existing;
   const { Terminal, FitAddon } = await loadTerminalLibrary();
+  const loadedExisting = terminalViews.get(project.path);
+  if (loadedExisting) return loadedExisting;
+  if (
+    selectedProject()?.path !== project.path
+    || !workspaceStore.get(project.path).terminalVisible
+  ) {
+    return null;
+  }
   const host = node('div', {
     className: 'terminal-instance',
     attributes: { 'data-terminal-project': project.path },
@@ -1034,11 +1050,21 @@ async function ensureTerminalView() {
     void desktop.writeTerminal(view.session.id, data).catch((error) => showToast(error.message ?? String(error)));
   }));
   await fitTerminal(view, { notifyMain: false });
+  if (
+    selectedProject()?.path !== project.path
+    || !workspaceStore.get(project.path).terminalVisible
+  ) {
+    discardTerminalView(project.path);
+    return null;
+  }
   try {
     const dimensions = terminalDimensions(view);
     setTerminalSession(view, await desktop.ensureTerminal(dimensions.cols, dimensions.rows), {
       replaceOutput: true,
     });
+    if (view === activeTerminalView() && workspaceState().terminalVisible) {
+      view.terminal.focus();
+    }
   } catch (error) {
     terminal.writeln(`\r\nGateReeve could not open the terminal: ${error.message ?? String(error)}`);
     showToast(error.message ?? String(error));
@@ -1094,6 +1120,13 @@ function applyLayout() {
   elements['terminal-resizer'].setAttribute('aria-valuemin', String(TERMINAL_MIN_HEIGHT));
   elements['terminal-resizer'].setAttribute('aria-valuemax', String(TERMINAL_MAX_HEIGHT));
   revealActiveTerminal();
+  if (terminalVisible && !activeTerminalView()) {
+    void ensureTerminalView().then((view) => {
+      if (view !== activeTerminalView() || !workspaceState().terminalVisible) return;
+      revealActiveTerminal();
+      void fitTerminal(view);
+    }).catch((error) => showToast(error.message ?? String(error)));
+  }
 }
 
 function renderInspectorTabs() {
