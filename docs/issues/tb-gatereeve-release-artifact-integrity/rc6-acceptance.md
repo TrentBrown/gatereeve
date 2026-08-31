@@ -18,13 +18,20 @@
 
 ## Protected preparation
 
-- Dispatch run: NOT YET
-- `release-trust` approval: NOT YET
-- Plugin candidate round trip: NOT YET
+- Dispatch run: [33452103818](https://github.com/TrentBrown/gatereeve/actions/runs/33452103818)
+- Dispatch source: `10a726411fd46f58263f8c989ac83f1a65bdf33f`
+- `resolve-source`: PASS
+- Plugin candidate production and complete portable acceptance: PASS
+- Plugin candidate round trip: PASS; exact producer manifest and semantic tree verified after GitHub artifact upload/download
+- `release-trust` approval: WAITING; environment `release-trust`, deployment environment ID `20893546887`
 - Apple trust production: NOT YET
 - Native ARM64 evidence: NOT YET
 - Native Intel evidence: NOT YET
 - Trusted lifecycle and exact integrity commitment: NOT YET
+
+No protected Apple job step has started. The waiting deployment proves the
+environment gate is active and preserves the required separation between the
+successful nonpublishing Plugin transport proof and Apple credential access.
 
 ## Finalization and publication
 
