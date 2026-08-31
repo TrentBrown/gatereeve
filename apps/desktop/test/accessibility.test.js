@@ -57,6 +57,9 @@ test('status regions and principal views expose semantic text independent of col
   assert.equal(document.querySelector('.project-sources'), null);
   assert.match(document.querySelector('#source-dialog-title').textContent, /Watching project sources/);
   assert.match(document.querySelector('#state-title').textContent, /Feature state rail/);
+  assert.equal(document.querySelector('#phase-context-surface').getAttribute('aria-labelledby'), 'phase-context-title');
+  assert.match(document.querySelector('#phase-context-uses-title').textContent, /Uses/);
+  assert.match(document.querySelector('#phase-context-produces-title').textContent, /Produces/);
 });
 
 test('styles preserve visible focus, docked regions, and reduced-motion behavior', async () => {
@@ -75,4 +78,7 @@ test('styles preserve visible focus, docked regions, and reduced-motion behavior
   assert.match(css, /\.inspector-body\s*\{[^}]*min-height:\s*0/);
   assert.match(css, /\.inspector-viewer\s*\{[^}]*overflow:\s*auto/);
   assert.match(css, /\.inspector-tabs\s*\{\s*display:\s*none/);
+  assert.match(css, /container:\s*phase-context\s*\/\s*inline-size/);
+  assert.match(css, /@container phase-context \(max-width:\s*720px\)/);
+  assert.match(css, /\.phase-context-source\s*\{[^}]*border-style:\s*dashed/);
 });

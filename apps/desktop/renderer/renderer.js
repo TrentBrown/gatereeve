@@ -13,6 +13,7 @@ import {
   gateArtifact,
   globalAlert,
   humanize,
+  phaseContext,
   selectedAttempt,
   selectedSlice,
   sourceLabel,
@@ -28,7 +29,9 @@ const ids = [
   'brand-version', 'project-sidebar', 'main-tabs', 'toggle-sidebar',
   'toggle-inspector', 'inspector-panel', 'inspector-resizer', 'inspector-tabs',
   'source-dialog', 'source-dialog-close', 'source-dialog-list', 'global-alerts', 'state-rail',
-  'milestones', 'slices-surface', 'slices',
+  'milestones', 'phase-context-surface', 'phase-context-kicker', 'phase-context-title',
+  'phase-context-description', 'phase-context-uses', 'phase-context-produces',
+  'slices-surface', 'slices',
   'boundary-surface', 'attempt-select', 'boundary-summary', 'gate-dag',
   'closeout-surface', 'closeout-status', 'closeout-summary',
   'actions-surface', 'actions', 'guidance-context', 'artifact-count', 'artifact-list', 'artifact-viewer', 'history-count',
@@ -463,6 +466,64 @@ function renderMilestones(snapshot) {
   }
 }
 
+function phaseContextEntry(entry) {
+  if (entry.kind === 'source') {
+    const item = node('span', {
+      className: 'phase-context-entry phase-context-source',
+      attributes: {
+        'data-phase-entry-id': entry.id,
+        'data-kind': 'source',
+      },
+    }, [
+      node('span', { className: 'phase-context-kind', text: 'Source' }),
+      node('span', { text: entry.label }),
+    ]);
+    return item;
+  }
+  const status = humanize(entry.status);
+  const button = node('button', {
+    className: 'phase-context-entry phase-context-artifact',
+    type: 'button',
+    disabled: entry.disabled,
+    title: entry.artifact?.label ?? `Canonical artifact ${entry.fileName} is unavailable`,
+    attributes: {
+      'aria-label': `${entry.fileName}, artifact, ${status}${entry.disabled ? ', unavailable' : ', open in inspector'}`,
+      'data-phase-entry-id': entry.id,
+      'data-kind': 'artifact',
+      'data-status': entry.status,
+    },
+  }, [
+    node('span', { className: 'phase-context-kind', text: 'Artifact' }),
+    node('code', { text: entry.fileName }),
+    node('span', { className: `phase-context-status status ${statusClass(entry.status)}`, text: status }),
+  ]);
+  if (entry.artifact !== null) {
+    button.addEventListener('click', () => void openArtifact(entry.artifact));
+  }
+  return button;
+}
+
+function renderPhaseContext(snapshot) {
+  const selectedFeatureState = workspaceState().selectedFeatureState
+    ?? snapshot?.projection?.feature?.state;
+  const context = phaseContext(snapshot, selectedFeatureState);
+  const surface = elements['phase-context-surface'];
+  surface.hidden = context === null;
+  clear(elements['phase-context-uses']);
+  clear(elements['phase-context-produces']);
+  if (context === null) {
+    elements['phase-context-kicker'].textContent = '';
+    elements['phase-context-title'].textContent = '';
+    elements['phase-context-description'].textContent = '';
+    return;
+  }
+  elements['phase-context-kicker'].textContent = `Selected state · ${featureStateLabel(context.stateId)}`;
+  elements['phase-context-title'].textContent = context.title;
+  elements['phase-context-description'].textContent = context.description;
+  for (const entry of context.uses) elements['phase-context-uses'].append(phaseContextEntry(entry));
+  for (const entry of context.produces) elements['phase-context-produces'].append(phaseContextEntry(entry));
+}
+
 function renderSlices(snapshot) {
   clear(elements.slices);
   const slices = snapshot?.projection?.slices ?? [];
@@ -764,6 +825,7 @@ function renderOverview(snapshot) {
   renderGlobalAlert(snapshot);
   renderStateRail(snapshot);
   renderMilestones(snapshot);
+  renderPhaseContext(snapshot);
   const selectedFeatureState = workspaceState().selectedFeatureState;
   const delivering = selectedFeatureState === 'DELIVERING_SLICES';
   const finalizing = selectedFeatureState === 'FINALIZING';

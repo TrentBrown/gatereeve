@@ -67,6 +67,49 @@ const FEATURE_STATE_LABELS = Object.freeze({
   COMPLETE: 'Complete',
 });
 
+const PHASE_CONTEXTS = Object.freeze({
+  DESIGNING: Object.freeze({
+    title: 'Design synthesis',
+    description: 'Interview findings and repository context become approved design intent.',
+    uses: Object.freeze([
+      Object.freeze({ kind: 'artifact', id: 'interview', fileName: 'interview.md' }),
+      Object.freeze({ kind: 'source', id: 'existing-codebase', label: 'Existing codebase' }),
+    ]),
+    produces: Object.freeze([
+      Object.freeze({ kind: 'artifact', id: 'design', fileName: 'design.md' }),
+    ]),
+  }),
+  SPECIFYING: Object.freeze({
+    title: 'Specification drafting',
+    description: 'Approved intent becomes observable requirements and a binary rubric.',
+    uses: Object.freeze([
+      Object.freeze({ kind: 'artifact', id: 'design', fileName: 'design.md' }),
+      Object.freeze({ kind: 'artifact', id: 'interview', fileName: 'interview.md' }),
+      Object.freeze({ kind: 'source', id: 'existing-codebase', label: 'Existing codebase' }),
+      Object.freeze({ kind: 'source', id: 'architecture-contracts', label: 'Architecture contracts' }),
+    ]),
+    produces: Object.freeze([
+      Object.freeze({ kind: 'artifact', id: 'spec', fileName: 'spec.md' }),
+    ]),
+  }),
+  PLANNING: Object.freeze({
+    title: 'Implementation planning',
+    description: 'Validated requirements become an executable route and tracked delivery work.',
+    uses: Object.freeze([
+      Object.freeze({ kind: 'artifact', id: 'spec', fileName: 'spec.md' }),
+      Object.freeze({ kind: 'artifact', id: 'design', fileName: 'design.md' }),
+      Object.freeze({ kind: 'artifact', id: 'interview', fileName: 'interview.md' }),
+      Object.freeze({ kind: 'source', id: 'repository-structure', label: 'Repository structure' }),
+      Object.freeze({ kind: 'source', id: 'tests-and-commands', label: 'Tests and commands' }),
+    ]),
+    produces: Object.freeze([
+      Object.freeze({ kind: 'artifact', id: 'plan', fileName: 'plan.md' }),
+      Object.freeze({ kind: 'artifact', id: 'issues', fileName: 'issues.md' }),
+      Object.freeze({ kind: 'artifact', id: 'tracker', fileName: 'tracker.md' }),
+    ]),
+  }),
+});
+
 export function featureStateLabel(id) {
   return FEATURE_STATE_LABELS[id] ?? humanize(id);
 }
@@ -90,6 +133,30 @@ export function stateArtifact(snapshot, stateId) {
   return artifactId === null
     ? null
     : snapshot?.artifacts?.find((artifact) => artifact.id === artifactId) ?? null;
+}
+
+export function phaseContext(snapshot, stateId) {
+  const context = PHASE_CONTEXTS[stateId] ?? null;
+  if (context === null) return null;
+  const artifacts = new Map((snapshot?.artifacts ?? []).map((artifact) => [artifact.id, artifact]));
+  const resolveEntry = (entry) => {
+    if (entry.kind === 'source') return { ...entry };
+    const artifact = artifacts.get(entry.id) ?? null;
+    return {
+      ...entry,
+      artifact,
+      fileName: artifact?.path?.split('/').at(-1) ?? entry.fileName,
+      status: artifact?.status ?? 'unavailable',
+      disabled: artifact === null || artifact.unsafe === true,
+    };
+  };
+  return {
+    stateId,
+    title: context.title,
+    description: context.description,
+    uses: context.uses.map(resolveEntry),
+    produces: context.produces.map(resolveEntry),
+  };
 }
 
 export function selectedSlice(snapshot, selectedSliceId = null) {

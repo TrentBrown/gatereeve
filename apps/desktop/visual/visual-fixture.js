@@ -56,9 +56,11 @@ const attempt = {
 };
 
 const artifacts = [
+  ['interview', 'Design interview', 'interview.md', 'markdown', 'present'],
   ['design', 'Approved design', 'design.md', 'markdown', 'present'],
   ['spec', 'Validated specification', 'spec.md', 'markdown', 'present'],
   ['plan', 'Authorized implementation plan', 'plan.md', 'markdown', 'present'],
+  ['issues', 'Operational issues', 'issues.md', 'markdown', 'present'],
   ['tracker', 'Rubric tracker', 'tracker.md', 'markdown', 'changed'],
   ['decisions', 'Permanent decisions', 'decisions.md', 'markdown', 'present'],
   ['completion-report', 'Completion report', 'completion-report.md', 'markdown', 'present'],

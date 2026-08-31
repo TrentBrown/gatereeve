@@ -317,6 +317,26 @@ main { min-height: calc(100vh - var(--masthead-height)); }
 .milestone[data-status="complete"] { color: #1f6148; background: var(--green-bg); }
 .milestone[data-status="active"], .milestone[data-status="ready"] { color: #4f347c; background: var(--purple-100); }
 
+.phase-context-surface { container: phase-context / inline-size; }
+.phase-context-description { max-width: 58rem; margin: 0.32rem 0 0; color: var(--muted); font-size: 0.78rem; line-height: 1.45; }
+.phase-context-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(190px, 0.65fr); gap: 0.75rem; }
+.phase-context-grid > section { min-width: 0; border: 1px solid var(--line); border-radius: 0.62rem; padding: 0.72rem; background: var(--purple-50); }
+.phase-context-grid h4 { margin: 0 0 0.55rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.62rem; }
+.phase-context-list { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.phase-context-entry { display: inline-flex; min-width: 0; max-width: 100%; min-height: 2rem; align-items: center; gap: 0.38rem; border: 1px solid #bfaed7; border-radius: 0.5rem; padding: 0.36rem 0.48rem; color: var(--ink); background: #fff; font-size: 0.68rem; line-height: 1.2; }
+.phase-context-artifact { text-align: left; }
+.phase-context-artifact:hover:not(:disabled) { color: var(--purple-900); border-color: var(--purple-600); background: var(--purple-100); }
+.phase-context-artifact:disabled { color: var(--muted); border-style: dashed; background: #f4f1f6; opacity: 0.72; }
+.phase-context-kind { flex: none; color: #5d4b70; text-transform: uppercase; letter-spacing: 0.07em; font-size: 0.49rem; font-weight: 900; }
+.phase-context-artifact code { min-width: 0; overflow-wrap: anywhere; color: var(--purple-700); font: 700 0.68rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.phase-context-status { flex: none; font-size: 0.52rem; }
+.phase-context-source { border-color: #b7afbf; border-style: dashed; color: #4e4655; background: #f2eff4; }
+.phase-context-source .phase-context-kind { color: #61586a; }
+
+@container phase-context (max-width: 720px) {
+  .phase-context-grid { grid-template-columns: 1fr; }
+}
+
 .card, .action-card, .collection-item, .gate-card {
   border: 1px solid var(--line);
   border-radius: 0.62rem;
