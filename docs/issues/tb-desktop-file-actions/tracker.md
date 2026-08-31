@@ -16,8 +16,11 @@
 
 ## PR Log
 
-- [#40](https://github.com/TrentBrown/gatereeve/pull/40) — feature-final
-  desktop artifact file-actions boundary.
+### PR #40 — Desktop artifact file actions
+
+- Pull request: [#40](https://github.com/TrentBrown/gatereeve/pull/40)
+- Evidence packet: [pr-40](pr-40/boundary.json)
+- Scope: feature-final
 
 Implementation is complete pending native macOS runtime verification of editor
 discovery, application chooser, and OS handoff.
