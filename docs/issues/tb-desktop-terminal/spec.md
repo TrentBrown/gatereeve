@@ -114,3 +114,26 @@ The global Definition of Done in the software development workflow applies.
 ## Changes
 
 Append spec amendments here. Do not remove or weaken original criteria.
+
+### 2026-08-31 - Stage supported-platform evidence at the boundary where it can exist
+
+AC8 and R8 retain the complete Apple trust requirement, but their evidence is
+evaluated at two distinct lifecycle boundaries:
+
+- The feature PR boundary must prove the real Ubuntu PTY behavior, construct
+  the universal macOS application, inspect the exact packaged runtime assets,
+  and launch that ad-hoc-signed development candidate natively on both
+  Apple Silicon and Intel. Rosetta remains only the explicitly labeled
+  substitute permitted by AC8 when a native Intel host is unavailable.
+- The protected post-merge release boundary must Developer ID-sign, notarize,
+  staple, Gatekeeper-assess, and natively smoke-test the exact trusted
+  universal artifact produced from the reviewed `main` commit. That release
+  evidence remains mandatory before distribution and must never be inferred
+  from, or reported by, the ad-hoc PR candidate.
+
+Accordingly, R8 passes at the feature PR boundary when its pre-merge evidence
+is complete and the changed packaging path remains covered by the protected
+release contract. Actual Developer ID and notarization evidence is a
+release-bound acceptance obligation because GateReeve intentionally refuses
+to expose those credentials or produce trusted release bytes from a topic
+branch. This is lifecycle sequencing, not a waiver of Apple trust.

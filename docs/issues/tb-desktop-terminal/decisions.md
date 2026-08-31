@@ -247,3 +247,65 @@ required `@xterm` parent directory before it could launch the application.
   package inventory is useful security and release evidence.
 
 **Promoted:** 2026-08-31. PR: https://github.com/TrentBrown/gatereeve/pull/43.
+
+---
+
+## Match node-pty unpack paths against absolute ASAR source names
+
+**Confidence:** HIGH
+
+**Blast Radius:** macOS ASAR construction, native-addon loading, signing, and
+packaged runtime verification.
+
+Prefix the exact `node-pty/prebuilds` ASAR unpack glob with `**/` because the
+ASAR library evaluates file patterns against absolute source filenames. Keep
+the narrower prebuild subtree rather than unpacking all of `node-pty`, and
+prove the configuration by constructing a real ASAR in a platform-independent
+unit test and checking both `pty.node` and `spawn-helper` in
+`app.asar.unpacked`.
+
+**Triggered by:** Native Apple Silicon and Intel CI both found the expected
+native addon absent from `app.asar.unpacked` despite successful universal DMG
+construction.
+
+**Alternatives considered:**
+
+- Unpack every `.node` file through the packager default - rejected because it
+  would not unpack `spawn-helper` and would broaden the package layout.
+- Disable ASAR - rejected because it would unnecessarily change the established
+  Desktop package structure.
+- Extract native files after packaging - rejected because signing and universal
+  merging should consume a deterministic packager-owned layout.
+
+**Promoted:** 2026-08-31. PR: https://github.com/TrentBrown/gatereeve/pull/43.
+
+---
+
+## Separate pre-merge package proof from post-merge Apple trust
+
+**Confidence:** HIGH
+
+**Blast Radius:** Terminal acceptance criteria, Desktop PR boundaries,
+canonical spec-drafting guidance, and protected release evidence.
+
+Treat universal package construction, ad-hoc signing, exact package inspection,
+and native arm64/x86_64 runtime smoke as pre-merge acceptance. Preserve
+Developer ID signing, notarization, stapling, Gatekeeper assessment, and exact
+trusted-artifact smoke as mandatory post-merge release acceptance. Add a
+general rule to canonical spec-draft guidance that acceptance criteria must
+name the lifecycle boundary at which evidence can exist and must not require a
+post-merge-only credentialed artifact to pass a PR gate.
+
+**Triggered by:** AC8 required Developer ID and notarization evidence before
+merge even though the protected workflow accepts only reviewed main commits.
+
+**Alternatives considered:**
+
+- Run protected signing on topic branches - rejected because it weakens
+  credential and reviewed-source controls.
+- Waive signing/notarization per Desktop PR - rejected because it repeats
+  ambiguity and can silently lose the release obligation.
+- Leave AC8 unchanged - rejected because it creates an impossible pre-merge
+  gate.
+
+**Promoted:** 2026-08-31. PR: https://github.com/TrentBrown/gatereeve/pull/43.

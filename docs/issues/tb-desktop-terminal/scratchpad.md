@@ -236,7 +236,7 @@ required `@xterm` parent directory before it could launch the application.
 
 ## [9] Match node-pty unpack paths against absolute ASAR source names
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -262,3 +262,32 @@ construction.
   Desktop package structure.
 - Extract native files after packaging - rejected because signing and universal
   merging should consume a deterministic packager-owned layout.
+
+## [10] Separate pre-merge package proof from post-merge Apple trust
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Terminal acceptance criteria, Desktop PR boundaries,
+canonical spec-drafting guidance, and protected release evidence.
+
+Treat universal package construction, ad-hoc signing, exact package inspection,
+and native arm64/x86_64 runtime smoke as pre-merge acceptance. Preserve
+Developer ID signing, notarization, stapling, Gatekeeper assessment, and exact
+trusted-artifact smoke as mandatory post-merge release acceptance. Add a
+general rule to canonical spec-draft guidance that acceptance criteria must
+name the lifecycle boundary at which evidence can exist and must not require a
+post-merge-only credentialed artifact to pass a PR gate.
+
+**Triggered by:** AC8 required Developer ID and notarization evidence before
+merge even though the protected workflow accepts only reviewed main commits.
+
+**Alternatives considered:**
+
+- Run protected signing on topic branches - rejected because it weakens
+  credential and reviewed-source controls.
+- Waive signing/notarization per Desktop PR - rejected because it repeats
+  ambiguity and can silently lose the release obligation.
+- Leave AC8 unchanged - rejected because it creates an impossible pre-merge
+  gate.

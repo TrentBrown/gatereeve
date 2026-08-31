@@ -199,6 +199,13 @@ Acceptance criteria must describe observable behavior. They must be
 independently verifiable and unambiguous. If the user gives a vague feature
 request, draft AC and rubric and get approval before planning.
 
+Every required evidence type must be obtainable at the lifecycle boundary
+where its criterion is evaluated. A pre-merge feature gate must not require
+credentials, trusted artifacts, deployment state, or other evidence
+intentionally available only after merge. Preserve that obligation as an
+explicit post-merge release or deployment acceptance gate; do not waive it,
+expose protected authority earlier, or infer it from a development artifact.
+
 The rubric is a binary pass/fail evaluation instrument derived from the AC.
 Every criterion must have explicit pass, fail, and evidence expectations.
 Prefer outcome-level checks over incidental implementation details.
