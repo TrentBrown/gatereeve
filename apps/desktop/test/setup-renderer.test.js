@@ -121,6 +121,9 @@ test('visual fixture remaps the confined production brand route to the source as
   const fixtureApi = await readFile(resolve(desktopRoot, 'visual/visual-fixture.js'), 'utf8');
   assert.match(fixture, /\.brand-mark/);
   assert.match(fixture, /\.\.\/assets\/branding\/gatereeve-rolling-vale\.png/);
+  assert.match(fixture, /fixture-console/);
+  assert.match(fixture, /gatereeve:fixture-action/);
+  assert.match(fixtureApi, /simulateFixtureAction/);
   for (const method of [
     'getUpdateState', 'subscribeUpdates', 'checkForUpdates', 'openUpdateRelease',
     'openExternalLink',

@@ -2,6 +2,8 @@
 
 import {
   IPC_CHANNELS,
+  requireArtifactActions,
+  requireArtifactOpenRequest,
   requireArtifactRequest,
   requireCopyText,
   requireDesktopState,
@@ -33,9 +35,9 @@ export function isTrustedRenderer(event) {
 export function registerDesktopIpc({
   ipcMain,
   coordinator,
+  artifactActions,
   updateCoordinator,
   pickProject,
-  openPath,
   revealPath,
   copyText,
   openExternal,
@@ -122,6 +124,14 @@ export function registerDesktopIpc({
     const request = requireDetailRequest(values[0]);
     return validateDetail(await coordinator.read(request.kind, request.id));
   });
+  ipcMain.handle(IPC_CHANNELS.getArtifactActions, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Artifact actions require one request.');
+    const { artifactId } = requireArtifactRequest(values[0]);
+    return requireArtifactActions(
+      await artifactActions.capabilities(coordinator.artifact(artifactId).absolutePath),
+    );
+  });
   ipcMain.handle(IPC_CHANNELS.listSession, async (event, ...values) => {
     noArguments(event, values);
     return requireSessionInventory(await coordinator.listSession());
@@ -140,10 +150,37 @@ export function registerDesktopIpc({
   ipcMain.handle(IPC_CHANNELS.openArtifact, async (event, ...values) => {
     trusted(event);
     if (values.length !== 1) throw new Error('Open artifact requires one request.');
+    const { artifactId, editorId, remember } = requireArtifactOpenRequest(values[0]);
+    return artifactActions.open(
+      coordinator.artifact(artifactId).absolutePath,
+      editorId,
+      remember,
+    );
+  });
+  ipcMain.handle(IPC_CHANNELS.chooseArtifactApplication, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Application selection requires one request.');
     const { artifactId } = requireArtifactRequest(values[0]);
-    const result = await openPath(coordinator.artifact(artifactId).absolutePath);
-    if (typeof result === 'string' && result.length > 0) throw new Error(result);
+    return artifactActions.chooseAndOpen(coordinator.artifact(artifactId).absolutePath);
+  });
+  ipcMain.handle(IPC_CHANNELS.saveArtifactAs, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Save As requires one request.');
+    const { artifactId } = requireArtifactRequest(values[0]);
+    return artifactActions.saveAs(coordinator.artifact(artifactId).absolutePath);
+  });
+  ipcMain.handle(IPC_CHANNELS.saveArtifactDownloads, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Saving to Downloads requires one request.');
+    const { artifactId } = requireArtifactRequest(values[0]);
+    await artifactActions.saveToDownloads(coordinator.artifact(artifactId).absolutePath);
     return true;
+  });
+  ipcMain.handle(IPC_CHANNELS.openArtifactGithub, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('GitHub opening requires one request.');
+    const { artifactId } = requireArtifactRequest(values[0]);
+    return artifactActions.openOnGithub(coordinator.artifact(artifactId).absolutePath);
   });
   ipcMain.handle(IPC_CHANNELS.revealArtifact, async (event, ...values) => {
     trusted(event);

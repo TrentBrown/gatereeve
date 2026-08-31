@@ -80,6 +80,9 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
     }; },
     async openUpdateRelease() { return true; },
     async listSession() { return listSessionContext(repositoryRoot); },
+    async getArtifactActions() {
+      return { schemaVersion: 1, editors: [], preferredEditorId: null, githubAvailable: false };
+    },
     async openArtifact() { return true; },
     async activateProject() { return state; },
     async readDetail(kind, id) { return protocol.read(featureHome, kind, id, { sources }); },

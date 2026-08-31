@@ -7,10 +7,15 @@ export const IPC_CHANNELS = Object.freeze({
   addProject: 'gatereeve:desktop:add-project',
   copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
+  getArtifactActions: 'gatereeve:desktop:get-artifact-actions',
   getUpdateState: 'gatereeve:desktop:get-update-state',
   listSession: 'gatereeve:desktop:list-session',
   layoutCommand: 'gatereeve:desktop:layout-command',
   openArtifact: 'gatereeve:desktop:open-artifact',
+  chooseArtifactApplication: 'gatereeve:desktop:choose-artifact-application',
+  saveArtifactAs: 'gatereeve:desktop:save-artifact-as',
+  saveArtifactDownloads: 'gatereeve:desktop:save-artifact-downloads',
+  openArtifactGithub: 'gatereeve:desktop:open-artifact-github',
   openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
   activateProject: 'gatereeve:desktop:activate-project',
@@ -300,6 +305,50 @@ export function requireArtifactRequest(value) {
     || value.artifactId.length > 512
   ) {
     throw new Error('Artifact request is invalid.');
+  }
+  return value;
+}
+
+export function requireArtifactOpenRequest(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['artifactId', 'editorId', 'remember'])
+    || typeof value.artifactId !== 'string'
+    || value.artifactId.length === 0
+    || value.artifactId.length > 512
+    || (value.editorId !== null && (
+      typeof value.editorId !== 'string'
+      || !/^[a-z][a-z0-9-]{0,63}$/u.test(value.editorId)
+    ))
+    || typeof value.remember !== 'boolean'
+  ) {
+    throw new Error('Artifact open request is invalid.');
+  }
+  return value;
+}
+
+export function requireArtifactActions(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['schemaVersion', 'editors', 'preferredEditorId', 'githubAvailable'])
+    || value.schemaVersion !== 1
+    || !Array.isArray(value.editors)
+    || value.editors.some((editor) => (
+      !isObject(editor)
+      || !exactKeys(editor, ['id', 'label'])
+      || typeof editor.id !== 'string'
+      || !/^[a-z][a-z0-9-]{0,63}$/u.test(editor.id)
+      || typeof editor.label !== 'string'
+      || editor.label.length === 0
+    ))
+    || new Set(value.editors.map((editor) => editor.id)).size !== value.editors.length
+    || (value.preferredEditorId !== null && (
+      typeof value.preferredEditorId !== 'string'
+      || !value.editors.some((editor) => editor.id === value.preferredEditorId)
+    ))
+    || typeof value.githubAvailable !== 'boolean'
+  ) {
+    throw new Error('Artifact action capabilities are invalid.');
   }
   return value;
 }

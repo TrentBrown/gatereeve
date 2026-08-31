@@ -39,6 +39,7 @@ test('IPC authenticates the exact top-level application frame', () => {
 test('IPC exposes only validated named reads, Session context, clipboard, selection, refresh, and artifact OS actions', async () => {
   const handlers = new Map();
   const opened = [];
+  const artifactOperations = [];
   const revealed = [];
   const copied = [];
   const external = [];
@@ -99,8 +100,26 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
       releasePage() { return 'https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.4'; },
       subscribe() { return () => {}; },
     },
+    artifactActions: {
+      async capabilities(path) {
+        artifactOperations.push(['capabilities', path]);
+        return {
+          schemaVersion: 1,
+          editors: [{ id: 'vscode', label: 'VS Code' }],
+          preferredEditorId: 'vscode',
+          githubAvailable: true,
+        };
+      },
+      async open(path, editorId, remember) {
+        artifactOperations.push(['open', path, editorId, remember]);
+        return true;
+      },
+      async chooseAndOpen(path) { artifactOperations.push(['choose', path]); return true; },
+      async saveAs(path) { artifactOperations.push(['save-as', path]); return true; },
+      async saveToDownloads(path) { artifactOperations.push(['downloads', path]); return '/downloads/design.md'; },
+      async openOnGithub(path) { artifactOperations.push(['github', path]); return true; },
+    },
     async pickProject() { return '/repo'; },
-    async openPath(path) { opened.push(path); return ''; },
     revealPath(path) { revealed.push(path); },
     copyText(value) { copied.push(value); },
     async openExternal(value) { external.push(value); },
@@ -124,7 +143,22 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   });
   assert.equal(await handlers.get(IPC_CHANNELS.openArtifact)(
     event,
-    { artifactId: 'design' },
+    { artifactId: 'design', editorId: 'vscode', remember: true },
+  ), true);
+  assert.equal((await handlers.get(IPC_CHANNELS.getArtifactActions)(
+    event, { artifactId: 'design' },
+  )).preferredEditorId, 'vscode');
+  assert.equal(await handlers.get(IPC_CHANNELS.chooseArtifactApplication)(
+    event, { artifactId: 'design' },
+  ), true);
+  assert.equal(await handlers.get(IPC_CHANNELS.saveArtifactAs)(
+    event, { artifactId: 'design' },
+  ), true);
+  assert.equal(await handlers.get(IPC_CHANNELS.saveArtifactDownloads)(
+    event, { artifactId: 'design' },
+  ), true);
+  assert.equal(await handlers.get(IPC_CHANNELS.openArtifactGithub)(
+    event, { artifactId: 'design' },
   ), true);
   assert.equal(await handlers.get(IPC_CHANNELS.revealArtifact)(
     event,
@@ -148,7 +182,15 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
     ['claude'],
   );
   assert.equal((await handlers.get(IPC_CHANNELS.recheckSetup)(event)).setup.phase, 'unconfigured');
-  assert.deepEqual(opened, ['/repo/design.md']);
+  assert.deepEqual(opened, []);
+  assert.deepEqual(artifactOperations, [
+    ['open', '/repo/design.md', 'vscode', true],
+    ['capabilities', '/repo/design.md'],
+    ['choose', '/repo/design.md'],
+    ['save-as', '/repo/design.md'],
+    ['downloads', '/repo/design.md'],
+    ['github', '/repo/design.md'],
+  ]);
   assert.deepEqual(revealed, ['/repo/spec.md']);
   assert.deepEqual(copied, ['gatereeve next']);
   assert.deepEqual(external, [
