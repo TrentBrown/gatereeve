@@ -27,6 +27,10 @@ const caskPublicationPath = resolve(
   import.meta.dirname,
   '../../.github/workflows/homebrew-cask-publish.yml',
 );
+const caskSmokePath = resolve(
+  import.meta.dirname,
+  '../../.github/workflows/homebrew-cask-smoke.yml',
+);
 
 test('protected preparation is reviewed-main-only, serialized, and publication-free', async () => {
   const workflow = await readFile(preparationPath, 'utf8');
@@ -205,4 +209,19 @@ test('linked Cask finalization and publication preserve a separate approval boun
   assert.doesNotMatch(publication, /GATEREEVE_DEVELOPER_ID|NOTARY|codesign|notarytool|package-macos/);
   assert((publicationWorkflow.match(/homebrew-cask-finalize\\\.yml/g) ?? []).length === 2);
   assert((publicationWorkflow.match(/retention-days: 30/g) ?? []).length === 2);
+});
+
+test('Homebrew smoke consumes the exact successful linked publication packet', async () => {
+  const workflow = await readFile(caskSmokePath, 'utf8');
+  assert.match(workflow, /cask_publication_run_id:/);
+  assert.doesNotMatch(workflow, /preparation_run_id:|prepare-cask/);
+  assert.match(workflow, /run\.conclusion !== "success"/);
+  assert.match(workflow, /run\.head_branch !== "main"/);
+  assert.match(workflow, /homebrew-cask-publish\\\.yml/);
+  assert.equal((workflow.match(/linked-homebrew-cask-result/g) ?? []).length, 2);
+  assert.equal((workflow.match(/actions\/download-artifact@v4/g) ?? []).length, 2);
+  assert.equal((workflow.match(/--record "\$RUNNER_TEMP\/homebrew-cask\/cask-record\.json"/g) ?? []).length, 2);
+  assert.match(workflow, /runner: macos-15\n/);
+  assert.match(workflow, /runner: macos-15-intel/);
+  assert.match(workflow, /--public-tap/);
 });
