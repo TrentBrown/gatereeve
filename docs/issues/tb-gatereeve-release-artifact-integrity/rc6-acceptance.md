@@ -211,7 +211,8 @@ recovery completed all five primary surfaces without rebuilding trusted bytes.
 - Active feature-final slice: `s4-cask-acceptance`
 - Direct RC.6 install: PASS
 - Cask finalization: PASS
-- Cask rehearsal and publication: PASS; Homebrew install evidence: pending
+- Cask rehearsal and publication: PASS
+- Homebrew RC.6 installation, Gatekeeper assessment, and launch: PASS
 
 ## Direct Mac installation
 
@@ -345,3 +346,29 @@ approver. Independent inspection of the retained result and live tap proves
 that PR #3 published only the approved RC.6 Cask. Final Homebrew installation,
 Gatekeeper assessment, and application launch evidence remain pending on the
 user's Mac.
+
+## Homebrew Mac installation
+
+- Confirmed by: Trent Brown
+- Confirmed at: `2026-09-01T16:11:51Z`
+- Command path: `brew update`, followed by
+  `brew reinstall --cask TrentBrown/gatereeve/gatereeve`
+- Prior Cask state: RC.2 removed from
+  `/opt/homebrew/Caskroom/gatereeve/0.1.0-rc.2`
+- Downloaded Cask: `gatereeve (0.1.0-rc.6)`, 246.3 MB
+- Installation result: PASS; Homebrew reported
+  `gatereeve was successfully installed`
+- Installed Cask identity: `gatereeve 0.1.0-rc.6`
+- Installed Cask path:
+  `/opt/homebrew/Caskroom/gatereeve/0.1.0-rc.6`
+- Installed application: `/Applications/GateReeve.app`
+- Tap source:
+  `https://github.com/TrentBrown/homebrew-gatereeve/blob/HEAD/Casks/gatereeve.rb`
+- Gatekeeper execution assessment: PASS, `accepted`, source
+  `Notarized Developer ID`
+- Application launch: PASS through `open /Applications/GateReeve.app`
+
+This closes the user path on the same RC.6 DMG first verified by direct public
+download: Homebrew fetched the linked Cask's exact 246.3 MB artifact, replaced
+the RC.2 installation with RC.6, installed the app at the standard location,
+and macOS accepted the installed executable as a notarized Developer ID build.
