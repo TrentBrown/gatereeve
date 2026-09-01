@@ -191,6 +191,7 @@ feature work.
 ### PR #49 — RC.6 Cask and Homebrew feature-final acceptance
 
 - Pull request: [#49](https://github.com/TrentBrown/gatereeve/pull/49)
+- Evidence packet: [pr-49](pr-49/boundary.json)
 - Scope: feature-final / P6-P7 / R1-R8
 - Status: in review. The final slice contains only governed lifecycle records,
   linked-Cask publication evidence, and direct/Homebrew Mac acceptance
