@@ -71,7 +71,7 @@ PR #46 was human-approved and merged into `main` as
 
 ## I-6 - Prove direct and Homebrew Mac installation
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P6, P7
 - **Rubric criteria:** R6, R8
@@ -91,3 +91,9 @@ Homebrew replaced RC.2 with RC.6 on the user's Mac, reported installed version
 `0.1.0-rc.6`, and Gatekeeper accepted the launched app as `Notarized Developer
 ID` at `2026-09-01T16:11:51Z`. PR #49 carries the complete acceptance record
 and final feature evaluation.
+
+PR #49's exact approved head
+`f81a87ebbfcf835e3c9c1de883748d2a3b0ccba2` passed all required checks and
+merged into `main` as `c4f17857c23deb2a91ab24e73004227be754dcc7`.
+Merge-content ancestry verification passed, and no `development` or
+`development-*` branch participated.

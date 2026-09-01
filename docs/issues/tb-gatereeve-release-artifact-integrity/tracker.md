@@ -147,7 +147,7 @@ feature work.
 - Slice: `s4-cask-acceptance`
 - Branch: `tb-gatereeve-release-artifact-integrity-04-cask-acceptance`
 - Scope: feature-final / P6-P7 / R1-R8
-- Status: in progress from exact corrected `origin/main`
+- Status: complete from exact corrected `origin/main`
   `1c19304e67f34f12930b1c51c5e06621c05c6734`. This slice will seal the
   linked Cask from retained primary publication run `33458101816`, execute the
   protected nonpublishing rehearsal, obtain distinct approval for its exact
@@ -187,16 +187,22 @@ feature work.
   removed RC.2, downloaded and installed `gatereeve 0.1.0-rc.6` from the live
   tap, Gatekeeper accepted `/Applications/GateReeve.app` as `Notarized
   Developer ID`, and the application launch command completed. R8 now passes.
+- PR #49's exact approved head
+  `f81a87ebbfcf835e3c9c1de883748d2a3b0ccba2` passed all 13 required GitHub
+  checks and merged into `main` as
+  `c4f17857c23deb2a91ab24e73004227be754dcc7`. Ancestry verification passed;
+  no `development` or `development-*` branch participated.
 
 ### PR #49 — RC.6 Cask and Homebrew feature-final acceptance
 
 - Pull request: [#49](https://github.com/TrentBrown/gatereeve/pull/49)
 - Evidence packet: [pr-49](pr-49/boundary.json)
 - Scope: feature-final / P6-P7 / R1-R8
-- Status: in review. The final slice contains only governed lifecycle records,
+- Status: merged. The final slice contains only governed lifecycle records,
   linked-Cask publication evidence, and direct/Homebrew Mac acceptance
-  evidence. All eight rubric rows have concrete passing evidence; formal
-  feature-final verification and review gates are in progress.
+  evidence. All eight rubric rows have concrete passing evidence, every
+  feature-final gate passed, human review was accepted, and the exact reviewed
+  head merged into `main` as `c4f17857c23deb2a91ab24e73004227be754dcc7`.
 - The configured original feature base remains
   `0aac0e525bc59368301e22f305198ac70a09aef5`, while this final slice begins
   at corrected `main` merge
