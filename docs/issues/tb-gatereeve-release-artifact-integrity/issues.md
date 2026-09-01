@@ -71,20 +71,23 @@ PR #46 was human-approved and merged into `main` as
 
 ## I-6 - Prove direct and Homebrew Mac installation
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P6, P7
 - **Rubric criteria:** R6, R8
 - **Depends on:** I-5
-- **PR:** [#47](https://github.com/TrentBrown/gatereeve/pull/47) (provenance correction slice)
+- **PR:** [#47](https://github.com/TrentBrown/gatereeve/pull/47) (provenance correction), [#49](https://github.com/TrentBrown/gatereeve/pull/49) (feature-final acceptance)
 
 Collect direct DMG evidence, publish the separately approved linked Cask, prove
 the Homebrew user path, and complete final rubric evaluation.
 
 The exact public DMG install, Gatekeeper checks, and launch passed on the user's
-Mac at `2026-09-01T14:44:59Z`. Linked Cask finalization is pending a reviewed
-correction that separates workflow-dispatch branch identity from the immutable
-source identity verified inside the downloaded primary/Cask packet. That
-correction is in review in PR #47; the remaining Cask publication and Homebrew
-installation evidence intentionally stay in progress for a fresh feature-final
-slice after the correction merges.
+Mac at `2026-09-01T14:44:59Z`. PR #47 corrected linked-Cask provenance and
+merged as `1c19304e67f34f12930b1c51c5e06621c05c6734`. Fresh linked-Cask
+finalization, protected rehearsal, exact-plan approval, publication, and
+bounded configuration recovery then completed. Tap PR #3 merged the exact
+sealed RC.6 Cask as `3b07cf6d740261298a6a596f25f3c456ed9bac35`.
+Homebrew replaced RC.2 with RC.6 on the user's Mac, reported installed version
+`0.1.0-rc.6`, and Gatekeeper accepted the launched app as `Notarized Developer
+ID` at `2026-09-01T16:11:51Z`. PR #49 carries the complete acceptance record
+and final feature evaluation.

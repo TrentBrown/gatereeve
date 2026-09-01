@@ -16,7 +16,7 @@
 | R5 | RC.5 regression coverage | PASS | #44 | Hidden stripping, visible loss, additions, mutations, malformed evidence, and semantic incompleteness all fail. |
 | R6 | Topology, authority, and history preserved | PASS | #44 | Diff preserves the universal DMG, environment separation, retained-byte flow, and immutable RC.5 history. |
 | R7 | RC.6 primary publication | PASS | - | Exact source `10a7264` and plan `9639bdfc...` completed all five ordered surfaces; independent public asset and manifest digests match. |
-| R8 | Direct and Homebrew Mac installation | NOT YET | - | Planned for P6-P7 / I-6 |
+| R8 | Direct and Homebrew Mac installation | PASS | #47, #49 | Exact public DMG and linked Homebrew RC.6 installs passed; both installed apps were Gatekeeper-accepted as Notarized Developer ID and launched successfully. |
 
 ## PR Log
 
@@ -183,3 +183,23 @@ feature work.
   `9809310268` records state `published`, approved plan `9e9e979a...`, and the
   same receipt. Only final Homebrew Mac installation, Gatekeeper assessment,
   and launch evidence remain for R8 and feature completion.
+- Homebrew acceptance passed at `2026-09-01T16:11:51Z`: `brew reinstall`
+  removed RC.2, downloaded and installed `gatereeve 0.1.0-rc.6` from the live
+  tap, Gatekeeper accepted `/Applications/GateReeve.app` as `Notarized
+  Developer ID`, and the application launch command completed. R8 now passes.
+
+### PR #49 — RC.6 Cask and Homebrew feature-final acceptance
+
+- Pull request: [#49](https://github.com/TrentBrown/gatereeve/pull/49)
+- Scope: feature-final / P6-P7 / R1-R8
+- Status: in review. The final slice contains only governed lifecycle records,
+  linked-Cask publication evidence, and direct/Homebrew Mac acceptance
+  evidence. All eight rubric rows have concrete passing evidence; formal
+  feature-final verification and review gates are in progress.
+- The configured original feature base remains
+  `0aac0e525bc59368301e22f305198ac70a09aef5`, while this final slice begins
+  at corrected `main` merge
+  `1c19304e67f34f12930b1c51c5e06621c05c6734`. The complete Git range also
+  transparently contains unrelated concurrent `main` work, including the
+  separately governed desktop-terminal feature; final evaluation must not
+  attribute that work to release-artifact-integrity.
