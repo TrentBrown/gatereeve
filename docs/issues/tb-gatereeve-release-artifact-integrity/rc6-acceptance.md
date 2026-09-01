@@ -103,6 +103,16 @@ the same finalization run, source, tag, plan digest, mode, and approver. The
 publisher must idempotently verify and skip the first three surfaces, then
 continue at the manifest PR and Early Access verification.
 
+The user enabled the setting, and the API now reports
+`can_approve_pull_request_reviews=true` while default workflow permissions
+remain `read`. Before recovery dispatch, the immutable tag still resolved to
+`10a7264`, the marketplace still resolved to receipt commit `4a204590`, the
+prerelease remained exact and public, and finalization run 33455275343 remained
+successful. Same-packet recovery
+[run 33458101816](https://github.com/TrentBrown/gatereeve/actions/runs/33458101816)
+is WAITING for a new `release-publication` deployment review; no recovery step
+has started.
+
 ### Public inventory before rehearsal
 
 - RC.6 tag: absent

@@ -83,3 +83,8 @@ feature work.
   which a new same-packet dispatch must idempotently resume at the manifest
   surface; generic rerun and replacement of completed history remain
   prohibited.
+- The user enabled the required repository Actions PR setting without changing
+  default read permissions. Same-packet recovery run
+  [33458101816](https://github.com/TrentBrown/gatereeve/actions/runs/33458101816)
+  is waiting at its new protected deployment review after immutable-surface
+  preflight matched all three completed receipts.
