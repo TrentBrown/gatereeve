@@ -75,3 +75,11 @@ feature work.
   source `10a7264`; the publisher workflow and release code are unchanged and
   the job checks out the exact sealed source rather than rebuilding from the
   new head.
+- Publication run 33456095160 then recorded exact tag, marketplace, and GitHub
+  prerelease receipts before GitHub returned HTTP 403 for the deterministic
+  manifest PR because repository Actions are not permitted to create pull
+  requests. The manifest and website remain unchanged on RC.2. Recovery is
+  blocked only on an explicit persistent repository-permission choice, after
+  which a new same-packet dispatch must idempotently resume at the manifest
+  surface; generic rerun and replacement of completed history remain
+  prohibited.

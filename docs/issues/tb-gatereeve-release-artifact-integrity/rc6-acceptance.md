@@ -62,8 +62,8 @@ Intel runners. No generic workflow rerun was used after trust production began.
   `9639bdfcb260673cea4acf137b073fe1b2f264e51b97663d85df9d94cf9f56e0`
 - Real publication dispatch:
   [run 33456095160](https://github.com/TrentBrown/gatereeve/actions/runs/33456095160),
-  mode `publish`, `approved_by=Trent Brown`; WAITING for the distinct
-  `release-publication` deployment review
+  mode `publish`, `approved_by=Trent Brown`; PARTIAL after the distinct
+  `release-publication` deployment approval
 - Public primary verification: NOT YET
 
 The `main` branch advanced to merge `cf9bbf7596e48d29dc12308dea585efced95ca26`
@@ -73,6 +73,35 @@ an ancestor of the new `main`, the coordinated publisher workflow and release
 publisher paths are unchanged across the advance, and the job checks out the
 exact source input. No RC.6 bytes are rebuilt from the newer commit, and RC.6
 does not include PR #43.
+
+### Bounded partial-publication recovery
+
+Run 33456095160 preserved three successful ordered receipts before stopping:
+
+1. Tag `v0.1.0-rc.6` at exact source `10a7264`, completed
+   `2026-09-01T01:00:14.957Z`.
+2. Plugin marketplace commit `4a204590e8ddf73a4a716a66998f20741426aeb3`,
+   completed `2026-09-01T01:00:21.150Z`; deployed `RELEASE.json` identifies
+   RC.6 and exact source `10a7264`.
+3. GitHub prerelease, completed `2026-09-01T01:00:32.194Z`, with exact assets:
+   DMG SHA-256
+   `47121af4f246dbef0d6597c9361df346baacf128d3042fa122a2c8d83772e314`
+   and `SHA256SUMS` SHA-256
+   `b8d553618a884df4b954733a6b2d29b357dc938c345d679c8d162cea79b707c1`.
+
+The publisher then received HTTP 403 while creating the deterministic update
+manifest PR: GitHub Actions is not permitted to create or approve pull
+requests. Repository workflow permissions report
+`can_approve_pull_request_reviews=false` and default read permission. The main
+manifest and Early Access response remain byte-identical RC.2 at SHA-256
+`23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b`.
+
+Do not delete, replace, move, or republish the completed receipts, and do not
+use GitHub's generic rerun. After explicitly enabling the repository setting
+that allows Actions to create pull requests, recovery is a new dispatch with
+the same finalization run, source, tag, plan digest, mode, and approver. The
+publisher must idempotently verify and skip the first three surfaces, then
+continue at the manifest PR and Early Access verification.
 
 ### Public inventory before rehearsal
 
