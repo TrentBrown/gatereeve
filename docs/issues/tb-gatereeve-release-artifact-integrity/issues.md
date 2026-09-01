@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Implement the Plugin tree integrity contract
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P1
 - **Rubric criteria:** R1, R3, R4, R5
@@ -20,7 +20,7 @@ Create the producer commitment and strict exact-tree plus semantic verifier.
 
 ## I-2 - Harden hosted artifact handoffs and ordering
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P2
 - **Rubric criteria:** R2, R3, R4, R6
@@ -32,7 +32,7 @@ first round trip.
 
 ## I-3 - Add regression coverage and operator documentation
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P3
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6
@@ -44,7 +44,7 @@ recovery rule.
 
 ## I-4 - Deliver and verify the correction on main
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 0.5d
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6
@@ -55,15 +55,16 @@ Complete the governed boundary, human review, permitted merge, and mainline CI.
 
 ## I-5 - Publish and verify RC.6 primary surfaces
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P5
 - **Rubric criteria:** R2, R3, R4, R6, R7
 - **Depends on:** I-4
-- **PR:** -
+- **PR:** [#46](https://github.com/TrentBrown/gatereeve/pull/46)
 
 Run the fresh protected trust and primary publication lifecycle from corrected
-main.
+main. Completed through same-packet bounded recovery after a repository Actions
+PR-permission prerequisite surfaced at the fourth ordered publication surface.
 
 ## I-6 - Prove direct and Homebrew Mac installation
 
