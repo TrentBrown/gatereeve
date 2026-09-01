@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "scope": "slice",
+  "featureId": "tb-gatereeve-release-artifact-integrity",
+  "repositoryAlias": "product",
+  "packetId": "pr-47",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 47,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/47",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "9a00ec850b999fe8abd51277cb5fe3f78a59bdfc",
+    "headRefName": "tb-gatereeve-release-artifact-integrity-03-mac-cask-acceptance",
+    "headRefOid": "e263097113b8dca9e9b5f82888adc145b62c4538"
+  },
+  "mergeBaseSha": "9a00ec850b999fe8abd51277cb5fe3f78a59bdfc",
+  "evaluatedSourceSha": "e263097113b8dca9e9b5f82888adc145b62c4538",
+  "featureBaseSha": null,
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": {"disposition": "passed", "reason": null},
+    "specEvaluation": {"disposition": "passed", "reason": null},
+    "judge": {"disposition": "passed", "reason": null},
+    "codeReview": {"disposition": "passed", "reason": null},
+    "patternReview": {"disposition": "not_applicable", "reason": "No .pattern-review scope is configured in the GateReeve repository."},
+    "explainDiff": {"disposition": "passed", "reason": null}
+  }
+}

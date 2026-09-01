@@ -130,6 +130,7 @@ feature work.
 ### PR #47 — linked Cask provenance correction
 
 - Pull request: [#47](https://github.com/TrentBrown/gatereeve/pull/47)
+- Evidence packet: [pr-47](pr-47/boundary.json)
 - Scope: slice / P6 / R6, R8
 - Status: in review. The pinned source diff removes invalid equality between a
   moving workflow-dispatch head and the immutable release source, constrains
