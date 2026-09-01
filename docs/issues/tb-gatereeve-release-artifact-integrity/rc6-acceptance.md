@@ -211,7 +211,7 @@ recovery completed all five primary surfaces without rebuilding trusted bytes.
 - Active feature-final slice: `s4-cask-acceptance`
 - Direct RC.6 install: PASS
 - Cask finalization: PASS
-- Cask rehearsal: PASS; publication and Homebrew install evidence: pending
+- Cask rehearsal and publication: PASS; Homebrew install evidence: pending
 
 ## Direct Mac installation
 
@@ -314,3 +314,34 @@ This is a bounded configuration failure, not a partial publication. After the
 documented fine-grained tap token is stored once in `release-publication`, a
 fresh dispatch must reuse the same finalizer run, source, tag, plan digest, and
 approver. Do not use GitHub's generic rerun and do not alter the Cask bytes.
+
+### Same-plan publication recovery
+
+- One-time publication authority: `GATEREEVE_PUBLICATION_TOKEN` stored in
+  `release-publication`; name and timestamp audited without exposing its value
+- Recovery run:
+  [33529901678](https://github.com/TrentBrown/gatereeve/actions/runs/33529901678)
+- Protected environment review: APPROVED
+- Final state: `published`; Cask surface `complete`
+- Approval identity: `Trent Brown`, exact plan
+  `9e9e979a2b4760a5e459c62994a7c6320850e5e3c3858bb2e097a5389adfa0c1`
+- Deterministic tap PR:
+  [#3](https://github.com/TrentBrown/homebrew-gatereeve/pull/3), merged as
+  `3b07cf6d740261298a6a596f25f3c456ed9bac35`
+- Live tap Cask blob: `5594dd4d86556083213a92784d84f0492f905e33`
+- Retained and live Cask SHA-256: exact match,
+  `c0859208ec05cdadb7b0c55c5ff964b0ab0c93b609712f0775cd30fbc063bbf6`
+- Live Cask version: `0.1.0-rc.6`
+- Live Cask DMG SHA-256: exact primary release match,
+  `47121af4f246dbef0d6597c9361df346baacf128d3042fa122a2c8d83772e314`
+- Publication result artifact: ID `9809310268`, archive SHA-256
+  `fb50334b6b9a269600a587cf672423c8906206450826cbc32bfe044deb65bebc`
+- Published linked record SHA-256:
+  `87a645c3eb0148c5c58da375a0c188c65f4421860ef3ec1b321773e81a20605d`
+
+The recovery used a fresh protected dispatch, not GitHub's generic rerun. It
+reused the exact finalizer run, immutable source, tag, plan, Cask bytes, and
+approver. Independent inspection of the retained result and live tap proves
+that PR #3 published only the approved RC.6 Cask. Final Homebrew installation,
+Gatekeeper assessment, and application launch evidence remain pending on the
+user's Mac.

@@ -173,3 +173,13 @@ feature work.
   blob `f0884072...`, and no RC.6 tap PR exists. Same-plan recovery is pending
   one-time configuration of the least-privilege tap token; generic rerun is
   prohibited.
+- After the token was stored once, fresh same-plan recovery run
+  [33529901678](https://github.com/TrentBrown/gatereeve/actions/runs/33529901678)
+  passed its protected review and published the exact Cask through tap PR
+  [#3](https://github.com/TrentBrown/homebrew-gatereeve/pull/3), merge
+  `3b07cf6d740261298a6a596f25f3c456ed9bac35`. The live RC.6 Cask is
+  byte-identical to the sealed packet at SHA-256 `c0859208...` and names the
+  exact public DMG digest `47121af4...`. Publication result artifact
+  `9809310268` records state `published`, approved plan `9e9e979a...`, and the
+  same receipt. Only final Homebrew Mac installation, Gatekeeper assessment,
+  and launch evidence remain for R8 and feature completion.
