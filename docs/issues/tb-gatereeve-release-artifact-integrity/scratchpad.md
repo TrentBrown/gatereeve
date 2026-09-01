@@ -35,3 +35,23 @@ Retain RC.5, its Apple request history, and its sealed packet as failed-attempt 
 
 **Alternatives considered:**
 Retry the incomplete RC.5 packet — rejected because it reproduces the defect; add missing files to RC.5 — rejected because they were not in the sealed plan; delete or retarget RC.5 — rejected because release identity and published-history contracts are immutable.
+
+## [3] Permit deterministic publication PR creation without broadening default authority
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Repository Actions policy and the update-manifest publication surface
+
+Enable the repository setting that allows GitHub Actions to create and approve
+pull requests, while retaining read-only default workflow permissions. The
+coordinated publisher may therefore create its deterministic one-file manifest
+PR only after the separate `release-publication` environment approval; this
+setting does not grant Apple credentials, bypass the protected environment, or
+authorize arbitrary write access for workflows that do not request it.
+
+**Triggered by:** RC.6 primary publication completed its first three ordered surfaces but received HTTP 403 when creating the designed update-manifest PR
+
+**Alternatives considered:**
+Manually create the manifest PR — rejected because it would break deterministic publication/recovery transport; grant broad default write permissions — rejected as unnecessary authority expansion; redesign the publisher during a live partial release — rejected because same-packet bounded recovery was already designed and retained exact bytes and receipts.

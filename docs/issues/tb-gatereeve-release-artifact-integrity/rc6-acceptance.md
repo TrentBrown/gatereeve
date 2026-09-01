@@ -64,7 +64,15 @@ Intel runners. No generic workflow rerun was used after trust production began.
   [run 33456095160](https://github.com/TrentBrown/gatereeve/actions/runs/33456095160),
   mode `publish`, `approved_by=Trent Brown`; PARTIAL after the distinct
   `release-publication` deployment approval
-- Public primary verification: NOT YET
+- Same-packet bounded recovery:
+  [run 33458101816](https://github.com/TrentBrown/gatereeve/actions/runs/33458101816),
+  mode `publish`, exact finalization run/source/tag/plan/approver; PASS after a
+  fresh `release-publication` deployment approval
+- Deterministic update-manifest PR:
+  [#45](https://github.com/TrentBrown/gatereeve/pull/45); one-file change to
+  `workflow-site/releases/desktop.json`, merged as
+  `2b16a4f709d05da89b84bb87bafa77068cac2a1f`
+- Public primary verification: PASS
 
 The `main` branch advanced to merge `cf9bbf7596e48d29dc12308dea585efced95ca26`
 for PR #43 seconds before the real dispatch. RC.6 remains intentionally bound
@@ -93,7 +101,7 @@ The publisher then received HTTP 403 while creating the deterministic update
 manifest PR: GitHub Actions is not permitted to create or approve pull
 requests. Repository workflow permissions report
 `can_approve_pull_request_reviews=false` and default read permission. The main
-manifest and Early Access response remain byte-identical RC.2 at SHA-256
+manifest and Early Access response remained byte-identical RC.2 at SHA-256
 `23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b`.
 
 Do not delete, replace, move, or republish the completed receipts, and do not
@@ -103,15 +111,50 @@ the same finalization run, source, tag, plan digest, mode, and approver. The
 publisher must idempotently verify and skip the first three surfaces, then
 continue at the manifest PR and Early Access verification.
 
-The user enabled the setting, and the API now reports
+The user enabled the setting, and the API then reported
 `can_approve_pull_request_reviews=true` while default workflow permissions
-remain `read`. Before recovery dispatch, the immutable tag still resolved to
+remained `read`. Before recovery dispatch, the immutable tag still resolved to
 `10a7264`, the marketplace still resolved to receipt commit `4a204590`, the
 prerelease remained exact and public, and finalization run 33455275343 remained
 successful. Same-packet recovery
 [run 33458101816](https://github.com/TrentBrown/gatereeve/actions/runs/33458101816)
-is WAITING for a new `release-publication` deployment review; no recovery step
-has started.
+passed after a fresh `release-publication` deployment review. It bound the
+exact finalized packet, idempotently verified and skipped the completed tag,
+marketplace, and prerelease surfaces, then created and merged manifest PR #45
+and verified the Early Access response.
+
+The final publication result is `published` for sealed plan SHA-256
+`9639bdfcb260673cea4acf137b073fe1b2f264e51b97663d85df9d94cf9f56e0`
+and contains all five ordered receipts:
+
+1. Tag `v0.1.0-rc.6` at source
+   `10a726411fd46f58263f8c989ac83f1a65bdf33f`, verified
+   `2026-09-01T01:22:43.494Z`.
+2. Plugin marketplace commit
+   `4a204590e8ddf73a4a716a66998f20741426aeb3`, verified
+   `2026-09-01T01:22:45.794Z`.
+3. GitHub prerelease
+   `https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.6`, verified
+   `2026-09-01T01:22:46.977Z`.
+4. Update manifest PR #45 at merge
+   `2b16a4f709d05da89b84bb87bafa77068cac2a1f`, completed
+   `2026-09-01T01:22:57.152Z`.
+5. Early Access response at manifest SHA-256
+   `19e35e21f6684cdc14cb957c63c1d67194659bf7d98768e4416a94d9b4d6518a`,
+   verified `2026-09-01T01:23:23.012Z`.
+
+Independent public downloads matched the retained release packet: the DMG is
+SHA-256
+`47121af4f246dbef0d6597c9361df346baacf128d3042fa122a2c8d83772e314`
+and the `SHA256SUMS` asset is SHA-256
+`b8d553618a884df4b954733a6b2d29b357dc938c345d679c8d162cea79b707c1`;
+the checksum file itself names the same DMG digest. The immutable tag resolves
+to exact source `10a7264`, deployed `RELEASE.json` identifies RC.6 and that
+source, and both the merged main manifest and public Early Access response are
+byte-identical at SHA-256 `19e35e21...`. Both manifests identify RC.6, the
+exact source and DMG digest, and successful Apple trust evidence. Homebrew
+remains intentionally on RC.2 until the separately finalized and approved P6
+Cask publication.
 
 ### Public inventory before rehearsal
 
@@ -143,7 +186,8 @@ has started.
   `f08840728d0b329a9dfe037467782d8c335c396e`, release `0.1.0-rc.2`
 
 The complete before/after inventory proves the protected rehearsal made no
-public mutation. Real publication remains a new dispatch and decision.
+public mutation. The later separately approved primary publication and bounded
+recovery completed all five primary surfaces without rebuilding trusted bytes.
 
 ## Constraints
 

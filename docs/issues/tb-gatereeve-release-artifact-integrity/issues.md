@@ -55,7 +55,7 @@ Complete the governed boundary, human review, permitted merge, and mainline CI.
 
 ## I-5 - Publish and verify RC.6 primary surfaces
 
-- **Status:** in-progress
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P5
 - **Rubric criteria:** R2, R3, R4, R6, R7
@@ -63,7 +63,8 @@ Complete the governed boundary, human review, permitted merge, and mainline CI.
 - **PR:** -
 
 Run the fresh protected trust and primary publication lifecycle from corrected
-main.
+main. Completed through same-packet bounded recovery after a repository Actions
+PR-permission prerequisite surfaced at the fourth ordered publication surface.
 
 ## I-6 - Prove direct and Homebrew Mac installation
 
