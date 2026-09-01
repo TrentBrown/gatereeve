@@ -141,3 +141,15 @@ feature work.
   topic head `54950a995577626ec690acc7697ccd502c990e12` is an ancestor of
   `origin/main` merge `1c19304e67f34f12930b1c51c5e06621c05c6734`. No
   `development` or `development-*` branch participated.
+
+### RC.6 linked Cask and Homebrew feature-final acceptance
+
+- Slice: `s4-cask-acceptance`
+- Branch: `tb-gatereeve-release-artifact-integrity-04-cask-acceptance`
+- Scope: feature-final / P6-P7 / R1-R8
+- Status: in progress from exact corrected `origin/main`
+  `1c19304e67f34f12930b1c51c5e06621c05c6734`. This slice will seal the
+  linked Cask from retained primary publication run `33458101816`, execute the
+  protected nonpublishing rehearsal, obtain distinct approval for its exact
+  plan digest, publish idempotently, and collect Homebrew installation and
+  launch evidence before complete-feature evaluation.
