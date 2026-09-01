@@ -164,3 +164,12 @@ feature work.
   `f08840728d0b329a9dfe037467782d8c335c396e`, proving no Cask mutation
   occurred. Distinct approval of exact plan `9e9e979a...` is now required for
   real publication.
+- The user approved exact plan `9e9e979a...`, and protected publication run
+  [33527077278](https://github.com/TrentBrown/gatereeve/actions/runs/33527077278)
+  passed environment review plus exact source/finalizer binding. It stopped
+  before mutation because `release-publication` did not yet contain the
+  documented one-time `GATEREEVE_PUBLICATION_TOKEN`; `GH_TOKEN` was empty.
+  The retained result artifact is `9808463980`, the live Cask remains RC.2 at
+  blob `f0884072...`, and no RC.6 tap PR exists. Same-plan recovery is pending
+  one-time configuration of the least-privilege tap token; generic rerun is
+  prohibited.

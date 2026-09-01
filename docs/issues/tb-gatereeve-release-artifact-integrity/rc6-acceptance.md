@@ -293,3 +293,24 @@ and the pending/unapproved publication state. A fresh live check after the run
 confirmed the tap still serves RC.2, proving the rehearsal made no public
 mutation. Real Cask publication now requires a distinct explicit approval of
 that exact sealed plan.
+
+## Linked Cask publication attempt
+
+- Explicit approval: APPROVED by the user for exact sealed plan
+  `9e9e979a2b4760a5e459c62994a7c6320850e5e3c3858bb2e097a5389adfa0c1`
+- Protected publication run:
+  [33527077278](https://github.com/TrentBrown/gatereeve/actions/runs/33527077278)
+- Environment review: APPROVED; GitHub recorded no remaining pending
+  deployments before runner assignment
+- Exact-packet source and finalizer binding: PASS
+- Result: STOPPED before mutation because the environment secret
+  `GATEREEVE_PUBLICATION_TOKEN` was absent and therefore `GH_TOKEN` was empty
+- Retained result artifact ID: `9808463980`, archive SHA-256
+  `347ce30e4e3539d2159ccbd8ff65008c8a287f8444713794f09e8edb2080dd75`
+- Post-failure no-mutation check: PASS; live Homebrew Cask remains RC.2 at blob
+  `f08840728d0b329a9dfe037467782d8c335c396e`, and no RC.6 tap PR exists
+
+This is a bounded configuration failure, not a partial publication. After the
+documented fine-grained tap token is stored once in `release-publication`, a
+fresh dispatch must reuse the same finalizer run, source, tag, plan digest, and
+approver. Do not use GitHub's generic rerun and do not alter the Cask bytes.
