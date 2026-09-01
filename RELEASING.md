@@ -215,6 +215,18 @@ Afterward, verify the user path on a clean Mac:
 brew install --cask TrentBrown/gatereeve/gatereeve
 ```
 
+Retain native ARM64 and Intel evidence from the exact published linked Cask
+packet rather than reconstructing release metadata from an earlier stage:
+
+```bash
+CASK_PUBLICATION_RUN_ID=<SUCCESSFUL_CASK_PUBLICATION_RUN_ID>
+gh workflow run homebrew-cask-smoke.yml \
+  --repo TrentBrown/gatereeve \
+  --ref main \
+  -f cask_publication_run_id="$CASK_PUBLICATION_RUN_ID" \
+  -f release_tag="$RC_TAG"
+```
+
 This installs Desktop only. Plugin and optional CLI lifecycles remain separate.
 
 ## Release Model

@@ -13,6 +13,7 @@ import {
   renderPredecessorHomebrewCask,
   verifyHomebrewCaskWorkspace,
 } from '../../../cli/src/plugin/homebrew-cask.js';
+import { verifyHomebrewCaskWorkspaceV2 } from '../../../cli/src/plugin/homebrew-cask-v2.js';
 
 const execFileAsync = promisify(execFile);
 const SMOKE_TAP = 'gatereeve/smoke';
@@ -103,6 +104,15 @@ function sha256(contents) {
   return createHash('sha256').update(contents).digest('hex');
 }
 
+async function verifySmokeWorkspace(recordPath) {
+  const path = resolve(recordPath);
+  const candidate = JSON.parse(await readFile(path, 'utf8'));
+  if (candidate.schemaVersion === 2) {
+    return (await verifyHomebrewCaskWorkspaceV2(path)).record;
+  }
+  return verifyHomebrewCaskWorkspace(path);
+}
+
 /**
  * @param {{recordPath: string, evidencePath?: string, run?: typeof runCommand,
  *   platform?: string, architecture?: string, now?: () => Date}} options
@@ -112,7 +122,7 @@ export async function smokeHomebrewCask(options) {
   if (platform !== 'darwin') throw new Error('Homebrew Cask smoke requires macOS');
   const hostArchitecture = assertNativeArchitecture(options.architecture);
   const run = options.run ?? runCommand;
-  const record = await verifyHomebrewCaskWorkspace(resolve(options.recordPath));
+  const record = await verifySmokeWorkspace(options.recordPath);
   const workspace = dirname(resolve(options.recordPath));
   const exactCask = await readFile(resolve(workspace, record.cask.outputPath), 'utf8');
   const stagingRoot = await mkdtemp(resolve(tmpdir(), 'gatereeve-homebrew-smoke-'));
@@ -215,7 +225,7 @@ export async function smokePublicHomebrewCask(options) {
   if (platform !== 'darwin') throw new Error('Public Homebrew Cask smoke requires macOS');
   const hostArchitecture = assertNativeArchitecture(options.architecture);
   const run = options.run ?? runCommand;
-  const record = await verifyHomebrewCaskWorkspace(resolve(options.recordPath));
+  const record = await verifySmokeWorkspace(options.recordPath);
   const expectedCask = await readFile(
     resolve(dirname(resolve(options.recordPath)), record.cask.outputPath),
     'utf8',

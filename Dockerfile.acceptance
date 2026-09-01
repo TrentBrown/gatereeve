@@ -32,6 +32,7 @@ COPY .github/workflows/coordinated-release-finalize.yml ./.github/workflows/coor
 COPY .github/workflows/coordinated-release-publish.yml ./.github/workflows/coordinated-release-publish.yml
 COPY .github/workflows/homebrew-cask-finalize.yml ./.github/workflows/homebrew-cask-finalize.yml
 COPY .github/workflows/homebrew-cask-publish.yml ./.github/workflows/homebrew-cask-publish.yml
+COPY .github/workflows/homebrew-cask-smoke.yml ./.github/workflows/homebrew-cask-smoke.yml
 COPY plugin-src ./plugin-src
 COPY docs ./docs
 COPY ci ./ci
