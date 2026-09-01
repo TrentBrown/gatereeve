@@ -105,3 +105,16 @@ feature work.
 - Scope: slice
 - P5 is complete. R2, R3, and R7 pass from exact hosted and independently
   downloaded public evidence; P6/P7 and R8 remain the final Mac/Cask slice.
+- Human review was accepted, and GitHub merged exact reviewed head
+  `68a3977ed60c11f07ce2a36886cb892540322d99` into `main` as
+  `9a00ec850b999fe8abd51277cb5fe3f78a59bdfc`. Ancestry verification passed;
+  no `development` or `development-*` branch participated.
+
+### RC.6 Mac and linked Cask acceptance
+
+- Slice: `s3-mac-cask-acceptance`
+- Branch: `tb-gatereeve-release-artifact-integrity-03-mac-cask-acceptance`
+- Scope: feature-final / P6-P7 / R1-R8
+- Status: in progress. Direct installation of the exact public RC.6 DMG is the
+  prerequisite for linked Cask finalization and its distinct publication
+  approval.

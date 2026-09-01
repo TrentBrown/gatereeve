@@ -195,3 +195,15 @@ recovery completed all five primary surfaces without rebuilding trusted bytes.
 - Do not change trusted bytes under `v0.1.0-rc.6` after live Apple bytes or request history exists.
 - Publication approval is distinct from `release-trust` approval.
 - Cask finalization/publication and Mac installation are P6, after primary publication.
+
+## Acceptance evidence delivery
+
+- Primary evidence PR: [#46](https://github.com/TrentBrown/gatereeve/pull/46)
+- Exact reviewed head:
+  `68a3977ed60c11f07ce2a36886cb892540322d99`
+- Merge commit:
+  `9a00ec850b999fe8abd51277cb5fe3f78a59bdfc`
+- Merge verification: PASS by ancestry
+- Final direct-Mac and linked-Cask slice: `s3-mac-cask-acceptance`
+- Direct RC.6 install, Cask finalization/rehearsal/publication, and Homebrew
+  install evidence: pending
