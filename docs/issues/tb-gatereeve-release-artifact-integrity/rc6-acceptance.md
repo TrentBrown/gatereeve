@@ -57,9 +57,22 @@ Intel runners. No generic workflow rerun was used after trust production began.
   PASS after separate user approval of the `release-publication` deployment
   (environment ID `20741161933`); exact packet inspection and publication
   preflight passed with read-only permissions and no publication secret
-- Separate primary publication approval: AWAITING explicit authorization for
-  the exact sealed plan
+- Separate primary publication approval: APPROVED explicitly by the user for
+  sealed plan SHA-256
+  `9639bdfcb260673cea4acf137b073fe1b2f264e51b97663d85df9d94cf9f56e0`
+- Real publication dispatch:
+  [run 33456095160](https://github.com/TrentBrown/gatereeve/actions/runs/33456095160),
+  mode `publish`, `approved_by=Trent Brown`; WAITING for the distinct
+  `release-publication` deployment review
 - Public primary verification: NOT YET
+
+The `main` branch advanced to merge `cf9bbf7596e48d29dc12308dea585efced95ca26`
+for PR #43 seconds before the real dispatch. RC.6 remains intentionally bound
+to its approved and already notarized source `10a7264`: the sealed source is
+an ancestor of the new `main`, the coordinated publisher workflow and release
+publisher paths are unchanged across the advance, and the job checks out the
+exact source input. No RC.6 bytes are rebuilt from the newer commit, and RC.6
+does not include PR #43.
 
 ### Public inventory before rehearsal
 

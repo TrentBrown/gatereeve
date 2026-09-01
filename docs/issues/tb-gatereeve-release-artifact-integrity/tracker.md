@@ -68,3 +68,10 @@ feature work.
   permissions and no publication secret. Matching before/after inventories
   prove all public surfaces remained on RC.2 and the RC.6 tag/release remained
   absent.
+- The user explicitly approved the exact sealed plan, and real publication run
+  [33456095160](https://github.com/TrentBrown/gatereeve/actions/runs/33456095160)
+  is waiting for its distinct protected deployment review. Although PR #43
+  advanced `main` immediately before dispatch, RC.6 remains bound to ancestor
+  source `10a7264`; the publisher workflow and release code are unchanged and
+  the job checks out the exact sealed source rather than rebuilding from the
+  new head.
