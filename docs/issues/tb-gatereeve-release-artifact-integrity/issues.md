@@ -55,7 +55,7 @@ Complete the governed boundary, human review, permitted merge, and mainline CI.
 
 ## I-5 - Publish and verify RC.6 primary surfaces
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P5
 - **Rubric criteria:** R2, R3, R4, R6, R7
@@ -65,15 +65,26 @@ Complete the governed boundary, human review, permitted merge, and mainline CI.
 Run the fresh protected trust and primary publication lifecycle from corrected
 main. Completed through same-packet bounded recovery after a repository Actions
 PR-permission prerequisite surfaced at the fourth ordered publication surface.
+PR #46 was human-approved and merged into `main` as
+`9a00ec850b999fe8abd51277cb5fe3f78a59bdfc`; exact reviewed head
+`68a3977ed60c11f07ce2a36886cb892540322d99` is its ancestor.
 
 ## I-6 - Prove direct and Homebrew Mac installation
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** P6, P7
 - **Rubric criteria:** R6, R8
 - **Depends on:** I-5
-- **PR:** -
+- **PR:** [#47](https://github.com/TrentBrown/gatereeve/pull/47) (provenance correction slice)
 
 Collect direct DMG evidence, publish the separately approved linked Cask, prove
 the Homebrew user path, and complete final rubric evaluation.
+
+The exact public DMG install, Gatekeeper checks, and launch passed on the user's
+Mac at `2026-09-01T14:44:59Z`. Linked Cask finalization is pending a reviewed
+correction that separates workflow-dispatch branch identity from the immutable
+source identity verified inside the downloaded primary/Cask packet. That
+correction is in review in PR #47; the remaining Cask publication and Homebrew
+installation evidence intentionally stay in progress for a fresh feature-final
+slice after the correction merges.

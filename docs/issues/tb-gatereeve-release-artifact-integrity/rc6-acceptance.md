@@ -195,3 +195,47 @@ recovery completed all five primary surfaces without rebuilding trusted bytes.
 - Do not change trusted bytes under `v0.1.0-rc.6` after live Apple bytes or request history exists.
 - Publication approval is distinct from `release-trust` approval.
 - Cask finalization/publication and Mac installation are P6, after primary publication.
+
+## Acceptance evidence delivery
+
+- Primary evidence PR: [#46](https://github.com/TrentBrown/gatereeve/pull/46)
+- Exact reviewed head:
+  `68a3977ed60c11f07ce2a36886cb892540322d99`
+- Merge commit:
+  `9a00ec850b999fe8abd51277cb5fe3f78a59bdfc`
+- Merge verification: PASS by ancestry
+- Premature feature-final slice `s3-mac-cask-acceptance`: abandoned after live
+  acceptance exposed a reviewed workflow prerequisite
+- Active correction slice: `s3-cask-provenance-correction`
+- Direct RC.6 install: PASS
+- Cask finalization/rehearsal/publication and Homebrew install evidence: pending
+
+## Direct Mac installation
+
+- Confirmed by: Trent Brown
+- Confirmed at: `2026-09-01T14:44:59Z`
+- Downloaded asset:
+  `GateReeve-0.1.0-rc.6-macos-universal.dmg`
+- Downloaded SHA-256: PASS,
+  `47121af4f246dbef0d6597c9361df346baacf128d3042fa122a2c8d83772e314`
+- DMG Gatekeeper assessment: PASS, `accepted`, source
+  `Notarized Developer ID`
+- Installed application: `/Applications/GateReeve.app`
+- Application Gatekeeper assessment: PASS, `accepted`, source
+  `Notarized Developer ID`
+- Application launch: PASS through `open /Applications/GateReeve.app`
+- Apple bundle version: `0.1.0`, expected because
+  `macosBundleVersion("0.1.0-rc.6")` deliberately removes the prerelease
+  suffix for `CFBundleShortVersionString`; the exact RC identity remains bound
+  by the public filename, digest, tag, and sealed primary record.
+
+The read-only linked-Cask preflight then found that its workflow provenance
+check incorrectly equated GitHub's moving workflow-dispatch branch `head_sha`
+with the immutable release source. Successful primary recovery run 33458101816
+has dispatch head `cf9bbf7596e48d29dc12308dea585efced95ca26`, while its downloaded,
+fully published packet correctly binds RC.6 to ancestor source
+`10a726411fd46f58263f8c989ac83f1a65bdf33f`. Cask work remains
+nonpublishing until the finalizer and publisher validate source identity from
+their sealed downloaded packets instead. After that correction merges, a fresh
+feature-final slice will execute the linked Cask lifecycle and record the final
+Homebrew installation evidence.
