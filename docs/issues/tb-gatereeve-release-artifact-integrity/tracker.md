@@ -153,3 +153,10 @@ feature work.
   protected nonpublishing rehearsal, obtain distinct approval for its exact
   plan digest, publish idempotently, and collect Homebrew installation and
   launch evidence before complete-feature evaluation.
+- Linked finalization run
+  [33525598814](https://github.com/TrentBrown/gatereeve/actions/runs/33525598814)
+  passed and sealed exact Cask plan `9e9e979a...` for immutable source
+  `10a7264` and DMG digest `47121af4...`. Protected dry-run
+  [33525707781](https://github.com/TrentBrown/gatereeve/actions/runs/33525707781)
+  is waiting for `release-publication` environment review; no Cask mutation
+  has occurred.

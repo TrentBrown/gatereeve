@@ -206,9 +206,12 @@ recovery completed all five primary surfaces without rebuilding trusted bytes.
 - Merge verification: PASS by ancestry
 - Premature feature-final slice `s3-mac-cask-acceptance`: abandoned after live
   acceptance exposed a reviewed workflow prerequisite
-- Active correction slice: `s3-cask-provenance-correction`
+- Merged correction slice: `s3-cask-provenance-correction`, PR #47 merge
+  `1c19304e67f34f12930b1c51c5e06621c05c6734`
+- Active feature-final slice: `s4-cask-acceptance`
 - Direct RC.6 install: PASS
-- Cask finalization/rehearsal/publication and Homebrew install evidence: pending
+- Cask finalization: PASS
+- Cask rehearsal/publication and Homebrew install evidence: pending
 
 ## Direct Mac installation
 
@@ -239,3 +242,33 @@ nonpublishing until the finalizer and publisher validate source identity from
 their sealed downloaded packets instead. After that correction merges, a fresh
 feature-final slice will execute the linked Cask lifecycle and record the final
 Homebrew installation evidence.
+
+## Linked Homebrew Cask finalization
+
+- Hosted workflow:
+  [33525598814](https://github.com/TrentBrown/gatereeve/actions/runs/33525598814)
+- Workflow result: PASS from corrected `main`
+  `1c19304e67f34f12930b1c51c5e06621c05c6734`
+- Primary publication run: `33458101816`
+- Immutable RC.6 source:
+  `10a726411fd46f58263f8c989ac83f1a65bdf33f`
+- Cask release ID: `gatereeve-cask-v0.1.0-rc.6`
+- Exact Cask plan SHA-256:
+  `9e9e979a2b4760a5e459c62994a7c6320850e5e3c3858bb2e097a5389adfa0c1`
+- Exact Cask file SHA-256:
+  `c0859208ec05cdadb7b0c55c5ff964b0ab0c93b609712f0775cd30fbc063bbf6`
+- Linked record SHA-256:
+  `46d4704ec00f6adcdb0c16d0e2ab1a1be8065f683f5e98d808b65b5b41f8cce8`
+- DMG SHA-256: exact match,
+  `47121af4f246dbef0d6597c9361df346baacf128d3042fa122a2c8d83772e314`
+- Direct-install evidence SHA-256:
+  `8035c97847472faf1c9e94735759d021e86b0516acd78737302141f170f4f173`
+- Publication state: `prepared`, unapproved, Cask surface pending
+- Protected rehearsal:
+  [33525707781](https://github.com/TrentBrown/gatereeve/actions/runs/33525707781),
+  waiting for the `release-publication` environment review
+
+The finalizer authenticated the successful primary recovery run as a reviewed
+`main` producer, proved the immutable source is its ancestor, downloaded the
+retained primary result, and independently matched the packet source commit
+and tag. It neither rebuilt trusted bytes nor mutated the Homebrew tap.
