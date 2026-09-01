@@ -206,9 +206,13 @@ recovery completed all five primary surfaces without rebuilding trusted bytes.
 - Merge verification: PASS by ancestry
 - Premature feature-final slice `s3-mac-cask-acceptance`: abandoned after live
   acceptance exposed a reviewed workflow prerequisite
-- Active correction slice: `s3-cask-provenance-correction`
+- Merged correction slice: `s3-cask-provenance-correction`, PR #47 merge
+  `1c19304e67f34f12930b1c51c5e06621c05c6734`
+- Active feature-final slice: `s4-cask-acceptance`
 - Direct RC.6 install: PASS
-- Cask finalization/rehearsal/publication and Homebrew install evidence: pending
+- Cask finalization: PASS
+- Cask rehearsal and publication: PASS
+- Homebrew RC.6 installation, Gatekeeper assessment, and launch: PASS
 
 ## Direct Mac installation
 
@@ -239,3 +243,132 @@ nonpublishing until the finalizer and publisher validate source identity from
 their sealed downloaded packets instead. After that correction merges, a fresh
 feature-final slice will execute the linked Cask lifecycle and record the final
 Homebrew installation evidence.
+
+## Linked Homebrew Cask finalization
+
+- Hosted workflow:
+  [33525598814](https://github.com/TrentBrown/gatereeve/actions/runs/33525598814)
+- Workflow result: PASS from corrected `main`
+  `1c19304e67f34f12930b1c51c5e06621c05c6734`
+- Primary publication run: `33458101816`
+- Immutable RC.6 source:
+  `10a726411fd46f58263f8c989ac83f1a65bdf33f`
+- Cask release ID: `gatereeve-cask-v0.1.0-rc.6`
+- Exact Cask plan SHA-256:
+  `9e9e979a2b4760a5e459c62994a7c6320850e5e3c3858bb2e097a5389adfa0c1`
+- Exact Cask file SHA-256:
+  `c0859208ec05cdadb7b0c55c5ff964b0ab0c93b609712f0775cd30fbc063bbf6`
+- Linked record SHA-256:
+  `46d4704ec00f6adcdb0c16d0e2ab1a1be8065f683f5e98d808b65b5b41f8cce8`
+- DMG SHA-256: exact match,
+  `47121af4f246dbef0d6597c9361df346baacf128d3042fa122a2c8d83772e314`
+- Direct-install evidence SHA-256:
+  `8035c97847472faf1c9e94735759d021e86b0516acd78737302141f170f4f173`
+- Publication state: `prepared`, unapproved, Cask surface pending
+- Protected rehearsal:
+  [33525707781](https://github.com/TrentBrown/gatereeve/actions/runs/33525707781),
+  PASS after the separate `release-publication` environment review
+- Rehearsal artifact:
+  `gatereeve-v0.1.0-rc.6-linked-homebrew-cask-rehearsal`, artifact ID
+  `9807833115`, archive SHA-256
+  `d69e78732760a29507b20664c939714cc67a12d1ff183da4552bed1e416c5c84`
+- Rehearsal result: `dryRun=true`, Cask release state `prepared`, tap state
+  `present`, approval `unapproved`, surface `pending`, receipt `null`
+- Independent retained-packet inspection: PASS; plan, linked record, Cask,
+  immutable source, and universal DMG digests match the finalizer packet
+- Independent no-mutation check: PASS; live Homebrew Cask remains
+  `0.1.0-rc.2` at blob `f08840728d0b329a9dfe037467782d8c335c396e`
+
+The finalizer authenticated the successful primary recovery run as a reviewed
+`main` producer, proved the immutable source is its ancestor, downloaded the
+retained primary result, and independently matched the packet source commit
+and tag. It neither rebuilt trusted bytes nor mutated the Homebrew tap.
+
+The protected rehearsal downloaded that exact retained packet and ran the
+hosted publisher in dry-run mode. The workflow's real publication job was
+skipped. Its output preserved the sealed plan digest
+`9e9e979a2b4760a5e459c62994a7c6320850e5e3c3858bb2e097a5389adfa0c1`,
+the exact Cask digest
+`c0859208ec05cdadb7b0c55c5ff964b0ab0c93b609712f0775cd30fbc063bbf6`,
+and the pending/unapproved publication state. A fresh live check after the run
+confirmed the tap still serves RC.2, proving the rehearsal made no public
+mutation. Real Cask publication now requires a distinct explicit approval of
+that exact sealed plan.
+
+## Linked Cask publication attempt
+
+- Explicit approval: APPROVED by the user for exact sealed plan
+  `9e9e979a2b4760a5e459c62994a7c6320850e5e3c3858bb2e097a5389adfa0c1`
+- Protected publication run:
+  [33527077278](https://github.com/TrentBrown/gatereeve/actions/runs/33527077278)
+- Environment review: APPROVED; GitHub recorded no remaining pending
+  deployments before runner assignment
+- Exact-packet source and finalizer binding: PASS
+- Result: STOPPED before mutation because the environment secret
+  `GATEREEVE_PUBLICATION_TOKEN` was absent and therefore `GH_TOKEN` was empty
+- Retained result artifact ID: `9808463980`, archive SHA-256
+  `347ce30e4e3539d2159ccbd8ff65008c8a287f8444713794f09e8edb2080dd75`
+- Post-failure no-mutation check: PASS; live Homebrew Cask remains RC.2 at blob
+  `f08840728d0b329a9dfe037467782d8c335c396e`, and no RC.6 tap PR exists
+
+This is a bounded configuration failure, not a partial publication. After the
+documented fine-grained tap token is stored once in `release-publication`, a
+fresh dispatch must reuse the same finalizer run, source, tag, plan digest, and
+approver. Do not use GitHub's generic rerun and do not alter the Cask bytes.
+
+### Same-plan publication recovery
+
+- One-time publication authority: `GATEREEVE_PUBLICATION_TOKEN` stored in
+  `release-publication`; name and timestamp audited without exposing its value
+- Recovery run:
+  [33529901678](https://github.com/TrentBrown/gatereeve/actions/runs/33529901678)
+- Protected environment review: APPROVED
+- Final state: `published`; Cask surface `complete`
+- Approval identity: `Trent Brown`, exact plan
+  `9e9e979a2b4760a5e459c62994a7c6320850e5e3c3858bb2e097a5389adfa0c1`
+- Deterministic tap PR:
+  [#3](https://github.com/TrentBrown/homebrew-gatereeve/pull/3), merged as
+  `3b07cf6d740261298a6a596f25f3c456ed9bac35`
+- Live tap Cask blob: `5594dd4d86556083213a92784d84f0492f905e33`
+- Retained and live Cask SHA-256: exact match,
+  `c0859208ec05cdadb7b0c55c5ff964b0ab0c93b609712f0775cd30fbc063bbf6`
+- Live Cask version: `0.1.0-rc.6`
+- Live Cask DMG SHA-256: exact primary release match,
+  `47121af4f246dbef0d6597c9361df346baacf128d3042fa122a2c8d83772e314`
+- Publication result artifact: ID `9809310268`, archive SHA-256
+  `fb50334b6b9a269600a587cf672423c8906206450826cbc32bfe044deb65bebc`
+- Published linked record SHA-256:
+  `87a645c3eb0148c5c58da375a0c188c65f4421860ef3ec1b321773e81a20605d`
+
+The recovery used a fresh protected dispatch, not GitHub's generic rerun. It
+reused the exact finalizer run, immutable source, tag, plan, Cask bytes, and
+approver. Independent inspection of the retained result and live tap proves
+that PR #3 published only the approved RC.6 Cask. Final Homebrew installation,
+Gatekeeper assessment, and application launch evidence remain pending on the
+user's Mac.
+
+## Homebrew Mac installation
+
+- Confirmed by: Trent Brown
+- Confirmed at: `2026-09-01T16:11:51Z`
+- Command path: `brew update`, followed by
+  `brew reinstall --cask TrentBrown/gatereeve/gatereeve`
+- Prior Cask state: RC.2 removed from
+  `/opt/homebrew/Caskroom/gatereeve/0.1.0-rc.2`
+- Downloaded Cask: `gatereeve (0.1.0-rc.6)`, 246.3 MB
+- Installation result: PASS; Homebrew reported
+  `gatereeve was successfully installed`
+- Installed Cask identity: `gatereeve 0.1.0-rc.6`
+- Installed Cask path:
+  `/opt/homebrew/Caskroom/gatereeve/0.1.0-rc.6`
+- Installed application: `/Applications/GateReeve.app`
+- Tap source:
+  `https://github.com/TrentBrown/homebrew-gatereeve/blob/HEAD/Casks/gatereeve.rb`
+- Gatekeeper execution assessment: PASS, `accepted`, source
+  `Notarized Developer ID`
+- Application launch: PASS through `open /Applications/GateReeve.app`
+
+This closes the user path on the same RC.6 DMG first verified by direct public
+download: Homebrew fetched the linked Cask's exact 246.3 MB artifact, replaced
+the RC.2 installation with RC.6, installed the app at the standard location,
+and macOS accepted the installed executable as a notarized Developer ID build.

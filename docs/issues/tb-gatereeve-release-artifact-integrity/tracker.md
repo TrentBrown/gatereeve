@@ -16,7 +16,7 @@
 | R5 | RC.5 regression coverage | PASS | #44 | Hidden stripping, visible loss, additions, mutations, malformed evidence, and semantic incompleteness all fail. |
 | R6 | Topology, authority, and history preserved | PASS | #44 | Diff preserves the universal DMG, environment separation, retained-byte flow, and immutable RC.5 history. |
 | R7 | RC.6 primary publication | PASS | - | Exact source `10a7264` and plan `9639bdfc...` completed all five ordered surfaces; independent public asset and manifest digests match. |
-| R8 | Direct and Homebrew Mac installation | NOT YET | - | Planned for P6-P7 / I-6 |
+| R8 | Direct and Homebrew Mac installation | PASS | #47, #49 | Exact public DMG and linked Homebrew RC.6 installs passed; both installed apps were Gatekeeper-accepted as Notarized Developer ID and launched successfully. |
 
 ## PR Log
 
@@ -132,9 +132,75 @@ feature work.
 - Pull request: [#47](https://github.com/TrentBrown/gatereeve/pull/47)
 - Evidence packet: [pr-47](pr-47/boundary.json)
 - Scope: slice / P6 / R6, R8
-- Status: in review. The pinned source diff removes invalid equality between a
+- Status: merged. The pinned source diff removes invalid equality between a
   moving workflow-dispatch head and the immutable release source, constrains
   producer workflows to reviewed `main`, proves source ancestry, and verifies
   exact source commit/tag identity from the downloaded sealed packets. The
   direct Mac RC.6 proof is recorded; Cask publication remains nonmutating and
-  awaits this correction's reviewed merge.
+  awaits its fresh feature-final slice. Human review was accepted, and exact
+  topic head `54950a995577626ec690acc7697ccd502c990e12` is an ancestor of
+  `origin/main` merge `1c19304e67f34f12930b1c51c5e06621c05c6734`. No
+  `development` or `development-*` branch participated.
+
+### RC.6 linked Cask and Homebrew feature-final acceptance
+
+- Slice: `s4-cask-acceptance`
+- Branch: `tb-gatereeve-release-artifact-integrity-04-cask-acceptance`
+- Scope: feature-final / P6-P7 / R1-R8
+- Status: in progress from exact corrected `origin/main`
+  `1c19304e67f34f12930b1c51c5e06621c05c6734`. This slice will seal the
+  linked Cask from retained primary publication run `33458101816`, execute the
+  protected nonpublishing rehearsal, obtain distinct approval for its exact
+  plan digest, publish idempotently, and collect Homebrew installation and
+  launch evidence before complete-feature evaluation.
+- Linked finalization run
+  [33525598814](https://github.com/TrentBrown/gatereeve/actions/runs/33525598814)
+  passed and sealed exact Cask plan `9e9e979a...` for immutable source
+  `10a7264` and DMG digest `47121af4...`. Protected dry-run
+  [33525707781](https://github.com/TrentBrown/gatereeve/actions/runs/33525707781)
+  passed after `release-publication` environment review. It retained the exact
+  plan, Cask, record, source, and DMG commitments with publication still
+  unapproved/pending and no receipt. The live tap remained RC.2 at blob
+  `f08840728d0b329a9dfe037467782d8c335c396e`, proving no Cask mutation
+  occurred. Distinct approval of exact plan `9e9e979a...` is now required for
+  real publication.
+- The user approved exact plan `9e9e979a...`, and protected publication run
+  [33527077278](https://github.com/TrentBrown/gatereeve/actions/runs/33527077278)
+  passed environment review plus exact source/finalizer binding. It stopped
+  before mutation because `release-publication` did not yet contain the
+  documented one-time `GATEREEVE_PUBLICATION_TOKEN`; `GH_TOKEN` was empty.
+  The retained result artifact is `9808463980`, the live Cask remains RC.2 at
+  blob `f0884072...`, and no RC.6 tap PR exists. Same-plan recovery is pending
+  one-time configuration of the least-privilege tap token; generic rerun is
+  prohibited.
+- After the token was stored once, fresh same-plan recovery run
+  [33529901678](https://github.com/TrentBrown/gatereeve/actions/runs/33529901678)
+  passed its protected review and published the exact Cask through tap PR
+  [#3](https://github.com/TrentBrown/homebrew-gatereeve/pull/3), merge
+  `3b07cf6d740261298a6a596f25f3c456ed9bac35`. The live RC.6 Cask is
+  byte-identical to the sealed packet at SHA-256 `c0859208...` and names the
+  exact public DMG digest `47121af4...`. Publication result artifact
+  `9809310268` records state `published`, approved plan `9e9e979a...`, and the
+  same receipt. Only final Homebrew Mac installation, Gatekeeper assessment,
+  and launch evidence remain for R8 and feature completion.
+- Homebrew acceptance passed at `2026-09-01T16:11:51Z`: `brew reinstall`
+  removed RC.2, downloaded and installed `gatereeve 0.1.0-rc.6` from the live
+  tap, Gatekeeper accepted `/Applications/GateReeve.app` as `Notarized
+  Developer ID`, and the application launch command completed. R8 now passes.
+
+### PR #49 — RC.6 Cask and Homebrew feature-final acceptance
+
+- Pull request: [#49](https://github.com/TrentBrown/gatereeve/pull/49)
+- Evidence packet: [pr-49](pr-49/boundary.json)
+- Scope: feature-final / P6-P7 / R1-R8
+- Status: in review. The final slice contains only governed lifecycle records,
+  linked-Cask publication evidence, and direct/Homebrew Mac acceptance
+  evidence. All eight rubric rows have concrete passing evidence; formal
+  feature-final verification and review gates are in progress.
+- The configured original feature base remains
+  `0aac0e525bc59368301e22f305198ac70a09aef5`, while this final slice begins
+  at corrected `main` merge
+  `1c19304e67f34f12930b1c51c5e06621c05c6734`. The complete Git range also
+  transparently contains unrelated concurrent `main` work, including the
+  separately governed desktop-terminal feature; final evaluation must not
+  attribute that work to release-artifact-integrity.
