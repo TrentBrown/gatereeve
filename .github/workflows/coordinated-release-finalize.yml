@@ -1,7 +1,7 @@
 name: Coordinated Release Finalization
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       preparation_run_id:
         description: Original trust-preparation run containing the exact Plugin candidate
@@ -32,13 +32,13 @@ jobs:
   seal-publication-packet:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.source_commit }}
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
@@ -58,46 +58,46 @@ jobs:
           node -e "if (!/^v(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)-rc\\.(?:0|[1-9]\\d*)$/.test(process.env.RELEASE_TAG)) process.exit(1)"
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PREPARATION_RUN_ID" > "$RUNNER_TEMP/preparation-run.json"
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$TRUST_ARTIFACT_RUN_ID" > "$RUNNER_TEMP/trust-run.json"
-          node -e '
-            const fs = require("node:fs");
-            const [preparationPath, trustPath] = process.argv.slice(1);
-            const preparation = JSON.parse(fs.readFileSync(preparationPath, "utf8"));
-            const trust = JSON.parse(fs.readFileSync(trustPath, "utf8"));
-            for (const run of [preparation, trust]) {
-              if (run.event !== "workflow_dispatch" || run.head_sha !== process.env.SOURCE_COMMIT) {
-                throw new Error("Finalization source run does not match the exact candidate");
+          for binding in \
+            "$PREPARATION_RUN_ID:$RUNNER_TEMP/preparation-run.json" \
+            "$TRUST_ARTIFACT_RUN_ID:$RUNNER_TEMP/trust-run.json"; do
+            run_id="${binding%%:*}"
+            run_path="${binding#*:}"
+            if [[ "$run_id" == "$GITHUB_RUN_ID" ]]; then
+              continue
+            fi
+            node -e '
+              const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+              if (run.event !== "workflow_dispatch"
+                || !["success", "failure", "cancelled"].includes(run.conclusion)
+                || run.head_branch !== "main"
+                || !/release-conductor\.yml$/u.test(run.path)) {
+                throw new Error("Finalization source is not a completed Release Conductor run");
               }
-            }
-            if (trust.conclusion !== "success") {
-              throw new Error("Finalization requires a successful completed trust workflow");
-            }
-            if (!/coordinated-release-prepare\.yml$/u.test(preparation.path)) {
-              throw new Error("Plugin candidate is not from the approved preparation workflow");
-            }
-            if (!/(coordinated-release-prepare|coordinated-release-trust-recover)\.yml$/u.test(trust.path)) {
-              throw new Error("Trust packet is not from an approved trust workflow");
-            }
-          ' "$RUNNER_TEMP/preparation-run.json" "$RUNNER_TEMP/trust-run.json"
-      - uses: actions/download-artifact@v4
+            ' "$run_path"
+            run_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$run_path")"
+            git merge-base --is-ancestor "$SOURCE_COMMIT" "$run_head"
+          done
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-plugin-candidate
           path: ${{ runner.temp }}/coordinated-plugin-candidate
           github-token: ${{ github.token }}
           run-id: ${{ inputs.preparation_run_id }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-desktop-trusted
           path: ${{ runner.temp }}/desktop
           github-token: ${{ github.token }}
           run-id: ${{ inputs.trust_artifact_run_id }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: coordinated-desktop-trusted-evidence-*
           path: ${{ runner.temp }}/evidence
           merge-multiple: true
           github-token: ${{ github.token }}
           run-id: ${{ inputs.trust_artifact_run_id }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: gatereeve-${{ inputs.tag }}-coordinated-release
           path: ${{ runner.temp }}/trusted-lifecycle
@@ -128,7 +128,7 @@ jobs:
             const result = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
             process.stdout.write(`Sealed publication plan SHA-256: ${result.planSha256}\n`);
           ' "$RUNNER_TEMP/finalization.json"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gatereeve-${{ inputs.tag }}-hosted-publication
           path: ${{ runner.temp }}/hosted-publication

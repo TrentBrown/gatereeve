@@ -275,8 +275,8 @@ test('release list joins tags, workflow runs, and deployed provenance', async ()
         `${JSON.stringify([
           {
             databaseId: 29553221557,
-            displayTitle: 'Release candidate',
-            headBranch: tag,
+            displayTitle: 'Release Conductor start v0.1.0-rc.1',
+            headBranch: 'main',
             headSha: sourceCommit,
             status: 'completed',
             conclusion: 'success',
@@ -310,14 +310,15 @@ test('release list joins tags, workflow runs, and deployed provenance', async ()
   assert.equal(releases.releases.length, 1);
   assert.equal(releases.releases[0].workflow, 'success');
   assert.equal(releases.releases[0].marketplace, 'complete');
-  assert(calls.some((call) => call.includes('plugin-release.yml')));
+  assert(calls.some((call) => call.includes('release-conductor.yml')));
 });
 
 test('watch selects a tagged run and preserves a failed watch status', async () => {
   const tag = 'v0.1.0-rc.9';
   const run = {
     databaseId: 42,
-    headBranch: tag,
+    displayTitle: 'Release Conductor start v0.1.0-rc.9',
+    headBranch: 'main',
     headSha: 'abc123',
     status: 'in_progress',
     conclusion: null,
@@ -468,16 +469,13 @@ test('bundle preserves output when marketplace verification fails', async () => 
   await assert.rejects(readFile(join(outputDirectory, 'anything.zip')), /ENOENT/);
 });
 
-test('release workflow uses the grouped low-level prepare command', async () => {
+test('release workflow exposes only conductor start and resume', async () => {
   const workflow = await readFile(
-    resolve(repositoryRoot, '.github/workflows/plugin-release.yml'),
+    resolve(repositoryRoot, '.github/workflows/release-conductor.yml'),
     'utf8'
   );
-  assert.match(workflow, /plugin release prepare/);
-  assert.match(
-    workflow,
-    /git show origin\/main:docs\/releases\/ubuntu-rc\.json/
-  );
-  assert.match(workflow, /--ubuntu-rc-evidence "\$RUNNER_TEMP\/ubuntu-rc\.json"/);
-  assert.doesNotMatch(workflow, /release-prepare/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /- start\n\s+- resume/);
+  assert.match(workflow, /coordinated-release-prepare\.yml/);
+  assert.match(workflow, /plugin release conductor discover/);
 });

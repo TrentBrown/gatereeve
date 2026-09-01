@@ -1,0 +1,111 @@
+name: Record GateReeve release state
+description: Append and upload one immutable Release Conductor state checkpoint
+
+inputs:
+  stage:
+    description: Exact conductor lifecycle stage
+    required: true
+  previous-artifact:
+    description: Predecessor conductor state artifact; empty only for INITIALIZED
+    required: false
+    default: ""
+  previous-run-id:
+    description: Run containing the predecessor artifact
+    required: false
+    default: ""
+  tag:
+    description: Fresh RC tag; used only for INITIALIZED
+    required: false
+    default: ""
+  source-commit:
+    description: Fresh pinned source; used only for INITIALIZED
+    required: false
+    default: ""
+  evidence-json:
+    description: Cumulative stage evidence additions as JSON
+    required: true
+  failure-json:
+    description: Optional failure object for a nonadvancing checkpoint
+    required: false
+    default: ""
+
+outputs:
+  artifact-name:
+    description: Immutable artifact containing the newly appended state chain
+    value: ${{ steps.record.outputs.artifact_name }}
+  state-sha256:
+    description: Digest of the latest state
+    value: ${{ steps.record.outputs.state_sha256 }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 24
+        cache: npm
+        cache-dependency-path: cli/package-lock.json
+    - shell: bash
+      run: npm ci --prefix cli
+    - if: ${{ inputs.previous-artifact != '' }}
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.previous-artifact }}
+        path: ${{ runner.temp }}/release-conductor-previous
+        github-token: ${{ github.token }}
+        run-id: ${{ inputs.previous-run-id }}
+    - id: record
+      shell: bash
+      env:
+        ACTOR: ${{ github.actor }}
+        EVIDENCE_JSON: ${{ inputs.evidence-json }}
+        FAILURE_JSON: ${{ inputs.failure-json }}
+        PREVIOUS_ARTIFACT: ${{ inputs.previous-artifact }}
+        REPOSITORY: ${{ github.repository }}
+        RUN_ATTEMPT: ${{ github.run_attempt }}
+        RUN_ID: ${{ github.run_id }}
+        SOURCE_COMMIT: ${{ inputs.source-commit }}
+        STAGE: ${{ inputs.stage }}
+        TAG: ${{ inputs.tag }}
+        WORKFLOW_REF: ${{ github.workflow_ref }}
+      run: |
+        set -euo pipefail
+        evidence="$RUNNER_TEMP/release-conductor-evidence.json"
+        failure="$RUNNER_TEMP/release-conductor-failure.json"
+        output="$(mktemp -d "$RUNNER_TEMP/release-conductor-state-$STAGE-XXXXXX")"
+        node -e 'JSON.parse(process.env.EVIDENCE_JSON); require("node:fs").writeFileSync(process.argv[1], `${process.env.EVIDENCE_JSON}\n`)' "$evidence"
+        args=(
+          plugin release conductor advance
+          --stage "$STAGE"
+          --evidence-file "$evidence"
+          --run-id "$RUN_ID"
+          --run-attempt "$RUN_ATTEMPT"
+          --repository "$REPOSITORY"
+          --workflow-ref "$WORKFLOW_REF"
+          --actor "$ACTOR"
+          --output-dir "$output"
+          --json
+        )
+        if [[ -n "$PREVIOUS_ARTIFACT" ]]; then
+          args+=(--previous-chain "$RUNNER_TEMP/release-conductor-previous/release-state-chain.json")
+        else
+          args+=(--tag "$TAG" --source-commit "$SOURCE_COMMIT")
+        fi
+        if [[ -n "$FAILURE_JSON" ]]; then
+          node -e 'JSON.parse(process.env.FAILURE_JSON); require("node:fs").writeFileSync(process.argv[1], `${process.env.FAILURE_JSON}\n`)' "$failure"
+          args+=(--failure-file "$failure")
+        fi
+        node cli/bin/workflow.js "${args[@]}" > "$RUNNER_TEMP/release-conductor-record.json"
+        node -e '
+          const result = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+          process.stdout.write(`artifact_name=${result.artifactName}\n`);
+          process.stdout.write(`state_sha256=${result.status.stateSha256}\n`);
+          process.stdout.write(`output_directory=${result.outputDirectory}\n`);
+        ' "$RUNNER_TEMP/release-conductor-record.json" >> "$GITHUB_OUTPUT"
+        cat "$output/release-summary.md" >> "$GITHUB_STEP_SUMMARY"
+    - uses: actions/upload-artifact@v7
+      with:
+        name: ${{ steps.record.outputs.artifact_name }}
+        path: ${{ steps.record.outputs.output_directory }}
+        if-no-files-found: error
+        retention-days: 30

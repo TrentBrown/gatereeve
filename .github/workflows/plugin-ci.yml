@@ -2,6 +2,8 @@ name: Plugin CI
 
 on:
   pull_request:
+    paths-ignore:
+      - "workflow-site/releases/desktop.json"
   push:
     branches:
       - main
@@ -20,10 +22,10 @@ jobs:
           - "22.04"
           - "24.04"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
@@ -39,7 +41,7 @@ jobs:
           - "22.04"
           - "24.04"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build acceptance image
         run: >-
           docker build
@@ -60,10 +62,10 @@ jobs:
           - "22.04"
           - "24.04"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
@@ -80,10 +82,10 @@ jobs:
           - "22.04"
           - "24.04"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
@@ -107,10 +109,10 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
@@ -129,17 +131,17 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
       - name: Build the universal application and DMG
         run: npm run package:mac --prefix apps/desktop
       - name: Upload the exact candidate DMG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gatereeve-universal-dmg
           path: apps/desktop/dist/macos/GateReeve-*-macos-universal.dmg
@@ -161,14 +163,14 @@ jobs:
             native: x64
             runner: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --ignore-scripts --prefix apps/desktop
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: gatereeve-universal-dmg
           path: ${{ runner.temp }}/gatereeve-package

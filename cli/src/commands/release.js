@@ -2,7 +2,7 @@ import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { resolve } from 'node:path';
 
-import { Command } from 'qp-cli-core';
+import { Command } from 'commander';
 
 import { loadAndValidateContracts } from '../plugin/contracts.js';
 import {
@@ -13,7 +13,6 @@ import {
   renderPublicationPlan,
   verifyCoordinatedReleaseWorkspace,
 } from '../plugin/coordinated-release.js';
-import { publishCoordinatedRelease } from '../plugin/coordinated-publication.js';
 import {
   finalizeHostedPublicationV2,
   publishHostedReleaseV2,
@@ -28,7 +27,6 @@ import {
   formatVerification,
   getDeployedRelease,
   listReleases,
-  publishRelease,
   verifyMarketplaceRelease,
   watchRelease,
 } from '../plugin/release-operations.js';
@@ -40,7 +38,6 @@ import {
 import {
   homebrewCaskPlanSha256,
   prepareHomebrewCask,
-  publishHomebrewCask,
   readHomebrewCaskRecord,
   renderHomebrewCaskPublicationPlan,
 } from '../plugin/homebrew-cask.js';
@@ -52,6 +49,7 @@ import {
   verifyHomebrewCaskWorkspaceV2,
 } from '../plugin/homebrew-cask-v2.js';
 import { verifyPluginCandidateIntegrity } from '../plugin/plugin-candidate-integrity.js';
+import { releaseConductorCommands } from './release-conductor.js';
 
 function positiveInteger(value) {
   const parsed = Number.parseInt(value, 10);
@@ -59,6 +57,17 @@ function positiveInteger(value) {
     throw new Error(`Expected a positive integer, received: ${value}`);
   }
   return parsed;
+}
+
+function requireReleaseConductorMutation(confirm) {
+  if (!confirm) return;
+  if (process.env.GITHUB_ACTIONS !== 'true'
+    || process.env.GITHUB_WORKFLOW !== 'Release Conductor'
+    || process.env.GITHUB_EVENT_NAME !== 'workflow_dispatch') {
+    throw new Error(
+      'Production release mutation is available only inside the dispatched Release Conductor'
+    );
+  }
 }
 
 function releaseBump(value) {
@@ -242,103 +251,7 @@ export function releaseCommands({ repositoryRoot }) {
     'Publish, observe, and verify native plugin releases'
   );
 
-  release
-    .command('publish')
-    .description('Validate, tag, watch, and verify a marketplace release')
-    .option('--tag <tag>', 'Exact semantic-version source tag')
-    .option('--next-rc', 'Create the next release candidate')
-    .option('--promote', 'Promote the deployed release candidate to stable')
-    .option(
-      '--bump <type>',
-      'Begin a patch (bug fix), minor, or major release line at rc.1',
-      releaseBump
-    )
-    .option('--commit <commit>', 'Source commit (default: origin/main)')
-    .option('--source-root <path>', 'Plugin source root', resolve(repositoryRoot, 'plugin-src'))
-    .option(
-      '--ubuntu-rc-evidence <path>',
-      'Required evidence for a stable release',
-      resolve(repositoryRoot, 'docs/releases/ubuntu-rc.json')
-    )
-    .requiredOption(
-      '--release-record <path>',
-      'Approved coordinated Plugin/Desktop release record'
-    )
-    .option('--dry-run', 'Validate and show the publication plan without mutation')
-    .option('--yes', 'Skip interactive confirmation')
-    .option('--no-wait', 'Return after pushing the release tag')
-    .option('--no-verify', 'Skip deployed-marketplace verification')
-    .option('--json', 'Print machine-readable publication results')
-    .action(async (options) => {
-      if (options.json && !options.yes && !options.dryRun) {
-        throw new Error('--json requires --yes or --dry-run to keep output machine-readable');
-      }
-      const versionPlan = await resolveVersionPlan({ repositoryRoot, options });
-      const configuredSourceRoot = resolve(options.sourceRoot);
-      const canonicalSourceRoot = resolve(repositoryRoot, 'plugin-src');
-      const sourceRootFor = (validationRepositoryRoot) => {
-        if (configuredSourceRoot === canonicalSourceRoot) {
-          return resolve(validationRepositoryRoot, 'plugin-src');
-        }
-        if (resolve(validationRepositoryRoot) !== resolve(repositoryRoot)) {
-          throw new Error(
-            'Historical release validation requires the canonical repository plugin-src'
-          );
-        }
-        return configuredSourceRoot;
-      };
-      let result;
-      try {
-        result = await publishRelease({
-          repositoryRoot,
-          tag: versionPlan.tag,
-          commit: versionPlan.sourceCommit ?? options.commit,
-          dryRun: options.dryRun,
-          yes: options.yes,
-          wait: options.wait,
-          verify: options.verify,
-          json: options.json,
-          validate: ({ repositoryRoot: validationRepositoryRoot, sourceCommit }) =>
-            validateReleaseSources(
-              sourceRootFor(validationRepositoryRoot),
-              versionPlan.tag,
-              resolve(options.ubuntuRcEvidence),
-              sourceCommit,
-              resolve(options.releaseRecord)
-            ),
-          confirm: confirmPublish,
-          onPlan: options.json ? () => {} : printPublishPlan,
-          requireHeadMatch: versionPlan.source !== 'deployed-rc',
-          releasePlan: versionPlan,
-        });
-      } catch (error) {
-        if (error?.deployment) {
-          console.log(
-            options.json
-              ? JSON.stringify(error.deployment, null, 2)
-              : formatVerification(error.deployment)
-          );
-          error.reported = true;
-        }
-        throw error;
-      }
-
-      if (options.json) {
-        console.log(JSON.stringify(result, null, 2));
-      } else if (result.cancelled) {
-        console.log('Release cancelled; no tag was created.');
-      } else if (result.dryRun) {
-        console.log('Dry run complete; no tag was created.');
-      } else if (!result.run) {
-        console.log(`Published ${result.tag}; release workflow will continue on GitHub.`);
-      } else {
-        console.log(
-          `Published ${result.tag}; workflow ${result.run.databaseId} ` +
-            `${result.run.conclusion ?? result.run.status}.`
-        );
-        if (result.deployment) console.log(formatVerification(result.deployment));
-      }
-    });
+  release.addCommand(releaseConductorCommands());
 
   release
     .command('coordinate')
@@ -482,6 +395,7 @@ export function releaseCommands({ repositoryRoot }) {
       if (options.confirm && !options.approvedBy) {
         throw new Error('Hosted publication confirmation requires --approved-by');
       }
+      requireReleaseConductorMutation(options.confirm);
       const result = await publishHostedReleaseV2({
         recordPath: resolve(options.releaseRecord),
         repositoryRoot,
@@ -502,49 +416,6 @@ export function releaseCommands({ repositoryRoot }) {
       else if (result.dryRun) {
         console.log(`Hosted preflight passed for ${value.releaseId}; no public mutation occurred.`);
       } else console.log(`Published ${value.releaseId} through every hosted primary surface.`);
-    });
-
-  release
-    .command('publish-coordinated')
-    .description('Publish or recover one exact approved Plugin/Desktop release record')
-    .requiredOption('--release-record <path>', 'Trusted coordinated release record')
-    .requiredOption('--plan-sha256 <digest>', 'Exact reviewed publication-plan SHA-256')
-    .option('--approved-by <identity>', 'Human publication approver identity')
-    .option('--confirm', 'Confirm the exact reviewed plan and permit public mutation')
-    .option('--dry-run', 'Run read-only remote preflights without approval or mutation')
-    .option('--json', 'Print machine-readable publication results')
-    .action(async (options) => {
-      if (options.confirm && options.dryRun) {
-        throw new Error('Choose either --confirm or --dry-run');
-      }
-      if (!options.confirm && !options.dryRun) {
-        throw new Error('Publication requires --confirm or --dry-run');
-      }
-      if (options.confirm && !options.approvedBy) {
-        throw new Error('Publication confirmation requires --approved-by');
-      }
-      const result = await publishCoordinatedRelease({
-        recordPath: resolve(options.releaseRecord),
-        repositoryRoot,
-        planSha256: options.planSha256,
-        approvedBy: options.approvedBy ?? '',
-        confirm: options.confirm,
-        dryRun: options.dryRun,
-      });
-      const output = {
-        schemaVersion: 1,
-        dryRun: result.dryRun,
-        releaseId: result.record.releaseId,
-        state: result.record.state,
-        planSha256: result.planSha256,
-        surfaces: result.record.publication.surfaces,
-      };
-      if (options.json) console.log(JSON.stringify(output, null, 2));
-      else if (result.dryRun) {
-        console.log(`Preflight passed for ${result.record.releaseId}; no public mutation occurred.`);
-      } else {
-        console.log(`Published ${result.record.releaseId} through every coordinated surface.`);
-      }
     });
 
   release
@@ -664,6 +535,7 @@ export function releaseCommands({ repositoryRoot }) {
       if (options.confirm && !options.approvedBy) {
         throw new Error('Linked Cask publication confirmation requires --approved-by');
       }
+      requireReleaseConductorMutation(options.confirm);
       const result = await publishHomebrewCaskV2({
         recordPath: resolve(options.caskRecord),
         planSha256: options.planSha256,
@@ -701,47 +573,6 @@ export function releaseCommands({ repositoryRoot }) {
       } else {
         console.log(renderHomebrewCaskPublicationPlan(record));
         console.log(`Plan SHA-256: ${homebrewCaskPlanSha256(record)}`);
-      }
-    });
-
-  release
-    .command('publish-cask')
-    .description('Publish or recover one exact approved GateReeve Homebrew Cask')
-    .requiredOption('--cask-record <path>', 'Homebrew Cask publication record')
-    .requiredOption('--plan-sha256 <digest>', 'Exact reviewed Cask plan SHA-256')
-    .option('--approved-by <identity>', 'Human Cask publication approver identity')
-    .option('--confirm', 'Confirm the exact plan and permit public tap mutation')
-    .option('--dry-run', 'Run read-only remote preflights without mutation')
-    .option('--json', 'Print machine-readable publication results')
-    .action(async (options) => {
-      if (options.confirm && options.dryRun) throw new Error('Choose either --confirm or --dry-run');
-      if (!options.confirm && !options.dryRun) {
-        throw new Error('Homebrew Cask publication requires --confirm or --dry-run');
-      }
-      if (options.confirm && !options.approvedBy) {
-        throw new Error('Homebrew Cask publication confirmation requires --approved-by');
-      }
-      const result = await publishHomebrewCask({
-        recordPath: resolve(options.caskRecord),
-        planSha256: options.planSha256,
-        approvedBy: options.approvedBy ?? '',
-        confirm: Boolean(options.confirm),
-        dryRun: Boolean(options.dryRun),
-      });
-      const output = {
-        schemaVersion: result.record.schemaVersion,
-        dryRun: result.dryRun,
-        caskReleaseId: result.record.caskReleaseId,
-        state: result.record.state,
-        planSha256: result.planSha256,
-        tapState: result.tapState,
-        surface: result.record.publication.surface,
-      };
-      if (options.json) console.log(JSON.stringify(output, null, 2));
-      else if (result.dryRun) {
-        console.log(`Preflight passed for ${result.record.caskReleaseId}; no public mutation occurred.`);
-      } else {
-        console.log(`Published ${result.record.caskReleaseId} to ${result.record.cask.repository}.`);
       }
     });
 

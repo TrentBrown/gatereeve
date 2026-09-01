@@ -1,7 +1,7 @@
 name: Linked Homebrew Cask Finalization
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       primary_publication_run_id:
         description: Successful primary publication run containing the exact completed packet
@@ -36,13 +36,13 @@ jobs:
   seal-linked-cask-packet:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.source_commit }}
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
@@ -63,13 +63,13 @@ jobs:
             if (run.event !== "workflow_dispatch"
               || run.conclusion !== "success"
               || run.head_branch !== "main"
-              || !/coordinated-release-publish\.yml$/u.test(run.path)) {
-              throw new Error("Cask source is not an exact successful hosted primary publication");
+              || !/release-conductor\.yml$/u.test(run.path)) {
+              throw new Error("Cask source is not a completed Release Conductor run");
             }
           ' "$RUNNER_TEMP/primary-publication-run.json"
           primary_run_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$RUNNER_TEMP/primary-publication-run.json")"
           git merge-base --is-ancestor "$SOURCE_COMMIT" "$primary_run_head"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: gatereeve-${{ inputs.tag }}-hosted-publication-result
           path: ${{ runner.temp }}/primary-publication
@@ -104,7 +104,7 @@ jobs:
             const result = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
             process.stdout.write(`Sealed Cask plan SHA-256: ${result.planSha256}\n`);
           ' "$RUNNER_TEMP/cask-finalization.json"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask
           path: ${{ runner.temp }}/homebrew-cask

@@ -1,7 +1,8 @@
-import { Command, addTreeCommand } from 'qp-cli-core';
+import { Command } from 'commander';
 
 import { pluginCommands } from './commands/plugin.js';
 import { protocolCommands } from './commands/protocol.js';
+import { addTreeCommand } from './help-tree.js';
 
 export function createProgram() {
   const program = new Command();

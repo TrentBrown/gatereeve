@@ -57,7 +57,7 @@ Required:
 
 - Git;
 - GitHub CLI, authenticated for this repository;
-- Node.js 22.12 or newer (CI currently uses 22.17.0);
+- Node.js 22.12 or newer (CI currently uses Node 24 LTS);
 - npm;
 - Python 3.10 or newer; and
 - Codex and Claude Code only when running native-manager smoke tests.
@@ -76,7 +76,7 @@ npm --version
 python3 -c 'import sys; assert sys.version_info >= (3, 10), sys.version'
 ```
 
-On macOS, Homebrew can provide the shared command-line tools. Install Node 22
+On macOS, Homebrew can provide the shared command-line tools. Install Node 24
 with the Node version manager already used on the machine.
 
 ```bash
@@ -84,7 +84,7 @@ brew update
 brew install git gh python
 ```
 
-On Ubuntu, install the shared operating-system packages, then install Node 22
+On Ubuntu, install the shared operating-system packages, then install Node 24
 with the machine's normal Node version manager or approved package source.
 
 ```bash
@@ -108,9 +108,9 @@ The last command prints the complete recursive CommanderJS command tree. This
 guide uses the portable `npm start --prefix cli -- ...` form. A local or global
 installation exposes the same entrypoint as `gatereeve`.
 
-`qp-cli-core` currently emits an `EBADENGINE` advisory on the supported Node 22
-baseline because its package metadata names an exact Node 23 version. The
-repository test and acceptance suites are the controlling compatibility proof.
+The CLI uses its direct pinned Commander dependency and repository-local help
+renderer. Installation therefore has no exact non-LTS engine dependency or
+expected `EBADENGINE` advisory.
 
 ### 3. Start the change with the workflow itself
 
@@ -370,11 +370,12 @@ Command families:
 - `plugin release list`, `watch`, and `verify` inspect release state.
 - `plugin release inspect-record`, `inspect-hosted`, and
   `inspect-cask-hosted` verify immutable lifecycle and publication packets.
-- Hosted finalization/publication commands are CI and exact-record recovery
-  surfaces; routine production authority remains in protected GitHub Actions.
+- Hosted finalization/publication commands are internal reusable-workflow
+  surfaces; production authority remains in the Release Conductor.
 - `plugin release bundle` creates a verified offline marketplace ZIP and
   checksum for repository-independent delivery.
-- `plugin release publish` is the guarded human publication entrypoint.
+- `release-conductor.yml` `start` and `resume` are the only human publication
+  entry points.
 - `plugin release prepare` is the low-level CI composer, not the normal manual
   release command.
 

@@ -1,4 +1,4 @@
-ARG NODE_VERSION=22.17.0
+ARG NODE_VERSION=24
 ARG UBUNTU_VERSION=24.04
 FROM node:${NODE_VERSION}-bookworm-slim AS node-runtime
 
@@ -25,7 +25,8 @@ WORKDIR /workspace
 COPY README.md DEVELOPMENT.md INSTALL.md RELEASING.md APPLE-RELEASE-SETUP.md USER-GUIDE.md ./
 COPY cli ./cli
 RUN npm ci --prefix cli
-COPY .github/workflows/plugin-release.yml ./.github/workflows/plugin-release.yml
+COPY .github/workflows/release-conductor.yml ./.github/workflows/release-conductor.yml
+COPY .github/actions/release-conductor-record/action.yml ./.github/actions/release-conductor-record/action.yml
 COPY .github/workflows/coordinated-release-prepare.yml ./.github/workflows/coordinated-release-prepare.yml
 COPY .github/workflows/coordinated-release-trust-recover.yml ./.github/workflows/coordinated-release-trust-recover.yml
 COPY .github/workflows/coordinated-release-finalize.yml ./.github/workflows/coordinated-release-finalize.yml

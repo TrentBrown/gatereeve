@@ -25,6 +25,6 @@
     "prepack": "npm run stage:protocol"
   },
   "dependencies": {
-    "qp-cli-core": "1.7.1"
+    "commander": "11.1.0"
   }
 }
