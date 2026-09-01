@@ -80,3 +80,8 @@ PR #46 was human-approved and merged into `main` as
 
 Collect direct DMG evidence, publish the separately approved linked Cask, prove
 the Homebrew user path, and complete final rubric evaluation.
+
+The exact public DMG install, Gatekeeper checks, and launch passed on the user's
+Mac at `2026-09-01T14:44:59Z`. Linked Cask finalization is pending a reviewed
+correction that separates workflow-dispatch branch identity from the immutable
+source identity verified inside the downloaded primary/Cask packet.

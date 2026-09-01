@@ -110,11 +110,19 @@ feature work.
   `9a00ec850b999fe8abd51277cb5fe3f78a59bdfc`. Ancestry verification passed;
   no `development` or `development-*` branch participated.
 
-### RC.6 Mac and linked Cask acceptance
+### RC.6 Mac acceptance and linked Cask provenance correction
 
-- Slice: `s3-mac-cask-acceptance`
+- Abandoned premature feature-final slice: `s3-mac-cask-acceptance`
+- Active slice: `s3-cask-provenance-correction`
 - Branch: `tb-gatereeve-release-artifact-integrity-03-mac-cask-acceptance`
-- Scope: feature-final / P6-P7 / R1-R8
+- Scope: slice / P6 / R6, R8
 - Status: in progress. Direct installation of the exact public RC.6 DMG is the
   prerequisite for linked Cask finalization and its distinct publication
-  approval.
+  approval. The direct install now passes: exact public DMG SHA-256
+  `47121af4...`, DMG and app Gatekeeper source `Notarized Developer ID`, app
+  launch, and user timestamp `2026-09-01T14:44:59Z` are recorded. A false
+  dispatch-head/source equality in the linked Cask workflows must be corrected
+  and merged before hosted finalization; no Cask public mutation has occurred.
+  A fresh feature-final slice will perform Cask finalization, protected
+  rehearsal/publication, Homebrew installation, and P7 closeout after this
+  correction passes its own reviewed delivery boundary.
