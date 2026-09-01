@@ -88,3 +88,30 @@ manual production entry points.
   because help visibility is not an execution boundary.
 
 **Promoted:** 2026-09-01.
+
+---
+
+## Require both conductor operations to execute from exact current main
+
+**Confidence:** HIGH
+
+**Blast Radius:** Release Conductor dispatch preflight and protected release
+authority
+
+Both `start` and `resume` must prove that the selected workflow ref and checked
+out implementation are the exact current `origin/main` commit before any phase
+job can run. Retained release state may pin an older product source commit, but
+the orchestration code that interprets that state must itself be reviewed
+mainline code.
+
+**Triggered by:** Pinned-diff code review found that only `start` rejected a
+topic-branch dispatch, allowing `resume` to use unreviewed conductor code.
+
+**Alternatives considered:**
+- Trust environment approval to catch a topic-branch resume - rejected because
+  approval is an authority boundary, not source-code validation.
+- Allow any branch whose source commit is an ancestor of main - rejected
+  because that validates released product bytes, not the conductor code that
+  is asking for authority.
+
+**Promoted:** 2026-09-01. PR: https://github.com/TrentBrown/gatereeve/pull/52.

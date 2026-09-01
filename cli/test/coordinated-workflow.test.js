@@ -119,6 +119,15 @@ test('Release Conductor is the sole start/resume entry point and derives every p
   assert.match(source, /new Date\(\)\.toISOString\(\)/);
   assert.match(source, /record-failure:/);
   assert.match(source, /use conductor resume/i);
+  const resumeDiscovery = source.slice(
+    source.indexOf('  discover:'),
+    source.indexOf('  trust-pending:'),
+  );
+  assert.match(resumeDiscovery, /test "\$DISPATCH_REF" = "refs\/heads\/main"/);
+  assert.match(
+    resumeDiscovery,
+    /test "\$\(git rev-parse HEAD\)" = "\$\(git rev-parse refs\/remotes\/origin\/main\)"/,
+  );
 });
 
 test('state checkpoint action always emits a dashboard and immutable retained artifact', async () => {
