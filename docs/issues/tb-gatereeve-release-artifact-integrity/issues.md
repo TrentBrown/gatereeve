@@ -55,12 +55,12 @@ Complete the governed boundary, human review, permitted merge, and mainline CI.
 
 ## I-5 - Publish and verify RC.6 primary surfaces
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P5
 - **Rubric criteria:** R2, R3, R4, R6, R7
 - **Depends on:** I-4
-- **PR:** -
+- **PR:** [#46](https://github.com/TrentBrown/gatereeve/pull/46)
 
 Run the fresh protected trust and primary publication lifecycle from corrected
 main. Completed through same-packet bounded recovery after a repository Actions

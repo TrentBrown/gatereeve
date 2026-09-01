@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR #46 — RC.6 Primary Acceptance</title>
+<style>
+:root{color-scheme:light dark;--bg:#f7f4ed;--panel:#fffdf8;--ink:#1d2730;--muted:#56636d;--line:#d8d0c2;--accent:#176c68;--good:#167044;--warn:#9a5a12}
+@media(prefers-color-scheme:dark){:root{--bg:#11171b;--panel:#182126;--ink:#edf1f2;--muted:#abb8be;--line:#34434a;--accent:#79d3ca;--good:#78d7a2;--warn:#efb66d}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:980px;margin:auto;padding:28px 20px 80px}h1{font-size:clamp(2rem,5vw,3.6rem);line-height:1.04;margin:.3em 0}h2{margin-top:2.4em;border-bottom:1px solid var(--line);padding-bottom:.25em}h3{margin-top:1.8em}a{color:var(--accent)}nav,.card,.callout,.quiz{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:18px 0}.eyebrow{color:var(--accent);font-weight:750;letter-spacing:.08em;text-transform:uppercase}.muted{color:var(--muted)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:color-mix(in srgb,var(--line) 45%,transparent);padding:.12em .32em;border-radius:4px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#10171b;color:#e8f0f2;border-radius:10px;padding:16px;overflow:auto}.flow{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:10px;overflow:auto;padding:8px 0}.node{min-width:120px;border:2px solid var(--line);border-radius:10px;padding:12px;background:var(--panel);position:relative}.node:not(:last-child)::after{content:"→";position:absolute;right:-17px;top:35%;font-weight:800;color:var(--accent)}.node strong{display:block}.good{border-color:var(--good)}.warn{border-color:var(--warn)}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:10px 8px}button{display:block;width:100%;text-align:left;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}button:hover{border-color:var(--accent)}button.correct{border-color:var(--good);background:color-mix(in srgb,var(--good) 12%,var(--panel))}button.incorrect{border-color:#b84d4d;background:color-mix(in srgb,#b84d4d 12%,var(--panel))}.feedback{min-height:1.5em;font-weight:650}.callout{border-left:5px solid var(--accent)}@media(max-width:680px){main{padding:18px 14px 60px}.flow{grid-template-columns:1fr}.node:not(:last-child)::after{content:"↓";right:auto;left:48%;top:auto;bottom:-22px;z-index:2}th:nth-child(2),td:nth-child(2){display:none}}
+</style>
+</head>
+<body><main>
+<div class="eyebrow">GateReeve · PR #46</div>
+<h1>How RC.6 crossed the primary publication boundary</h1>
+<p class="muted">Pinned review range <code>10a7264…ed399a7</code>. This is an evidence-only slice: it records what the protected release system did without changing application code, workflows, tags, or trusted bytes.</p>
+<nav><strong>Contents</strong><ol><li><a href="#background">Background</a></li><li><a href="#intuition">Intuition</a></li><li><a href="#code">Changed records</a></li><li><a href="#quiz">Quiz</a></li></ol></nav>
+
+<section id="background"><h2>Background</h2>
+<h3>The beginner's model: release as chain of custody</h3>
+<p>A signed macOS release is more than a build. GateReeve first constructs Plugin and Desktop candidates from one immutable source. A protected Apple job signs and notarizes a universal DMG. Native Apple Silicon and Intel runners independently verify it. A read-only finalizer then seals a publication plan. Only a separately approved publication job may mutate public surfaces.</p>
+<div class="flow" aria-label="Release chain of custody">
+  <div class="node good"><strong>Prepare</strong>Complete Plugin tree and universal DMG</div>
+  <div class="node good"><strong>Trust</strong>Sign, notarize, staple, Gatekeeper</div>
+  <div class="node good"><strong>Verify</strong>Native ARM64 and Intel evidence</div>
+  <div class="node good"><strong>Seal</strong>Exact source, bytes, and plan digest</div>
+  <div class="node good"><strong>Publish</strong>Five ordered public receipts</div>
+</div>
+<p>The important invariant is exact-byte authority: later stages may consume verified retained bytes, but they may not rebuild or silently substitute them.</p>
+
+<h3>The immediate history</h3>
+<p>RC.5 revealed a transport defect: hidden Plugin files could be omitted even though required visible files remained. PR #44 corrected the transport and verifier. RC.6 then exercised the corrected lifecycle for real from source <code>10a726411fd46f58263f8c989ac83f1a65bdf33f</code>.</p>
+<div class="callout"><strong>Product topology stays local.</strong> GateReeve continues to publish one universal DMG and coordinated Plugin/Desktop surfaces. This conformance work does not import PortReeve's architecture-specific DMGs, CLI matrix, or native service.</div>
+</section>
+
+<section id="intuition"><h2>Intuition</h2>
+<p>Think of the sealed plan as a shipping manifest. Each public destination signs a receipt for the same cargo. If delivery stops after the third destination, recovery does not repack the cargo or erase the first receipts. It verifies those receipts and resumes at destination four.</p>
+<div class="flow" aria-label="Publication recovery">
+  <div class="node good"><strong>1. Tag</strong><code>v0.1.0-rc.6</code></div>
+  <div class="node good"><strong>2. Plugin</strong><code>4a204590…</code></div>
+  <div class="node good"><strong>3. Release</strong>Exact DMG + checksums</div>
+  <div class="node warn"><strong>4. Manifest</strong>First attempt: HTTP 403</div>
+  <div class="node"><strong>5. Website</strong>Waiting on manifest</div>
+</div>
+<p>The repository setting that permits Actions to create pull requests was enabled while default workflow permissions stayed read-only. A fresh protected recovery dispatch then verified and skipped steps one through three, merged deterministic one-file PR #45 for step four, and verified the Early Access response for step five.</p>
+<div class="callout"><strong>Recovery was not a generic rerun.</strong> It was bound to the same finalization run, source, tag, plan digest, approver, retained bytes, and earlier receipts.</div>
+</section>
+
+<section id="code"><h2>Changed records</h2>
+<p>The pinned diff changes five files, all under the cumulative feature record.</p>
+<table><thead><tr><th>File</th><th>Role</th><th>Important effect</th></tr></thead><tbody>
+<tr><td><code>events.jsonl</code></td><td>Protocol journal</td><td>Starts the RC.6 acceptance slice after PR #44 merge verification.</td></tr>
+<tr><td><code>issues.md</code></td><td>Operational state</td><td>Closes merged correction work and records P5 completion while leaving P6/P7 open.</td></tr>
+<tr><td><code>rc6-acceptance.md</code></td><td>Release evidence</td><td>Records source, Apple request, digests, approvals, runs, partial receipts, bounded recovery, and public verification.</td></tr>
+<tr><td><code>scratchpad.md</code></td><td>Decision intake</td><td>Captures the least-privilege repository Actions policy decision for boundary triage.</td></tr>
+<tr><td><code>tracker.md</code></td><td>Rubric projection</td><td>Moves R2, R3, and R7 to PASS while preserving R8 as NOT YET.</td></tr>
+</tbody></table>
+
+<h3>Identity anchors</h3>
+<pre>source commit: 10a726411fd46f58263f8c989ac83f1a65bdf33f
+sealed plan:  9639bdfcb260673cea4acf137b073fe1b2f264e51b97663d85df9d94cf9f56e0
+trusted DMG:  47121af4f246dbef0d6597c9361df346baacf128d3042fa122a2c8d83772e314
+Plugin tree:  c62f6983dd31b16e78124b6006103acad120120fa4672dab233d6e18d98cd3a3</pre>
+<p>These anchors make cross-stage disagreement mechanically visible. The public DMG download, GitHub asset digest, checksum file, update manifest, and release packet all resolve to the same trusted DMG hash.</p>
+
+<h3>What this PR deliberately does not claim</h3>
+<ul><li>It does not claim Homebrew is current; the Cask intentionally remains on RC.2.</li><li>It does not claim a user has installed and launched RC.6 on a Mac.</li><li>It does not mark R8 or the whole feature complete.</li><li>It does not change or remove credentials, release history, or public artifacts.</li></ul>
+</section>
+
+<section id="quiz"><h2>Quiz</h2>
+<div class="quiz" data-answer="b"><strong>1. Why was a fresh recovery dispatch safe after the first publication stopped?</strong><button data-choice="a">It rebuilt RC.6 from the new main head and compared filenames.</button><button data-choice="b">It reused the sealed packet and verified the three existing receipts before resuming.</button><button data-choice="c">It deleted the partial public state and replayed every mutation.</button><p class="feedback"></p></div>
+<div class="quiz" data-answer="c"><strong>2. What authority did the repository setting change provide?</strong><button data-choice="a">Default write access and Apple signing credentials for every workflow.</button><button data-choice="b">Permission to bypass the release-publication environment review.</button><button data-choice="c">Permission for Actions to create the deterministic manifest PR, with default permissions still read-only.</button><p class="feedback"></p></div>
+<div class="quiz" data-answer="a"><strong>3. Which digest anchors the exact public universal DMG?</strong><button data-choice="a"><code>47121af4…</code></button><button data-choice="b"><code>9639bdfc…</code></button><button data-choice="c"><code>19e35e21…</code></button><p class="feedback"></p></div>
+<div class="quiz" data-answer="b"><strong>4. Why does R8 remain NOT YET?</strong><button data-choice="a">Native Intel evidence used Rosetta and must be repeated.</button><button data-choice="b">Direct Mac installation and separately approved linked Cask installation remain to be proven.</button><button data-choice="c">The GitHub prerelease is still a draft and has no assets.</button><p class="feedback"></p></div>
+<div class="quiz" data-answer="a"><strong>5. What does exact-byte authority prohibit after Apple trust production?</strong><button data-choice="a">Rebuilding or changing the candidate under the same live release identity.</button><button data-choice="b">Reading retained artifacts during finalization.</button><button data-choice="c">Verifying the same DMG independently on two native architectures.</button><p class="feedback"></p></div>
+</section>
+</main>
+<script>
+document.querySelectorAll('.quiz').forEach(q=>q.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{q.querySelectorAll('button').forEach(x=>x.classList.remove('correct','incorrect'));const ok=b.dataset.choice===q.dataset.answer;b.classList.add(ok?'correct':'incorrect');q.querySelector('.feedback').textContent=ok?'Correct — that preserves the governed chain of custody.':'Not quite. Revisit the identity anchors and boundary separation above.';})));
+</script></body></html>

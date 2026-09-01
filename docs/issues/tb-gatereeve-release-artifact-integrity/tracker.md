@@ -97,3 +97,11 @@ feature work.
   commit `4a204590...`, and byte-identical main/Early Access manifest SHA-256
   `19e35e21...` independently match the sealed RC.6 record. Homebrew remains
   intentionally on RC.2 for the separately approved P6 Cask lifecycle.
+
+### PR #46 — RC.6 primary acceptance evidence
+
+- Pull request: [#46](https://github.com/TrentBrown/gatereeve/pull/46)
+- Evidence packet: [pr-46](pr-46/boundary.json)
+- Scope: slice
+- P5 is complete. R2, R3, and R7 pass from exact hosted and independently
+  downloaded public evidence; P6/P7 and R8 remain the final Mac/Cask slice.

@@ -38,7 +38,7 @@ Retry the incomplete RC.5 packet — rejected because it reproduces the defect; 
 
 ## [3] Permit deterministic publication PR creation without broadening default authority
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
