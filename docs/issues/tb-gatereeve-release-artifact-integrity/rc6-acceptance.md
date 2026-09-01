@@ -23,23 +23,56 @@
 - `resolve-source`: PASS
 - Plugin candidate production and complete portable acceptance: PASS
 - Plugin candidate round trip: PASS; exact producer manifest and semantic tree verified after GitHub artifact upload/download
-- `release-trust` approval: WAITING; environment `release-trust`, deployment environment ID `20893546887`
-- Apple trust production: NOT YET
-- Native ARM64 evidence: NOT YET
-- Native Intel evidence: NOT YET
-- Trusted lifecycle and exact integrity commitment: NOT YET
+- `release-trust` approval: APPROVED by the user through GitHub's protected
+  deployment review; environment `release-trust`, deployment environment ID
+  `20893546887`
+- Apple trust production: PASS; Developer ID Application
+  `Trent Brown (PMWYD5A82A)`, hardened runtime, secure timestamp, notarization
+  request `9a632e61-0e6c-4bb6-85ba-ac71bef7925c` accepted, staple validated, and
+  Gatekeeper accepted
+- Submitted DMG SHA-256: `6be8ea26b7e194515db88b40b53c7fecb95a49cdd65c5c06672c86d55b83eb9b`
+- Final trusted DMG SHA-256: `47121af4f246dbef0d6597c9361df346baacf128d3042fa122a2c8d83772e314`
+- Native ARM64 evidence: PASS at `2026-09-01T00:31:18.057Z`
+- Native Intel evidence: PASS at `2026-09-01T00:32:07.660Z`; native Intel runner, not Rosetta
+- Native evidence aggregate SHA-256: `1285b29a945fde813524afef2891277f71dcb61dec203eee254bd91679b4657c`
+- Trusted lifecycle and exact integrity commitment: PASS; preparation run completed successfully
 
-No protected Apple job step has started. The waiting deployment proves the
-environment gate is active and preserves the required separation between the
-successful nonpublishing Plugin transport proof and Apple credential access.
+The protected job began only after the separate environment approval. It
+retained immutable submitted bytes and request history before notarization,
+then verified the same trusted universal DMG independently on native ARM64 and
+Intel runners. No generic workflow rerun was used after trust production began.
 
 ## Finalization and publication
 
-- Read-only finalization: NOT YET
-- Sealed primary plan digest: NOT YET
-- Protected nonpublishing rehearsal: NOT YET
+- Read-only finalization: PASS;
+  [run 33455275343](https://github.com/TrentBrown/gatereeve/actions/runs/33455275343),
+  exact source `10a726411fd46f58263f8c989ac83f1a65bdf33f`
+- Sealed primary plan digest: `9639bdfcb260673cea4acf137b073fe1b2f264e51b97663d85df9d94cf9f56e0`
+- Sealed Plugin tree SHA-256:
+  `c62f6983dd31b16e78124b6006103acad120120fa4672dab233d6e18d98cd3a3`;
+  319 files plus companion integrity manifest
+- Protected nonpublishing rehearsal:
+  [run 33455470808](https://github.com/TrentBrown/gatereeve/actions/runs/33455470808)
+  dispatched with the exact finalization run, source, tag, and plan digest;
+  WAITING for separate `release-publication` environment approval (environment
+  ID `20741161933`)
 - Separate primary publication approval: NOT YET
 - Public primary verification: NOT YET
+
+### Public inventory before rehearsal
+
+- RC.6 tag: absent
+- RC.6 GitHub release: absent
+- Plugin marketplace: commit `22c2d841e833af4d2aec351cf61d54dafaf8fcd3`,
+  release `v0.1.0-rc.2`
+- Main update manifest SHA-256:
+  `23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b`,
+  release `0.1.0-rc.2`
+- Early Access response SHA-256:
+  `23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b`,
+  byte-identical to main and release `0.1.0-rc.2`
+- Homebrew Cask blob: `f08840728d0b329a9dfe037467782d8c335c396e`,
+  release `0.1.0-rc.2`
 
 ## Constraints
 

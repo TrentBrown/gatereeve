@@ -50,4 +50,19 @@ feature work.
 - Slice: `s2-rc6-primary-acceptance`
 - Branch: `tb-gatereeve-release-artifact-integrity-02-rc6-acceptance`
 - Scope: P5 / R2, R3, R4, R6, R7
-- Status: implementing from exact corrected `main` merge `10a7264`.
+- Status: protected preparation and read-only finalization passed from exact
+  corrected `main` merge `10a7264`; the nonpublishing rehearsal is waiting at
+  its separate `release-publication` approval boundary.
+- Preparation run
+  [33452103818](https://github.com/TrentBrown/gatereeve/actions/runs/33452103818)
+  passed the Plugin artifact round trip before Apple authority, Developer ID
+  signing, accepted notarization, stapling, Gatekeeper assessment, native
+  ARM64 and Intel verification, and lifecycle aggregation.
+- Finalization run
+  [33455275343](https://github.com/TrentBrown/gatereeve/actions/runs/33455275343)
+  sealed plan SHA-256
+  `9639bdfcb260673cea4acf137b073fe1b2f264e51b97663d85df9d94cf9f56e0`.
+- Dry-run publication run
+  [33455470808](https://github.com/TrentBrown/gatereeve/actions/runs/33455470808)
+  is waiting for protected environment review. The pre-run inventory proves
+  all public surfaces remain on RC.2 and the RC.6 tag/release are absent.
