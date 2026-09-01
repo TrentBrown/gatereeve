@@ -54,9 +54,11 @@ Intel runners. No generic workflow rerun was used after trust production began.
 - Protected nonpublishing rehearsal:
   [run 33455470808](https://github.com/TrentBrown/gatereeve/actions/runs/33455470808)
   dispatched with the exact finalization run, source, tag, and plan digest;
-  WAITING for separate `release-publication` environment approval (environment
-  ID `20741161933`)
-- Separate primary publication approval: NOT YET
+  PASS after separate user approval of the `release-publication` deployment
+  (environment ID `20741161933`); exact packet inspection and publication
+  preflight passed with read-only permissions and no publication secret
+- Separate primary publication approval: AWAITING explicit authorization for
+  the exact sealed plan
 - Public primary verification: NOT YET
 
 ### Public inventory before rehearsal
@@ -73,6 +75,23 @@ Intel runners. No generic workflow rerun was used after trust production began.
   byte-identical to main and release `0.1.0-rc.2`
 - Homebrew Cask blob: `f08840728d0b329a9dfe037467782d8c335c396e`,
   release `0.1.0-rc.2`
+
+### Public inventory after rehearsal
+
+- RC.6 tag: absent
+- RC.6 GitHub release: absent
+- Plugin marketplace: unchanged at commit
+  `22c2d841e833af4d2aec351cf61d54dafaf8fcd3`, release `v0.1.0-rc.2`
+- Main update manifest: unchanged at SHA-256
+  `23195d7507f2eade6f87ce866533d3078ba423f13667ae0e4c41ebe25a51f17b`,
+  release `0.1.0-rc.2`
+- Early Access response: unchanged at the same SHA-256 and byte-identical to
+  main, release `0.1.0-rc.2`
+- Homebrew Cask: unchanged at blob
+  `f08840728d0b329a9dfe037467782d8c335c396e`, release `0.1.0-rc.2`
+
+The complete before/after inventory proves the protected rehearsal made no
+public mutation. Real publication remains a new dispatch and decision.
 
 ## Constraints
 
