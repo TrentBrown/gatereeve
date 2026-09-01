@@ -211,7 +211,7 @@ recovery completed all five primary surfaces without rebuilding trusted bytes.
 - Active feature-final slice: `s4-cask-acceptance`
 - Direct RC.6 install: PASS
 - Cask finalization: PASS
-- Cask rehearsal/publication and Homebrew install evidence: pending
+- Cask rehearsal: PASS; publication and Homebrew install evidence: pending
 
 ## Direct Mac installation
 
@@ -266,9 +266,30 @@ Homebrew installation evidence.
 - Publication state: `prepared`, unapproved, Cask surface pending
 - Protected rehearsal:
   [33525707781](https://github.com/TrentBrown/gatereeve/actions/runs/33525707781),
-  waiting for the `release-publication` environment review
+  PASS after the separate `release-publication` environment review
+- Rehearsal artifact:
+  `gatereeve-v0.1.0-rc.6-linked-homebrew-cask-rehearsal`, artifact ID
+  `9807833115`, archive SHA-256
+  `d69e78732760a29507b20664c939714cc67a12d1ff183da4552bed1e416c5c84`
+- Rehearsal result: `dryRun=true`, Cask release state `prepared`, tap state
+  `present`, approval `unapproved`, surface `pending`, receipt `null`
+- Independent retained-packet inspection: PASS; plan, linked record, Cask,
+  immutable source, and universal DMG digests match the finalizer packet
+- Independent no-mutation check: PASS; live Homebrew Cask remains
+  `0.1.0-rc.2` at blob `f08840728d0b329a9dfe037467782d8c335c396e`
 
 The finalizer authenticated the successful primary recovery run as a reviewed
 `main` producer, proved the immutable source is its ancestor, downloaded the
 retained primary result, and independently matched the packet source commit
 and tag. It neither rebuilt trusted bytes nor mutated the Homebrew tap.
+
+The protected rehearsal downloaded that exact retained packet and ran the
+hosted publisher in dry-run mode. The workflow's real publication job was
+skipped. Its output preserved the sealed plan digest
+`9e9e979a2b4760a5e459c62994a7c6320850e5e3c3858bb2e097a5389adfa0c1`,
+the exact Cask digest
+`c0859208ec05cdadb7b0c55c5ff964b0ab0c93b609712f0775cd30fbc063bbf6`,
+and the pending/unapproved publication state. A fresh live check after the run
+confirmed the tap still serves RC.2, proving the rehearsal made no public
+mutation. Real Cask publication now requires a distinct explicit approval of
+that exact sealed plan.

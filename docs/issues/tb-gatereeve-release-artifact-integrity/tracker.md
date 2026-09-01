@@ -158,5 +158,9 @@ feature work.
   passed and sealed exact Cask plan `9e9e979a...` for immutable source
   `10a7264` and DMG digest `47121af4...`. Protected dry-run
   [33525707781](https://github.com/TrentBrown/gatereeve/actions/runs/33525707781)
-  is waiting for `release-publication` environment review; no Cask mutation
-  has occurred.
+  passed after `release-publication` environment review. It retained the exact
+  plan, Cask, record, source, and DMG commitments with publication still
+  unapproved/pending and no receipt. The live tap remained RC.2 at blob
+  `f08840728d0b329a9dfe037467782d8c335c396e`, proving no Cask mutation
+  occurred. Distinct approval of exact plan `9e9e979a...` is now required for
+  real publication.
