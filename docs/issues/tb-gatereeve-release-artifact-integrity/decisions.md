@@ -81,4 +81,4 @@ sealing, rehearsing, or publishing.
 **Alternatives considered:**
 Pass cf9bbf7 as the source input — rejected because it would misstate the notarized RC.6 source; replay primary publication from a ref whose head is 10a7264 — rejected as needless mutation/recovery work against already complete receipts; trust packet fields without constraining the producer branch — rejected because an arbitrary-branch workflow could otherwise claim release authority; drop source binding entirely — rejected because run provenance alone does not bind the packet to RC.6.
 
-**Promoted:** 2026-09-01. PR: pending.
+**Promoted:** 2026-09-01. PR: [#47](https://github.com/TrentBrown/gatereeve/pull/47).
