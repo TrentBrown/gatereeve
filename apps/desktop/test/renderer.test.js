@@ -47,6 +47,7 @@ function idleState() {
       notificationsEnabled: false,
       projectPaths: ['/repo/recent'],
       selectedAgents: ['codex'],
+      terminalHeight: 260,
     },
   };
 }
@@ -184,6 +185,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const { window } = parseHTML(html);
   const copied = [];
+  const openedArtifacts = [];
+  const fileActions = [];
   const notificationPreferences = [];
   const sessionId = 'session:latest-checkpoint:Q0hFQ0tQT0lOVC5tZA';
   const event = {
@@ -233,8 +236,28 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   };
   const artifacts = [
     {
-      id: 'design', label: 'Approved design', status: 'present', exists: true, unsafe: false,
+      id: 'interview', label: 'Design interview', status: 'present', exists: true, unsafe: false,
+      path: 'interview.md', format: 'markdown', context: { kind: 'feature' },
+    },
+    {
+      id: 'design', label: 'Approved design', status: 'changed', exists: true, unsafe: false,
       path: 'design.md', format: 'markdown', context: { kind: 'feature' },
+    },
+    {
+      id: 'spec', label: 'Validated specification', status: 'present', exists: true, unsafe: false,
+      path: 'spec.md', format: 'markdown', context: { kind: 'feature' },
+    },
+    {
+      id: 'plan', label: 'Authorized implementation plan', status: 'present', exists: true, unsafe: false,
+      path: 'plan.md', format: 'markdown', context: { kind: 'feature' },
+    },
+    {
+      id: 'issues', label: 'Operational issues', status: 'pending', exists: false, unsafe: false,
+      path: 'issues.md', format: 'markdown', context: { kind: 'feature' },
+    },
+    {
+      id: 'tracker', label: 'Rubric tracker', status: 'missing', exists: false, unsafe: true,
+      path: 'tracker.md', format: 'markdown', context: { kind: 'feature' },
     },
     {
       id: 'attempt:slice-attempt-1:boundary', label: 'PR boundary', status: 'present',
@@ -314,7 +337,12 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     async getUpdateState() { return idleUpdate(); },
     async openUpdateRelease() { return true; },
     async copyText(value) { copied.push(value); return true; },
-    async openArtifact() { return true; },
+    async getArtifactActions() { return fileActionCapabilities(); },
+    async openArtifact(...args) { openedArtifacts.push(args); return true; },
+    async chooseArtifactApplication(id) { fileActions.push(['choose', id]); return true; },
+    async saveArtifactAs(id) { fileActions.push(['save-as', id]); return true; },
+    async saveArtifactDownloads(id) { fileActions.push(['downloads', id]); return true; },
+    async openArtifactGithub(id) { fileActions.push(['github', id]); return true; },
     async revealArtifact() { return true; },
     async listSession() {
       return { schemaVersion: 1, items: [{
@@ -324,13 +352,30 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     },
     async readSession(id) {
       const item = (await this.listSession()).items[0];
-      return { schemaVersion: 1, id, item, content: '# Current position\nReady.' };
+      return {
+        schemaVersion: 1,
+        id,
+        item,
+        content: [
+          '# Current position',
+          '',
+          '- [x] Ready.',
+          '',
+          '| Check | State |',
+          '| --- | --- |',
+          '| Markdown | Complete |',
+          '',
+          '[External context](https://example.com/context)',
+        ].join('\n'),
+      };
     },
     async readDetail(kind, id) {
       if (kind === 'model') return {
         kind,
         data: {
-          lock: { model: { presentation: { featureOrder: ['DESIGNING', 'DELIVERING_SLICES', 'FINALIZING', 'COMPLETE'] } } },
+          lock: { model: { presentation: { featureOrder: [
+            'DESIGNING', 'SPECIFYING', 'PLANNING', 'DELIVERING_SLICES', 'FINALIZING', 'COMPLETE',
+          ] } } },
           provenance: {
             pinned: { id: 'workflow', version: '1', hash: 'sha256:model' },
             bundled: { id: 'workflow', version: '1', hash: 'sha256:model' },
@@ -372,7 +417,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
 
   assert.equal(
     window.document.querySelectorAll('.state-node').length,
-    4,
+    6,
     `${window.document.querySelector('#model-graph').textContent} | ${window.document.querySelector('#chooser-error').textContent}`,
   );
   assert.equal(window.document.querySelector('.state-node.current strong').textContent, 'Implementing');
@@ -394,6 +439,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.equal(window.document.querySelector('#actions-surface').hidden, false);
   assert.match(window.document.querySelector('#guidance-context').textContent, /Current: Implementing/);
   assert.equal(window.document.querySelector('.action-card').hasAttribute('open'), false);
+  assert.equal(window.document.querySelector('#phase-context-surface').hidden, true);
 
   const designing = [...window.document.querySelectorAll('.state-select')]
     .find((button) => button.textContent.includes('Designing'));
@@ -406,13 +452,79 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.equal(window.document.querySelector('#slices-surface').hidden, true);
   assert.equal(window.document.querySelector('#milestones').hidden, false);
   assert.equal(window.document.querySelector('#milestones').textContent, 'Design approved');
+  assert.equal(window.document.querySelector('#phase-context-surface').hidden, false);
+  assert.equal(window.document.querySelector('#phase-context-kicker').textContent, 'Selected state · Designing');
+  assert.equal(window.document.querySelector('#phase-context-title').textContent, 'Design synthesis');
+  assert.match(window.document.querySelector('#phase-context-description').textContent, /approved design intent/);
+  assert.deepEqual(
+    [...window.document.querySelectorAll('#phase-context-uses .phase-context-entry')]
+      .map((item) => [item.dataset.phaseEntryId, item.dataset.kind]),
+    [['interview', 'artifact'], ['existing-codebase', 'source']],
+  );
+  const codebaseSource = window.document.querySelector('[data-phase-entry-id="existing-codebase"]');
+  assert.equal(codebaseSource.tagName, 'SPAN');
+  assert.match(codebaseSource.textContent, /SourceExisting codebase/);
+  assert.equal(window.document.querySelector('#phase-context-produces [data-phase-entry-id="design"]').dataset.status, 'changed');
+  assert.match(
+    window.document.querySelector('#phase-context-produces [data-phase-entry-id="design"] .phase-context-status').className,
+    /status changed/,
+  );
+  assert.match(
+    window.document.querySelector('[data-phase-entry-id="interview"]').getAttribute('aria-label'),
+    /interview\.md, artifact, Present, open in inspector/,
+  );
+  window.document.querySelector('[data-phase-entry-id="interview"]').click();
+  for (let index = 0; index < 2; index += 1) await new Promise((done) => setImmediate(done));
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /interview\.md/);
   assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
   assert.match(window.document.querySelector('#guidance-context').textContent, /Current: Implementing/);
   assert.equal(window.document.querySelector('#actions-surface').hidden, false);
 
+  const specifying = [...window.document.querySelectorAll('.state-select')]
+    .find((button) => button.textContent.includes('Specifying'));
+  specifying.click();
+  assert.equal(window.document.querySelector('#phase-context-title').textContent, 'Specification drafting');
+  assert.deepEqual(
+    [...window.document.querySelectorAll('#phase-context-uses .phase-context-entry')]
+      .map((item) => item.dataset.phaseEntryId),
+    ['design', 'interview', 'existing-codebase', 'architecture-contracts'],
+  );
+  assert.deepEqual(
+    [...window.document.querySelectorAll('#phase-context-produces .phase-context-entry')]
+      .map((item) => item.dataset.phaseEntryId),
+    ['spec'],
+  );
+
+  const planning = [...window.document.querySelectorAll('.state-select')]
+    .find((button) => button.textContent.includes('Planning'));
+  planning.click();
+  assert.equal(window.document.querySelector('#phase-context-title').textContent, 'Implementation planning');
+  assert.deepEqual(
+    [...window.document.querySelectorAll('#phase-context-uses .phase-context-entry')]
+      .map((item) => item.dataset.phaseEntryId),
+    ['spec', 'design', 'interview', 'repository-structure', 'tests-and-commands'],
+  );
+  assert.deepEqual(
+    [...window.document.querySelectorAll('#phase-context-produces .phase-context-entry')]
+      .map((item) => item.dataset.phaseEntryId),
+    ['plan', 'issues', 'tracker'],
+  );
+  const pendingIssues = window.document.querySelector('[data-phase-entry-id="issues"]');
+  assert.equal(pendingIssues.disabled, false);
+  assert.match(pendingIssues.getAttribute('aria-label'), /Pending, open in inspector/);
+  assert.match(pendingIssues.querySelector('.phase-context-status').className, /status pending/);
+  pendingIssues.click();
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /issues\.md/);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /unavailable in the current canonical snapshot/);
+  const unsafeTracker = window.document.querySelector('[data-phase-entry-id="tracker"]');
+  assert.equal(unsafeTracker.disabled, true);
+  assert.match(unsafeTracker.getAttribute('aria-label'), /Missing, unavailable/);
+
   const finalizing = [...window.document.querySelectorAll('.state-select')]
     .find((button) => button.textContent.includes('Finalizing'));
   finalizing.click();
+  assert.equal(window.document.querySelector('#phase-context-surface').hidden, true);
+  assert.equal(window.document.querySelector('#phase-context-uses').textContent, '');
   assert.equal(window.document.querySelector('#milestones').hidden, true);
   assert.equal(window.document.querySelector('#milestones').textContent, '');
   assert.equal(window.document.querySelector('#closeout-surface').hidden, false);
@@ -479,6 +591,28 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.equal(window.document.querySelector('#artifact-viewer h1')?.textContent, 'Design');
   assert.match(window.document.querySelector('#artifact-viewer').textContent, /Approved\./);
   assert.equal(window.document.querySelectorAll('.view-modes .viewer-icon').length, 2);
+  window.document.querySelector('[aria-label="Open in default application"]').click();
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(openedArtifacts, [['design']]);
+  const fileMenu = window.document.querySelector('.open-menu');
+  fileMenu.open = true;
+  assert.deepEqual(
+    [...fileMenu.querySelectorAll('.open-menu-heading')].map((heading) => heading.textContent),
+    ['Open with', 'File location', 'Save a copy', 'Utilities'],
+  );
+  [...fileMenu.querySelectorAll('button')].find((button) => button.textContent === 'VS Code').click();
+  [...fileMenu.querySelectorAll('button')].find((button) => button.textContent === 'Open on GitHub').click();
+  [...fileMenu.querySelectorAll('button')].find((button) => button.textContent === 'Save As…').click();
+  [...fileMenu.querySelectorAll('button')].find((button) => button.textContent === 'Save to Downloads').click();
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(openedArtifacts, [['design'], ['design', 'vscode', true]]);
+  assert.equal(
+    window.document.querySelector('.open-split > button').getAttribute('aria-label'),
+    'Open in VS Code',
+  );
+  assert.deepEqual(fileActions, [
+    ['github', 'design'], ['save-as', 'design'], ['downloads', 'design'],
+  ]);
   window.document.querySelector('[aria-label="Show Markdown source"]').click();
   assert.match(window.document.querySelector('.artifact-source').textContent, /# Design/);
   window.document.querySelector('[aria-label="Show rendered Markdown"]').click();
@@ -521,6 +655,13 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   await new Promise((done) => setImmediate(done));
   assert.match(window.document.querySelector('#session-detail').textContent, /non-authoritative/);
   assert.match(window.document.querySelector('#session-detail').textContent, /Current position/);
+  assert.equal(window.document.querySelector('#session-detail table') !== null, true);
+  assert.equal(window.document.querySelector('#session-detail input:disabled') !== null, true);
+  assert.match(
+    window.document.querySelector('#session-detail').textContent,
+    /\[External context\]\(https:\/\/example\.com\/context\)/u,
+  );
+  assert.equal(window.document.querySelector('#session-detail a'), null);
 
   delete globalThis.window;
   delete globalThis.document;
@@ -586,7 +727,7 @@ test('selected artifact rereads automatically when its canonical fingerprint cha
   const { window } = parseHTML(html);
   let subscriber;
   let artifactReads = 0;
-  let failArtifactRead = false;
+  let failArtifactRead = true;
   const queuedArtifactReads = [];
   const artifact = (modifiedAt, size) => ({
     id: 'interview',
@@ -633,6 +774,7 @@ test('selected artifact rereads automatically when its canonical fingerprint cha
     async getState() { return initial; },
     async getUpdateState() { return idleUpdate(); },
     async openUpdateRelease() { return true; },
+    async getArtifactActions() { return fileActionCapabilities(); },
     async openArtifact() { return true; },
     async revealArtifact() { return true; },
     async readDetail(kind, id) {
@@ -663,13 +805,15 @@ test('selected artifact rereads automatically when its canonical fingerprint cha
   window.document.querySelector('[data-view="artifacts"]').click();
   window.document.querySelector('[data-artifact-id="interview"]').click();
   await new Promise((done) => setImmediate(done));
-  assert.match(window.document.querySelector('#artifact-viewer').textContent, /First/);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Refresh failed/);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Open with/);
 
   const viewer = window.document.querySelector('#artifact-viewer');
   Object.defineProperty(viewer, 'scrollHeight', { configurable: true, value: 1000 });
   Object.defineProperty(viewer, 'clientHeight', { configurable: true, value: 200 });
   viewer.scrollTop = 300;
 
+  failArtifactRead = false;
   subscriber(state(artifact('2026-08-29T01:01:00.000Z', 28)));
   await new Promise((done) => setImmediate(done));
   assert.equal(artifactReads, 2);
@@ -770,6 +914,7 @@ test('artifact Markdown confines external, relative, fragment, and unsafe links'
     async recheckSetup() { return state; },
     async setSelectedAgents() { return state; },
     async setNotificationsEnabled() { return state; },
+    async getArtifactActions() { return fileActionCapabilities(); },
     async openArtifact() { return true; },
     async revealArtifact() { return true; },
     async readDetail(kind, id) {
@@ -781,7 +926,9 @@ test('artifact Markdown confines external, relative, fragment, and unsafe links'
           content: id === 'interview'
             ? '# Overview\n[External](https://example.com/docs) [Spec](spec.md) '
               + '[Details](#details) [Missing](missing.md) '
-              + '[Unsafe](file:///etc/passwd)\n\n## Details\nHere.'
+              + '[Unsafe](file:///etc/passwd) '
+              + '[Credential](https://user:pass@example.com/private) '
+              + '[Protocol relative](//example.com/path)\n\n## Details\nHere.'
             : '# Spec\nSelected through the canonical inventory.',
           structured: null,
         },
@@ -805,13 +952,20 @@ test('artifact Markdown confines external, relative, fragment, and unsafe links'
   assert.deepEqual(Object.keys(links), ['External', 'Spec', 'Details']);
   assert.match(viewer.textContent, /\[Missing\]\(missing\.md\)/);
   assert.match(viewer.textContent, /\[Unsafe\]\(file:\/\/\/etc\/passwd\)/);
+  assert.match(
+    viewer.textContent,
+    /\[Credential\]\(https:\/\/user:pass@example\.com\/private\)/u,
+  );
+  assert.match(viewer.textContent, /\[Protocol relative\]\(\/\/example\.com\/path\)/u);
 
   links.External.dispatchEvent(new window.Event('click', { cancelable: true }));
   await new Promise((done) => setImmediate(done));
   assert.deepEqual(external, ['https://example.com/docs']);
 
   let fragmentScrolls = 0;
-  viewer.querySelector('#details').scrollIntoView = () => { fragmentScrolls += 1; };
+  viewer.querySelector('[data-markdown-fragment="details"]').scrollIntoView = () => {
+    fragmentScrolls += 1;
+  };
   links.Details.dispatchEvent(new window.Event('click', { cancelable: true }));
   await new Promise((done) => setImmediate(done));
   assert.equal(fragmentScrolls, 1);
@@ -827,3 +981,12 @@ test('artifact Markdown confines external, relative, fragment, and unsafe links'
   delete globalThis.window;
   delete globalThis.document;
 });
+function fileActionCapabilities(overrides = {}) {
+  return {
+    schemaVersion: 1,
+    editors: [{ id: 'vscode', label: 'VS Code' }],
+    preferredEditorId: null,
+    githubAvailable: true,
+    ...overrides,
+  };
+}

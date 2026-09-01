@@ -9,7 +9,7 @@ import {
   stat,
   writeFile,
 } from 'node:fs/promises';
-import { basename, dirname, relative, resolve, sep } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 
 import { createCoordinatedPublicationAdapters } from './coordinated-publication.js';
 import {
@@ -22,6 +22,7 @@ import {
   assertNativeTrustEvidenceV2,
   trustDigest,
 } from './native-trust-evidence-v2.js';
+import { verifyPluginCandidateIntegrity } from './plugin-candidate-integrity.js';
 import {
   advanceReleaseStageV2,
   assertReleaseLifecycleV2,
@@ -49,33 +50,6 @@ function sha256(value) {
 
 async function sha256File(path) {
   return sha256(await readFile(path));
-}
-
-async function inventoryTree(root) {
-  const files = [];
-  async function visit(directory) {
-    const entries = await readdir(directory, { withFileTypes: true });
-    entries.sort((left, right) => left.name.localeCompare(right.name));
-    for (const entry of entries) {
-      const path = resolve(directory, entry.name);
-      if (entry.isSymbolicLink()) throw new Error(`Publication packet contains a symbolic link: ${path}`);
-      if (entry.isDirectory()) await visit(path);
-      else if (entry.isFile()) {
-        const details = await stat(path);
-        files.push({
-          path: relative(root, path).split(sep).join('/'),
-          bytes: details.size,
-          sha256: await sha256File(path),
-        });
-      } else throw new Error(`Publication packet contains an unsupported entry: ${path}`);
-    }
-  }
-  await visit(root);
-  return files;
-}
-
-function treeDigest(files) {
-  return sha256(stableJson(files));
 }
 
 function artifactIdentity(value) {
@@ -194,10 +168,17 @@ async function assertFinalizationMatchesTrustedLifecycle({
   trusted,
   prepared,
   pluginRoot,
+  pluginIntegrityPath,
   desktopEvidencePaths,
 }) {
   const pluginEvidence = stage(trusted, 'plugin-candidate-built')?.evidence;
-  const pluginFiles = await inventoryTree(resolve(pluginRoot));
+  const verifiedIntegrity = await verifyPluginCandidateIntegrity({
+    pluginRoot,
+    integrityPath: pluginIntegrityPath,
+    sourceTag: trusted.source.tag,
+    sourceCommit: trusted.source.commit,
+  });
+  const pluginFiles = verifiedIntegrity.files;
   const trustedPluginFiles = pluginEvidence?.files?.map(({ path, bytes, sha256: digest }) => ({
     path,
     bytes,
@@ -209,6 +190,13 @@ async function assertFinalizationMatchesTrustedLifecycle({
     || pluginEvidence.treeSha256 !== sha256(stableJson(pluginEvidence.files))
     || prepared.record.candidates.plugin.artifact.fileCount !== pluginFiles.length
   ) throw new Error('Finalization Plugin candidate differs from the trusted lifecycle');
+  if (
+    pluginEvidence?.integrityManifest?.sha256 !== verifiedIntegrity.manifestSha256
+    || pluginEvidence.integrityManifest.bytes !== verifiedIntegrity.manifestBytes
+    || pluginEvidence.integrityManifest.treeSha256 !== verifiedIntegrity.treeSha256
+    || prepared.record.candidates.plugin.commitment?.sha256 !== verifiedIntegrity.manifestSha256
+    || prepared.record.candidates.plugin.commitment?.treeSha256 !== verifiedIntegrity.treeSha256
+  ) throw new Error('Finalization Plugin integrity commitment differs from the trusted lifecycle');
 
   const trustedArtifact = artifactIdentity(trusted.candidate.appleArtifact);
   const preparedArtifact = artifactIdentity(prepared.record.candidates.desktop.artifact);
@@ -289,10 +277,24 @@ export async function verifyHostedPublicationPacket(recordPath) {
   if (await readFile(resolve(root, 'publication-plan.md'), 'utf8') !== renderPublicationPlan(projected)) {
     throw new Error('Sealed publication plan bytes changed');
   }
-  const pluginFiles = await inventoryTree(resolve(root, projected.candidates.plugin.artifact.path));
+  const commitment = projected.candidates.plugin.commitment;
+  if (!commitment) throw new Error('Finalized Plugin integrity commitment is missing');
+  const integrityPath = resolve(root, commitment.path);
+  const integrityDetails = await stat(integrityPath);
   if (
-    pluginFiles.length !== projected.candidates.plugin.artifact.fileCount
-    || treeDigest(pluginFiles) !== projected.candidates.plugin.artifact.sha256
+    !integrityDetails.isFile()
+    || integrityDetails.size !== commitment.bytes
+    || await sha256File(integrityPath) !== commitment.sha256
+  ) throw new Error('Finalized Plugin integrity commitment changed');
+  const plugin = await verifyPluginCandidateIntegrity({
+    pluginRoot: resolve(root, projected.candidates.plugin.artifact.path),
+    integrityPath,
+    sourceTag: projected.source.tag,
+    sourceCommit: projected.source.commit,
+  });
+  if (
+    plugin.files.length !== projected.candidates.plugin.artifact.fileCount
+    || plugin.treeSha256 !== projected.candidates.plugin.artifact.sha256
   ) throw new Error('Finalized Plugin candidate changed');
   await verifyIdentity(root, projected.candidates.desktop.artifact);
   for (const evidence of projected.candidates.desktop.verification.evidence) {
@@ -319,6 +321,7 @@ export async function verifyHostedPublicationPacket(recordPath) {
 export async function finalizeHostedPublicationV2({
   trustedRecordPath,
   pluginRoot,
+  pluginIntegrityPath,
   desktopDmgPath,
   desktopEvidencePaths,
   currentUpdateManifestPath,
@@ -347,6 +350,7 @@ export async function finalizeHostedPublicationV2({
       sourceCommit: trusted.source.commit,
       repository: trusted.source.repository,
       pluginRoot,
+      pluginIntegrityPath,
       desktopDmgPath,
       desktopEvidencePaths,
       currentUpdateManifestPath,
@@ -357,6 +361,7 @@ export async function finalizeHostedPublicationV2({
       trusted,
       prepared,
       pluginRoot,
+      pluginIntegrityPath,
       desktopEvidencePaths,
     });
     const finalizedEvidence = {

@@ -31,6 +31,7 @@ export function browserWindowOptions(preload, geometry = null) {
 export function layoutAccelerators(platform = process.platform) {
   return {
     sidebar: 'CommandOrControl+B',
+    terminal: platform === 'darwin' ? 'Command+J' : 'Control+J',
     inspector: platform === 'darwin' ? 'Command+Alt+B' : 'Control+Alt+B',
   };
 }
@@ -38,6 +39,7 @@ export function layoutAccelerators(platform = process.platform) {
 export function applicationMenuTemplate({
   platform = process.platform,
   onToggleSidebar,
+  onToggleTerminal,
   onToggleInspector,
 }) {
   const accelerators = layoutAccelerators(platform);
@@ -54,6 +56,11 @@ export function applicationMenuTemplate({
           label: 'Toggle Project Sidebar',
           accelerator: accelerators.sidebar,
           click: onToggleSidebar,
+        },
+        {
+          label: 'Toggle Terminal',
+          accelerator: accelerators.terminal,
+          click: onToggleTerminal,
         },
         {
           label: 'Toggle Inspector',

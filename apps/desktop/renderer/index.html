@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GateReeve Desktop</title>
-    <link rel="stylesheet" href="styles.css?v=8">
+    <link rel="stylesheet" href="vendor/xterm.css">
+    <link rel="stylesheet" href="styles.css?v=10">
   </head>
   <body>
     <header class="masthead">
@@ -21,6 +22,7 @@
         <button id="open-setup" class="masthead-icon-button secondary light" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.34.72.64 1 .3.28.68.42 1.08.42H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"></path></svg></button>
         <button id="refresh" class="masthead-icon-button secondary light" type="button" aria-label="Refresh" title="Refresh" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6v5h-5"></path><path d="M4 18v-5h5"></path><path d="M18.5 9A7 7 0 0 0 6.3 7L4 11"></path><path d="M5.5 15A7 7 0 0 0 17.7 17L20 13"></path></svg></button>
         <button id="toggle-sidebar" class="layout-button light" type="button" aria-label="Hide project sidebar" aria-pressed="true" title="Toggle project sidebar (Command or Control+B)"></button>
+        <button id="toggle-terminal" class="layout-button light" type="button" aria-label="Show terminal" aria-pressed="false" title="Toggle terminal (Command+J or Control+J)"></button>
         <button id="toggle-inspector" class="layout-button light" type="button" aria-label="Show inspector" aria-pressed="false" title="Toggle inspector (Command+Option+B or Control+Alt+B)"></button>
       </div>
     </header>
@@ -86,7 +88,7 @@
             </details>
             <section id="chooser" class="chooser panel" aria-labelledby="chooser-title">
               <p class="section-kicker">Begin observing</p><h2 id="chooser-title">Add a governed project</h2>
-              <p class="lede">A project is one directory with a fully valid, supported GateReeve feature record. GateReeve never scans or modifies it.</p>
+              <p class="lede">A project is one directory with a fully valid, supported GateReeve feature record. Observation never scans or modifies it automatically; commands you run in the optional terminal can change project files.</p>
               <button id="choose-empty" type="button">Add project…</button>
               <div id="chooser-error" class="notice danger" role="alert" hidden></div>
             </section>
@@ -99,6 +101,13 @@
                 <div class="surface-heading"><div><p class="section-kicker">Pinned state machine</p><h3 id="state-title">Feature state rail</h3></div></div>
                 <ol id="state-rail" class="state-rail"></ol>
                 <div id="milestones" class="milestones" hidden></div>
+              </section>
+              <section id="phase-context-surface" class="surface hierarchy-surface phase-context-surface" aria-labelledby="phase-context-title" hidden>
+                <div class="surface-heading"><div><p id="phase-context-kicker" class="section-kicker"></p><h3 id="phase-context-title"></h3><p id="phase-context-description" class="phase-context-description"></p></div></div>
+                <div class="phase-context-grid">
+                  <section aria-labelledby="phase-context-uses-title"><h4 id="phase-context-uses-title">Uses</h4><div id="phase-context-uses" class="phase-context-list"></div></section>
+                  <section aria-labelledby="phase-context-produces-title"><h4 id="phase-context-produces-title">Produces</h4><div id="phase-context-produces" class="phase-context-list"></div></section>
+                </div>
               </section>
               <section id="slices-surface" class="surface hierarchy-surface" aria-labelledby="slices-title" hidden><div class="surface-heading"><div><p class="section-kicker">Selected state · Delivery</p><h3 id="slices-title">PR slices</h3></div></div><div id="slices" class="stack"></div></section>
               <section id="boundary-surface" class="surface hierarchy-surface" aria-labelledby="boundary-title" hidden>
@@ -140,6 +149,22 @@
             <article id="artifact-viewer" class="viewer inspector-viewer" aria-live="polite" tabindex="-1"><div class="empty-state"><h3>No artifact selected</h3><p>Open an artifact or protocol detail from the workspace.</p></div></article>
           </div>
         </aside>
+
+        <section id="terminal-panel" class="terminal-panel" aria-label="Project terminal" hidden>
+          <div id="terminal-resizer" class="terminal-resizer" role="separator" aria-label="Resize project terminal" aria-orientation="horizontal" tabindex="0"></div>
+          <div class="terminal-toolbar">
+            <div class="terminal-identity">
+              <strong id="terminal-title">Terminal</strong>
+              <span id="terminal-shell" class="terminal-shell"></span>
+              <span id="terminal-status" class="terminal-status" data-status="idle">Idle</span>
+            </div>
+            <div class="terminal-actions">
+              <button id="terminal-terminate" class="terminal-action" type="button" disabled>Terminate</button>
+              <button id="terminal-restart" class="terminal-action" type="button" hidden>Restart</button>
+            </div>
+          </div>
+          <div id="terminal-hosts" class="terminal-hosts" aria-live="off"></div>
+        </section>
       </div>
     </main>
     <dialog id="source-dialog" class="source-dialog" aria-labelledby="source-dialog-title">

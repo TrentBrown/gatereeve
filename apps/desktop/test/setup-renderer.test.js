@@ -32,7 +32,9 @@ function unconfiguredState() {
       prerequisites: [],
       agents: [],
     },
-    preferences: { notificationsEnabled: false, projectPaths: [], selectedAgents: [] },
+    preferences: {
+      notificationsEnabled: false, projectPaths: [], selectedAgents: [], terminalHeight: 260,
+    },
   };
 }
 
@@ -70,7 +72,9 @@ function incompleteState() {
         },
       }],
     },
-    preferences: { notificationsEnabled: false, projectPaths: [], selectedAgents: ['codex'] },
+    preferences: {
+      notificationsEnabled: false, projectPaths: [], selectedAgents: ['codex'], terminalHeight: 260,
+    },
   };
 }
 
@@ -112,6 +116,7 @@ function mixedReadyState() {
       notificationsEnabled: false,
       projectPaths: [],
       selectedAgents: ['codex', 'claude'],
+      terminalHeight: 260,
     },
   };
 }
@@ -121,6 +126,9 @@ test('visual fixture remaps the confined production brand route to the source as
   const fixtureApi = await readFile(resolve(desktopRoot, 'visual/visual-fixture.js'), 'utf8');
   assert.match(fixture, /\.brand-mark/);
   assert.match(fixture, /\.\.\/assets\/branding\/gatereeve-rolling-vale\.png/);
+  assert.match(fixture, /fixture-console/);
+  assert.match(fixture, /gatereeve:fixture-action/);
+  assert.match(fixtureApi, /simulateFixtureAction/);
   for (const method of [
     'getUpdateState', 'subscribeUpdates', 'checkForUpdates', 'openUpdateRelease',
     'openExternalLink',
@@ -133,6 +141,21 @@ test('visual fixture remaps the confined production brand route to the source as
   ]) {
     assert.match(fixtureApi, new RegExp(`['\"]${scenario}['\"]`));
   }
+  assert.match(fixtureApi, /\| Surface \| Status \|/u);
+  assert.match(fixtureApi, /```mermaid/u);
+});
+
+test('every supported renderer entry path builds the self-contained Markdown module', async () => {
+  const metadata = JSON.parse(await readFile(resolve(desktopRoot, 'package.json'), 'utf8'));
+  assert.match(metadata.scripts.pretest, /build:renderer/u);
+  assert.match(metadata.scripts.prepack, /build:renderer/u);
+  assert.match(metadata.scripts.start, /build:renderer/u);
+  assert.equal(metadata.devDependencies.mermaid, undefined);
+  const domSource = await readFile(resolve(desktopRoot, 'renderer/dom.js'), 'utf8');
+  const buildSource = await readFile(resolve(desktopRoot, 'scripts/build-renderer.mjs'), 'utf8');
+  assert.match(domSource, /\.\/generated\/markdown-renderer\.js/u);
+  assert.match(buildSource, /bundle:\s*true/u);
+  assert.match(buildSource, /platform:\s*'neutral'/u);
 });
 
 test('first launch presents persistent non-mutating Setup and preserves historical access', async () => {

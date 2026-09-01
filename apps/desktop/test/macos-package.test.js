@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import { createPackageWithOptions } from '@electron/asar';
 import { createHash } from 'node:crypto';
-import { access, lstat, mkdtemp, readFile, readlink, rm, writeFile } from 'node:fs/promises';
+import { access, lstat, mkdir, mkdtemp, readFile, readlink, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -13,10 +14,14 @@ import {
   ICONSET_ENTRIES,
   MACOS_PRODUCT,
   REQUIRED_ASAR_PATHS,
+  RUNTIME_DEPENDENCIES,
+  STAGED_RUNTIME_PACKAGES,
 } from '../scripts/macos-package-contract.mjs';
 import { emitPackageResult, stageDesktopSource } from '../scripts/package-macos.mjs';
 import {
   detectRosettaTranslation,
+  isApprovedRuntimePackagePath,
+  requireMacosExecutionAuthority,
   writeVerificationEvidence,
 } from '../scripts/verify-macos-package.mjs';
 
@@ -40,7 +45,11 @@ test('macOS identity and universal packager options are permanent', () => {
   assert.equal(options.name, 'GateReeve');
   assert.equal(options.appBundleId, 'com.trentbrown.gatereeve.desktop');
   assert.equal(options.arch, 'universal');
-  assert.equal(options.asar, true);
+  assert.deepEqual(options.asar, { unpack: '**/node_modules/node-pty/prebuilds/**/*' });
+  assert.deepEqual(options.osxUniversal, {
+    mergeASARs: true,
+    singleArchFiles: 'node_modules/node-pty/prebuilds/darwin-*/**/*',
+  });
   assert.equal(options.osxSign.identity, '-');
   assert.equal(options.osxSign.optionsForFile().hardenedRuntime, false);
   const trusted = electronPackagerOptions({
@@ -64,6 +73,38 @@ test('macOS identity and universal packager options are permanent', () => {
     version: '0.1.0-rc.1',
   }).appVersion, '0.1.0');
   assert.throws(() => dmgFilename('../bad'));
+});
+
+test('runtime package allowlist admits scoped parents but rejects unstaged siblings', () => {
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm'), true);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm/xterm'), true);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm/xterm/lib/xterm.mjs'), true);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm/unapproved'), false);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/node-pty/lib/index.js'), true);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/electron'), false);
+});
+
+test('ASAR packaging unpacks node-pty native binaries and helper executables', async () => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'gatereeve-asar-test-'));
+  const sourceRoot = resolve(temporaryRoot, 'source');
+  const prebuildRoot = resolve(sourceRoot, 'node_modules/node-pty/prebuilds/darwin-arm64');
+  const asarPath = resolve(temporaryRoot, 'app.asar');
+  try {
+    await mkdir(prebuildRoot, { recursive: true });
+    await writeFile(resolve(prebuildRoot, 'pty.node'), 'native-addon');
+    await writeFile(resolve(prebuildRoot, 'spawn-helper'), 'helper');
+    const options = electronPackagerOptions({
+      stageRoot: sourceRoot,
+      outputRoot: temporaryRoot,
+      iconPath: '/GateReeve.icns',
+      version: '0.1.0',
+    });
+    await createPackageWithOptions(sourceRoot, asarPath, options.asar);
+    await access(resolve(`${asarPath}.unpacked`, 'node_modules/node-pty/prebuilds/darwin-arm64/pty.node'));
+    await access(resolve(`${asarPath}.unpacked`, 'node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper'));
+  } finally {
+    await rm(temporaryRoot, { recursive: true, force: true });
+  }
 });
 
 test('icon generation creates every standard macOS iconset size', async () => {
@@ -97,7 +138,7 @@ test('Desktop staging contains only self-contained runtime resources', async () 
     const metadata = JSON.parse(await readFile(resolve(stageRoot, 'package.json'), 'utf8'));
     assert.equal(metadata.productName, MACOS_PRODUCT.name);
     assert.equal(metadata.version, '0.1.0-rc.7');
-    assert.equal(metadata.dependencies, undefined);
+    assert.deepEqual(metadata.dependencies, RUNTIME_DEPENDENCIES);
     const compatibility = JSON.parse(await readFile(
       resolve(stageRoot, 'shared/setup-compatibility.json'),
       'utf8',
@@ -112,9 +153,23 @@ test('Desktop staging contains only self-contained runtime resources', async () 
     for (const path of REQUIRED_ASAR_PATHS) {
       await access(resolve(stageRoot, path.slice(1)));
     }
-    for (const excluded of ['scripts', 'test', 'visual', 'node_modules']) {
+    for (const packageName of STAGED_RUNTIME_PACKAGES) {
+      await access(resolve(stageRoot, 'node_modules', packageName, 'package.json'));
+    }
+    assert.equal(
+      (await lstat(resolve(
+        stageRoot,
+        'node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper',
+      ))).mode & 0o111,
+      0o111,
+    );
+    for (const excluded of ['scripts', 'test', 'visual', 'node_modules/electron']) {
       await assert.rejects(access(resolve(stageRoot, excluded)), /ENOENT/u);
     }
+    await assert.rejects(
+      access(resolve(stageRoot, 'renderer/markdown-source.js')),
+      /ENOENT/u,
+    );
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
@@ -206,4 +261,28 @@ test('native authority detects and rejects Rosetta substitution evidence', async
     detectRosettaTranslation(async () => { throw new Error('all probes failed'); }),
     /Unable to establish native process authority/u,
   );
+  assert.equal(requireMacosExecutionAuthority({
+    rosettaTranslated: false, allowRosettaTranslated: false, evidencePath: undefined,
+  }), 'native');
+  assert.equal(requireMacosExecutionAuthority({
+    rosettaTranslated: true, allowRosettaTranslated: true, evidencePath: undefined,
+  }), 'rosetta-translated');
+  assert.throws(() => requireMacosExecutionAuthority({
+    rosettaTranslated: true, allowRosettaTranslated: false, evidencePath: undefined,
+  }), /not authoritative native Intel evidence/u);
+  assert.throws(() => requireMacosExecutionAuthority({
+    rosettaTranslated: true, allowRosettaTranslated: true, evidencePath: '/native.json',
+  }), /cannot write authoritative native evidence/u);
+  assert.throws(() => requireMacosExecutionAuthority({
+    rosettaTranslated: false, allowRosettaTranslated: true, evidencePath: undefined,
+  }), /only valid inside an x86_64 Rosetta process/u);
+  await assert.rejects(writeVerificationEvidence({
+    dmgPath: '/unreachable.dmg',
+    evidencePath: '/unreachable.json',
+    nativeArchitecture: 'x64',
+    sourceCommit: '1234567890abcdef1234567890abcdef12345678',
+    sourceTag: 'v0.1.0',
+    version: '0.1.0',
+    rosettaTranslated: true,
+  }), /cannot write authoritative native evidence/u);
 });

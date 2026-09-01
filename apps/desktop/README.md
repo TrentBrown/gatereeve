@@ -1,7 +1,8 @@
 # GateReeve Desktop
 
-GateReeve Desktop is the optional, read-only Electron observer for a local
-GateReeve feature worktree. It consumes a staged copy of the canonical
+GateReeve Desktop is an optional Electron application for observing a local
+GateReeve feature worktree. It also provides an explicitly opened,
+user-controlled project terminal. It consumes a staged copy of the canonical
 GateReeve protocol directly; the optional Commander CLI is not a runtime
 dependency.
 
@@ -28,6 +29,13 @@ transition-deduplicated attention, failed or stale gate, suspension,
 inconsistency, pull-request merge, and feature-completion notices while the
 app is running. Quitting Desktop stops its watchers, polling, and notices.
 
+The bottom terminal panel starts no process until the user opens it. Each saved
+project can own one in-memory login-shell session for the current application
+lifetime, rooted at that project's worktree. GateReeve does not inject an agent
+command, retain a transcript, or treat terminal input or output as workflow
+passage or evidence. A user can run an agent or any other shell command, with
+the same filesystem effects and responsibility as a separate terminal.
+
 ## Development
 
 Requirements:
@@ -48,8 +56,9 @@ npm start
 `npm start` stages the canonical protocol before launching the app. The Desktop
 observation runtime itself does not require Python, a separate Node.js runtime,
 or the optional GateReeve CLI. Desktop persists only the explicit selected-agent
-preference, recent and last worktree paths, window geometry, and the native
-notification preference. It does not persist detection results or cache
+preference, recent and last worktree paths, window geometry, terminal panel
+height, and the native notification preference. It does not persist terminal
+visibility or content, detection results, or cache
 snapshots, workflow artifacts, GitHub responses, or governance state.
 
 ## macOS candidate packaging
@@ -85,19 +94,39 @@ with `verify-macos-package.mjs --evidence ... --source-tag ... --source-commit
 binds their common DMG checksum to the prepared Plugin candidate. This record is
 recoverable release evidence, not permission to publish the ad-hoc candidate.
 
+When a native Intel Mac is unavailable, an Apple Silicon developer can perform
+a clearly non-authoritative x86_64 smoke under Rosetta:
+
+```bash
+arch -x86_64 node scripts/verify-macos-package.mjs \
+  --dmg dist/macos/GateReeve-<version>-macos-universal.dmg \
+  --version <version> \
+  --fixture <governed-fixture-path> \
+  --allow-rosetta-translated
+```
+
+This path forces the packaged application through its Intel slice and labels
+the result as translated. It cannot emit the native release-evidence schema;
+the hosted native Intel job remains preferred release authority.
+
 For renderer-only visual review on a host without Electron runtime libraries,
-serve this package directory and open `/visual/index.html`. The fixture uses
+run `npm run build:renderer`, serve this package directory, and open
+`/visual/index.html`. The fixture uses
 the production HTML, CSS, and renderer modules but is excluded from packages.
 
-## Read-only boundary
+## Observation and terminal boundary
 
 The renderer may request explicit worktree selection, canonical snapshot and
 named-detail reads, refresh, clipboard copy, and open or reveal actions for
 artifact IDs from the current snapshot. Trusted interactive explain-diff HTML
 is served only by canonical artifact ID. Checkpoints and handoffs use a
 separate exact-ID Session reader and never become workflow evidence. The
-renderer cannot execute GateReeve transitions, invoke the CLI, launch agents,
-read arbitrary paths, or run arbitrary processes. Setup checks run only in the
-trusted main process, invoke version/status/list operations for explicitly
-selected agents, and expose native remediation as copyable text rather than
-executing it.
+renderer cannot select a terminal executable, arguments, cwd, environment, or
+process ID. It can send keystrokes only to the opaque terminal session owned by
+the currently selected saved project; the trusted main process creates that
+session from the account login shell and project worktree. This intentionally
+lets the user invoke the CLI, launch agents, and run arbitrary shell commands,
+but does not grant workflow passage beyond the authority of those commands.
+Setup checks remain separate, run only in the trusted main process, invoke
+version/status/list operations for explicitly selected agents, and expose
+native remediation as copyable text rather than executing it.

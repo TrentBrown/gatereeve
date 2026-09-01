@@ -62,11 +62,13 @@ jobs:
             const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
             if (run.event !== "workflow_dispatch"
               || run.conclusion !== "success"
-              || run.head_sha !== process.env.SOURCE_COMMIT
+              || run.head_branch !== "main"
               || !/coordinated-release-publish\.yml$/u.test(run.path)) {
               throw new Error("Cask source is not an exact successful hosted primary publication");
             }
           ' "$RUNNER_TEMP/primary-publication-run.json"
+          primary_run_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$RUNNER_TEMP/primary-publication-run.json")"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$primary_run_head"
       - uses: actions/download-artifact@v4
         with:
           name: gatereeve-${{ inputs.tag }}-hosted-publication-result
@@ -77,9 +79,18 @@ jobs:
         env:
           CONFIRMED_BY: ${{ inputs.direct_install_confirmed_by }}
           CONFIRMED_AT: ${{ inputs.direct_install_confirmed_at }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          TAG: ${{ inputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
+          node -e '
+            const record = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+            if (record.source?.commit !== process.env.SOURCE_COMMIT
+              || record.source?.tag !== process.env.TAG) {
+              throw new Error("Primary publication packet differs from the requested Cask source");
+            }
+          ' "$RUNNER_TEMP/primary-publication/release-record.json"
           node cli/bin/workflow.js plugin release prepare-cask-hosted \
             --primary-record "$RUNNER_TEMP/primary-publication/release-record.json" \
             --output-root "$RUNNER_TEMP/homebrew-cask" \

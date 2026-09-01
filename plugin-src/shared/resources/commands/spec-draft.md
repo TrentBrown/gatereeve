@@ -19,6 +19,11 @@ Use when a feature or task lacks acceptance criteria and rubric.
    - Unambiguous.
    - Covers happy path, key edge cases, and error conditions.
    - Excludes process gates that belong to DoD.
+   - Names the lifecycle boundary where required evidence can exist. Do not
+     make a pre-merge feature gate depend on credentials, trusted artifacts,
+     deployment state, or other evidence intentionally available only after
+     merge; preserve that obligation as an explicit post-merge release or
+     deployment acceptance gate.
 6. Draft rubric entries:
    - Derived from the AC.
    - Explicit pass and fail conditions.

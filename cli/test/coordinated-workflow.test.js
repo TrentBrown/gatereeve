@@ -45,6 +45,17 @@ test('protected preparation is reviewed-main-only, serialized, and publication-f
   assert.doesNotMatch(trustJobHeader, /secrets\./);
   assert.doesNotMatch(workflow, /release-publication/);
   assert.match(workflow, /RUN_ATTEMPT !== '1'/);
+  assert.match(workflow, /--output-root "\$RUNNER_TEMP\/coordinated-plugin-candidate\/marketplace"/);
+  assert.match(workflow, /--integrity-manifest "\$RUNNER_TEMP\/coordinated-plugin-candidate\/integrity\.json"/);
+  assert.match(workflow, /name: coordinated-plugin-candidate\n\s+path: \$\{\{ runner\.temp \}\}\/coordinated-plugin-candidate\n\s+include-hidden-files: true/);
+  const roundTripJob = workflow.match(/  plugin-candidate-round-trip:[\s\S]*?\n  desktop-trust:/u)?.[0] ?? '';
+  assert.match(roundTripJob, /needs:\n\s+- resolve-source\n\s+- plugin-candidate/);
+  assert.match(roundTripJob, /actions\/download-artifact@v4/);
+  assert.match(roundTripJob, /verify-plugin-integrity/);
+  assert.match(roundTripJob, /--plugin-root "\$RUNNER_TEMP\/coordinated-plugin-candidate\/marketplace"/);
+  assert.match(roundTripJob, /--integrity-manifest "\$RUNNER_TEMP\/coordinated-plugin-candidate\/integrity\.json"/);
+  const desktopTrustJob = workflow.match(/  desktop-trust:[\s\S]*?\n  trusted-desktop-verification:/u)?.[0] ?? '';
+  assert.match(desktopTrustJob, /needs:\n\s+- resolve-source\n\s+- plugin-candidate\n\s+- plugin-candidate-round-trip/);
   assert.match(workflow, /submitted_root="\$trusted_bundle\/submitted"/);
   assert.match(workflow, /GateReeve\.app\.tar/);
   assert.match(workflow, /--trusted-dmg "\$\{\{ steps\.trust-paths\.outputs\.trusted_dmg \}\}"/);
@@ -54,6 +65,7 @@ test('protected preparation is reviewed-main-only, serialized, and publication-f
   assert.match(workflow, /runner: macos-15-intel/);
   assert.match(workflow, /aggregate-native-trust\.js/);
   assert.match(workflow, /build-trusted-release-lifecycle\.js/);
+  assert.match(workflow, /--plugin-integrity "\$RUNNER_TEMP\/coordinated-plugin-candidate\/integrity\.json"/);
   assert.doesNotMatch(workflow, /plugin release coordinate/);
   assert.doesNotMatch(workflow, /contents: write|gh release create|git push|publish-marketplace\.sh/);
 });
@@ -80,6 +92,8 @@ test('bounded recovery reuses retained bytes and Apple request history without s
   assert.match(workflow, /tar -xf "\$TRUST_ROOT\/submitted\/GateReeve\.app\.tar"/);
   assert.match(workflow, /runner: macos-15-intel/);
   assert.match(workflow, /build-trusted-release-lifecycle\.js/);
+  assert.match(workflow, /--plugin-root "\$RUNNER_TEMP\/coordinated-plugin-candidate\/marketplace"/);
+  assert.match(workflow, /--plugin-integrity "\$RUNNER_TEMP\/coordinated-plugin-candidate\/integrity\.json"/);
   assert.match(workflow, /Use a new bounded recovery dispatch/);
   assert.doesNotMatch(workflow, /GATEREEVE_DEVELOPER_ID_P12|security import|package-macos\.mjs/);
   assert.doesNotMatch(workflow, /release-publication|contents: write|gh release create|git push/);
@@ -100,7 +114,10 @@ test('read-only finalization seals one exact schema-v2 packet from retained auth
   assert.match(workflow, /name: coordinated-plugin-candidate[\s\S]*run-id: \$\{\{ inputs\.preparation_run_id \}\}/);
   assert.match(workflow, /name: coordinated-desktop-trusted[\s\S]*run-id: \$\{\{ inputs\.trust_artifact_run_id \}\}/);
   assert.match(workflow, /finalize-hosted/);
+  assert.match(workflow, /--plugin-root "\$RUNNER_TEMP\/coordinated-plugin-candidate\/marketplace"/);
+  assert.match(workflow, /--plugin-integrity "\$RUNNER_TEMP\/coordinated-plugin-candidate\/integrity\.json"/);
   assert.match(workflow, /inspect-hosted/);
+  assert.match(workflow, /path: \$\{\{ runner\.temp \}\}\/hosted-publication\n\s+include-hidden-files: true/);
   assert.match(workflow, /retention-days: 30/);
   assert.doesNotMatch(workflow, /^\s+environment:|name: release-(?:publication|trust)|secrets\./m);
   assert.doesNotMatch(workflow, /contents: write|pull-requests: write|gh release create|git push/);
@@ -135,6 +152,7 @@ test('hosted publication separates read-only rehearsal from approved exact-plan 
   assert.doesNotMatch(publication, /secrets\.|GATEREEVE_DEVELOPER_ID|NOTARY|codesign|notarytool|package-macos/);
   assert((workflow.match(/coordinated-release-finalize\\\.yml/g) ?? []).length === 2);
   assert((workflow.match(/retention-days: 30/g) ?? []).length === 2);
+  assert((workflow.match(/include-hidden-files: true/g) ?? []).length === 2);
 });
 
 test('linked Cask finalization and publication preserve a separate approval boundary', async () => {
@@ -145,6 +163,11 @@ test('linked Cask finalization and publication preserve a separate approval boun
   assert.match(finalization, /direct_install_confirmed_at:/);
   assert.match(finalization, /coordinated-release-publish\\\.yml/);
   assert.match(finalization, /run\.conclusion !== "success"/);
+  assert.doesNotMatch(finalization, /run\.head_sha !== process\.env\.SOURCE_COMMIT/);
+  assert.match(finalization, /run\.head_branch !== "main"/);
+  assert.match(finalization, /git merge-base --is-ancestor "\$SOURCE_COMMIT" "\$primary_run_head"/);
+  assert.match(finalization, /record\.source\?\.commit !== process\.env\.SOURCE_COMMIT/);
+  assert.match(finalization, /record\.source\?\.tag !== process\.env\.TAG/);
   assert.match(finalization, /prepare-cask-hosted/);
   assert.match(finalization, /inspect-cask-hosted/);
   assert.match(finalization, /retention-days: 30/);
@@ -162,6 +185,11 @@ test('linked Cask finalization and publication preserve a separate approval boun
   assert.match(rehearsal, /permissions:\n\s+actions: read\n\s+contents: read/);
   assert.match(rehearsal, /--dry-run/);
   assert.match(rehearsal, /run\.conclusion !== "success"/);
+  assert.doesNotMatch(rehearsal, /run\.head_sha !== process\.env\.SOURCE_COMMIT/);
+  assert.match(rehearsal, /run\.head_branch !== "main"/);
+  assert.match(rehearsal, /git merge-base --is-ancestor "\$SOURCE_COMMIT" "\$cask_finalization_head"/);
+  assert.match(rehearsal, /record\.source\?\.commit !== process\.env\.SOURCE_COMMIT/);
+  assert.match(rehearsal, /record\.source\?\.tag !== process\.env\.TAG/);
   assert.doesNotMatch(rehearsal, /secrets\.|contents: write|pull-requests: write|--confirm/);
   assert.match(publication, /name: release-publication/);
   assert.doesNotMatch(publication, /deployment:\s*false/);
@@ -169,6 +197,11 @@ test('linked Cask finalization and publication preserve a separate approval boun
   assert.match(publication, /--approved-by "\$APPROVED_BY"/);
   assert.match(publication, /--confirm/);
   assert.match(publication, /run\.conclusion !== "success"/);
+  assert.doesNotMatch(publication, /run\.head_sha !== process\.env\.SOURCE_COMMIT/);
+  assert.match(publication, /run\.head_branch !== "main"/);
+  assert.match(publication, /git merge-base --is-ancestor "\$SOURCE_COMMIT" "\$cask_finalization_head"/);
+  assert.match(publication, /record\.source\?\.commit !== process\.env\.SOURCE_COMMIT/);
+  assert.match(publication, /record\.source\?\.tag !== process\.env\.TAG/);
   assert.doesNotMatch(publication, /GATEREEVE_DEVELOPER_ID|NOTARY|codesign|notarytool|package-macos/);
   assert((publicationWorkflow.match(/homebrew-cask-finalize\\\.yml/g) ?? []).length === 2);
   assert((publicationWorkflow.match(/retention-days: 30/g) ?? []).length === 2);

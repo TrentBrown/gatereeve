@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #40 — Desktop artifact file actions</title>
+  <style>
+    :root { color-scheme: light; --ink:#17202a; --muted:#5e6b78; --line:#d8dee6; --paper:#fff; --wash:#f4f7fb; --blue:#1f62d0; --green:#18794e; --amber:#9a6700; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.58 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:var(--wash); }
+    header, main { max-width:980px; margin:auto; }
+    header { padding:64px 24px 28px; }
+    main { background:var(--paper); padding:24px clamp(22px,5vw,64px) 72px; box-shadow:0 12px 45px #27384d18; }
+    h1 { font-size:clamp(2rem,6vw,3.6rem); line-height:1.04; margin:.2em 0; letter-spacing:-.035em; }
+    h2 { margin-top:3rem; padding-top:1rem; border-top:1px solid var(--line); font-size:1.75rem; }
+    h3 { margin-top:2rem; }
+    a { color:var(--blue); }
+    nav { display:flex; flex-wrap:wrap; gap:.5rem 1rem; margin-top:24px; }
+    nav a { text-decoration:none; font-weight:650; }
+    .eyebrow { color:var(--blue); font-weight:750; letter-spacing:.08em; text-transform:uppercase; font-size:.78rem; }
+    .lede { color:var(--muted); font-size:1.18rem; max-width:760px; }
+    .callout { border-left:4px solid var(--blue); background:#edf4ff; padding:16px 20px; margin:22px 0; border-radius:0 10px 10px 0; }
+    .risk { border-color:var(--amber); background:#fff7df; }
+    .diagram { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); margin:24px 0; align-items:stretch; }
+    .box { border:1px solid var(--line); border-radius:12px; padding:16px; background:#fbfcfe; position:relative; }
+    .box strong { display:block; color:var(--blue); margin-bottom:6px; }
+    .arrow::after { content:"→"; position:absolute; right:-21px; top:42%; color:var(--muted); font-size:1.5rem; z-index:2; }
+    .menu { max-width:350px; border:1px solid var(--line); border-radius:16px; padding:10px; box-shadow:0 12px 30px #27384d18; margin:24px auto; }
+    .menu h4 { margin:10px 8px 3px; font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.09em; }
+    .menu div { padding:7px 10px; border-radius:8px; }
+    .menu div:hover { background:#edf4ff; }
+    pre { white-space:pre-wrap; overflow:auto; background:#17202a; color:#edf3fa; border-radius:12px; padding:18px; font-size:.9rem; }
+    code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    table { width:100%; border-collapse:collapse; margin:18px 0; }
+    th,td { border-bottom:1px solid var(--line); text-align:left; vertical-align:top; padding:10px 8px; }
+    th { color:var(--muted); font-size:.82rem; text-transform:uppercase; letter-spacing:.05em; }
+    .quiz { border:1px solid var(--line); border-radius:12px; padding:18px; margin:16px 0; }
+    .quiz p { font-weight:700; }
+    .quiz button { display:block; width:100%; text-align:left; margin:8px 0; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:white; color:var(--ink); cursor:pointer; }
+    .quiz button:hover { border-color:var(--blue); }
+    .feedback { min-height:1.5em; color:var(--muted); }
+    .feedback.good { color:var(--green); } .feedback.bad { color:#b42318; }
+    @media (max-width:650px) { header { padding-top:34px; } main { box-shadow:none; } .arrow::after { display:none; } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">GateReeve Desktop · PR #40</div>
+  <h1>From “Open” to a bounded file-action menu</h1>
+  <p class="lede">This change turns the artifact viewer’s single-purpose Open control into a split button that can open, reveal, copy, save, and locate a canonical workflow artifact—without giving the renderer arbitrary filesystem or process authority.</p>
+  <nav aria-label="Table of contents"><a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#edge-cases">Edge cases</a><a href="#quiz">Quiz</a></nav>
+</header>
+<main>
+  <section id="background">
+    <h2>Background</h2>
+    <h3>The beginner’s map</h3>
+    <p>An Electron application has two important security domains. The <em>renderer</em> draws HTML and handles clicks. The <em>main process</em> can reach the filesystem, operating-system dialogs, Finder, and external applications. A preload bridge and exact IPC messages connect them.</p>
+    <div class="diagram" aria-label="Electron authority flow">
+      <div class="box arrow"><strong>Renderer</strong>Chooses an artifact ID and a bounded action.</div>
+      <div class="box arrow"><strong>Preload + contracts</strong>Reject malformed or overly broad requests.</div>
+      <div class="box"><strong>Main process</strong>Resolves the canonical path and performs the native operation.</div>
+    </div>
+    <p>GateReeve already inventories workflow artifacts such as <code>spec.md</code>, <code>tracker.md</code>, and per-PR evidence. The renderer never needs to invent a path: it sends an inventory ID, and the coordinator resolves the trusted absolute path.</p>
+    <h3>The narrow problem</h3>
+    <p>The old header offered a plain Open button plus Finder and path-copy actions. The desired experience needs several related verbs and a remembered default, while still behaving honestly on a local desktop: “Save to Downloads” is a copy, not a cloud download.</p>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <p>Think of the control as two layers. The large side repeats the preferred action. The disclosure side explains and changes that preference while exposing less frequent operations.</p>
+    <div class="menu" aria-label="Representative artifact menu">
+      <h4>Open with</h4><div>✓ VS Code</div><div>Cursor</div><div>Default application</div><div>Choose Application…</div>
+      <h4>File location</h4><div>Show in Finder</div><div>Open on GitHub</div>
+      <h4>Save a copy</h4><div>Save As…</div><div>Save to Downloads</div>
+      <h4>Utilities</h4><div>Copy path</div>
+    </div>
+    <p>For example, selecting VS Code both opens <code>spec.md</code> and remembers <code>vscode</code>. The next primary click sends <code>{ artifactId: "spec", editorId: null }</code>; the main process interprets null as the stored preference. Choosing an application through the native dialog is deliberately one-time and does not expand the renderer contract.</p>
+    <div class="callout"><strong>Key invariant.</strong> An application path such as <code>/Applications/Visual Studio Code.app</code> never crosses from renderer to main. Only a catalog ID such as <code>vscode</code> does.</div>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <h3>1. A main-process service owns native behavior</h3>
+    <p><code>artifact-actions.js</code> contains a fixed editor catalog, detection under the system and user Applications folders, an atomic preference store, source-preserving copy operations, and GitHub URL derivation. The GitHub link is accepted only when Git proves the file is tracked, the origin is GitHub, and HEAD is a full commit SHA.</p>
+    <pre><code>Renderer: openArtifact("spec", "vscode", true)
+                    ↓ validate exact shape
+Main: coordinator.artifact("spec").absolutePath
+                    ↓ match fixed editor catalog
+/usr/bin/open -a "/Applications/Visual Studio Code.app" canonicalPath</code></pre>
+    <h3>2. Exact contracts replace a generic opener</h3>
+    <p>The shared contracts and preload bridge add named methods for capabilities, opening, choosing an application, Save As, Downloads, and GitHub. IPC resolves every artifact through the coordinator before calling the service. This is more repetitive than a generic “execute file action” call, but its authority is visible and testable.</p>
+    <h3>3. The renderer builds a capability-driven split menu</h3>
+    <p>The renderer requests artifact content and action capabilities together. It lists detected editors, omits GitHub when provenance cannot be established, updates the primary button’s accessible label after an explicit choice, closes the menu after selection, and translates rejected promises into the existing toast.</p>
+    <h3>4. The browser fixture simulates the native boundary</h3>
+    <p>The fixture uses the production renderer and styles. Native calls append visible events to a fixture console, and “Fail next action” lets a reviewer inspect error feedback in a browser. The service, IPC, contracts, and renderer remain covered by the desktop test suite.</p>
+    <table><thead><tr><th>Layer</th><th>Responsibility</th><th>Representative tests</th></tr></thead><tbody>
+      <tr><td>Main service</td><td>Detection, preference, copy, GitHub proof</td><td><code>artifact-actions.test.js</code></td></tr>
+      <tr><td>Contracts / IPC</td><td>Exact request shapes and canonical resolution</td><td><code>contracts.test.js</code>, <code>ipc.test.js</code></td></tr>
+      <tr><td>Renderer</td><td>Grouping, labels, actions, failure feedback</td><td><code>renderer.test.js</code></td></tr>
+      <tr><td>Fixture</td><td>Live menu and simulated native outcomes</td><td>visual fixture contract test + browser inspection</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="edge-cases">
+    <h2>Edge cases and review outcome</h2>
+    <ul>
+      <li>A canceled chooser or Save As dialog returns false and produces no success toast.</li>
+      <li>An unavailable remembered editor falls back to the OS default.</li>
+      <li>Downloads chooses a numbered filename instead of replacing an existing file.</li>
+      <li>A non-GitHub remote, untracked file, or invalid commit removes the GitHub action.</li>
+      <li>An initial artifact load failure still renders a safe fallback action menu and recovery message.</li>
+    </ul>
+    <div class="callout risk"><strong>Residual manual check.</strong> The headless Linux host cannot exercise Finder, Launch Services, macOS application bundles, or native dialogs. The automated contract is green; these integrations should be smoke-tested on the laptop after merge.</div>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <div class="quiz" data-answer="1"><p>1. Why does the renderer send <code>vscode</code> instead of an application path?</p><button>It makes the IPC payload smaller, but both forms have equal authority.</button><button>It lets main match a fixed catalog while preventing renderer-selected executables.</button><button>Electron cannot serialize filesystem paths over IPC.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="2"><p>2. When is “Open on GitHub” available?</p><button>Whenever an artifact has a relative path and the project has any remote.</button><button>Whenever GitHub CLI is authenticated for the current user.</button><button>When Git proves a tracked file, GitHub origin, and exact commit SHA.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="0"><p>3. What does choosing VS Code from the menu do?</p><button>It opens the artifact and persists VS Code as the primary Open preference.</button><button>It changes the macOS default application for every Markdown file.</button><button>It opens once; only the native chooser can persist a preference.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="1"><p>4. Why is the action named “Save to Downloads” rather than “Download”?</p><button>Apple reserves the word Download for notarized applications.</button><button>The source is already local; this operation creates a copy in a known folder.</button><button>The implementation uploads first and downloads a canonical remote copy.</button><div class="feedback"></div></div>
+    <div class="quiz" data-answer="2"><p>5. What remains outside automated verification?</p><button>Request validation and canonical artifact resolution.</button><button>Renderer grouping, accessible naming, and failure toasts.</button><button>Native macOS Finder, Launch Services, chooser, and dialog behavior.</button><div class="feedback"></div></div>
+  </section>
+</main>
+<script>
+  for (const quiz of document.querySelectorAll('.quiz')) {
+    const buttons = [...quiz.querySelectorAll('button')];
+    const feedback = quiz.querySelector('.feedback');
+    buttons.forEach((button, index) => button.addEventListener('click', () => {
+      const correct = index === Number(quiz.dataset.answer);
+      feedback.className = `feedback ${correct ? 'good' : 'bad'}`;
+      feedback.textContent = correct ? 'Correct — that is the boundary this PR preserves.' : 'Not quite. Revisit the relevant section above and follow which process owns native authority.';
+    }));
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR 42 — Full Markdown rendering</title>
+  <style>
+    :root { color-scheme: light dark; --ink:#17202a; --paper:#f8f7f2; --card:#fff; --accent:#7357c9; --soft:#ece8fa; --line:#d8d3c8; --ok:#176b45; --bad:#a12b32; }
+    @media (prefers-color-scheme:dark) { :root { --ink:#ecedf2; --paper:#17171b; --card:#222228; --soft:#342d4d; --line:#454550; --ok:#76d5aa; --bad:#ff9298; } }
+    * { box-sizing:border-box } body { margin:0; background:var(--paper); color:var(--ink); font:17px/1.65 system-ui,sans-serif }
+    main,nav { width:min(980px,calc(100% - 32px)); margin:auto } header { padding:64px 16px 38px; background:linear-gradient(135deg,var(--soft),transparent) }
+    h1 { font-size:clamp(2rem,6vw,4.2rem); line-height:1.05; margin:.15em 0 } h2 { margin-top:2.4em; border-bottom:1px solid var(--line); padding-bottom:.25em } h3 { margin-top:1.8em }
+    nav { padding:18px 0 } nav a { margin-right:18px } a { color:var(--accent) } code,pre { font-family:ui-monospace,monospace } pre { white-space:pre-wrap; overflow:auto; padding:18px; border-radius:12px; background:#11131a; color:#f7f7fb }
+    .lede { font-size:1.2rem; max-width:760px }.pin { font-size:.86rem; overflow-wrap:anywhere }.callout,.card,.quiz { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin:18px 0 }
+    .flow { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; align-items:center; margin:24px 0 }.step { min-height:96px; display:grid; place-items:center; text-align:center; padding:10px; background:var(--card); border:1px solid var(--line); border-radius:12px }.pair { display:grid; grid-template-columns:1fr 1fr; gap:18px }.tag { display:inline-block; padding:2px 9px; border-radius:99px; background:var(--soft); font-size:.82rem }
+    button { display:block; width:100%; text-align:left; margin:8px 0; padding:11px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); cursor:pointer } button:hover { border-color:var(--accent) }.feedback { min-height:1.5em; font-weight:650 }.correct { color:var(--ok) }.wrong { color:var(--bad) }
+    footer { margin:70px 0 30px; color:color-mix(in srgb,var(--ink) 65%,transparent) }
+    @media(max-width:700px){.flow,.pair{grid-template-columns:1fr}.step{min-height:auto}}
+  </style>
+</head>
+<body>
+  <header><main>
+    <span class="tag">PR 42 · Desktop</span>
+    <h1>Markdown becomes a document, safely</h1>
+    <p class="lede">GateReeve replaces a small regular-expression formatter with a complete CommonMark/GFM pipeline, while keeping application capabilities—not Markdown—in charge of links and resources.</p>
+    <p class="pin"><strong>Pinned review diff:</strong> 1d10d6da7b4acac054c31e65993a2f03bcbf0ee3..a981e3ed42a42cd2e2c173f041a732214b5151e4</p>
+  </main></header>
+  <nav><a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#quiz">Quiz</a></nav>
+  <main>
+    <section id="background">
+      <h2>Background</h2>
+      <h3>The broad view</h3>
+      <p>Markdown is not a sequence of independent substitutions. Asterisks can open emphasis or remain literal; indentation changes list structure; reference definitions can affect links elsewhere; and fenced blocks suspend inline parsing. A parser must first build a tree that captures these relationships, then render that tree.</p>
+      <p>GateReeve displays trusted workflow artifacts and Session documents inside an Electron renderer. The content is local, but it is still data rather than application authority. A document must not create an image request, execute raw HTML, or smuggle an unsafe destination into the operating-system link handler.</p>
+      <h3>The old seam</h3>
+      <p>The previous renderer was a compact handwritten formatter. It handled the common cases the application originally needed, but every additional Markdown interaction made its regular expressions harder to reason about. Full tables, task lists, footnotes, reference links, nested structures, and CommonMark edge cases need an actual syntax tree.</p>
+      <div class="callout"><strong>Invariant retained:</strong> rendering text is allowed; granting a capability is a separate decision made by the existing application resolver.</div>
+    </section>
+    <section id="intuition">
+      <h2>Intuition</h2>
+      <p>The change separates understanding, safety, and authority into explicit stages.</p>
+      <div class="flow" aria-label="Markdown rendering pipeline">
+        <div class="step"><strong>Markdown</strong><br><small>source positions retained</small></div>
+        <div class="step"><strong>MDAST</strong><br><small>CommonMark + GFM meaning</small></div>
+        <div class="step"><strong>Safety transforms</strong><br><small>HTML/images become source text</small></div>
+        <div class="step"><strong>Sanitized HAST</strong><br><small>small element/attribute vocabulary</small></div>
+        <div class="step"><strong>DOM</strong><br><small>direct node construction</small></div>
+      </div>
+      <div class="pair">
+        <div class="card"><h3>Safe structure</h3><pre>Input:  ~~done~~&#10;Tree:   delete → text("done")&#10;DOM:    &lt;del&gt;done&lt;/del&gt;</pre><p>The syntax tree preserves meaning and produces semantic elements.</p></div>
+        <div class="card"><h3>Unsafe capability</h3><pre>Input:  ![x](https://host/x.png)&#10;Tree:   image + source offsets&#10;DOM:    text("![x](https://host/x.png)")</pre><p>The exact source remains visible, but no resource-loading element exists.</p></div>
+      </div>
+      <p>Links follow a similar two-key rule. Markdown may recognize a link, but the DOM receives an anchor only when the caller's resolver accepts its destination. A click then invokes the existing activator; rejected links revert to their exact source text.</p>
+      <div class="callout"><strong>Mermaid:</strong> a <code>mermaid</code> fence remains ordinary <code>code.language-mermaid</code>. It is readable and safely styled, but no diagram runtime or SVG is introduced in this PR.</div>
+    </section>
+    <section id="code">
+      <h2>Code walkthrough</h2>
+      <h3>1. One shared parser</h3>
+      <p><code>renderer/markdown-source.js</code> configures Unified with remark-parse, remark-gfm, remark-rehype, rehype-sanitize, and hast-util-to-dom. Both artifact and Session views continue to call the same <code>renderMarkdown</code> seam, so their language behavior cannot drift.</p>
+      <h3>2. Source-preserving safety</h3>
+      <p>Before conversion to HAST, raw-HTML and image nodes are replaced using their original source offsets. The sanitizer then admits only the semantic structures GateReeve needs. The final tree is converted directly to DOM nodes: artifact content never passes through an <code>innerHTML</code> insertion point.</p>
+      <h3>3. Application-owned navigation</h3>
+      <p>Headings receive deterministic, duplicate-aware IDs with an application prefix. Their logical Markdown fragments are retained separately for existing fragment lookup. Inline links, references, and autolinks all flow through the same resolver/activator capability boundary.</p>
+      <h3>4. Reproducible delivery</h3>
+      <p><code>scripts/build-renderer.mjs</code> bundles the pinned pipeline into a self-contained generated module. Pretest, prepack, startup, staging, and package checks all build or require it. The shipped ASAR contains the bundle but neither <code>node_modules</code> nor the unbundled renderer source.</p>
+      <h3>5. Broader behavior and presentation</h3>
+      <p>Scoped styles cover six heading levels, nested lists, table containment, disabled tasks, footnotes, and wide code. Tests exercise representative CommonMark cases, GFM, hostile and malformed source, fragment behavior, link policy, both document surfaces, accessibility, staging, and packaging.</p>
+    </section>
+    <section id="quiz">
+      <h2>Quiz</h2>
+      <div class="quiz" data-answer="2"><strong>1. Why are raw HTML and images converted before HAST rendering?</strong><button>To make the generated bundle smaller by removing parser extensions.</button><button>To let the sanitizer load them only when their URLs use HTTPS.</button><button>To preserve exact visible source while preventing resource-capable DOM from existing.</button><button>To defer both constructs to Electron's built-in Markdown implementation.</button><p class="feedback"></p></div>
+      <div class="quiz" data-answer="1"><strong>2. When does a parsed Markdown link remain an anchor?</strong><button>Whenever remark-gfm recognizes a syntactically valid destination.</button><button>Only when the caller's existing resolver explicitly accepts the destination.</button><button>Whenever the destination is relative or begins with HTTPS.</button><button>Only after rehype-sanitize rewrites the destination to an application URL.</button><p class="feedback"></p></div>
+      <div class="quiz" data-answer="3"><strong>3. What is Mermaid behavior in PR 42?</strong><button>The bundle renders SVG but strips scripts and foreignObject nodes.</button><button>A lazy-loaded runtime renders diagrams only in trusted artifacts.</button><button>Mermaid fences are removed because their syntax is not CommonMark.</button><button>They remain visible, styled language-mermaid code blocks without SVG execution.</button><p class="feedback"></p></div>
+      <div class="quiz" data-answer="0"><strong>4. Why are DOM heading IDs prefixed?</strong><button>To avoid collisions/clobbering while logical fragments remain available for lookup.</button><button>To make headings stable across arbitrary edits elsewhere in the document.</button><button>To expose the artifact path directly through each heading identifier.</button><button>To let the Markdown parser bypass duplicate-heading handling.</button><p class="feedback"></p></div>
+      <div class="quiz" data-answer="2"><strong>5. What makes the renderer deliverable reproducibly?</strong><button>Electron downloads the exact parser packages on first launch.</button><button>The application ships node_modules and imports plugins dynamically.</button><button>Pinned dependencies build a deterministic self-contained bundle through every lifecycle path.</button><button>The handwritten parser remains as a package-time fallback.</button><p class="feedback"></p></div>
+    </section>
+    <footer>Generated for GateReeve PR 42 from its exact pinned slice diff.</footer>
+  </main>
+  <script>
+    document.querySelectorAll('.quiz').forEach((quiz) => {
+      quiz.querySelectorAll('button').forEach((button, index) => button.addEventListener('click', () => {
+        const correct = index === Number(quiz.dataset.answer);
+        const feedback = quiz.querySelector('.feedback');
+        feedback.className = 'feedback ' + (correct ? 'correct' : 'wrong');
+        feedback.textContent = correct ? 'Correct — that is the invariant enforced by this change.' : 'Not quite. Revisit the pipeline and authority boundary above.';
+      }));
+    });
+  </script>
+</body>
+</html>

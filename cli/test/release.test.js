@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
 
+import { verifyPluginCandidateIntegrity } from '../src/plugin/plugin-candidate-integrity.js';
 import { prepareRelease } from '../src/plugin/release.js';
 
 const repositoryRoot = resolve(import.meta.dirname, '../..');
@@ -42,6 +43,46 @@ test('prepares a traceable release-candidate marketplace', async () => {
     assert.equal(provenance.sourceTag, 'v0.1.0-rc.1');
     assert.equal(provenance.sourceCommit, 'abc123');
   }
+});
+
+test('preparation emits and verifies a companion full-tree integrity manifest', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workflow integrity release '));
+  const outputRoot = join(root, 'candidate', 'marketplace');
+  const integrityManifestPath = join(root, 'candidate', 'integrity.json');
+  const sourceTag = 'v0.1.0-rc.9';
+  const sourceCommit = '1234567890abcdef1234567890abcdef12345678';
+  const result = await prepareRelease({
+    sourceRoot,
+    outputRoot,
+    sourceTag,
+    sourceCommit,
+    integrityManifestPath,
+  });
+
+  assert.equal(result.integrity.path, integrityManifestPath);
+  assert.match(result.integrity.sha256, /^[a-f0-9]{64}$/u);
+  const verified = await verifyPluginCandidateIntegrity({
+    pluginRoot: outputRoot,
+    integrityPath: integrityManifestPath,
+    sourceTag,
+    sourceCommit,
+  });
+  assert.equal(verified.manifest.tree.fileCount, verified.files.length);
+  assert(verified.files.some((file) => file.path === '.agents/plugins/marketplace.json'));
+  assert(verified.files.some((file) => file.path.includes('/.workflow-build/provenance.json')));
+});
+
+test('preparation rejects an integrity manifest inside the publishable tree', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workflow unsafe integrity release '));
+  const outputRoot = join(root, 'marketplace');
+  await assert.rejects(prepareRelease({
+    sourceRoot,
+    outputRoot,
+    sourceTag: 'v0.1.0-rc.9',
+    sourceCommit: '1234567890abcdef1234567890abcdef12345678',
+    integrityManifestPath: join(outputRoot, 'integrity.json'),
+  }), /must be outside the publishable tree/u);
+  await assert.rejects(stat(outputRoot), { code: 'ENOENT' });
 });
 
 test('requires complete Ubuntu evidence for stable publication', async () => {

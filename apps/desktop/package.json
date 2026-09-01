@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Read-only desktop observer for GateReeve workflows",
+  "description": "GateReeve workflow observer with a user-controlled project terminal",
   "main": "main/index.js",
   "files": [
     "main/",
@@ -19,17 +19,30 @@
   },
   "scripts": {
     "check": "npm test",
+    "build:renderer": "node scripts/build-renderer.mjs",
     "package:mac": "npm run stage:protocol && node scripts/package-macos.mjs",
-    "prepack": "npm run stage:protocol",
-    "pretest": "npm run stage:protocol",
+    "prepack": "npm run stage:protocol && npm run build:renderer",
+    "pretest": "npm run stage:protocol && npm run build:renderer",
     "stage:protocol": "node scripts/stage-protocol.mjs",
-    "start": "npm run stage:protocol && electron .",
+    "start": "npm run stage:protocol && npm run build:renderer && electron .",
     "test": "node --test"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "node-pty": "1.2.0-beta.15"
   },
   "devDependencies": {
     "@electron/asar": "4.2.1",
     "@electron/packager": "20.0.4",
     "electron": "43.2.0",
-    "linkedom": "0.18.12"
+    "esbuild": "0.28.2",
+    "hast-util-to-dom": "4.0.1",
+    "linkedom": "0.18.12",
+    "rehype-sanitize": "6.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-parse": "11.0.0",
+    "remark-rehype": "11.1.2",
+    "unified": "11.0.5"
   }
 }

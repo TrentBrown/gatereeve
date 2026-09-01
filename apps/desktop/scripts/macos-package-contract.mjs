@@ -32,10 +32,32 @@ export const STAGED_DIRECTORIES = Object.freeze([
   'shared',
 ]);
 
+export const RUNTIME_DEPENDENCIES = Object.freeze({
+  '@xterm/addon-fit': '0.11.0',
+  '@xterm/xterm': '6.0.0',
+  'node-pty': '1.2.0-beta.15',
+});
+
+export const STAGED_RUNTIME_PACKAGES = Object.freeze([
+  '@xterm/addon-fit',
+  '@xterm/xterm',
+  'node-addon-api',
+  'node-pty',
+]);
+
 export const REQUIRED_ASAR_PATHS = Object.freeze([
   '/main/index.js',
   '/preload/index.cjs',
   '/renderer/index.html',
+  '/renderer/generated/markdown-renderer.js',
+  '/node_modules/@xterm/addon-fit/lib/addon-fit.mjs',
+  '/node_modules/@xterm/xterm/css/xterm.css',
+  '/node_modules/@xterm/xterm/lib/xterm.mjs',
+  '/node_modules/node-pty/lib/index.js',
+  '/node_modules/node-pty/prebuilds/darwin-arm64/pty.node',
+  '/node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper',
+  '/node_modules/node-pty/prebuilds/darwin-x64/pty.node',
+  '/node_modules/node-pty/prebuilds/darwin-x64/spawn-helper',
   '/resources/desktop-projection.json',
   '/resources/protocol/context.js',
   '/shared/setup-compatibility.json',
@@ -65,6 +87,7 @@ export function stagedPackage(version) {
     private: true,
     type: 'module',
     main: 'main/index.js',
+    dependencies: RUNTIME_DEPENDENCIES,
   };
 }
 
@@ -85,7 +108,13 @@ export function electronPackagerOptions(options) {
     appBundleId: MACOS_PRODUCT.bundleIdentifier,
     appCategoryType: MACOS_PRODUCT.category,
     icon: options.iconPath,
-    asar: true,
+    asar: {
+      unpack: '**/node_modules/node-pty/prebuilds/**/*',
+    },
+    osxUniversal: {
+      mergeASARs: true,
+      singleArchFiles: 'node_modules/node-pty/prebuilds/darwin-*/**/*',
+    },
     overwrite: true,
     prune: false,
     osxSign: {

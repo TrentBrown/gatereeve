@@ -10,6 +10,7 @@ import {
 import { dirname, resolve } from 'node:path';
 
 import { composePackages } from './compose.js';
+import { writePluginCandidateIntegrity } from './plugin-candidate-integrity.js';
 import { prepareLocalMarketplace } from './smoke.js';
 
 export function parseReleaseTag(sourceTag) {
@@ -126,6 +127,7 @@ export async function prepareRelease({
   sourceTag,
   sourceCommit,
   ubuntuRcEvidencePath = null,
+  integrityManifestPath = null,
 }) {
   const version = parseReleaseTag(sourceTag).version;
   if (!sourceCommit?.trim()) {
@@ -182,6 +184,20 @@ export async function prepareRelease({
       )}\n`
     );
     await rename(releaseRoot, output);
+    let integrity = null;
+    try {
+      integrity = integrityManifestPath
+        ? await writePluginCandidateIntegrity({
+            pluginRoot: output,
+            integrityPath: integrityManifestPath,
+            sourceTag,
+            sourceCommit,
+          })
+        : null;
+    } catch (error) {
+      await rm(output, { recursive: true, force: true });
+      throw error;
+    }
     return {
       schemaVersion: 1,
       outputRoot: output,
@@ -193,6 +209,9 @@ export async function prepareRelease({
       fileCounts: Object.fromEntries(
         build.packages.map((item) => [item.platform, item.fileCount])
       ),
+      integrity: integrity
+        ? { path: integrity.path, bytes: integrity.bytes, sha256: integrity.sha256 }
+        : null,
     };
   } finally {
     await rm(stagingParent, { recursive: true, force: true });

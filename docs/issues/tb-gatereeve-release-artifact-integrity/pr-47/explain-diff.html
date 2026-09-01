@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR #47 — Linked Cask provenance correction</title>
+<style>
+:root{color-scheme:light dark;--ink:#172033;--paper:#f7f8fb;--card:#fff;--accent:#3157d5;--ok:#16794b;--line:#d9deea}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.58 system-ui,sans-serif}main{max-width:980px;margin:auto;padding:32px 20px 72px}h1{font-size:clamp(2rem,5vw,3.4rem);line-height:1.05}h2{margin-top:48px;border-bottom:1px solid var(--line);padding-bottom:8px}h3{margin-top:28px}.card,.callout,.flow,.quiz{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:18px 0;box-shadow:0 5px 22px #1720330b}.callout{border-left:6px solid var(--accent)}nav a{display:inline-block;margin:0 16px 8px 0;color:var(--accent)}code{background:#3157d515;padding:.1em .35em;border-radius:5px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#eef2ff;border-radius:10px;padding:16px}.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center}.node{border:2px solid var(--line);border-radius:12px;padding:16px}.arrow{color:var(--accent);font-weight:700}.good{color:var(--ok);font-weight:700}.quiz button{display:block;width:100%;text-align:left;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:inherit;cursor:pointer}.result{min-height:1.5em;font-weight:600}@media(max-width:680px){.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}}@media(prefers-color-scheme:dark){:root{--ink:#edf1ff;--paper:#111522;--card:#191f30;--line:#343d55;--accent:#9ab0ff;--ok:#72d6a5}}
+</style>
+</head>
+<body><main>
+<p>GateReeve release engineering · PR #47</p>
+<h1>Trust the run for execution; trust the packet for release identity</h1>
+<p>This explanation covers exactly <code>9a00ec8..e263097</code>. The change repairs linked Homebrew Cask finalization after a valid recovery publication ran from a newer <code>main</code> commit than the immutable notarized release source.</p>
+<nav><a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#quiz">Quiz</a></nav>
+
+<h2 id="background">Background</h2>
+<p>A GateReeve release deliberately separates authority. Preparation creates and notarizes immutable bytes. Finalization seals a publication plan. Primary publication creates the tag, GitHub prerelease, marketplace update, and update metadata. Only after the public DMG has been installed and launched does a separately approved workflow publish the Homebrew Cask.</p>
+<div class="flow"><div class="node"><strong>Workflow run</strong><br>Which reviewed automation executed?</div><div class="node arrow">+</div><div class="node"><strong>Sealed packet</strong><br>Which source, tag, DMG, and plan are authoritative?</div></div>
+<p>RC.6 exposed a legitimate divergence. Its notarized source was <code>10a7264</code>, while a bounded recovery publication was dispatched from a later <code>main</code> head, <code>cf9bbf7</code>. The old Cask check required those SHAs to be equal. That condition confused the code used to execute a recovery with the older bytes the recovery was authorized to publish.</p>
+<div class="callout"><strong>Invariant:</strong> a newer reviewed <code>main</code> may publish an older sealed source, but an arbitrary branch may not produce release authority, and the downloaded packet must still name the exact requested source and tag.</div>
+
+<h2 id="intuition">Intuition</h2>
+<p>Think of a bank transfer. The bank software version that processes the transfer and the account statement identifying the transfer are different evidence. We require the software to be an approved production version; we require the statement to identify the exact transaction. Requiring the software revision to equal the transaction’s creation revision is unnecessary and breaks legitimate recovery.</p>
+<div class="card"><h3>Toy example</h3><pre>immutable release source: A
+reviewed main later:      A—B—C
+workflow dispatch head:      C
+sealed packet:           { source: A, tag: rc.8 }
+
+Accept when:
+  producer branch == main
+  A is an ancestor of C
+  packet.source == A
+  packet.tag == rc.8</pre></div>
+<p>The ancestry check permits reviewed fixes <em>after</em> the release source while preventing unrelated histories. The packet comparison prevents a successful run from being reused for a different release.</p>
+
+<h2 id="code">Code walkthrough</h2>
+<h3>1. Finalization verifies two independent identities</h3>
+<p><code>homebrew-cask-finalize.yml</code> now requires the upstream primary publication to be a successful dispatch of the expected workflow from <code>main</code>. It extracts that run’s head and proves the requested immutable source is its ancestor. After downloading the retained result, it independently checks the record’s source commit and tag before sealing a Cask plan.</p>
+<pre>run.head_branch === "main"
+git merge-base --is-ancestor "$SOURCE_COMMIT" "$primary_run_head"
+record.source.commit === SOURCE_COMMIT
+record.source.tag === TAG</pre>
+
+<h3>2. Rehearsal and publication apply the same rule</h3>
+<p>Both jobs in <code>homebrew-cask-publish.yml</code> use the same layered check for the Cask-finalization producer and its downloaded packet. The read-only rehearsal remains unable to mutate distribution. The protected publication job still requires its separate plan digest, approver, environment, and publication token.</p>
+
+<h3>3. Contract tests prevent regression</h3>
+<p><code>coordinated-workflow.test.js</code> asserts that all three paths reject the obsolete head-equality rule, require <code>main</code>, require ancestry, and compare packet source/tag inputs. This makes the distinction visible in review and resistant to accidental simplification.</p>
+
+<h3>4. Workflow records explain the operational discovery</h3>
+<p>The cumulative feature record captures the successful direct RC.6 installation, the failed preflight assumption, the corrective slice, and the permanent decision. No Cask publication occurs in this PR.</p>
+<div class="callout"><strong>Residual boundary:</strong> GitHub metadata establishes reviewed producer provenance; the current checked-out CLI validates the packet. Neither check replaces the protected publication approval.</div>
+
+<h2 id="quiz">Quiz</h2>
+<div class="quiz" data-answer="2"><h3>1. Why was exact run-head/source equality removed?</h3><button>A. Tags no longer contain source SHAs.</button><button>B. Homebrew cannot read GitHub metadata.</button><button>C. A valid recovery may execute from newer main while publishing older sealed bytes.</button><div class="result"></div></div>
+<div class="quiz" data-answer="1"><h3>2. What prevents an arbitrary feature-branch workflow from becoming a producer?</h3><button>A. The run must report head_branch main and the source must be ancestral.</button><button>B. The tag string includes rc.</button><button>C. The artifact has a DMG extension.</button><div class="result"></div></div>
+<div class="quiz" data-answer="3"><h3>3. Which evidence binds the exact release tag and source?</h3><button>A. Only the workflow filename.</button><button>B. Only the dispatch head.</button><button>C. The validated downloaded packet compared with protected inputs.</button><div class="result"></div></div>
+<div class="quiz" data-answer="2"><h3>4. Does this PR publish a Cask?</h3><button>A. Yes, because it changes the publish workflow.</button><button>B. No; it changes validation and tests, while publication remains separately protected.</button><button>C. Yes, but only on Intel.</button><div class="result"></div></div>
+<div class="quiz" data-answer="1"><h3>5. Why keep both ancestry and packet checks?</h3><button>A. Ancestry proves reviewed producer lineage; packet checks prove exact release identity.</button><button>B. They are redundant but improve test coverage.</button><button>C. One verifies ARM and the other Intel.</button><div class="result"></div></div>
+</main><script>
+document.querySelectorAll('.quiz').forEach(q=>q.querySelectorAll('button').forEach((b,i)=>b.addEventListener('click',()=>{const ok=String(i+1)===q.dataset.answer;q.querySelector('.result').textContent=ok?'Correct — the two evidence layers have distinct jobs.':'Not quite. Revisit the distinction between producer provenance and sealed release identity.';q.querySelector('.result').className='result '+(ok?'good':'')})));
+</script></body></html>

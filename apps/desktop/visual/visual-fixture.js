@@ -56,9 +56,11 @@ const attempt = {
 };
 
 const artifacts = [
+  ['interview', 'Design interview', 'interview.md', 'markdown', 'present'],
   ['design', 'Approved design', 'design.md', 'markdown', 'present'],
   ['spec', 'Validated specification', 'spec.md', 'markdown', 'present'],
   ['plan', 'Authorized implementation plan', 'plan.md', 'markdown', 'present'],
+  ['issues', 'Operational issues', 'issues.md', 'markdown', 'present'],
   ['tracker', 'Rubric tracker', 'tracker.md', 'markdown', 'changed'],
   ['decisions', 'Permanent decisions', 'decisions.md', 'markdown', 'present'],
   ['completion-report', 'Completion report', 'completion-report.md', 'markdown', 'present'],
@@ -220,6 +222,7 @@ const state = {
     notificationsEnabled: false,
     projectPaths: ['/home/trent/code/tb/gatereeve-desktop'],
     selectedAgents: ['codex'],
+    terminalHeight: 260,
   },
 };
 
@@ -259,14 +262,42 @@ const updateState = {
   detail: null,
 };
 
+const fixtureActions = [];
+let fixturePreferredEditorId = 'vscode';
+let fixtureFailureArmed = false;
+
+function simulateFixtureAction(action, detail) {
+  const event = Object.freeze({
+    action,
+    detail,
+    recordedAt: new Date().toISOString(),
+  });
+  fixtureActions.push(event);
+  window.dispatchEvent(new CustomEvent('gatereeve:fixture-action', { detail: event }));
+  if (fixtureFailureArmed) {
+    fixtureFailureArmed = false;
+    throw new Error(`Simulated fixture failure: ${action}`);
+  }
+  return true;
+}
+
+window.gatereeveFixture = Object.freeze({
+  actions: () => [...fixtureActions],
+  armFailure() { fixtureFailureArmed = true; },
+  clear() {
+    fixtureActions.length = 0;
+    window.dispatchEvent(new CustomEvent('gatereeve:fixture-actions-cleared'));
+  },
+});
+
 window.gatereeveDesktop = Object.freeze({
   async getState() { return state; },
   subscribe() { return () => {}; },
   async getUpdateState() { return updateState; },
   subscribeUpdates() { return () => {}; },
   async checkForUpdates() { return updateState; },
-  async openUpdateRelease() { return true; },
-  async openExternalLink() { return true; },
+  async openUpdateRelease() { return simulateFixtureAction('Open update release', 'Official GitHub release'); },
+  async openExternalLink(url) { return simulateFixtureAction('Open external link', url); },
   async addProject() { return state; },
   async activateProject(path) {
     const project = state.projects.find((item) => item.path === path);
@@ -303,9 +334,41 @@ window.gatereeveDesktop = Object.freeze({
     state.preferences.notificationsEnabled = enabled;
     return state;
   },
-  async copyText() { return true; },
-  async openArtifact() { return true; },
-  async revealArtifact() { return true; },
+  async copyText(value) { return simulateFixtureAction('Copy text', `${String(value).length} characters`); },
+  async getArtifactActions() {
+    return {
+      schemaVersion: 1,
+      editors: [
+        { id: 'vscode', label: 'VS Code' },
+        { id: 'cursor', label: 'Cursor' },
+        { id: 'zed', label: 'Zed' },
+        { id: 'sublime-text', label: 'Sublime Text' },
+      ],
+      preferredEditorId: fixturePreferredEditorId,
+      githubAvailable: true,
+    };
+  },
+  async openArtifact(artifactId, editorId = null, remember = false) {
+    const selected = editorId === null ? fixturePreferredEditorId ?? 'default' : editorId;
+    const completed = simulateFixtureAction('Open artifact', `${artifactId} with ${selected}`);
+    if (remember) fixturePreferredEditorId = selected === 'default' ? null : selected;
+    return completed;
+  },
+  async chooseArtifactApplication(artifactId) {
+    return simulateFixtureAction('Choose Application…', `${artifactId} with a one-time app`);
+  },
+  async saveArtifactAs(artifactId) {
+    return simulateFixtureAction('Save As…', `${artifactId} to a selected path`);
+  },
+  async saveArtifactDownloads(artifactId) {
+    return simulateFixtureAction('Save to Downloads', `${artifactId} to ~/Downloads`);
+  },
+  async openArtifactGithub(artifactId) {
+    return simulateFixtureAction('Open on GitHub', `${artifactId} at a commit-pinned URL`);
+  },
+  async revealArtifact(artifactId) {
+    return simulateFixtureAction('Show in Finder', artifactId);
+  },
   async listSession() {
     return { schemaVersion: 1, items: [{
       id: 'session:latest-checkpoint:Q0hFQ0tQT0lOVC5tZA',
@@ -315,7 +378,12 @@ window.gatereeveDesktop = Object.freeze({
   },
   async readSession(id) {
     const item = (await this.listSession()).items[0];
-    return { schemaVersion: 1, id, item, content: '# Current position\n\nThe workflow experience slice is implementing.' };
+    return {
+      schemaVersion: 1,
+      id,
+      item,
+      content: '# Current position\n\n- [x] Renderer bundle ready\n- [ ] Human review\n\nSession links such as [external context](https://example.com) remain inert.',
+    };
   },
   async readDetail(kind, id) {
     if (kind === 'model') return model;
@@ -326,9 +394,12 @@ window.gatereeveDesktop = Object.freeze({
       kind,
       data: {
         artifact,
-        content: '# GateReeve artifact\n\n**Feature start:** safe and *current*. '
+        content: '# GateReeve artifact\n\n**Feature start:** safe, *current*, and ~~ad hoc~~ complete. '
           + '[Read the spec](spec.md) or [jump to details](#details).\n\n'
-          + '## Details\n\nThis is a representative visual fixture.',
+          + '## Details\n\n- [x] CommonMark\n- [x] GitHub-flavored extensions\n\n'
+          + '| Surface | Status |\n| :--- | ---: |\n| Artifacts | Ready |\n| Session | Ready |\n\n'
+          + 'A footnote stays navigable.[^1]\n\n[^1]: Rendered with a safe semantic DOM.\n\n'
+          + '```mermaid\ngraph TD; Source-->Code\n```',
         structured: artifact?.format === 'json' ? { attemptId: attempt.id, pullRequest: 29 } : null,
       },
     };

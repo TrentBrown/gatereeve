@@ -7,10 +7,15 @@ const channels = Object.freeze({
   addProject: 'gatereeve:desktop:add-project',
   copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
+  getArtifactActions: 'gatereeve:desktop:get-artifact-actions',
   getUpdateState: 'gatereeve:desktop:get-update-state',
   listSession: 'gatereeve:desktop:list-session',
   layoutCommand: 'gatereeve:desktop:layout-command',
   openArtifact: 'gatereeve:desktop:open-artifact',
+  chooseArtifactApplication: 'gatereeve:desktop:choose-artifact-application',
+  saveArtifactAs: 'gatereeve:desktop:save-artifact-as',
+  saveArtifactDownloads: 'gatereeve:desktop:save-artifact-downloads',
+  openArtifactGithub: 'gatereeve:desktop:open-artifact-github',
   openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
   activateProject: 'gatereeve:desktop:activate-project',
@@ -23,7 +28,14 @@ const channels = Object.freeze({
   revealArtifact: 'gatereeve:desktop:reveal-artifact',
   setNotificationsEnabled: 'gatereeve:desktop:set-notifications-enabled',
   setSelectedAgents: 'gatereeve:desktop:set-selected-agents',
+  setTerminalHeight: 'gatereeve:desktop:set-terminal-height',
   stateChanged: 'gatereeve:desktop:state-changed',
+  terminalChanged: 'gatereeve:desktop:terminal-changed',
+  terminalEnsure: 'gatereeve:desktop:terminal-ensure',
+  terminalResize: 'gatereeve:desktop:terminal-resize',
+  terminalRestart: 'gatereeve:desktop:terminal-restart',
+  terminalTerminate: 'gatereeve:desktop:terminal-terminate',
+  terminalWrite: 'gatereeve:desktop:terminal-write',
   updateChanged: 'gatereeve:desktop:update-changed',
 });
 
@@ -38,6 +50,9 @@ function requireState(value) {
     || typeof value.preferences !== 'object'
     || !Array.isArray(value.preferences.projectPaths)
     || typeof value.preferences.notificationsEnabled !== 'boolean'
+    || !Number.isInteger(value.preferences.terminalHeight)
+    || value.preferences.terminalHeight < 140
+    || value.preferences.terminalHeight > 720
     || !Array.isArray(value.preferences.selectedAgents)
     || value.preferences.selectedAgents.some((id) => !['codex', 'claude'].includes(id))
     || !Array.isArray(value.projects)
@@ -119,6 +134,38 @@ function requireArtifactId(artifactId) {
     throw new TypeError('Artifact ID is invalid.');
   }
   return artifactId;
+}
+
+function requireEditorId(editorId) {
+  if (
+    editorId !== null
+    && (typeof editorId !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/.test(editorId))
+  ) {
+    throw new TypeError('Editor ID is invalid.');
+  }
+  return editorId;
+}
+
+function requireArtifactActions(value) {
+  if (
+    typeof value !== 'object'
+    || value === null
+    || value.schemaVersion !== 1
+    || !Array.isArray(value.editors)
+    || value.editors.some((editor) => (
+      typeof editor !== 'object'
+      || editor === null
+      || typeof editor.id !== 'string'
+      || !/^[a-z][a-z0-9-]{0,63}$/.test(editor.id)
+      || typeof editor.label !== 'string'
+    ))
+    || (value.preferredEditorId !== null
+      && !value.editors.some((editor) => editor.id === value.preferredEditorId))
+    || typeof value.githubAvailable !== 'boolean'
+  ) {
+    throw new Error('The main process returned invalid artifact actions.');
+  }
+  return value;
 }
 
 function requireClipboardText(value) {
@@ -210,15 +257,140 @@ function requireDetail(kind, id) {
   return { kind, id };
 }
 
+function exactObject(value, keys) {
+  return typeof value === 'object'
+    && value !== null
+    && !Array.isArray(value)
+    && Object.keys(value).sort().join(',') === [...keys].sort().join(',');
+}
+
+function requireTerminalId(value) {
+  if (typeof value !== 'string' || !/^terminal_[A-Za-z0-9_-]{1,128}$/u.test(value)) {
+    throw new TypeError('Terminal session ID is invalid.');
+  }
+  return value;
+}
+
+function requireTerminalDimensions(cols, rows) {
+  if (
+    !Number.isInteger(cols)
+    || !Number.isInteger(rows)
+    || cols < 2
+    || cols > 500
+    || rows < 1
+    || rows > 300
+  ) {
+    throw new TypeError('Terminal dimensions are invalid.');
+  }
+  return { cols, rows };
+}
+
+function requireTerminalSession(value) {
+  const exit = value?.exit;
+  if (
+    !exactObject(value, [
+      'cols', 'error', 'exit', 'id', 'output', 'projectName', 'rows',
+      'schemaVersion', 'shell', 'status',
+    ])
+    || value.schemaVersion !== 1
+    || requireTerminalId(value.id) !== value.id
+    || typeof value.projectName !== 'string'
+    || value.projectName.length === 0
+    || value.projectName.length > 512
+    || typeof value.shell !== 'string'
+    || value.shell.length === 0
+    || value.shell.length > 512
+    || !['running', 'terminating', 'exited', 'failed'].includes(value.status)
+    || typeof value.output !== 'string'
+    || value.output.length > 1_000_000
+    || (value.error !== null && typeof value.error !== 'string')
+    || (exit !== null && (
+      !exactObject(exit, ['code', 'signal'])
+      || (exit.code !== null && !Number.isInteger(exit.code))
+      || (exit.signal !== null && !Number.isInteger(exit.signal))
+    ))
+  ) {
+    throw new Error('The main process returned an invalid terminal session.');
+  }
+  requireTerminalDimensions(value.cols, value.rows);
+  if ((value.status === 'failed') !== (value.error !== null)) {
+    throw new Error('The main process returned an invalid terminal failure state.');
+  }
+  if ((value.status === 'exited') !== (exit !== null)) {
+    throw new Error('The main process returned an invalid terminal exit state.');
+  }
+  return value;
+}
+
+function requireTerminalEvent(value) {
+  if (
+    typeof value !== 'object'
+    || value === null
+    || Array.isArray(value)
+    || value.schemaVersion !== 1
+    || typeof value.type !== 'string'
+  ) {
+    throw new Error('The main process returned an invalid terminal event.');
+  }
+  if (
+    value.type === 'data'
+    && exactObject(value, ['data', 'schemaVersion', 'sessionId', 'type'])
+    && typeof value.data === 'string'
+    && value.data.length <= 1_000_000
+  ) {
+    requireTerminalId(value.sessionId);
+    return value;
+  }
+  if (
+    ['exited', 'terminating'].includes(value.type)
+    && exactObject(value, ['schemaVersion', 'session', 'type'])
+  ) {
+    requireTerminalSession(value.session);
+    if (value.type === value.session.status) return value;
+  }
+  throw new Error('The main process returned an invalid terminal event.');
+}
+
+function terminalResizeRequest(sessionId, cols, rows) {
+  return { sessionId: requireTerminalId(sessionId), ...requireTerminalDimensions(cols, rows) };
+}
+
 contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
   checkForUpdates: async () => requireUpdateState(await ipcRenderer.invoke(channels.checkForUpdates)),
   addProject: async () => requireState(await ipcRenderer.invoke(channels.addProject)),
   copyText: async (value) => ipcRenderer.invoke(channels.copyText, requireClipboardText(value)),
   getState: async () => requireState(await ipcRenderer.invoke(channels.getState)),
+  getArtifactActions: async (artifactId) => requireArtifactActions(await ipcRenderer.invoke(
+    channels.getArtifactActions,
+    { artifactId: requireArtifactId(artifactId) },
+  )),
   getUpdateState: async () => requireUpdateState(await ipcRenderer.invoke(channels.getUpdateState)),
   listSession: async () => requireSessionInventory(await ipcRenderer.invoke(channels.listSession)),
-  openArtifact: async (artifactId) => ipcRenderer.invoke(
-    channels.openArtifact,
+  openArtifact: async (artifactId, editorId = null, remember = false) => {
+    if (typeof remember !== 'boolean') throw new TypeError('Remember editor must be boolean.');
+    return ipcRenderer.invoke(
+      channels.openArtifact,
+      {
+        artifactId: requireArtifactId(artifactId),
+        editorId: requireEditorId(editorId),
+        remember,
+      },
+    );
+  },
+  chooseArtifactApplication: async (artifactId) => ipcRenderer.invoke(
+    channels.chooseArtifactApplication,
+    { artifactId: requireArtifactId(artifactId) },
+  ),
+  saveArtifactAs: async (artifactId) => ipcRenderer.invoke(
+    channels.saveArtifactAs,
+    { artifactId: requireArtifactId(artifactId) },
+  ),
+  saveArtifactDownloads: async (artifactId) => ipcRenderer.invoke(
+    channels.saveArtifactDownloads,
+    { artifactId: requireArtifactId(artifactId) },
+  ),
+  openArtifactGithub: async (artifactId) => ipcRenderer.invoke(
+    channels.openArtifactGithub,
     { artifactId: requireArtifactId(artifactId) },
   ),
   openExternalLink: async (url) => ipcRenderer.invoke(
@@ -256,6 +428,37 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     channels.setSelectedAgents,
     requireSelectedAgents(selectedAgents),
   )),
+  setTerminalHeight: async (height) => {
+    if (!Number.isInteger(height) || height < 140 || height > 720) {
+      throw new TypeError('Terminal panel height is invalid.');
+    }
+    return requireState(await ipcRenderer.invoke(channels.setTerminalHeight, height));
+  },
+  ensureTerminal: async (cols, rows) => requireTerminalSession(await ipcRenderer.invoke(
+    channels.terminalEnsure,
+    requireTerminalDimensions(cols, rows),
+  )),
+  writeTerminal: async (sessionId, data) => {
+    if (typeof data !== 'string' || data.length === 0 || data.length > 65_536) {
+      throw new TypeError('Terminal input is invalid.');
+    }
+    return ipcRenderer.invoke(channels.terminalWrite, {
+      sessionId: requireTerminalId(sessionId),
+      data,
+    });
+  },
+  resizeTerminal: async (sessionId, cols, rows) => requireTerminalSession(await ipcRenderer.invoke(
+    channels.terminalResize,
+    terminalResizeRequest(sessionId, cols, rows),
+  )),
+  terminateTerminal: async (sessionId) => requireTerminalSession(await ipcRenderer.invoke(
+    channels.terminalTerminate,
+    { sessionId: requireTerminalId(sessionId) },
+  )),
+  restartTerminal: async (sessionId, cols, rows) => requireTerminalSession(await ipcRenderer.invoke(
+    channels.terminalRestart,
+    terminalResizeRequest(sessionId, cols, rows),
+  )),
   revealArtifact: async (artifactId) => ipcRenderer.invoke(
     channels.revealArtifact,
     { artifactId: requireArtifactId(artifactId) },
@@ -275,12 +478,18 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
   subscribeLayoutCommands(callback) {
     if (typeof callback !== 'function') throw new TypeError('Layout command subscriber must be a function.');
     const listener = (_event, command) => {
-      if (!['toggle-sidebar', 'toggle-inspector'].includes(command)) {
+      if (!['toggle-sidebar', 'toggle-terminal', 'toggle-inspector'].includes(command)) {
         throw new Error('The main process sent an invalid layout command.');
       }
       callback(command);
     };
     ipcRenderer.on(channels.layoutCommand, listener);
     return () => ipcRenderer.removeListener(channels.layoutCommand, listener);
+  },
+  subscribeTerminals(callback) {
+    if (typeof callback !== 'function') throw new TypeError('Terminal subscriber must be a function.');
+    const listener = (_event, value) => callback(requireTerminalEvent(value));
+    ipcRenderer.on(channels.terminalChanged, listener);
+    return () => ipcRenderer.removeListener(channels.terminalChanged, listener);
   },
 }));

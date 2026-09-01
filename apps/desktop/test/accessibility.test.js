@@ -13,7 +13,8 @@ test('principal controls use keyboard-native elements with visible accessible na
   const { document } = parseHTML(html).window;
   const namedControls = [
     '#choose', '#refresh', '#notifications', '#attempt-select', '#copy-mermaid',
-    '#choose-empty', '#toggle-sidebar', '#toggle-inspector', '#activity',
+    '#choose-empty', '#toggle-sidebar', '#toggle-terminal', '#toggle-inspector', '#activity',
+    '#terminal-terminate', '#terminal-restart',
     '#open-setup', '#setup-open-worktree', '#setup-return', '#setup-recheck',
     '#candidate-diagnostic-choose-another', '#source-dialog-close',
     '#agent-codex', '#agent-claude', '#save-agents',
@@ -35,6 +36,11 @@ test('principal controls use keyboard-native elements with visible accessible na
   assert.match(document.querySelector('label[for="agent-codex"]').textContent, /Codex/);
   assert.equal(document.querySelector('#inspector-resizer').getAttribute('role'), 'separator');
   assert.equal(document.querySelector('#inspector-resizer').getAttribute('tabindex'), '0');
+  assert.equal(document.querySelector('#terminal-resizer').getAttribute('role'), 'separator');
+  assert.equal(document.querySelector('#terminal-resizer').getAttribute('aria-orientation'), 'horizontal');
+  assert.equal(document.querySelector('#terminal-resizer').getAttribute('tabindex'), '0');
+  const layoutControls = [...document.querySelectorAll('.layout-button')].map((item) => item.id);
+  assert.deepEqual(layoutControls, ['toggle-sidebar', 'toggle-terminal', 'toggle-inspector']);
 });
 
 test('status regions and principal views expose semantic text independent of color', async () => {
@@ -57,6 +63,9 @@ test('status regions and principal views expose semantic text independent of col
   assert.equal(document.querySelector('.project-sources'), null);
   assert.match(document.querySelector('#source-dialog-title').textContent, /Watching project sources/);
   assert.match(document.querySelector('#state-title').textContent, /Feature state rail/);
+  assert.equal(document.querySelector('#phase-context-surface').getAttribute('aria-labelledby'), 'phase-context-title');
+  assert.match(document.querySelector('#phase-context-uses-title').textContent, /Uses/);
+  assert.match(document.querySelector('#phase-context-produces-title').textContent, /Produces/);
 });
 
 test('styles preserve visible focus, docked regions, and reduced-motion behavior', async () => {
@@ -72,5 +81,24 @@ test('styles preserve visible focus, docked regions, and reduced-motion behavior
   assert.match(css, /\.order-marker\s*\{/);
   assert.match(css, /border:\s*2px solid #4e3c63/);
   assert.match(css, /\.workspace-main\s*\{\s*grid-column:\s*2/);
+  assert.match(css, /\.inspector-body\s*\{[^}]*min-height:\s*0/);
+  assert.match(css, /\.inspector-viewer\s*\{[^}]*overflow:\s*auto/);
   assert.match(css, /\.inspector-tabs\s*\{\s*display:\s*none/);
+  assert.match(css, /container:\s*phase-context\s*\/\s*inline-size/);
+  assert.match(css, /@container phase-context \(max-width:\s*720px\)/);
+  assert.match(css, /\.phase-context-source\s*\{[^}]*border-style:\s*dashed/);
+  assert.match(css, /#toggle-terminal::after/);
+  assert.match(css, /\.terminal-panel\s*\{[^}]*grid-column:\s*1 \/ -1/);
+});
+
+test('terminal panel exposes one session lifecycle without transcript-management controls', async () => {
+  const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
+  const { document } = parseHTML(html).window;
+  const panel = document.querySelector('#terminal-panel');
+  assert.equal(panel.hidden, true);
+  assert.equal(panel.getAttribute('aria-label'), 'Project terminal');
+  assert.equal(document.querySelectorAll('#terminal-hosts').length, 1);
+  assert.equal(document.querySelectorAll('#terminal-terminate').length, 1);
+  assert.equal(document.querySelectorAll('#terminal-restart').length, 1);
+  assert.doesNotMatch(panel.textContent, /save output|transcript|new terminal|split|profile/i);
 });

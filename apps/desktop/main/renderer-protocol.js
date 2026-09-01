@@ -7,6 +7,7 @@ const CONTENT_TYPES = Object.freeze({
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
 });
@@ -14,10 +15,16 @@ const CONTENT_TYPES = Object.freeze({
 export function registerRendererProtocol(
   protocol,
   rendererRoot,
-  { brandingAsset = null, readArtifact } = {},
+  { brandingAsset = null, terminalAssets = {}, readArtifact } = {},
 ) {
   const rootPromise = realpath(rendererRoot);
   const brandingPromise = brandingAsset === null ? null : realpath(brandingAsset);
+  const terminalAssetPromises = new Map(Object.entries(terminalAssets).map(([route, path]) => {
+    if (!/^vendor\/[A-Za-z0-9._-]+$/u.test(route) || typeof path !== 'string') {
+      throw new TypeError('Terminal renderer asset routes must be explicit vendor files.');
+    }
+    return [route, realpath(path)];
+  }));
   protocol.handle('gatereeve-app', async (request) => {
     const url = new URL(request.url);
     if (url.hostname !== 'desktop' || request.method !== 'GET') {
@@ -33,10 +40,14 @@ export function registerRendererProtocol(
       const root = await rootPromise;
       const brandingRoute = 'branding/gatereeve-rolling-vale.png';
       const servesBranding = relativePath === brandingRoute && brandingPromise !== null;
+      const terminalAsset = terminalAssetPromises.get(relativePath);
+      const servesTerminalAsset = terminalAsset !== undefined;
       const path = servesBranding
         ? await brandingPromise
-        : await realpath(resolve(root, relativePath));
-      if (!servesBranding && !path.startsWith(`${root}${sep}`)) {
+        : servesTerminalAsset
+          ? await terminalAsset
+          : await realpath(resolve(root, relativePath));
+      if (!servesBranding && !servesTerminalAsset && !path.startsWith(`${root}${sep}`)) {
         return new Response('Not found', { status: 404 });
       }
       const contentType = CONTENT_TYPES[extname(path)];
@@ -46,7 +57,7 @@ export function registerRendererProtocol(
         headers: {
           'content-type': contentType,
           'cache-control': 'no-store',
-          'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; frame-src gatereeve-artifact:; object-src 'none'; base-uri 'none'; form-action 'none'",
+          'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; style-src-elem 'self'; style-src-attr 'unsafe-inline'; img-src 'self'; connect-src 'none'; frame-src gatereeve-artifact:; object-src 'none'; base-uri 'none'; form-action 'none'",
         },
       });
     } catch {

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "scope": "feature-final",
+  "featureId": "tb-desktop-markdown-rendering",
+  "repositoryAlias": "product",
+  "packetId": "pr-42",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 42,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/42",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "1d10d6da7b4acac054c31e65993a2f03bcbf0ee3",
+    "headRefName": "tb-desktop-markdown-rendering",
+    "headRefOid": "a981e3ed42a42cd2e2c173f041a732214b5151e4"
+  },
+  "mergeBaseSha": "1d10d6da7b4acac054c31e65993a2f03bcbf0ee3",
+  "evaluatedSourceSha": "a981e3ed42a42cd2e2c173f041a732214b5151e4",
+  "featureBaseSha": "1220138bf4248a72c1717955c4f62e3f1cda0599",
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": { "disposition": "passed", "reason": null },
+    "specEvaluation": { "disposition": "passed", "reason": null },
+    "judge": { "disposition": "passed", "reason": null },
+    "codeReview": { "disposition": "passed", "reason": null },
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No .pattern-review scope is configured; the maintainer directed that it remain uninitialized for this PR"
+    },
+    "explainDiff": { "disposition": "passed", "reason": null }
+  }
+}

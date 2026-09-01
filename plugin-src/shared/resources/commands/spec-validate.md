@@ -7,6 +7,10 @@ Use before planning from a spec.
    judgment-based review below. Fix mechanical findings first.
 3. Confirm acceptance criteria exist and are observable, unambiguous, and
    independently verifiable.
+   Confirm each required evidence type can exist at the lifecycle boundary
+   where the criterion is evaluated. Reject a pre-merge criterion that
+   requires a protected post-merge artifact or credentialed deployment;
+   require separate feature and release/deployment acceptance gates instead.
 4. Confirm the rubric exists and every criterion has binary pass/fail/evidence
    fields.
 5. Check cross-layer consistency:
