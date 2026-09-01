@@ -132,9 +132,12 @@ feature work.
 - Pull request: [#47](https://github.com/TrentBrown/gatereeve/pull/47)
 - Evidence packet: [pr-47](pr-47/boundary.json)
 - Scope: slice / P6 / R6, R8
-- Status: in review. The pinned source diff removes invalid equality between a
+- Status: merged. The pinned source diff removes invalid equality between a
   moving workflow-dispatch head and the immutable release source, constrains
   producer workflows to reviewed `main`, proves source ancestry, and verifies
   exact source commit/tag identity from the downloaded sealed packets. The
   direct Mac RC.6 proof is recorded; Cask publication remains nonmutating and
-  awaits this correction's reviewed merge.
+  awaits its fresh feature-final slice. Human review was accepted, and exact
+  topic head `54950a995577626ec690acc7697ccd502c990e12` is an ancestor of
+  `origin/main` merge `1c19304e67f34f12930b1c51c5e06621c05c6734`. No
+  `development` or `development-*` branch participated.
