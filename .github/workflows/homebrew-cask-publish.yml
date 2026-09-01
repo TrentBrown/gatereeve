@@ -76,10 +76,13 @@ jobs:
             const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
             if (run.event !== "workflow_dispatch"
               || run.conclusion !== "success"
+              || run.head_branch !== "main"
               || !/homebrew-cask-finalize\.yml$/u.test(run.path)) {
               throw new Error("Cask packet is not from the exact approved finalization workflow");
             }
           ' "$RUNNER_TEMP/cask-finalization-run.json"
+          cask_finalization_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$RUNNER_TEMP/cask-finalization-run.json")"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$cask_finalization_head"
       - uses: actions/download-artifact@v4
         with:
           name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask
@@ -148,10 +151,13 @@ jobs:
             const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
             if (run.event !== "workflow_dispatch"
               || run.conclusion !== "success"
+              || run.head_branch !== "main"
               || !/homebrew-cask-finalize\.yml$/u.test(run.path)) {
               throw new Error("Cask packet is not from the exact approved finalization workflow");
             }
           ' "$RUNNER_TEMP/cask-finalization-run.json"
+          cask_finalization_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$RUNNER_TEMP/cask-finalization-run.json")"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" "$cask_finalization_head"
       - uses: actions/download-artifact@v4
         with:
           name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask

@@ -164,6 +164,8 @@ test('linked Cask finalization and publication preserve a separate approval boun
   assert.match(finalization, /coordinated-release-publish\\\.yml/);
   assert.match(finalization, /run\.conclusion !== "success"/);
   assert.doesNotMatch(finalization, /run\.head_sha !== process\.env\.SOURCE_COMMIT/);
+  assert.match(finalization, /run\.head_branch !== "main"/);
+  assert.match(finalization, /git merge-base --is-ancestor "\$SOURCE_COMMIT" "\$primary_run_head"/);
   assert.match(finalization, /record\.source\?\.commit !== process\.env\.SOURCE_COMMIT/);
   assert.match(finalization, /record\.source\?\.tag !== process\.env\.TAG/);
   assert.match(finalization, /prepare-cask-hosted/);
@@ -184,6 +186,8 @@ test('linked Cask finalization and publication preserve a separate approval boun
   assert.match(rehearsal, /--dry-run/);
   assert.match(rehearsal, /run\.conclusion !== "success"/);
   assert.doesNotMatch(rehearsal, /run\.head_sha !== process\.env\.SOURCE_COMMIT/);
+  assert.match(rehearsal, /run\.head_branch !== "main"/);
+  assert.match(rehearsal, /git merge-base --is-ancestor "\$SOURCE_COMMIT" "\$cask_finalization_head"/);
   assert.match(rehearsal, /record\.source\?\.commit !== process\.env\.SOURCE_COMMIT/);
   assert.match(rehearsal, /record\.source\?\.tag !== process\.env\.TAG/);
   assert.doesNotMatch(rehearsal, /secrets\.|contents: write|pull-requests: write|--confirm/);
@@ -194,6 +198,8 @@ test('linked Cask finalization and publication preserve a separate approval boun
   assert.match(publication, /--confirm/);
   assert.match(publication, /run\.conclusion !== "success"/);
   assert.doesNotMatch(publication, /run\.head_sha !== process\.env\.SOURCE_COMMIT/);
+  assert.match(publication, /run\.head_branch !== "main"/);
+  assert.match(publication, /git merge-base --is-ancestor "\$SOURCE_COMMIT" "\$cask_finalization_head"/);
   assert.match(publication, /record\.source\?\.commit !== process\.env\.SOURCE_COMMIT/);
   assert.match(publication, /record\.source\?\.tag !== process\.env\.TAG/);
   assert.doesNotMatch(publication, /GATEREEVE_DEVELOPER_ID|NOTARY|codesign|notarytool|package-macos/);

@@ -58,15 +58,23 @@ Manually create the manifest PR — rejected because it would break deterministi
 
 ## [4] Bind linked Cask authority to packet identity, not dispatch branch head
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
 **Blast Radius:** Linked Cask finalization and protected dry-run/publication workflows
 
-Treat GitHub workflow-run metadata as proof of successful execution by the required workflow, but treat the downloaded, fully validated primary or Cask packet as the authority for source tag, source commit, trusted DMG, and plan identity. Remove the invalid equality between a moving workflow-dispatch branch head and the immutable release source; after artifact download, explicitly compare the packet source tag and commit with the protected workflow inputs before sealing, rehearsing, or publishing.
+Treat GitHub workflow-run metadata as proof of successful execution by the
+required workflow from reviewed `main`, while treating the downloaded, fully
+validated primary or Cask packet as the authority for source tag, source
+commit, trusted DMG, and plan identity. Replace the invalid equality between a
+moving workflow-dispatch branch head and the immutable release source with two
+checks: the producer ran from `main`, and the immutable release source is an
+ancestor of that producer head. After artifact download, explicitly compare
+the packet source tag and commit with the protected workflow inputs before
+sealing, rehearsing, or publishing.
 
 **Triggered by:** Direct-install acceptance exposed that successful primary publication run 33458101816 has GitHub head_sha cf9bbf7 while its immutable sealed release source is ancestor 10a7264
 
 **Alternatives considered:**
-Pass cf9bbf7 as the source input — rejected because it would misstate the notarized RC.6 source; replay primary publication from a ref whose head is 10a7264 — rejected as needless mutation/recovery work against already complete receipts; drop source binding entirely — rejected because run provenance alone does not bind the packet to RC.6.
+Pass cf9bbf7 as the source input — rejected because it would misstate the notarized RC.6 source; replay primary publication from a ref whose head is 10a7264 — rejected as needless mutation/recovery work against already complete receipts; trust packet fields without constraining the producer branch — rejected because an arbitrary-branch workflow could otherwise claim release authority; drop source binding entirely — rejected because run provenance alone does not bind the packet to RC.6.
