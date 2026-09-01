@@ -28,7 +28,14 @@ export const IPC_CHANNELS = Object.freeze({
   revealArtifact: 'gatereeve:desktop:reveal-artifact',
   setNotificationsEnabled: 'gatereeve:desktop:set-notifications-enabled',
   setSelectedAgents: 'gatereeve:desktop:set-selected-agents',
+  setTerminalHeight: 'gatereeve:desktop:set-terminal-height',
   stateChanged: 'gatereeve:desktop:state-changed',
+  terminalChanged: 'gatereeve:desktop:terminal-changed',
+  terminalEnsure: 'gatereeve:desktop:terminal-ensure',
+  terminalResize: 'gatereeve:desktop:terminal-resize',
+  terminalRestart: 'gatereeve:desktop:terminal-restart',
+  terminalTerminate: 'gatereeve:desktop:terminal-terminate',
+  terminalWrite: 'gatereeve:desktop:terminal-write',
   updateChanged: 'gatereeve:desktop:update-changed',
 });
 
@@ -214,10 +221,15 @@ export function requireDesktopState(value) {
     || !value.projects.every(validProject)
     || (value.candidateDiagnostic !== null && !validProjectDiagnostic(value.candidateDiagnostic))
     || !isObject(value.preferences)
-    || !exactKeys(value.preferences, ['notificationsEnabled', 'projectPaths', 'selectedAgents'])
+    || !exactKeys(value.preferences, [
+      'notificationsEnabled', 'projectPaths', 'selectedAgents', 'terminalHeight',
+    ])
     || !Array.isArray(value.preferences.projectPaths)
     || !value.preferences.projectPaths.every((path) => typeof path === 'string')
     || typeof value.preferences.notificationsEnabled !== 'boolean'
+    || !Number.isInteger(value.preferences.terminalHeight)
+    || value.preferences.terminalHeight < 140
+    || value.preferences.terminalHeight > 720
     || (() => {
       try { return requireSelectedAgents(value.preferences.selectedAgents).length !== value.preferences.selectedAgents.length; }
       catch { return true; }
@@ -277,6 +289,13 @@ export function requireUpdateState(value) {
 
 export function requireNotificationsEnabled(value) {
   if (typeof value !== 'boolean') throw new Error('Notification preference is invalid.');
+  return value;
+}
+
+export function requireTerminalHeight(value) {
+  if (!Number.isInteger(value) || value < 140 || value > 720) {
+    throw new Error('Terminal panel height is invalid.');
+  }
   return value;
 }
 
@@ -446,4 +465,124 @@ export function requireSessionDetail(value) {
     throw new Error('Session detail is invalid.');
   }
   return value;
+}
+
+const TERMINAL_STATUSES = new Set(['running', 'terminating', 'exited', 'failed']);
+
+export function requireTerminalId(value) {
+  if (typeof value !== 'string' || !/^terminal_[A-Za-z0-9_-]{1,128}$/u.test(value)) {
+    throw new Error('Terminal session ID is invalid.');
+  }
+  return value;
+}
+
+function validTerminalDimensions(cols, rows) {
+  return Number.isInteger(cols)
+    && Number.isInteger(rows)
+    && cols >= 2
+    && cols <= 500
+    && rows >= 1
+    && rows <= 300;
+}
+
+export function requireTerminalDimensionsRequest(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['cols', 'rows'])
+    || !validTerminalDimensions(value.cols, value.rows)
+  ) {
+    throw new Error('Terminal dimensions request is invalid.');
+  }
+  return { cols: value.cols, rows: value.rows };
+}
+
+export function requireTerminalSessionRequest(value) {
+  if (!isObject(value) || !exactKeys(value, ['sessionId'])) {
+    throw new Error('Terminal session request is invalid.');
+  }
+  return { sessionId: requireTerminalId(value.sessionId) };
+}
+
+export function requireTerminalInputRequest(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['data', 'sessionId'])
+    || typeof value.data !== 'string'
+    || value.data.length === 0
+    || value.data.length > 65_536
+  ) {
+    throw new Error('Terminal input request is invalid.');
+  }
+  return { sessionId: requireTerminalId(value.sessionId), data: value.data };
+}
+
+export function requireTerminalResizeRequest(value) {
+  if (!isObject(value) || !exactKeys(value, ['cols', 'rows', 'sessionId'])) {
+    throw new Error('Terminal resize request is invalid.');
+  }
+  const dimensions = requireTerminalDimensionsRequest({ cols: value.cols, rows: value.rows });
+  return { sessionId: requireTerminalId(value.sessionId), ...dimensions };
+}
+
+export function requireTerminalRestartRequest(value) {
+  return requireTerminalResizeRequest(value);
+}
+
+export function requireTerminalSession(value) {
+  const exit = value?.exit;
+  if (
+    !isObject(value)
+    || !exactKeys(value, [
+      'cols', 'error', 'exit', 'id', 'output', 'projectName', 'rows',
+      'schemaVersion', 'shell', 'status',
+    ])
+    || value.schemaVersion !== 1
+    || requireTerminalId(value.id) !== value.id
+    || typeof value.projectName !== 'string'
+    || value.projectName.length === 0
+    || value.projectName.length > 512
+    || typeof value.shell !== 'string'
+    || value.shell.length === 0
+    || value.shell.length > 512
+    || !TERMINAL_STATUSES.has(value.status)
+    || !validTerminalDimensions(value.cols, value.rows)
+    || typeof value.output !== 'string'
+    || value.output.length > 1_000_000
+    || (value.error !== null && typeof value.error !== 'string')
+    || (exit !== null && (
+      !isObject(exit)
+      || !exactKeys(exit, ['code', 'signal'])
+      || (exit.code !== null && !Number.isInteger(exit.code))
+      || (exit.signal !== null && !Number.isInteger(exit.signal))
+    ))
+    || (value.status === 'failed') !== (value.error !== null)
+    || (value.status === 'exited') !== (exit !== null)
+  ) {
+    throw new Error('Terminal session is invalid.');
+  }
+  return value;
+}
+
+export function requireTerminalEvent(value) {
+  if (!isObject(value) || value.schemaVersion !== 1 || typeof value.type !== 'string') {
+    throw new Error('Terminal event is invalid.');
+  }
+  if (
+    value.type === 'data'
+    && exactKeys(value, ['data', 'schemaVersion', 'sessionId', 'type'])
+    && requireTerminalId(value.sessionId) === value.sessionId
+    && typeof value.data === 'string'
+    && value.data.length <= 1_000_000
+  ) {
+    return value;
+  }
+  if (
+    ['exited', 'terminating'].includes(value.type)
+    && exactKeys(value, ['schemaVersion', 'session', 'type'])
+  ) {
+    requireTerminalSession(value.session);
+    if (value.type !== value.session.status) throw new Error('Terminal event state is inconsistent.');
+    return value;
+  }
+  throw new Error('Terminal event is invalid.');
 }

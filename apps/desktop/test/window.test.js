@@ -24,15 +24,16 @@ test('Electron window uses process isolation and denies embedded web content', (
 
 test('layout commands use the approved platform shortcuts', () => {
   assert.deepEqual(layoutAccelerators('darwin'), {
-    sidebar: 'CommandOrControl+B', inspector: 'Command+Alt+B',
+    sidebar: 'CommandOrControl+B', terminal: 'Command+J', inspector: 'Command+Alt+B',
   });
   assert.deepEqual(layoutAccelerators('linux'), {
-    sidebar: 'CommandOrControl+B', inspector: 'Control+Alt+B',
+    sidebar: 'CommandOrControl+B', terminal: 'Control+J', inspector: 'Control+Alt+B',
   });
   const view = applicationMenuTemplate({
-    platform: 'darwin', onToggleSidebar() {}, onToggleInspector() {},
+    platform: 'darwin', onToggleSidebar() {}, onToggleTerminal() {}, onToggleInspector() {},
   }).find((item) => item.label === 'View');
   assert.equal(view.submenu.find((item) => item.label === 'Toggle Project Sidebar').accelerator, 'CommandOrControl+B');
+  assert.equal(view.submenu.find((item) => item.label === 'Toggle Terminal').accelerator, 'Command+J');
   assert.equal(view.submenu.find((item) => item.label === 'Toggle Inspector').accelerator, 'Command+Alt+B');
 });
 

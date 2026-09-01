@@ -15,6 +15,7 @@ import {
   dmgFilename,
   electronPackagerOptions,
   MACOS_PRODUCT,
+  STAGED_RUNTIME_PACKAGES,
   stagedPackage,
   STAGED_DIRECTORIES,
 } from './macos-package-contract.mjs';
@@ -42,6 +43,12 @@ export async function stageDesktopSource(options) {
     );
   }
   await rm(resolve(options.stageRoot, 'renderer', 'markdown-source.js'));
+  for (const packageName of STAGED_RUNTIME_PACKAGES) {
+    const source = resolve(options.desktopRoot, 'node_modules', packageName);
+    const destination = resolve(options.stageRoot, 'node_modules', packageName);
+    await mkdir(dirname(destination), { recursive: true });
+    await cp(source, destination, { recursive: true, preserveTimestamps: true });
+  }
   const brandingRoot = resolve(options.stageRoot, 'assets', 'branding');
   await mkdir(brandingRoot, { recursive: true });
   await cp(

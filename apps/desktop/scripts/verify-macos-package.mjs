@@ -14,6 +14,8 @@ import {
   macosBundleVersion,
   MACOS_PRODUCT,
   REQUIRED_ASAR_PATHS,
+  RUNTIME_DEPENDENCIES,
+  STAGED_RUNTIME_PACKAGES,
 } from './macos-package-contract.mjs';
 import {
   appleTrustEvidenceSha256 as digestAppleTrustEvidence,
@@ -40,6 +42,35 @@ export async function detectRosettaTranslation(command = run) {
   } catch (error) {
     throw new Error('Unable to establish native process authority', { cause: error });
   }
+}
+
+export function requireMacosExecutionAuthority({
+  rosettaTranslated,
+  allowRosettaTranslated,
+  evidencePath,
+}) {
+  if (rosettaTranslated && !allowRosettaTranslated) {
+    throw new Error('Rosetta-translated execution is not authoritative native Intel evidence.');
+  }
+  if (allowRosettaTranslated && !rosettaTranslated) {
+    throw new Error('--allow-rosetta-translated is only valid inside an x86_64 Rosetta process.');
+  }
+  if (rosettaTranslated && evidencePath) {
+    throw new Error('Rosetta-translated verification cannot write authoritative native evidence.');
+  }
+  return rosettaTranslated ? 'rosetta-translated' : 'native';
+}
+
+export function isApprovedRuntimePackagePath(path) {
+  return STAGED_RUNTIME_PACKAGES.some((packageName) => {
+    const packagePath = `/node_modules/${packageName}`;
+    const scopePath = packageName.startsWith('@')
+      ? `/node_modules/${packageName.split('/')[0]}`
+      : null;
+    return path === packagePath
+      || path.startsWith(`${packagePath}/`)
+      || (scopePath !== null && path === scopePath);
+  });
 }
 
 /** @param {string} plistPath @param {string} key */
@@ -122,7 +153,15 @@ export async function verifyApplication(applicationPath, version, appleTrust) {
     assert.equal(asarEntries.has(path), true, `Packaged application is missing ${path}`);
   }
   for (const path of asarEntries) {
-    assert.doesNotMatch(path, /(?:^|\/)(?:node_modules|scripts|test|visual)(?:\/|$)/u);
+    if (path.startsWith('/node_modules/')) {
+      assert.equal(
+        isApprovedRuntimePackagePath(path),
+        true,
+        `Packaged application contains an unapproved runtime package path: ${path}`,
+      );
+    } else {
+      assert.doesNotMatch(path, /^\/(?:scripts|test|visual)(?:\/|$)/u);
+    }
     assert.doesNotMatch(path, /\.py$/u);
   }
   const packageMetadata = JSON.parse(extractFile(asarPath, 'package.json').toString('utf8'));
@@ -130,6 +169,7 @@ export async function verifyApplication(applicationPath, version, appleTrust) {
     extractFile(asarPath, 'shared/setup-compatibility.json').toString('utf8'),
   );
   assert.equal(packageMetadata.version, version);
+  assert.deepEqual(packageMetadata.dependencies, RUNTIME_DEPENDENCIES);
   assert.equal(compatibility.desktop.version, version);
   assert.equal(
     compatibility.testedPairs.some((pair) => (
@@ -140,13 +180,30 @@ export async function verifyApplication(applicationPath, version, appleTrust) {
     true,
     'Packaged Setup must recognize the coordinated Plugin/Desktop version',
   );
+  const unpacked = resolve(contents, 'Resources', 'app.asar.unpacked', 'node_modules', 'node-pty');
+  for (const [directory, architecture] of [
+    ['darwin-arm64', 'arm64'],
+    ['darwin-x64', 'x86_64'],
+  ]) {
+    const ptyPath = resolve(unpacked, 'prebuilds', directory, 'pty.node');
+    const helperPath = resolve(unpacked, 'prebuilds', directory, 'spawn-helper');
+    const ptyArchitectures = await run('/usr/bin/lipo', ['-archs', ptyPath]);
+    const helperArchitectures = await run('/usr/bin/lipo', ['-archs', helperPath]);
+    assert.match(ptyArchitectures.stdout, new RegExp(`(?:^|\\s)${architecture}(?:\\s|$)`, 'u'));
+    assert.match(helperArchitectures.stdout, new RegExp(`(?:^|\\s)${architecture}(?:\\s|$)`, 'u'));
+    assert.notEqual((await stat(helperPath)).mode & 0o111, 0, `${directory} spawn-helper is not executable`);
+  }
   return appleTrust
     ? coordinatedTrustFromEvidence(appleTrust)
     : { status: 'development-ad-hoc', evidence: [] };
 }
 
-/** @param {string} applicationPath @param {string} fixturePath */
-export async function smokeApplication(applicationPath, fixturePath) {
+/**
+ * @param {string} applicationPath
+ * @param {string} fixturePath
+ * @param {{rosettaTranslated?: boolean}} [options]
+ */
+export async function smokeApplication(applicationPath, fixturePath, options = {}) {
   const userData = await mkdtemp(join(tmpdir(), 'gatereeve-smoke-user-data-'));
   try {
     const executable = resolve(applicationPath, 'Contents', 'MacOS', MACOS_PRODUCT.name);
@@ -159,10 +216,15 @@ export async function smokeApplication(applicationPath, fixturePath) {
     };
     delete environment.ELECTRON_RUN_AS_NODE;
     delete environment.NODE_OPTIONS;
-    const child = spawn(executable, [], {
-      env: environment,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    const child = options.rosettaTranslated
+      ? spawn('/usr/bin/arch', ['-x86_64', executable], {
+        env: environment,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+      : spawn(executable, [], {
+        env: environment,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (chunk) => { stdout += chunk; });
@@ -193,7 +255,8 @@ export async function smokeApplication(applicationPath, fixturePath) {
 
 /**
  * @param {{dmgPath: string, fixturePath?: string, version: string,
- *   trustEvidencePath?: string, sourceTag?: string, sourceCommit?: string}} options
+ *   trustEvidencePath?: string, sourceTag?: string, sourceCommit?: string,
+ *   rosettaTranslated?: boolean}} options
  */
 export async function verifyDmg(options) {
   if (process.platform !== 'darwin') {
@@ -254,7 +317,9 @@ export async function verifyDmg(options) {
     assert.equal(await readlink(applicationsLink), '/Applications');
     const applicationPath = resolve(mountRoot, `${MACOS_PRODUCT.name}.app`);
     const trust = await verifyApplication(applicationPath, options.version, appleTrust);
-    if (options.fixturePath) await smokeApplication(applicationPath, options.fixturePath);
+    if (options.fixturePath) await smokeApplication(applicationPath, options.fixturePath, {
+      rosettaTranslated: options.rosettaTranslated,
+    });
     return { trust, appleTrust, appleTrustEvidenceSha256 };
   } finally {
     if (attached) {
@@ -276,6 +341,9 @@ function argument(name) {
  *   appleTrustEvidenceSha256?: string | null, rosettaTranslated?: boolean}} options
  */
 export async function writeVerificationEvidence(options) {
+  if (options.rosettaTranslated) {
+    throw new Error('Rosetta-translated verification cannot write authoritative native evidence.');
+  }
   assert.match(options.sourceCommit, /^[a-f0-9]{40}$/u);
   assert.match(options.sourceTag, /^v/u);
   assert.ok(['arm64', 'x64'].includes(options.nativeArchitecture));
@@ -365,8 +433,9 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const sourceTag = argument('--source-tag');
   const trustEvidencePath = argument('--trust-evidence');
   const version = argument('--version');
+  const allowRosettaTranslated = process.argv.includes('--allow-rosetta-translated');
   if (!dmgPath || !version) {
-    throw new Error('Usage: node verify-macos-package.mjs --dmg <path> --version <version> [--fixture <path>] [--native-architecture <arm64|x64>]');
+    throw new Error('Usage: node verify-macos-package.mjs --dmg <path> --version <version> [--fixture <path>] [--native-architecture <arm64|x64>] [--allow-rosetta-translated]');
   }
   if (nativeArchitecture && process.arch !== nativeArchitecture) {
     throw new Error(
@@ -374,9 +443,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     );
   }
   const rosettaTranslated = await detectRosettaTranslation();
-  if (rosettaTranslated) {
-    throw new Error('Rosetta-translated execution is not authoritative native Intel evidence.');
-  }
+  requireMacosExecutionAuthority({ rosettaTranslated, allowRosettaTranslated, evidencePath });
   const verification = await verifyDmg({
     dmgPath,
     fixturePath,
@@ -384,6 +451,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     trustEvidencePath,
     sourceTag,
     sourceCommit,
+    rosettaTranslated,
   });
   if (evidencePath) {
     if (!nativeArchitecture || !sourceCommit || !sourceTag) {
@@ -403,5 +471,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       version,
     });
   }
-  process.stdout.write(`Verified ${resolve(dmgPath)} on ${process.arch}.\n`);
+  process.stdout.write(rosettaTranslated
+    ? `Verified ${resolve(dmgPath)} through the x86_64 slice under Rosetta (translated evidence; not native Intel evidence).\n`
+    : `Verified ${resolve(dmgPath)} natively on ${process.arch}.\n`);
 }

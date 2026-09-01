@@ -47,6 +47,7 @@ function idleState() {
       notificationsEnabled: false,
       projectPaths: ['/repo/recent'],
       selectedAgents: ['codex'],
+      terminalHeight: 260,
     },
   };
 }

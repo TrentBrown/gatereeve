@@ -26,8 +26,10 @@ const ids = [
   'chooser', 'choose', 'choose-empty', 'recents', 'chooser-error', 'workspace', 'refresh', 'activity',
   'candidate-diagnostic', 'candidate-diagnostic-title', 'candidate-diagnostic-message',
   'candidate-diagnostic-facts', 'candidate-diagnostic-checks', 'candidate-diagnostic-choose-another',
-  'brand-version', 'project-sidebar', 'main-tabs', 'toggle-sidebar',
+  'brand-version', 'project-sidebar', 'main-tabs', 'toggle-sidebar', 'toggle-terminal',
   'toggle-inspector', 'inspector-panel', 'inspector-resizer', 'inspector-tabs',
+  'terminal-panel', 'terminal-resizer', 'terminal-title', 'terminal-shell', 'terminal-status',
+  'terminal-hosts', 'terminal-terminate', 'terminal-restart',
   'source-dialog', 'source-dialog-close', 'source-dialog-list', 'global-alerts', 'state-rail',
   'milestones', 'phase-context-surface', 'phase-context-kicker', 'phase-context-title',
   'phase-context-description', 'phase-context-uses', 'phase-context-produces',
@@ -67,6 +69,27 @@ let toastTimer = null;
 let renderedOnce = false;
 let renderedDiagnosticKey = null;
 let inspectorExpanded = false;
+let terminalLibraryPromise = null;
+let terminalResizeStart = null;
+const terminalViews = new Map();
+const pendingTerminalData = new Map();
+const pendingTerminalStatus = new Map();
+
+const TERMINAL_MIN_HEIGHT = 140;
+const TERMINAL_MAX_HEIGHT = 720;
+
+function clampTerminalHeight(value) {
+  const available = Math.max(TERMINAL_MIN_HEIGHT, window.innerHeight - 260);
+  return Math.min(TERMINAL_MAX_HEIGHT, available, Math.max(TERMINAL_MIN_HEIGHT, Math.round(value)));
+}
+
+function loadTerminalLibrary() {
+  terminalLibraryPromise ??= Promise.all([
+    import('/vendor/xterm.mjs'),
+    import('/vendor/xterm-addon-fit.mjs'),
+  ]).then(([xterm, addon]) => ({ Terminal: xterm.Terminal, FitAddon: addon.FitAddon }));
+  return terminalLibraryPromise;
+}
 
 function projectPath() {
   return currentState?.selection?.worktreePath ?? '__empty__';
@@ -164,6 +187,7 @@ function switchView(view) {
   if (view === 'history') void ensureHistory();
   if (view === 'model') void ensureModel();
   if (view === 'session') void ensureSession();
+  if (!setup) applyLayout();
 }
 
 function appendRemediation(container, value) {
@@ -323,9 +347,13 @@ function renderRecents(state) {
     down.addEventListener('click', () => void reorder(1));
     remove.addEventListener('click', async () => {
       const next = await desktop.removeProject(project.path);
-      workspaceStore.discard(project.path);
+      const removed = !next.projects.some((item) => item.path === project.path);
+      if (removed) {
+        workspaceStore.discard(project.path);
+        discardTerminalView(project.path);
+      }
       render(next);
-      showToast('Removed saved reference only; project files were not changed');
+      if (removed) showToast('Removed saved reference only; project files were not changed');
     });
     const row = node('div', { className: 'project-row', attributes: { draggable: 'true', 'data-project-path': project.path } }, [
       select,
@@ -897,6 +925,174 @@ function renderArtifacts(snapshot) {
   for (const artifact of artifacts) elements['artifact-list'].append(artifactButton(artifact));
 }
 
+function selectedProject() {
+  const path = currentState?.selection?.worktreePath;
+  return currentState?.projects?.find((project) => project.path === path) ?? null;
+}
+
+function activeTerminalView() {
+  return terminalViews.get(currentState?.selection?.worktreePath) ?? null;
+}
+
+function terminalDimensions(view) {
+  return {
+    cols: Math.max(2, Math.min(500, view.terminal.cols || 80)),
+    rows: Math.max(1, Math.min(300, view.terminal.rows || 24)),
+  };
+}
+
+function renderTerminalStatus(view = activeTerminalView()) {
+  const session = view?.session ?? null;
+  const project = selectedProject();
+  const statusLabel = session?.status === 'exited'
+    ? session.exit?.signal !== null
+      ? `Signal ${session.exit.signal}`
+      : `Exited ${session.exit?.code ?? ''}`.trim()
+    : session?.status ?? 'Starting…';
+  elements['terminal-title'].textContent = project?.name ?? 'Terminal';
+  elements['terminal-shell'].textContent = session?.shell ?? '';
+  elements['terminal-status'].dataset.status = session?.status ?? 'idle';
+  elements['terminal-status'].textContent = statusLabel;
+  elements['terminal-status'].title = session?.error ?? statusLabel;
+  elements['terminal-terminate'].hidden = session?.status !== 'running';
+  elements['terminal-terminate'].disabled = session?.status !== 'running';
+  elements['terminal-restart'].hidden = !['exited', 'failed'].includes(session?.status);
+  elements['terminal-restart'].disabled = !['exited', 'failed'].includes(session?.status);
+}
+
+function setTerminalSession(view, session, { replaceOutput = false } = {}) {
+  const pendingStatus = pendingTerminalStatus.get(session.id);
+  const effectiveSession = pendingStatus ?? session;
+  pendingTerminalStatus.delete(session.id);
+  view.session = effectiveSession;
+  if (replaceOutput) {
+    view.terminal.reset();
+    if (effectiveSession.output) view.terminal.write(effectiveSession.output);
+    if (effectiveSession.status === 'failed' && effectiveSession.error) {
+      view.terminal.writeln(`\r\nGateReeve could not start the terminal: ${effectiveSession.error}`);
+    }
+  }
+  const pendingData = pendingTerminalData.get(session.id);
+  if (pendingData) {
+    let overlap = 0;
+    if (replaceOutput && effectiveSession.output) {
+      const maximum = Math.min(effectiveSession.output.length, pendingData.length);
+      for (let length = maximum; length > 0; length -= 1) {
+        if (effectiveSession.output.endsWith(pendingData.slice(0, length))) {
+          overlap = length;
+          break;
+        }
+      }
+    }
+    if (overlap < pendingData.length) view.terminal.write(pendingData.slice(overlap));
+    pendingTerminalData.delete(session.id);
+  }
+  if (view === activeTerminalView()) renderTerminalStatus(view);
+}
+
+async function fitTerminal(view = activeTerminalView(), { notifyMain = true } = {}) {
+  if (!view || view.host.hidden || elements['terminal-panel'].hidden) return;
+  try {
+    view.fit.fit();
+    const dimensions = terminalDimensions(view);
+    if (
+      notifyMain
+      && view.session?.status === 'running'
+      && (view.session.cols !== dimensions.cols || view.session.rows !== dimensions.rows)
+    ) {
+      const session = await desktop.resizeTerminal(view.session.id, dimensions.cols, dimensions.rows);
+      setTerminalSession(view, session);
+    }
+  } catch (error) {
+    showToast(error.message ?? String(error));
+  }
+}
+
+async function ensureTerminalView() {
+  const project = selectedProject();
+  if (!project) return null;
+  const existing = terminalViews.get(project.path);
+  if (existing) return existing;
+  const { Terminal, FitAddon } = await loadTerminalLibrary();
+  const loadedExisting = terminalViews.get(project.path);
+  if (loadedExisting) return loadedExisting;
+  if (
+    selectedProject()?.path !== project.path
+    || !workspaceStore.get(project.path).terminalVisible
+  ) {
+    return null;
+  }
+  const host = node('div', {
+    className: 'terminal-instance',
+    attributes: { 'data-terminal-project': project.path },
+  });
+  elements['terminal-hosts'].append(host);
+  const terminal = new Terminal({
+    allowProposedApi: false,
+    cursorBlink: true,
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+    fontSize: 13,
+    scrollback: 5_000,
+    theme: {
+      background: '#1d1428',
+      foreground: '#eee8f5',
+      cursor: '#d8b8ff',
+      selectionBackground: '#654c7f',
+    },
+  });
+  const fit = new FitAddon();
+  terminal.loadAddon(fit);
+  terminal.open(host);
+  const view = { path: project.path, host, terminal, fit, session: null, disposables: [] };
+  terminalViews.set(project.path, view);
+  view.disposables.push(terminal.onData((data) => {
+    if (view.session?.status !== 'running') return;
+    void desktop.writeTerminal(view.session.id, data).catch((error) => showToast(error.message ?? String(error)));
+  }));
+  await fitTerminal(view, { notifyMain: false });
+  if (
+    selectedProject()?.path !== project.path
+    || !workspaceStore.get(project.path).terminalVisible
+  ) {
+    discardTerminalView(project.path);
+    return null;
+  }
+  try {
+    const dimensions = terminalDimensions(view);
+    setTerminalSession(view, await desktop.ensureTerminal(dimensions.cols, dimensions.rows), {
+      replaceOutput: true,
+    });
+    if (view === activeTerminalView() && workspaceState().terminalVisible) {
+      view.terminal.focus();
+    }
+  } catch (error) {
+    terminal.writeln(`\r\nGateReeve could not open the terminal: ${error.message ?? String(error)}`);
+    showToast(error.message ?? String(error));
+  }
+  return view;
+}
+
+function discardTerminalView(path) {
+  const view = terminalViews.get(path);
+  if (!view) return;
+  if (view.session) {
+    pendingTerminalData.delete(view.session.id);
+    pendingTerminalStatus.delete(view.session.id);
+  }
+  for (const disposable of view.disposables) disposable.dispose?.();
+  view.terminal.dispose();
+  view.host.remove();
+  terminalViews.delete(path);
+}
+
+function revealActiveTerminal() {
+  const activePath = currentState?.selection?.worktreePath;
+  for (const view of terminalViews.values()) view.host.hidden = view.path !== activePath;
+  const view = activeTerminalView();
+  renderTerminalStatus(view);
+  if (view) requestAnimationFrame(() => void fitTerminal(view));
+}
+
 function applyLayout() {
   const workspace = workspaceState();
   elements.workspace.classList.toggle('sidebar-hidden', !workspace.sidebarVisible);
@@ -906,13 +1102,31 @@ function applyLayout() {
     '--inspector-width',
     workspace.inspectorVisible ? `${workspace.inspectorWidth}px` : '0px',
   );
+  const terminalVisible = workspace.terminalVisible && currentState?.selection !== null;
+  const terminalHeight = clampTerminalHeight(currentState?.preferences?.terminalHeight ?? 260);
+  elements['terminal-panel'].hidden = !terminalVisible;
+  elements.workspace.style.setProperty('--terminal-height', terminalVisible ? `${terminalHeight}px` : '0px');
   elements['toggle-sidebar'].setAttribute('aria-pressed', String(workspace.sidebarVisible));
   elements['toggle-sidebar'].setAttribute('aria-label', `${workspace.sidebarVisible ? 'Hide' : 'Show'} project sidebar`);
+  elements['toggle-terminal'].disabled = currentState?.selection == null;
+  elements['toggle-terminal'].setAttribute('aria-pressed', String(terminalVisible));
+  elements['toggle-terminal'].setAttribute('aria-label', `${terminalVisible ? 'Hide' : 'Show'} terminal`);
   elements['toggle-inspector'].setAttribute('aria-pressed', String(workspace.inspectorVisible));
   elements['toggle-inspector'].setAttribute('aria-label', `${workspace.inspectorVisible ? 'Hide' : 'Show'} inspector`);
   elements['inspector-resizer'].setAttribute('aria-valuenow', String(workspace.inspectorWidth));
   elements['inspector-resizer'].setAttribute('aria-valuemin', String(workspaceDefaults.minInspectorWidth));
   elements['inspector-resizer'].setAttribute('aria-valuemax', String(workspaceDefaults.maxInspectorWidth));
+  elements['terminal-resizer'].setAttribute('aria-valuenow', String(terminalHeight));
+  elements['terminal-resizer'].setAttribute('aria-valuemin', String(TERMINAL_MIN_HEIGHT));
+  elements['terminal-resizer'].setAttribute('aria-valuemax', String(TERMINAL_MAX_HEIGHT));
+  revealActiveTerminal();
+  if (terminalVisible && !activeTerminalView()) {
+    void ensureTerminalView().then((view) => {
+      if (view !== activeTerminalView() || !workspaceState().terminalVisible) return;
+      revealActiveTerminal();
+      void fitTerminal(view);
+    }).catch((error) => showToast(error.message ?? String(error)));
+  }
 }
 
 function renderInspectorTabs() {
@@ -1048,6 +1262,26 @@ function toggleSidebar(force = undefined) {
   if (workspace.sidebarVisible) {
     const target = elements.recents.querySelector('[aria-current="true"]') ?? elements.choose;
     target.focus({ preventScroll: true });
+  }
+}
+
+async function toggleTerminal(force = undefined) {
+  if (!currentState?.selection) return;
+  const activeInside = elements['terminal-panel'].contains(document.activeElement);
+  const workspace = workspaceStore.toggleTerminal(projectPath(), force);
+  applyLayout();
+  if (!workspace.terminalVisible) {
+    if (activeInside) elements['toggle-terminal'].focus();
+    return;
+  }
+  try {
+    const view = await ensureTerminalView();
+    if (!view || view.path !== projectPath() || !workspaceState().terminalVisible) return;
+    revealActiveTerminal();
+    await fitTerminal(view);
+    view.terminal.focus();
+  } catch (error) {
+    showToast(error.message ?? String(error));
   }
 }
 
@@ -1825,7 +2059,73 @@ for (const button of document.querySelectorAll('[data-go-view]')) {
 }
 
 elements['toggle-sidebar'].addEventListener('click', () => toggleSidebar());
+elements['toggle-terminal'].addEventListener('click', () => void toggleTerminal());
 elements['toggle-inspector'].addEventListener('click', () => toggleInspector());
+
+elements['terminal-terminate'].addEventListener('click', async () => {
+  const view = activeTerminalView();
+  if (view?.session?.status !== 'running') return;
+  try {
+    setTerminalSession(view, await desktop.terminateTerminal(view.session.id));
+  } catch (error) {
+    showToast(error.message ?? String(error));
+  }
+});
+elements['terminal-restart'].addEventListener('click', async () => {
+  const view = activeTerminalView();
+  if (!view || !['exited', 'failed'].includes(view.session?.status)) return;
+  try {
+    const dimensions = terminalDimensions(view);
+    const session = await desktop.restartTerminal(view.session.id, dimensions.cols, dimensions.rows);
+    setTerminalSession(view, session, { replaceOutput: true });
+    view.terminal.focus();
+  } catch (error) {
+    showToast(error.message ?? String(error));
+  }
+});
+
+elements['terminal-resizer'].addEventListener('pointerdown', (event) => {
+  terminalResizeStart = {
+    y: event.clientY,
+    height: clampTerminalHeight(currentState?.preferences?.terminalHeight ?? 260),
+    current: clampTerminalHeight(currentState?.preferences?.terminalHeight ?? 260),
+  };
+  elements['terminal-resizer'].setPointerCapture?.(event.pointerId);
+});
+elements['terminal-resizer'].addEventListener('pointermove', (event) => {
+  if (terminalResizeStart === null) return;
+  terminalResizeStart.current = clampTerminalHeight(
+    terminalResizeStart.height + terminalResizeStart.y - event.clientY,
+  );
+  elements.workspace.style.setProperty('--terminal-height', `${terminalResizeStart.current}px`);
+  elements['terminal-resizer'].setAttribute('aria-valuenow', String(terminalResizeStart.current));
+  activeTerminalView()?.fit.fit();
+});
+elements['terminal-resizer'].addEventListener('pointerup', async () => {
+  if (terminalResizeStart === null) return;
+  const height = terminalResizeStart.current;
+  terminalResizeStart = null;
+  try {
+    render(await desktop.setTerminalHeight(height));
+    await fitTerminal();
+  } catch (error) {
+    showToast(error.message ?? String(error));
+  }
+});
+elements['terminal-resizer'].addEventListener('keydown', async (event) => {
+  const changes = { ArrowUp: 20, ArrowDown: -20, Home: -10_000, End: 10_000 };
+  if (!(event.key in changes)) return;
+  event.preventDefault();
+  const height = clampTerminalHeight(
+    (currentState?.preferences?.terminalHeight ?? 260) + changes[event.key],
+  );
+  try {
+    render(await desktop.setTerminalHeight(height));
+    await fitTerminal();
+  } catch (error) {
+    showToast(error.message ?? String(error));
+  }
+});
 
 let resizeStart = null;
 elements['inspector-resizer'].addEventListener('pointerdown', (event) => {
@@ -1855,17 +2155,43 @@ window.addEventListener('keydown', (event) => {
   const primary = window.navigator.platform?.toLowerCase().includes('mac')
     ? event.metaKey
     : event.ctrlKey;
-  if (!primary || event.shiftKey || event.key.toLowerCase() !== 'b') return;
+  if (!primary || event.shiftKey) return;
+  if (event.key.toLowerCase() === 'j' && !event.altKey) {
+    event.preventDefault();
+    void toggleTerminal();
+    return;
+  }
+  if (event.key.toLowerCase() !== 'b') return;
   event.preventDefault();
   if (event.altKey) toggleInspector();
   else toggleSidebar();
+});
+
+window.addEventListener('resize', () => {
+  applyLayout();
+  requestAnimationFrame(() => void fitTerminal());
 });
 
 desktop.subscribe(render);
 desktop.subscribeUpdates(renderUpdate);
 desktop.subscribeLayoutCommands?.((command) => {
   if (command === 'toggle-sidebar') toggleSidebar();
+  if (command === 'toggle-terminal') void toggleTerminal();
   if (command === 'toggle-inspector') toggleInspector();
+});
+desktop.subscribeTerminals?.((event) => {
+  if (event.type === 'data') {
+    const view = [...terminalViews.values()].find((candidate) => candidate.session?.id === event.sessionId);
+    if (view) view.terminal.write(event.data);
+    else pendingTerminalData.set(
+      event.sessionId,
+      `${pendingTerminalData.get(event.sessionId) ?? ''}${event.data}`.slice(-1_000_000),
+    );
+    return;
+  }
+  const view = [...terminalViews.values()].find((candidate) => candidate.session?.id === event.session.id);
+  if (view) setTerminalSession(view, event.session);
+  else pendingTerminalStatus.set(event.session.id, event.session);
 });
 desktop.getState().then(render).catch((error) => {
   elements['chooser-error'].hidden = false;

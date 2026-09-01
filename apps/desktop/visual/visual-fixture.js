@@ -222,6 +222,7 @@ const state = {
     notificationsEnabled: false,
     projectPaths: ['/home/trent/code/tb/gatereeve-desktop'],
     selectedAgents: ['codex'],
+    terminalHeight: 260,
   },
 };
 

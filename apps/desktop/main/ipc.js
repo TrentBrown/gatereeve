@@ -16,6 +16,14 @@ import {
   requireSessionDetail,
   requireSessionId,
   requireSessionInventory,
+  requireTerminalDimensionsRequest,
+  requireTerminalEvent,
+  requireTerminalHeight,
+  requireTerminalInputRequest,
+  requireTerminalResizeRequest,
+  requireTerminalRestartRequest,
+  requireTerminalSession,
+  requireTerminalSessionRequest,
   requireUpdateState,
 } from '../shared/contracts.js';
 import { validateDetail, validateSnapshot } from '../resources/protocol/snapshot.js';
@@ -41,6 +49,8 @@ export function registerDesktopIpc({
   revealPath,
   copyText,
   openExternal,
+  terminalManager,
+  confirmProjectTermination,
   windows,
 }) {
   function trusted(event) {
@@ -49,6 +59,15 @@ export function registerDesktopIpc({
   function noArguments(event, values) {
     trusted(event);
     if (values.length !== 0) throw new Error('This operation does not accept renderer arguments.');
+  }
+  function selectedProject() {
+    const state = validatedState(coordinator.current());
+    const path = state.selection?.worktreePath;
+    const project = state.projects.find((item) => item.path === path && item.status === 'ready');
+    if (!path || !state.preferences.projectPaths.includes(path) || !project) {
+      throw new Error('A ready saved project must be selected.');
+    }
+    return { path: project.path, name: project.name };
   }
 
   ipcMain.handle(IPC_CHANNELS.getState, async (event, ...values) => {
@@ -96,7 +115,14 @@ export function registerDesktopIpc({
   ipcMain.handle(IPC_CHANNELS.removeProject, async (event, ...values) => {
     trusted(event);
     if (values.length !== 1) throw new Error('Project removal requires one path.');
-    return validatedState(await coordinator.removeProject(requireProjectPath(values[0])));
+    const path = requireProjectPath(values[0]);
+    const project = validatedState(coordinator.current()).projects.find((item) => item.path === path);
+    if (terminalManager.hasLive(path)) {
+      const confirmed = await confirmProjectTermination(project?.name ?? path);
+      if (!confirmed) return validatedState(coordinator.current());
+      terminalManager.discardProject(path);
+    }
+    return validatedState(await coordinator.removeProject(path));
   });
   ipcMain.handle(IPC_CHANNELS.refresh, async (event, ...values) => {
     noArguments(event, values);
@@ -117,6 +143,11 @@ export function registerDesktopIpc({
     trusted(event);
     if (values.length !== 1) throw new Error('Agent selection requires one list.');
     return validatedState(await coordinator.setSelectedAgents(requireSelectedAgents(values[0])));
+  });
+  ipcMain.handle(IPC_CHANNELS.setTerminalHeight, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Terminal panel height requires one integer.');
+    return validatedState(await coordinator.setTerminalHeight(requireTerminalHeight(values[0])));
   });
   ipcMain.handle(IPC_CHANNELS.readDetail, async (event, ...values) => {
     trusted(event);
@@ -189,6 +220,49 @@ export function registerDesktopIpc({
     revealPath(coordinator.artifact(artifactId).absolutePath);
     return true;
   });
+  ipcMain.handle(IPC_CHANNELS.terminalEnsure, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Terminal creation requires one dimensions request.');
+    return requireTerminalSession(terminalManager.ensure(
+      selectedProject(),
+      requireTerminalDimensionsRequest(values[0]),
+    ));
+  });
+  ipcMain.handle(IPC_CHANNELS.terminalWrite, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Terminal input requires one request.');
+    const request = requireTerminalInputRequest(values[0]);
+    return terminalManager.write(selectedProject().path, request.sessionId, request.data);
+  });
+  ipcMain.handle(IPC_CHANNELS.terminalResize, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Terminal resize requires one request.');
+    const request = requireTerminalResizeRequest(values[0]);
+    return requireTerminalSession(terminalManager.resize(
+      selectedProject().path,
+      request.sessionId,
+      request,
+    ));
+  });
+  ipcMain.handle(IPC_CHANNELS.terminalTerminate, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Terminal termination requires one request.');
+    const request = requireTerminalSessionRequest(values[0]);
+    return requireTerminalSession(terminalManager.terminate(
+      selectedProject().path,
+      request.sessionId,
+    ));
+  });
+  ipcMain.handle(IPC_CHANNELS.terminalRestart, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Terminal restart requires one request.');
+    const request = requireTerminalRestartRequest(values[0]);
+    return requireTerminalSession(terminalManager.restart(
+      selectedProject(),
+      request.sessionId,
+      request,
+    ));
+  });
 
   const unsubscribeState = coordinator.subscribe((state) => {
     const value = validatedState(state);
@@ -202,8 +276,15 @@ export function registerDesktopIpc({
       if (!window.isDestroyed()) window.webContents.send(IPC_CHANNELS.updateChanged, value);
     }
   });
+  const unsubscribeTerminals = terminalManager.subscribe((event) => {
+    const value = requireTerminalEvent(event);
+    for (const window of windows()) {
+      if (!window.isDestroyed()) window.webContents.send(IPC_CHANNELS.terminalChanged, value);
+    }
+  });
   return () => {
     unsubscribeState();
     unsubscribeUpdates();
+    unsubscribeTerminals();
   };
 }

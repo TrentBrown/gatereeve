@@ -62,7 +62,9 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
       },
     }],
     },
-    preferences: { notificationsEnabled: false, projectPaths: [], selectedAgents: ['codex'] },
+    preferences: {
+      notificationsEnabled: false, projectPaths: [], selectedAgents: ['codex'], terminalHeight: 260,
+    },
   };
   const { window } = parseHTML(html);
   window.gatereeveDesktop = {

@@ -15,6 +15,7 @@ import {
   removeProjectReference,
   reorderProjectReferences,
   selectAgents,
+  setTerminalHeight,
 } from './preferences.js';
 import { inspectProject } from './project-registry.js';
 import { listSessionContext, readSessionContext } from './session-observer.js';
@@ -104,6 +105,7 @@ export function createDesktopCoordinator({
         projectPaths: preferences?.projectPaths ?? [],
         notificationsEnabled: preferences?.notificationsEnabled === true,
         selectedAgents: preferences?.selectedAgents ?? [],
+        terminalHeight: preferences?.terminalHeight ?? 260,
       },
     });
   }
@@ -500,6 +502,11 @@ export function createDesktopCoordinator({
       preferences = selectAgents(preferences, selectedAgents);
       preferences = await preferenceStore.save(preferences);
       return recheckSetup();
+    },
+    async setTerminalHeight(height) {
+      preferences = setTerminalHeight(preferences, height);
+      preferences = await preferenceStore.save(preferences);
+      return publish();
     },
     recheckSetup,
     subscribe(callback) {

@@ -29,6 +29,14 @@ import { createPreferenceStore } from './preferences.js';
 import { createProtocolAdapter } from './protocol-adapter.js';
 import { registerRendererProtocol } from './renderer-protocol.js';
 import { createSetupObserver, createUnconfiguredSetup } from './setup-observer.js';
+import { createTerminalManager } from './terminal-manager.js';
+import { accountUserInfo, killPtyProcessGroup, spawnPty } from './terminal-pty.js';
+import {
+  bindTerminalQuitGuard,
+  bindTerminalWindowCloseGuard,
+  confirmProjectTerminalTermination,
+  confirmQuitTerminalTermination,
+} from './terminal-lifecycle.js';
 import { createUpdateCacheStore } from './update-cache.js';
 import { createUpdateCoordinator } from './update-coordinator.js';
 import {
@@ -154,11 +162,24 @@ async function startDesktop() {
     openExternal: (url) => shell.openExternal(url),
   });
   await artifactActions.initialize();
+  const terminalManager = createTerminalManager({
+    spawn: spawnPty,
+    userInfo: accountUserInfo,
+    killProcessGroup: killPtyProcessGroup,
+  });
   registerRendererProtocol(protocol, resolve(desktopRoot, 'renderer'), {
     brandingAsset: resolve(
       desktopRoot,
       'assets/branding/gatereeve-rolling-vale.png',
     ),
+    terminalAssets: {
+      'vendor/xterm.mjs': resolve(desktopRoot, 'node_modules/@xterm/xterm/lib/xterm.mjs'),
+      'vendor/xterm.css': resolve(desktopRoot, 'node_modules/@xterm/xterm/css/xterm.css'),
+      'vendor/xterm-addon-fit.mjs': resolve(
+        desktopRoot,
+        'node_modules/@xterm/addon-fit/lib/addon-fit.mjs',
+      ),
+    },
     readArtifact: (artifactId) => coordinator.read('artifact', artifactId),
   });
   const window = new BrowserWindow(browserWindowOptions(
@@ -169,12 +190,14 @@ async function startDesktop() {
   bindFocusRefresh(window, coordinator);
   Menu.setApplicationMenu(Menu.buildFromTemplate(applicationMenuTemplate({
     onToggleSidebar: () => window.webContents.send(IPC_CHANNELS.layoutCommand, 'toggle-sidebar'),
+    onToggleTerminal: () => window.webContents.send(IPC_CHANNELS.layoutCommand, 'toggle-terminal'),
     onToggleInspector: () => window.webContents.send(IPC_CHANNELS.layoutCommand, 'toggle-inspector'),
   })));
-  registerDesktopIpc({
+  const disposeDesktopIpc = registerDesktopIpc({
     ipcMain,
     coordinator,
     artifactActions,
+    terminalManager,
     updateCoordinator,
     async pickProject() {
       const result = await dialog.showOpenDialog({
@@ -187,13 +210,30 @@ async function startDesktop() {
     revealPath: (path) => shell.showItemInFolder(path),
     copyText: (value) => clipboard.writeText(value),
     openExternal: (url) => shell.openExternal(url),
+    confirmProjectTermination: (projectName) => confirmProjectTerminalTermination(
+      dialog,
+      window,
+      projectName,
+    ),
     windows: () => BrowserWindow.getAllWindows(),
   });
   window.on('resized', () => void coordinator.saveWindow(window.getBounds()));
   window.on('moved', () => void coordinator.saveWindow(window.getBounds()));
-  app.once('before-quit', () => {
-    coordinator.close();
-    updateCoordinator.close();
+  bindTerminalQuitGuard({
+    app,
+    terminalManager,
+    confirmQuit: (projectCount) => confirmQuitTerminalTermination(dialog, window, projectCount),
+    cleanup() {
+      disposeDesktopIpc();
+      terminalManager.close();
+      coordinator.close();
+      updateCoordinator.close();
+    },
+  });
+  bindTerminalWindowCloseGuard({
+    window,
+    terminalManager,
+    confirmQuit: (projectCount) => confirmQuitTerminalTermination(dialog, window, projectCount),
   });
   window.once('ready-to-show', () => window.show());
   await window.loadURL(RENDERER_URL);
@@ -223,6 +263,10 @@ async function startDesktop() {
         let shellObserved = false;
         let shellChecked = false;
         let shellEvidence = null;
+        let terminalRequested = false;
+        let terminalRunningObserved = false;
+        let terminalTerminateRequested = false;
+        let terminalObserved = ${expectedFeatureId === null ? 'true' : 'false'};
         const inspect = () => {
           if (!setupObserved && document.querySelector('#open-setup')) {
             document.querySelector('#open-setup').click();
@@ -362,9 +406,34 @@ async function startDesktop() {
               && inspectorRenderedWidth >= resizedWidth - 1
             );
           }
+          if (shellObserved && !terminalRequested && ${expectedFeatureId === null ? 'false' : 'true'}) {
+            terminalRequested = true;
+            document.querySelector('#toggle-terminal')?.click();
+          }
+          if (terminalRequested && !terminalObserved) {
+            const terminalPanel = document.querySelector('#terminal-panel');
+            const terminalStatus = document.querySelector('#terminal-status');
+            if (
+              terminalPanel?.hidden === false
+              && terminalStatus?.dataset.status === 'running'
+              && document.querySelector('#terminal-hosts .xterm')
+            ) {
+              terminalRunningObserved = true;
+            }
+            if (terminalRunningObserved && !terminalTerminateRequested) {
+              terminalTerminateRequested = true;
+              document.querySelector('#terminal-terminate')?.click();
+            }
+            terminalObserved = Boolean(
+              terminalRunningObserved
+              && terminalStatus?.dataset.status === 'exited'
+              && document.querySelector('#terminal-restart')?.hidden === false
+            );
+          }
           const ready = Boolean(
             setupObserved
             && shellObserved
+            && terminalObserved
             &&
             window.gatereeveDesktop
             && document.querySelector('h1')?.textContent === 'GateReeve'
@@ -378,6 +447,10 @@ async function startDesktop() {
             shellObserved,
             shellChecked,
             shellEvidence,
+            terminalRequested,
+            terminalRunningObserved,
+            terminalTerminateRequested,
+            terminalObserved,
             heading: document.querySelector('h1')?.textContent ?? null,
             projectContext: document.querySelector('#workspace')?.dataset.featureId ?? null,
           };
