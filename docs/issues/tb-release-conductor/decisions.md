@@ -4,8 +4,6 @@
 
 Permanent record of decisions promoted from `scratchpad.md`.
 
-No decisions have been promoted yet.
-
 ---
 
 ## Replace qp-cli-core instead of adopting its exact Node runtime
@@ -115,3 +113,63 @@ topic-branch dispatch, allowing `resume` to use unreviewed conductor code.
   is asking for authority.
 
 **Promoted:** 2026-09-01. PR: https://github.com/TrentBrown/gatereeve/pull/52.
+
+---
+
+## Separate PR Cask rehearsal provenance from production provenance
+
+**Confidence:** HIGH
+
+**Blast Radius:** `.github/workflows/homebrew-cask-smoke.yml` pull-request
+smoke and conductor-called production smoke
+
+Allow the `pull_request` rehearsal to validate and consume the pinned last
+successful legacy `homebrew-cask-publish.yml` artifact, because that path is
+read-only and exists to regression-test installation before the first conductor
+release. For `workflow_call`, require the supplied run to be the current owning
+Release Conductor run, preserving strict production provenance. The
+event-specific distinction must be explicit in the guard rather than weakening
+both paths.
+
+**Triggered by:** PR #52 Homebrew Cask Smoke rejected the last successful
+pre-conductor publication run after the production provenance guard was
+tightened.
+
+**Alternatives considered:**
+- Require a conductor artifact for PR smoke - rejected because it is impossible
+  before the conductor is merged and run.
+- Disable PR Cask smoke - rejected because it loses native install regression
+  coverage.
+- Accept either workflow for every event - rejected because it weakens
+  production provenance.
+
+**Promoted:** 2026-09-02. PR: https://github.com/TrentBrown/gatereeve/pull/52.
+
+---
+
+## Keep container acceptance hermetic for workflow and Git fixtures
+
+**Confidence:** HIGH
+
+**Blast Radius:** `Dockerfile.acceptance` and Release Conductor CLI discovery
+tests in Ubuntu 22.04/24.04 container CI
+
+Copy `plugin-ci.yml` into the acceptance image because it is now an explicit
+workflow contract input. Keep `.git` excluded; the discovery CLI test must
+initialize its own minimal repository and commit, then execute discovery from
+that repository so ancestry behavior is tested without coupling the image to
+host Git metadata.
+
+**Triggered by:** PR #52 container jobs could not read the newly asserted
+`plugin-ci.yml` contract and the discovery CLI test assumed the checkout's
+excluded `.git` directory.
+
+**Alternatives considered:**
+- Copy the entire `.github` tree - rejected because the image should declare
+  its contract inputs narrowly.
+- Include the host `.git` directory - rejected because it is large,
+  non-hermetic, and leaks checkout-specific metadata.
+- Bypass ancestry in containers - rejected because that weakens the
+  production-relevant test.
+
+**Promoted:** 2026-09-02. PR: https://github.com/TrentBrown/gatereeve/pull/52.

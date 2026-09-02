@@ -2,7 +2,7 @@
 
 **Pull request:** [#52](https://github.com/TrentBrown/gatereeve/pull/52)
 **Scope:** feature-final
-**Pinned source:** `ca9e814f6e45b28ae490cfbbf6190a4b89e7fa5f`
+**Pinned source:** `7a719614977f9c3c734d64c6fd2680ca08db2402`
 **Pinned base:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc`
 **Feature-record retention:** tracked; no retention decision is required.
 
@@ -12,7 +12,7 @@
 - **Lint status:** PASS - actionlint v1.7.12, workflow/document contract tests, branch-document validators, and `git diff --check` passed.
 - **Tests written:** Release Conductor state, artifact, discovery, CLI, workflow topology, metadata transport, and local mutation-boundary coverage in `cli/test/`.
 - **Test suite status:** PASS - 192 CLI tests, 158 Desktop tests, and 94 Python tests passed; npm audit reported zero vulnerabilities.
-- **Integration verified:** Yes - the portable acceptance suite exercises native package composition/install contracts, while workflow contract tests bind every reusable phase and checkpoint.
+- **Integration verified:** Yes - the portable acceptance suite exercises native package composition/install contracts, while GitHub CI passed both Ubuntu container suites, universal DMG packaging, packaged launch on Apple Silicon and Intel, and all four native/public Cask smoke jobs.
 - **Application runs:** N/A - this change affects release automation and CLI support code, not a user-facing runtime screen or service.
 - **Pending manual verification:** After merge, start a fresh RC through `release-conductor.yml`, approve each protected deployment at its own boundary, install and launch the exact public DMG, resume with the attestation checkbox, and confirm `COMPLETE` contains Apple Silicon and Intel-via-Rosetta native/public Cask smoke evidence. These are post-merge operational acceptance checks by AC8, not missing pre-merge evidence.
 
@@ -25,9 +25,9 @@
 | AC3 | Least-privilege approval boundaries | PASS | Static workflow tests prove protected Apple trust and publication jobs, environment-free rehearsals, and scoped permissions. |
 | AC4 | Immutable state and usable status | PASS | State-chain, artifact, discovery, status JSON, and summary tests cover canonical output and corrupt/divergent rejection. |
 | AC5 | Forward-safe retry and recovery | PASS | Failure/retry records, retained trust recovery, run discovery, and idempotent publication contracts are tested; the same-stage temporary-directory regression found in review is fixed. |
-| AC6 | Attested Cask continuation and completion | PASS | Exact public-DMG actor/time binding and four-artifact completion are enforced and tested; public runtime proof remains post-merge. |
+| AC6 | Attested Cask continuation and completion | PASS | Exact public-DMG actor/time binding and four-artifact completion are enforced and tested; PR smoke preserves a read-only legacy-artifact rehearsal while conductor-called smoke requires conductor provenance. Public runtime proof for the new conductor remains post-merge. |
 | AC7 | Safe generated-metadata transport | PASS | Full CI ignores only `workflow-site/releases/desktop.json`; deterministic publication rejects extra paths and mismatched bytes/base/digest. |
-| AC8 | Compatibility and verification boundaries | PASS | Official actions and jobs use Node 24, `qp-cli-core` is replaced with direct Commander plus local help rendering, and broad pre-merge suites pass. |
+| AC8 | Compatibility and verification boundaries | PASS | Official actions and jobs use Node 24, `qp-cli-core` is replaced with direct Commander plus local help rendering, and local plus GitHub-hosted suites pass on the complete matrix. |
 
 ## Rubric
 
@@ -40,7 +40,7 @@
 | R5 | Recovery semantics | PASS | feature | Tag-only resume reuses retained evidence and fails closed on invalid history. |
 | R6 | Direct install and Cask completion | PASS | feature | Attestation and four-part Cask smoke completion are mandatory. |
 | R7 | Metadata-only CI | PASS | feature | Exact metadata-only exception preserves full CI for every mixed PR. |
-| R8 | Runtime and lifecycle verification | PASS | feature | Node/action modernization and the complete automated pre-merge matrix pass. |
+| R8 | Runtime and lifecycle verification | PASS | feature | Node/action modernization and the complete local, container, native macOS, and Cask pre-merge matrix pass. |
 
 ## Known Failures
 

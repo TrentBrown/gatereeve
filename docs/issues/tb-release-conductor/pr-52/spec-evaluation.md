@@ -2,7 +2,7 @@
 
 **Verdict:** PASS
 **Scope:** feature-final
-**Diff:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..ca9e814f6e45b28ae490cfbbf6190a4b89e7fa5f`
+**Diff:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..7a719614977f9c3c734d64c6fd2680ca08db2402`
 
 ## Acceptance Criteria
 
@@ -13,9 +13,9 @@
 | AC3 | PASS | Reusable workflow inspection shows `release-trust` only around Apple authority and `release-publication` only around primary/Cask mutation; rehearsals have read-only permissions and no environment. Workflow contract tests pass. |
 | AC4 | PASS | `release-conductor-state.js:185-275` validates exact canonical records and digest-linked passages; artifact and discovery suites prove matching JSON/Markdown projections plus rejection of corrupt, expired, divergent, non-main, or wrong-workflow history. |
 | AC5 | PASS | Same-stage failure records preserve the prior authority boundary; discovery accepts completed artifacts from failed/cancelled runs, recovery uses retained run IDs, and publication implementations retain idempotent receipts. The composite action creates a fresh checkpoint directory for every record. |
-| AC6 | PASS | Cask finalization requires an actor/time attestation bound to `publicDmgSha256`; state validation requires four unique native/public smoke artifacts before `COMPLETE`. Real public execution is correctly deferred to post-merge acceptance by AC8. |
+| AC6 | PASS | Cask finalization requires an actor/time attestation bound to `publicDmgSha256`; state validation requires four unique native/public smoke artifacts before `COMPLETE`. Pull-request smoke is explicitly read-only and may consume the pinned last successful legacy artifact, while reusable production smoke remains conductor-bound. Real execution of the new conductor is correctly deferred to post-merge acceptance by AC8. |
 | AC7 | PASS | `.github/workflows/plugin-ci.yml:3-9` ignores only the exact Desktop metadata path. Publication tests reject any extra PR path and still verify deterministic branch, base, exact bytes, and digest. |
-| AC8 | PASS | Official actions use Node-24-compatible majors, jobs use Node 24, and direct `commander@11.1.0` replaces the exact-obsolete-Node `qp-cli-core`. Actionlint, 192 CLI tests, 158 Desktop tests, 94 Python tests, deterministic builds, audits, and portable acceptance pass. |
+| AC8 | PASS | Official actions use Node-24-compatible majors, jobs use Node 24, and direct `commander@11.1.0` replaces the exact-obsolete-Node `qp-cli-core`. Actionlint, 192 CLI tests, 158 Desktop tests, 94 Python tests, deterministic builds, audits, both Ubuntu containers, universal packaging, packaged Apple Silicon/Intel launch, and Cask smoke pass. |
 
 ## Rubric Evaluation
 

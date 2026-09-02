@@ -2,7 +2,7 @@
 
 **Verdict:** PASS
 **Scope:** feature-final
-**Diff:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..ca9e814f6e45b28ae490cfbbf6190a4b89e7fa5f`
+**Diff:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..7a719614977f9c3c734d64c6fd2680ca08db2402`
 
 ## Matrix
 
@@ -17,6 +17,8 @@
 | Dependency health | `npm audit --prefix cli` through portable acceptance | PASS - zero vulnerabilities; the CLI dependency tree contains only pinned `commander@11.1.0`. |
 | Integration | `bash ci/portable-acceptance.sh` | PASS - deterministic build, native package staging/install, workflow setup, and doctor checks passed for both Codex and Claude packages. |
 | Release workflow integration | `node --test cli/test/release-conductor-*.test.js cli/test/coordinated-workflow.test.js cli/test/github-publication.test.js cli/test/release-operations.test.js` (also included in the broad suite) | PASS - lifecycle, discovery, artifact, CLI, reusable topology, publication transport, and release observation contracts passed. |
+| GitHub Plugin CI | [run 33574569598](https://github.com/TrentBrown/gatereeve/actions/runs/33574569598) | PASS - both Ubuntu acceptance and container suites, Desktop contracts/runtimes, universal DMG packaging, and packaged launch on Apple Silicon and Intel passed. The macOS package job passed on retry after one `hdiutil` resource-contention failure. |
+| GitHub Cask smoke | [run 33574569595](https://github.com/TrentBrown/gatereeve/actions/runs/33574569595) | PASS - native and public-tap install paths passed on Apple Silicon and Intel. |
 | End-to-end/browser | N/A | No browser surface changed. The affected operator surface is GitHub Actions; real protected/public execution is intentionally post-merge under AC8. |
 | Application runtime | N/A | No GateReeve Desktop runtime behavior changed. The complete Desktop suite passed as regression coverage. |
 

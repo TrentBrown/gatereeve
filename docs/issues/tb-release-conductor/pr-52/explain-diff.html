@@ -32,7 +32,7 @@
 </head>
 <body>
 <main>
-  <p class="eyebrow">Pinned explanation · PR #52 · ca9e814</p>
+  <p class="eyebrow">Pinned explanation · PR #52 · 7a71961</p>
   <h1>One release, one conductor</h1>
   <p class="lead">GateReeve used to ask its operator to stitch together several GitHub workflows and carry run IDs and digests from one phase to the next. This change turns those phases into instruments played by one conductor: a single <em>start</em> or <em>resume</em> operation, backed by an immutable chain of evidence.</p>
 
@@ -96,6 +96,8 @@
     <p>The tag-triggered publisher and low-level workflow dispatches are removed. Old local <code>publish</code>, schema-v1 primary publication, and schema-v1 Cask publication commands are no longer in the command tree. The hosted mutation commands needed by reusable workflows refuse confirmation unless they are running inside the dispatched Release Conductor.</p>
     <h3>6. Smaller and quieter infrastructure</h3>
     <p>Official actions move to Node-24-compatible majors, jobs use Node 24, and the exact-Node-23 <code>qp-cli-core</code> dependency is replaced by direct Commander plus a small local help-tree renderer. Full CI ignores only the sealed Desktop metadata file, while the publication code still rejects any PR containing an extra path or altered byte.</p>
+    <h3>7. Rehearsal provenance stays distinct from production</h3>
+    <p>Until the first conductor release exists, pull-request Cask smoke uses the pinned last successful legacy publication artifact for read-only regression testing. The event-specific guard does not broaden production: a <code>workflow_call</code> still accepts only Release Conductor provenance. Container acceptance is likewise hermetic: it copies the workflow contract it reads and creates a tiny Git repository for ancestry tests instead of importing the host checkout’s <code>.git</code> directory.</p>
   </section>
 
   <section id="quiz">

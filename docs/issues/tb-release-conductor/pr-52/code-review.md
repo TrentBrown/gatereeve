@@ -1,7 +1,7 @@
 # Code Review - PR #52
 
 **Verdict:** PASS
-**Diff:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..ca9e814f6e45b28ae490cfbbf6190a4b89e7fa5f`
+**Diff:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..7a719614977f9c3c734d64c6fd2680ca08db2402`
 
 ## Findings
 
@@ -13,8 +13,8 @@ state-chain validation, discovery ambiguity handling, same-stage failure
 recording, direct-install attestation, metadata PR transport, CLI mutation
 guards, dependency changes, and tests.
 
-Two issues found during the superseded boundary attempt were fixed before this
-review was repinned:
+Four issues found during superseded boundary attempts or GitHub integration
+were fixed before this review was repinned:
 
 1. Same-stage failure checkpoints now allocate a fresh temporary directory in
    `.github/actions/release-conductor-record/action.yml:67-103`, so recording a
@@ -22,6 +22,12 @@ review was repinned:
 2. Resume now rejects non-main or stale-main dispatches before discovery at
    `.github/workflows/release-conductor.yml:123-136`, preventing unreviewed
    conductor code from reaching protected jobs.
+3. Pull-request Cask smoke now validates the pinned successful legacy
+   publication artifact only for the read-only PR event, while reusable
+   production smoke continues to require Release Conductor provenance.
+4. Container acceptance now copies the workflow contract it tests, and the
+   discovery CLI test creates its own minimal Git repository instead of
+   depending on excluded host `.git` metadata.
 
 ## Residual Risks and Test Gaps
 

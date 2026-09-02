@@ -110,7 +110,7 @@ topic-branch dispatch, allowing `resume` to use unreviewed conductor code.
 
 ## [5] Separate PR Cask rehearsal provenance from production provenance
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -139,7 +139,7 @@ tightened.
 
 ## [6] Keep container acceptance hermetic for workflow and Git fixtures
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

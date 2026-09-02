@@ -1,7 +1,7 @@
 # Judge Evaluation - PR #52
 
 **Verdict:** PASS
-**Evaluation basis:** approved `spec.md` and pinned diff `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..ca9e814f6e45b28ae490cfbbf6190a4b89e7fa5f`
+**Evaluation basis:** approved `spec.md` and pinned diff `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..7a719614977f9c3c734d64c6fd2680ca08db2402`
 
 ## Rubric Evaluation
 
@@ -12,9 +12,9 @@
 | R3 | Approval isolation | PASS | Apple trust, primary publication, and Cask publication retain distinct protected jobs; rehearsals have no environment, secrets, or write permissions. |
 | R4 | State and dashboard | PASS | Each checkpoint has canonical state, predecessor hash, status JSON, checksum, and summary; tag discovery rejects absent, expired, divergent, malformed, non-main, or identity-inconsistent chains. |
 | R5 | Recovery semantics | PASS | Failure records do not advance authority, retained completed/failed/cancelled run artifacts can resume, trust recovery reuses request history, and existing publication code remains receipt-idempotent. |
-| R6 | Direct install and Cask completion | PASS | Resume accepts the authenticated checkbox only from `WAITING_FOR_DIRECT_INSTALL`, binds it to actor/time/public-DMG digest, and requires all four Cask smoke artifacts for completion. |
+| R6 | Direct install and Cask completion | PASS | Resume accepts the authenticated checkbox only from `WAITING_FOR_DIRECT_INSTALL`, binds it to actor/time/public-DMG digest, and requires all four Cask smoke artifacts for completion. Event-specific smoke provenance preserves a read-only PR rehearsal without broadening the conductor-called production path. |
 | R7 | Metadata-only CI | PASS | Only the exact generated Desktop metadata path bypasses full CI, while the publisher enforces deterministic branch/base/sole-path/exact-byte/digest transport. |
-| R8 | Runtime and lifecycle verification | PASS | Node 24 and current action majors are used, the incompatible dependency is removed, and the broad test/build/audit matrix passes without manufacturing protected/public evidence. |
+| R8 | Runtime and lifecycle verification | PASS | Node 24 and current action majors are used, the incompatible dependency is removed, and the local, container, universal-package, packaged-runtime, and Cask matrices pass without manufacturing protected conductor evidence. |
 
 ## Scope Check
 
