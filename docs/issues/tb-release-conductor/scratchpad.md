@@ -358,3 +358,30 @@ lacked the explicit status guard used by the surrounding recovery jobs.
   duplicate state transition is invalid.
 - Remove the success check entirely - rejected because Cask finalization must
   remain blocked unless the exact direct-install attestation succeeds.
+
+## [14] Validate linked Cask state through the hosted schema-v2 command
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Release Conductor checkpoint immediately after linked
+Homebrew Cask finalization
+
+Run the existing read-only `inspect-cask-hosted` command against the complete
+downloaded packet and record the plan digest from its schema-v2 result. Do not
+import the legacy `homebrew-cask.js` record reader at this checkpoint.
+
+**Triggered by:** RC.11 successfully sealed a schema-v2 linked Cask packet,
+but `cask-finalized-state` imported the schema-v1 reader and rejected the valid
+record before it could advance the retained conductor state.
+
+**Alternatives considered:**
+- Teach the legacy reader to accept schema v2 - rejected because it would blur
+  the intentional compatibility boundary between immutable schema-v1 history
+  and current hosted release state.
+- Parse only `planSha256` from raw JSON - rejected because the checkpoint must
+  validate the packet before it records evidence.
+- Regenerate a schema-v1 Cask packet - rejected because the schema-v2 packet is
+  linked to the authoritative primary publication lifecycle and direct-install
+  attestation.
