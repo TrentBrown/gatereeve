@@ -123,12 +123,12 @@ release without rebuilding or republishing its primary artifacts.
 
 ## I-10 - Preserve Cask continuation across skipped resume ancestors
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1h
 - **Plan steps:** P5
 - **Rubric criteria:** R5, R6
 - **Depends on:** I-9
-- **PR:** pending
+- **PR:** [#58](https://github.com/TrentBrown/gatereeve/pull/58)
 
 Give Cask finalization an explicit status guard so a successful direct-install
 attestation continues even when earlier same-run jobs were intentionally

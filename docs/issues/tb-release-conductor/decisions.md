@@ -387,4 +387,4 @@ lacked the explicit status guard used by the surrounding recovery jobs.
 - Remove the success check entirely - rejected because Cask finalization must
   remain blocked unless the exact direct-install attestation succeeds.
 
-**Promoted:** 2026-09-02.
+**Promoted:** 2026-09-02. PR: https://github.com/TrentBrown/gatereeve/pull/58.
