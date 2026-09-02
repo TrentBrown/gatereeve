@@ -361,7 +361,7 @@ lacked the explicit status guard used by the surrounding recovery jobs.
 
 ## [14] Validate linked Cask state through the schema-v2 workspace verifier
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

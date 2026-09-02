@@ -136,12 +136,12 @@ skipped during resume discovery.
 
 ## I-11 - Record schema-v2 Cask finalization state
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1h
 - **Plan steps:** P5
 - **Rubric criteria:** R4, R5, R6
 - **Depends on:** I-10
-- **PR:** -
+- **PR:** [#59](https://github.com/TrentBrown/gatereeve/pull/59)
 
 Validate the finalized linked Cask packet with the existing dependency-free
 schema-v2 workspace verifier before recording its exact plan digest, and
