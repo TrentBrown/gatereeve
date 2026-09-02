@@ -27,7 +27,23 @@ test('release phases are reusable-only production units with no manual dispatch'
 
 test('protected preparation binds the conductor source and remains publication-free', async () => {
   const source = await workflow('coordinated-release-prepare.yml');
+  const conductor = await workflow('release-conductor.yml');
   assert.match(source, /source_commit:[\s\S]*required: true[\s\S]*type: string/);
+  for (const secret of [
+    'GATEREEVE_DEVELOPER_ID_P12_BASE64',
+    'GATEREEVE_DEVELOPER_ID_P12_PASSWORD',
+    'GATEREEVE_NOTARY_KEY_P8_BASE64',
+  ]) {
+    assert.match(source, new RegExp(`${secret}:\\n\\s+required: true`));
+  }
+  const preparationCall = conductor.slice(
+    conductor.indexOf('  prepare-trust:'),
+    conductor.indexOf('  recover-trust:'),
+  );
+  assert.match(preparationCall, /secrets:\n\s+GATEREEVE_DEVELOPER_ID_P12_BASE64: \$\{\{ secrets\.GATEREEVE_DEVELOPER_ID_P12_BASE64 \}\}/);
+  assert.match(preparationCall, /GATEREEVE_DEVELOPER_ID_P12_PASSWORD: \$\{\{ secrets\.GATEREEVE_DEVELOPER_ID_P12_PASSWORD \}\}/);
+  assert.match(preparationCall, /GATEREEVE_NOTARY_KEY_P8_BASE64: \$\{\{ secrets\.GATEREEVE_NOTARY_KEY_P8_BASE64 \}\}/);
+  assert.doesNotMatch(preparationCall, /secrets: inherit/);
   assert.match(source, /ref: \$\{\{ inputs\.source_commit \}\}\n\s+fetch-depth: 0/);
   assert.match(source, /git merge-base --is-ancestor "\$SOURCE_COMMIT" refs\/remotes\/origin\/main/);
   assert.match(source, /environment:\n\s+name: release-trust/);
@@ -41,6 +57,14 @@ test('protected preparation binds the conductor source and remains publication-f
 
 test('bounded recovery reuses retained trust bytes without signing authority', async () => {
   const source = await workflow('coordinated-release-trust-recover.yml');
+  const conductor = await workflow('release-conductor.yml');
+  assert.match(source, /GATEREEVE_NOTARY_KEY_P8_BASE64:\n\s+required: true/);
+  const recoveryCall = conductor.slice(
+    conductor.indexOf('  recover-trust:'),
+    conductor.indexOf('  trusted-evidence:'),
+  );
+  assert.match(recoveryCall, /secrets:\n\s+GATEREEVE_NOTARY_KEY_P8_BASE64: \$\{\{ secrets\.GATEREEVE_NOTARY_KEY_P8_BASE64 \}\}/);
+  assert.doesNotMatch(recoveryCall, /DEVELOPER_ID|secrets: inherit/);
   assert.match(source, /release-conductor\\\.yml/);
   assert.match(source, /\["success", "failure"\]\.includes\(run\.conclusion\)/);
   assert.match(source, /notarytool history/);

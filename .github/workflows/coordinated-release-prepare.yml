@@ -11,6 +11,13 @@ on:
         description: Exact reviewed main commit pinned by the Release Conductor
         required: true
         type: string
+    secrets:
+      GATEREEVE_DEVELOPER_ID_P12_BASE64:
+        required: true
+      GATEREEVE_DEVELOPER_ID_P12_PASSWORD:
+        required: true
+      GATEREEVE_NOTARY_KEY_P8_BASE64:
+        required: true
 
 permissions:
   actions: read
