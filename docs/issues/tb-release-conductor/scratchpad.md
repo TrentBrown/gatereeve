@@ -256,8 +256,9 @@ packaging
 Apply the existing three-attempt exponential-backoff helper to both `hdiutil
 create` and `hdiutil verify`, and recognize only Apple's two observed resource
 contention messages: `Resource busy` and `Resource temporarily unavailable`.
-All other creation, integrity, and signing errors continue to fail on the first
-attempt.
+Remove the exact destination before each creation attempt so a partial failed
+image cannot poison the retry. All other creation, integrity, and signing
+errors continue to fail on the first attempt.
 
 **Triggered by:** PR #54's universal macOS package failed during `hdiutil
 create` with `Resource busy`, providing the concrete evidence that the earlier

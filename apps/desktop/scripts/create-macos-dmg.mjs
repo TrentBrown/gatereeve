@@ -20,8 +20,8 @@ export async function createMacosDmg(options) {
   }
   const run = options.run ?? ((file, args) => execFileAsync(file, args));
   const sourceRoot = await mkdtemp(join(tmpdir(), 'gatereeve-dmg-source-'));
-  await mkdir(resolve(options.outputPath, '..'), { recursive: true });
-  await rm(options.outputPath, { force: true });
+  const outputPath = resolve(options.outputPath);
+  await mkdir(resolve(outputPath, '..'), { recursive: true });
   try {
     await run('/usr/bin/ditto', [
       resolve(options.applicationPath),
@@ -36,11 +36,14 @@ export async function createMacosDmg(options) {
       MACOS_PRODUCT.volumeName,
       '-srcfolder',
       sourceRoot,
-      resolve(options.outputPath),
-    ], { run });
-    await verifyDmgWithRetry(resolve(options.outputPath), { run });
+      outputPath,
+    ], {
+      run,
+      beforeAttempt: () => rm(outputPath, { force: true }),
+    });
+    await verifyDmgWithRetry(outputPath, { run });
   } finally {
     await rm(sourceRoot, { recursive: true, force: true });
   }
-  return resolve(options.outputPath);
+  return outputPath;
 }

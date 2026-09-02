@@ -23,6 +23,7 @@ export function isTransientHdiutilResourceError(error) {
  *   sleep?: (milliseconds: number) => Promise<void>,
  *   maxAttempts?: number,
  *   initialDelayMs?: number,
+ *   beforeAttempt?: (details: {attempt: number}) => Promise<void> | void,
  *   onRetry?: (details: {attempt: number, delayMs: number, error: unknown}) => void,
  * }} [options]
  */
@@ -46,6 +47,7 @@ export async function runHdiutilWithRetry(arguments_, options = {}) {
   }
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
+      await options.beforeAttempt?.({ attempt });
       return await run('/usr/bin/hdiutil', arguments_);
     } catch (error) {
       if (!isTransientHdiutilResourceError(error) || attempt === maxAttempts) throw error;
