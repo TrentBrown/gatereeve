@@ -52,11 +52,23 @@ test('bounded recovery reuses retained trust bytes without signing authority', a
 });
 
 test('finalization and rehearsals are read-only while publication retains its own gate', async () => {
+  const conductor = await workflow('release-conductor.yml');
   const finalization = await workflow('coordinated-release-finalize.yml');
   assert.match(finalization, /release-conductor\\\.yml/);
   assert.match(finalization, /finalize-hosted/);
   assert.match(finalization, /include-hidden-files: true/);
   assert.doesNotMatch(finalization, /^\s+environment:|contents: write|pull-requests: write/m);
+
+  const primaryRehearsalCall = conductor.slice(
+    conductor.indexOf('  primary-rehearse:'),
+    conductor.indexOf('  primary-rehearsed-state:'),
+  );
+  assert.match(primaryRehearsalCall, /mode: dry-run/);
+  assert.match(
+    primaryRehearsalCall,
+    /permissions:\n\s+actions: read\n\s+contents: write\n\s+pull-requests: write/,
+    'the caller must admit the reusable workflow publication job during GitHub graph validation',
+  );
 
   for (const name of ['coordinated-release-publish.yml', 'homebrew-cask-publish.yml']) {
     const source = await workflow(name);
