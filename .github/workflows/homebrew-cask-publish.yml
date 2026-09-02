@@ -27,6 +27,9 @@ on:
         description: Human Cask approver identity; required only for publication
         required: false
         type: string
+    secrets:
+      GATEREEVE_PUBLICATION_TOKEN:
+        required: false
 
 permissions:
   actions: read
