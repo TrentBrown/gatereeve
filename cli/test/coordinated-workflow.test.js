@@ -166,6 +166,12 @@ test('Release Conductor is the sole start/resume entry point and derives every p
     resumeDiscovery,
     /test "\$\(git rev-parse HEAD\)" = "\$\(git rev-parse refs\/remotes\/origin\/main\)"/,
   );
+  const primaryPublishedState = source.slice(
+    source.indexOf('  primary-published-state:'),
+    source.indexOf('  waiting-for-direct-install:'),
+  );
+  assert.match(primaryPublishedState, /read-primary-publication-receipt\.js/);
+  assert.doesNotMatch(primaryPublishedState, /record\.candidates\.desktop/);
 });
 
 test('state checkpoint action always emits a dashboard and immutable retained artifact', async () => {

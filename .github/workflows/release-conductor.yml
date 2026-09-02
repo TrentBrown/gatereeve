@@ -501,15 +501,9 @@ jobs:
           path: ${{ runner.temp }}/primary-publication
       - id: receipt
         run: |
-          node -e '
-            const fs = require("node:fs");
-            const crypto = require("node:crypto");
-            const bytes = fs.readFileSync(process.argv[1]);
-            const record = JSON.parse(bytes);
-            const digest = crypto.createHash("sha256").update(bytes).digest("hex");
-            process.stdout.write("record_sha256=" + digest + "\n");
-            process.stdout.write("public_dmg_sha256=" + record.candidates.desktop.artifact.sha256 + "\n");
-          ' "$RUNNER_TEMP/primary-publication/release-record.json" >> "$GITHUB_OUTPUT"
+          node cli/scripts/read-primary-publication-receipt.js \
+            "$RUNNER_TEMP/primary-publication/release-record.json" \
+            >> "$GITHUB_OUTPUT"
       - id: state
         uses: ./.github/actions/release-conductor-record
         with:
