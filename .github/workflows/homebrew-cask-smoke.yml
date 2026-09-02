@@ -57,11 +57,20 @@ jobs:
           if [[ "$CASK_PUBLICATION_RUN_ID" != "$GITHUB_RUN_ID" ]]; then
             node -e '
               const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+              const pullRequestRehearsal = process.env.GITHUB_EVENT_NAME === "pull_request";
+              const validConclusion = pullRequestRehearsal
+                ? run.conclusion === "success"
+                : ["success", "failure", "cancelled"].includes(run.conclusion);
+              const validWorkflow = pullRequestRehearsal
+                ? /homebrew-cask-publish\.yml$/u.test(run.path)
+                : /release-conductor\.yml$/u.test(run.path);
               if (run.event !== "workflow_dispatch"
-                || !["success", "failure", "cancelled"].includes(run.conclusion)
+                || !validConclusion
                 || run.head_branch !== "main"
-                || !/release-conductor\.yml$/u.test(run.path)) {
-                throw new Error("Cask smoke requires a completed Release Conductor run");
+                || !validWorkflow) {
+                throw new Error(pullRequestRehearsal
+                  ? "PR Cask smoke requires the pinned successful legacy publication run"
+                  : "Cask smoke requires a completed Release Conductor run");
               }
             ' "$RUNNER_TEMP/cask-publication-run.json"
           fi
@@ -115,11 +124,20 @@ jobs:
           if [[ "$CASK_PUBLICATION_RUN_ID" != "$GITHUB_RUN_ID" ]]; then
             node -e '
               const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+              const pullRequestRehearsal = process.env.GITHUB_EVENT_NAME === "pull_request";
+              const validConclusion = pullRequestRehearsal
+                ? run.conclusion === "success"
+                : ["success", "failure", "cancelled"].includes(run.conclusion);
+              const validWorkflow = pullRequestRehearsal
+                ? /homebrew-cask-publish\.yml$/u.test(run.path)
+                : /release-conductor\.yml$/u.test(run.path);
               if (run.event !== "workflow_dispatch"
-                || !["success", "failure", "cancelled"].includes(run.conclusion)
+                || !validConclusion
                 || run.head_branch !== "main"
-                || !/release-conductor\.yml$/u.test(run.path)) {
-                throw new Error("Cask smoke requires a completed Release Conductor run");
+                || !validWorkflow) {
+                throw new Error(pullRequestRehearsal
+                  ? "PR Cask smoke requires the pinned successful legacy publication run"
+                  : "Cask smoke requires a completed Release Conductor run");
               }
             ' "$RUNNER_TEMP/cask-publication-run.json"
           fi

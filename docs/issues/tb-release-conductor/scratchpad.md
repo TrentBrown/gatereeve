@@ -107,3 +107,32 @@ topic-branch dispatch, allowing `resume` to use unreviewed conductor code.
 - Allow any branch whose source commit is an ancestor of main - rejected
   because that validates released product bytes, not the conductor code that
   is asking for authority.
+
+## [5] Separate PR Cask rehearsal provenance from production provenance
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** `.github/workflows/homebrew-cask-smoke.yml` pull-request
+smoke and conductor-called production smoke
+
+Allow the `pull_request` rehearsal to validate and consume the pinned last
+successful legacy `homebrew-cask-publish.yml` artifact, because that path is
+read-only and exists to regression-test installation before the first conductor
+release. For `workflow_call`, require the supplied run to be the current owning
+Release Conductor run, preserving strict production provenance. The
+event-specific distinction must be explicit in the guard rather than weakening
+both paths.
+
+**Triggered by:** PR #52 Homebrew Cask Smoke rejected the last successful
+pre-conductor publication run after the production provenance guard was
+tightened.
+
+**Alternatives considered:**
+- Require a conductor artifact for PR smoke - rejected because it is impossible
+  before the conductor is merged and run.
+- Disable PR Cask smoke - rejected because it loses native install regression
+  coverage.
+- Accept either workflow for every event - rejected because it weakens
+  production provenance.

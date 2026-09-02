@@ -91,6 +91,8 @@ test('Cask finalization and smoke bind conductor runs and exact public artifacts
   assert.equal((smoke.match(/linked-homebrew-cask-result/g) ?? []).length, 2);
   assert.equal((smoke.match(/actions\/download-artifact@v8/g) ?? []).length, 2);
   assert.equal((smoke.match(/release-conductor\\\.yml/g) ?? []).length, 2);
+  assert.equal((smoke.match(/homebrew-cask-publish\\\.yml/g) ?? []).length, 2);
+  assert.equal((smoke.match(/GITHUB_EVENT_NAME === "pull_request"/g) ?? []).length, 2);
   assert.match(smoke, /runner: macos-15\n/);
   assert.match(smoke, /runner: macos-15-intel/);
   assert.match(smoke, /--public-tap/);
