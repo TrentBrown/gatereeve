@@ -357,4 +357,4 @@ lifecycle record and stopped before recording `PRIMARY_PUBLISHED`.
 - Rebuild or republish RC.11 - rejected because every primary surface already
   converged successfully and the retained result artifact is complete.
 
-**Promoted:** 2026-09-02.
+**Promoted:** 2026-09-02. PR: https://github.com/TrentBrown/gatereeve/pull/57.

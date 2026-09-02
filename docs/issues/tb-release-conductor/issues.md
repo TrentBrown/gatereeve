@@ -110,12 +110,12 @@ verification failure without masking invalid packages.
 
 ## I-9 - Recover schema-v2 primary publication state
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1h
 - **Plan steps:** P4, P5
 - **Rubric criteria:** R4, R5
 - **Depends on:** I-4, I-5
-- **PR:** pending
+- **PR:** [#57](https://github.com/TrentBrown/gatereeve/pull/57)
 
 Read the exact public DMG identity from the published schema-v2 lifecycle,
 regression-test the schema boundary exposed by RC.11, and resume the retained
