@@ -132,6 +132,15 @@ test('Cask finalization and smoke bind conductor runs and exact public artifacts
   assert.match(finalization, /prepare-cask-hosted/);
   assert.doesNotMatch(finalization, /^\s+environment:|contents: write|pull-requests: write/m);
 
+  const caskFinalizedState = conductor.slice(
+    conductor.indexOf('  cask-finalized-state:'),
+    conductor.indexOf('  cask-rehearse:'),
+  );
+  assert.match(caskFinalizedState, /verifyHomebrewCaskWorkspaceV2/);
+  assert.match(caskFinalizedState, /plugin\/homebrew-cask-v2\.js/);
+  assert.doesNotMatch(caskFinalizedState, /plugin\/homebrew-cask\.js/);
+  assert.doesNotMatch(caskFinalizedState, /cli\/bin\/workflow\.js/);
+
   const smoke = await workflow('homebrew-cask-smoke.yml');
   assert.equal((smoke.match(/linked-homebrew-cask-result/g) ?? []).length, 2);
   assert.equal((smoke.match(/actions\/download-artifact@v8/g) ?? []).length, 2);

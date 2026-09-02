@@ -628,9 +628,12 @@ jobs:
       - id: plan
         run: |
           node --input-type=module -e '
-            import { readHomebrewCaskRecord, homebrewCaskPlanSha256 } from "./cli/src/plugin/homebrew-cask.js";
-            const record = await readHomebrewCaskRecord(process.argv[1]);
-            process.stdout.write("plan_sha256=" + homebrewCaskPlanSha256(record) + "\n");
+            import {
+              homebrewCaskPlanSha256V2,
+              verifyHomebrewCaskWorkspaceV2,
+            } from "./cli/src/plugin/homebrew-cask-v2.js";
+            const result = await verifyHomebrewCaskWorkspaceV2(process.argv[1]);
+            process.stdout.write("plan_sha256=" + homebrewCaskPlanSha256V2(result.record) + "\n");
           ' "$RUNNER_TEMP/homebrew-cask/cask-record.json" >> "$GITHUB_OUTPUT"
       - id: state
         uses: ./.github/actions/release-conductor-record

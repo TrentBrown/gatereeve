@@ -133,3 +133,17 @@ release without rebuilding or republishing its primary artifacts.
 Give Cask finalization an explicit status guard so a successful direct-install
 attestation continues even when earlier same-run jobs were intentionally
 skipped during resume discovery.
+
+## I-11 - Record schema-v2 Cask finalization state
+
+- **Status:** in-review
+- **Estimate:** 1h
+- **Plan steps:** P5
+- **Rubric criteria:** R4, R5, R6
+- **Depends on:** I-10
+- **PR:** [#59](https://github.com/TrentBrown/gatereeve/pull/59)
+
+Validate the finalized linked Cask packet with the existing dependency-free
+schema-v2 workspace verifier before recording its exact plan digest, and
+regression-test that the conductor checkpoint cannot fall back to the legacy
+schema-v1 reader or a CLI entrypoint that needs an uninstalled dependency.
