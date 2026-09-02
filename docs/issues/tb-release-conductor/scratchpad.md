@@ -243,3 +243,30 @@ production guard and fail later on its intentionally nonexistent fixture.
   should retain the negative authorization regression coverage.
 - Replace the nonexistent fixture with a valid release record - rejected
   because that would test a different, authority-bearing path.
+
+## [10] Extend bounded hdiutil retries to observed creation contention
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** macOS DMG creation in pull-request CI and trusted release
+packaging
+
+Apply the existing three-attempt exponential-backoff helper to both `hdiutil
+create` and `hdiutil verify`, and recognize only Apple's two observed resource
+contention messages: `Resource busy` and `Resource temporarily unavailable`.
+All other creation, integrity, and signing errors continue to fail on the first
+attempt.
+
+**Triggered by:** PR #54's universal macOS package failed during `hdiutil
+create` with `Resource busy`, providing the concrete evidence that the earlier
+verify-only retry decision required.
+
+**Alternatives considered:**
+- Rerun the failed job without changing the implementation - rejected because
+  the same transient can abort trusted RC packaging.
+- Retry the entire package job - rejected because it repeats universal app
+  assembly and makes the failing operation less visible.
+- Retry every `hdiutil` failure - rejected because invalid inputs and corrupted
+  images must remain immediate failures.
