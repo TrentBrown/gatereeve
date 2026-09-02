@@ -327,3 +327,34 @@ boundary.
   explicit secret-passing boundary and the existing names are already valid.
 
 **Promoted:** 2026-09-02. PR: https://github.com/TrentBrown/gatereeve/pull/55.
+
+---
+
+## Read primary publication identity from the schema-v2 lifecycle
+
+**Confidence:** HIGH
+
+**Blast Radius:** Release Conductor state checkpoint immediately after hosted
+primary publication
+
+Require the hosted publication result to be a published schema-v2 lifecycle,
+then read the exact public DMG digest from its single `distribution-finalized`
+stage. Keep the raw release-record SHA-256 as the immutable publication receipt
+identity. Put this logic in an executable, unit-tested reader instead of an
+inline workflow expression.
+
+**Triggered by:** RC.11 published all primary surfaces successfully, but the
+following `primary-published-state` job attempted to read the old schema-v1
+projection path `record.candidates.desktop.artifact.sha256` from the schema-v2
+lifecycle record and stopped before recording `PRIMARY_PUBLISHED`.
+
+**Alternatives considered:**
+- Restore a schema-v1 record as the publication result - rejected because the
+  schema-v2 lifecycle and receipt journal are the authoritative resumable
+  publication evidence.
+- Read the nested stage with another inline `node -e` block - rejected because
+  the production schema mismatch needs executable regression coverage.
+- Rebuild or republish RC.11 - rejected because every primary surface already
+  converged successfully and the retained result artifact is complete.
+
+**Promoted:** 2026-09-02.
