@@ -1,7 +1,7 @@
 # Judge Evaluation - PR #52
 
 **Verdict:** PASS
-**Evaluation basis:** approved `spec.md` and pinned diff `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..7a719614977f9c3c734d64c6fd2680ca08db2402`
+**Evaluation basis:** approved `spec.md` and pinned diff `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..a89b0bb534bf8c9e276cd67b2b4bf0fe9027dbbd`
 
 ## Rubric Evaluation
 
@@ -15,11 +15,12 @@
 | R6 | Direct install and Cask completion | PASS | Resume accepts the authenticated checkbox only from `WAITING_FOR_DIRECT_INSTALL`, binds it to actor/time/public-DMG digest, and requires all four Cask smoke artifacts for completion. Event-specific smoke provenance preserves a read-only PR rehearsal without broadening the conductor-called production path. |
 | R7 | Metadata-only CI | PASS | Only the exact generated Desktop metadata path bypasses full CI, while the publisher enforces deterministic branch/base/sole-path/exact-byte/digest transport. |
 | R8 | Runtime and lifecycle verification | PASS | Node 24 and current action majors are used, the incompatible dependency is removed, and the local, container, universal-package, packaged-runtime, and Cask matrices pass without manufacturing protected conductor evidence. |
+| R9 | Review automation efficiency | PASS | The reducer is fail-closed on empty, unsafe, source, spec, plan, or unknown paths and additionally requires exact predecessor workflow success. Hosted source and evidence-only runs demonstrate both branches. PR concurrency cannot group non-PR runs, BuildKit/npm caching preserves `npm ci`, and invalid DMGs are never retried. |
 
 ## Scope Check
 
 - **Scope creep found:** No.
-- **Details:** Dependency replacement, documentation changes, and CI-path narrowing are all explicitly required by AC7/AC8 or necessary to remove alternate publication paths.
+- **Details:** Dependency replacement, documentation changes, CI-path narrowing, and the four review improvements are explicitly authorized by AC7-AC9 and the approved 2026-09-02 amendment.
 
 ## Gap Check
 

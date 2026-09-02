@@ -1,7 +1,7 @@
 # Code Review - PR #52
 
 **Verdict:** PASS
-**Diff:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..7a719614977f9c3c734d64c6fd2680ca08db2402`
+**Diff:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..a89b0bb534bf8c9e276cd67b2b4bf0fe9027dbbd`
 
 ## Findings
 
@@ -11,7 +11,8 @@ The review examined the production trigger topology, GitHub expression/job
 routing, protected permission boundaries, cross-run artifact provenance,
 state-chain validation, discovery ambiguity handling, same-stage failure
 recording, direct-install attestation, metadata PR transport, CLI mutation
-guards, dependency changes, and tests.
+guards, dependency changes, exact-predecessor CI reduction, concurrency groups,
+BuildKit cache semantics, bounded DMG retry classification, and tests.
 
 Four issues found during superseded boundary attempts or GitHub integration
 were fixed before this review was repinned:
@@ -29,6 +30,11 @@ were fixed before this review was repinned:
    discovery CLI test creates its own minimal Git repository instead of
    depending on excluded host `.git` metadata.
 
+The amended review also confirmed that evidence-only reduction cannot originate
+from a failed or unknown head, every non-allowlisted delta falls back to full
+coverage, `main` and reusable release calls use unique concurrency groups, and
+checksum/signature/invalid-image errors retain immediate failure semantics.
+
 ## Residual Risks and Test Gaps
 
 - GitHub protected environments, Apple notarization, release publication, and
@@ -41,3 +47,6 @@ were fixed before this review was repinned:
 - State artifacts have a 30-day retention window. Resume correctly fails
   closed after expiry, so an abandoned release may require a new RC rather
   than indefinite recovery.
+- BuildKit caching is a performance optimization rather than correctness
+  evidence; deterministic `npm ci`, the container command, and full hosted
+  execution remain authoritative when a cache is cold or unavailable.

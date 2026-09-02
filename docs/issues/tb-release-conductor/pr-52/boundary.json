@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "scope": "feature-final",
   "featureId": "tb-release-conductor",
-  "repositoryAlias": "repository",
+  "repositoryAlias": "product",
   "packetId": "pr-52",
   "pullRequest": {
     "repository": "TrentBrown/gatereeve",
@@ -13,10 +13,10 @@
     "baseRefName": "main",
     "baseRefOid": "4744edf06e40c7ba9575855f9aa80c8cc612bbbc",
     "headRefName": "tb-release-conductor",
-    "headRefOid": "7a719614977f9c3c734d64c6fd2680ca08db2402"
+    "headRefOid": "a89b0bb534bf8c9e276cd67b2b4bf0fe9027dbbd"
   },
   "mergeBaseSha": "4744edf06e40c7ba9575855f9aa80c8cc612bbbc",
-  "evaluatedSourceSha": "7a719614977f9c3c734d64c6fd2680ca08db2402",
+  "evaluatedSourceSha": "a89b0bb534bf8c9e276cd67b2b4bf0fe9027dbbd",
   "featureBaseSha": "4744edf06e40c7ba9575855f9aa80c8cc612bbbc",
   "applicability": {
     "specEvaluation": true,

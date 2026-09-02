@@ -2,7 +2,7 @@
 
 **Verdict:** PASS
 **Scope:** feature-final
-**Diff:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..7a719614977f9c3c734d64c6fd2680ca08db2402`
+**Diff:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc..a89b0bb534bf8c9e276cd67b2b4bf0fe9027dbbd`
 
 ## Acceptance Criteria
 
@@ -15,7 +15,8 @@
 | AC5 | PASS | Same-stage failure records preserve the prior authority boundary; discovery accepts completed artifacts from failed/cancelled runs, recovery uses retained run IDs, and publication implementations retain idempotent receipts. The composite action creates a fresh checkpoint directory for every record. |
 | AC6 | PASS | Cask finalization requires an actor/time attestation bound to `publicDmgSha256`; state validation requires four unique native/public smoke artifacts before `COMPLETE`. Pull-request smoke is explicitly read-only and may consume the pinned last successful legacy artifact, while reusable production smoke remains conductor-bound. Real execution of the new conductor is correctly deferred to post-merge acceptance by AC8. |
 | AC7 | PASS | `.github/workflows/plugin-ci.yml:3-9` ignores only the exact Desktop metadata path. Publication tests reject any extra PR path and still verify deterministic branch, base, exact bytes, and digest. |
-| AC8 | PASS | Official actions use Node-24-compatible majors, jobs use Node 24, and direct `commander@11.1.0` replaces the exact-obsolete-Node `qp-cli-core`. Actionlint, 192 CLI tests, 158 Desktop tests, 94 Python tests, deterministic builds, audits, both Ubuntu containers, universal packaging, packaged Apple Silicon/Intel launch, and Cask smoke pass. |
+| AC8 | PASS | Official actions use Node-24-compatible majors, jobs use Node 24, and direct `commander@11.1.0` replaces the exact-obsolete-Node `qp-cli-core`. Actionlint, 196 CLI tests, 160 Desktop tests, 94 Python tests, deterministic builds, audits, both Ubuntu containers, universal packaging, packaged Apple Silicon/Intel launch, and Cask smoke pass. |
+| AC9 | PASS | `.github/actions/pr-ci-scope/action.yml` accepts only an ancestral PR synchronize delta classified by `ci/review-artifact-change.mjs` and requires a successful same-workflow run for the exact predecessor SHA. Runs 33587083250/33587083142 prove the reduced path; runs 33586666771/33586666770 prove source changes remain full. PR-only concurrency uses unique run IDs for non-PR work, BuildKit exports scoped caches with a locked npm mount, and `hdiutil-retry.mjs` retries only the named transient error three times at most. |
 
 ## Rubric Evaluation
 
@@ -29,6 +30,7 @@
 | R6 | PASS | Exact-DMG attestation and mandatory four-part smoke completion. |
 | R7 | PASS | Exact metadata-only CI exception with sealed publisher validation. |
 | R8 | PASS | Supported runtime/action majors and complete pre-merge verification matrix. |
+| R9 | PASS | Exact-predecessor review-artifact chaining, PR-only cancellation, deterministic cache reuse, and bounded transient-only DMG retry all have local and hosted evidence. |
 
 ## Definition of Done
 

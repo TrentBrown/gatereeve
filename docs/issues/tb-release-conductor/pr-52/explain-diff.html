@@ -32,7 +32,7 @@
 </head>
 <body>
 <main>
-  <p class="eyebrow">Pinned explanation · PR #52 · 7a71961</p>
+  <p class="eyebrow">Pinned explanation · PR #52 · a89b0bb</p>
   <h1>One release, one conductor</h1>
   <p class="lead">GateReeve used to ask its operator to stitch together several GitHub workflows and carry run IDs and digests from one phase to the next. This change turns those phases into instruments played by one conductor: a single <em>start</em> or <em>resume</em> operation, backed by an immutable chain of evidence.</p>
 
@@ -98,6 +98,17 @@
     <p>Official actions move to Node-24-compatible majors, jobs use Node 24, and the exact-Node-23 <code>qp-cli-core</code> dependency is replaced by direct Commander plus a small local help-tree renderer. Full CI ignores only the sealed Desktop metadata file, while the publication code still rejects any PR containing an extra path or altered byte.</p>
     <h3>7. Rehearsal provenance stays distinct from production</h3>
     <p>Until the first conductor release exists, pull-request Cask smoke uses the pinned last successful legacy publication artifact for read-only regression testing. The event-specific guard does not broaden production: a <code>workflow_call</code> still accepts only Release Conductor provenance. Container acceptance is likewise hermetic: it copies the workflow contract it reads and creates a tiny Git repository for ancestry tests instead of importing the host checkout’s <code>.git</code> directory.</p>
+    <h3>8. Review evidence no longer rebuilds the product</h3>
+    <p>A pull request is a cumulative diff, so ordinary path filters kept seeing the feature source even when the newest commit changed only review records. The new scope action examines the synchronize event’s exact predecessor-to-current delta. It accepts only a narrow lifecycle-artifact allowlist, then asks GitHub whether the same workflow succeeded for that exact predecessor SHA. Missing success, an unknown path, a requirement or plan change, or a non-ancestral update all choose the full matrix.</p>
+    <div class="diagram flow" aria-label="Evidence-only validation chain">
+      <div class="node state"><strong>source head</strong>full CI succeeds</div>
+      <div class="node"><strong>evidence delta</strong>allowlist only</div>
+      <div class="node"><strong>same workflow</strong>predecessor lookup</div>
+      <div class="node state"><strong>fast path</strong>records validated</div>
+    </div>
+    <p>This forms a transitive chain back to real product coverage. It cannot turn a failing source head green by omission. Superseded work is cancelled only within a pull-request group; <code>main</code> and reusable release calls use their unique run IDs. BuildKit exports per-Ubuntu caches, and a locked npm cache mount accelerates deterministic <code>npm ci</code> layers.</p>
+    <h3>9. DMG verification distinguishes contention from corruption</h3>
+    <p>Both DMG verification call sites now share one small retry helper. It retries only Apple’s literal <code>Resource temporarily unavailable</code> result, at most three attempts with one- and two-second backoff. A checksum mismatch, invalid image, signature failure, or any other error is returned immediately; the last transient attempt also preserves the original error.</p>
   </section>
 
   <section id="quiz">
@@ -106,8 +117,8 @@
     <div class="quiz" data-answer="b"><strong>1. Why is a failed publication represented by another record at the same stage?</strong><button data-choice="a">To let the workflow overwrite the failed evidence later</button><button data-choice="b">To preserve the attempt without claiming authority advanced</button><button data-choice="c">To allow the operator to select any later stage</button><p class="feedback"></p></div>
     <div class="quiz" data-answer="c"><strong>2. What does the operator provide when resuming?</strong><button data-choice="a">The preparation run ID and both plan digests</button><button data-choice="b">The latest state artifact name and publication receipt</button><button data-choice="c">The release tag, plus the install checkbox only at the attestation boundary</button><p class="feedback"></p></div>
     <div class="quiz" data-answer="a"><strong>3. Which work remains behind protected environments?</strong><button data-choice="a">Apple credential use and the two public mutations</button><button data-choice="b">All rehearsals and state rendering</button><button data-choice="c">Only the final Cask smoke tests</button><p class="feedback"></p></div>
-    <div class="quiz" data-answer="b"><strong>4. Why must resume itself execute from exact current main?</strong><button data-choice="a">Because the released product source must always be the newest commit</button><button data-choice="b">Because reviewed conductor code interprets retained state and requests authority</button><button data-choice="c">Because GitHub cannot download artifacts from older commits</button><p class="feedback"></p></div>
-    <div class="quiz" data-answer="c"><strong>5. What makes COMPLETE legal?</strong><button data-choice="a">A successful primary publication and direct-install checkbox</button><button data-choice="b">A Cask PR merged by the deterministic publisher</button><button data-choice="c">A valid chain through SMOKE_VERIFIED with four native/public smoke artifacts</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="b"><strong>4. When may an evidence-only commit skip the product matrix?</strong><button data-choice="a">Whenever every changed path is below docs/issues</button><button data-choice="b">Only when its exact allowlisted delta follows a successful run of the same workflow for the predecessor SHA</button><button data-choice="c">Whenever a prior commit anywhere in the pull request passed CI</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="c"><strong>5. Which hdiutil failure receives a retry?</strong><button data-choice="a">Any nonzero verify result, because verification is idempotent</button><button data-choice="b">Checksum and signature failures, but not mount failures</button><button data-choice="c">Only the named transient resource-unavailable result, within the three-attempt bound</button><p class="feedback"></p></div>
   </section>
 </main>
 <script>
