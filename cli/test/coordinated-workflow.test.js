@@ -136,8 +136,10 @@ test('Cask finalization and smoke bind conductor runs and exact public artifacts
     conductor.indexOf('  cask-finalized-state:'),
     conductor.indexOf('  cask-rehearse:'),
   );
-  assert.match(caskFinalizedState, /inspect-cask-hosted/);
+  assert.match(caskFinalizedState, /verifyHomebrewCaskWorkspaceV2/);
+  assert.match(caskFinalizedState, /plugin\/homebrew-cask-v2\.js/);
   assert.doesNotMatch(caskFinalizedState, /plugin\/homebrew-cask\.js/);
+  assert.doesNotMatch(caskFinalizedState, /cli\/bin\/workflow\.js/);
 
   const smoke = await workflow('homebrew-cask-smoke.yml');
   assert.equal((smoke.match(/linked-homebrew-cask-result/g) ?? []).length, 2);

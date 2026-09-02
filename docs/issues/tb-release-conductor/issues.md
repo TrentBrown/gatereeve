@@ -143,6 +143,7 @@ skipped during resume discovery.
 - **Depends on:** I-10
 - **PR:** -
 
-Validate the finalized linked Cask packet with the existing schema-v2 hosted
-inspection command before recording its exact plan digest, and regression-test
-that the conductor checkpoint cannot fall back to the legacy schema-v1 reader.
+Validate the finalized linked Cask packet with the existing dependency-free
+schema-v2 workspace verifier before recording its exact plan digest, and
+regression-test that the conductor checkpoint cannot fall back to the legacy
+schema-v1 reader or a CLI entrypoint that needs an uninstalled dependency.

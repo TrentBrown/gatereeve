@@ -359,7 +359,7 @@ lacked the explicit status guard used by the surrounding recovery jobs.
 - Remove the success check entirely - rejected because Cask finalization must
   remain blocked unless the exact direct-install attestation succeeds.
 
-## [14] Validate linked Cask state through the hosted schema-v2 command
+## [14] Validate linked Cask state through the schema-v2 workspace verifier
 
 [ ] **Promote**
 
@@ -368,9 +368,10 @@ lacked the explicit status guard used by the surrounding recovery jobs.
 **Blast Radius:** Release Conductor checkpoint immediately after linked
 Homebrew Cask finalization
 
-Run the existing read-only `inspect-cask-hosted` command against the complete
-downloaded packet and record the plan digest from its schema-v2 result. Do not
-import the legacy `homebrew-cask.js` record reader at this checkpoint.
+Run the existing dependency-free `verifyHomebrewCaskWorkspaceV2` function
+against the complete downloaded packet and record the plan digest from its
+schema-v2 record. Do not import the legacy `homebrew-cask.js` record reader or
+invoke the Commander CLI entrypoint at this checkpoint.
 
 **Triggered by:** RC.11 successfully sealed a schema-v2 linked Cask packet,
 but `cask-finalized-state` imported the schema-v1 reader and rejected the valid
@@ -382,6 +383,8 @@ record before it could advance the retained conductor state.
   and current hosted release state.
 - Parse only `planSha256` from raw JSON - rejected because the checkpoint must
   validate the packet before it records evidence.
+- Invoke `inspect-cask-hosted` through the CLI - rejected because the fresh
+  checkpoint runner does not install the CLI's Commander dependency.
 - Regenerate a schema-v1 Cask packet - rejected because the schema-v2 packet is
   linked to the authoritative primary publication lifecycle and direct-install
   attestation.
