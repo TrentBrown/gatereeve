@@ -83,6 +83,15 @@ test('rejects a pre-existing publication branch with unapproved history', async 
   assert.deepEqual(github.mutations, []);
 });
 
+test('rejects an otherwise exact publication pull request with any extra path', async () => {
+  const github = new FakeGitHub();
+  github.mergeableState = 'blocked';
+  await assert.rejects(publish(github, { attempts: 1 }), /not clean and mergeable/u);
+  github.pullFiles.push({ filename: 'README.md', status: 'modified' });
+  github.pulls[0].changed_files = github.pullFiles.length;
+  await assert.rejects(publish(github), /metadata differs from the approved transport/u);
+});
+
 function publish(github, runtime = {}) {
   return publishRepositoryFileViaPullRequest({
     request: github.request,
@@ -107,6 +116,7 @@ class FakeGitHub {
   mergeableState = 'clean';
   refs = new Map();
   pulls = [];
+  pullFiles = [{ filename: path, status: 'modified' }];
   mutations = [];
 
   constructor() {
@@ -193,7 +203,7 @@ class FakeGitHub {
       new RegExp(`^repos/${repository}/pulls/(\\d+)/files\\?per_page=100$`, 'u')
     );
     if (method === 'GET' && pullFilesMatch) {
-      return [{ filename: path, status: 'modified' }];
+      return structuredClone(this.pullFiles);
     }
     const commitMatch = endpoint.match(
       new RegExp(`^repos/${repository}/git/commits/([a-f0-9]{40})$`, 'u')

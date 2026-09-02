@@ -1,0 +1,50 @@
+# Completion Report - tb-release-conductor
+
+**Pull request:** [#52](https://github.com/TrentBrown/gatereeve/pull/52)
+**Scope:** feature-final
+**Pinned source:** `a89b0bb534bf8c9e276cd67b2b4bf0fe9027dbbd`
+**Pinned base:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc`
+**Feature-record retention:** tracked; no retention decision is required.
+
+## Definition of Done
+
+- **Build status:** PASS - `bash ci/portable-acceptance.sh` built and validated deterministic Codex and Claude packages under Node 24.
+- **Lint status:** PASS - actionlint v1.7.12, workflow/document contract tests, branch-document validators, and `git diff --check` passed.
+- **Tests written:** Release Conductor state, artifact, discovery, CLI, workflow topology, metadata transport, exact review-artifact classification, local mutation boundaries, and bounded transient/non-transient DMG retry coverage.
+- **Test suite status:** PASS - 196 CLI tests, 160 Desktop tests, and 94 Python tests passed; npm audit reported zero vulnerabilities.
+- **Integration verified:** Yes - the portable acceptance suite exercises native package composition/install contracts; [Plugin CI run 33586666771](https://github.com/TrentBrown/gatereeve/actions/runs/33586666771) passed both BuildKit-backed Ubuntu container suites, universal DMG packaging, and packaged launch on Apple Silicon and Intel; [Cask run 33586666770](https://github.com/TrentBrown/gatereeve/actions/runs/33586666770) passed all four native/public checks.
+- **Evidence-only validation:** PASS - [Plugin CI run 33587083250](https://github.com/TrentBrown/gatereeve/actions/runs/33587083250) ran only governed document/journal validation, and [Cask run 33587083142](https://github.com/TrentBrown/gatereeve/actions/runs/33587083142) skipped both macOS matrices after exact predecessor success was proven.
+- **Application runs:** N/A - this change affects release automation and CLI support code, not a user-facing runtime screen or service.
+- **Pending manual verification:** After merge, start a fresh RC through `release-conductor.yml`, approve each protected deployment at its own boundary, install and launch the exact public DMG, resume with the attestation checkbox, and confirm `COMPLETE` contains Apple Silicon and Intel-via-Rosetta native/public Cask smoke evidence. These are post-merge operational acceptance checks by AC8, not missing pre-merge evidence.
+
+## Acceptance Criteria
+
+| # | Criterion | Status | Evidence |
+|---|-----------|--------|----------|
+| AC1 | Single entry point and source preflight | PASS | Only `release-conductor.yml` exposes `workflow_dispatch`; phase dispatches, tag publisher, and legacy local publication commands are removed. |
+| AC2 | Automatic ordered orchestration | PASS | Reusable workflow DAG plus state, discovery, and topology tests cover ordered derivation and mismatch rejection. |
+| AC3 | Least-privilege approval boundaries | PASS | Static workflow tests prove protected Apple trust and publication jobs, environment-free rehearsals, and scoped permissions. |
+| AC4 | Immutable state and usable status | PASS | State-chain, artifact, discovery, status JSON, and summary tests cover canonical output and corrupt/divergent rejection. |
+| AC5 | Forward-safe retry and recovery | PASS | Failure/retry records, retained trust recovery, run discovery, and idempotent publication contracts are tested; the same-stage temporary-directory regression found in review is fixed. |
+| AC6 | Attested Cask continuation and completion | PASS | Exact public-DMG actor/time binding and four-artifact completion are enforced and tested; PR smoke preserves a read-only legacy-artifact rehearsal while conductor-called smoke requires conductor provenance. Public runtime proof for the new conductor remains post-merge. |
+| AC7 | Safe generated-metadata transport | PASS | Full CI ignores only `workflow-site/releases/desktop.json`; deterministic publication rejects extra paths and mismatched bytes/base/digest. |
+| AC8 | Compatibility and verification boundaries | PASS | Official actions and jobs use Node 24, `qp-cli-core` is replaced with direct Commander plus local help rendering, and local plus GitHub-hosted suites pass on the complete matrix. |
+| AC9 | Efficient, failure-safe review automation | PASS | The allowlisted delta classifier requires the same workflow's exact predecessor SHA to have succeeded, non-PR executions remain full, PR-only concurrency cancels obsolete heads, BuildKit exports reusable layers with a locked npm cache mount, and only the named transient `hdiutil verify` error receives at most three attempts. |
+
+## Rubric
+
+| # | Criterion | Result | Scope | Notes |
+|---|-----------|--------|-------|-------|
+| R1 | Entry point and preflight | PASS | feature | Sole trigger and preflight contracts are implemented and tested. |
+| R2 | Ordered derivation | PASS | feature | All phase identities and digests are derived from pinned state. |
+| R3 | Approval isolation | PASS | feature | Only protected trust and mutation jobs receive protected authority. |
+| R4 | State and dashboard | PASS | feature | Canonical chained state projects matching JSON and Markdown status. |
+| R5 | Recovery semantics | PASS | feature | Tag-only resume reuses retained evidence and fails closed on invalid history. |
+| R6 | Direct install and Cask completion | PASS | feature | Attestation and four-part Cask smoke completion are mandatory. |
+| R7 | Metadata-only CI | PASS | feature | Exact metadata-only exception preserves full CI for every mixed PR. |
+| R8 | Runtime and lifecycle verification | PASS | feature | Node/action modernization and the complete local, container, native macOS, and Cask pre-merge matrix pass. |
+| R9 | Review automation efficiency | PASS | feature | Classifier/workflow contracts, actionlint, both hosted container builds, and transient/non-transient retry tests pass. |
+
+## Known Failures
+
+None.

@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
+import { verifyDmgWithRetry } from './hdiutil-retry.mjs';
 import { MACOS_PRODUCT } from './macos-package-contract.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -37,7 +38,7 @@ export async function createMacosDmg(options) {
       sourceRoot,
       resolve(options.outputPath),
     ]);
-    await run('/usr/bin/hdiutil', ['verify', resolve(options.outputPath)]);
+    await verifyDmgWithRetry(resolve(options.outputPath), { run });
   } finally {
     await rm(sourceRoot, { recursive: true, force: true });
   }

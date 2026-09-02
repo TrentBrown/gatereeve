@@ -23,6 +23,7 @@ import {
   coordinatedTrustFromEvidence,
   parseCodesignFacts,
 } from './apple-trust-contract.mjs';
+import { verifyDmgWithRetry } from './hdiutil-retry.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -299,7 +300,7 @@ export async function verifyDmg(options) {
       dmgPath,
     ]);
   }
-  await run('/usr/bin/hdiutil', ['verify', dmgPath]);
+  await verifyDmgWithRetry(dmgPath, { run });
   const mountRoot = await mkdtemp(join(tmpdir(), 'gatereeve-dmg-mount-'));
   let attached = false;
   try {

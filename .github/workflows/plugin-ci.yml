@@ -2,16 +2,87 @@ name: Plugin CI
 
 on:
   pull_request:
+    paths-ignore:
+      - "workflow-site/releases/desktop.json"
   push:
     branches:
       - main
 
 permissions:
+  actions: read
   contents: read
 
+concurrency:
+  group: plugin-ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  ci-scope:
+    name: Resolve CI scope
+    runs-on: ubuntu-24.04
+    outputs:
+      scope: ${{ steps.scope.outputs.scope }}
+      before: ${{ steps.scope.outputs.before }}
+      after: ${{ steps.scope.outputs.after }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - id: scope
+        uses: ./.github/actions/pr-ci-scope
+        with:
+          workflow-file: plugin-ci.yml
+
+  review-artifacts:
+    name: Review artifact validation
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'review-artifacts'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Validate the exact evidence-only delta and affected feature records
+        env:
+          BEFORE_SHA: ${{ needs.ci-scope.outputs.before }}
+          AFTER_SHA: ${{ needs.ci-scope.outputs.after }}
+        run: |
+          set -euo pipefail
+          paths_file="$RUNNER_TEMP/review-artifact-paths"
+          feature_homes="$RUNNER_TEMP/review-artifact-feature-homes"
+          git diff --check "$BEFORE_SHA" "$AFTER_SHA"
+          git diff --name-only -z "$BEFORE_SHA" "$AFTER_SHA" > "$paths_file"
+          test "$(node ci/review-artifact-change.mjs "$paths_file")" = review-artifacts
+          node ci/review-artifact-change.mjs --feature-homes "$paths_file" > "$feature_homes"
+          while IFS= read -r feature_home; do
+            test -n "$feature_home"
+            python3 plugin-src/shared/resources/scripts/lint_spec.py "$feature_home"
+            python3 plugin-src/shared/resources/scripts/lint_issues.py "$feature_home"
+            python3 plugin-src/shared/resources/scripts/lint_tracker.py "$feature_home"
+            python3 plugin-src/shared/resources/scripts/gate_triage.py "$feature_home"
+            python3 plugin-src/shared/resources/scripts/validate_branch_docs.py "$feature_home"
+            FEATURE_HOME="$feature_home" node --input-type=module -e '
+              import { executePluginRequest } from "./plugin-src/shared/resources/protocol/plugin-adapter.js";
+              const result = await executePluginRequest({
+                operation: "status",
+                featureHome: process.env.FEATURE_HOME,
+              });
+              if (!result.ok || result.data.mode !== "governed") {
+                throw new Error(`Invalid governed feature record: ${JSON.stringify(result)}`);
+              }
+            '
+          done < "$feature_homes"
+
   portable-acceptance:
     name: Ubuntu ${{ matrix.ubuntu }} acceptance
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
     runs-on: ubuntu-${{ matrix.ubuntu }}
     strategy:
       fail-fast: false
@@ -20,10 +91,10 @@ jobs:
           - "22.04"
           - "24.04"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
@@ -31,6 +102,8 @@ jobs:
 
   container-acceptance:
     name: Ubuntu ${{ matrix.ubuntu }} container
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -39,19 +112,25 @@ jobs:
           - "22.04"
           - "24.04"
     steps:
-      - uses: actions/checkout@v4
-      - name: Build acceptance image
-        run: >-
-          docker build
-          --file Dockerfile.acceptance
-          --build-arg UBUNTU_VERSION=${{ matrix.ubuntu }}
-          --tag workflow-acceptance:${{ matrix.ubuntu }}
-          .
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Build acceptance image with reusable BuildKit and npm layers
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.acceptance
+          build-args: UBUNTU_VERSION=${{ matrix.ubuntu }}
+          load: true
+          tags: workflow-acceptance:${{ matrix.ubuntu }}
+          cache-from: type=gha,scope=acceptance-${{ matrix.ubuntu }}
+          cache-to: type=gha,mode=max,scope=acceptance-${{ matrix.ubuntu }}
       - name: Run acceptance image
         run: docker run --rm workflow-acceptance:${{ matrix.ubuntu }}
 
   desktop-contract:
     name: Desktop contract on Ubuntu ${{ matrix.ubuntu }}
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
     runs-on: ubuntu-${{ matrix.ubuntu }}
     strategy:
       fail-fast: false
@@ -60,10 +139,10 @@ jobs:
           - "22.04"
           - "24.04"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
@@ -71,6 +150,8 @@ jobs:
 
   desktop-runtime-ubuntu:
     name: Desktop runtime on Ubuntu ${{ matrix.ubuntu }}
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
     runs-on: ubuntu-${{ matrix.ubuntu }}
     timeout-minutes: 10
     strategy:
@@ -80,10 +161,10 @@ jobs:
           - "22.04"
           - "24.04"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
@@ -104,13 +185,15 @@ jobs:
 
   desktop-runtime-macos:
     name: Desktop runtime on macOS
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
     runs-on: macos-15
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
@@ -126,20 +209,22 @@ jobs:
 
   desktop-package-macos:
     name: Universal macOS package
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
     runs-on: macos-15
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
       - name: Build the universal application and DMG
         run: npm run package:mac --prefix apps/desktop
       - name: Upload the exact candidate DMG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gatereeve-universal-dmg
           path: apps/desktop/dist/macos/GateReeve-*-macos-universal.dmg
@@ -147,7 +232,8 @@ jobs:
 
   desktop-package-runtime-macos:
     name: Packaged runtime on ${{ matrix.architecture }}
-    needs: desktop-package-macos
+    needs: [ci-scope, desktop-package-macos]
+    if: needs.ci-scope.outputs.scope == 'full'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
     strategy:
@@ -161,14 +247,14 @@ jobs:
             native: x64
             runner: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --ignore-scripts --prefix apps/desktop
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: gatereeve-universal-dmg
           path: ${{ runner.temp }}/gatereeve-package

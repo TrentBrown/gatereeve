@@ -1,7 +1,7 @@
 name: Linked Homebrew Cask Publication
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       cask_finalization_run_id:
         description: Finalization run containing the exact linked Cask packet
@@ -22,11 +22,7 @@ on:
       mode:
         description: Nonmutating rehearsal or separately approved Cask publication
         required: true
-        default: dry-run
-        type: choice
-        options:
-          - dry-run
-          - publish
+        type: string
       approved_by:
         description: Human Cask approver identity; required only for publication
         required: false
@@ -44,19 +40,17 @@ jobs:
   protected-cask-rehearsal:
     if: ${{ inputs.mode == 'dry-run' }}
     runs-on: ubuntu-24.04
-    environment:
-      name: release-publication
     permissions:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.source_commit }}
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
@@ -72,18 +66,20 @@ jobs:
           test -z "$APPROVED_BY" || { echo "Cask dry run must not carry approval" >&2; exit 1; }
           test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CASK_FINALIZATION_RUN_ID" > "$RUNNER_TEMP/cask-finalization-run.json"
-          node -e '
-            const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
-            if (run.event !== "workflow_dispatch"
-              || run.conclusion !== "success"
-              || run.head_branch !== "main"
-              || !/homebrew-cask-finalize\.yml$/u.test(run.path)) {
-              throw new Error("Cask packet is not from the exact approved finalization workflow");
-            }
-          ' "$RUNNER_TEMP/cask-finalization-run.json"
-          cask_finalization_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$RUNNER_TEMP/cask-finalization-run.json")"
-          git merge-base --is-ancestor "$SOURCE_COMMIT" "$cask_finalization_head"
-      - uses: actions/download-artifact@v4
+          if [[ "$CASK_FINALIZATION_RUN_ID" != "$GITHUB_RUN_ID" ]]; then
+            node -e '
+              const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+              if (run.event !== "workflow_dispatch"
+                || !["success", "failure", "cancelled"].includes(run.conclusion)
+                || run.head_branch !== "main"
+                || !/release-conductor\.yml$/u.test(run.path)) {
+                throw new Error("Cask packet is not from a completed Release Conductor run");
+              }
+            ' "$RUNNER_TEMP/cask-finalization-run.json"
+            cask_finalization_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$RUNNER_TEMP/cask-finalization-run.json")"
+            git merge-base --is-ancestor "$SOURCE_COMMIT" "$cask_finalization_head"
+          fi
+      - uses: actions/download-artifact@v8
         with:
           name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask
           path: ${{ runner.temp }}/homebrew-cask
@@ -108,7 +104,7 @@ jobs:
             --plan-sha256 "$PLAN_SHA256" \
             --dry-run \
             --json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask-rehearsal
@@ -125,13 +121,13 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.source_commit }}
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
@@ -147,18 +143,20 @@ jobs:
           test -n "$APPROVED_BY" || { echo "Cask publication requires approved_by" >&2; exit 1; }
           test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CASK_FINALIZATION_RUN_ID" > "$RUNNER_TEMP/cask-finalization-run.json"
-          node -e '
-            const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
-            if (run.event !== "workflow_dispatch"
-              || run.conclusion !== "success"
-              || run.head_branch !== "main"
-              || !/homebrew-cask-finalize\.yml$/u.test(run.path)) {
-              throw new Error("Cask packet is not from the exact approved finalization workflow");
-            }
-          ' "$RUNNER_TEMP/cask-finalization-run.json"
-          cask_finalization_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$RUNNER_TEMP/cask-finalization-run.json")"
-          git merge-base --is-ancestor "$SOURCE_COMMIT" "$cask_finalization_head"
-      - uses: actions/download-artifact@v4
+          if [[ "$CASK_FINALIZATION_RUN_ID" != "$GITHUB_RUN_ID" ]]; then
+            node -e '
+              const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+              if (run.event !== "workflow_dispatch"
+                || !["success", "failure", "cancelled"].includes(run.conclusion)
+                || run.head_branch !== "main"
+                || !/release-conductor\.yml$/u.test(run.path)) {
+                throw new Error("Cask packet is not from a completed Release Conductor run");
+              }
+            ' "$RUNNER_TEMP/cask-finalization-run.json"
+            cask_finalization_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$RUNNER_TEMP/cask-finalization-run.json")"
+            git merge-base --is-ancestor "$SOURCE_COMMIT" "$cask_finalization_head"
+          fi
+      - uses: actions/download-artifact@v8
         with:
           name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask
           path: ${{ runner.temp }}/homebrew-cask
@@ -185,7 +183,7 @@ jobs:
             --approved-by "$APPROVED_BY" \
             --confirm \
             --json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask-result

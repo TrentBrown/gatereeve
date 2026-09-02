@@ -1,0 +1,938 @@
+name: Release Conductor
+run-name: Release Conductor ${{ inputs.operation }} ${{ inputs.tag }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Start a fresh reviewed RC or resume its retained state
+        required: true
+        default: start
+        type: choice
+        options:
+          - start
+          - resume
+      tag:
+        description: Exact RC tag (for example v0.1.0-rc.9)
+        required: true
+        type: string
+      direct_install_confirmed:
+        description: I installed and launched the exact public DMG for this tag
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: gatereeve-release-conductor-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  start-preflight:
+    if: ${{ inputs.operation == 'start' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      source_commit: ${{ steps.preflight.outputs.source_commit }}
+      version: ${{ steps.preflight.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - id: preflight
+        name: Pin current main and reject reused or inconsistent release identities
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$DISPATCH_REF" = "refs/heads/main"
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$DISPATCH_SHA"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)"
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            import { parseReleaseTag } from "./cli/src/plugin/release.js";
+            const parsed = parseReleaseTag(process.env.RELEASE_TAG);
+            if (!/^rc\.(?:0|[1-9]\d*)$/u.test(parsed.prerelease ?? "")) {
+              throw new Error("Release Conductor start requires a canonical RC tag");
+            }
+            const manifests = [
+              "cli/package.json",
+              "apps/desktop/package.json",
+              "plugin-src/codex/.codex-plugin/plugin.json",
+              "plugin-src/claude/.claude-plugin/plugin.json",
+            ];
+            for (const path of manifests) {
+              const version = JSON.parse(readFileSync(path, "utf8")).version;
+              if (version !== parsed.baseVersion) {
+                throw new Error(path + " version " + version + " differs from " + parsed.baseVersion);
+              }
+            }
+            process.stdout.write("version=" + parsed.version + "\n");
+          ' >> "$GITHUB_OUTPUT"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Tag $RELEASE_TAG already exists" >&2
+            exit 1
+          fi
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists" >&2
+            exit 1
+          fi
+          echo "source_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  initialize:
+    needs: start-preflight
+    if: ${{ needs.start-preflight.result == 'success' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.state.outputs.artifact-name }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: state
+        uses: ./.github/actions/release-conductor-record
+        with:
+          stage: INITIALIZED
+          tag: ${{ inputs.tag }}
+          source-commit: ${{ needs.start-preflight.outputs.source_commit }}
+          evidence-json: >-
+            {"version":"${{ needs.start-preflight.outputs.version }}"}
+
+  discover:
+    if: ${{ inputs.operation == 'resume' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.outputs.outputs.artifact }}
+      condition: ${{ steps.outputs.outputs.condition }}
+      evidence: ${{ steps.outputs.outputs.evidence }}
+      failure_retryable: ${{ steps.outputs.outputs.failure_retryable }}
+      run_id: ${{ steps.outputs.outputs.run_id }}
+      source_commit: ${{ steps.outputs.outputs.source_commit }}
+      stage: ${{ steps.outputs.outputs.stage }}
+      version: ${{ steps.outputs.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Require resume from the exact current reviewed main commit
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$DISPATCH_REF" = "refs/heads/main"
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$DISPATCH_SHA"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - name: Download every retained state candidate for the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/release-conductor-discovery"
+          mkdir -p "$root/bundles"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" > "$root/artifact-pages.json"
+          node -e '
+            const fs = require("node:fs");
+            const pages = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const prefix = "gatereeve-" + process.env.RELEASE_TAG + "-release-conductor-";
+            const artifacts = pages.flatMap((page) => page.artifacts ?? []).filter((item) => item.name.startsWith(prefix));
+            fs.writeFileSync(process.argv[2], JSON.stringify(artifacts) + "\n");
+          ' "$root/artifact-pages.json" "$root/artifacts.json"
+          count="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).length' "$root/artifacts.json")"
+          test "$count" -gt 0 || { echo "No Release Conductor state exists for $RELEASE_TAG" >&2; exit 1; }
+          : > "$root/index.ndjson"
+          node -e '
+            for (const item of JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))) {
+              process.stdout.write(item.id + "\t" + item.workflow_run.id + "\n");
+            }
+          ' "$root/artifacts.json" | while IFS=$'\t' read -r artifact_id run_id; do
+            bundle="$root/bundles/$artifact_id"
+            mkdir -p "$bundle"
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$root/$artifact_id.zip"
+            unzip -q "$root/$artifact_id.zip" -d "$bundle"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$root/run-$run_id.json"
+            ARTIFACT_ID="$artifact_id" BUNDLE="$bundle" node -e '
+              const fs = require("node:fs");
+              const artifacts = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              const artifact = artifacts.find((item) => String(item.id) === process.env.ARTIFACT_ID);
+              const run = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+              const normalized = {
+                id: artifact.id,
+                name: artifact.name,
+                expired: artifact.expired,
+                bundlePath: process.env.BUNDLE,
+                workflowRun: {
+                  id: run.id,
+                  headSha: run.head_sha,
+                  headBranch: run.head_branch,
+                  event: run.event,
+                  path: run.path,
+                  conclusion: run.conclusion,
+                },
+              };
+              process.stdout.write(JSON.stringify(normalized) + "\n");
+            ' "$root/artifacts.json" "$root/run-$run_id.json" >> "$root/index.ndjson"
+          done
+          node -e '
+            const fs = require("node:fs");
+            const entries = fs.readFileSync(process.argv[1], "utf8").trim().split("\n").filter(Boolean).map(JSON.parse);
+            fs.writeFileSync(process.argv[2], JSON.stringify(entries) + "\n");
+          ' "$root/index.ndjson" "$root/index.json"
+          node cli/bin/workflow.js plugin release conductor discover \
+            --tag "$RELEASE_TAG" \
+            --artifacts-file "$root/index.json" \
+            --output-chain "$root/latest-chain.json" \
+            --json > "$root/discovery.json"
+          cat "$root/discovery.json"
+      - id: outputs
+        env:
+          DISCOVERY: ${{ runner.temp }}/release-conductor-discovery/discovery.json
+        shell: bash
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const result = JSON.parse(fs.readFileSync(process.env.DISCOVERY, "utf8"));
+            const status = result.status;
+            const values = {
+              artifact: result.latestArtifact.name,
+              condition: status.condition,
+              evidence: JSON.stringify(status.evidence),
+              failure_retryable: String(status.failure?.retryable === true),
+              run_id: String(result.latestArtifact.workflowRun.id),
+              source_commit: status.release.sourceCommit,
+              stage: status.stage,
+              version: status.evidence.version,
+            };
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(values).map(([key, value]) => key + "=" + value + "\n").join(""));
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "\n" + fs.readFileSync(result.latestArtifact.bundlePath + "/release-summary.md", "utf8") + "\n");
+          '
+
+  trust-pending:
+    needs:
+      - initialize
+      - discover
+    if: >-
+      ${{
+        always() && (
+          needs.initialize.result == 'success' ||
+          (needs.discover.result == 'success' && needs.discover.outputs.stage == 'INITIALIZED')
+        )
+      }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.state.outputs.artifact-name }}
+      run_id: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: state
+        uses: ./.github/actions/release-conductor-record
+        with:
+          stage: TRUST_PENDING
+          previous-artifact: ${{ needs.initialize.outputs.artifact || needs.discover.outputs.artifact }}
+          previous-run-id: ${{ needs.initialize.result == 'success' && github.run_id || needs.discover.outputs.run_id }}
+          evidence-json: >-
+            {"preparationArtifact":"coordinated-plugin-candidate","preparationRunId":"${{ github.run_id }}"}
+
+  prepare-trust:
+    needs:
+      - start-preflight
+      - trust-pending
+      - discover
+    if: >-
+      ${{
+        always() && (
+          needs.trust-pending.result == 'success' ||
+          (needs.discover.result == 'success' && needs.discover.outputs.stage == 'TRUST_PENDING' && needs.discover.outputs.condition != 'failed')
+        )
+      }}
+    uses: ./.github/workflows/coordinated-release-prepare.yml
+    with:
+      tag: ${{ inputs.tag }}
+      source_commit: ${{ needs.start-preflight.outputs.source_commit || needs.discover.outputs.source_commit }}
+    permissions:
+      actions: read
+      contents: read
+
+  recover-trust:
+    needs: discover
+    if: >-
+      ${{
+        needs.discover.result == 'success' &&
+        needs.discover.outputs.stage == 'TRUST_PENDING' &&
+        needs.discover.outputs.condition == 'failed' &&
+        needs.discover.outputs.failure_retryable == 'true'
+      }}
+    uses: ./.github/workflows/coordinated-release-trust-recover.yml
+    with:
+      preparation_run_id: ${{ fromJSON(needs.discover.outputs.evidence).preparationRunId }}
+      trust_artifact_run_id: ${{ needs.discover.outputs.run_id }}
+      tag: ${{ inputs.tag }}
+      source_commit: ${{ needs.discover.outputs.source_commit }}
+    permissions:
+      actions: read
+      contents: read
+
+  trusted-evidence:
+    needs:
+      - start-preflight
+      - discover
+      - trust-pending
+      - prepare-trust
+      - recover-trust
+    if: >-
+      ${{
+        always() && (needs.prepare-trust.result == 'success' || needs.recover-trust.result == 'success')
+      }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.state.outputs.artifact-name }}
+      preparation_run_id: ${{ steps.identity.outputs.preparation_run_id }}
+      run_id: ${{ github.run_id }}
+      source_commit: ${{ steps.identity.outputs.source_commit }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: coordinated-desktop-trusted
+          path: ${{ runner.temp }}/trusted
+      - id: identity
+        env:
+          DISCOVERED_EVIDENCE: ${{ needs.discover.outputs.evidence || '{}' }}
+          DISCOVERED_SOURCE: ${{ needs.discover.outputs.source_commit }}
+          PREPARE_RESULT: ${{ needs.prepare-trust.result }}
+          START_SOURCE: ${{ needs.start-preflight.outputs.source_commit }}
+        run: |
+          node -e '
+            const trust = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+            const evidence = JSON.parse(process.env.DISCOVERED_EVIDENCE);
+            process.stdout.write("dmg_sha256=" + trust.artifact.sha256 + "\n");
+            process.stdout.write("preparation_run_id=" + (process.env.PREPARE_RESULT === "success" ? process.env.GITHUB_RUN_ID : evidence.preparationRunId) + "\n");
+            process.stdout.write("source_commit=" + (process.env.START_SOURCE || process.env.DISCOVERED_SOURCE) + "\n");
+          ' "$RUNNER_TEMP/trusted/apple-trust.json" >> "$GITHUB_OUTPUT"
+      - id: state
+        uses: ./.github/actions/release-conductor-record
+        with:
+          stage: TRUSTED
+          previous-artifact: ${{ needs.trust-pending.outputs.artifact || needs.discover.outputs.artifact }}
+          previous-run-id: ${{ needs.trust-pending.result == 'success' && github.run_id || needs.discover.outputs.run_id }}
+          evidence-json: >-
+            {"pluginArtifact":"coordinated-plugin-candidate","preparationRunId":"${{ steps.identity.outputs.preparation_run_id }}","trustArtifact":"coordinated-desktop-trusted","trustArtifactRunId":"${{ github.run_id }}","dmgSha256":"${{ steps.identity.outputs.dmg_sha256 }}"}
+
+  primary-finalize:
+    needs:
+      - discover
+      - trusted-evidence
+    if: >-
+      ${{
+        always() && (
+          needs.trusted-evidence.result == 'success' ||
+          (needs.discover.result == 'success' && needs.discover.outputs.stage == 'TRUSTED')
+        )
+      }}
+    uses: ./.github/workflows/coordinated-release-finalize.yml
+    with:
+      preparation_run_id: ${{ needs.trusted-evidence.outputs.preparation_run_id || fromJSON(needs.discover.outputs.evidence).preparationRunId }}
+      trust_artifact_run_id: ${{ needs.trusted-evidence.outputs.run_id || fromJSON(needs.discover.outputs.evidence).trustArtifactRunId }}
+      tag: ${{ inputs.tag }}
+      source_commit: ${{ needs.trusted-evidence.outputs.source_commit || needs.discover.outputs.source_commit }}
+    permissions:
+      actions: read
+      contents: read
+
+  primary-finalized-state:
+    needs:
+      - discover
+      - trusted-evidence
+      - primary-finalize
+    if: ${{ always() && needs.primary-finalize.result == 'success' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.state.outputs.artifact-name }}
+      plan_sha256: ${{ steps.plan.outputs.plan_sha256 }}
+      run_id: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: gatereeve-${{ inputs.tag }}-hosted-publication
+          path: ${{ runner.temp }}/hosted-publication
+      - id: plan
+        run: >-
+          node -e '
+            const record = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+            const stage = record.stages.find((item) => item.stage === "distribution-finalized");
+            if (!/^[a-f0-9]{64}$/u.test(stage?.evidence?.planSha256 ?? "")) throw new Error("Missing sealed primary plan digest");
+            process.stdout.write("plan_sha256=" + stage.evidence.planSha256 + "\n");
+          ' "$RUNNER_TEMP/hosted-publication/release-record.json" >> "$GITHUB_OUTPUT"
+      - id: state
+        uses: ./.github/actions/release-conductor-record
+        with:
+          stage: PRIMARY_FINALIZED
+          previous-artifact: ${{ needs.trusted-evidence.outputs.artifact || needs.discover.outputs.artifact }}
+          previous-run-id: ${{ needs.trusted-evidence.result == 'success' && github.run_id || needs.discover.outputs.run_id }}
+          evidence-json: >-
+            {"primaryPlanArtifact":"gatereeve-${{ inputs.tag }}-hosted-publication","primaryFinalizationRunId":"${{ github.run_id }}","primaryPlanSha256":"${{ steps.plan.outputs.plan_sha256 }}"}
+
+  primary-rehearse:
+    needs:
+      - discover
+      - primary-finalized-state
+    if: >-
+      ${{
+        always() && (
+          needs.primary-finalized-state.result == 'success' ||
+          (needs.discover.result == 'success' && needs.discover.outputs.stage == 'PRIMARY_FINALIZED')
+        )
+      }}
+    uses: ./.github/workflows/coordinated-release-publish.yml
+    with:
+      finalization_run_id: ${{ needs.primary-finalized-state.outputs.run_id || fromJSON(needs.discover.outputs.evidence).primaryFinalizationRunId }}
+      tag: ${{ inputs.tag }}
+      source_commit: ${{ needs.discover.outputs.source_commit || github.sha }}
+      plan_sha256: ${{ needs.primary-finalized-state.outputs.plan_sha256 || fromJSON(needs.discover.outputs.evidence).primaryPlanSha256 }}
+      mode: dry-run
+    permissions:
+      actions: read
+      contents: read
+
+  primary-rehearsed-state:
+    needs:
+      - discover
+      - primary-finalized-state
+      - primary-rehearse
+    if: ${{ always() && needs.primary-rehearse.result == 'success' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.state.outputs.artifact-name }}
+      finalization_run_id: ${{ steps.identity.outputs.finalization_run_id }}
+      plan_sha256: ${{ steps.identity.outputs.plan_sha256 }}
+      run_id: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: identity
+        env:
+          DISCOVERED_EVIDENCE: ${{ needs.discover.outputs.evidence || '{}' }}
+          NEW_PLAN: ${{ needs.primary-finalized-state.outputs.plan_sha256 }}
+          NEW_RUN: ${{ needs.primary-finalized-state.outputs.run_id }}
+        run: |
+          node -e '
+            const evidence = JSON.parse(process.env.DISCOVERED_EVIDENCE);
+            process.stdout.write("finalization_run_id=" + (process.env.NEW_RUN || evidence.primaryFinalizationRunId) + "\n");
+            process.stdout.write("plan_sha256=" + (process.env.NEW_PLAN || evidence.primaryPlanSha256) + "\n");
+          ' >> "$GITHUB_OUTPUT"
+      - id: state
+        uses: ./.github/actions/release-conductor-record
+        with:
+          stage: PRIMARY_REHEARSED
+          previous-artifact: ${{ needs.primary-finalized-state.outputs.artifact || needs.discover.outputs.artifact }}
+          previous-run-id: ${{ needs.primary-finalized-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}
+          evidence-json: >-
+            {"primaryRehearsalArtifact":"gatereeve-${{ inputs.tag }}-hosted-publication-rehearsal","primaryRehearsalRunId":"${{ github.run_id }}"}
+
+  primary-publish:
+    needs:
+      - discover
+      - primary-rehearsed-state
+    if: >-
+      ${{
+        always() && (
+          needs.primary-rehearsed-state.result == 'success' ||
+          (needs.discover.result == 'success' && needs.discover.outputs.stage == 'PRIMARY_REHEARSED')
+        )
+      }}
+    uses: ./.github/workflows/coordinated-release-publish.yml
+    with:
+      finalization_run_id: ${{ needs.primary-rehearsed-state.outputs.finalization_run_id || fromJSON(needs.discover.outputs.evidence).primaryFinalizationRunId }}
+      tag: ${{ inputs.tag }}
+      source_commit: ${{ needs.discover.outputs.source_commit || github.sha }}
+      plan_sha256: ${{ needs.primary-rehearsed-state.outputs.plan_sha256 || fromJSON(needs.discover.outputs.evidence).primaryPlanSha256 }}
+      mode: publish
+      approved_by: ${{ github.actor }}
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+
+  primary-published-state:
+    needs:
+      - discover
+      - primary-rehearsed-state
+      - primary-publish
+    if: ${{ always() && needs.primary-publish.result == 'success' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.state.outputs.artifact-name }}
+      public_dmg_sha256: ${{ steps.receipt.outputs.public_dmg_sha256 }}
+      run_id: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: gatereeve-${{ inputs.tag }}-hosted-publication-result
+          path: ${{ runner.temp }}/primary-publication
+      - id: receipt
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const crypto = require("node:crypto");
+            const bytes = fs.readFileSync(process.argv[1]);
+            const record = JSON.parse(bytes);
+            const digest = crypto.createHash("sha256").update(bytes).digest("hex");
+            process.stdout.write("record_sha256=" + digest + "\n");
+            process.stdout.write("public_dmg_sha256=" + record.candidates.desktop.artifact.sha256 + "\n");
+          ' "$RUNNER_TEMP/primary-publication/release-record.json" >> "$GITHUB_OUTPUT"
+      - id: state
+        uses: ./.github/actions/release-conductor-record
+        with:
+          stage: PRIMARY_PUBLISHED
+          previous-artifact: ${{ needs.primary-rehearsed-state.outputs.artifact || needs.discover.outputs.artifact }}
+          previous-run-id: ${{ needs.primary-rehearsed-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}
+          evidence-json: >-
+            {"primaryPublicationArtifact":"gatereeve-${{ inputs.tag }}-hosted-publication-result","primaryPublicationRunId":"${{ github.run_id }}","primaryRecordSha256":"${{ steps.receipt.outputs.record_sha256 }}"}
+
+  waiting-for-direct-install:
+    needs:
+      - discover
+      - primary-published-state
+    if: >-
+      ${{
+        always() && (
+          needs.primary-published-state.result == 'success' ||
+          (needs.discover.result == 'success' && needs.discover.outputs.stage == 'PRIMARY_PUBLISHED')
+        )
+      }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.state.outputs.artifact-name }}
+      public_dmg_sha256: ${{ steps.identity.outputs.public_dmg_sha256 }}
+      run_id: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: identity
+        env:
+          DISCOVERED_EVIDENCE: ${{ needs.discover.outputs.evidence || '{}' }}
+          NEW_PUBLIC_DMG: ${{ needs.primary-published-state.outputs.public_dmg_sha256 }}
+        run: |
+          node -e '
+            const evidence = JSON.parse(process.env.DISCOVERED_EVIDENCE);
+            process.stdout.write("public_dmg_sha256=" + (process.env.NEW_PUBLIC_DMG || evidence.dmgSha256) + "\n");
+          ' >> "$GITHUB_OUTPUT"
+      - id: state
+        uses: ./.github/actions/release-conductor-record
+        with:
+          stage: WAITING_FOR_DIRECT_INSTALL
+          previous-artifact: ${{ needs.primary-published-state.outputs.artifact || needs.discover.outputs.artifact }}
+          previous-run-id: ${{ needs.primary-published-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}
+          evidence-json: >-
+            {"publicDmgSha256":"${{ steps.identity.outputs.public_dmg_sha256 }}"}
+
+  require-direct-install:
+    needs:
+      - discover
+      - waiting-for-direct-install
+    if: >-
+      ${{
+        always() &&
+        inputs.operation == 'resume' &&
+        needs.discover.result == 'success' &&
+        needs.discover.outputs.stage == 'WAITING_FOR_DIRECT_INSTALL'
+      }}
+    runs-on: ubuntu-24.04
+    outputs:
+      confirmed_at: ${{ steps.attestation.outputs.confirmed_at }}
+      previous_artifact: ${{ steps.attestation.outputs.previous_artifact }}
+      previous_run_id: ${{ steps.attestation.outputs.previous_run_id }}
+      primary_run_id: ${{ steps.attestation.outputs.primary_run_id }}
+      public_dmg_sha256: ${{ steps.attestation.outputs.public_dmg_sha256 }}
+      source_commit: ${{ steps.attestation.outputs.source_commit }}
+    steps:
+      - id: attestation
+        env:
+          CONFIRMED: ${{ inputs.direct_install_confirmed }}
+          DISCOVERED_EVIDENCE: ${{ needs.discover.outputs.evidence }}
+          NEW_PUBLIC_DMG: ${{ needs.waiting-for-direct-install.outputs.public_dmg_sha256 }}
+          PREVIOUS_ARTIFACT: ${{ needs.waiting-for-direct-install.outputs.artifact || needs.discover.outputs.artifact }}
+          PREVIOUS_RUN_ID: ${{ needs.waiting-for-direct-install.result == 'success' && github.run_id || needs.discover.outputs.run_id }}
+          SOURCE_COMMIT: ${{ needs.discover.outputs.source_commit }}
+        shell: bash
+        run: |
+          test "$CONFIRMED" = "true" || { echo "Resume requires the exact public-DMG installed-and-launched attestation" >&2; exit 1; }
+          node -e '
+            const evidence = JSON.parse(process.env.DISCOVERED_EVIDENCE);
+            const values = {
+              confirmed_at: new Date().toISOString(),
+              previous_artifact: process.env.PREVIOUS_ARTIFACT,
+              previous_run_id: process.env.PREVIOUS_RUN_ID,
+              primary_run_id: evidence.primaryPublicationRunId,
+              public_dmg_sha256: process.env.NEW_PUBLIC_DMG || evidence.publicDmgSha256,
+              source_commit: process.env.SOURCE_COMMIT,
+            };
+            if (!/^[a-f0-9]{64}$/u.test(values.public_dmg_sha256 ?? "")) throw new Error("Attestation has no exact public DMG digest");
+            require("node:fs").appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(values).map(([key, value]) => key + "=" + value + "\n").join(""));
+          '
+
+  cask-finalize:
+    needs: require-direct-install
+    if: ${{ needs.require-direct-install.result == 'success' }}
+    uses: ./.github/workflows/homebrew-cask-finalize.yml
+    with:
+      primary_publication_run_id: ${{ needs.require-direct-install.outputs.primary_run_id }}
+      tag: ${{ inputs.tag }}
+      source_commit: ${{ needs.require-direct-install.outputs.source_commit }}
+      direct_install_confirmed_by: ${{ github.actor }}
+      direct_install_confirmed_at: ${{ needs.require-direct-install.outputs.confirmed_at }}
+    permissions:
+      actions: read
+      contents: read
+
+  cask-finalized-state:
+    needs:
+      - discover
+      - require-direct-install
+      - cask-finalize
+    if: ${{ always() && needs.cask-finalize.result == 'success' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.state.outputs.artifact-name }}
+      plan_sha256: ${{ steps.plan.outputs.plan_sha256 }}
+      run_id: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask
+          path: ${{ runner.temp }}/homebrew-cask
+      - id: plan
+        run: |
+          node --input-type=module -e '
+            import { readHomebrewCaskRecord, homebrewCaskPlanSha256 } from "./cli/src/plugin/homebrew-cask.js";
+            const record = await readHomebrewCaskRecord(process.argv[1]);
+            process.stdout.write("plan_sha256=" + homebrewCaskPlanSha256(record) + "\n");
+          ' "$RUNNER_TEMP/homebrew-cask/cask-record.json" >> "$GITHUB_OUTPUT"
+      - id: state
+        uses: ./.github/actions/release-conductor-record
+        with:
+          stage: CASK_FINALIZED
+          previous-artifact: ${{ needs.require-direct-install.outputs.previous_artifact }}
+          previous-run-id: ${{ needs.require-direct-install.outputs.previous_run_id }}
+          evidence-json: >-
+            {"directInstallAttestation":{"confirmedAt":"${{ needs.require-direct-install.outputs.confirmed_at }}","confirmedBy":"${{ github.actor }}","publicDmgSha256":"${{ needs.require-direct-install.outputs.public_dmg_sha256 }}"},"caskPlanArtifact":"gatereeve-${{ inputs.tag }}-linked-homebrew-cask","caskFinalizationRunId":"${{ github.run_id }}","caskPlanSha256":"${{ steps.plan.outputs.plan_sha256 }}"}
+
+  cask-rehearse:
+    needs:
+      - discover
+      - cask-finalized-state
+    if: >-
+      ${{
+        always() && (
+          needs.cask-finalized-state.result == 'success' ||
+          (needs.discover.result == 'success' && needs.discover.outputs.stage == 'CASK_FINALIZED')
+        )
+      }}
+    uses: ./.github/workflows/homebrew-cask-publish.yml
+    with:
+      cask_finalization_run_id: ${{ needs.cask-finalized-state.outputs.run_id || fromJSON(needs.discover.outputs.evidence).caskFinalizationRunId }}
+      tag: ${{ inputs.tag }}
+      source_commit: ${{ needs.discover.outputs.source_commit }}
+      plan_sha256: ${{ needs.cask-finalized-state.outputs.plan_sha256 || fromJSON(needs.discover.outputs.evidence).caskPlanSha256 }}
+      mode: dry-run
+    permissions:
+      actions: read
+      contents: read
+
+  cask-rehearsed-state:
+    needs:
+      - discover
+      - cask-finalized-state
+      - cask-rehearse
+    if: ${{ always() && needs.cask-rehearse.result == 'success' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.state.outputs.artifact-name }}
+      finalization_run_id: ${{ steps.identity.outputs.finalization_run_id }}
+      plan_sha256: ${{ steps.identity.outputs.plan_sha256 }}
+      run_id: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: identity
+        env:
+          DISCOVERED_EVIDENCE: ${{ needs.discover.outputs.evidence || '{}' }}
+          NEW_PLAN: ${{ needs.cask-finalized-state.outputs.plan_sha256 }}
+          NEW_RUN: ${{ needs.cask-finalized-state.outputs.run_id }}
+        run: |
+          node -e '
+            const evidence = JSON.parse(process.env.DISCOVERED_EVIDENCE);
+            process.stdout.write("finalization_run_id=" + (process.env.NEW_RUN || evidence.caskFinalizationRunId) + "\n");
+            process.stdout.write("plan_sha256=" + (process.env.NEW_PLAN || evidence.caskPlanSha256) + "\n");
+          ' >> "$GITHUB_OUTPUT"
+      - id: state
+        uses: ./.github/actions/release-conductor-record
+        with:
+          stage: CASK_REHEARSED
+          previous-artifact: ${{ needs.cask-finalized-state.outputs.artifact || needs.discover.outputs.artifact }}
+          previous-run-id: ${{ needs.cask-finalized-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}
+          evidence-json: >-
+            {"caskRehearsalArtifact":"gatereeve-${{ inputs.tag }}-linked-homebrew-cask-rehearsal","caskRehearsalRunId":"${{ github.run_id }}"}
+
+  cask-publish:
+    needs:
+      - discover
+      - cask-rehearsed-state
+    if: >-
+      ${{
+        always() && (
+          needs.cask-rehearsed-state.result == 'success' ||
+          (needs.discover.result == 'success' && needs.discover.outputs.stage == 'CASK_REHEARSED')
+        )
+      }}
+    uses: ./.github/workflows/homebrew-cask-publish.yml
+    with:
+      cask_finalization_run_id: ${{ needs.cask-rehearsed-state.outputs.finalization_run_id || fromJSON(needs.discover.outputs.evidence).caskFinalizationRunId }}
+      tag: ${{ inputs.tag }}
+      source_commit: ${{ needs.discover.outputs.source_commit }}
+      plan_sha256: ${{ needs.cask-rehearsed-state.outputs.plan_sha256 || fromJSON(needs.discover.outputs.evidence).caskPlanSha256 }}
+      mode: publish
+      approved_by: ${{ github.actor }}
+    permissions:
+      actions: read
+      contents: read
+
+  cask-published-state:
+    needs:
+      - discover
+      - cask-rehearsed-state
+      - cask-publish
+    if: ${{ always() && needs.cask-publish.result == 'success' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.state.outputs.artifact-name }}
+      run_id: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: gatereeve-${{ inputs.tag }}-linked-homebrew-cask-result
+          path: ${{ runner.temp }}/homebrew-cask
+      - id: record
+        run: >-
+          node -e '
+            const fs = require("node:fs");
+            const crypto = require("node:crypto");
+            const digest = crypto.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex");
+            process.stdout.write("record_sha256=" + digest + "\n");
+          ' "$RUNNER_TEMP/homebrew-cask/cask-record.json" >> "$GITHUB_OUTPUT"
+      - id: state
+        uses: ./.github/actions/release-conductor-record
+        with:
+          stage: CASK_PUBLISHED
+          previous-artifact: ${{ needs.cask-rehearsed-state.outputs.artifact || needs.discover.outputs.artifact }}
+          previous-run-id: ${{ needs.cask-rehearsed-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}
+          evidence-json: >-
+            {"caskPublicationArtifact":"gatereeve-${{ inputs.tag }}-linked-homebrew-cask-result","caskPublicationRunId":"${{ github.run_id }}","caskRecordSha256":"${{ steps.record.outputs.record_sha256 }}"}
+
+  cask-smoke:
+    needs:
+      - discover
+      - cask-published-state
+    if: >-
+      ${{
+        always() && (
+          needs.cask-published-state.result == 'success' ||
+          (needs.discover.result == 'success' && needs.discover.outputs.stage == 'CASK_PUBLISHED')
+        )
+      }}
+    uses: ./.github/workflows/homebrew-cask-smoke.yml
+    with:
+      cask_publication_run_id: ${{ needs.cask-published-state.outputs.run_id || fromJSON(needs.discover.outputs.evidence).caskPublicationRunId }}
+      release_tag: ${{ inputs.tag }}
+    permissions:
+      actions: read
+      contents: read
+
+  smoke-verified-state:
+    needs:
+      - discover
+      - cask-published-state
+      - cask-smoke
+    if: ${{ always() && needs.cask-smoke.result == 'success' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.state.outputs.artifact-name }}
+      run_id: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: state
+        uses: ./.github/actions/release-conductor-record
+        with:
+          stage: SMOKE_VERIFIED
+          previous-artifact: ${{ needs.cask-published-state.outputs.artifact || needs.discover.outputs.artifact }}
+          previous-run-id: ${{ needs.cask-published-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}
+          evidence-json: >-
+            {"smokeArtifacts":["homebrew-cask-smoke-arm64","homebrew-cask-smoke-x64","public-homebrew-cask-smoke-arm64","public-homebrew-cask-smoke-x64"],"smokeRunId":"${{ github.run_id }}"}
+
+  complete:
+    needs:
+      - discover
+      - smoke-verified-state
+    if: >-
+      ${{
+        always() && (
+          needs.smoke-verified-state.result == 'success' ||
+          (needs.discover.result == 'success' && needs.discover.outputs.stage == 'SMOKE_VERIFIED')
+        )
+      }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/release-conductor-record
+        with:
+          stage: COMPLETE
+          previous-artifact: ${{ needs.smoke-verified-state.outputs.artifact || needs.discover.outputs.artifact }}
+          previous-run-id: ${{ needs.smoke-verified-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}
+          evidence-json: "{}"
+
+  record-failure:
+    needs:
+      - discover
+      - trust-pending
+      - prepare-trust
+      - recover-trust
+      - trusted-evidence
+      - primary-finalize
+      - primary-finalized-state
+      - primary-rehearse
+      - primary-rehearsed-state
+      - primary-publish
+      - require-direct-install
+      - cask-finalize
+      - cask-finalized-state
+      - cask-rehearse
+      - cask-rehearsed-state
+      - cask-publish
+      - cask-published-state
+      - cask-smoke
+      - smoke-verified-state
+    if: >-
+      ${{
+        always() && (
+          needs.prepare-trust.result == 'failure' ||
+          needs.recover-trust.result == 'failure' ||
+          needs.primary-finalize.result == 'failure' ||
+          needs.primary-rehearse.result == 'failure' ||
+          needs.primary-publish.result == 'failure' ||
+          needs.cask-finalize.result == 'failure' ||
+          needs.cask-rehearse.result == 'failure' ||
+          needs.cask-publish.result == 'failure' ||
+          needs.cask-smoke.result == 'failure'
+        )
+      }}
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - id: classify
+        env:
+          CASK_FINALIZE: ${{ needs.cask-finalize.result }}
+          CASK_PUBLISH: ${{ needs.cask-publish.result }}
+          CASK_REHEARSE: ${{ needs.cask-rehearse.result }}
+          CASK_SMOKE: ${{ needs.cask-smoke.result }}
+          DISCOVERED_ARTIFACT: ${{ needs.discover.outputs.artifact }}
+          DISCOVERED_RUN: ${{ needs.discover.outputs.run_id }}
+          GH_TOKEN: ${{ github.token }}
+          PREPARE_TRUST: ${{ needs.prepare-trust.result }}
+          PRIMARY_FINALIZE: ${{ needs.primary-finalize.result }}
+          PRIMARY_PUBLISH: ${{ needs.primary-publish.result }}
+          PRIMARY_REHEARSE: ${{ needs.primary-rehearse.result }}
+          RECOVER_TRUST: ${{ needs.recover-trust.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage=""
+          artifact=""
+          run_id=""
+          code=""
+          retryable=true
+          if [[ "$PREPARE_TRUST" == "failure" || "$RECOVER_TRUST" == "failure" ]]; then
+            stage=TRUST_PENDING
+            artifact="${{ needs.trust-pending.outputs.artifact || needs.discover.outputs.artifact }}"
+            run_id="${{ needs.trust-pending.result == 'success' && github.run_id || needs.discover.outputs.run_id }}"
+            code=TRUST_PHASE_FAILED
+            names="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" --jq '.artifacts[].name')"
+            if ! grep -Fxq coordinated-desktop-trusted <<<"$names"; then
+              retryable=false
+            elif [[ "$PREPARE_TRUST" == "failure" ]] && ! grep -Fxq coordinated-plugin-candidate <<<"$names"; then
+              retryable=false
+            fi
+          elif [[ "$PRIMARY_FINALIZE" == "failure" ]]; then
+            stage=TRUSTED
+            artifact="${{ needs.trusted-evidence.outputs.artifact || needs.discover.outputs.artifact }}"
+            run_id="${{ needs.trusted-evidence.result == 'success' && github.run_id || needs.discover.outputs.run_id }}"
+            code=PRIMARY_FINALIZATION_FAILED
+          elif [[ "$PRIMARY_REHEARSE" == "failure" ]]; then
+            stage=PRIMARY_FINALIZED
+            artifact="${{ needs.primary-finalized-state.outputs.artifact || needs.discover.outputs.artifact }}"
+            run_id="${{ needs.primary-finalized-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}"
+            code=PRIMARY_REHEARSAL_FAILED
+          elif [[ "$PRIMARY_PUBLISH" == "failure" ]]; then
+            stage=PRIMARY_REHEARSED
+            artifact="${{ needs.primary-rehearsed-state.outputs.artifact || needs.discover.outputs.artifact }}"
+            run_id="${{ needs.primary-rehearsed-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}"
+            code=PRIMARY_PUBLICATION_FAILED
+          elif [[ "$CASK_FINALIZE" == "failure" ]]; then
+            stage=WAITING_FOR_DIRECT_INSTALL
+            artifact="${{ needs.require-direct-install.outputs.previous_artifact }}"
+            run_id="${{ needs.require-direct-install.outputs.previous_run_id }}"
+            code=CASK_FINALIZATION_FAILED
+          elif [[ "$CASK_REHEARSE" == "failure" ]]; then
+            stage=CASK_FINALIZED
+            artifact="${{ needs.cask-finalized-state.outputs.artifact || needs.discover.outputs.artifact }}"
+            run_id="${{ needs.cask-finalized-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}"
+            code=CASK_REHEARSAL_FAILED
+          elif [[ "$CASK_PUBLISH" == "failure" ]]; then
+            stage=CASK_REHEARSED
+            artifact="${{ needs.cask-rehearsed-state.outputs.artifact || needs.discover.outputs.artifact }}"
+            run_id="${{ needs.cask-rehearsed-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}"
+            code=CASK_PUBLICATION_FAILED
+          elif [[ "$CASK_SMOKE" == "failure" ]]; then
+            stage=CASK_PUBLISHED
+            artifact="${{ needs.cask-published-state.outputs.artifact || needs.discover.outputs.artifact }}"
+            run_id="${{ needs.cask-published-state.result == 'success' && github.run_id || needs.discover.outputs.run_id }}"
+            code=CASK_SMOKE_FAILED
+          fi
+          test -n "$stage" && test -n "$artifact" && test -n "$run_id"
+          {
+            echo "artifact=$artifact"
+            echo "code=$code"
+            echo "retryable=$retryable"
+            echo "run_id=$run_id"
+            echo "stage=$stage"
+          } >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/release-conductor-record
+        with:
+          stage: ${{ steps.classify.outputs.stage }}
+          previous-artifact: ${{ steps.classify.outputs.artifact }}
+          previous-run-id: ${{ steps.classify.outputs.run_id }}
+          evidence-json: "{}"
+          failure-json: >-
+            {"code":"${{ steps.classify.outputs.code }}","message":"The phase failed without advancing release authority; use conductor resume for the retained state.","retryable":${{ steps.classify.outputs.retryable }}}

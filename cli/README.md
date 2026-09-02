@@ -1,6 +1,6 @@
 # GateReeve CLI
 
-Commander.js and QP CLI Core tooling for observing and enforcing the GateReeve
+Commander.js tooling for observing and enforcing the GateReeve
 workflow protocol. The same executable retains plugin composition, validation,
 and release operations under the `plugin` namespace. It is optional: installed
 native plugins invoke their packaged copy of the same protocol core directly.
@@ -23,10 +23,9 @@ or global installation of this package exposes `gatereeve <arguments>`. The
 package stages an exact projection of the canonical plugin resources during
 packing; do not edit the generated `cli/resources/` directory.
 
-`qp-cli-core@1.7.1` declares an exact Node 23.3 engine even though its command
-and help surfaces are verified on the supported Node 22.17 baseline. Npm emits
-an advisory `EBADENGINE` warning during installation; the acceptance suite
-proves the supported runtime directly.
+The command tree uses pinned `commander` plus a repository-local recursive help
+renderer. It has no exact non-LTS engine dependency and installs without an
+expected `EBADENGINE` advisory.
 
 ## Workflow commands
 
@@ -176,19 +175,14 @@ verification authorities, exact finalization, the inspected plan digest, and
 approval from `release-publication`. A dry run records no approval and has no
 write token.
 
-Computed versions use the currently deployed marketplace `RELEASE.json` as
-their baseline, not merely the highest Git tag. Bare publication is interactive;
-automation must provide `--tag`, `--next-rc`, `--promote`, or `--bump`. Patch,
-minor, and major bumps begin a new RC line. Promotion tags and validates the
-same source commit as the deployed RC, even when `main` has advanced.
-
 `gatereeve plugin release prepare`, `coordinate`, `finalize-hosted`, and
 `prepare-cask-hosted` are low-level nonpublishing workflow operations.
 `finalize-hosted` rejects Plugin, DMG, or native evidence inputs that differ
 from the trusted lifecycle. `prepare-cask-hosted` accepts only a completed
 primary record and binds direct public-DMG installation and launch proof.
 Schema-v1 coordinated and Cask commands remain readable for immutable history;
-they are not upgraded or used for new hosted publication.
+their publication commands are no longer exposed. New release mutation is
+reachable only through `release-conductor.yml` `start` or `resume`.
 `gatereeve plugin smoke-install` remains a separate native-manager test.
 
 `gatereeve plugin release bundle` verifies the selected deployed release, archives

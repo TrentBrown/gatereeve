@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "scope": "feature-final",
+  "featureId": "tb-release-conductor",
+  "repositoryAlias": "product",
+  "packetId": "pr-52",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 52,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/52",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "4744edf06e40c7ba9575855f9aa80c8cc612bbbc",
+    "headRefName": "tb-release-conductor",
+    "headRefOid": "a89b0bb534bf8c9e276cd67b2b4bf0fe9027dbbd"
+  },
+  "mergeBaseSha": "4744edf06e40c7ba9575855f9aa80c8cc612bbbc",
+  "evaluatedSourceSha": "a89b0bb534bf8c9e276cd67b2b4bf0fe9027dbbd",
+  "featureBaseSha": "4744edf06e40c7ba9575855f9aa80c8cc612bbbc",
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": { "disposition": "passed", "reason": null },
+    "specEvaluation": { "disposition": "passed", "reason": null },
+    "judge": { "disposition": "passed", "reason": null },
+    "codeReview": { "disposition": "passed", "reason": null },
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No applicable .pattern-review directory exists in the repository or its scope walk; pattern review is not configured for this project."
+    },
+    "explainDiff": { "disposition": "passed", "reason": null }
+  }
+}

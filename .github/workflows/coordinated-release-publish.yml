@@ -1,7 +1,7 @@
 name: Coordinated Release Publication
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       finalization_run_id:
         description: Finalization run containing the exact sealed publication packet
@@ -22,11 +22,7 @@ on:
       mode:
         description: Nonmutating rehearsal or separately approved real publication
         required: true
-        default: dry-run
-        type: choice
-        options:
-          - dry-run
-          - publish
+        type: string
       approved_by:
         description: Human approver identity; required only for real publication
         required: false
@@ -44,19 +40,17 @@ jobs:
   protected-nonpublishing-rehearsal:
     if: ${{ inputs.mode == 'dry-run' }}
     runs-on: ubuntu-24.04
-    environment:
-      name: release-publication
     permissions:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.source_commit }}
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
@@ -74,16 +68,20 @@ jobs:
           test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
           git merge-base --is-ancestor "$SOURCE_COMMIT" refs/remotes/origin/main
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FINALIZATION_RUN_ID" > "$RUNNER_TEMP/finalization-run.json"
-          node -e '
-            const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
-            if (run.event !== "workflow_dispatch"
-              || run.conclusion !== "success"
-              || run.head_sha !== process.env.SOURCE_COMMIT
-              || !/coordinated-release-finalize\.yml$/u.test(run.path)) {
-              throw new Error("Publication packet is not from the exact approved finalization workflow");
-            }
-          ' "$RUNNER_TEMP/finalization-run.json"
-      - uses: actions/download-artifact@v4
+          if [[ "$FINALIZATION_RUN_ID" != "$GITHUB_RUN_ID" ]]; then
+            node -e '
+              const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+              if (run.event !== "workflow_dispatch"
+                || !["success", "failure", "cancelled"].includes(run.conclusion)
+                || run.head_branch !== "main"
+                || !/release-conductor\.yml$/u.test(run.path)) {
+                throw new Error("Publication packet is not from a completed Release Conductor run");
+              }
+            ' "$RUNNER_TEMP/finalization-run.json"
+            finalization_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$RUNNER_TEMP/finalization-run.json")"
+            git merge-base --is-ancestor "$SOURCE_COMMIT" "$finalization_head"
+          fi
+      - uses: actions/download-artifact@v8
         with:
           name: gatereeve-${{ inputs.tag }}-hosted-publication
           path: ${{ runner.temp }}/hosted-publication
@@ -104,7 +102,7 @@ jobs:
             --plan-sha256 "$PLAN_SHA256" \
             --dry-run \
             --json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: gatereeve-${{ inputs.tag }}-hosted-publication-rehearsal
@@ -123,13 +121,13 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.source_commit }}
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
@@ -147,16 +145,20 @@ jobs:
           test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
           git merge-base --is-ancestor "$SOURCE_COMMIT" refs/remotes/origin/main
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FINALIZATION_RUN_ID" > "$RUNNER_TEMP/finalization-run.json"
-          node -e '
-            const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
-            if (run.event !== "workflow_dispatch"
-              || run.conclusion !== "success"
-              || run.head_sha !== process.env.SOURCE_COMMIT
-              || !/coordinated-release-finalize\.yml$/u.test(run.path)) {
-              throw new Error("Publication packet is not from the exact approved finalization workflow");
-            }
-          ' "$RUNNER_TEMP/finalization-run.json"
-      - uses: actions/download-artifact@v4
+          if [[ "$FINALIZATION_RUN_ID" != "$GITHUB_RUN_ID" ]]; then
+            node -e '
+              const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+              if (run.event !== "workflow_dispatch"
+                || !["success", "failure", "cancelled"].includes(run.conclusion)
+                || run.head_branch !== "main"
+                || !/release-conductor\.yml$/u.test(run.path)) {
+                throw new Error("Publication packet is not from a completed Release Conductor run");
+              }
+            ' "$RUNNER_TEMP/finalization-run.json"
+            finalization_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$RUNNER_TEMP/finalization-run.json")"
+            git merge-base --is-ancestor "$SOURCE_COMMIT" "$finalization_head"
+          fi
+      - uses: actions/download-artifact@v8
         with:
           name: gatereeve-${{ inputs.tag }}-hosted-publication
           path: ${{ runner.temp }}/hosted-publication
@@ -180,7 +182,7 @@ jobs:
             --approved-by "$APPROVED_BY" \
             --confirm \
             --json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: gatereeve-${{ inputs.tag }}-hosted-publication-result

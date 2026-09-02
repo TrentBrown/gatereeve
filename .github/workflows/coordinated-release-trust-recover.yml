@@ -1,7 +1,7 @@
 name: Coordinated Release Trust Recovery
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       preparation_run_id:
         description: Original coordinated preparation run containing the Plugin candidate
@@ -35,7 +35,7 @@ jobs:
       commit: ${{ steps.source.outputs.commit }}
       version: ${{ steps.source.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.source_commit }}
           fetch-depth: 0
@@ -66,13 +66,15 @@ jobs:
             gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$RUNNER_TEMP/run-$run_id.json"
             node -e '
               const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
-              if (run.event !== "workflow_dispatch" || run.head_sha !== process.env.SOURCE_COMMIT) {
-                throw new Error("Recovery run source does not match the retained candidate");
-              }
-              if (!/(coordinated-release-prepare|coordinated-release-trust-recover)\.yml/u.test(run.path)) {
-                throw new Error("Recovery source run is not an approved trust workflow");
+              if (run.event !== "workflow_dispatch"
+                || !["success", "failure"].includes(run.conclusion)
+                || run.head_branch !== "main"
+                || !/release-conductor\.yml$/u.test(run.path)) {
+                throw new Error("Recovery source is not a completed Release Conductor run with retained evidence");
               }
             ' "$RUNNER_TEMP/run-$run_id.json"
+            run_head="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).head_sha' "$RUNNER_TEMP/run-$run_id.json")"
+            git merge-base --is-ancestor "$SOURCE_COMMIT" "$run_head"
           done
 
   recover-trust:
@@ -87,12 +89,12 @@ jobs:
       APPLE_NOTARY_KEY_ID: ${{ vars.GATEREEVE_NOTARY_KEY_ID }}
       APPLE_NOTARY_ISSUER_ID: ${{ vars.GATEREEVE_NOTARY_ISSUER_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-recovery.outputs.commit }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --ignore-scripts --prefix apps/desktop
@@ -115,7 +117,7 @@ jobs:
           node -e 'require("node:fs").writeFileSync(process.argv[1], Buffer.from(process.env.APPLE_NOTARY_KEY_P8_BASE64, "base64"))' "$notary_key_path"
           chmod 600 "$notary_key_path"
           echo "GATEREEVE_NOTARY_KEY_PATH=$notary_key_path" >> "$GITHUB_ENV"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-desktop-trusted
           path: ${{ runner.temp }}/coordinated-desktop-trusted
@@ -163,7 +165,7 @@ jobs:
           --notary-key "$GATEREEVE_NOTARY_KEY_PATH"
           --notary-key-id "$APPLE_NOTARY_KEY_ID"
           --notary-issuer-id "$APPLE_NOTARY_ISSUER_ID"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: coordinated-desktop-trusted
@@ -189,16 +191,16 @@ jobs:
           - architecture: x64
             runner: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-recovery.outputs.commit }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --ignore-scripts --prefix apps/desktop
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-desktop-trusted
           path: ${{ runner.temp }}/desktop
@@ -214,7 +216,7 @@ jobs:
           --source-commit "${{ needs.resolve-recovery.outputs.commit }}"
           --trust-evidence "$RUNNER_TEMP/desktop/apple-trust.json"
           --evidence "$RUNNER_TEMP/desktop-${{ matrix.architecture }}.json"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coordinated-desktop-trusted-evidence-${{ matrix.architecture }}
           path: ${{ runner.temp }}/desktop-${{ matrix.architecture }}.json
@@ -228,14 +230,14 @@ jobs:
       - recovered-native-verification
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-recovery.outputs.commit }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-desktop-trusted
           path: ${{ runner.temp }}/desktop
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: coordinated-desktop-trusted-evidence-*
           path: ${{ runner.temp }}/evidence
@@ -246,7 +248,7 @@ jobs:
           --arm64 "$RUNNER_TEMP/evidence/desktop-arm64.json"
           --x64 "$RUNNER_TEMP/evidence/desktop-x64.json"
           --output "$RUNNER_TEMP/native-trust-aggregate.json"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coordinated-native-trust-aggregate
           path: ${{ runner.temp }}/native-trust-aggregate.json
@@ -261,20 +263,20 @@ jobs:
       - recovered-native-aggregate
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-recovery.outputs.commit }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-plugin-candidate
           path: ${{ runner.temp }}/coordinated-plugin-candidate
           github-token: ${{ github.token }}
           run-id: ${{ inputs.preparation_run_id }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-desktop-trusted
           path: ${{ runner.temp }}/desktop
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-native-trust-aggregate
           path: ${{ runner.temp }}/evidence
@@ -288,7 +290,7 @@ jobs:
           --apple-trust "$RUNNER_TEMP/desktop/apple-trust.json"
           --native-aggregate "$RUNNER_TEMP/evidence/native-trust-aggregate.json"
           --output "$RUNNER_TEMP/coordinated-release/release-record.json"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gatereeve-${{ inputs.tag }}-coordinated-release
           path: ${{ runner.temp }}/coordinated-release

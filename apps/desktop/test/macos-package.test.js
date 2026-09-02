@@ -9,6 +9,10 @@ import test from 'node:test';
 import { createMacosDmg } from '../scripts/create-macos-dmg.mjs';
 import { generateMacosIcon } from '../scripts/generate-macos-icon.mjs';
 import {
+  isTransientHdiutilResourceError,
+  verifyDmgWithRetry,
+} from '../scripts/hdiutil-retry.mjs';
+import {
   dmgFilename,
   electronPackagerOptions,
   ICONSET_ENTRIES,
@@ -222,6 +226,59 @@ test('DMG composition adds a conventional Applications shortcut', async () => {
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
+});
+
+test('DMG verification retries only bounded transient hdiutil contention', async () => {
+  const calls = [];
+  const delays = [];
+  const transient = Object.assign(new Error('hdiutil verify failed'), {
+    stderr: 'Resource temporarily unavailable',
+  });
+  assert.equal(isTransientHdiutilResourceError(transient), true);
+  assert.equal(isTransientHdiutilResourceError(new Error('invalid checksum')), false);
+  const result = await verifyDmgWithRetry('/tmp/GateReeve.dmg', {
+    initialDelayMs: 10,
+    sleep: async (delay) => { delays.push(delay); },
+    onRetry: () => {},
+    async run(file, args) {
+      calls.push([file, args]);
+      if (calls.length < 3) throw transient;
+      return 'verified';
+    },
+  });
+  assert.equal(result, 'verified');
+  assert.equal(calls.length, 3);
+  assert.deepEqual(delays, [10, 20]);
+
+  let invalidAttempts = 0;
+  const invalid = new Error('hdiutil: verify: checksum mismatch');
+  await assert.rejects(verifyDmgWithRetry('/tmp/invalid.dmg', {
+    sleep: async () => {},
+    onRetry: () => {},
+    async run() {
+      invalidAttempts += 1;
+      throw invalid;
+    },
+  }), (error) => error === invalid);
+  assert.equal(invalidAttempts, 1);
+});
+
+test('DMG verification stops after the configured transient retry bound', async () => {
+  let attempts = 0;
+  const transient = Object.assign(new Error('Resource temporarily unavailable'), {
+    stderr: 'Resource temporarily unavailable',
+  });
+  await assert.rejects(verifyDmgWithRetry('/tmp/busy.dmg', {
+    maxAttempts: 3,
+    initialDelayMs: 0,
+    sleep: async () => {},
+    onRetry: () => {},
+    async run() {
+      attempts += 1;
+      throw transient;
+    },
+  }), (error) => error === transient);
+  assert.equal(attempts, 3);
 });
 
 test('native package evidence binds the exact source and DMG bytes', async () => {

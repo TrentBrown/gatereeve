@@ -1,4 +1,6 @@
-ARG NODE_VERSION=22.17.0
+# syntax=docker/dockerfile:1
+
+ARG NODE_VERSION=24
 ARG UBUNTU_VERSION=24.04
 FROM node:${NODE_VERSION}-bookworm-slim AS node-runtime
 
@@ -24,8 +26,10 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 WORKDIR /workspace
 COPY README.md DEVELOPMENT.md INSTALL.md RELEASING.md APPLE-RELEASE-SETUP.md USER-GUIDE.md ./
 COPY cli ./cli
-RUN npm ci --prefix cli
-COPY .github/workflows/plugin-release.yml ./.github/workflows/plugin-release.yml
+RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci --prefix cli
+COPY .github/workflows/release-conductor.yml ./.github/workflows/release-conductor.yml
+COPY .github/actions/release-conductor-record/action.yml ./.github/actions/release-conductor-record/action.yml
+COPY .github/actions/pr-ci-scope/action.yml ./.github/actions/pr-ci-scope/action.yml
 COPY .github/workflows/coordinated-release-prepare.yml ./.github/workflows/coordinated-release-prepare.yml
 COPY .github/workflows/coordinated-release-trust-recover.yml ./.github/workflows/coordinated-release-trust-recover.yml
 COPY .github/workflows/coordinated-release-finalize.yml ./.github/workflows/coordinated-release-finalize.yml
@@ -33,6 +37,7 @@ COPY .github/workflows/coordinated-release-publish.yml ./.github/workflows/coord
 COPY .github/workflows/homebrew-cask-finalize.yml ./.github/workflows/homebrew-cask-finalize.yml
 COPY .github/workflows/homebrew-cask-publish.yml ./.github/workflows/homebrew-cask-publish.yml
 COPY .github/workflows/homebrew-cask-smoke.yml ./.github/workflows/homebrew-cask-smoke.yml
+COPY .github/workflows/plugin-ci.yml ./.github/workflows/plugin-ci.yml
 COPY plugin-src ./plugin-src
 COPY docs ./docs
 COPY ci ./ci

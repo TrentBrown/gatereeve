@@ -264,18 +264,19 @@ a fresh RC if Apple-bound bytes or request history already exists.
 ## 6. Run a nonpublishing protected rehearsal
 
 After this workflow code is merged to `main`, choose a fresh RC identity and
-dispatch preparation from `main`:
+start the Release Conductor from `main`:
 
 ```bash
 RELEASE_TAG=v0.1.0-rc.1
 
-gh workflow run coordinated-release-prepare.yml \
+gh workflow run release-conductor.yml \
   --repo TrentBrown/gatereeve \
   --ref main \
+  -f operation=start \
   -f tag="$RELEASE_TAG"
 ```
 
-The workflow binds the dispatch SHA to the exact current `origin/main`; it fails
+The conductor binds the dispatch SHA to the exact current `origin/main`; it fails
 if `main` advances before source resolution. The signing job waits at
 `release-trust`. Before that environment can begin Apple work, a read-only
 Ubuntu consumer downloads the Plugin candidate and verifies every visible and
@@ -306,7 +307,7 @@ Download and inspect the final artifact:
 ```bash
 gh run list \
   --repo TrentBrown/gatereeve \
-  --workflow coordinated-release-prepare.yml \
+  --workflow release-conductor.yml \
   --limit 5
 gh run download RUN_ID \
   --repo TrentBrown/gatereeve \
@@ -323,30 +324,23 @@ manifest and tree digest. The workflow has only
 website change, or Cask.
 
 Finalization and the hosted publication dry run are the remaining
-nonpublishing acceptance steps. Finalization has read-only repository access
-and no protected environment. The dry-run job enters `release-publication` but
-has read-only permissions and receives no publication secret. Capture public
-state before and after the dry run and prove that the tag, GitHub release,
-marketplace head, manifest, website response, and Cask did not change. See
-`RELEASING.md` for exact dispatch inputs.
+nonpublishing acceptance steps. The conductor runs both automatically with
+read-only repository access, no protected environment, and no publication
+secret. Capture public state before and after the rehearsal and prove that the
+tag, GitHub release, marketplace head, manifest, website response, and Cask did
+not change. See `RELEASING.md` for the operator flow.
 
 Do not use GitHub's generic **Re-run jobs** after protected production begins.
-For a timeout or recoverable interruption, dispatch the bounded recovery
-workflow with the original preparation run and the latest run that retained the
-trust bundle:
+For a timeout or recoverable interruption, use the conductor's bounded trust recovery
+by resuming the tag. It
+discovers the original preparation and latest retained trust bundle itself:
 
 ```bash
-PREPARATION_RUN_ID=<ORIGINAL_RUN_ID>
-TRUST_ARTIFACT_RUN_ID=<LATEST_TRUST_OR_RECOVERY_RUN_ID>
-SOURCE_COMMIT=<EXACT_PREPARATION_SHA>
-
-gh workflow run coordinated-release-trust-recover.yml \
+gh workflow run release-conductor.yml \
   --repo TrentBrown/gatereeve \
   --ref main \
-  -f preparation_run_id="$PREPARATION_RUN_ID" \
-  -f trust_artifact_run_id="$TRUST_ARTIFACT_RUN_ID" \
-  -f tag="$RELEASE_TAG" \
-  -f source_commit="$SOURCE_COMMIT"
+  -f operation=resume \
+  -f tag="$RELEASE_TAG"
 ```
 
 Recovery never rebuilds or re-signs. It polls the recorded Apple request. If

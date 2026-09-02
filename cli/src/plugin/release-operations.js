@@ -14,7 +14,7 @@ import { basename, resolve, sep } from 'node:path';
 
 import { parseReleaseTag } from './release.js';
 
-const RELEASE_WORKFLOW = 'plugin-release.yml';
+const RELEASE_WORKFLOW = 'release-conductor.yml';
 const MARKETPLACE_BRANCH = 'marketplace';
 const PLUGIN_ID = 'agentic-development-workflow';
 const MARKETPLACE_ID = 'quality-code';
@@ -107,6 +107,14 @@ function runFields() {
   ].join(',');
 }
 
+function releaseTagFromRun(run) {
+  const match = /^Release Conductor (?:start|resume) (v\S+)$/u.exec(run.displayTitle ?? '');
+  if (match) return match[1];
+  return typeof run.headBranch === 'string' && run.headBranch.startsWith('v')
+    ? run.headBranch
+    : null;
+}
+
 export async function getDeployedRelease({
   repositoryRoot,
   runner = defaultCommandRunner,
@@ -168,7 +176,7 @@ export async function listReleases({
   const current = await getDeployedRelease({ repositoryRoot, runner });
   const tagsByName = new Map(tags.map((item) => [item.tag, item]));
   const rows = runs.map((run) => {
-    const tag = run.headBranch;
+    const tag = releaseTagFromRun(run);
     tagsByName.delete(tag);
     return {
       tag,
@@ -231,14 +239,14 @@ function releaseRunList({ repositoryRoot, runner, tag = null, limit = 20 }) {
     '--json',
     runFields(),
   ];
-  if (tag) args.push('--branch', tag, '--event', 'push');
-  return commandJson(
+  const runs = commandJson(
     runner,
     'gh',
     args,
     { cwd: repositoryRoot },
     'gh run list'
   );
+  return tag ? runs.filter((run) => releaseTagFromRun(run) === tag) : runs;
 }
 
 export async function findReleaseRun({
@@ -263,7 +271,7 @@ export async function findReleaseRun({
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const runs = releaseRunList({ repositoryRoot, runner, tag });
-    const run = tag ? runs.find((item) => item.headBranch === tag) : runs[0];
+    const run = runs[0];
     if (run) return run;
     if (attempt < attempts) await sleep(delayMs);
   }

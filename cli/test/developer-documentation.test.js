@@ -16,7 +16,6 @@ async function document(name) {
 
 test('routes users, developers, and release maintainers from the root README', async () => {
   const readme = await document('README.md');
-
   for (const [audience, path] of [
     ['Plugin users', 'INSTALL.md'],
     ['Plugin developers', 'DEVELOPMENT.md'],
@@ -30,7 +29,6 @@ test('routes users, developers, and release maintainers from the root README', a
 
 test('developer guide covers the complete canonical-to-PR lifecycle', async () => {
   const guide = await document('DEVELOPMENT.md');
-
   for (const heading of [
     'The Development Model',
     'First Safe Change',
@@ -42,7 +40,6 @@ test('developer guide covers the complete canonical-to-PR lifecycle', async () =
   ]) {
     assert.match(guide, new RegExp(`^## ${heading}$`, 'm'));
   }
-
   for (const phrase of [
     'Edit `plugin-src/`',
     'Never edit',
@@ -60,55 +57,35 @@ test('developer guide covers the complete canonical-to-PR lifecycle', async () =
   }
 });
 
-test('release runbook preserves hosted coordinated release and legacy stable guidance', async () => {
+test('release runbook documents only the conductor production interface', async () => {
   const guide = await document('RELEASING.md');
   const oneLine = normalized(guide);
-
   for (const heading of [
-    'Release Model',
-    'Release States and Version Actions',
-    '1. Prepare the Release Checkout',
-    '2. Inspect Current Release State',
-    '3. Dry-run the Intended Version',
-    '4. Publish a Release Candidate',
-    '5. Run Release-Candidate Acceptance on Ubuntu',
-    '6. Commit the Stable Evidence',
-    '7. Dry-run Stable Promotion',
-    '8. Promote the Exact RC',
-    '9. Verify and Announce the Deployment',
-    'Failure Diagnosis and Recovery',
-    'Low-level Release Mechanics',
-    'Release Checklist',
+    'Release model',
+    '1. Prepare reviewed source',
+    '2. Start the release',
+    '3. Approve Apple trust',
+    '4. Approve primary publication',
+    '5. Install and launch the exact public DMG',
+    '6. Resume and attest',
+    'Status and evidence',
+    'Failure and recovery',
+    'Post-merge operational acceptance',
+    'Release checklist',
   ]) {
-    assert.match(guide, new RegExp(`^## ${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'm'));
+    assert.ok(guide.includes(`## ${heading}\n`), `RELEASING.md must include: ${heading}`);
   }
-
-  for (const command of [
-    'npm start --prefix cli -- plugin release list',
-    'npm start --prefix cli -- plugin release verify',
-    'npm start --prefix cli -- plugin release publish --next-rc --dry-run',
-    'npm start --prefix cli -- plugin release publish --next-rc',
-    'npm start --prefix cli -- plugin release publish --promote --dry-run',
-    'npm start --prefix cli -- plugin release publish --promote',
-    'gh workflow run coordinated-release-prepare.yml',
-    'gh workflow run coordinated-release-finalize.yml',
-    'gh workflow run coordinated-release-publish.yml',
-    'npm start --prefix cli -- plugin release inspect-hosted',
-    'gh workflow run homebrew-cask-finalize.yml',
-    'gh workflow run homebrew-cask-publish.yml',
-    'plugin release inspect-cask-hosted',
-  ]) {
-    assert.ok(oneLine.includes(command), `RELEASING.md must document: ${command}`);
-  }
-
-  assert.match(guide, /candidateSourceCommit/);
-  assert.match(guide, /exact deployed RC commit/);
-  assert.match(guide, /PLAN_SHA256_FROM_INSPECTION/u);
-  assert.match(guide, /read-only permissions, receives no publication\nsecret/u);
-  assert.match(guide, /Primary publication may remain complete while Cask is pending/u);
-  assert.match(guide, /schema-v1 compatibility path/u);
-  assert.match(guide, /Do not create release tags manually/);
-  assert.ok(oneLine.includes('not the routine human release interface'));
+  assert.ok(oneLine.includes('gh workflow run release-conductor.yml'));
+  assert.ok(oneLine.includes('-f operation=start'));
+  assert.ok(oneLine.includes('-f operation=resume'));
+  assert.ok(oneLine.includes('-f direct_install_confirmed=true'));
+  assert.match(guide, /only manual production release entry point/);
+  assert.match(guide, /Do not dispatch them/);
+  assert.match(guide, /release-status\.json/);
+  assert.match(guide, /WAITING_FOR_DIRECT_INSTALL/);
+  assert.match(guide, /No run\nID, plan digest, confirmer name, or timestamp is copied by hand/);
+  assert.doesNotMatch(guide, /gh workflow run (?:coordinated-release|homebrew-cask)/);
+  assert.doesNotMatch(guide, /plugin release publish --/);
 });
 
 test('Apple release setup is actionable, protected, and team-key only', async () => {
@@ -128,7 +105,7 @@ test('Apple release setup is actionable, protected, and team-key only', async ()
     'release-trust',
     'GATEREEVE_DEVELOPER_ID_P12_BASE64',
     'GATEREEVE_NOTARY_KEY_P8_BASE64',
-    'coordinated-release-trust-recover.yml',
+    'bounded trust recovery',
     'does **not** approve publication',
     'GATEREEVE_PUBLICATION_TOKEN',
     'not re-entered for each release',
@@ -152,17 +129,9 @@ test('keeps developer and release bash examples syntactically valid', async () =
       match[1].replace(/<[A-Z_]+>/g, 'documented-placeholder')
     )
   );
-
-  assert.ok(blocks.length >= 20, 'expected complete maintainer command examples');
+  assert.ok(blocks.length >= 10, 'expected complete maintainer command examples');
   for (const [index, block] of blocks.entries()) {
-    const result = spawnSync('bash', ['-n'], {
-      input: block,
-      encoding: 'utf8',
-    });
-    assert.equal(
-      result.status,
-      0,
-      `maintainer bash block ${index + 1} is invalid: ${result.stderr}`
-    );
+    const result = spawnSync('bash', ['-n'], { input: block, encoding: 'utf8' });
+    assert.equal(result.status, 0, `maintainer bash block ${index + 1} is invalid: ${result.stderr}`);
   }
 });

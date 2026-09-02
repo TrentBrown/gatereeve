@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import { Command, Option } from 'qp-cli-core';
+import { Command, Option } from 'commander';
 
 import { executeProtocolRequest, readJsonFile } from '../protocol/client.js';
 

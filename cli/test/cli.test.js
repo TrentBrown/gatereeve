@@ -179,45 +179,41 @@ test('prepares a release through the grouped command path', async () => {
   assert.match(verified.treeSha256, /^[a-f0-9]{64}$/u);
 });
 
-test('public release entrypoint requires a coordinated release record', async () => {
+test('legacy local publication entrypoints are removed', async () => {
   const executable = join(cliRoot, 'bin/workflow.js');
-  await assert.rejects(
-    execFileAsync(
-      process.execPath,
-      [executable, 'plugin', 'release', 'publish', '--tag', 'v0.1.0-rc.99', '--dry-run'],
-      { cwd: cliRoot }
-    ),
-    (error) => {
-      assert.match(error.stderr, /required option '--release-record <path>' not specified/);
-      return true;
-    }
-  );
+  for (const command of ['publish', 'publish-coordinated', 'publish-cask']) {
+    await assert.rejects(
+      execFileAsync(
+        process.execPath,
+        [executable, 'plugin', 'release', command],
+        { cwd: cliRoot }
+      ),
+      (error) => {
+        assert.match(error.stderr, new RegExp(`unknown command '${command}'`));
+        return true;
+      }
+    );
+  }
 });
 
-test('coordinated publication entrypoint requires an exact trusted record', async () => {
+test('hosted mutation commands require a dispatched Release Conductor context', async () => {
   const executable = join(cliRoot, 'bin/workflow.js');
-  await assert.rejects(
-    execFileAsync(
-      process.execPath,
-      [
-        executable,
-        'plugin',
-        'release',
-        'publish-coordinated',
-        '--plan-sha256',
-        'a'.repeat(64),
-        '--dry-run',
-      ],
-      { cwd: cliRoot }
-    ),
-    (error) => {
-      assert.match(error.stderr, /required option '--release-record <path>' not specified/);
-      return true;
-    }
-  );
+  for (const [command, recordOption] of [
+    ['publish-hosted', '--release-record'],
+    ['publish-cask-hosted', '--cask-record'],
+  ]) {
+    await assert.rejects(execFileAsync(process.execPath, [
+      executable,
+      'plugin', 'release', command,
+      recordOption, '/does/not/exist.json',
+      '--plan-sha256', 'a'.repeat(64),
+      '--approved-by', 'TrentBrown',
+      '--confirm',
+    ], { cwd: cliRoot }), /only inside the dispatched Release Conductor/u);
+  }
 });
 
-test('renders hierarchical help through QP CLI Core', async () => {
+test('renders hierarchical help through the local command-tree helper', async () => {
   const executable = join(cliRoot, 'bin/workflow.js');
 
   const result = await execFileAsync(
@@ -240,11 +236,8 @@ test('renders hierarchical help through QP CLI Core', async () => {
   assert.match(result.stdout, /plugin Build and maintain native workflow plugin packages/);
   assert.match(result.stdout, /build Compose native packages/);
   assert.match(result.stdout, /release Publish, observe, and verify native plugin releases/);
-  assert.match(result.stdout, /publish Validate, tag, watch, and verify a marketplace release/);
+  assert.match(result.stdout, /conductor Create and inspect immutable hosted release orchestration state/);
   assert.match(result.stdout, /--release-record <path>/);
-  assert.match(result.stdout, /--next-rc/);
-  assert.match(result.stdout, /--promote/);
-  assert.match(result.stdout, /--bump <type>/);
   assert.match(
     result.stdout,
     /list List release tags, workflow runs, and deployed marketplace state/
@@ -254,10 +247,10 @@ test('renders hierarchical help through QP CLI Core', async () => {
   assert.match(result.stdout, /prepare Compose a tag-scoped marketplace tree/);
   assert.match(result.stdout, /coordinate Create an immutable record from verified Plugin and Desktop candidates/);
   assert.match(result.stdout, /inspect-record Inspect a coordinated release record/);
-  assert.match(result.stdout, /publish-coordinated Publish or recover one exact approved/);
+  assert.doesNotMatch(result.stdout, /publish-coordinated/);
   assert.match(result.stdout, /prepare-cask Prepare an exact Homebrew Cask packet/);
   assert.match(result.stdout, /inspect-cask Inspect an exact Homebrew Cask publication packet/);
-  assert.match(result.stdout, /publish-cask Publish or recover one exact approved GateReeve Homebrew Cask/);
+  assert.doesNotMatch(result.stdout, /^\s+publish-cask\s/m);
   assert.doesNotMatch(result.stdout, /release-prepare/);
   assert.doesNotMatch(result.stdout, /^\s{4}migration\b/m);
   assert.doesNotMatch(result.stdout, /^\s+advance\b/m);

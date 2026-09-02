@@ -1,10 +1,14 @@
 name: Coordinated Release Preparation
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       tag:
         description: Eventual coordinated RC tag (for example v0.1.0-rc.3)
+        required: true
+        type: string
+      source_commit:
+        description: Exact reviewed main commit pinned by the Release Conductor
         required: true
         type: string
 
@@ -22,21 +26,19 @@ jobs:
     outputs:
       commit: ${{ steps.source.outputs.commit }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.source_commit }}
           fetch-depth: 0
-      - name: Require the exact current reviewed main commit
+      - name: Require the exact pinned reviewed main commit
         env:
-          DISPATCH_SHA: ${{ github.sha }}
-          DISPATCH_REF: ${{ github.ref }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
         shell: bash
         run: |
           set -euo pipefail
-          test "$DISPATCH_REF" = "refs/heads/main"
           git fetch --no-tags origin main
-          test "$(git rev-parse HEAD)" = "$DISPATCH_SHA"
-          test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)"
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" refs/remotes/origin/main
       - name: Require an RC preparation tag
         env:
           RELEASE_TAG: ${{ inputs.tag }}
@@ -48,12 +50,12 @@ jobs:
     needs: resolve-source
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-source.outputs.commit }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
@@ -66,7 +68,7 @@ jobs:
           --output-root "$RUNNER_TEMP/coordinated-plugin-candidate/marketplace"
           --integrity-manifest "$RUNNER_TEMP/coordinated-plugin-candidate/integrity.json"
           --json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coordinated-plugin-candidate
           path: ${{ runner.temp }}/coordinated-plugin-candidate
@@ -80,16 +82,16 @@ jobs:
       - plugin-candidate
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-source.outputs.commit }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-plugin-candidate
           path: ${{ runner.temp }}/coordinated-plugin-candidate
@@ -117,12 +119,12 @@ jobs:
       APPLE_NOTARY_KEY_ID: ${{ vars.GATEREEVE_NOTARY_KEY_ID }}
       APPLE_NOTARY_ISSUER_ID: ${{ vars.GATEREEVE_NOTARY_ISSUER_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-source.outputs.commit }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --prefix apps/desktop
@@ -244,7 +246,7 @@ jobs:
           --notary-key "$GATEREEVE_NOTARY_KEY_PATH"
           --notary-key-id "$APPLE_NOTARY_KEY_ID"
           --notary-issuer-id "$APPLE_NOTARY_ISSUER_ID"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: coordinated-desktop-trusted
@@ -292,16 +294,16 @@ jobs:
           - architecture: x64
             runner: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-source.outputs.commit }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: npm ci --ignore-scripts --prefix apps/desktop
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-desktop-trusted
           path: ${{ runner.temp }}/desktop
@@ -324,7 +326,7 @@ jobs:
           --source-commit "${{ needs.resolve-source.outputs.commit }}"
           --trust-evidence "$RUNNER_TEMP/desktop/apple-trust.json"
           --evidence "$RUNNER_TEMP/desktop-${{ matrix.architecture }}.json"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coordinated-desktop-trusted-evidence-${{ matrix.architecture }}
           path: ${{ runner.temp }}/desktop-${{ matrix.architecture }}.json
@@ -338,14 +340,14 @@ jobs:
       - trusted-desktop-verification
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-source.outputs.commit }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-desktop-trusted
           path: ${{ runner.temp }}/desktop
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: coordinated-desktop-trusted-evidence-*
           path: ${{ runner.temp }}/evidence
@@ -357,7 +359,7 @@ jobs:
           --arm64 "$RUNNER_TEMP/evidence/desktop-arm64.json"
           --x64 "$RUNNER_TEMP/evidence/desktop-x64.json"
           --output "$RUNNER_TEMP/native-trust-aggregate.json"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coordinated-native-trust-aggregate
           path: ${{ runner.temp }}/native-trust-aggregate.json
@@ -374,29 +376,29 @@ jobs:
       - native-trust-aggregate
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-source.outputs.commit }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.17.0
+          node-version: 24
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-plugin-candidate
           path: ${{ runner.temp }}/coordinated-plugin-candidate
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-desktop-trusted
           path: ${{ runner.temp }}/desktop
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: coordinated-desktop-trusted-evidence-*
           path: ${{ runner.temp }}/evidence
           merge-multiple: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coordinated-native-trust-aggregate
           path: ${{ runner.temp }}/evidence
@@ -411,7 +413,7 @@ jobs:
           --apple-trust "$RUNNER_TEMP/desktop/apple-trust.json"
           --native-aggregate "$RUNNER_TEMP/evidence/native-trust-aggregate.json"
           --output "$RUNNER_TEMP/coordinated-release/release-record.json"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gatereeve-${{ inputs.tag }}-coordinated-release
           path: ${{ runner.temp }}/coordinated-release
