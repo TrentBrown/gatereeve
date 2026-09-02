@@ -113,6 +113,26 @@ test('finalization and rehearsals are read-only while publication retains its ow
     assert.match(publication, /--approved-by "\$APPROVED_BY"/);
     assert.match(publication, /--confirm/);
   }
+
+  const caskPublication = await workflow('homebrew-cask-publish.yml');
+  assert.match(
+    caskPublication,
+    /secrets:\n\s+GATEREEVE_PUBLICATION_TOKEN:\n\s+required: false/,
+  );
+  const caskRehearsalCall = conductor.slice(
+    conductor.indexOf('  cask-rehearse:'),
+    conductor.indexOf('  cask-rehearsed-state:'),
+  );
+  assert.doesNotMatch(caskRehearsalCall, /GATEREEVE_PUBLICATION_TOKEN|secrets:/);
+  const caskPublicationCall = conductor.slice(
+    conductor.indexOf('  cask-publish:'),
+    conductor.indexOf('  cask-published-state:'),
+  );
+  assert.match(
+    caskPublicationCall,
+    /secrets:\n\s+GATEREEVE_PUBLICATION_TOKEN: \$\{\{ secrets\.GATEREEVE_PUBLICATION_TOKEN \}\}/,
+  );
+  assert.doesNotMatch(caskPublicationCall, /secrets: inherit/);
 });
 
 test('Cask finalization and smoke bind conductor runs and exact public artifacts', async () => {

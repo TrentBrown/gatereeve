@@ -147,3 +147,17 @@ Validate the finalized linked Cask packet with the existing dependency-free
 schema-v2 workspace verifier before recording its exact plan digest, and
 regression-test that the conductor checkpoint cannot fall back to the legacy
 schema-v1 reader or a CLI entrypoint that needs an uninstalled dependency.
+
+## I-12 - Forward the public tap publication credential
+
+- **Status:** in-progress
+- **Estimate:** 1h
+- **Plan steps:** P3, P5
+- **Rubric criteria:** R3, R5, R6
+- **Depends on:** I-11
+- **PR:** -
+
+Declare the existing `GATEREEVE_PUBLICATION_TOKEN` as an optional reusable
+workflow secret because the same workflow also implements credential-free dry
+run, then forward only that named secret from the conductor's publish call.
+Topology coverage rejects both rehearsal exposure and broad inheritance.

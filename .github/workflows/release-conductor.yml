@@ -719,6 +719,8 @@ jobs:
       plan_sha256: ${{ needs.cask-rehearsed-state.outputs.plan_sha256 || fromJSON(needs.discover.outputs.evidence).caskPlanSha256 }}
       mode: publish
       approved_by: ${{ github.actor }}
+    secrets:
+      GATEREEVE_PUBLICATION_TOKEN: ${{ secrets.GATEREEVE_PUBLICATION_TOKEN }}
     permissions:
       actions: read
       contents: read
