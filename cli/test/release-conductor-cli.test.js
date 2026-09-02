@@ -109,9 +109,14 @@ test('CLI rejects identity arguments after initialization', async () => {
 test('CLI discovers a downloaded conductor bundle without operator-supplied run identity', async () => {
   const temporary = await mkdtemp(join(tmpdir(), 'gatereeve-conductor-discover-'));
   try {
-    const repositoryRoot = resolve(cliRoot, '..');
+    await execFileAsync('git', ['init', '--initial-branch=main'], { cwd: temporary });
+    await execFileAsync('git', ['config', 'user.name', 'GateReeve test'], { cwd: temporary });
+    await execFileAsync('git', ['config', 'user.email', 'test@gatereeve.invalid'], { cwd: temporary });
+    await writeFile(join(temporary, 'source.txt'), 'release source\n');
+    await execFileAsync('git', ['add', 'source.txt'], { cwd: temporary });
+    await execFileAsync('git', ['commit', '-m', 'test: seed release source'], { cwd: temporary });
     const source = (await execFileAsync('git', ['rev-parse', 'HEAD'], {
-      cwd: repositoryRoot,
+      cwd: temporary,
     })).stdout.trim();
     const evidence = join(temporary, 'evidence.json');
     const bundle = join(temporary, 'bundle');
@@ -128,7 +133,7 @@ test('CLI discovers a downloaded conductor bundle without operator-supplied run 
       ...sharedArguments('501', '2026-09-02T00:01:00.000Z'),
       '--output-dir', bundle,
       '--json',
-    ], { cwd: cliRoot });
+    ], { cwd: temporary });
     const state = JSON.parse(initialized.stdout);
     await writeFile(artifacts, `${JSON.stringify([{
       id: 601,
@@ -152,7 +157,7 @@ test('CLI discovers a downloaded conductor bundle without operator-supplied run 
       '--artifacts-file', artifacts,
       '--output-chain', outputChain,
       '--json',
-    ], { cwd: cliRoot });
+    ], { cwd: temporary });
     const result = JSON.parse(discovered.stdout);
     assert.equal(result.status.stage, 'INITIALIZED');
     assert.equal(result.latestArtifact.id, 601);

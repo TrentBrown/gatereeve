@@ -136,3 +136,30 @@ tightened.
   coverage.
 - Accept either workflow for every event - rejected because it weakens
   production provenance.
+
+## [6] Keep container acceptance hermetic for workflow and Git fixtures
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** `Dockerfile.acceptance` and Release Conductor CLI discovery
+tests in Ubuntu 22.04/24.04 container CI
+
+Copy `plugin-ci.yml` into the acceptance image because it is now an explicit
+workflow contract input. Keep `.git` excluded; the discovery CLI test must
+initialize its own minimal repository and commit, then execute discovery from
+that repository so ancestry behavior is tested without coupling the image to
+host Git metadata.
+
+**Triggered by:** PR #52 container jobs could not read the newly asserted
+`plugin-ci.yml` contract and the discovery CLI test assumed the checkout's
+excluded `.git` directory.
+
+**Alternatives considered:**
+- Copy the entire `.github` tree - rejected because the image should declare
+  its contract inputs narrowly.
+- Include the host `.git` directory - rejected because it is large,
+  non-hermetic, and leaks checkout-specific metadata.
+- Bypass ancestry in containers - rejected because that weakens the
+  production-relevant test.
