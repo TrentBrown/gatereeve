@@ -596,7 +596,7 @@ jobs:
 
   cask-finalize:
     needs: require-direct-install
-    if: ${{ needs.require-direct-install.result == 'success' }}
+    if: ${{ always() && needs.require-direct-install.result == 'success' }}
     uses: ./.github/workflows/homebrew-cask-finalize.yml
     with:
       primary_publication_run_id: ${{ needs.require-direct-install.outputs.primary_run_id }}

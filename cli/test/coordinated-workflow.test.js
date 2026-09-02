@@ -116,7 +116,16 @@ test('finalization and rehearsals are read-only while publication retains its ow
 });
 
 test('Cask finalization and smoke bind conductor runs and exact public artifacts', async () => {
+  const conductor = await workflow('release-conductor.yml');
   const finalization = await workflow('homebrew-cask-finalize.yml');
+  const caskFinalizationCall = conductor.slice(
+    conductor.indexOf('  cask-finalize:'),
+    conductor.indexOf('  cask-finalized-state:'),
+  );
+  assert.match(
+    caskFinalizationCall,
+    /if: \$\{\{ always\(\) && needs\.require-direct-install\.result == 'success' \}\}/,
+  );
   assert.match(finalization, /release-conductor\\\.yml/);
   assert.match(finalization, /direct_install_confirmed_by:/);
   assert.match(finalization, /direct_install_confirmed_at:/);

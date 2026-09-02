@@ -330,3 +330,31 @@ lifecycle record and stopped before recording `PRIMARY_PUBLISHED`.
   the production schema mismatch needs executable regression coverage.
 - Rebuild or republish RC.11 - rejected because every primary surface already
   converged successfully and the retained result artifact is complete.
+
+## [13] Use an explicit status guard after direct-install resume
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Release Conductor transition from a retained
+`WAITING_FOR_DIRECT_INSTALL` checkpoint into Homebrew Cask finalization
+
+Evaluate Cask finalization under `always()` and then require the direct
+`require-direct-install` dependency to have succeeded. This preserves the
+intended fail-closed condition while preventing GitHub's implicit `success()`
+status function from propagating an intentionally skipped same-run ancestor.
+
+**Triggered by:** RC.11 accepted the exact public-DMG installation attestation,
+but skipped `cask-finalize` because the current resume run intentionally
+skipped `waiting-for-direct-install`; the downstream reusable-workflow call
+lacked the explicit status guard used by the surrounding recovery jobs.
+
+**Alternatives considered:**
+- Dispatch Cask finalization directly - rejected because the Release Conductor
+  is the sole production entry point and must retain the attestation chain.
+- Record another waiting checkpoint before accepting the attestation - rejected
+  because the existing retained checkpoint is already authoritative and a
+  duplicate state transition is invalid.
+- Remove the success check entirely - rejected because Cask finalization must
+  remain blocked unless the exact direct-install attestation succeeds.
