@@ -274,7 +274,7 @@ verify-only retry decision required.
 
 ## [11] Forward only declared Apple secrets into reusable trust workflows
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

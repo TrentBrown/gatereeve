@@ -295,3 +295,35 @@ verify-only retry decision required.
   images must remain immediate failures.
 
 **Promoted:** 2026-09-02. PR: https://github.com/TrentBrown/gatereeve/pull/54.
+
+---
+
+## Forward only declared Apple secrets into reusable trust workflows
+
+**Confidence:** HIGH
+
+**Blast Radius:** Release Conductor Apple trust preparation and bounded trust
+recovery
+
+Declare the three preparation secrets and the single recovery secret in their
+respective `workflow_call` contracts, then map only those names from the
+conductor. Do not use `secrets: inherit`; unrelated repository credentials must
+not become available to the reusable trust workflows. Protected environment
+approval, read-only token permissions, and secret use inside only the native
+trust jobs remain unchanged.
+
+**Triggered by:** RC.10 reached protected Desktop trust with valid environment
+variables but empty certificate, password, and notary-key values because the
+caller had not forwarded repository secrets across the reusable-workflow
+boundary.
+
+**Alternatives considered:**
+- Use `secrets: inherit` - rejected because it forwards every available
+  repository secret, including credentials unrelated to Apple trust.
+- Copy the signing steps into the conductor - rejected because it duplicates
+  the protected reusable phase and weakens the single trust implementation.
+- Move the existing repository secrets into the environment without changing
+  the call contract - rejected because reusable workflows still require an
+  explicit secret-passing boundary and the existing names are already valid.
+
+**Promoted:** 2026-09-02. PR: https://github.com/TrentBrown/gatereeve/pull/55.
