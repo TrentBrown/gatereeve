@@ -234,3 +234,32 @@ transient `hdiutil` resource contention and passed unchanged on rerun.
   observed evidence supporting this narrowly bounded exception.
 
 **Promoted:** 2026-09-02. PR: https://github.com/TrentBrown/gatereeve/pull/52.
+
+---
+
+## Isolate hosted-command rejection tests from the parent CI context
+
+**Confidence:** HIGH
+
+**Blast Radius:** Release Conductor plugin-candidate validation and the CLI
+hosted-mutation guard regression test
+
+Run the rejection test's child processes with the three Release Conductor
+authorization variables removed. The production guard remains unchanged; the
+test now constructs the outside-conductor context it claims to exercise even
+when its parent test suite is itself running inside the conductor.
+
+**Triggered by:** RC.9 candidate validation inherited `GITHUB_ACTIONS=true`,
+`GITHUB_WORKFLOW=Release Conductor`, and
+`GITHUB_EVENT_NAME=workflow_dispatch`, causing the negative test to pass the
+production guard and fail later on its intentionally nonexistent fixture.
+
+**Alternatives considered:**
+- Weaken or reorder the production guard - rejected because its behavior was
+  correct under the real hosted context.
+- Skip this test inside the conductor - rejected because candidate validation
+  should retain the negative authorization regression coverage.
+- Replace the nonexistent fixture with a valid release record - rejected
+  because that would test a different, authority-bearing path.
+
+**Promoted:** 2026-09-02.
