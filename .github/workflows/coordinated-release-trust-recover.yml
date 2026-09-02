@@ -19,6 +19,9 @@ on:
         description: Exact reviewed main commit used by the preparation run
         required: true
         type: string
+    secrets:
+      GATEREEVE_NOTARY_KEY_P8_BASE64:
+        required: true
 
 permissions:
   actions: read
