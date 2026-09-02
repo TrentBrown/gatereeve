@@ -410,9 +410,13 @@ jobs:
       source_commit: ${{ needs.discover.outputs.source_commit || github.sha }}
       plan_sha256: ${{ needs.primary-finalized-state.outputs.plan_sha256 || fromJSON(needs.discover.outputs.evidence).primaryPlanSha256 }}
       mode: dry-run
+    # GitHub validates every job in the reusable workflow before evaluating its
+    # mode guards. Admit the publish job here; the selected rehearsal job
+    # narrows its own token back to actions/contents read-only.
     permissions:
       actions: read
-      contents: read
+      contents: write
+      pull-requests: write
 
   primary-rehearsed-state:
     needs:
