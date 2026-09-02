@@ -97,7 +97,7 @@ boundary; publish the post-merge operational acceptance checklist.
 
 ## I-8 - Make repeated PR validation efficient and resilient
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 0.5d
 - **Plan steps:** P8
 - **Rubric criteria:** R9

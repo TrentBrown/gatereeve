@@ -166,7 +166,7 @@ excluded `.git` directory.
 
 ## [7] Chain evidence-only CI skips to the immediately preceding successful head
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -194,7 +194,7 @@ and four-job Cask smoke matrices after their source head had already passed.
 
 ## [8] Retry only the observed transient hdiutil verification error
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

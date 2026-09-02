@@ -17,7 +17,7 @@
 | R6 | Direct install and Cask completion | PASS | [#52](https://github.com/TrentBrown/gatereeve/pull/52) | Exact-DMG actor/time attestation and the four-artifact completion contract pass; public ARM64/Rosetta smoke remains an explicit post-merge acceptance check. |
 | R7 | Metadata-only CI | PASS | [#52](https://github.com/TrentBrown/gatereeve/pull/52) | Exact-path CI exception and deterministic branch/base/path/bytes/digest publication guards pass positive and negative tests. |
 | R8 | Runtime and lifecycle verification | PASS | [#52](https://github.com/TrentBrown/gatereeve/pull/52) | Node 24/action lint, 192 CLI tests, 158 Desktop tests, 94 Python tests, audit, build, and portable acceptance pass without an engine mismatch. |
-| R9 | Review automation efficiency | NOT YET | [#52](https://github.com/TrentBrown/gatereeve/pull/52) | Approved follow-up implementation is in progress. |
+| R9 | Review automation efficiency | PASS | [#52](https://github.com/TrentBrown/gatereeve/pull/52) | Exact-predecessor success chaining, PR-only cancellation, BuildKit/npm caching, and bounded transient-only DMG verification retry pass local contracts and hosted full-path validation. |
 
 ## PR Log
 
@@ -28,4 +28,4 @@
 - **Rubric:** R1, R2, R3, R4, R5, R6, R7, R8, R9
 - **Evidence packet:** [`pr-52/`](pr-52/)
 - **Scope:** feature-final
-- **Status:** review changes in progress for R9; protected/public runtime acceptance remains post-merge as required by AC8.
+- **Status:** draft; all pre-merge criteria pass after the R9 review improvements, with protected/public runtime acceptance remaining post-merge as required by AC8.
