@@ -420,3 +420,37 @@ record before it could advance the retained conductor state.
   attestation.
 
 **Promoted:** 2026-09-02. PR: https://github.com/TrentBrown/gatereeve/pull/59.
+
+---
+
+## Forward only the public tap publication token
+
+**Confidence:** HIGH
+
+**Blast Radius:** protected linked Homebrew Cask publication job
+
+Declare `GATEREEVE_PUBLICATION_TOKEN` as an optional reusable-workflow secret
+because the same reusable workflow also implements a credential-free dry run,
+then map only that repository secret from the conductor's Cask publication
+call. Keep the rehearsal call secret-free and the caller and callee
+`GITHUB_TOKEN` permissions read-only; the separate token exists only because
+publication targets another repository. The publish command still fails closed
+when the token is missing.
+
+**Triggered by:** RC.11 passed exact Cask rehearsal and protected publication
+approval, then stopped before its first tap API request because the reusable
+workflow received an empty `GATEREEVE_PUBLICATION_TOKEN`.
+
+**Alternatives considered:**
+- Use `secrets: inherit` - rejected because it would expose every available
+  repository secret to the reusable workflow.
+- Use the conductor's `GITHUB_TOKEN` - rejected because that token is scoped to
+  the GateReeve repository and cannot publish to the separate public tap.
+- Put the token in the protected environment only - rejected because the
+  existing repository secret is already configured and reusable workflows
+  still require an explicit caller-to-callee secret contract.
+- Make the workflow-level secret required - rejected because the same reusable
+  workflow serves the read-only rehearsal, which must not receive publication
+  credentials.
+
+**Promoted:** 2026-09-02. PR: https://github.com/TrentBrown/gatereeve/pull/60.

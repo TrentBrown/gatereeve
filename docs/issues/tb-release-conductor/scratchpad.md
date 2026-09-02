@@ -391,7 +391,7 @@ record before it could advance the retained conductor state.
 
 ## [15] Forward only the public tap publication token
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
