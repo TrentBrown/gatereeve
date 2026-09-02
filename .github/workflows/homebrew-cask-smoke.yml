@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/homebrew-cask-smoke.yml"
+      - ".github/actions/pr-ci-scope/action.yml"
+      - "ci/review-artifact-change.mjs"
       - "apps/desktop/scripts/smoke-homebrew-cask.mjs"
       - "apps/desktop/test/homebrew-cask-smoke.test.js"
       - "cli/src/plugin/homebrew-cask.js"
@@ -26,9 +28,32 @@ permissions:
   actions: read
   contents: read
 
+concurrency:
+  group: homebrew-cask-smoke-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  ci-scope:
+    name: Resolve Cask smoke scope
+    runs-on: ubuntu-24.04
+    outputs:
+      scope: ${{ steps.scope.outputs.scope }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - id: scope
+        uses: ./.github/actions/pr-ci-scope
+        with:
+          workflow-file: homebrew-cask-smoke.yml
+
   cask-smoke:
     name: Cask install and upgrade (${{ matrix.native }})
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
@@ -96,6 +121,8 @@ jobs:
 
   public-cask-smoke:
     name: Public Cask install (${{ matrix.native }})
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:

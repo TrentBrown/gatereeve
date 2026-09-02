@@ -93,6 +93,16 @@ or target.
   Apple trust, public publication, and public Cask evidence without fabricating
   those external results pre-merge.
   **Advances:** R1, R2, R3, R4, R5, R6, R7, R8.
+- **P8. Make repeated PR validation efficient without inheriting failure.** Add
+  a shared PR-delta classifier that recognizes only declared workflow review
+  artifacts and permits a reduced validation path only when the immediately
+  preceding head has a successful run of the same workflow. Add PR-only
+  concurrency cancellation to Plugin CI and Cask smoke, BuildKit GitHub cache
+  export/import plus an npm cache mount to container acceptance, and a bounded
+  retry helper for the exact transient `hdiutil verify` resource error. Cover
+  allowlisted/unrecognized paths, missing predecessor success, workflow
+  contracts, and transient/non-transient retry behavior.
+  **Advances:** R9.
 
 ## Proposed delivery boundary
 
@@ -112,6 +122,9 @@ change together.
   altered-byte, changed-base, and changed-digest fixtures.
 - Exercise state discovery with missing, expired, divergent, malformed,
   wrong-source, wrong-tag, retry, partial publication, and completed histories.
+- **Final step:** run full rubric evaluation and produce the feature completion
+- Verify the review-artifact reduced path cannot originate without a successful
+  full workflow run and that `main`/`workflow_call` executions remain full.
 - **Final step:** run full rubric evaluation and produce the feature completion
   report, with real protected/public evidence retained as explicit post-merge
   operational acceptance rather than pre-merge proof.

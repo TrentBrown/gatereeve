@@ -94,3 +94,16 @@ around conductor-only production.
 
 Run the full contract, simulation, lint, spec, topology, dependency, and review
 boundary; publish the post-merge operational acceptance checklist.
+
+## I-8 - Make repeated PR validation efficient and resilient
+
+- **Status:** in-progress
+- **Estimate:** 0.5d
+- **Plan steps:** P8
+- **Rubric criteria:** R9
+- **Depends on:** I-7
+- **PR:** [#52](https://github.com/TrentBrown/gatereeve/pull/52)
+
+Safely collapse evidence-only follow-up validation, cancel superseded PR runs,
+reuse container/npm build layers, and retry only the bounded transient DMG
+verification failure without masking invalid packages.

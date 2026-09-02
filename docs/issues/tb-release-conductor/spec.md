@@ -88,6 +88,16 @@ The global Definition of Done in the software development workflow applies.
   notarization, public publication, and public Cask availability are explicitly
   post-merge operational acceptance evidence and are not fabricated or required
   as pre-merge feature-gate evidence.
+- **AC9.** Efficient, failure-safe review automation. A pull-request update
+  containing only declared workflow review artifacts may replace the full
+  Plugin CI and Cask smoke matrices with deterministic document validation only
+  when the immediately preceding PR head has a successful run of that exact
+  workflow. Any source, requirement, plan, or unrecognized path change—and any
+  missing predecessor success—runs the full matrix. Superseded PR runs are
+  cancelled without cancelling `main` or release workflows; container builds
+  retain reusable BuildKit/npm layers; and DMG verification retries only the
+  bounded, specifically recognized `Resource temporarily unavailable` failure
+  before preserving the original hard failure behavior.
 
 ## Rubric
 
@@ -101,6 +111,7 @@ The global Definition of Done in the software development workflow applies.
 | R6 | Direct install and Cask completion | Exact-DMG attestation captures actor/time, launches the automatic linked Cask chain, and `COMPLETE` requires all four native/public smoke results. | Attestation is forgeable/misbound, clerical fields are required, Cask needs another dispatch, or completion omits required smoke evidence. | Attestation/state tests, Cask orchestration fixtures, and ARM64/Intel smoke aggregation tests. |
 | R7 | Metadata-only CI | Exact generated metadata transport skips full product CI but receives strict sealed-output validation; any wider change receives full CI or fails. | Bot approval still blocks publication, unrelated builds run, validation is weakened, or extra changes bypass CI. | Path-filter tests, generated-PR fixtures, publisher validation tests, and workflow inspection. |
 | R8 | Runtime and lifecycle verification | Supported action majors and LTS package engines run without compatibility warnings; automated pre-merge evidence covers all specified contracts and post-merge-only proof is labeled honestly. | Deprecated action runtimes, engine mismatches, uncovered resume/authority paths, fabricated external evidence, or credentialed/public acceptance as a pre-merge dependency remains. | Dependency metadata, CI logs, contract suites, coverage matrix, and post-merge acceptance checklist. |
+| R9 | Review automation efficiency | Evidence-only PR updates skip expensive matrices only through an allowlisted delta chained to an exact predecessor workflow success; superseded PR runs cancel; reusable container/npm caches are configured; and only the named transient `hdiutil verify` error receives bounded retries. | A source change can inherit old success, a failed/unknown predecessor can skip coverage, release or main runs are cancelled, caches weaken deterministic installs, or invalid DMGs are retried/masked. | Change-classifier and workflow contract tests, actionlint, Docker build evidence, and transient/non-transient DMG retry unit tests. |
 
 ## Changes
 
@@ -112,3 +123,11 @@ Append spec amendments here. Do not remove or weaken original criteria.
   direct `commander` plus an equivalent local help renderer satisfies the
   compatibility intent more completely than retaining an incompatible declared
   engine. The public command behavior remains covered by the same tests.
+- **2026-09-02 amendment adding AC9/R9:** Review of the completed PR showed that
+  durable boundary-evidence commits redundantly reran the entire product and
+  Cask matrices, concurrent obsolete heads consumed runners, container npm
+  layers were not reusable across runs, and a valid DMG verification suffered
+  a transient `hdiutil` resource-contention failure. The user explicitly
+  approved addressing all four before merge. The predecessor-success chain is
+  required so an evidence-only commit cannot turn a previously failing source
+  head green by omission.

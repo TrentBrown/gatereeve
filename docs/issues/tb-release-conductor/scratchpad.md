@@ -163,3 +163,56 @@ excluded `.git` directory.
   non-hermetic, and leaks checkout-specific metadata.
 - Bypass ancestry in containers - rejected because that weakens the
   production-relevant test.
+
+## [7] Chain evidence-only CI skips to the immediately preceding successful head
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Plugin CI and Homebrew Cask Smoke pull-request execution
+
+Classify only the `synchronize` event's predecessor-to-current commit delta,
+not the cumulative PR diff, and permit the reduced review-artifact path only
+when the same workflow completed successfully for the exact predecessor SHA.
+This creates a transitive success chain back to a fully tested source head while
+allowing later evidence-only commits to remain cheap. Non-PR runs, unrecognized
+paths, a non-ancestral delta, or a missing predecessor success always receive
+the full workflow. Cancellation is limited to pull-request concurrency groups.
+
+**Triggered by:** Evidence-only boundary commits reran the complete Plugin CI
+and four-job Cask smoke matrices after their source head had already passed.
+
+**Alternatives considered:**
+- Add broad `paths-ignore` rules - rejected because PR path filters evaluate the
+  cumulative PR diff and because broad documentation exclusions could hide
+  requirement or implementation changes.
+- Trust the evidence-only filename allowlist alone - rejected because a failing
+  source head could otherwise gain a green successor without executing tests.
+- Move evidence outside Git - rejected because durable review records are part
+  of the approved workflow and should remain reviewable with the change.
+
+## [8] Retry only the observed transient hdiutil verification error
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Development and release DMG creation and package verification
+
+Route both DMG verification call sites through one helper that makes at most
+three attempts with one- and two-second backoff. Retry only when the command's
+message, stdout, or stderr contains Apple's observed `Resource temporarily
+unavailable` result. Preserve the original error object after the bound and
+fail every checksum, signature, malformed-image, or other error immediately.
+
+**Triggered by:** The otherwise valid macOS package job failed once with
+transient `hdiutil` resource contention and passed unchanged on rerun.
+
+**Alternatives considered:**
+- Retry the entire packaging job - rejected because it repeats far more work
+  and obscures which operation was transient.
+- Retry every `hdiutil` error - rejected because invalid or corrupted DMGs must
+  fail immediately.
+- Retry create, attach, and detach too - rejected because only `verify` has
+  observed evidence supporting this narrowly bounded exception.

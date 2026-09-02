@@ -153,6 +153,33 @@ test('full product CI ignores only the sealed Desktop metadata transport path', 
   assert.doesNotMatch(source, /paths-ignore:[\s\S]*Casks|paths-ignore:[\s\S]*workflow-site\/\*\*/);
 });
 
+test('PR automation reduces only chained review-artifact updates and cancels only PR work', async () => {
+  const pluginCi = await workflow('plugin-ci.yml');
+  const caskSmoke = await workflow('homebrew-cask-smoke.yml');
+  const scopeAction = await readFile(
+    resolve(root, '.github/actions/pr-ci-scope/action.yml'),
+    'utf8',
+  );
+  for (const source of [pluginCi, caskSmoke]) {
+    assert.match(source, /github\.event\.pull_request\.number \|\| github\.run_id/);
+    assert.match(source, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/);
+    assert.match(source, /uses: \.\/\.github\/actions\/pr-ci-scope/);
+    assert.match(source, /needs: ci-scope/);
+    assert.match(source, /needs\.ci-scope\.outputs\.scope == 'full'/);
+  }
+  assert.match(pluginCi, /Review artifact validation/);
+  assert.match(pluginCi, /gate_triage\.py/);
+  assert.match(pluginCi, /executePluginRequest/);
+  assert.match(pluginCi, /docker\/setup-buildx-action@v4/);
+  assert.match(pluginCi, /docker\/build-push-action@v7/);
+  assert.match(pluginCi, /cache-to: type=gha,mode=max/);
+  assert.match(scopeAction, /EVENT_ACTION.*github\.event\.action/);
+  assert.match(scopeAction, /git merge-base --is-ancestor/);
+  assert.match(scopeAction, /head_sha=\$BEFORE_SHA&status=success/);
+  assert.match(scopeAction, /scope=review-artifacts/);
+  assert.doesNotMatch(scopeAction, /pull_request_target/);
+});
+
 test('all GitHub workflows use Node-24-compatible official action majors and Node 24 jobs', async () => {
   const names = await readdir(resolve(root, '.github/workflows'));
   for (const name of names.filter((item) => item.endsWith('.yml'))) {
