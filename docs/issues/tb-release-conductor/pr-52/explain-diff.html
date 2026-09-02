@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GateReeve Release Conductor — PR #52</title>
+  <style>
+    :root { color-scheme: light dark; --ink:#18212f; --paper:#f7f4ed; --card:#fffdf8; --accent:#b54c2b; --line:#d9d1c3; --good:#176b45; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:17px/1.65 ui-serif,Georgia,serif; color:var(--ink); background:var(--paper); }
+    main { width:min(980px,92vw); margin:auto; padding:3rem 0 6rem; }
+    h1,h2,h3 { line-height:1.15; font-family:ui-sans-serif,system-ui,sans-serif; }
+    h1 { font-size:clamp(2.4rem,7vw,5.4rem); letter-spacing:-.05em; margin:.2em 0; }
+    h2 { margin-top:3.5rem; padding-top:1rem; border-top:2px solid var(--ink); }
+    a { color:var(--accent); }
+    nav,.callout,.diagram,.quiz { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:1.25rem; margin:1.5rem 0; }
+    .eyebrow { font:700 .8rem ui-sans-serif,system-ui; text-transform:uppercase; letter-spacing:.16em; color:var(--accent); }
+    .lead { font-size:1.25rem; max-width:70ch; }
+    .flow { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:.7rem; align-items:stretch; }
+    .node { padding:1rem; border:2px solid var(--line); border-radius:10px; text-align:center; font-family:ui-sans-serif,system-ui; }
+    .node strong { display:block; color:var(--accent); }
+    .authority { border-color:var(--accent); }
+    .state { border-color:var(--good); }
+    pre { white-space:pre-wrap; overflow:auto; background:#17202b; color:#f7f4ed; padding:1rem; border-radius:10px; }
+    code { font-family:ui-monospace,SFMono-Regular,monospace; }
+    button { display:block; width:100%; text-align:left; margin:.55rem 0; padding:.8rem; border:1px solid var(--line); border-radius:8px; background:var(--card); color:inherit; cursor:pointer; }
+    button:hover { border-color:var(--accent); }
+    .feedback { min-height:1.5em; font-weight:700; }
+    .correct { color:var(--good); } .incorrect { color:var(--accent); }
+    @media (prefers-color-scheme:dark) { :root { --ink:#eee8dc; --paper:#12171e; --card:#1b232d; --line:#46505d; --accent:#ff9a75; --good:#78d6a8; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Pinned explanation · PR #52 · ca9e814</p>
+  <h1>One release, one conductor</h1>
+  <p class="lead">GateReeve used to ask its operator to stitch together several GitHub workflows and carry run IDs and digests from one phase to the next. This change turns those phases into instruments played by one conductor: a single <em>start</em> or <em>resume</em> operation, backed by an immutable chain of evidence.</p>
+
+  <nav aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ol><li><a href="#background">Background</a></li><li><a href="#intuition">Intuition</a></li><li><a href="#code">Code walkthrough</a></li><li><a href="#quiz">Quiz</a></li></ol>
+  </nav>
+
+  <section id="background">
+    <h2>Background</h2>
+    <h3>The release is really two linked publications</h3>
+    <p>GateReeve ships a signed, notarized Desktop disk image and native workflow-plugin packages. After the primary release is public, a Homebrew Cask must be generated from the exact public DMG, published separately, and tested both through the retained record and the literal public tap. Those steps deliberately have different authority boundaries.</p>
+    <div class="diagram flow" aria-label="Release surfaces">
+      <div class="node">Reviewed <strong>main</strong></div>
+      <div class="node authority">Apple <strong>trust</strong></div>
+      <div class="node authority">Primary <strong>publish</strong></div>
+      <div class="node">Human <strong>install</strong></div>
+      <div class="node authority">Cask <strong>publish</strong></div>
+      <div class="node">Public <strong>smoke</strong></div>
+    </div>
+    <p>Previously, each phase was independently dispatchable. The security checks were strong, but the operator had to know which workflow came next and transcribe internal identities. That was slow and created a second problem: the runbook itself became part of the control plane.</p>
+    <div class="callout"><strong>Key distinction:</strong> orchestration does not mean collapsing authority. The conductor automates clerical transitions while protected environments still stop immediately before Apple credentials or public mutation.</div>
+  </section>
+
+  <section id="intuition">
+    <h2>Intuition</h2>
+    <p>Think of the release as an append-only ledger. A checkpoint says, “for tag <code>v0.1.0-rc.9</code>, source commit <code>abc…</code> has reached stage X using evidence Y.” The next checkpoint contains the SHA-256 of the previous one. A resume operation does not ask the operator where to continue; it downloads every checkpoint whose artifact name belongs to that tag, verifies the chain, and follows the one legal next edge.</p>
+    <pre><code>INITIALIZED
+  → TRUST_PENDING
+  → TRUSTED
+  → PRIMARY_FINALIZED
+  → PRIMARY_REHEARSED
+  → PRIMARY_PUBLISHED
+  → WAITING_FOR_DIRECT_INSTALL
+  → CASK_FINALIZED
+  → CASK_REHEARSED
+  → CASK_PUBLISHED
+  → SMOKE_VERIFIED
+  → COMPLETE</code></pre>
+    <p>A failed attempt appends a record at the same stage. It never pretends that authority advanced. If retry is safe, its next action is <code>RESUME</code>; an immutable conflict instead says <code>BURN_RC</code>.</p>
+    <div class="diagram flow" aria-label="Resume example">
+      <div class="node state"><strong>#5</strong>PRIMARY_REHEARSED</div>
+      <div class="node"><strong>#6</strong>failed publication</div>
+      <div class="node state"><strong>resume</strong>same sealed plan</div>
+      <div class="node state"><strong>#7</strong>PRIMARY_PUBLISHED</div>
+    </div>
+    <p>The direct-install pause is different. GitHub cannot prove that a person launched the public DMG. The first run therefore stops at an honest waiting state. The operator installs it, then selects <em>resume</em> with one checkbox. GateReeve records the authenticated GitHub actor, time, and exact DMG digest, then carries the Cask chain to completion automatically.</p>
+  </section>
+
+  <section id="code">
+    <h2>Code walkthrough</h2>
+    <h3>1. One trusted workflow entry</h3>
+    <p><code>.github/workflows/release-conductor.yml</code> is the sole manual production trigger. Both operations require their workflow implementation to be the exact current <code>main</code> commit. Start additionally rejects reused tags and version disagreement before a protected job can run. Resume identifies a release by tag alone.</p>
+    <h3>2. Reusable phases, preserved boundaries</h3>
+    <p>The former manual preparation, recovery, finalization, publication, Cask, and smoke workflows now expose <code>workflow_call</code>. Read-only rehearsals run automatically without environments. Apple trust and the two publication operations retain protected deployments and only the permissions they need.</p>
+    <h3>3. A strict state contract</h3>
+    <p><code>release-conductor-state.js</code> defines exact record keys, legal stages, required cumulative evidence, and passage rules. <code>release-conductor-artifact.js</code> writes canonical state, the full chain, a checksum, JSON status, and Markdown summary. <code>release-conductor-discovery.js</code> binds each retained artifact to a completed mainline conductor run and rejects gaps or divergent sequence numbers.</p>
+    <h3>4. Failure remains resumable</h3>
+    <p>The local composite action appends and uploads one immutable checkpoint. Every invocation uses a fresh temporary directory, including a failure record that repeats the current stage. This matters because preserving the failed attempt is what lets a later run recover without rebuilding trusted bytes.</p>
+    <h3>5. Manual mutation paths are gone</h3>
+    <p>The tag-triggered publisher and low-level workflow dispatches are removed. Old local <code>publish</code>, schema-v1 primary publication, and schema-v1 Cask publication commands are no longer in the command tree. The hosted mutation commands needed by reusable workflows refuse confirmation unless they are running inside the dispatched Release Conductor.</p>
+    <h3>6. Smaller and quieter infrastructure</h3>
+    <p>Official actions move to Node-24-compatible majors, jobs use Node 24, and the exact-Node-23 <code>qp-cli-core</code> dependency is replaced by direct Commander plus a small local help-tree renderer. Full CI ignores only the sealed Desktop metadata file, while the publication code still rejects any PR containing an extra path or altered byte.</p>
+  </section>
+
+  <section id="quiz">
+    <h2>Quiz</h2>
+    <p>Choose an answer; feedback appears immediately.</p>
+    <div class="quiz" data-answer="b"><strong>1. Why is a failed publication represented by another record at the same stage?</strong><button data-choice="a">To let the workflow overwrite the failed evidence later</button><button data-choice="b">To preserve the attempt without claiming authority advanced</button><button data-choice="c">To allow the operator to select any later stage</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="c"><strong>2. What does the operator provide when resuming?</strong><button data-choice="a">The preparation run ID and both plan digests</button><button data-choice="b">The latest state artifact name and publication receipt</button><button data-choice="c">The release tag, plus the install checkbox only at the attestation boundary</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="a"><strong>3. Which work remains behind protected environments?</strong><button data-choice="a">Apple credential use and the two public mutations</button><button data-choice="b">All rehearsals and state rendering</button><button data-choice="c">Only the final Cask smoke tests</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="b"><strong>4. Why must resume itself execute from exact current main?</strong><button data-choice="a">Because the released product source must always be the newest commit</button><button data-choice="b">Because reviewed conductor code interprets retained state and requests authority</button><button data-choice="c">Because GitHub cannot download artifacts from older commits</button><p class="feedback"></p></div>
+    <div class="quiz" data-answer="c"><strong>5. What makes COMPLETE legal?</strong><button data-choice="a">A successful primary publication and direct-install checkbox</button><button data-choice="b">A Cask PR merged by the deterministic publisher</button><button data-choice="c">A valid chain through SMOKE_VERIFIED with four native/public smoke artifacts</button><p class="feedback"></p></div>
+  </section>
+</main>
+<script>
+  document.querySelectorAll('.quiz').forEach((quiz) => {
+    quiz.querySelectorAll('button').forEach((button) => button.addEventListener('click', () => {
+      const correct = button.dataset.choice === quiz.dataset.answer;
+      const feedback = quiz.querySelector('.feedback');
+      feedback.className = `feedback ${correct ? 'correct' : 'incorrect'}`;
+      feedback.textContent = correct ? 'Correct — that preserves the release’s authority model.' : 'Not quite. Revisit the ledger and authority-boundary sections above.';
+    }));
+  });
+</script>
+</body>
+</html>

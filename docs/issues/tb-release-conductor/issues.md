@@ -85,7 +85,7 @@ around conductor-only production.
 
 ## I-7 - Complete feature-final verification
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 1d
 - **Plan steps:** P7
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8

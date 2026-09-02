@@ -2,7 +2,7 @@
 
 **Pull request:** [#52](https://github.com/TrentBrown/gatereeve/pull/52)
 **Scope:** feature-final
-**Pinned source:** `73b8aa77be1239c74feb28ebf3534b7297802f2f`
+**Pinned source:** `ca9e814f6e45b28ae490cfbbf6190a4b89e7fa5f`
 **Pinned base:** `4744edf06e40c7ba9575855f9aa80c8cc612bbbc`
 **Feature-record retention:** tracked; no retention decision is required.
 
