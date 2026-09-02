@@ -13,20 +13,21 @@ export function isTransientHdiutilResourceError(error) {
   return [details.message, details.stdout, details.stderr]
     .filter((value) => typeof value === 'string' || Buffer.isBuffer(value))
     .map((value) => String(value))
-    .some((value) => /Resource temporarily unavailable/iu.test(value));
+    .some((value) => /Resource (?:busy|temporarily unavailable)/iu.test(value));
 }
 
 /**
- * @param {string} dmgPath
+ * @param {string[]} arguments_
  * @param {{
  *   run?: (file: string, args: string[]) => Promise<unknown>,
  *   sleep?: (milliseconds: number) => Promise<void>,
  *   maxAttempts?: number,
  *   initialDelayMs?: number,
+ *   beforeAttempt?: (details: {attempt: number}) => Promise<void> | void,
  *   onRetry?: (details: {attempt: number, delayMs: number, error: unknown}) => void,
  * }} [options]
  */
-export async function verifyDmgWithRetry(dmgPath, options = {}) {
+export async function runHdiutilWithRetry(arguments_, options = {}) {
   const run = options.run ?? ((file, args) => execFileAsync(file, args, {
     maxBuffer: 8 * 1024 * 1024,
   }));
@@ -36,7 +37,7 @@ export async function verifyDmgWithRetry(dmgPath, options = {}) {
   const maxAttempts = options.maxAttempts ?? 3;
   const initialDelayMs = options.initialDelayMs ?? 1_000;
   const onRetry = options.onRetry ?? (({ attempt, delayMs }) => {
-    console.warn(`hdiutil verify attempt ${attempt} hit transient resource contention; retrying in ${delayMs}ms`);
+    console.warn(`hdiutil ${arguments_[0]} attempt ${attempt} hit transient resource contention; retrying in ${delayMs}ms`);
   });
   if (!Number.isInteger(maxAttempts) || maxAttempts < 1) {
     throw new Error('maxAttempts must be a positive integer');
@@ -46,7 +47,8 @@ export async function verifyDmgWithRetry(dmgPath, options = {}) {
   }
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      return await run('/usr/bin/hdiutil', ['verify', resolve(dmgPath)]);
+      await options.beforeAttempt?.({ attempt });
+      return await run('/usr/bin/hdiutil', arguments_);
     } catch (error) {
       if (!isTransientHdiutilResourceError(error) || attempt === maxAttempts) throw error;
       const delayMs = initialDelayMs * (2 ** (attempt - 1));
@@ -54,5 +56,13 @@ export async function verifyDmgWithRetry(dmgPath, options = {}) {
       await sleep(delayMs);
     }
   }
-  throw new Error('Unreachable hdiutil verification retry state');
+  throw new Error('Unreachable hdiutil retry state');
+}
+
+/**
+ * @param {string} dmgPath
+ * @param {Parameters<typeof runHdiutilWithRetry>[1]} [options]
+ */
+export async function verifyDmgWithRetry(dmgPath, options = {}) {
+  return runHdiutilWithRetry(['verify', resolve(dmgPath)], options);
 }

@@ -10,6 +10,7 @@ import { createMacosDmg } from '../scripts/create-macos-dmg.mjs';
 import { generateMacosIcon } from '../scripts/generate-macos-icon.mjs';
 import {
   isTransientHdiutilResourceError,
+  runHdiutilWithRetry,
   verifyDmgWithRetry,
 } from '../scripts/hdiutil-retry.mjs';
 import {
@@ -235,6 +236,7 @@ test('DMG verification retries only bounded transient hdiutil contention', async
     stderr: 'Resource temporarily unavailable',
   });
   assert.equal(isTransientHdiutilResourceError(transient), true);
+  assert.equal(isTransientHdiutilResourceError(new Error('hdiutil: create failed - Resource busy')), true);
   assert.equal(isTransientHdiutilResourceError(new Error('invalid checksum')), false);
   const result = await verifyDmgWithRetry('/tmp/GateReeve.dmg', {
     initialDelayMs: 10,
@@ -253,6 +255,42 @@ test('DMG verification retries only bounded transient hdiutil contention', async
   let invalidAttempts = 0;
   const invalid = new Error('hdiutil: verify: checksum mismatch');
   await assert.rejects(verifyDmgWithRetry('/tmp/invalid.dmg', {
+    sleep: async () => {},
+    onRetry: () => {},
+    async run() {
+      invalidAttempts += 1;
+      throw invalid;
+    },
+  }), (error) => error === invalid);
+  assert.equal(invalidAttempts, 1);
+});
+
+test('DMG creation retries only bounded transient hdiutil contention', async () => {
+  const transient = Object.assign(new Error('hdiutil create failed'), {
+    stderr: 'hdiutil: create failed - Resource busy',
+  });
+  const delays = [];
+  const preparedAttempts = [];
+  let attempts = 0;
+  const result = await runHdiutilWithRetry(['create', '/tmp/GateReeve.dmg'], {
+    initialDelayMs: 10,
+    sleep: async (delay) => { delays.push(delay); },
+    beforeAttempt: ({ attempt }) => { preparedAttempts.push(attempt); },
+    onRetry: () => {},
+    async run() {
+      attempts += 1;
+      if (attempts < 3) throw transient;
+      return 'created';
+    },
+  });
+  assert.equal(result, 'created');
+  assert.equal(attempts, 3);
+  assert.deepEqual(delays, [10, 20]);
+  assert.deepEqual(preparedAttempts, [1, 2, 3]);
+
+  const invalid = new Error('hdiutil: create failed - invalid source');
+  let invalidAttempts = 0;
+  await assert.rejects(runHdiutilWithRetry(['create', '/tmp/invalid.dmg'], {
     sleep: async () => {},
     onRetry: () => {},
     async run() {

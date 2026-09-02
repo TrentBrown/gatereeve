@@ -198,6 +198,11 @@ test('legacy local publication entrypoints are removed', async () => {
 
 test('hosted mutation commands require a dispatched Release Conductor context', async () => {
   const executable = join(cliRoot, 'bin/workflow.js');
+  const environment = { ...process.env };
+  delete environment.GITHUB_ACTIONS;
+  delete environment.GITHUB_WORKFLOW;
+  delete environment.GITHUB_EVENT_NAME;
+
   for (const [command, recordOption] of [
     ['publish-hosted', '--release-record'],
     ['publish-cask-hosted', '--cask-record'],
@@ -209,7 +214,7 @@ test('hosted mutation commands require a dispatched Release Conductor context', 
       '--plan-sha256', 'a'.repeat(64),
       '--approved-by', 'TrentBrown',
       '--confirm',
-    ], { cwd: cliRoot }), /only inside the dispatched Release Conductor/u);
+    ], { cwd: cliRoot, env: environment }), /only inside the dispatched Release Conductor/u);
   }
 });
 

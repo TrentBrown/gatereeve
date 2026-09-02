@@ -216,3 +216,58 @@ transient `hdiutil` resource contention and passed unchanged on rerun.
   fail immediately.
 - Retry create, attach, and detach too - rejected because only `verify` has
   observed evidence supporting this narrowly bounded exception.
+
+## [9] Isolate hosted-command rejection tests from the parent CI context
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Release Conductor plugin-candidate validation and the CLI
+hosted-mutation guard regression test
+
+Run the rejection test's child processes with the three Release Conductor
+authorization variables removed. The production guard remains unchanged; the
+test now constructs the outside-conductor context it claims to exercise even
+when its parent test suite is itself running inside the conductor.
+
+**Triggered by:** RC.9 candidate validation inherited `GITHUB_ACTIONS=true`,
+`GITHUB_WORKFLOW=Release Conductor`, and
+`GITHUB_EVENT_NAME=workflow_dispatch`, causing the negative test to pass the
+production guard and fail later on its intentionally nonexistent fixture.
+
+**Alternatives considered:**
+- Weaken or reorder the production guard - rejected because its behavior was
+  correct under the real hosted context.
+- Skip this test inside the conductor - rejected because candidate validation
+  should retain the negative authorization regression coverage.
+- Replace the nonexistent fixture with a valid release record - rejected
+  because that would test a different, authority-bearing path.
+
+## [10] Extend bounded hdiutil retries to observed creation contention
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** macOS DMG creation in pull-request CI and trusted release
+packaging
+
+Apply the existing three-attempt exponential-backoff helper to both `hdiutil
+create` and `hdiutil verify`, and recognize only Apple's two observed resource
+contention messages: `Resource busy` and `Resource temporarily unavailable`.
+Remove the exact destination before each creation attempt so a partial failed
+image cannot poison the retry. All other creation, integrity, and signing
+errors continue to fail on the first attempt.
+
+**Triggered by:** PR #54's universal macOS package failed during `hdiutil
+create` with `Resource busy`, providing the concrete evidence that the earlier
+verify-only retry decision required.
+
+**Alternatives considered:**
+- Rerun the failed job without changing the implementation - rejected because
+  the same transient can abort trusted RC packaging.
+- Retry the entire package job - rejected because it repeats universal app
+  assembly and makes the failing operation less visible.
+- Retry every `hdiutil` failure - rejected because invalid inputs and corrupted
+  images must remain immediate failures.
