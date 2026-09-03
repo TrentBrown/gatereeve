@@ -65,7 +65,7 @@ native Apple Silicon and Intel packaged-runtime jobs.
 - Scope: slice (P6-P7; R5, R6)
 - Pull request: [#63](https://github.com/TrentBrown/gatereeve/pull/63)
 - Evidence packet: [pr-63](pr-63/boundary.json)
-- Status: formal PR boundary complete; approved for merge
+- Status: human review accepted; approved for merge
 
 This slice adds validated skill/manual/command adapters, supervised provider
 observation, explicit local command authorization, and dedicated module task
