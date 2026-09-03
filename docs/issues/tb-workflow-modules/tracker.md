@@ -38,7 +38,7 @@ legacy-attempt replay defect; the second attempt evaluates that correction.
 - Pull request: [#62](https://github.com/TrentBrown/gatereeve/pull/62)
 - Evidence packet: [pr-62](pr-62/boundary.json)
 - Scope: slice (P4-P5; R1, R3, R4, R7)
-- Status: boundary rerun after packaged-runtime remediation
+- Outcome: merged as `1f3e6b258dbb22129bd5174d371a0fae4527efd3`
 
 This slice adds staged project module settings, dependency and migration
 previews, scoped waivers, and the shared Implementing/Finalizing module graph.
@@ -58,3 +58,13 @@ The first human-review CI run then exposed the package verifier's older blanket
 Python exclusion. The repaired contract requires exactly those three trusted
 scripts, rejects every other Python path, and passes the universal package plus
 native Apple Silicon and Intel packaged-runtime jobs.
+
+### Slice 3 - Execution and provider runtime
+
+- Delivery branch: `tb-workflow-modules-03-provider-execution`
+- Scope: slice (P6-P7; R5, R6)
+- Status: implementation in progress
+
+This slice adds validated skill/manual/command adapters, supervised provider
+observation, explicit local command authorization, and dedicated module task
+terminal sessions while preserving the persistent user shell.
