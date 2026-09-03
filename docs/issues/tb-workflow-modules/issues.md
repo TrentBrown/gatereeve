@@ -35,7 +35,7 @@ parity and regression behavior. This completes delivery slice 1.
 
 ## I-3 - Add project module policy and boundary-waiver controls
 
-- **Status:** in-review
+- **Status:** in-progress
 - **Estimate:** 2d
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R3
@@ -51,7 +51,7 @@ the waiver must bind to.
 
 ## I-4 - Generalize module graph and detail presentation
 
-- **Status:** in-review
+- **Status:** in-progress
 - **Estimate:** 2d
 - **Plan steps:** P5
 - **Rubric criteria:** R4, R7

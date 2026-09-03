@@ -38,11 +38,11 @@ legacy-attempt replay defect; the second attempt evaluates that correction.
 - Pull request: [#62](https://github.com/TrentBrown/gatereeve/pull/62)
 - Evidence packet: [pr-62](pr-62/boundary.json)
 - Scope: slice (P4-P5; R1, R3, R4, R7)
-- Status: boundary passed; human review pending
+- Status: implementation remediation after packaged-runtime CI
 
 This slice adds staged project module settings, dependency and migration
 previews, scoped waivers, and the shared Implementing/Finalizing module graph.
-The implementation passes 173 Desktop tests and 208 CLI tests. It exposes only
+The implementation passes 174 Desktop tests and 208 CLI tests. It exposes only
 narrow main-process policy/waiver operations, writes no Git state, keeps locked
 and unavailable modules fail-closed, and renders authoritative results
 separately from normalized live progress. A Linux-host Electron launch was

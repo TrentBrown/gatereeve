@@ -20,11 +20,13 @@ import {
   MACOS_PRODUCT,
   REQUIRED_ASAR_PATHS,
   RUNTIME_DEPENDENCIES,
+  STAGED_PYTHON_RUNTIME_PATHS,
   STAGED_RUNTIME_PACKAGES,
 } from '../scripts/macos-package-contract.mjs';
 import { emitPackageResult, stageDesktopSource } from '../scripts/package-macos.mjs';
 import {
   detectRosettaTranslation,
+  isApprovedPythonRuntimePath,
   isApprovedRuntimePackagePath,
   requireMacosExecutionAuthority,
   writeVerificationEvidence,
@@ -87,6 +89,21 @@ test('runtime package allowlist admits scoped parents but rejects unstaged sibli
   assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm/unapproved'), false);
   assert.equal(isApprovedRuntimePackagePath('/node_modules/node-pty/lib/index.js'), true);
   assert.equal(isApprovedRuntimePackagePath('/node_modules/electron'), false);
+});
+
+test('Python runtime allowlist admits only the trusted context-check closure', () => {
+  assert.deepEqual(STAGED_PYTHON_RUNTIME_PATHS, [
+    '/resources/scripts/pr_context.py',
+    '/resources/scripts/workflow_common.py',
+    '/resources/scripts/workflow_context.py',
+  ]);
+  for (const path of STAGED_PYTHON_RUNTIME_PATHS) {
+    assert.equal(isApprovedPythonRuntimePath(path), true);
+    assert.equal(REQUIRED_ASAR_PATHS.includes(path), true);
+  }
+  assert.equal(isApprovedPythonRuntimePath('/resources/scripts/boundary_gate.py'), false);
+  assert.equal(isApprovedPythonRuntimePath('/resources/scripts/nested/pr_context.py'), false);
+  assert.equal(isApprovedPythonRuntimePath('/pr_context.py'), false);
 });
 
 test('ASAR packaging unpacks node-pty native binaries and helper executables', async () => {

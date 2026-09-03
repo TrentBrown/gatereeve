@@ -45,6 +45,12 @@ export const STAGED_RUNTIME_PACKAGES = Object.freeze([
   'node-pty',
 ]);
 
+export const STAGED_PYTHON_RUNTIME_PATHS = Object.freeze([
+  '/resources/scripts/pr_context.py',
+  '/resources/scripts/workflow_common.py',
+  '/resources/scripts/workflow_context.py',
+]);
+
 export const REQUIRED_ASAR_PATHS = Object.freeze([
   '/main/index.js',
   '/preload/index.cjs',
@@ -60,6 +66,7 @@ export const REQUIRED_ASAR_PATHS = Object.freeze([
   '/node_modules/node-pty/prebuilds/darwin-x64/spawn-helper',
   '/resources/desktop-projection.json',
   '/resources/protocol/context.js',
+  ...STAGED_PYTHON_RUNTIME_PATHS,
   '/shared/setup-compatibility.json',
   `/${MACOS_PRODUCT.iconSource}`,
 ]);
