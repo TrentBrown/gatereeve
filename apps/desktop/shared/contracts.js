@@ -5,9 +5,11 @@ export const DESKTOP_STATE_SCHEMA_VERSION = 1;
 export const IPC_CHANNELS = Object.freeze({
   checkForUpdates: 'gatereeve:desktop:check-for-updates',
   addProject: 'gatereeve:desktop:add-project',
+  applyModulePolicy: 'gatereeve:desktop:apply-module-policy',
   copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
   getArtifactActions: 'gatereeve:desktop:get-artifact-actions',
+  getModuleSettings: 'gatereeve:desktop:get-module-settings',
   getUpdateState: 'gatereeve:desktop:get-update-state',
   listSession: 'gatereeve:desktop:list-session',
   layoutCommand: 'gatereeve:desktop:layout-command',
@@ -18,6 +20,7 @@ export const IPC_CHANNELS = Object.freeze({
   openArtifactGithub: 'gatereeve:desktop:open-artifact-github',
   openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
+  previewModulePolicy: 'gatereeve:desktop:preview-module-policy',
   activateProject: 'gatereeve:desktop:activate-project',
   readDetail: 'gatereeve:desktop:read-detail',
   readSession: 'gatereeve:desktop:read-session',
@@ -37,6 +40,7 @@ export const IPC_CHANNELS = Object.freeze({
   terminalTerminate: 'gatereeve:desktop:terminal-terminate',
   terminalWrite: 'gatereeve:desktop:terminal-write',
   updateChanged: 'gatereeve:desktop:update-changed',
+  waiveBoundaryModule: 'gatereeve:desktop:waive-boundary-module',
 });
 
 const PHASES = new Set(['idle', 'loading', 'ready', 'error']);
@@ -297,6 +301,173 @@ export function requireTerminalHeight(value) {
     throw new Error('Terminal panel height is invalid.');
   }
   return value;
+}
+
+function validModuleReadiness(value) {
+  return isObject(value)
+    && exactKeys(value, ['status', 'missing'])
+    && ['unchecked', 'available', 'unavailable'].includes(value.status)
+    && Array.isArray(value.missing)
+    && value.missing.every((item) => (
+      isObject(item)
+      && exactKeys(item, ['kind', 'id'])
+      && ['skill', 'provider'].includes(item.kind)
+      && typeof item.id === 'string'
+    ));
+}
+
+function validModuleSetting(value) {
+  return isObject(value)
+    && exactKeys(value, [
+      'id', 'version', 'digest', 'label', 'description', 'slot', 'enabled',
+      'locked', 'disposition', 'waiverAllowed', 'dependsOn', 'after',
+      'readiness', 'runKind', 'observeProvider',
+    ])
+    && typeof value.id === 'string'
+    && typeof value.version === 'string'
+    && typeof value.digest === 'string'
+    && typeof value.label === 'string'
+    && typeof value.description === 'string'
+    && ['boundary.evaluation', 'feature.finalization'].includes(value.slot)
+    && typeof value.enabled === 'boolean'
+    && typeof value.locked === 'boolean'
+    && ['required', 'optional'].includes(value.disposition)
+    && typeof value.waiverAllowed === 'boolean'
+    && Array.isArray(value.dependsOn)
+    && value.dependsOn.every((id) => typeof id === 'string')
+    && Array.isArray(value.after)
+    && value.after.every((id) => typeof id === 'string')
+    && validModuleReadiness(value.readiness)
+    && nullableString(value.runKind)
+    && nullableString(value.observeProvider);
+}
+
+export function requireModuleSettings(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, [
+      'schemaVersion', 'policyPath', 'policyExists', 'policyDigest',
+      'featureModelHash', 'projectModelHash', 'migrationRequired', 'modules',
+    ])
+    || value.schemaVersion !== 1
+    || typeof value.policyPath !== 'string'
+    || typeof value.policyExists !== 'boolean'
+    || typeof value.policyDigest !== 'string'
+    || typeof value.featureModelHash !== 'string'
+    || typeof value.projectModelHash !== 'string'
+    || typeof value.migrationRequired !== 'boolean'
+    || !Array.isArray(value.modules)
+    || !value.modules.every(validModuleSetting)
+  ) {
+    throw new Error('Module settings are invalid.');
+  }
+  return value;
+}
+
+export function requireModulePolicyRequest(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['enabledModuleIds'])
+    || !Array.isArray(value.enabledModuleIds)
+    || value.enabledModuleIds.some((id) => typeof id !== 'string' || id.length === 0 || id.length > 512)
+    || new Set(value.enabledModuleIds).size !== value.enabledModuleIds.length
+  ) {
+    throw new Error('Module policy preview request is invalid.');
+  }
+  return { enabledModuleIds: [...value.enabledModuleIds] };
+}
+
+export function requireModulePolicyApplyRequest(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['enabledModuleIds', 'confirmedMigration', 'confirmationLabel'])
+    || typeof value.confirmedMigration !== 'boolean'
+    || !nullableString(value.confirmationLabel)
+    || (value.confirmationLabel !== null && value.confirmationLabel.length > 1_024)
+  ) {
+    throw new Error('Module policy apply request is invalid.');
+  }
+  const policy = requireModulePolicyRequest({ enabledModuleIds: value.enabledModuleIds });
+  return {
+    ...policy,
+    confirmedMigration: value.confirmedMigration,
+    confirmationLabel: value.confirmationLabel,
+  };
+}
+
+function validMigrationImpact(value) {
+  const stringFields = ['fromModelVersion', 'toModelVersion', 'fromModelHash', 'toModelHash'];
+  const listFields = [
+    'guardsAdded', 'guardsRemoved', 'transitionsAdded', 'transitionsRemoved',
+    'modulesAdded', 'modulesRemoved', 'modulesChanged', 'boundaryGateIdsInvalidated',
+  ];
+  return isObject(value)
+    && exactKeys(value, [...stringFields, ...listFields])
+    && stringFields.every((field) => typeof value[field] === 'string')
+    && listFields.every((field) => (
+      Array.isArray(value[field]) && value[field].every((item) => typeof item === 'string')
+    ));
+}
+
+export function requireModulePolicyPreview(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, [
+      'schemaVersion', 'valid', 'error', 'autoEnabled', 'blockingDependents',
+      'enabledModuleIds', 'suggestedEnabledModuleIds', 'diff', 'migrationImpact',
+    ])
+    || value.schemaVersion !== 1
+    || typeof value.valid !== 'boolean'
+    || !nullableString(value.error)
+    || !Array.isArray(value.autoEnabled)
+    || value.autoEnabled.some((id) => typeof id !== 'string')
+    || !Array.isArray(value.blockingDependents)
+    || !Array.isArray(value.enabledModuleIds)
+    || value.enabledModuleIds.some((id) => typeof id !== 'string')
+    || !Array.isArray(value.suggestedEnabledModuleIds)
+    || value.suggestedEnabledModuleIds.some((id) => typeof id !== 'string')
+    || !Array.isArray(value.diff)
+    || value.diff.some((item) => (
+      !isObject(item)
+      || !exactKeys(item, ['id', 'before', 'after'])
+      || typeof item.id !== 'string'
+      || typeof item.before !== 'boolean'
+      || typeof item.after !== 'boolean'
+    ))
+    || value.blockingDependents.some((item) => (
+      !isObject(item)
+      || !exactKeys(item, ['id', 'label', 'locked', 'missingDependencies'])
+      || typeof item.id !== 'string'
+      || typeof item.label !== 'string'
+      || typeof item.locked !== 'boolean'
+      || !Array.isArray(item.missingDependencies)
+      || item.missingDependencies.some((id) => typeof id !== 'string')
+    ))
+    || (value.migrationImpact !== null && !validMigrationImpact(value.migrationImpact))
+  ) {
+    throw new Error('Module policy preview is invalid.');
+  }
+  return value;
+}
+
+export function requireBoundaryModuleWaiverRequest(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['attemptId', 'gateId', 'reason', 'confirmationLabel'])
+    || !['attemptId', 'gateId', 'reason', 'confirmationLabel'].every((field) => (
+      typeof value[field] === 'string'
+      && value[field].trim().length > 0
+      && value[field].length <= 2_048
+    ))
+  ) {
+    throw new Error('Boundary module waiver request is invalid.');
+  }
+  return {
+    attemptId: value.attemptId,
+    gateId: value.gateId,
+    reason: value.reason.trim(),
+    confirmationLabel: value.confirmationLabel.trim(),
+  };
 }
 
 export function requireDetailRequest(value) {

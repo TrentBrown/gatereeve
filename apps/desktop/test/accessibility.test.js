@@ -17,14 +17,17 @@ test('principal controls use keyboard-native elements with visible accessible na
     '#terminal-terminate', '#terminal-restart',
     '#open-setup', '#setup-open-worktree', '#setup-return', '#setup-recheck',
     '#candidate-diagnostic-choose-another', '#source-dialog-close',
+    '#module-discard', '#module-apply', '#module-confirm-close', '#module-confirm-cancel',
+    '#module-confirm-apply', '#module-waiver-close', '#module-waiver-reason',
+    '#module-waiver-cancel', '#module-waiver-confirm',
     '#agent-codex', '#agent-claude', '#save-agents',
-    '[data-view="overview"]', '[data-view="artifacts"]', '[data-view="history"]',
+    '[data-view="overview"]', '[data-view="modules"]', '[data-view="artifacts"]', '[data-view="history"]',
     '[data-view="model"]', '[data-view="session"]',
   ];
   for (const selector of namedControls) {
     const control = document.querySelector(selector);
     assert.ok(control, `${selector} exists`);
-    assert.ok(['BUTTON', 'INPUT', 'SELECT'].includes(control.tagName), `${selector} is keyboard native`);
+    assert.ok(['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(control.tagName), `${selector} is keyboard native`);
     const label = control.id ? document.querySelector(`label[for="${control.id}"]`) : null;
     assert.ok(
       control.textContent.trim() || control.getAttribute('aria-label') || label?.textContent.trim(),

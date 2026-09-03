@@ -15,6 +15,7 @@ import {
   MACOS_PRODUCT,
   REQUIRED_ASAR_PATHS,
   RUNTIME_DEPENDENCIES,
+  STAGED_PYTHON_RUNTIME_PATHS,
   STAGED_RUNTIME_PACKAGES,
 } from './macos-package-contract.mjs';
 import {
@@ -72,6 +73,10 @@ export function isApprovedRuntimePackagePath(path) {
       || path.startsWith(`${packagePath}/`)
       || (scopePath !== null && path === scopePath);
   });
+}
+
+export function isApprovedPythonRuntimePath(path) {
+  return STAGED_PYTHON_RUNTIME_PATHS.includes(path);
 }
 
 /** @param {string} plistPath @param {string} key */
@@ -163,7 +168,13 @@ export async function verifyApplication(applicationPath, version, appleTrust) {
     } else {
       assert.doesNotMatch(path, /^\/(?:scripts|test|visual)(?:\/|$)/u);
     }
-    assert.doesNotMatch(path, /\.py$/u);
+    if (path.endsWith('.py')) {
+      assert.equal(
+        isApprovedPythonRuntimePath(path),
+        true,
+        `Packaged application contains an unapproved Python runtime path: ${path}`,
+      );
+    }
   }
   const packageMetadata = JSON.parse(extractFile(asarPath, 'package.json').toString('utf8'));
   const compatibility = JSON.parse(

@@ -67,6 +67,7 @@ export function createDesktopCoordinator({
   initialPreferences = null,
   initialSetup = defaultSetup(),
   setupObserver = async () => defaultSetup(),
+  modulePolicyManager = null,
   notify = () => {},
 } = {}) {
   let preferences = initialPreferences;
@@ -108,6 +109,21 @@ export function createDesktopCoordinator({
         terminalHeight: preferences?.terminalHeight ?? 260,
       },
     });
+  }
+
+  function selectedContext() {
+    if (selection === null || selection.featureHome === null) {
+      throw new Error('Choose a governed project before managing modules.');
+    }
+    return {
+      repositoryRoot: selection.worktreePath,
+      featureHome: selection.featureHome,
+    };
+  }
+
+  function publicModulePreview(value) {
+    const { policy: _policy, nextModel: _nextModel, ...preview } = value;
+    return preview;
   }
 
   function publish() {
@@ -203,7 +219,15 @@ export function createDesktopCoordinator({
     const git = await gitObserver(selection.worktreePath, selection.featureHome);
     if (token !== generation || selection === null) return;
     gitContext = { repositoryRoot: git.repositoryRoot, branch: git.branch };
-    currentFacts = { ...currentFacts, ...git.facts };
+    const moduleAvailability = modulePolicyManager?.availability
+      ? await modulePolicyManager.availability()
+      : null;
+    if (token !== generation || selection === null) return;
+    currentFacts = {
+      ...currentFacts,
+      ...git.facts,
+      ...(moduleAvailability === null ? {} : { moduleAvailability }),
+    };
     currentSources = { ...currentSources, git: git.source };
     snapshot = await protocol.snapshot(selection.featureHome, {
       facts: currentFacts,
@@ -479,6 +503,40 @@ export function createDesktopCoordinator({
     async readSession(id) {
       if (selection === null) throw new Error('Choose a project before reading Session context.');
       return readSessionContext(selection.worktreePath, id);
+    },
+    async moduleSettings() {
+      if (modulePolicyManager === null) throw new Error('Module settings are unavailable.');
+      const selected = selectedContext();
+      return modulePolicyManager.inspect(selected.repositoryRoot, selected.featureHome);
+    },
+    async previewModulePolicy(enabledModuleIds) {
+      if (modulePolicyManager === null) throw new Error('Module settings are unavailable.');
+      const selected = selectedContext();
+      return publicModulePreview(await modulePolicyManager.preview(
+        selected.repositoryRoot,
+        selected.featureHome,
+        enabledModuleIds,
+      ));
+    },
+    async applyModulePolicy(enabledModuleIds, options) {
+      if (modulePolicyManager === null) throw new Error('Module settings are unavailable.');
+      const selected = selectedContext();
+      await modulePolicyManager.apply(
+        selected.repositoryRoot,
+        selected.featureHome,
+        enabledModuleIds,
+        options,
+      );
+      await refresh('module-policy');
+      return modulePolicyManager.inspect(selected.repositoryRoot, selected.featureHome);
+    },
+    async waiveBoundaryModule(request) {
+      const selected = selectedContext();
+      await protocol.waiveBoundaryGate({
+        ...selected,
+        ...request,
+      });
+      return refresh('module-waiver');
     },
     artifact(artifactId) {
       const artifact = snapshot?.artifacts?.find((item) => item.id === artifactId);

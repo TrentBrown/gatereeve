@@ -63,8 +63,10 @@ begin from updated `main`; they do not merge a development branch outward.
   staged checkboxes, locked-module explanations, dependency-aware enable and
   disable previews, full-graph validation, tracked-policy diff display, atomic
   apply without Git staging/commit, active-feature migration preview, and
-  visible local implementation readiness. Add the boundary- and feature-scoped
-  waiver dialogs and protocol operations with reason/fingerprint validation.
+  visible local implementation readiness. Add the boundary-scoped waiver
+  dialog and protocol operation with reason/fingerprint validation, and reserve
+  the same presentation path for feature-scoped waivers once P8 creates their
+  fingerprintable finalization attempts.
   **Advances:** R1, R3.
 
 - **P5. Generalize state-specific module visualization.** Refactor the current
@@ -103,8 +105,9 @@ begin from updated `main`; they do not merge a development branch outward.
   to that merge input and module graph, retain live provider progress separately
   from outcomes, and block Complete until required modules are current and
   nonblocking. Cover zero-module projects, manual/command/provider modules,
-  failures, reruns, unavailable implementations, N/A, and feature waivers
-  without adding release-specific core state.
+  failures, reruns, unavailable implementations, N/A, and reasoned
+  fingerprint-bound feature waiver controls without adding release-specific
+  core state.
   **Advances:** R3, R4, R7.
 
 - **P9. Implement GateReeve Release and Release Conductor observation.** Ship

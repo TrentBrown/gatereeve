@@ -52,6 +52,23 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   let projectRemovals = 0;
   let liveTerminal = false;
   let removalConfirmed = true;
+  const moduleCalls = [];
+  const moduleSettings = {
+    schemaVersion: 1,
+    policyPath: '/repo/.gatereeve/workflow.json',
+    policyExists: false,
+    policyDigest: 'sha256:policy',
+    featureModelHash: 'sha256:feature',
+    projectModelHash: 'sha256:project',
+    migrationRequired: false,
+    modules: [{
+      id: 'gatereeve/judge', version: '1.0.0', digest: 'sha256:judge', label: 'Judge',
+      description: 'Independent evaluation.', slot: 'boundary.evaluation', enabled: true,
+      locked: false, disposition: 'required', waiverAllowed: true,
+      dependsOn: [], after: [], readiness: { status: 'available', missing: [] },
+      runKind: 'skill', observeProvider: null,
+    }],
+  };
   const sessionId = 'session:checkpoint:Q0hFQ0tQT0lOVC5tZA';
   const sessionItem = {
     id: sessionId,
@@ -89,6 +106,20 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
       async setTerminalHeight(terminalHeight) {
         return { ...state(), preferences: { ...state().preferences, terminalHeight } };
       },
+      async moduleSettings() { moduleCalls.push(['inspect']); return moduleSettings; },
+      async previewModulePolicy(enabledModuleIds) {
+        moduleCalls.push(['preview', enabledModuleIds]);
+        return {
+          schemaVersion: 1, valid: true, error: null, autoEnabled: [],
+          blockingDependents: [], enabledModuleIds, suggestedEnabledModuleIds: enabledModuleIds,
+          diff: [{ id: 'gatereeve/judge', before: true, after: false }], migrationImpact: null,
+        };
+      },
+      async applyModulePolicy(enabledModuleIds, options) {
+        moduleCalls.push(['apply', enabledModuleIds, options]);
+        return { ...moduleSettings, policyExists: true };
+      },
+      async waiveBoundaryModule(request) { moduleCalls.push(['waive', request]); return state(); },
       async read(kind, id) {
         return { schemaVersion: 1, kind, id, featureId: 'feature', data: { events: [] } };
       },
@@ -239,6 +270,22 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
     320,
   );
   assert.equal((await handlers.get(IPC_CHANNELS.recheckSetup)(event)).setup.phase, 'unconfigured');
+  assert.equal((await handlers.get(IPC_CHANNELS.getModuleSettings)(event)).modules[0].label, 'Judge');
+  assert.equal((await handlers.get(IPC_CHANNELS.previewModulePolicy)(
+    event, { enabledModuleIds: [] },
+  )).diff[0].after, false);
+  assert.equal((await handlers.get(IPC_CHANNELS.applyModulePolicy)(event, {
+    enabledModuleIds: [], confirmedMigration: true, confirmationLabel: 'Trent',
+  })).policyExists, true);
+  assert.equal((await handlers.get(IPC_CHANNELS.waiveBoundaryModule)(event, {
+    attemptId: 'attempt-1', gateId: 'judge', reason: 'Small change', confirmationLabel: 'Trent',
+  })).phase, 'ready');
+  assert.deepEqual(moduleCalls, [
+    ['inspect'],
+    ['preview', []],
+    ['apply', [], { confirmedMigration: true, confirmationLabel: 'Trent' }],
+    ['waive', { attemptId: 'attempt-1', gateId: 'judge', reason: 'Small change', confirmationLabel: 'Trent' }],
+  ]);
   assert.deepEqual(artifactOperations, [
     ['open', '/repo/design.md', 'vscode', true],
     ['capabilities', '/repo/design.md'],
@@ -287,6 +334,12 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   );
   await assert.rejects(
     handlers.get(IPC_CHANNELS.terminalEnsure)(event, { cols: 0, rows: 30 }),
+    /invalid/,
+  );
+  await assert.rejects(
+    handlers.get(IPC_CHANNELS.applyModulePolicy)(event, {
+      enabledModuleIds: ['judge'], confirmedMigration: 'yes', confirmationLabel: 'Trent',
+    }),
     /invalid/,
   );
   await assert.rejects(

@@ -435,6 +435,62 @@ test('active project summary follows the enriched canonical workflow state', asy
   coordinator.close();
 });
 
+test('module mutations stay scoped to the selected project and refresh canonical state', async () => {
+  const worktree = await mkdtemp(join(tmpdir(), 'gatereeve-module-coordinator-'));
+  const featureHome = join(worktree, 'docs/issues/fixture');
+  const calls = [];
+  const settings = { schemaVersion: 1, modules: [] };
+  const protocol = {
+    async resolve(path) { return { featureHome: join(path, 'docs/issues/fixture') }; },
+    async snapshot(home, options) { return snapshot(home, options.sources); },
+    async read() { throw new Error('not used'); },
+    async waiveBoundaryGate(request) { calls.push(['waive', request]); },
+  };
+  const coordinator = createDesktopCoordinator({
+    protocol,
+    modulePolicyManager: {
+      async inspect(repositoryRoot, home) { calls.push(['inspect', repositoryRoot, home]); return settings; },
+      async preview(repositoryRoot, home, enabledModuleIds) {
+        calls.push(['preview', repositoryRoot, home, enabledModuleIds]);
+        return { schemaVersion: 1, enabledModuleIds, policy: { private: true }, nextModel: { private: true } };
+      },
+      async apply(repositoryRoot, home, enabledModuleIds, options) {
+        calls.push(['apply', repositoryRoot, home, enabledModuleIds, options]);
+      },
+    },
+    preferenceStore: {
+      async load() { return defaultPreferences(); },
+      async save(value) { return value; },
+    },
+    gitObserver: async () => ({
+      source: { status: 'current', detail: 'Git current', checkedAt: 'now' },
+      facts: {}, repositoryRoot: worktree, branch: 'topic',
+    }),
+    githubObserver: async () => ({
+      source: { status: 'not-checked', detail: null, checkedAt: null },
+      pullRequest: null, needsPolling: false,
+    }),
+    watcherFactory: async () => ({ close() {} }),
+  });
+  await coordinator.initialize();
+  await coordinator.open(worktree);
+  assert.equal(await coordinator.moduleSettings(), settings);
+  assert.deepEqual(await coordinator.previewModulePolicy(['gatereeve/judge']), {
+    schemaVersion: 1, enabledModuleIds: ['gatereeve/judge'],
+  });
+  assert.equal(await coordinator.applyModulePolicy([], {
+    confirmedMigration: true, confirmationLabel: 'Trent',
+  }), settings);
+  await coordinator.waiveBoundaryModule({
+    attemptId: 'attempt-1', gateId: 'judge', reason: 'Small', confirmationLabel: 'Trent',
+  });
+  assert(calls.some((call) => call[0] === 'apply' && call[1] === worktree && call[2] === featureHome));
+  assert(calls.some((call) => call[0] === 'waive'
+    && call[1].repositoryRoot === worktree
+    && call[1].featureHome === featureHome));
+  coordinator.close();
+});
+
 test('removing the active project preserves disk and activates the nearest saved project', async () => {
   const first = await mkdtemp(join(tmpdir(), 'gatereeve-remove-first-'));
   const second = await mkdtemp(join(tmpdir(), 'gatereeve-remove-second-'));

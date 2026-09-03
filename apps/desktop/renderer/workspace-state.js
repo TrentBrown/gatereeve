@@ -1,4 +1,4 @@
-const MAIN_VIEWS = Object.freeze(['overview', 'artifacts', 'history', 'model', 'session']);
+const MAIN_VIEWS = Object.freeze(['overview', 'modules', 'artifacts', 'history', 'model', 'session']);
 const DEFAULT_INSPECTOR_WIDTH = 420;
 const MIN_INSPECTOR_WIDTH = 300;
 const MAX_INSPECTOR_WIDTH = 720;
@@ -47,6 +47,18 @@ function virtualTab({ attemptId, gate }) {
     gateId: gate.id,
     label: `${gate.orderLabel ? `${gate.orderLabel} · ` : ''}${gate.id}`,
     status: gate.outcome ?? 'UNSET',
+    available: true,
+  };
+}
+
+function moduleTab(module) {
+  return {
+    id: `module:${module.id}`,
+    kind: 'module',
+    moduleId: module.id,
+    slot: module.slot,
+    label: module.label,
+    status: module.live?.status ?? module.readiness?.status ?? 'unknown',
     available: true,
   };
 }
@@ -109,6 +121,16 @@ export function createWorkspaceStore() {
     openGate(projectPath, attemptId, gate) {
       const workspace = ensure(projectPath);
       const tab = virtualTab({ attemptId, gate });
+      const existing = workspace.tabs.findIndex((item) => item.id === tab.id);
+      if (existing === -1) workspace.tabs.push(tab);
+      else workspace.tabs[existing] = tab;
+      workspace.activeTabId = tab.id;
+      workspace.inspectorVisible = true;
+      return workspace;
+    },
+    openModule(projectPath, module) {
+      const workspace = ensure(projectPath);
+      const tab = moduleTab(module);
       const existing = workspace.tabs.findIndex((item) => item.id === tab.id);
       if (existing === -1) workspace.tabs.push(tab);
       else workspace.tabs[existing] = tab;

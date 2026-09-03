@@ -138,3 +138,79 @@ Each newly recorded MODEL_MIGRATED event carries a previousBoundary snapshot for
 Store all historical models in the current lock - rejected because the attempt only needs the governing boundary contract and changing lock shape would widen the slice. Rewrite earlier boundary events during migration - rejected because the journal is append-only. Reject migrations after any legacy attempt - rejected because it prevents the approved explicit migration path rather than preserving history.
 
 **Promoted:** 2026-09-03. PR: #61.
+
+---
+
+## Keep Desktop module mutations semantic and main-process bounded
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop state and IPC contracts, project workflow-policy writes, feature-model migration, boundary waivers, preload authority, and renderer controls.
+
+Desktop exposes named operations for previewing and applying a complete module policy and for waiving one eligible module at an exact active scope. The renderer cannot submit arbitrary protocol requests, file paths, model JSON, or event payloads. The main process resolves the selected saved project, rebuilds the candidate graph from installed built-ins and repository manifests, recomputes dependency and migration impact, writes only `.gatereeve/workflow.json` atomically, and sends confirmed waiver/migration passage through the protocol core.
+
+**Triggered by:** P4 intentionally relaxes GateReeve Desktop's predominantly read-only model, creating an API-contract and security-boundary change.
+
+**Alternatives considered:**
+- Expose the protocol adapter directly to the renderer - rejected because it would turn a narrow product control into a general event-journal mutation capability.
+- Let the renderer write `.gatereeve/workflow.json` - rejected because renderer compromise must not grant arbitrary project-file writes.
+- Offer copyable shell commands only - rejected because the approved design explicitly requires in-app checkboxes, preview, apply, and waiver controls.
+
+**Promoted:** 2026-09-03. PR: #62.
+
+---
+
+## Activate feature-scoped waiver controls with finalization attempts
+
+**Confidence:** HIGH
+
+**Blast Radius:** Slice sequencing for P4/P8, Desktop finalization controls, and generic finalization protocol operations.
+
+Slice 2 implements boundary-scoped waivers but does not fabricate a feature-scoped waiver against a module definition alone. The feature waiver UI and mutation activate in P8, when the protocol first creates a finalization attempt with the exact merge input, resolved module identity, dependency evidence, and scope fingerprint to which `WAIVED` can safely bind. This changes delivery ordering only; the approved feature behavior remains required.
+
+**Triggered by:** P4 named both waiver scopes, while the approved P8 contract owns creation and fingerprinting of generic feature-finalization attempts.
+
+**Alternatives considered:**
+- Record a feature waiver before an attempt exists - rejected because it would lack the approved exact scope fingerprint and could carry across changed merge input.
+- Add a temporary release-specific waiver record - rejected because it would put product-specific state into the generic protocol and require migration in P8.
+- Disable a finalization module as a substitute for waiving it - rejected because durable project policy and one-feature risk acceptance are intentionally distinct controls.
+
+**Promoted:** 2026-09-03. PR: #62.
+
+---
+
+## Bundle the minimal trusted waiver-guard runtime
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop package contents, executable discovery, trusted Python guard dispatch, and boundary-waiver freshness validation.
+
+GateReeve Desktop stages the canonical `pr_context.py`, `workflow_context.py`, and `workflow_common.py` scripts needed to verify that a waiver's pinned pull-request source is still current. It discovers a compatible Python 3.10+ executable plus Git and the GitHub CLI through the same Finder-compatible paths used by Setup, passes their absolute paths into the main-process adapter and Python guard, and binds a new waiver fingerprint to the verified context plus exact module identity. Existing recorded dependency fingerprints are reused only after that fresh context check because Desktop must not invent replacement inputs for evidence produced by another harness.
+
+**Triggered by:** The first PR-boundary audit found that the initially injected unit test passed while the packaged default guard path lacked its Python script, and that the formal `boundary_gate.py` adapter does not accept every structural or project module ID.
+
+**Alternatives considered:**
+- Stage the complete workflow script directory - rejected because Desktop needs only the three-file trusted context-check closure.
+- Reimplement pull-request freshness in renderer or ad hoc main-process JavaScript - rejected because the existing canonical guard already owns the check and the renderer must not gain process authority.
+- Recompute every dependency using the formal gate adapter - rejected because structural and project gate IDs are outside that adapter and because doing so would invent input shapes different from the recorded evidence.
+
+**Promoted:** 2026-09-03. PR: #62.
+
+---
+
+## Keep packaged Python verification fail-closed with an exact allowlist
+
+**Confidence:** HIGH
+
+**Blast Radius:** macOS package contents, package CI, and the trusted Desktop waiver-guard runtime
+
+Replace the blanket Python-file rejection with an exact, shared allowlist for pr_context.py, workflow_context.py, and workflow_common.py. Require all three paths in the ASAR contract while continuing to reject every other Python file. This aligns the package verifier with the already-promoted minimal-runtime decision without weakening its fail-closed posture.
+
+**Triggered by:** Post-boundary packaged-runtime CI correctly rejected the newly staged Python guards because its blanket no-Python invariant predated the approved three-script runtime closure.
+
+**Alternatives considered:**
+- Remove the Python guards - rejected because the packaged waiver path needs the canonical freshness guard.
+- Permit any Python file under `resources/scripts` - rejected because a directory-wide exemption could hide accidental or hostile runtime expansion.
+- Skip packaged-runtime verification - rejected because the failure exposed a real contract mismatch.
+
+**Promoted:** 2026-09-03. PR: #62.

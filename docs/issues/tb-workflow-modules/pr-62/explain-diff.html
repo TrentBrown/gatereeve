@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #62 — GateReeve module interface</title>
+  <style>
+    :root { --ink:#281c35; --muted:#6b6076; --paper:#faf8fc; --panel:#fff; --line:#ddd3e7; --purple:#7048a8; --green:#18724b; --amber:#9a5b0b; --red:#9f2d35; --soft:#f3edf9; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--paper); font:16px/1.58 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    header { padding:4rem max(1.25rem,calc((100vw - 1000px)/2)); color:#fff; background:linear-gradient(135deg,#2b1939,#7048a8); }
+    header p { max-width:780px; font-size:1.15rem; opacity:.94; }
+    main { width:min(1000px,calc(100% - 2rem)); margin:2rem auto 5rem; }
+    nav,.card,.callout,.diagram,.question { background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:0 7px 24px #39234b0c; }
+    nav { padding:1rem 1.25rem; }
+    nav a { margin-right:1rem; color:var(--purple); }
+    section { padding-top:2.2rem; }
+    h1 { margin:.2rem 0 1rem; font:700 clamp(2rem,6vw,4rem)/1.05 Georgia,serif; }
+    h2 { font:700 2rem/1.2 Georgia,serif; border-bottom:1px solid var(--line); padding-bottom:.45rem; }
+    h3 { margin-top:2rem; }
+    code,pre { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+    code { background:var(--soft); padding:.1rem .3rem; border-radius:.25rem; }
+    pre { margin:0; padding:1rem; overflow:auto; white-space:pre-wrap; background:#21172b; color:#f5effa; border-radius:10px; }
+    .sha { display:inline-block; padding:.28rem .55rem; border:1px solid #ffffff55; border-radius:.45rem; font:12px ui-monospace,monospace; }
+    .card,.diagram { padding:1.25rem; margin:1rem 0; }
+    .callout { padding:1rem 1.2rem; margin:1rem 0; border-left:5px solid var(--purple); }
+    .callout strong { color:var(--purple); }
+    .flow { display:flex; gap:.65rem; align-items:stretch; flex-wrap:wrap; }
+    .node { flex:1 1 150px; min-width:135px; padding:.85rem; border:1px solid var(--line); border-top:4px solid var(--purple); border-radius:9px; background:#fff; }
+    .node small { display:block; color:var(--muted); }
+    .arrow { align-self:center; color:var(--purple); font-size:1.5rem; }
+    .split { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+    .rail { display:grid; grid-template-columns:repeat(6,minmax(90px,1fr)); gap:.45rem; overflow:auto; }
+    .rail div { padding:.65rem; border:1px solid var(--line); border-top:3px solid var(--green); border-radius:7px; white-space:nowrap; }
+    .rail .active { border-color:var(--purple); border-top-color:var(--purple); background:var(--soft); }
+    .module-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.7rem; margin:.8rem 0; }
+    .module { padding:.75rem; border:1px solid var(--line); border-left:4px solid var(--green); border-radius:8px; background:#fff; }
+    .module small { display:block; color:var(--muted); }
+    table { width:100%; border-collapse:collapse; margin:1rem 0; }
+    th,td { text-align:left; vertical-align:top; padding:.7rem; border-bottom:1px solid var(--line); }
+    th { color:var(--muted); font-size:.82rem; text-transform:uppercase; letter-spacing:.05em; }
+    .tag { display:inline-block; padding:.18rem .5rem; margin:.1rem; border-radius:999px; background:var(--soft); color:var(--purple); font-size:.8rem; }
+    .question { padding:1rem 1.2rem; margin:1rem 0; }
+    .answers { display:grid; gap:.55rem; }
+    button { padding:.7rem .8rem; text-align:left; border:1px solid var(--line); border-radius:8px; color:var(--ink); background:#fff; cursor:pointer; }
+    button:hover { border-color:var(--purple); }
+    button.correct { border-color:var(--green); background:#eaf8f0; }
+    button.wrong { border-color:var(--red); background:#fff0f0; }
+    .feedback { min-height:1.5rem; margin:.6rem 0 0; color:var(--muted); }
+    .ok { color:var(--green); } .warn { color:var(--amber); }
+    @media (max-width:760px) { header{padding:2.5rem 1.25rem}.split,.module-row{grid-template-columns:1fr}.arrow{display:none}.rail{grid-template-columns:repeat(6,120px)} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="sha">PR #62 · cb85c67 → 723c7f7 · 50 files</div>
+    <h1>Modules become<br>something you can use</h1>
+    <p>The first slice defined GateReeve’s module graph. This slice turns that graph into a deliberately bounded product interface: project checkboxes with previews, one-boundary waivers, and a shared status view under Implementing and Finalizing.</p>
+  </header>
+  <main>
+    <nav aria-label="Contents"><strong>Contents:</strong> <a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#quiz">Quiz</a></nav>
+
+    <section id="background">
+      <h2>1. Background</h2>
+      <h3>The beginner’s version: three kinds of truth</h3>
+      <p>A GateReeve project has three different things that are easy to confuse. The <em>project policy</em> says which modules future work should use. A feature’s <em>model lock</em> pins the exact graph that governs that feature. A boundary attempt records actual outcomes and evidence for one PR. Changing a checkbox is therefore more consequential than hiding a card: it proposes a new project policy and may require an explicit feature-model migration.</p>
+      <div class="diagram flow" aria-label="Policy to feature to attempt flow">
+        <div class="node"><strong>Project policy</strong><small>tracked selection for the project</small></div><div class="arrow">→</div>
+        <div class="node"><strong>Feature lock</strong><small>exact graph and model hash</small></div><div class="arrow">→</div>
+        <div class="node"><strong>Attempt</strong><small>pinned gates, outcomes, evidence</small></div>
+      </div>
+      <p>Before this PR, GateReeve could read and display the feature journal but had almost no workflow mutation surface. The new controls relax that posture narrowly. The renderer may ask to preview a complete list of enabled module IDs or request a waiver. It still cannot choose arbitrary files, submit event JSON, select an executable, or call a general protocol transition.</p>
+
+      <h3>The screen must follow the workflow, not compete with it</h3>
+      <p>The top rail remains the same six lifecycle states. Module detail appears below the state to which it belongs. Selecting Implementing shows slices and the selected PR attempt. Selecting Finalizing shows enabled finalization modules, if any.</p>
+      <div class="diagram">
+        <div class="rail" aria-label="Six-state feature rail"><div>Designing</div><div>Specifying</div><div>Planning</div><div class="active">Implementing</div><div>Finalizing</div><div>Complete</div></div>
+        <div class="module-row"><div class="module"><strong>Verification</strong><small>PASS · fresh</small></div><div class="module"><strong>Judge</strong><small>ready · waiver allowed</small></div><div class="module"><strong>Code Review</strong><small>running · outcome unset</small></div></div>
+      </div>
+      <div class="callout"><strong>Two axes stay separate:</strong> “running” is live observation; “PASS” is an authoritative protocol outcome. A provider’s progress cannot quietly become workflow passage.</div>
+    </section>
+
+    <section id="intuition">
+      <h2>2. Intuition</h2>
+      <h3>Checkboxes prepare a transaction</h3>
+      <p>Suppose a project has three modules. <code>A</code> is locked. <code>B</code> depends on <code>A</code>. <code>C</code> depends on <code>B</code>. Enabling <code>C</code> visibly stages <code>B</code> and <code>A</code>. Disabling <code>B</code> does not secretly turn off <code>C</code>; GateReeve explains the conflict and offers to stage the dependent removal.</p>
+      <div class="diagram flow">
+        <div class="node"><strong>Draft choice</strong><small>enable C</small></div><div class="arrow">→</div>
+        <div class="node"><strong>Closure preview</strong><small>also stage A and B</small></div><div class="arrow">→</div>
+        <div class="node"><strong>Migration preview</strong><small>show model/gate impact</small></div><div class="arrow">→</div>
+        <div class="node"><strong>Explicit apply</strong><small>write policy; migrate if confirmed</small></div>
+      </div>
+      <p>This is why the UI sends the whole enabled-ID set rather than a command like “toggle C.” The main process rereads canonical definitions and policy, recomputes the graph, and refuses a stale or incomplete proposal.</p>
+
+      <h3>A waiver is not a disabled module</h3>
+      <div class="split">
+        <div class="card"><strong>Project checkbox</strong><p>Durably changes which modules govern future attempts after validated adoption. It is configuration.</p></div>
+        <div class="card"><strong>Skip for this boundary…</strong><p>Records reasoned human risk acceptance against one active attempt and input fingerprint. It is evidence.</p></div>
+      </div>
+      <p>Changed inputs make the waiver stale. Locked modules never offer the action. Feature-scoped waivers are intentionally absent until the finalization slice creates an attempt and merge-input fingerprint to bind them to.</p>
+
+      <h3>Why the packaged Python guard exists</h3>
+      <p>The first review attempt exposed a real distribution bug: the new Desktop waiver path called a trusted Python guard that was not in the packaged application. The repair stages only <code>pr_context.py</code> and its two local dependencies, discovers compatible Python plus Git and GitHub CLI paths, and checks that the PR’s local and remote head still match the pinned source. The next package run exposed the inverse mismatch: its verifier still banned every Python file. The final contract now requires exactly those three paths and rejects every other Python payload.</p>
+      <pre>Desktop request
+  → private pinned-context file
+  → discovered Python 3.10+
+  → canonical pr_context.py check-current
+  → explicit Git and gh executables
+  → protocol-core waiver validation
+  → private file removed in finally</pre>
+      <div class="callout"><strong>Bounded power:</strong> project manifests still cannot name this script or choose an executable. It is a built-in trusted guard reached only through the named waiver operation.</div>
+    </section>
+
+    <section id="code">
+      <h2>3. Code walkthrough</h2>
+      <p><strong>Exact evaluated range:</strong> <code>cb85c672e6090f0286159b9897eacee9c3edf8fc..723c7f73118f0e51f474d151d2491afb31c2460a</code>.</p>
+      <h3>Policy manager</h3>
+      <p><code>apps/desktop/main/module-policy.js</code> owns inspection, preview, and apply. It builds a complete catalog from bundled and project definitions, checks exact requested IDs, computes hard-dependency closure, reports transitive dependents, resolves through the canonical graph validator, and refuses newly enabled modules whose local implementation is unavailable.</p>
+      <p>The apply path re-runs the preview, requires visible dependency additions to be accepted, requires a human label when the active feature must migrate, refuses symlink targets, writes a create-once temporary file, and atomically renames it to <code>.gatereeve/workflow.json</code>. It does not call Git.</p>
+
+      <h3>Narrow process boundary</h3>
+      <table><thead><tr><th>Layer</th><th>New authority</th><th>Still forbidden</th></tr></thead><tbody>
+        <tr><td>Renderer</td><td>Submit enabled IDs; provide waiver reason/confirmation</td><td>Paths, models, arbitrary events, executables, general protocol calls</td></tr>
+        <tr><td>Preload / IPC</td><td>Named exact-schema module operations</td><td>Untrusted frames, extra arguments, broad filesystem access</td></tr>
+        <tr><td>Main process</td><td>Resolve selected project, write one policy, invoke trusted core</td><td>Git staging/commit, module UI code, repository-selected providers</td></tr>
+      </tbody></table>
+
+      <h3>Shared presentation</h3>
+      <p><code>standardModuleCard</code> and <code>renderModuleDetails</code> present both slots. Boundary cards combine the module definition with the attempt gate’s authoritative outcome and freshness. Finalization cards use the same identity, readiness, live-status, stage, action, attempt, evidence, link, and failure vocabulary. The renderer assigns module data as text; it never loads module-supplied HTML or JavaScript.</p>
+      <div class="diagram flow">
+        <div class="node"><strong>Canonical snapshot</strong><small>modules + attempts + live facts</small></div><div class="arrow">→</div>
+        <div class="node"><strong>Shared card</strong><small>compact status and next action</small></div><div class="arrow">→</div>
+        <div class="node"><strong>Shared inspector</strong><small>identity, evidence, history, failure</small></div>
+      </div>
+
+      <h3>Closed snapshot vocabulary</h3>
+      <p>The canonical snapshot validator now inventories modules by the two legal slots, rejects duplicate IDs or slot drift, requires a readiness entry for every module, and admits only <span class="tag">pending</span><span class="tag">running</span><span class="tag">waiting</span><span class="tag">blocked</span><span class="tag">unavailable</span> as live states. This keeps future providers flexible without letting them invent workflow outcomes.</p>
+
+      <h3>Verification and remaining boundaries</h3>
+      <p class="ok"><strong>Green:</strong> 174 Desktop tests, 208 CLI/protocol tests, 9 PR-context tests, portable acceptance, package parity, native exact-DMG launch on Apple Silicon and Intel, document validation, syntax checks, and zero dependency vulnerabilities.</p>
+      <p class="warn"><strong>Deferred:</strong> the interactive supported-macOS visual walkthrough remains in P10 because this Linux host lacks Electron’s <code>libatk-1.0.so.0</code>. Command execution/provider supervision is P6-P7; finalization passage is P8; GateReeve Release is P9-P10.</p>
+    </section>
+
+    <section id="quiz">
+      <h2>4. Check your understanding</h2>
+      <div class="question" data-answer="2"><h3>1. Why does the renderer send the complete enabled-module ID set?</h3><div class="answers"><button>So the renderer can calculate the final digest and write the policy itself.</button><button>So every unchecked module automatically receives a NOT_APPLICABLE outcome.</button><button>So the main process can reconstruct and validate one complete candidate graph rather than trusting an incremental toggle.</button><button>So the project can substitute a different executable for each module during preview.</button></div><p class="feedback"></p></div>
+      <div class="question" data-answer="1"><h3>2. What distinguishes disabling Judge from waiving Judge?</h3><div class="answers"><button>Disabling changes only the current attempt; waiving edits the tracked policy.</button><button>Disabling changes adopted project configuration; waiving records reasoned risk acceptance for one fingerprinted boundary.</button><button>Disabling and waiving are identical except that a waiver requires a longer reason.</button><button>Disabling marks Judge NOT_APPLICABLE; waiving removes Judge’s dependency edges permanently.</button></div><p class="feedback"></p></div>
+      <div class="question" data-answer="3"><h3>3. Why was feature-scoped waiver UI deferred?</h3><div class="answers"><button>Feature waivers require a release-specific transition that the core does not yet expose.</button><button>The settings page cannot display finalization definitions until provider execution exists.</button><button>Feature waivers are permitted only after every PR module has been disabled.</button><button>P8 must first create the finalization attempt and exact merge-input fingerprint to which the waiver belongs.</button></div><p class="feedback"></p></div>
+      <div class="question" data-answer="0"><h3>4. What did the boundary remediation change?</h3><div class="answers"><button>It packaged and explicitly allowlisted the three-file canonical context-check closure, then passed compatible Python, Git, and gh paths into the trusted guard.</button><button>It embedded the full workflow CLI and let repository policy select any Python script.</button><button>It replaced PR freshness checks with a comparison of the renderer’s cached snapshot.</button><button>It allowed waivers whenever dependencies had outcomes, without asking protocol core to validate them.</button></div><p class="feedback"></p></div>
+      <div class="question" data-answer="2"><h3>5. Which statement about live module status is correct?</h3><div class="answers"><button>A provider’s running status counts as PASS while its result is pending.</button><button>A blocked live status automatically appends FAIL to the workflow journal.</button><button>Live status is normalized observation; authoritative PASS, FAIL, or WAIVED still comes from protocol validation.</button><button>Live status may contain module-provided HTML as long as the provider is installed.</button></div><p class="feedback"></p></div>
+    </section>
+  </main>
+  <script>
+    const explanations = [
+      'Correct. The complete proposal crosses a narrow API, and the main process recomputes dependency closure, readiness, policy bytes, and migration impact.',
+      'Correct. A checkbox changes durable adopted configuration; a waiver is attempt-local evidence that becomes stale when its inputs change.',
+      'Correct. A safe feature waiver needs the final merge input, resolved module identity, dependency evidence, and an actual finalization attempt.',
+      'Correct. The repair keeps the provider trusted and minimal while making Finder-launched executable discovery explicit and testable.',
+      'Correct. Observation can guide the user, but only a fresh protocol-core operation may create a workflow outcome.'
+    ];
+    document.querySelectorAll('.question').forEach((question, questionIndex) => {
+      const answer = Number(question.dataset.answer);
+      const buttons = [...question.querySelectorAll('button')];
+      buttons.forEach((button, buttonIndex) => button.addEventListener('click', () => {
+        buttons.forEach((candidate, index) => {
+          candidate.classList.toggle('correct', index === answer);
+          candidate.classList.toggle('wrong', index === buttonIndex && index !== answer);
+          candidate.disabled = true;
+        });
+        question.querySelector('.feedback').textContent = buttonIndex === answer
+          ? explanations[questionIndex]
+          : `Not quite. ${explanations[questionIndex]}`;
+      }));
+    });
+  </script>
+</body>
+</html>

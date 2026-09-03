@@ -1,9 +1,13 @@
 // @ts-check
 
 import { constants } from 'node:fs';
+import { execFile } from 'node:child_process';
 import { access, readdir, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { delimiter, isAbsolute, resolve } from 'node:path';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 
 const FIXED_MACOS_DIRECTORIES = Object.freeze([
   '/usr/bin',
@@ -93,6 +97,29 @@ export async function discoverExecutables(name, options = {}) {
 
 export async function discoverExecutable(name, options = {}) {
   for await (const candidate of matchingExecutables(name, options)) return candidate;
+  return null;
+}
+
+export async function discoverCompatiblePythonExecutable({
+  run = (file, args) => execFileAsync(file, args, {
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024,
+    timeout: 10_000,
+  }),
+  ...options
+} = {}) {
+  for (const candidate of await discoverExecutables('python3', options)) {
+    try {
+      const result = await run(candidate, ['--version']);
+      const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+      const match = output.match(/Python\s+(\d+)\.(\d+)(?:\.(\d+))?/u);
+      if (!match) continue;
+      const version = match.slice(1, 4).map((part) => Number(part ?? 0));
+      if (version[0] > 3 || (version[0] === 3 && version[1] >= 10)) return candidate;
+    } catch {
+      // Continue through the same bounded Finder-compatible candidate list.
+    }
+  }
   return null;
 }
 

@@ -18,6 +18,7 @@ import {
   validateEvent,
   validateModelLock,
 } from './model.js';
+import { assessModuleReadiness, MODULE_SLOTS } from './modules.js';
 
 export const SNAPSHOT_SCHEMA_VERSION = 1;
 export const DETAIL_SCHEMA_VERSION = 1;
@@ -46,6 +47,7 @@ const ARTIFACT_EXPECTATIONS = new Set([
   'required', 'pending', 'optional', 'not-applicable',
 ]);
 const ARTIFACT_FORMATS = new Set(['markdown', 'json', 'jsonl', 'html', 'text']);
+const MODULE_LIVE_STATUSES = new Set(['pending', 'running', 'waiting', 'blocked', 'unavailable']);
 const MAX_TEXT_ARTIFACT_BYTES = 10 * 1024 * 1024;
 
 const FEATURE_ARTIFACTS = Object.freeze([
@@ -186,6 +188,20 @@ function assertNullableObject(value, label) {
 
 function assertOneOf(value, allowed, label) {
   if (!allowed.has(value)) throw new ContractError(`${label} has invalid value ${value}`);
+}
+
+function validateModuleLive(value, label) {
+  if (value === null) return;
+  assertObject(value, label);
+  assertOneOf(value.status, MODULE_LIVE_STATUSES, `${label}.status`);
+  if (value.detail !== undefined) assertString(value.detail, `${label}.detail`, { nullable: true });
+  if (value.updatedAt !== undefined) assertString(value.updatedAt, `${label}.updatedAt`, { nullable: true });
+  for (const field of ['stages', 'actions', 'attempts', 'evidence', 'links']) {
+    if (value[field] === undefined) continue;
+    assertArray(value[field], `${label}.${field}`);
+    value[field].forEach((item, index) => assertObject(item, `${label}.${field}[${index}]`));
+  }
+  if (value.failure !== undefined) assertNullableObject(value.failure, `${label}.failure`);
 }
 
 function validateActor(actor, label) {
@@ -910,6 +926,39 @@ function eventSummaries(events, limit = 20) {
   }));
 }
 
+function moduleInventory(record, facts) {
+  const graph = record.modelLock.model.moduleGraph;
+  if (!graph) return null;
+  const enabled = new Set(graph.enabledModuleIds);
+  const availability = facts.moduleAvailability ?? null;
+  return {
+    schemaVersion: 1,
+    policyDigest: graph.policyDigest,
+    slots: MODULE_SLOTS.map((slot) => ({
+      id: slot,
+      modules: graph.modules.filter((module) => module.slot === slot).map((module) => ({
+        id: module.id,
+        version: module.version,
+        digest: module.digest,
+        label: module.label,
+        description: module.description,
+        slot: module.slot,
+        enabled: enabled.has(module.id),
+        locked: module.locked,
+        disposition: module.disposition,
+        waiverAllowed: module.waiverAllowed,
+        dependsOn: [...module.dependsOn],
+        after: [...(module.after ?? [])],
+        boundaryGateId: module.boundary?.gateId ?? null,
+        run: module.run ? structuredClone(module.run) : null,
+        observe: module.observe ? structuredClone(module.observe) : null,
+        readiness: assessModuleReadiness(module, availability),
+        live: null,
+      })),
+    })),
+  };
+}
+
 export async function buildGovernedSnapshot(
   featureHome,
   record,
@@ -935,6 +984,7 @@ export async function buildGovernedSnapshot(
       detailSchemaVersion: DETAIL_SCHEMA_VERSION,
     },
     model,
+    modules: moduleInventory(record, facts),
     projection,
     active: {
       sliceId: projection.activeSliceId,
@@ -980,6 +1030,7 @@ export function buildDiagnosticSnapshot(mode, featureHome, { reason = null, sour
       detailSchemaVersion: DETAIL_SCHEMA_VERSION,
     },
     model: null,
+    modules: null,
     projection: null,
     active: { sliceId: null, boundaryAttemptId: null },
     blockers: [{ type: mode, reason }],
@@ -1016,6 +1067,64 @@ export function validateSnapshot(snapshot) {
   assertString(snapshot.featureHome, 'Snapshot featureHome');
   assertString(snapshot.featureId, 'Snapshot featureId', { nullable: true });
   if (snapshot.model !== null) validateModelProvenance(snapshot.model, 'Snapshot model');
+  if (snapshot.modules !== null) {
+    assertObject(snapshot.modules, 'Snapshot modules');
+    if (snapshot.modules.schemaVersion !== 1) {
+      throw new ContractError('Snapshot modules.schemaVersion must be 1');
+    }
+    assertString(snapshot.modules.policyDigest, 'Snapshot modules.policyDigest');
+    assertArray(snapshot.modules.slots, 'Snapshot modules.slots');
+    const slotIds = snapshot.modules.slots.map((slot, index) => {
+      assertObject(slot, `Snapshot modules.slots[${index}]`);
+      return slot.id;
+    });
+    if (JSON.stringify(slotIds) !== JSON.stringify(MODULE_SLOTS)) {
+      throw new ContractError('Snapshot modules.slots must contain each canonical slot exactly once');
+    }
+    const moduleIds = new Set();
+    for (const [slotIndex, slot] of snapshot.modules.slots.entries()) {
+      const slotLabel = `Snapshot modules.slots[${slotIndex}]`;
+      assertObject(slot, slotLabel);
+      assertOneOf(slot.id, new Set(MODULE_SLOTS), `${slotLabel}.id`);
+      assertArray(slot.modules, `${slotLabel}.modules`);
+      for (const [moduleIndex, module] of slot.modules.entries()) {
+        const moduleLabel = `${slotLabel}.modules[${moduleIndex}]`;
+        assertObject(module, moduleLabel);
+        for (const field of ['id', 'version', 'digest', 'label', 'description', 'slot', 'disposition']) {
+          assertString(module[field], `${moduleLabel}.${field}`);
+        }
+        if (module.slot !== slot.id) {
+          throw new ContractError(`${moduleLabel}.slot must match its containing slot`);
+        }
+        if (moduleIds.has(module.id)) {
+          throw new ContractError(`Snapshot modules contain duplicate module ${module.id}`);
+        }
+        moduleIds.add(module.id);
+        for (const field of ['enabled', 'locked', 'waiverAllowed']) {
+          assertBoolean(module[field], `${moduleLabel}.${field}`);
+        }
+        assertStringArray(module.dependsOn, `${moduleLabel}.dependsOn`);
+        assertStringArray(module.after, `${moduleLabel}.after`);
+        assertString(module.boundaryGateId, `${moduleLabel}.boundaryGateId`, { nullable: true });
+        assertNullableObject(module.run, `${moduleLabel}.run`);
+        assertNullableObject(module.observe, `${moduleLabel}.observe`);
+        assertObject(module.readiness, `${moduleLabel}.readiness`);
+        assertOneOf(
+          module.readiness.status,
+          new Set(['unchecked', 'available', 'unavailable']),
+          `${moduleLabel}.readiness.status`,
+        );
+        assertArray(module.readiness.missing, `${moduleLabel}.readiness.missing`);
+        for (const [missingIndex, missing] of module.readiness.missing.entries()) {
+          const missingLabel = `${moduleLabel}.readiness.missing[${missingIndex}]`;
+          assertObject(missing, missingLabel);
+          assertOneOf(missing.kind, new Set(['skill', 'provider']), `${missingLabel}.kind`);
+          assertString(missing.id, `${missingLabel}.id`);
+        }
+        validateModuleLive(module.live, `${moduleLabel}.live`);
+      }
+    }
+  }
   if (snapshot.projection !== null) validateProjection(snapshot.projection, 'Snapshot projection');
   if (snapshot.mode === 'governed') {
     if (snapshot.model === null || snapshot.projection === null || snapshot.featureId === null) {
