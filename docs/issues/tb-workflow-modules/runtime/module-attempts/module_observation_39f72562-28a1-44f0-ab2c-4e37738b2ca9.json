@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "task": {
+    "schemaVersion": 1,
+    "id": "module_observation_39f72562-28a1-44f0-ab2c-4e37738b2ca9",
+    "kind": "provider-observation",
+    "moduleId": "gatereeve/release",
+    "moduleVersion": "1.0.0",
+    "moduleDigest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978",
+    "attemptId": "f1-gatereeve-release-vnext-20260903",
+    "gateId": "gatereeve/release",
+    "startedAt": "2026-09-03T22:41:29.251Z",
+    "result": null,
+    "structuredOutput": null
+  },
+  "provider": {
+    "schemaVersion": 1,
+    "requestId": "provider-fe720a18-63ff-4f4b-aa81-fecdbc93a04c",
+    "provider": {
+      "id": "gatereeve/release-conductor",
+      "version": "1.0.0"
+    },
+    "module": {
+      "id": "gatereeve/release",
+      "version": "1.0.0",
+      "digest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978"
+    },
+    "observedInputFingerprint": "sha256:6b805abc5a1cb97613e39dcbb7662af11cf154fccde85780f4574f208eb4dd46",
+    "live": {
+      "status": "waiting",
+      "detail": "v0.1.0-rc.12 completed every Release Conductor stage and contains this feature.",
+      "updatedAt": "2026-09-03T22:41:49.939Z",
+      "stages": [
+        {
+          "id": "INITIALIZED",
+          "label": "INITIALIZED",
+          "status": "ready",
+          "detail": "Sequence 1"
+        },
+        {
+          "id": "TRUST_PENDING",
+          "label": "TRUST PENDING",
+          "status": "waiting",
+          "detail": "Sequence 2"
+        },
+        {
+          "id": "TRUSTED",
+          "label": "TRUSTED",
+          "status": "ready",
+          "detail": "Sequence 3"
+        },
+        {
+          "id": "PRIMARY_FINALIZED",
+          "label": "PRIMARY FINALIZED",
+          "status": "ready",
+          "detail": "Sequence 4"
+        },
+        {
+          "id": "PRIMARY_REHEARSED",
+          "label": "PRIMARY REHEARSED",
+          "status": "waiting",
+          "detail": "Sequence 5"
+        },
+        {
+          "id": "PRIMARY_PUBLISHED",
+          "label": "PRIMARY PUBLISHED",
+          "status": "ready",
+          "detail": "Sequence 6"
+        },
+        {
+          "id": "WAITING_FOR_DIRECT_INSTALL",
+          "label": "WAITING FOR DIRECT INSTALL",
+          "status": "waiting",
+          "detail": "Sequence 7"
+        },
+        {
+          "id": "CASK_FINALIZED",
+          "label": "CASK FINALIZED",
+          "status": "ready",
+          "detail": "Sequence 8"
+        },
+        {
+          "id": "CASK_REHEARSED",
+          "label": "CASK REHEARSED",
+          "status": "waiting",
+          "detail": "Sequence 9"
+        },
+        {
+          "id": "CASK_PUBLISHED",
+          "label": "CASK PUBLISHED",
+          "status": "ready",
+          "detail": "Sequence 10"
+        },
+        {
+          "id": "SMOKE_VERIFIED",
+          "label": "SMOKE VERIFIED",
+          "status": "ready",
+          "detail": "Sequence 11"
+        },
+        {
+          "id": "COMPLETE",
+          "label": "COMPLETE",
+          "status": "complete",
+          "detail": "Sequence 12"
+        }
+      ],
+      "actions": [],
+      "attempts": [
+        {
+          "id": "sequence-1",
+          "label": "INITIALIZED",
+          "status": "ready",
+          "recordedAt": "2026-09-03T20:04:11.104Z"
+        },
+        {
+          "id": "sequence-2",
+          "label": "TRUST_PENDING",
+          "status": "waiting",
+          "recordedAt": "2026-09-03T20:05:37.042Z"
+        },
+        {
+          "id": "sequence-3",
+          "label": "TRUSTED",
+          "status": "ready",
+          "recordedAt": "2026-09-03T21:07:34.669Z"
+        },
+        {
+          "id": "sequence-4",
+          "label": "PRIMARY_FINALIZED",
+          "status": "ready",
+          "recordedAt": "2026-09-03T21:08:41.339Z"
+        },
+        {
+          "id": "sequence-5",
+          "label": "PRIMARY_REHEARSED",
+          "status": "waiting",
+          "recordedAt": "2026-09-03T21:09:29.146Z"
+        },
+        {
+          "id": "sequence-6",
+          "label": "PRIMARY_PUBLISHED",
+          "status": "ready",
+          "recordedAt": "2026-09-03T21:14:54.104Z"
+        },
+        {
+          "id": "sequence-7",
+          "label": "WAITING_FOR_DIRECT_INSTALL",
+          "status": "waiting",
+          "recordedAt": "2026-09-03T21:15:07.486Z"
+        },
+        {
+          "id": "sequence-8",
+          "label": "CASK_FINALIZED",
+          "status": "ready",
+          "recordedAt": "2026-09-03T21:27:24.630Z"
+        },
+        {
+          "id": "sequence-9",
+          "label": "CASK_REHEARSED",
+          "status": "waiting",
+          "recordedAt": "2026-09-03T21:27:50.924Z"
+        },
+        {
+          "id": "sequence-10",
+          "label": "CASK_PUBLISHED",
+          "status": "ready",
+          "recordedAt": "2026-09-03T22:26:47.269Z"
+        },
+        {
+          "id": "sequence-11",
+          "label": "SMOKE_VERIFIED",
+          "status": "ready",
+          "recordedAt": "2026-09-03T22:36:44.687Z"
+        },
+        {
+          "id": "sequence-12",
+          "label": "COMPLETE",
+          "status": "complete",
+          "recordedAt": "2026-09-03T22:41:00.208Z"
+        }
+      ],
+      "evidence": [
+        {
+          "label": "Release Conductor state",
+          "tag": "v0.1.0-rc.12",
+          "sourceCommit": "8d2fb4c51d01f24bb330ac67ed1679809fc3547f",
+          "stateSha256": "08bcadcc3e2f6548426da7aeae63d3537fbf9e5b94ee1fce1dd7ae30f0c2b8c4",
+          "artifactIds": [
+            9910697404,
+            9910747539,
+            9912997025,
+            9913036974,
+            9913065792,
+            9913254121,
+            9913261848,
+            9913686918,
+            9913701151,
+            9915520974,
+            9915795206,
+            9915910944
+          ]
+        }
+      ],
+      "links": [
+        {
+          "label": "Release Conductor",
+          "url": "https://github.com/TrentBrown/gatereeve/actions/workflows/release-conductor.yml"
+        }
+      ],
+      "failure": null
+    },
+    "outcome": "PASS",
+    "evidence": {
+      "releaseTag": "v0.1.0-rc.12",
+      "releaseSourceCommit": "8d2fb4c51d01f24bb330ac67ed1679809fc3547f",
+      "featureMergeInputSha": "8d2fb4c51d01f24bb330ac67ed1679809fc3547f",
+      "stateSha256": "08bcadcc3e2f6548426da7aeae63d3537fbf9e5b94ee1fce1dd7ae30f0c2b8c4",
+      "artifactIds": [
+        9910697404,
+        9910747539,
+        9912997025,
+        9913036974,
+        9913065792,
+        9913254121,
+        9913261848,
+        9913686918,
+        9913701151,
+        9915520974,
+        9915795206,
+        9915910944
+      ]
+    }
+  },
+  "providerError": null,
+  "attestation": null
+}
