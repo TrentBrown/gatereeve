@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR #63 — Execution and provider runtime</title>
+<style>
+:root{color-scheme:light;--ink:#211a2e;--muted:#685e76;--violet:#6846a5;--green:#147a55;--amber:#a25f00;--line:#ddd3e8;--paper:#fff;--wash:#f7f2fb}*{box-sizing:border-box}body{margin:0;background:var(--wash);color:var(--ink);font:16px/1.6 system-ui,-apple-system,sans-serif}main{max-width:1050px;margin:auto;padding:32px 20px 80px}h1,h2,h3{font-family:Georgia,serif;line-height:1.15}h1{font-size:clamp(2.2rem,6vw,4.8rem);margin:.2em 0}h2{font-size:2rem;margin-top:2.5em;border-bottom:2px solid var(--line);padding-bottom:.25em}a{color:var(--violet)}nav,.card,.callout,.quiz{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 8px 24px #41295d12}.eyebrow{color:var(--violet);font-weight:800;letter-spacing:.12em;text-transform:uppercase}.muted{color:var(--muted)}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:24px 0}.node{padding:15px;border-radius:12px;border:2px solid var(--line);background:#fff;text-align:center}.node strong{display:block}.node.safe{border-color:#82c9aa}.arrow{display:none}.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}.callout{border-left:6px solid var(--amber);margin:20px 0}.terminal{background:#17131e;color:#f7f0ff;border-radius:12px;padding:18px;font-family:ui-monospace,monospace}.terminal .shell{color:#8dd8b7}.terminal .task{color:#d7b7ff}pre{white-space:pre-wrap;overflow:auto;background:#17131e;color:#f7f0ff;border-radius:10px;padding:16px}.quiz button{display:block;width:100%;text-align:left;margin:9px 0;padding:12px;border:1px solid var(--line);border-radius:9px;background:#fff;cursor:pointer}.quiz button:hover{border-color:var(--violet)}.quiz button.correct{border-color:var(--green);background:#e9f8f1}.quiz button.wrong{border-color:#b03a48;background:#fff0f2}.feedback{font-weight:650;min-height:1.6em}.tag{display:inline-block;border-radius:999px;padding:3px 9px;background:#e9f8f1;color:var(--green);font-weight:750}@media(max-width:760px){.flow,.two{grid-template-columns:1fr}.node{text-align:left}}
+</style>
+</head>
+<body><main>
+<p class="eyebrow">GateReeve · PR #63 · pinned explanation</p>
+<h1>Modules can now do work—without becoming hidden authority</h1>
+<p class="muted">Exact diff: <code>1f3e6b2…42ad0da</code>. This is slice 3 of the workflow-modules feature: the execution and provider substrate, not yet the GateReeve Release module itself.</p>
+<nav><strong>Contents</strong> · <a href="#background">Background</a> · <a href="#intuition">Intuition</a> · <a href="#code">Code</a> · <a href="#safety">Safety model</a> · <a href="#quiz">Quiz</a></nav>
+
+<section id="background"><h2>Background</h2>
+<p>GateReeve already understood a governed workflow as an append-only record. A boundary gate could be pending, passed, failed, or waived, and its result was meaningful only when bound to the exact model, attempt, dependencies, and evidence. The previous slice made those gates declarative modules and rendered them in the existing state-specific cards.</p>
+<p>What it could not do was execute a module. A declaration could say that a step used a skill, a human attestation, or a command, but the Desktop had no safe adapter, no consent store, no dedicated process surface, and no way to ask an installed observer to interpret terminal evidence.</p>
+<div class="callout"><strong>The architectural constraint</strong><br>Execution is not passage. A process may run and a provider may describe it, but only the protocol core may append an authoritative gate outcome after rechecking freshness.</div>
+</section>
+
+<section id="intuition"><h2>Intuition: a sequence of narrow hand-offs</h2>
+<p>The change treats module execution like a chain of custody. Each component receives only the authority it needs, and every boundary is explicit.</p>
+<div class="flow">
+  <div class="node"><strong>Definition</strong>pinned module, exact run adapter</div>
+  <div class="node"><strong>Consent</strong>run once or exact local grant</div>
+  <div class="node"><strong>Task PTY</strong>direct executable and argv</div>
+  <div class="node"><strong>Provider</strong>optional exact JSON observer</div>
+  <div class="node safe"><strong>Protocol core</strong>freshness and passage</div>
+</div>
+<p>Consider a toy module that runs <code>npm test</code>. GateReeve displays the executable, argument array, working directory, effects, and unsandboxed authority. The user chooses <em>Run once</em>. The command gets its own named terminal—not keystrokes injected into the user's shell. Exit zero means PASS when no observer is required. A timeout or nonzero exit means FAIL. Clicking cancel records an attempt, but leaves the gate outcome unset.</p>
+<div class="two"><div class="terminal"><span class="shell">Shell · GateReeve</span><br>$ git status<br><br><small>Persistent user-controlled session remains intact</small></div><div class="terminal"><span class="task">Task · Code Review</span><br>review-tool --format json<br>…<br>Process exited 0<br><br><small>Separate attributable module session</small></div></div>
+<h3>Why a provider?</h3>
+<p>An exit code is sufficient for many commands. Some workflows need richer interpretation: a release conductor may complete in GitHub after the local process exits, or evidence may need exact source and checksum validation. An installed provider is a one-shot, out-of-process program. GateReeve sends one versioned JSON request on standard input and accepts exactly one matching JSON response on standard output.</p>
+<pre>{
+  "requestId": "provider-123",
+  "provider": {"id": "gatereeve/release-conductor", "version": "1.0.0"},
+  "module": {"id": "gatereeve/release", "version": "1.0.0", "digest": "sha256:…"},
+  "input": {"attemptId": "…", "inputFingerprint": "sha256:…", "evidence": {"taskId": "…"}}
+}</pre>
+<p>The response must echo those identities. Stale fingerprints, duplicate lines, malformed JSON, crashes, missing executables, and timeouts all fail closed.</p>
+</section>
+
+<section id="code"><h2>Code walkthrough</h2>
+<h3>1. Canonical result and provider contracts</h3>
+<p><code>module-runtime.js</code> is shared by the Plugin and Desktop. It defines the versioned request/response shape and command-result truth table. Structured command JSON is enrichment only: its allowed keys do not include an outcome.</p>
+<h3>2. Installed provider supervision</h3>
+<p><code>module-providers.js</code> discovers application-owned manifests through an exact ID/version/digest allowlist. Manifests and executables must be regular, non-symlink files; relative executable paths must remain inside the installed provider directory. One-shot children use direct spawning with no shell, bounded output, a deadline, and shutdown cleanup.</p>
+<h3>3. Local command authorization</h3>
+<p><code>command-authorization.js</code> stores private device-local grants. The grant fingerprint includes the Git common-directory identity, module version and digest, executable, argv, working directory, and observed entrypoint/support-file digests. Thus linked worktrees share a repository identity, different clones do not, and a detectable input change disables persistent authorization. The dialog explicitly says that this is not complete provenance or a sandbox.</p>
+<h3>4. Dedicated task terminals</h3>
+<p><code>module-task-manager.js</code> creates named PTYs with project, module, attempt, and gate identity. It bounds retained output, supports input and resize, and terminates owned process groups with SIGHUP followed by SIGKILL. It preserves completed results for renderer reload while keeping the ordinary project shell separate.</p>
+<h3>5. Orchestration and fresh passage</h3>
+<p><code>module-execution.js</code> retrieves the definition pinned by the selected boundary, checks eligibility, enforces consent, starts a task, writes private bounded evidence, optionally invokes a provider, and asks <code>protocol-adapter.js</code> to record only PASS or FAIL. The adapter first verifies that the pinned pull-request context is still current and reconstructs dependency fingerprints.</p>
+<h3>6. Narrow UI and IPC surfaces</h3>
+<p>The renderer gains command-consent and manual-attestation dialogs plus a session selector for the shell and named tasks. The preload and IPC contracts expose intent—module ID, consent choice, input, resize, cancel—not process configuration. Skill modules only provide copy/open-terminal assistance; GateReeve never launches an agent automatically.</p>
+</section>
+
+<section id="safety"><h2>What this guarantees—and what it does not</h2>
+<div class="two"><div class="card"><span class="tag">Guaranteed</span><ul><li>No automatic command execution while opening or observing a project.</li><li>No renderer-selected executable, argv, cwd, provider path, or PID.</li><li>Exact provider and input identity before accepting an observation.</li><li>Fresh protocol-core validation before authoritative passage.</li><li>Separate project shell and task processes.</li></ul></div><div class="card"><strong>Intentionally not guaranteed</strong><ul><li>Commands are not sandboxed.</li><li>PATH tools, dependencies, credentials, and network effects are not fully provenance-checked.</li><li>No concrete release provider ships in this slice.</li><li>Feature-finalization passage arrives in the next slice.</li></ul></div></div>
+</section>
+
+<section id="quiz"><h2>Check your understanding</h2>
+<div class="quiz" data-answer="1"><strong>1. When may structured command output change a failed process into PASS?</strong><button>After its JSON schema validates</button><button>Never; process failure has authority over enrichment</button><button>Only when an allowlisted provider repeats the result</button><p class="feedback"></p></div>
+<div class="quiz" data-answer="2"><strong>2. Why use Git's common-directory identity for durable consent?</strong><button>It makes every clone of the same remote share consent</button><button>It avoids hashing the module manifest</button><button>It shares consent across linked worktrees but separates independent clones</button><p class="feedback"></p></div>
+<div class="quiz" data-answer="0"><strong>3. What does explicit cancellation do to the authoritative gate?</strong><button>It retains a cancelled attempt and leaves the gate UNSET</button><button>It records FAIL because the process received a signal</button><button>It records NOT_APPLICABLE with a human actor</button><p class="feedback"></p></div>
+<div class="quiz" data-answer="2"><strong>4. Which provider response can be accepted?</strong><button>Any valid JSON response from an executable inside the repository</button><button>A response with the right provider ID even if the input fingerprint changed</button><button>One exact response from the allowlisted version matching request, module, and fingerprint</button><p class="feedback"></p></div>
+<div class="quiz" data-answer="1"><strong>5. What ultimately gives a successful task workflow authority?</strong><button>The task PTY's zero exit code directly appends an event</button><button>The protocol core revalidates the current pinned context and dependencies</button><button>The renderer confirms that the live status says “passed”</button><p class="feedback"></p></div>
+</section>
+</main><script>
+document.querySelectorAll('.quiz').forEach((quiz)=>{quiz.querySelectorAll('button').forEach((button,index)=>button.addEventListener('click',()=>{quiz.querySelectorAll('button').forEach((item)=>item.classList.remove('correct','wrong'));const correct=index===Number(quiz.dataset.answer);button.classList.add(correct?'correct':'wrong');quiz.querySelector('.feedback').textContent=correct?'Correct. That preserves the separation between execution evidence and governed passage.':'Not quite. Revisit the chain-of-custody and safety sections above.';}));});
+</script></body></html>

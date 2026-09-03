@@ -13,8 +13,8 @@
 | R2 | Declarative boundary parity and locked envelope | NOT YET | - | Slice 1 converts all ten gates to built-ins with legacy outcome keys, locked envelope, unchanged runtime dependency/freshness behavior, and passing regression suites; final assembled verification remains P10 |
 | R3 | Project settings, waivers, and readiness | NOT YET | - | Slice 2 adds staged complete-policy settings, explicit dependency/migration impact, fail-closed readiness, atomic uncommitted policy writes, and fingerprint-bound boundary waivers; finalization waivers activate with P8 attempts and final assembled verification remains P10 |
 | R4 | Compact state-specific module UI | NOT YET | - | Slice 2 preserves the six-state rail and supplies one accessible graph/detail renderer for boundary and finalization modules, including normalized live detail and empty-slot behavior; provider-fed runtime and final assembled verification remain P6/P8/P10 |
-| R5 | Explicit adapters and isolated task terminals | NOT YET | - | Planned for P6-P7 / I-5-I-6 |
-| R6 | Command semantics and provider protocol | NOT YET | - | Slice 1 validates declarative command metadata and installed-provider references without execution; runtime semantics remain P6-P7 and P9 |
+| R5 | Explicit adapters and isolated task terminals | NOT YET | #63 | Slice 3 implements explicit skill/manual/command actions, exact local consent, changed-input invalidation, and separate attributable PTYs with bounded evidence; packaged macOS walkthrough and final assembled verification remain P10 |
+| R6 | Command semantics and provider protocol | NOT YET | #63 | Slice 3 implements fail-closed command result mapping and allowlisted out-of-process providers with exact response/fingerprint validation and fresh core passage; the GateReeve Release provider and final assembled verification remain P9-P10 |
 | R7 | Generic finalization semantics | NOT YET | - | Slices 1-2 define the generic slot, zero-module default, readiness, dependency graph, and standard presentation; attempts, passage, and feature-scoped waivers remain P8 |
 | R8 | GateReeve Release verified end to end | NOT YET | - | Planned for P9-P10 / I-8-I-9 |
 
@@ -38,7 +38,7 @@ legacy-attempt replay defect; the second attempt evaluates that correction.
 - Pull request: [#62](https://github.com/TrentBrown/gatereeve/pull/62)
 - Evidence packet: [pr-62](pr-62/boundary.json)
 - Scope: slice (P4-P5; R1, R3, R4, R7)
-- Status: boundary rerun after packaged-runtime remediation
+- Outcome: merged as `1f3e6b258dbb22129bd5174d371a0fae4527efd3`
 
 This slice adds staged project module settings, dependency and migration
 previews, scoped waivers, and the shared Implementing/Finalizing module graph.
@@ -58,3 +58,23 @@ The first human-review CI run then exposed the package verifier's older blanket
 Python exclusion. The repaired contract requires exactly those three trusted
 scripts, rejects every other Python path, and passes the universal package plus
 native Apple Silicon and Intel packaged-runtime jobs.
+
+### PR #63 - Execution and provider runtime
+
+- Delivery branch: `tb-workflow-modules-03-provider-execution`
+- Scope: slice (P6-P7; R5, R6)
+- Pull request: [#63](https://github.com/TrentBrown/gatereeve/pull/63)
+- Evidence packet: [pr-63](pr-63/boundary.json)
+- Status: human review accepted; approved for merge
+
+This slice adds validated skill/manual/command adapters, supervised provider
+observation, explicit local command authorization, and dedicated module task
+terminal sessions while preserving the persistent user shell. The current
+source passes 193 Desktop tests, 212 CLI tests, 94 Python tests, portable package
+acceptance, direct PTY integration, and zero-vulnerability production dependency
+audits. All GitHub checks pass, including universal packaging and native launch
+on Apple Silicon and Intel/Rosetta. The Linux host cannot launch Electron because
+`libatk-1.0.so.0` is absent; the installed interactive macOS walkthrough remains
+assigned to P10 as already planned. The independent judge and code review pass
+with no unresolved finding; the optional pattern gate is explicitly waived
+because GateReeve has no configured rule scope.

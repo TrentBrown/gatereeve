@@ -10,8 +10,10 @@ const channels = Object.freeze({
   getState: 'gatereeve:desktop:get-state',
   getArtifactActions: 'gatereeve:desktop:get-artifact-actions',
   getModuleSettings: 'gatereeve:desktop:get-module-settings',
+  getModuleRunPreview: 'gatereeve:desktop:get-module-run-preview',
   getUpdateState: 'gatereeve:desktop:get-update-state',
   listSession: 'gatereeve:desktop:list-session',
+  listModuleTasks: 'gatereeve:desktop:list-module-tasks',
   layoutCommand: 'gatereeve:desktop:layout-command',
   openArtifact: 'gatereeve:desktop:open-artifact',
   chooseArtifactApplication: 'gatereeve:desktop:choose-artifact-application',
@@ -33,6 +35,12 @@ const channels = Object.freeze({
   setSelectedAgents: 'gatereeve:desktop:set-selected-agents',
   setTerminalHeight: 'gatereeve:desktop:set-terminal-height',
   stateChanged: 'gatereeve:desktop:state-changed',
+  attestModule: 'gatereeve:desktop:attest-module',
+  moduleTaskCancel: 'gatereeve:desktop:module-task-cancel',
+  moduleTaskChanged: 'gatereeve:desktop:module-task-changed',
+  moduleTaskResize: 'gatereeve:desktop:module-task-resize',
+  moduleTaskStart: 'gatereeve:desktop:module-task-start',
+  moduleTaskWrite: 'gatereeve:desktop:module-task-write',
   terminalChanged: 'gatereeve:desktop:terminal-changed',
   terminalEnsure: 'gatereeve:desktop:terminal-ensure',
   terminalResize: 'gatereeve:desktop:terminal-resize',
@@ -443,6 +451,52 @@ function terminalResizeRequest(sessionId, cols, rows) {
   return { sessionId: requireTerminalId(sessionId), ...requireTerminalDimensions(cols, rows) };
 }
 
+function requireModuleTarget(moduleId, attemptId, gateId) {
+  for (const value of [moduleId, attemptId, gateId]) {
+    if (typeof value !== 'string' || value.length === 0 || value.length > 512) {
+      throw new TypeError('Module target is invalid.');
+    }
+  }
+  return { moduleId, attemptId, gateId };
+}
+
+function requireModuleRunPreview(value) {
+  if (!value || typeof value !== 'object' || value.schemaVersion !== 1 || typeof value.moduleId !== 'string' || !['skill', 'manual', 'command', 'observe'].includes(value.kind)) {
+    throw new Error('The main process returned an invalid module run preview.');
+  }
+  return value;
+}
+
+function requireModuleTaskId(value) {
+  if (typeof value !== 'string' || !/^module_task_[A-Za-z0-9_-]{1,128}$/u.test(value)) {
+    throw new TypeError('Module task ID is invalid.');
+  }
+  return value;
+}
+
+function requireModuleTaskSession(value) {
+  if (!value || typeof value !== 'object' || value.schemaVersion !== 1 || value.kind !== 'module-task' || requireModuleTaskId(value.id) !== value.id || typeof value.projectPath !== 'string' || value.projectPath.length === 0 || typeof value.output !== 'string' || !['running', 'terminating', 'passed', 'failed', 'awaiting-provider', 'timed-out', 'cancelled'].includes(value.status)) {
+    throw new Error('The main process returned an invalid module task session.');
+  }
+  return value;
+}
+
+function requireModuleTaskEvent(value) {
+  if (!value || typeof value !== 'object' || value.schemaVersion !== 1) {
+    throw new Error('The main process returned an invalid module task event.');
+  }
+  if (value.type === 'data') {
+    requireModuleTaskId(value.sessionId);
+    if (typeof value.data !== 'string') throw new Error('The main process returned invalid module task data.');
+    return value;
+  }
+  if (['started', 'terminating', 'finished'].includes(value.type)) {
+    requireModuleTaskSession(value.session);
+    return value;
+  }
+  throw new Error('The main process returned an invalid module task event.');
+}
+
 contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
   checkForUpdates: async () => requireUpdateState(await ipcRenderer.invoke(channels.checkForUpdates)),
   addProject: async () => requireState(await ipcRenderer.invoke(channels.addProject)),
@@ -455,8 +509,19 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
   getModuleSettings: async () => requireModuleSettings(
     await ipcRenderer.invoke(channels.getModuleSettings),
   ),
+  getModuleRunPreview: async (moduleId, attemptId, gateId) => requireModuleRunPreview(
+    await ipcRenderer.invoke(
+      channels.getModuleRunPreview,
+      requireModuleTarget(moduleId, attemptId, gateId),
+    ),
+  ),
   getUpdateState: async () => requireUpdateState(await ipcRenderer.invoke(channels.getUpdateState)),
   listSession: async () => requireSessionInventory(await ipcRenderer.invoke(channels.listSession)),
+  listModuleTasks: async () => {
+    const value = await ipcRenderer.invoke(channels.listModuleTasks);
+    if (!Array.isArray(value)) throw new Error('The main process returned an invalid module task list.');
+    return value.map(requireModuleTaskSession);
+  },
   openArtifact: async (artifactId, editorId = null, remember = false) => {
     if (typeof remember !== 'boolean') throw new TypeError('Remember editor must be boolean.');
     return ipcRenderer.invoke(
@@ -569,6 +634,32 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     channels.terminalRestart,
     terminalResizeRequest(sessionId, cols, rows),
   )),
+  startModuleTask: async (moduleId, attemptId, gateId, consent, cols, rows) => {
+    if (!['once', 'always'].includes(consent)) throw new TypeError('Module task consent is invalid.');
+    return requireModuleTaskSession(await ipcRenderer.invoke(channels.moduleTaskStart, {
+      ...requireModuleTarget(moduleId, attemptId, gateId),
+      consent,
+      ...requireTerminalDimensions(cols, rows),
+    }));
+  },
+  writeModuleTask: async (sessionId, data) => {
+    if (typeof data !== 'string' || data.length === 0 || data.length > 65_536) throw new TypeError('Module task input is invalid.');
+    return ipcRenderer.invoke(channels.moduleTaskWrite, { sessionId: requireModuleTaskId(sessionId), data });
+  },
+  resizeModuleTask: async (sessionId, cols, rows) => requireModuleTaskSession(await ipcRenderer.invoke(
+    channels.moduleTaskResize,
+    { sessionId: requireModuleTaskId(sessionId), ...requireTerminalDimensions(cols, rows) },
+  )),
+  cancelModuleTask: async (sessionId) => requireModuleTaskSession(await ipcRenderer.invoke(
+    channels.moduleTaskCancel,
+    { sessionId: requireModuleTaskId(sessionId) },
+  )),
+  attestModule: async (moduleId, attemptId, gateId, outcome, summary, confirmationLabel) => {
+    if (!['PASS', 'FAIL', 'NOT_APPLICABLE'].includes(outcome)) throw new TypeError('Module attestation outcome is invalid.');
+    return requireState(await ipcRenderer.invoke(channels.attestModule, {
+      ...requireModuleTarget(moduleId, attemptId, gateId), outcome, summary, confirmationLabel,
+    }));
+  },
   revealArtifact: async (artifactId) => ipcRenderer.invoke(
     channels.revealArtifact,
     { artifactId: requireArtifactId(artifactId) },
@@ -607,5 +698,11 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     const listener = (_event, value) => callback(requireTerminalEvent(value));
     ipcRenderer.on(channels.terminalChanged, listener);
     return () => ipcRenderer.removeListener(channels.terminalChanged, listener);
+  },
+  subscribeModuleTasks(callback) {
+    if (typeof callback !== 'function') throw new TypeError('Module task subscriber must be a function.');
+    const listener = (_event, value) => callback(requireModuleTaskEvent(value));
+    ipcRenderer.on(channels.moduleTaskChanged, listener);
+    return () => ipcRenderer.removeListener(channels.moduleTaskChanged, listener);
   },
 }));

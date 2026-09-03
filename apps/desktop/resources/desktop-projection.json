@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:f5b9c204882d926ef520e9b3c60577c92a65c7ad742c626b5e116680966e3ce4",
+  "protocolHash": "sha256:7bf2a8c907365270250866c20146d87014a0739bd1de0f28386ee7f79c62249b",
   "modelSha256": "e5f51881ad61206148b6fb44f45b67e677141cb1be11caba92e8cb2da0b1b193",
   "files": [
     {
@@ -56,8 +56,8 @@
     },
     {
       "path": "index.js",
-      "size": 591,
-      "sha256": "08099b55b9a581d820900f3ddeec95d42b3ff52fd9915cd8db5df038413c6d8b"
+      "size": 628,
+      "sha256": "8f9227ae35b512e7915145983c1d1243fdc1fd72436997d1c0faafa928e99e53"
     },
     {
       "path": "journal.js",
@@ -80,9 +80,14 @@
       "sha256": "9f0b05c79c1d9a72352c8b707f0aada1703e67df538e4068bc314c99fb36fca2"
     },
     {
+      "path": "module-runtime.js",
+      "size": 8571,
+      "sha256": "c4c4432d31b42e4b25e12ecd9942d3a15eb605be7b954864909bdd829c814226"
+    },
+    {
       "path": "modules.js",
-      "size": 25200,
-      "sha256": "502414db0b889fcb4038f60109305ae6e3c1823315e8051fbb38a32f55dbd3f9"
+      "size": 25402,
+      "sha256": "3e94a11cd140eac804310f0aab0571262ad11ebce084394839d374283c59fe8e"
     },
     {
       "path": "observer.js",
@@ -116,8 +121,8 @@
     },
     {
       "path": "snapshot.js",
-      "size": 53756,
-      "sha256": "dd44985ed2d31174611acca824c5ea43e0caf6c08a220b00dbc1b1bf98729f23"
+      "size": 53890,
+      "sha256": "b56ba749ae11012bf1fe83a2ac14df7dd25a5e34d8219cb07d26ed17a8c4a8c1"
     },
     {
       "path": "storage.js",

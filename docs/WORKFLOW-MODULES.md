@@ -113,8 +113,49 @@ evidence.
   optional entrypoint and support-file digests, disclosed effects, and timeout.
 - `observe` with an installed provider ID and exact provider version.
 
-These fields are declarative protocol data in the foundation slice. Provider
-process supervision, command authorization, and task-terminal execution are
-separate runtime layers. Repository manifests cannot provide provider
-executables, and no command runs during discovery, resolution, project open, or
+Repository manifests cannot provide provider executables, and no command runs
+during discovery, resolution, project open, readiness calculation, or
 background observation.
+
+## Runtime and consent
+
+A skill adapter exposes copyable invocation context and can open the persistent
+project terminal, but GateReeve does not launch the agent. A manual adapter uses
+an explicit outcome, evidence summary, and human confirmation. A command adapter
+is previewed as its exact executable, argument array, repository working
+directory, effects, and timeout before the user chooses `Run once` or
+`Always allow this command version`.
+
+Durable command consent is device-local and bound to the Git common repository,
+module identity/version/manifest digest, executable, arguments, working
+directory, and observed declared entrypoint/support-file digests. Linked
+worktrees therefore share an unchanged grant; another clone does not. A changed
+declared input invalidates the grant. Run-once consent remains possible after
+the changed input is disclosed. Consent is not a sandbox or complete provenance
+claim: the process has the user's ordinary authority and may invoke changed
+PATH tools, dependencies, files, credentials, network services, or downloaded
+code.
+
+Commands run directly—never through an implicit shell string—in dedicated named
+PTY sessions. The persistent user shell remains separate. Task sessions support
+selection, input, resize, cancellation, a declared timeout, and a bounded
+transcript. Providerless exit `0` maps to `PASS`; nonzero exit, signal, or timeout
+maps to `FAIL`; explicit cancellation retains the attempt and leaves the gate
+`UNSET`. Optional structured JSON output can enrich evidence but cannot declare
+or override an outcome.
+
+## Observation providers
+
+Providers are GateReeve-installed executables whose manifest ID, exact version,
+and manifest digest match the application allowlist. Repository definitions can
+only reference them. Each observation is an out-of-process, bounded, version-1
+JSON-over-stdio exchange tied to one request ID, provider identity, module
+identity, and input fingerprint. Missing implementations, process errors,
+timeouts, nonzero exits, excess output, missing or duplicate responses,
+malformed JSON, and identity or fingerprint drift fail closed.
+
+Normalized provider progress uses `pending`, `running`, `waiting`, `blocked`, or
+`unavailable` and remains observational. A command result or terminal provider
+outcome reaches the journal only through a fresh protocol-core check of the
+pinned boundary context, module identity, dependency event IDs, input
+fingerprint, and retained evidence reference.

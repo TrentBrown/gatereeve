@@ -14,6 +14,16 @@ import {
   requireModulePolicyPreview,
   requireModulePolicyRequest,
   requireModuleSettings,
+  requireModuleAttestationRequest,
+  requireModuleRunPreview,
+  requireModuleTargetRequest,
+  requireModuleTaskEvent,
+  requireModuleTaskInputRequest,
+  requireModuleTaskList,
+  requireModuleTaskResizeRequest,
+  requireModuleTaskSession,
+  requireModuleTaskSessionRequest,
+  requireModuleTaskStartRequest,
   requireNotificationsEnabled,
   requireProjectOrder,
   requireProjectPath,
@@ -55,6 +65,17 @@ export function registerDesktopIpc({
   copyText,
   openExternal,
   terminalManager,
+  moduleTaskManager = {
+    subscribe: () => () => {},
+    list: () => [],
+  },
+  moduleExecutionManager = {
+    preview: async () => { throw new Error('Module execution is unavailable.'); },
+    startCommand: async () => { throw new Error('Module execution is unavailable.'); },
+    attest: async () => { throw new Error('Module execution is unavailable.'); },
+    listTasks: () => [],
+  },
+  processManager = terminalManager,
   confirmProjectTermination,
   windows,
 }) {
@@ -73,6 +94,16 @@ export function registerDesktopIpc({
       throw new Error('A ready saved project must be selected.');
     }
     return { path: project.path, name: project.name };
+  }
+  function selectedExecutionContext() {
+    const state = validatedState(coordinator.current());
+    const project = selectedProject();
+    if (!state.selection?.featureHome) throw new Error('A governed project must be selected.');
+    return {
+      repositoryRoot: project.path,
+      featureHome: state.selection.featureHome,
+      project,
+    };
   }
 
   ipcMain.handle(IPC_CHANNELS.getState, async (event, ...values) => {
@@ -114,6 +145,57 @@ export function registerDesktopIpc({
       requireBoundaryModuleWaiverRequest(values[0]),
     ));
   });
+  ipcMain.handle(IPC_CHANNELS.getModuleRunPreview, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Module run preview requires one request.');
+    return requireModuleRunPreview(await moduleExecutionManager.preview({
+      ...selectedExecutionContext(),
+      ...requireModuleTargetRequest(values[0]),
+    }));
+  });
+  ipcMain.handle(IPC_CHANNELS.moduleTaskStart, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Module task start requires one request.');
+    const request = requireModuleTaskStartRequest(values[0]);
+    return requireModuleTaskSession(await moduleExecutionManager.startCommand({
+      ...selectedExecutionContext(),
+      ...request,
+      dimensions: { cols: request.cols, rows: request.rows },
+    }));
+  });
+  ipcMain.handle(IPC_CHANNELS.attestModule, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Module attestation requires one request.');
+    await moduleExecutionManager.attest({
+      ...selectedExecutionContext(),
+      ...requireModuleAttestationRequest(values[0]),
+    });
+    return validatedState(await coordinator.refresh('module-attestation'));
+  });
+  ipcMain.handle(IPC_CHANNELS.listModuleTasks, async (event, ...values) => {
+    noArguments(event, values);
+    return requireModuleTaskList(moduleExecutionManager.listTasks(selectedProject().path));
+  });
+  ipcMain.handle(IPC_CHANNELS.moduleTaskWrite, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Module task input requires one request.');
+    const request = requireModuleTaskInputRequest(values[0]);
+    return moduleTaskManager.write(selectedProject().path, request.sessionId, request.data);
+  });
+  ipcMain.handle(IPC_CHANNELS.moduleTaskResize, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Module task resize requires one request.');
+    const request = requireModuleTaskResizeRequest(values[0]);
+    return requireModuleTaskSession(moduleTaskManager.resize(
+      selectedProject().path, request.sessionId, request,
+    ));
+  });
+  ipcMain.handle(IPC_CHANNELS.moduleTaskCancel, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Module task cancellation requires one request.');
+    const request = requireModuleTaskSessionRequest(values[0]);
+    return requireModuleTaskSession(moduleTaskManager.cancel(selectedProject().path, request.sessionId));
+  });
   ipcMain.handle(IPC_CHANNELS.checkForUpdates, async (event, ...values) => {
     noArguments(event, values);
     return requireUpdateState(await updateCoordinator.check('manual'));
@@ -153,10 +235,10 @@ export function registerDesktopIpc({
     if (values.length !== 1) throw new Error('Project removal requires one path.');
     const path = requireProjectPath(values[0]);
     const project = validatedState(coordinator.current()).projects.find((item) => item.path === path);
-    if (terminalManager.hasLive(path)) {
+    if (processManager.hasLive(path)) {
       const confirmed = await confirmProjectTermination(project?.name ?? path);
       if (!confirmed) return validatedState(coordinator.current());
-      terminalManager.discardProject(path);
+      processManager.discardProject(path);
     }
     return validatedState(await coordinator.removeProject(path));
   });
@@ -318,9 +400,16 @@ export function registerDesktopIpc({
       if (!window.isDestroyed()) window.webContents.send(IPC_CHANNELS.terminalChanged, value);
     }
   });
+  const unsubscribeModuleTasks = moduleTaskManager.subscribe((event) => {
+    const value = requireModuleTaskEvent(event);
+    for (const window of windows()) {
+      if (!window.isDestroyed()) window.webContents.send(IPC_CHANNELS.moduleTaskChanged, value);
+    }
+  });
   return () => {
     unsubscribeState();
     unsubscribeUpdates();
     unsubscribeTerminals();
+    unsubscribeModuleTasks();
   };
 }

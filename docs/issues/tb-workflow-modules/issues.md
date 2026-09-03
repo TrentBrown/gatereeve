@@ -35,7 +35,7 @@ parity and regression behavior. This completes delivery slice 1.
 
 ## I-3 - Add project module policy and boundary-waiver controls
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R3
@@ -51,7 +51,7 @@ the waiver must bind to.
 
 ## I-4 - Generalize module graph and detail presentation
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P5
 - **Rubric criteria:** R4, R7
@@ -64,12 +64,12 @@ states, responsive behavior, and accessibility. This completes delivery slice 2.
 
 ## I-5 - Add run adapters and provider process supervision
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P6
 - **Rubric criteria:** R5, R6
 - **Depends on:** I-2
-- **PR:** -
+- **PR:** [#63](https://github.com/TrentBrown/gatereeve/pull/63)
 
 Define skill/manual/command adapters and the allowlisted JSON-over-stdio provider
 contract, including discovery, normalization, supervision, adversarial handling,
@@ -77,12 +77,12 @@ and protocol-validated automatic outcomes.
 
 ## I-6 - Add command authorization and task terminal sessions
 
-- **Status:** open
+- **Status:** in-review
 - **Estimate:** 3d
 - **Plan steps:** P7
 - **Rubric criteria:** R5, R6
 - **Depends on:** I-3, I-5
-- **PR:** -
+- **PR:** [#63](https://github.com/TrentBrown/gatereeve/pull/63)
 
 Implement informed-consent storage, exact detectable-input invalidation,
 multi-session PTY presentation, bounded attempt evidence, cancellation/timeout,
@@ -130,7 +130,7 @@ installation, smoke, and feature-finalization evidence.
 
 ## I-10 - Align packaged-runtime verification with trusted Python guards
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2h
 - **Plan steps:** P4
 - **Rubric criteria:** R3

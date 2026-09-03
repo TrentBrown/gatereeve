@@ -29,12 +29,30 @@ transition-deduplicated attention, failed or stale gate, suspension,
 inconsistency, pull-request merge, and feature-completion notices while the
 app is running. Quitting Desktop stops its watchers, polling, and notices.
 
-The bottom terminal panel starts no process until the user opens it. Each saved
-project can own one in-memory login-shell session for the current application
-lifetime, rooted at that project's worktree. GateReeve does not inject an agent
-command, retain a transcript, or treat terminal input or output as workflow
-passage or evidence. A user can run an agent or any other shell command, with
-the same filesystem effects and responsibility as a separate terminal.
+The bottom terminal panel starts no process until the user opens it or explicitly
+runs a command-backed workflow module. Each saved project can own one in-memory
+login-shell session plus dedicated named module-task sessions for the current
+application lifetime. The project shell remains user-controlled: GateReeve does
+not inject agent commands into it, retain its transcript, or treat its input or
+output as workflow evidence. Module tasks use a separately disclosed executable,
+argument vector, repository working directory, timeout, and bounded attributable
+transcript.
+
+Command modules require `Run once` consent or a device-local `Always allow this
+command version` grant. A durable grant is bound to the Git common repository,
+module version and manifest, argument template, working directory, and verified
+declared entrypoint/support-file digests, so linked worktrees may share the exact
+grant while a separate clone cannot. This is informed consent, not a sandbox or
+complete provenance check: an authorized command has the user's filesystem,
+process, credential-file, and network authority and may invoke changed PATH
+tools, dependencies, files, or downloaded code.
+
+Observation providers are installed and allowlisted by GateReeve rather than
+loaded from project manifests. They run out of process using one bounded,
+versioned JSON request and response. Provider status is observational; a
+terminal result can record an authoritative outcome only after the protocol core
+freshly validates the pinned module, dependencies, boundary context,
+fingerprint, and evidence.
 
 ## Development
 
@@ -57,8 +75,9 @@ npm start
 observation runtime itself does not require Python, a separate Node.js runtime,
 or the optional GateReeve CLI. Desktop persists only the explicit selected-agent
 preference, recent and last worktree paths, window geometry, terminal panel
-height, and the native notification preference. It does not persist terminal
-visibility or content, detection results, or cache
+height, native notification preference, and exact command-version grants in a
+separate device-local file. It does not persist terminal visibility or content,
+detection results, or cache
 snapshots, workflow artifacts, GitHub responses, or governance state.
 
 ## macOS candidate packaging
@@ -121,12 +140,14 @@ named-detail reads, refresh, clipboard copy, and open or reveal actions for
 artifact IDs from the current snapshot. Trusted interactive explain-diff HTML
 is served only by canonical artifact ID. Checkpoints and handoffs use a
 separate exact-ID Session reader and never become workflow evidence. The
-renderer cannot select a terminal executable, arguments, cwd, environment, or
-process ID. It can send keystrokes only to the opaque terminal session owned by
-the currently selected saved project; the trusted main process creates that
-session from the account login shell and project worktree. This intentionally
-lets the user invoke the CLI, launch agents, and run arbitrary shell commands,
-but does not grant workflow passage beyond the authority of those commands.
+renderer cannot supply an arbitrary terminal executable, arguments, cwd,
+environment, or process ID. It can send keystrokes only to an opaque project
+shell or module-task session owned by the selected saved project. The trusted
+main process creates the shell from the account login shell and creates module
+tasks only from the exact pinned declarative module after explicit consent.
+This intentionally lets the user invoke the CLI, launch agents, and run arbitrary
+shell commands, but no shell activity grants passage; module-task passage uses
+the fresh protocol-core evidence path described above.
 Setup checks remain separate, run only in the trusted main process, invoke
 version/status/list operations for explicitly selected agents, and expose
 native remediation as copyable text rather than executing it.

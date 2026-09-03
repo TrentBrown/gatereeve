@@ -166,6 +166,59 @@ test('Desktop rejects waiver mutation once human review has begun', async () => 
   }), /not active/);
 });
 
+test('Desktop module outcomes revalidate pinned identity and pass only through protocol core', async () => {
+  const temporaryDirectory = await mkdtemp(join(tmpdir(), 'gatereeve-desktop-module-outcome-'));
+  const module = {
+    id: 'example/check', version: '1.0.0', digest: `sha256:${'c'.repeat(64)}`,
+  };
+  const gates = [{
+    id: 'verification', moduleId: 'gatereeve/verification', moduleVersion: '1.0.0',
+    moduleDigest: `sha256:${'b'.repeat(64)}`, inputFingerprint: `sha256:${'d'.repeat(64)}`,
+    recordedEventId: 'evt-verification', dependsOn: [], eligible: false,
+  }, {
+    id: 'check', moduleId: module.id, moduleVersion: module.version,
+    moduleDigest: module.digest, inputFingerprint: null, recordedEventId: null,
+    dependsOn: ['verification'], eligible: true,
+  }];
+  let guards = 0;
+  let recorded = null;
+  const adapter = createProtocolAdapter({
+    temporaryDirectory,
+    randomId: () => `runtime-${guards}`,
+    readRecord: async () => ({ modelLock: { modelHash: `sha256:${'a'.repeat(64)}` } }),
+    project: () => ({
+      boundaryAttempts: [{
+        id: 'attempt-1', scope: 'SLICE', state: 'ACTIVE', context: { headSha: 'a'.repeat(40) }, gates,
+      }],
+    }),
+    runGuard: async () => {
+      guards += 1;
+      return { passed: true, data: { status: 'current', evaluatedSourceSha: 'a'.repeat(40) } };
+    },
+    recordOutcome: async (_featureHome, request) => {
+      recorded = request;
+      return { event: { eventId: request.eventId } };
+    },
+  });
+  const target = {
+    featureHome: '/repo/docs/issues/feature', repositoryRoot: '/repo',
+    attemptId: 'attempt-1', gateId: 'check', module,
+  };
+  assert.equal((await adapter.prepareBoundaryModule(target)).target.moduleId, module.id);
+  const evidence = { path: 'runtime/module-attempts/task.json', hash: `sha256:${'e'.repeat(64)}` };
+  await adapter.recordBoundaryModuleOutcome({
+    ...target, outcome: 'PASS', evidence, actor: { kind: 'agent', label: 'Desktop' },
+  });
+  assert.equal(guards, 2);
+  assert.equal(recorded.outcome, 'PASS');
+  assert.deepEqual(recorded.evidence, evidence);
+  assert.deepEqual(recorded.currentFingerprints, { verification: `sha256:${'d'.repeat(64)}` });
+  await assert.rejects(adapter.prepareBoundaryModule({
+    ...target, module: { ...module, version: '2.0.0' },
+  }), /no longer matches/);
+  assert.equal(guards, 2);
+});
+
 test('Desktop packaged waiver guard executes through discovered Python and GitHub paths', async () => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), 'gatereeve-desktop-guard-'));
   const temporaryDirectory = await mkdtemp(join(tmpdir(), 'gatereeve-desktop-guard-context-'));

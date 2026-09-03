@@ -198,3 +198,73 @@ Replace the blanket Python-file rejection with an exact, shared allowlist for pr
 - Remove the Python guards - rejected because the packaged waiver path needs the canonical freshness guard.
 - Permit any Python file under `resources/scripts` - rejected because a directory-wide exemption could hide accidental or hostile runtime expansion.
 - Skip packaged-runtime verification - rejected because the failure exposed a real contract mismatch.
+
+## [10] Separate persistent shells from explicitly authorized module tasks
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop IPC and preload contracts, terminal ownership and
+lifecycle, device-local command grants, renderer consent and session controls,
+and boundary evidence recording.
+
+Command modules execute directly from the pinned manifest in dedicated named
+PTY sessions; they never enter or replace the persistent user shell. The
+renderer can name only a pinned module plus its exact active attempt/gate and a
+`once` or `always` consent choice. The main process resolves executable,
+arguments, repository-relative working directory, timeout, and effects. Durable
+consent is stored outside the repository and keyed by Git common-directory
+identity plus the module manifest and observed declared inputs. Completed task
+transcripts and exact results are bounded and retained under the governed
+feature's `runtime/module-attempts/` evidence directory before fresh core
+validation records a terminal outcome.
+
+**Triggered by:** P7 relaxes Desktop's process boundary and requires multiple
+interactive terminals, exact reusable consent, changed-input invalidation, and
+attributable evidence without weakening the existing user-controlled shell.
+
+**Alternatives considered:**
+- Write command text into the persistent shell - rejected because GateReeve
+  could not reliably attribute, cancel, time-limit, or classify that process and
+  would interfere with the user's session.
+- Let the renderer submit executable paths and arguments - rejected because a
+  compromised renderer would gain general spawn authority.
+- Keep transcripts only in memory - rejected because a gate event must refer to
+  durable exact evidence and cancellation/failure attempts must remain
+  diagnosable.
+
+## [11] Treat installed providers as one-shot fail-closed observation peers
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Provider installation and allowlisting, module readiness,
+JSON-over-stdio schemas, process supervision, normalized live status, command
+completion mapping, and automatic gate outcome authority.
+
+Provider code is never imported into Desktop and cannot be supplied by a
+repository manifest. GateReeve discovers regular installed manifests, admits
+only the exact ID/version/manifest-digest entries in its application allowlist,
+and spawns the selected executable without a shell. One bounded versioned JSON
+request must produce exactly one bounded JSON response tied to the request,
+provider, module, and input fingerprint. Missing, mismatched, stale, malformed,
+duplicate, crashed, timed-out, and excessive-output cases remain unavailable or
+unset rather than manufacturing passage. Normalized provider progress remains
+observation; terminal `PASS` or `FAIL` is appended only after the protocol core
+freshly revalidates the boundary context, module identity, dependency
+fingerprints, and retained evidence.
+
+**Triggered by:** P6 introduces third-party executable observation code and a
+new path from terminal results to authoritative workflow events.
+
+**Alternatives considered:**
+- Load provider JavaScript into Electron's main process - rejected because a
+  provider failure or compromise would inherit and corrupt GateReeve runtime
+  state directly.
+- Accept provider paths from project manifests - rejected because checking out
+  a repository must not install executable observer authority.
+- Let a successful provider response append its own event - rejected because
+  only the protocol core owns freshness, eligibility, fingerprint, and
+  append-only journal validation.

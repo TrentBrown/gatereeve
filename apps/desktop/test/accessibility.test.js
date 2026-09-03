@@ -94,7 +94,7 @@ test('styles preserve visible focus, docked regions, and reduced-motion behavior
   assert.match(css, /\.terminal-panel\s*\{[^}]*grid-column:\s*1 \/ -1/);
 });
 
-test('terminal panel exposes one session lifecycle without transcript-management controls', async () => {
+test('terminal panel exposes shell and named task selection without transcript-management controls', async () => {
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const { document } = parseHTML(html).window;
   const panel = document.querySelector('#terminal-panel');
@@ -103,5 +103,8 @@ test('terminal panel exposes one session lifecycle without transcript-management
   assert.equal(document.querySelectorAll('#terminal-hosts').length, 1);
   assert.equal(document.querySelectorAll('#terminal-terminate').length, 1);
   assert.equal(document.querySelectorAll('#terminal-restart').length, 1);
+  assert.equal(document.querySelectorAll('#terminal-session-select').length, 1);
+  assert.equal(document.querySelector('#module-command-dialog').getAttribute('aria-labelledby'), 'module-command-title');
+  assert.equal(document.querySelector('#module-attestation-dialog').getAttribute('aria-labelledby'), 'module-attestation-title');
   assert.doesNotMatch(panel.textContent, /save output|transcript|new terminal|split|profile/i);
 });

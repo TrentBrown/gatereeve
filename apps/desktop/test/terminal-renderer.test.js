@@ -78,6 +78,17 @@ function session(id, projectName, status = 'running', overrides = {}) {
   };
 }
 
+function taskSession(status = 'running', overrides = {}) {
+  return {
+    schemaVersion: 1, id: 'module_task_check', kind: 'module-task', name: 'Repository check',
+    moduleId: 'example/check', moduleVersion: '1.0.0', moduleDigest: `sha256:${'a'.repeat(64)}`,
+    attemptId: 'attempt-1', gateId: 'check', projectPath: '/repo/a', projectName: 'a', status,
+    cols: 80, rows: 24, output: '', startedAt: '2026-09-03T12:00:00Z',
+    finishedAt: null, exit: null, result: null, structuredOutput: null, error: null,
+    ...overrides,
+  };
+}
+
 test('renderer lazily preserves one terminal view per project and presents exit/restart state', async () => {
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const rendererPath = resolve(desktopRoot, 'renderer/renderer.js');
@@ -117,6 +128,7 @@ test('renderer lazily preserves one terminal view per project and presents exit/
   window.innerHeight = 780;
   let stateSubscriber;
   let terminalSubscriber;
+  let moduleTaskSubscriber;
   let current = state('/repo/a');
   const calls = [];
   let releaseTerminalLibrary;
@@ -134,6 +146,7 @@ test('renderer lazily preserves one terminal view per project and presents exit/
     subscribe(callback) { stateSubscriber = callback; return () => {}; },
     subscribeUpdates() { return () => {}; },
     subscribeTerminals(callback) { terminalSubscriber = callback; return () => {}; },
+    subscribeModuleTasks(callback) { moduleTaskSubscriber = callback; return () => {}; },
     async ensureTerminal(cols, rows) {
       const name = current.selection.worktreePath.endsWith('/a') ? 'a' : 'b';
       calls.push(['ensure', name, cols, rows]);
@@ -162,6 +175,15 @@ test('renderer lazily preserves one terminal view per project and presents exit/
     async restartTerminal(id, cols, rows) {
       calls.push(['restart', id, cols, rows]);
       return session(`${id}_restarted`, id.endsWith('_a') ? 'a' : 'b', 'running', { cols, rows });
+    },
+    async resizeModuleTask(id, cols, rows) {
+      calls.push(['task-resize', id, cols, rows]);
+      return taskSession('running', { cols, rows });
+    },
+    async writeModuleTask(id, data) { calls.push(['task-write', id, data]); return true; },
+    async cancelModuleTask(id) {
+      calls.push(['task-cancel', id]);
+      return taskSession('terminating');
     },
     async setTerminalHeight(height) {
       calls.push(['height', height]);
@@ -249,6 +271,23 @@ test('renderer lazily preserves one terminal view per project and presents exit/
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(calls.some(([name]) => name === 'restart'), true);
     assert.equal(window.document.querySelector('#terminal-status').textContent, 'running');
+
+    moduleTaskSubscriber({ schemaVersion: 1, type: 'started', session: taskSession() });
+    await new Promise((resolve) => setImmediate(resolve));
+    const selector = window.document.querySelector('#terminal-session-select');
+    selector.querySelector('[value="shell"]').removeAttribute('selected');
+    selector.querySelector('[value="module_task_check"]').setAttribute('selected', '');
+    selector.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(window.document.querySelector('#terminal-title').textContent, 'Repository check');
+    assert.equal(window.document.querySelector('#terminal-terminate').textContent, 'Cancel task');
+    moduleTaskSubscriber({
+      schemaVersion: 1, type: 'data', sessionId: 'module_task_check', data: 'task output',
+    });
+    assert.equal(window.document.querySelector('[data-module-task="module_task_check"]').dataset.output, 'task output');
+    window.document.querySelector('#terminal-terminate').click();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(calls.some(([name]) => name === 'task-cancel'), true);
   } finally {
     delete globalThis.window;
     delete globalThis.document;

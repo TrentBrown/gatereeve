@@ -10,8 +10,10 @@ export const IPC_CHANNELS = Object.freeze({
   getState: 'gatereeve:desktop:get-state',
   getArtifactActions: 'gatereeve:desktop:get-artifact-actions',
   getModuleSettings: 'gatereeve:desktop:get-module-settings',
+  getModuleRunPreview: 'gatereeve:desktop:get-module-run-preview',
   getUpdateState: 'gatereeve:desktop:get-update-state',
   listSession: 'gatereeve:desktop:list-session',
+  listModuleTasks: 'gatereeve:desktop:list-module-tasks',
   layoutCommand: 'gatereeve:desktop:layout-command',
   openArtifact: 'gatereeve:desktop:open-artifact',
   chooseArtifactApplication: 'gatereeve:desktop:choose-artifact-application',
@@ -33,6 +35,12 @@ export const IPC_CHANNELS = Object.freeze({
   setSelectedAgents: 'gatereeve:desktop:set-selected-agents',
   setTerminalHeight: 'gatereeve:desktop:set-terminal-height',
   stateChanged: 'gatereeve:desktop:state-changed',
+  attestModule: 'gatereeve:desktop:attest-module',
+  moduleTaskCancel: 'gatereeve:desktop:module-task-cancel',
+  moduleTaskChanged: 'gatereeve:desktop:module-task-changed',
+  moduleTaskResize: 'gatereeve:desktop:module-task-resize',
+  moduleTaskStart: 'gatereeve:desktop:module-task-start',
+  moduleTaskWrite: 'gatereeve:desktop:module-task-write',
   terminalChanged: 'gatereeve:desktop:terminal-changed',
   terminalEnsure: 'gatereeve:desktop:terminal-ensure',
   terminalResize: 'gatereeve:desktop:terminal-resize',
@@ -756,4 +764,213 @@ export function requireTerminalEvent(value) {
     return value;
   }
   throw new Error('Terminal event is invalid.');
+}
+
+const MODULE_TASK_STATUSES = new Set([
+  'running', 'terminating', 'passed', 'failed', 'awaiting-provider', 'timed-out', 'cancelled',
+]);
+const MODULE_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
+
+function boundedString(value, maximum = 16_384) {
+  return typeof value === 'string' && value.length > 0 && value.length <= maximum;
+}
+
+export function requireModuleTargetRequest(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['moduleId', 'attemptId', 'gateId'])
+    || [value.moduleId, value.attemptId, value.gateId].some((item) => (
+      typeof item !== 'string' || item.length === 0 || item.length > 512
+    ))
+  ) throw new Error('Module target request is invalid.');
+  return value;
+}
+
+export function requireModuleRunPreview(value) {
+  const skillValid = value?.skill === null || (
+    isObject(value.skill)
+    && exactKeys(value.skill, ['id', 'invocation'])
+    && boundedString(value.skill.id, 512)
+    && boundedString(value.skill.invocation)
+  );
+  const manualValid = value?.manual === null || (
+    isObject(value.manual)
+    && exactKeys(value.manual, ['instructions'])
+    && boundedString(value.manual.instructions, 65_536)
+  );
+  const command = value?.command;
+  const commandValid = command === null || (
+    isObject(command)
+    && exactKeys(command, ['digest', 'display', 'authorization'])
+    && MODULE_DIGEST_PATTERN.test(command.digest)
+    && isObject(command.display)
+    && exactKeys(command.display, [
+      'executable', 'args', 'workingDirectory', 'effects', 'timeoutSeconds', 'authority',
+    ])
+    && boundedString(command.display.executable)
+    && Array.isArray(command.display.args)
+    && command.display.args.every((item) => typeof item === 'string' && item.length <= 16_384)
+    && boundedString(command.display.workingDirectory)
+    && Array.isArray(command.display.effects)
+    && command.display.effects.every((item) => boundedString(item, 8_192))
+    && Number.isSafeInteger(command.display.timeoutSeconds)
+    && command.display.timeoutSeconds >= 1
+    && command.display.timeoutSeconds <= 3_600
+    && Array.isArray(command.display.authority)
+    && command.display.authority.every((item) => boundedString(item, 8_192))
+    && isObject(command.authorization)
+    && exactKeys(command.authorization, [
+      'authorized', 'authorizedAt', 'persistentEligible', 'changedInputs', 'supersededCount',
+    ])
+    && typeof command.authorization.authorized === 'boolean'
+    && nullableString(command.authorization.authorizedAt)
+    && typeof command.authorization.persistentEligible === 'boolean'
+    && Array.isArray(command.authorization.changedInputs)
+    && command.authorization.changedInputs.every((item) => boundedString(item, 16_384))
+    && Number.isSafeInteger(command.authorization.supersededCount)
+    && command.authorization.supersededCount >= 0
+  );
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['schemaVersion', 'moduleId', 'kind', 'skill', 'manual', 'command'])
+    || value.schemaVersion !== 1
+    || typeof value.moduleId !== 'string'
+    || !['skill', 'manual', 'command', 'observe'].includes(value.kind)
+    || !skillValid
+    || !manualValid
+    || !commandValid
+    || (value.kind === 'skill') !== (value.skill !== null)
+    || (value.kind === 'manual') !== (value.manual !== null)
+    || (value.kind === 'command') !== (value.command !== null)
+  ) throw new Error('Module run preview is invalid.');
+  return value;
+}
+
+export function requireModuleTaskStartRequest(value) {
+  if (!isObject(value) || !exactKeys(value, [
+    'moduleId', 'attemptId', 'gateId', 'consent', 'cols', 'rows',
+  ])) throw new Error('Module task start request is invalid.');
+  if (
+    [value.moduleId, value.attemptId, value.gateId].some((item) => (
+      typeof item !== 'string' || item.length === 0 || item.length > 512
+    ))
+    || !['once', 'always'].includes(value.consent)
+    || !validTerminalDimensions(value.cols, value.rows)
+  ) {
+    throw new Error('Module task start request is invalid.');
+  }
+  return value;
+}
+
+export function requireModuleAttestationRequest(value) {
+  if (!isObject(value) || !exactKeys(value, [
+    'moduleId', 'attemptId', 'gateId', 'outcome', 'summary', 'confirmationLabel',
+  ])) throw new Error('Module attestation request is invalid.');
+  if (
+    [value.moduleId, value.attemptId, value.gateId].some((item) => (
+      typeof item !== 'string' || item.length === 0 || item.length > 512
+    ))
+    ||
+    !['PASS', 'FAIL', 'NOT_APPLICABLE'].includes(value.outcome)
+    || typeof value.summary !== 'string'
+    || value.summary.trim().length === 0
+    || value.summary.length > 8_192
+    || typeof value.confirmationLabel !== 'string'
+    || value.confirmationLabel.trim().length === 0
+    || value.confirmationLabel.length > 512
+  ) throw new Error('Module attestation request is invalid.');
+  return value;
+}
+
+export function requireModuleTaskId(value) {
+  if (typeof value !== 'string' || !/^module_task_[A-Za-z0-9_-]{1,128}$/u.test(value)) {
+    throw new Error('Module task ID is invalid.');
+  }
+  return value;
+}
+
+export function requireModuleTaskSession(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, [
+      'schemaVersion', 'id', 'kind', 'name', 'moduleId', 'moduleVersion', 'moduleDigest',
+      'attemptId', 'gateId', 'projectPath', 'projectName', 'status', 'cols', 'rows', 'output', 'startedAt',
+      'finishedAt', 'exit', 'result', 'structuredOutput', 'error',
+    ])
+    || value.schemaVersion !== 1
+    || value.kind !== 'module-task'
+    || requireModuleTaskId(value.id) !== value.id
+    || ![value.name, value.moduleId, value.moduleVersion, value.projectName, value.startedAt]
+      .every((item) => boundedString(item, 512))
+    || !boundedString(value.projectPath)
+    || !MODULE_DIGEST_PATTERN.test(value.moduleDigest)
+    || ![value.attemptId, value.gateId, value.finishedAt, value.error]
+      .every((item) => item === null || typeof item === 'string')
+    || !MODULE_TASK_STATUSES.has(value.status)
+    || !validTerminalDimensions(value.cols, value.rows)
+    || typeof value.output !== 'string'
+    || value.output.length > 1_000_000
+    || (value.exit !== null && (
+      !isObject(value.exit)
+      || !exactKeys(value.exit, ['code', 'signal'])
+      || (value.exit.code !== null && !Number.isInteger(value.exit.code))
+      || (value.exit.signal !== null && !Number.isInteger(value.exit.signal))
+    ))
+    || (value.result !== null && (
+      !isObject(value.result)
+      || !exactKeys(value.result, ['attemptStatus', 'outcome', 'reason'])
+      || !MODULE_TASK_STATUSES.has(value.result.attemptStatus)
+      || !['UNSET', 'PASS', 'FAIL'].includes(value.result.outcome)
+      || !boundedString(value.result.reason, 8_192)
+    ))
+    || (value.structuredOutput !== null && (
+      !isObject(value.structuredOutput)
+      || value.structuredOutput.schemaVersion !== 1
+      || Object.keys(value.structuredOutput).some((key) => !['schemaVersion', 'detail', 'evidence'].includes(key))
+      || (value.structuredOutput.detail !== undefined && typeof value.structuredOutput.detail !== 'string')
+    ))
+  ) throw new Error('Module task session is invalid.');
+  return value;
+}
+
+export function requireModuleTaskList(value) {
+  if (!Array.isArray(value) || value.some((item) => requireModuleTaskSession(item) !== item)) {
+    throw new Error('Module task list is invalid.');
+  }
+  return value;
+}
+
+export function requireModuleTaskSessionRequest(value) {
+  if (!isObject(value) || !exactKeys(value, ['sessionId'])) throw new Error('Module task request is invalid.');
+  return { sessionId: requireModuleTaskId(value.sessionId) };
+}
+
+export function requireModuleTaskInputRequest(value) {
+  if (!isObject(value) || !exactKeys(value, ['sessionId', 'data']) || typeof value.data !== 'string' || value.data.length < 1 || value.data.length > 65_536) {
+    throw new Error('Module task input is invalid.');
+  }
+  return { sessionId: requireModuleTaskId(value.sessionId), data: value.data };
+}
+
+export function requireModuleTaskResizeRequest(value) {
+  if (!isObject(value) || !exactKeys(value, ['sessionId', 'cols', 'rows']) || !validTerminalDimensions(value.cols, value.rows)) {
+    throw new Error('Module task resize request is invalid.');
+  }
+  return { sessionId: requireModuleTaskId(value.sessionId), cols: value.cols, rows: value.rows };
+}
+
+export function requireModuleTaskEvent(value) {
+  if (!isObject(value) || value.schemaVersion !== 1 || typeof value.type !== 'string') {
+    throw new Error('Module task event is invalid.');
+  }
+  if (value.type === 'data' && exactKeys(value, ['schemaVersion', 'type', 'sessionId', 'data'])) {
+    requireModuleTaskId(value.sessionId);
+    if (typeof value.data !== 'string' || value.data.length > 1_000_000) throw new Error('Module task event is invalid.');
+    return value;
+  }
+  if (['started', 'terminating', 'finished'].includes(value.type) && exactKeys(value, ['schemaVersion', 'type', 'session'])) {
+    requireModuleTaskSession(value.session);
+    return value;
+  }
+  throw new Error('Module task event is invalid.');
 }

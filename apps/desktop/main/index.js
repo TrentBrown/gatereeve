@@ -20,6 +20,10 @@ import {
 
 import { createDesktopCoordinator } from './coordinator.js';
 import { createModulePolicyManager } from './module-policy.js';
+import { createCommandAuthorizationStore } from './command-authorization.js';
+import { createModuleExecutionManager } from './module-execution.js';
+import { createModuleTaskManager } from './module-task-manager.js';
+import { createProviderSupervisor, discoverInstalledProviders } from './module-providers.js';
 import { createArtifactActions, createEditorPreferenceStore } from './artifact-actions.js';
 import { IPC_CHANNELS } from '../shared/contracts.js';
 import {
@@ -100,6 +104,18 @@ async function startDesktop() {
   ));
   const unconfiguredSetup = createUnconfiguredSetup(setupCompatibility);
   const bundledModel = await loadDefaultModel();
+  const providerAllowlist = JSON.parse(await readFile(
+    resolve(desktopRoot, 'main', 'provider-allowlist.json'),
+    'utf8',
+  ));
+  if (providerAllowlist.schemaVersion !== 1 || !Array.isArray(providerAllowlist.providers)) {
+    throw new Error('The installed provider allowlist is invalid.');
+  }
+  const installedProviderResult = await discoverInstalledProviders(
+    resolve(desktopRoot, 'main', 'providers'),
+    providerAllowlist.providers,
+  );
+  const installedProviders = installedProviderResult.providers;
   const bundledSkillIds = bundledModel.moduleGraph.modules
     .filter((module) => module.run?.kind === 'skill')
     .map((module) => module.run.skillId);
@@ -107,15 +123,16 @@ async function startDesktop() {
   const modulePolicyManager = createModulePolicyManager({
     getAvailability: async () => ({
       skills: coordinator?.current().setup.operationalReady ? bundledSkillIds : [],
-      providers: [],
+      providers: installedProviders.map(({ id, version }) => ({ id, version })),
     }),
   });
+  const protocolAdapter = createProtocolAdapter({
+    gitExecutable: executables.git,
+    ghExecutable: executables.gh,
+    pythonExecutable,
+  });
   coordinator = createDesktopCoordinator({
-    protocol: createProtocolAdapter({
-      gitExecutable: executables.git,
-      ghExecutable: executables.gh,
-      pythonExecutable,
-    }),
+    protocol: protocolAdapter,
     modulePolicyManager,
     preferenceStore,
     initialPreferences,
@@ -195,6 +212,59 @@ async function startDesktop() {
     userInfo: accountUserInfo,
     killProcessGroup: killPtyProcessGroup,
   });
+  const moduleTaskManager = createModuleTaskManager({
+    spawn: spawnPty,
+    killProcessGroup: killPtyProcessGroup,
+  });
+  const moduleExecutionManager = createModuleExecutionManager({
+    protocol: protocolAdapter,
+    authorizationStore: createCommandAuthorizationStore(app.getPath('userData'), {
+      gitExecutable: executables.git,
+    }),
+    taskManager: moduleTaskManager,
+    providerSupervisor: createProviderSupervisor(),
+    providers: installedProviders,
+    async onChanged({ task, projectPath, live, provider, providerError, error }) {
+      if (live) await coordinator.setModuleLive(projectPath, task.moduleId, live);
+      else if (provider) await coordinator.setModuleLive(projectPath, task.moduleId, provider.live);
+      else if (providerError) {
+        await coordinator.setModuleLive(projectPath, task.moduleId, {
+          status: 'unavailable',
+          detail: providerError.message,
+          updatedAt: new Date().toISOString(),
+          stages: [], actions: [], attempts: [], evidence: [], links: [],
+          failure: providerError,
+        });
+      } else if (error && projectPath) {
+        const failure = {
+          code: error.code ?? 'MODULE_COMPLETION_FAILED',
+          message: error.message ?? String(error),
+        };
+        await coordinator.setModuleLive(projectPath, task.moduleId, {
+          status: 'unavailable',
+          detail: failure.message,
+          updatedAt: new Date().toISOString(),
+          stages: [], actions: [], attempts: [], evidence: [], links: [], failure,
+        });
+      } else await coordinator.refresh('module-runtime');
+    },
+  });
+  const processManager = Object.freeze({
+    hasLive(path) {
+      return terminalManager.hasLive(path) || moduleTaskManager.liveProjects().includes(path);
+    },
+    liveProjects() {
+      return [...new Set([...terminalManager.liveProjects(), ...moduleTaskManager.liveProjects()])];
+    },
+    discardProject(path) {
+      terminalManager.discardProject(path);
+      moduleTaskManager.discardProject(path);
+    },
+    close() {
+      terminalManager.close();
+      moduleTaskManager.close();
+    },
+  });
   registerRendererProtocol(protocol, resolve(desktopRoot, 'renderer'), {
     brandingAsset: resolve(
       desktopRoot,
@@ -226,6 +296,9 @@ async function startDesktop() {
     coordinator,
     artifactActions,
     terminalManager,
+    moduleTaskManager,
+    moduleExecutionManager,
+    processManager,
     updateCoordinator,
     async pickProject() {
       const result = await dialog.showOpenDialog({
@@ -249,18 +322,19 @@ async function startDesktop() {
   window.on('moved', () => void coordinator.saveWindow(window.getBounds()));
   bindTerminalQuitGuard({
     app,
-    terminalManager,
+    terminalManager: processManager,
     confirmQuit: (projectCount) => confirmQuitTerminalTermination(dialog, window, projectCount),
     cleanup() {
       disposeDesktopIpc();
-      terminalManager.close();
+      moduleExecutionManager.close();
+      processManager.close();
       coordinator.close();
       updateCoordinator.close();
     },
   });
   bindTerminalWindowCloseGuard({
     window,
-    terminalManager,
+    terminalManager: processManager,
     confirmQuit: (projectCount) => confirmQuitTerminalTermination(dialog, window, projectCount),
   });
   window.once('ready-to-show', () => window.show());

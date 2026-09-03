@@ -252,6 +252,7 @@
       "model.js",
       "model/default-workflow-policy.json",
       "model/workflow-model.json",
+      "module-runtime.js",
       "modules.js",
       "observer.js",
       "package.json",

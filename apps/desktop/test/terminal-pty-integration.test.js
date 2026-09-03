@@ -5,7 +5,9 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { createTerminalManager } from '../main/terminal-manager.js';
+import { createModuleTaskManager } from '../main/module-task-manager.js';
 import { killPtyProcessGroup, spawnPty } from '../main/terminal-pty.js';
+import { hashModuleDefinition } from '../../../plugin-src/shared/resources/protocol/modules.js';
 
 const supported = ['darwin', 'linux'].includes(process.platform);
 
@@ -128,6 +130,42 @@ test('real PTY cleanup terminates a descendant sentinel process', { skip: !suppo
         catch (error) { return error.code === 'ESRCH'; }
       }, `${label} process termination`);
     }
+  } finally {
+    manager.close();
+    await rm(projectPath, { recursive: true, force: true });
+  }
+});
+
+test('real module task PTY is direct, interactive, attributable, and separate from the project shell', { skip: !supported }, async () => {
+  const projectPath = await mkdtemp(join(tmpdir(), 'gatereeve-module-task-'));
+  const module = {
+    schemaVersion: 1,
+    id: 'example/interactive-check', version: '1.0.0', digest: `sha256:${'0'.repeat(64)}`,
+    label: 'Interactive check', description: 'Reads one answer.',
+    slot: 'feature.finalization', dependsOn: [], disposition: 'optional', locked: false,
+    enabledByDefault: false, waiverAllowed: true,
+    evidence: { kind: 'reference', requiredFor: ['PASS', 'FAIL'] },
+    fingerprint: { kind: 'feature-finalization-v1', dependencyBinding: 'event-ids' },
+    run: {
+      kind: 'command', executable: process.execPath,
+      args: ['-e', 'process.stdin.once("data", value => { console.log(`task:${value.toString().trim()}`); process.exit(0); })'],
+      workingDirectory: 'repository', effects: ['Reads one terminal answer.'], timeoutSeconds: 10,
+    },
+  };
+  module.digest = hashModuleDefinition(module);
+  const manager = createModuleTaskManager({ spawn: spawnPty, killProcessGroup: killPtyProcessGroup });
+  try {
+    const finished = new Promise((resolve) => {
+      manager.subscribe((event) => { if (event.type === 'finished') resolve(event.session); });
+    });
+    const task = await manager.start(
+      { path: projectPath, name: 'module-task' }, module, { cols: 80, rows: 24 },
+    );
+    manager.write(projectPath, task.id, 'ready\r');
+    const result = await finished;
+    assert.match(result.output, /task:ready/);
+    assert.equal(result.result.outcome, 'PASS');
+    assert.equal(result.kind, 'module-task');
   } finally {
     manager.close();
     await rm(projectPath, { recursive: true, force: true });

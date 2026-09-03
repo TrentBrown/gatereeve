@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "scope": "slice",
+  "featureId": "tb-workflow-modules",
+  "repositoryAlias": "product",
+  "packetId": "pr-63",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 63,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/63",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "1f3e6b258dbb22129bd5174d371a0fae4527efd3",
+    "headRefName": "tb-workflow-modules-03-provider-execution",
+    "headRefOid": "42ad0da42bab67de6eed65df4257d628eb8484a6"
+  },
+  "mergeBaseSha": "1f3e6b258dbb22129bd5174d371a0fae4527efd3",
+  "evaluatedSourceSha": "42ad0da42bab67de6eed65df4257d628eb8484a6",
+  "featureBaseSha": null,
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": true
+  },
+  "gates": {
+    "verification": { "disposition": "passed", "reason": null },
+    "specEvaluation": { "disposition": "passed", "reason": null },
+    "judge": { "disposition": "passed", "reason": null },
+    "codeReview": { "disposition": "passed", "reason": null },
+    "patternReview": {
+      "disposition": "waived",
+      "reason": "GateReeve has no configured pattern-review rule scope; the user explicitly approved merging and proceeding, and establishing a policy scope should remain a separate intentional change."
+    },
+    "explainDiff": { "disposition": "passed", "reason": null }
+  }
+}

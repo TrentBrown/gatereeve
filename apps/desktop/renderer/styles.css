@@ -786,11 +786,14 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
 .terminal-resizer:hover::before, .terminal-resizer:focus-visible::before { background: #b796df; }
 .terminal-toolbar { display: flex; min-height: 35px; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.32rem 0.65rem; border-bottom: 1px solid #3f304e; background: #291d36; }
 .terminal-identity, .terminal-actions { display: flex; min-width: 0; align-items: center; gap: 0.55rem; }
+.terminal-session-select { max-width: 15rem; border-color: #725b87; padding: 0.26rem 1.7rem 0.26rem 0.45rem; color: #eee8f5; background: #382847; font-size: 0.65rem; }
 .terminal-identity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.72rem; }
 .terminal-shell { overflow: hidden; color: #ad9cba; font: 0.63rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
 .terminal-status { flex: none; border-radius: 999px; padding: 0.16rem 0.38rem; color: #c9bdcf; background: #463752; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.52rem; font-weight: 850; }
 .terminal-status[data-status="running"] { color: #bce8d3; background: #24533f; }
 .terminal-status[data-status="failed"] { color: #ffd3da; background: #6e2939; }
+.terminal-status[data-status="passed"] { color: #bce8d3; background: #24533f; }
+.terminal-status[data-status="cancelled"], .terminal-status[data-status="timed-out"], .terminal-status[data-status="awaiting-provider"] { color: #f5dca9; background: #62451f; }
 .terminal-status[data-status="exited"], .terminal-status[data-status="terminating"] { color: #f5dca9; background: #62451f; }
 .terminal-action { border-color: #725b87; padding: 0.3rem 0.52rem; color: #e7deed; background: #382847; font-size: 0.64rem; }
 .terminal-action:hover:not(:disabled) { background: #4a365d; }
@@ -799,6 +802,8 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
 .terminal-instance[hidden] { display: none; }
 .terminal-instance .xterm { height: 100%; }
 .terminal-instance .xterm-viewport { overscroll-behavior: contain; }
+.module-run-dialog { width: min(760px, calc(100vw - 2rem)); }
+.module-run-actions { display: flex; flex-wrap: wrap; gap: 0.55rem; margin-top: 1rem; }
 
 @media (max-width: 1100px) {
   .activity { display: inline-flex; }

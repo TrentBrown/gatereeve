@@ -173,6 +173,8 @@
           <div id="terminal-resizer" class="terminal-resizer" role="separator" aria-label="Resize project terminal" aria-orientation="horizontal" tabindex="0"></div>
           <div class="terminal-toolbar">
             <div class="terminal-identity">
+              <label class="sr-only" for="terminal-session-select">Terminal session</label>
+              <select id="terminal-session-select" class="terminal-session-select" aria-label="Terminal session"><option value="shell">Project shell</option></select>
               <strong id="terminal-title">Terminal</strong>
               <span id="terminal-shell" class="terminal-shell"></span>
               <span id="terminal-status" class="terminal-status" data-status="idle">Idle</span>
@@ -202,6 +204,23 @@
       <p id="module-waiver-summary" class="source-summary"></p>
       <label class="field-label" for="module-waiver-reason">Reason <textarea id="module-waiver-reason" rows="4" maxlength="2048" required></textarea></label>
       <div class="viewer-actions"><button id="module-waiver-cancel" class="secondary" type="button">Cancel</button><button id="module-waiver-confirm" type="button">Confirm skip</button></div>
+    </dialog>
+    <dialog id="module-command-dialog" class="source-dialog module-run-dialog" aria-labelledby="module-command-title">
+      <div class="dialog-heading"><div><p class="section-kicker">Unsandboxed command</p><h2 id="module-command-title">Run module command?</h2></div><button id="module-command-close" class="text-button dialog-close" type="button" aria-label="Cancel module command">×</button></div>
+      <p class="source-summary">GateReeve will run this exact command in a dedicated task terminal and retain its bounded transcript with the attempt. It has your normal filesystem, process, credential-file, and network authority.</p>
+      <dl id="module-command-facts" class="facts"></dl>
+      <div id="module-command-effects" class="notice warning"></div>
+      <div id="module-command-authority" class="notice danger"></div>
+      <div id="module-command-changes" class="notice warning" hidden></div>
+      <div class="viewer-actions"><button id="module-command-cancel" class="secondary" type="button">Cancel</button><button id="module-command-once" type="button">Run once</button><button id="module-command-always" type="button">Always allow this command version</button></div>
+    </dialog>
+    <dialog id="module-attestation-dialog" class="source-dialog module-run-dialog" aria-labelledby="module-attestation-title">
+      <div class="dialog-heading"><div><p class="section-kicker">Structured human evidence</p><h2 id="module-attestation-title">Record module attestation</h2></div><button id="module-attestation-close" class="text-button dialog-close" type="button" aria-label="Cancel module attestation">×</button></div>
+      <p id="module-attestation-instructions" class="source-summary"></p>
+      <label class="field-label" for="module-attestation-outcome">Outcome <select id="module-attestation-outcome"><option value="PASS">Pass</option><option value="FAIL">Fail</option><option value="NOT_APPLICABLE">Not applicable</option></select></label>
+      <label class="field-label" for="module-attestation-summary">Evidence summary <textarea id="module-attestation-summary" rows="4" maxlength="8192" required></textarea></label>
+      <label class="field-label" for="module-attestation-confirmation">Confirmation label <input id="module-attestation-confirmation" maxlength="512" required></label>
+      <div class="viewer-actions"><button id="module-attestation-cancel" class="secondary" type="button">Cancel</button><button id="module-attestation-confirm" type="button">Record attestation</button></div>
     </dialog>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     <script type="module" src="renderer.js"></script>
