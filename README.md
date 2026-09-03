@@ -43,6 +43,8 @@ CLI is not required for plugin governance.
   [behavioral smoke test](docs/PLUGIN-SMOKE-TEST.md).
 - **Workflow authors:** change the canonical
   [`WORKFLOW.md`](plugin-src/shared/resources/policy/WORKFLOW.md).
+- **Module authors:** use the versioned
+  [workflow module contract](docs/WORKFLOW-MODULES.md).
 - **[Full overview](https://gatereeve.pages.dev)** — the philosophy, the
   gate spine, workflow layers, artifact flow, and real sample artifacts
   from a completed feature.

@@ -10,6 +10,7 @@ import {
   createModelLock,
   failureResult,
   hashModel,
+  hashModuleDefinition,
   loadDefaultModel,
   stableJson,
   successResult,
@@ -38,18 +39,27 @@ test('default workflow model validates and hashes deterministically', async () =
   assert.deepEqual([...lock.guardIds].sort(), lock.guardIds);
 });
 
-test('model validation rejects executable or unknown guard references', async () => {
+test('model validation rejects unknown guards, cycles, and provider injection fields', async () => {
   const model = structuredClone(await loadDefaultModel());
   model.feature.transitions[0].guards.push('shell.run-anything');
 
   assert.throws(() => validateModel(model), /unknown guard shell\.run-anything/);
 
-  const raw = await readFile(resolve(protocolRoot, 'model/workflow-model.json'), 'utf8');
-  assert.doesNotMatch(raw, /(?:command|script|executable)\s*:/i);
-
   const cyclic = structuredClone(await loadDefaultModel());
-  cyclic.boundary.gates[0].dependsOn = [cyclic.boundary.gates[0].id];
-  assert.throws(() => validateModel(cyclic), /must precede it in the DAG/);
+  cyclic.moduleGraph.modules[0].dependsOn = [cyclic.moduleGraph.modules[0].id];
+  cyclic.moduleGraph.modules[0].digest = hashModuleDefinition(cyclic.moduleGraph.modules[0]);
+  assert.throws(() => validateModel(cyclic), /dependsOn must contain unique namespaced module IDs/);
+
+  const providerInjection = structuredClone(await loadDefaultModel());
+  providerInjection.moduleGraph.modules[2].observe = {
+    providerId: 'gatereeve/verification-provider',
+    version: '1.0.0',
+    executable: './from-the-repository',
+  };
+  providerInjection.moduleGraph.modules[2].digest = hashModuleDefinition(
+    providerInjection.moduleGraph.modules[2]
+  );
+  assert.throws(() => validateModel(providerInjection), /observe contains unknown fields: executable/);
 });
 
 test('event contract accepts complete events and rejects malformed identity', async () => {

@@ -78,6 +78,7 @@ async function executeResolvedPluginRequest(rawRequest) {
         await initializeFeature({
           featureHome,
           featureId: request.context?.featureId ?? request.featureId,
+          repositoryRoot: request.context?.repository?.path ?? request.cwd ?? null,
           actor: request.actor,
           recordedAt: request.recordedAt,
           eventId: request.eventId,

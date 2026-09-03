@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #61 — Workflow module protocol foundation</title>
+  <style>
+    :root { --ink:#281c35; --muted:#6c6078; --paper:#fbf9fd; --panel:#fff; --line:#ddd3e8; --purple:#7048a8; --green:#18724b; --amber:#9a5b0b; --soft:#f3edf9; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--paper); font:16px/1.58 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    header { padding:4rem max(1.25rem,calc((100vw - 980px)/2)); color:#fff; background:linear-gradient(135deg,#291638,#6d42a0); }
+    header p { max-width:760px; font-size:1.15rem; opacity:.92; }
+    .sha { display:inline-block; padding:.28rem .55rem; border:1px solid #ffffff55; border-radius:.45rem; font:12px ui-monospace,monospace; }
+    main { width:min(980px,calc(100% - 2rem)); margin:2rem auto 5rem; }
+    nav,.card,.callout,.diagram,.question { background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:0 7px 24px #39234b0c; }
+    nav { padding:1rem 1.25rem; }
+    nav a { margin-right:1rem; color:var(--purple); }
+    section { padding-top:2.2rem; }
+    h1 { margin:.2rem 0 1rem; font:700 clamp(2rem,6vw,4rem)/1.05 Georgia,serif; }
+    h2 { font:700 2rem/1.2 Georgia,serif; border-bottom:1px solid var(--line); padding-bottom:.45rem; }
+    h3 { margin-top:2rem; }
+    code,pre { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+    code { background:var(--soft); padding:.1rem .3rem; border-radius:.25rem; }
+    pre { margin:0; padding:1rem; overflow:auto; white-space:pre-wrap; background:#21172b; color:#f5effa; border-radius:10px; }
+    .card,.diagram { padding:1.25rem; margin:1rem 0; }
+    .callout { padding:1rem 1.2rem; margin:1rem 0; border-left:5px solid var(--purple); }
+    .callout strong { color:var(--purple); }
+    .flow { display:flex; gap:.65rem; align-items:stretch; flex-wrap:wrap; }
+    .node { flex:1 1 145px; min-width:130px; padding:.8rem; border:1px solid var(--line); border-top:4px solid var(--purple); border-radius:9px; background:#fff; }
+    .node small { display:block; color:var(--muted); }
+    .arrow { align-self:center; color:var(--purple); font-size:1.5rem; }
+    .split { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+    table { width:100%; border-collapse:collapse; margin:1rem 0; }
+    th,td { text-align:left; vertical-align:top; padding:.7rem; border-bottom:1px solid var(--line); }
+    th { color:var(--muted); font-size:.82rem; text-transform:uppercase; letter-spacing:.05em; }
+    .tag { display:inline-block; padding:.18rem .5rem; margin:.1rem; border-radius:999px; background:var(--soft); color:var(--purple); font-size:.8rem; }
+    .question { padding:1rem 1.2rem; margin:1rem 0; }
+    .answers { display:grid; gap:.55rem; }
+    button { padding:.7rem .8rem; text-align:left; border:1px solid var(--line); border-radius:8px; color:var(--ink); background:#fff; cursor:pointer; }
+    button:hover { border-color:var(--purple); }
+    button.correct { border-color:var(--green); background:#eaf8f0; }
+    button.wrong { border-color:#a22; background:#fff0f0; }
+    .feedback { min-height:1.5rem; margin:.6rem 0 0; color:var(--muted); }
+    .ok { color:var(--green); } .warn { color:var(--amber); }
+    @media (max-width:700px) { header{padding:2.5rem 1.25rem}.split{grid-template-columns:1fr}.arrow{display:none} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="sha">PR #61 · 93b5323 → 4878343 · 36 files</div>
+    <h1>Workflow modules,<br>without a free-for-all</h1>
+    <p>GateReeve’s lifecycle remains opinionated. This change replaces the hardcoded PR-boundary inventory with a pinned, declarative module graph and establishes one generic finalization slot—while keeping execution explicit and historical evidence stable.</p>
+  </header>
+  <main>
+    <nav aria-label="Contents"><strong>Contents:</strong> <a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#quiz">Quiz</a></nav>
+
+    <section id="background">
+      <h2>1. Background</h2>
+      <h3>The beginner’s version: events, models, and projection</h3>
+      <p>GateReeve does not store “the current workflow” as one mutable status record. It stores an append-only event journal: design approved, slice started, boundary gate passed, and so forth. A versioned workflow model says which transitions and guards are legal. A projector folds the events into the current feature, slice, attempt, and gate state.</p>
+      <div class="diagram flow" aria-label="Event projection flow">
+        <div class="node"><strong>Model lock</strong><small>allowed lifecycle and guards</small></div><div class="arrow">+</div>
+        <div class="node"><strong>Event journal</strong><small>immutable facts in sequence</small></div><div class="arrow">→</div>
+        <div class="node"><strong>Projection</strong><small>validate and fold</small></div><div class="arrow">→</div>
+        <div class="node"><strong>Snapshot</strong><small>state, blockers, safe actions</small></div>
+      </div>
+      <p>A PR boundary was already a dependency graph: pin context, reconcile documents, verify, evaluate in parallel, triage decisions, explain the diff, and validate the packet. Before this PR, that inventory lived directly in <code>boundary.gates</code> and its separate scope-routing table.</p>
+      <div class="callout"><strong>Invariant retained:</strong> human review is still a lifecycle passage, not a module. It becomes available only when every enabled required gate has a fresh, nonblocking outcome.</div>
+
+      <h3>The narrower problem</h3>
+      <p>Hardcoding made every project inherit the same check inventory and made a future post-merge build or release step look like a GateReeve core concept. The desired architecture needs project-specific checks, but it must not permit repository JSON to inject UI code or silently execute programs.</p>
+      <div class="split">
+        <div class="card"><strong>Fixed core</strong><p>Feature and slice state machines, transition authority, trusted guards, fingerprints, evidence, and passage rules.</p></div>
+        <div class="card"><strong>Extensible slots</strong><p><code>boundary.evaluation</code> for PR checks and <code>feature.finalization</code> for post-merge obligations.</p></div>
+      </div>
+    </section>
+
+    <section id="intuition">
+      <h2>2. Intuition</h2>
+      <p>Think of a module as a sealed job description, not as loaded application code. It has a durable name, exact version and digest, dependencies, evidence rules, and optional pointers to a known skill, explicit manual step, command, or separately installed observation provider.</p>
+      <pre>{
+  "id": "example/license-audit",
+  "version": "1.0.0",
+  "digest": "sha256:…",
+  "slot": "boundary.evaluation",
+  "dependsOn": ["gatereeve/verification"],
+  "observe": {
+    "providerId": "example/license-provider",
+    "version": "1.0.0"
+  }
+}</pre>
+      <p>The tracked policy acts like a lockfile selector. It names the exact definitions a project wants and whether configurable ones are enabled. Resolution combines built-ins and project manifests, verifies all identities and digests, rejects unsafe graphs, and produces a deterministic topological order.</p>
+
+      <div class="diagram">
+        <div class="flow">
+          <div class="node"><strong>Built-ins</strong><small>ten familiar boundary checks</small></div>
+          <div class="node"><strong>Project manifests</strong><small>declarative JSON only</small></div>
+          <div class="node"><strong>Tracked policy</strong><small>exact version + digest + enabled</small></div>
+          <div class="arrow">→</div>
+          <div class="node"><strong>Resolved graph</strong><small>validated, ordered, pinned</small></div>
+        </div>
+      </div>
+
+      <h3>Hard dependency versus conditional order</h3>
+      <p><code>dependsOn</code> says “I cannot function without that module,” so an enabled module makes its hard dependency mandatory. <code>after</code> says “if that module is enabled, wait for it.” Decision Triage uses the latter for Judge and Code Review: it remains locked, but a project may later disable either review without making the graph invalid.</p>
+      <div class="callout"><strong>Toy example:</strong> if Judge is enabled, Decision Triage follows it and binds to its event. If Judge is disabled, the edge disappears; GateReeve does not manufacture a fake <code>NOT_APPLICABLE</code> result.</div>
+
+      <h3>Why pin twice?</h3>
+      <p>The full graph is pinned in the feature model so an installed update cannot alter the feature accidentally. A copy is also pinned on every new boundary attempt. That second pin matters when the user explicitly migrates the feature later: old attempts must still say which modules and versions governed their evidence.</p>
+      <div class="diagram flow">
+        <div class="node"><strong>Attempt A</strong><small>graph v1 · Judge enabled</small></div><div class="arrow">→</div>
+        <div class="node"><strong>Explicit migration</strong><small>new model hash; prior boundary snapshot retained</small></div><div class="arrow">→</div>
+        <div class="node"><strong>Attempt B</strong><small>graph v2 · Judge disabled</small></div>
+      </div>
+      <p>Attempt A remains readable but cannot become current under the new model hash. Legacy attempts predate attempt-local graphs, so the migration event now carries their prior boundary contract. This was the substantive defect found and fixed during the first review attempt.</p>
+    </section>
+
+    <section id="code">
+      <h2>3. Code walkthrough</h2>
+      <h3>A closed module contract</h3>
+      <p><code>modules.js</code> is the new center. It rejects unknown fields, invalid namespaces, non-exact identities, digest drift, unsafe repository-relative paths, provider executable injection, unknown trusted guards, invalid slots, duplicate IDs and gate keys, cross-slot edges, missing or disabled hard dependencies, and cycles.</p>
+      <p><span class="tag">skill</span><span class="tag">manual</span><span class="tag">command</span> are run descriptions. Observation is independent and names only an installed provider ID and version. This slice validates those descriptions; it does not yet execute them.</p>
+
+      <h3>The model becomes data-driven</h3>
+      <p>Workflow model v1.1.0 removes the new model’s hardcoded <code>boundary.gates</code> and <code>scopeRouting</code>. Ten built-in module definitions reproduce the old graph and stable CLI keys. The default policy enables all ten, leaving the behavior unchanged until a future project deliberately edits policy.</p>
+      <table><thead><tr><th>Property</th><th>Before</th><th>After</th></tr></thead><tbody>
+        <tr><td>Gate inventory</td><td>Hardcoded model array</td><td>Enabled boundary modules</td></tr>
+        <tr><td>External identity</td><td><code>judge</code></td><td><code>gatereeve/judge</code> plus legacy gate key <code>judge</code></td></tr>
+        <tr><td>Ordering</td><td>Only hard dependencies</td><td>Hard <code>dependsOn</code> plus enablement-aware <code>after</code></td></tr>
+        <tr><td>Project variation</td><td>None</td><td>Tracked exact policy and manifests</td></tr>
+      </tbody></table>
+
+      <h3>Projection preserves history</h3>
+      <p>When a module-backed boundary begins, <code>transitions.js</code> embeds the resolved graph. <code>projection.js</code> validates that graph, derives gate order, and stores module ID/version/digest beside the familiar gate key. A model hash mismatch blocks the old attempt from review.</p>
+      <pre>attemptModel = event has moduleGraph
+  ? event.moduleGraph
+  : migration retained a prior boundary for event.modelHash
+    ? prior boundary
+    : current model</pre>
+      <p>The middle branch is the remediation. It preserves a legacy attempt without rewriting the append-only journal or expanding the model lock into an archive of every historical model.</p>
+
+      <h3>Discovery and local readiness remain separate</h3>
+      <p>Discovery reads sorted regular JSON files under <code>.gatereeve/modules/</code> and rejects symlinks. If <code>.gatereeve/workflow.json</code> is absent, only bundled defaults are selected: merely checking out a project manifest does not activate it. Readiness then reports missing skills or installed providers without changing the resolved definition or silently disabling a required module.</p>
+
+      <h3>Tests and packaging</h3>
+      <p>The new module contract suite exercises positive and adversarial graphs, policy-order independence, safe discovery, locked and configurable behavior, readiness, migration impact, and both module-backed and legacy replay. Canonical sources are staged into CLI packages and Desktop resources; inventory tests keep those consumers byte-aligned.</p>
+      <div class="callout"><strong>Boundary result:</strong> focused 16/16, CLI 208/208, Desktop 161/161, portable acceptance, packaging, document checks, and both dependency audits pass. UI, command execution, provider supervision, finalization passage, and GateReeve Release remain explicit later slices.</div>
+    </section>
+
+    <section id="quiz">
+      <h2>4. Check your understanding</h2>
+      <div class="question" data-answer="1" data-ok="Correct. A policy is an exact selector; discovery alone has no activation authority." data-no="Not quite. The missing-policy rule deliberately prevents checkout-time activation.">
+        <h3>1. A project adds a valid manifest but has no tracked workflow policy. What happens?</h3><div class="answers">
+          <button>It is enabled when <code>enabledByDefault</code> is true.</button><button>It is discovered but excluded; only bundled defaults resolve.</button><button>It resolves as unavailable and blocks every feature.</button><button>It is copied into the default policy on first open.</button>
+        </div><p class="feedback" aria-live="polite"></p>
+      </div>
+      <div class="question" data-answer="2" data-ok="Correct. Conditional ordering vanishes with its disabled target; it is not an applicability judgment." data-no="Try again: disabled policy and NOT_APPLICABLE are intentionally different states.">
+        <h3>2. Decision Triage has <code>after: [Judge]</code>, and Judge is disabled. What is the runtime dependency?</h3><div class="answers">
+          <button>Decision Triage is disabled by cascade.</button><button>Judge receives an automatic NOT_APPLICABLE event.</button><button>The Judge edge is absent; Decision Triage waits for the other enabled evaluations.</button><button>The policy is invalid because Decision Triage is locked.</button>
+        </div><p class="feedback" aria-live="polite"></p>
+      </div>
+      <div class="question" data-answer="0" data-ok="Correct. A later explicit migration may change future obligations, never the meaning of old evidence." data-no="The attempt-local graph exists specifically to prevent later reinterpretation.">
+        <h3>3. Why is the resolved graph copied onto each new boundary attempt?</h3><div class="answers">
+          <button>To preserve the exact obligations and versions that governed that attempt.</button><button>To let each gate alter project policy independently.</button><button>To avoid hashing the feature model.</button><button>To make provider readiness authoritative evidence.</button>
+        </div><p class="feedback" aria-live="polite"></p>
+      </div>
+      <div class="question" data-answer="3" data-ok="Correct. Observation is a reference to installed code, not an executable supplied by the repository." data-no="Remember the trust boundary: repository data may describe a command run, but it may not inject provider code into Desktop.">
+        <h3>4. What executable information may a repository module put in its <code>observe</code> block?</h3><div class="answers">
+          <button>A shell command plus a SHA-256 digest.</button><button>A relative JavaScript entrypoint and timeout.</button><button>An executable path when the module is locked.</button><button>None; only an installed provider ID and exact version.</button>
+        </div><p class="feedback" aria-live="polite"></p>
+      </div>
+      <div class="question" data-answer="1" data-ok="Correct. History stays readable, but freshness and passage are bound to the current model hash." data-no="Migration does not rewrite old evidence or permit one attempt to mix two governing models.">
+        <h3>5. After an explicit model migration, what happens to an older active attempt?</h3><div class="answers">
+          <button>Its gate list is replaced and any matching results remain current.</button><button>It remains readable under its pinned boundary but cannot pass current human-review guards.</button><button>It is deleted after its evidence is copied to the new attempt.</button><button>It can continue only for locked gates.</button>
+        </div><p class="feedback" aria-live="polite"></p>
+      </div>
+    </section>
+  </main>
+  <script>
+    document.querySelectorAll('.question').forEach((question) => {
+      const buttons = [...question.querySelectorAll('button')];
+      buttons.forEach((button, index) => button.addEventListener('click', () => {
+        buttons.forEach((item) => item.classList.remove('correct', 'wrong'));
+        const correct = index === Number(question.dataset.answer);
+        button.classList.add(correct ? 'correct' : 'wrong');
+        const feedback = question.querySelector('.feedback');
+        feedback.textContent = correct ? question.dataset.ok : question.dataset.no;
+        feedback.className = `feedback ${correct ? 'ok' : 'warn'}`;
+      }));
+    });
+  </script>
+</body>
+</html>

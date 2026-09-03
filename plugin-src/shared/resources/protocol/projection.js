@@ -1,6 +1,7 @@
 import { BOUNDARY_SCOPES, GATE_OUTCOMES } from './constants.js';
 import { ContractError } from './errors.js';
 import { SHA256_FINGERPRINT } from './fingerprint.js';
+import { boundaryGateDefinitions, validateResolvedModuleGraph } from './modules.js';
 
 const ACTIVE_SLICE_STATES = new Set(['IMPLEMENTING', 'PR_BOUNDARY', 'HUMAN_REVIEW']);
 const PASSAGE_FREE_EVENTS = new Set([
@@ -146,7 +147,39 @@ function dependencyOrdering(definitions) {
   }));
 }
 
-function createAttempt(model, slice, event) {
+function boundaryModelFromSnapshot(model, snapshot, event) {
+  if (snapshot?.moduleGraph !== undefined && snapshot?.boundary === undefined) {
+    validateResolvedModuleGraph(snapshot.moduleGraph);
+    return { ...model, moduleGraph: snapshot.moduleGraph };
+  }
+  if (snapshot?.boundary !== undefined && snapshot?.moduleGraph === undefined) {
+    if (!Array.isArray(snapshot.boundary?.gates) || snapshot.boundary.gates.length === 0) {
+      throw new ContractError(
+        `Event ${event.eventId} has an invalid legacy boundary snapshot`
+      );
+    }
+    return { ...model, moduleGraph: undefined, boundary: snapshot.boundary };
+  }
+  throw new ContractError(`Event ${event.eventId} has an invalid boundary snapshot`);
+}
+
+function historicalBoundarySnapshots(events) {
+  const snapshots = new Map();
+  for (const event of events) {
+    if (event.type !== 'MODEL_MIGRATED' || event.payload.previousBoundary === undefined) {
+      continue;
+    }
+    const modelHash = event.payload.fromModelHash;
+    const existing = snapshots.get(modelHash);
+    if (existing !== undefined && JSON.stringify(existing) !== JSON.stringify(event.payload.previousBoundary)) {
+      throw new ContractError(`Model ${modelHash} has conflicting boundary snapshots`);
+    }
+    snapshots.set(modelHash, event.payload.previousBoundary);
+  }
+  return snapshots;
+}
+
+function createAttempt(model, slice, event, boundarySnapshots) {
   const attemptId = event.payload.attemptId;
   if (typeof attemptId !== 'string' || attemptId.length === 0) {
     throw new ContractError(`Event ${event.eventId} has an invalid boundary attemptId`);
@@ -154,23 +187,34 @@ function createAttempt(model, slice, event) {
   if (!BOUNDARY_SCOPES.includes(event.payload.scope)) {
     throw new ContractError(`Event ${event.eventId} has an invalid boundary scope`);
   }
-  const ordering = dependencyOrdering(model.boundary.gates);
+  const attemptModel = event.payload.moduleGraph !== undefined
+    ? boundaryModelFromSnapshot(model, { moduleGraph: event.payload.moduleGraph }, event)
+    : boundarySnapshots.has(event.modelHash)
+      ? boundaryModelFromSnapshot(model, boundarySnapshots.get(event.modelHash), event)
+      : model;
+  const definitions = boundaryGateDefinitions(attemptModel);
+  const ordering = dependencyOrdering(definitions);
   return {
     id: attemptId,
+    modelHash: event.modelHash,
     sliceId: slice.id,
     scope: event.payload.scope,
     context: event.payload.context ?? null,
     startedBy: event.eventId,
     startedSequence: event.sequence,
     state: 'ACTIVE',
-    gates: model.boundary.gates.map((definition) => ({
+    gates: definitions.map((definition) => ({
       id: definition.id,
+      moduleId: definition.moduleId,
+      moduleVersion: definition.moduleVersion,
+      moduleDigest: definition.moduleDigest,
       dependsOn: [...definition.dependsOn],
       dependencyStage: ordering.get(definition.id).stage,
       dependencyBranch: ordering.get(definition.id).branch,
       orderLabel: ordering.get(definition.id).label,
-      evaluationScope: model.boundary.scopeRouting[event.payload.scope][definition.id],
+      evaluationScope: definition.evaluationScope[event.payload.scope],
       optional: definition.optional,
+      locked: definition.locked,
       waiverAllowed: definition.waiverAllowed,
       outcome: 'UNSET',
       evidence: null,
@@ -293,7 +337,13 @@ function applyGateEvent(boundaryAttempts, event) {
   gate.reason = event.payload.reason ?? null;
 }
 
-function finalizeAttempts(boundaryAttempts, slices, gateFingerprints, blockingChangeIds) {
+function finalizeAttempts(
+  boundaryAttempts,
+  slices,
+  gateFingerprints,
+  blockingChangeIds,
+  currentModelHash
+) {
   for (const attempt of boundaryAttempts) {
     const current = gateFingerprints?.[attempt.id] ?? {};
     const slice = slices.get(attempt.sliceId);
@@ -331,6 +381,13 @@ function finalizeAttempts(boundaryAttempts, slices, gateFingerprints, blockingCh
       if (blockingChangeIds.length > 0) {
         blockers.push({ type: 'changes', changeIds: blockingChangeIds });
       }
+      if (attempt.modelHash !== currentModelHash) {
+        blockers.push({
+          type: 'model-migration',
+          attemptModelHash: attempt.modelHash,
+          currentModelHash,
+        });
+      }
       for (const dependencyId of gate.dependsOn) {
         const dependency = gateFor(attempt, dependencyId, {
           eventId: gate.recordedEventId ?? attempt.startedBy,
@@ -350,6 +407,7 @@ function finalizeAttempts(boundaryAttempts, slices, gateFingerprints, blockingCh
     }
     attempt.requiredCurrentAndNonblocking =
       blockingChangeIds.length === 0 &&
+      attempt.modelHash === currentModelHash &&
       attempt.gates.every(
         (gate) => nonblockingOutcome(gate.outcome) && gate.freshness === 'CURRENT'
       );
@@ -394,6 +452,7 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
   const boundaryAttempts = [];
   const acceptedReviews = new Set();
   const changes = new Map();
+  const boundarySnapshots = historicalBoundarySnapshots(events);
 
   for (const [index, event] of events.entries()) {
     if (index === 0) continue;
@@ -507,7 +566,7 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
           if (typeof attemptId !== 'string' || boundaryAttempts.some((item) => item.id === attemptId)) {
             throw new ContractError(`Event ${event.eventId} has an invalid boundary attemptId`);
           }
-          const attempt = createAttempt(model, slice, event);
+          const attempt = createAttempt(model, slice, event, boundarySnapshots);
           boundaryAttempts.push(attempt);
           slice.activeAttemptId = attemptId;
         }
@@ -654,7 +713,8 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
     boundaryAttempts,
     slices,
     gateFingerprints,
-    blockingChanges.map((change) => change.id)
+    blockingChanges.map((change) => change.id),
+    modelLock.modelHash
   );
   const active = activeSlices(slices);
   return {

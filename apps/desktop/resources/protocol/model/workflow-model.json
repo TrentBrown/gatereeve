@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "modelId": "gatereeve/workflow",
-  "modelVersion": "1.0.0",
+  "modelVersion": "1.1.0",
   "eventSchemaVersion": 1,
   "resultSchemaVersion": 1,
   "coreCompatibility": {
@@ -304,103 +304,240 @@
   "boundary": {
     "scopes": ["SLICE", "FEATURE_FINAL"],
     "outcomes": ["UNSET", "PASS", "FAIL", "WAIVED", "NOT_APPLICABLE"],
-    "freshness": ["CURRENT", "STALE", "UNKNOWN"],
-    "scopeRouting": {
-      "SLICE": {
-        "pinContext": "SLICE",
-        "reconcile": "SLICE",
-        "verification": "SLICE",
-        "specEvaluation": "SLICE",
-        "patternReview": "SLICE",
-        "judge": "SLICE",
-        "codeReview": "SLICE",
-        "decisionTriage": "SLICE",
-        "explainDiff": "SLICE",
-        "packetValidation": "SLICE"
-      },
-      "FEATURE_FINAL": {
-        "pinContext": "SLICE",
-        "reconcile": "SLICE",
-        "verification": "FEATURE",
-        "specEvaluation": "FEATURE",
-        "patternReview": "SLICE",
-        "judge": "FEATURE",
-        "codeReview": "SLICE",
-        "decisionTriage": "SLICE",
-        "explainDiff": "SLICE",
-        "packetValidation": "SLICE"
-      }
-    },
-    "gates": [
+    "freshness": ["CURRENT", "STALE", "UNKNOWN"]
+  },
+  "moduleGraph": {
+    "schemaVersion": 1,
+    "policyDigest": "sha256:4ab90e704e6f68ed69ec17292e023a722b60c46216d39fcc69262a9aafa56d7d",
+    "enabledModuleIds": [
+      "gatereeve/pin-context",
+      "gatereeve/reconcile",
+      "gatereeve/verification",
+      "gatereeve/spec-evaluation",
+      "gatereeve/pattern-review",
+      "gatereeve/judge",
+      "gatereeve/code-review",
+      "gatereeve/decision-triage",
+      "gatereeve/explain-diff",
+      "gatereeve/packet-validation"
+    ],
+    "modules": [
       {
-        "id": "pinContext",
+        "schemaVersion": 1,
+        "id": "gatereeve/pin-context",
+        "version": "1.0.0",
+        "digest": "sha256:5f050c8a7c11e5bab32b25bd6fdb18c743167ba17fed49ebc498638b3299dcdc",
+        "label": "Pin Context",
+        "description": "Pins the pull request and exact source inputs for the boundary attempt.",
+        "slot": "boundary.evaluation",
         "dependsOn": [],
-        "optional": false,
+        "disposition": "required",
+        "locked": true,
+        "enabledByDefault": true,
         "waiverAllowed": false,
-        "guards": ["slice.active", "suspension.notPaused"]
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "boundary": {
+          "gateId": "pinContext",
+          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
+          "guards": ["slice.active", "suspension.notPaused"]
+        }
       },
       {
-        "id": "reconcile",
-        "dependsOn": ["pinContext"],
-        "optional": false,
+        "schemaVersion": 1,
+        "id": "gatereeve/reconcile",
+        "version": "1.0.0",
+        "digest": "sha256:be7e42835729fb05197dc3c7d428ccac273d1cebb3d688c6c6c499d682a4f775",
+        "label": "Reconcile",
+        "description": "Reconciles workflow documents and dependency freshness against pinned context.",
+        "slot": "boundary.evaluation",
+        "dependsOn": ["gatereeve/pin-context"],
+        "disposition": "required",
+        "locked": true,
+        "enabledByDefault": true,
         "waiverAllowed": false,
-        "guards": ["boundary.context.current"]
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "boundary": {
+          "gateId": "reconcile",
+          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
+          "guards": ["boundary.context.current"]
+        }
       },
       {
-        "id": "verification",
-        "dependsOn": ["reconcile"],
-        "optional": false,
+        "schemaVersion": 1,
+        "id": "gatereeve/verification",
+        "version": "1.0.0",
+        "digest": "sha256:ef6e8589851767a29e671a830d6d63c4d0a1274d5fad86a07c755e67503909cd",
+        "label": "Verification",
+        "description": "Runs and records the boundary's scoped deterministic verification.",
+        "slot": "boundary.evaluation",
+        "dependsOn": ["gatereeve/reconcile"],
+        "disposition": "required",
+        "locked": false,
+        "enabledByDefault": true,
         "waiverAllowed": true,
-        "guards": ["boundary.context.current"]
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "boundary": {
+          "gateId": "verification",
+          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "FEATURE"},
+          "guards": ["boundary.context.current"]
+        }
       },
       {
-        "id": "specEvaluation",
-        "dependsOn": ["verification"],
-        "optional": false,
+        "schemaVersion": 1,
+        "id": "gatereeve/spec-evaluation",
+        "version": "1.0.0",
+        "digest": "sha256:a0c87f56d4ccfafbf76871b213f592c7cef8e35f71e5efad48fa3fa50a1e979a",
+        "label": "Spec Evaluation",
+        "description": "Evaluates the implementation against the approved specification and rubric.",
+        "slot": "boundary.evaluation",
+        "dependsOn": ["gatereeve/verification"],
+        "disposition": "required",
+        "locked": false,
+        "enabledByDefault": true,
         "waiverAllowed": true,
-        "guards": ["boundary.context.current"]
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "boundary": {
+          "gateId": "specEvaluation",
+          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "FEATURE"},
+          "guards": ["boundary.context.current"]
+        },
+        "run": {"kind": "skill", "skillId": "agentic-development-workflow:workflow-spec-evaluate"}
       },
       {
-        "id": "patternReview",
-        "dependsOn": ["verification"],
-        "optional": true,
+        "schemaVersion": 1,
+        "id": "gatereeve/pattern-review",
+        "version": "1.0.0",
+        "digest": "sha256:4f67f51d4ae9f840923686558488cb9094042dee712a02649129363790b6d111",
+        "label": "Pattern Review",
+        "description": "Checks the pinned change against the active project pattern rules.",
+        "slot": "boundary.evaluation",
+        "dependsOn": ["gatereeve/verification"],
+        "disposition": "optional",
+        "locked": false,
+        "enabledByDefault": true,
         "waiverAllowed": true,
-        "guards": ["boundary.context.current"]
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "boundary": {
+          "gateId": "patternReview",
+          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
+          "guards": ["boundary.context.current"]
+        },
+        "run": {"kind": "skill", "skillId": "agentic-development-workflow:pattern-review"}
       },
       {
-        "id": "judge",
-        "dependsOn": ["verification"],
-        "optional": false,
+        "schemaVersion": 1,
+        "id": "gatereeve/judge",
+        "version": "1.0.0",
+        "digest": "sha256:6573e9ba2b3f3c6fdf186624b3764e56bcbe9885e10a80f86eff27bc182328d4",
+        "label": "Judge",
+        "description": "Performs an independent compliance evaluation against the approved scope.",
+        "slot": "boundary.evaluation",
+        "dependsOn": ["gatereeve/verification"],
+        "disposition": "required",
+        "locked": false,
+        "enabledByDefault": true,
         "waiverAllowed": true,
-        "guards": ["boundary.context.current"]
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "boundary": {
+          "gateId": "judge",
+          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "FEATURE"},
+          "guards": ["boundary.context.current"]
+        },
+        "run": {"kind": "skill", "skillId": "agentic-development-workflow:workflow-judge"}
       },
       {
-        "id": "codeReview",
-        "dependsOn": ["verification"],
-        "optional": false,
+        "schemaVersion": 1,
+        "id": "gatereeve/code-review",
+        "version": "1.0.0",
+        "digest": "sha256:a47a11a9936f1a1d90912d91a91198511ec1a75bd687880395bb092997fd0151",
+        "label": "Code Review",
+        "description": "Reviews the pinned change for defects, regressions, security risks, and test gaps.",
+        "slot": "boundary.evaluation",
+        "dependsOn": ["gatereeve/verification"],
+        "disposition": "required",
+        "locked": false,
+        "enabledByDefault": true,
         "waiverAllowed": true,
-        "guards": ["boundary.context.current"]
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "boundary": {
+          "gateId": "codeReview",
+          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
+          "guards": ["boundary.context.current"]
+        },
+        "run": {"kind": "skill", "skillId": "agentic-development-workflow:workflow-pr-review"}
       },
       {
-        "id": "decisionTriage",
-        "dependsOn": ["specEvaluation", "patternReview", "judge", "codeReview"],
-        "optional": false,
+        "schemaVersion": 1,
+        "id": "gatereeve/decision-triage",
+        "version": "1.0.0",
+        "digest": "sha256:22e5c63f5d6a9e5cbd7d4b5009e5dea5598b6c7a0ffeb7018f3fe8b614f999ec",
+        "label": "Decision Triage",
+        "description": "Resolves implementation decisions before the review packet is finalized.",
+        "slot": "boundary.evaluation",
+        "dependsOn": [],
+        "after": ["gatereeve/spec-evaluation", "gatereeve/pattern-review", "gatereeve/judge", "gatereeve/code-review"],
+        "disposition": "required",
+        "locked": true,
+        "enabledByDefault": true,
         "waiverAllowed": false,
-        "guards": ["boundary.requiredGates.current"]
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "boundary": {
+          "gateId": "decisionTriage",
+          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
+          "guards": ["boundary.requiredGates.current"]
+        },
+        "run": {"kind": "skill", "skillId": "agentic-development-workflow:workflow-decision-triage"}
       },
       {
-        "id": "explainDiff",
-        "dependsOn": ["decisionTriage"],
-        "optional": false,
+        "schemaVersion": 1,
+        "id": "gatereeve/explain-diff",
+        "version": "1.0.0",
+        "digest": "sha256:1708c9aed2364e7289c7a18a0269925a3031a5adf963dfd45fe436edee9f73ec",
+        "label": "Explain Diff",
+        "description": "Produces the human-facing explanation of the pinned code change.",
+        "slot": "boundary.evaluation",
+        "dependsOn": ["gatereeve/decision-triage"],
+        "disposition": "required",
+        "locked": false,
+        "enabledByDefault": true,
         "waiverAllowed": false,
-        "guards": ["boundary.context.current"]
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "boundary": {
+          "gateId": "explainDiff",
+          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
+          "guards": ["boundary.context.current"]
+        },
+        "run": {"kind": "skill", "skillId": "agentic-development-workflow:explain-diff"}
       },
       {
-        "id": "packetValidation",
-        "dependsOn": ["explainDiff"],
-        "optional": false,
+        "schemaVersion": 1,
+        "id": "gatereeve/packet-validation",
+        "version": "1.0.0",
+        "digest": "sha256:fee6b0c16ed043cd136e63612da57addb210f9785e661c8cacb47a22247c3ef9",
+        "label": "Packet Validation",
+        "description": "Validates the complete evidence packet before human review begins.",
+        "slot": "boundary.evaluation",
+        "dependsOn": ["gatereeve/explain-diff"],
+        "disposition": "required",
+        "locked": true,
+        "enabledByDefault": true,
         "waiverAllowed": false,
-        "guards": ["boundary.context.current", "boundary.requiredGates.current"]
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "boundary": {
+          "gateId": "packetValidation",
+          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
+          "guards": ["boundary.context.current", "boundary.requiredGates.current"]
+        }
       }
     ]
   },

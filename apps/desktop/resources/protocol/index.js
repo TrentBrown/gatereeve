@@ -10,6 +10,7 @@ export * from './guards.js';
 export * from './graph.js';
 export * from './journal.js';
 export * from './model.js';
+export * from './modules.js';
 export * from './observer.js';
 export * from './projection.js';
 export * from './python-guards.js';
