@@ -256,6 +256,9 @@ export async function recordSliceTransition(
     {
       ...payload,
       sliceId,
+      ...(transitionId === 'begin-boundary' && record.modelLock.model.moduleGraph
+        ? { moduleGraph: structuredClone(record.modelLock.model.moduleGraph) }
+        : {}),
       ...(featurePassage ? { featurePassage } : {}),
     },
     { eventId, recordedAt }

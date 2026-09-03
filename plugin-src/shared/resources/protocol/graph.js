@@ -1,3 +1,5 @@
+import { boundaryGateDefinitions } from './modules.js';
+
 function nodeId(value) {
   return String(value).replace(/[^A-Za-z0-9_]/g, '_');
 }
@@ -28,12 +30,13 @@ export function modelGraph(model) {
     machineGraph(model.slice, 'slice', 'Slice lifecycle'),
     machineGraph(model.change, 'change', 'Change lifecycle'),
   ];
-  const gateNodes = model.boundary.gates.map((gate) => ({
+  const gates = boundaryGateDefinitions(model);
+  const gateNodes = gates.map((gate) => ({
     id: `gate:${gate.id}`,
     label: gate.id,
     group: 'PR boundary gates',
   }));
-  const gateEdges = model.boundary.gates.flatMap((gate) =>
+  const gateEdges = gates.flatMap((gate) =>
     gate.dependsOn.map((dependency) => ({
       id: `gate:${dependency}->${gate.id}`,
       from: `gate:${dependency}`,

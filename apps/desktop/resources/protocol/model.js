@@ -18,8 +18,17 @@ import {
 } from './constants.js';
 import { ContractError } from './errors.js';
 import { assertTrustedGuardIds, TRUSTED_GUARD_IDS } from './guards.js';
+import {
+  boundaryGateDefinitions,
+  hashWorkflowPolicy,
+  resolveProjectModuleGraph,
+  resolveModuleGraph,
+  validateWorkflowPolicy,
+  validateResolvedModuleGraph,
+} from './modules.js';
 
 const DEFAULT_MODEL_URL = new URL('./model/workflow-model.json', import.meta.url);
+const DEFAULT_POLICY_URL = new URL('./model/default-workflow-policy.json', import.meta.url);
 const EVENT_ID = /^evt-[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const FEATURE_ID = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
 const MODEL_HASH = /^sha256:[0-9a-f]{64}$/;
@@ -158,11 +167,21 @@ export function validateModel(model) {
   }
 
   assertObject(model.boundary, 'boundary');
-  if (!Array.isArray(model.boundary.gates) || model.boundary.gates.length === 0) {
-    throw new ContractError('boundary.gates must be a nonempty array');
+  const usesModuleGraph = model.moduleGraph !== undefined;
+  if (usesModuleGraph) {
+    if (model.boundary.gates !== undefined || model.boundary.scopeRouting !== undefined) {
+      throw new ContractError('Module workflow models cannot also declare hardcoded boundary gates');
+    }
+    validateResolvedModuleGraph(model.moduleGraph);
+  } else if (!Array.isArray(model.boundary.gates) || model.boundary.gates.length === 0) {
+    throw new ContractError('Legacy workflow models must declare a nonempty boundary.gates array');
+  }
+  const gateDefinitions = boundaryGateDefinitions(model);
+  if (gateDefinitions.length === 0) {
+    throw new ContractError('Workflow model must contain at least one boundary evaluation module');
   }
   const gateIds = new Set();
-  for (const gate of model.boundary.gates) {
+  for (const gate of gateDefinitions) {
     assertObject(gate, 'boundary gate');
     if (typeof gate.id !== 'string' || gateIds.has(gate.id)) {
       throw new ContractError('Boundary gate IDs must be nonempty and unique');
@@ -188,30 +207,39 @@ export function validateModel(model) {
   assertExactStringSet(model.boundary.scopes, BOUNDARY_SCOPES, 'boundary.scopes');
   assertExactStringSet(model.boundary.outcomes, GATE_OUTCOMES, 'boundary.outcomes');
   assertExactStringSet(model.boundary.freshness, GATE_FRESHNESS, 'boundary.freshness');
+  const knownGateIds = usesModuleGraph
+    ? new Set(
+        model.moduleGraph.modules
+          .filter((module) => module.slot === 'boundary.evaluation')
+          .map((module) => module.boundary.gateId)
+      )
+    : gateIds;
   for (const [target, invalidation] of Object.entries(model.change.invalidationByTarget)) {
     for (const gateId of invalidation.gateIds) {
-      if (!gateIds.has(gateId)) {
+      if (!knownGateIds.has(gateId)) {
         throw new ContractError(
           `change.invalidationByTarget.${target} references unknown gate ${gateId}`
         );
       }
     }
   }
-  assertObject(model.boundary.scopeRouting, 'boundary.scopeRouting');
-  for (const scope of BOUNDARY_SCOPES) {
-    assertObject(model.boundary.scopeRouting[scope], `boundary.scopeRouting.${scope}`);
-    assertExactStringSet(
-      Object.keys(model.boundary.scopeRouting[scope]),
-      [...gateIds],
-      `boundary.scopeRouting.${scope} gate IDs`
-    );
-    for (const [gateId, evaluationScope] of Object.entries(
-      model.boundary.scopeRouting[scope]
-    )) {
-      if (!['SLICE', 'FEATURE'].includes(evaluationScope)) {
-        throw new ContractError(
-          `boundary.scopeRouting.${scope}.${gateId} has invalid evaluation scope`
-        );
+  if (!usesModuleGraph) {
+    assertObject(model.boundary.scopeRouting, 'boundary.scopeRouting');
+    for (const scope of BOUNDARY_SCOPES) {
+      assertObject(model.boundary.scopeRouting[scope], `boundary.scopeRouting.${scope}`);
+      assertExactStringSet(
+        Object.keys(model.boundary.scopeRouting[scope]),
+        [...gateIds],
+        `boundary.scopeRouting.${scope} gate IDs`
+      );
+      for (const [gateId, evaluationScope] of Object.entries(
+        model.boundary.scopeRouting[scope]
+      )) {
+        if (!['SLICE', 'FEATURE'].includes(evaluationScope)) {
+          throw new ContractError(
+            `boundary.scopeRouting.${scope}.${gateId} has invalid evaluation scope`
+          );
+        }
       }
     }
   }
@@ -220,8 +248,48 @@ export function validateModel(model) {
 }
 
 export async function loadDefaultModel() {
-  const model = JSON.parse(await readFile(DEFAULT_MODEL_URL, 'utf8'));
+  const [model, policy] = await Promise.all([
+    readFile(DEFAULT_MODEL_URL, 'utf8').then(JSON.parse),
+    readFile(DEFAULT_POLICY_URL, 'utf8').then(JSON.parse),
+  ]);
+  validateWorkflowPolicy(policy);
+  const resolved = resolveModuleGraph({ definitions: model.moduleGraph.modules, policy });
+  if (hashWorkflowPolicy(policy) !== model.moduleGraph.policyDigest) {
+    throw new ContractError('Default workflow policy digest differs from the bundled model');
+  }
+  if (
+    stableJson(resolved.modules) !== stableJson(model.moduleGraph.modules) ||
+    stableJson(resolved.enabledModuleIds) !== stableJson(model.moduleGraph.enabledModuleIds)
+  ) {
+    throw new ContractError('Default workflow policy does not resolve to the bundled module graph');
+  }
   return validateModel(model);
+}
+
+export async function loadDefaultWorkflowPolicy() {
+  return validateWorkflowPolicy(JSON.parse(await readFile(DEFAULT_POLICY_URL, 'utf8')));
+}
+
+export async function loadProjectModel(repositoryRoot, { availability = null } = {}) {
+  const baseModel = await loadDefaultModel();
+  const { graph, policy, projectDefinitions } = await resolveProjectModuleGraph({
+    repositoryRoot,
+    builtIns: baseModel.moduleGraph.modules,
+    availability,
+  });
+  const model = structuredClone(baseModel);
+  model.moduleGraph = {
+    schemaVersion: graph.schemaVersion,
+    policyDigest: graph.policyDigest,
+    modules: graph.modules,
+    enabledModuleIds: graph.enabledModuleIds,
+  };
+  return {
+    model: validateModel(model),
+    policy,
+    projectDefinitions,
+    readiness: graph.readiness,
+  };
 }
 
 export function createModelLock(model, { createdAt, coreVersion = PROTOCOL_VERSION } = {}) {

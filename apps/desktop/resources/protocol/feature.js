@@ -16,6 +16,7 @@ import {
 import {
   createModelLock,
   loadDefaultModel,
+  loadProjectModel,
   stableJson,
   validateModelLock,
 } from './model.js';
@@ -62,11 +63,16 @@ export async function initializeFeature({
   featureId,
   actor,
   model = null,
+  repositoryRoot = null,
   coreVersion = PROTOCOL_VERSION,
   recordedAt = new Date().toISOString(),
   eventId,
 }) {
-  const selectedModel = model ?? (await loadDefaultModel());
+  const selectedModel = model ?? (
+    repositoryRoot === null
+      ? await loadDefaultModel()
+      : (await loadProjectModel(repositoryRoot)).model
+  );
   const lock = createModelLock(selectedModel, { createdAt: recordedAt, coreVersion });
   assertVersionCompatible(coreVersion, lock.coreCompatibility);
   const initialEvent = createEvent({
@@ -152,11 +158,50 @@ function difference(left, right) {
   return left.filter((item) => !rightSet.has(item));
 }
 
+function moduleDescriptors(model) {
+  if (model.moduleGraph) {
+    const enabledIds = new Set(model.moduleGraph.enabledModuleIds);
+    return model.moduleGraph.modules.map((module) => ({
+      id: module.id,
+      version: module.version,
+      digest: module.digest,
+      slot: module.slot,
+      gateId: module.boundary?.gateId ?? null,
+      enabled: enabledIds.has(module.id),
+    }));
+  }
+  return model.boundary.gates.map((gate) => ({
+    id: gate.id,
+    version: null,
+    digest: null,
+    slot: 'boundary.evaluation',
+    gateId: gate.id,
+    enabled: true,
+  }));
+}
+
+function moduleMigration(currentModel, nextModel) {
+  const current = new Map(moduleDescriptors(currentModel).map((module) => [module.id, module]));
+  const next = new Map(moduleDescriptors(nextModel).map((module) => [module.id, module]));
+  const modulesAdded = [...next.keys()].filter((id) => !current.has(id)).sort();
+  const modulesRemoved = [...current.keys()].filter((id) => !next.has(id)).sort();
+  const modulesChanged = [...next.keys()].filter((id) => {
+    const before = current.get(id);
+    return before && JSON.stringify(before) !== JSON.stringify(next.get(id));
+  }).sort();
+  return {
+    modulesAdded,
+    modulesRemoved,
+    modulesChanged,
+  };
+}
+
 export function buildModelMigrationImpact(currentLock, nextLock) {
   validateModelLock(currentLock);
   validateModelLock(nextLock);
   const currentTransitions = transitionIds(currentLock.model);
   const nextTransitions = transitionIds(nextLock.model);
+  const currentModules = moduleDescriptors(currentLock.model);
   return {
     fromModelVersion: currentLock.modelVersion,
     toModelVersion: nextLock.modelVersion,
@@ -166,6 +211,12 @@ export function buildModelMigrationImpact(currentLock, nextLock) {
     guardsRemoved: difference(currentLock.guardIds, nextLock.guardIds),
     transitionsAdded: difference(nextTransitions, currentTransitions),
     transitionsRemoved: difference(currentTransitions, nextTransitions),
+    ...moduleMigration(currentLock.model, nextLock.model),
+    boundaryGateIdsInvalidated: currentModules
+      .filter((module) => module.enabled && module.slot === 'boundary.evaluation')
+      .map((module) => module.gateId)
+      .filter((gateId) => gateId !== null)
+      .sort(),
   };
 }
 
