@@ -11,6 +11,7 @@ import {
   requireDesktopState,
   requireDetailRequest,
   requireExternalLink,
+  requireFinalizationCompleteRequest,
   requireModulePolicyApplyRequest,
   requireModulePolicyPreview,
   requireModulePolicyRequest,
@@ -203,6 +204,9 @@ test('module policy contracts expose only complete selections, previews, and sco
   }), {
     attemptId: 'attempt-1', gateId: 'judge', reason: 'Small change', confirmationLabel: 'Trent',
   });
+  assert.deepEqual(requireFinalizationCompleteRequest({
+    attemptId: null, confirmationLabel: 'Trent',
+  }), { attemptId: null, confirmationLabel: 'Trent' });
   assert.throws(() => requireModulePolicyRequest({ enabledModuleIds: ['judge', 'judge'] }), /invalid/);
   assert.throws(() => requireBoundaryModuleWaiverRequest({
     attemptId: 'attempt-1', gateId: 'judge', reason: '', confirmationLabel: 'Trent',
@@ -218,6 +222,7 @@ test('IPC allow-list contains only bounded named desktop operations', () => {
     'gatereeve:desktop:attest-module',
     'gatereeve:desktop:check-for-updates',
     'gatereeve:desktop:choose-artifact-application',
+    'gatereeve:desktop:complete-finalization',
     'gatereeve:desktop:copy-text',
     'gatereeve:desktop:get-artifact-actions',
     'gatereeve:desktop:get-module-run-preview',
@@ -232,6 +237,7 @@ test('IPC allow-list contains only bounded named desktop operations', () => {
     'gatereeve:desktop:module-task-resize',
     'gatereeve:desktop:module-task-start',
     'gatereeve:desktop:module-task-write',
+    'gatereeve:desktop:observe-module',
     'gatereeve:desktop:open-artifact',
     'gatereeve:desktop:open-artifact-github',
     'gatereeve:desktop:open-external-link',
@@ -249,6 +255,7 @@ test('IPC allow-list contains only bounded named desktop operations', () => {
     'gatereeve:desktop:set-notifications-enabled',
     'gatereeve:desktop:set-selected-agents',
     'gatereeve:desktop:set-terminal-height',
+    'gatereeve:desktop:start-finalization',
     'gatereeve:desktop:state-changed',
     'gatereeve:desktop:terminal-changed',
     'gatereeve:desktop:terminal-ensure',
@@ -258,6 +265,7 @@ test('IPC allow-list contains only bounded named desktop operations', () => {
     'gatereeve:desktop:terminal-write',
     'gatereeve:desktop:update-changed',
     'gatereeve:desktop:waive-boundary-module',
+    'gatereeve:desktop:waive-finalization-module',
   ]);
   assert.equal(channels.some((channel) => /execute|spawn|transition|advance|install|upgrade|plugin/.test(channel)), false);
 });

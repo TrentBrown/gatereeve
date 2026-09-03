@@ -606,6 +606,24 @@ export function boundaryGateDefinitions(model) {
   }));
 }
 
+export function finalizationModuleDefinitions(model) {
+  if (!model.moduleGraph) return [];
+  const enabledIds = new Set(model.moduleGraph.enabledModuleIds);
+  return model.moduleGraph.modules
+    .filter((module) => module.slot === 'feature.finalization' && enabledIds.has(module.id))
+    .map((module) => ({
+      id: module.id,
+      moduleId: module.id,
+      moduleVersion: module.version,
+      moduleDigest: module.digest,
+      dependsOn: [...module.dependsOn, ...(module.after ?? [])]
+        .filter((dependencyId) => enabledIds.has(dependencyId)),
+      optional: module.disposition === 'optional',
+      locked: module.locked,
+      waiverAllowed: module.waiverAllowed,
+    }));
+}
+
 export function validateResolvedModuleGraph(graph) {
   assertObject(graph, 'Resolved module graph');
   assertAllowedKeys(graph, new Set(['schemaVersion', 'policyDigest', 'modules', 'enabledModuleIds']), 'Resolved module graph');

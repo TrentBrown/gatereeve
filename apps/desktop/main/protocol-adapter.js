@@ -7,6 +7,13 @@ import { join } from 'node:path';
 
 import { recordGateOutcome, recordGateWaiver } from '../resources/protocol/boundary.js';
 import { readFeatureRecord } from '../resources/protocol/feature.js';
+import {
+  completeFinalizedFeature,
+  recordFinalizationOutcome,
+  recordFinalizationWaiver,
+  recordedFeatureFinalMergeSha,
+  startFeatureFinalization,
+} from '../resources/protocol/finalization.js';
 import { readDetail, snapshot } from '../resources/protocol/observer.js';
 import { resolveWorkflowContext } from '../resources/protocol/context.js';
 import { projectRecord } from '../resources/protocol/projection.js';
@@ -31,6 +38,10 @@ export function createProtocolAdapter({
   runGuard = runTrustedPythonGuard,
   recordWaiver = recordGateWaiver,
   recordOutcome = recordGateOutcome,
+  startFinalizationRecord = startFeatureFinalization,
+  recordFinalizationResult = recordFinalizationOutcome,
+  recordFinalizationRiskAcceptance = recordFinalizationWaiver,
+  completeFinalizationRecord = completeFinalizedFeature,
   randomId = randomUUID,
   temporaryDirectory = tmpdir(),
 } = {}) {
@@ -101,6 +112,42 @@ export function createProtocolAdapter({
     }
   }
 
+  async function currentFinalizationModule({ featureHome, attemptId, gateId, module = null }) {
+    const record = await readRecord(featureHome);
+    const projection = project(record);
+    const attempt = projection.finalizationAttempts.find((item) => item.id === attemptId);
+    if (!attempt || attempt.state !== 'ACTIVE') {
+      throw new Error('The selected finalization attempt is not active.');
+    }
+    const target = attempt.modules.find((item) => item.id === gateId);
+    if (!target) throw new Error('The selected finalization module is unavailable.');
+    if (module && (
+      target.moduleId !== module.id
+      || target.moduleVersion !== module.version
+      || target.moduleDigest !== module.digest
+    )) {
+      throw new Error('The selected module no longer matches the pinned finalization module.');
+    }
+    return {
+      attempt,
+      target,
+      inputs: {
+        schemaVersion: 1,
+        scope: 'FEATURE',
+        mergeInputSha: attempt.mergeInputSha,
+        module: {
+          id: target.moduleId,
+          version: target.moduleVersion,
+          digest: target.moduleDigest,
+        },
+        dependencyEventIds: Object.fromEntries(target.dependsOn.map((id) => [
+          id,
+          attempt.modules.find((candidate) => candidate.id === id)?.recordedEventId ?? null,
+        ])),
+      },
+    };
+  }
+
   return Object.freeze({
     async resolve(worktreePath) {
       return resolveWorkflowContext({ cwd: worktreePath, gitExecutable });
@@ -145,6 +192,64 @@ export function createProtocolAdapter({
         reason: reason.trim(),
         actor: { kind: 'human-confirmed', label: confirmationLabel.trim() },
         eventId: `evt-desktop-waiver-${randomId()}`,
+      });
+    },
+
+    async startFinalization({ featureHome }) {
+      const record = await readRecord(featureHome);
+      const mergeInputSha = recordedFeatureFinalMergeSha(record);
+      if (mergeInputSha === null) {
+        throw new Error('The recorded feature-final merge does not identify its integration commit.');
+      }
+      return startFinalizationRecord(featureHome, {
+        attemptId: `finalization-${randomId()}`,
+        mergeInputSha,
+        actor: { kind: 'agent', label: 'GateReeve Desktop' },
+        eventId: `evt-desktop-finalization-start-${randomId()}`,
+      });
+    },
+
+    async prepareFinalizationModule(options) {
+      const prepared = await currentFinalizationModule(options);
+      if (!prepared.target.eligible) {
+        throw new Error('The selected finalization module is not eligible to run.');
+      }
+      return prepared;
+    },
+
+    async recordFinalizationModuleOutcome({
+      featureHome, attemptId, gateId, module, outcome, evidence, reason = null, actor,
+    }) {
+      await currentFinalizationModule({ featureHome, attemptId, gateId, module });
+      return recordFinalizationResult(featureHome, {
+        attemptId,
+        moduleId: gateId,
+        outcome,
+        evidence,
+        reason,
+        actor,
+        eventId: `evt-desktop-finalization-module-${randomId()}`,
+      });
+    },
+
+    async waiveFinalizationModule({
+      featureHome, attemptId, gateId, reason, confirmationLabel,
+    }) {
+      await currentFinalizationModule({ featureHome, attemptId, gateId });
+      return recordFinalizationRiskAcceptance(featureHome, {
+        attemptId,
+        moduleId: gateId,
+        reason,
+        actor: { kind: 'human-confirmed', label: confirmationLabel.trim() },
+        eventId: `evt-desktop-finalization-waiver-${randomId()}`,
+      });
+    },
+
+    async completeFinalization({ featureHome, attemptId, confirmationLabel }) {
+      return completeFinalizationRecord(featureHome, {
+        attemptId,
+        actor: { kind: 'human-confirmed', label: confirmationLabel.trim() },
+        eventId: `evt-desktop-finalization-complete-${randomId()}`,
       });
     },
 

@@ -190,6 +190,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   const notificationPreferences = [];
   const modulePolicyCalls = [];
   const waiverCalls = [];
+  const finalizationCalls = [];
   let stateSubscriber;
   const sessionId = 'session:latest-checkpoint:Q0hFQ0tQT0lOVC5tZA';
   const event = {
@@ -335,6 +336,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
         },
       ],
       boundaryAttempts: [previousAttempt, attempt],
+      finalizationAttempts: [],
+      finalizationModuleCount: 1,
     },
     active: { sliceId: 'slice', boundaryAttemptId: 'slice-attempt-1' },
     sources: {
@@ -425,6 +428,10 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
       };
     },
     async waiveBoundaryModule(...args) { waiverCalls.push(args); return readyState; },
+    async startFinalization() { finalizationCalls.push(['start']); return readyState; },
+    async observeModule(...args) { finalizationCalls.push(['observe', ...args]); return readyState; },
+    async waiveFinalizationModule(...args) { finalizationCalls.push(['waive', ...args]); return readyState; },
+    async completeFinalization(...args) { finalizationCalls.push(['complete', ...args]); return readyState; },
     async copyText(value) { copied.push(value); return true; },
     async getArtifactActions() { return fileActionCapabilities(); },
     async openArtifact(...args) { openedArtifacts.push(args); return true; },
@@ -641,6 +648,92 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     },
   });
   assert.equal(window.document.querySelector('#finalization-surface').hidden, true);
+  stateSubscriber(readyState);
+
+  stateSubscriber({
+    ...readyState,
+    snapshot: {
+      ...snapshot,
+      projection: {
+        ...snapshot.projection,
+        feature: { state: 'FINALIZING' }, activeSliceId: null,
+        finalizationAttempts: [], finalizationModuleCount: 1,
+      },
+      actions: [], blockers: [],
+    },
+  });
+  window.document.querySelector('#finalization-summary button').click();
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(finalizationCalls[0], ['start']);
+
+  const finalizationAttempt = {
+    id: 'finalization-1', state: 'ACTIVE', mergeInputSha: 'a'.repeat(40),
+    requiredCurrentAndNonblocking: true,
+    modules: [{
+      id: 'gatereeve/release', dependsOn: [], outcome: 'PASS', freshness: 'CURRENT',
+      recordedEventId: 'evt-release', eligible: true,
+    }],
+  };
+  const finalizingState = {
+    ...readyState,
+    snapshot: {
+      ...snapshot,
+      projection: {
+        ...snapshot.projection,
+        feature: { state: 'FINALIZING' }, activeSliceId: null,
+        finalizationAttempts: [finalizationAttempt], finalizationModuleCount: 1,
+      },
+      modules: {
+        ...snapshot.modules,
+        slots: snapshot.modules.slots.map((slot) => slot.id === 'feature.finalization'
+          ? { ...slot, modules: slot.modules.map((module) => ({
+            ...module, readiness: { status: 'available', missing: [] },
+            attemptId: 'finalization-1', orderLabel: '1', outcome: 'PASS', freshness: 'CURRENT',
+            evidence: { path: 'release.json' }, reason: null, eligible: true, blockers: [],
+          })) }
+          : slot),
+      },
+      actions: [], blockers: [],
+    },
+  };
+  stateSubscriber(finalizingState);
+  assert.match(window.document.querySelector('#finalization-summary').textContent, /finalization-1/);
+  assert.match(window.document.querySelector('#finalization-dag .module-card').textContent, /pass/i);
+  window.document.querySelector('#finalization-dag .module-card').click();
+  window.document.querySelector('.module-run-actions button').click();
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(finalizationCalls.at(-1), [
+    'observe', 'gatereeve/release', 'finalization-1', 'gatereeve/release',
+  ]);
+  stateSubscriber(finalizingState);
+  window.document.querySelector('#finalization-summary button.primary').click();
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(finalizationCalls.at(-1), [
+    'complete', 'finalization-1', 'GateReeve Desktop: Complete feature',
+  ]);
+
+  stateSubscriber({
+    ...finalizingState,
+    snapshot: {
+      ...finalizingState.snapshot,
+      projection: {
+        ...finalizingState.snapshot.projection,
+        finalizationAttempts: [], finalizationModuleCount: 0,
+      },
+      modules: {
+        ...finalizingState.snapshot.modules,
+        slots: finalizingState.snapshot.modules.slots.map((slot) => slot.id === 'feature.finalization'
+          ? { ...slot, modules: slot.modules.map((module) => ({ ...module, enabled: false })) }
+          : slot),
+      },
+    },
+  });
+  assert.equal(window.document.querySelector('#finalization-surface').hidden, true);
+  window.document.querySelector('#closeout-summary button.primary').click();
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(finalizationCalls.at(-1), [
+    'complete', null, 'GateReeve Desktop: Complete feature',
+  ]);
   stateSubscriber(readyState);
 
   const delivering = [...window.document.querySelectorAll('.state-select')]

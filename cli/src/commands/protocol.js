@@ -404,6 +404,92 @@ function boundaryCommands() {
   return boundary;
 }
 
+function finalizationCommands() {
+  const finalization = new Command('finalization').description('Govern post-merge feature-finalization modules');
+  const start = addContextOptions(addEventOptions(
+    new Command('start').description('Pin a finalization attempt to the recorded feature-final merge')
+      .argument('<attempt-id>', 'Finalization attempt ID')
+      .requiredOption('--merge-input <sha>', 'Exact recorded feature-final integration commit')
+  ));
+  start.action(async (attemptId, options, commander) => {
+    const resolvedOptions = commander?.opts?.() ?? options;
+    await run({
+      operation: 'finalization.start',
+      ...contextRequest(resolvedOptions),
+      input: eventInput(resolvedOptions, { attemptId, mergeInputSha: resolvedOptions.mergeInput }),
+    }, resolvedOptions, printMutation);
+  });
+  finalization.addCommand(start);
+
+  const record = addContextOptions(addEventOptions(
+    new Command('record').description('Record one eligible finalization module outcome')
+      .argument('<attempt-id>', 'Finalization attempt ID')
+      .argument('<module-id>', 'Finalization module ID')
+  ))
+    .addOption(new Option('--outcome <outcome>', 'Module outcome').choices(['PASS', 'FAIL', 'NOT_APPLICABLE']).makeOptionMandatory())
+    .option('--evidence-file <path>', 'JSON evidence reference with path and sha256 hash')
+    .option('--reason <text>', 'Failure or not-applicable reason');
+  record.action(async (attemptId, moduleId, options, commander) => {
+    const resolvedOptions = commander?.opts?.() ?? options;
+    await run({
+      operation: 'finalization.record',
+      ...contextRequest(resolvedOptions),
+      input: eventInput(resolvedOptions, {
+        attemptId, moduleId, outcome: resolvedOptions.outcome,
+        evidence: await optionalJson(resolvedOptions.evidenceFile, 'Evidence file', null),
+        reason: resolvedOptions.reason ?? null,
+      }),
+    }, resolvedOptions, printMutation);
+  });
+  finalization.addCommand(record);
+
+  const waive = addContextOptions(addEventOptions(
+    new Command('waive').description('Record feature-scoped human risk acceptance')
+      .argument('<attempt-id>', 'Finalization attempt ID')
+      .argument('<module-id>', 'Finalization module ID')
+      .requiredOption('--reason <text>', 'Risk-acceptance reason')
+  ));
+  waive.action(async (attemptId, moduleId, options, commander) => {
+    const resolvedOptions = commander?.opts?.() ?? options;
+    await run({
+      operation: 'finalization.waive',
+      ...contextRequest(resolvedOptions),
+      input: eventInput(resolvedOptions, { attemptId, moduleId, reason: resolvedOptions.reason }),
+    }, resolvedOptions, printMutation);
+  });
+  finalization.addCommand(waive);
+
+  const invalidate = addContextOptions(addEventOptions(
+    new Command('invalidate').description('Mark selected finalization evidence stale')
+      .argument('<attempt-id>', 'Finalization attempt ID')
+      .argument('<module-ids...>', 'Finalization module IDs')
+  )).option('--reason <text>', 'Invalidation reason');
+  invalidate.action(async (attemptId, moduleIds, options, commander) => {
+    const resolvedOptions = commander?.opts?.() ?? options;
+    await run({
+      operation: 'finalization.invalidate',
+      ...contextRequest(resolvedOptions),
+      input: eventInput(resolvedOptions, { attemptId, moduleIds, reason: resolvedOptions.reason ?? null }),
+    }, resolvedOptions, printMutation);
+  });
+  finalization.addCommand(invalidate);
+
+  const complete = addContextOptions(addEventOptions(
+    new Command('complete').description('Complete a feature after current finalization passage')
+      .argument('<attempt-id>', 'Finalization attempt ID')
+  ));
+  complete.action(async (attemptId, options, commander) => {
+    const resolvedOptions = commander?.opts?.() ?? options;
+    await run({
+      operation: 'finalization.complete',
+      ...contextRequest(resolvedOptions),
+      input: eventInput(resolvedOptions, { attemptId }),
+    }, resolvedOptions, printMutation);
+  });
+  finalization.addCommand(complete);
+  return finalization;
+}
+
 function changeCommands() {
   const change = new Command('change').description('Govern discoveries that alter approved work');
   const propose = addContextOptions(addEventOptions(
@@ -569,6 +655,6 @@ export function protocolCommands() {
   });
   commands.push(check);
 
-  commands.push(featureCommands(), sliceCommands(), boundaryCommands(), gateCommands(), changeCommands());
+  commands.push(featureCommands(), sliceCommands(), boundaryCommands(), gateCommands(), finalizationCommands(), changeCommands());
   return commands;
 }

@@ -1,7 +1,15 @@
 import { BOUNDARY_SCOPES, GATE_OUTCOMES } from './constants.js';
 import { ContractError } from './errors.js';
-import { SHA256_FINGERPRINT } from './fingerprint.js';
-import { boundaryGateDefinitions, validateResolvedModuleGraph } from './modules.js';
+import {
+  gateInputFingerprint,
+  SHA256_FINGERPRINT,
+  validateEvidenceReference,
+} from './fingerprint.js';
+import {
+  boundaryGateDefinitions,
+  finalizationModuleDefinitions,
+  validateResolvedModuleGraph,
+} from './modules.js';
 
 const ACTIVE_SLICE_STATES = new Set(['IMPLEMENTING', 'PR_BOUNDARY', 'HUMAN_REVIEW']);
 const PASSAGE_FREE_EVENTS = new Set([
@@ -14,6 +22,10 @@ const PASSAGE_FREE_EVENTS = new Set([
   'GATE_OUTCOME_RECORDED',
   'GATE_WAIVER_RECORDED',
   'GATE_INVALIDATED',
+  'FEATURE_FINALIZATION_STARTED',
+  'FEATURE_FINALIZATION_OUTCOME_RECORDED',
+  'FEATURE_FINALIZATION_WAIVER_RECORDED',
+  'FEATURE_FINALIZATION_INVALIDATED',
   'CHANGE_PROPOSED',
   'CHANGE_APPROVED',
   'CHANGE_REJECTED',
@@ -179,6 +191,24 @@ function historicalBoundarySnapshots(events) {
   return snapshots;
 }
 
+function modelForEvent(model, currentModelHash, snapshots, event) {
+  if (event.modelHash === currentModelHash) return model;
+  const snapshot = snapshots.get(event.modelHash);
+  if (snapshot === undefined) {
+    throw new ContractError(`Event ${event.eventId} has no retained model snapshot`);
+  }
+  return boundaryModelFromSnapshot(model, snapshot, event);
+}
+
+function featureFinalMergeSha(payload, event) {
+  const values = [payload.integrationSha, payload.mergeCommitSha]
+    .filter((value) => /^[0-9a-f]{40}$/u.test(value));
+  if (new Set(values).size > 1) {
+    throw new ContractError(`Event ${event.eventId} has conflicting feature-final merge commits`);
+  }
+  return values[0] ?? null;
+}
+
 function createAttempt(model, slice, event, boundarySnapshots) {
   const attemptId = event.payload.attemptId;
   if (typeof attemptId !== 'string' || attemptId.length === 0) {
@@ -228,6 +258,237 @@ function createAttempt(model, slice, event, boundarySnapshots) {
       blockers: [],
     })),
   };
+}
+
+function normalized(value) {
+  if (Array.isArray(value)) return value.map(normalized);
+  if (value === null || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, normalized(value[key])]));
+}
+
+function createFinalizationAttempt(
+  model,
+  currentModelHash,
+  event,
+  featureFinalMergeInputSha,
+  historicalSnapshots,
+) {
+  const { attemptId, mergeInputSha, moduleGraph } = event.payload;
+  if (typeof attemptId !== 'string' || attemptId.length === 0) {
+    throw new ContractError(`Event ${event.eventId} has an invalid finalization attemptId`);
+  }
+  if (!/^[0-9a-f]{40}$/u.test(mergeInputSha)) {
+    throw new ContractError(`Event ${event.eventId} has an invalid finalization merge input`);
+  }
+  validateResolvedModuleGraph(moduleGraph);
+  const expectedGraph = event.modelHash === currentModelHash
+    ? model.moduleGraph
+    : historicalSnapshots.get(event.modelHash)?.moduleGraph;
+  if (
+    expectedGraph === undefined
+    || JSON.stringify(normalized(moduleGraph)) !== JSON.stringify(normalized(expectedGraph))
+  ) {
+    throw new ContractError(`Event ${event.eventId} does not pin its active model module graph`);
+  }
+  if (featureFinalMergeInputSha === null || mergeInputSha !== featureFinalMergeInputSha) {
+    throw new ContractError(`Event ${event.eventId} does not bind the recorded feature-final merge input`);
+  }
+  const definitions = finalizationModuleDefinitions({ ...model, moduleGraph });
+  const ordering = dependencyOrdering(definitions);
+  return {
+    id: attemptId,
+    modelHash: event.modelHash,
+    mergeInputSha,
+    startedBy: event.eventId,
+    startedSequence: event.sequence,
+    state: 'ACTIVE',
+    modules: definitions.map((definition) => ({
+      id: definition.id,
+      moduleId: definition.moduleId,
+      moduleVersion: definition.moduleVersion,
+      moduleDigest: definition.moduleDigest,
+      dependsOn: [...definition.dependsOn],
+      dependencyStage: ordering.get(definition.id).stage,
+      dependencyBranch: ordering.get(definition.id).branch,
+      orderLabel: ordering.get(definition.id).label,
+      optional: definition.optional,
+      locked: definition.locked,
+      waiverAllowed: definition.waiverAllowed,
+      outcome: 'UNSET',
+      evidence: null,
+      inputFingerprint: null,
+      recordedEventId: null,
+      recordedSequence: null,
+      invalidatedSequence: null,
+      reason: null,
+      freshness: 'UNKNOWN',
+      eligible: false,
+      blockers: [],
+    })),
+    requiredCurrentAndNonblocking: false,
+  };
+}
+
+function finalizationAttemptFor(attempts, event) {
+  const attempt = attempts.find((item) => item.id === event.payload.attemptId);
+  if (!attempt) throw new ContractError(`Event ${event.eventId} references an unknown finalization attempt`);
+  return attempt;
+}
+
+function finalizationModuleFor(attempt, moduleId, event) {
+  const module = attempt.modules.find((item) => item.id === moduleId);
+  if (!module) throw new ContractError(`Event ${event.eventId} references unknown finalization module ${moduleId}`);
+  return module;
+}
+
+function finalizationHistoricallyCurrent(module, attempt) {
+  if (module.outcome === 'UNSET' || module.recordedSequence === null) return false;
+  if (module.invalidatedSequence !== null && module.invalidatedSequence > module.recordedSequence) return false;
+  return module.dependsOn.every((dependencyId) => {
+    const dependency = finalizationModuleFor(attempt, dependencyId, {
+      eventId: module.recordedEventId ?? attempt.startedBy,
+    });
+    return nonblockingOutcome(dependency.outcome)
+      && dependency.recordedSequence !== null
+      && dependency.recordedSequence < module.recordedSequence;
+  });
+}
+
+function finalizationInputs(attempt, module) {
+  return {
+    schemaVersion: 1,
+    scope: 'FEATURE',
+    mergeInputSha: attempt.mergeInputSha,
+    module: {
+      id: module.moduleId,
+      version: module.moduleVersion,
+      digest: module.moduleDigest,
+    },
+    dependencyEventIds: Object.fromEntries(module.dependsOn.map((dependencyId) => [
+      dependencyId,
+      finalizationModuleFor(attempt, dependencyId, { eventId: attempt.startedBy }).recordedEventId,
+    ])),
+  };
+}
+
+function applyFinalizationEvent(attempts, event) {
+  const attempt = finalizationAttemptFor(attempts, event);
+  if (attempt.state !== 'ACTIVE') {
+    throw new ContractError(`Event ${event.eventId} cannot mutate a ${attempt.state} finalization attempt`);
+  }
+  if (event.type === 'FEATURE_FINALIZATION_INVALIDATED') {
+    assertActorAuthority(event, 'agent');
+    if (!Array.isArray(event.payload.moduleIds) || event.payload.moduleIds.length === 0) {
+      throw new ContractError(`Event ${event.eventId} must identify invalidated finalization modules`);
+    }
+    for (const moduleId of event.payload.moduleIds) {
+      finalizationModuleFor(attempt, moduleId, event).invalidatedSequence = event.sequence;
+    }
+    return;
+  }
+  const module = finalizationModuleFor(attempt, event.payload.moduleId, event);
+  const waiver = event.type === 'FEATURE_FINALIZATION_WAIVER_RECORDED';
+  const outcome = waiver ? 'WAIVED' : event.payload.outcome;
+  if (!GATE_OUTCOMES.includes(outcome) || outcome === 'UNSET') {
+    throw new ContractError(`Event ${event.eventId} has invalid finalization outcome ${outcome}`);
+  }
+  const expectedDependencies = Object.fromEntries(module.dependsOn.map((dependencyId) => {
+    const dependency = finalizationModuleFor(attempt, dependencyId, event);
+    if (!nonblockingOutcome(dependency.outcome) || !finalizationHistoricallyCurrent(dependency, attempt)) {
+      throw new ContractError(`Event ${event.eventId} precedes current dependency ${dependencyId}`);
+    }
+    return [dependencyId, dependency.recordedEventId];
+  }));
+  if (
+    JSON.stringify(normalized(event.payload.dependencyEventIds ?? {}))
+      !== JSON.stringify(normalized(expectedDependencies))
+  ) {
+    throw new ContractError(`Event ${event.eventId} has stale finalization dependencies`);
+  }
+  if (!SHA256_FINGERPRINT.test(event.payload.inputFingerprint)) {
+    throw new ContractError(`Event ${event.eventId} has an invalid finalization fingerprint`);
+  }
+  const expectedFingerprint = gateInputFingerprint({
+    modelHash: attempt.modelHash,
+    attemptId: attempt.id,
+    gateId: module.id,
+    inputs: finalizationInputs(attempt, module),
+  });
+  if (event.payload.inputFingerprint !== expectedFingerprint) {
+    throw new ContractError(`Event ${event.eventId} has a stale finalization fingerprint`);
+  }
+  if (waiver) {
+    assertActorAuthority(event, 'human-confirmation');
+    if (!module.waiverAllowed || module.locked || typeof event.payload.reason !== 'string' || event.payload.reason.length === 0) {
+      throw new ContractError(`Event ${event.eventId} is not a permitted finalization waiver`);
+    }
+  } else {
+    assertActorAuthority(event, 'agent');
+    if (outcome === 'WAIVED') {
+      throw new ContractError(`Event ${event.eventId} cannot record a waiver as an ordinary outcome`);
+    }
+    if (outcome === 'NOT_APPLICABLE' && (!module.optional || typeof event.payload.reason !== 'string' || event.payload.reason.length === 0)) {
+      throw new ContractError(`Event ${event.eventId} is not a valid finalization N/A result`);
+    }
+  }
+  validateEvidenceReference(event.payload.evidence ?? null, {
+    required: ['PASS', 'FAIL'].includes(outcome),
+  });
+  module.outcome = outcome;
+  module.evidence = event.payload.evidence ?? null;
+  module.inputFingerprint = event.payload.inputFingerprint;
+  module.recordedEventId = event.eventId;
+  module.recordedSequence = event.sequence;
+  module.reason = event.payload.reason ?? null;
+}
+
+function finalizeFinalizationAttempts(
+  attempts,
+  featureState,
+  paused,
+  blockingChangeIds,
+  currentModelHash,
+) {
+  for (const attempt of attempts) {
+    for (const module of attempt.modules) {
+      const expectedFingerprint = gateInputFingerprint({
+        modelHash: attempt.modelHash,
+        attemptId: attempt.id,
+        gateId: module.id,
+        inputs: finalizationInputs(attempt, module),
+      });
+      if (module.outcome === 'UNSET') module.freshness = 'UNKNOWN';
+      else if (!finalizationHistoricallyCurrent(module, attempt)) module.freshness = 'STALE';
+      else module.freshness = module.inputFingerprint === expectedFingerprint ? 'CURRENT' : 'STALE';
+      if (module.freshness === 'CURRENT' && module.dependsOn.some((dependencyId) => {
+        const dependency = finalizationModuleFor(attempt, dependencyId, { eventId: attempt.startedBy });
+        return !nonblockingOutcome(dependency.outcome) || dependency.freshness !== 'CURRENT';
+      })) module.freshness = 'STALE';
+      const blockers = [];
+      if (attempt.state !== 'ACTIVE' || featureState !== 'FINALIZING') {
+        blockers.push({ type: 'attempt', state: attempt.state });
+      }
+      if (paused) blockers.push({ type: 'feature-paused' });
+      if (attempt.modelHash !== currentModelHash) blockers.push({ type: 'model-freshness' });
+      if (blockingChangeIds.length > 0) blockers.push({ type: 'change', ids: [...blockingChangeIds] });
+      for (const dependencyId of module.dependsOn) {
+        const dependency = finalizationModuleFor(attempt, dependencyId, { eventId: attempt.startedBy });
+        if (!nonblockingOutcome(dependency.outcome) || dependency.freshness !== 'CURRENT') {
+          blockers.push({ type: 'dependency', moduleId: dependencyId });
+        }
+      }
+      module.blockers = blockers;
+      module.eligible = blockers.length === 0;
+    }
+    attempt.requiredCurrentAndNonblocking = attempt.state === 'ACTIVE'
+      && featureState === 'FINALIZING'
+      && !paused
+      && attempt.modelHash === currentModelHash
+      && blockingChangeIds.length === 0
+      && attempt.modules.filter((module) => !module.optional).every((module) => (
+        nonblockingOutcome(module.outcome) && module.freshness === 'CURRENT'
+      ));
+  }
 }
 
 function attemptFor(boundaryAttempts, event) {
@@ -450,6 +711,8 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
   let implementationAuthorization = null;
   const slices = new Map();
   const boundaryAttempts = [];
+  const finalizationAttempts = [];
+  let featureFinalMergeInputSha = null;
   const acceptedReviews = new Set();
   const changes = new Map();
   const boundarySnapshots = historicalBoundarySnapshots(events);
@@ -463,6 +726,34 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
       case 'FEATURE_ABANDONED':
       case 'FEATURE_FINALIZED': {
         const transition = transitionFor(model.feature, featureState, event);
+        if (event.type === 'FEATURE_FINALIZED') {
+          const eventModel = modelForEvent(
+            model,
+            modelLock.modelHash,
+            boundarySnapshots,
+            event,
+          );
+          const attempt = finalizationAttempts.find((item) => item.id === event.payload.finalizationAttemptId);
+          const blockingAtCompletion = [...changes.values()]
+            .filter((change) => !['REJECTED', 'VALIDATED', 'SUPERSEDED'].includes(change.state))
+            .map((change) => change.id);
+          finalizeFinalizationAttempts(
+            finalizationAttempts,
+            featureState,
+            paused,
+            blockingAtCompletion,
+            event.modelHash,
+          );
+          const zeroModuleCloseout = !attempt
+            && finalizationModuleDefinitions(eventModel).length === 0
+            && !paused
+            && blockingAtCompletion.length === 0;
+          const ready = zeroModuleCloseout || attempt?.requiredCurrentAndNonblocking === true;
+          if (!ready) {
+            throw new ContractError(`Event ${event.eventId} completes without current finalization modules`);
+          }
+          if (attempt) attempt.state = 'COMPLETE';
+        }
         featureState = transition.to;
         if (event.type === 'PLAN_AUTHORIZED') {
           implementationAuthorization = {
@@ -531,6 +822,9 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
         if (featureState === 'FINALIZING') {
           const transition = transitionFor(model.feature, featureState, event);
           featureState = transition.to;
+          for (const attempt of finalizationAttempts.filter((item) => item.state === 'ACTIVE')) {
+            attempt.state = 'SUPERSEDED';
+          }
         } else if (featureState !== 'DELIVERING_SLICES') {
           throw new ContractError(`Event ${event.eventId} cannot propose a slice from ${featureState}`);
         }
@@ -563,7 +857,11 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
         slice.latestEventId = event.eventId;
         if (event.type === 'BOUNDARY_STARTED') {
           const attemptId = event.payload.attemptId;
-          if (typeof attemptId !== 'string' || boundaryAttempts.some((item) => item.id === attemptId)) {
+          if (
+            typeof attemptId !== 'string'
+            || boundaryAttempts.some((item) => item.id === attemptId)
+            || finalizationAttempts.some((item) => item.id === attemptId)
+          ) {
             throw new ContractError(`Event ${event.eventId} has an invalid boundary attemptId`);
           }
           const attempt = createAttempt(model, slice, event, boundarySnapshots);
@@ -596,6 +894,20 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
           if (attempt) attempt.state = 'MERGED';
           slice.activeAttemptId = null;
           if (event.payload.featureFinal === true) {
+            const eventModel = modelForEvent(
+              model,
+              modelLock.modelHash,
+              boundarySnapshots,
+              event,
+            );
+            const hasFinalizationModules = finalizationModuleDefinitions(eventModel).length > 0;
+            const mergeInputSha = featureFinalMergeSha(event.payload, event);
+            if (hasFinalizationModules && mergeInputSha === null) {
+              throw new ContractError(
+                `Event ${event.eventId} lacks the feature-final integration commit required by finalization modules`
+              );
+            }
+            featureFinalMergeInputSha = mergeInputSha;
             const passage = event.payload.featurePassage;
             const transition = transitionFor(model.feature, featureState, event, passage);
             featureState = transition.to;
@@ -618,6 +930,38 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
       case 'GATE_WAIVER_RECORDED':
       case 'GATE_INVALIDATED':
         applyGateEvent(boundaryAttempts, event);
+        break;
+      case 'FEATURE_FINALIZATION_STARTED': {
+        assertActorAuthority(event, 'agent');
+        const activeAttempt = finalizationAttempts.find((item) => item.state === 'ACTIVE');
+        if (
+          featureState !== 'FINALIZING'
+          || paused
+          || boundaryAttempts.some((item) => item.id === event.payload.attemptId)
+          || finalizationAttempts.some((item) => item.id === event.payload.attemptId)
+          || (activeAttempt && activeAttempt.modelHash === event.modelHash)
+        ) {
+          throw new ContractError(`Event ${event.eventId} cannot start feature finalization`);
+        }
+        for (const attempt of finalizationAttempts.filter((item) => item.state === 'ACTIVE')) {
+          attempt.state = 'SUPERSEDED';
+        }
+        finalizationAttempts.push(createFinalizationAttempt(
+          model,
+          modelLock.modelHash,
+          event,
+          featureFinalMergeInputSha,
+          boundarySnapshots,
+        ));
+        break;
+      }
+      case 'FEATURE_FINALIZATION_OUTCOME_RECORDED':
+      case 'FEATURE_FINALIZATION_WAIVER_RECORDED':
+      case 'FEATURE_FINALIZATION_INVALIDATED':
+        if (paused) {
+          throw new ContractError(`Event ${event.eventId} cannot mutate finalization while paused`);
+        }
+        applyFinalizationEvent(finalizationAttempts, event);
         break;
       case 'CHANGE_PROPOSED': {
         assertActorAuthority(event, 'agent');
@@ -716,6 +1060,13 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
     blockingChanges.map((change) => change.id),
     modelLock.modelHash
   );
+  finalizeFinalizationAttempts(
+    finalizationAttempts,
+    featureState,
+    paused,
+    blockingChanges.map((change) => change.id),
+    modelLock.modelHash,
+  );
   const active = activeSlices(slices);
   return {
     schemaVersion: 1,
@@ -732,6 +1083,8 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
     slices: [...slices.values()],
     activeSliceId: active[0]?.id ?? null,
     boundaryAttempts,
+    finalizationAttempts,
+    finalizationModuleCount: finalizationModuleDefinitions(model).length,
     changes: projectedChanges,
     blockingChangeIds: blockingChanges.map((change) => change.id),
     acceptedReviewSliceIds: [...acceptedReviews].sort(),
@@ -750,6 +1103,13 @@ export function projectionFacts(projection) {
   const activeAttempt = projection.boundaryAttempts.find(
     (attempt) => attempt.id === activeSlice?.activeAttemptId
   );
+  const activeFinalization = projection.finalizationAttempts.find(
+    (attempt) => attempt.state === 'ACTIVE'
+  );
+  const zeroModuleCloseout = projection.feature.state === 'FINALIZING'
+    && projection.finalizationModuleCount === 0
+    && !projection.suspension.paused
+    && projection.blockingChangeIds.length === 0;
   return {
     featureRecordAbsent: false,
     designApprovalCurrent: false,
@@ -765,7 +1125,8 @@ export function projectionFacts(projection) {
       projection.activeSliceId !== null &&
       projection.acceptedReviewSliceIds.includes(projection.activeSliceId),
     reviewedContentMerged: false,
-    featureCloseoutCurrent: false,
+    featureCloseoutCurrent: zeroModuleCloseout
+      || activeFinalization?.requiredCurrentAndNonblocking === true,
     featureAbandonmentConfirmed: false,
     featureNotPaused: !projection.suspension.paused,
     noBlockingChanges: projection.blockingChangeIds.length === 0,

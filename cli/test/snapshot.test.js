@@ -190,7 +190,7 @@ test('named reads are schema-valid, allow-listed, and preserve full event and mo
   );
   await assert.rejects(
     readDetail(fixture.featureHome, 'attempt', 'missing-attempt'),
-    /Unknown boundary attempt/
+    /Unknown workflow attempt/
   );
 
   const outside = resolve(fixture.root, 'outside.md');

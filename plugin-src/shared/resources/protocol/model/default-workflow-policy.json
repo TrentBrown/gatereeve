@@ -60,6 +60,12 @@
       "version": "1.0.0",
       "digest": "sha256:fee6b0c16ed043cd136e63612da57addb210f9785e661c8cacb47a22247c3ef9",
       "enabled": true
+    },
+    {
+      "id": "gatereeve/release",
+      "version": "1.0.0",
+      "digest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978",
+      "enabled": true
     }
   ]
 }

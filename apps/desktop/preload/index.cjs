@@ -12,6 +12,8 @@ const channels = Object.freeze({
   getModuleSettings: 'gatereeve:desktop:get-module-settings',
   getModuleRunPreview: 'gatereeve:desktop:get-module-run-preview',
   getUpdateState: 'gatereeve:desktop:get-update-state',
+  startFinalization: 'gatereeve:desktop:start-finalization',
+  completeFinalization: 'gatereeve:desktop:complete-finalization',
   listSession: 'gatereeve:desktop:list-session',
   listModuleTasks: 'gatereeve:desktop:list-module-tasks',
   layoutCommand: 'gatereeve:desktop:layout-command',
@@ -40,6 +42,7 @@ const channels = Object.freeze({
   moduleTaskChanged: 'gatereeve:desktop:module-task-changed',
   moduleTaskResize: 'gatereeve:desktop:module-task-resize',
   moduleTaskStart: 'gatereeve:desktop:module-task-start',
+  observeModule: 'gatereeve:desktop:observe-module',
   moduleTaskWrite: 'gatereeve:desktop:module-task-write',
   terminalChanged: 'gatereeve:desktop:terminal-changed',
   terminalEnsure: 'gatereeve:desktop:terminal-ensure',
@@ -49,6 +52,7 @@ const channels = Object.freeze({
   terminalWrite: 'gatereeve:desktop:terminal-write',
   updateChanged: 'gatereeve:desktop:update-changed',
   waiveBoundaryModule: 'gatereeve:desktop:waive-boundary-module',
+  waiveFinalizationModule: 'gatereeve:desktop:waive-finalization-module',
 });
 
 function requireState(value) {
@@ -660,6 +664,9 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
       ...requireModuleTarget(moduleId, attemptId, gateId), outcome, summary, confirmationLabel,
     }));
   },
+  observeModule: async (moduleId, attemptId, gateId) => requireState(
+    await ipcRenderer.invoke(channels.observeModule, requireModuleTarget(moduleId, attemptId, gateId)),
+  ),
   revealArtifact: async (artifactId) => ipcRenderer.invoke(
     channels.revealArtifact,
     { artifactId: requireArtifactId(artifactId) },
@@ -670,6 +677,28 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
       boundaryWaiverRequest(attemptId, gateId, reason, confirmationLabel),
     ),
   ),
+  startFinalization: async () => requireState(await ipcRenderer.invoke(channels.startFinalization)),
+  waiveFinalizationModule: async (attemptId, moduleId, reason, confirmationLabel) => requireState(
+    await ipcRenderer.invoke(
+      channels.waiveFinalizationModule,
+      boundaryWaiverRequest(attemptId, moduleId, reason, confirmationLabel),
+    ),
+  ),
+  completeFinalization: async (attemptId, confirmationLabel) => {
+    const values = { attemptId, confirmationLabel };
+    if (
+      !(attemptId === null || (
+        typeof attemptId === 'string' && attemptId.trim().length > 0 && attemptId.length <= 2_048
+      ))
+      || typeof confirmationLabel !== 'string'
+      || confirmationLabel.trim().length === 0
+      || confirmationLabel.length > 2_048
+    ) throw new TypeError('Finalization completion is invalid.');
+    return requireState(await ipcRenderer.invoke(channels.completeFinalization, {
+      attemptId: attemptId === null ? null : attemptId.trim(),
+      confirmationLabel: confirmationLabel.trim(),
+    }));
+  },
   subscribe(callback) {
     if (typeof callback !== 'function') throw new TypeError('State subscriber must be a function.');
     const listener = (_event, value) => callback(requireState(value));

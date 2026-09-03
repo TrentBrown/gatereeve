@@ -445,6 +445,9 @@ test('module mutations stay scoped to the selected project and refresh canonical
     async snapshot(home, options) { return snapshot(home, options.sources); },
     async read() { throw new Error('not used'); },
     async waiveBoundaryGate(request) { calls.push(['waive', request]); },
+    async startFinalization(request) { calls.push(['finalization-start', request]); },
+    async waiveFinalizationModule(request) { calls.push(['finalization-waive', request]); },
+    async completeFinalization(request) { calls.push(['finalization-complete', request]); },
   };
   const coordinator = createDesktopCoordinator({
     protocol,
@@ -484,10 +487,21 @@ test('module mutations stay scoped to the selected project and refresh canonical
   await coordinator.waiveBoundaryModule({
     attemptId: 'attempt-1', gateId: 'judge', reason: 'Small', confirmationLabel: 'Trent',
   });
+  await coordinator.startFinalization();
+  await coordinator.waiveFinalizationModule({
+    attemptId: 'finalization-1', gateId: 'gatereeve/release',
+    reason: 'Accepted risk', confirmationLabel: 'Trent',
+  });
+  await coordinator.completeFinalization({ attemptId: null, confirmationLabel: 'Trent' });
   assert(calls.some((call) => call[0] === 'apply' && call[1] === worktree && call[2] === featureHome));
   assert(calls.some((call) => call[0] === 'waive'
     && call[1].repositoryRoot === worktree
     && call[1].featureHome === featureHome));
+  for (const kind of ['finalization-start', 'finalization-waive', 'finalization-complete']) {
+    assert(calls.some((call) => call[0] === kind
+      && call[1].repositoryRoot === worktree
+      && call[1].featureHome === featureHome));
+  }
   coordinator.close();
 });
 

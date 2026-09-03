@@ -1,4 +1,10 @@
 {
   "schemaVersion": 1,
-  "providers": []
+  "providers": [
+    {
+      "id": "gatereeve/release-conductor",
+      "version": "1.0.0",
+      "digest": "sha256:620c41545fda291326c237643d55736c4d43eccf49ca22ca9e7669c4a37a069b"
+    }
+  ]
 }

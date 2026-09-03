@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import {
   acceptHumanReview,
+  completeFinalizedFeature,
   fingerprint,
   initializeFeature,
   nextActions,
@@ -15,9 +16,11 @@ import {
   readFeatureRecord,
   recordGateOutcome,
   recordFeatureTransition,
+  recordFinalizationWaiver,
   recordSliceTransition,
   resumeFeature,
   requestBoundaryHumanReview,
+  startFeatureFinalization,
 } from '../../plugin-src/shared/resources/protocol/index.js';
 
 const agent = { kind: 'agent', label: 'test-agent' };
@@ -146,6 +149,36 @@ test('many slices may be planned but only one may be active', async () => {
   assert.equal(projection.journal.eventCount, before);
 });
 
+test('semantic event rejection leaves the journal unchanged', async () => {
+  const featureHome = await createFeature();
+  await enterDelivery(featureHome);
+  await proposeSlice(featureHome, {
+    sliceId: 'slice-1',
+    scope: 'FEATURE_FINAL',
+    actor: agent,
+    eventId: 'evt-05-propose',
+  });
+  await recordSliceTransition(featureHome, 'plan-slice', 'slice-1', {
+    actor: agent,
+    eventId: 'evt-06-plan',
+  });
+  await recordSliceTransition(featureHome, 'start-slice', 'slice-1', {
+    actor: agent,
+    facts: { sliceReadinessCurrent: true },
+    eventId: 'evt-07-start',
+  });
+  const before = (await readFeatureRecord(featureHome)).events.length;
+  await assert.rejects(
+    recordSliceTransition(featureHome, 'begin-boundary', 'slice-1', {
+      actor: agent,
+      payload: { attemptId: 'attempt-without-scope' },
+      eventId: 'evt-invalid-semantic-boundary',
+    }),
+    /invalid boundary scope/
+  );
+  assert.equal((await readFeatureRecord(featureHome)).events.length, before);
+});
+
 test('pause preserves lifecycle position and blocks ordinary passage until resume', async () => {
   const featureHome = await createFeature();
   await enterDelivery(featureHome);
@@ -188,6 +221,7 @@ test('pause preserves lifecycle position and blocks ordinary passage until resum
 
 test('sequential slices reach a feature-final closeout through human review', async () => {
   const featureHome = await createFeature();
+  const finalMergeSha = 'c'.repeat(40);
   await enterDelivery(featureHome);
   for (const [index, sliceId] of ['slice-1', 'slice-2'].entries()) {
     await proposeSlice(featureHome, {
@@ -228,7 +262,7 @@ test('sequential slices reach a feature-final closeout through human review', as
         actor: agent,
         facts: { reviewedContentMerged: true },
         currentFingerprints,
-        payload: { featureFinal },
+        payload: { featureFinal, ...(featureFinal ? { integrationSha: finalMergeSha } : {}) },
         eventId: `evt-${offset + 3}-early-merge`,
       }),
       /not eligible/
@@ -253,7 +287,7 @@ test('sequential slices reach a feature-final closeout through human review', as
           ...currentFingerprints,
           verification: fingerprint({ changed: 'reviewed source moved' }),
         },
-        payload: { featureFinal },
+        payload: { featureFinal, ...(featureFinal ? { integrationSha: finalMergeSha } : {}) },
         eventId: `evt-${offset + 4}-stale-merge`,
       }),
       /not eligible/
@@ -262,7 +296,7 @@ test('sequential slices reach a feature-final closeout through human review', as
       actor: agent,
       facts: { reviewedContentMerged: true },
       currentFingerprints,
-      payload: { featureFinal },
+      payload: { featureFinal, ...(featureFinal ? { integrationSha: finalMergeSha } : {}) },
       eventId: `evt-${offset + 4}-merge`,
     });
   }
@@ -284,9 +318,17 @@ test('sequential slices reach a feature-final closeout through human review', as
     finalAttempt.gates.find((gate) => gate.id === 'codeReview').evaluationScope,
     'SLICE'
   );
-  const complete = await recordFeatureTransition(featureHome, 'complete-feature', {
-    actor: agent,
-    facts: { featureCloseoutCurrent: true },
+  await startFeatureFinalization(featureHome, {
+    attemptId: 'feature-finalization-1', mergeInputSha: finalMergeSha, actor: agent,
+    eventId: 'evt-19-finalization-start',
+  });
+  await recordFinalizationWaiver(featureHome, {
+    attemptId: 'feature-finalization-1', moduleId: 'gatereeve/release', actor: human,
+    reason: 'Lifecycle fixture exercises audited feature-scoped passage.',
+    eventId: 'evt-20-release-waiver',
+  });
+  const complete = await completeFinalizedFeature(featureHome, {
+    attemptId: 'feature-finalization-1', actor: agent,
     eventId: 'evt-19-complete',
   });
   assert.equal(complete.projection.feature.state, 'COMPLETE');

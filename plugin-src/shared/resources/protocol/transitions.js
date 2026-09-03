@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
 import { GUARD_DESCRIPTORS } from './guards.js';
-import { appendEvent, createEvent } from './journal.js';
+import { appendProjectedEvent, createEvent } from './journal.js';
 import { projectRecord, projectionFacts } from './projection.js';
 import { readFeatureRecord } from './feature.js';
 import { ProtocolError, TransitionRejectedError } from './errors.js';
+import { finalizationModuleDefinitions } from './modules.js';
 
 function authoritySatisfied(authority, actor) {
   if (authority === 'human-confirmation') return actor?.kind === 'human-confirmed';
@@ -128,7 +129,7 @@ async function appendPassage(record, transition, actor, guards, payload, options
     recordedAt: options.recordedAt,
     eventId: options.eventId,
   });
-  await appendEvent(record.featureHome, event, {
+  await appendProjectedEvent(record, event, {
     featureId: event.featureId,
     allowedModelHashes: new Set([record.modelLock.modelHash]),
   });
@@ -141,14 +142,39 @@ export async function recordFeatureTransition(
   { actor, facts = {}, payload = {}, eventId, recordedAt } = {}
 ) {
   const record = await readFeatureRecord(featureHome);
-  const preflight = preflightFeatureTransition(record, transitionId, { actor, facts });
+  let effectiveFacts = facts;
+  let effectivePayload = payload;
+  if (transitionId === 'complete-feature') {
+    const projection = projectRecord(record);
+    const modules = finalizationModuleDefinitions(record.modelLock.model);
+    const attempt = projection.finalizationAttempts.find((item) => item.state === 'ACTIVE') ?? null;
+    const zeroModuleCloseout = modules.length === 0
+      && !projection.suspension.paused
+      && projection.blockingChangeIds.length === 0;
+    effectiveFacts = {
+      ...facts,
+      featureCloseoutCurrent: zeroModuleCloseout
+        || attempt?.requiredCurrentAndNonblocking === true,
+    };
+    effectivePayload = modules.length === 0
+      ? { ...payload, finalizationAttemptId: null }
+      : {
+          ...payload,
+          finalizationAttemptId: attempt?.id ?? null,
+          mergeInputSha: attempt?.mergeInputSha ?? null,
+        };
+  }
+  const preflight = preflightFeatureTransition(record, transitionId, {
+    actor,
+    facts: effectiveFacts,
+  });
   if (!preflight.eligible) reject(preflight);
   await appendPassage(
     record,
     preflight.transition,
     actor,
     preflight.guards,
-    payload,
+    effectivePayload,
     { eventId, recordedAt }
   );
   const updated = await readFeatureRecord(featureHome);
@@ -209,7 +235,7 @@ export async function proposeSlice(
     recordedAt,
     eventId,
   });
-  await appendEvent(featureHome, event, { allowedModelHashes: new Set([record.modelLock.modelHash]) });
+  await appendProjectedEvent(record, event, { allowedModelHashes: new Set([record.modelLock.modelHash]) });
   const updated = await readFeatureRecord(featureHome);
   return { event, projection: projectRecord(updated) };
 }
@@ -236,6 +262,23 @@ export async function recordSliceTransition(
   if (!preflight.eligible) reject(preflight);
   let featurePassage = null;
   if (transitionId === 'record-merge' && payload.featureFinal === true) {
+    const mergeInputShas = [payload.integrationSha, payload.mergeCommitSha]
+      .filter((value) => /^[0-9a-f]{40}$/u.test(value));
+    if (new Set(mergeInputShas).size > 1) {
+      throw new ProtocolError(
+        'FINALIZATION_MERGE_INPUT_CONFLICT',
+        'Feature-final integration and legacy merge commits must identify the same commit'
+      );
+    }
+    if (
+      finalizationModuleDefinitions(record.modelLock.model).length > 0
+      && mergeInputShas.length === 0
+    ) {
+      throw new ProtocolError(
+        'FINALIZATION_MERGE_INPUT_REQUIRED',
+        'Feature-final merge passage requires the full integration commit SHA'
+      );
+    }
     const featureTransition = machineTransition(record.modelLock.model.feature, 'begin-finalizing');
     const featureEvaluation = evaluateTransition(featureTransition, preflight.projection, actor, facts);
     if (preflight.projection.feature.state !== featureTransition.from || !featureEvaluation.eligible) {
@@ -287,7 +330,7 @@ async function recordOverlay(
     recordedAt,
     eventId,
   });
-  await appendEvent(featureHome, event, { allowedModelHashes: new Set([record.modelLock.modelHash]) });
+  await appendProjectedEvent(record, event, { allowedModelHashes: new Set([record.modelLock.modelHash]) });
   const updated = await readFeatureRecord(featureHome);
   return { event, projection: projectRecord(updated) };
 }

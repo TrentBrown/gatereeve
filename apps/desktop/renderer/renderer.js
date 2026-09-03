@@ -792,7 +792,7 @@ function gateCard(attempt, gate, selected) {
       text: 'Skip for this boundary…',
       type: 'button',
     });
-    waive.addEventListener('click', () => openModuleWaiver(attempt, gate, module));
+    waive.addEventListener('click', () => openModuleWaiver(attempt, gate, module, 'boundary'));
     shell.append(waive);
   }
   return shell;
@@ -808,10 +808,10 @@ function openDialog(dialog) {
   else dialog.setAttribute('open', '');
 }
 
-function openModuleWaiver(attempt, gate, module) {
-  pendingModuleWaiver = { attempt, gate, module };
-  elements['module-waiver-title'].textContent = `Skip ${module.label} for this boundary?`;
-  elements['module-waiver-summary'].textContent = `This records WAIVED only for ${attempt.id} and its current input fingerprint. Changed inputs make the waiver stale.`;
+function openModuleWaiver(attempt, gate, module, scope) {
+  pendingModuleWaiver = { attempt, gate, module, scope };
+  elements['module-waiver-title'].textContent = `Skip ${module.label} for this ${scope}?`;
+  elements['module-waiver-summary'].textContent = `This records WAIVED only for ${attempt.id} and its current ${scope} input fingerprint. Changed inputs make the waiver stale.`;
   elements['module-waiver-reason'].value = '';
   openDialog(elements['module-waiver-dialog']);
   elements['module-waiver-reason'].focus?.();
@@ -932,9 +932,18 @@ function moduleStages(modules) {
   }));
 }
 
-function finalizationModuleCard(module, orderLabel, selected) {
-  return standardModuleCard(module, {
-    orderLabel,
+function canOfferFinalizationWaiver(attempt, module) {
+  if (!attempt || attempt.state !== 'ACTIVE' || !module.waiverAllowed || module.locked) return false;
+  const byId = new Map(attempt.modules.map((candidate) => [candidate.id, candidate]));
+  return module.dependsOn.every((dependencyId) => (
+    ['PASS', 'WAIVED', 'NOT_APPLICABLE'].includes(byId.get(dependencyId)?.outcome)
+  ));
+}
+
+function finalizationModuleCard(module, attempt, selected) {
+  const button = standardModuleCard(module, {
+    orderLabel: module.orderLabel,
+    gate: module,
     selected,
     contextLabel: 'Finalization',
     onSelect: () => {
@@ -943,18 +952,71 @@ function finalizationModuleCard(module, orderLabel, selected) {
       renderInspector(currentState?.snapshot);
     },
   });
+  const shell = node('div', { className: 'gate-node' }, [button]);
+  if (canOfferFinalizationWaiver(attempt, module)) {
+    const waive = node('button', {
+      className: 'text-button module-waiver-button',
+      text: 'Skip for this feature…',
+      type: 'button',
+    });
+    waive.addEventListener('click', () => openModuleWaiver(attempt, module, module, 'feature'));
+    shell.append(waive);
+  }
+  return shell;
 }
 
 function renderFinalizationModules(snapshot) {
   const modules = modulesForSlot(snapshot, 'feature.finalization').filter((module) => module.enabled);
+  const attempts = snapshot?.projection?.finalizationAttempts ?? [];
+  const attempt = attempts.find((item) => item.state === 'ACTIVE') ?? attempts.at(-1) ?? null;
   const surface = elements['finalization-surface'];
   surface.hidden = modules.length === 0;
   clear(elements['finalization-summary']);
   const graph = clear(elements['finalization-dag']);
   if (modules.length === 0) return;
-  elements['finalization-summary'].append(
-    document.createTextNode(`${modules.length} enabled finalization module${modules.length === 1 ? '' : 's'} from the pinned feature model.`),
-  );
+  const summary = elements['finalization-summary'];
+  summary.append(document.createTextNode(
+    attempt
+      ? `${attempt.state} attempt ${attempt.id} · merge ${attempt.mergeInputSha.slice(0, 12)} · ${attempts.length} retained attempt${attempts.length === 1 ? '' : 's'}.`
+      : `${modules.length} enabled finalization module${modules.length === 1 ? '' : 's'} await an attempt bound to the recorded feature-final merge.`,
+  ));
+  if (!attempt && snapshot?.projection?.feature?.state === 'FINALIZING') {
+    const start = node('button', { className: 'secondary', text: 'Start finalization', type: 'button' });
+    start.addEventListener('click', async () => {
+      start.disabled = true;
+      try { render(await desktop.startFinalization()); }
+      catch (error) { showToast(error.message ?? String(error)); }
+      finally { start.disabled = false; }
+    });
+    summary.append(start);
+  }
+  if (attempt) {
+    const inspect = node('button', { className: 'text-button', text: 'Load exact attempt detail', type: 'button' });
+    inspect.addEventListener('click', async () => {
+      inspect.disabled = true;
+      try {
+        const detail = await desktop.readDetail('attempt', attempt.id);
+        summary.append(node('details', { className: 'raw' }, [
+          node('summary', { text: 'Exact finalization attempt JSON' }),
+          node('pre', { text: JSON.stringify(detail.data.attempt, null, 2) }),
+        ]));
+      } catch (error) { showToast(error.message ?? String(error)); }
+      finally { inspect.disabled = false; }
+    });
+    summary.append(inspect);
+    if (attempt.state === 'ACTIVE' && attempt.requiredCurrentAndNonblocking) {
+      const complete = node('button', { className: 'primary', text: 'Complete feature', type: 'button' });
+      complete.addEventListener('click', async () => {
+        complete.disabled = true;
+        try {
+          render(await desktop.completeFinalization(attempt.id, 'GateReeve Desktop: Complete feature'));
+          showToast('Feature completion recorded');
+        } catch (error) { showToast(error.message ?? String(error)); }
+        finally { complete.disabled = false; }
+      });
+      summary.append(complete);
+    }
+  }
   const stages = moduleStages(modules);
   stages.forEach((stage, index) => {
     if (index > 0) graph.append(gateConnector(stages[index - 1].modules.length, stage.modules.length));
@@ -964,9 +1026,13 @@ function renderFinalizationModules(snapshot) {
     });
     wrapper.style.setProperty('--stage-columns', String(stage.modules.length));
     stage.modules.forEach((module, moduleIndex) => {
+      const orderLabel = module.orderLabel
+        ?? (stage.modules.length === 1
+          ? String(stage.number)
+          : `${stage.number}${String.fromCharCode(97 + moduleIndex)}`);
       wrapper.append(finalizationModuleCard(
-        module,
-        stage.modules.length === 1 ? String(stage.number) : `${stage.number}${String.fromCharCode(97 + moduleIndex)}`,
+        { ...module, orderLabel },
+        attempt,
         workspaceState().activeTabId === `module:${module.id}`,
       ));
     });
@@ -1014,6 +1080,25 @@ function renderCloseout(snapshot) {
         ? 'No additional delivery slice is indicated by the current projection.'
         : 'Another delivery slice may be required to clear the outstanding conditions.' }),
   ]));
+  if (
+    snapshot?.projection?.feature?.state === 'FINALIZING'
+    && snapshot?.projection?.finalizationModuleCount === 0
+    && !snapshot?.projection?.suspension?.paused
+    && (snapshot?.projection?.blockingChangeIds?.length ?? 0) === 0
+  ) {
+    const complete = node('button', {
+      className: 'primary', text: 'Complete feature', type: 'button',
+    });
+    complete.addEventListener('click', async () => {
+      complete.disabled = true;
+      try {
+        render(await desktop.completeFinalization(null, 'GateReeve Desktop: Complete feature'));
+        showToast('Feature completion recorded');
+      } catch (error) { showToast(error.message ?? String(error)); }
+      finally { complete.disabled = false; }
+    });
+    summary.append(complete);
+  }
 }
 
 function renderActions(snapshot) {
@@ -1876,9 +1961,9 @@ function openModuleAttestation(module, attempt, gate) {
 
 function appendModuleRunActions(viewer, module, attempt, gate) {
   const run = module.run;
-  if (!run || attempt.state !== 'ACTIVE') return;
+  if (attempt.state !== 'ACTIVE') return;
   const actions = node('div', { className: 'module-run-actions' });
-  if (run.kind === 'skill') {
+  if (run?.kind === 'skill') {
     const invocation = run.invocation ?? `/${run.skillId}`;
     const copyInvocation = node('button', { className: 'secondary', text: 'Copy skill invocation', type: 'button' });
     copyInvocation.addEventListener('click', () => void copy(invocation, 'Skill invocation copied'));
@@ -1888,17 +1973,30 @@ function appendModuleRunActions(viewer, module, attempt, gate) {
     openTerminal.disabled = !gate.eligible || module.readiness?.status === 'unavailable';
     actions.append(copyInvocation, openTerminal);
   }
-  if (run.kind === 'manual') {
+  if (run?.kind === 'manual') {
     const attest = node('button', { className: 'secondary', text: 'Record attestation…', type: 'button' });
     attest.disabled = !gate.eligible;
     attest.addEventListener('click', () => openModuleAttestation(module, attempt, gate));
     actions.append(attest);
   }
-  if (run.kind === 'command') {
+  if (run?.kind === 'command') {
     const execute = node('button', { className: 'secondary', text: 'Review and run command…', type: 'button' });
     execute.disabled = !gate.eligible || module.readiness?.status === 'unavailable';
     execute.addEventListener('click', () => void openModuleCommand(module, attempt, gate));
     actions.append(execute);
+  }
+  if (module.observe) {
+    const observe = node('button', { className: 'secondary', text: 'Refresh provider status', type: 'button' });
+    observe.disabled = !gate.eligible || module.readiness?.status === 'unavailable';
+    observe.addEventListener('click', async () => {
+      observe.disabled = true;
+      try {
+        render(await desktop.observeModule(module.id, attempt.id, gate.id));
+        showToast(`${module.label} status refreshed`);
+      } catch (error) { showToast(error.message ?? String(error)); }
+      finally { observe.disabled = false; }
+    });
+    actions.append(observe);
   }
   if (actions.childElementCount > 0) viewer.append(actions);
 }
@@ -2024,7 +2122,7 @@ function renderGateTab(tab, snapshot) {
   }
   if (canOfferBoundaryWaiver(attempt, gate, module)) {
     const waive = node('button', { className: 'secondary', text: 'Skip for this boundary…', type: 'button' });
-    waive.addEventListener('click', () => openModuleWaiver(attempt, gate, module));
+    waive.addEventListener('click', () => openModuleWaiver(attempt, gate, module, 'boundary'));
     viewer.append(waive);
   }
 }
@@ -2033,6 +2131,19 @@ function renderModuleTab(tab, snapshot) {
   const module = moduleById(snapshot, tab.moduleId);
   if (!module || !module.enabled) {
     renderUnavailableTab({ ...tab, status: 'unavailable' });
+    return;
+  }
+  const attempt = module.slot === 'feature.finalization'
+    ? snapshot?.projection?.finalizationAttempts?.find((item) => item.id === module.attemptId)
+    : null;
+  if (attempt) {
+    renderModuleDetails(elements['artifact-viewer'], module, { attempt, gate: module });
+    appendModuleRunActions(elements['artifact-viewer'], module, attempt, module);
+    if (canOfferFinalizationWaiver(attempt, module)) {
+      const waive = node('button', { className: 'secondary', text: 'Skip for this feature…', type: 'button' });
+      waive.addEventListener('click', () => openModuleWaiver(attempt, module, module, 'feature'));
+      elements['artifact-viewer'].append(waive);
+    }
     return;
   }
   renderModuleDetails(elements['artifact-viewer'], module);
@@ -2910,16 +3021,14 @@ elements['module-waiver-confirm'].addEventListener('click', async () => {
   }
   elements['module-waiver-confirm'].disabled = true;
   try {
-    const { attempt, gate, module } = pendingModuleWaiver;
-    render(await desktop.waiveBoundaryModule(
-      attempt.id,
-      gate.id,
-      reason,
-      `GateReeve Desktop: Skip ${module.label}`,
-    ));
+    const { attempt, gate, module, scope } = pendingModuleWaiver;
+    const confirmation = `GateReeve Desktop: Skip ${module.label}`;
+    render(await (scope === 'feature'
+      ? desktop.waiveFinalizationModule(attempt.id, gate.id, reason, confirmation)
+      : desktop.waiveBoundaryModule(attempt.id, gate.id, reason, confirmation)));
     pendingModuleWaiver = null;
     closeDialog(elements['module-waiver-dialog']);
-    showToast(`${module.label} waived for this boundary`);
+    showToast(`${module.label} waived for this ${scope}`);
   } catch (error) {
     showToast(error.message ?? String(error));
   } finally {

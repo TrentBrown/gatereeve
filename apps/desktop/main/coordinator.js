@@ -544,6 +544,21 @@ export function createDesktopCoordinator({
       });
       return refresh('module-waiver');
     },
+    async startFinalization() {
+      const selected = selectedContext();
+      await protocol.startFinalization(selected);
+      return refresh('finalization-start');
+    },
+    async waiveFinalizationModule(request) {
+      const selected = selectedContext();
+      await protocol.waiveFinalizationModule({ ...selected, ...request });
+      return refresh('finalization-waiver');
+    },
+    async completeFinalization(request) {
+      const selected = selectedContext();
+      await protocol.completeFinalization({ ...selected, ...request });
+      return refresh('finalization-complete');
+    },
     async setModuleLive(projectPath, moduleId, live) {
       if (typeof projectPath !== 'string' || projectPath.length === 0) {
         throw new TypeError('Module live status requires a project path.');

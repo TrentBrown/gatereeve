@@ -201,6 +201,37 @@ test('model migration requires confirmation, reports impact, and preserves histo
   assert.equal((await readFeatureRecord(fixture.featureHome)).events.length, 2);
 });
 
+test('model migration validates replay before writing durable state', async () => {
+  const fixture = await temporaryFeature('invalid-migration-candidate');
+  const initialized = await initializeFeature({ ...fixture, actor, eventId: 'evt-initial' });
+  await appendEvent(fixture.featureHome, createEvent({
+    sequence: 2,
+    featureId: fixture.featureId,
+    type: 'SPEC_VALIDATED',
+    modelHash: initialized.modelLock.modelHash,
+    actor,
+    payload: {},
+    eventId: 'evt-invalid-spec-passage',
+  }));
+  const journalPath = resolve(fixture.featureHome, JOURNAL_FILE);
+  const lockPath = resolve(fixture.featureHome, MODEL_LOCK_FILE);
+  const markerPath = resolve(fixture.featureHome, MIGRATION_MARKER_FILE);
+  const beforeJournal = await readFile(journalPath, 'utf8');
+  const beforeLock = await readFile(lockPath, 'utf8');
+  const nextModel = structuredClone(initialized.modelLock.model);
+  nextModel.modelVersion = '1.0.1';
+
+  await assert.rejects(migrateFeatureModel({
+    featureHome: fixture.featureHome,
+    nextModel,
+    confirmedBy: { kind: 'human-confirmed', label: 'user' },
+    eventId: 'evt-invalid-candidate-migration',
+  }), /cannot apply|cannot transition|must record passage/);
+  assert.equal(await readFile(journalPath, 'utf8'), beforeJournal);
+  assert.equal(await readFile(lockPath, 'utf8'), beforeLock);
+  await assert.rejects(readFile(markerPath, 'utf8'), /ENOENT/);
+});
+
 test('pending model migration fails closed and can deterministically roll forward', async () => {
   const fixture = await temporaryFeature('recover-migration');
   const initialized = await initializeFeature({
@@ -251,4 +282,54 @@ test('pending model migration fails closed and can deterministically roll forwar
   assert.equal(recovered.modelLock.modelHash, nextLock.modelHash);
   assert.equal(recovered.events.at(-1).eventId, 'evt-recovery-migration');
   assert.equal((await discoverFeatureMode(fixture.featureHome)).mode, 'governed');
+});
+
+test('pending migration recovery validates replay before rolling forward', async () => {
+  const fixture = await temporaryFeature('invalid-recovery-migration');
+  const initialized = await initializeFeature({
+    ...fixture,
+    actor,
+    eventId: 'evt-initial',
+    recordedAt: '2026-08-25T01:00:00Z',
+  });
+  const nextModel = structuredClone(initialized.modelLock.model);
+  nextModel.modelVersion = '1.0.1';
+  const nextLock = createModelLock(nextModel, { createdAt: '2026-08-25T02:00:00Z' });
+  const migrationEvent = createEvent({
+    sequence: 2,
+    featureId: fixture.featureId,
+    type: 'MODEL_MIGRATED',
+    modelHash: nextLock.modelHash,
+    actor,
+    payload: {
+      fromModelHash: initialized.modelLock.modelHash,
+      toModelHash: nextLock.modelHash,
+      previousBoundary: { moduleGraph: structuredClone(initialized.modelLock.model.moduleGraph) },
+    },
+    recordedAt: '2026-08-25T02:00:00Z',
+    eventId: 'evt-invalid-recovery-migration',
+  });
+  const markerPath = resolve(fixture.featureHome, MIGRATION_MARKER_FILE);
+  const journalPath = resolve(fixture.featureHome, JOURNAL_FILE);
+  const lockPath = resolve(fixture.featureHome, MODEL_LOCK_FILE);
+  await writeFile(markerPath, stableJson({
+    schemaVersion: 1,
+    createdAt: '2026-08-25T02:00:00Z',
+    fromModelHash: initialized.modelLock.modelHash,
+    toModelHash: nextLock.modelHash,
+    nextLock,
+    migrationEvent,
+  }));
+  const beforeMarker = await readFile(markerPath, 'utf8');
+  const beforeJournal = await readFile(journalPath, 'utf8');
+  const beforeLock = await readFile(lockPath, 'utf8');
+
+  await assert.rejects(
+    recoverPendingModelMigration(fixture.featureHome),
+    /does not satisfy human-confirmation/,
+  );
+  assert.equal(await readFile(markerPath, 'utf8'), beforeMarker);
+  assert.equal(await readFile(journalPath, 'utf8'), beforeJournal);
+  assert.equal(await readFile(lockPath, 'utf8'), beforeLock);
+  assert.equal((await discoverFeatureMode(fixture.featureHome)).mode, 'inconsistent');
 });

@@ -20,6 +20,7 @@ import {
   stableJson,
   validateModelLock,
 } from './model.js';
+import { projectRecord } from './projection.js';
 import { atomicCreateDirectory, atomicReplaceFile, pathExists } from './storage.js';
 
 export const MODEL_LOCK_FILE = 'workflow-model.lock.json';
@@ -327,6 +328,12 @@ export async function migrateFeatureModel({
       );
     }
 
+    projectRecord({
+      featureHome: home,
+      modelLock: nextLock,
+      events: [...currentEvents, migrationEvent],
+    });
+
     await atomicReplaceFile(markerPath, stableJson(marker));
     await atomicReplaceFile(lockPath, stableJson(nextLock));
     await atomicReplaceFile(
@@ -389,6 +396,11 @@ export async function recoverPendingModelMigration(
       if (marker.migrationEvent.sequence !== expectedSequence) {
         throw new ContractError('Pending migration event sequence no longer follows the journal');
       }
+      projectRecord({
+        featureHome: home,
+        modelLock: marker.nextLock,
+        events: [...events, marker.migrationEvent],
+      });
       await atomicReplaceFile(lockPath, stableJson(marker.nextLock));
       await atomicReplaceFile(
         journalPath,
@@ -401,6 +413,7 @@ export async function recoverPendingModelMigration(
       if (stableJson(recorded) !== stableJson(marker.migrationEvent)) {
         throw new ContractError('Pending migration event differs from the journal event');
       }
+      projectRecord({ featureHome: home, modelLock: marker.nextLock, events });
       validateModelHashHistory(events, marker.toModelHash);
       if (currentLock.modelHash !== marker.toModelHash) {
         await atomicReplaceFile(lockPath, stableJson(marker.nextLock));

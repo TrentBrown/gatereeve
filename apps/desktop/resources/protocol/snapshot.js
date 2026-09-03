@@ -253,6 +253,39 @@ function validateAttempt(attempt, label) {
   assertBoolean(attempt.requiredCurrentAndNonblocking, `${label}.requiredCurrentAndNonblocking`);
 }
 
+function validateFinalizationAttempt(attempt, label) {
+  assertObject(attempt, label);
+  assertString(attempt.id, `${label}.id`);
+  assertString(attempt.mergeInputSha, `${label}.mergeInputSha`);
+  assertString(attempt.startedBy, `${label}.startedBy`);
+  assertInteger(attempt.startedSequence, `${label}.startedSequence`, { minimum: 1 });
+  assertString(attempt.state, `${label}.state`);
+  assertArray(attempt.modules, `${label}.modules`);
+  attempt.modules.forEach((module, index) => {
+    const item = `${label}.modules[${index}]`;
+    assertObject(module, item);
+    for (const field of ['id', 'moduleId', 'moduleVersion', 'moduleDigest', 'orderLabel']) {
+      assertString(module[field], `${item}.${field}`);
+    }
+    assertStringArray(module.dependsOn, `${item}.dependsOn`);
+    assertInteger(module.dependencyStage, `${item}.dependencyStage`, { minimum: 1 });
+    assertString(module.dependencyBranch, `${item}.dependencyBranch`, { nullable: true });
+    for (const field of ['optional', 'locked', 'waiverAllowed', 'eligible']) {
+      assertBoolean(module[field], `${item}.${field}`);
+    }
+    assertOneOf(module.outcome, GATE_OUTCOME_SET, `${item}.outcome`);
+    assertOneOf(module.freshness, GATE_FRESHNESS_SET, `${item}.freshness`);
+    assertArray(module.blockers, `${item}.blockers`);
+    assertNullableObject(module.evidence, `${item}.evidence`);
+    assertString(module.inputFingerprint, `${item}.inputFingerprint`, { nullable: true });
+    assertString(module.recordedEventId, `${item}.recordedEventId`, { nullable: true });
+    assertInteger(module.recordedSequence, `${item}.recordedSequence`, { nullable: true, minimum: 1 });
+    assertInteger(module.invalidatedSequence, `${item}.invalidatedSequence`, { nullable: true, minimum: 1 });
+    assertString(module.reason, `${item}.reason`, { nullable: true });
+  });
+  assertBoolean(attempt.requiredCurrentAndNonblocking, `${label}.requiredCurrentAndNonblocking`);
+}
+
 function validateProjection(projection, label) {
   assertObject(projection, label);
   assertInteger(projection.schemaVersion, `${label}.schemaVersion`, { minimum: 1 });
@@ -290,6 +323,11 @@ function validateProjection(projection, label) {
   projection.boundaryAttempts.forEach((attempt, index) => {
     validateAttempt(attempt, `${label}.boundaryAttempts[${index}]`);
   });
+  assertArray(projection.finalizationAttempts, `${label}.finalizationAttempts`);
+  projection.finalizationAttempts.forEach((attempt, index) => {
+    validateFinalizationAttempt(attempt, `${label}.finalizationAttempts[${index}]`);
+  });
+  assertInteger(projection.finalizationModuleCount, `${label}.finalizationModuleCount`);
   assertArray(projection.changes, `${label}.changes`);
   projection.changes.forEach((change, index) => {
     const item = `${label}.changes[${index}]`;
@@ -675,7 +713,6 @@ function actionInputs(command, authority) {
   }
   if (
     command === 'feature validate-spec' ||
-    command === 'feature finalize' ||
     /^slice start /.test(command) ||
     /^slice record-merge /.test(command)
   ) {
@@ -692,6 +729,18 @@ function actionInputs(command, authority) {
       input('inputsFile', 'Current gate inputs JSON', { placeholder: '<inputs.json>' }),
       input('fingerprintsFile', 'Current gate fingerprints JSON', { placeholder: '<fingerprints.json>' }),
       input('evidenceFile', 'Evidence reference JSON', { placeholder: '<evidence.json>' })
+    );
+  }
+  if (command === 'finalization start') {
+    inputs.push(
+      input('attemptId', 'Finalization attempt ID', { placeholder: '<attempt-id>' }),
+      input('mergeInput', 'Recorded feature-final merge SHA', { placeholder: '<merge-sha>' }),
+    );
+  }
+  if (/^finalization record /.test(command)) {
+    inputs.push(
+      input('outcome', 'Module outcome', { placeholder: '<PASS|FAIL|NOT_APPLICABLE>' }),
+      input('evidenceFile', 'Evidence reference JSON', { placeholder: '<evidence.json>' }),
     );
   }
   if (/^boundary request-review /.test(command)) {
@@ -712,6 +761,10 @@ function actionCommandTemplate(command, featureHome, inputs) {
     value += ` --scope ${byId.get('scope').placeholder}`;
     value += ` --plan-steps ${byId.get('planSteps').placeholder}`;
     value += ` --rubric-criteria ${byId.get('rubricCriteria').placeholder}`;
+  }
+  if (command === 'finalization start') {
+    value += ` ${byId.get('attemptId').placeholder}`;
+    value += ` --merge-input ${byId.get('mergeInput').placeholder}`;
   }
   if (byId.has('humanConfirmation')) {
     value += ` --human-confirmed ${JSON.stringify(byId.get('humanConfirmation').placeholder)}`;
@@ -926,18 +979,25 @@ function eventSummaries(events, limit = 20) {
   }));
 }
 
-function moduleInventory(record, facts) {
+function moduleInventory(record, projection, facts) {
   const graph = record.modelLock.model.moduleGraph;
   if (!graph) return null;
   const enabled = new Set(graph.enabledModuleIds);
   const availability = facts.moduleAvailability ?? null;
   const live = isObject(facts.moduleLive) ? facts.moduleLive : {};
+  const finalizationAttempt = projection.finalizationAttempts.find((attempt) => attempt.state === 'ACTIVE')
+    ?? projection.finalizationAttempts.at(-1)
+    ?? null;
   return {
     schemaVersion: 1,
     policyDigest: graph.policyDigest,
     slots: MODULE_SLOTS.map((slot) => ({
       id: slot,
-      modules: graph.modules.filter((module) => module.slot === slot).map((module) => ({
+      modules: graph.modules.filter((module) => module.slot === slot).map((module) => {
+        const result = slot === 'feature.finalization'
+          ? finalizationAttempt?.modules.find((item) => item.id === module.id) ?? null
+          : null;
+        return ({
         id: module.id,
         version: module.version,
         digest: module.digest,
@@ -955,7 +1015,17 @@ function moduleInventory(record, facts) {
         observe: module.observe ? structuredClone(module.observe) : null,
         readiness: assessModuleReadiness(module, availability),
         live: live[module.id] === undefined ? null : structuredClone(live[module.id]),
-      })),
+        ...(result ? {
+          attemptId: finalizationAttempt.id,
+          orderLabel: result.orderLabel,
+          outcome: result.outcome,
+          freshness: result.freshness,
+          evidence: result.evidence,
+          reason: result.reason,
+          eligible: result.eligible,
+          blockers: structuredClone(result.blockers),
+        } : {}),
+      }); }),
     })),
   };
 }
@@ -985,7 +1055,7 @@ export async function buildGovernedSnapshot(
       detailSchemaVersion: DETAIL_SCHEMA_VERSION,
     },
     model,
-    modules: moduleInventory(record, facts),
+    modules: moduleInventory(record, projection, facts),
     projection,
     active: {
       sliceId: projection.activeSliceId,
@@ -1123,6 +1193,17 @@ export function validateSnapshot(snapshot) {
           assertString(missing.id, `${missingLabel}.id`);
         }
         validateModuleLive(module.live, `${moduleLabel}.live`);
+        if (module.attemptId !== undefined) assertString(module.attemptId, `${moduleLabel}.attemptId`);
+        if (module.orderLabel !== undefined) assertString(module.orderLabel, `${moduleLabel}.orderLabel`);
+        if (module.outcome !== undefined) assertOneOf(module.outcome, GATE_OUTCOME_SET, `${moduleLabel}.outcome`);
+        if (module.freshness !== undefined) assertOneOf(module.freshness, GATE_FRESHNESS_SET, `${moduleLabel}.freshness`);
+        if (module.evidence !== undefined) assertNullableObject(module.evidence, `${moduleLabel}.evidence`);
+        if (module.reason !== undefined) assertString(module.reason, `${moduleLabel}.reason`, { nullable: true });
+        if (module.eligible !== undefined) assertBoolean(module.eligible, `${moduleLabel}.eligible`);
+        if (module.blockers !== undefined) {
+          assertArray(module.blockers, `${moduleLabel}.blockers`);
+          module.blockers.forEach((blocker, index) => assertObject(blocker, `${moduleLabel}.blockers[${index}]`));
+        }
       }
     }
   }
@@ -1302,9 +1383,10 @@ export async function buildDetail(snapshot, record, kind, id = null) {
     }
     data = { events };
   } else if (kind === 'attempt') {
-    const attempt = snapshot.projection.boundaryAttempts.find((item) => item.id === id);
+    const attempt = snapshot.projection.boundaryAttempts.find((item) => item.id === id)
+      ?? snapshot.projection.finalizationAttempts.find((item) => item.id === id);
     if (!attempt) {
-      throw new ProtocolError('ATTEMPT_UNKNOWN', `Unknown boundary attempt: ${id}`);
+      throw new ProtocolError('ATTEMPT_UNKNOWN', `Unknown workflow attempt: ${id}`);
     }
     data = { attempt };
   } else {
@@ -1344,7 +1426,11 @@ export function validateDetail(detail) {
       validateFullEvent(event, `Detail result data.events[${index}]`);
     });
   } else if (detail.kind === 'attempt') {
-    validateAttempt(detail.data.attempt, 'Detail result data.attempt');
+    if (Array.isArray(detail.data.attempt?.gates)) {
+      validateAttempt(detail.data.attempt, 'Detail result data.attempt');
+    } else {
+      validateFinalizationAttempt(detail.data.attempt, 'Detail result data.attempt');
+    }
   } else {
     validateModelLock(detail.data.lock);
     validateGraph(detail.data.graph, 'Detail result data.graph');

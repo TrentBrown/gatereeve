@@ -268,3 +268,118 @@ new path from terminal results to authoritative workflow events.
 - Let a successful provider response append its own event - rejected because
   only the protocol core owns freshness, eligibility, fingerprint, and
   append-only journal validation.
+
+## [12] Bind finalization passage to a historical model and exact merge
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Finalization event schemas, replay, model migration, feature
+completion guards, attempt lookup, pause behavior, CLI operations, and Desktop
+finalization controls.
+
+Finalization is a generic attempt DAG pinned to the feature-final integration
+commit, the then-active model hash, and a complete resolved module graph. Replay
+validates the attempt graph against either the current lock or the exact
+historical snapshot retained by model migration. Attempt IDs are unique across
+boundary and finalization attempts. Required evidence, human-only waivers,
+dependency event IDs, pauses, blocking changes, migration staleness, and
+invalidation are revalidated during replay before Complete can pass. A model
+with no enabled finalization modules completes without a synthetic attempt.
+
+**Triggered by:** P8 adds an API and journal-schema surface whose evidence must
+remain deterministic across migration while preventing forged or stale
+post-merge passage.
+
+**Alternatives considered:**
+- Reconstruct old attempts from the current model - rejected because migration
+  would reinterpret historical obligations and can make a valid journal
+  unreadable.
+- Treat live provider status as completion evidence - rejected because it is
+  mutable observation rather than an append-only, fingerprint-bound outcome.
+- Require an empty attempt when the slot is disabled - rejected because it adds
+  misleading release ceremony to projects with no post-merge obligations.
+
+## [13] Package the GateReeve release observer as a self-contained exact peer
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Release Conductor validation reuse, provider manifests and
+allowlisting, Desktop staging, ASAR unpacking, Electron child processes, release
+status presentation, and macOS package verification.
+
+The product-specific `gatereeve/release-conductor` provider stays outside the
+generic protocol core but reuses the canonical Release Conductor chain
+validators. Development source imports those shared validators; packaging
+bundles the complete provider into one self-contained ESM entrypoint, rewrites
+its staged executable and manifest digests, and launches it through GateReeve's
+trusted Electron executable with `ELECTRON_RUN_AS_NODE=1`. Discovery verifies
+the entrypoint bytes against the exact allowlisted manifest. Valid conductor
+failures and timestamps remain visible, while only a terminal failure-free
+COMPLETE chain whose source contains the feature merge returns PASS.
+
+**Triggered by:** P9 introduces product-specific GitHub observation code, and
+packaged-runtime review showed that an unpacked entrypoint cannot resolve
+relative imports left inside `app.asar` and that a metadata-only digest would
+not bind executed code.
+
+**Alternatives considered:**
+- Put Release Conductor semantics in the protocol core - rejected because other
+  projects have different or absent build/deployment workflows.
+- Unpack the shared protocol and release trees beside the provider - rejected
+  because the executable digest would not bind the imported support-code
+  closure and the package surface would expand.
+- Require a system Node executable - rejected because the signed Desktop
+  already ships a compatible runtime and Finder-launched applications cannot
+  rely on shell PATH state.
+
+## [14] Validate candidate journals before atomic append
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** All protocol mutation entry points, append-only journal
+integrity, and recovery from malformed semantic payloads.
+
+Every ordinary protocol mutation now projects the complete candidate journal in
+memory before `appendEvent` atomically replaces `events.jsonl`. Structural
+`appendEvent` remains available as the low-level journal primitive, but
+transitions, gates, finalization modules, and change events use
+`appendProjectedEvent` so a replay-invalid event cannot poison the durable
+feature record.
+
+**Triggered by:** The installed RC.11 boundary adapter appended a structurally valid BOUNDARY_STARTED event lacking its required scope, then discovered the semantic failure only while rereading the record.
+
+**Alternatives considered:**
+- Repair invalid journals after append - rejected because an append-only
+  authority should reject invalid state before persistence rather than depend
+  on recovery surgery.
+- Add a one-off boundary scope check - rejected because the same
+  append-then-project pattern existed across multiple mutation families.
+- Move all projection validation into `appendEvent` without a record argument -
+  rejected because the low-level primitive does not own the model lock and
+  historical model context needed for semantic replay.
+
+## [15] Normalize historical final merges and replace stale attempts safely
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Model migration, historical journal replay, Desktop finalization startup, and feature-final attempt lifecycle
+
+Feature-final merge identity accepts the historical mergeCommitSha field and the current integrationSha field only when they resolve to one exact full commit; conflicting values fail closed. Projection evaluates merge and zero-module completion requirements against each event's retained model snapshot, while migration and recovery project the full candidate record before durable writes. A finalization attempt under an older model may be superseded by a new current-model attempt, but mutation and replay both reject a second active attempt under the same model.
+
+**Triggered by:** Independent PR review found that legacy mergeCommitSha records could become unreadable after enabling finalization modules and that migration could leave an unreplaceable stale active attempt.
+
+**Alternatives considered:**
+- Interpret every historical event through the newest model - rejected because
+  newly enabled modules would retroactively invalidate valid older passage.
+- Let a stale active attempt block all later starts - rejected because a model
+  migration would create a finalization deadlock with no authorized recovery.
+- Prefer one merge field when both valid fields conflict - rejected because an
+  ambiguous journal must fail closed rather than bind release proof arbitrarily.

@@ -40,6 +40,16 @@ export function projectionBlockers(projection, facts = {}) {
       }
     }
   }
+  const finalizationAttempt = projection.finalizationAttempts.find((item) => item.state === 'ACTIVE');
+  if (finalizationAttempt) {
+    for (const module of finalizationAttempt.modules.filter((item) => !item.optional)) {
+      if (module.outcome === 'FAIL') blockers.push({ type: 'finalization-failure', moduleId: module.id });
+      if (module.freshness === 'STALE') blockers.push({ type: 'finalization-stale', moduleId: module.id });
+      if (module.freshness === 'UNKNOWN' && module.outcome !== 'UNSET') {
+        blockers.push({ type: 'finalization-freshness-unknown', moduleId: module.id });
+      }
+    }
+  }
   if (facts.worktree?.journalDirty === true) {
     blockers.push({ type: 'journal-uncommitted' });
   }
@@ -155,7 +165,28 @@ export function nextActions(projection) {
       break;
     }
     case 'FINALIZING':
-      actions.push(action('feature finalize', true, 'agent'));
+      {
+        const attempt = projection.finalizationAttempts.find((item) => item.state === 'ACTIVE');
+        if (!attempt) {
+          actions.push(action(
+            projection.finalizationModuleCount === 0 ? 'feature finalize' : 'finalization start',
+            true,
+            'agent',
+          ));
+        } else {
+          for (const module of attempt.modules) {
+            if (module.eligible && (['UNSET', 'FAIL'].includes(module.outcome) || module.freshness !== 'CURRENT')) {
+              actions.push(action(`finalization record ${attempt.id} ${module.id}`, true, 'agent'));
+            }
+          }
+          actions.push(action(
+            `finalization complete ${attempt.id}`,
+            attempt.requiredCurrentAndNonblocking,
+            'agent',
+            attempt.requiredCurrentAndNonblocking ? [] : ['finalization modules not current and nonblocking'],
+          ));
+        }
+      }
       actions.push(action('slice propose', true, 'agent'));
       break;
     default:

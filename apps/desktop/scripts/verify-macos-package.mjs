@@ -14,6 +14,7 @@ import {
   macosBundleVersion,
   MACOS_PRODUCT,
   REQUIRED_ASAR_PATHS,
+  STAGED_PROVIDER_PATHS,
   RUNTIME_DEPENDENCIES,
   STAGED_PYTHON_RUNTIME_PATHS,
   STAGED_RUNTIME_PACKAGES,
@@ -204,6 +205,11 @@ export async function verifyApplication(applicationPath, version, appleTrust) {
     assert.match(ptyArchitectures.stdout, new RegExp(`(?:^|\\s)${architecture}(?:\\s|$)`, 'u'));
     assert.match(helperArchitectures.stdout, new RegExp(`(?:^|\\s)${architecture}(?:\\s|$)`, 'u'));
     assert.notEqual((await stat(helperPath)).mode & 0o111, 0, `${directory} spawn-helper is not executable`);
+  }
+  const unpackedRoot = resolve(contents, 'Resources', 'app.asar.unpacked');
+  for (const path of STAGED_PROVIDER_PATHS) {
+    const providerPath = resolve(unpackedRoot, path.slice(1));
+    assert.equal((await stat(providerPath)).isFile(), true, `Packaged provider is missing ${path}`);
   }
   return appleTrust
     ? coordinatedTrustFromEvidence(appleTrust)

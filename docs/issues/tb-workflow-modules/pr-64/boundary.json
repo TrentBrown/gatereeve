@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "scope": "feature-final",
+  "featureId": "tb-workflow-modules",
+  "repositoryAlias": "product",
+  "packetId": "pr-64",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 64,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/64",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "76f627928a84071b524c87772fd42f0680d9b85a",
+    "headRefName": "tb-workflow-modules-04-finalization-release",
+    "headRefOid": "23fd13887cd6de117f9748e6cdd49b3dba940249"
+  },
+  "mergeBaseSha": "76f627928a84071b524c87772fd42f0680d9b85a",
+  "evaluatedSourceSha": "23fd13887cd6de117f9748e6cdd49b3dba940249",
+  "featureBaseSha": "93b5323a19ad71c3e563d8e8d15f0bf7038d6052",
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "specEvaluation": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "judge": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "codeReview": {
+      "disposition": "passed",
+      "reason": null
+    },
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No pattern-review scope is configured for GateReeve or its parent scope"
+    },
+    "explainDiff": {
+      "disposition": "passed",
+      "reason": null
+    }
+  }
+}

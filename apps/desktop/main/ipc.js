@@ -10,6 +10,7 @@ import {
   requireDetailRequest,
   requireExternalLink,
   requireBoundaryModuleWaiverRequest,
+  requireFinalizationCompleteRequest,
   requireModulePolicyApplyRequest,
   requireModulePolicyPreview,
   requireModulePolicyRequest,
@@ -73,6 +74,7 @@ export function registerDesktopIpc({
     preview: async () => { throw new Error('Module execution is unavailable.'); },
     startCommand: async () => { throw new Error('Module execution is unavailable.'); },
     attest: async () => { throw new Error('Module execution is unavailable.'); },
+    observe: async () => { throw new Error('Module observation is unavailable.'); },
     listTasks: () => [],
   },
   processManager = terminalManager,
@@ -145,6 +147,24 @@ export function registerDesktopIpc({
       requireBoundaryModuleWaiverRequest(values[0]),
     ));
   });
+  ipcMain.handle(IPC_CHANNELS.startFinalization, async (event, ...values) => {
+    noArguments(event, values);
+    return validatedState(await coordinator.startFinalization());
+  });
+  ipcMain.handle(IPC_CHANNELS.waiveFinalizationModule, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Finalization module waiver requires one request.');
+    return validatedState(await coordinator.waiveFinalizationModule(
+      requireBoundaryModuleWaiverRequest(values[0]),
+    ));
+  });
+  ipcMain.handle(IPC_CHANNELS.completeFinalization, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Finalization completion requires one request.');
+    return validatedState(await coordinator.completeFinalization(
+      requireFinalizationCompleteRequest(values[0]),
+    ));
+  });
   ipcMain.handle(IPC_CHANNELS.getModuleRunPreview, async (event, ...values) => {
     trusted(event);
     if (values.length !== 1) throw new Error('Module run preview requires one request.');
@@ -171,6 +191,15 @@ export function registerDesktopIpc({
       ...requireModuleAttestationRequest(values[0]),
     });
     return validatedState(await coordinator.refresh('module-attestation'));
+  });
+  ipcMain.handle(IPC_CHANNELS.observeModule, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Module observation requires one request.');
+    await moduleExecutionManager.observe({
+      ...selectedExecutionContext(),
+      ...requireModuleTargetRequest(values[0]),
+    });
+    return validatedState(await coordinator.refresh('module-observation'));
   });
   ipcMain.handle(IPC_CHANNELS.listModuleTasks, async (event, ...values) => {
     noArguments(event, values);

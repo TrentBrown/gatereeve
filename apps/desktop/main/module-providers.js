@@ -29,6 +29,10 @@ function digest(value) {
   return `sha256:${createHash('sha256').update(`${JSON.stringify(normalized(value), null, 2)}\n`).digest('hex')}`;
 }
 
+export function hashProviderExecutable(value) {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
+}
+
 function exactKeys(value, expected, label) {
   if (!isObject(value)) throw new Error(`${label} must be an object.`);
   const keys = Object.keys(value).sort();
@@ -46,7 +50,10 @@ export function hashProviderManifest(manifest) {
 export function validateProviderManifest(value) {
   exactKeys(
     value,
-    ['schemaVersion', 'id', 'version', 'digest', 'executable', 'args', 'timeoutSeconds'],
+    [
+      'schemaVersion', 'id', 'version', 'digest', 'runtime', 'executable',
+      'executableDigest', 'args', 'timeoutSeconds',
+    ],
     'Provider manifest',
   );
   if (
@@ -54,12 +61,14 @@ export function validateProviderManifest(value) {
     || !ID.test(value.id)
     || !SEMVER.test(value.version)
     || !SHA256.test(value.digest)
+    || !['native', 'electron-node'].includes(value.runtime)
     || typeof value.executable !== 'string'
     || value.executable.length === 0
     || (!isAbsolute(value.executable) && (
       value.executable.includes('\\')
       || value.executable.split('/').some((part) => ['', '.', '..'].includes(part))
     ))
+    || !SHA256.test(value.executableDigest)
     || !Array.isArray(value.args)
     || value.args.some((arg) => typeof arg !== 'string' || arg.length > 16_384)
     || !Number.isSafeInteger(value.timeoutSeconds)
@@ -82,8 +91,13 @@ function inside(root, path) {
   return path === root || path.startsWith(`${root}${sep}`);
 }
 
-export async function discoverInstalledProviders(installRoot, allowlist) {
+export async function discoverInstalledProviders(
+  installRoot,
+  allowlist,
+  { electronExecutable = process.execPath } = {},
+) {
   if (!isAbsolute(installRoot)) throw new TypeError('Provider install root must be absolute.');
+  if (!isAbsolute(electronExecutable)) throw new TypeError('Electron provider runtime must be absolute.');
   if (!Array.isArray(allowlist)) throw new TypeError('Provider allowlist must be an array.');
   const allowed = new Set(allowlist.map((selector) => {
     exactKeys(selector, ['id', 'version', 'digest'], 'Provider allowlist selector');
@@ -109,6 +123,9 @@ export async function discoverInstalledProviders(installRoot, allowlist) {
       const canonical = await realpath(path);
       if (!inside(root, canonical)) throw new Error('Manifest escapes the installed provider directory.');
       const manifest = validateProviderManifest(JSON.parse(await readFile(canonical, 'utf8')));
+      if (manifest.runtime === 'electron-node' && isAbsolute(manifest.executable)) {
+        throw new Error('Electron Node provider entrypoints must be installed provider-relative files.');
+      }
       if (!allowed.has(selectorKey(manifest))) {
         diagnostics.push({ path, status: 'not-allowlisted', providerId: manifest.id });
         continue;
@@ -128,19 +145,30 @@ export async function discoverInstalledProviders(installRoot, allowlist) {
         throw new Error('Provider executable escapes the installed provider directory.');
       }
       const executableInfo = await lstat(executablePath);
-      if (!executableInfo.isFile() || executableInfo.isSymbolicLink() || (executableInfo.mode & 0o111) === 0) {
-        throw new Error('Provider executable must be an executable regular file, not a symlink.');
+      if (
+        !executableInfo.isFile()
+        || executableInfo.isSymbolicLink()
+        || (manifest.runtime === 'native' && (executableInfo.mode & 0o111) === 0)
+      ) {
+        throw new Error(manifest.runtime === 'native'
+          ? 'Provider executable must be an executable regular file, not a symlink.'
+          : 'Provider entrypoint must be a regular file, not a symlink.');
       }
       const executable = await realpath(executablePath);
       if (!isAbsolute(manifest.executable) && !inside(root, executable)) {
         throw new Error('Provider executable escapes the installed provider directory.');
       }
+      if (hashProviderExecutable(await readFile(executable)) !== manifest.executableDigest) {
+        throw new Error('Provider executable digest does not match its manifest.');
+      }
       providers.push(Object.freeze({
         id: manifest.id,
         version: manifest.version,
         digest: manifest.digest,
-        executable,
-        args: [...manifest.args],
+        executable: manifest.runtime === 'electron-node' ? electronExecutable : executable,
+        args: manifest.runtime === 'electron-node' ? [executable, ...manifest.args] : [...manifest.args],
+        environment: manifest.runtime === 'electron-node' ? { ELECTRON_RUN_AS_NODE: '1' } : {},
+        entrypoint: executable,
         timeoutSeconds: manifest.timeoutSeconds,
         manifestPath: canonical,
         manifest: structuredClone(manifest),
@@ -171,6 +199,7 @@ function appendBounded(current, chunk, limit, label) {
 
 export function createProviderSupervisor({
   spawn = spawnProcess,
+  readExecutable = readFile,
   setTimer = setTimeout,
   clearTimer = clearTimeout,
   outputLimit = PROVIDER_OUTPUT_LIMIT,
@@ -193,7 +222,7 @@ export function createProviderSupervisor({
       ) {
         throw new ProviderRuntimeError('PROVIDER_UNAVAILABLE', 'The exact requested provider is not installed.');
       }
-      return new Promise((resolvePromise, rejectPromise) => {
+      const start = () => new Promise((resolvePromise, rejectPromise) => {
         let child;
         let stdout = '';
         let stderr = '';
@@ -210,7 +239,11 @@ export function createProviderSupervisor({
         try {
           child = spawn(provider.executable, provider.args, {
             cwd: dirname(provider.manifestPath),
-            env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '' },
+            env: {
+              PATH: process.env.PATH ?? '',
+              HOME: process.env.HOME ?? '',
+              ...(provider.environment ?? {}),
+            },
             shell: false,
             stdio: ['pipe', 'pipe', 'pipe'],
             windowsHide: true,
@@ -276,6 +309,24 @@ export function createProviderSupervisor({
           settle(new ProviderRuntimeError('PROVIDER_STDIN_FAILED', 'Provider request could not be written.', error?.message));
         }
       });
+      return Promise.resolve(readExecutable(provider.entrypoint ?? provider.executable))
+        .then((bytes) => {
+          if (hashProviderExecutable(bytes) !== manifest.executableDigest) {
+            throw new ProviderRuntimeError(
+              'PROVIDER_UNAVAILABLE',
+              'Provider executable changed after discovery.',
+            );
+          }
+          return start();
+        })
+        .catch((error) => {
+          if (error instanceof ProviderRuntimeError) throw error;
+          throw new ProviderRuntimeError(
+            'PROVIDER_UNAVAILABLE',
+            'Provider executable could not be verified before launch.',
+            error?.message ?? String(error),
+          );
+        });
     },
     close() {
       if (closed) return;

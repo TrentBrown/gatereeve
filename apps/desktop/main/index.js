@@ -112,10 +112,20 @@ async function startDesktop() {
     throw new Error('The installed provider allowlist is invalid.');
   }
   const installedProviderResult = await discoverInstalledProviders(
-    resolve(desktopRoot, 'main', 'providers'),
+    app.isPackaged
+      ? resolve(process.resourcesPath, 'app.asar.unpacked', 'main', 'providers')
+      : resolve(desktopRoot, 'main', 'providers'),
     providerAllowlist.providers,
+    { electronExecutable: process.execPath },
   );
-  const installedProviders = installedProviderResult.providers;
+  const installedProviders = installedProviderResult.providers.map((provider) => Object.freeze({
+    ...provider,
+    environment: {
+      ...provider.environment,
+      GATEREEVE_GIT_EXECUTABLE: executables.git,
+      GATEREEVE_GH_EXECUTABLE: executables.gh,
+    },
+  }));
   const bundledSkillIds = bundledModel.moduleGraph.modules
     .filter((module) => module.run?.kind === 'skill')
     .map((module) => module.run.skillId);
