@@ -20,4 +20,13 @@
 
 ## PR Log
 
-Append PR boundary entries here.
+### PR #61 - Module protocol foundation
+
+- Pull request: [#61](https://github.com/TrentBrown/gatereeve/pull/61)
+- Evidence packet: [pr-61](pr-61/boundary.json)
+- Scope: slice (P1-P3; R1, R2, R3, R6, R7)
+
+The slice implementation is committed at `c538b6c`, with deterministic module
+resolution, built-in boundary parity, project manifest/policy validation,
+feature-lock and attempt pinning, and migration impact ready for formal gate
+evaluation.

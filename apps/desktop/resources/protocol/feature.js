@@ -180,6 +180,12 @@ function moduleDescriptors(model) {
   }));
 }
 
+function boundarySnapshot(model) {
+  return model.moduleGraph
+    ? { moduleGraph: structuredClone(model.moduleGraph) }
+    : { boundary: structuredClone(model.boundary) };
+}
+
 function moduleMigration(currentModel, nextModel) {
   const current = new Map(moduleDescriptors(currentModel).map((module) => [module.id, module]));
   const next = new Map(moduleDescriptors(nextModel).map((module) => [module.id, module]));
@@ -285,7 +291,10 @@ export async function migrateFeatureModel({
     type: 'MODEL_MIGRATED',
     modelHash: nextLock.modelHash,
     actor: confirmedBy,
-    payload: impact,
+    payload: {
+      ...impact,
+      previousBoundary: boundarySnapshot(record.modelLock.model),
+    },
     recordedAt,
     ...(eventId ? { eventId } : {}),
   });

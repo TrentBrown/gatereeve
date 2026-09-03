@@ -9,12 +9,12 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Define the module schemas and deterministic resolver
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P1, P2
 - **Rubric criteria:** R1, R3, R7
 - **Depends on:** none
-- **PR:** -
+- **PR:** [#61](https://github.com/TrentBrown/gatereeve/pull/61)
 
 Add schemas, fixtures, canonical hashing, local definition discovery, tracked
 policy resolution, DAG validation, full feature pinning, readiness distinction,
@@ -22,12 +22,12 @@ and explicit migration-impact behavior.
 
 ## I-2 - Convert existing PR gates to declarative built-ins
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P3
 - **Rubric criteria:** R2, R3, R6
 - **Depends on:** I-1
-- **PR:** -
+- **PR:** [#61](https://github.com/TrentBrown/gatereeve/pull/61)
 
 Represent the complete current boundary with module definitions, preserve its
 locked envelope and existing semantics, and prove canonical CLI/plugin/Desktop

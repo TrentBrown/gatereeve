@@ -147,7 +147,39 @@ function dependencyOrdering(definitions) {
   }));
 }
 
-function createAttempt(model, slice, event) {
+function boundaryModelFromSnapshot(model, snapshot, event) {
+  if (snapshot?.moduleGraph !== undefined && snapshot?.boundary === undefined) {
+    validateResolvedModuleGraph(snapshot.moduleGraph);
+    return { ...model, moduleGraph: snapshot.moduleGraph };
+  }
+  if (snapshot?.boundary !== undefined && snapshot?.moduleGraph === undefined) {
+    if (!Array.isArray(snapshot.boundary?.gates) || snapshot.boundary.gates.length === 0) {
+      throw new ContractError(
+        `Event ${event.eventId} has an invalid legacy boundary snapshot`
+      );
+    }
+    return { ...model, moduleGraph: undefined, boundary: snapshot.boundary };
+  }
+  throw new ContractError(`Event ${event.eventId} has an invalid boundary snapshot`);
+}
+
+function historicalBoundarySnapshots(events) {
+  const snapshots = new Map();
+  for (const event of events) {
+    if (event.type !== 'MODEL_MIGRATED' || event.payload.previousBoundary === undefined) {
+      continue;
+    }
+    const modelHash = event.payload.fromModelHash;
+    const existing = snapshots.get(modelHash);
+    if (existing !== undefined && JSON.stringify(existing) !== JSON.stringify(event.payload.previousBoundary)) {
+      throw new ContractError(`Model ${modelHash} has conflicting boundary snapshots`);
+    }
+    snapshots.set(modelHash, event.payload.previousBoundary);
+  }
+  return snapshots;
+}
+
+function createAttempt(model, slice, event, boundarySnapshots) {
   const attemptId = event.payload.attemptId;
   if (typeof attemptId !== 'string' || attemptId.length === 0) {
     throw new ContractError(`Event ${event.eventId} has an invalid boundary attemptId`);
@@ -155,14 +187,12 @@ function createAttempt(model, slice, event) {
   if (!BOUNDARY_SCOPES.includes(event.payload.scope)) {
     throw new ContractError(`Event ${event.eventId} has an invalid boundary scope`);
   }
-  if (event.payload.moduleGraph !== undefined) {
-    validateResolvedModuleGraph(event.payload.moduleGraph);
-  }
-  const definitions = boundaryGateDefinitions(
-    event.payload.moduleGraph === undefined
-      ? model
-      : { ...model, moduleGraph: event.payload.moduleGraph }
-  );
+  const attemptModel = event.payload.moduleGraph !== undefined
+    ? boundaryModelFromSnapshot(model, { moduleGraph: event.payload.moduleGraph }, event)
+    : boundarySnapshots.has(event.modelHash)
+      ? boundaryModelFromSnapshot(model, boundarySnapshots.get(event.modelHash), event)
+      : model;
+  const definitions = boundaryGateDefinitions(attemptModel);
   const ordering = dependencyOrdering(definitions);
   return {
     id: attemptId,
@@ -422,6 +452,7 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
   const boundaryAttempts = [];
   const acceptedReviews = new Set();
   const changes = new Map();
+  const boundarySnapshots = historicalBoundarySnapshots(events);
 
   for (const [index, event] of events.entries()) {
     if (index === 0) continue;
@@ -535,7 +566,7 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
           if (typeof attemptId !== 'string' || boundaryAttempts.some((item) => item.id === attemptId)) {
             throw new ContractError(`Event ${event.eventId} has an invalid boundary attemptId`);
           }
-          const attempt = createAttempt(model, slice, event);
+          const attempt = createAttempt(model, slice, event, boundarySnapshots);
           boundaryAttempts.push(attempt);
           slice.activeAttemptId = attemptId;
         }

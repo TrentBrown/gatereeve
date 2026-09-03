@@ -470,7 +470,7 @@ export function resolveModuleGraph({ definitions, policy, availability = null })
     }
   }
 
-  const modules = stableTopologicalOrder(selectedDefinitions);
+  const modules = stableTopologicalOrder(selectedDefinitions, { enabledIds });
   const boundaryGateIds = new Set();
   for (const module of modules.filter((item) => item.slot === 'boundary.evaluation' && enabledIds.has(item.id))) {
     const gateId = module.boundary.gateId;

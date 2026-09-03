@@ -259,6 +259,23 @@ test('locked modules remain enabled while conditional predecessors can be disabl
     }),
     /requires disabled dependency gatereeve\/verification/
   );
+
+  const conditionallyOrdered = definition({
+    id: 'example/conditionally-ordered',
+    after: ['example/disabled-predecessor'],
+  });
+  const disabledPredecessor = definition({ id: 'example/disabled-predecessor' });
+  const conditionalGraph = resolveModuleGraph({
+    definitions: [conditionallyOrdered, disabledPredecessor],
+    policy: policy(
+      [conditionallyOrdered, disabledPredecessor],
+      new Map([[disabledPredecessor.id, false]])
+    ),
+  });
+  assert.deepEqual(
+    conditionalGraph.modules.map((module) => module.id),
+    [conditionallyOrdered.id, disabledPredecessor.id]
+  );
 });
 
 test('project discovery pins selected manifests and reports readiness separately', async () => {
@@ -412,4 +429,87 @@ test('boundary attempts retain their pinned module graph after a model migration
     true
   );
   assert.equal(after.model.version, '1.1.1');
+});
+
+test('legacy boundary attempts retain their pinned boundary after migration to modules', async () => {
+  const root = await mkdtemp(resolve(tmpdir(), 'gatereeve legacy module history '));
+  const featureHome = resolve(root, 'docs', 'issues', 'legacy-module-history');
+  const agent = { kind: 'agent', label: 'legacy module test' };
+  const human = { kind: 'human-confirmed', label: 'legacy module test user' };
+  const legacyModel = structuredClone(await loadDefaultModel());
+  const legacyGates = boundaryGateDefinitions(legacyModel);
+  legacyModel.modelVersion = '1.0.0';
+  legacyModel.boundary.gates = legacyGates.map((gate) => ({
+    id: gate.id,
+    dependsOn: gate.dependsOn,
+    optional: gate.optional,
+    waiverAllowed: gate.waiverAllowed,
+    guards: gate.guards,
+  }));
+  legacyModel.boundary.scopeRouting = Object.fromEntries(
+    ['SLICE', 'FEATURE_FINAL'].map((scope) => [
+      scope,
+      Object.fromEntries(legacyGates.map((gate) => [gate.id, gate.evaluationScope[scope]])),
+    ])
+  );
+  delete legacyModel.moduleGraph;
+
+  await initializeFeature({
+    featureHome,
+    featureId: 'legacy-module-history',
+    actor: agent,
+    model: legacyModel,
+  });
+  await recordFeatureTransition(featureHome, 'approve-design', { actor: human });
+  await recordFeatureTransition(featureHome, 'validate-spec', {
+    actor: agent,
+    facts: { specValidationCurrent: true },
+  });
+  await recordFeatureTransition(featureHome, 'authorize-plan', { actor: human });
+  await proposeSlice(featureHome, { sliceId: 'slice-1', actor: agent });
+  await recordSliceTransition(featureHome, 'plan-slice', 'slice-1', { actor: agent });
+  await recordSliceTransition(featureHome, 'start-slice', 'slice-1', {
+    actor: agent,
+    facts: { sliceReadinessCurrent: true },
+  });
+  await recordSliceTransition(featureHome, 'begin-boundary', 'slice-1', {
+    actor: agent,
+    payload: { attemptId: 'legacy-attempt', scope: 'SLICE' },
+  });
+
+  const before = await readFeatureRecord(featureHome);
+  const boundaryEvent = before.events.find((event) => event.type === 'BOUNDARY_STARTED');
+  assert.equal(boundaryEvent.payload.moduleGraph, undefined);
+
+  const moduleModel = await loadDefaultModel();
+  const graph = resolveModuleGraph({
+    definitions: moduleModel.moduleGraph.modules,
+    policy: policy(moduleModel.moduleGraph.modules, new Map([['gatereeve/judge', false]])),
+  });
+  moduleModel.modelVersion = '1.1.1';
+  moduleModel.moduleGraph = {
+    schemaVersion: graph.schemaVersion,
+    policyDigest: graph.policyDigest,
+    modules: graph.modules,
+    enabledModuleIds: graph.enabledModuleIds,
+  };
+  const migrated = await migrateFeatureModel({
+    featureHome,
+    nextModel: moduleModel,
+    confirmedBy: human,
+    eventId: 'evt-legacy-to-modules',
+  });
+  assert.deepEqual(
+    migrated.events.at(-1).payload.previousBoundary,
+    { boundary: legacyModel.boundary }
+  );
+
+  const after = projectRecord(await readFeatureRecord(featureHome));
+  const attempt = after.boundaryAttempts.find((item) => item.id === 'legacy-attempt');
+  assert.equal(attempt.gates.some((gate) => gate.id === 'judge'), true);
+  assert.equal(attempt.gates.every((gate) => gate.moduleVersion === null), true);
+  assert.equal(
+    attempt.gates[0].blockers.some((blocker) => blocker.type === 'model-migration'),
+    true
+  );
 });

@@ -115,3 +115,19 @@ from two models even when only one named module appeared to change.
   fingerprints include the old model hash.
 - Allow new outcomes on the old attempt using the new model hash - rejected
   because one attempt would then contain evidence from two governing models.
+
+## [5] Carry the prior boundary contract through model migration
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Model-migration event payloads, legacy boundary-attempt replay, projection validation, staged Desktop protocol resources, and migration tests
+
+Each newly recorded MODEL_MIGRATED event carries a previousBoundary snapshot for its fromModelHash. Projection uses that snapshot only for older boundary-start events that lack an attempt-local module graph. Module-backed attempts continue to prefer their own embedded graph. This keeps the append-only journal intact while preserving legacy gate inventory, module identity, and evidence attribution across migration.
+
+**Triggered by:** Independent PR review showed that a legacy BOUNDARY_STARTED event has no embedded module graph and would otherwise be reconstructed from the replacement model after migration
+
+**Alternatives considered:**
+Store all historical models in the current lock - rejected because the attempt only needs the governing boundary contract and changing lock shape would widen the slice. Rewrite earlier boundary events during migration - rejected because the journal is append-only. Reject migrations after any legacy attempt - rejected because it prevents the approved explicit migration path rather than preserving history.
+
