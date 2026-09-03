@@ -65,7 +65,7 @@ native Apple Silicon and Intel packaged-runtime jobs.
 - Scope: slice (P6-P7; R5, R6)
 - Pull request: [#63](https://github.com/TrentBrown/gatereeve/pull/63)
 - Evidence packet: [pr-63](pr-63/boundary.json)
-- Status: human review accepted; approved for merge
+- Outcome: merged as `76f627928a84071b524c87772fd42f0680d9b85a`
 
 This slice adds validated skill/manual/command adapters, supervised provider
 observation, explicit local command authorization, and dedicated module task
@@ -78,3 +78,16 @@ on Apple Silicon and Intel/Rosetta. The Linux host cannot launch Electron becaus
 assigned to P10 as already planned. The independent judge and code review pass
 with no unresolved finding; the optional pattern gate is explicitly waived
 because GateReeve has no configured rule scope.
+
+### Slice 4 - Finalization and GateReeve Release
+
+- Delivery branch: `tb-workflow-modules-04-finalization-release`
+- Scope: feature-final (P8-P10; R1-R8)
+- Status: implementing
+
+This final delivery slice starts from the merged PR #63 mainline. It will add
+generic feature-finalization attempts and completion passage, ship the
+`gatereeve/release` module with its `gatereeve/release-conductor` installed
+provider, run complete feature verification, merge the final source, and retain
+the real post-merge release and installation evidence required before the
+feature can complete.
