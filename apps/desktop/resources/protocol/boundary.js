@@ -5,7 +5,7 @@ import {
   validateEvidenceReference,
 } from './fingerprint.js';
 import { readFeatureRecord } from './feature.js';
-import { appendEvent, createEvent } from './journal.js';
+import { appendProjectedEvent, createEvent } from './journal.js';
 import { projectRecord } from './projection.js';
 import { recordSliceTransition } from './transitions.js';
 
@@ -78,7 +78,7 @@ async function appendGateEvent(
     eventId,
     recordedAt,
   });
-  await appendEvent(record.featureHome, event, {
+  await appendProjectedEvent(record, event, {
     currentModelHash: record.modelLock.modelHash,
   });
   return event;
@@ -226,7 +226,7 @@ export async function invalidateGates(
     eventId,
     recordedAt,
   });
-  await appendEvent(featureHome, event, { currentModelHash: record.modelLock.modelHash });
+  await appendProjectedEvent(record, event, { currentModelHash: record.modelLock.modelHash });
   return { event, projection: projectRecord(await readFeatureRecord(featureHome)) };
 }
 

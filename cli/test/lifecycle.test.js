@@ -149,6 +149,36 @@ test('many slices may be planned but only one may be active', async () => {
   assert.equal(projection.journal.eventCount, before);
 });
 
+test('semantic event rejection leaves the journal unchanged', async () => {
+  const featureHome = await createFeature();
+  await enterDelivery(featureHome);
+  await proposeSlice(featureHome, {
+    sliceId: 'slice-1',
+    scope: 'FEATURE_FINAL',
+    actor: agent,
+    eventId: 'evt-05-propose',
+  });
+  await recordSliceTransition(featureHome, 'plan-slice', 'slice-1', {
+    actor: agent,
+    eventId: 'evt-06-plan',
+  });
+  await recordSliceTransition(featureHome, 'start-slice', 'slice-1', {
+    actor: agent,
+    facts: { sliceReadinessCurrent: true },
+    eventId: 'evt-07-start',
+  });
+  const before = (await readFeatureRecord(featureHome)).events.length;
+  await assert.rejects(
+    recordSliceTransition(featureHome, 'begin-boundary', 'slice-1', {
+      actor: agent,
+      payload: { attemptId: 'attempt-without-scope' },
+      eventId: 'evt-invalid-semantic-boundary',
+    }),
+    /invalid boundary scope/
+  );
+  assert.equal((await readFeatureRecord(featureHome)).events.length, before);
+});
+
 test('pause preserves lifecycle position and blocks ordinary passage until resume', async () => {
   const featureHome = await createFeature();
   await enterDelivery(featureHome);

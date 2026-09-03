@@ -1,7 +1,7 @@
 import { ContractError, TransitionRejectedError } from './errors.js';
 import { validateEvidenceReference } from './fingerprint.js';
 import { readFeatureRecord } from './feature.js';
-import { appendEvent, createEvent } from './journal.js';
+import { appendProjectedEvent, createEvent } from './journal.js';
 import { projectRecord } from './projection.js';
 
 function actorSatisfies(authority, actor) {
@@ -81,7 +81,7 @@ export async function proposeChange(
     eventId,
     recordedAt,
   });
-  await appendEvent(featureHome, event, { currentModelHash: record.modelLock.modelHash });
+  await appendProjectedEvent(record, event, { currentModelHash: record.modelLock.modelHash });
   return { event, projection: projectRecord(await readFeatureRecord(featureHome)) };
 }
 
@@ -168,7 +168,7 @@ export async function recordChangeTransition(
     eventId,
     recordedAt,
   });
-  await appendEvent(featureHome, event, { currentModelHash: record.modelLock.modelHash });
+  await appendProjectedEvent(record, event, { currentModelHash: record.modelLock.modelHash });
   return { event, projection: projectRecord(await readFeatureRecord(featureHome)) };
 }
 
@@ -214,6 +214,6 @@ export async function reauthorizeImplementation(
     eventId,
     recordedAt,
   });
-  await appendEvent(featureHome, event, { currentModelHash: record.modelLock.modelHash });
+  await appendProjectedEvent(record, event, { currentModelHash: record.modelLock.modelHash });
   return { event, projection: projectRecord(await readFeatureRecord(featureHome)) };
 }

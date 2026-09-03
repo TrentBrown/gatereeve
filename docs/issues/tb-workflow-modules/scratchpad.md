@@ -335,3 +335,31 @@ not bind executed code.
 - Require a system Node executable - rejected because the signed Desktop
   already ships a compatible runtime and Finder-launched applications cannot
   rely on shell PATH state.
+
+## [14] Validate candidate journals before atomic append
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** All protocol mutation entry points, append-only journal
+integrity, and recovery from malformed semantic payloads.
+
+Every ordinary protocol mutation now projects the complete candidate journal in
+memory before `appendEvent` atomically replaces `events.jsonl`. Structural
+`appendEvent` remains available as the low-level journal primitive, but
+transitions, gates, finalization modules, and change events use
+`appendProjectedEvent` so a replay-invalid event cannot poison the durable
+feature record.
+
+**Triggered by:** The installed RC.11 boundary adapter appended a structurally valid BOUNDARY_STARTED event lacking its required scope, then discovered the semantic failure only while rereading the record.
+
+**Alternatives considered:**
+- Repair invalid journals after append - rejected because an append-only
+  authority should reject invalid state before persistence rather than depend
+  on recovery surgery.
+- Add a one-off boundary scope check - rejected because the same
+  append-then-project pattern existed across multiple mutation families.
+- Move all projection validation into `appendEvent` without a record argument -
+  rejected because the low-level primitive does not own the model lock and
+  historical model context needed for semantic replay.

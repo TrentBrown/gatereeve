@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { EVENT_SCHEMA_VERSION, EVENT_TYPES } from './constants.js';
 import { ContractError, ProtocolError } from './errors.js';
 import { normalizeValue, validateEvent } from './model.js';
+import { projectRecord } from './projection.js';
 import { atomicReplaceFile } from './storage.js';
 
 export const JOURNAL_FILE = 'events.jsonl';
@@ -193,4 +194,9 @@ export async function appendEvent(
     await atomicReplaceFile(resolve(featureHome, JOURNAL_FILE), serializeJournal(updated));
     return updated;
   });
+}
+
+export async function appendProjectedEvent(record, event, options = {}) {
+  projectRecord({ ...record, events: [...record.events, event] });
+  return appendEvent(record.featureHome, event, options);
 }

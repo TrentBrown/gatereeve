@@ -4,7 +4,7 @@ import { GATE_OUTCOMES } from './constants.js';
 import { ContractError, TransitionRejectedError } from './errors.js';
 import { gateInputFingerprint, validateEvidenceReference } from './fingerprint.js';
 import { readFeatureRecord } from './feature.js';
-import { createEvent, appendEvent } from './journal.js';
+import { appendProjectedEvent, createEvent } from './journal.js';
 import { finalizationModuleDefinitions } from './modules.js';
 import { projectRecord } from './projection.js';
 import { recordFeatureTransition } from './transitions.js';
@@ -101,7 +101,7 @@ export async function startFeatureFinalization(featureHome, {
     eventId,
     recordedAt,
   });
-  await appendEvent(featureHome, event, { currentModelHash: record.modelLock.modelHash });
+  await appendProjectedEvent(record, event, { currentModelHash: record.modelLock.modelHash });
   return { event, projection: projectRecord(await readFeatureRecord(featureHome)) };
 }
 
@@ -153,7 +153,7 @@ async function appendResult(featureHome, {
     eventId: eventId ?? `evt-${randomUUID()}`,
     recordedAt,
   });
-  await appendEvent(featureHome, event, { currentModelHash: record.modelLock.modelHash });
+  await appendProjectedEvent(record, event, { currentModelHash: record.modelLock.modelHash });
   return {
     event,
     inputFingerprint,
@@ -230,7 +230,7 @@ export async function invalidateFinalizationModules(featureHome, {
     eventId,
     recordedAt,
   });
-  await appendEvent(featureHome, event, { currentModelHash: record.modelLock.modelHash });
+  await appendProjectedEvent(record, event, { currentModelHash: record.modelLock.modelHash });
   return { event, projection: projectRecord(await readFeatureRecord(featureHome)) };
 }
 

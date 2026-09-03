@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { GUARD_DESCRIPTORS } from './guards.js';
-import { appendEvent, createEvent } from './journal.js';
+import { appendProjectedEvent, createEvent } from './journal.js';
 import { projectRecord, projectionFacts } from './projection.js';
 import { readFeatureRecord } from './feature.js';
 import { ProtocolError, TransitionRejectedError } from './errors.js';
@@ -129,7 +129,7 @@ async function appendPassage(record, transition, actor, guards, payload, options
     recordedAt: options.recordedAt,
     eventId: options.eventId,
   });
-  await appendEvent(record.featureHome, event, {
+  await appendProjectedEvent(record, event, {
     featureId: event.featureId,
     allowedModelHashes: new Set([record.modelLock.modelHash]),
   });
@@ -235,7 +235,7 @@ export async function proposeSlice(
     recordedAt,
     eventId,
   });
-  await appendEvent(featureHome, event, { allowedModelHashes: new Set([record.modelLock.modelHash]) });
+  await appendProjectedEvent(record, event, { allowedModelHashes: new Set([record.modelLock.modelHash]) });
   const updated = await readFeatureRecord(featureHome);
   return { event, projection: projectRecord(updated) };
 }
@@ -322,7 +322,7 @@ async function recordOverlay(
     recordedAt,
     eventId,
   });
-  await appendEvent(featureHome, event, { allowedModelHashes: new Set([record.modelLock.modelHash]) });
+  await appendProjectedEvent(record, event, { allowedModelHashes: new Set([record.modelLock.modelHash]) });
   const updated = await readFeatureRecord(featureHome);
   return { event, projection: projectRecord(updated) };
 }
