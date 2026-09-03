@@ -64,12 +64,12 @@ states, responsive behavior, and accessibility. This completes delivery slice 2.
 
 ## I-5 - Add run adapters and provider process supervision
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P6
 - **Rubric criteria:** R5, R6
 - **Depends on:** I-2
-- **PR:** -
+- **PR:** [#63](https://github.com/TrentBrown/gatereeve/pull/63)
 
 Define skill/manual/command adapters and the allowlisted JSON-over-stdio provider
 contract, including discovery, normalization, supervision, adversarial handling,
@@ -77,12 +77,12 @@ and protocol-validated automatic outcomes.
 
 ## I-6 - Add command authorization and task terminal sessions
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 3d
 - **Plan steps:** P7
 - **Rubric criteria:** R5, R6
 - **Depends on:** I-3, I-5
-- **PR:** -
+- **PR:** [#63](https://github.com/TrentBrown/gatereeve/pull/63)
 
 Implement informed-consent storage, exact detectable-input invalidation,
 multi-session PTY presentation, bounded attempt evidence, cancellation/timeout,
