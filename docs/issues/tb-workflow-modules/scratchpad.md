@@ -8,7 +8,7 @@ entries are appended to `decisions.md`.
 
 ## [1] Separate module identity from boundary outcome keys
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -35,7 +35,7 @@ CLI key during a behavior-preserving slice.
 
 ## [2] Distinguish hard dependencies from conditional ordering
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -65,7 +65,7 @@ hard dependency would make those checkboxes impossible to turn off.
 
 ## [3] Pin the resolved graph on each boundary attempt
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -92,7 +92,7 @@ versions in historical evidence.
 
 ## [4] Treat model migration as an attempt boundary
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -118,7 +118,7 @@ from two models even when only one named module appeared to change.
 
 ## [5] Carry the prior boundary contract through model migration
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -130,4 +130,3 @@ Each newly recorded MODEL_MIGRATED event carries a previousBoundary snapshot for
 
 **Alternatives considered:**
 Store all historical models in the current lock - rejected because the attempt only needs the governing boundary contract and changing lock shape would widen the slice. Rewrite earlier boundary events during migration - rejected because the journal is append-only. Reject migrations after any legacy attempt - rejected because it prevents the approved explicit migration path rather than preserving history.
-

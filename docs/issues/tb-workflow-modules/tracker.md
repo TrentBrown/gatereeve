@@ -26,7 +26,8 @@
 - Evidence packet: [pr-61](pr-61/boundary.json)
 - Scope: slice (P1-P3; R1, R2, R3, R6, R7)
 
-The slice implementation is committed at `c538b6c`, with deterministic module
-resolution, built-in boundary parity, project manifest/policy validation,
-feature-lock and attempt pinning, and migration impact ready for formal gate
-evaluation.
+The corrected slice source is committed through `4878343`, with deterministic
+module resolution, built-in boundary parity, project manifest/policy
+validation, feature-lock and attempt pinning, and migration impact ready for
+formal gate evaluation. The first boundary attempt exposed and remediated a
+legacy-attempt replay defect; the second attempt evaluates that correction.
