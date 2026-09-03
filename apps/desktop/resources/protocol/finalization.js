@@ -11,6 +11,18 @@ import { recordFeatureTransition } from './transitions.js';
 
 const SHA1 = /^[0-9a-f]{40}$/u;
 
+export function recordedFeatureFinalMergeSha(record) {
+  const event = record.events.findLast((item) => (
+    item.type === 'SLICE_MERGE_RECORDED' && item.payload?.featureFinal === true
+  ));
+  const values = [event?.payload?.integrationSha, event?.payload?.mergeCommitSha]
+    .filter((value) => SHA1.test(value));
+  if (new Set(values).size > 1) {
+    throw new ContractError('The recorded feature-final merge has conflicting commit identities');
+  }
+  return values[0] ?? null;
+}
+
 function currentAttempt(projection, attemptId) {
   const attempt = projection.finalizationAttempts.find((item) => item.id === attemptId);
   if (!attempt || attempt.state !== 'ACTIVE') {
@@ -80,13 +92,11 @@ export async function startFeatureFinalization(featureHome, {
   ) {
     throw new TransitionRejectedError(`Duplicate finalization attempt ${attemptId}`);
   }
-  if (projection.finalizationAttempts.some((attempt) => attempt.state === 'ACTIVE')) {
+  const activeAttempt = projection.finalizationAttempts.find((attempt) => attempt.state === 'ACTIVE');
+  if (activeAttempt && activeAttempt.modelHash === record.modelLock.modelHash) {
     throw new TransitionRejectedError('A finalization attempt is already active');
   }
-  const finalMerge = record.events.findLast((event) => (
-    event.type === 'SLICE_MERGE_RECORDED' && event.payload?.featureFinal === true
-  ));
-  if (!finalMerge || finalMerge.payload.integrationSha !== mergeInputSha) {
+  if (recordedFeatureFinalMergeSha(record) !== mergeInputSha) {
     throw new TransitionRejectedError('Finalization merge input must match the recorded feature-final merge');
   }
   const moduleGraph = record.modelLock.model.moduleGraph;

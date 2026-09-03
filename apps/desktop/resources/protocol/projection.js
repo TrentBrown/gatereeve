@@ -191,6 +191,24 @@ function historicalBoundarySnapshots(events) {
   return snapshots;
 }
 
+function modelForEvent(model, currentModelHash, snapshots, event) {
+  if (event.modelHash === currentModelHash) return model;
+  const snapshot = snapshots.get(event.modelHash);
+  if (snapshot === undefined) {
+    throw new ContractError(`Event ${event.eventId} has no retained model snapshot`);
+  }
+  return boundaryModelFromSnapshot(model, snapshot, event);
+}
+
+function featureFinalMergeSha(payload, event) {
+  const values = [payload.integrationSha, payload.mergeCommitSha]
+    .filter((value) => /^[0-9a-f]{40}$/u.test(value));
+  if (new Set(values).size > 1) {
+    throw new ContractError(`Event ${event.eventId} has conflicting feature-final merge commits`);
+  }
+  return values[0] ?? null;
+}
+
 function createAttempt(model, slice, event, boundarySnapshots) {
   const attemptId = event.payload.attemptId;
   if (typeof attemptId !== 'string' || attemptId.length === 0) {
@@ -709,6 +727,12 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
       case 'FEATURE_FINALIZED': {
         const transition = transitionFor(model.feature, featureState, event);
         if (event.type === 'FEATURE_FINALIZED') {
+          const eventModel = modelForEvent(
+            model,
+            modelLock.modelHash,
+            boundarySnapshots,
+            event,
+          );
           const attempt = finalizationAttempts.find((item) => item.id === event.payload.finalizationAttemptId);
           const blockingAtCompletion = [...changes.values()]
             .filter((change) => !['REJECTED', 'VALIDATED', 'SUPERSEDED'].includes(change.state))
@@ -721,7 +745,7 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
             event.modelHash,
           );
           const zeroModuleCloseout = !attempt
-            && finalizationModuleDefinitions(model).length === 0
+            && finalizationModuleDefinitions(eventModel).length === 0
             && !paused
             && blockingAtCompletion.length === 0;
           const ready = zeroModuleCloseout || attempt?.requiredCurrentAndNonblocking === true;
@@ -870,15 +894,20 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
           if (attempt) attempt.state = 'MERGED';
           slice.activeAttemptId = null;
           if (event.payload.featureFinal === true) {
-            const hasFinalizationModules = finalizationModuleDefinitions(model).length > 0;
-            if (hasFinalizationModules && !/^[0-9a-f]{40}$/u.test(event.payload.integrationSha)) {
+            const eventModel = modelForEvent(
+              model,
+              modelLock.modelHash,
+              boundarySnapshots,
+              event,
+            );
+            const hasFinalizationModules = finalizationModuleDefinitions(eventModel).length > 0;
+            const mergeInputSha = featureFinalMergeSha(event.payload, event);
+            if (hasFinalizationModules && mergeInputSha === null) {
               throw new ContractError(
                 `Event ${event.eventId} lacks the feature-final integration commit required by finalization modules`
               );
             }
-            featureFinalMergeInputSha = /^[0-9a-f]{40}$/u.test(event.payload.integrationSha)
-              ? event.payload.integrationSha
-              : null;
+            featureFinalMergeInputSha = mergeInputSha;
             const passage = event.payload.featurePassage;
             const transition = transitionFor(model.feature, featureState, event, passage);
             featureState = transition.to;
@@ -904,11 +933,13 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
         break;
       case 'FEATURE_FINALIZATION_STARTED': {
         assertActorAuthority(event, 'agent');
+        const activeAttempt = finalizationAttempts.find((item) => item.state === 'ACTIVE');
         if (
           featureState !== 'FINALIZING'
           || paused
           || boundaryAttempts.some((item) => item.id === event.payload.attemptId)
           || finalizationAttempts.some((item) => item.id === event.payload.attemptId)
+          || (activeAttempt && activeAttempt.modelHash === event.modelHash)
         ) {
           throw new ContractError(`Event ${event.eventId} cannot start feature finalization`);
         }

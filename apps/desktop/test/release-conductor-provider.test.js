@@ -12,6 +12,7 @@ import {
 
 const SOURCE = 'b'.repeat(40);
 const MERGE = 'a'.repeat(40);
+const SECOND_MERGE = '8'.repeat(40);
 const DIGEST = `sha256:${'c'.repeat(64)}`;
 const DMG = 'd'.repeat(64);
 
@@ -77,7 +78,7 @@ function request(mergeInputSha = MERGE, featureId = 'feature-one') {
   };
 }
 
-function github(records, { contains = true, expired = false } = {}) {
+function github(records, { contains = true, expired = false, divergedMerge = null } = {}) {
   const artifacts = records.map((state, index) => ({
     id: 2000 + index,
     name: conductorStateArtifactName(state),
@@ -107,8 +108,16 @@ function github(records, { contains = true, expired = false } = {}) {
       }
       if (args.at(-1)?.includes('/compare/')) {
         const comparison = args.at(-1);
-        if (comparison.includes(`${MERGE}...${SOURCE}`)) return { status: contains ? 'ahead' : 'diverged' };
-        return { status: 'ahead' };
+        if (comparison === `/repos/TrentBrown/gatereeve/compare/${SOURCE}...${'9'.repeat(40)}`) {
+          return { status: 'ahead' };
+        }
+        if ([MERGE, SECOND_MERGE].some((merge) => (
+          comparison === `/repos/TrentBrown/gatereeve/compare/${merge}...${SOURCE}`
+        ))) {
+          const merge = comparison.split('/compare/').at(-1).split('...')[0];
+          return { status: contains && merge !== divergedMerge ? 'ahead' : 'diverged' };
+        }
+        throw new Error(`Unexpected comparison ${comparison}`);
       }
       throw new Error(`Unexpected JSON command ${args.join(' ')}`);
     },
@@ -119,12 +128,22 @@ test('terminal conductor evidence passes every feature whose final merge is cont
   const records = chain();
   const adapters = github(records);
   const first = await observeReleaseConductor(request(MERGE, 'feature-one'), adapters);
-  const second = await observeReleaseConductor(request(MERGE, 'feature-two'), adapters);
+  const second = await observeReleaseConductor(request(SECOND_MERGE, 'feature-two'), adapters);
   assert.equal(first.outcome, 'PASS');
   assert.equal(second.outcome, 'PASS');
   assert.equal(first.evidence.releaseSourceCommit, SOURCE);
+  assert.equal(second.evidence.featureMergeInputSha, SECOND_MERGE);
   assert.equal(first.live.stages.at(-1).id, 'COMPLETE');
   assert.equal(first.live.attempts[0].recordedAt, '2026-09-03T10:00:00.000Z');
+});
+
+test('terminal conductor evidence does not satisfy a distinct divergent feature merge', async () => {
+  const result = await observeReleaseConductor(
+    request(SECOND_MERGE, 'feature-two'),
+    github(chain(), { divergedMerge: SECOND_MERGE }),
+  );
+  assert.equal(result.outcome, null);
+  assert.equal(result.evidence, null);
 });
 
 test('nonterminal, wrong-source, and expired conductor evidence never passes', async () => {

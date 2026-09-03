@@ -262,9 +262,17 @@ export async function recordSliceTransition(
   if (!preflight.eligible) reject(preflight);
   let featurePassage = null;
   if (transitionId === 'record-merge' && payload.featureFinal === true) {
+    const mergeInputShas = [payload.integrationSha, payload.mergeCommitSha]
+      .filter((value) => /^[0-9a-f]{40}$/u.test(value));
+    if (new Set(mergeInputShas).size > 1) {
+      throw new ProtocolError(
+        'FINALIZATION_MERGE_INPUT_CONFLICT',
+        'Feature-final integration and legacy merge commits must identify the same commit'
+      );
+    }
     if (
       finalizationModuleDefinitions(record.modelLock.model).length > 0
-      && !/^[0-9a-f]{40}$/u.test(payload.integrationSha)
+      && mergeInputShas.length === 0
     ) {
       throw new ProtocolError(
         'FINALIZATION_MERGE_INPUT_REQUIRED',

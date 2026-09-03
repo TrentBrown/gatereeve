@@ -83,11 +83,14 @@ because GateReeve has no configured rule scope.
 
 - Delivery branch: `tb-workflow-modules-04-finalization-release`
 - Scope: feature-final (P8-P10; R1-R8)
-- Status: implementing
+- Pull request: [#64](https://github.com/TrentBrown/gatereeve/pull/64)
+- Evidence packet: [pr-64](pr-64/boundary.json)
+- Status: PR boundary; post-merge release proof remains pending
 
-This final delivery slice starts from the merged PR #63 mainline. It will add
-generic feature-finalization attempts and completion passage, ship the
-`gatereeve/release` module with its `gatereeve/release-conductor` installed
-provider, run complete feature verification, merge the final source, and retain
-the real post-merge release and installation evidence required before the
-feature can complete.
+This final delivery slice starts from the merged PR #63 mainline. Its pinned
+source adds generic feature-finalization attempts and completion passage, ships
+the `gatereeve/release` module with its `gatereeve/release-conductor` installed
+provider, and passes the complete local feature verification matrix. The real
+hosted release, publication, installation, and smoke evidence required by R8 is
+intentionally unavailable before merge and remains an explicit post-merge
+finalization obligation rather than a pre-merge waiver.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:7c05581310198be2c099083fcba43c118471889948855344c7598406804ca8c5",
+  "protocolHash": "sha256:ed6f27525167cfb06553ebf7bb2beda3830c6131bcc91bba5b297fac835acf5c",
   "modelSha256": "c380ac82e83b1142474769cff9b7bb4bba310781568d80e255d20689543fa568",
   "files": [
     {
@@ -36,13 +36,13 @@
     },
     {
       "path": "feature.js",
-      "size": 14221,
-      "sha256": "e22c4193732c7db9613f4594999dc68b4a9548637513f4e60bc903dcbb2b15f6"
+      "size": 14628,
+      "sha256": "c95e0d20dc8e7c68c4278b3eca2142c4f19073cddd54498b3d279478567418b0"
     },
     {
       "path": "finalization.js",
-      "size": 10083,
-      "sha256": "7c58db589e2d5e5ad2f382b28155ac9c0295b6495445fc22822c6dc60b847e16"
+      "size": 10507,
+      "sha256": "2c881136a865de0126b40e8c9cb2588c4478ace33ec903ce37db2c1c1a734f07"
     },
     {
       "path": "fingerprint.js",
@@ -111,8 +111,8 @@
     },
     {
       "path": "projection.js",
-      "size": 42564,
-      "sha256": "752f3d9010d85db7717625f0e5bb0bb6e2a2b824e016665468ae73ad334e639e"
+      "size": 43713,
+      "sha256": "4719797e1a1ee2ec89c9890c861fbd02326f4af095d51bfc0d735a2c7e8daa32"
     },
     {
       "path": "python-guards.js",
@@ -136,8 +136,8 @@
     },
     {
       "path": "transitions.js",
-      "size": 14324,
-      "sha256": "47747bb24c6c3f8095eb27eba0468cf574b86f1b6e9bcd644286e4c6dffe036f"
+      "size": 14663,
+      "sha256": "615a562fa29ea4095229bf731993c028e9c2b28b84b011a719d5f86aad561085"
     }
   ]
 }

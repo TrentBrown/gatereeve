@@ -11,6 +11,7 @@ import {
   completeFinalizedFeature,
   recordFinalizationOutcome,
   recordFinalizationWaiver,
+  recordedFeatureFinalMergeSha,
   startFeatureFinalization,
 } from '../resources/protocol/finalization.js';
 import { readDetail, snapshot } from '../resources/protocol/observer.js';
@@ -196,15 +197,13 @@ export function createProtocolAdapter({
 
     async startFinalization({ featureHome }) {
       const record = await readRecord(featureHome);
-      const finalMerge = record.events.findLast((event) => (
-        event.type === 'SLICE_MERGE_RECORDED' && event.payload?.featureFinal === true
-      ));
-      if (typeof finalMerge?.payload?.integrationSha !== 'string') {
+      const mergeInputSha = recordedFeatureFinalMergeSha(record);
+      if (mergeInputSha === null) {
         throw new Error('The recorded feature-final merge does not identify its integration commit.');
       }
       return startFinalizationRecord(featureHome, {
         attemptId: `finalization-${randomId()}`,
-        mergeInputSha: finalMerge.payload.integrationSha,
+        mergeInputSha,
         actor: { kind: 'agent', label: 'GateReeve Desktop' },
         eventId: `evt-desktop-finalization-start-${randomId()}`,
       });

@@ -91,12 +91,12 @@ completes delivery slice 3.
 
 ## I-7 - Add generic feature-finalization gating
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P8
 - **Rubric criteria:** R3, R4, R7
 - **Depends on:** I-4, I-5, I-6
-- **PR:** pending on `tb-workflow-modules-04-finalization-release`
+- **PR:** [#64](https://github.com/TrentBrown/gatereeve/pull/64)
 
 Create feature-level finalization attempts and fingerprints, generic passage,
 zero-module behavior, all adapter modes, reruns, failure/readiness states, N/A,
@@ -104,12 +104,12 @@ and feature-scoped waivers without release-specific core concepts.
 
 ## I-8 - Implement GateReeve Release provider
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P9
 - **Rubric criteria:** R6, R8
 - **Depends on:** I-5, I-7
-- **PR:** pending on `tb-workflow-modules-04-finalization-release`
+- **PR:** [#64](https://github.com/TrentBrown/gatereeve/pull/64)
 
 Package the canonical release module/provider, adapt validated conductor state
 and safe actions, prove final-merge source containment and multi-feature reuse,
@@ -122,7 +122,7 @@ and reject incomplete or invalid retained evidence.
 - **Plan steps:** P10
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
 - **Depends on:** I-7, I-8
-- **PR:** pending on `tb-workflow-modules-04-finalization-release`
+- **PR:** [#64](https://github.com/TrentBrown/gatereeve/pull/64)
 
 Complete delivery slice 4 verification and review, merge it, then run a real
 GateReeve release through terminal conductor completion with retained public,

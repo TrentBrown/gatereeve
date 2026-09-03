@@ -104,7 +104,9 @@ async function modelWithoutFinalization() {
   };
 }
 
-async function finalizingFeature(model = null) {
+async function finalizingFeature(model = null, {
+  mergePayload = { featureFinal: true, integrationSha: mergeInputSha },
+} = {}) {
   const root = await mkdtemp(resolve(tmpdir(), 'gatereeve finalization '));
   const featureHome = resolve(root, 'docs/issues/finalization');
   await initializeFeature({
@@ -156,7 +158,7 @@ async function finalizingFeature(model = null) {
     actor: agent,
     facts: { reviewedContentMerged: true },
     currentFingerprints,
-    payload: { featureFinal: true, integrationSha: mergeInputSha },
+    payload: mergePayload,
     eventId: 'evt-merge',
   });
   return featureHome;
@@ -294,13 +296,13 @@ test('finalization replay rejects forged waivers and missing required evidence',
   );
 });
 
-test('active finalization survives model migration as stale and pause blocks mutation', async () => {
+test('active finalization can be replaced after model migration and pause blocks mutation', async () => {
   const featureHome = await finalizingFeature();
   await startFeatureFinalization(featureHome, {
     attemptId: 'finalization-migration', mergeInputSha, actor: agent, eventId: 'evt-migration-start',
   });
   const current = await readFeatureRecord(featureHome);
-  await migrateFeatureModel({
+  const migrated = await migrateFeatureModel({
     featureHome,
     nextModel: { ...current.modelLock.model, modelVersion: '1.2.1' },
     confirmedBy: human,
@@ -309,6 +311,21 @@ test('active finalization survives model migration as stale and pause blocks mut
   let projection = projectRecord(await readFeatureRecord(featureHome));
   assert.equal(projection.finalizationAttempts[0].modules.length, 2);
   assert.equal(projection.finalizationAttempts[0].requiredCurrentAndNonblocking, false);
+  await startFeatureFinalization(featureHome, {
+    attemptId: 'finalization-after-migration', mergeInputSha, actor: agent,
+    eventId: 'evt-finalization-after-migration',
+  });
+  projection = projectRecord(await readFeatureRecord(featureHome));
+  assert.equal(projection.finalizationAttempts[0].state, 'SUPERSEDED');
+  assert.equal(projection.finalizationAttempts[1].state, 'ACTIVE');
+  assert.equal(projection.finalizationAttempts[1].modelHash, migrated.modelLock.modelHash);
+  assert.deepEqual(
+    projection.finalizationAttempts[1].modules.map((module) => module.id),
+    ['example/prepare', 'example/release'],
+  );
+  await assert.rejects(startFeatureFinalization(featureHome, {
+    attemptId: 'finalization-same-model', mergeInputSha, actor: agent,
+  }), /already active/);
 
   const pausedHome = await finalizingFeature();
   await startFeatureFinalization(pausedHome, {
@@ -323,6 +340,57 @@ test('active finalization survives model migration as stale and pause blocks mut
   }), /while paused/);
 });
 
+test('migration preserves a legacy feature-final merge and enables new finalization', async () => {
+  const legacyModel = await modelWithoutFinalization();
+  const featureHome = await finalizingFeature(legacyModel, {
+    mergePayload: { featureFinal: true, mergeCommitSha: mergeInputSha },
+  });
+  const nextModel = await loadDefaultModel();
+  await migrateFeatureModel({
+    featureHome,
+    nextModel,
+    confirmedBy: human,
+    eventId: 'evt-legacy-finalization-model-migrated',
+  });
+  const started = await startFeatureFinalization(featureHome, {
+    attemptId: 'legacy-merge-finalization', mergeInputSha, actor: agent,
+    eventId: 'evt-legacy-merge-finalization-started',
+  });
+  assert.equal(started.projection.finalizationAttempts[0].state, 'ACTIVE');
+  assert.equal(started.projection.finalizationAttempts[0].mergeInputSha, mergeInputSha);
+});
+
+test('conflicting feature-final merge identities are rejected without append', async () => {
+  await assert.rejects(finalizingFeature(null, {
+    mergePayload: {
+      featureFinal: true,
+      integrationSha: mergeInputSha,
+      mergeCommitSha: 'b'.repeat(40),
+    },
+  }), /must identify the same commit/);
+});
+
+test('replay rejects a second current-model finalization attempt', async () => {
+  const featureHome = await finalizingFeature();
+  await startFeatureFinalization(featureHome, {
+    attemptId: 'current-attempt', mergeInputSha, actor: agent,
+    eventId: 'evt-current-attempt',
+  });
+  const record = await readFeatureRecord(featureHome);
+  const forged = structuredClone(record.events.at(-1));
+  forged.sequence += 1;
+  forged.eventId = 'evt-forged-current-attempt';
+  forged.payload.attemptId = 'forged-current-attempt';
+  await writeFile(
+    resolve(featureHome, 'events.jsonl'),
+    serializeJournal([...record.events, forged]),
+  );
+  await assert.rejects(
+    async () => projectRecord(await readFeatureRecord(featureHome)),
+    /cannot start feature finalization/,
+  );
+});
+
 test('zero-module models complete without creating a finalization attempt', async () => {
   const featureHome = await finalizingFeature(await modelWithoutFinalization());
   const completed = await completeFinalizedFeature(featureHome, {
@@ -330,6 +398,22 @@ test('zero-module models complete without creating a finalization attempt', asyn
   });
   assert.equal(completed.projection.feature.state, 'COMPLETE');
   assert.equal(completed.projection.finalizationAttempts.length, 0);
+});
+
+test('zero-module completion remains replayable after finalization modules are added', async () => {
+  const featureHome = await finalizingFeature(await modelWithoutFinalization());
+  await completeFinalizedFeature(featureHome, {
+    attemptId: null, actor: agent, eventId: 'evt-zero-module-complete-before-migration',
+  });
+  await migrateFeatureModel({
+    featureHome,
+    nextModel: await loadDefaultModel(),
+    confirmedBy: human,
+    eventId: 'evt-model-with-finalization-added',
+  });
+  const projection = projectRecord(await readFeatureRecord(featureHome));
+  assert.equal(projection.feature.state, 'COMPLETE');
+  assert.equal(projection.finalizationAttempts.length, 0);
 });
 
 test('finalization dependency evidence is canonical across manifest key order', async () => {

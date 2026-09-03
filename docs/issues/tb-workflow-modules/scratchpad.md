@@ -363,3 +363,23 @@ feature record.
 - Move all projection validation into `appendEvent` without a record argument -
   rejected because the low-level primitive does not own the model lock and
   historical model context needed for semantic replay.
+
+## [15] Normalize historical final merges and replace stale attempts safely
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Model migration, historical journal replay, Desktop finalization startup, and feature-final attempt lifecycle
+
+Feature-final merge identity accepts the historical mergeCommitSha field and the current integrationSha field only when they resolve to one exact full commit; conflicting values fail closed. Projection evaluates merge and zero-module completion requirements against each event's retained model snapshot, while migration and recovery project the full candidate record before durable writes. A finalization attempt under an older model may be superseded by a new current-model attempt, but mutation and replay both reject a second active attempt under the same model.
+
+**Triggered by:** Independent PR review found that legacy mergeCommitSha records could become unreadable after enabling finalization modules and that migration could leave an unreplaceable stale active attempt.
+
+**Alternatives considered:**
+- Interpret every historical event through the newest model - rejected because
+  newly enabled modules would retroactively invalidate valid older passage.
+- Let a stale active attempt block all later starts - rejected because a model
+  migration would create a finalization deadlock with no authorized recovery.
+- Prefer one merge field when both valid fields conflict - rejected because an
+  ambiguous journal must fail closed rather than bind release proof arbitrarily.

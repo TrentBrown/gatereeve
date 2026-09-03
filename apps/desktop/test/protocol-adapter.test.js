@@ -82,6 +82,14 @@ test('Desktop finalization adapter derives merge identity and routes scoped muta
   await adapter.startFinalization({ featureHome: '/feature' });
   assert.equal(calls[0][2].mergeInputSha, 'b'.repeat(40));
   assert.equal(calls[0][2].attemptId, 'finalization-fixed');
+  record.events[1].payload = { featureFinal: true, mergeCommitSha: 'c'.repeat(40) };
+  await adapter.startFinalization({ featureHome: '/feature' });
+  assert.equal(calls[1][2].mergeInputSha, 'c'.repeat(40));
+  record.events[1].payload = { featureFinal: true };
+  await assert.rejects(
+    adapter.startFinalization({ featureHome: '/feature' }),
+    /does not identify its integration commit/,
+  );
   const prepared = await adapter.prepareFinalizationModule({
     featureHome: '/feature', attemptId: 'attempt-final', gateId: 'gatereeve/release',
     module: { id: target.moduleId, version: target.moduleVersion, digest: target.moduleDigest },
