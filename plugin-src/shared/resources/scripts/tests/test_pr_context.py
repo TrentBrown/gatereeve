@@ -261,11 +261,16 @@ class PullRequestContextTests(unittest.TestCase):
                 }
             )
 
-        provider = GitHubPullRequestProvider(self.root, runner=runner)
+        provider = GitHubPullRequestProvider(
+            self.root,
+            gh_executable="/managed/gh",
+            runner=runner,
+        )
         snapshot = provider.snapshot("42")
 
         self.assertEqual(snapshot.repository, "example/product")
         self.assertEqual(snapshot.number, 42)
+        self.assertTrue(all(call[0] == "/managed/gh" for call in calls))
         self.assertEqual(calls[0][1], ("repo", "view", "--json", "nameWithOwner"))
         self.assertIn("--repo", calls[1][1])
         self.assertIn("example/product", calls[1][1])

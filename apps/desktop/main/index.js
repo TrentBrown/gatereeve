@@ -22,7 +22,10 @@ import { createDesktopCoordinator } from './coordinator.js';
 import { createModulePolicyManager } from './module-policy.js';
 import { createArtifactActions, createEditorPreferenceStore } from './artifact-actions.js';
 import { IPC_CHANNELS } from '../shared/contracts.js';
-import { discoverDesktopExecutables } from './executable-discovery.js';
+import {
+  discoverCompatiblePythonExecutable,
+  discoverDesktopExecutables,
+} from './executable-discovery.js';
 import { observeGit } from './git-observer.js';
 import { observeGitHub } from './github-observer.js';
 import { registerDesktopIpc } from './ipc.js';
@@ -87,7 +90,10 @@ async function startDesktop() {
   session.defaultSession.setPermissionCheckHandler(() => false);
   const preferenceStore = createPreferenceStore(app.getPath('userData'));
   const initialPreferences = await preferenceStore.load();
-  const executables = await discoverDesktopExecutables();
+  const [executables, pythonExecutable] = await Promise.all([
+    discoverDesktopExecutables(),
+    discoverCompatiblePythonExecutable(),
+  ]);
   const setupCompatibility = JSON.parse(await readFile(
     resolve(desktopRoot, 'shared', 'setup-compatibility.json'),
     'utf8',
@@ -105,7 +111,11 @@ async function startDesktop() {
     }),
   });
   coordinator = createDesktopCoordinator({
-    protocol: createProtocolAdapter({ gitExecutable: executables.git }),
+    protocol: createProtocolAdapter({
+      gitExecutable: executables.git,
+      ghExecutable: executables.gh,
+      pythonExecutable,
+    }),
     modulePolicyManager,
     preferenceStore,
     initialPreferences,
@@ -118,7 +128,11 @@ async function startDesktop() {
       },
     setupObserver: createSetupObserver({
       metadata: setupCompatibility,
-      executablePaths: { git: executables.git, github: executables.gh },
+      executablePaths: {
+        git: executables.git,
+        github: executables.gh,
+        python: pythonExecutable,
+      },
     }),
     gitObserver: (worktreePath, featureHome) => observeGit(
       worktreePath,

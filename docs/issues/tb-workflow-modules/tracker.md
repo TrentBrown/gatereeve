@@ -47,3 +47,9 @@ and unavailable modules fail-closed, and renders authoritative results
 separately from normalized live progress. A Linux-host Electron launch was
 attempted but could not start because the host lacks `libatk-1.0.so.0`; the
 packaged macOS runtime walkthrough remains part of P10.
+
+The first PR-boundary preflight found that the packaged Desktop omitted the
+trusted Python context guard used by the default waiver path. The slice returned
+to implementation and now stages only the three canonical scripts in that
+guard's dependency closure, discovers compatible Python, Git, and GitHub executables
+explicitly, and exercises the packaged default path in an integration test.

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { access, readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -7,7 +7,7 @@ import test from 'node:test';
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = resolve(desktopRoot, '../..');
 
-test('Desktop stages the exact canonical protocol without a CLI runtime dependency', async () => {
+test('Desktop stages the exact protocol and trusted waiver guard without a CLI runtime dependency', async () => {
   const manifest = JSON.parse(await readFile(
     resolve(desktopRoot, 'resources/desktop-projection.json'),
     'utf8',
@@ -30,7 +30,19 @@ test('Desktop stages the exact canonical protocol without a CLI runtime dependen
     'node-pty': '1.2.0-beta.15',
   });
   assert.equal(Object.keys(packageJson.dependencies).some((name) => /cli|commander/iu.test(name)), false);
-  await assert.rejects(access(resolve(desktopRoot, 'resources/scripts')), /ENOENT/);
+  const trustedScripts = [
+    'pr_context.py',
+    'workflow_common.py',
+    'workflow_context.py',
+  ];
+  assert.deepEqual(await readdir(resolve(desktopRoot, 'resources/scripts')), trustedScripts);
+  for (const script of trustedScripts) {
+    assert.deepEqual(
+      await readFile(resolve(desktopRoot, 'resources/scripts', script)),
+      await readFile(resolve(repositoryRoot, 'plugin-src/shared/resources/scripts', script)),
+      script,
+    );
+  }
   const contextSource = await readFile(
     resolve(desktopRoot, 'resources/protocol/context.js'),
     'utf8',

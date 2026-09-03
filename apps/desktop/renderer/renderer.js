@@ -749,6 +749,15 @@ function standardModuleCard(module, {
   return button;
 }
 
+function canOfferBoundaryWaiver(attempt, gate, module) {
+  if (attempt.state !== 'ACTIVE' || !module.waiverAllowed || module.locked) return false;
+  if (gate.eligible) return true;
+  const byId = new Map(attempt.gates.map((candidate) => [candidate.id, candidate]));
+  return gate.dependsOn.every((dependencyId) => (
+    ['PASS', 'WAIVED', 'NOT_APPLICABLE'].includes(byId.get(dependencyId)?.outcome)
+  ));
+}
+
 function gateCard(attempt, gate, selected) {
   const module = moduleForGate(currentState?.snapshot, gate.id) ?? {
     id: gate.id,
@@ -764,7 +773,7 @@ function gateCard(attempt, gate, selected) {
     onSelect: () => renderGateDetail(attempt, gate),
   });
   const shell = node('div', { className: 'gate-node' }, [button]);
-  if (attempt.state === 'ACTIVE' && gate.eligible && module?.waiverAllowed && !module.locked) {
+  if (canOfferBoundaryWaiver(attempt, gate, module)) {
     const waive = node('button', {
       className: 'text-button module-waiver-button',
       text: 'Skip for this boundary…',
@@ -1792,7 +1801,7 @@ function renderGateTab(tab, snapshot) {
     evidenceButton.addEventListener('click', () => void openArtifact(artifact));
     viewer.append(evidenceButton);
   }
-  if (attempt.state === 'ACTIVE' && gate.eligible && module?.waiverAllowed && !module.locked) {
+  if (canOfferBoundaryWaiver(attempt, gate, module)) {
     const waive = node('button', { className: 'secondary', text: 'Skip for this boundary…', type: 'button' });
     waive.addEventListener('click', () => openModuleWaiver(attempt, gate, module));
     viewer.append(waive);

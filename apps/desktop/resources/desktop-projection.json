@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:3f028ff7f06052f56b28c0b87f2c90689ceb253149f7826a35398509236f4aa1",
+  "protocolHash": "sha256:f5b9c204882d926ef520e9b3c60577c92a65c7ad742c626b5e116680966e3ce4",
   "modelSha256": "e5f51881ad61206148b6fb44f45b67e677141cb1be11caba92e8cb2da0b1b193",
   "files": [
     {
@@ -106,8 +106,8 @@
     },
     {
       "path": "python-guards.js",
-      "size": 2818,
-      "sha256": "6fa72f9b7ab2ca13a05acae5c5de6ff685ba09cd24e2755fbf88b1236e74544f"
+      "size": 2815,
+      "sha256": "ce4e4ac1a7e5e31534c27fae332d7bd5e99c03128ca871ae7cfa41a26146afb4"
     },
     {
       "path": "result.js",

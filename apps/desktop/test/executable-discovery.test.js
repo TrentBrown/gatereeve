@@ -2,10 +2,27 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  discoverCompatiblePythonExecutable,
   discoverDesktopExecutables,
   discoverExecutables,
   executableCandidates,
 } from '../main/executable-discovery.js';
+
+test('compatible Python discovery skips an older Apple candidate', async () => {
+  const result = await discoverCompatiblePythonExecutable({
+    environment: { PATH: '/usr/bin:/opt/homebrew/bin' },
+    platform: 'darwin',
+    homeDirectory: '/Users/tester',
+    async readDirectory() { return []; },
+    async probe(path) {
+      return path === '/usr/bin/python3' || path === '/opt/homebrew/bin/python3';
+    },
+    async run(path) {
+      return { stdout: path.startsWith('/usr/bin') ? 'Python 3.9.6' : 'Python 3.13.1', stderr: '' };
+    },
+  });
+  assert.equal(result, '/opt/homebrew/bin/python3');
+});
 
 test('Finder-compatible discovery checks fixed macOS and explicit PATH locations', () => {
   assert.deepEqual(

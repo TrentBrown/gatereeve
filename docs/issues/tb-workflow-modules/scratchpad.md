@@ -164,3 +164,20 @@ Slice 2 implements boundary-scoped waivers but does not fabricate a feature-scop
 - Record a feature waiver before an attempt exists - rejected because it would lack the approved exact scope fingerprint and could carry across changed merge input.
 - Add a temporary release-specific waiver record - rejected because it would put product-specific state into the generic protocol and require migration in P8.
 - Disable a finalization module as a substitute for waiving it - rejected because durable project policy and one-feature risk acceptance are intentionally distinct controls.
+
+## [8] Bundle the minimal trusted waiver-guard runtime
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop package contents, executable discovery, trusted Python guard dispatch, and boundary-waiver freshness validation.
+
+GateReeve Desktop stages the canonical `pr_context.py`, `workflow_context.py`, and `workflow_common.py` scripts needed to verify that a waiver's pinned pull-request source is still current. It discovers a compatible Python 3.10+ executable plus Git and the GitHub CLI through the same Finder-compatible paths used by Setup, passes their absolute paths into the main-process adapter and Python guard, and binds a new waiver fingerprint to the verified context plus exact module identity. Existing recorded dependency fingerprints are reused only after that fresh context check because Desktop must not invent replacement inputs for evidence produced by another harness.
+
+**Triggered by:** The first PR-boundary audit found that the initially injected unit test passed while the packaged default guard path lacked its Python script, and that the formal `boundary_gate.py` adapter does not accept every structural or project module ID.
+
+**Alternatives considered:**
+- Stage the complete workflow script directory - rejected because Desktop needs only the three-file trusted context-check closure.
+- Reimplement pull-request freshness in renderer or ad hoc main-process JavaScript - rejected because the existing canonical guard already owns the check and the renderer must not gain process authority.
+- Recompute every dependency using the formal gate adapter - rejected because structural and project gate IDs are outside that adapter and because doing so would invent input shapes different from the recorded evidence.

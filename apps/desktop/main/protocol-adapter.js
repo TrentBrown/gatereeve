@@ -25,6 +25,8 @@ function requireSuccess(result, operation) {
 
 export function createProtocolAdapter({
   gitExecutable = 'git',
+  ghExecutable = 'gh',
+  pythonExecutable = 'python3',
   readRecord = readFeatureRecord,
   project = projectRecord,
   runGuard = runTrustedPythonGuard,
@@ -78,35 +80,40 @@ export function createProtocolAdapter({
         flag: 'wx',
       });
       try {
-        const inputsByGate = new Map();
-        const currentFingerprints = {};
-        for (const gate of attempt.gates) {
-          const result = await runGuard(
-            'boundary.context.current',
-            [
-              '--cwd', repositoryRoot,
-              '--context', contextPath,
-              '--gate', gate.id,
-              '--scope', attempt.scope === 'FEATURE_FINAL' ? 'feature-final' : 'slice',
-              '--json',
-            ],
-            { cwd: repositoryRoot },
-          );
-          if (!result.passed || !result.data) {
-            throw new Error(result.stderr || `Cannot refresh ${gate.id} boundary inputs.`);
-          }
-          inputsByGate.set(gate.id, result.data);
-          currentFingerprints[gate.id] = gateInputFingerprint({
-            modelHash: record.modelLock.modelHash,
-            attemptId,
-            gateId: gate.id,
-            inputs: result.data,
-          });
+        const result = await runGuard(
+          'boundary.context.current',
+          [
+            'check-current',
+            '--context', contextPath,
+            '--git-executable', gitExecutable,
+            '--gh-executable', ghExecutable,
+          ],
+          { cwd: repositoryRoot, pythonExecutable },
+        );
+        if (!result.passed || !result.data) {
+          throw new Error(result.stderr || 'Cannot verify that the pinned boundary context is current.');
         }
+        // A fresh PR-context check proves the pinned source did not move. Preserve
+        // the exact recorded dependency fingerprints rather than inventing new
+        // inputs for gates whose evidence was produced outside Desktop.
+        const currentFingerprints = Object.fromEntries(attempt.gates
+          .filter((gate) => typeof gate.inputFingerprint === 'string')
+          .map((gate) => [gate.id, gate.inputFingerprint]));
+        const inputs = {
+          schemaVersion: 1,
+          scope: attempt.scope,
+          gate: {
+            id: target.id,
+            moduleId: target.moduleId ?? target.id,
+            moduleVersion: target.moduleVersion ?? null,
+            moduleDigest: target.moduleDigest ?? null,
+          },
+          context: result.data,
+        };
         return recordWaiver(featureHome, {
           attemptId,
           gateId,
-          inputs: inputsByGate.get(gateId),
+          inputs,
           currentFingerprints,
           reason: reason.trim(),
           actor: { kind: 'human-confirmed', label: confirmationLabel.trim() },

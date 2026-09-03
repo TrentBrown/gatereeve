@@ -16,7 +16,7 @@ export const PYTHON_GUARD_PROVIDERS = Object.freeze({
     output: 'exit-code',
   },
   'boundary.context.current': {
-    script: 'boundary_gate.py',
+    script: 'pr_context.py',
     output: 'json',
   },
   'merge.reviewedContent.verified': {
