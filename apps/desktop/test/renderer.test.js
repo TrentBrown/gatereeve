@@ -188,6 +188,9 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   const openedArtifacts = [];
   const fileActions = [];
   const notificationPreferences = [];
+  const modulePolicyCalls = [];
+  const waiverCalls = [];
+  let stateSubscriber;
   const sessionId = 'session:latest-checkpoint:Q0hFQ0tQT0lOVC5tZA';
   const event = {
     sequence: 10,
@@ -210,6 +213,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
       dependsOn: ['reconcile'],
       outcome: 'PASS',
       freshness: 'CURRENT',
+      eligible: true,
       blockers: [{ message: 'Reconcile must be current first.' }],
       reason: 'Verification depends on current reconciliation evidence.',
       evidence: { path: 'pr-8/verification.md' },
@@ -220,6 +224,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
       dependsOn: ['verification'],
       outcome: 'PASS',
       freshness: 'CURRENT',
+      eligible: true,
       blockers: [],
       reason: null,
       evidence: { path: 'pr-8/explain-diff.html' },
@@ -275,6 +280,42 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     mode: 'governed',
     featureId: 'feature',
     model: { pinned: { hash: 'sha256:model' }, bundled: {} },
+    modules: {
+      schemaVersion: 1,
+      policyDigest: 'sha256:policy',
+      slots: [{
+        id: 'boundary.evaluation',
+        modules: [{
+          id: 'gatereeve/verification', label: 'Verification', description: 'Verify the change.',
+          boundaryGateId: 'verification', enabled: true, locked: false, waiverAllowed: true,
+          slot: 'boundary.evaluation', disposition: 'required', run: { kind: 'skill', skillId: 'workflow:verify' },
+          observe: { providerId: 'gatereeve/checks', version: '1.0.0' },
+          dependsOn: [], after: [], readiness: { status: 'available', missing: [] },
+          live: {
+            status: 'waiting', detail: 'Awaiting the independent result.',
+            updatedAt: '2026-08-26T12:01:00.000Z',
+            stages: [{ id: 'analysis', label: 'Analysis', status: 'running', detail: 'Checking evidence.' }],
+            actions: [{ id: 'refresh', label: 'Refresh observation', available: true }],
+            attempts: [{ id: 'verification-1', status: 'running', startedAt: '2026-08-26T12:00:00.000Z' }],
+            evidence: [{ label: 'Provider log', path: 'provider.log' }],
+            links: [{ label: 'Workflow run', url: 'https://example.com/run/1' }],
+          },
+        }, {
+          id: 'gatereeve/explain-diff', label: 'Explain Diff', description: 'Explain the change.',
+          boundaryGateId: 'explainDiff', enabled: true, locked: false, waiverAllowed: false,
+          dependsOn: ['gatereeve/verification'], after: [], readiness: { status: 'available', missing: [] }, live: null,
+        }],
+      }, {
+        id: 'feature.finalization',
+        modules: [{
+          id: 'gatereeve/release', label: 'GateReeve Release', description: 'Verify a complete release.',
+          boundaryGateId: null, enabled: true, locked: false, waiverAllowed: true,
+          slot: 'feature.finalization', disposition: 'required', run: null,
+          observe: { providerId: 'gatereeve/release-conductor', version: '1.0.0' },
+          dependsOn: [], after: [], readiness: { status: 'unavailable', missing: [{ kind: 'provider', id: 'gatereeve/release-conductor' }] }, live: null,
+        }],
+      }],
+    },
     projection: {
       feature: { state: 'DELIVERING_SLICES' },
       suspension: { paused: false },
@@ -336,6 +377,54 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
     async getState() { return readyState; },
     async getUpdateState() { return idleUpdate(); },
     async openUpdateRelease() { return true; },
+    async getModuleSettings() {
+      return {
+        schemaVersion: 1, policyPath: '/repo/current/.gatereeve/workflow.json',
+        policyExists: true, policyDigest: 'sha256:policy', featureModelHash: 'sha256:model',
+        projectModelHash: 'sha256:model', migrationRequired: false,
+        modules: [{
+          id: 'gatereeve/pin-context', version: '1.0.0', digest: 'sha256:pin',
+          label: 'Pin Context', description: 'Pin exact inputs.', slot: 'boundary.evaluation',
+          enabled: true, locked: true, disposition: 'required', waiverAllowed: false,
+          dependsOn: [], after: [], readiness: { status: 'available', missing: [] },
+          runKind: null, observeProvider: null,
+        }, {
+          id: 'gatereeve/judge', version: '1.0.0', digest: 'sha256:judge',
+          label: 'Judge', description: 'Independent evaluation.', slot: 'boundary.evaluation',
+          enabled: true, locked: false, disposition: 'required', waiverAllowed: true,
+          dependsOn: [], after: [], readiness: { status: 'available', missing: [] },
+          runKind: 'skill', observeProvider: null,
+        }],
+      };
+    },
+    async previewModulePolicy(enabledModuleIds) {
+      modulePolicyCalls.push(['preview', enabledModuleIds]);
+      return {
+        schemaVersion: 1, valid: true, error: null, autoEnabled: [], blockingDependents: [],
+        enabledModuleIds, suggestedEnabledModuleIds: enabledModuleIds,
+        diff: enabledModuleIds.includes('gatereeve/judge') ? [] : [{
+          id: 'gatereeve/judge', before: true, after: false,
+        }],
+        migrationImpact: enabledModuleIds.includes('gatereeve/judge') ? null : {
+          fromModelVersion: '1.0.0', toModelVersion: '1.0.0',
+          fromModelHash: 'sha256:old', toModelHash: 'sha256:new',
+          guardsAdded: [], guardsRemoved: [], transitionsAdded: [], transitionsRemoved: [],
+          modulesAdded: [], modulesRemoved: [], modulesChanged: ['gatereeve/judge'],
+          boundaryGateIdsInvalidated: ['judge'],
+        },
+      };
+    },
+    async applyModulePolicy(enabledModuleIds, confirmedMigration, confirmationLabel) {
+      modulePolicyCalls.push(['apply', enabledModuleIds, confirmedMigration, confirmationLabel]);
+      const settings = await this.getModuleSettings();
+      return {
+        ...settings,
+        modules: settings.modules.map((module) => ({
+          ...module, enabled: enabledModuleIds.includes(module.id),
+        })),
+      };
+    },
+    async waiveBoundaryModule(...args) { waiverCalls.push(args); return readyState; },
     async copyText(value) { copied.push(value); return true; },
     async getArtifactActions() { return fileActionCapabilities(); },
     async openArtifact(...args) { openedArtifacts.push(args); return true; },
@@ -408,7 +497,7 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
       };
     },
     subscribeUpdates() { return () => {}; },
-    subscribe() { return () => {}; },
+    subscribe(callback) { stateSubscriber = callback; return () => {}; },
   };
   globalThis.window = window;
   globalThis.document = window.document;
@@ -531,6 +620,28 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.equal(window.document.querySelector('#closeout-status').textContent, 'In progress');
   assert.match(window.document.querySelector('#closeout-summary').textContent, /must finish before closeout is ready/);
   assert.match(window.document.querySelector('#closeout-summary').textContent, /Additional delivery slice/);
+  assert.equal(window.document.querySelector('#finalization-surface').hidden, false);
+  assert.match(window.document.querySelector('#finalization-surface').textContent, /GateReeve Release/);
+  assert.match(window.document.querySelector('#finalization-surface').textContent, /Unavailable/);
+  window.document.querySelector('#finalization-dag .module-card').click();
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /GateReeve Release/);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Feature finalization/);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Implementation unavailable/);
+  assert.equal(window.document.querySelector('#finalization-dag .module-card').getAttribute('aria-pressed'), 'true');
+  stateSubscriber({
+    ...readyState,
+    snapshot: {
+      ...snapshot,
+      modules: {
+        ...snapshot.modules,
+        slots: snapshot.modules.slots.map((slot) => slot.id === 'feature.finalization'
+          ? { ...slot, modules: slot.modules.map((module) => ({ ...module, enabled: false })) }
+          : slot),
+      },
+    },
+  });
+  assert.equal(window.document.querySelector('#finalization-surface').hidden, true);
+  stateSubscriber(readyState);
 
   const delivering = [...window.document.querySelectorAll('.state-select')]
     .find((button) => button.textContent.includes('Implementing'));
@@ -547,18 +658,29 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   [...window.document.querySelectorAll('.slice-card')]
     .find((button) => button.textContent.includes('Workflow experience')).click();
   assert.equal(window.document.querySelectorAll('.gate-card').length, 2);
+  assert.match(window.document.querySelectorAll('.gate-card')[0].textContent, /Verification/);
+  assert.equal(window.document.querySelectorAll('.module-waiver-button').length, 1);
   assert.equal(window.document.querySelectorAll('#attempt-select option').length, 1);
   assert.deepEqual(
     [...window.document.querySelectorAll('.gate-card .order-marker')].map((marker) => marker.textContent),
     ['1', '4a'],
   );
-  assert.match(window.document.querySelector('.gate-card .object-condition').textContent, /reconciliation evidence/);
+  assert.match(window.document.querySelector('.gate-card').textContent, /reconciliation evidence/);
   window.document.querySelectorAll('.gate-card')[0].click();
   assert.equal(window.document.querySelector('.gate-card.selected').getAttribute('aria-pressed'), 'true');
   assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Outcome.*PASS/s);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Live status.*Waiting/s);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Provider stages.*Analysis.*Running/s);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Available actions.*Refresh observation/s);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Attempt history.*verification-1/s);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Evidence.*Provider log/s);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Links.*Workflow run/s);
   window.document.querySelectorAll('.gate-card')[1].click();
-  for (let index = 0; index < 2; index += 1) await new Promise((done) => setImmediate(done));
   assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
+  assert.match(window.document.querySelector('#artifact-viewer').textContent, /Explain Diff/);
+  window.document.querySelector('#artifact-viewer button.secondary').click();
+  for (let index = 0; index < 2; index += 1) await new Promise((done) => setImmediate(done));
   const selectedGateFrame = window.document.querySelector('#artifact-viewer iframe');
   assert.ok(selectedGateFrame, `${window.document.querySelector('#inspector-tabs').textContent} | ${window.document.querySelector('#artifact-viewer').textContent}`);
   assert.match(selectedGateFrame.getAttribute('src'), /^gatereeve-artifact:/);
@@ -578,6 +700,34 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   window.document.querySelector('.action-card button.secondary').click();
   await new Promise((done) => setImmediate(done));
   assert.deepEqual(copied, ['gatereeve boundary request-review slice-attempt-1']);
+
+  window.document.querySelector('.module-waiver-button').click();
+  assert.match(window.document.querySelector('#module-waiver-title').textContent, /Verification/);
+  window.document.querySelector('#module-waiver-reason').value = 'The change is sufficiently small.';
+  window.document.querySelector('#module-waiver-confirm').click();
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(waiverCalls, [[
+    'slice-attempt-1', 'verification', 'The change is sufficiently small.',
+    'GateReeve Desktop: Skip Verification',
+  ]]);
+
+  window.document.querySelector('[data-view="modules"]').click();
+  for (let index = 0; index < 3; index += 1) await new Promise((done) => setImmediate(done));
+  assert.equal(window.document.querySelectorAll('.module-setting').length, 2);
+  assert.equal(window.document.querySelector('#module-setting-gatereeve-pin-context').disabled, true);
+  const judgeSetting = window.document.querySelector('#module-setting-gatereeve-judge');
+  judgeSetting.checked = false;
+  judgeSetting.dispatchEvent(new window.Event('change'));
+  await new Promise((done) => setImmediate(done));
+  assert.match(window.document.querySelector('#module-preview').textContent, /Judge: enabled → disabled/);
+  window.document.querySelector('#module-apply').click();
+  assert.equal(window.document.querySelector('#module-confirm-dialog').hasAttribute('open'), true);
+  assert.match(window.document.querySelector('#module-confirm-impact').textContent, /Boundary gates invalidated.*judge/s);
+  window.document.querySelector('#module-confirm-apply').click();
+  await new Promise((done) => setImmediate(done));
+  assert.deepEqual(modulePolicyCalls.at(-1), [
+    'apply', ['gatereeve/pin-context'], true, 'GateReeve Desktop module settings',
+  ]);
 
   window.document.querySelector('[data-view="artifacts"]').click();
   window.document.querySelector('[data-artifact-id="design"]').click();

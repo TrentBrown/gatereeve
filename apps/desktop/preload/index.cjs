@@ -5,9 +5,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 const channels = Object.freeze({
   checkForUpdates: 'gatereeve:desktop:check-for-updates',
   addProject: 'gatereeve:desktop:add-project',
+  applyModulePolicy: 'gatereeve:desktop:apply-module-policy',
   copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
   getArtifactActions: 'gatereeve:desktop:get-artifact-actions',
+  getModuleSettings: 'gatereeve:desktop:get-module-settings',
   getUpdateState: 'gatereeve:desktop:get-update-state',
   listSession: 'gatereeve:desktop:list-session',
   layoutCommand: 'gatereeve:desktop:layout-command',
@@ -18,6 +20,7 @@ const channels = Object.freeze({
   openArtifactGithub: 'gatereeve:desktop:open-artifact-github',
   openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
+  previewModulePolicy: 'gatereeve:desktop:preview-module-policy',
   activateProject: 'gatereeve:desktop:activate-project',
   readDetail: 'gatereeve:desktop:read-detail',
   readSession: 'gatereeve:desktop:read-session',
@@ -37,6 +40,7 @@ const channels = Object.freeze({
   terminalTerminate: 'gatereeve:desktop:terminal-terminate',
   terminalWrite: 'gatereeve:desktop:terminal-write',
   updateChanged: 'gatereeve:desktop:update-changed',
+  waiveBoundaryModule: 'gatereeve:desktop:waive-boundary-module',
 });
 
 function requireState(value) {
@@ -264,6 +268,90 @@ function exactObject(value, keys) {
     && Object.keys(value).sort().join(',') === [...keys].sort().join(',');
 }
 
+function requireModuleIds(value) {
+  if (
+    !Array.isArray(value)
+    || value.some((id) => typeof id !== 'string' || id.length === 0 || id.length > 512)
+    || new Set(value).size !== value.length
+  ) {
+    throw new TypeError('Enabled module IDs are invalid.');
+  }
+  return [...value];
+}
+
+function requireModuleSettings(value) {
+  if (
+    !exactObject(value, [
+      'schemaVersion', 'policyPath', 'policyExists', 'policyDigest',
+      'featureModelHash', 'projectModelHash', 'migrationRequired', 'modules',
+    ])
+    || value.schemaVersion !== 1
+    || typeof value.policyPath !== 'string'
+    || typeof value.policyExists !== 'boolean'
+    || typeof value.policyDigest !== 'string'
+    || typeof value.featureModelHash !== 'string'
+    || typeof value.projectModelHash !== 'string'
+    || typeof value.migrationRequired !== 'boolean'
+    || !Array.isArray(value.modules)
+    || value.modules.some((module) => (
+      typeof module !== 'object'
+      || module === null
+      || typeof module.id !== 'string'
+      || typeof module.label !== 'string'
+      || typeof module.description !== 'string'
+      || !['boundary.evaluation', 'feature.finalization'].includes(module.slot)
+      || typeof module.enabled !== 'boolean'
+      || typeof module.locked !== 'boolean'
+      || typeof module.waiverAllowed !== 'boolean'
+      || !['required', 'optional'].includes(module.disposition)
+      || !Array.isArray(module.dependsOn)
+      || typeof module.readiness !== 'object'
+      || !['unchecked', 'available', 'unavailable'].includes(module.readiness?.status)
+    ))
+  ) {
+    throw new Error('The main process returned invalid module settings.');
+  }
+  return value;
+}
+
+function requireModulePolicyPreview(value) {
+  if (
+    !exactObject(value, [
+      'schemaVersion', 'valid', 'error', 'autoEnabled', 'blockingDependents',
+      'enabledModuleIds', 'suggestedEnabledModuleIds', 'diff', 'migrationImpact',
+    ])
+    || value.schemaVersion !== 1
+    || typeof value.valid !== 'boolean'
+    || (value.error !== null && typeof value.error !== 'string')
+    || !Array.isArray(value.autoEnabled)
+    || !Array.isArray(value.blockingDependents)
+    || !Array.isArray(value.enabledModuleIds)
+    || !Array.isArray(value.suggestedEnabledModuleIds)
+    || !Array.isArray(value.diff)
+    || (value.migrationImpact !== null && typeof value.migrationImpact !== 'object')
+  ) {
+    throw new Error('The main process returned an invalid module policy preview.');
+  }
+  return value;
+}
+
+function requireConfirmationLabel(value) {
+  if (value !== null && (typeof value !== 'string' || value.trim().length === 0 || value.length > 1_024)) {
+    throw new TypeError('Confirmation label is invalid.');
+  }
+  return value === null ? null : value.trim();
+}
+
+function boundaryWaiverRequest(attemptId, gateId, reason, confirmationLabel) {
+  const values = { attemptId, gateId, reason, confirmationLabel };
+  if (Object.values(values).some((value) => (
+    typeof value !== 'string' || value.trim().length === 0 || value.length > 2_048
+  ))) {
+    throw new TypeError('Boundary module waiver is invalid.');
+  }
+  return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()]));
+}
+
 function requireTerminalId(value) {
   if (typeof value !== 'string' || !/^terminal_[A-Za-z0-9_-]{1,128}$/u.test(value)) {
     throw new TypeError('Terminal session ID is invalid.');
@@ -364,6 +452,9 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     channels.getArtifactActions,
     { artifactId: requireArtifactId(artifactId) },
   )),
+  getModuleSettings: async () => requireModuleSettings(
+    await ipcRenderer.invoke(channels.getModuleSettings),
+  ),
   getUpdateState: async () => requireUpdateState(await ipcRenderer.invoke(channels.getUpdateState)),
   listSession: async () => requireSessionInventory(await ipcRenderer.invoke(channels.listSession)),
   openArtifact: async (artifactId, editorId = null, remember = false) => {
@@ -402,6 +493,25 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     requirePath(path),
   )),
   openUpdateRelease: async () => ipcRenderer.invoke(channels.openUpdateRelease),
+  previewModulePolicy: async (enabledModuleIds) => requireModulePolicyPreview(
+    await ipcRenderer.invoke(channels.previewModulePolicy, {
+      enabledModuleIds: requireModuleIds(enabledModuleIds),
+    }),
+  ),
+  applyModulePolicy: async (
+    enabledModuleIds,
+    confirmedMigration = false,
+    confirmationLabel = null,
+  ) => {
+    if (typeof confirmedMigration !== 'boolean') {
+      throw new TypeError('Migration confirmation must be boolean.');
+    }
+    return requireModuleSettings(await ipcRenderer.invoke(channels.applyModulePolicy, {
+      enabledModuleIds: requireModuleIds(enabledModuleIds),
+      confirmedMigration,
+      confirmationLabel: requireConfirmationLabel(confirmationLabel),
+    }));
+  },
   readDetail: async (kind, id = null) => ipcRenderer.invoke(
     channels.readDetail,
     requireDetail(kind, id),
@@ -462,6 +572,12 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
   revealArtifact: async (artifactId) => ipcRenderer.invoke(
     channels.revealArtifact,
     { artifactId: requireArtifactId(artifactId) },
+  ),
+  waiveBoundaryModule: async (attemptId, gateId, reason, confirmationLabel) => requireState(
+    await ipcRenderer.invoke(
+      channels.waiveBoundaryModule,
+      boundaryWaiverRequest(attemptId, gateId, reason, confirmationLabel),
+    ),
   ),
   subscribe(callback) {
     if (typeof callback !== 'function') throw new TypeError('State subscriber must be a function.');

@@ -9,6 +9,11 @@ import {
   requireDesktopState,
   requireDetailRequest,
   requireExternalLink,
+  requireBoundaryModuleWaiverRequest,
+  requireModulePolicyApplyRequest,
+  requireModulePolicyPreview,
+  requireModulePolicyRequest,
+  requireModuleSettings,
   requireNotificationsEnabled,
   requireProjectOrder,
   requireProjectPath,
@@ -77,6 +82,37 @@ export function registerDesktopIpc({
   ipcMain.handle(IPC_CHANNELS.getUpdateState, async (event, ...values) => {
     noArguments(event, values);
     return requireUpdateState(updateCoordinator.current());
+  });
+  ipcMain.handle(IPC_CHANNELS.getModuleSettings, async (event, ...values) => {
+    noArguments(event, values);
+    return requireModuleSettings(await coordinator.moduleSettings());
+  });
+  ipcMain.handle(IPC_CHANNELS.previewModulePolicy, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Module policy preview requires one request.');
+    const request = requireModulePolicyRequest(values[0]);
+    return requireModulePolicyPreview(
+      await coordinator.previewModulePolicy(request.enabledModuleIds),
+    );
+  });
+  ipcMain.handle(IPC_CHANNELS.applyModulePolicy, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Module policy apply requires one request.');
+    const request = requireModulePolicyApplyRequest(values[0]);
+    return requireModuleSettings(await coordinator.applyModulePolicy(
+      request.enabledModuleIds,
+      {
+        confirmedMigration: request.confirmedMigration,
+        confirmationLabel: request.confirmationLabel,
+      },
+    ));
+  });
+  ipcMain.handle(IPC_CHANNELS.waiveBoundaryModule, async (event, ...values) => {
+    trusted(event);
+    if (values.length !== 1) throw new Error('Boundary module waiver requires one request.');
+    return validatedState(await coordinator.waiveBoundaryModule(
+      requireBoundaryModuleWaiverRequest(values[0]),
+    ));
   });
   ipcMain.handle(IPC_CHANNELS.checkForUpdates, async (event, ...values) => {
     noArguments(event, values);

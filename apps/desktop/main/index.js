@@ -19,6 +19,7 @@ import {
 } from 'electron';
 
 import { createDesktopCoordinator } from './coordinator.js';
+import { createModulePolicyManager } from './module-policy.js';
 import { createArtifactActions, createEditorPreferenceStore } from './artifact-actions.js';
 import { IPC_CHANNELS } from '../shared/contracts.js';
 import { discoverDesktopExecutables } from './executable-discovery.js';
@@ -27,6 +28,7 @@ import { observeGitHub } from './github-observer.js';
 import { registerDesktopIpc } from './ipc.js';
 import { createPreferenceStore } from './preferences.js';
 import { createProtocolAdapter } from './protocol-adapter.js';
+import { loadDefaultModel } from '../resources/protocol/model.js';
 import { registerRendererProtocol } from './renderer-protocol.js';
 import { createSetupObserver, createUnconfiguredSetup } from './setup-observer.js';
 import { createTerminalManager } from './terminal-manager.js';
@@ -91,8 +93,20 @@ async function startDesktop() {
     'utf8',
   ));
   const unconfiguredSetup = createUnconfiguredSetup(setupCompatibility);
-  const coordinator = createDesktopCoordinator({
+  const bundledModel = await loadDefaultModel();
+  const bundledSkillIds = bundledModel.moduleGraph.modules
+    .filter((module) => module.run?.kind === 'skill')
+    .map((module) => module.run.skillId);
+  let coordinator;
+  const modulePolicyManager = createModulePolicyManager({
+    getAvailability: async () => ({
+      skills: coordinator?.current().setup.operationalReady ? bundledSkillIds : [],
+      providers: [],
+    }),
+  });
+  coordinator = createDesktopCoordinator({
     protocol: createProtocolAdapter({ gitExecutable: executables.git }),
+    modulePolicyManager,
     preferenceStore,
     initialPreferences,
     initialSetup: initialPreferences.selectedAgents.length === 0
@@ -398,8 +412,8 @@ async function startDesktop() {
               && maximumRenderedWidth < maximumRequestedWidth
               && maximumWidthScroll <= viewportWidth
               && restoredWidth === resizedWidth
-              && mainTabs.length === 5
-              && tabLabels === 'Overview|Artifacts|History|Model|Session'
+              && mainTabs.length === 6
+              && tabLabels === 'Overview|Modules|Artifacts|History|Model|Session'
               && versionText === ${JSON.stringify(`v${app.getVersion()}`)}
               && scrollWidth <= viewportWidth
               && viewportWidth <= 940

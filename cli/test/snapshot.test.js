@@ -244,6 +244,11 @@ test('boundary snapshots inventory pinned gates and expose attempt detail by ID'
   });
 
   const observed = await snapshot(fixture.featureHome);
+
+  assert.equal(observed.data.modules.schemaVersion, 1);
+  assert.deepEqual(observed.data.modules.slots.map((slot) => slot.id), [
+    'boundary.evaluation', 'feature.finalization',
+  ]);
   assert.deepEqual(
     observed.data.projection.slices.map((slice) => [slice.id, slice.deliveryOrdinal]),
     [['slice-1', 1], ['slice-2', 2]]
@@ -398,6 +403,20 @@ test('snapshot validators reject malformed nested contracts', async () => {
   assert.throws(
     () => validateSnapshot(malformedArtifact),
     /artifacts\[0\]\.exists must be boolean/
+  );
+
+  const malformedModule = structuredClone(observed.data);
+  malformedModule.modules.slots[0].modules[0].readiness.status = 'assumed';
+  assert.throws(
+    () => validateSnapshot(malformedModule),
+    /readiness\.status has invalid value/
+  );
+
+  const malformedLiveStatus = structuredClone(observed.data);
+  malformedLiveStatus.modules.slots[0].modules[0].live = { status: 'passed' };
+  assert.throws(
+    () => validateSnapshot(malformedLiveStatus),
+    /live\.status has invalid value/
   );
 
   const model = await readDetail(fixture.featureHome, 'model');

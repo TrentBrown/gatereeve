@@ -84,3 +84,25 @@ test('virtual gate tabs retain scoped attempt and gate identity', () => {
     'gate:attempt-1:reconcile', 'gate:attempt-2:reconcile',
   ]);
 });
+
+test('virtual module tabs retain module identity and deduplicate across refreshes', () => {
+  const store = createWorkspaceStore();
+  const module = {
+    id: 'gatereeve/release', slot: 'feature.finalization', label: 'GateReeve Release',
+    readiness: { status: 'available', missing: [] }, live: null,
+  };
+  store.openModule('/project', module);
+  store.openModule('/project', { ...module, live: { status: 'running' } });
+
+  assert.deepEqual(store.get('/project').tabs, [{
+    id: 'module:gatereeve/release',
+    kind: 'module',
+    moduleId: 'gatereeve/release',
+    slot: 'feature.finalization',
+    label: 'GateReeve Release',
+    status: 'running',
+    available: true,
+  }]);
+  assert.equal(store.get('/project').activeTabId, 'module:gatereeve/release');
+  assert.equal(store.get('/project').inspectorVisible, true);
+});

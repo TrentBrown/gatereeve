@@ -130,3 +130,37 @@ Each newly recorded MODEL_MIGRATED event carries a previousBoundary snapshot for
 
 **Alternatives considered:**
 Store all historical models in the current lock - rejected because the attempt only needs the governing boundary contract and changing lock shape would widen the slice. Rewrite earlier boundary events during migration - rejected because the journal is append-only. Reject migrations after any legacy attempt - rejected because it prevents the approved explicit migration path rather than preserving history.
+
+## [6] Keep Desktop module mutations semantic and main-process bounded
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Desktop state and IPC contracts, project workflow-policy writes, feature-model migration, boundary waivers, preload authority, and renderer controls.
+
+Desktop exposes named operations for previewing and applying a complete module policy and for waiving one eligible module at an exact active scope. The renderer cannot submit arbitrary protocol requests, file paths, model JSON, or event payloads. The main process resolves the selected saved project, rebuilds the candidate graph from installed built-ins and repository manifests, recomputes dependency and migration impact, writes only `.gatereeve/workflow.json` atomically, and sends confirmed waiver/migration passage through the protocol core.
+
+**Triggered by:** P4 intentionally relaxes GateReeve Desktop's predominantly read-only model, creating an API-contract and security-boundary change.
+
+**Alternatives considered:**
+- Expose the protocol adapter directly to the renderer - rejected because it would turn a narrow product control into a general event-journal mutation capability.
+- Let the renderer write `.gatereeve/workflow.json` - rejected because renderer compromise must not grant arbitrary project-file writes.
+- Offer copyable shell commands only - rejected because the approved design explicitly requires in-app checkboxes, preview, apply, and waiver controls.
+
+## [7] Activate feature-scoped waiver controls with finalization attempts
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Slice sequencing for P4/P8, Desktop finalization controls, and generic finalization protocol operations.
+
+Slice 2 implements boundary-scoped waivers but does not fabricate a feature-scoped waiver against a module definition alone. The feature waiver UI and mutation activate in P8, when the protocol first creates a finalization attempt with the exact merge input, resolved module identity, dependency evidence, and scope fingerprint to which `WAIVED` can safely bind. This changes delivery ordering only; the approved feature behavior remains required.
+
+**Triggered by:** P4 named both waiver scopes, while the approved P8 contract owns creation and fingerprinting of generic feature-finalization attempts.
+
+**Alternatives considered:**
+- Record a feature waiver before an attempt exists - rejected because it would lack the approved exact scope fingerprint and could carry across changed merge input.
+- Add a temporary release-specific waiver record - rejected because it would put product-specific state into the generic protocol and require migration in P8.
+- Disable a finalization module as a substitute for waiving it - rejected because durable project policy and one-feature risk acceptance are intentionally distinct controls.

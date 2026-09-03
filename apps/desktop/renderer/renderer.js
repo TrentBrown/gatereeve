@@ -35,6 +35,7 @@ const ids = [
   'phase-context-description', 'phase-context-uses', 'phase-context-produces',
   'slices-surface', 'slices',
   'boundary-surface', 'attempt-select', 'boundary-summary', 'gate-dag',
+  'finalization-surface', 'finalization-summary', 'finalization-dag',
   'closeout-surface', 'closeout-status', 'closeout-summary',
   'actions-surface', 'actions', 'guidance-context', 'artifact-count', 'artifact-list', 'artifact-viewer', 'history-count',
   'history-list', 'history-detail', 'model-provenance', 'model-graph', 'model-mermaid',
@@ -43,6 +44,13 @@ const ids = [
   'setup-agents', 'setup-recheck', 'setup-open-worktree', 'setup-return', 'save-agents',
   'agent-selection', 'agent-codex', 'agent-claude', 'desktop-version', 'historical-reading',
   'check-updates', 'update-banner', 'update-title', 'update-detail', 'open-update',
+  'module-policy-state', 'module-settings-alert', 'module-policy-path',
+  'module-settings-list', 'module-preview-surface', 'module-preview', 'module-discard',
+  'module-apply', 'module-confirm-dialog', 'module-confirm-close', 'module-confirm-summary',
+  'module-confirm-impact', 'module-confirm-cancel', 'module-confirm-apply',
+  'module-waiver-dialog', 'module-waiver-close', 'module-waiver-title',
+  'module-waiver-summary', 'module-waiver-reason', 'module-waiver-cancel',
+  'module-waiver-confirm',
 ];
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
 const workspaceStore = createWorkspaceStore();
@@ -59,6 +67,16 @@ let eventsKey = null;
 let eventsPromise = null;
 let sessionInventory = null;
 let sessionPromise = null;
+let moduleSettings = null;
+let moduleSettingsKey = null;
+let moduleSettingsPromise = null;
+let moduleSettingsPromiseKey = null;
+let moduleSettingsRequest = 0;
+let modulePreviewRequest = 0;
+let moduleDraftIds = new Set();
+let modulePreview = null;
+let moduleDependencyNotice = null;
+let pendingModuleWaiver = null;
 let selectedArtifactId = null;
 let selectedArtifactFingerprint = null;
 let artifactInFlightFingerprint = null;
@@ -187,6 +205,7 @@ function switchView(view) {
   if (view === 'history') void ensureHistory();
   if (view === 'model') void ensureModel();
   if (view === 'session') void ensureSession();
+  if (view === 'modules') void ensureModuleSettings();
   if (!setup) applyLayout();
 }
 
@@ -610,6 +629,16 @@ function blockerText(blocker) {
   return blocker.message ?? blocker.reason ?? blocker.type ?? 'Unknown blocker';
 }
 
+function modulesForSlot(snapshot, slot) {
+  return snapshot?.modules?.slots?.find((entry) => entry.id === slot)?.modules ?? [];
+}
+
+function moduleForGate(snapshot, gateId) {
+  return modulesForSlot(snapshot, 'boundary.evaluation').find(
+    (module) => module.boundaryGateId === gateId,
+  ) ?? null;
+}
+
 function gateStatusPill(value) {
   const pill = statusPill(value);
   if (value === 'NOT_APPLICABLE') {
@@ -640,42 +669,137 @@ function gateConnector(fromCount, toCount) {
   return connector;
 }
 
-function gateCard(attempt, gate, selected) {
-  const displayedStatus = gate.outcome === 'UNSET' ? gate.freshness : gate.outcome;
+function modulePresentation(module, gate = null) {
+  const outcome = gate?.outcome ?? module?.outcome ?? 'UNSET';
+  const freshness = gate?.freshness ?? module?.freshness ?? 'UNKNOWN';
+  const liveStatus = module?.live?.status ?? null;
+  const readiness = module?.readiness?.status ?? 'unchecked';
+  const status = outcome !== 'UNSET'
+    ? outcome
+    : freshness !== 'UNKNOWN'
+      ? freshness
+      : readiness === 'unavailable' ? 'unavailable' : liveStatus ?? 'pending';
+  const nextAction = Array.isArray(module?.live?.actions)
+    ? module.live.actions.find((action) => action && action.available !== false)
+    : null;
+  return {
+    outcome,
+    freshness,
+    liveStatus,
+    readiness,
+    status,
+    detail: module?.live?.detail ?? gate?.reason ?? module?.description ?? null,
+    nextAction,
+  };
+}
+
+function standardModuleCard(module, {
+  orderLabel,
+  gate = null,
+  selected = false,
+  contextLabel,
+  onSelect,
+}) {
+  const presentation = modulePresentation(module, gate);
   const button = node('button', {
-    className: `gate-card ordered-item status-${statusClass(displayedStatus)}${selected ? ' selected' : ''}`,
+    className: `gate-card module-card ordered-item status-${statusClass(presentation.status)}${selected ? ' selected' : ''}`,
     type: 'button',
     attributes: {
       'aria-pressed': String(selected),
-      'aria-label': `Gate ${gate.orderLabel}, ${humanize(gate.id)}, ${humanize(displayedStatus)}${selected ? ', Selected for inspection' : ''}`,
+      'aria-label': `${contextLabel} module ${orderLabel}, ${module.label}, ${humanize(presentation.status)}${selected ? ', Selected for inspection' : ''}`,
     },
   }, [
-    node('span', { className: 'order-marker', text: gate.orderLabel, attributes: { 'aria-hidden': 'true' } }),
+    node('span', { className: 'order-marker', text: orderLabel, attributes: { 'aria-hidden': 'true' } }),
     node('span', { className: 'ordered-content' }, [
       node('span', { className: 'card-header' }, [
-        node('strong', { text: humanize(gate.id), title: `Exact gate ID: ${gate.id}` }),
-        gateStatusPill(displayedStatus),
+        node('strong', { text: module.label, title: `Exact module ID: ${module.id}` }),
+        gate ? gateStatusPill(presentation.status) : statusPill(presentation.status),
       ]),
-      ...(gate.reason ? [node('span', { className: 'object-condition', text: gate.reason })] : []),
-      ...((gate.blockers ?? []).map((blocker) => node('span', {
+      ...(gate ? [node('span', {
+        className: 'module-authority',
+        text: `Outcome ${humanize(presentation.outcome)} · freshness ${humanize(presentation.freshness)}`,
+      })] : []),
+      ...(presentation.liveStatus ? [node('span', {
+        className: 'module-live-status',
+        text: `Live: ${humanize(presentation.liveStatus)}`,
+      })] : []),
+      ...(presentation.detail ? [node('span', {
+        className: gate?.reason ? 'object-condition' : 'module-description',
+        text: presentation.detail,
+      })] : []),
+      ...(gate?.reason && gate.reason !== presentation.detail ? [node('span', {
+        className: 'object-condition',
+        text: gate.reason,
+      })] : []),
+      ...(module.readiness?.status === 'unavailable' ? [node('span', {
+        className: 'object-condition',
+        text: `Implementation unavailable: ${module.readiness.missing.map((item) => `${item.kind} ${item.id}`).join(', ')}`,
+      })] : []),
+      ...((gate?.blockers ?? []).map((blocker) => node('span', {
         className: 'object-condition',
         text: blockerText(blocker),
       }))),
+      ...(presentation.nextAction ? [node('span', {
+        className: 'module-next-action',
+        text: `Next: ${presentation.nextAction.label ?? presentation.nextAction.id ?? 'Action available'}`,
+      })] : []),
     ]),
   ]);
-  button.addEventListener('click', () => renderGateDetail(attempt, gate));
+  button.addEventListener('click', onSelect);
   return button;
+}
+
+function gateCard(attempt, gate, selected) {
+  const module = moduleForGate(currentState?.snapshot, gate.id) ?? {
+    id: gate.id,
+    label: humanize(gate.id),
+    description: gate.reason,
+    readiness: { status: 'unchecked', missing: [] },
+  };
+  const button = standardModuleCard(module, {
+    orderLabel: gate.orderLabel,
+    gate,
+    selected,
+    contextLabel: 'Boundary',
+    onSelect: () => renderGateDetail(attempt, gate),
+  });
+  const shell = node('div', { className: 'gate-node' }, [button]);
+  if (attempt.state === 'ACTIVE' && gate.eligible && module?.waiverAllowed && !module.locked) {
+    const waive = node('button', {
+      className: 'text-button module-waiver-button',
+      text: 'Skip for this boundary…',
+      type: 'button',
+    });
+    waive.addEventListener('click', () => openModuleWaiver(attempt, gate, module));
+    shell.append(waive);
+  }
+  return shell;
+}
+
+function closeDialog(dialog) {
+  if (typeof dialog.close === 'function') dialog.close();
+  else dialog.removeAttribute('open');
+}
+
+function openDialog(dialog) {
+  if (typeof dialog.showModal === 'function') dialog.showModal();
+  else dialog.setAttribute('open', '');
+}
+
+function openModuleWaiver(attempt, gate, module) {
+  pendingModuleWaiver = { attempt, gate, module };
+  elements['module-waiver-title'].textContent = `Skip ${module.label} for this boundary?`;
+  elements['module-waiver-summary'].textContent = `This records WAIVED only for ${attempt.id} and its current input fingerprint. Changed inputs make the waiver stale.`;
+  elements['module-waiver-reason'].value = '';
+  openDialog(elements['module-waiver-dialog']);
+  elements['module-waiver-reason'].focus?.();
 }
 
 function renderGateDetail(attempt, gate) {
   workspaceStore.setHierarchy(projectPath(), { selectedGateId: gate.id });
   renderBoundary(currentState?.snapshot);
-  const artifact = gateArtifact(currentState?.snapshot, attempt.id, gate.id);
-  if (artifact) void openArtifact(artifact);
-  else {
-    workspaceStore.openGate(projectPath(), attempt.id, gate);
-    renderInspector(currentState?.snapshot);
-  }
+  workspaceStore.openGate(projectPath(), attempt.id, gate);
+  renderInspector(currentState?.snapshot);
 }
 
 function renderBoundary(snapshot) {
@@ -760,6 +884,72 @@ function renderBoundary(snapshot) {
     const artifact = attemptArtifact(snapshot, selectedAttemptId);
     if (artifact) void openArtifact(artifact);
   }
+}
+
+function moduleStages(modules) {
+  const activeIds = new Set(modules.map((module) => module.id));
+  const depth = new Map();
+  const visit = (module, path = new Set()) => {
+    if (depth.has(module.id)) return depth.get(module.id);
+    if (path.has(module.id)) return 0;
+    const nextPath = new Set(path).add(module.id);
+    const predecessors = [...module.dependsOn, ...module.after]
+      .filter((id) => activeIds.has(id))
+      .map((id) => modules.find((candidate) => candidate.id === id))
+      .filter(Boolean);
+    const value = predecessors.length === 0
+      ? 0
+      : Math.max(...predecessors.map((candidate) => visit(candidate, nextPath))) + 1;
+    depth.set(module.id, value);
+    return value;
+  };
+  for (const module of modules) visit(module);
+  return [...new Set(depth.values())].sort((a, b) => a - b).map((value) => ({
+    number: value + 1,
+    modules: modules.filter((module) => depth.get(module.id) === value),
+  }));
+}
+
+function finalizationModuleCard(module, orderLabel, selected) {
+  return standardModuleCard(module, {
+    orderLabel,
+    selected,
+    contextLabel: 'Finalization',
+    onSelect: () => {
+      workspaceStore.openModule(projectPath(), module);
+      renderFinalizationModules(currentState?.snapshot);
+      renderInspector(currentState?.snapshot);
+    },
+  });
+}
+
+function renderFinalizationModules(snapshot) {
+  const modules = modulesForSlot(snapshot, 'feature.finalization').filter((module) => module.enabled);
+  const surface = elements['finalization-surface'];
+  surface.hidden = modules.length === 0;
+  clear(elements['finalization-summary']);
+  const graph = clear(elements['finalization-dag']);
+  if (modules.length === 0) return;
+  elements['finalization-summary'].append(
+    document.createTextNode(`${modules.length} enabled finalization module${modules.length === 1 ? '' : 's'} from the pinned feature model.`),
+  );
+  const stages = moduleStages(modules);
+  stages.forEach((stage, index) => {
+    if (index > 0) graph.append(gateConnector(stages[index - 1].modules.length, stage.modules.length));
+    const wrapper = node('div', {
+      className: `gate-stage${stage.modules.length > 1 ? ' gate-stage-branch' : ''}`,
+      attributes: { 'aria-label': `Finalization dependency stage ${stage.number}` },
+    });
+    wrapper.style.setProperty('--stage-columns', String(stage.modules.length));
+    stage.modules.forEach((module, moduleIndex) => {
+      wrapper.append(finalizationModuleCard(
+        module,
+        stage.modules.length === 1 ? String(stage.number) : `${stage.number}${String.fromCharCode(97 + moduleIndex)}`,
+        workspaceState().activeTabId === `module:${module.id}`,
+      ));
+    });
+    graph.append(wrapper);
+  });
 }
 
 function renderCloseout(snapshot) {
@@ -849,6 +1039,257 @@ function renderActions(snapshot) {
   }
 }
 
+function modulePolicyKey() {
+  return `${projectPath()}\0${currentState?.snapshot?.modules?.policyDigest ?? 'none'}`;
+}
+
+function moduleReadinessText(module) {
+  if (module.readiness.status === 'available') return 'Implementation available';
+  if (module.readiness.status === 'unchecked') return 'Implementation not checked';
+  return `Unavailable: ${module.readiness.missing.map((item) => `${item.kind} ${item.id}`).join(', ')}`;
+}
+
+function moduleSettingRow(module) {
+  const checked = moduleDraftIds.has(module.id);
+  const unavailableNew = module.readiness.status === 'unavailable' && !module.enabled;
+  const checkbox = node('input', {
+    type: 'checkbox',
+    id: `module-setting-${module.id.replaceAll(/[^a-zA-Z0-9_-]/g, '-')}`,
+    attributes: {
+      'aria-label': `${checked ? 'Disable' : 'Enable'} ${module.label}`,
+    },
+  });
+  checkbox.checked = checked;
+  checkbox.disabled = module.locked || unavailableNew;
+  checkbox.addEventListener('change', () => {
+    if (checkbox.checked) moduleDraftIds.add(module.id);
+    else moduleDraftIds.delete(module.id);
+    moduleDependencyNotice = null;
+    void refreshModulePreview();
+  });
+  const badges = node('span', { className: 'module-setting-badges' }, [
+    statusPill(checked ? 'enabled' : 'disabled'),
+    statusPill(module.disposition),
+    ...(module.locked ? [statusPill('locked')] : []),
+    ...(module.readiness.status !== 'available' ? [statusPill(module.readiness.status)] : []),
+  ]);
+  const detail = [
+    module.description,
+    moduleReadinessText(module),
+    module.dependsOn.length > 0 ? `Requires ${module.dependsOn.join(', ')}` : 'No hard dependencies',
+    module.runKind ? `Run adapter: ${module.runKind}` : 'No run adapter',
+    module.observeProvider ? `Observer: ${module.observeProvider}` : 'No observation provider',
+  ];
+  if (module.locked) detail.push('Structural protection: this module cannot be disabled or waived.');
+  if (unavailableNew) detail.push('Install the declared implementation before enabling this module.');
+  return node('label', { className: `module-setting${checkbox.disabled ? ' unavailable' : ''}` }, [
+    checkbox,
+    node('span', { className: 'module-setting-copy' }, [
+      node('span', { className: 'card-header' }, [
+        node('span', {}, [node('strong', { text: module.label }), exactId(module.id)]),
+        badges,
+      ]),
+      node('span', { className: 'module-description', text: detail.join(' · ') }),
+    ]),
+  ]);
+}
+
+function renderModuleSettings() {
+  const list = clear(elements['module-settings-list']);
+  if (moduleSettings === null) {
+    elements['module-apply'].disabled = true;
+    elements['module-discard'].disabled = true;
+    elements['module-policy-state'].textContent = moduleSettingsPromise ? 'Loading' : 'Unavailable';
+    elements['module-policy-path'].textContent = '';
+    list.append(node('p', { className: 'muted', text: moduleSettingsPromise
+      ? 'Loading the project module policy…'
+      : 'Module settings are unavailable for this project.' }));
+    return;
+  }
+  elements['module-policy-state'].textContent = moduleSettings.policyExists
+    ? 'Project policy'
+    : 'Bundled defaults';
+  elements['module-policy-path'].textContent = moduleSettings.policyPath;
+  for (const slot of ['boundary.evaluation', 'feature.finalization']) {
+    const modules = moduleSettings.modules.filter((module) => module.slot === slot);
+    if (modules.length === 0) continue;
+    const section = node('section', { className: 'module-slot' }, [
+      node('div', { className: 'module-slot-heading' }, [
+        node('h4', { text: slot === 'boundary.evaluation' ? 'PR boundary evaluation' : 'Feature finalization' }),
+        node('span', { className: 'count', text: `${modules.filter((module) => moduleDraftIds.has(module.id)).length} enabled` }),
+      ]),
+    ]);
+    for (const module of modules) section.append(moduleSettingRow(module));
+    list.append(section);
+  }
+  renderModulePreview();
+}
+
+function impactList(impact) {
+  const entries = [
+    ['Modules added', impact.modulesAdded],
+    ['Modules removed', impact.modulesRemoved],
+    ['Modules changed', impact.modulesChanged],
+    ['Boundary gates invalidated', impact.boundaryGateIdsInvalidated],
+  ].filter(([, values]) => values.length > 0);
+  if (entries.length === 0) return node('p', { className: 'muted', text: 'No derived graph changes.' });
+  const list = node('dl', { className: 'facts' });
+  for (const [label, values] of entries) {
+    list.append(node('div', {}, [node('dt', { text: label }), node('dd', { text: values.join(', ') })]));
+  }
+  return list;
+}
+
+function renderModulePreview() {
+  const surface = elements['module-preview-surface'];
+  const content = clear(elements['module-preview']);
+  const changed = modulePreview?.diff?.length > 0;
+  elements['module-apply'].disabled = !modulePreview?.valid || !changed;
+  elements['module-discard'].disabled = !changed;
+  surface.hidden = !changed && !modulePreview?.error && moduleDependencyNotice === null;
+  if (surface.hidden) return;
+  if (moduleDependencyNotice) {
+    content.append(node('div', { className: 'notice info', text: moduleDependencyNotice }));
+  }
+  if (modulePreview?.error) {
+    content.append(node('div', { className: 'notice danger', text: modulePreview.error }));
+  }
+  if (modulePreview?.diff?.length) {
+    const list = node('ul', { className: 'module-diff' });
+    for (const item of modulePreview.diff) {
+      const module = moduleSettings?.modules.find((candidate) => candidate.id === item.id);
+      list.append(node('li', { text: `${module?.label ?? item.id}: ${item.before ? 'enabled' : 'disabled'} → ${item.after ? 'enabled' : 'disabled'}` }));
+    }
+    content.append(list);
+  }
+  if (modulePreview?.blockingDependents?.length) {
+    const removable = modulePreview.blockingDependents.every((item) => !item.locked);
+    if (removable) {
+      const button = node('button', { className: 'secondary', text: 'Stage dependent removals', type: 'button' });
+      button.addEventListener('click', () => {
+        moduleDraftIds = new Set(modulePreview.suggestedEnabledModuleIds);
+        moduleDependencyNotice = 'Dependent modules were added to the staged removals. Nothing has been written yet.';
+        void refreshModulePreview();
+      });
+      content.append(button);
+    }
+  }
+  if (modulePreview?.migrationImpact) {
+    content.append(
+      node('h4', { text: 'Active feature migration' }),
+      node('p', { text: 'Applying this policy also updates the feature’s pinned resolved module graph and records the migration.' }),
+      impactList(modulePreview.migrationImpact),
+    );
+  }
+}
+
+async function refreshModulePreview({ absorbDependencies = true } = {}) {
+  if (moduleSettings === null) return;
+  const request = ++modulePreviewRequest;
+  elements['module-settings-alert'].hidden = true;
+  try {
+    const preview = await desktop.previewModulePolicy([...moduleDraftIds]);
+    if (request !== modulePreviewRequest) return;
+    if (
+      absorbDependencies
+      && preview.valid
+      && preview.blockingDependents.length === 0
+      && preview.autoEnabled.length > 0
+    ) {
+      const labels = preview.autoEnabled.map((id) => (
+        moduleSettings.modules.find((module) => module.id === id)?.label ?? id
+      ));
+      moduleDraftIds = new Set(preview.enabledModuleIds);
+      moduleDependencyNotice = `Required dependencies were staged visibly: ${labels.join(', ')}.`;
+      modulePreview = await desktop.previewModulePolicy([...moduleDraftIds]);
+      if (request !== modulePreviewRequest) return;
+    } else {
+      modulePreview = preview;
+    }
+  } catch (error) {
+    if (request !== modulePreviewRequest) return;
+    modulePreview = null;
+    elements['module-settings-alert'].textContent = error.message ?? String(error);
+    elements['module-settings-alert'].hidden = false;
+  }
+  renderModuleSettings();
+}
+
+async function ensureModuleSettings({ force = false } = {}) {
+  const key = modulePolicyKey();
+  if (!force && moduleSettings !== null && moduleSettingsKey === key) return;
+  if (!force && moduleSettingsPromise && moduleSettingsPromiseKey === key) {
+    return moduleSettingsPromise;
+  }
+  const request = ++moduleSettingsRequest;
+  modulePreviewRequest += 1;
+  moduleSettings = null;
+  modulePreview = null;
+  moduleDependencyNotice = null;
+  elements['module-settings-alert'].hidden = true;
+  renderModuleSettings();
+  const promise = desktop.getModuleSettings().then((settings) => {
+    if (request !== moduleSettingsRequest || key !== modulePolicyKey()) return null;
+    moduleSettings = settings;
+    moduleSettingsKey = modulePolicyKey();
+    moduleDraftIds = new Set(settings.modules.filter((module) => module.enabled).map((module) => module.id));
+    return refreshModulePreview({ absorbDependencies: false });
+  }).catch((error) => {
+    if (request !== moduleSettingsRequest) return;
+    elements['module-settings-alert'].textContent = error.message ?? String(error);
+    elements['module-settings-alert'].hidden = false;
+  }).finally(() => {
+    if (moduleSettingsPromise === promise) {
+      moduleSettingsPromise = null;
+      moduleSettingsPromiseKey = null;
+      renderModuleSettings();
+    }
+  });
+  moduleSettingsPromise = promise;
+  moduleSettingsPromiseKey = key;
+  return promise;
+}
+
+function showModuleMigrationConfirmation() {
+  const impact = modulePreview?.migrationImpact;
+  if (!impact) return;
+  elements['module-confirm-summary'].textContent = 'The tracked project policy and this active feature’s pinned module graph will change together. GateReeve will record who confirmed the migration.';
+  clear(elements['module-confirm-impact']).append(impactList(impact));
+  openDialog(elements['module-confirm-dialog']);
+}
+
+async function applyModulePolicy(confirmedMigration = false) {
+  const targetProjectPath = projectPath();
+  elements['module-settings-alert'].hidden = true;
+  elements['module-apply'].disabled = true;
+  elements['module-confirm-apply'].disabled = true;
+  try {
+    const applied = await desktop.applyModulePolicy(
+      [...moduleDraftIds],
+      confirmedMigration,
+      confirmedMigration ? 'GateReeve Desktop module settings' : null,
+    );
+    if (targetProjectPath !== projectPath()) {
+      showToast('Module policy applied to the previously selected project');
+      return;
+    }
+    moduleSettings = applied;
+    moduleSettingsKey = modulePolicyKey();
+    moduleDraftIds = new Set(moduleSettings.modules.filter((module) => module.enabled).map((module) => module.id));
+    modulePreview = null;
+    moduleDependencyNotice = null;
+    closeDialog(elements['module-confirm-dialog']);
+    renderModuleSettings();
+    showToast('Project module policy applied');
+  } catch (error) {
+    elements['module-settings-alert'].textContent = error.message ?? String(error);
+    elements['module-settings-alert'].hidden = false;
+  } finally {
+    elements['module-confirm-apply'].disabled = false;
+    renderModulePreview();
+  }
+}
+
 function renderOverview(snapshot) {
   renderGlobalAlert(snapshot);
   renderStateRail(snapshot);
@@ -860,6 +1301,7 @@ function renderOverview(snapshot) {
   elements['slices-surface'].hidden = !delivering;
   elements['boundary-surface'].hidden = !delivering;
   elements['closeout-surface'].hidden = !finalizing;
+  elements['finalization-surface'].hidden = true;
   if (delivering) {
     renderSlices(snapshot);
     renderBoundary(snapshot);
@@ -867,7 +1309,13 @@ function renderOverview(snapshot) {
     clear(elements.slices);
     clear(elements['gate-dag']);
   }
-  if (finalizing) renderCloseout(snapshot);
+  if (finalizing) {
+    renderFinalizationModules(snapshot);
+    renderCloseout(snapshot);
+  } else {
+    clear(elements['finalization-summary']);
+    clear(elements['finalization-dag']);
+  }
   renderActions(snapshot);
 }
 
@@ -1189,10 +1637,129 @@ function renderUnavailableTab(tab) {
   );
 }
 
-function renderGateTab(tab, snapshot) {
+function moduleById(snapshot, moduleId) {
+  for (const slot of snapshot?.modules?.slots ?? []) {
+    const module = slot.modules.find((candidate) => candidate.id === moduleId);
+    if (module) return module;
+  }
+  return null;
+}
+
+function moduleAdapterLabel(module) {
+  const run = module.run;
+  if (run?.kind === 'skill') return `Skill · ${run.skillId}`;
+  if (run?.kind === 'manual') return 'Manual instructions';
+  if (run?.kind === 'command') return `Command · ${run.executable}`;
+  return 'Observation only';
+}
+
+function moduleEvidenceList(module, gate) {
+  const evidence = [];
+  if (gate?.evidence) evidence.push(gate.evidence);
+  if (Array.isArray(module.live?.evidence)) evidence.push(...module.live.evidence);
+  return evidence;
+}
+
+function appendStructuredModuleList(viewer, heading, values, describe) {
+  if (!Array.isArray(values) || values.length === 0) return;
+  const list = node('ul', { className: 'module-detail-list' });
+  values.forEach((value, index) => {
+    list.append(node('li', { text: describe(value, index) }));
+  });
+  viewer.append(node('h3', { text: heading }), list);
+}
+
+function moduleDetailText(value, fallback) {
+  if (typeof value === 'string' && value.length > 0) return value;
+  return fallback;
+}
+
+function renderModuleDetails(viewer, module, { attempt = null, gate = null } = {}) {
   artifactReadSequence += 1;
   selectedArtifactId = null;
   artifactHasContent = false;
+  const presentation = modulePresentation(module, gate);
+  clear(viewer).append(node('div', { className: 'viewer-toolbar' }, [
+    node('div', {}, [
+      node('h3', { text: module.label }),
+      node('p', { className: 'path', text: `${attempt ? `${attempt.id} · ` : ''}${module.id}` }),
+    ]),
+    gate ? gateStatusPill(presentation.status) : statusPill(presentation.status),
+  ]));
+
+  const facts = [
+    ['Slot', humanize(module.slot)],
+    ['Readiness', humanize(presentation.readiness)],
+    ['Disposition', humanize(module.disposition ?? 'required')],
+    ['Execution', moduleAdapterLabel(module)],
+    ['Observer', module.observe?.providerId ?? 'None'],
+  ];
+  if (gate) {
+    facts.splice(1, 0,
+      ['Outcome', humanize(presentation.outcome)],
+      ['Freshness', humanize(presentation.freshness)],
+    );
+  }
+  if (presentation.liveStatus) facts.push(['Live status', humanize(presentation.liveStatus)]);
+  if (module.live?.updatedAt) facts.push(['Updated', formatTime(module.live.updatedAt)]);
+  viewer.append(node('dl', { className: 'facts module-detail-facts' }, facts.map(([term, value]) => (
+    node('div', {}, [node('dt', { text: term }), node('dd', { text: value })])
+  ))));
+
+  if (module.description) viewer.append(node('p', { text: module.description }));
+  if (module.live?.detail && module.live.detail !== module.description) {
+    viewer.append(node('div', { className: 'notice', text: module.live.detail }));
+  }
+  if (module.readiness?.status === 'unavailable') {
+    viewer.append(node('div', {
+      className: 'notice danger',
+      text: `Implementation unavailable: ${module.readiness.missing.map((item) => `${item.kind} ${item.id}`).join(', ')}`,
+    }));
+  }
+  if (module.live?.failure) {
+    viewer.append(node('div', {
+      className: 'notice danger',
+      text: `Failure: ${moduleDetailText(module.live.failure.message, String(module.live.failure))}`,
+    }));
+  }
+
+  appendStructuredModuleList(viewer, 'Dependencies', module.dependsOn, (id) => id);
+  appendStructuredModuleList(viewer, 'Provider stages', module.live?.stages, (stage, index) => {
+    const label = moduleDetailText(stage?.label, stage?.id ?? `Stage ${index + 1}`);
+    const status = humanize(stage?.status ?? 'unknown');
+    const detail = moduleDetailText(stage?.detail, '');
+    return `${label} · ${status}${detail ? ` · ${detail}` : ''}`;
+  });
+  appendStructuredModuleList(viewer, 'Available actions', module.live?.actions, (action, index) => {
+    const label = moduleDetailText(action?.label, action?.id ?? `Action ${index + 1}`);
+    const state = action?.available === false ? 'unavailable' : 'available';
+    const detail = moduleDetailText(action?.detail, '');
+    return `${label} · ${state}${detail ? ` · ${detail}` : ''}`;
+  });
+  appendStructuredModuleList(viewer, 'Attempt history', module.live?.attempts, (entry, index) => {
+    const label = moduleDetailText(entry?.label, entry?.id ?? `Attempt ${index + 1}`);
+    const status = humanize(entry?.status ?? 'unknown');
+    const timestamp = entry?.finishedAt ?? entry?.startedAt ?? entry?.recordedAt;
+    return `${label} · ${status}${timestamp ? ` · ${formatTime(timestamp)}` : ''}`;
+  });
+
+  const evidence = moduleEvidenceList(module, gate);
+  if (evidence.length > 0) {
+    viewer.append(node('h3', { text: 'Evidence' }));
+    evidence.forEach((entry) => viewer.append(node('pre', {
+      className: 'module-evidence',
+      text: typeof entry === 'string' ? entry : JSON.stringify(entry, null, 2),
+    })));
+  }
+  appendStructuredModuleList(viewer, 'Links', module.live?.links, (link, index) => {
+    const label = moduleDetailText(link?.label, `Link ${index + 1}`);
+    return `${label} · ${moduleDetailText(link?.url, 'Unavailable')}`;
+  });
+
+  return presentation;
+}
+
+function renderGateTab(tab, snapshot) {
   const attempt = snapshot?.projection?.boundaryAttempts?.find((item) => item.id === tab.attemptId);
   const gate = attempt?.gates?.find((item) => item.id === tab.gateId);
   if (!attempt || !gate) {
@@ -1200,23 +1767,45 @@ function renderGateTab(tab, snapshot) {
     return;
   }
   const viewer = clear(elements['artifact-viewer']);
-  viewer.append(node('div', { className: 'viewer-toolbar' }, [
-    node('p', { className: 'path', text: `${attempt.id} · ${gate.id}` }),
-    gateStatusPill(gate.outcome),
-  ]));
-  const facts = node('dl', { className: 'facts' }, [
-    node('div', {}, [node('dt', { text: 'Outcome' }), node('dd', { text: humanize(gate.outcome) })]),
-    node('div', {}, [node('dt', { text: 'Freshness' }), node('dd', { text: humanize(gate.freshness) })]),
-    node('div', {}, [node('dt', { text: 'Dependencies' }), node('dd', { text: gate.dependsOn?.length ? gate.dependsOn.join(', ') : 'Entry gate' })]),
-    node('div', {}, [node('dt', { text: 'Recorded event' }), node('dd', { className: 'path', text: gate.recordedEventId ?? 'None' })]),
-  ]);
-  viewer.append(facts);
+  const module = moduleForGate(snapshot, gate.id) ?? {
+    id: gate.id,
+    label: humanize(gate.id),
+    description: gate.reason,
+    slot: 'boundary.evaluation',
+    disposition: gate.optional ? 'optional' : 'required',
+    dependsOn: gate.dependsOn ?? [],
+    readiness: { status: 'unchecked', missing: [] },
+    run: null,
+    observe: null,
+  };
+  renderModuleDetails(viewer, module, { attempt, gate });
+  if (gate.recordedEventId) viewer.append(exactId(`Recorded event: ${gate.recordedEventId}`));
   if (gate.reason) viewer.append(node('p', { text: gate.reason }));
   if (gate.blockers?.length) {
     const list = node('ul');
     for (const blocker of gate.blockers) list.append(node('li', { text: blockerText(blocker) }));
     viewer.append(node('h3', { text: 'Blockers' }), list);
   }
+  const artifact = gateArtifact(snapshot, attempt.id, gate.id);
+  if (artifact?.exists && !artifact.unsafe) {
+    const evidenceButton = node('button', { className: 'secondary', text: 'Open evidence', type: 'button' });
+    evidenceButton.addEventListener('click', () => void openArtifact(artifact));
+    viewer.append(evidenceButton);
+  }
+  if (attempt.state === 'ACTIVE' && gate.eligible && module?.waiverAllowed && !module.locked) {
+    const waive = node('button', { className: 'secondary', text: 'Skip for this boundary…', type: 'button' });
+    waive.addEventListener('click', () => openModuleWaiver(attempt, gate, module));
+    viewer.append(waive);
+  }
+}
+
+function renderModuleTab(tab, snapshot) {
+  const module = moduleById(snapshot, tab.moduleId);
+  if (!module || !module.enabled) {
+    renderUnavailableTab({ ...tab, status: 'unavailable' });
+    return;
+  }
+  renderModuleDetails(elements['artifact-viewer'], module);
 }
 
 function renderInspector(snapshot) {
@@ -1230,6 +1819,10 @@ function renderInspector(snapshot) {
   }
   if (tab.kind === 'gate') {
     renderGateTab(tab, snapshot);
+    return;
+  }
+  if (tab.kind === 'module') {
+    renderModuleTab(tab, snapshot);
     return;
   }
   if (!tab.available) {
@@ -1939,6 +2532,13 @@ function render(state) {
   if (!renderedOnce && state.preferences.selectedAgents.length === 0) currentView = 'setup';
   renderedOnce = true;
   if (!selected) {
+    moduleSettingsRequest += 1;
+    modulePreviewRequest += 1;
+    moduleSettings = null;
+    moduleSettingsKey = null;
+    modulePreview = null;
+    moduleDraftIds = new Set();
+    pendingModuleWaiver = null;
     delete elements.workspace.dataset.featureId;
     if (currentView !== 'setup') currentView = workspaceState().mainView;
     elements.activity.textContent = state.setup.phase === 'checking'
@@ -1951,6 +2551,8 @@ function render(state) {
   }
 
   if (previousSelection !== state.selection.worktreePath) {
+    moduleSettingsRequest += 1;
+    modulePreviewRequest += 1;
     artifactReadSequence += 1;
     selectedArtifactId = null;
     selectedArtifactFingerprint = null;
@@ -1962,6 +2564,11 @@ function render(state) {
     eventsDetail = null;
     eventsKey = null;
     sessionInventory = null;
+    moduleSettings = null;
+    moduleSettingsKey = null;
+    modulePreview = null;
+    moduleDraftIds = new Set();
+    pendingModuleWaiver = null;
     currentView = workspaceState().mainView;
     selectedAttemptId = workspaceState().selectedAttemptId;
   } else if (eventsKey !== state.snapshot?.events?.lastEventId) {
@@ -2047,6 +2654,47 @@ elements['attempt-select'].addEventListener('change', (event) => {
   renderBoundary(currentState?.snapshot);
   const artifact = attemptArtifact(currentState?.snapshot, selectedAttemptId);
   if (artifact) void openArtifact(artifact);
+});
+elements['module-discard'].addEventListener('click', () => {
+  if (moduleSettings === null) return;
+  moduleDraftIds = new Set(moduleSettings.modules.filter((module) => module.enabled).map((module) => module.id));
+  modulePreview = null;
+  moduleDependencyNotice = null;
+  renderModuleSettings();
+});
+elements['module-apply'].addEventListener('click', () => {
+  if (modulePreview?.migrationImpact) showModuleMigrationConfirmation();
+  else void applyModulePolicy(false);
+});
+elements['module-confirm-close'].addEventListener('click', () => closeDialog(elements['module-confirm-dialog']));
+elements['module-confirm-cancel'].addEventListener('click', () => closeDialog(elements['module-confirm-dialog']));
+elements['module-confirm-apply'].addEventListener('click', () => void applyModulePolicy(true));
+elements['module-waiver-close'].addEventListener('click', () => closeDialog(elements['module-waiver-dialog']));
+elements['module-waiver-cancel'].addEventListener('click', () => closeDialog(elements['module-waiver-dialog']));
+elements['module-waiver-confirm'].addEventListener('click', async () => {
+  if (pendingModuleWaiver === null) return;
+  const reason = elements['module-waiver-reason'].value.trim();
+  if (reason.length === 0) {
+    elements['module-waiver-reason'].focus?.();
+    return;
+  }
+  elements['module-waiver-confirm'].disabled = true;
+  try {
+    const { attempt, gate, module } = pendingModuleWaiver;
+    render(await desktop.waiveBoundaryModule(
+      attempt.id,
+      gate.id,
+      reason,
+      `GateReeve Desktop: Skip ${module.label}`,
+    ));
+    pendingModuleWaiver = null;
+    closeDialog(elements['module-waiver-dialog']);
+    showToast(`${module.label} waived for this boundary`);
+  } catch (error) {
+    showToast(error.message ?? String(error));
+  } finally {
+    elements['module-waiver-confirm'].disabled = false;
+  }
 });
 elements['copy-mermaid'].addEventListener('click', () => {
   if (modelDetail) void copy(modelDetail.data.graph.mermaid, 'Mermaid source copied');

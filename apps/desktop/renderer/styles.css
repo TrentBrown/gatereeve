@@ -36,7 +36,7 @@ body {
     #f4f1f8;
 }
 
-button, select, input { font: inherit; }
+button, select, input, textarea { font: inherit; }
 
 button {
   border: 1px solid var(--purple-700);
@@ -48,7 +48,7 @@ button {
 }
 
 button:hover:not(:disabled) { background: var(--purple-800); }
-button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible, iframe:focus-visible {
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible, iframe:focus-visible {
   outline: 3px solid #f0a64b;
   outline-offset: 2px;
 }
@@ -645,6 +645,15 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
 .gate-stage, .gate-connector { min-width: 680px; }
 .gate-stage { display: grid; grid-template-columns: repeat(var(--stage-columns), minmax(0, 1fr)); gap: 0.65rem; }
 .gate-stage:not(.gate-stage-branch) .gate-card { width: min(100%, 330px); justify-self: center; }
+.gate-stage:not(.gate-stage-branch) .gate-node { width: min(100%, 330px); justify-self: center; }
+.gate-node { display: grid; min-width: 0; gap: 0.2rem; }
+.gate-node .gate-card { width: 100%; }
+.module-waiver-button { justify-self: end; font-size: 0.64rem; }
+.module-authority, .module-live-status, .module-next-action { display: block; margin-top: 0.32rem; color: var(--muted); font-size: 0.66rem; line-height: 1.35; }
+.module-live-status { color: var(--purple-700); font-weight: 700; }
+.module-next-action { color: #76470f; font-weight: 700; }
+.module-detail-list { padding-left: 1.2rem; line-height: 1.55; }
+.module-evidence { overflow: auto; padding: 0.7rem; border: 1px solid var(--line); border-radius: 0.5rem; background: var(--purple-50); white-space: pre-wrap; overflow-wrap: anywhere; }
 .gate-stage-branch .gate-card { grid-template-columns: 1.45rem minmax(0, 1fr); min-width: 0; padding: 0.68rem 0.52rem; column-gap: 0.32rem; }
 .gate-stage-branch .gate-card .card-header { display: block; }
 .gate-stage-branch .gate-card strong { font-size: 0.7rem; line-height: 1.15; }
@@ -724,6 +733,26 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
 .source-dialog-list { display: grid; gap: 0.55rem; }
 .source-dialog-item { padding: 0.7rem; border: 1px solid var(--line); border-radius: 0.55rem; background: var(--purple-50); }
 .source-dialog-item p { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.74rem; line-height: 1.4; }
+
+/* Project-owned module enablement stays explicit, staged, and inspectable. */
+.module-settings-list { display: grid; gap: 1rem; }
+.module-slot { display: grid; gap: 0.48rem; }
+.module-slot + .module-slot { padding-top: 1rem; border-top: 1px solid var(--line); }
+.module-slot-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.module-slot-heading h4 { margin: 0; font-family: Georgia, "Times New Roman", serif; }
+.module-setting { display: grid; grid-template-columns: 1.25rem minmax(0, 1fr); align-items: start; gap: 0.7rem; padding: 0.78rem; border: 1px solid var(--line); border-radius: 0.62rem; background: var(--purple-50); cursor: pointer; }
+.module-setting:hover { border-color: #bba9d2; background: #f2edf8; }
+.module-setting.unavailable { cursor: default; }
+.module-setting > input { width: 1.1rem; height: 1.1rem; margin: 0.12rem 0 0; accent-color: var(--purple-700); }
+.module-setting-copy, .module-description { display: block; min-width: 0; }
+.module-setting-copy strong { display: block; }
+.module-setting-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.28rem; }
+.module-description { margin-top: 0.4rem; color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
+.module-preview-surface .viewer-actions, .source-dialog > .viewer-actions { justify-content: flex-end; margin-top: 0.9rem; }
+.module-diff { margin: 0.4rem 0 0.9rem; padding-left: 1.2rem; line-height: 1.55; }
+.module-impact .facts { grid-template-columns: 1fr; }
+.field-label { display: grid; gap: 0.4rem; color: var(--ink); font-size: 0.76rem; font-weight: 750; }
+.field-label textarea { width: 100%; resize: vertical; border: 1px solid var(--line); border-radius: 0.5rem; padding: 0.65rem; color: var(--ink); background: #fff; line-height: 1.45; }
 
 /* Invalid candidates never leave a stale governed hierarchy underneath. */
 .diagnostic-only .main-tabs, .diagnostic-only [data-page], .diagnostic-only .inspector-panel { display: none; }

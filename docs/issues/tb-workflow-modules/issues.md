@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Define the module schemas and deterministic resolver
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P1, P2
 - **Rubric criteria:** R1, R3, R7
@@ -22,7 +22,7 @@ and explicit migration-impact behavior.
 
 ## I-2 - Convert existing PR gates to declarative built-ins
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P3
 - **Rubric criteria:** R2, R3, R6
@@ -33,9 +33,9 @@ Represent the complete current boundary with module definitions, preserve its
 locked envelope and existing semantics, and prove canonical CLI/plugin/Desktop
 parity and regression behavior. This completes delivery slice 1.
 
-## I-3 - Add project module policy and waiver controls
+## I-3 - Add project module policy and boundary-waiver controls
 
-- **Status:** open
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R3
@@ -44,11 +44,14 @@ parity and regression behavior. This completes delivery slice 1.
 
 Build staged settings, dependency previews, atomic uncommitted writes,
 active-feature migration confirmation, local-readiness display, and scoped
-boundary/finalization waiver actions.
+boundary/finalization waiver actions. Project policy and boundary waivers are
+implemented in slice 2. The feature-scoped waiver action remains attached to
+I-7/P8 because P8 creates the finalization attempt and scope fingerprint that
+the waiver must bind to.
 
 ## I-4 - Generalize module graph and detail presentation
 
-- **Status:** open
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P5
 - **Rubric criteria:** R4, R7
