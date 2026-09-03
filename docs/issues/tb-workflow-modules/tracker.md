@@ -38,7 +38,7 @@ legacy-attempt replay defect; the second attempt evaluates that correction.
 - Pull request: [#62](https://github.com/TrentBrown/gatereeve/pull/62)
 - Evidence packet: [pr-62](pr-62/boundary.json)
 - Scope: slice (P4-P5; R1, R3, R4, R7)
-- Status: implementation remediation after packaged-runtime CI
+- Status: boundary rerun after packaged-runtime remediation
 
 This slice adds staged project module settings, dependency and migration
 previews, scoped waivers, and the shared Implementing/Finalizing module graph.
@@ -54,3 +54,7 @@ trusted Python context guard used by the default waiver path. The slice returned
 to implementation and now stages only the three canonical scripts in that
 guard's dependency closure, discovers compatible Python, Git, and GitHub executables
 explicitly, and exercises the packaged default path in an integration test.
+The first human-review CI run then exposed the package verifier's older blanket
+Python exclusion. The repaired contract requires exactly those three trusted
+scripts, rejects every other Python path, and passes the universal package plus
+native Apple Silicon and Intel packaged-runtime jobs.

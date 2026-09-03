@@ -1,6 +1,6 @@
 # Code Review - PR #62
 
-**Pinned diff:** `cb85c672e6090f0286159b9897eacee9c3edf8fc..53f9babd3aaec06449eeb0c8fd7deb4ab143544b`
+**Pinned diff:** `cb85c672e6090f0286159b9897eacee9c3edf8fc..723c7f73118f0e51f474d151d2491afb31c2460a`
 
 **Verdict:** PASS - no unresolved correctness, regression, security, or test-gap
 findings remain in the pinned diff.
@@ -24,7 +24,13 @@ before recording any gate outcome. The corrected diff:
   fingerprints and lets protocol core re-evaluate waiver eligibility at
   `protocol-adapter.js:96-121`; and
 - exercises the default packaged provider against a real temporary Git
-  repository in `apps/desktop/test/protocol-adapter.test.js`.
+repository in `apps/desktop/test/protocol-adapter.test.js`.
+
+The first human-review CI run then found that the macOS verifier still rejected
+every Python file, including that intentional closure. The repaired diff keeps
+verification fail-closed: `STAGED_PYTHON_RUNTIME_PATHS` names exactly the three
+required guards, `REQUIRED_ASAR_PATHS` requires them, the verifier rejects any
+other `.py` entry, and focused tests exercise allowed and near-miss paths.
 
 ## Contract and Safety Review
 
@@ -52,13 +58,14 @@ before recording any gate outcome. The corrected diff:
 
 ## Verification Reviewed
 
-- Complete Desktop suite: 173 passed.
+- Complete Desktop suite: 174 passed.
 - Complete CLI/protocol suite: 208 passed.
 - Canonical PR-context suite: 9 passed.
 - Portable acceptance, package parity, document validators, syntax checks, and
   both dependency audits: PASS.
-- Native Electron launch is unavailable on this Linux host because
-  `libatk-1.0.so.0` is absent; supported-macOS packaged interaction remains P10.
+- Universal package and exact-DMG native runtime verification pass on Apple
+  Silicon and Intel. Local Linux launch remains unavailable because
+  `libatk-1.0.so.0` is absent; supported-macOS interactive review remains P10.
 
 ## Residual Risks and Deferred Coverage
 
@@ -66,7 +73,7 @@ before recording any gate outcome. The corrected diff:
   terminals remain P6-P7; this slice does not execute repository declarations.
 - Finalization attempts, feature-scoped waivers, and completion blocking remain
   P8. The UI intentionally presents only enabled pinned definitions today.
-- GateReeve Release and real Apple Silicon plus Intel-or-Rosetta evidence remain
-  P9-P10.
+- GateReeve Release and the interactive release walkthrough remain P9-P10;
+  native Apple Silicon and Intel package smoke evidence is now green.
 
 These are planned feature obligations, not omissions from P4-P5.

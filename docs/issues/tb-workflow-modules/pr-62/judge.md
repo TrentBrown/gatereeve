@@ -5,7 +5,7 @@
 **Verdict:** PASS
 
 **Independent scope:** approved AC/rubric plus the pinned source diff
-`cb85c672e6090f0286159b9897eacee9c3edf8fc..53f9babd3aaec06449eeb0c8fd7deb4ab143544b`.
+`cb85c672e6090f0286159b9897eacee9c3edf8fc..723c7f73118f0e51f474d151d2491afb31c2460a`.
 The verdict was reconstructed from those inputs rather than copied from the
 implementation narrative or spec-evaluation conclusion.
 
@@ -14,7 +14,7 @@ implementation narrative or spec-evaluation conclusion.
 | # | Criterion | Result | Evidence |
 |---|---|---|---|
 | R1 | Deterministic module policy and resolution | PASS IN SLICE | `apps/desktop/main/module-policy.js:45-114,145-251` validates a complete selection, computes dependency closure and dependent conflicts, resolves the graph through the canonical resolver, and returns exact policy/model migration data. `:264-305` requires explicit dependency adoption and feature-migration confirmation and writes only the project policy. Negative and recovery tests pass. |
-| R3 | Project settings, dependency edits, waivers, and readiness | PASS IN SLICE | `module-policy.js:184-251` distinguishes readiness and refuses newly enabled unavailable modules; `renderer.js:1051-1235` stages checkboxes and shows consequences; `protocol-adapter.js:52-124` verifies current PR identity/source through explicitly discovered executables and delegates the fingerprint-bound waiver to core. Strict contracts and integration tests cover these paths. Feature waivers remain P8 by approved sequencing. |
+| R3 | Project settings, dependency edits, waivers, and readiness | PASS IN SLICE | `module-policy.js:184-251` distinguishes readiness and refuses newly enabled unavailable modules; `renderer.js:1051-1235` stages checkboxes and shows consequences; `protocol-adapter.js:52-124` verifies current PR identity/source through explicitly discovered executables and delegates the fingerprint-bound waiver to core. `macos-package-contract.mjs` and `verify-macos-package.mjs` share an exact three-script allowlist, and both native packaged-runtime CI jobs pass. Feature waivers remain P8 by approved sequencing. |
 | R4 | Compact state-specific module UI | PASS IN SLICE | `renderer.js:632-962` shares module-card and detail semantics between the selected boundary attempt and Finalizing, while filtering disabled modules and hiding an empty finalization section. The feature rail remains unchanged. Renderer and accessibility suites pass. |
 | R7 | Generic finalization semantics | PASS FOR SLICE PRESENTATION | The UI consumes only the generic `feature.finalization` slot and contains no release-specific passage. Actual attempts and completion blocking remain the P8 slice obligation. |
 
@@ -29,10 +29,10 @@ implementation narrative or spec-evaluation conclusion.
 ### Gap Check
 
 - **Unaddressed in-scope AC:** None.
-- The supported-macOS packaged visual walkthrough is retained for P10. This
-  host's missing Linux Electron library is an environment limitation, not a
-  product assertion failure; DOM, accessibility, packaging, and default-guard
-  integration evidence cover the slice boundary.
+- The exact universal DMG passes native launch verification on Apple Silicon
+  and Intel. The supported-macOS interactive visual walkthrough is retained for
+  P10; this host's missing Linux Electron library is an environment limitation,
+  not a product assertion failure.
 - Command execution/provider supervision (AC5-AC6), finalization passage and
   feature waivers (remaining AC3/AC7), and GateReeve Release (AC8) remain
   explicitly open in I-5 through I-9.

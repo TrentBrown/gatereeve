@@ -2,7 +2,7 @@
 
 **Scope:** delivery slice 2 (`P4`-`P5`)
 
-**Pinned diff:** `cb85c672e6090f0286159b9897eacee9c3edf8fc..53f9babd3aaec06449eeb0c8fd7deb4ab143544b`
+**Pinned diff:** `cb85c672e6090f0286159b9897eacee9c3edf8fc..723c7f73118f0e51f474d151d2491afb31c2460a`
 
 **Verdict:** PASS for the slice. The feature-level rubric remains `NOT YET`
 until execution, finalization passage, and release-provider slices are assembled.
@@ -13,9 +13,9 @@ until execution, finalization passage, and release-provider slices are assembled
 |---|---|---|
 | Build / package | PASS | Desktop pretest stages the exact protocol and three-script trusted context-guard closure, then builds the 421,335-byte renderer bundle. |
 | Lint / format | PASS | Changed JavaScript syntax, `git diff --check`, plugin/package validation, and branch-document validators pass. |
-| Unit / integration | PASS | Desktop 173/173, CLI/protocol 208/208, PR-context 9/9, and complete portable acceptance pass. |
+| Unit / integration | PASS | Desktop 174/174, CLI/protocol 208/208, PR-context 9/9, and complete portable acceptance pass. |
 | Dependency audit | PASS | CLI and Desktop report zero vulnerabilities. |
-| Native runtime | DEFERRED EVIDENCE | The Linux host lacks Electron's `libatk-1.0.so.0`; the required supported-macOS packaged walkthrough remains explicitly assigned to P10. DOM/accessibility and packaged-path integration coverage pass in this slice. |
+| Native runtime | PASS / DEFERRED VISUAL | The exact universal DMG passes native packaged-runtime jobs on Apple Silicon and Intel. The Linux host lacks Electron's `libatk-1.0.so.0`; the interactive supported-macOS walkthrough remains explicitly assigned to P10. |
 
 The complete command matrix is retained in [verification.md](verification.md).
 
@@ -33,7 +33,7 @@ The complete command matrix is retained in [verification.md](verification.md).
 | # | Slice result | Evidence |
 |---|---|---|
 | R1 | PASS IN SCOPE | Module-policy tests cover complete deterministic selection, migration preview, unavailable implementations, symlink rejection, failed atomic creation, and explicit adoption. Canonical protocol copies and inventory remain synchronized. |
-| R3 | PASS IN SCOPE | Coordinator, strict preload/IPC contracts, policy-manager tests, renderer tests, and packaged waiver-guard integration prove the staged-edit, preview, apply, readiness, and boundary-waiver behavior. Feature waiver behavior remains an explicit P8 obligation rather than a fabricated early implementation. |
+| R3 | PASS IN SCOPE | Coordinator, strict preload/IPC contracts, policy-manager tests, renderer tests, packaged waiver-guard integration, the exact three-path Python allowlist, and native universal-DMG jobs prove the staged-edit, preview, apply, readiness, and boundary-waiver behavior. Feature waiver behavior remains an explicit P8 obligation rather than a fabricated early implementation. |
 | R4 | PASS IN SCOPE | Renderer DOM and accessibility tests cover the unchanged rail, shared cards, state-specific placement, structured inspector, graph fixtures, keyboard-native controls, semantic status, and empty finalization behavior. Supported-size packaged screenshots remain P10 evidence. |
 | R7 | PASS IN SCOPE | The generic finalization graph/detail presentation and zero-module behavior are present. Passage semantics remain P8 and are not prematurely claimed. |
 

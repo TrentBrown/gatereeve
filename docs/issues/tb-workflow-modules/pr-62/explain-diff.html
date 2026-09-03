@@ -53,7 +53,7 @@
 </head>
 <body>
   <header>
-    <div class="sha">PR #62 · cb85c67 → 53f9bab · 39 files</div>
+    <div class="sha">PR #62 · cb85c67 → 723c7f7 · 50 files</div>
     <h1>Modules become<br>something you can use</h1>
     <p>The first slice defined GateReeve’s module graph. This slice turns that graph into a deliberately bounded product interface: project checkboxes with previews, one-boundary waivers, and a shared status view under Implementing and Finalizing.</p>
   </header>
@@ -100,7 +100,7 @@
       <p>Changed inputs make the waiver stale. Locked modules never offer the action. Feature-scoped waivers are intentionally absent until the finalization slice creates an attempt and merge-input fingerprint to bind them to.</p>
 
       <h3>Why the packaged Python guard exists</h3>
-      <p>The first review attempt exposed a real distribution bug: the new Desktop waiver path called a trusted Python guard that was not in the packaged application. The repair stages only <code>pr_context.py</code> and its two local dependencies, discovers compatible Python plus Git and GitHub CLI paths, and checks that the PR’s local and remote head still match the pinned source.</p>
+      <p>The first review attempt exposed a real distribution bug: the new Desktop waiver path called a trusted Python guard that was not in the packaged application. The repair stages only <code>pr_context.py</code> and its two local dependencies, discovers compatible Python plus Git and GitHub CLI paths, and checks that the PR’s local and remote head still match the pinned source. The next package run exposed the inverse mismatch: its verifier still banned every Python file. The final contract now requires exactly those three paths and rejects every other Python payload.</p>
       <pre>Desktop request
   → private pinned-context file
   → discovered Python 3.10+
@@ -113,7 +113,7 @@
 
     <section id="code">
       <h2>3. Code walkthrough</h2>
-      <p><strong>Exact evaluated range:</strong> <code>cb85c672e6090f0286159b9897eacee9c3edf8fc..53f9babd3aaec06449eeb0c8fd7deb4ab143544b</code>.</p>
+      <p><strong>Exact evaluated range:</strong> <code>cb85c672e6090f0286159b9897eacee9c3edf8fc..723c7f73118f0e51f474d151d2491afb31c2460a</code>.</p>
       <h3>Policy manager</h3>
       <p><code>apps/desktop/main/module-policy.js</code> owns inspection, preview, and apply. It builds a complete catalog from bundled and project definitions, checks exact requested IDs, computes hard-dependency closure, reports transitive dependents, resolves through the canonical graph validator, and refuses newly enabled modules whose local implementation is unavailable.</p>
       <p>The apply path re-runs the preview, requires visible dependency additions to be accepted, requires a human label when the active feature must migrate, refuses symlink targets, writes a create-once temporary file, and atomically renames it to <code>.gatereeve/workflow.json</code>. It does not call Git.</p>
@@ -137,8 +137,8 @@
       <p>The canonical snapshot validator now inventories modules by the two legal slots, rejects duplicate IDs or slot drift, requires a readiness entry for every module, and admits only <span class="tag">pending</span><span class="tag">running</span><span class="tag">waiting</span><span class="tag">blocked</span><span class="tag">unavailable</span> as live states. This keeps future providers flexible without letting them invent workflow outcomes.</p>
 
       <h3>Verification and remaining boundaries</h3>
-      <p class="ok"><strong>Green:</strong> 173 Desktop tests, 208 CLI/protocol tests, 9 PR-context tests, portable acceptance, package parity, document validation, syntax checks, and zero dependency vulnerabilities.</p>
-      <p class="warn"><strong>Deferred:</strong> the supported-macOS packaged visual walkthrough remains in P10 because this Linux host lacks Electron’s <code>libatk-1.0.so.0</code>. Command execution/provider supervision is P6-P7; finalization passage is P8; GateReeve Release is P9-P10.</p>
+      <p class="ok"><strong>Green:</strong> 174 Desktop tests, 208 CLI/protocol tests, 9 PR-context tests, portable acceptance, package parity, native exact-DMG launch on Apple Silicon and Intel, document validation, syntax checks, and zero dependency vulnerabilities.</p>
+      <p class="warn"><strong>Deferred:</strong> the interactive supported-macOS visual walkthrough remains in P10 because this Linux host lacks Electron’s <code>libatk-1.0.so.0</code>. Command execution/provider supervision is P6-P7; finalization passage is P8; GateReeve Release is P9-P10.</p>
     </section>
 
     <section id="quiz">
@@ -146,7 +146,7 @@
       <div class="question" data-answer="2"><h3>1. Why does the renderer send the complete enabled-module ID set?</h3><div class="answers"><button>So the renderer can calculate the final digest and write the policy itself.</button><button>So every unchecked module automatically receives a NOT_APPLICABLE outcome.</button><button>So the main process can reconstruct and validate one complete candidate graph rather than trusting an incremental toggle.</button><button>So the project can substitute a different executable for each module during preview.</button></div><p class="feedback"></p></div>
       <div class="question" data-answer="1"><h3>2. What distinguishes disabling Judge from waiving Judge?</h3><div class="answers"><button>Disabling changes only the current attempt; waiving edits the tracked policy.</button><button>Disabling changes adopted project configuration; waiving records reasoned risk acceptance for one fingerprinted boundary.</button><button>Disabling and waiving are identical except that a waiver requires a longer reason.</button><button>Disabling marks Judge NOT_APPLICABLE; waiving removes Judge’s dependency edges permanently.</button></div><p class="feedback"></p></div>
       <div class="question" data-answer="3"><h3>3. Why was feature-scoped waiver UI deferred?</h3><div class="answers"><button>Feature waivers require a release-specific transition that the core does not yet expose.</button><button>The settings page cannot display finalization definitions until provider execution exists.</button><button>Feature waivers are permitted only after every PR module has been disabled.</button><button>P8 must first create the finalization attempt and exact merge-input fingerprint to which the waiver belongs.</button></div><p class="feedback"></p></div>
-      <div class="question" data-answer="0"><h3>4. What did the boundary remediation change?</h3><div class="answers"><button>It packaged the minimal canonical context-check closure and passed explicit compatible Python, Git, and gh paths into the trusted guard.</button><button>It embedded the full workflow CLI and let repository policy select any Python script.</button><button>It replaced PR freshness checks with a comparison of the renderer’s cached snapshot.</button><button>It allowed waivers whenever dependencies had outcomes, without asking protocol core to validate them.</button></div><p class="feedback"></p></div>
+      <div class="question" data-answer="0"><h3>4. What did the boundary remediation change?</h3><div class="answers"><button>It packaged and explicitly allowlisted the three-file canonical context-check closure, then passed compatible Python, Git, and gh paths into the trusted guard.</button><button>It embedded the full workflow CLI and let repository policy select any Python script.</button><button>It replaced PR freshness checks with a comparison of the renderer’s cached snapshot.</button><button>It allowed waivers whenever dependencies had outcomes, without asking protocol core to validate them.</button></div><p class="feedback"></p></div>
       <div class="question" data-answer="2"><h3>5. Which statement about live module status is correct?</h3><div class="answers"><button>A provider’s running status counts as PASS while its result is pending.</button><button>A blocked live status automatically appends FAIL to the workflow journal.</button><button>Live status is normalized observation; authoritative PASS, FAIL, or WAIVED still comes from protocol validation.</button><button>Live status may contain module-provided HTML as long as the provider is installed.</button></div><p class="feedback"></p></div>
     </section>
   </main>

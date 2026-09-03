@@ -35,7 +35,7 @@ parity and regression behavior. This completes delivery slice 1.
 
 ## I-3 - Add project module policy and boundary-waiver controls
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R3
@@ -51,7 +51,7 @@ the waiver must bind to.
 
 ## I-4 - Generalize module graph and detail presentation
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P5
 - **Rubric criteria:** R4, R7
@@ -127,3 +127,17 @@ and reject incomplete or invalid retained evidence.
 Complete delivery slice 4 verification and review, merge it, then run a real
 GateReeve release through terminal conductor completion with retained public,
 installation, smoke, and feature-finalization evidence.
+
+## I-10 - Align packaged-runtime verification with trusted Python guards
+
+- **Status:** in-review
+- **Estimate:** 2h
+- **Plan steps:** P4
+- **Rubric criteria:** R3
+- **Depends on:** I-3
+- **PR:** [#62](https://github.com/TrentBrown/gatereeve/pull/62)
+
+Replace the obsolete blanket Python-file rejection with an exact three-file
+allowlist shared by the package contract and verifier. Require the complete
+trusted context-check closure, reject every other Python path, and prove the
+repaired universal DMG on native Apple Silicon and Intel CI runners.

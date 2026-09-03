@@ -195,3 +195,22 @@ GateReeve Desktop stages the canonical `pr_context.py`, `workflow_context.py`, a
 - Recompute every dependency using the formal gate adapter - rejected because structural and project gate IDs are outside that adapter and because doing so would invent input shapes different from the recorded evidence.
 
 **Promoted:** 2026-09-03. PR: #62.
+
+---
+
+## Keep packaged Python verification fail-closed with an exact allowlist
+
+**Confidence:** HIGH
+
+**Blast Radius:** macOS package contents, package CI, and the trusted Desktop waiver-guard runtime
+
+Replace the blanket Python-file rejection with an exact, shared allowlist for pr_context.py, workflow_context.py, and workflow_common.py. Require all three paths in the ASAR contract while continuing to reject every other Python file. This aligns the package verifier with the already-promoted minimal-runtime decision without weakening its fail-closed posture.
+
+**Triggered by:** Post-boundary packaged-runtime CI correctly rejected the newly staged Python guards because its blanket no-Python invariant predated the approved three-script runtime closure.
+
+**Alternatives considered:**
+- Remove the Python guards - rejected because the packaged waiver path needs the canonical freshness guard.
+- Permit any Python file under `resources/scripts` - rejected because a directory-wide exemption could hide accidental or hostile runtime expansion.
+- Skip packaged-runtime verification - rejected because the failure exposed a real contract mismatch.
+
+**Promoted:** 2026-09-03. PR: #62.

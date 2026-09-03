@@ -13,10 +13,10 @@
     "baseRefName": "main",
     "baseRefOid": "cb85c672e6090f0286159b9897eacee9c3edf8fc",
     "headRefName": "tb-workflow-modules-02-gatereeve-module-interface",
-    "headRefOid": "53f9babd3aaec06449eeb0c8fd7deb4ab143544b"
+    "headRefOid": "723c7f73118f0e51f474d151d2491afb31c2460a"
   },
   "mergeBaseSha": "cb85c672e6090f0286159b9897eacee9c3edf8fc",
-  "evaluatedSourceSha": "53f9babd3aaec06449eeb0c8fd7deb4ab143544b",
+  "evaluatedSourceSha": "723c7f73118f0e51f474d151d2491afb31c2460a",
   "featureBaseSha": null,
   "applicability": {
     "specEvaluation": true,

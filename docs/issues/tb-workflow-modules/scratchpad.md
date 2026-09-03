@@ -184,7 +184,7 @@ GateReeve Desktop stages the canonical `pr_context.py`, `workflow_context.py`, a
 
 ## [9] Keep packaged Python verification fail-closed with an exact allowlist
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
