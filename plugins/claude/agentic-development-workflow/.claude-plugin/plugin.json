@@ -1,0 +1,19 @@
+{
+  "name": "agentic-development-workflow",
+  "displayName": "Agentic Software Development Workflow",
+  "version": "0.1.0-rc.12",
+  "description": "A gated agentic software development lifecycle with portable planning, review, and verification skills.",
+  "author": {
+    "name": "QualityCode",
+    "url": "https://qualitycode.io"
+  },
+  "homepage": "https://github.com/TrentBrown/agentic-development-workflow",
+  "repository": "https://github.com/TrentBrown/agentic-development-workflow",
+  "keywords": [
+    "software-development",
+    "workflow",
+    "review",
+    "agentic"
+  ],
+  "skills": "./skills/"
+}

@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "sourcePath": "resources/protocol",
+  "hash": "sha256:ed6f27525167cfb06553ebf7bb2beda3830c6131bcc91bba5b297fac835acf5c",
+  "files": [
+    {
+      "path": "boundary.js",
+      "size": 7666,
+      "sha256": "ec9c2214bfaa35547c8d518779660b8bb90cbcdbf217d95ad26248a9dc1b4184"
+    },
+    {
+      "path": "changes.js",
+      "size": 7159,
+      "sha256": "ea8fdc226c01a9ae2ec62a0f8ce5f22565ead266f13c7d7d5fd1df7b7136de59"
+    },
+    {
+      "path": "compatibility.js",
+      "size": 2369,
+      "sha256": "dcd0546a9907d1fd16e83d1c8b3f6abd8d56961ef1046504f6294749d2c7b333"
+    },
+    {
+      "path": "constants.js",
+      "size": 2038,
+      "sha256": "5c79d04f24a3994cd47633f662c349f80bbb494bca730f8498b87684401bb082"
+    },
+    {
+      "path": "context.js",
+      "size": 11260,
+      "sha256": "ad11f60936af3fd111d8cdecb42fe66c1861c4299124fe62f614153448ab84e1"
+    },
+    {
+      "path": "errors.js",
+      "size": 897,
+      "sha256": "adec91e206d3af2387bb2c85820bee4ea4fd490ed881ce5626deece230afcda5"
+    },
+    {
+      "path": "feature.js",
+      "size": 14628,
+      "sha256": "c95e0d20dc8e7c68c4278b3eca2142c4f19073cddd54498b3d279478567418b0"
+    },
+    {
+      "path": "finalization.js",
+      "size": 10507,
+      "sha256": "2c881136a865de0126b40e8c9cb2588c4478ace33ec903ce37db2c1c1a734f07"
+    },
+    {
+      "path": "fingerprint.js",
+      "size": 1437,
+      "sha256": "691d41ac4633059180b0fb910adfe6672a9cfc3add418c1386b1ad0a0647759f"
+    },
+    {
+      "path": "graph.js",
+      "size": 5158,
+      "sha256": "9b6d4fb1f8e5c42bcd670c8e9e6b9e7d91467e09277a6998ab7dad6dbc4caaf8"
+    },
+    {
+      "path": "guards.js",
+      "size": 2290,
+      "sha256": "c1445687739bced863373b9d0e8879c211f366217d0f54bd1b6dfe421e1679e6"
+    },
+    {
+      "path": "index.js",
+      "size": 663,
+      "sha256": "d9440b21d8fba87766d40e4c8addc318eeafce90d36abacc863e809994a57c65"
+    },
+    {
+      "path": "journal.js",
+      "size": 6531,
+      "sha256": "999f6a30c25f9e4641a4c7067abe9eb0e3dab59083918b7d659c76a936971a89"
+    },
+    {
+      "path": "model/default-workflow-policy.json",
+      "size": 2130,
+      "sha256": "23eadd9c40684ee9782d4995c7aedf6f4d9e16d741f8594486fa72e3d2ba97b7"
+    },
+    {
+      "path": "model/workflow-model.json",
+      "size": 20865,
+      "sha256": "c380ac82e83b1142474769cff9b7bb4bba310781568d80e255d20689543fa568"
+    },
+    {
+      "path": "model.js",
+      "size": 15070,
+      "sha256": "9f0b05c79c1d9a72352c8b707f0aada1703e67df538e4068bc314c99fb36fca2"
+    },
+    {
+      "path": "module-runtime.js",
+      "size": 8571,
+      "sha256": "c4c4432d31b42e4b25e12ecd9942d3a15eb605be7b954864909bdd829c814226"
+    },
+    {
+      "path": "modules.js",
+      "size": 26096,
+      "sha256": "e9d294e2816d2559c5e30a6a569755e7fb1db573de864797c5e797323859cecb"
+    },
+    {
+      "path": "observer.js",
+      "size": 13222,
+      "sha256": "db9344fcbadc1f79dfedc29dd2a484773394167f6c2fc1a174221fa3368c6eb9"
+    },
+    {
+      "path": "package.json",
+      "size": 173,
+      "sha256": "b180641870fee59509d8a4f9111fe682c7e5b45e016baa14a189557d80320a77"
+    },
+    {
+      "path": "plugin-adapter.js",
+      "size": 7217,
+      "sha256": "a96e6b9af78878dd30a9302a2ad5ebdb2a8887c0238081bdf52fe50a0f9bf0c4"
+    },
+    {
+      "path": "projection.js",
+      "size": 43713,
+      "sha256": "4719797e1a1ee2ec89c9890c861fbd02326f4af095d51bfc0d735a2c7e8daa32"
+    },
+    {
+      "path": "python-guards.js",
+      "size": 2815,
+      "sha256": "ce4e4ac1a7e5e31534c27fae332d7bd5e99c03128ca871ae7cfa41a26146afb4"
+    },
+    {
+      "path": "result.js",
+      "size": 2502,
+      "sha256": "e1530a683d25bd7250c14d5e5c849ac7862cfecedc35d8c81080360ed0f75ce5"
+    },
+    {
+      "path": "snapshot.js",
+      "size": 58772,
+      "sha256": "406705708feb7e66ac273ae00bdb7797004b20a25864ae77eba869d21414ff9c"
+    },
+    {
+      "path": "storage.js",
+      "size": 1964,
+      "sha256": "736d68ac8a56441d9b033273bb2bea36cd2073d8ca068a59313796c29091ad48"
+    },
+    {
+      "path": "transitions.js",
+      "size": 14663,
+      "sha256": "615a562fa29ea4095229bf731993c028e9c2b28b84b011a719d5f86aad561085"
+    }
+  ]
+}

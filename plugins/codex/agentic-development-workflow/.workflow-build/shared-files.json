@@ -1,0 +1,965 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "path": "resources/commands/branch-bootstrap.md",
+      "type": "file",
+      "size": 1753,
+      "sha256": "1108b3426352c6e7337086397da5d341b456c4c272d20320b9766e1dc4898d8b"
+    },
+    {
+      "path": "resources/commands/commit.md",
+      "type": "file",
+      "size": 917,
+      "sha256": "d26f6892fe343b9f06688b92eeda85ada788307cd144aa65f16c9c71078cc363"
+    },
+    {
+      "path": "resources/commands/decision-record.md",
+      "type": "file",
+      "size": 690,
+      "sha256": "c237ed362cfedc833a93cffd25aa90debc1dd33daace305e25aeeb2efe07aa81"
+    },
+    {
+      "path": "resources/commands/decision-triage.md",
+      "type": "file",
+      "size": 541,
+      "sha256": "d6e55f2e79385dc7749b68cc180a0b1ff06ba8ffd80dd5aa58350487d3a49049"
+    },
+    {
+      "path": "resources/commands/design.md",
+      "type": "file",
+      "size": 1201,
+      "sha256": "d6184ab9ab01e64c5679e347cb8c3fa7d174054d7cee8ac6900dc8d5ed35b865"
+    },
+    {
+      "path": "resources/commands/judge.md",
+      "type": "file",
+      "size": 2089,
+      "sha256": "44a6d165b632bd85bbbbe424be60dd5c9133dddf83cb5537a7a1c3e3b650efc9"
+    },
+    {
+      "path": "resources/commands/pattern-audit.md",
+      "type": "file",
+      "size": 1232,
+      "sha256": "912e26924e6b43f05fe0f0591059d0a11e98912736a5f8ff247705519c6b229d"
+    },
+    {
+      "path": "resources/commands/pattern-extract.md",
+      "type": "file",
+      "size": 3079,
+      "sha256": "e675499c90657b032eb1f5dbb879a25156154b287ca7f6348b30febcb2510aa0"
+    },
+    {
+      "path": "resources/commands/pattern-harvest.md",
+      "type": "file",
+      "size": 2573,
+      "sha256": "904a6cdbb0fa3c3cabe4051c0c3dcdbb165257b4894e23fa70881aa76bdc4e33"
+    },
+    {
+      "path": "resources/commands/pattern-help.md",
+      "type": "file",
+      "size": 1576,
+      "sha256": "c4b7a417f856b7ea10652aa7dfc48bfd8b6ab6fa4369f1564be4036314c83412"
+    },
+    {
+      "path": "resources/commands/pattern-init.md",
+      "type": "file",
+      "size": 979,
+      "sha256": "7f471a4b295bddf4b280d19cb8a8112a7a601f306a0e117682c12a003811ddb1"
+    },
+    {
+      "path": "resources/commands/pattern-learn.md",
+      "type": "file",
+      "size": 2450,
+      "sha256": "bfc036c3f6949023a2733888213e113c1bbf6415b2839605cdd8fb6170418186"
+    },
+    {
+      "path": "resources/commands/pattern-promote.md",
+      "type": "file",
+      "size": 3450,
+      "sha256": "c4b66db553b46ad271e861129c2843885b202729b8da1b91f41173ce78bf4e2a"
+    },
+    {
+      "path": "resources/commands/pattern-review.md",
+      "type": "file",
+      "size": 2465,
+      "sha256": "ad36bc207ad70839ed999d8ef31aae996fd28568ffffa0d846680adb0e529474"
+    },
+    {
+      "path": "resources/commands/pattern-status.md",
+      "type": "file",
+      "size": 2431,
+      "sha256": "f780dbc68d5778d1fe36c86629ce4d7eaf5a6cc5304a5573a90425e52797c6b1"
+    },
+    {
+      "path": "resources/commands/plan.md",
+      "type": "file",
+      "size": 1341,
+      "sha256": "1219cbbdc2099dd8727ae67993d0b77997cc389d3aad27acb4ca49f86d90688e"
+    },
+    {
+      "path": "resources/commands/pr-boundary.md",
+      "type": "file",
+      "size": 5131,
+      "sha256": "b962fccb4bf74ceb8b2021a9ea54e3feb0030f79b8b036b5a93f8cd980b75a0d"
+    },
+    {
+      "path": "resources/commands/pr-review.md",
+      "type": "file",
+      "size": 1851,
+      "sha256": "ce45759766660e288d369c194f6a3d4431fc2a89c4dfce81ac0b2e19974a85f3"
+    },
+    {
+      "path": "resources/commands/spec-draft.md",
+      "type": "file",
+      "size": 1863,
+      "sha256": "75db76410239d14fa70cbde192aa5935207215151549625f5b566b9b2d926d1c"
+    },
+    {
+      "path": "resources/commands/spec-evaluate.md",
+      "type": "file",
+      "size": 1627,
+      "sha256": "75062cf0f7fe7f16502d14a30eac5969c93fa52c361964d3d23e9d44c6e39312"
+    },
+    {
+      "path": "resources/commands/spec-validate.md",
+      "type": "file",
+      "size": 1400,
+      "sha256": "6dd70fa43c89712dbfe42ea4892ac4c9cb7c037c9e452940e5bb4672d6409aeb"
+    },
+    {
+      "path": "resources/policy/EVIDENCE-PACKETS.md",
+      "type": "file",
+      "size": 5521,
+      "sha256": "0f389f33654ce1922671133d81c8a4f95fc5d220a33f7623628e3f2a7d317e5b"
+    },
+    {
+      "path": "resources/policy/profiles/portable-core.md",
+      "type": "file",
+      "size": 644,
+      "sha256": "1743127407850e1a44a096f0e80046416dc3e1a66c51f2a412d187c60944b23f"
+    },
+    {
+      "path": "resources/policy/profiles/quality-code.md",
+      "type": "file",
+      "size": 1245,
+      "sha256": "1663f0b660ac86b434d7062019b0ff730db9c2701f5f6af6ed754653deb12cb0"
+    },
+    {
+      "path": "resources/policy/STANDARDS.md",
+      "type": "file",
+      "size": 5281,
+      "sha256": "72706ffad1ee140ea43b4617a471f7d247c816f0b6d1aeb2d9c847ebc7c4db7b"
+    },
+    {
+      "path": "resources/policy/WORKFLOW.md",
+      "type": "file",
+      "size": 21080,
+      "sha256": "69a68f972ac8e60716184eeef5a919c79b3ffe838c93a35cb4e8d16423f0a074"
+    },
+    {
+      "path": "resources/policy/WORKFLOW.mermaid",
+      "type": "file",
+      "size": 6379,
+      "sha256": "c01022750e0ce07d60cf0dff085ff45efff87a93f4dd3687e63693ba32e42a2b"
+    },
+    {
+      "path": "resources/policy/WORKSPACE-CONTEXT.md",
+      "type": "file",
+      "size": 5609,
+      "sha256": "f6834d13b35f4629d26226604d2b987ef9db2b0923bb90f48c657268fb39ff12"
+    },
+    {
+      "path": "resources/protocol/boundary.js",
+      "type": "file",
+      "size": 7666,
+      "sha256": "ec9c2214bfaa35547c8d518779660b8bb90cbcdbf217d95ad26248a9dc1b4184"
+    },
+    {
+      "path": "resources/protocol/changes.js",
+      "type": "file",
+      "size": 7159,
+      "sha256": "ea8fdc226c01a9ae2ec62a0f8ce5f22565ead266f13c7d7d5fd1df7b7136de59"
+    },
+    {
+      "path": "resources/protocol/compatibility.js",
+      "type": "file",
+      "size": 2369,
+      "sha256": "dcd0546a9907d1fd16e83d1c8b3f6abd8d56961ef1046504f6294749d2c7b333"
+    },
+    {
+      "path": "resources/protocol/constants.js",
+      "type": "file",
+      "size": 2038,
+      "sha256": "5c79d04f24a3994cd47633f662c349f80bbb494bca730f8498b87684401bb082"
+    },
+    {
+      "path": "resources/protocol/context.js",
+      "type": "file",
+      "size": 11260,
+      "sha256": "ad11f60936af3fd111d8cdecb42fe66c1861c4299124fe62f614153448ab84e1"
+    },
+    {
+      "path": "resources/protocol/errors.js",
+      "type": "file",
+      "size": 897,
+      "sha256": "adec91e206d3af2387bb2c85820bee4ea4fd490ed881ce5626deece230afcda5"
+    },
+    {
+      "path": "resources/protocol/feature.js",
+      "type": "file",
+      "size": 14628,
+      "sha256": "c95e0d20dc8e7c68c4278b3eca2142c4f19073cddd54498b3d279478567418b0"
+    },
+    {
+      "path": "resources/protocol/finalization.js",
+      "type": "file",
+      "size": 10507,
+      "sha256": "2c881136a865de0126b40e8c9cb2588c4478ace33ec903ce37db2c1c1a734f07"
+    },
+    {
+      "path": "resources/protocol/fingerprint.js",
+      "type": "file",
+      "size": 1437,
+      "sha256": "691d41ac4633059180b0fb910adfe6672a9cfc3add418c1386b1ad0a0647759f"
+    },
+    {
+      "path": "resources/protocol/graph.js",
+      "type": "file",
+      "size": 5158,
+      "sha256": "9b6d4fb1f8e5c42bcd670c8e9e6b9e7d91467e09277a6998ab7dad6dbc4caaf8"
+    },
+    {
+      "path": "resources/protocol/guards.js",
+      "type": "file",
+      "size": 2290,
+      "sha256": "c1445687739bced863373b9d0e8879c211f366217d0f54bd1b6dfe421e1679e6"
+    },
+    {
+      "path": "resources/protocol/index.js",
+      "type": "file",
+      "size": 663,
+      "sha256": "d9440b21d8fba87766d40e4c8addc318eeafce90d36abacc863e809994a57c65"
+    },
+    {
+      "path": "resources/protocol/journal.js",
+      "type": "file",
+      "size": 6531,
+      "sha256": "999f6a30c25f9e4641a4c7067abe9eb0e3dab59083918b7d659c76a936971a89"
+    },
+    {
+      "path": "resources/protocol/model/default-workflow-policy.json",
+      "type": "file",
+      "size": 2130,
+      "sha256": "23eadd9c40684ee9782d4995c7aedf6f4d9e16d741f8594486fa72e3d2ba97b7"
+    },
+    {
+      "path": "resources/protocol/model/workflow-model.json",
+      "type": "file",
+      "size": 20865,
+      "sha256": "c380ac82e83b1142474769cff9b7bb4bba310781568d80e255d20689543fa568"
+    },
+    {
+      "path": "resources/protocol/model.js",
+      "type": "file",
+      "size": 15070,
+      "sha256": "9f0b05c79c1d9a72352c8b707f0aada1703e67df538e4068bc314c99fb36fca2"
+    },
+    {
+      "path": "resources/protocol/module-runtime.js",
+      "type": "file",
+      "size": 8571,
+      "sha256": "c4c4432d31b42e4b25e12ecd9942d3a15eb605be7b954864909bdd829c814226"
+    },
+    {
+      "path": "resources/protocol/modules.js",
+      "type": "file",
+      "size": 26096,
+      "sha256": "e9d294e2816d2559c5e30a6a569755e7fb1db573de864797c5e797323859cecb"
+    },
+    {
+      "path": "resources/protocol/observer.js",
+      "type": "file",
+      "size": 13222,
+      "sha256": "db9344fcbadc1f79dfedc29dd2a484773394167f6c2fc1a174221fa3368c6eb9"
+    },
+    {
+      "path": "resources/protocol/package.json",
+      "type": "file",
+      "size": 173,
+      "sha256": "b180641870fee59509d8a4f9111fe682c7e5b45e016baa14a189557d80320a77"
+    },
+    {
+      "path": "resources/protocol/plugin-adapter.js",
+      "type": "file",
+      "size": 7217,
+      "sha256": "a96e6b9af78878dd30a9302a2ad5ebdb2a8887c0238081bdf52fe50a0f9bf0c4"
+    },
+    {
+      "path": "resources/protocol/projection.js",
+      "type": "file",
+      "size": 43713,
+      "sha256": "4719797e1a1ee2ec89c9890c861fbd02326f4af095d51bfc0d735a2c7e8daa32"
+    },
+    {
+      "path": "resources/protocol/python-guards.js",
+      "type": "file",
+      "size": 2815,
+      "sha256": "ce4e4ac1a7e5e31534c27fae332d7bd5e99c03128ca871ae7cfa41a26146afb4"
+    },
+    {
+      "path": "resources/protocol/result.js",
+      "type": "file",
+      "size": 2502,
+      "sha256": "e1530a683d25bd7250c14d5e5c849ac7862cfecedc35d8c81080360ed0f75ce5"
+    },
+    {
+      "path": "resources/protocol/snapshot.js",
+      "type": "file",
+      "size": 58772,
+      "sha256": "406705708feb7e66ac273ae00bdb7797004b20a25864ae77eba869d21414ff9c"
+    },
+    {
+      "path": "resources/protocol/storage.js",
+      "type": "file",
+      "size": 1964,
+      "sha256": "736d68ac8a56441d9b033273bb2bea36cd2073d8ca068a59313796c29091ad48"
+    },
+    {
+      "path": "resources/protocol/transitions.js",
+      "type": "file",
+      "size": 14663,
+      "sha256": "615a562fa29ea4095229bf731993c028e9c2b28b84b011a719d5f86aad561085"
+    },
+    {
+      "path": "resources/PROTOCOL.md",
+      "type": "file",
+      "size": 3076,
+      "sha256": "1e8524f352974696e3fdf4c1563e8f8814cd77889979cfa9022651f261ce22e0"
+    },
+    {
+      "path": "resources/release/release-conductor-artifact.js",
+      "type": "file",
+      "size": 3738,
+      "sha256": "1b9d6407cf9f073c39a4a2f8d43679dfff6b14fcc65cfebdea923fe9b8baf4f8"
+    },
+    {
+      "path": "resources/release/release-conductor-discovery.js",
+      "type": "file",
+      "size": 4252,
+      "sha256": "81d70a8af08b564384e0a9e4d9c839275025dc2a0ab25055012b77fe55371d3b"
+    },
+    {
+      "path": "resources/release/release-conductor-state.js",
+      "type": "file",
+      "size": 13128,
+      "sha256": "dbb2cebe59e6b639048de9b0348d5e36ab330b0ef55fc799a910f8432437262a"
+    },
+    {
+      "path": "resources/RESOURCE-ROOT.md",
+      "type": "file",
+      "size": 718,
+      "sha256": "a1f3a052bd7921fb8460a1ce78833e591485de5dae20aa7b179c0643222c0a47"
+    },
+    {
+      "path": "resources/scripts/bootstrap_branch_docs.py",
+      "type": "file",
+      "size": 4198,
+      "sha256": "c0bad19b455740efabeb2a3b1a4618d6451cb8ab41d3affb89862d8fbfe3a65a"
+    },
+    {
+      "path": "resources/scripts/boundary_gate.py",
+      "type": "file",
+      "size": 6558,
+      "sha256": "874d861a45a2b59def3fd2b72909c2630df8616acdb6d5dbbf3ea73e4dd22dde"
+    },
+    {
+      "path": "resources/scripts/boundary_packet.py",
+      "type": "file",
+      "size": 17613,
+      "sha256": "8b43f1d94f777195e65499c860a65d875ea621aaedb9e762bc82a6b099e00f26"
+    },
+    {
+      "path": "resources/scripts/decision_record.py",
+      "type": "file",
+      "size": 1726,
+      "sha256": "fbfa353fbf7d8daa86553b37839a16c74fe6dcb101e34d5cc53ee462304bf1ea"
+    },
+    {
+      "path": "resources/scripts/decision_triage.py",
+      "type": "file",
+      "size": 2405,
+      "sha256": "fb4eec690c124320bd2ad25a6312eb6260a0a534ef256604cfb8f0545eb50525"
+    },
+    {
+      "path": "resources/scripts/feature_final.py",
+      "type": "file",
+      "size": 10914,
+      "sha256": "84d806ea65c0370fc3a9df12e7662eabaeb47609bb216763149d54339e513ba2"
+    },
+    {
+      "path": "resources/scripts/gate_triage.py",
+      "type": "file",
+      "size": 1516,
+      "sha256": "efb4c7eb5c1a4638e4b4cc9769c830cd8950435ca3bf9c1464fe55adec0872ab"
+    },
+    {
+      "path": "resources/scripts/lint_issues.py",
+      "type": "file",
+      "size": 2801,
+      "sha256": "1d618b2a25f6ca8dedd4428e828812b2848555c8317cf27142263197e67b0334"
+    },
+    {
+      "path": "resources/scripts/lint_spec.py",
+      "type": "file",
+      "size": 2612,
+      "sha256": "66b3d9f5aadfda76f888a732d7d34600ca91d65d9f423fa4c0e7c9738228a6f6"
+    },
+    {
+      "path": "resources/scripts/lint_tracker.py",
+      "type": "file",
+      "size": 2371,
+      "sha256": "46c5cc51defc3840e6b74af425e00206fc84c7a72d0ccbba8e533c6e3d383ba8"
+    },
+    {
+      "path": "resources/scripts/merge_verified.py",
+      "type": "file",
+      "size": 5373,
+      "sha256": "afbb44ce40a020e151ff6fa11b322c6ff23ed185c06ba6ca0e6b5bf725357d74"
+    },
+    {
+      "path": "resources/scripts/pattern/__init__.py",
+      "type": "file",
+      "size": 56,
+      "sha256": "449eaa9344754df3b61efc2a992d8d3a495f1aaa75e3594afbf50430de2c5c2b"
+    },
+    {
+      "path": "resources/scripts/pattern/buckets.py",
+      "type": "file",
+      "size": 1509,
+      "sha256": "c874ad298a3ca5f9c78ef20468b202ab930a874e800d5da544ef1485daa6df41"
+    },
+    {
+      "path": "resources/scripts/pattern/git_context.py",
+      "type": "file",
+      "size": 2911,
+      "sha256": "df1139c82a12de2acf898c69b1cbef19a0b965b72bc28013b4610bb15e783e1c"
+    },
+    {
+      "path": "resources/scripts/pattern/harvest.py",
+      "type": "file",
+      "size": 27804,
+      "sha256": "357c1faa39a1d0826acd6412115f78d06d90d3bff4816f425b9d4c78318608df"
+    },
+    {
+      "path": "resources/scripts/pattern/learning_events.py",
+      "type": "file",
+      "size": 3293,
+      "sha256": "5be23a3de0758fc8e53357f0c4d162b69dd20eadbaf7d1b795b79a340537ae96"
+    },
+    {
+      "path": "resources/scripts/pattern/rules.py",
+      "type": "file",
+      "size": 6109,
+      "sha256": "3c8c560608bfd5b386221bddcfbaae791eaadeaf67e852ba034ccecb9573c053"
+    },
+    {
+      "path": "resources/scripts/pattern/simple_yaml.py",
+      "type": "file",
+      "size": 7878,
+      "sha256": "9600e34daf079df59af0a12035486a77d57be3d3d3dcb841a75e1115ef62dbbb"
+    },
+    {
+      "path": "resources/scripts/pattern/status.py",
+      "type": "file",
+      "size": 15600,
+      "sha256": "5907a9cb560af54d0f8945cde1af0d2120b34e336edf4a2a9d21f12fafa15f6c"
+    },
+    {
+      "path": "resources/scripts/pattern/tests/test_pattern_helpers.py",
+      "type": "file",
+      "size": 44908,
+      "sha256": "a008788235dccd334483b0530e43b883587870a259aa332ee4d1f26d0d3af43f"
+    },
+    {
+      "path": "resources/scripts/pattern_tool.py",
+      "type": "file",
+      "size": 29603,
+      "sha256": "5f6be8a40d88a26ba086bedf7f8c1eb5d28c533b7eced35bc219b856eec800ff"
+    },
+    {
+      "path": "resources/scripts/pr_context.py",
+      "type": "file",
+      "size": 25117,
+      "sha256": "a15e338994330e4ff73aed7c900b2c9dfc29b7a704cb5eb86d50ca56ba2a25d1"
+    },
+    {
+      "path": "resources/scripts/session_start.py",
+      "type": "file",
+      "size": 2861,
+      "sha256": "7433b38a1d8c7fb46e5410f79bbbda5e7efcf597dcba376f3082461651913151"
+    },
+    {
+      "path": "resources/scripts/tests/test_bootstrap_branch_docs.py",
+      "type": "file",
+      "size": 4877,
+      "sha256": "dfa33d6685174b531fd760ad706ff518d56afb34cbe0515f8d7eff042eb1f69d"
+    },
+    {
+      "path": "resources/scripts/tests/test_boundary_gate.py",
+      "type": "file",
+      "size": 9135,
+      "sha256": "4fb0fa74f913022ddc24e00b392265b857785ce62207fa0a42840de6e487504d"
+    },
+    {
+      "path": "resources/scripts/tests/test_boundary_packet.py",
+      "type": "file",
+      "size": 15379,
+      "sha256": "b03784bcbfcebe12c054402c57a802a7fd26028796458db9f6aae0be5daa281e"
+    },
+    {
+      "path": "resources/scripts/tests/test_decision_triage.py",
+      "type": "file",
+      "size": 1449,
+      "sha256": "d66248ff1874ff2923cf7464c8654216fcdbcc70a5bb284ce9635158525bd0ec"
+    },
+    {
+      "path": "resources/scripts/tests/test_feature_final.py",
+      "type": "file",
+      "size": 8288,
+      "sha256": "6820720aa1d68f99fc88a746909d25b3438e171faaea69127d433c330a4b4590"
+    },
+    {
+      "path": "resources/scripts/tests/test_merge_verified.py",
+      "type": "file",
+      "size": 3861,
+      "sha256": "2fe2e52d88ce7a478634955931cb089ae3ec779128d2596a1013c5f3d794cc7c"
+    },
+    {
+      "path": "resources/scripts/tests/test_pr_context.py",
+      "type": "file",
+      "size": 11510,
+      "sha256": "02dafbe7db291cbf27f236b960d2d4d072ecbfa4d9e24ada8c52a3a974f664a2"
+    },
+    {
+      "path": "resources/scripts/tests/test_sequential_workflow_acceptance.py",
+      "type": "file",
+      "size": 18116,
+      "sha256": "de44a78be65626c5250748643989aefdb24b2238d8247770e7ab4d17f6eaac55"
+    },
+    {
+      "path": "resources/scripts/tests/test_session_start.py",
+      "type": "file",
+      "size": 3204,
+      "sha256": "acf09ce64f130cc59039bd1c6e5494d10993d1da0ee8ebd60f4100d603ddbe24"
+    },
+    {
+      "path": "resources/scripts/tests/test_workflow_context.py",
+      "type": "file",
+      "size": 9695,
+      "sha256": "e2be620deb9146ca58ba7cec78dead1c6e60da3324d961be71c74b314f4da904"
+    },
+    {
+      "path": "resources/scripts/tests/test_workflow_doctor.py",
+      "type": "file",
+      "size": 6267,
+      "sha256": "c887e49fb0cc16c07d4fdf108ba333362926541c38d9b89fa3a7423847006619"
+    },
+    {
+      "path": "resources/scripts/tests/test_workflow_setup.py",
+      "type": "file",
+      "size": 4229,
+      "sha256": "8ca8809f3d52566d5991a3eb23f84a366e7cff0924b47f3c4455741d8a17f6a7"
+    },
+    {
+      "path": "resources/scripts/validate_branch_docs.py",
+      "type": "file",
+      "size": 2627,
+      "sha256": "791772b1dd6a5cbf396517b759947bd0d7813723f8b63e7b51ab877f5f5b9fb9"
+    },
+    {
+      "path": "resources/scripts/workflow_common.py",
+      "type": "file",
+      "size": 3980,
+      "sha256": "695aade7e014563bf3912b753ce2311408e5b42b0659b523b86a46b8dbcb42bd"
+    },
+    {
+      "path": "resources/scripts/workflow_context.py",
+      "type": "file",
+      "size": 15230,
+      "sha256": "d46dfd0e5540072d2f8f860ee30994fac256f9c8f1dcd94de75838729ee110b4"
+    },
+    {
+      "path": "resources/scripts/workflow_doctor.py",
+      "type": "file",
+      "size": 16344,
+      "sha256": "aec76288919e9d339fb70985a40436a3ae053c36bead59516f20ee1f43e764ae"
+    },
+    {
+      "path": "resources/scripts/workflow_setup.py",
+      "type": "file",
+      "size": 3887,
+      "sha256": "ad3811eb14d0c13ba5478023d08993e019da751228aa2b22f073a3cd2be6d066"
+    },
+    {
+      "path": "resources/templates/agentic-workflow.json",
+      "type": "file",
+      "size": 358,
+      "sha256": "e61922feded8c07896c6f5bb2ccc62d73e6df021006a3a3fbb9840c58271ab27"
+    },
+    {
+      "path": "resources/templates/decisions.md",
+      "type": "file",
+      "size": 112,
+      "sha256": "5d7c2c6a797eb072a7a33127b7b98d914d38bb9cd554f124bfe502d0d7dccb3c"
+    },
+    {
+      "path": "resources/templates/design.md",
+      "type": "file",
+      "size": 186,
+      "sha256": "cc3491d12dab4cd0f10562426dc5153ed9e568898c1508af7bbf4b4f853eac75"
+    },
+    {
+      "path": "resources/templates/interview.md",
+      "type": "file",
+      "size": 590,
+      "sha256": "ea240756a0d1dbdae24d7bfaf33b448de741ed60e004130fd9f6e61ede4c6320"
+    },
+    {
+      "path": "resources/templates/issues.md",
+      "type": "file",
+      "size": 326,
+      "sha256": "f21e2f883a1fc6023fdbadd20238e4987295da0267229603ec48ae9e49e61747"
+    },
+    {
+      "path": "resources/templates/plan.md",
+      "type": "file",
+      "size": 620,
+      "sha256": "bef6a31e88b266ad1475faba4dd6cdb84220f44c1166f16aff74f1f9b4c257e9"
+    },
+    {
+      "path": "resources/templates/plugin-smoke/acceptance-answers.md",
+      "type": "file",
+      "size": 1054,
+      "sha256": "3c9f86da2421947e83edfa397657e180df0dfc86fa768bdb7b781b36653b6f0d"
+    },
+    {
+      "path": "resources/templates/plugin-smoke/greet.py",
+      "type": "file",
+      "size": 633,
+      "sha256": "3c1711b0abfe4dc1caba0f047204baba203c7013e471f98f2ecbb5d13b0b5c0b"
+    },
+    {
+      "path": "resources/templates/plugin-smoke/test_greet.py",
+      "type": "file",
+      "size": 725,
+      "sha256": "64151411aa54cc3d3069a36f5d754985c09ea84dae0cc343088943c12572bd40"
+    },
+    {
+      "path": "resources/templates/scratchpad.md",
+      "type": "file",
+      "size": 257,
+      "sha256": "742f11af0eeb0dfd85f0511abdbaedfe601d69d2f979259c78d8f6eb3afe022a"
+    },
+    {
+      "path": "resources/templates/spec.md",
+      "type": "file",
+      "size": 520,
+      "sha256": "8c278e85aa2c731803bd9c23c362d4a9b30d5466bb8e64ebcaf243d2565e46ce"
+    },
+    {
+      "path": "resources/templates/tracker.md",
+      "type": "file",
+      "size": 359,
+      "sha256": "3c26de442e62cbde54350aa6fbfb3e49ca81b12446e003ec3bf355bebc34f3f5"
+    },
+    {
+      "path": "skills/checkpoint/SKILL.md",
+      "type": "file",
+      "size": 1324,
+      "sha256": "61b697a23c60f8c97f00ebc0d198b1e285900219b7435b8d6cc6660e4ddea212"
+    },
+    {
+      "path": "skills/explain-diff/SKILL.md",
+      "type": "file",
+      "size": 3911,
+      "sha256": "72472db87ed8a46f31ae5d4c3d0b72a581dd95787227f1b6f7d6a04f7a18093a"
+    },
+    {
+      "path": "skills/grill-me/SKILL.md",
+      "type": "file",
+      "size": 3705,
+      "sha256": "88d6d2fb38f3ba95886e245baa242dd64acf95e9227ba47577393875a7750b14"
+    },
+    {
+      "path": "skills/handoff/SKILL.md",
+      "type": "file",
+      "size": 1304,
+      "sha256": "05031907c8b9a5e2ddb7bb86ba8b4b424fa0c60defe8f8c8952cb38d3b3a73d3"
+    },
+    {
+      "path": "skills/pattern-audit/agents/openai.yaml",
+      "type": "file",
+      "size": 147,
+      "sha256": "31876b92317f5a6bb03c83ef6d3f20525a3121e494e0bb9aa1589f6f37f75466"
+    },
+    {
+      "path": "skills/pattern-audit/SKILL.md",
+      "type": "file",
+      "size": 1961,
+      "sha256": "f61bddf181e4885784637badcd589a917729a6b5e77a55ef75cf07c9ed5c72b6"
+    },
+    {
+      "path": "skills/pattern-extract/agents/openai.yaml",
+      "type": "file",
+      "size": 196,
+      "sha256": "da9c16af38dd3c44bef78e2ff3a6d68d89a80ead88e6698a23e4f4f36496396b"
+    },
+    {
+      "path": "skills/pattern-extract/SKILL.md",
+      "type": "file",
+      "size": 3864,
+      "sha256": "a7eb2208139f7969f5920f75f0a9b2764903b6b82cc5b652dfd06d18b46f76cf"
+    },
+    {
+      "path": "skills/pattern-harvest/agents/openai.yaml",
+      "type": "file",
+      "size": 202,
+      "sha256": "b107f90564a6a5b7aedad5b6e139fda194fc0d21bb93349087f8778d138673ea"
+    },
+    {
+      "path": "skills/pattern-harvest/SKILL.md",
+      "type": "file",
+      "size": 3105,
+      "sha256": "f042df9286b4bdc14fd107266c59b8bb0155cf2b54068a477e12a985be9a5aca"
+    },
+    {
+      "path": "skills/pattern-help/agents/openai.yaml",
+      "type": "file",
+      "size": 171,
+      "sha256": "fad11663491f5cbac8217125e47d1122c47bd78f7e514b99dfc6088dc8337e28"
+    },
+    {
+      "path": "skills/pattern-help/SKILL.md",
+      "type": "file",
+      "size": 5630,
+      "sha256": "8a83b2c944de58e10415a73a085cb845755973596c06798a94813c423e97ba07"
+    },
+    {
+      "path": "skills/pattern-init/agents/openai.yaml",
+      "type": "file",
+      "size": 186,
+      "sha256": "1ac3476ad405b3d406877bd565a8007c5c83437d4df8b426f3b591bcc9199bde"
+    },
+    {
+      "path": "skills/pattern-init/SKILL.md",
+      "type": "file",
+      "size": 1570,
+      "sha256": "720a4b800a357fb9c58967ea67b08f8d149637d5df66eae66215ec71ef432bc7"
+    },
+    {
+      "path": "skills/pattern-learn/agents/openai.yaml",
+      "type": "file",
+      "size": 176,
+      "sha256": "933ec84758b970f7e57beac9ea781e125ae55d2e150585b5544c817e2ef18c8b"
+    },
+    {
+      "path": "skills/pattern-learn/SKILL.md",
+      "type": "file",
+      "size": 2951,
+      "sha256": "74047587fdb422bf53d4081f158b5742693ae24b86caa91f97246cf39455a414"
+    },
+    {
+      "path": "skills/pattern-promote/agents/openai.yaml",
+      "type": "file",
+      "size": 164,
+      "sha256": "746fdb7493ba519bd602fbebc37633aeaf2e07f8157dc87f6edd9250abc4a7f0"
+    },
+    {
+      "path": "skills/pattern-promote/SKILL.md",
+      "type": "file",
+      "size": 3764,
+      "sha256": "2dc7e35ac2ac35a702347e7d72cafee0b2fca776bbad1dfe3920da0f0954ab02"
+    },
+    {
+      "path": "skills/pattern-review/agents/openai.yaml",
+      "type": "file",
+      "size": 149,
+      "sha256": "25ad33952b8addfc697248b84fbe9c7357bfd1b7035de256f1b61692b274e3e8"
+    },
+    {
+      "path": "skills/pattern-review/SKILL.md",
+      "type": "file",
+      "size": 3236,
+      "sha256": "913ca78120a1a17c8f50dfd9efaafcabd6067d287407a3bf0903aa65b6f85ff2"
+    },
+    {
+      "path": "skills/pattern-status/agents/openai.yaml",
+      "type": "file",
+      "size": 167,
+      "sha256": "907e07f667ecf3a52ac5c66970ee94fa0e21a8d1a63b2c1db54e84cf9e4f8b50"
+    },
+    {
+      "path": "skills/pattern-status/SKILL.md",
+      "type": "file",
+      "size": 2890,
+      "sha256": "abcd9ab85d6d51f3040fe491427b6ed717099bba3fd9d3a13f3a09b77d0d4bbe"
+    },
+    {
+      "path": "skills/software-development-workflow/SKILL.md",
+      "type": "file",
+      "size": 3378,
+      "sha256": "1a3a753895b778f2056983af94a7aa8883d01ddb0f1eaeda4793c35ed43ec227"
+    },
+    {
+      "path": "skills/workflow-branch-bootstrap/agents/openai.yaml",
+      "type": "file",
+      "size": 172,
+      "sha256": "72a7f5ec10a3bbb778ce54905eab86491bd1da698ed034329e6a9c6309d7013e"
+    },
+    {
+      "path": "skills/workflow-branch-bootstrap/SKILL.md",
+      "type": "file",
+      "size": 1187,
+      "sha256": "4d377f3c4ba720505f245cfa97f4430e41df824dc7fce846bc68ac0bf8f42f78"
+    },
+    {
+      "path": "skills/workflow-commit/agents/openai.yaml",
+      "type": "file",
+      "size": 166,
+      "sha256": "b7a16ad6696ad0124ae5283f77f1bff6d2fb21244511470ad8192ab39d92b243"
+    },
+    {
+      "path": "skills/workflow-commit/SKILL.md",
+      "type": "file",
+      "size": 834,
+      "sha256": "5a037e1a3ee15765440e99b073243d2c47597f5d73ed6412cc7c2cde766a1411"
+    },
+    {
+      "path": "skills/workflow-decision-record/agents/openai.yaml",
+      "type": "file",
+      "size": 171,
+      "sha256": "d0792bcd2cd518dacc20086c9e858adea44c0edb42e2a74299a3bad91aef39bb"
+    },
+    {
+      "path": "skills/workflow-decision-record/SKILL.md",
+      "type": "file",
+      "size": 998,
+      "sha256": "7945049708b077c7347bdc1a7aa68e625a1cabbb877847dbf8d536579f40ccf6"
+    },
+    {
+      "path": "skills/workflow-decision-triage/agents/openai.yaml",
+      "type": "file",
+      "size": 163,
+      "sha256": "76444b4bf3fbfa7325cb53d0542b23e0ed45b536f1a4507d0d2bea810a11c592"
+    },
+    {
+      "path": "skills/workflow-decision-triage/SKILL.md",
+      "type": "file",
+      "size": 867,
+      "sha256": "5ecea0a9ff7b92dce5f22616492681e2ae5c6e21c3b47d02316a627b892a2b8a"
+    },
+    {
+      "path": "skills/workflow-design/SKILL.md",
+      "type": "file",
+      "size": 735,
+      "sha256": "f194b15581df42f586d1477fb467762cc05b827dfefede169c9583a633a10853"
+    },
+    {
+      "path": "skills/workflow-doctor/agents/openai.yaml",
+      "type": "file",
+      "size": 196,
+      "sha256": "aae12bd94be703ad51c9acf31ccc5bc52022d8a5229ac7ac2698e8fcc6bd7e79"
+    },
+    {
+      "path": "skills/workflow-doctor/SKILL.md",
+      "type": "file",
+      "size": 1686,
+      "sha256": "1d6530028191d9e67e31906119fab26719d4eb300f45c50f5707464031218f02"
+    },
+    {
+      "path": "skills/workflow-judge/agents/openai.yaml",
+      "type": "file",
+      "size": 158,
+      "sha256": "b148ec305267a2018818ebb6a75c441910ecc263fdccb79d17e1aadbd313d922"
+    },
+    {
+      "path": "skills/workflow-judge/SKILL.md",
+      "type": "file",
+      "size": 1003,
+      "sha256": "61df205dab481f514c4b410bb9e3c8a0806f446b97a61e11126ae3012b1cac4c"
+    },
+    {
+      "path": "skills/workflow-pr-boundary/agents/openai.yaml",
+      "type": "file",
+      "size": 159,
+      "sha256": "9eec1f8560f172f248a84d7fcae5da4bf34a9482618dee4d394b1d7ba5f4bf34"
+    },
+    {
+      "path": "skills/workflow-pr-boundary/SKILL.md",
+      "type": "file",
+      "size": 1563,
+      "sha256": "284e6067de69c38bf4f622b4da8a2ac4a3503750ac706e351ab204f846dedbe5"
+    },
+    {
+      "path": "skills/workflow-pr-review/agents/openai.yaml",
+      "type": "file",
+      "size": 147,
+      "sha256": "59aabf6ae57575cf99ff07b481645c7b4d3aa65ab90dfb084db9b0735b9519db"
+    },
+    {
+      "path": "skills/workflow-pr-review/SKILL.md",
+      "type": "file",
+      "size": 981,
+      "sha256": "badfccec40de950d74f29bb72028ce89d2772a8eb41a1b90007ece8b0dd1cc53"
+    },
+    {
+      "path": "skills/workflow-setup/agents/openai.yaml",
+      "type": "file",
+      "size": 208,
+      "sha256": "0d3d9eefc8820f3d431cd3b18b9aa3187364f0e8200e14af9168f63da59bf201"
+    },
+    {
+      "path": "skills/workflow-setup/SKILL.md",
+      "type": "file",
+      "size": 1511,
+      "sha256": "aa852ae1b9f39f4e4ed527a1ee9b3c72d678275ad614b0fbb10089d7feb11163"
+    },
+    {
+      "path": "skills/workflow-spec-draft/agents/openai.yaml",
+      "type": "file",
+      "size": 169,
+      "sha256": "e3080152ccfaedfb0202976acf6a6536fa84a63da77f43cd887127a27a3d7acd"
+    },
+    {
+      "path": "skills/workflow-spec-draft/SKILL.md",
+      "type": "file",
+      "size": 840,
+      "sha256": "d4a472ce6eaf13b8858121ad95afd63577866e1cb00a4b66ba7414813a38c488"
+    },
+    {
+      "path": "skills/workflow-spec-evaluate/agents/openai.yaml",
+      "type": "file",
+      "size": 181,
+      "sha256": "f8d99e67cc2d68a55763d88fdcfdbc14db150887edecb792499b78307e012cc9"
+    },
+    {
+      "path": "skills/workflow-spec-evaluate/SKILL.md",
+      "type": "file",
+      "size": 1068,
+      "sha256": "0d415da304a3d397f9dd63fd6bb15b91bbcf0af33f5d927af28e63c888baba29"
+    },
+    {
+      "path": "skills/workflow-spec-validate/agents/openai.yaml",
+      "type": "file",
+      "size": 175,
+      "sha256": "1d6e5ddd3a52ed3dd9d9fcb2dcb0387ca9717c8f76f37abc47d992a6400514eb"
+    },
+    {
+      "path": "skills/workflow-spec-validate/SKILL.md",
+      "type": "file",
+      "size": 808,
+      "sha256": "851945acc27b6d8562b845d2dbaab8c36a6af09cf64a2cebba7e849e3e087aa6"
+    }
+  ]
+}

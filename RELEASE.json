@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "marketplace": "quality-code",
+  "version": "0.1.0-rc.12",
+  "sourceTag": "v0.1.0-rc.12",
+  "sourceCommit": "8d2fb4c51d01f24bb330ac67ed1679809fc3547f",
+  "ubuntuRcEvidence": null
+}

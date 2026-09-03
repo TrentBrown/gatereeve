@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "platform": "codex",
+  "version": "0.1.0-rc.12",
+  "sourceCommit": "8d2fb4c51d01f24bb330ac67ed1679809fc3547f",
+  "sourceTag": "v0.1.0-rc.12",
+  "protocolHash": "sha256:ed6f27525167cfb06553ebf7bb2beda3830c6131bcc91bba5b297fac835acf5c"
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "featureId": "tb-1234-my-important-feature",
+  "externalTask": {
+    "id": "1234",
+    "url": "https://tracker.example/tasks/1234"
+  },
+  "repositories": {
+    "product": {
+      "path": ".",
+      "remote": "origin",
+      "integrationBranch": "main",
+      "featureBaseSha": "1111111111111111111111111111111111111111"
+    }
+  }
+}
