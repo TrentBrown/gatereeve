@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:ab7e86f81dd2b3d047f020c64adf071bb65b5df0bd0e65870dc20e10d21780d5",
+  "protocolHash": "sha256:7c05581310198be2c099083fcba43c118471889948855344c7598406804ca8c5",
   "modelSha256": "c380ac82e83b1142474769cff9b7bb4bba310781568d80e255d20689543fa568",
   "files": [
     {
       "path": "boundary.js",
-      "size": 7656,
-      "sha256": "5fccec683d75bb134813fc6b3c789fea75d235a791546b13614268f207d0a6f1"
+      "size": 7666,
+      "sha256": "ec9c2214bfaa35547c8d518779660b8bb90cbcdbf217d95ad26248a9dc1b4184"
     },
     {
       "path": "changes.js",
-      "size": 7138,
-      "sha256": "810ababdeff8ba875784bf3dabd84ea51a1b051ba3461d10142852726c740b57"
+      "size": 7159,
+      "sha256": "ea8fdc226c01a9ae2ec62a0f8ce5f22565ead266f13c7d7d5fd1df7b7136de59"
     },
     {
       "path": "compatibility.js",
@@ -41,8 +41,8 @@
     },
     {
       "path": "finalization.js",
-      "size": 10062,
-      "sha256": "d032a6e97a41d2d63a2340373447c05b81fde0ffbb2fe9ddb4a217f4a3568240"
+      "size": 10083,
+      "sha256": "7c58db589e2d5e5ad2f382b28155ac9c0295b6495445fc22822c6dc60b847e16"
     },
     {
       "path": "fingerprint.js",
@@ -66,8 +66,8 @@
     },
     {
       "path": "journal.js",
-      "size": 6280,
-      "sha256": "82e9b961e84aca47200f629400ccbc556305ad387f091aee445045ff4451d656"
+      "size": 6531,
+      "sha256": "999f6a30c25f9e4641a4c7067abe9eb0e3dab59083918b7d659c76a936971a89"
     },
     {
       "path": "model/default-workflow-policy.json",
@@ -136,8 +136,8 @@
     },
     {
       "path": "transitions.js",
-      "size": 14310,
-      "sha256": "0fc0576dcce97fecc97ca402f24b7bc50ab2c5c785bb5cf4e758436b249458f2"
+      "size": 14324,
+      "sha256": "47747bb24c6c3f8095eb27eba0468cf574b86f1b6e9bcd644286e4c6dffe036f"
     }
   ]
 }
