@@ -133,7 +133,7 @@ Store all historical models in the current lock - rejected because the attempt o
 
 ## [6] Keep Desktop module mutations semantic and main-process bounded
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -150,7 +150,7 @@ Desktop exposes named operations for previewing and applying a complete module p
 
 ## [7] Activate feature-scoped waiver controls with finalization attempts
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -167,7 +167,7 @@ Slice 2 implements boundary-scoped waivers but does not fabricate a feature-scop
 
 ## [8] Bundle the minimal trusted waiver-guard runtime
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

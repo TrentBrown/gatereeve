@@ -35,12 +35,12 @@ parity and regression behavior. This completes delivery slice 1.
 
 ## I-3 - Add project module policy and boundary-waiver controls
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R3
 - **Depends on:** I-2
-- **PR:** -
+- **PR:** [#62](https://github.com/TrentBrown/gatereeve/pull/62)
 
 Build staged settings, dependency previews, atomic uncommitted writes,
 active-feature migration confirmation, local-readiness display, and scoped
@@ -51,12 +51,12 @@ the waiver must bind to.
 
 ## I-4 - Generalize module graph and detail presentation
 
-- **Status:** closed
+- **Status:** in-review
 - **Estimate:** 2d
 - **Plan steps:** P5
 - **Rubric criteria:** R4, R7
 - **Depends on:** I-2, I-3
-- **PR:** -
+- **PR:** [#62](https://github.com/TrentBrown/gatereeve/pull/62)
 
 Reuse the existing boundary graph beneath Implementing and add its parallel
 Finalizing view, standard module detail, live status, actions, history, empty

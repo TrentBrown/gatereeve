@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "scope": "slice",
+  "featureId": "tb-workflow-modules",
+  "repositoryAlias": "product",
+  "packetId": "pr-62",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 62,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/62",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "cb85c672e6090f0286159b9897eacee9c3edf8fc",
+    "headRefName": "tb-workflow-modules-02-gatereeve-module-interface",
+    "headRefOid": "53f9babd3aaec06449eeb0c8fd7deb4ab143544b"
+  },
+  "mergeBaseSha": "cb85c672e6090f0286159b9897eacee9c3edf8fc",
+  "evaluatedSourceSha": "53f9babd3aaec06449eeb0c8fd7deb4ab143544b",
+  "featureBaseSha": null,
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": true
+  },
+  "gates": {
+    "verification": { "disposition": "passed", "reason": null },
+    "specEvaluation": { "disposition": "passed", "reason": null },
+    "judge": { "disposition": "passed", "reason": null },
+    "codeReview": { "disposition": "passed", "reason": null },
+    "patternReview": {
+      "disposition": "waived",
+      "reason": "GateReeve has no configured pattern-review rule scope; the user approved a one-boundary waiver so an empty policy scope would not be mixed into this feature PR."
+    },
+    "explainDiff": { "disposition": "passed", "reason": null }
+  }
+}

@@ -33,15 +33,16 @@ validation, feature-lock and attempt pinning, and migration impact ready for
 formal gate evaluation. The first boundary attempt exposed and remediated a
 legacy-attempt replay defect; the second attempt evaluates that correction.
 
-### Slice 2 - GateReeve module interface
+### PR #62 - GateReeve module interface
 
-- Delivery branch: `tb-workflow-modules-02-gatereeve-module-interface`
+- Pull request: [#62](https://github.com/TrentBrown/gatereeve/pull/62)
+- Evidence packet: [pr-62](pr-62/boundary.json)
 - Scope: slice (P4-P5; R1, R3, R4, R7)
-- Status: implementation verified; PR boundary pending
+- Status: boundary passed; human review pending
 
 This slice adds staged project module settings, dependency and migration
 previews, scoped waivers, and the shared Implementing/Finalizing module graph.
-The implementation passes 171 Desktop tests and 208 CLI tests. It exposes only
+The implementation passes 173 Desktop tests and 208 CLI tests. It exposes only
 narrow main-process policy/waiver operations, writes no Git state, keeps locked
 and unavailable modules fail-closed, and renders authoritative results
 separately from normalized live progress. A Linux-host Electron launch was
