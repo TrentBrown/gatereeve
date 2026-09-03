@@ -91,7 +91,7 @@ completes delivery slice 3.
 
 ## I-7 - Add generic feature-finalization gating
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P8
 - **Rubric criteria:** R3, R4, R7
@@ -104,7 +104,7 @@ and feature-scoped waivers without release-specific core concepts.
 
 ## I-8 - Implement GateReeve Release provider
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P9
 - **Rubric criteria:** R6, R8
@@ -117,7 +117,7 @@ and reject incomplete or invalid retained evidence.
 
 ## I-9 - Verify, merge, and dogfood the real release gate
 
-- **Status:** in-progress
+- **Status:** closed
 - **Estimate:** 2d
 - **Plan steps:** P10
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
@@ -127,6 +127,12 @@ and reject incomplete or invalid retained evidence.
 Complete delivery slice 4 verification and review, merge it, then run a real
 GateReeve release through terminal conductor completion with retained public,
 installation, smoke, and feature-finalization evidence.
+
+Completed by [v0.1.0-rc.12 release evidence](release-v0.1.0-rc.12.md): PR #64
+merged as `8d2fb4c`, the signed/notarized universal DMG and matching Cask were
+published, native arm64 and Intel plus direct-install and four Cask smoke paths
+passed, and the installed provider recorded terminal conductor `COMPLETE` as a
+current feature-finalization `PASS`.
 
 ## I-10 - Align packaged-runtime verification with trusted Python guards
 

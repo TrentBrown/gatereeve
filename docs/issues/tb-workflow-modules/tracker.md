@@ -12,11 +12,11 @@
 | R1 | Deterministic module policy and resolution | PASS | #64 | Complete feature tests prove deterministic discovery/resolution, invalid graph and digest rejection, exact lock/attempt pinning, explicit migration, and historical replay. |
 | R2 | Declarative boundary parity and locked envelope | PASS | #64 | All ten existing checks resolve from built-in modules with locked envelope gates, unchanged freshness/dependency guards, and default Judge/code-review requirements. |
 | R3 | Project settings, waivers, and readiness | PASS | #64 | Settings, dependency disclosure, atomic policy writes, explicit migration, scoped fingerprint-bound waivers, N/A distinction, and fail-closed readiness pass. |
-| R4 | Compact state-specific module UI | NOT YET | #64 | Renderer and accessibility suites pass the fixed six-state rail and shared Implementing/Finalizing graph; the newly packaged app walkthrough/screenshots remain a post-merge release obligation. |
-| R5 | Explicit adapters and isolated task terminals | NOT YET | #64 | Adapter, authorization, cancellation, timeout, evidence, and real PTY isolation tests pass; the newly packaged macOS interactive run remains a post-merge release obligation. |
+| R4 | Compact state-specific module UI | PASS | #64 | Renderer/accessibility suites pass the fixed rail and shared Finalizing graph; rc.12 passed native arm64/Intel packaged verification and the user's public-DMG installed launch. |
+| R5 | Explicit adapters and isolated task terminals | PASS | #64 | Adapter, authorization, cancellation, timeout, evidence, and real PTY isolation tests pass; the exact rc.12 package passed native runtime verification and public installed launch. |
 | R6 | Command semantics and provider protocol | PASS | #64 | Exit/cancel mapping, installed provider isolation, exact byte/identity binding, supervision failures, live-status separation, and fresh core recording all pass. |
 | R7 | Generic finalization semantics | PASS | #64 | Merge-bound module attempts, dependencies, waivers, invalidation, migration recovery, zero-module completion, and generic passage all pass without release-specific core state. |
-| R8 | GateReeve Release verified end to end | NOT YET | #64 | Provider and adversarial source-containment tests pass, including distinct contained merges; the real post-merge release, publication, installation, and smoke evidence remains required. |
+| R8 | GateReeve Release verified end to end | PASS | #64 | rc.12 reached retained conductor `COMPLETE`, exactly contains the feature merge, and passed signed/notarized native verification, public DMG install/launch, Cask publication, four architecture/install smoke paths, and real provider observation. |
 
 ## PR Log
 
@@ -85,12 +85,17 @@ because GateReeve has no configured rule scope.
 - Scope: feature-final (P8-P10; R1-R8)
 - Pull request: [#64](https://github.com/TrentBrown/gatereeve/pull/64)
 - Evidence packet: [pr-64](pr-64/boundary.json)
-- Status: PR boundary; post-merge release proof remains pending
+- Outcome: merged as `8d2fb4c51d01f24bb330ac67ed1679809fc3547f`; released and finalized in [v0.1.0-rc.12](release-v0.1.0-rc.12.md)
 
 This final delivery slice starts from the merged PR #63 mainline. Its pinned
 source adds generic feature-finalization attempts and completion passage, ships
 the `gatereeve/release` module with its `gatereeve/release-conductor` installed
 provider, and passes the complete local feature verification matrix. The real
 hosted release, publication, installation, and smoke evidence required by R8 is
-intentionally unavailable before merge and remains an explicit post-merge
-finalization obligation rather than a pre-merge waiver.
+intentionally unavailable before merge and remained an explicit post-merge
+finalization obligation rather than a pre-merge waiver. Release Conductor runs
+[33800046588](https://github.com/TrentBrown/gatereeve/actions/runs/33800046588)
+and [33807948528](https://github.com/TrentBrown/gatereeve/actions/runs/33807948528)
+subsequently produced terminal `COMPLETE` evidence for rc.12. The shipped
+provider verified exact source containment and recorded the release module
+`PASS`; the [completion report](completion-report.md) closes all rubric items.
