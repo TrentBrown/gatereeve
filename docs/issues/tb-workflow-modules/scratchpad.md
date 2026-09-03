@@ -271,7 +271,7 @@ new path from terminal results to authoritative workflow events.
 
 ## [12] Bind finalization passage to a historical model and exact merge
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -303,7 +303,7 @@ post-merge passage.
 
 ## [13] Package the GateReeve release observer as a self-contained exact peer
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -338,7 +338,7 @@ not bind executed code.
 
 ## [14] Validate candidate journals before atomic append
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 
@@ -366,7 +366,7 @@ feature record.
 
 ## [15] Normalize historical final merges and replace stale attempts safely
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

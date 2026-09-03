@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #64 — Finalization modules and GateReeve Release</title>
+  <style>
+    :root { color-scheme: light; --ink:#241a38; --muted:#6d6478; --line:#ddd4e8; --panel:#faf7ff; --accent:#6c4bc1; --good:#19704a; --warn:#9a5c00; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.58 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:#f4f0f8; }
+    main { width:min(1060px,calc(100% - 28px)); margin:28px auto 64px; }
+    header,section,nav { background:white; border:1px solid var(--line); border-radius:16px; padding:clamp(20px,4vw,40px); margin:16px 0; box-shadow:0 8px 28px rgba(47,31,70,.06); }
+    h1,h2,h3 { font-family:Georgia,serif; line-height:1.12; }
+    h1 { font-size:clamp(2rem,5vw,3.6rem); margin:.2em 0; }
+    h2 { font-size:clamp(1.55rem,3vw,2.25rem); margin-top:0; }
+    h3 { margin-top:1.7em; }
+    a { color:var(--accent); }
+    code { background:#f1ecf7; padding:.1em .32em; border-radius:5px; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; background:#211a2b; color:#f5efff; padding:18px; border-radius:12px; overflow:auto; }
+    .eyebrow { color:var(--accent); font-weight:800; text-transform:uppercase; letter-spacing:.12em; font-size:.78rem; }
+    .lede { font-size:1.2rem; color:#493c5c; max-width:78ch; }
+    .meta,.muted { color:var(--muted); }
+    nav ol { columns:2; margin-bottom:0; }
+    .callout { border-left:5px solid var(--accent); background:var(--panel); padding:14px 18px; border-radius:8px; margin:18px 0; }
+    .callout.good { border-color:var(--good); }
+    .callout.warn { border-color:var(--warn); }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:10px; align-items:stretch; margin:22px 0; }
+    .node { position:relative; border:2px solid var(--line); border-radius:12px; padding:15px; background:var(--panel); min-height:92px; }
+    .node:not(:last-child)::after { content:"→"; position:absolute; right:-18px; top:34%; color:var(--accent); font-size:1.35rem; z-index:2; }
+    .node strong { display:block; }
+    .node small { color:var(--muted); }
+    .split { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .card { border:1px solid var(--line); border-radius:12px; padding:18px; background:var(--panel); }
+    .rail { display:grid; grid-template-columns:repeat(6,1fr); gap:7px; margin:18px 0; }
+    .rail div { border:1px solid var(--line); padding:10px 7px; border-radius:8px; text-align:center; font-size:.8rem; }
+    .rail .active { border:2px solid var(--accent); background:#f0eaff; font-weight:750; }
+    .module { width:min(420px,100%); margin:12px auto; border:2px solid var(--good); border-radius:12px; padding:16px; background:#f5fff9; }
+    .module span { float:right; color:var(--good); font-weight:800; }
+    .quiz { border-top:1px solid var(--line); padding-top:18px; margin-top:22px; }
+    .answers { display:grid; gap:8px; }
+    button { text-align:left; border:1px solid var(--line); background:white; color:var(--ink); border-radius:9px; padding:11px 13px; cursor:pointer; font:inherit; }
+    button:hover,button:focus-visible { outline:3px solid #cdbcf4; border-color:var(--accent); }
+    button.correct { border-color:var(--good); background:#edfff5; }
+    button.wrong { border-color:#b53a45; background:#fff1f2; }
+    .feedback { min-height:1.7em; margin:.5em 0 0; font-weight:650; }
+    @media (max-width:760px) { nav ol { columns:1; } .flow,.rail { grid-template-columns:1fr; } .node:not(:last-child)::after { content:"↓"; right:50%; top:auto; bottom:-22px; } .split { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">GateReeve · PR #64 · exact pinned source</div>
+    <h1>Finalization becomes a module graph</h1>
+    <p class="lede">This change lets a project describe work that must happen after its final PR merges—without teaching GateReeve that every project has a release. GateReeve itself supplies one product-specific module, <code>gatereeve/release</code>, which observes the existing Release Conductor.</p>
+    <p class="meta"><code>76f627928a84071b524c87772fd42f0680d9b85a..23fd13887cd6de117f9748e6cdd49b3dba940249</code></p>
+  </header>
+
+  <nav aria-label="Table of contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#background">Background</a></li>
+      <li><a href="#intuition">Intuition</a></li>
+      <li><a href="#code">Code walkthrough</a></li>
+      <li><a href="#remediation">Review remediation</a></li>
+      <li><a href="#after-merge">What happens after merge</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <section id="background">
+    <div class="eyebrow">1 · Background</div>
+    <h2>GateReeve separates lifecycle truth from observations</h2>
+    <p>A governed feature is an append-only event journal interpreted through a pinned workflow model. Gate outcomes are not booleans scattered through the UI: each one is bound to an attempt, a model, declared inputs, dependency event IDs, and evidence. This is what lets GateReeve say that a result is current rather than merely successful at some point in the past.</p>
+    <p>Before this feature, the PR boundary already behaved like a dependency graph, but its checks were baked into the protocol. The preceding three slices made modules declarative, exposed them under the existing six-state rail, and added explicit manual, skill, command, and installed-provider adapters.</p>
+    <div class="rail" aria-label="Feature state rail">
+      <div>Designing</div><div>Specifying</div><div>Planning</div><div>Implementing</div><div class="active">Finalizing</div><div>Complete</div>
+    </div>
+    <p>The crucial product decision is visible above: modules do not lengthen this rail. Selecting <strong>Implementing</strong> reveals a PR-boundary module graph; selecting <strong>Finalizing</strong> reveals the corresponding post-merge graph.</p>
+    <div class="callout"><strong>Definition:</strong> a provider reports normalized live progress and, when justified, a terminal observation. It cannot append workflow truth itself; only the protocol core can freshly validate and record passage.</div>
+  </section>
+
+  <section id="intuition">
+    <div class="eyebrow">2 · Intuition</div>
+    <h2>Bind obligations to the thing they certify</h2>
+    <p>Imagine a feature whose final PR produces merge commit <code>abc…123</code>. A release made from an older commit must not complete that feature, even if every release job is green. The finalization attempt therefore pins the merge, the active model, and the complete module graph.</p>
+    <div class="flow" role="img" aria-label="Flow from final merge through finalization completion">
+      <div class="node"><strong>Final PR merge</strong><small>exact integration SHA</small></div>
+      <div class="node"><strong>Attempt snapshot</strong><small>model + module DAG</small></div>
+      <div class="node"><strong>Provider observes</strong><small>live, not authoritative</small></div>
+      <div class="node"><strong>Core revalidates</strong><small>identity + inputs + dependencies</small></div>
+      <div class="node"><strong>Feature completes</strong><small>all required results current</small></div>
+    </div>
+    <div class="split">
+      <div class="card"><h3>Project with a release</h3><p>An enabled required module holds the feature in Finalizing until its exact evidence passes or an allowed feature-scoped waiver is confirmed.</p></div>
+      <div class="card"><h3>Project without a release</h3><p>An empty finalization slot completes directly. GateReeve does not invent deployment ceremony for software—or other work—that has none.</p></div>
+    </div>
+    <h3>A concrete GateReeve example</h3>
+    <div class="module"><span>PASS</span><strong>GateReeve Release</strong><br><small>gatereeve/release · observed by gatereeve/release-conductor</small></div>
+    <p>The provider accepts only the GateReeve repository, reads retained Release Conductor artifacts, validates the chain, and checks that the release source contains the feature merge. One completed release can therefore satisfy several features, but only when each feature's own merge is an ancestor of that release source.</p>
+  </section>
+
+  <section id="code">
+    <div class="eyebrow">3 · Code</div>
+    <h2>Four layers cooperate without sharing authority</h2>
+    <h3>1. The model declares the graph</h3>
+    <p>The default v1.2 model adds the <code>feature.finalization</code> slot and the built-in <code>gatereeve/release</code> definition. Resolution still validates IDs, versions, digests, dependencies, cycles, dispositions, and enabled policy.</p>
+    <pre><code>{
+  "slot": "feature.finalization",
+  "id": "gatereeve/release",
+  "observe": "gatereeve/release-conductor@1.0.0",
+  "disposition": "required",
+  "fingerprint": "feature-finalization-v1"
+}</code></pre>
+    <h3>2. The generic core owns attempts and passage</h3>
+    <p><code>finalization.js</code> starts attempts, records outcomes or human waivers, invalidates changed evidence, and completes only through a fresh core transition. <code>projection.js</code> reconstructs eligibility and freshness from the journal. There is no release-specific feature state or transition.</p>
+    <h3>3. Desktop renders and executes bounded actions</h3>
+    <p>The renderer reuses the module card and details for Finalizing. Coordinator and IPC operations name a selected project, attempt, gate, and pinned module. Command modules use dedicated task PTYs; installed providers are supervised one-shot processes. Neither path borrows the persistent project shell.</p>
+    <h3>4. The GateReeve provider adapts Release Conductor</h3>
+    <p>The product-specific provider lives outside the generic core. Packaging bundles its import closure into a self-contained ESM entrypoint, hashes the executable bytes, unpacks only the installed provider, and runs it through Electron with <code>ELECTRON_RUN_AS_NODE=1</code>. The provider emits one bounded JSON response; the core decides whether that response may become an event.</p>
+  </section>
+
+  <section id="remediation">
+    <div class="eyebrow">4 · Independent review</div>
+    <h2>Migration must preserve history and recovery</h2>
+    <p>The first boundary attempt uncovered three related defects. Old feature-final records commonly called the merge field <code>mergeCommitSha</code>; interpreting those records through the new model could require the newer <code>integrationSha</code> retroactively. A model migration also made an active finalization attempt stale but left no way to replace it. Finally, mutation and replay disagreed about duplicate active attempts.</p>
+    <div class="flow" role="img" aria-label="Safe model migration and attempt replacement">
+      <div class="node"><strong>Old record</strong><small>legacy merge field</small></div>
+      <div class="node"><strong>Retained snapshot</strong><small>historical module graph</small></div>
+      <div class="node"><strong>Preflight replay</strong><small>before durable writes</small></div>
+      <div class="node"><strong>Old attempt</strong><small>superseded, retained</small></div>
+      <div class="node"><strong>New attempt</strong><small>current model + same merge</small></div>
+    </div>
+    <p>The remediation normalizes both field names to one full commit, rejects conflicting dual identities, evaluates merge and zero-module completion under the event's retained model, and projects every migration candidate before touching the marker, model lock, or journal. A different-model active attempt may be superseded; a second same-model attempt is rejected by both mutation and replay.</p>
+    <div class="callout good"><strong>Result:</strong> the corrected source passes the full CLI, Desktop, portable-package, provider, migration, and exact-source CI suites. Independent re-review found no remaining blocker.</div>
+  </section>
+
+  <section id="after-merge">
+    <div class="eyebrow">5 · After merge</div>
+    <h2>The finalizing state now has a real job</h2>
+    <p>PR #64 can prove the implementation and packaged runtime before merge, but it cannot prove that a public release contains its own future merge commit. After merge, GateReeve records that exact commit, starts the finalization attempt, and observes Release Conductor until its retained chain reaches terminal <code>COMPLETE</code>.</p>
+    <div class="callout warn"><strong>Still required:</strong> the signed installed-app walkthrough, direct and Homebrew installation, Apple Silicon and Intel-or-Rosetta launch/smoke evidence, public publication receipts, and the terminal conductor chain. These are pending obligations, not waived checks.</div>
+  </section>
+
+  <section id="quiz">
+    <div class="eyebrow">6 · Quiz</div>
+    <h2>Check your model</h2>
+    <div class="quiz" data-answer="2" data-explain="The provider observes external state; only the protocol core can freshly validate the pinned attempt and append an authoritative outcome.">
+      <h3>1. Why can the Release Conductor provider not complete a feature directly?</h3>
+      <div class="answers"><button>It runs only after the feature is already Complete.</button><button>Its executable is not allowed to read GitHub artifacts.</button><button>Observation is not authority; the core must validate and record passage.</button><button>Providers may emit only human-readable text.</button></div><p class="feedback" aria-live="polite"></p>
+    </div>
+    <div class="quiz" data-answer="1" data-explain="The historical graph prevents a newly enabled requirement from being imposed retroactively on an event recorded under an older model.">
+      <h3>2. Why evaluate a historical final merge with its retained model snapshot?</h3>
+      <div class="answers"><button>It makes provider polling faster.</button><button>It prevents current policy from rewriting historical obligations.</button><button>It lets a project change the recorded merge commit.</button><button>It removes the need for migration confirmation.</button></div><p class="feedback" aria-live="polite"></p>
+    </div>
+    <div class="quiz" data-answer="3" data-explain="An old-model active attempt becomes stale after migration and may be superseded; two active attempts under the same current model remain invalid.">
+      <h3>3. When may a new finalization attempt supersede an active one?</h3>
+      <div class="answers"><button>Whenever the prior module reported FAIL.</button><button>Whenever the user refreshes provider status.</button><button>Whenever the attempt is more than one hour old.</button><button>When the prior attempt belongs to a different model hash.</button></div><p class="feedback" aria-live="polite"></p>
+    </div>
+    <div class="quiz" data-answer="0" data-explain="No enabled modules means there is no post-merge obligation to model, so completion needs no synthetic attempt.">
+      <h3>4. What happens for a project with no enabled finalization modules?</h3>
+      <div class="answers"><button>It can complete without a synthetic finalization attempt.</button><button>It inherits GateReeve Release automatically.</button><button>It remains Finalizing until a waiver is recorded.</button><button>It skips the feature-final PR boundary.</button></div><p class="feedback" aria-live="polite"></p>
+    </div>
+    <div class="quiz" data-answer="2" data-explain="A draft PR cannot contain its own future integration merge in a public release. The module deliberately carries that verification into Finalizing.">
+      <h3>5. Why is the real GateReeve release evidence still pending at this PR boundary?</h3>
+      <div class="answers"><button>The provider cannot inspect releases made from main.</button><button>CI does not build universal macOS packages.</button><button>The release must contain the PR's not-yet-created merge commit.</button><button>Release evidence is optional until a marketplace exists.</button></div><p class="feedback" aria-live="polite"></p>
+    </div>
+  </section>
+</main>
+<script>
+  for (const quiz of document.querySelectorAll('.quiz')) {
+    const expected = Number(quiz.dataset.answer);
+    const buttons = [...quiz.querySelectorAll('button')];
+    const feedback = quiz.querySelector('.feedback');
+    buttons.forEach((button,index) => button.addEventListener('click',() => {
+      buttons.forEach((candidate,i) => {
+        candidate.disabled = true;
+        if (i === expected) candidate.classList.add('correct');
+      });
+      if (index !== expected) button.classList.add('wrong');
+      feedback.textContent = `${index === expected ? 'Correct.' : 'Not quite.'} ${quiz.dataset.explain}`;
+    }));
+  }
+</script>
+</body>
+</html>

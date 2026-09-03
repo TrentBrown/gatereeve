@@ -9,14 +9,14 @@
 
 | # | Criterion (short) | Status | PR | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Deterministic module policy and resolution | NOT YET | - | Slice 1 schema, discovery, resolver, full lock/attempt pinning, invalid-graph fixtures, and migration impact pass; final assembled verification remains P10 |
-| R2 | Declarative boundary parity and locked envelope | NOT YET | - | Slice 1 converts all ten gates to built-ins with legacy outcome keys, locked envelope, unchanged runtime dependency/freshness behavior, and passing regression suites; final assembled verification remains P10 |
-| R3 | Project settings, waivers, and readiness | NOT YET | - | Slice 2 adds staged complete-policy settings, explicit dependency/migration impact, fail-closed readiness, atomic uncommitted policy writes, and fingerprint-bound boundary waivers; finalization waivers activate with P8 attempts and final assembled verification remains P10 |
-| R4 | Compact state-specific module UI | NOT YET | - | Slice 2 preserves the six-state rail and supplies one accessible graph/detail renderer for boundary and finalization modules, including normalized live detail and empty-slot behavior; provider-fed runtime and final assembled verification remain P6/P8/P10 |
-| R5 | Explicit adapters and isolated task terminals | NOT YET | #63 | Slice 3 implements explicit skill/manual/command actions, exact local consent, changed-input invalidation, and separate attributable PTYs with bounded evidence; packaged macOS walkthrough and final assembled verification remain P10 |
-| R6 | Command semantics and provider protocol | NOT YET | #63 | Slice 3 implements fail-closed command result mapping and allowlisted out-of-process providers with exact response/fingerprint validation and fresh core passage; the GateReeve Release provider and final assembled verification remain P9-P10 |
-| R7 | Generic finalization semantics | NOT YET | - | Slices 1-2 define the generic slot, zero-module default, readiness, dependency graph, and standard presentation; attempts, passage, and feature-scoped waivers remain P8 |
-| R8 | GateReeve Release verified end to end | NOT YET | - | Planned for P9-P10 / I-8-I-9 |
+| R1 | Deterministic module policy and resolution | PASS | #64 | Complete feature tests prove deterministic discovery/resolution, invalid graph and digest rejection, exact lock/attempt pinning, explicit migration, and historical replay. |
+| R2 | Declarative boundary parity and locked envelope | PASS | #64 | All ten existing checks resolve from built-in modules with locked envelope gates, unchanged freshness/dependency guards, and default Judge/code-review requirements. |
+| R3 | Project settings, waivers, and readiness | PASS | #64 | Settings, dependency disclosure, atomic policy writes, explicit migration, scoped fingerprint-bound waivers, N/A distinction, and fail-closed readiness pass. |
+| R4 | Compact state-specific module UI | NOT YET | #64 | Renderer and accessibility suites pass the fixed six-state rail and shared Implementing/Finalizing graph; the newly packaged app walkthrough/screenshots remain a post-merge release obligation. |
+| R5 | Explicit adapters and isolated task terminals | NOT YET | #64 | Adapter, authorization, cancellation, timeout, evidence, and real PTY isolation tests pass; the newly packaged macOS interactive run remains a post-merge release obligation. |
+| R6 | Command semantics and provider protocol | PASS | #64 | Exit/cancel mapping, installed provider isolation, exact byte/identity binding, supervision failures, live-status separation, and fresh core recording all pass. |
+| R7 | Generic finalization semantics | PASS | #64 | Merge-bound module attempts, dependencies, waivers, invalidation, migration recovery, zero-module completion, and generic passage all pass without release-specific core state. |
+| R8 | GateReeve Release verified end to end | NOT YET | #64 | Provider and adversarial source-containment tests pass, including distinct contained merges; the real post-merge release, publication, installation, and smoke evidence remains required. |
 
 ## PR Log
 
@@ -79,7 +79,7 @@ assigned to P10 as already planned. The independent judge and code review pass
 with no unresolved finding; the optional pattern gate is explicitly waived
 because GateReeve has no configured rule scope.
 
-### Slice 4 - Finalization and GateReeve Release
+### PR #64 - Finalization and GateReeve Release
 
 - Delivery branch: `tb-workflow-modules-04-finalization-release`
 - Scope: feature-final (P8-P10; R1-R8)
