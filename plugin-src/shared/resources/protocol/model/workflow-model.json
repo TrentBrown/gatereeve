@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "modelId": "gatereeve/workflow",
-  "modelVersion": "1.1.0",
+  "modelVersion": "1.2.0",
   "eventSchemaVersion": 1,
   "resultSchemaVersion": 1,
   "coreCompatibility": {
@@ -308,9 +308,10 @@
   },
   "moduleGraph": {
     "schemaVersion": 1,
-    "policyDigest": "sha256:4ab90e704e6f68ed69ec17292e023a722b60c46216d39fcc69262a9aafa56d7d",
+    "policyDigest": "sha256:6d99047254f4ecfa3bbdb47b6658a4d4d3f3cab8e550b1e18018df2a54007a09",
     "enabledModuleIds": [
       "gatereeve/pin-context",
+      "gatereeve/release",
       "gatereeve/reconcile",
       "gatereeve/verification",
       "gatereeve/spec-evaluation",
@@ -342,6 +343,23 @@
           "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
           "guards": ["slice.active", "suspension.notPaused"]
         }
+      },
+      {
+        "schemaVersion": 1,
+        "id": "gatereeve/release",
+        "version": "1.0.0",
+        "digest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978",
+        "label": "GateReeve Release",
+        "description": "Verifies terminal Release Conductor evidence for a release containing the feature final merge.",
+        "slot": "feature.finalization",
+        "dependsOn": [],
+        "disposition": "required",
+        "locked": false,
+        "enabledByDefault": true,
+        "waiverAllowed": true,
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "feature-finalization-v1", "dependencyBinding": "event-ids"},
+        "observe": {"providerId": "gatereeve/release-conductor", "version": "1.0.0"}
       },
       {
         "schemaVersion": 1,

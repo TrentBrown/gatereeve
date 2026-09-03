@@ -12,6 +12,8 @@ export const IPC_CHANNELS = Object.freeze({
   getModuleSettings: 'gatereeve:desktop:get-module-settings',
   getModuleRunPreview: 'gatereeve:desktop:get-module-run-preview',
   getUpdateState: 'gatereeve:desktop:get-update-state',
+  startFinalization: 'gatereeve:desktop:start-finalization',
+  completeFinalization: 'gatereeve:desktop:complete-finalization',
   listSession: 'gatereeve:desktop:list-session',
   listModuleTasks: 'gatereeve:desktop:list-module-tasks',
   layoutCommand: 'gatereeve:desktop:layout-command',
@@ -40,6 +42,7 @@ export const IPC_CHANNELS = Object.freeze({
   moduleTaskChanged: 'gatereeve:desktop:module-task-changed',
   moduleTaskResize: 'gatereeve:desktop:module-task-resize',
   moduleTaskStart: 'gatereeve:desktop:module-task-start',
+  observeModule: 'gatereeve:desktop:observe-module',
   moduleTaskWrite: 'gatereeve:desktop:module-task-write',
   terminalChanged: 'gatereeve:desktop:terminal-changed',
   terminalEnsure: 'gatereeve:desktop:terminal-ensure',
@@ -49,6 +52,7 @@ export const IPC_CHANNELS = Object.freeze({
   terminalWrite: 'gatereeve:desktop:terminal-write',
   updateChanged: 'gatereeve:desktop:update-changed',
   waiveBoundaryModule: 'gatereeve:desktop:waive-boundary-module',
+  waiveFinalizationModule: 'gatereeve:desktop:waive-finalization-module',
 });
 
 const PHASES = new Set(['idle', 'loading', 'ready', 'error']);
@@ -474,6 +478,27 @@ export function requireBoundaryModuleWaiverRequest(value) {
     attemptId: value.attemptId,
     gateId: value.gateId,
     reason: value.reason.trim(),
+    confirmationLabel: value.confirmationLabel.trim(),
+  };
+}
+
+export function requireFinalizationCompleteRequest(value) {
+  if (
+    !isObject(value)
+    || !exactKeys(value, ['attemptId', 'confirmationLabel'])
+    || !(value.attemptId === null || (
+      typeof value.attemptId === 'string'
+      && value.attemptId.trim().length > 0
+      && value.attemptId.length <= 2_048
+    ))
+    || typeof value.confirmationLabel !== 'string'
+    || value.confirmationLabel.trim().length === 0
+    || value.confirmationLabel.length > 2_048
+  ) {
+    throw new Error('Finalization completion request is invalid.');
+  }
+  return {
+    attemptId: value.attemptId === null ? null : value.attemptId.trim(),
     confirmationLabel: value.confirmationLabel.trim(),
   };
 }

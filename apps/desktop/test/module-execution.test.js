@@ -30,7 +30,8 @@ function taskSession(module) {
   return {
     schemaVersion: 1, id: 'module_task_one', kind: 'module-task', name: module.label,
     moduleId: module.id, moduleVersion: module.version, moduleDigest: module.digest,
-    attemptId: 'attempt-1', gateId: module.boundary.gateId, projectPath: '/repo', projectName: 'repo',
+    attemptId: 'attempt-1', gateId: module.boundary?.gateId ?? module.id,
+    projectPath: '/repo', projectName: 'repo',
     status: 'passed', cols: 80, rows: 24, output: 'ok\n',
     startedAt: '2026-09-03T12:00:00Z', finishedAt: '2026-09-03T12:00:01Z',
     exit: { code: 0, signal: null },
@@ -43,6 +44,7 @@ async function harness(module, {
   currentModule = module,
   providers = [],
   observe = async () => { throw new Error('unexpected'); },
+  recordError = null,
 } = {}) {
   const featureHome = await mkdtemp(join(tmpdir(), 'gatereeve-module-execution-'));
   const listeners = new Set();
@@ -50,11 +52,12 @@ async function harness(module, {
   const records = [];
   const changes = [];
   let grants = 0;
+  const finalization = module.slot === 'feature.finalization';
   const record = {
     events: [
       { featureId: 'feature' },
       {
-        type: 'BOUNDARY_STARTED',
+        type: finalization ? 'FEATURE_FINALIZATION_STARTED' : 'BOUNDARY_STARTED',
         payload: {
           attemptId: 'attempt-1',
           moduleGraph: { modules: [module], enabledModuleIds: [module.id] },
@@ -93,7 +96,21 @@ async function harness(module, {
         inputs: { exact: true },
       };
     },
-    async recordBoundaryModuleOutcome(value) { records.push(value); },
+    async recordBoundaryModuleOutcome(value) {
+      if (recordError) throw recordError;
+      records.push(value);
+    },
+    async prepareFinalizationModule() {
+      return {
+        attempt: { scope: 'FEATURE', mergeInputSha: 'a'.repeat(40), modules: [] },
+        target: { dependsOn: [] },
+        inputs: { exact: true },
+      };
+    },
+    async recordFinalizationModuleOutcome(value) {
+      if (recordError) throw recordError;
+      records.push(value);
+    },
   };
   const manager = createModuleExecutionManager({
     protocol, authorizationStore, taskManager,
@@ -181,4 +198,56 @@ test('provider-backed completion publishes live progress and records only the ve
   assert.deepEqual(fixture.changes.at(-1).provider.live, live);
   assert.equal(fixture.records.length, 1);
   assert.equal(fixture.records[0].outcome, 'PASS');
+});
+
+test('finalization providers observe directly and record through the finalization core adapter', async () => {
+  const module = moduleDefinition();
+  module.id = 'example/finalization';
+  module.label = 'Finalization';
+  module.slot = 'feature.finalization';
+  delete module.boundary;
+  delete module.run;
+  module.observe = { providerId: 'example/provider', version: '1.0.0' };
+  module.fingerprint.kind = 'feature-finalization-v1';
+  module.digest = hashModuleDefinition(module);
+  const live = {
+    status: 'waiting', detail: 'Release complete.', updatedAt: '2026-09-03T12:00:02Z',
+    stages: [], actions: [], attempts: [], evidence: [], links: [], failure: null,
+  };
+  const fixture = await harness(module, {
+    providers: [{ id: 'example/provider', version: '1.0.0' }],
+    observe: async () => ({ outcome: 'PASS', live, evidence: { source: 'fixture' } }),
+  });
+  await fixture.manager.observe({
+    repositoryRoot: '/repo', featureHome: fixture.featureHome, moduleId: module.id,
+    attemptId: 'attempt-1', gateId: module.id,
+  });
+  assert.equal(fixture.records.length, 1);
+  assert.equal(fixture.records[0].outcome, 'PASS');
+  assert.equal(fixture.records[0].module.slot, 'feature.finalization');
+  assert.equal(fixture.changes.at(-1).live.status, 'waiting');
+});
+
+test('a stale provider result replaces running status with an explicit blocked failure', async () => {
+  const module = moduleDefinition();
+  module.observe = { providerId: 'example/provider', version: '1.0.0' };
+  module.digest = hashModuleDefinition(module);
+  const rejecting = await harness(module, {
+    providers: [{ id: 'example/provider', version: '1.0.0' }],
+    observe: async () => ({
+      outcome: 'PASS',
+      live: {
+        status: 'waiting', detail: 'Verified.', updatedAt: '2026-09-03T12:00:02Z',
+        stages: [], actions: [], attempts: [], evidence: [], links: [], failure: null,
+      },
+      evidence: {},
+    }),
+    recordError: new Error('Finalization inputs became stale.'),
+  });
+  await assert.rejects(rejecting.manager.observe({
+    repositoryRoot: '/repo', featureHome: rejecting.featureHome, moduleId: module.id,
+    attemptId: 'attempt-1', gateId: 'command',
+  }), /became stale/);
+  assert.equal(rejecting.changes.at(-1).live.status, 'blocked');
+  assert.match(rejecting.changes.at(-1).live.detail, /not recorded/);
 });

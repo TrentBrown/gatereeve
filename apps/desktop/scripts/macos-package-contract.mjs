@@ -51,9 +51,15 @@ export const STAGED_PYTHON_RUNTIME_PATHS = Object.freeze([
   '/resources/scripts/workflow_context.py',
 ]);
 
+export const STAGED_PROVIDER_PATHS = Object.freeze([
+  '/main/providers/gatereeve-release-conductor.json',
+  '/main/providers/release-conductor-provider.mjs',
+]);
+
 export const REQUIRED_ASAR_PATHS = Object.freeze([
   '/main/index.js',
   '/main/provider-allowlist.json',
+  ...STAGED_PROVIDER_PATHS,
   '/preload/index.cjs',
   '/renderer/index.html',
   '/renderer/generated/markdown-renderer.js',
@@ -117,7 +123,7 @@ export function electronPackagerOptions(options) {
     appCategoryType: MACOS_PRODUCT.category,
     icon: options.iconPath,
     asar: {
-      unpack: '**/node_modules/node-pty/prebuilds/**/*',
+      unpack: '{**/node_modules/node-pty/prebuilds/**/*,**/main/providers/**/*}',
     },
     osxUniversal: {
       mergeASARs: true,

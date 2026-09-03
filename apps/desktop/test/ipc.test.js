@@ -129,6 +129,13 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
         return { ...moduleSettings, policyExists: true };
       },
       async waiveBoundaryModule(request) { moduleCalls.push(['waive', request]); return state(); },
+      async startFinalization() { moduleCalls.push(['finalization-start']); return state(); },
+      async waiveFinalizationModule(request) {
+        moduleCalls.push(['finalization-waive', request]); return state();
+      },
+      async completeFinalization(request) {
+        moduleCalls.push(['finalization-complete', request]); return state();
+      },
       async read(kind, id) {
         return { schemaVersion: 1, kind, id, featureId: 'feature', data: { events: [] } };
       },
@@ -247,6 +254,7 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
       },
       async startCommand(request) { moduleRuntimeCalls.push(['start', request]); return moduleTask(); },
       async attest(request) { moduleRuntimeCalls.push(['attest', request]); },
+      async observe(request) { moduleRuntimeCalls.push(['observe', request]); },
       listTasks(path) { moduleRuntimeCalls.push(['list', path]); return [moduleTask()]; },
     },
     async pickProject() { return '/repo'; },
@@ -327,11 +335,25 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   assert.equal((await handlers.get(IPC_CHANNELS.waiveBoundaryModule)(event, {
     attemptId: 'attempt-1', gateId: 'judge', reason: 'Small change', confirmationLabel: 'Trent',
   })).phase, 'ready');
+  assert.equal((await handlers.get(IPC_CHANNELS.startFinalization)(event)).phase, 'ready');
+  assert.equal((await handlers.get(IPC_CHANNELS.waiveFinalizationModule)(event, {
+    attemptId: 'finalization-1', gateId: 'gatereeve/release',
+    reason: 'Accepted risk', confirmationLabel: 'Trent',
+  })).phase, 'ready');
+  assert.equal((await handlers.get(IPC_CHANNELS.completeFinalization)(event, {
+    attemptId: null, confirmationLabel: 'Trent',
+  })).phase, 'ready');
   assert.deepEqual(moduleCalls, [
     ['inspect'],
     ['preview', []],
     ['apply', [], { confirmedMigration: true, confirmationLabel: 'Trent' }],
     ['waive', { attemptId: 'attempt-1', gateId: 'judge', reason: 'Small change', confirmationLabel: 'Trent' }],
+    ['finalization-start'],
+    ['finalization-waive', {
+      attemptId: 'finalization-1', gateId: 'gatereeve/release',
+      reason: 'Accepted risk', confirmationLabel: 'Trent',
+    }],
+    ['finalization-complete', { attemptId: null, confirmationLabel: 'Trent' }],
   ]);
   const target = { moduleId: 'gatereeve/judge', attemptId: 'attempt-1', gateId: 'judge' };
   assert.equal((await handlers.get(IPC_CHANNELS.getModuleRunPreview)(event, target)).kind, 'command');
@@ -351,6 +373,7 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   assert.equal((await handlers.get(IPC_CHANNELS.attestModule)(event, {
     ...target, outcome: 'PASS', summary: 'Reviewed.', confirmationLabel: 'Trent',
   })).phase, 'ready');
+  assert.equal((await handlers.get(IPC_CHANNELS.observeModule)(event, target)).phase, 'ready');
   await assert.rejects(handlers.get(IPC_CHANNELS.moduleTaskStart)(event, {
     ...target, consent: 'once', cols: 90, rows: 30, executable: '/bin/sh',
   }), /invalid/);

@@ -12,27 +12,31 @@ function sha256(value) {
 }
 
 function moduleFromRecord(record, moduleId, attemptId) {
-  const boundaryStart = record.events.find((event) => (
-    event.type === 'BOUNDARY_STARTED' && event.payload?.attemptId === attemptId
+  const attemptStart = record.events.find((event) => (
+    ['BOUNDARY_STARTED', 'FEATURE_FINALIZATION_STARTED'].includes(event.type)
+    && event.payload?.attemptId === attemptId
   ));
-  const graph = boundaryStart?.payload?.moduleGraph ?? record.modelLock.model.moduleGraph;
+  const graph = attemptStart?.payload?.moduleGraph ?? record.modelLock.model.moduleGraph;
   const module = graph?.modules.find((item) => item.id === moduleId);
   if (!module) throw new Error('The requested module is not pinned by the selected feature.');
   if (!graph.enabledModuleIds.includes(moduleId)) {
-    throw new Error('The requested module is disabled in the selected boundary attempt.');
+    throw new Error('The requested module is disabled in the selected workflow attempt.');
   }
   return module;
 }
 
-function boundaryTarget(record, module, attemptId, gateId) {
-  if (module.slot !== 'boundary.evaluation') {
-    throw new Error('Feature-finalization execution becomes available with finalization attempts.');
-  }
+function moduleTarget(module, attemptId, gateId) {
   if (typeof attemptId !== 'string' || typeof gateId !== 'string') {
-    throw new Error('Boundary module execution requires an exact attempt and gate.');
+    throw new Error('Module execution requires an exact attempt and target.');
   }
-  if (module.boundary?.gateId !== gateId) {
+  if (module.slot === 'boundary.evaluation' && module.boundary?.gateId !== gateId) {
     throw new Error('The requested gate does not match the pinned module.');
+  }
+  if (module.slot === 'feature.finalization' && module.id !== gateId) {
+    throw new Error('The requested finalization target does not match the pinned module.');
+  }
+  if (!['boundary.evaluation', 'feature.finalization'].includes(module.slot)) {
+    throw new Error('The requested module slot is not executable.');
   }
 }
 
@@ -75,8 +79,86 @@ export function createModuleExecutionManager({
   async function context(repositoryRoot, featureHome, moduleId, attemptId, gateId) {
     const record = await readRecord(featureHome);
     const module = moduleFromRecord(record, moduleId, attemptId);
-    boundaryTarget(record, module, attemptId, gateId);
+    moduleTarget(module, attemptId, gateId);
     return { repositoryRoot, featureHome, record, module, attemptId, gateId };
+  }
+
+  function prepare(active) {
+    return active.module.slot === 'feature.finalization'
+      ? protocol.prepareFinalizationModule(active)
+      : protocol.prepareBoundaryModule(active);
+  }
+
+  function recordOutcome(active, options) {
+    return active.module.slot === 'feature.finalization'
+      ? protocol.recordFinalizationModuleOutcome({ ...active, ...options })
+      : protocol.recordBoundaryModuleOutcome({ ...active, ...options });
+  }
+
+  async function observeProvider(active, task) {
+    const installed = providersById.get(active.module.observe.providerId);
+    if (!installed || installed.version !== active.module.observe.version) {
+      return {
+        provider: null,
+        providerError: { code: 'PROVIDER_UNAVAILABLE', message: 'The exact observation provider is unavailable.' },
+      };
+    }
+    try {
+      await onChanged({
+        task,
+        projectPath: active.repositoryRoot,
+        live: {
+          status: 'running',
+          detail: `Observing with ${installed.id} ${installed.version}.`,
+          updatedAt: now(),
+          stages: [], actions: [], attempts: [], evidence: [], links: [], failure: null,
+        },
+      });
+      const record = await readRecord(active.featureHome);
+      const prepared = await prepare(active);
+      const inputFingerprint = gateInputFingerprint({
+        modelHash: record.modelLock.modelHash,
+        attemptId: active.attemptId,
+        gateId: active.gateId,
+        inputs: prepared.inputs,
+      });
+      const provider = await providerSupervisor.observe(installed, {
+        schemaVersion: 1,
+        requestId: `provider-${randomId()}`,
+        operation: 'observe',
+        provider: { id: installed.id, version: installed.version },
+        module: {
+          id: active.module.id,
+          version: active.module.version,
+          digest: active.module.digest,
+        },
+        input: {
+          featureId: record.events[0].featureId,
+          attemptId: active.attemptId,
+          scope: prepared.attempt.scope ?? 'FEATURE',
+          inputFingerprint,
+          dependencyEventIds: Object.fromEntries(prepared.target.dependsOn.map((id) => {
+            const dependency = (prepared.attempt.gates ?? prepared.attempt.modules)
+              .find((candidate) => candidate.id === id);
+            return [id, dependency.recordedEventId];
+          })),
+          evidence: {
+            taskId: task.id,
+            result: task.result ?? null,
+            structuredOutput: task.structuredOutput ?? null,
+            repositoryRoot: active.repositoryRoot,
+            featureHome: active.featureHome,
+            mergeInputSha: prepared.attempt.mergeInputSha ?? null,
+          },
+        },
+      });
+      return { provider, providerError: null };
+    } catch (error) {
+      return {
+        provider: null,
+        providerError: { code: error?.code ?? 'PROVIDER_FAILED', message: error?.message ?? String(error) },
+      };
+    }
   }
 
   async function complete(task) {
@@ -87,65 +169,16 @@ export function createModuleExecutionManager({
     let outcome = task.result?.outcome ?? 'UNSET';
     let reason = task.result?.reason ?? null;
     if (task.result?.attemptStatus === 'awaiting-provider') {
-      const installed = providersById.get(active.module.observe.providerId);
-      if (!installed || installed.version !== active.module.observe.version) {
-        providerError = { code: 'PROVIDER_UNAVAILABLE', message: 'The exact observation provider is unavailable.' };
-      } else {
-        try {
-          await onChanged({
-            task,
-            projectPath: active.repositoryRoot,
-            live: {
-              status: 'running',
-              detail: `Observing with ${installed.id} ${installed.version}.`,
-              updatedAt: now(),
-              stages: [], actions: [], attempts: [], evidence: [], links: [], failure: null,
-            },
-          });
-          const record = await readRecord(active.featureHome);
-          const prepared = await protocol.prepareBoundaryModule(active);
-          const inputFingerprint = gateInputFingerprint({
-            modelHash: record.modelLock.modelHash,
-            attemptId: active.attemptId,
-            gateId: active.gateId,
-            inputs: prepared.inputs,
-          });
-          provider = await providerSupervisor.observe(installed, {
-            schemaVersion: 1,
-            requestId: `provider-${randomId()}`,
-            operation: 'observe',
-            provider: { id: installed.id, version: installed.version },
-            module: {
-              id: active.module.id,
-              version: active.module.version,
-              digest: active.module.digest,
-            },
-            input: {
-              featureId: record.events[0].featureId,
-              attemptId: active.attemptId,
-              scope: prepared.attempt.scope,
-              inputFingerprint,
-              dependencyEventIds: Object.fromEntries(prepared.target.dependsOn.map((id) => {
-                const dependency = prepared.attempt.gates.find((gate) => gate.id === id);
-                return [id, dependency.recordedEventId];
-              })),
-              evidence: { taskId: task.id, result: task.result, structuredOutput: task.structuredOutput },
-            },
-          });
-          outcome = provider.outcome ?? 'UNSET';
-          reason = provider.live.detail ?? reason;
-        } catch (error) {
-          providerError = { code: error?.code ?? 'PROVIDER_FAILED', message: error?.message ?? String(error) };
-        }
-      }
+      ({ provider, providerError } = await observeProvider(active, task));
+      outcome = provider?.outcome ?? 'UNSET';
+      reason = provider?.live?.detail ?? reason;
     }
     const evidence = await writeAttemptEvidence(active.featureHome, task, {
       provider,
       providerError,
     }, randomId);
     if (['PASS', 'FAIL'].includes(outcome)) {
-      await protocol.recordBoundaryModuleOutcome({
-        ...active,
+      await recordOutcome(active, {
         outcome,
         evidence,
         reason,
@@ -200,7 +233,7 @@ export function createModuleExecutionManager({
     async startCommand({ repositoryRoot, featureHome, project, moduleId, attemptId, gateId, consent, dimensions }) {
       const active = await context(repositoryRoot, featureHome, moduleId, attemptId, gateId);
       if (active.module.run?.kind !== 'command') throw new Error('The selected module is not a command module.');
-      await protocol.prepareBoundaryModule(active);
+      await prepare(active);
       const inspection = await authorizationStore.inspect(repositoryRoot, active.module);
       const status = await authorizationStore.status(inspection);
       if (consent === 'always') {
@@ -236,8 +269,7 @@ export function createModuleExecutionManager({
       const evidence = await writeAttemptEvidence(featureHome, task, {
         attestation: { outcome, summary: summary.trim(), confirmationLabel: confirmationLabel.trim() },
       }, randomId);
-      await protocol.recordBoundaryModuleOutcome({
-        ...active,
+      await recordOutcome(active, {
         outcome,
         evidence,
         reason: outcome === 'PASS' ? null : summary.trim(),
@@ -245,6 +277,68 @@ export function createModuleExecutionManager({
       });
       await onChanged({ task, projectPath: active.repositoryRoot, evidence });
       return { schemaVersion: 1, task, evidence };
+    },
+    async observe({ repositoryRoot, featureHome, moduleId, attemptId, gateId }) {
+      const active = await context(repositoryRoot, featureHome, moduleId, attemptId, gateId);
+      if (!active.module.observe) throw new Error('The selected module has no observation provider.');
+      await prepare(active);
+      const task = {
+        schemaVersion: 1,
+        id: `module_observation_${randomId()}`,
+        kind: 'provider-observation',
+        moduleId: active.module.id,
+        moduleVersion: active.module.version,
+        moduleDigest: active.module.digest,
+        attemptId,
+        gateId,
+        startedAt: now(),
+        result: null,
+        structuredOutput: null,
+      };
+      const { provider, providerError } = await observeProvider(active, task);
+      const evidence = await writeAttemptEvidence(active.featureHome, task, {
+        provider,
+        providerError,
+      }, randomId);
+      if (['PASS', 'FAIL'].includes(provider?.outcome)) {
+        try {
+          await recordOutcome(active, {
+            outcome: provider.outcome,
+            evidence,
+            reason: provider.live.detail,
+            actor: { kind: 'agent', label: `GateReeve Desktop provider ${active.module.observe.providerId}` },
+          });
+        } catch (error) {
+          const failure = {
+            code: error?.code ?? 'PROVIDER_OUTCOME_REJECTED',
+            message: error?.message ?? String(error),
+          };
+          await onChanged({
+            task,
+            projectPath: active.repositoryRoot,
+            provider,
+            providerError: failure,
+            evidence,
+            live: {
+              ...provider.live,
+              status: 'blocked',
+              detail: `Provider result was not recorded: ${failure.message}`,
+              updatedAt: now(),
+              failure,
+            },
+          });
+          throw error;
+        }
+      }
+      const live = provider?.live ?? {
+        status: 'unavailable',
+        detail: providerError?.message ?? 'Provider unavailable.',
+        updatedAt: now(),
+        stages: [], actions: [], attempts: [], evidence: [], links: [],
+        failure: providerError,
+      };
+      await onChanged({ task, projectPath: active.repositoryRoot, provider, providerError, evidence, live });
+      return { schemaVersion: 1, provider, providerError, evidence };
     },
     listTasks(projectPath) {
       return taskManager.list(projectPath);

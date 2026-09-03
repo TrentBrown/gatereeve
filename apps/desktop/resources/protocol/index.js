@@ -5,6 +5,7 @@ export * from './compatibility.js';
 export * from './context.js';
 export * from './errors.js';
 export * from './feature.js';
+export * from './finalization.js';
 export * from './fingerprint.js';
 export * from './guards.js';
 export * from './graph.js';

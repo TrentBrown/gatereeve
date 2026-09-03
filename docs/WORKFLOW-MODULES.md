@@ -159,3 +159,33 @@ Normalized provider progress uses `pending`, `running`, `waiting`, `blocked`, or
 outcome reaches the journal only through a fresh protocol-core check of the
 pinned boundary context, module identity, dependency event IDs, input
 fingerprint, and retained evidence reference.
+
+Installed provider manifests also bind the SHA-256 digest of their entrypoint
+bytes. Packaged JavaScript providers are self-contained bundles launched with
+GateReeve's trusted Electron runtime in Node mode; they do not depend on a
+separately installed Node executable or on imports crossing the ASAR boundary.
+
+## Feature finalization
+
+After the feature-final PR is accepted and its exact integration commit is
+recorded, GateReeve enters Finalizing. Starting finalization pins a new attempt
+to that merge commit, the active model hash, the complete module graph, and the
+recorded event IDs of module dependencies. Required enabled modules must have a
+current `PASS`, `WAIVED`, or permitted `NOT_APPLICABLE` outcome before Complete
+is available. A pause, model migration, blocking change, invalidation, or fresh
+dependency result prevents stale evidence from completing the feature.
+
+Finalization waivers require an explicit human confirmation and nonempty risk
+acceptance reason. They apply only to one feature attempt and become stale with
+its fingerprint. If a project enables no finalization modules, it can complete
+without creating an empty attempt, and GateReeve omits the module card.
+
+The bundled GateReeve policy enables one product-specific module,
+`gatereeve/release`, observed by the installed
+`gatereeve/release-conductor` provider. The generic protocol core knows neither
+release nor deployment semantics. The provider downloads retained Release
+Conductor evidence, validates its immutable chain and GitHub workflow identity,
+and proves that the released source contains the feature-final merge. Only a
+terminal, failure-free `COMPLETE` chain records `PASS`; intermediate stages and
+failures remain live observational status with safe links back to the protected
+workflow.

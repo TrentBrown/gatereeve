@@ -5,6 +5,7 @@ import { appendEvent, createEvent } from './journal.js';
 import { projectRecord, projectionFacts } from './projection.js';
 import { readFeatureRecord } from './feature.js';
 import { ProtocolError, TransitionRejectedError } from './errors.js';
+import { finalizationModuleDefinitions } from './modules.js';
 
 function authoritySatisfied(authority, actor) {
   if (authority === 'human-confirmation') return actor?.kind === 'human-confirmed';
@@ -141,14 +142,39 @@ export async function recordFeatureTransition(
   { actor, facts = {}, payload = {}, eventId, recordedAt } = {}
 ) {
   const record = await readFeatureRecord(featureHome);
-  const preflight = preflightFeatureTransition(record, transitionId, { actor, facts });
+  let effectiveFacts = facts;
+  let effectivePayload = payload;
+  if (transitionId === 'complete-feature') {
+    const projection = projectRecord(record);
+    const modules = finalizationModuleDefinitions(record.modelLock.model);
+    const attempt = projection.finalizationAttempts.find((item) => item.state === 'ACTIVE') ?? null;
+    const zeroModuleCloseout = modules.length === 0
+      && !projection.suspension.paused
+      && projection.blockingChangeIds.length === 0;
+    effectiveFacts = {
+      ...facts,
+      featureCloseoutCurrent: zeroModuleCloseout
+        || attempt?.requiredCurrentAndNonblocking === true,
+    };
+    effectivePayload = modules.length === 0
+      ? { ...payload, finalizationAttemptId: null }
+      : {
+          ...payload,
+          finalizationAttemptId: attempt?.id ?? null,
+          mergeInputSha: attempt?.mergeInputSha ?? null,
+        };
+  }
+  const preflight = preflightFeatureTransition(record, transitionId, {
+    actor,
+    facts: effectiveFacts,
+  });
   if (!preflight.eligible) reject(preflight);
   await appendPassage(
     record,
     preflight.transition,
     actor,
     preflight.guards,
-    payload,
+    effectivePayload,
     { eventId, recordedAt }
   );
   const updated = await readFeatureRecord(featureHome);
@@ -236,6 +262,15 @@ export async function recordSliceTransition(
   if (!preflight.eligible) reject(preflight);
   let featurePassage = null;
   if (transitionId === 'record-merge' && payload.featureFinal === true) {
+    if (
+      finalizationModuleDefinitions(record.modelLock.model).length > 0
+      && !/^[0-9a-f]{40}$/u.test(payload.integrationSha)
+    ) {
+      throw new ProtocolError(
+        'FINALIZATION_MERGE_INPUT_REQUIRED',
+        'Feature-final merge passage requires the full integration commit SHA'
+      );
+    }
     const featureTransition = machineTransition(record.modelLock.model.feature, 'begin-finalizing');
     const featureEvaluation = evaluateTransition(featureTransition, preflight.projection, actor, facts);
     if (preflight.projection.feature.state !== featureTransition.from || !featureEvaluation.eligible) {

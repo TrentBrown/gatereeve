@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "gatereeve/release-conductor",
+  "version": "1.0.0",
+  "digest": "sha256:620c41545fda291326c237643d55736c4d43eccf49ca22ca9e7669c4a37a069b",
+  "runtime": "electron-node",
+  "executable": "release-conductor-provider.mjs",
+  "executableDigest": "sha256:bcb918ed2c2687c69c98e44c3171b4ba020b4b23d3696ee24da1010ff402767c",
+  "args": [],
+  "timeoutSeconds": 300
+}

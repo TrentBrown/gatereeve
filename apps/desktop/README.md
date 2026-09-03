@@ -54,6 +54,21 @@ terminal result can record an authoritative outcome only after the protocol core
 freshly validates the pinned module, dependencies, boundary context,
 fingerprint, and evidence.
 
+Selecting Finalizing on the unchanged six-state rail shows the enabled
+feature-finalization module graph. GateReeve can start an attempt bound to the
+recorded feature-final merge, refresh an observation provider, record a
+reasoned feature-scoped waiver when permitted, inspect exact retained attempt
+data, and offer Complete only when required outcomes are current and
+nonblocking. Projects with no enabled finalization modules show no release card
+and can complete directly from the ordinary closeout surface.
+
+The built-in GateReeve Release module observes the existing protected Release
+Conductor workflow. Its packaged provider is a self-contained, byte-digest-bound
+JavaScript bundle run with the application runtime in Node mode; GateReeve does
+not require a system Node installation. Intermediate or failed conductor states
+remain live status. Only retained terminal `COMPLETE` evidence whose release
+source contains the feature merge can record `PASS`.
+
 ## Development
 
 Requirements:

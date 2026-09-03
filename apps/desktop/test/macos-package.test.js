@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { createPackageWithOptions } from '@electron/asar';
+import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { access, lstat, mkdir, mkdtemp, readFile, readlink, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
+import { promisify } from 'node:util';
 
 import { createMacosDmg } from '../scripts/create-macos-dmg.mjs';
 import { generateMacosIcon } from '../scripts/generate-macos-icon.mjs';
@@ -21,9 +23,11 @@ import {
   REQUIRED_ASAR_PATHS,
   RUNTIME_DEPENDENCIES,
   STAGED_PYTHON_RUNTIME_PATHS,
+  STAGED_PROVIDER_PATHS,
   STAGED_RUNTIME_PACKAGES,
 } from '../scripts/macos-package-contract.mjs';
 import { emitPackageResult, stageDesktopSource } from '../scripts/package-macos.mjs';
+import { discoverInstalledProviders } from '../main/module-providers.js';
 import {
   detectRosettaTranslation,
   isApprovedPythonRuntimePath,
@@ -33,6 +37,7 @@ import {
 } from '../scripts/verify-macos-package.mjs';
 
 const desktopRoot = resolve(import.meta.dirname, '..');
+const run = promisify(execFile);
 
 test('Rolling Vale is the pinned, square production icon source', async () => {
   const source = await readFile(resolve(desktopRoot, MACOS_PRODUCT.iconSource));
@@ -52,7 +57,7 @@ test('macOS identity and universal packager options are permanent', () => {
   assert.equal(options.name, 'GateReeve');
   assert.equal(options.appBundleId, 'com.trentbrown.gatereeve.desktop');
   assert.equal(options.arch, 'universal');
-  assert.deepEqual(options.asar, { unpack: '**/node_modules/node-pty/prebuilds/**/*' });
+  assert.deepEqual(options.asar, { unpack: '{**/node_modules/node-pty/prebuilds/**/*,**/main/providers/**/*}' });
   assert.deepEqual(options.osxUniversal, {
     mergeASARs: true,
     singleArchFiles: 'node_modules/node-pty/prebuilds/darwin-*/**/*',
@@ -106,7 +111,7 @@ test('Python runtime allowlist admits only the trusted context-check closure', (
   assert.equal(isApprovedPythonRuntimePath('/pr_context.py'), false);
 });
 
-test('ASAR packaging unpacks node-pty native binaries and helper executables', async () => {
+test('ASAR packaging unpacks native PTY files and installed observation providers', async () => {
   const temporaryRoot = await mkdtemp(join(tmpdir(), 'gatereeve-asar-test-'));
   const sourceRoot = resolve(temporaryRoot, 'source');
   const prebuildRoot = resolve(sourceRoot, 'node_modules/node-pty/prebuilds/darwin-arm64');
@@ -115,6 +120,8 @@ test('ASAR packaging unpacks node-pty native binaries and helper executables', a
     await mkdir(prebuildRoot, { recursive: true });
     await writeFile(resolve(prebuildRoot, 'pty.node'), 'native-addon');
     await writeFile(resolve(prebuildRoot, 'spawn-helper'), 'helper');
+    await mkdir(resolve(sourceRoot, 'main/providers'), { recursive: true });
+    await writeFile(resolve(sourceRoot, 'main/providers/provider.json'), '{}\n');
     const options = electronPackagerOptions({
       stageRoot: sourceRoot,
       outputRoot: temporaryRoot,
@@ -124,6 +131,7 @@ test('ASAR packaging unpacks node-pty native binaries and helper executables', a
     await createPackageWithOptions(sourceRoot, asarPath, options.asar);
     await access(resolve(`${asarPath}.unpacked`, 'node_modules/node-pty/prebuilds/darwin-arm64/pty.node'));
     await access(resolve(`${asarPath}.unpacked`, 'node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper'));
+    await access(resolve(`${asarPath}.unpacked`, 'main/providers/provider.json'));
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
@@ -175,6 +183,24 @@ test('Desktop staging contains only self-contained runtime resources', async () 
     for (const path of REQUIRED_ASAR_PATHS) {
       await access(resolve(stageRoot, path.slice(1)));
     }
+    for (const path of STAGED_PROVIDER_PATHS) {
+      await access(resolve(stageRoot, path.slice(1)));
+    }
+    const allowlist = JSON.parse(await readFile(
+      resolve(stageRoot, 'main/provider-allowlist.json'), 'utf8',
+    ));
+    const installed = await discoverInstalledProviders(
+      resolve(stageRoot, 'main/providers'),
+      allowlist.providers,
+      { electronExecutable: process.execPath },
+    );
+    assert.equal(installed.providers.length, 1);
+    const launch = await run(process.execPath, [
+      '--input-type=module', '-e',
+      "const target = process.argv[1]; process.argv[1] = 'provider-import-test'; await import(target);",
+      installed.providers[0].entrypoint,
+    ]);
+    assert.equal(launch.stderr, '');
     for (const packageName of STAGED_RUNTIME_PACKAGES) {
       await access(resolve(stageRoot, 'node_modules', packageName, 'package.json'));
     }

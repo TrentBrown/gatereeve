@@ -8,13 +8,17 @@ import {
   acceptHumanReview,
   check,
   explain,
+  completeFinalizedFeature,
   failureResult,
   graphFeature,
   graphModel,
   history,
   initializeFeature,
   invalidateGates,
+  invalidateFinalizationModules,
   migrateFeatureModel,
+  recordFinalizationOutcome,
+  recordFinalizationWaiver,
   next,
   pauseFeature,
   previewFeatureModelMigration,
@@ -32,6 +36,7 @@ import {
   resolveWorkflowContext,
   resumeFeature,
   snapshot,
+  startFeatureFinalization,
   status,
   successResult,
 } from './index.js';
@@ -138,6 +143,16 @@ async function executeResolvedPluginRequest(rawRequest) {
       return mutationResult(operation, await recordGateWaiver(featureHome, request.input));
     case 'gate.invalidate':
       return mutationResult(operation, await invalidateGates(featureHome, request.input));
+    case 'finalization.start':
+      return mutationResult(operation, await startFeatureFinalization(featureHome, request.input));
+    case 'finalization.record':
+      return mutationResult(operation, await recordFinalizationOutcome(featureHome, request.input));
+    case 'finalization.waive':
+      return mutationResult(operation, await recordFinalizationWaiver(featureHome, request.input));
+    case 'finalization.invalidate':
+      return mutationResult(operation, await invalidateFinalizationModules(featureHome, request.input));
+    case 'finalization.complete':
+      return mutationResult(operation, await completeFinalizedFeature(featureHome, request.input));
     case 'change.propose':
       return mutationResult(operation, await proposeChange(featureHome, request.input));
     case 'change.transition':

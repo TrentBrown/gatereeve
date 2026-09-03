@@ -42,7 +42,9 @@ Supported internal operations are `status`, `snapshot`, `read`, `next`,
 `history`, `explain`, `check`, `graph`, `graph.model`, `feature.init`, `feature.transition`,
 `feature.abandon`, `feature.pause`, `feature.resume`, `feature.migration-impact`, `feature.migrate-model`,
 `slice.propose`, `slice.transition`, `slice.abandon`, `slice.accept-review`, `boundary.request-review`,
-`gate.record`, `gate.waive`, `gate.invalidate`, `change.propose`,
+`gate.record`, `gate.waive`, `gate.invalidate`, `finalization.start`,
+`finalization.record`, `finalization.waive`, `finalization.invalidate`,
+`finalization.complete`, `change.propose`,
 `change.transition`, and `change.reauthorize`.
 
 The adapter does not authenticate actors. `human-confirmed` records that the

@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import {
   acceptHumanReview,
+  completeFinalizedFeature,
   fingerprint,
   initializeFeature,
   nextActions,
@@ -15,9 +16,11 @@ import {
   readFeatureRecord,
   recordGateOutcome,
   recordFeatureTransition,
+  recordFinalizationWaiver,
   recordSliceTransition,
   resumeFeature,
   requestBoundaryHumanReview,
+  startFeatureFinalization,
 } from '../../plugin-src/shared/resources/protocol/index.js';
 
 const agent = { kind: 'agent', label: 'test-agent' };
@@ -188,6 +191,7 @@ test('pause preserves lifecycle position and blocks ordinary passage until resum
 
 test('sequential slices reach a feature-final closeout through human review', async () => {
   const featureHome = await createFeature();
+  const finalMergeSha = 'c'.repeat(40);
   await enterDelivery(featureHome);
   for (const [index, sliceId] of ['slice-1', 'slice-2'].entries()) {
     await proposeSlice(featureHome, {
@@ -228,7 +232,7 @@ test('sequential slices reach a feature-final closeout through human review', as
         actor: agent,
         facts: { reviewedContentMerged: true },
         currentFingerprints,
-        payload: { featureFinal },
+        payload: { featureFinal, ...(featureFinal ? { integrationSha: finalMergeSha } : {}) },
         eventId: `evt-${offset + 3}-early-merge`,
       }),
       /not eligible/
@@ -253,7 +257,7 @@ test('sequential slices reach a feature-final closeout through human review', as
           ...currentFingerprints,
           verification: fingerprint({ changed: 'reviewed source moved' }),
         },
-        payload: { featureFinal },
+        payload: { featureFinal, ...(featureFinal ? { integrationSha: finalMergeSha } : {}) },
         eventId: `evt-${offset + 4}-stale-merge`,
       }),
       /not eligible/
@@ -262,7 +266,7 @@ test('sequential slices reach a feature-final closeout through human review', as
       actor: agent,
       facts: { reviewedContentMerged: true },
       currentFingerprints,
-      payload: { featureFinal },
+      payload: { featureFinal, ...(featureFinal ? { integrationSha: finalMergeSha } : {}) },
       eventId: `evt-${offset + 4}-merge`,
     });
   }
@@ -284,9 +288,17 @@ test('sequential slices reach a feature-final closeout through human review', as
     finalAttempt.gates.find((gate) => gate.id === 'codeReview').evaluationScope,
     'SLICE'
   );
-  const complete = await recordFeatureTransition(featureHome, 'complete-feature', {
-    actor: agent,
-    facts: { featureCloseoutCurrent: true },
+  await startFeatureFinalization(featureHome, {
+    attemptId: 'feature-finalization-1', mergeInputSha: finalMergeSha, actor: agent,
+    eventId: 'evt-19-finalization-start',
+  });
+  await recordFinalizationWaiver(featureHome, {
+    attemptId: 'feature-finalization-1', moduleId: 'gatereeve/release', actor: human,
+    reason: 'Lifecycle fixture exercises audited feature-scoped passage.',
+    eventId: 'evt-20-release-waiver',
+  });
+  const complete = await completeFinalizedFeature(featureHome, {
+    attemptId: 'feature-finalization-1', actor: agent,
     eventId: 'evt-19-complete',
   });
   assert.equal(complete.projection.feature.state, 'COMPLETE');

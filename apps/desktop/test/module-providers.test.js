@@ -9,6 +9,7 @@ import test from 'node:test';
 import {
   createProviderSupervisor,
   discoverInstalledProviders,
+  hashProviderExecutable,
   hashProviderManifest,
 } from '../main/module-providers.js';
 
@@ -21,7 +22,9 @@ function manifest(overrides = {}) {
     id: 'example/check-provider',
     version: '1.0.0',
     digest: `sha256:${'0'.repeat(64)}`,
+    runtime: 'native',
     executable: 'bin/provider',
+    executableDigest: hashProviderExecutable('#!/bin/sh\n'),
     args: [],
     timeoutSeconds: 10,
     ...overrides,
@@ -64,6 +67,13 @@ function response(overrides = {}) {
 function installedProvider() {
   const value = manifest({ executable: '/installed/provider' });
   return { ...value, manifest: value, manifestPath: '/installed/provider.json' };
+}
+
+function supervisor(options = {}) {
+  return createProviderSupervisor({
+    readExecutable: async () => Buffer.from('#!/bin/sh\n'),
+    ...options,
+  });
 }
 
 test('installed provider discovery admits only exact allowlisted regular manifests', async () => {
@@ -113,6 +123,38 @@ test('provider discovery treats missing or linked installed executables as unava
   assert.match(result.diagnostics[0].detail, /regular file, not a symlink/);
 });
 
+test('provider discovery rejects executable bytes that differ from the exact manifest', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'gatereeve-provider-digest-'));
+  await mkdir(join(root, 'bin'));
+  await writeFile(join(root, 'bin/provider'), '#!/bin/sh\nchanged\n');
+  await chmod(join(root, 'bin/provider'), 0o755);
+  const allowed = manifest();
+  await writeFile(join(root, 'provider.json'), `${JSON.stringify(allowed)}\n`);
+  const result = await discoverInstalledProviders(root, [{
+    id: allowed.id, version: allowed.version, digest: allowed.digest,
+  }]);
+  assert.deepEqual(result.providers, []);
+  assert.match(result.diagnostics[0].detail, /executable digest/);
+});
+
+test('electron-node providers use the trusted app runtime without requiring system Node', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'gatereeve-electron-provider-'));
+  const entrypoint = 'provider.mjs';
+  await writeFile(join(root, entrypoint), 'process.stdout.write("ready\\n");\n');
+  const allowed = manifest({
+    runtime: 'electron-node',
+    executable: entrypoint,
+    executableDigest: hashProviderExecutable('process.stdout.write("ready\\n");\n'),
+  });
+  await writeFile(join(root, 'provider.json'), `${JSON.stringify(allowed)}\n`);
+  const result = await discoverInstalledProviders(root, [{
+    id: allowed.id, version: allowed.version, digest: allowed.digest,
+  }], { electronExecutable: '/Applications/GateReeve.app/Contents/MacOS/GateReeve' });
+  assert.equal(result.providers[0].executable, '/Applications/GateReeve.app/Contents/MacOS/GateReeve');
+  assert.deepEqual(result.providers[0].args, [join(root, entrypoint)]);
+  assert.deepEqual(result.providers[0].environment, { ELECTRON_RUN_AS_NODE: '1' });
+});
+
 function fakeSpawn(lines, { code = 0, signal = null } = {}) {
   return () => {
     const child = new EventEmitter();
@@ -131,20 +173,20 @@ function fakeSpawn(lines, { code = 0, signal = null } = {}) {
 
 test('provider supervisor validates one exact response and rejects stale, duplicate, and crashed peers', async () => {
   const installed = installedProvider();
-  const valid = createProviderSupervisor({ spawn: fakeSpawn([JSON.stringify(response())]) });
+  const valid = supervisor({ spawn: fakeSpawn([JSON.stringify(response())]) });
   assert.equal((await valid.observe(installed, request())).live.status, 'running');
 
-  const stale = createProviderSupervisor({
+  const stale = supervisor({
     spawn: fakeSpawn([JSON.stringify(response({ observedInputFingerprint: moduleDigest }))]),
   });
   await assert.rejects(stale.observe(installed, request()), (error) => (
     error.code === 'PROVIDER_MALFORMED_RESPONSE' && /stale/.test(error.message)
   ));
-  const duplicate = createProviderSupervisor({
+  const duplicate = supervisor({
     spawn: fakeSpawn([JSON.stringify(response()), JSON.stringify(response())]),
   });
   await assert.rejects(duplicate.observe(installed, request()), { code: 'PROVIDER_DUPLICATE_RESPONSE' });
-  const crashed = createProviderSupervisor({ spawn: fakeSpawn([], { code: 2 }) });
+  const crashed = supervisor({ spawn: fakeSpawn([], { code: 2 }) });
   await assert.rejects(crashed.observe(installed, request()), { code: 'PROVIDER_CRASHED' });
 });
 
@@ -159,14 +201,15 @@ test('provider supervisor times out and kills an unresponsive peer', async () =>
     child.kill = (signal) => { killed = signal; };
     return child;
   };
-  const supervisor = createProviderSupervisor({
+  const runtime = supervisor({
     spawn,
     setTimer(callback) { timeout = callback; return 1; },
     clearTimer() {},
   });
-  const pending = supervisor.observe({
+  const pending = runtime.observe({
     ...installedProvider(),
   }, request());
+  await Promise.resolve();
   timeout();
   await assert.rejects(pending, { code: 'PROVIDER_TIMEOUT' });
   assert.equal(killed, 'SIGKILL');
@@ -174,7 +217,7 @@ test('provider supervisor times out and kills an unresponsive peer', async () =>
 
 test('closing provider supervision kills and rejects every in-flight observation', async () => {
   let killed = null;
-  const supervisor = createProviderSupervisor({
+  const runtime = supervisor({
     spawn() {
       const child = new EventEmitter();
       child.stdout = new PassThrough();
@@ -184,9 +227,23 @@ test('closing provider supervision kills and rejects every in-flight observation
       return child;
     },
   });
-  const pending = supervisor.observe(installedProvider(), request());
-  supervisor.close();
+  const pending = runtime.observe(installedProvider(), request());
+  await Promise.resolve();
+  runtime.close();
   await assert.rejects(pending, { code: 'PROVIDER_UNAVAILABLE' });
   assert.equal(killed, 'SIGKILL');
-  assert.throws(() => supervisor.observe(installedProvider(), request()), { code: 'PROVIDER_UNAVAILABLE' });
+  assert.throws(() => runtime.observe(installedProvider(), request()), { code: 'PROVIDER_UNAVAILABLE' });
+});
+
+test('provider supervisor rejects entrypoint drift immediately before launch', async () => {
+  let spawned = false;
+  const runtime = supervisor({
+    readExecutable: async () => Buffer.from('changed\n'),
+    spawn() { spawned = true; },
+  });
+  await assert.rejects(runtime.observe(installedProvider(), request()), {
+    code: 'PROVIDER_UNAVAILABLE',
+    message: 'Provider executable changed after discovery.',
+  });
+  assert.equal(spawned, false);
 });

@@ -244,6 +244,7 @@
       "context.js",
       "errors.js",
       "feature.js",
+      "finalization.js",
       "fingerprint.js",
       "guards.js",
       "graph.js",
@@ -263,6 +264,11 @@
       "snapshot.js",
       "storage.js",
       "transitions.js"
+    ],
+    "release": [
+      "release-conductor-artifact.js",
+      "release-conductor-discovery.js",
+      "release-conductor-state.js"
     ],
   "templates": [
     "agentic-workflow.json",

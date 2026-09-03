@@ -45,12 +45,67 @@ test('Desktop reads canonical snapshots and details without journal mutation or 
       .find((module) => module.id === 'gatereeve/judge').label,
     'Judge',
   );
-  assert.equal(
-    snapshot.modules.slots.find((slot) => slot.id === 'feature.finalization').modules.length,
-    0,
-  );
+  const finalizationModules = snapshot.modules.slots
+    .find((slot) => slot.id === 'feature.finalization').modules;
+  assert.equal(finalizationModules.length, 1);
+  assert.equal(finalizationModules[0].id, 'gatereeve/release');
   assert.equal(events.kind, 'events');
   assert.equal(digest(await readFile(journalPath)), before);
+});
+
+test('Desktop finalization adapter derives merge identity and routes scoped mutations', async () => {
+  const calls = [];
+  const target = {
+    id: 'gatereeve/release', moduleId: 'gatereeve/release', moduleVersion: '1.0.0',
+    moduleDigest: `sha256:${'a'.repeat(64)}`, dependsOn: [], eligible: true,
+  };
+  const record = {
+    events: [{ featureId: 'feature' }, {
+      type: 'SLICE_MERGE_RECORDED', payload: { featureFinal: true, integrationSha: 'b'.repeat(40) },
+    }],
+  };
+  const projection = {
+    finalizationAttempts: [{
+      id: 'attempt-final', state: 'ACTIVE', scope: 'FEATURE', mergeInputSha: 'b'.repeat(40),
+      modules: [target],
+    }],
+  };
+  const adapter = createProtocolAdapter({
+    readRecord: async () => record,
+    project: () => projection,
+    randomId: () => 'fixed',
+    startFinalizationRecord: async (home, options) => { calls.push(['start', home, options]); },
+    recordFinalizationResult: async (home, options) => { calls.push(['record', home, options]); },
+    recordFinalizationRiskAcceptance: async (home, options) => { calls.push(['waive', home, options]); },
+    completeFinalizationRecord: async (home, options) => { calls.push(['complete', home, options]); },
+  });
+  await adapter.startFinalization({ featureHome: '/feature' });
+  assert.equal(calls[0][2].mergeInputSha, 'b'.repeat(40));
+  assert.equal(calls[0][2].attemptId, 'finalization-fixed');
+  const prepared = await adapter.prepareFinalizationModule({
+    featureHome: '/feature', attemptId: 'attempt-final', gateId: 'gatereeve/release',
+    module: { id: target.moduleId, version: target.moduleVersion, digest: target.moduleDigest },
+  });
+  assert.equal(prepared.inputs.scope, 'FEATURE');
+  await adapter.recordFinalizationModuleOutcome({
+    featureHome: '/feature', attemptId: 'attempt-final', gateId: 'gatereeve/release',
+    module: { id: target.moduleId, version: target.moduleVersion, digest: target.moduleDigest },
+    outcome: 'PASS', evidence: { path: 'release.json', hash: `sha256:${'c'.repeat(64)}` },
+    actor: { kind: 'agent', label: 'fixture' },
+  });
+  await adapter.waiveFinalizationModule({
+    featureHome: '/feature', attemptId: 'attempt-final', gateId: 'gatereeve/release',
+    reason: 'Accepted risk', confirmationLabel: 'Trent',
+  });
+  await adapter.completeFinalization({
+    featureHome: '/feature', attemptId: null, confirmationLabel: 'Trent',
+  });
+  assert.equal(calls.find((item) => item[0] === 'waive')[2].actor.kind, 'human-confirmed');
+  assert.equal(calls.find((item) => item[0] === 'complete')[2].attemptId, null);
+  await assert.rejects(adapter.prepareFinalizationModule({
+    featureHome: '/feature', attemptId: 'attempt-final', gateId: 'gatereeve/release',
+    module: { id: target.moduleId, version: '2.0.0', digest: target.moduleDigest },
+  }), /no longer matches/);
 });
 
 test('Desktop preserves canonical missing, legacy, inconsistent, and incompatible diagnostics', async () => {

@@ -268,3 +268,70 @@ new path from terminal results to authoritative workflow events.
 - Let a successful provider response append its own event - rejected because
   only the protocol core owns freshness, eligibility, fingerprint, and
   append-only journal validation.
+
+## [12] Bind finalization passage to a historical model and exact merge
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Finalization event schemas, replay, model migration, feature
+completion guards, attempt lookup, pause behavior, CLI operations, and Desktop
+finalization controls.
+
+Finalization is a generic attempt DAG pinned to the feature-final integration
+commit, the then-active model hash, and a complete resolved module graph. Replay
+validates the attempt graph against either the current lock or the exact
+historical snapshot retained by model migration. Attempt IDs are unique across
+boundary and finalization attempts. Required evidence, human-only waivers,
+dependency event IDs, pauses, blocking changes, migration staleness, and
+invalidation are revalidated during replay before Complete can pass. A model
+with no enabled finalization modules completes without a synthetic attempt.
+
+**Triggered by:** P8 adds an API and journal-schema surface whose evidence must
+remain deterministic across migration while preventing forged or stale
+post-merge passage.
+
+**Alternatives considered:**
+- Reconstruct old attempts from the current model - rejected because migration
+  would reinterpret historical obligations and can make a valid journal
+  unreadable.
+- Treat live provider status as completion evidence - rejected because it is
+  mutable observation rather than an append-only, fingerprint-bound outcome.
+- Require an empty attempt when the slot is disabled - rejected because it adds
+  misleading release ceremony to projects with no post-merge obligations.
+
+## [13] Package the GateReeve release observer as a self-contained exact peer
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Release Conductor validation reuse, provider manifests and
+allowlisting, Desktop staging, ASAR unpacking, Electron child processes, release
+status presentation, and macOS package verification.
+
+The product-specific `gatereeve/release-conductor` provider stays outside the
+generic protocol core but reuses the canonical Release Conductor chain
+validators. Development source imports those shared validators; packaging
+bundles the complete provider into one self-contained ESM entrypoint, rewrites
+its staged executable and manifest digests, and launches it through GateReeve's
+trusted Electron executable with `ELECTRON_RUN_AS_NODE=1`. Discovery verifies
+the entrypoint bytes against the exact allowlisted manifest. Valid conductor
+failures and timestamps remain visible, while only a terminal failure-free
+COMPLETE chain whose source contains the feature merge returns PASS.
+
+**Triggered by:** P9 introduces product-specific GitHub observation code, and
+packaged-runtime review showed that an unpacked entrypoint cannot resolve
+relative imports left inside `app.asar` and that a metadata-only digest would
+not bind executed code.
+
+**Alternatives considered:**
+- Put Release Conductor semantics in the protocol core - rejected because other
+  projects have different or absent build/deployment workflows.
+- Unpack the shared protocol and release trees beside the provider - rejected
+  because the executable digest would not bind the imported support-code
+  closure and the package surface would expand.
+- Require a system Node executable - rejected because the signed Desktop
+  already ships a compatible runtime and Finder-launched applications cannot
+  rely on shell PATH state.

@@ -10,6 +10,7 @@ import { promisify } from 'node:util';
 
 import { createMacosDmg } from './create-macos-dmg.mjs';
 import { buildRenderer } from './build-renderer.mjs';
+import { buildInstalledProviders } from './build-providers.mjs';
 import { generateMacosIcon } from './generate-macos-icon.mjs';
 import {
   dmgFilename,
@@ -42,6 +43,7 @@ export async function stageDesktopSource(options) {
       { recursive: true },
     );
   }
+  await buildInstalledProviders({ desktopRoot: options.stageRoot });
   await rm(resolve(options.stageRoot, 'renderer', 'markdown-source.js'));
   for (const packageName of STAGED_RUNTIME_PACKAGES) {
     const source = resolve(options.desktopRoot, 'node_modules', packageName);
