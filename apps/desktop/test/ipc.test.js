@@ -53,6 +53,15 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
   let liveTerminal = false;
   let removalConfirmed = true;
   const moduleCalls = [];
+  const moduleRuntimeCalls = [];
+  const moduleTask = (overrides = {}) => ({
+    schemaVersion: 1, id: 'module_task_test', kind: 'module-task', name: 'Judge',
+    moduleId: 'gatereeve/judge', moduleVersion: '1.0.0',
+    moduleDigest: `sha256:${'a'.repeat(64)}`, attemptId: 'attempt-1', gateId: 'judge',
+    projectPath: '/repo', projectName: 'repo', status: 'running', cols: 90, rows: 30, output: '',
+    startedAt: '2026-09-03T12:00:00Z', finishedAt: null, exit: null, result: null,
+    structuredOutput: null, error: null, ...overrides,
+  });
   const moduleSettings = {
     schemaVersion: 1,
     policyPath: '/repo/.gatereeve/workflow.json',
@@ -202,6 +211,44 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
       },
       subscribe() { return () => {}; },
     },
+    moduleTaskManager: {
+      subscribe() { return () => {}; },
+      write(path, sessionIdValue, data) {
+        moduleRuntimeCalls.push(['task-write', path, sessionIdValue, data]);
+        return true;
+      },
+      resize(path, sessionIdValue, dimensions) {
+        moduleRuntimeCalls.push(['task-resize', path, sessionIdValue, dimensions]);
+        return moduleTask({ cols: dimensions.cols, rows: dimensions.rows });
+      },
+      cancel(path, sessionIdValue) {
+        moduleRuntimeCalls.push(['task-cancel', path, sessionIdValue]);
+        return moduleTask({ status: 'terminating' });
+      },
+    },
+    moduleExecutionManager: {
+      async preview(request) {
+        moduleRuntimeCalls.push(['preview', request]);
+        return {
+          schemaVersion: 1, moduleId: request.moduleId, kind: 'command', skill: null, manual: null,
+          command: {
+            digest: `sha256:${'b'.repeat(64)}`,
+            display: {
+              executable: 'node', args: ['./check.js'], workingDirectory: 'repository',
+              effects: ['Runs checks.'], timeoutSeconds: 30,
+              authority: ['Runs without a sandbox.'],
+            },
+            authorization: {
+              authorized: false, authorizedAt: null, persistentEligible: true,
+              changedInputs: [], supersededCount: 0,
+            },
+          },
+        };
+      },
+      async startCommand(request) { moduleRuntimeCalls.push(['start', request]); return moduleTask(); },
+      async attest(request) { moduleRuntimeCalls.push(['attest', request]); },
+      listTasks(path) { moduleRuntimeCalls.push(['list', path]); return [moduleTask()]; },
+    },
     async pickProject() { return '/repo'; },
     revealPath(path) { revealed.push(path); },
     copyText(value) { copied.push(value); },
@@ -209,7 +256,7 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
     async confirmProjectTermination() { return removalConfirmed; },
     windows: () => [],
   });
-  assert.equal(handlers.size, Object.keys(IPC_CHANNELS).length - 4);
+  assert.equal(handlers.size, Object.keys(IPC_CHANNELS).length - 5);
   const event = trustedEvent();
   assert.equal((await handlers.get(IPC_CHANNELS.addProject)(event)).phase, 'ready');
   assert.equal((await handlers.get(IPC_CHANNELS.activateProject)(event, '/repo')).phase, 'ready');
@@ -286,6 +333,27 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
     ['apply', [], { confirmedMigration: true, confirmationLabel: 'Trent' }],
     ['waive', { attemptId: 'attempt-1', gateId: 'judge', reason: 'Small change', confirmationLabel: 'Trent' }],
   ]);
+  const target = { moduleId: 'gatereeve/judge', attemptId: 'attempt-1', gateId: 'judge' };
+  assert.equal((await handlers.get(IPC_CHANNELS.getModuleRunPreview)(event, target)).kind, 'command');
+  assert.equal((await handlers.get(IPC_CHANNELS.moduleTaskStart)(event, {
+    ...target, consent: 'once', cols: 90, rows: 30,
+  })).id, 'module_task_test');
+  assert.equal((await handlers.get(IPC_CHANNELS.listModuleTasks)(event)).length, 1);
+  assert.equal(await handlers.get(IPC_CHANNELS.moduleTaskWrite)(event, {
+    sessionId: 'module_task_test', data: 'yes\r',
+  }), true);
+  assert.equal((await handlers.get(IPC_CHANNELS.moduleTaskResize)(event, {
+    sessionId: 'module_task_test', cols: 100, rows: 40,
+  })).cols, 100);
+  assert.equal((await handlers.get(IPC_CHANNELS.moduleTaskCancel)(event, {
+    sessionId: 'module_task_test',
+  })).status, 'terminating');
+  assert.equal((await handlers.get(IPC_CHANNELS.attestModule)(event, {
+    ...target, outcome: 'PASS', summary: 'Reviewed.', confirmationLabel: 'Trent',
+  })).phase, 'ready');
+  await assert.rejects(handlers.get(IPC_CHANNELS.moduleTaskStart)(event, {
+    ...target, consent: 'once', cols: 90, rows: 30, executable: '/bin/sh',
+  }), /invalid/);
   assert.deepEqual(artifactOperations, [
     ['open', '/repo/design.md', 'vscode', true],
     ['capabilities', '/repo/design.md'],

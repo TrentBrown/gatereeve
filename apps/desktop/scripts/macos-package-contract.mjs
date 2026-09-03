@@ -53,6 +53,7 @@ export const STAGED_PYTHON_RUNTIME_PATHS = Object.freeze([
 
 export const REQUIRED_ASAR_PATHS = Object.freeze([
   '/main/index.js',
+  '/main/provider-allowlist.json',
   '/preload/index.cjs',
   '/renderer/index.html',
   '/renderer/generated/markdown-renderer.js',

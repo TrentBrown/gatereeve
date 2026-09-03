@@ -110,6 +110,25 @@ test('snapshot distinguishes blocked, available, and ready actions from current 
   assert.equal(await readFile(journalPath, 'utf8'), afterTransition);
 });
 
+test('snapshot presents normalized provider progress separately from module outcomes', async () => {
+  const fixture = await featureFixture('snapshot-module-live');
+  const live = {
+    status: 'waiting',
+    detail: 'Waiting for an external check.',
+    updatedAt: '2026-09-03T12:00:00Z',
+    stages: [{ id: 'external', status: 'waiting' }],
+    actions: [], attempts: [], evidence: [], links: [], failure: null,
+  };
+  const observed = await snapshot(fixture.featureHome, {
+    facts: { moduleLive: { 'gatereeve/judge': live } },
+  });
+  const judge = observed.data.modules.slots
+    .flatMap((slot) => slot.modules)
+    .find((module) => module.id === 'gatereeve/judge');
+  assert.deepEqual(judge.live, live);
+  assert.equal(judge.live.status, 'waiting');
+});
+
 test('snapshot reports source and governance facts without collapsing ordinary activity', async () => {
   const fixture = await featureFixture();
   const result = await snapshot(fixture.featureHome, {

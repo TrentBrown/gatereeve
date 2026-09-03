@@ -407,12 +407,18 @@ export function assessModuleReadiness(module, availability = null) {
   validateModuleDefinition(module);
   if (availability === null) return { status: 'unchecked', missing: [] };
   const skills = new Set(availability.skills ?? []);
-  const providers = new Set(availability.providers ?? []);
+  const providers = new Set((availability.providers ?? []).map((provider) => (
+    typeof provider === 'string' ? provider : `${provider.id}@${provider.version}`
+  )));
   const missing = [];
   if (module.run?.kind === 'skill' && !skills.has(module.run.skillId)) {
     missing.push({ kind: 'skill', id: module.run.skillId });
   }
-  if (module.observe && !providers.has(module.observe.providerId)) {
+  if (
+    module.observe
+    && !providers.has(module.observe.providerId)
+    && !providers.has(`${module.observe.providerId}@${module.observe.version}`)
+  ) {
     missing.push({ kind: 'provider', id: module.observe.providerId });
   }
   return {

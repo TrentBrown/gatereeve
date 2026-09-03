@@ -318,6 +318,12 @@ test('project discovery pins selected manifests and reports readiness separately
   assert.equal(pinned.model.moduleGraph.modules.some((module) => module.id === project.id), true);
   assert.equal(validateModel(pinned.model), pinned.model);
   assert.equal(assessModuleReadiness(project, { providers: ['example/deploy-provider'] }).status, 'available');
+  assert.equal(assessModuleReadiness(project, {
+    providers: [{ id: 'example/deploy-provider', version: '0.9.0' }],
+  }).status, 'unavailable');
+  assert.equal(assessModuleReadiness(project, {
+    providers: [{ id: 'example/deploy-provider', version: '1.0.0' }],
+  }).status, 'available');
 
   const missingBuiltIn = structuredClone(selected);
   missingBuiltIn.modules = missingBuiltIn.modules.filter(

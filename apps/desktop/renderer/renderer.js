@@ -29,7 +29,7 @@ const ids = [
   'brand-version', 'project-sidebar', 'main-tabs', 'toggle-sidebar', 'toggle-terminal',
   'toggle-inspector', 'inspector-panel', 'inspector-resizer', 'inspector-tabs',
   'terminal-panel', 'terminal-resizer', 'terminal-title', 'terminal-shell', 'terminal-status',
-  'terminal-hosts', 'terminal-terminate', 'terminal-restart',
+  'terminal-hosts', 'terminal-terminate', 'terminal-restart', 'terminal-session-select',
   'source-dialog', 'source-dialog-close', 'source-dialog-list', 'global-alerts', 'state-rail',
   'milestones', 'phase-context-surface', 'phase-context-kicker', 'phase-context-title',
   'phase-context-description', 'phase-context-uses', 'phase-context-produces',
@@ -51,6 +51,13 @@ const ids = [
   'module-waiver-dialog', 'module-waiver-close', 'module-waiver-title',
   'module-waiver-summary', 'module-waiver-reason', 'module-waiver-cancel',
   'module-waiver-confirm',
+  'module-command-dialog', 'module-command-close', 'module-command-title',
+  'module-command-facts', 'module-command-effects', 'module-command-authority',
+  'module-command-changes', 'module-command-cancel', 'module-command-once',
+  'module-command-always', 'module-attestation-dialog', 'module-attestation-close',
+  'module-attestation-title', 'module-attestation-instructions', 'module-attestation-outcome',
+  'module-attestation-summary', 'module-attestation-confirmation',
+  'module-attestation-cancel', 'module-attestation-confirm',
 ];
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
 const workspaceStore = createWorkspaceStore();
@@ -77,6 +84,8 @@ let moduleDraftIds = new Set();
 let modulePreview = null;
 let moduleDependencyNotice = null;
 let pendingModuleWaiver = null;
+let pendingModuleCommand = null;
+let pendingModuleAttestation = null;
 let selectedArtifactId = null;
 let selectedArtifactFingerprint = null;
 let artifactInFlightFingerprint = null;
@@ -90,6 +99,9 @@ let inspectorExpanded = false;
 let terminalLibraryPromise = null;
 let terminalResizeStart = null;
 const terminalViews = new Map();
+const moduleTaskViews = new Map();
+const loadedModuleTaskProjects = new Set();
+const selectedTerminalSessions = new Map();
 const pendingTerminalData = new Map();
 const pendingTerminalStatus = new Map();
 
@@ -370,6 +382,7 @@ function renderRecents(state) {
       if (removed) {
         workspaceStore.discard(project.path);
         discardTerminalView(project.path);
+        discardModuleTaskViews(project.path);
       }
       render(next);
       if (removed) showToast('Removed saved reference only; project files were not changed');
@@ -1388,7 +1401,36 @@ function selectedProject() {
 }
 
 function activeTerminalView() {
-  return terminalViews.get(currentState?.selection?.worktreePath) ?? null;
+  const path = currentState?.selection?.worktreePath;
+  const selected = selectedTerminalSessions.get(path) ?? 'shell';
+  return selected === 'shell'
+    ? terminalViews.get(path) ?? null
+    : moduleTaskViews.get(selected) ?? terminalViews.get(path) ?? null;
+}
+
+function allTerminalViews() {
+  return [...terminalViews.values(), ...moduleTaskViews.values()];
+}
+
+function refreshTerminalSessionSelect() {
+  const path = currentState?.selection?.worktreePath;
+  const selected = selectedTerminalSessions.get(path) ?? 'shell';
+  const available = new Set(['shell']);
+  clear(elements['terminal-session-select']).append(node('option', {
+    text: 'Project shell',
+    attributes: { value: 'shell', ...(selected === 'shell' ? { selected: '' } : {}) },
+  }));
+  for (const view of moduleTaskViews.values()) {
+    if (view.path !== path) continue;
+    available.add(view.session.id);
+    elements['terminal-session-select'].append(node('option', {
+      text: `${view.session.name} · ${humanize(view.session.status)}`,
+      attributes: { value: view.session.id, ...(selected === view.session.id ? { selected: '' } : {}) },
+    }));
+  }
+  if (!available.has(selected)) {
+    selectedTerminalSessions.set(path, 'shell');
+  }
 }
 
 function terminalDimensions(view) {
@@ -1406,15 +1448,21 @@ function renderTerminalStatus(view = activeTerminalView()) {
       ? `Signal ${session.exit.signal}`
       : `Exited ${session.exit?.code ?? ''}`.trim()
     : session?.status ?? 'Starting…';
-  elements['terminal-title'].textContent = project?.name ?? 'Terminal';
-  elements['terminal-shell'].textContent = session?.shell ?? '';
+  elements['terminal-title'].textContent = view?.kind === 'task'
+    ? session?.name ?? 'Module task'
+    : project?.name ?? 'Terminal';
+  elements['terminal-shell'].textContent = view?.kind === 'task'
+    ? `${session?.moduleId ?? ''} · dedicated task`
+    : session?.shell ?? '';
   elements['terminal-status'].dataset.status = session?.status ?? 'idle';
   elements['terminal-status'].textContent = statusLabel;
   elements['terminal-status'].title = session?.error ?? statusLabel;
+  elements['terminal-terminate'].textContent = view?.kind === 'task' ? 'Cancel task' : 'Terminate';
   elements['terminal-terminate'].hidden = session?.status !== 'running';
   elements['terminal-terminate'].disabled = session?.status !== 'running';
-  elements['terminal-restart'].hidden = !['exited', 'failed'].includes(session?.status);
-  elements['terminal-restart'].disabled = !['exited', 'failed'].includes(session?.status);
+  elements['terminal-restart'].hidden = view?.kind === 'task' || !['exited', 'failed'].includes(session?.status);
+  elements['terminal-restart'].disabled = view?.kind === 'task' || !['exited', 'failed'].includes(session?.status);
+  refreshTerminalSessionSelect();
 }
 
 function setTerminalSession(view, session, { replaceOutput = false } = {}) {
@@ -1445,6 +1493,7 @@ function setTerminalSession(view, session, { replaceOutput = false } = {}) {
     pendingTerminalData.delete(session.id);
   }
   if (view === activeTerminalView()) renderTerminalStatus(view);
+  else refreshTerminalSessionSelect();
 }
 
 async function fitTerminal(view = activeTerminalView(), { notifyMain = true } = {}) {
@@ -1457,7 +1506,9 @@ async function fitTerminal(view = activeTerminalView(), { notifyMain = true } = 
       && view.session?.status === 'running'
       && (view.session.cols !== dimensions.cols || view.session.rows !== dimensions.rows)
     ) {
-      const session = await desktop.resizeTerminal(view.session.id, dimensions.cols, dimensions.rows);
+      const session = view.kind === 'task'
+        ? await desktop.resizeModuleTask(view.session.id, dimensions.cols, dimensions.rows)
+        : await desktop.resizeTerminal(view.session.id, dimensions.cols, dimensions.rows);
       setTerminalSession(view, session);
     }
   } catch (error) {
@@ -1500,7 +1551,7 @@ async function ensureTerminalView() {
   const fit = new FitAddon();
   terminal.loadAddon(fit);
   terminal.open(host);
-  const view = { path: project.path, host, terminal, fit, session: null, disposables: [] };
+  const view = { kind: 'shell', path: project.path, host, terminal, fit, session: null, disposables: [] };
   terminalViews.set(project.path, view);
   view.disposables.push(terminal.onData((data) => {
     if (view.session?.status !== 'running') return;
@@ -1542,12 +1593,92 @@ function discardTerminalView(path) {
   terminalViews.delete(path);
 }
 
+function discardModuleTaskViews(path) {
+  for (const [id, view] of moduleTaskViews) {
+    if (view.path !== path) continue;
+    pendingTerminalData.delete(id);
+    pendingTerminalStatus.delete(id);
+    for (const disposable of view.disposables) disposable.dispose?.();
+    view.terminal.dispose();
+    view.host.remove();
+    moduleTaskViews.delete(id);
+  }
+  loadedModuleTaskProjects.delete(path);
+  selectedTerminalSessions.delete(path);
+}
+
 function revealActiveTerminal() {
   const activePath = currentState?.selection?.worktreePath;
-  for (const view of terminalViews.values()) view.host.hidden = view.path !== activePath;
+  const active = activeTerminalView();
+  for (const view of allTerminalViews()) view.host.hidden = view !== active || view.path !== activePath;
   const view = activeTerminalView();
   renderTerminalStatus(view);
   if (view) requestAnimationFrame(() => void fitTerminal(view));
+}
+
+async function ensureModuleTaskView(session) {
+  const existing = moduleTaskViews.get(session.id);
+  if (existing) {
+    setTerminalSession(existing, session, { replaceOutput: true });
+    return existing;
+  }
+  const project = currentState?.projects?.find((item) => item.path === session.projectPath) ?? null;
+  if (!project) return null;
+  const { Terminal, FitAddon } = await loadTerminalLibrary();
+  const concurrent = moduleTaskViews.get(session.id);
+  if (concurrent) {
+    setTerminalSession(concurrent, session, { replaceOutput: true });
+    return concurrent;
+  }
+  const host = node('div', {
+    className: 'terminal-instance',
+    attributes: { 'data-module-task': session.id },
+  });
+  elements['terminal-hosts'].append(host);
+  const terminal = new Terminal({
+    allowProposedApi: false,
+    cursorBlink: session.status === 'running',
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+    fontSize: 13,
+    scrollback: 5_000,
+    theme: { background: '#1d1428', foreground: '#eee8f5', cursor: '#d8b8ff', selectionBackground: '#654c7f' },
+  });
+  const fit = new FitAddon();
+  terminal.loadAddon(fit);
+  terminal.open(host);
+  const view = { kind: 'task', path: project.path, host, terminal, fit, session: null, disposables: [] };
+  moduleTaskViews.set(session.id, view);
+  view.disposables.push(terminal.onData((data) => {
+    if (view.session?.status !== 'running') return;
+    void desktop.writeModuleTask(view.session.id, data).catch((error) => showToast(error.message ?? String(error)));
+  }));
+  setTerminalSession(view, session, { replaceOutput: true });
+  return view;
+}
+
+async function ensureModuleTaskInventory() {
+  const path = projectPath();
+  if (!path || loadedModuleTaskProjects.has(path) || typeof desktop.listModuleTasks !== 'function') return;
+  loadedModuleTaskProjects.add(path);
+  try {
+    const sessions = await desktop.listModuleTasks();
+    for (const session of sessions) await ensureModuleTaskView(session);
+  } catch (error) {
+    loadedModuleTaskProjects.delete(path);
+    throw error;
+  }
+}
+
+async function showModuleTask(session) {
+  const view = await ensureModuleTaskView(session);
+  if (!view) return;
+  selectedTerminalSessions.set(view.path, session.id);
+  workspaceStore.toggleTerminal(view.path, true);
+  if (projectPath() !== view.path) return;
+  applyLayout();
+  revealActiveTerminal();
+  await fitTerminal(view);
+  view.terminal.focus();
 }
 
 function applyLayout() {
@@ -1577,6 +1708,9 @@ function applyLayout() {
   elements['terminal-resizer'].setAttribute('aria-valuemin', String(TERMINAL_MIN_HEIGHT));
   elements['terminal-resizer'].setAttribute('aria-valuemax', String(TERMINAL_MAX_HEIGHT));
   revealActiveTerminal();
+  if (terminalVisible) {
+    void ensureModuleTaskInventory().catch((caught) => showToast(caught.message ?? String(caught)));
+  }
   if (terminalVisible && !activeTerminalView()) {
     void ensureTerminalView().then((view) => {
       if (view !== activeTerminalView() || !workspaceState().terminalVisible) return;
@@ -1681,6 +1815,92 @@ function appendStructuredModuleList(viewer, heading, values, describe) {
 function moduleDetailText(value, fallback) {
   if (typeof value === 'string' && value.length > 0) return value;
   return fallback;
+}
+
+async function openModuleCommand(module, attempt, gate) {
+  const pending = { module, attempt, gate };
+  pendingModuleCommand = pending;
+  elements['module-command-title'].textContent = `Run ${module.label}?`;
+  clear(elements['module-command-facts']).append(node('div', {}, [
+    node('dt', { text: 'Status' }), node('dd', { text: 'Inspecting exact command…' }),
+  ]));
+  elements['module-command-effects'].textContent = 'Loading disclosed effects…';
+  elements['module-command-effects'].classList.remove('danger');
+  elements['module-command-authority'].textContent = 'This process will not be sandboxed.';
+  elements['module-command-changes'].hidden = true;
+  elements['module-command-once'].disabled = true;
+  elements['module-command-always'].disabled = true;
+  openDialog(elements['module-command-dialog']);
+  try {
+    const preview = await desktop.getModuleRunPreview(module.id, attempt.id, gate.id);
+    if (pendingModuleCommand !== pending) return;
+    pending.preview = preview;
+    const command = preview.command;
+    clear(elements['module-command-facts']);
+    for (const [term, value] of [
+      ['Executable', command.display.executable],
+      ['Arguments', JSON.stringify(command.display.args)],
+      ['Working directory', command.display.workingDirectory],
+      ['Timeout', `${command.display.timeoutSeconds} seconds`],
+      ['Authorization', command.authorization.authorized ? 'This exact version is locally allowed' : 'Authorization required'],
+    ]) {
+      elements['module-command-facts'].append(node('div', {}, [node('dt', { text: term }), node('dd', { text: value })]));
+    }
+    elements['module-command-effects'].textContent = `Declared effects: ${command.display.effects.join(' · ') || 'No effects declared.'}`;
+    elements['module-command-authority'].textContent = command.display.authority.join(' ');
+    const changed = command.authorization.changedInputs ?? [];
+    elements['module-command-changes'].hidden = changed.length === 0;
+    elements['module-command-changes'].textContent = changed.length
+      ? `Changed or unverifiable declared inputs: ${changed.join(', ')}. Run once remains available; persistent authorization is disabled.`
+      : '';
+    elements['module-command-once'].disabled = false;
+    elements['module-command-always'].disabled = !command.authorization.persistentEligible;
+  } catch (error) {
+    elements['module-command-effects'].textContent = error.message ?? String(error);
+    elements['module-command-effects'].classList.add('danger');
+  }
+}
+
+function openModuleAttestation(module, attempt, gate) {
+  pendingModuleAttestation = { module, attempt, gate };
+  elements['module-attestation-title'].textContent = `Record ${module.label} attestation`;
+  elements['module-attestation-instructions'].textContent = module.run.instructions;
+  elements['module-attestation-outcome'].value = 'PASS';
+  const notApplicable = elements['module-attestation-outcome'].querySelector('[value="NOT_APPLICABLE"]');
+  if (notApplicable) notApplicable.disabled = module.disposition !== 'optional';
+  elements['module-attestation-summary'].value = '';
+  elements['module-attestation-confirmation'].value = '';
+  openDialog(elements['module-attestation-dialog']);
+  elements['module-attestation-summary'].focus?.();
+}
+
+function appendModuleRunActions(viewer, module, attempt, gate) {
+  const run = module.run;
+  if (!run || attempt.state !== 'ACTIVE') return;
+  const actions = node('div', { className: 'module-run-actions' });
+  if (run.kind === 'skill') {
+    const invocation = run.invocation ?? `/${run.skillId}`;
+    const copyInvocation = node('button', { className: 'secondary', text: 'Copy skill invocation', type: 'button' });
+    copyInvocation.addEventListener('click', () => void copy(invocation, 'Skill invocation copied'));
+    const openTerminal = node('button', { className: 'secondary', text: 'Open terminal', type: 'button' });
+    openTerminal.addEventListener('click', () => void toggleTerminal(true));
+    copyInvocation.disabled = !gate.eligible || module.readiness?.status === 'unavailable';
+    openTerminal.disabled = !gate.eligible || module.readiness?.status === 'unavailable';
+    actions.append(copyInvocation, openTerminal);
+  }
+  if (run.kind === 'manual') {
+    const attest = node('button', { className: 'secondary', text: 'Record attestation…', type: 'button' });
+    attest.disabled = !gate.eligible;
+    attest.addEventListener('click', () => openModuleAttestation(module, attempt, gate));
+    actions.append(attest);
+  }
+  if (run.kind === 'command') {
+    const execute = node('button', { className: 'secondary', text: 'Review and run command…', type: 'button' });
+    execute.disabled = !gate.eligible || module.readiness?.status === 'unavailable';
+    execute.addEventListener('click', () => void openModuleCommand(module, attempt, gate));
+    actions.append(execute);
+  }
+  if (actions.childElementCount > 0) viewer.append(actions);
 }
 
 function renderModuleDetails(viewer, module, { attempt = null, gate = null } = {}) {
@@ -1788,6 +2008,7 @@ function renderGateTab(tab, snapshot) {
     observe: null,
   };
   renderModuleDetails(viewer, module, { attempt, gate });
+  appendModuleRunActions(viewer, module, attempt, gate);
   if (gate.recordedEventId) viewer.append(exactId(`Recorded event: ${gate.recordedEventId}`));
   if (gate.reason) viewer.append(node('p', { text: gate.reason }));
   if (gate.blockers?.length) {
@@ -2705,6 +2926,70 @@ elements['module-waiver-confirm'].addEventListener('click', async () => {
     elements['module-waiver-confirm'].disabled = false;
   }
 });
+for (const id of ['module-command-close', 'module-command-cancel']) {
+  elements[id].addEventListener('click', () => {
+    pendingModuleCommand = null;
+    closeDialog(elements['module-command-dialog']);
+  });
+}
+async function runPendingModuleCommand(consent) {
+  const pending = pendingModuleCommand;
+  if (!pending?.preview?.command) return;
+  elements['module-command-once'].disabled = true;
+  elements['module-command-always'].disabled = true;
+  try {
+    const dimensions = activeTerminalView() ? terminalDimensions(activeTerminalView()) : { cols: 80, rows: 24 };
+    const session = await desktop.startModuleTask(
+      pending.module.id,
+      pending.attempt.id,
+      pending.gate.id,
+      consent,
+      dimensions.cols,
+      dimensions.rows,
+    );
+    pendingModuleCommand = null;
+    closeDialog(elements['module-command-dialog']);
+    await showModuleTask(session);
+    showToast(`${pending.module.label} started in a dedicated task terminal`);
+  } catch (error) {
+    showToast(error.message ?? String(error));
+    elements['module-command-once'].disabled = false;
+    elements['module-command-always'].disabled = !pending.preview.command.authorization.persistentEligible;
+  }
+}
+elements['module-command-once'].addEventListener('click', () => void runPendingModuleCommand('once'));
+elements['module-command-always'].addEventListener('click', () => void runPendingModuleCommand('always'));
+for (const id of ['module-attestation-close', 'module-attestation-cancel']) {
+  elements[id].addEventListener('click', () => {
+    pendingModuleAttestation = null;
+    closeDialog(elements['module-attestation-dialog']);
+  });
+}
+elements['module-attestation-confirm'].addEventListener('click', async () => {
+  const pending = pendingModuleAttestation;
+  if (!pending) return;
+  const summary = elements['module-attestation-summary'].value.trim();
+  const confirmation = elements['module-attestation-confirmation'].value.trim();
+  if (!summary || !confirmation) return;
+  elements['module-attestation-confirm'].disabled = true;
+  try {
+    render(await desktop.attestModule(
+      pending.module.id,
+      pending.attempt.id,
+      pending.gate.id,
+      elements['module-attestation-outcome'].value,
+      summary,
+      confirmation,
+    ));
+    pendingModuleAttestation = null;
+    closeDialog(elements['module-attestation-dialog']);
+    showToast('Manual module attestation recorded');
+  } catch (error) {
+    showToast(error.message ?? String(error));
+  } finally {
+    elements['module-attestation-confirm'].disabled = false;
+  }
+});
 elements['copy-mermaid'].addEventListener('click', () => {
   if (modelDetail) void copy(modelDetail.data.graph.mermaid, 'Mermaid source copied');
 });
@@ -2723,14 +3008,16 @@ elements['terminal-terminate'].addEventListener('click', async () => {
   const view = activeTerminalView();
   if (view?.session?.status !== 'running') return;
   try {
-    setTerminalSession(view, await desktop.terminateTerminal(view.session.id));
+    setTerminalSession(view, view.kind === 'task'
+      ? await desktop.cancelModuleTask(view.session.id)
+      : await desktop.terminateTerminal(view.session.id));
   } catch (error) {
     showToast(error.message ?? String(error));
   }
 });
 elements['terminal-restart'].addEventListener('click', async () => {
   const view = activeTerminalView();
-  if (!view || !['exited', 'failed'].includes(view.session?.status)) return;
+  if (!view || view.kind === 'task' || !['exited', 'failed'].includes(view.session?.status)) return;
   try {
     const dimensions = terminalDimensions(view);
     const session = await desktop.restartTerminal(view.session.id, dimensions.cols, dimensions.rows);
@@ -2738,6 +3025,18 @@ elements['terminal-restart'].addEventListener('click', async () => {
     view.terminal.focus();
   } catch (error) {
     showToast(error.message ?? String(error));
+  }
+});
+elements['terminal-session-select'].addEventListener('change', async () => {
+  selectedTerminalSessions.set(projectPath(), elements['terminal-session-select'].value);
+  if (elements['terminal-session-select'].value === 'shell' && !terminalViews.has(projectPath())) {
+    await ensureTerminalView();
+  }
+  revealActiveTerminal();
+  const view = activeTerminalView();
+  if (view) {
+    await fitTerminal(view);
+    view.terminal.focus();
   }
 });
 
@@ -2848,6 +3147,23 @@ desktop.subscribeTerminals?.((event) => {
   }
   const view = [...terminalViews.values()].find((candidate) => candidate.session?.id === event.session.id);
   if (view) setTerminalSession(view, event.session);
+  else pendingTerminalStatus.set(event.session.id, event.session);
+});
+desktop.subscribeModuleTasks?.((event) => {
+  if (event.type === 'data') {
+    const view = moduleTaskViews.get(event.sessionId);
+    if (view) view.terminal.write(event.data);
+    else pendingTerminalData.set(
+      event.sessionId,
+      `${pendingTerminalData.get(event.sessionId) ?? ''}${event.data}`.slice(-1_000_000),
+    );
+    return;
+  }
+  const view = moduleTaskViews.get(event.session.id);
+  if (view) setTerminalSession(view, event.session);
+  else if (event.type === 'started') {
+    void ensureModuleTaskView(event.session).catch((error) => showToast(error.message ?? String(error)));
+  }
   else pendingTerminalStatus.set(event.session.id, event.session);
 });
 desktop.getState().then(render).catch((error) => {

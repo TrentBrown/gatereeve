@@ -87,6 +87,7 @@ export function createDesktopCoordinator({
   let gitContext = { repositoryRoot: null, branch: null };
   let currentPullRequest = null;
   let setup = requireSetupState(initialSetup);
+  const moduleLiveByProject = new Map();
   const notificationObserver = createNotificationObserver({ notify });
   const subscribers = new Set();
 
@@ -188,7 +189,11 @@ export function createDesktopCoordinator({
   function applyInspection(inspection) {
     const project = inspection.project;
     updateProject(project);
-    currentFacts = {};
+    currentFacts = {
+      ...(moduleLiveByProject.has(project.path)
+        ? { moduleLive: structuredClone(moduleLiveByProject.get(project.path)) }
+        : {}),
+    };
     currentPullRequest = null;
     currentSources = localProjectSources();
     selection = { worktreePath: project.path, featureHome: project.featureHome };
@@ -418,6 +423,7 @@ export function createDesktopCoordinator({
 
   async function removeProject(path) {
     const wasActive = selection?.worktreePath === path;
+    moduleLiveByProject.delete(path);
     preferences = removeProjectReference(preferences, path);
     projects = projects.filter((project) => project.path !== path);
     await preferenceStore.save(preferences);
@@ -537,6 +543,27 @@ export function createDesktopCoordinator({
         ...request,
       });
       return refresh('module-waiver');
+    },
+    async setModuleLive(projectPath, moduleId, live) {
+      if (typeof projectPath !== 'string' || projectPath.length === 0) {
+        throw new TypeError('Module live status requires a project path.');
+      }
+      if (typeof moduleId !== 'string' || moduleId.length === 0) {
+        throw new TypeError('Module live status requires a module ID.');
+      }
+      const projectLive = { ...(moduleLiveByProject.get(projectPath) ?? {}), [moduleId]: live };
+      moduleLiveByProject.set(projectPath, structuredClone(projectLive));
+      if (selection?.worktreePath !== projectPath) return state();
+      currentFacts = {
+        ...currentFacts,
+        moduleLive: projectLive,
+      };
+      snapshot = await protocol.snapshot(selection.featureHome, {
+        facts: currentFacts,
+        sources: currentSources,
+      });
+      syncActiveProject();
+      return publish();
     },
     artifact(artifactId) {
       const artifact = snapshot?.artifacts?.find((item) => item.id === artifactId);

@@ -13,8 +13,8 @@
 | R2 | Declarative boundary parity and locked envelope | NOT YET | - | Slice 1 converts all ten gates to built-ins with legacy outcome keys, locked envelope, unchanged runtime dependency/freshness behavior, and passing regression suites; final assembled verification remains P10 |
 | R3 | Project settings, waivers, and readiness | NOT YET | - | Slice 2 adds staged complete-policy settings, explicit dependency/migration impact, fail-closed readiness, atomic uncommitted policy writes, and fingerprint-bound boundary waivers; finalization waivers activate with P8 attempts and final assembled verification remains P10 |
 | R4 | Compact state-specific module UI | NOT YET | - | Slice 2 preserves the six-state rail and supplies one accessible graph/detail renderer for boundary and finalization modules, including normalized live detail and empty-slot behavior; provider-fed runtime and final assembled verification remain P6/P8/P10 |
-| R5 | Explicit adapters and isolated task terminals | NOT YET | - | Planned for P6-P7 / I-5-I-6 |
-| R6 | Command semantics and provider protocol | NOT YET | - | Slice 1 validates declarative command metadata and installed-provider references without execution; runtime semantics remain P6-P7 and P9 |
+| R5 | Explicit adapters and isolated task terminals | NOT YET | - | Slice 3 implements explicit skill/manual/command actions, exact local consent, changed-input invalidation, and separate attributable PTYs with bounded evidence; packaged macOS walkthrough and final assembled verification remain P10 |
+| R6 | Command semantics and provider protocol | NOT YET | - | Slice 3 implements fail-closed command result mapping and allowlisted out-of-process providers with exact response/fingerprint validation and fresh core passage; the GateReeve Release provider and final assembled verification remain P9-P10 |
 | R7 | Generic finalization semantics | NOT YET | - | Slices 1-2 define the generic slot, zero-module default, readiness, dependency graph, and standard presentation; attempts, passage, and feature-scoped waivers remain P8 |
 | R8 | GateReeve Release verified end to end | NOT YET | - | Planned for P9-P10 / I-8-I-9 |
 
@@ -63,8 +63,12 @@ native Apple Silicon and Intel packaged-runtime jobs.
 
 - Delivery branch: `tb-workflow-modules-03-provider-execution`
 - Scope: slice (P6-P7; R5, R6)
-- Status: implementation in progress
+- Status: provisional verification passed; PR boundary in progress
 
 This slice adds validated skill/manual/command adapters, supervised provider
 observation, explicit local command authorization, and dedicated module task
-terminal sessions while preserving the persistent user shell.
+terminal sessions while preserving the persistent user shell. The current
+source passes 192 Desktop tests, 212 CLI tests, 94 Python tests, portable package
+acceptance, direct PTY integration, and zero-vulnerability production dependency
+audits. The Linux host cannot launch Electron because `libatk-1.0.so.0` is absent;
+the packaged macOS walkthrough remains assigned to P10 as already planned.

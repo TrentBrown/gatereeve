@@ -931,6 +931,7 @@ function moduleInventory(record, facts) {
   if (!graph) return null;
   const enabled = new Set(graph.enabledModuleIds);
   const availability = facts.moduleAvailability ?? null;
+  const live = isObject(facts.moduleLive) ? facts.moduleLive : {};
   return {
     schemaVersion: 1,
     policyDigest: graph.policyDigest,
@@ -953,7 +954,7 @@ function moduleInventory(record, facts) {
         run: module.run ? structuredClone(module.run) : null,
         observe: module.observe ? structuredClone(module.observe) : null,
         readiness: assessModuleReadiness(module, availability),
-        live: null,
+        live: live[module.id] === undefined ? null : structuredClone(live[module.id]),
       })),
     })),
   };
