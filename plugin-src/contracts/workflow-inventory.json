@@ -260,6 +260,7 @@
       "feature.js",
       "finalization.js",
       "fingerprint.js",
+      "generated-artifact-validation.js",
       "guards.js",
       "graph.js",
       "index.js",

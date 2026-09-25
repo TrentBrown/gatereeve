@@ -132,6 +132,15 @@ boundary before recording an outcome. Provider, isolation, schema, or
 publication failures leave the gate `UNSET`; they are not converted into a
 gate `FAIL`.
 
+Before Whiteboard evaluation, the trusted host parses and executes the actual
+generated HTML in a restricted DOM. It rejects relative or external resources,
+inline-script failures, missing or inoperable reveal controls, inaccessible
+visual models, and broken finding links. The resulting digest-bound validation
+receipt is part of the authoritative Whiteboard evidence. A run-specific
+Electron smoke separately verifies representative behavior in the Desktop's
+sandboxed browser surface. Agent receipts bind both the requested capability
+profile and the provider configuration that actually ran.
+
 The built-in Judge is an agent workflow as of module version 2. It retains
 blocking compliance semantics and has no correction loop. The separately
 installable `whiteboard-test/defense` module is disabled by default. It depends

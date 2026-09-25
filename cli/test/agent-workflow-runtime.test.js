@@ -62,7 +62,12 @@ function moduleDefinition() {
   return module;
 }
 
-function adapter({ inheritedTurns = 0, reasoningEffort = 'high', reuseContext = false } = {}) {
+function adapter({
+  inheritedTurns = 0,
+  reasoningEffort = 'high',
+  receiptMinimumReasoning = 'high',
+  reuseContext = false,
+} = {}) {
   return {
     async describe() {
       return {
@@ -90,6 +95,10 @@ function adapter({ inheritedTurns = 0, reasoningEffort = 'high', reuseContext = 
           attemptId: request.attemptId,
           module: request.module,
           stage: request.stage.id,
+          capabilityProfile: {
+            ...structuredClone(request.capabilityProfile),
+            minimumReasoning: receiptMinimumReasoning,
+          },
           provider: {
             id: 'codex', adapterVersion: '1.0.0', model: 'configured-model',
             reasoningEffort, contextId: reuseContext ? 'same-context' : `fresh-${request.stage.id}`,
@@ -152,6 +161,13 @@ test('agent workflow runtime fails closed without recording a gate failure when 
   assert.equal(downgraded.status, 'unavailable');
   assert.equal(downgraded.outcome, 'UNSET');
   assert.match(downgraded.failure.message, /descriptor is invalid|downgrades/);
+
+  const misbound = await runAgentWorkflow(dependencies({
+    adapter: adapter({ receiptMinimumReasoning: 'low' }),
+  }));
+  assert.equal(misbound.status, 'unavailable');
+  assert.equal(misbound.outcome, 'UNSET');
+  assert.match(misbound.failure.message, /capability profile minimum reasoning mismatch/);
 
   const reused = await runAgentWorkflow(dependencies({ adapter: adapter({ reuseContext: true }) }));
   assert.equal(reused.status, 'unavailable');

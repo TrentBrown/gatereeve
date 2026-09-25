@@ -18,6 +18,7 @@ function receipt(output, overrides = {}) {
     attemptId: 'attempt-1',
     module: { id: 'example/review', version: '1.0.0', digest: digest('a') },
     stage: 'review',
+    capabilityProfile: { id: 'high-capability-v1', minimumReasoning: 'high' },
     provider: {
       id: 'codex',
       adapterVersion: '1.0.0',

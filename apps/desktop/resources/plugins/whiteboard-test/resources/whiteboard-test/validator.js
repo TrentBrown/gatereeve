@@ -4,12 +4,21 @@ import { resolve, sep } from 'node:path';
 
 const SHA256 = /^sha256:[0-9a-f]{64}$/u;
 const VALIDATOR_ID = 'whiteboard-test/deterministic-v1';
+const GENERATED_ARTIFACT_CHECKS = Object.freeze([
+  'parsed-document',
+  'self-contained-resources',
+  'inline-script-runtime',
+  'native-reveal-controls',
+  'visual-accessibility',
+  'finding-links',
+]);
 const VALIDATION_CHECKS = Object.freeze([
   'challenge-integrity',
   'evidence-resolution',
   'native-progressive-reveal',
   'visual-linkage',
   'sandbox-containment',
+  'generated-dom-runtime',
   'artifact-bindings',
   'isolation-receipts',
 ]);
@@ -154,7 +163,7 @@ function validateHtml(html, challengeOutput, defenseOutput) {
     if (!/<(?:svg|figure)[\s>]/iu.test(html)) fail('HTML omits its declared visual model');
   }
   const forbidden = [
-    /<(?:script|img|iframe|link|audio|video|source)\b[^>]+\b(?:src|href)\s*=\s*["'](?:https?:)?\/\//iu,
+    /<(?:script|img|iframe|link|audio|video|source)\b[^>]+\b(?:src|href)\s*=\s*["'](?!data:|#)[^"']+/iu,
     /<(?:base|form|object|embed)\b/iu,
     /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\s*\(/u,
     /\b(?:window\.parent|window\.top|parent\.|top\.)/u,
@@ -163,19 +172,42 @@ function validateHtml(html, challengeOutput, defenseOutput) {
   if (forbidden.some((pattern) => pattern.test(html))) fail('HTML requests forbidden external authority');
 }
 
-function validationInputDigest({ html, challengeOutput, defenseOutput, receipts }) {
-  return digest({ html, challengeOutput, defenseOutput, receipts });
+function validateArtifactValidation(value, html, outcome) {
+  object(value, 'generated artifact validation');
+  if (
+    value.schemaVersion !== 1
+    || value.validator !== 'gatereeve/generated-html-dom-v1'
+    || value.engine !== 'linkedom-vm'
+    || !['PASS', 'FAIL'].includes(value.result)
+    || (outcome === 'PASS' && value.result !== 'PASS')
+    || value.htmlDigest !== digest(html)
+    || JSON.stringify(value.checks) !== JSON.stringify(GENERATED_ARTIFACT_CHECKS)
+    || !Array.isArray(value.errors)
+  ) fail('generated artifact validation is invalid or stale');
+  if (value.result === 'PASS' && value.errors.length > 0) {
+    fail('PASS generated artifact validation cannot contain errors');
+  }
+}
+
+function validationInputDigest({
+  html, challengeOutput, defenseOutput, receipts, artifactValidation,
+}) {
+  return digest({ html, challengeOutput, defenseOutput, receipts, artifactValidation });
 }
 
 export function createWhiteboardValidationReceipt({
-  html, challengeOutput, defenseOutput, receipts, result = 'PASS', errors = [],
+  html, challengeOutput, defenseOutput, receipts, artifactValidation,
+  result = 'PASS', errors = [],
 }) {
   return {
     schemaVersion: 1,
     validator: VALIDATOR_ID,
     result,
     checks: [...VALIDATION_CHECKS],
-    inputDigest: validationInputDigest({ html, challengeOutput, defenseOutput, receipts }),
+    inputDigest: validationInputDigest({
+      html, challengeOutput, defenseOutput, receipts, artifactValidation,
+    }),
+    artifactValidation,
     errors: [...errors],
   };
 }
@@ -207,6 +239,7 @@ export function validateWhiteboardBundle({
   challengeOutput,
   defenseOutput,
   receipts,
+  artifactValidation,
   repositoryPath = null,
 }) {
   object(manifest, 'manifest');
@@ -229,11 +262,12 @@ export function validateWhiteboardBundle({
   object(defenseOutput, 'Defender output');
   validateValidationReceipt(
     manifest.validation,
-    { html, challengeOutput, defenseOutput, receipts },
+    { html, challengeOutput, defenseOutput, receipts, artifactValidation },
     manifest.outcome
   );
   if (challengeOutput.schemaVersion !== 1 || defenseOutput.schemaVersion !== 1) fail('stage output version is unsupported');
   assertQuestionsPreserved(challengeOutput, defenseOutput, repositoryPath);
+  validateArtifactValidation(artifactValidation, html, manifest.outcome);
 
   if (!Array.isArray(defenseOutput.findings)) fail('findings must be an array');
   for (const finding of defenseOutput.findings) {
@@ -288,7 +322,9 @@ export function whiteboardDigest(value) {
   return digest(value);
 }
 
-export function createWhiteboardBundle({ module, input, outputs, receipts, repositoryPath = null }) {
+export function createWhiteboardBundle({
+  module, input, outputs, receipts, repositoryPath = null, artifactValidation = null,
+}) {
   const challengeOutput = outputs?.challenger;
   const defenseOutput = outputs?.['defender-publisher'];
   const html = defenseOutput?.html;
@@ -314,7 +350,7 @@ export function createWhiteboardBundle({ module, input, outputs, receipts, repos
     substantive: true,
     artifactDeficiencies: [],
     validation: createWhiteboardValidationReceipt({
-      html, challengeOutput, defenseOutput, receipts,
+      html, challengeOutput, defenseOutput, receipts, artifactValidation,
     }),
     files: {
       html: { path: 'whiteboard-defense.html', sha256: digest(html ?? '') },
@@ -325,14 +361,14 @@ export function createWhiteboardBundle({ module, input, outputs, receipts, repos
   };
   try {
     validateWhiteboardBundle({
-      manifest, html, challengeOutput, defenseOutput, receipts, repositoryPath,
+      manifest, html, challengeOutput, defenseOutput, receipts, artifactValidation, repositoryPath,
     });
   } catch (error) {
     manifest.outcome = 'FAIL';
     manifest.substantive = false;
     manifest.artifactDeficiencies = [error.message];
     manifest.validation = createWhiteboardValidationReceipt({
-      html, challengeOutput, defenseOutput, receipts,
+      html, challengeOutput, defenseOutput, receipts, artifactValidation,
       result: 'FAIL', errors: [error.message],
     });
   }

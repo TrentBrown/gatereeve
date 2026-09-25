@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:e2ba225f4310da96025366d82050cc4e941b41a88c6c29b9c9295a37e00f1369",
+  "protocolHash": "sha256:055048e8df5410b27f4c05858d47ba472ea721f304cac571cacc24d8a37184c1",
   "modelSha256": "35b2f840322d7216d9749c30ede6f989738d9bec862b17e33f44b5f1c98f20f3",
   "files": [
     {
@@ -11,23 +11,23 @@
     },
     {
       "path": "agent-workflow-runtime.js",
-      "size": 9504,
-      "sha256": "a63e39a2eb86f2b8bba1c1b37f8305b6ace96a767fc245fac72a7835d3e10464"
+      "size": 9778,
+      "sha256": "17d8fe6469b279d7f1a4fc241a71229ebaa10d1040f2ecb131c5b79f9bddcd59"
     },
     {
       "path": "agent-workflow-scheduler.js",
-      "size": 4980,
-      "sha256": "adf5eb778afafd4642dd49149fd882f56134f5ff2d9fdfbfd32a5fbb087dc1b4"
+      "size": 5063,
+      "sha256": "e4ec317fe2fc947fe8f4b147741317a7a9adaa9bd15bacb8865a976ff16167b9"
     },
     {
       "path": "agent-workflow-service.js",
-      "size": 10191,
-      "sha256": "92eac8a4d0bb4cdb8a8cf4136bf76123b79a731567937c51dd5739fd0ac93912"
+      "size": 10552,
+      "sha256": "0825cf4f58c148e45d1ee273057bd900a9c0f5cb97c044b3ffdbb0c2d51e4f52"
     },
     {
       "path": "agent-workflow.js",
-      "size": 5633,
-      "sha256": "1b5ad0ba2691e154723d5d066f4f75aa588b2b1fbaf4fc27e246dd930502c23b"
+      "size": 5999,
+      "sha256": "38f78164de28dc98293d35736aea11350c0b38d5c8496873feaea3c97fdc5156"
     },
     {
       "path": "artifact-publisher.js",
@@ -85,6 +85,11 @@
       "sha256": "691d41ac4633059180b0fb910adfe6672a9cfc3add418c1386b1ad0a0647759f"
     },
     {
+      "path": "generated-artifact-validation.js",
+      "size": 6871,
+      "sha256": "f5571c3693ecb464f662adf15622a3a0aedc6aec1b81aae302578987ce422e50"
+    },
+    {
       "path": "graph.js",
       "size": 5158,
       "sha256": "9b6d4fb1f8e5c42bcd670c8e9e6b9e7d91467e09277a6998ab7dad6dbc4caaf8"
@@ -111,8 +116,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 9539,
-      "sha256": "3b7d8e6b8e07a800dee5e8a4c23ef8a1d1ec16d902c9cc71f7cf5f74d6600dc3"
+      "size": 9606,
+      "sha256": "8b9a2ed7ebe2f9e72941421d27215ea381cf9cd4d47544ba4b4123c985c04b07"
     },
     {
       "path": "model/default-workflow-policy.json",

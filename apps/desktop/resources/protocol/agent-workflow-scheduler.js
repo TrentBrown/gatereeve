@@ -49,6 +49,7 @@ export async function runEligibleAgentWorkflowGates({
   artifactRoot = null,
   adapter,
   resources,
+  validateGeneratedArtifacts = async () => null,
   actorLabel = 'GateReeve agent-workflow',
   readRecord = readFeatureRecord,
   project = projectRecord,
@@ -100,6 +101,7 @@ export async function runEligibleAgentWorkflowGates({
       prepared,
       adapter,
       resources,
+      validateGeneratedArtifacts,
       createId,
       recordOutcome: async ({ outcome, evidence, reason }) => {
         const current = await prepare({

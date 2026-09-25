@@ -76,6 +76,12 @@ function validateReceiptBinding(receipt, expected) {
     ['module version', receipt.module.version, expected.module.version],
     ['module digest', receipt.module.digest, expected.module.digest],
     ['stage', receipt.stage, expected.stage.id],
+    ['capability profile ID', receipt.capabilityProfile.id, expected.module.run.capabilityProfile.id],
+    [
+      'capability profile minimum reasoning',
+      receipt.capabilityProfile.minimumReasoning,
+      expected.module.run.capabilityProfile.minimumReasoning,
+    ],
     ['adapter provider', receipt.provider.id, expected.descriptor.provider],
     ['adapter version', receipt.provider.adapterVersion, expected.descriptor.version],
     ['model', receipt.provider.model, expected.descriptor.model],

@@ -78,6 +78,7 @@ function adapter({ complete = true, onRequest = null } = {}) {
           schemaVersion: 1, kind: 'gatereeve-agent-workflow-receipt', protocolVersion: 1,
           runId: request.runId, attemptId: request.attemptId, module: request.module,
           stage: request.stage.id,
+          capabilityProfile: structuredClone(request.capabilityProfile),
           provider: {
             id: 'test', adapterVersion: '1.0.0', model: 'test-model',
             reasoningEffort: 'high', contextId: 'fresh-report',
@@ -117,6 +118,7 @@ test('publishes a validated root and records only the completed governed outcome
   let cleaned = false;
   let snapshotOptions = null;
   let stageRequest = null;
+  let seenArtifactValidation = null;
   try {
     const verification = '# Verification\n\nPASS\n';
     await writeFile(join(root, 'verification.md'), verification);
@@ -130,10 +132,14 @@ test('publishes a validated root and records only the completed governed outcome
       adapter: adapter({ onRequest: (value) => { stageRequest = value; } }),
       resources: {
         loadResource: async ({ path }) => path.endsWith('.md') ? 'Create the report.' : JSON.stringify({ type: 'object' }),
-        loadEvaluator: async () => ({ module, outputs }) => ({
-          outcome: 'PASS', files: { 'report.json': { module: module.id, answer: outputs.report.answer } },
-        }),
+        loadEvaluator: async () => ({ module, outputs, artifactValidation }) => {
+          seenArtifactValidation = artifactValidation;
+          return {
+            outcome: 'PASS', files: { 'report.json': { module: module.id, answer: outputs.report.answer } },
+          };
+        },
       },
+      validateGeneratedArtifacts: async () => ({ validator: 'fixture', result: 'PASS' }),
       buildChangeInput: async (input) => ({ schemaVersion: 1, source: input, patch: 'diff' }),
       createSnapshot: async (options) => {
         snapshotOptions = options;
@@ -158,6 +164,7 @@ test('publishes a validated root and records only the completed governed outcome
       bytes: 4,
     });
     assert.equal(snapshotOptions.evidenceFiles['.gatereeve-agent-evidence/feature.patch'], 'diff');
+    assert.deepEqual(seenArtifactValidation, { validator: 'fixture', result: 'PASS' });
     assert.deepEqual(stageRequest.input.initial.dependencyEvidence.verification, {
       outcome: 'PASS',
       eventId: 'evt-verification',

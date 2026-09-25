@@ -44,7 +44,7 @@ export function validateAgentWorkflowReceipt(value) {
     value,
     [
       'schemaVersion', 'kind', 'protocolVersion', 'runId', 'attemptId', 'module',
-      'stage', 'provider', 'isolation', 'policy', 'startedAt', 'completedAt',
+      'stage', 'capabilityProfile', 'provider', 'isolation', 'policy', 'startedAt', 'completedAt',
       'status', 'digests',
     ],
     'Agent workflow receipt'
@@ -62,6 +62,17 @@ export function validateAgentWorkflowReceipt(value) {
   nonempty(value.module.version, 'Agent workflow receipt module version');
   if (!SHA256.test(value.module.digest)) throw new ContractError('Agent workflow receipt module digest is invalid');
   nonempty(value.stage, 'Agent workflow receipt stage');
+
+  exactKeys(
+    value.capabilityProfile,
+    ['id', 'minimumReasoning'],
+    'Agent workflow receipt capability profile'
+  );
+  nonempty(value.capabilityProfile.id, 'Agent workflow receipt capability profile id');
+  nonempty(
+    value.capabilityProfile.minimumReasoning,
+    'Agent workflow receipt capability profile minimum reasoning'
+  );
 
   exactKeys(
     value.provider,

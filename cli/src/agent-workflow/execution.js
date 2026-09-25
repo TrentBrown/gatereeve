@@ -3,6 +3,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadProtocolAdapter } from '../protocol/client.js';
+import { validateGeneratedArtifacts } from '../../resources/protocol/generated-artifact-validation.js';
 
 const SOURCE_PLUGIN_ROOT = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -68,6 +69,7 @@ export async function runEligibleAgentWorkflows({
     artifactRoot,
     adapter,
     resources,
+    validateGeneratedArtifacts,
     actorLabel: `GateReeve ${provider} agent-workflow`,
     ...(createId ? { createId } : {}),
   });

@@ -69,7 +69,26 @@ const html = `<!doctype html><html><body><main id="whiteboard-defense">
   <details data-push-harder-id="routing-failure"><summary>Push harder</summary><p>Answer</p></details></article>
   <section id="defense-findings">Known limitation</section>
   <figure data-visual-id="request-flow"><svg role="img" aria-label="Request flow"></svg><figcaption>Request flow</figcaption></figure>
-</main><script>document.querySelector('button').onclick=()=>{};</script></body></html>`;
+</main><script>document.documentElement.dataset.whiteboardReady='true';</script></body></html>`;
+
+function artifactValidation(value = html, result = 'PASS', errors = []) {
+  return {
+    schemaVersion: 1,
+    validator: 'gatereeve/generated-html-dom-v1',
+    engine: 'linkedom-vm',
+    result,
+    htmlDigest: whiteboardDigest(value),
+    checks: [
+      'parsed-document',
+      'self-contained-resources',
+      'inline-script-runtime',
+      'native-reveal-controls',
+      'visual-accessibility',
+      'finding-links',
+    ],
+    errors,
+  };
+}
 
 function receipt(stage) {
   return {
@@ -83,11 +102,13 @@ function bundle() {
   const defender = structuredClone(defenseOutput);
   defender.html = html;
   const receipts = [receipt('challenger'), receipt('defender-publisher')];
+  const generatedValidation = artifactValidation();
   return {
     html,
     challengeOutput,
     defenseOutput: defender,
     receipts,
+    artifactValidation: generatedValidation,
     manifest: {
       schemaVersion: 1,
       kind: 'whiteboard-defense',
@@ -102,6 +123,7 @@ function bundle() {
       artifactDeficiencies: [],
       validation: createWhiteboardValidationReceipt({
         html, challengeOutput, defenseOutput: defender, receipts,
+        artifactValidation: generatedValidation,
       }),
       files: {
         html: { path: 'whiteboard-defense.html', sha256: whiteboardDigest(html) },
@@ -119,6 +141,7 @@ function refreshValidation(value) {
     challengeOutput: value.challengeOutput,
     defenseOutput: value.defenseOutput,
     receipts: value.receipts,
+    artifactValidation: value.artifactValidation,
   });
   return value;
 }
@@ -148,11 +171,13 @@ test('missing native reveal controls and stale validation receipts prevent passa
     '<div data-challenge-ref="routing-boundary" data-layer="concise"><p>Concise</p></div>'
   );
   staticArtifact.manifest.files.html.sha256 = whiteboardDigest(staticArtifact.html);
+  staticArtifact.artifactValidation = artifactValidation(staticArtifact.html);
   staticArtifact.manifest.validation = createWhiteboardValidationReceipt({
     html: staticArtifact.html,
     challengeOutput: staticArtifact.challengeOutput,
     defenseOutput: staticArtifact.defenseOutput,
     receipts: staticArtifact.receipts,
+    artifactValidation: staticArtifact.artifactValidation,
   });
   assert.throws(() => validateWhiteboardBundle(staticArtifact), /native details and summary/u);
 
@@ -168,8 +193,9 @@ test('nontrivial defenses require a bound visual and self-contained sandbox-safe
   assert.throws(() => validateWhiteboardBundle(missingVisual), /needs a visual model/);
 
   const external = bundle();
-  external.html = external.html.replace('</main>', '<img src="https://example.com/x.png"></main>');
+  external.html = external.html.replace('</main>', '<script src="helper.js"></script></main>');
   external.manifest.files.html.sha256 = whiteboardDigest(external.html);
+  external.artifactValidation = artifactValidation(external.html);
   refreshValidation(external);
   assert.throws(() => validateWhiteboardBundle(external), /forbidden external authority/);
 });
@@ -183,6 +209,7 @@ test('bundle creation turns artifact defects into an auditable gate FAIL without
     input,
     outputs: { challenger: value.challengeOutput, 'defender-publisher': value.defenseOutput },
     receipts: value.receipts,
+    artifactValidation: value.artifactValidation,
   });
   assert.equal(passed.outcome, 'PASS');
   assert.deepEqual(passed.manifest.artifactDeficiencies, []);
@@ -194,6 +221,7 @@ test('bundle creation turns artifact defects into an auditable gate FAIL without
     input,
     outputs: { challenger: value.challengeOutput, 'defender-publisher': broken },
     receipts: value.receipts,
+    artifactValidation: value.artifactValidation,
   });
   assert.equal(failed.outcome, 'FAIL');
   assert.match(failed.manifest.artifactDeficiencies[0], /rewrote question/);

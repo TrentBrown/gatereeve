@@ -99,6 +99,7 @@ function receiptFor(request, descriptor, output, contextId, method, processResul
     attemptId: request.attemptId,
     module: request.module,
     stage: request.stage.id,
+    capabilityProfile: structuredClone(request.capabilityProfile),
     provider: {
       id: descriptor.provider,
       adapterVersion: descriptor.version,

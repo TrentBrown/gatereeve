@@ -1,7 +1,9 @@
 const { app, BrowserWindow, session } = require('electron');
 const { resolve } = require('node:path');
 
-const htmlPath = resolve(__dirname, '../test/fixtures/whiteboard-browser-smoke.html');
+const htmlPath = process.argv[2]
+  ? resolve(process.argv[2])
+  : resolve(__dirname, '../test/fixtures/whiteboard-browser-smoke.html');
 
 (async () => {
   const errors = [];

@@ -145,6 +145,7 @@ export async function executeAgentWorkflowGate({
   createSnapshot = createPinnedRepositorySnapshot,
   buildChangeInput = buildPinnedChangeInput,
   publishArtifacts = publishAgentWorkflowArtifacts,
+  validateGeneratedArtifacts = async () => null,
   createId = randomUUID,
 }) {
   if (module?.run?.kind !== 'agent-workflow') throw new ContractError('An agent-workflow module is required');
@@ -223,9 +224,23 @@ export async function executeAgentWorkflowGate({
         const schema = JSON.parse(await resources.loadResource(reference));
         return validateJsonSchema(schema, value, { label: reference.path });
       },
-      evaluate: async ({ module: evaluatedModule, input: evaluatedInput, outputs, receipts, repositoryPath }) => (
-        evaluator({ module: evaluatedModule, input: evaluatedInput, outputs, receipts, repositoryPath })
-      ),
+      evaluate: async ({ module: evaluatedModule, input: evaluatedInput, outputs, receipts, repositoryPath }) => {
+        const artifactValidation = await validateGeneratedArtifacts({
+          module: evaluatedModule,
+          input: evaluatedInput,
+          outputs,
+          receipts,
+          repositoryPath,
+        });
+        return evaluator({
+          module: evaluatedModule,
+          input: evaluatedInput,
+          outputs,
+          receipts,
+          repositoryPath,
+          artifactValidation,
+        });
+      },
       publishArtifacts: async ({ module: evaluatedModule, evaluation }) => publishArtifacts({
         artifactRoot: attemptArtifactRoot,
         module: evaluatedModule,

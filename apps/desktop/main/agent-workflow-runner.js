@@ -7,6 +7,7 @@ import {
   createCodexAgentAdapter,
 } from '../resources/protocol/local-agent-adapters.js';
 import { createPluginResourceAccess } from '../resources/protocol/agent-workflow-resources.js';
+import { validateGeneratedArtifacts } from '../resources/protocol/generated-artifact-validation.js';
 import { runEligibleAgentWorkflowGates } from '../resources/protocol/agent-workflow-scheduler.js';
 import { discoverExecutable } from './executable-discovery.js';
 
@@ -82,6 +83,7 @@ export function createDesktopAgentWorkflowRunner({
       attemptId: signature.attemptId,
       adapter,
       resources,
+      validateGeneratedArtifacts,
       actorLabel: `GateReeve Desktop ${agent.label} agent-workflow`,
       prepare: (options) => protocol.prepareBoundaryModule(options),
     });

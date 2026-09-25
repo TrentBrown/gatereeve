@@ -23,7 +23,7 @@
 ### PR #67 - Whiteboard Test and isolated Judge
 
 - Draft PR: <https://github.com/TrentBrown/gatereeve/pull/67>
-- Scope: feature-final; complete change from `10e54a0` through `f763cf0`
+- Scope: feature-final; complete change from `10e54a0` through `109042f`
 - Evidence packet: [`pr-67/`](pr-67/)
 - Issues: I-1 through I-8
 - Rubric: R1 through R8
