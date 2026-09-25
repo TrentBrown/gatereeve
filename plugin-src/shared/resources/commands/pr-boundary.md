@@ -25,8 +25,9 @@ boundary inside a long-running PR.
    - Drift between plan/issues/spec is resolved before PR review.
 4. Update the cumulative `tracker.md` with plan steps covered, rubric criteria
    in scope or moved, and the DoD result.
-5. For every gate, run `boundary_gate.py` with the same persisted context and
-   that gate's manifest name. Treat its `diffBaseSha`, `diffHeadSha`,
+5. For every gate, run `boundary_gate.py` with the same persisted context,
+   boundary attempt ID via `--attempt-id`, and that gate's manifest name. Treat
+   its `diffBaseSha`, `diffHeadSha`,
    `changedFiles`, and `outputPath` as authoritative. Do not let a gate infer
    its own upstream, branch, diff, feature folder, or filename.
    For `scope: feature-final`, pass `--scope feature-final`. Verification,

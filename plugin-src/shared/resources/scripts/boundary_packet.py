@@ -222,9 +222,10 @@ def _validate_v2_packet_files(
         for value in normalized_gates.values()
         if value["artifactPath"] is not None
     )
-    legacy_root = {
-        "judge.json", "judge-result.json", "judge-receipt.json", "judge.md",
-        "verification.md",
+    legacy_root = set(ARTIFACTS.values()) | {
+        "judge.json",
+        "judge-result.json",
+        "judge-receipt.json",
     }
     actual = set()
     for item in packet.rglob("*"):

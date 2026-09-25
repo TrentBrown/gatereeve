@@ -139,6 +139,34 @@ class BoundaryGateTests(unittest.TestCase):
         self.assertEqual(focused["changedFiles"], ["source.py"])
         self.assertEqual(focused["featureBaseSha"], self.feature_base_sha)
 
+    def test_attempt_id_routes_every_gate_to_immutable_attempt_output(self) -> None:
+        for gate, artifact in ARTIFACTS.items():
+            result = resolve_gate_context(
+                self.workflow,
+                self.context,
+                gate,
+                attempt_id="pr42-attempt-3",
+            )
+
+            self.assertEqual(result["attemptId"], "pr42-attempt-3")
+            self.assertEqual(
+                Path(result["outputPath"]),
+                self.workflow.feature_home
+                / "pr-42"
+                / "attempts"
+                / "pr42-attempt-3"
+                / artifact,
+            )
+
+    def test_rejects_unsafe_attempt_id(self) -> None:
+        with self.assertRaisesRegex(BoundaryGateError, "Attempt ID"):
+            resolve_gate_context(
+                self.workflow,
+                self.context,
+                "judge",
+                attempt_id="-attempt-3",
+            )
+
     def test_cli_emits_the_same_versioned_gate_context(self) -> None:
         context_path = self.root / "pr-context.json"
         context_path.write_text(
@@ -155,6 +183,8 @@ class BoundaryGateTests(unittest.TestCase):
                 str(context_path),
                 "--gate",
                 "explainDiff",
+                "--attempt-id",
+                "pr42-attempt-3",
                 "--json",
             ],
             check=True,
@@ -164,6 +194,7 @@ class BoundaryGateTests(unittest.TestCase):
         value = json.loads(result.stdout)
 
         self.assertEqual(value["schemaVersion"], 1)
+        self.assertEqual(value["attemptId"], "pr42-attempt-3")
         self.assertEqual(value["diffHeadSha"], self.head_sha)
         self.assertEqual(value["artifact"], "explain-diff.html")
 

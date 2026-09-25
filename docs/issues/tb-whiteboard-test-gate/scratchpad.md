@@ -215,7 +215,7 @@ Launch provider-specific Electron for every headless CLI run - rejected because 
 
 **Blast Radius:** PR boundary packet manifest and validation
 
-Add boundary manifest schema version 2. Each applicable gate now identifies its current human artifact with a packet-relative path and SHA-256 digest, so a packet can point at the exact immutable attempt artifact that granted passage. Retain schema version 1 for historical packets. Version 2 permits audited files under `attempts/<attempt-id>/` and the known legacy root Judge/Verification files, rejects symlinks and unrelated extras, and verifies every current gate reference by name, regular-file status, nonempty content, and digest.
+Add boundary manifest schema version 2. Each applicable gate now identifies its current human artifact with a packet-relative path and SHA-256 digest, so a packet can point at the exact immutable attempt artifact that granted passage. Retain schema version 1 for historical packets. Route every formal gate output through `boundary_gate.py --attempt-id` into `attempts/<attempt-id>/`; version 2 permits those audited attempt files and preserved legacy root gate reports, rejects symlinks and unrelated extras, and verifies every current gate reference by name, regular-file status, nonempty content, and digest.
 
 **Triggered by:** Packet validation after the attempt-12 Judge PASS found that the legacy fixed-filename contract would read PR #67's preserved attempt-8 root `judge.md` failure instead of the current attempt-12 PASS under its immutable attempt directory.
 

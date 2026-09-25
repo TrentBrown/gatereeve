@@ -359,6 +359,30 @@ class BoundaryPacketTests(unittest.TestCase):
         with self.assertRaisesRegex(BoundaryPacketError, "Unexpected packet file"):
             self.validate()
 
+    def test_v2_allows_preserved_legacy_root_gate_reports(self) -> None:
+        packet = self.write_packet()
+        attempt = packet / "attempts" / "attempt-2"
+        attempt.mkdir(parents=True)
+        value = self.manifest()
+        value["schemaVersion"] = 2
+        for gate, artifact_name in ARTIFACTS.items():
+            gate_value = value["gates"][gate]
+            if gate_value["disposition"] == "not_applicable":
+                gate_value["evidence"] = None
+                continue
+            artifact = attempt / artifact_name
+            artifact.write_text(f"current {gate}\n", encoding="utf-8")
+            relative = artifact.relative_to(packet).as_posix()
+            gate_value["evidence"] = {
+                "path": relative,
+                "sha256": f"sha256:{hashlib.sha256(artifact.read_bytes()).hexdigest()}",
+            }
+        (packet / "boundary.json").write_text(
+            f"{json.dumps(value, indent=2)}\n", encoding="utf-8"
+        )
+
+        self.assertEqual(self.validate()["status"], "valid")
+
     def test_later_pr_cannot_change_an_earlier_packet(self) -> None:
         self.write_packet()
         with self.assertRaisesRegex(BoundaryPacketError, "earlier or foreign packet"):

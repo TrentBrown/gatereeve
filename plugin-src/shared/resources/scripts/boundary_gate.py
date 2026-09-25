@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 from pathlib import Path
 from typing import Sequence
@@ -22,6 +23,7 @@ from workflow_context import (
 SCHEMA_VERSION = 1
 SCOPES = {"slice", "feature-final"}
 FEATURE_WIDE_GATES = {"verification", "specEvaluation", "judge"}
+ATTEMPT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 class BoundaryGateError(RuntimeError):
@@ -47,6 +49,7 @@ def resolve_gate_context(
     gate: str,
     *,
     scope: str = "slice",
+    attempt_id: str | None = None,
 ) -> dict[str, object]:
     if gate not in ARTIFACTS:
         raise BoundaryGateError(
@@ -55,6 +58,11 @@ def resolve_gate_context(
     if scope not in SCOPES:
         raise BoundaryGateError(
             f"Unknown boundary scope {scope!r}; expected one of {sorted(SCOPES)}"
+        )
+    if attempt_id is not None and not ATTEMPT_ID.fullmatch(attempt_id):
+        raise BoundaryGateError(
+            "Attempt ID must start with an alphanumeric character and contain "
+            "only alphanumerics, dots, underscores, or hyphens"
         )
     if context.repository_alias != workflow.repository.alias:
         raise BoundaryGateError(
@@ -108,7 +116,11 @@ def resolve_gate_context(
         repository_root,
     )
     packet = packet_path(workflow, context.pull_request.number).resolve()
-    output = packet / ARTIFACTS[gate]
+    output = (
+        packet / "attempts" / attempt_id / ARTIFACTS[gate]
+        if attempt_id is not None
+        else packet / ARTIFACTS[gate]
+    )
     feature_base: str | None = None
     feature_changed: list[str] | None = None
     retention: dict[str, object] | None = None
@@ -138,6 +150,7 @@ def resolve_gate_context(
         "featureHome": str(workflow.feature_home.resolve()),
         "packetId": packet.name,
         "packetPath": str(packet),
+        "attemptId": attempt_id,
         "outputPath": str(output),
         "pullRequest": context.pull_request.to_dict(),
         "evaluationScope": evaluation_scope,
@@ -161,6 +174,7 @@ def main() -> int:
     parser.add_argument("--context", required=True)
     parser.add_argument("--gate", required=True, choices=sorted(ARTIFACTS))
     parser.add_argument("--scope", choices=sorted(SCOPES), default="slice")
+    parser.add_argument("--attempt-id")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     try:
@@ -169,7 +183,11 @@ def main() -> int:
         )
         context = load_context(args.context)
         result = resolve_gate_context(
-            workflow, context, args.gate, scope=args.scope
+            workflow,
+            context,
+            args.gate,
+            scope=args.scope,
+            attempt_id=args.attempt_id,
         )
         if args.json:
             print(json.dumps(result, indent=2))
