@@ -27,7 +27,7 @@
 - Evidence packet: [`pr-67/`](pr-67/)
 - Issues: I-1 through I-8
 - Rubric: R1 through R8
-- State: all automated gates passed; evidence coordination commit pending human review
+- State: all automated gates passed; human review requested
 
 The implementation was provisionally evaluated in
 [`implementation-verification.md`](implementation-verification.md); the formal
