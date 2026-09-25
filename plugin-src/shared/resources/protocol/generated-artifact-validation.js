@@ -92,6 +92,18 @@ function executeInlineScripts(window, document, errors) {
   window.console = originalConsole;
 }
 
+function normalizedVisibleText(value) {
+  return value
+    .normalize('NFKC')
+    .replace(/[`*_~]/gu, '')
+    .replace(/\s+/gu, ' ')
+    .trim();
+}
+
+function visiblyIncludes(actual, expected) {
+  return normalizedVisibleText(actual).includes(normalizedVisibleText(expected));
+}
+
 function validateControls(document, challengeOutput, defenseOutput, errors) {
   for (const challenge of challengeOutput?.challenges ?? []) {
     const root = document.querySelector(`[data-challenge-id="${challenge.id}"]`);
@@ -155,14 +167,14 @@ function validateControls(document, challengeOutput, defenseOutput, errors) {
         }
       }
       const inlineText = inline.textContent ?? '';
-      if (!inlineText.includes(finding.type) || !inlineText.includes(finding.summary)) {
+      if (!visiblyIncludes(inlineText, finding.type) || !visiblyIncludes(inlineText, finding.summary)) {
         errors.push(`inline finding ${finding.id} omits its type or summary`);
       }
       if (!link) {
         errors.push(`missing Defense Findings link for ${finding.id}`);
       } else {
         const linkText = link.textContent ?? '';
-        if (!linkText.includes(finding.type) || !linkText.includes(finding.summary)) {
+        if (!visiblyIncludes(linkText, finding.type) || !visiblyIncludes(linkText, finding.summary)) {
           errors.push(`Defense Findings link ${finding.id} omits its type or summary`);
         }
       }

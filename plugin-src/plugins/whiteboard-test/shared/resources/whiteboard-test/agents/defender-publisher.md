@@ -40,9 +40,13 @@ with ID `<id>`, place an inline element with `id="finding-<id>"`,
 names a challenge, that element must be inside the owning challenge. Its
 visible text must include the finding type and summary. Also include one
 `#defense-findings` summary link with `data-finding-ref="<id>"` and
-`href="#finding-<id>"`, visibly naming the same type and summary. Native
-details controls are the required dependable reveal mechanism; you may add
-richer inline behavior around them.
+`href="#finding-<id>"`, visibly naming the same type and summary. Copy every
+word and technical token from the structured finding summary into both visible
+locations in the same order. Do not shorten, paraphrase, generalize, or omit
+terms such as library names, constant names, or classifications. You may use
+inline markup to style those exact words. Native details controls are the
+required dependable reveal mechanism; you may add richer inline behavior
+around them.
 
 Do not create answer options, multiple-choice or scored controls, reader answer
 submission, audio or video assessment, or any dependency on or mention of

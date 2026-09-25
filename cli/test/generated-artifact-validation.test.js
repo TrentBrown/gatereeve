@@ -92,6 +92,41 @@ test('requires findings both inline and in a linked summary', async () => {
   assert.match(missingLink.errors.join('\n'), /missing Defense Findings link for routing-limitation/u);
 });
 
+test('permits inline styling but rejects weakened finding copies', async () => {
+  const formattedDefense = {
+    ...defense,
+    findings: [{
+      ...defense.findings[0],
+      summary: 'A `disclosed` NON_BEHAVIORAL limitation.',
+    }],
+  };
+  const formattedHtml = html().replaceAll(
+    'A disclosed limitation.',
+    'A <code>disclosed</code> NON_BEHAVIORAL limitation.'
+  );
+  const formatted = await validateGeneratedArtifacts({
+    module,
+    outputs: {
+      challenger,
+      'defender-publisher': { ...formattedDefense, html: formattedHtml },
+    },
+  });
+  assert.equal(formatted.result, 'PASS');
+
+  const weakened = await validateGeneratedArtifacts({
+    module,
+    outputs: {
+      challenger,
+      'defender-publisher': {
+        ...formattedDefense,
+        html: formattedHtml.replaceAll(' NON_BEHAVIORAL', ''),
+      },
+    },
+  });
+  assert.equal(weakened.result, 'FAIL');
+  assert.match(weakened.errors.join('\n'), /omits its type or summary/u);
+});
+
 test('rejects grading controls, media assessment, and Explain Diff dependencies', async () => {
   for (const [markup, message] of [
     ['<input type="radio" name="answer">', /multiple-choice/u],

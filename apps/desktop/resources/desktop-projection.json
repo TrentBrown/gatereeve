@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:f113f6f2515d8aba391918f19c364606c28359ecaedbffeb011255557524c7b9",
+  "protocolHash": "sha256:d8d4a7d0ea3de55e3615e74a4f8c53e0e70f4688586dede22b86b6134ba4b11a",
   "modelSha256": "35b2f840322d7216d9749c30ede6f989738d9bec862b17e33f44b5f1c98f20f3",
   "files": [
     {
@@ -86,8 +86,8 @@
     },
     {
       "path": "generated-artifact-validation.js",
-      "size": 8768,
-      "sha256": "78aa2601316b0252a8ca058b607503807fd2ed0112351b5c806cf91439d152ff"
+      "size": 9080,
+      "sha256": "dc8706b45f5e255a8075bb4cfd6bcfdc3bee33dea915e2bd86c855e523d967fe"
     },
     {
       "path": "graph.js",
