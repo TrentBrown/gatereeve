@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -96,10 +96,16 @@ function adapter({ complete = true, onRequest = null } = {}) {
   };
 }
 
-function prepared() {
+function prepared(dependency = null) {
   return {
-    attempt: { id: 'attempt-1', scope: 'SLICE' },
-    target: { id: 'report' },
+    attempt: {
+      id: 'attempt-1', scope: 'SLICE',
+      gates: dependency === null ? [] : [{
+        id: 'verification', outcome: 'PASS', recordedEventId: 'evt-verification',
+        evidence: dependency,
+      }],
+    },
+    target: { id: 'report', dependsOn: dependency === null ? [] : ['verification'] },
     inputs: { context: { mergeBaseSha: BASE, evaluatedSourceSha: SHA } },
   };
 }
@@ -111,13 +117,15 @@ test('publishes a validated root and records only the completed governed outcome
   let snapshotOptions = null;
   let stageRequest = null;
   try {
+    const verification = '# Verification\n\nPASS\n';
+    await writeFile(join(root, 'verification.md'), verification);
     const result = await executeAgentWorkflowGate({
       repositoryRoot: root,
       featureHome: root,
       artifactRoot: join(root, 'packet'),
       modelHash: MODEL,
       module: moduleDefinition(),
-      prepared: prepared(),
+      prepared: prepared({ path: 'verification.md', hash: sha256Digest(verification) }),
       adapter: adapter({ onRequest: (value) => { stageRequest = value; } }),
       resources: {
         loadResource: async ({ path }) => path.endsWith('.md') ? 'Create the report.' : JSON.stringify({ type: 'object' }),
@@ -138,7 +146,7 @@ test('publishes a validated root and records only the completed governed outcome
     });
     assert.equal(result.status, 'completed');
     assert.equal(result.outcome, 'PASS');
-    assert.equal(result.evidence.path, 'packet/report.json');
+    assert.equal(result.evidence.path, 'packet/attempts/attempt-1/report.json');
     assert.equal(recorded.outcome, 'PASS');
     assert.deepEqual(recorded.evidence, result.evidence);
     assert.equal(cleaned, true);
@@ -149,6 +157,18 @@ test('publishes a validated root and records only the completed governed outcome
       bytes: 4,
     });
     assert.equal(snapshotOptions.evidenceFiles['.gatereeve-agent-evidence/feature.patch'], 'diff');
+    assert.deepEqual(stageRequest.input.initial.dependencyEvidence.verification, {
+      outcome: 'PASS',
+      eventId: 'evt-verification',
+      kind: 'snapshot-file',
+      path: '.gatereeve-agent-evidence/gates/verification/verification.md',
+      hash: sha256Digest(verification),
+      bytes: Buffer.byteLength(verification, 'utf8'),
+    });
+    assert.equal(
+      snapshotOptions.evidenceFiles['.gatereeve-agent-evidence/gates/verification/verification.md'],
+      verification
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -174,6 +194,36 @@ test('provider unavailability leaves the gate UNSET and does not call the record
     assert.equal(result.status, 'unavailable');
     assert.equal(result.outcome, 'UNSET');
     assert.equal(recorded, false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('changed dependency evidence fails before snapshot or provider launch', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'gatereeve-agent-service-evidence-'));
+  let snapshotCreated = false;
+  try {
+    await writeFile(join(root, 'verification.md'), 'changed\n');
+    await assert.rejects(
+      executeAgentWorkflowGate({
+        repositoryRoot: root,
+        featureHome: root,
+        artifactRoot: join(root, 'packet'),
+        modelHash: MODEL,
+        module: moduleDefinition(),
+        prepared: prepared({ path: 'verification.md', hash: sha256Digest('expected\n') }),
+        adapter: adapter(),
+        resources: {
+          loadResource: async () => '{}',
+          loadEvaluator: async () => () => ({ outcome: 'PASS', files: { 'report.json': {} } }),
+        },
+        buildChangeInput: async () => ({}),
+        createSnapshot: async () => { snapshotCreated = true; },
+        recordOutcome: async () => {},
+      }),
+      /evidence is unavailable or changed/u
+    );
+    assert.equal(snapshotCreated, false);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

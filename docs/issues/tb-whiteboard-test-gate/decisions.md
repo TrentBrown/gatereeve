@@ -88,6 +88,40 @@ Require an external fingerprints file for automatic scheduling - rejected becaus
 
 ---
 
+## Bind prerequisite evidence and native reveal validation
+
+**Confidence:** HIGH
+
+**Blast Radius:** Agent-workflow dependency packets and Whiteboard passage validation
+
+Materialize every prerequisite gate artifact as a digest-verified read-only snapshot sidecar and expose its path, outcome, event, digest, and size in `initial.dependencyEvidence`. Judge requires Verification evidence. Whiteboard requires native `<details><summary>` controls for every concise, deep, evidence, and Push Harder reveal, and its authoritative root binds a deterministic validation receipt over HTML, stage outputs, and stage receipts.
+
+**Triggered by:** The first substantive independent Judge failed R4, R5, R6, and R8 because marker-only HTML could pass without dependable controls, validation was not digest-bound, and the Judge prompt claimed Verification evidence that the runtime did not provide.
+
+**Alternatives considered:**
+Treat Verification as implicit in the dependency event - rejected because the reviewer must inspect the actual evidence. Require custom JavaScript controls - rejected because static validation cannot prove arbitrary handlers and scripts may fail. Run a provider-specific browser during every gate - rejected because headless Codex and Claude Code parity must not depend on Desktop Electron. Native details controls provide deterministic accessible reveal behavior while leaving richer optional HTML, CSS, SVG, and JavaScript available.
+
+**Promoted:** 2026-09-24. PR: 67.
+
+---
+
+## Publish agent artifacts under immutable attempt directories
+
+**Confidence:** HIGH
+
+**Blast Radius:** Agent-workflow evidence paths and historical attempt auditability
+
+Publish every agent-workflow bundle beneath `pr-<n>/attempts/<attempt-id>/` and record that exact root path in the gate event. A later attempt may create its own bundle but cannot overwrite the failed or passed evidence from an earlier attempt.
+
+**Triggered by:** The substantive attempt-8 Judge produced durable failure evidence at fixed packet-root filenames. A successful retry at those same filenames would invalidate the earlier event's evidence reference.
+
+**Alternatives considered:**
+Overwrite packet-root artifacts and rely on Git history - rejected because the working boundary event must remain locally auditable before commit and across retries. Copy failed artifacts aside without changing event paths - rejected because the event would still reference mutable bytes. Encode the attempt only inside the manifest - rejected because filesystem publication would remain destructive.
+
+**Promoted:** 2026-09-24. PR: 67.
+
+---
+
 ## Keep provider schemas explicit and retain both process diagnostics
 
 **Confidence:** HIGH

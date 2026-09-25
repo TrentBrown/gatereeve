@@ -20,16 +20,25 @@
 <body>
 <main id="whiteboard-defense">
   <h1>Routing Whiteboard Defense</h1>
-  <details id="challenge-routing" data-challenge-id="routing-boundary">
-    <summary>Why is routing decided at this boundary?</summary>
-    <p data-layer="concise">It centralizes selection before handler side effects.</p>
-    <p data-layer="deep">The boundary validates metadata once and passes an immutable selection.</p>
-    <p data-layer="evidence"><code>src/router.js:10-22</code></p>
+  <article id="challenge-routing" data-challenge-id="routing-boundary">
+    <h2>Why is routing decided at this boundary?</h2>
+    <details data-challenge-ref="routing-boundary" data-layer="concise">
+      <summary>Reveal concise defense</summary>
+      <p>It centralizes selection before handler side effects.</p>
+    </details>
+    <details data-challenge-ref="routing-boundary" data-layer="deep">
+      <summary>Reveal deep defense</summary>
+      <p>The boundary validates metadata once and passes an immutable selection.</p>
+    </details>
+    <details data-challenge-ref="routing-boundary" data-layer="evidence">
+      <summary>Reveal evidence</summary>
+      <p><code>src/router.js:10-22</code></p>
+    </details>
     <details data-push-harder-id="routing-failure">
       <summary>Push Harder: what fails when route metadata is stale?</summary>
       <p>The router rejects the request before a handler runs.</p>
     </details>
-  </details>
+  </article>
   <section id="defense-findings" aria-labelledby="findings-title">
     <h2 id="findings-title">Defense findings</h2>
     <p><a href="#challenge-routing">Known limitation in routing metrics</a></p>

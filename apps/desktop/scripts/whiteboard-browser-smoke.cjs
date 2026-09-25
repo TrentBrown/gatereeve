@@ -30,15 +30,16 @@ const htmlPath = resolve(__dirname, '../test/fixtures/whiteboard-browser-smoke.h
     await window.loadFile(htmlPath);
     const result = await window.webContents.executeJavaScript(`(() => {
       const primary = document.querySelector('[data-challenge-id]');
+      const layers = [...primary.querySelectorAll('details[data-layer]')];
       const harder = document.querySelector('[data-push-harder-id]');
-      primary.querySelector(':scope > summary').click();
+      layers.forEach((layer) => layer.querySelector(':scope > summary').click());
       harder.querySelector(':scope > summary').click();
       const visual = document.querySelector('[data-visual-id] svg');
       return {
         ready: document.documentElement.dataset.whiteboardReady,
-        primaryOpen: primary.open,
+        primaryOpen: layers.every((layer) => layer.open),
         harderOpen: harder.open,
-        layers: primary.querySelectorAll('[data-layer]').length,
+        layers: layers.length,
         findingTarget: document.querySelector('#defense-findings a').getAttribute('href'),
         visualRole: visual.getAttribute('role'),
         visualDescription: visual.querySelector('desc')?.textContent,

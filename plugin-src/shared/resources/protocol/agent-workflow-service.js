@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { relative, resolve, sep } from 'node:path';
+import { lstat, readFile, realpath } from 'node:fs/promises';
+import { basename, join, relative, resolve, sep } from 'node:path';
 
 import { runAgentWorkflow } from './agent-workflow-runtime.js';
 import { sha256Digest } from './agent-workflow.js';
@@ -55,6 +56,72 @@ function externalizePatches(change) {
   return { value, evidenceFiles };
 }
 
+async function evidenceFile(repositoryRoot, featureHome, reference) {
+  if (
+    reference === null
+    || typeof reference !== 'object'
+    || typeof reference.path !== 'string'
+    || reference.path === ''
+    || !/^sha256:[0-9a-f]{64}$/u.test(reference.hash ?? '')
+    || reference.path.includes('\\')
+    || reference.path.split('/').some((part) => part === '..')
+  ) throw new ContractError('Dependency gate evidence reference is invalid');
+  const root = await realpath(repositoryRoot);
+  const candidates = reference.path.startsWith('/')
+    ? [resolve(reference.path)]
+    : [resolve(repositoryRoot, reference.path), resolve(featureHome, reference.path)];
+  for (const candidate of candidates) {
+    try {
+      const [canonical, metadata] = await Promise.all([realpath(candidate), lstat(candidate)]);
+      if (!metadata.isFile() || metadata.isSymbolicLink()) continue;
+      if (canonical !== root && !canonical.startsWith(`${root}${sep}`)) continue;
+      const content = await readFile(canonical, 'utf8');
+      if (sha256Digest(content) !== reference.hash) continue;
+      return { content, filename: basename(canonical) };
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  }
+  throw new ContractError(`Dependency gate evidence is unavailable or changed: ${reference.path}`);
+}
+
+async function externalizeDependencyEvidence({ repositoryRoot, featureHome, prepared }) {
+  const value = {};
+  const evidenceFiles = {};
+  for (const gateId of prepared.target.dependsOn ?? []) {
+    const gate = prepared.attempt.gates?.find((item) => item.id === gateId);
+    if (!gate) throw new ContractError(`Dependency gate ${gateId} is unavailable`);
+    const file = gate.evidence
+      ? await evidenceFile(repositoryRoot, featureHome, gate.evidence)
+      : ['WAIVED', 'NOT_APPLICABLE'].includes(gate.outcome)
+        ? {
+            content: `${JSON.stringify({
+              schemaVersion: 1,
+              gateId,
+              outcome: gate.outcome,
+              eventId: gate.recordedEventId,
+              reason: gate.reason,
+            }, null, 2)}\n`,
+            filename: 'disposition.json',
+          }
+        : null;
+    if (file === null) throw new ContractError(`Dependency gate ${gateId} lacks evidence`);
+    const safeGateId = gateId.replace(/[^A-Za-z0-9._-]/gu, '-');
+    const path = `.gatereeve-agent-evidence/gates/${safeGateId}/${file.filename}`;
+    evidenceFiles[path] = file.content;
+    const hash = sha256Digest(file.content);
+    value[gateId] = {
+      outcome: gate.outcome,
+      eventId: gate.recordedEventId,
+      kind: 'snapshot-file',
+      path,
+      hash,
+      bytes: Buffer.byteLength(file.content, 'utf8'),
+    };
+  }
+  return { value, evidenceFiles };
+}
+
 export async function executeAgentWorkflowGate({
   repositoryRoot,
   featureHome,
@@ -77,6 +144,9 @@ export async function executeAgentWorkflowGate({
   if (prepared.target.id !== module.boundary?.gateId || prepared.attempt.id === undefined) {
     throw new ContractError('Prepared gate does not match the agent-workflow module');
   }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(prepared.attempt.id)) {
+    throw new ContractError('Prepared attempt ID is unsafe for artifact publication');
+  }
   if (typeof resources?.loadResource !== 'function' || typeof resources?.loadEvaluator !== 'function') {
     throw new ContractError('Agent workflow resource access is unavailable');
   }
@@ -98,6 +168,9 @@ export async function executeAgentWorkflowGate({
     featureHome,
   });
   const externalized = externalizePatches(change);
+  const dependencyEvidence = await externalizeDependencyEvidence({
+    repositoryRoot, featureHome, prepared,
+  });
   const input = {
     schemaVersion: 1,
     source: {
@@ -111,12 +184,17 @@ export async function executeAgentWorkflowGate({
     },
     boundary: structuredClone(prepared.inputs),
     change: externalized.value,
+    dependencyEvidence: dependencyEvidence.value,
   };
   const snapshot = await createSnapshot({
     repositoryRoot,
     headSha: range.headSha,
-    evidenceFiles: externalized.evidenceFiles,
+    evidenceFiles: {
+      ...externalized.evidenceFiles,
+      ...dependencyEvidence.evidenceFiles,
+    },
   });
+  const attemptArtifactRoot = join(artifactRoot, 'attempts', prepared.attempt.id);
   try {
     const evaluator = await resources.loadEvaluator({
       pluginId: module.run.resourcePlugin,
@@ -139,7 +217,7 @@ export async function executeAgentWorkflowGate({
         evaluator({ module: evaluatedModule, input: evaluatedInput, outputs, receipts, repositoryPath })
       ),
       publishArtifacts: async ({ module: evaluatedModule, evaluation }) => publishArtifacts({
-        artifactRoot,
+        artifactRoot: attemptArtifactRoot,
         module: evaluatedModule,
         files: evaluation.files,
       }),
@@ -148,7 +226,7 @@ export async function executeAgentWorkflowGate({
     const root = result.artifacts.find((artifact) => artifact.path === module.run.evidenceRoot);
     if (!root) throw new ContractError('Agent workflow did not publish its evidence root');
     const evidence = {
-      path: evidencePath(featureHome, artifactRoot, root.path),
+      path: evidencePath(featureHome, attemptArtifactRoot, root.path),
       hash: root.hash,
     };
     const recorded = await recordOutcome({

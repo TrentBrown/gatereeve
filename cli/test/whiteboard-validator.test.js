@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import {
   createWhiteboardBundle,
+  createWhiteboardValidationReceipt,
   validateWhiteboardBundle,
   whiteboardDigest,
 } from '../../plugin-src/plugins/whiteboard-test/shared/resources/whiteboard-test/validator.js';
@@ -61,10 +62,11 @@ const defenseOutput = {
 };
 
 const html = `<!doctype html><html><body><main id="whiteboard-defense">
-  <article data-challenge-id="routing-boundary"><button aria-controls="answer-routing-boundary">Reveal</button>
-  <section id="answer-routing-boundary" hidden><div data-layer="concise">Concise</div>
-  <div data-layer="deep">Deep</div><div data-layer="evidence">Evidence</div></section>
-  <section data-push-harder-id="routing-failure">Push harder</section></article>
+  <article data-challenge-id="routing-boundary">
+  <details data-challenge-ref="routing-boundary" data-layer="concise"><summary>Reveal concise defense</summary><p>Concise</p></details>
+  <details data-layer="deep" data-challenge-ref="routing-boundary"><summary>Reveal deep defense</summary><p>Deep</p></details>
+  <details data-challenge-ref="routing-boundary" data-layer="evidence"><summary>Reveal evidence</summary><p>Evidence</p></details>
+  <details data-push-harder-id="routing-failure"><summary>Push harder</summary><p>Answer</p></details></article>
   <section id="defense-findings">Known limitation</section>
   <figure data-visual-id="request-flow"><svg role="img" aria-label="Request flow"></svg><figcaption>Request flow</figcaption></figure>
 </main><script>document.querySelector('button').onclick=()=>{};</script></body></html>`;
@@ -98,6 +100,9 @@ function bundle() {
       summary: 'A substantive defense with one disclosed limitation.',
       substantive: true,
       artifactDeficiencies: [],
+      validation: createWhiteboardValidationReceipt({
+        html, challengeOutput, defenseOutput: defender, receipts,
+      }),
       files: {
         html: { path: 'whiteboard-defense.html', sha256: whiteboardDigest(html) },
         challenger: { path: 'challenger.json', sha256: whiteboardDigest(challengeOutput) },
@@ -106,6 +111,16 @@ function bundle() {
       receipts: receipts.map((item) => ({ stage: item.stage, sha256: whiteboardDigest(item) })),
     },
   };
+}
+
+function refreshValidation(value) {
+  value.manifest.validation = createWhiteboardValidationReceipt({
+    html: value.html,
+    challengeOutput: value.challengeOutput,
+    defenseOutput: value.defenseOutput,
+    receipts: value.receipts,
+  });
+  return value;
 }
 
 test('work deficiencies remain visible without failing a substantive Whiteboard Defense', () => {
@@ -117,21 +132,45 @@ test('work deficiencies remain visible without failing a substantive Whiteboard 
 test('artifact deficiencies fail validation when questions are softened or evidence is omitted', () => {
   const rewritten = bundle();
   rewritten.defenseOutput.challenges[0].prompt = 'A softer question?';
+  refreshValidation(rewritten);
   assert.throws(() => validateWhiteboardBundle(rewritten), /rewrote question/);
 
   const unsupported = bundle();
   unsupported.defenseOutput.challenges[0].evidence = [];
+  refreshValidation(unsupported);
   assert.throws(() => validateWhiteboardBundle(unsupported), /needs repository evidence/);
+});
+
+test('missing native reveal controls and stale validation receipts prevent passage', () => {
+  const staticArtifact = bundle();
+  staticArtifact.html = staticArtifact.html.replace(
+    '<details data-challenge-ref="routing-boundary" data-layer="concise"><summary>Reveal concise defense</summary><p>Concise</p></details>',
+    '<div data-challenge-ref="routing-boundary" data-layer="concise"><p>Concise</p></div>'
+  );
+  staticArtifact.manifest.files.html.sha256 = whiteboardDigest(staticArtifact.html);
+  staticArtifact.manifest.validation = createWhiteboardValidationReceipt({
+    html: staticArtifact.html,
+    challengeOutput: staticArtifact.challengeOutput,
+    defenseOutput: staticArtifact.defenseOutput,
+    receipts: staticArtifact.receipts,
+  });
+  assert.throws(() => validateWhiteboardBundle(staticArtifact), /native details and summary/u);
+
+  const stale = bundle();
+  stale.manifest.validation.inputDigest = `sha256:${'0'.repeat(64)}`;
+  assert.throws(() => validateWhiteboardBundle(stale), /validation receipt is invalid or stale/u);
 });
 
 test('nontrivial defenses require a bound visual and self-contained sandbox-safe HTML', () => {
   const missingVisual = bundle();
   missingVisual.defenseOutput.visualModels = [];
+  refreshValidation(missingVisual);
   assert.throws(() => validateWhiteboardBundle(missingVisual), /needs a visual model/);
 
   const external = bundle();
   external.html = external.html.replace('</main>', '<img src="https://example.com/x.png"></main>');
   external.manifest.files.html.sha256 = whiteboardDigest(external.html);
+  refreshValidation(external);
   assert.throws(() => validateWhiteboardBundle(external), /forbidden external authority/);
 });
 
@@ -171,6 +210,7 @@ test('governed validation resolves every evidence line against the pinned reposi
   assert.equal(validateWhiteboardBundle({ ...value, repositoryPath }).outcome, 'PASS');
 
   value.defenseOutput.challenges[0].evidence[0].endLine = 26;
+  refreshValidation(value);
   assert.throws(
     () => validateWhiteboardBundle({ ...value, repositoryPath }),
     /evidence line exceeds src\/router\.js/

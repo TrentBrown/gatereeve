@@ -3,6 +3,16 @@ import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 
 const SHA256 = /^sha256:[0-9a-f]{64}$/u;
+const VALIDATOR_ID = 'whiteboard-test/deterministic-v1';
+const VALIDATION_CHECKS = Object.freeze([
+  'challenge-integrity',
+  'evidence-resolution',
+  'native-progressive-reveal',
+  'visual-linkage',
+  'sandbox-containment',
+  'artifact-bindings',
+  'isolation-receipts',
+]);
 const FINDING_TYPES = new Set([
   'Undocumented rationale',
   'Evidence gap',
@@ -35,6 +45,19 @@ function digest(value) {
 
 function unique(items, label) {
   if (new Set(items).size !== items.length) fail(`${label} must be unique`);
+}
+
+function escaped(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
+function requireNativeReveal(html, attributes, label) {
+  const lookaheads = Object.entries(attributes).map(([name, value]) => (
+    `(?=[^>]*\\b${escaped(name)}=["']${escaped(value)}["'])`
+  )).join('');
+  if (!new RegExp(`<details\\b${lookaheads}[^>]*>\\s*<summary\\b`, 'iu').test(html)) {
+    fail(`${label} must use a native details and summary reveal control`);
+  }
 }
 
 function validateEvidence(evidence, label, repositoryPath = null) {
@@ -100,20 +123,20 @@ function validateHtml(html, challengeOutput, defenseOutput) {
     fail('HTML does not implement the Whiteboard Defense semantic root');
   }
   for (const challenge of challengeOutput.challenges) {
-    const escaped = challenge.id.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-    if (!new RegExp(`data-challenge-id=["']${escaped}["']`, 'u').test(html)) {
+    const challengeId = escaped(challenge.id);
+    if (!new RegExp(`data-challenge-id=["']${challengeId}["']`, 'u').test(html)) {
       fail(`HTML omits challenge ${challenge.id}`);
     }
-  }
-  for (const layer of ['concise', 'deep', 'evidence']) {
-    const count = html.match(new RegExp(`data-layer=["']${layer}["']`, 'gu'))?.length ?? 0;
-    if (count < challengeOutput.challenges.length) fail(`HTML omits ${layer} reveal layers`);
+    for (const layer of ['concise', 'deep', 'evidence']) {
+      requireNativeReveal(
+        html,
+        { 'data-challenge-ref': challenge.id, 'data-layer': layer },
+        `${challenge.id} ${layer} layer`
+      );
+    }
   }
   for (const push of challengeOutput.challenges.flatMap((challenge) => challenge.pushHarder ?? [])) {
-    const escaped = push.id.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-    if (!new RegExp(`data-push-harder-id=["']${escaped}["']`, 'u').test(html)) {
-      fail(`HTML omits Push Harder question ${push.id}`);
-    }
+    requireNativeReveal(html, { 'data-push-harder-id': push.id }, `Push Harder ${push.id}`);
   }
   if (defenseOutput.findings.length > 0 && !/id=["']defense-findings["']/u.test(html)) {
     fail('HTML omits the linked Defense Findings summary');
@@ -138,6 +161,38 @@ function validateHtml(html, challengeOutput, defenseOutput) {
     /\blocation\s*=|\.location\s*=/u,
   ];
   if (forbidden.some((pattern) => pattern.test(html))) fail('HTML requests forbidden external authority');
+}
+
+function validationInputDigest({ html, challengeOutput, defenseOutput, receipts }) {
+  return digest({ html, challengeOutput, defenseOutput, receipts });
+}
+
+export function createWhiteboardValidationReceipt({
+  html, challengeOutput, defenseOutput, receipts, result = 'PASS', errors = [],
+}) {
+  return {
+    schemaVersion: 1,
+    validator: VALIDATOR_ID,
+    result,
+    checks: [...VALIDATION_CHECKS],
+    inputDigest: validationInputDigest({ html, challengeOutput, defenseOutput, receipts }),
+    errors: [...errors],
+  };
+}
+
+function validateValidationReceipt(validation, inputs, outcome) {
+  object(validation, 'validation receipt');
+  if (
+    validation.schemaVersion !== 1
+    || validation.validator !== VALIDATOR_ID
+    || validation.result !== outcome
+    || JSON.stringify(validation.checks) !== JSON.stringify(VALIDATION_CHECKS)
+    || validation.inputDigest !== validationInputDigest(inputs)
+    || !Array.isArray(validation.errors)
+  ) fail('validation receipt is invalid or stale');
+  if (outcome === 'PASS' && validation.errors.length > 0) {
+    fail('PASS validation receipt cannot contain errors');
+  }
 }
 
 function validateFileBinding(binding, expectedPath, content, label) {
@@ -172,6 +227,11 @@ export function validateWhiteboardBundle({
 
   object(challengeOutput, 'Challenger output');
   object(defenseOutput, 'Defender output');
+  validateValidationReceipt(
+    manifest.validation,
+    { html, challengeOutput, defenseOutput, receipts },
+    manifest.outcome
+  );
   if (challengeOutput.schemaVersion !== 1 || defenseOutput.schemaVersion !== 1) fail('stage output version is unsupported');
   assertQuestionsPreserved(challengeOutput, defenseOutput, repositoryPath);
 
@@ -253,6 +313,9 @@ export function createWhiteboardBundle({ module, input, outputs, receipts, repos
     summary: defenseOutput?.summary ?? 'Whiteboard Defense artifact validation failed.',
     substantive: true,
     artifactDeficiencies: [],
+    validation: createWhiteboardValidationReceipt({
+      html, challengeOutput, defenseOutput, receipts,
+    }),
     files: {
       html: { path: 'whiteboard-defense.html', sha256: digest(html ?? '') },
       challenger: { path: 'challenger.json', sha256: digest(challengeOutput ?? null) },
@@ -268,6 +331,10 @@ export function createWhiteboardBundle({ module, input, outputs, receipts, repos
     manifest.outcome = 'FAIL';
     manifest.substantive = false;
     manifest.artifactDeficiencies = [error.message];
+    manifest.validation = createWhiteboardValidationReceipt({
+      html, challengeOutput, defenseOutput, receipts,
+      result: 'FAIL', errors: [error.message],
+    });
   }
   return {
     outcome: manifest.outcome,
