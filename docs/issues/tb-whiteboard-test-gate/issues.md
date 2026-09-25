@@ -101,7 +101,7 @@ evidence compatibility.
 
 ## I-8 - Integrated acceptance, documentation, and PR boundary
 
-- **Status:** in-progress
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P8, P9
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
@@ -114,7 +114,7 @@ governed PR boundary.
 
 ## I-9 - Repair clean-checkout release startup and complete publication
 
-- **Status:** in-progress
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P8, P9
 - **Rubric criteria:** R7
