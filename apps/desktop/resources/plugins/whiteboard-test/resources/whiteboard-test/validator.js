@@ -281,6 +281,12 @@ export function validateWhiteboardBundle({
 
   object(challengeOutput, 'Challenger output');
   object(defenseOutput, 'Defender output');
+  if (typeof defenseOutput.substantiveAttestation !== 'boolean') {
+    fail('Defender substantive attestation is invalid');
+  }
+  if (manifest.substantive !== defenseOutput.substantiveAttestation) {
+    fail('manifest substantive flag does not match Defender attestation');
+  }
   validateValidationReceipt(
     manifest.validation,
     { html, challengeOutput, defenseOutput, receipts, artifactValidation },
@@ -371,7 +377,7 @@ export function createWhiteboardBundle({
     },
     outcome: 'PASS',
     summary: defenseOutput?.summary ?? 'Whiteboard Defense artifact validation failed.',
-    substantive: true,
+    substantive: defenseOutput?.substantiveAttestation === true,
     artifactDeficiencies: [],
     validation: createWhiteboardValidationReceipt({
       html, challengeOutput, defenseOutput, receipts, artifactValidation,

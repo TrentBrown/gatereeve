@@ -1,11 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["schemaVersion", "title", "summary", "challenges", "findings", "visualModels", "html"],
+  "required": ["schemaVersion", "title", "summary", "substantiveAttestation", "challenges", "findings", "visualModels", "html"],
   "properties": {
     "schemaVersion": {"type": "integer", "const": 1},
     "title": {"type": "string", "minLength": 1},
     "summary": {"type": "string", "minLength": 1},
+    "substantiveAttestation": {"type": "boolean"},
     "challenges": {
       "type": "array",
       "minItems": 1,

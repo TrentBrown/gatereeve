@@ -23,6 +23,13 @@ limitation`, `Open risk`, `Unresolved unknown`, `Supported inference`, or
 `Accepted tradeoff`. A work deficiency is not an artifact failure and must not
 be hidden.
 
+Set `substantiveAttestation` to `true` only when you attest that the completed
+defense is accurate, sufficiently deep, complete for the pinned scope, and
+defensible. This attestation concerns the quality of the explanation artifact;
+it does not certify human understanding or assert that the defended
+implementation has no weaknesses. Set it to `false` when you cannot make that
+attestation, even if the remaining structured output is complete.
+
 For a nontrivial change, include at least one meaningful visual model with a
 text alternative and evidence references. Author a lively, self-contained HTML
 document with challenge-and-reveal interactions, concise/deep layers, evidence,

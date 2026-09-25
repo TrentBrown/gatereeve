@@ -36,6 +36,7 @@ const defenseOutput = {
   schemaVersion: 1,
   title: 'Routing Whiteboard Defense',
   summary: 'The route boundary owns selection while handlers own execution.',
+  substantiveAttestation: true,
   challenges: [{
     id: 'routing-boundary',
     prompt: 'Why is routing decided at this boundary?',
@@ -152,6 +153,35 @@ test('work deficiencies remain visible without failing a substantive Whiteboard 
   const value = bundle();
   assert.equal(validateWhiteboardBundle(value).outcome, 'PASS');
   assert.equal(value.defenseOutput.findings[0].type, 'Known limitation');
+});
+
+test('Whiteboard PASS requires the Defender and Publisher substantive attestation', () => {
+  const value = bundle();
+  value.defenseOutput.substantiveAttestation = false;
+  value.manifest.substantive = false;
+  refreshValidation(value);
+  assert.throws(() => validateWhiteboardBundle(value), /PASS requires a substantive defense/u);
+
+  const created = createWhiteboardBundle({
+    module: value.manifest.module,
+    input: { source: value.manifest.source },
+    outputs: { challenger: value.challengeOutput, 'defender-publisher': value.defenseOutput },
+    receipts: value.receipts,
+    artifactValidation: value.artifactValidation,
+  });
+  assert.equal(created.manifest.outcome, 'FAIL');
+  assert.equal(created.manifest.substantive, false);
+  assert.match(created.manifest.artifactDeficiencies[0], /PASS requires a substantive defense/u);
+});
+
+test('manifest substantive status must match the Defender and Publisher attestation', () => {
+  const value = bundle();
+  value.defenseOutput.substantiveAttestation = false;
+  refreshValidation(value);
+  assert.throws(
+    () => validateWhiteboardBundle(value),
+    /manifest substantive flag does not match Defender attestation/u,
+  );
 });
 
 test('artifact deficiencies fail validation when questions are softened or evidence is omitted', () => {
