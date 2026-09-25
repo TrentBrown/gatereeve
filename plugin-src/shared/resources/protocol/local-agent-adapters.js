@@ -181,7 +181,7 @@ export function createCodexAgentAdapter({
         await writeFile(schemaPath, `${JSON.stringify(request.outputSchema, null, 2)}\n`, { mode: 0o600 });
         const processResult = await runner(executable, [
           'exec', '--ephemeral', '--ignore-user-config', '--ignore-rules',
-          '--sandbox', 'read-only', '--model', model,
+          '--skip-git-repo-check', '--sandbox', 'read-only', '--model', model,
           '--config', `model_reasoning_effort="${reasoningEffort}"`,
           '--config', 'shell_environment_policy.inherit="none"',
           '--cd', request.repositoryPath,

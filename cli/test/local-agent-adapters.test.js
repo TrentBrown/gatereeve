@@ -55,6 +55,7 @@ test('Codex adapter launches a fresh ephemeral read-only structured run', async 
   assert.equal(validateAgentWorkflowReceipt(result.receipt), result.receipt);
   assert.equal(result.receipt.provider.contextId, 'codex-context-1');
   assert(calls[0].args.includes('--ephemeral'));
+  assert(calls[0].args.includes('--skip-git-repo-check'));
   assert(calls[0].args.includes('read-only'));
   assert(calls[0].args.includes('--output-schema'));
   assert(calls[0].args.includes('shell_environment_policy.inherit="none"'));

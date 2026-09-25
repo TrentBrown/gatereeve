@@ -102,3 +102,20 @@ Keep the compact context as the stable protocol event contract. Before an automa
 Store the full tool-specific PR context in future boundary events - rejected because it changes the stable protocol event shape and does not repair existing attempts. Skip currentness validation for compact events - rejected because it would allow stale source to reach an isolated reviewer.
 
 **Promoted:** 2026-09-24. PR: 67.
+
+---
+
+## Explicitly trust only the generated Codex snapshot checkout
+
+**Confidence:** HIGH
+
+**Blast Radius:** Codex adapter launch arguments for isolated Judge and Whiteboard stages
+
+Pass Codex --skip-git-repo-check only for the GateReeve-created disposable snapshot. Preserve ephemeral execution, ignored user config and rules, read-only sandboxing, empty inherited shell environment, explicit model and reasoning, bounded JSON schema, and the snapshot cleanup lifecycle.
+
+**Triggered by:** The first fully prepared isolated Judge launch reached Codex, which rejected GateReeve own disposable pinned snapshot as an untrusted checkout.
+
+**Alternatives considered:**
+Run Codex against the developer checkout - rejected because it weakens pinned read-only isolation. Preconfigure every random snapshot directory as trusted - rejected because the path is disposable and would require broader persistent trust mutation. Use only Claude Code - rejected because Codex parity is an acceptance requirement.
+
+**Promoted:** 2026-09-24. PR: 67.
