@@ -4,7 +4,7 @@
     "minimum": "1.0.0"
   },
   "coreVersion": "1.0.0",
-  "createdAt": "2026-09-25T01:39:26.403Z",
+  "createdAt": "2026-09-25T03:01:55.360Z",
   "guardIds": [
     "boundary.context.current",
     "boundary.requiredGates.current",
@@ -362,6 +362,7 @@
         "gatereeve/pattern-review",
         "gatereeve/judge",
         "gatereeve/code-review",
+        "whiteboard-test/defense",
         "gatereeve/decision-triage",
         "gatereeve/explain-diff",
         "gatereeve/packet-validation"
@@ -962,7 +963,7 @@
           "waiverAllowed": false
         }
       ],
-      "policyDigest": "sha256:f1a71802ff08f6784b3ce29ecc8c53a6f01694af8dbfb65a058e0df5a07108f3",
+      "policyDigest": "sha256:0fb8aaa64e916558199362b9b4b967736b30c26f18dc7a15013eeb214da8e24b",
       "schemaVersion": 1
     },
     "presentation": {
@@ -1105,7 +1106,7 @@
       ]
     }
   },
-  "modelHash": "sha256:95ba8ada95c12e6301c87402d5fc8f312d28f0fccf5545fb664cb74b0520f16f",
+  "modelHash": "sha256:23d59ac0fcc88e6df8cba1e299ef7975ee786fa384bcd812b95ec15011d7df43",
   "modelId": "gatereeve/workflow",
   "modelVersion": "1.3.0",
   "schemaVersion": 1
