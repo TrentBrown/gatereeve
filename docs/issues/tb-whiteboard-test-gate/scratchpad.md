@@ -224,7 +224,7 @@ Overwrite the packet-root Judge files - rejected because the attempt-8 event bin
 
 ## [17] Make Whiteboard presentation semantics machine-enforceable
 
-[ ] **Promote**
+[x] **Promote**
 
 **Confidence:** HIGH
 

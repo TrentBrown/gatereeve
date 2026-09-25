@@ -255,3 +255,20 @@ Keep full patch coverage without injecting patch bodies into the model prompt. M
 Truncate or summarize patches - rejected because it can silently lose coverage. Depend on one provider larger context window - rejected because equivalent Codex and Claude Code behavior is required. Give the model access to the developer checkout Git history - rejected because the approved contract is a disposable pinned read-only view.
 
 **Promoted:** 2026-09-24. PR: 67.
+
+---
+
+## Make Whiteboard presentation semantics machine-enforceable
+
+**Confidence:** HIGH
+
+**Blast Radius:** Whiteboard Defender output schema, generated HTML validation, plugin validator, staged Desktop resources, and representative browser fixtures
+
+Give every finding a stable portable ID. Require an inline element whose ID and typed data attributes bind that finding, place challenge-scoped findings inside their owning challenge, require a summary link back to the inline marker, and require both locations to visibly name the finding type and summary. Reject answer-entry and grading controls, audio or video media, and any Explain Diff mention before Whiteboard can pass.
+
+**Triggered by:** Attempt-14 Judge found that prompt-level requirements for inline linked findings and the bans on grading, audio assessment, and Explain Diff dependency were not all required by the deterministic PASS contract.
+
+**Alternatives considered:**
+Rely only on the Defender prompt - rejected because model compliance is not a deterministic gate. Link findings directly to the challenge root - rejected because it does not identify the exact inline finding or prove that its type and summary are rendered. Add a constrained renderer - rejected because the approved freeform HTML model remains valuable; a semantic DOM contract preserves visual freedom while enforcing the required behavior.
+
+**Promoted:** 2026-09-24. PR: #67.

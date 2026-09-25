@@ -23,11 +23,11 @@
 ### PR #67 - Whiteboard Test and isolated Judge
 
 - Draft PR: <https://github.com/TrentBrown/gatereeve/pull/67>
-- Scope: feature-final; complete change from `10e54a0` through `212c12f`
+- Scope: feature-final; evaluated source from `10e54a0` through `a930cb0`
 - Evidence packet: [`pr-67/`](pr-67/)
 - Issues: I-1 through I-8
 - Rubric: R1 through R8
-- State: formal boundary in progress
+- State: all automated gates passed; evidence coordination commit pending human review
 
 The implementation was provisionally evaluated in
 [`implementation-verification.md`](implementation-verification.md); the formal
