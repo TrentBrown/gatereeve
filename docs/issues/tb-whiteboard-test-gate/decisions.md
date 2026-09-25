@@ -272,3 +272,20 @@ Give every finding a stable portable ID. Require an inline element whose ID and 
 Rely only on the Defender prompt - rejected because model compliance is not a deterministic gate. Link findings directly to the challenge root - rejected because it does not identify the exact inline finding or prove that its type and summary are rendered. Add a constrained renderer - rejected because the approved freeform HTML model remains valuable; a semantic DOM contract preserves visual freedom while enforcing the required behavior.
 
 **Promoted:** 2026-09-24. PR: #67.
+
+---
+
+## Load the generated artifact validator only for agent workflows
+
+**Confidence:** HIGH
+
+**Blast Radius:** CLI source checkout startup, release conductor and packaged agent-workflow execution
+
+Keep the generated-artifact validator in the staged CLI resource tree for packaged execution, but load it lazily only when running an agent-workflow gate. Ordinary protocol and release commands must start from a clean source checkout without staging ignored CLI resources. Add a clean-checkout startup regression test and resume release only after the fix merges.
+
+**Triggered by:** Release Conductor rc.13 initialization failed before tagging because the clean checkout lacks ignored cli/resources/protocol/generated-artifact-validation.js
+
+**Alternatives considered:**
+Stage CLI resources in every release workflow - rejected because many independent jobs would need the same workaround and the CLI would still fail before staging in other source-checkout contexts. Track the generated cli/resources tree - rejected because it duplicates generated protocol files and violates the existing ignore/staging contract. Import directly from plugin-src - rejected because packaged CLI does not contain that source tree.
+
+**Promoted:** 2026-09-25. PR: release closeout PR pending.

@@ -23,11 +23,19 @@
 ### PR #67 - Whiteboard Test and isolated Judge
 
 - Draft PR: <https://github.com/TrentBrown/gatereeve/pull/67>
-- Scope: feature-final; evaluated source from `10e54a0` through `a930cb0`
+- Scope: feature-final; evaluated source from `10e54a0` through `21e8684`
 - Evidence packet: [`pr-67/`](pr-67/)
 - Issues: I-1 through I-8
 - Rubric: R1 through R8
-- State: all automated gates passed; human review requested
+- State: all automated gates passed; human review accepted; merged to `main` as `a80c406` on 2026-09-25
+
+### Release closeout
+
+The first `v0.1.0-rc.13` Release Conductor start (run 36153873700) failed
+before tagging or publication because an ignored staged CLI validator was
+imported during startup in a clean GitHub checkout. I-9 tracks the narrow
+follow-up fix; finalization remains pending a terminal release and local
+installation.
 
 The implementation was provisionally evaluated in
 [`implementation-verification.md`](implementation-verification.md); the formal

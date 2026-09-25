@@ -111,3 +111,16 @@ evidence compatibility.
 Complete representative failure and lifecycle fixtures, broad regressions,
 Desktop and plugin dogfood, documentation, rubric evaluation, and the single
 governed PR boundary.
+
+## I-9 - Repair clean-checkout release startup and complete publication
+
+- **Status:** in-progress
+- **Estimate:** unknown
+- **Plan steps:** P8, P9
+- **Rubric criteria:** R7
+- **Depends on:** I-8
+- **PR:** pending
+
+Fix the CLI startup failure exposed by the first `v0.1.0-rc.13` Release
+Conductor run, verify the fix in a clean checkout, and finish the governed
+release and local installation without weakening the protected release gates.
