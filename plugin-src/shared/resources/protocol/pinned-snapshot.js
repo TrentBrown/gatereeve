@@ -9,7 +9,7 @@ import { ContractError } from './errors.js';
 
 const execFileAsync = promisify(execFile);
 const SHA = /^[0-9a-f]{40,64}$/u;
-const MAX_PACKET_BYTES = 12 * 1024 * 1024;
+const MAX_PACKET_BYTES = 900 * 1024;
 
 async function defaultRunner(executable, args, options) {
   const result = await execFileAsync(executable, args, {
@@ -158,16 +158,17 @@ export async function buildPinnedChangeInput({
     'git', ['-C', root, 'diff', '--binary', '--no-ext-diff', '--no-renames', `${baseSha}..${headSha}`], { cwd: root }
   );
   const effectiveSliceBase = sliceBaseSha ?? baseSha;
-  const sliceChangedFiles = scope === 'FEATURE'
+  const sliceMatchesFeature = scope === 'FEATURE' && effectiveSliceBase === baseSha;
+  const sliceChangedFiles = scope === 'FEATURE' && !sliceMatchesFeature
     ? lines(await runner(
         'git', ['-C', root, 'diff', '--name-only', '--no-renames', `${effectiveSliceBase}..${headSha}`], { cwd: root }
       ))
     : changedFiles;
-  const slicePatch = scope === 'FEATURE'
+  const slicePatch = scope === 'FEATURE' && !sliceMatchesFeature
     ? await runner(
         'git', ['-C', root, 'diff', '--binary', '--no-ext-diff', '--no-renames', `${effectiveSliceBase}..${headSha}`], { cwd: root }
       )
-    : patch;
+    : scope === 'FEATURE' ? null : patch;
 
   const documents = {};
   if (featureHome !== null) {
@@ -189,6 +190,7 @@ export async function buildPinnedChangeInput({
     patch,
     sliceChangedFiles,
     slicePatch,
+    slicePatchSameAsFeature: sliceMatchesFeature,
     documents,
   };
   if (Buffer.byteLength(JSON.stringify(value), 'utf8') > MAX_PACKET_BYTES) {

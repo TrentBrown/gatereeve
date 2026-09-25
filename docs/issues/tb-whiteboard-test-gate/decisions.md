@@ -119,3 +119,20 @@ Pass Codex --skip-git-repo-check only for the GateReeve-created disposable snaps
 Run Codex against the developer checkout - rejected because it weakens pinned read-only isolation. Preconfigure every random snapshot directory as trusted - rejected because the path is disposable and would require broader persistent trust mutation. Use only Claude Code - rejected because Codex parity is an acceptance requirement.
 
 **Promoted:** 2026-09-24. PR: 67.
+
+---
+
+## Deduplicate identical feature and final-slice patches within provider budget
+
+**Confidence:** HIGH
+
+**Blast Radius:** Feature-final Judge and Whiteboard input packets for single-PR features and large diffs
+
+When featureBaseSha equals sliceBaseSha, carry the complete patch once, set slicePatch to null, and attest slicePatchSameAsFeature=true. Preserve both changed-file inventories and all feature documents. Reduce the deterministic packet ceiling to 900 KiB so remaining oversized changes fail closed before provider launch instead of being silently truncated. PR #67 now produces a 715,875-byte complete packet.
+
+**Triggered by:** The first isolated Codex turn received 1,376,184 characters because a single-PR feature-final packet embedded the same patch twice, exceeding the provider 1,048,576-character input ceiling.
+
+**Alternatives considered:**
+Silently truncate the patch - rejected because it loses coverage. Raise or ignore the provider limit - impossible and nonportable. Split Judge into unbounded per-file turns - rejected because the approved Judge is one bounded independent attempt and retries must remain bounded.
+
+**Promoted:** 2026-09-24. PR: 67.

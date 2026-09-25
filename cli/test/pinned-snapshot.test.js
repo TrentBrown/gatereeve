@@ -70,4 +70,6 @@ test('builds slice and feature-final packets from explicit base and head objects
   });
   assert.equal(feature.source.sliceBaseSha, value.baseSha);
   assert.deepEqual(feature.sliceChangedFiles, ['app.txt']);
+  assert.equal(feature.slicePatch, null);
+  assert.equal(feature.slicePatchSameAsFeature, true);
 });
