@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -7,6 +7,7 @@ import {
   createCodexAgentAdapter,
   parseClaudeStructuredOutput,
   parseCodexContextId,
+  runAgentProcess,
   validateAgentWorkflowReceipt,
 } from '../../plugin-src/shared/resources/protocol/index.js';
 
@@ -115,4 +116,37 @@ test('provider adapters reject oversized prompts before launching a process', as
     /prompt exceeds the bounded/u
   );
   assert.equal(launched, false);
+});
+
+test('failed provider processes retain stdout errors alongside stderr warnings', async () => {
+  await assert.rejects(
+    runAgentProcess(process.execPath, [
+      '-e',
+      'process.stderr.write("warning\\n"); process.stdout.write("structured failure\\n"); process.exit(1);',
+    ], { cwd: process.cwd(), input: '', timeoutSeconds: 5 }),
+    (error) => {
+      assert.match(error.message, /stderr:\nwarning/u);
+      assert.match(error.message, /stdout:\nstructured failure/u);
+      return true;
+    }
+  );
+});
+
+test('bundled provider output schemas type every constant', async () => {
+  const paths = [
+    'plugin-src/shared/resources/agent-workflows/judge/result.schema.json',
+    'plugin-src/plugins/whiteboard-test/shared/resources/whiteboard-test/schemas/challenges.schema.json',
+    'plugin-src/plugins/whiteboard-test/shared/resources/whiteboard-test/schemas/defense.schema.json',
+  ];
+  for (const path of paths) {
+    const schema = JSON.parse(await readFile(new URL(`../../${path}`, import.meta.url), 'utf8'));
+    const visit = (value) => {
+      if (value === null || typeof value !== 'object') return;
+      if (Object.hasOwn(value, 'const')) {
+        assert.equal(typeof value.type, 'string', `${path} has an untyped const`);
+      }
+      for (const child of Object.values(value)) visit(child);
+    };
+    visit(schema);
+  }
 });

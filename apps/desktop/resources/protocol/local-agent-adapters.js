@@ -57,8 +57,12 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
         completedAt,
       };
       if (code !== 0 || signal !== null) {
+        const diagnostic = [
+          result.stderr.trim() ? `stderr:\n${result.stderr.trim()}` : null,
+          result.stdout.trim() ? `stdout:\n${result.stdout.trim()}` : null,
+        ].filter(Boolean).join('\n');
         return reject(new Error(
-          `${executable} failed (${signal ?? code}): ${result.stderr.trim() || result.stdout.trim()}`
+          `${executable} failed (${signal ?? code}): ${diagnostic}`
         ));
       }
       resolve(result);

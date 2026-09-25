@@ -131,3 +131,18 @@ Keep full patch coverage without injecting patch bodies into the model prompt. M
 
 **Alternatives considered:**
 Truncate or summarize patches - rejected because it can silently lose coverage. Depend on one provider larger context window - rejected because equivalent Codex and Claude Code behavior is required. Give the model access to the developer checkout Git history - rejected because the approved contract is a disposable pinned read-only view.
+
+## [11] Keep provider schemas explicit and retain both process diagnostics
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** All local agent-workflow provider schema failures and process diagnostics
+
+Every constant-valued field in a provider-facing output schema must also declare its JSON type so the schema is accepted by strict structured-output providers. When a provider exits unsuccessfully, retain bounded stderr and stdout together; warnings on stderr must not hide a structured API error on stdout.
+
+**Triggered by:** The first sidecar-backed Judge launch reached Codex with a bounded prompt, but Codex rejected the Judge schema because `schemaVersion` used `const` without `type`. The adapter reported only unrelated stderr warnings and concealed the actionable stdout error.
+
+**Alternatives considered:**
+Strip provider warnings - rejected because warnings remain useful diagnostic evidence. Prefer stderr over stdout - rejected because Codex reports structured request failures on stdout. Loosen the Judge schema - rejected because explicit typing preserves, rather than weakens, the contract.

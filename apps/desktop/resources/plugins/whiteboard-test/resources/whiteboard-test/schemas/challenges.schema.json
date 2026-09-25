@@ -3,7 +3,7 @@
   "type": "object",
   "required": ["schemaVersion", "scopeSummary", "complexity", "challenges"],
   "properties": {
-    "schemaVersion": {"const": 1},
+    "schemaVersion": {"type": "integer", "const": 1},
     "scopeSummary": {"type": "string", "minLength": 1},
     "complexity": {"enum": ["trivial", "nontrivial"]},
     "challenges": {

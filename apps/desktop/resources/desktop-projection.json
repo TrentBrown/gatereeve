@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:32aa79e138abbcc44eee9c918d396040f0de67bf4527c33734809f3bc78b3f4c",
+  "protocolHash": "sha256:3e96f0011aa9eb15f67856cee4821674cafd8496789ad136ca4f02cb909ffaa4",
   "modelSha256": "c342f3ec710920d3a9ace7657f86a855bf723b4003a72d44f217772415e839d3",
   "files": [
     {
@@ -111,8 +111,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 9354,
-      "sha256": "71142e2069f0ebae37d88585e42484470650087200330fe0e43483aff4762f64"
+      "size": 9539,
+      "sha256": "3b7d8e6b8e07a800dee5e8a4c23ef8a1d1ec16d902c9cc71f7cf5f74d6600dc3"
     },
     {
       "path": "model/default-workflow-policy.json",

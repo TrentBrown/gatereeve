@@ -88,6 +88,23 @@ Require an external fingerprints file for automatic scheduling - rejected becaus
 
 ---
 
+## Keep provider schemas explicit and retain both process diagnostics
+
+**Confidence:** HIGH
+
+**Blast Radius:** All local agent-workflow provider schema failures and process diagnostics
+
+Every constant-valued field in a provider-facing output schema must also declare its JSON type so the schema is accepted by strict structured-output providers. When a provider exits unsuccessfully, retain bounded stderr and stdout together; warnings on stderr must not hide a structured API error on stdout.
+
+**Triggered by:** The first sidecar-backed Judge launch reached Codex with a bounded prompt, but Codex rejected the Judge schema because `schemaVersion` used `const` without `type`. The adapter reported only unrelated stderr warnings and concealed the actionable stdout error.
+
+**Alternatives considered:**
+Strip provider warnings - rejected because warnings remain useful diagnostic evidence. Prefer stderr over stdout - rejected because Codex reports structured request failures on stdout. Loosen the Judge schema - rejected because explicit typing preserves, rather than weakens, the contract.
+
+**Promoted:** 2026-09-24. PR: 67.
+
+---
+
 ## Expand compact boundary context through the trusted PR resolver
 
 **Confidence:** HIGH
