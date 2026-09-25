@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pattern Review"
+  short_description: "Run the pattern-review gate"
+  default_prompt: "Run pattern-review for this repo."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Spec Evaluate"
+  short_description: "Evaluate implementation against rubric"
+  default_prompt: "Evaluate this implementation against the spec."

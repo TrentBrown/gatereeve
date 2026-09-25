@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Commit"
+  short_description: "Commit verified intended changes safely"
+  default_prompt: "Commit the verified intended changes."

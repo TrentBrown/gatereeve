@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["initial", "dependencies"],
+  "properties": {
+    "initial": {
+      "type": "object",
+      "required": ["dependencyEvidence"],
+      "properties": {
+        "dependencyEvidence": {
+          "type": "object",
+          "required": ["verification"],
+          "properties": {
+            "verification": {
+              "type": "object",
+              "required": ["outcome", "eventId", "kind", "path", "hash", "bytes"],
+              "properties": {
+                "outcome": {"enum": ["PASS", "WAIVED", "NOT_APPLICABLE"]},
+                "eventId": {"type": "string", "minLength": 1},
+                "kind": {"type": "string", "const": "snapshot-file"},
+                "path": {"type": "string", "minLength": 1},
+                "hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                "bytes": {"type": "integer", "minimum": 1}
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "dependencies": {"type": "object", "maxProperties": 0}
+  },
+  "additionalProperties": false
+}

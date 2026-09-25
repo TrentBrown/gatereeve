@@ -1,0 +1,19 @@
+{
+  "name": "whiteboard-test",
+  "displayName": "Whiteboard Test",
+  "version": "0.1.0-rc.13",
+  "description": "Build an adversarial, evidence-backed Whiteboard Defense for a governed code change.",
+  "author": {
+    "name": "QualityCode",
+    "url": "https://qualitycode.io"
+  },
+  "homepage": "https://github.com/TrentBrown/agentic-development-workflow",
+  "repository": "https://github.com/TrentBrown/agentic-development-workflow",
+  "keywords": [
+    "whiteboard-test",
+    "code-explanation",
+    "pull-request",
+    "agentic"
+  ],
+  "skills": "./skills/"
+}

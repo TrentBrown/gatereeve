@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "platform": "claude",
+  "version": "0.1.0-rc.13",
+  "sourceCommit": "94bad7535f71a9e31b2ce61ef40dbff6463e51bb",
+  "sourceTag": "v0.1.0-rc.13",
+  "protocolHash": "sha256:d8d4a7d0ea3de55e3615e74a4f8c53e0e70f4688586dede22b86b6134ba4b11a"
+}

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "path": "resources/whiteboard-test/agents/challenger.md",
+      "type": "file",
+      "size": 1302,
+      "sha256": "36b98dbadc6bab47b0c27382f89890602d0c4f4b74e82308f8ac907b7969d095"
+    },
+    {
+      "path": "resources/whiteboard-test/agents/defender-publisher.md",
+      "type": "file",
+      "size": 4176,
+      "sha256": "c5ed5625b025f175cbb53156b1bd980ec6a04dee017feb90b29727c55b730ad3"
+    },
+    {
+      "path": "resources/whiteboard-test/package.json",
+      "type": "file",
+      "size": 42,
+      "sha256": "609158e6c5fbc237939fa3ddf7faab80ab690bdc0c8d584414a885130103c4e8"
+    },
+    {
+      "path": "resources/whiteboard-test/schemas/challenges.schema.json",
+      "type": "file",
+      "size": 1318,
+      "sha256": "92880b8ee562e31bd672de15c3a3bd7f3c022b7490a9b5797f78138c031e3627"
+    },
+    {
+      "path": "resources/whiteboard-test/schemas/defense.schema.json",
+      "type": "file",
+      "size": 3957,
+      "sha256": "47d744dc14e77d0db0b1d0221229856c73d070f2b07d4b757a894a95558a1c96"
+    },
+    {
+      "path": "resources/whiteboard-test/schemas/stage-input.schema.json",
+      "type": "file",
+      "size": 257,
+      "sha256": "7c60db19f5e1108bc6c4dc3ba0221014b38ea0afc87dcc0651932a0034e23a2e"
+    },
+    {
+      "path": "resources/whiteboard-test/schemas/whiteboard-defense.schema.json",
+      "type": "file",
+      "size": 2265,
+      "sha256": "dfd1ee75a25896bb7251812f6e576a9f0c377b42515ed481739dcbe89ec0806c"
+    },
+    {
+      "path": "resources/whiteboard-test/validator.js",
+      "type": "file",
+      "size": 18180,
+      "sha256": "b65f58a9d1f376cded1da735b8e52b0b98bcff5f2bf6fbfa182c12d29b09ff70"
+    },
+    {
+      "path": "skills/whiteboard-test/SKILL.md",
+      "type": "file",
+      "size": 655,
+      "sha256": "6bd151482198f57daca0174e2c44104f8abb32242aed393e47fbeccee40adf2d"
+    }
+  ]
+}

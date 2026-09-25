@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow PR Review"
+  short_description: "Review PRs and diffs for issues"
+  default_prompt: "Review this PR or diff."
