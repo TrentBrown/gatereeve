@@ -33,7 +33,8 @@
 
 The first `v0.1.0-rc.13` Release Conductor start (run 36153873700) failed
 before tagging or publication because an ignored staged CLI validator was
-imported during startup in a clean GitHub checkout. I-9 tracks the narrow
+imported during startup in a clean GitHub checkout. I-9 and
+[PR #68](https://github.com/TrentBrown/gatereeve/pull/68) track the narrow
 follow-up fix; finalization remains pending a terminal release and local
 installation.
 

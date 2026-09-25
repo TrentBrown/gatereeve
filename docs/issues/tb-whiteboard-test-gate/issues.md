@@ -119,7 +119,7 @@ governed PR boundary.
 - **Plan steps:** P8, P9
 - **Rubric criteria:** R7
 - **Depends on:** I-8
-- **PR:** pending
+- **PR:** #68
 
 Fix the CLI startup failure exposed by the first `v0.1.0-rc.13` Release
 Conductor run, verify the fix in a clean checkout, and finish the governed

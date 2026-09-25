@@ -288,4 +288,4 @@ Keep the generated-artifact validator in the staged CLI resource tree for packag
 **Alternatives considered:**
 Stage CLI resources in every release workflow - rejected because many independent jobs would need the same workaround and the CLI would still fail before staging in other source-checkout contexts. Track the generated cli/resources tree - rejected because it duplicates generated protocol files and violates the existing ignore/staging contract. Import directly from plugin-src - rejected because packaged CLI does not contain that source tree.
 
-**Promoted:** 2026-09-25. PR: release closeout PR pending.
+**Promoted:** 2026-09-25. PR: #68.
