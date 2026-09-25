@@ -166,6 +166,9 @@ test('Defender and Publisher instructions require a final exact evidence-span au
   assert.match(prompt, /re-open every cited evidence file/u);
   assert.match(prompt, /Never estimate a line span/u);
   assert.match(prompt, /cite beyond the\s+end of a file/u);
+  assert.match(prompt, /visual `evidenceRefs` value/u);
+  assert.match(prompt, /copied verbatim from a declared challenge or Push Harder evidence item/u);
+  assert.match(prompt, /Do not merge,\s+widen, summarize, or invent a visual evidence span/u);
 });
 
 test('Whiteboard PASS requires the Defender and Publisher substantive attestation', () => {

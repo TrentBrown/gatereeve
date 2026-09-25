@@ -36,7 +36,10 @@ implementation has no weaknesses. Set it to `false` when you cannot make that
 attestation, even if the remaining structured output is complete.
 
 For a nontrivial change, include at least one meaningful visual model with a
-text alternative and evidence references. Author a lively, self-contained HTML
+text alternative and evidence references. Every visual `evidenceRefs` value
+must be copied verbatim from a declared challenge or Push Harder evidence item:
+use either its exact `path` or its exact `path:startLine-endLine`. Do not merge,
+widen, summarize, or invent a visual evidence span. Author a lively, self-contained HTML
 document with challenge-and-reveal interactions, concise/deep layers, evidence,
 findings, visuals, and optional one-level Push Harder reveals. Use only inline
 HTML, CSS, JavaScript, and SVG; do not use external resources, navigation,
