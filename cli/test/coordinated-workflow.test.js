@@ -178,8 +178,9 @@ test('Release Conductor is the sole start/resume entry point and derives every p
   assert.match(source, /options:\n\s+- start\n\s+- resume/);
   assert.match(source, /direct_install_confirmed:/);
   assert.match(source, /git\/ref\/tags\/\$RELEASE_TAG/);
-  assert.match(source, /plugin-src\/codex\/\.codex-plugin\/plugin\.json/);
-  assert.match(source, /plugin-src\/claude\/\.claude-plugin\/plugin\.json/);
+  assert.match(source, /loadMarketplacePluginRegistry/);
+  assert.match(source, /registry\.plugins\.flatMap/);
+  assert.match(source, /plugin\.initialVersion !== parsed\.baseVersion/);
   for (const name of phaseFiles) {
     assert.match(source, new RegExp(name.replace('.', '\\\.')));
   }

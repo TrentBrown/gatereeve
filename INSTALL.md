@@ -178,15 +178,15 @@ registration and plugin installation steps.
 ### Alternative: private Git-backed marketplace
 
 The managed Git-backed path remains available to users with read access to
-`TrentBrown/agentic-development-workflow`. Authenticate GitHub CLI and confirm
+`TrentBrown/gatereeve`. Authenticate GitHub CLI and confirm
 the repository can be fetched:
 
 ```bash
 gh auth login --hostname github.com --git-protocol https --web
 gh auth setup-git
 gh auth status
-gh repo view TrentBrown/agentic-development-workflow
-git ls-remote https://github.com/TrentBrown/agentic-development-workflow.git main
+gh repo view TrentBrown/gatereeve
+git ls-remote https://github.com/TrentBrown/gatereeve.git main
 ```
 
 Use the Git-backed commands in section 5 instead of setting
@@ -208,7 +208,7 @@ Alternatively, register the private Git-backed marketplace:
 
 ```bash
 codex plugin marketplace add \
-  TrentBrown/agentic-development-workflow \
+  TrentBrown/gatereeve \
   --ref marketplace
 ```
 
@@ -236,7 +236,7 @@ Alternatively, register the private Git-backed marketplace:
 
 ```bash
 claude plugin marketplace add \
-  TrentBrown/agentic-development-workflow@marketplace \
+  TrentBrown/gatereeve@marketplace \
   --scope user
 ```
 
@@ -334,7 +334,7 @@ used for rollback if needed:
 
 ```bash
 git ls-remote \
-  https://github.com/TrentBrown/agentic-development-workflow.git \
+  https://github.com/TrentBrown/gatereeve.git \
   refs/heads/marketplace
 ```
 
@@ -374,7 +374,7 @@ maintainer. Replace `<MARKETPLACE_COMMIT>` in every command with that commit.
 codex plugin remove agentic-development-workflow@quality-code
 codex plugin marketplace remove quality-code
 codex plugin marketplace add \
-  TrentBrown/agentic-development-workflow \
+  TrentBrown/gatereeve \
   --ref <MARKETPLACE_COMMIT>
 codex plugin add agentic-development-workflow@quality-code
 ```
@@ -387,7 +387,7 @@ claude plugin uninstall \
   --scope user
 claude plugin marketplace remove quality-code --scope user
 claude plugin marketplace add \
-  TrentBrown/agentic-development-workflow@<MARKETPLACE_COMMIT> \
+  TrentBrown/gatereeve@<MARKETPLACE_COMMIT> \
   --scope user
 claude plugin install \
   agentic-development-workflow@quality-code \
@@ -431,7 +431,7 @@ caches, create skill symlinks, or copy skills into personal agent directories.
 ## Troubleshooting
 
 - **Private marketplace fetch fails:** rerun `gh auth status`,
-  `gh auth setup-git`, `gh repo view TrentBrown/agentic-development-workflow`,
+  `gh auth setup-git`, `gh repo view TrentBrown/gatereeve`,
   and the `git ls-remote` check from section 4.
 - **Codex doctor reports activation missing:** start a fresh session, run
   `/hooks`, and trust the workflow's current `SessionStart` hook.

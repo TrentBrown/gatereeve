@@ -51,3 +51,20 @@ Permanent record of decisions promoted from `scratchpad.md`.
 - **Alternatives considered:** Disable the user's global hook for the test process, which would broaden the exception; classify the failures as unrelated and leave the broad suite red; weaken the production protected-branch rule.
 
 **Promoted:** 2026-09-24.
+
+---
+
+## Bind installation and release preflight to the active multi-plugin registry
+
+**Confidence:** HIGH
+
+**Blast Radius:** Installation documentation, native platform contracts, Release Conductor preflight, and release workflow tests
+
+Use TrentBrown/gatereeve as the Git-backed marketplace source because the coordinated publisher writes this repository's marketplace branch. Derive Plugin manifest version checks from marketplace-plugins.json, including each registered plugin's initialVersion, before protected release authority becomes reachable. Keep later native and candidate-integrity validation as independent checks.
+
+**Triggered by:** Release-readiness inspection found that local-install commands still targeted the retired marketplace repository and the protected release preflight enumerated only the original plugin manifests
+
+**Alternatives considered:**
+Continue publishing while documenting the stale repository, which would install rc.2 instead of the current marketplace; rely only on later candidate validation, which weakens the conductor's fail-early contract; hard-code the Whiteboard paths, which would recreate the next multi-plugin maintenance defect.
+
+**Promoted:** 2026-09-24.

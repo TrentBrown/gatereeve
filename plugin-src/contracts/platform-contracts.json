@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "verifiedAt": "2026-07-16",
+  "verifiedAt": "2026-09-24",
   "verifiedClients": {
     "codex": "0.142.4",
     "claudeCode": "2.1.195"
   },
   "variables": {
-    "repository": "TrentBrown/agentic-development-workflow",
+    "repository": "TrentBrown/gatereeve",
     "releaseRef": "marketplace",
     "plugin": "agentic-development-workflow",
     "marketplace": "quality-code"
@@ -71,7 +71,7 @@
         "plugin",
         "marketplace",
         "add",
-        "TrentBrown/agentic-development-workflow",
+        "TrentBrown/gatereeve",
         "--ref",
         "marketplace"
       ],
@@ -164,7 +164,7 @@
         "plugin",
         "marketplace",
         "add",
-        "TrentBrown/agentic-development-workflow@marketplace"
+        "TrentBrown/gatereeve@marketplace"
       ],
       "marketplaceList": [
         "claude",
