@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 2,
+  "scope": "feature-final",
+  "featureId": "tb-whiteboard-test-gate",
+  "repositoryAlias": "product",
+  "packetId": "pr-67",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 67,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/67",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "10e54a08ddfa0815bb8d4d2ae393f7c0c7ae2602",
+    "headRefName": "tb-whiteboard-test-gate",
+    "headRefOid": "212c12f260f0696250515e0d6db9385773e577d6"
+  },
+  "mergeBaseSha": "10e54a08ddfa0815bb8d4d2ae393f7c0c7ae2602",
+  "evaluatedSourceSha": "212c12f260f0696250515e0d6db9385773e577d6",
+  "featureBaseSha": "10e54a08ddfa0815bb8d4d2ae393f7c0c7ae2602",
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/whiteboard-test-and-judge-isolation-pr67-attempt-13/verification.md",
+        "sha256": "sha256:b98661ec760c6b5cd174cec64b171d5e7e208459b694301977962fe3487e7cb8"
+      }
+    },
+    "specEvaluation": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/whiteboard-test-and-judge-isolation-pr67-attempt-13/spec-evaluation.md",
+        "sha256": "sha256:391e51a29c660ba4d793f80a08a6133f97a7d06ef45fbfee7eb5414ba524432c"
+      }
+    },
+    "judge": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/whiteboard-test-and-judge-isolation-pr67-attempt-13/judge.md",
+        "sha256": "sha256:4a5ab807744066a247830864bdd2eb26d99f9477b7efd854078ee10ecf9177a0"
+      }
+    },
+    "codeReview": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/whiteboard-test-and-judge-isolation-pr67-attempt-13/code-review.md",
+        "sha256": "sha256:a84a9e55b28c9e6b66c8e4e908ff2dedab79d807991b8f534693fc9a5f61d8dc"
+      }
+    },
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No applicable .pattern-review directory exists in the pinned repository scope.",
+      "evidence": null
+    },
+    "explainDiff": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/whiteboard-test-and-judge-isolation-pr67-attempt-13/explain-diff.html",
+        "sha256": "sha256:70571d42d57d034f63829597159d836ebde06b8b716e058b45e5e2c42d36ed5b"
+      }
+    }
+  }
+}

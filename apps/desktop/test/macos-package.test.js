@@ -6,6 +6,7 @@ import { access, lstat, mkdir, mkdtemp, readFile, readlink, rm, writeFile } from
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
 import { createMacosDmg } from '../scripts/create-macos-dmg.mjs';
@@ -93,6 +94,8 @@ test('runtime package allowlist admits scoped parents but rejects unstaged sibli
   assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm/xterm/lib/xterm.mjs'), true);
   assert.equal(isApprovedRuntimePackagePath('/node_modules/@xterm/unapproved'), false);
   assert.equal(isApprovedRuntimePackagePath('/node_modules/node-pty/lib/index.js'), true);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/linkedom/esm/index.js'), true);
+  assert.equal(isApprovedRuntimePackagePath('/node_modules/htmlparser2/node_modules/entities/lib/index.js'), true);
   assert.equal(isApprovedRuntimePackagePath('/node_modules/electron'), false);
 });
 
@@ -204,6 +207,16 @@ test('Desktop staging contains only self-contained runtime resources', async () 
     for (const packageName of STAGED_RUNTIME_PACKAGES) {
       await access(resolve(stageRoot, 'node_modules', packageName, 'package.json'));
     }
+    const validatorImport = await run(process.execPath, [
+      '--input-type=module',
+      '-e',
+      'await import(process.argv[1]);',
+      pathToFileURL(resolve(
+        stageRoot,
+        'resources/protocol/generated-artifact-validation.js',
+      )).href,
+    ]);
+    assert.equal(validatorImport.stderr, '');
     assert.equal(
       (await lstat(resolve(
         stageRoot,

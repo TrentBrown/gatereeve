@@ -19,6 +19,7 @@
   },
   "scripts": {
     "start": "node bin/workflow.js",
+    "pretest": "npm run stage:protocol",
     "test": "node --test",
     "build:plugins": "node bin/workflow.js plugin build",
     "stage:protocol": "node scripts/stage-protocol.js",

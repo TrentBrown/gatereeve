@@ -35,14 +35,29 @@ export const STAGED_DIRECTORIES = Object.freeze([
 export const RUNTIME_DEPENDENCIES = Object.freeze({
   '@xterm/addon-fit': '0.11.0',
   '@xterm/xterm': '6.0.0',
+  'linkedom': '0.18.12',
   'node-pty': '1.2.0-beta.15',
 });
 
 export const STAGED_RUNTIME_PACKAGES = Object.freeze([
   '@xterm/addon-fit',
   '@xterm/xterm',
+  'boolbase',
+  'css-select',
+  'css-what',
+  'cssom',
+  'dom-serializer',
+  'domelementtype',
+  'domhandler',
+  'domutils',
+  'entities',
+  'html-escaper',
+  'htmlparser2',
+  'linkedom',
   'node-addon-api',
   'node-pty',
+  'nth-check',
+  'uhyphen',
 ]);
 
 export const STAGED_PYTHON_RUNTIME_PATHS = Object.freeze([
@@ -66,6 +81,7 @@ export const REQUIRED_ASAR_PATHS = Object.freeze([
   '/node_modules/@xterm/addon-fit/lib/addon-fit.mjs',
   '/node_modules/@xterm/xterm/css/xterm.css',
   '/node_modules/@xterm/xterm/lib/xterm.mjs',
+  '/node_modules/linkedom/esm/index.js',
   '/node_modules/node-pty/lib/index.js',
   '/node_modules/node-pty/prebuilds/darwin-arm64/pty.node',
   '/node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper',
