@@ -35,6 +35,7 @@ async function loadFixture() {
 test('validates matching native manifests, catalogs, and hooks', async () => {
   const result = await loadAndValidateNativeSources(sourceRoot);
   assert.equal(result.plugin, 'agentic-development-workflow');
+  assert.deepEqual(result.plugins, ['agentic-development-workflow', 'whiteboard-test']);
   assert.equal(result.version, '0.1.0');
   assert.deepEqual(result.platforms, ['codex', 'claude']);
 });

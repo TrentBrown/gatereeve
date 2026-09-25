@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import test from 'node:test';
@@ -437,7 +437,8 @@ test('active project summary follows the enriched canonical workflow state', asy
 
 test('module mutations stay scoped to the selected project and refresh canonical state', async () => {
   const worktree = await mkdtemp(join(tmpdir(), 'gatereeve-module-coordinator-'));
-  const featureHome = join(worktree, 'docs/issues/fixture');
+  const canonicalWorktree = await realpath(worktree);
+  const featureHome = join(canonicalWorktree, 'docs/issues/fixture');
   const calls = [];
   const settings = { schemaVersion: 1, modules: [] };
   const protocol = {
@@ -493,13 +494,13 @@ test('module mutations stay scoped to the selected project and refresh canonical
     reason: 'Accepted risk', confirmationLabel: 'Trent',
   });
   await coordinator.completeFinalization({ attemptId: null, confirmationLabel: 'Trent' });
-  assert(calls.some((call) => call[0] === 'apply' && call[1] === worktree && call[2] === featureHome));
+  assert(calls.some((call) => call[0] === 'apply' && call[1] === canonicalWorktree && call[2] === featureHome));
   assert(calls.some((call) => call[0] === 'waive'
-    && call[1].repositoryRoot === worktree
+    && call[1].repositoryRoot === canonicalWorktree
     && call[1].featureHome === featureHome));
   for (const kind of ['finalization-start', 'finalization-waive', 'finalization-complete']) {
     assert(calls.some((call) => call[0] === kind
-      && call[1].repositoryRoot === worktree
+      && call[1].repositoryRoot === canonicalWorktree
       && call[1].featureHome === featureHome));
   }
   coordinator.close();

@@ -1,6 +1,8 @@
-import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { join, relative, resolve, sep } from 'node:path';
+
+import { loadMarketplacePluginRegistry } from './registry.js';
 
 const SUPPORTED_PLATFORMS = new Set(['codex', 'claude']);
 const MANIFEST_PATHS = {
@@ -219,6 +221,7 @@ export async function composePackages({
       resolve(buildDirectory, 'provenance.json'),
       stableJson({
         schemaVersion: 1,
+        plugin: manifestName,
         platform,
         version,
         sourceCommit,
@@ -251,6 +254,69 @@ export async function composePackages({
     sourceCommit,
     sourceTag,
     protocol: protocolSource,
+    packages,
+  };
+}
+
+export async function composeMarketplacePackages({
+  sourceRoot,
+  distRoot,
+  platforms = ['codex', 'claude'],
+  version,
+  sourceCommit,
+  sourceTag = null,
+}) {
+  validateInputs({ platforms, version, sourceCommit });
+  const normalizedSourceRoot = resolve(sourceRoot);
+  const normalizedDistRoot = resolve(distRoot);
+  const registry = await loadMarketplacePluginRegistry(normalizedSourceRoot);
+
+  await rm(normalizedDistRoot, { recursive: true, force: true });
+  await mkdir(normalizedDistRoot, { recursive: true });
+  const stagingRoot = resolve(normalizedDistRoot, '.compose');
+  const packages = [];
+
+  try {
+    for (const plugin of registry.plugins) {
+      const pluginSourceRoot = resolve(normalizedSourceRoot, plugin.sourceRoot);
+      const pluginStagingRoot = resolve(stagingRoot, plugin.id);
+      const result = await composePackages({
+        sourceRoot: pluginSourceRoot,
+        distRoot: pluginStagingRoot,
+        platforms,
+        version,
+        sourceCommit,
+        sourceTag,
+      });
+      for (const item of result.packages) {
+        if (item.pluginName !== plugin.id) {
+          throw new Error(
+            `Registered plugin ${plugin.id} produced manifest identity ${item.pluginName}`
+          );
+        }
+        const outputPath = resolve(normalizedDistRoot, item.platform, plugin.id);
+        await mkdir(resolve(outputPath, '..'), { recursive: true });
+        await rename(item.outputPath, outputPath);
+        packages.push({ ...item, pluginId: plugin.id, outputPath });
+      }
+    }
+  } finally {
+    await rm(stagingRoot, { recursive: true, force: true });
+  }
+
+  return {
+    schemaVersion: 1,
+    marketplace: registry.marketplace,
+    sourceRoot: normalizedSourceRoot,
+    distRoot: normalizedDistRoot,
+    version,
+    sourceCommit,
+    sourceTag,
+    plugins: registry.plugins.map(({ id, displayName, sourceRoot: root }) => ({
+      id,
+      displayName,
+      sourceRoot: root,
+    })),
     packages,
   };
 }

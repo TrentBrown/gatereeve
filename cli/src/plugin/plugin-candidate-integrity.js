@@ -14,7 +14,6 @@ import { validateDeployedRelease } from './release-version.js';
 export const PLUGIN_CANDIDATE_INTEGRITY_SCHEMA_VERSION = 1;
 export const PLUGIN_CANDIDATE_INTEGRITY_KIND = 'gatereeve-plugin-candidate-integrity';
 
-const PLUGIN_ID = 'agentic-development-workflow';
 const MARKETPLACE_ID = 'quality-code';
 const SHA256 = /^[a-f0-9]{64}$/u;
 const COMMIT = /^[a-f0-9]{40}$/u;
@@ -51,6 +50,15 @@ async function readJson(path, label) {
     return JSON.parse(await readFile(path, 'utf8'));
   } catch (error) {
     throw new Error(`${label} is missing or invalid`, { cause: error });
+  }
+}
+
+async function readOptionalJson(path) {
+  try {
+    return JSON.parse(await readFile(path, 'utf8'));
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
   }
 }
 
@@ -106,9 +114,8 @@ export async function assertPluginCandidateSemantics({
   sourceCommit,
 }) {
   const root = resolve(pluginRoot);
-  const release = validateDeployedRelease(
-    await readJson(resolve(root, 'RELEASE.json'), 'Plugin RELEASE.json'),
-  );
+  const releaseMetadata = await readJson(resolve(root, 'RELEASE.json'), 'Plugin RELEASE.json');
+  const release = validateDeployedRelease(releaseMetadata);
   if (
     release.tag !== sourceTag
     || release.version !== sourceTag.slice(1)
@@ -123,53 +130,66 @@ export async function assertPluginCandidateSemantics({
     resolve(root, '.claude-plugin/marketplace.json'),
     'Claude marketplace catalog',
   );
+  const codexIds = codexCatalog.plugins?.map((plugin) => plugin.name);
+  const claudeIds = claudeCatalog.plugins?.map((plugin) => plugin.name);
   if (
     codexCatalog.name !== MARKETPLACE_ID
     || claudeCatalog.name !== MARKETPLACE_ID
-    || codexCatalog.plugins?.length !== 1
-    || claudeCatalog.plugins?.length !== 1
-    || codexCatalog.plugins[0].name !== PLUGIN_ID
-    || claudeCatalog.plugins[0].name !== PLUGIN_ID
-    || codexCatalog.plugins[0].source?.path !== `./plugins/codex/${PLUGIN_ID}`
-    || claudeCatalog.plugins[0].source !== `./plugins/claude/${PLUGIN_ID}`
+    || !Array.isArray(codexIds)
+    || codexIds.length === 0
+    || JSON.stringify(codexIds) !== JSON.stringify(claudeIds)
   ) throw new Error('Plugin marketplace catalogs are inconsistent');
-
-  const inventories = [];
-  for (const platform of ['codex', 'claude']) {
-    const packageRoot = resolve(root, 'plugins', platform, PLUGIN_ID);
-    const manifest = await readJson(
-      resolve(
-        packageRoot,
-        platform === 'codex' ? '.codex-plugin/plugin.json' : '.claude-plugin/plugin.json',
-      ),
-      `${platform} package manifest`,
-    );
-    const hooks = await readJson(resolve(packageRoot, 'hooks/hooks.json'), `${platform} hooks`);
-    const provenance = await readJson(
-      resolve(packageRoot, '.workflow-build/provenance.json'),
-      `${platform} build provenance`,
-    );
-    const inventory = await readJson(
-      resolve(packageRoot, '.workflow-build/shared-files.json'),
-      `${platform} shared-file inventory`,
-    );
-    if (
-      manifest.name !== PLUGIN_ID
-      || manifest.version !== sourceTag.slice(1)
-      || manifest.skills !== './skills/'
-    ) throw new Error(`${platform} package manifest identity or version differs`);
-    if (!hasSessionStartHook(hooks)) throw new Error(`${platform} SessionStart hook is invalid`);
-    if (
-      provenance.platform !== platform
-      || provenance.version !== sourceTag.slice(1)
-      || provenance.sourceTag !== sourceTag
-      || provenance.sourceCommit !== sourceCommit
-    ) throw new Error(`${platform} build provenance differs from the candidate`);
-    await validateSharedFiles(packageRoot, inventory, platform);
-    inventories.push(inventory);
+  if (Array.isArray(releaseMetadata.plugins) && JSON.stringify(releaseMetadata.plugins) !== JSON.stringify(codexIds)) {
+    throw new Error('Plugin release metadata differs from the marketplace catalogs');
   }
-  if (JSON.stringify(inventories[0]) !== JSON.stringify(inventories[1])) {
-    throw new Error('Codex and Claude shared-file inventories differ');
+
+  for (const pluginId of codexIds) {
+    const codexEntry = codexCatalog.plugins.find((plugin) => plugin.name === pluginId);
+    const claudeEntry = claudeCatalog.plugins.find((plugin) => plugin.name === pluginId);
+    if (
+      codexEntry?.source?.path !== `./plugins/codex/${pluginId}`
+      || claudeEntry?.source !== `./plugins/claude/${pluginId}`
+    ) throw new Error(`Plugin marketplace sources are inconsistent for ${pluginId}`);
+
+    const inventories = [];
+    for (const platform of ['codex', 'claude']) {
+      const packageRoot = resolve(root, 'plugins', platform, pluginId);
+      const manifest = await readJson(
+        resolve(
+          packageRoot,
+          platform === 'codex' ? '.codex-plugin/plugin.json' : '.claude-plugin/plugin.json',
+        ),
+        `${platform} ${pluginId} package manifest`,
+      );
+      const hooks = await readOptionalJson(resolve(packageRoot, 'hooks/hooks.json'));
+      const provenance = await readJson(
+        resolve(packageRoot, '.workflow-build/provenance.json'),
+        `${platform} ${pluginId} build provenance`,
+      );
+      const inventory = await readJson(
+        resolve(packageRoot, '.workflow-build/shared-files.json'),
+        `${platform} ${pluginId} shared-file inventory`,
+      );
+      if (
+        manifest.name !== pluginId
+        || manifest.version !== sourceTag.slice(1)
+        || manifest.skills !== './skills/'
+      ) throw new Error(`${platform} ${pluginId} package manifest identity or version differs`);
+      if (pluginId === 'agentic-development-workflow' && !hasSessionStartHook(hooks)) {
+        throw new Error(`${platform} ${pluginId} SessionStart hook is invalid`);
+      }
+      if (
+        provenance.platform !== platform
+        || provenance.version !== sourceTag.slice(1)
+        || provenance.sourceTag !== sourceTag
+        || provenance.sourceCommit !== sourceCommit
+      ) throw new Error(`${platform} ${pluginId} build provenance differs from the candidate`);
+      await validateSharedFiles(packageRoot, inventory, `${platform} ${pluginId}`);
+      inventories.push(inventory);
+    }
+    if (JSON.stringify(inventories[0]) !== JSON.stringify(inventories[1])) {
+      throw new Error(`Codex and Claude shared-file inventories differ for ${pluginId}`);
+    }
   }
   return release;
 }

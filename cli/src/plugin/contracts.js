@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { isAbsolute, resolve } from 'node:path';
 
+import { validateMarketplacePluginRegistry } from './registry.js';
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -102,27 +104,44 @@ function validatePlatformContracts(contracts, inventory) {
   };
 }
 
-export function validateContractData({ inventory, platforms }) {
+export function validateContractData({ inventory, platforms, registry = null }) {
   const inventoryResult = validateWorkflowInventory(inventory);
   const platformResult = validatePlatformContracts(platforms, inventory);
+  const pluginRegistry = registry ? validateMarketplacePluginRegistry(registry) : null;
+  if (pluginRegistry) {
+    assert(
+      pluginRegistry.marketplace === platformResult.marketplace,
+      'Marketplace plugin registry identity does not match platform contracts'
+    );
+    const workflow = pluginRegistry.plugins.find((plugin) => plugin.id === inventory.plugin.id);
+    assert(workflow?.sourceRoot === '.', 'Workflow plugin must remain at the canonical source root');
+    assert(
+      workflow.initialVersion === inventory.plugin.initialVersion,
+      'Workflow plugin version differs from the plugin registry'
+    );
+  }
 
   return {
     schemaVersion: 1,
     ...inventoryResult,
     ...platformResult,
+    pluginCount: pluginRegistry?.plugins.length ?? 1,
+    plugins: pluginRegistry?.plugins.map((plugin) => plugin.id) ?? [inventory.plugin.id],
   };
 }
 
 export async function loadAndValidateContracts(sourceRoot) {
   const contractsRoot = resolve(sourceRoot, 'contracts');
-  const [inventoryText, platformsText] = await Promise.all([
+  const [inventoryText, platformsText, registryText] = await Promise.all([
     readFile(resolve(contractsRoot, 'workflow-inventory.json'), 'utf8'),
     readFile(resolve(contractsRoot, 'platform-contracts.json'), 'utf8'),
+    readFile(resolve(contractsRoot, 'marketplace-plugins.json'), 'utf8'),
   ]);
 
   for (const [name, text] of [
     ['workflow-inventory.json', inventoryText],
     ['platform-contracts.json', platformsText],
+    ['marketplace-plugins.json', registryText],
   ]) {
     assert(!text.includes('/Users/'), `${name} contains a personal macOS home path`);
     assert(!/[A-Za-z]:\\Users\\/.test(text), `${name} contains a personal Windows home path`);
@@ -131,5 +150,6 @@ export async function loadAndValidateContracts(sourceRoot) {
   return validateContractData({
     inventory: JSON.parse(inventoryText),
     platforms: JSON.parse(platformsText),
+    registry: JSON.parse(registryText),
   });
 }

@@ -879,7 +879,8 @@ test('renderer exposes state, gate, artifact, history, model, command, and Sessi
   assert.equal(window.document.querySelectorAll('.inspector-tab').length, 0);
   assert.match(window.document.querySelector('#artifact-viewer iframe').getAttribute('src'), /^gatereeve-artifact:/);
   assert.match(window.document.querySelector('#artifact-viewer iframe').getAttribute('src'), /\?refresh=\d+$/);
-  assert.equal(window.document.querySelector('#artifact-viewer iframe').hasAttribute('sandbox'), false);
+  assert.equal(window.document.querySelector('#artifact-viewer iframe').getAttribute('sandbox'), 'allow-scripts');
+  assert.equal(window.document.querySelector('#artifact-viewer iframe').getAttribute('referrerpolicy'), 'no-referrer');
 
   window.document.querySelector('[data-view="history"]').click();
   for (let index = 0; index < 2; index += 1) await new Promise((done) => setImmediate(done));

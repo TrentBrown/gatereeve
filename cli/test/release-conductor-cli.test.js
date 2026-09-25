@@ -112,6 +112,7 @@ test('CLI discovers a downloaded conductor bundle without operator-supplied run 
     await execFileAsync('git', ['init', '--initial-branch=main'], { cwd: temporary });
     await execFileAsync('git', ['config', 'user.name', 'GateReeve test'], { cwd: temporary });
     await execFileAsync('git', ['config', 'user.email', 'test@gatereeve.invalid'], { cwd: temporary });
+    await execFileAsync('git', ['config', 'core.hooksPath', '/dev/null'], { cwd: temporary });
     await writeFile(join(temporary, 'source.txt'), 'release source\n');
     await execFileAsync('git', ['add', 'source.txt'], { cwd: temporary });
     await execFileAsync('git', ['commit', '-m', 'test: seed release source'], { cwd: temporary });

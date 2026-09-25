@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { relative, resolve, sep } from 'node:path';
 
 const RESOURCE_ROOTS = {
+  agentWorkflows: 'resources/agent-workflows',
   commands: 'resources/commands',
   scripts: 'resources/scripts',
   protocol: 'resources/protocol',

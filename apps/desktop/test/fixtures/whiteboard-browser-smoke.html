@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src data:; media-src data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; worker-src 'none'">
+  <title>Representative Whiteboard Defense</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #17132a; background: #f8f7fc; }
+    main { width: min(72rem, 100%); margin: auto; padding: clamp(1rem, 4vw, 3rem); }
+    details, figure, #defense-findings { margin: 1rem 0; padding: 1rem; border: 1px solid #c9c2df; border-radius: .75rem; background: white; overflow-wrap: anywhere; }
+    summary { cursor: pointer; font-weight: 700; }
+    [data-layer] { margin-top: .75rem; }
+    svg { display: block; width: 100%; height: auto; }
+    @media (max-width: 30rem) { main { padding: .75rem; } details, figure, #defense-findings { padding: .75rem; } }
+    @media print { details { break-inside: avoid; } details > * { display: block; } }
+  </style>
+</head>
+<body>
+<main id="whiteboard-defense">
+  <h1>Routing Whiteboard Defense</h1>
+  <details id="challenge-routing" data-challenge-id="routing-boundary">
+    <summary>Why is routing decided at this boundary?</summary>
+    <p data-layer="concise">It centralizes selection before handler side effects.</p>
+    <p data-layer="deep">The boundary validates metadata once and passes an immutable selection.</p>
+    <p data-layer="evidence"><code>src/router.js:10-22</code></p>
+    <details data-push-harder-id="routing-failure">
+      <summary>Push Harder: what fails when route metadata is stale?</summary>
+      <p>The router rejects the request before a handler runs.</p>
+    </details>
+  </details>
+  <section id="defense-findings" aria-labelledby="findings-title">
+    <h2 id="findings-title">Defense findings</h2>
+    <p><a href="#challenge-routing">Known limitation in routing metrics</a></p>
+  </section>
+  <figure data-visual-id="request-flow">
+    <svg viewBox="0 0 600 160" role="img" aria-labelledby="flow-title flow-description">
+      <title id="flow-title">Request flow</title>
+      <desc id="flow-description">A request passes through validation and routing before one handler executes.</desc>
+      <rect x="10" y="45" width="150" height="70" rx="12" fill="#ded7f5"></rect>
+      <rect x="225" y="45" width="150" height="70" rx="12" fill="#c8e9dc"></rect>
+      <rect x="440" y="45" width="150" height="70" rx="12" fill="#f6d7b8"></rect>
+      <path d="M160 80H225M375 80H440" stroke="#382f57" stroke-width="5"></path>
+      <text x="85" y="86" text-anchor="middle">Validate</text>
+      <text x="300" y="86" text-anchor="middle">Route</text>
+      <text x="515" y="86" text-anchor="middle">Handle</text>
+    </svg>
+    <figcaption>Evidence-linked request flow from validation to one selected handler.</figcaption>
+  </figure>
+</main>
+<script>
+  document.documentElement.dataset.whiteboardReady = 'true';
+</script>
+</body>
+</html>

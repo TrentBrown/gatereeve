@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schemaVersion", "title", "summary", "challenges", "findings", "visualModels", "html"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "title": {"type": "string", "minLength": 1},
+    "summary": {"type": "string", "minLength": 1},
+    "challenges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "prompt", "conciseDefense", "deepDefense", "evidence", "pushHarder"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+          "prompt": {"type": "string", "minLength": 1},
+          "conciseDefense": {"type": "string", "minLength": 1},
+          "deepDefense": {"type": "string", "minLength": 1},
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["path", "startLine", "endLine", "claim"],
+              "properties": {
+                "path": {"type": "string", "minLength": 1},
+                "startLine": {"type": "integer", "minimum": 1},
+                "endLine": {"type": "integer", "minimum": 1},
+                "claim": {"type": "string", "minLength": 1}
+              },
+              "additionalProperties": false
+            }
+          },
+          "pushHarder": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "prompt", "answer", "evidence"],
+              "properties": {
+                "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+                "prompt": {"type": "string", "minLength": 1},
+                "answer": {"type": "string", "minLength": 1},
+                "evidence": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "required": ["path", "startLine", "endLine", "claim"],
+                    "properties": {
+                      "path": {"type": "string", "minLength": 1},
+                      "startLine": {"type": "integer", "minimum": 1},
+                      "endLine": {"type": "integer", "minimum": 1},
+                      "claim": {"type": "string", "minLength": 1}
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "summary", "challengeId"],
+        "properties": {
+          "type": {"enum": ["Undocumented rationale", "Evidence gap", "Known limitation", "Open risk", "Unresolved unknown", "Supported inference", "Accepted tradeoff"]},
+          "summary": {"type": "string", "minLength": 1},
+          "challengeId": {"type": ["string", "null"]}
+        },
+        "additionalProperties": false
+      }
+    },
+    "visualModels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "kind", "description", "evidenceRefs"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "kind": {"type": "string", "minLength": 1},
+          "description": {"type": "string", "minLength": 1},
+          "evidenceRefs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+        },
+        "additionalProperties": false
+      }
+    },
+    "html": {"type": "string", "minLength": 256}
+  },
+  "additionalProperties": false
+}

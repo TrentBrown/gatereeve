@@ -150,7 +150,54 @@ test('module resolution is deterministic and rejects invalid definitions and gra
       timeoutSeconds: 300,
     },
   });
+  const agentWorkflow = definition({
+    id: 'example/agent-review',
+    dependsOn: ['gatereeve/verification'],
+    run: {
+      kind: 'agent-workflow',
+      protocolVersion: 1,
+      resourcePlugin: 'example-plugin',
+      capabilityProfile: { id: 'high-capability-v1', minimumReasoning: 'high' },
+      automatic: true,
+      isolation: { freshContext: true, inheritedTurns: 0 },
+      repositoryAccess: 'read-only-pinned',
+      networkAccess: 'denied',
+      stages: [
+        {
+          id: 'review',
+          role: 'Independent reviewer',
+          dependsOn: [],
+          promptResource: 'resources/agents/review.md',
+          inputSchema: 'resources/schemas/review-input.schema.json',
+          outputSchema: 'resources/schemas/review-output.schema.json',
+        },
+      ],
+      artifacts: [
+        { path: 'review.json', mediaType: 'application/json', required: true },
+      ],
+      evaluator: { resource: 'resources/agents/validator.js', export: 'createBundle' },
+      evidenceRoot: 'review.json',
+      timeoutSeconds: 900,
+      maxAttempts: 1,
+    },
+  });
   assert.equal(validateModuleDefinition(command), command);
+  assert.equal(validateModuleDefinition(agentWorkflow), agentWorkflow);
+  assert.deepEqual(
+    assessModuleReadiness(agentWorkflow, { agentWorkflowProfiles: [] }),
+    {
+      status: 'unavailable',
+      missing: [{ kind: 'agent-workflow-profile', id: 'high-capability-v1' }],
+    }
+  );
+  assert.equal(
+    assessModuleReadiness(agentWorkflow, { agentWorkflowProfiles: ['high-capability-v1'] }).status,
+    'available'
+  );
+  const inheritedContext = structuredClone(agentWorkflow);
+  inheritedContext.run.isolation.inheritedTurns = 1;
+  inheritedContext.digest = hashModuleDefinition(inheritedContext);
+  assert.throws(() => validateModuleDefinition(inheritedContext), /zero inherited turns/);
   const unsafeCommand = structuredClone(command);
   unsafeCommand.run.workingDirectory = '../outside';
   unsafeCommand.digest = hashModuleDefinition(unsafeCommand);
@@ -240,6 +287,26 @@ test('locked modules remain enabled while conditional predecessors can be disabl
   assert.deepEqual(
     gates.find((gate) => gate.id === 'decisionTriage').dependsOn,
     ['specEvaluation', 'patternReview', 'codeReview']
+  );
+  assert.deepEqual(
+    gates.find((gate) => gate.id === 'whiteboardDefense').dependsOn,
+    ['verification']
+  );
+
+  const judgeOn = resolveModuleGraph({
+    definitions: model.moduleGraph.modules,
+    policy: policy(model.moduleGraph.modules),
+  });
+  const withJudge = structuredClone(model);
+  withJudge.moduleGraph = {
+    schemaVersion: judgeOn.schemaVersion,
+    policyDigest: judgeOn.policyDigest,
+    modules: judgeOn.modules,
+    enabledModuleIds: judgeOn.enabledModuleIds,
+  };
+  assert.deepEqual(
+    boundaryGateDefinitions(withJudge).find((gate) => gate.id === 'whiteboardDefense').dependsOn,
+    ['verification', 'judge']
   );
 
   const lockedOff = new Map([['gatereeve/pin-context', false]]);
@@ -370,7 +437,7 @@ test('module enablement and definition changes are explicit migration impact', a
   };
   const next = createModelLock(nextModel, { createdAt: '2026-09-03T01:00:00Z' });
   const impact = buildModelMigrationImpact(current, next);
-  assert.deepEqual(impact.modulesChanged, ['gatereeve/judge']);
+  assert.deepEqual(impact.modulesChanged, ['gatereeve/judge', 'whiteboard-test/defense']);
   assert.deepEqual(
     impact.boundaryGateIdsInvalidated,
     boundaryGateDefinitions(model).map((gate) => gate.id).sort()
@@ -458,6 +525,9 @@ test('legacy boundary attempts retain their pinned boundary after migration to m
       Object.fromEntries(legacyGates.map((gate) => [gate.id, gate.evaluationScope[scope]])),
     ])
   );
+  for (const invalidation of Object.values(legacyModel.change.invalidationByTarget)) {
+    invalidation.gateIds = invalidation.gateIds.filter((gateId) => gateId !== 'whiteboardDefense');
+  }
   delete legacyModel.moduleGraph;
 
   await initializeFeature({

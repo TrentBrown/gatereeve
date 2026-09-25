@@ -2,6 +2,7 @@ import { Command } from 'commander';
 
 import { pluginCommands } from './commands/plugin.js';
 import { protocolCommands } from './commands/protocol.js';
+import { agentWorkflowCommands } from './commands/agent-workflow.js';
 import { addTreeCommand } from './help-tree.js';
 
 export function createProgram() {
@@ -14,6 +15,7 @@ export function createProgram() {
     .showHelpAfterError();
 
   for (const command of protocolCommands()) program.addCommand(command);
+  program.addCommand(agentWorkflowCommands());
   program.addCommand(pluginCommands());
   addTreeCommand(program, { cliName: 'GateReeve CLI' });
 

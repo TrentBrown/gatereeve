@@ -54,6 +54,22 @@ terminal result can record an authoritative outcome only after the protocol core
 freshly validates the pinned module, dependencies, boundary context,
 fingerprint, and evidence.
 
+Enabled `agent-workflow` modules do not use the command-consent dialog. When an
+active boundary makes one eligible, Desktop automatically invokes the same
+headless GateReeve scheduler with the first selected ready agent. Judge gets one
+fresh read-only context. Whiteboard gets two distinct fresh contexts in order:
+Challenger, then Defender/Publisher. Neither receives the implementation
+conversation. A provider or isolation failure is shown as unavailable and
+leaves the gate `UNSET`; Desktop does not retry the same module input without a
+changed attempt/input or an application restart.
+
+Interactive Whiteboard HTML is served only through its validated artifact ID.
+The iframe and response impose a scripts-only sandbox with no origin, network,
+filesystem, forms, child frames, parent-window access, external resources,
+referrer, or navigation authority. Inline HTML, CSS, JavaScript, SVG, and
+animation remain available for expressive diagrams and progressive reveal.
+The bound JSON manifest—not renderer state—remains the evidence root.
+
 Selecting Finalizing on the unchanged six-state rail shows the enabled
 feature-finalization module graph. GateReeve can start an attempt bound to the
 recorded feature-final merge, refresh an observation provider, record a
@@ -152,8 +168,9 @@ the production HTML, CSS, and renderer modules but is excluded from packages.
 
 The renderer may request explicit worktree selection, canonical snapshot and
 named-detail reads, refresh, clipboard copy, and open or reveal actions for
-artifact IDs from the current snapshot. Trusted interactive explain-diff HTML
-is served only by canonical artifact ID. Checkpoints and handoffs use a
+artifact IDs from the current snapshot. Trusted interactive explain-diff and
+Whiteboard Defense HTML are served only by canonical artifact ID in the
+artifact sandbox. Checkpoints and handoffs use a
 separate exact-ID Session reader and never become workflow evidence. The
 renderer cannot supply an arbitrary terminal executable, arguments, cwd,
 environment, or process ID. It can send keystrokes only to an opaque project

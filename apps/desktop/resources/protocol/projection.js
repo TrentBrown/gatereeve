@@ -1035,7 +1035,8 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
             (item) => ['ACTIVE', 'HUMAN_REVIEW'].includes(item.state)
           )) {
             for (const gateId of change.invalidation.gateIds) {
-              gateFor(attempt, gateId, event).invalidatedSequence = event.sequence;
+              const gate = attempt.gates.find((item) => item.id === gateId);
+              if (gate) gate.invalidatedSequence = event.sequence;
             }
           }
         }

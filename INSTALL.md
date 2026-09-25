@@ -1,8 +1,14 @@
-# Install the Agentic Development Workflow
+# Install GateReeve workflow plugins
 
 This guide installs the private Agentic Software Development Workflow through
 the native Codex or Claude Code plugin manager. You may install it in Codex,
 Claude Code, or both.
+
+The marketplace also contains the independent **Whiteboard Test** plugin. It is
+optional and does not enable itself in any repository. Install it on agents
+where you want its skill to be discoverable; GateReeve Desktop carries the
+trusted runtime resources needed to execute an explicitly activated
+`whiteboard-test/defense` module.
 
 The supported operating systems are macOS and Ubuntu 22.04 or 24.04. Windows
 users should currently run the workflow inside Ubuntu on WSL; native Windows
@@ -210,11 +216,13 @@ Then install and verify the plugin:
 
 ```bash
 codex plugin add agentic-development-workflow@quality-code
+# Optional Whiteboard Defense capability:
+codex plugin add whiteboard-test@quality-code
 codex plugin list --marketplace quality-code
 ```
 
-The list must show `agentic-development-workflow` installed and enabled from
-the `quality-code` marketplace.
+The list must show `agentic-development-workflow` and, when selected,
+`whiteboard-test` installed and enabled from the `quality-code` marketplace.
 
 ### 5B. Claude Code
 
@@ -238,11 +246,14 @@ Then install and verify the plugin:
 claude plugin install \
   agentic-development-workflow@quality-code \
   --scope user
+# Optional Whiteboard Defense capability:
+claude plugin install whiteboard-test@quality-code --scope user
 claude plugin list
 ```
 
-The list must show `agentic-development-workflow@quality-code` installed,
-enabled, and scoped to the user.
+The list must show `agentic-development-workflow@quality-code` and, when
+selected, `whiteboard-test@quality-code` installed, enabled, and scoped to the
+user.
 
 ## 6. Trust the Codex activation hook
 

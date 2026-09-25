@@ -191,6 +191,19 @@ export async function executePluginRequest(rawRequest) {
   }
 }
 
+export {
+  createClaudeCodeAgentAdapter,
+  createCodexAgentAdapter,
+  createPluginResourceAccess,
+  executeAgentWorkflowGate,
+  runEligibleAgentWorkflowGates,
+  prepareBoundaryModuleExecution,
+  projectRecord,
+  readFeatureRecord,
+  recordGateOutcome,
+  resolveWorkflowContext,
+} from './index.js';
+
 async function readRequest(argv) {
   if (argv[2] === '--request-file') {
     return JSON.parse(await readFile(argv[3], 'utf8'));

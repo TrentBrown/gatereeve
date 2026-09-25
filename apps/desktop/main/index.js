@@ -22,6 +22,7 @@ import { createDesktopCoordinator } from './coordinator.js';
 import { createModulePolicyManager } from './module-policy.js';
 import { createCommandAuthorizationStore } from './command-authorization.js';
 import { createModuleExecutionManager } from './module-execution.js';
+import { createDesktopAgentWorkflowRunner } from './agent-workflow-runner.js';
 import { createModuleTaskManager } from './module-task-manager.js';
 import { createProviderSupervisor, discoverInstalledProviders } from './module-providers.js';
 import { createArtifactActions, createEditorPreferenceStore } from './artifact-actions.js';
@@ -130,10 +131,14 @@ async function startDesktop() {
     .filter((module) => module.run?.kind === 'skill')
     .map((module) => module.run.skillId);
   let coordinator;
+  let agentWorkflowRunner = null;
   const modulePolicyManager = createModulePolicyManager({
     getAvailability: async () => ({
       skills: coordinator?.current().setup.operationalReady ? bundledSkillIds : [],
       providers: installedProviders.map(({ id, version }) => ({ id, version })),
+      agentWorkflowProfiles: coordinator?.current().setup.operationalReady
+        ? ['high-capability-v1']
+        : [],
     }),
   });
   const protocolAdapter = createProtocolAdapter({
@@ -161,6 +166,9 @@ async function startDesktop() {
         python: pythonExecutable,
       },
     }),
+    automaticAgentWorkflows(request) {
+      agentWorkflowRunner?.schedule(request);
+    },
     gitObserver: (worktreePath, featureHome) => observeGit(
       worktreePath,
       featureHome,
@@ -174,6 +182,25 @@ async function startDesktop() {
     notify({ title, body }) {
       if (!Notification.isSupported()) return;
       new Notification({ title, body }).show();
+    },
+  });
+  agentWorkflowRunner = createDesktopAgentWorkflowRunner({
+    protocol: protocolAdapter,
+    desktopRoot,
+    async onChanged({ repositoryRoot, moduleId, live, result, error }) {
+      if (live) {
+        await coordinator.setModuleLive(repositoryRoot, moduleId, live);
+        return;
+      }
+      if (error) {
+        const failure = { code: error.code ?? 'AGENT_WORKFLOW_UNAVAILABLE', message: error.message ?? String(error) };
+        await coordinator.setModuleLive(repositoryRoot, moduleId ?? 'gatereeve/judge', {
+          status: 'unavailable', detail: failure.message, updatedAt: new Date().toISOString(),
+          stages: [], actions: [], attempts: [], evidence: [], links: [], failure,
+        });
+        return;
+      }
+      if (result) await coordinator.refresh('agent-workflow');
     },
   });
   const updateCoordinator = createUpdateCoordinator({

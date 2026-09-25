@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schemaVersion", "scopeSummary", "complexity", "challenges"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "scopeSummary": {"type": "string", "minLength": 1},
+    "complexity": {"enum": ["trivial", "nontrivial"]},
+    "challenges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "prompt", "rationale", "pushHarder"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+          "prompt": {"type": "string", "minLength": 1},
+          "rationale": {"type": "string", "minLength": 1},
+          "pushHarder": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "prompt", "rationale"],
+              "properties": {
+                "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+                "prompt": {"type": "string", "minLength": 1},
+                "rationale": {"type": "string", "minLength": 1}
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

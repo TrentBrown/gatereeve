@@ -1,5 +1,5 @@
 import { readFile, realpath, stat } from 'node:fs/promises';
-import { extname, isAbsolute, relative, resolve } from 'node:path';
+import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
 
 import {
   BOUNDARY_SCOPES,
@@ -138,10 +138,19 @@ const GATE_ARTIFACT_NAMES = Object.freeze({
   specEvaluation: 'spec-evaluation.md',
   patternReview: 'pattern-review.md',
   judge: 'judge.md',
+  whiteboardDefense: 'whiteboard-defense.json',
   codeReview: 'code-review.md',
   explainDiff: 'explain-diff.html',
   packetValidation: 'boundary.json',
 });
+
+function gateArtifactName(gate) {
+  if (gate.id === 'judge' && typeof gate.moduleVersion === 'string') {
+    const major = Number(gate.moduleVersion.split('.')[0]);
+    if (Number.isSafeInteger(major) && major >= 2) return 'judge.json';
+  }
+  return GATE_ARTIFACT_NAMES[gate.id] ?? null;
+}
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -540,13 +549,42 @@ function packetPath(attempt) {
   return null;
 }
 
+async function bundleArtifactBindings(path, metadata) {
+  if (typeof path !== 'string' || !metadata.exists || metadata.unsafe || metadata.size > 1024 * 1024 || formatForPath(path) !== 'json') {
+    return [];
+  }
+  let manifest;
+  try { manifest = JSON.parse(await readFile(metadata.absolutePath, 'utf8')); }
+  catch { return []; }
+  if (!['whiteboard-defense', 'workflow-judge'].includes(manifest?.kind)) return [];
+  const bindings = [
+    ...Object.entries(isObject(manifest.files) ? manifest.files : {}),
+    ...(Array.isArray(manifest.receipts)
+      ? manifest.receipts.map((binding, index) => [`receipt-${index + 1}`, binding])
+      : []),
+  ];
+  return bindings.flatMap(([key, binding]) => {
+    const name = binding?.path;
+    if (
+      typeof name !== 'string'
+      || name === ''
+      || name.includes('/')
+      || name.includes('\\')
+      || name === '.'
+      || name === '..'
+    ) return [];
+    const linkedPath = isAbsolute(path) ? resolve(dirname(path), name) : join(dirname(path), name);
+    return linkedPath === path ? [] : [{ key, path: linkedPath }];
+  });
+}
+
 async function boundaryArtifacts(featureHome, projection, facts) {
   const supplied = isObject(facts.artifacts) ? facts.artifacts : {};
   const artifacts = [];
   for (const attempt of projection.boundaryAttempts) {
     for (const gate of attempt.gates) {
       const id = `attempt:${attempt.id}:gate:${gate.id}`;
-      const fallbackName = GATE_ARTIFACT_NAMES[gate.id] ?? null;
+      const fallbackName = gateArtifactName(gate);
       const base = packetPath(attempt);
       const path = typeof gate.evidence?.path === 'string'
         ? gate.evidence.path
@@ -589,6 +627,24 @@ async function boundaryArtifacts(featureHome, projection, facts) {
         modifiedAt: metadata.modifiedAt,
         evidence: supplied[id]?.evidence ?? gate.evidence ?? null,
       });
+      for (const linked of await bundleArtifactBindings(path, metadata)) {
+        const linkedMetadata = await fileMetadata(featureHome, linked.path);
+        artifacts.push({
+          id: `${id}:file:${linked.key}`,
+          label: `${gate.id} ${linked.key}`,
+          context: { kind: 'gate', attemptId: attempt.id, gateId: gate.id },
+          path: linked.path,
+          absolutePath: linkedMetadata.absolutePath,
+          format: formatForPath(linked.path),
+          expectation,
+          status: linkedMetadata.exists ? (gate.freshness === 'STALE' ? 'stale' : 'present') : 'missing',
+          exists: linkedMetadata.exists,
+          unsafe: linkedMetadata.unsafe,
+          size: linkedMetadata.size,
+          modifiedAt: linkedMetadata.modifiedAt,
+          evidence: gate.evidence ?? null,
+        });
+      }
     }
   }
   return artifacts;
@@ -1189,7 +1245,11 @@ export function validateSnapshot(snapshot) {
         for (const [missingIndex, missing] of module.readiness.missing.entries()) {
           const missingLabel = `${moduleLabel}.readiness.missing[${missingIndex}]`;
           assertObject(missing, missingLabel);
-          assertOneOf(missing.kind, new Set(['skill', 'provider']), `${missingLabel}.kind`);
+          assertOneOf(
+            missing.kind,
+            new Set(['skill', 'provider', 'agent-workflow-profile']),
+            `${missingLabel}.kind`,
+          );
           assertString(missing.id, `${missingLabel}.id`);
         }
         validateModuleLive(module.live, `${moduleLabel}.live`);

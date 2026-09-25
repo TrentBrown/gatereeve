@@ -34,6 +34,10 @@ async function createCliFixture() {
     join(sourceRoot, 'contracts/workflow-inventory.json'),
     '{"plugin":{"initialVersion":"3.4.5"}}\n'
   );
+  await writeFile(
+    join(sourceRoot, 'contracts/marketplace-plugins.json'),
+    '{"schemaVersion":1,"marketplace":"quality-code","plugins":[{"id":"example","displayName":"Example","sourceRoot":".","initialVersion":"3.4.5","requiresSessionStartHook":false}]}\n'
+  );
 
   return { sourceRoot, distRoot };
 }
@@ -77,7 +81,7 @@ test('plugin build and clean commands work through the Commander entrypoint', as
 
   const manifestPath = join(
     fixture.distRoot,
-    'codex/.codex-plugin/plugin.json'
+    'codex/example/.codex-plugin/plugin.json'
   );
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   assert.equal(manifest.version, '2.0.0');

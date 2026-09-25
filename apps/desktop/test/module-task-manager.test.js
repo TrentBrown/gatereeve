@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import { mkdir, mkdtemp } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -50,7 +50,7 @@ function commandModule({ observed = false, timeoutSeconds = 30 } = {}) {
 }
 
 async function harness(options = {}) {
-  const repositoryRoot = await mkdtemp(join(tmpdir(), 'gatereeve-task-'));
+  const repositoryRoot = await realpath(await mkdtemp(join(tmpdir(), 'gatereeve-task-')));
   await mkdir(join(repositoryRoot, 'tasks'));
   const processes = [];
   const spawns = [];

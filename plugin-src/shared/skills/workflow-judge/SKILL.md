@@ -15,10 +15,11 @@ Read:
 
 - `<plugin-root>/resources/commands/judge.md`
 
-Keep the judge pass isolated from implementation rationale. If subagents are
-available and the user has authorized parallel agent work, use one. Otherwise
-perform the isolated evaluation yourself from the spec and changed files only.
+Formal Judge runs use the GateReeve `gatereeve/judge` agent workflow. They must
+execute in a fresh, read-only context with zero inherited implementation turns.
+If the configured adapter cannot prove that isolation, leave the gate UNSET and
+report it as unavailable. Never fall back to evaluating in the implementation
+thread.
 
-At a formal PR boundary, consume the `judge` result from `boundary_gate.py`,
-evaluate only its pinned base/head diff, and persist the result at its exact
-packet `outputPath`.
+At a formal PR boundary, consume the pinned inputs and the validated `judge.json`
+root artifact produced by the governed runtime. GateReeve alone records passage.

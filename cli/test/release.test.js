@@ -25,23 +25,22 @@ test('prepares a traceable release-candidate marketplace', async () => {
   const release = JSON.parse(await readFile(join(outputRoot, 'RELEASE.json'), 'utf8'));
   assert.equal(release.sourceTag, 'v0.1.0-rc.1');
   assert.equal(release.sourceCommit, 'abc123');
-  for (const [platform, manifestPath] of [
-    ['codex', '.codex-plugin/plugin.json'],
-    ['claude', '.claude-plugin/plugin.json'],
-  ]) {
-    const packageRoot = join(
-      outputRoot,
-      'plugins',
-      platform,
-      'agentic-development-workflow'
-    );
-    const manifest = JSON.parse(await readFile(join(packageRoot, manifestPath), 'utf8'));
-    const provenance = JSON.parse(
-      await readFile(join(packageRoot, '.workflow-build/provenance.json'), 'utf8')
-    );
-    assert.equal(manifest.version, '0.1.0-rc.1');
-    assert.equal(provenance.sourceTag, 'v0.1.0-rc.1');
-    assert.equal(provenance.sourceCommit, 'abc123');
+  assert.deepEqual(release.plugins, ['agentic-development-workflow', 'whiteboard-test']);
+  for (const plugin of release.plugins) {
+    for (const [platform, manifestPath] of [
+      ['codex', '.codex-plugin/plugin.json'],
+      ['claude', '.claude-plugin/plugin.json'],
+    ]) {
+      const packageRoot = join(outputRoot, 'plugins', platform, plugin);
+      const manifest = JSON.parse(await readFile(join(packageRoot, manifestPath), 'utf8'));
+      const provenance = JSON.parse(
+        await readFile(join(packageRoot, '.workflow-build/provenance.json'), 'utf8')
+      );
+      assert.equal(manifest.name, plugin);
+      assert.equal(manifest.version, '0.1.0-rc.1');
+      assert.equal(provenance.sourceTag, 'v0.1.0-rc.1');
+      assert.equal(provenance.sourceCommit, 'abc123');
+    }
   }
 });
 

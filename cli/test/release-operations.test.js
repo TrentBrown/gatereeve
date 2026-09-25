@@ -407,6 +407,8 @@ test('bundle creates a complete offline marketplace ZIP and checksum', async () 
     `${root}.claude-plugin/marketplace.json`,
     `${root}plugins/codex/agentic-development-workflow/.codex-plugin/plugin.json`,
     `${root}plugins/claude/agentic-development-workflow/.claude-plugin/plugin.json`,
+    `${root}plugins/codex/whiteboard-test/.codex-plugin/plugin.json`,
+    `${root}plugins/claude/whiteboard-test/.claude-plugin/plugin.json`,
   ]) {
     assert(listing.includes(required), `missing archive entry: ${required}`);
   }

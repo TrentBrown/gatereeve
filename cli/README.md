@@ -57,6 +57,11 @@ gatereeve graph --model
 
 # Assert an invariant for hooks or CI.
 gatereeve check boundary-ready
+
+# Run every currently eligible isolated staged-agent gate in graph order.
+gatereeve agent-workflow run-eligible \
+  --provider codex \
+  --model gpt-5.5
 ```
 
 All workflow commands accept `--json`. Queries exit zero whenever a projection
@@ -71,6 +76,16 @@ Its actions distinguish `ready`, `available`, and `blocked`: structural
 availability alone never claims that current artifacts, facts, freshness, and
 guards permit passage. `read` returns larger details by an ID advertised in the
 snapshot; it is not an arbitrary filesystem reader.
+
+The agent-workflow scheduler needs an explicit provider and model, supplied by
+flags, `--agent-config`, or `GATEREEVE_AGENT_PROVIDER` and
+`GATEREEVE_AGENT_MODEL`. Once configured, one scheduler call automatically runs
+every eligible agent-workflow module; no per-gate consent action exists.
+Execution uses a fresh provider context per stage, a read-only archive of the
+pinned commit, denied network authority, typed output, bounded time/output, and
+plugin-declared bundle validation. Unavailable execution exits `2` and leaves
+the gate `UNSET`; a completed blocking `FAIL` exits `1` after the protocol core
+records it.
 
 Mutation families are semantic: `feature`, `slice`, `boundary`, `gate`, and
 `change`. Use recursive help for their exact evidence and guard-input options:
@@ -89,10 +104,10 @@ force switch.
 ## Maintainer commands
 
 ```bash
-# Compose both packages from plugin-src/shared plus platform overlays.
+# Compose every registered plugin for both native platforms.
 gatereeve plugin build
 
-# Compose one package with explicit provenance.
+# Compose every registered Codex package with explicit provenance.
 gatereeve plugin build \
   --platform codex \
   --plugin-version 0.1.0 \

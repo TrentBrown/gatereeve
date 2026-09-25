@@ -79,7 +79,11 @@ export function registerRendererProtocol(
       }
       return new Response(detail.data.content, {
         status: 200,
-        headers: { 'content-type': 'text/html; charset=utf-8' },
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          'cache-control': 'no-store',
+          'content-security-policy': "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; media-src data:; connect-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; navigate-to 'none'",
+        },
       });
     } catch {
       return new Response('Not found', { status: 404 });

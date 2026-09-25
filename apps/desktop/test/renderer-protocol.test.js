@@ -63,7 +63,10 @@ test('renderer protocols confine application files and serve only named trusted 
     url: 'gatereeve-artifact://desktop/attempt%3Aone%3Agate%3AexplainDiff',
   });
   assert.equal(artifactResponse.status, 200);
-  assert.equal(artifactResponse.headers.get('content-security-policy'), null);
+  assert.match(artifactResponse.headers.get('content-security-policy'), /sandbox allow-scripts/);
+  assert.match(artifactResponse.headers.get('content-security-policy'), /connect-src 'none'/);
+  assert.match(artifactResponse.headers.get('content-security-policy'), /navigate-to 'none'/);
+  assert.equal(artifactResponse.headers.get('cache-control'), 'no-store');
   assert.match(await artifactResponse.text(), /document\.body\.dataset\.live/);
   assert.equal((await handlers.get('gatereeve-artifact')({
     method: 'GET', url: 'gatereeve-artifact://desktop/unknown',

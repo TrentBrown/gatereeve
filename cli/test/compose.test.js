@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import test from 'node:test';
 
-import { composePackages } from '../src/plugin/compose.js';
+import { composeMarketplacePackages, composePackages } from '../src/plugin/compose.js';
 
 async function writeJson(path, value) {
   await mkdir(join(path, '..'), { recursive: true });
@@ -133,11 +133,80 @@ test('composes both packages with matching shared content and provenance', async
   );
   assert.deepEqual(provenance, {
     schemaVersion: 1,
+    plugin: 'fixture-plugin',
     platform: 'codex',
     version: '1.2.3',
     sourceCommit: 'abc123',
     sourceTag: 'v1.2.3',
   });
+});
+
+test('composes every registered marketplace plugin into independent platform packages', async () => {
+  const fixture = await createFixture();
+  const secondRoot = join(fixture.sourceRoot, 'plugins/second-plugin');
+  await mkdir(join(secondRoot, 'shared/skills/second'), { recursive: true });
+  await writeFile(
+    join(secondRoot, 'shared/skills/second/SKILL.md'),
+    '---\nname: second\ndescription: Second skill.\n---\n'
+  );
+  await writeJson(join(secondRoot, 'codex/.codex-plugin/plugin.json'), {
+    name: 'second-plugin',
+    version: '0.0.0',
+    description: 'second',
+  });
+  await writeJson(join(secondRoot, 'claude/.claude-plugin/plugin.json'), {
+    name: 'second-plugin',
+    version: '0.0.0',
+    description: 'second',
+  });
+  await writeJson(join(fixture.sourceRoot, 'contracts/marketplace-plugins.json'), {
+    schemaVersion: 1,
+    marketplace: 'fixture-marketplace',
+    plugins: [
+      {
+        id: 'fixture-plugin',
+        displayName: 'Fixture Plugin',
+        sourceRoot: '.',
+        initialVersion: '0.1.0',
+        requiresSessionStartHook: false,
+      },
+      {
+        id: 'second-plugin',
+        displayName: 'Second Plugin',
+        sourceRoot: 'plugins/second-plugin',
+        initialVersion: '0.1.0',
+        requiresSessionStartHook: false,
+      },
+    ],
+  });
+
+  const result = await composeMarketplacePackages({
+    sourceRoot: fixture.sourceRoot,
+    distRoot: fixture.distRoot,
+    version: '1.2.3',
+    sourceCommit: 'abc123',
+    sourceTag: 'v1.2.3',
+  });
+
+  assert.deepEqual(
+    result.packages.map((item) => `${item.platform}/${item.pluginId}`),
+    [
+      'codex/fixture-plugin',
+      'claude/fixture-plugin',
+      'codex/second-plugin',
+      'claude/second-plugin',
+    ]
+  );
+  assert.equal(
+    JSON.parse(
+      await readFile(
+        join(fixture.distRoot, 'codex/second-plugin/.codex-plugin/plugin.json'),
+        'utf8'
+      )
+    ).version,
+    '1.2.3'
+  );
+  await assert.rejects(readFile(join(fixture.distRoot, '.compose')), /ENOENT|EISDIR/);
 });
 
 test('removes stale package output before rebuilding', async () => {

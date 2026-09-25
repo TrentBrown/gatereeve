@@ -33,9 +33,15 @@
     },
     {
       "id": "gatereeve/judge",
-      "version": "1.0.0",
-      "digest": "sha256:6573e9ba2b3f3c6fdf186624b3764e56bcbe9885e10a80f86eff27bc182328d4",
+      "version": "2.0.0",
+      "digest": "sha256:907057982965bc28ed60ade138774f7ca69ed9b43201891f1e34a46e3d8be480",
       "enabled": true
+    },
+    {
+      "id": "whiteboard-test/defense",
+      "version": "1.0.0",
+      "digest": "sha256:a78b1818d401f3c443519c229907764558fec9bd6420d06eca9df01eaddb19ca",
+      "enabled": false
     },
     {
       "id": "gatereeve/code-review",
