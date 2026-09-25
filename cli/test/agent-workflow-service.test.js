@@ -59,7 +59,7 @@ function moduleDefinition() {
   return value;
 }
 
-function adapter({ complete = true } = {}) {
+function adapter({ complete = true, onRequest = null } = {}) {
   return {
     async describe() {
       return {
@@ -70,6 +70,7 @@ function adapter({ complete = true } = {}) {
     },
     async runStage(request) {
       if (!complete) throw new Error('provider unavailable');
+      onRequest?.(request);
       const output = { answer: 'Evidence-backed.' };
       return {
         output,
@@ -107,6 +108,8 @@ test('publishes a validated root and records only the completed governed outcome
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-agent-service-'));
   let recorded = null;
   let cleaned = false;
+  let snapshotOptions = null;
+  let stageRequest = null;
   try {
     const result = await executeAgentWorkflowGate({
       repositoryRoot: root,
@@ -115,7 +118,7 @@ test('publishes a validated root and records only the completed governed outcome
       modelHash: MODEL,
       module: moduleDefinition(),
       prepared: prepared(),
-      adapter: adapter(),
+      adapter: adapter({ onRequest: (value) => { stageRequest = value; } }),
       resources: {
         loadResource: async ({ path }) => path.endsWith('.md') ? 'Create the report.' : JSON.stringify({ type: 'object' }),
         loadEvaluator: async () => ({ module, outputs }) => ({
@@ -123,10 +126,13 @@ test('publishes a validated root and records only the completed governed outcome
         }),
       },
       buildChangeInput: async (input) => ({ schemaVersion: 1, source: input, patch: 'diff' }),
-      createSnapshot: async () => ({
+      createSnapshot: async (options) => {
+        snapshotOptions = options;
+        return {
         repositoryPath: root, digest: `sha256:${'d'.repeat(64)}`,
         cleanup: async () => { cleaned = true; },
-      }),
+        };
+      },
       recordOutcome: async (value) => { recorded = value; return { event: { eventId: 'evt-result' } }; },
       createId: () => 'run-1',
     });
@@ -136,6 +142,13 @@ test('publishes a validated root and records only the completed governed outcome
     assert.equal(recorded.outcome, 'PASS');
     assert.deepEqual(recorded.evidence, result.evidence);
     assert.equal(cleaned, true);
+    assert.deepEqual(stageRequest.input.initial.change.patch, {
+      kind: 'snapshot-file',
+      path: '.gatereeve-agent-evidence/feature.patch',
+      hash: sha256Digest('diff'),
+      bytes: 4,
+    });
+    assert.equal(snapshotOptions.evidenceFiles['.gatereeve-agent-evidence/feature.patch'], 'diff');
   } finally {
     await rm(root, { recursive: true, force: true });
   }

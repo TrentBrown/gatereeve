@@ -136,3 +136,20 @@ When featureBaseSha equals sliceBaseSha, carry the complete patch once, set slic
 Silently truncate the patch - rejected because it loses coverage. Raise or ignore the provider limit - impossible and nonportable. Split Judge into unbounded per-file turns - rejected because the approved Judge is one bounded independent attempt and retries must remain bounded.
 
 **Promoted:** 2026-09-24. PR: 67.
+
+---
+
+## Externalize complete patches into digest-bound snapshot sidecars
+
+**Confidence:** HIGH
+
+**Blast Radius:** All isolated agent-workflow provider prompts, snapshot digests, and large change packets
+
+Keep full patch coverage without injecting patch bodies into the model prompt. Materialize complete feature and slice patches under the reserved .gatereeve-agent-evidence directory inside the disposable read-only snapshot, replace inline patch values with path, digest, and byte-count references, and include the sidecar manifest in the snapshot digest. Both Codex and Claude Code can inspect the referenced text with their existing read-only tools. Reject prompt envelopes above 512 KiB before provider launch; do not truncate.
+
+**Triggered by:** The deduplicated 715,875-byte feature packet was below the character ceiling but still caused Codex to exit before producing structured output, consistent with a provider context-token limit.
+
+**Alternatives considered:**
+Truncate or summarize patches - rejected because it can silently lose coverage. Depend on one provider larger context window - rejected because equivalent Codex and Claude Code behavior is required. Give the model access to the developer checkout Git history - rejected because the approved contract is a disposable pinned read-only view.
+
+**Promoted:** 2026-09-24. PR: 67.

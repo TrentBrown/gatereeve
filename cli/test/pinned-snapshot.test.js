@@ -39,8 +39,14 @@ test('materializes the exact committed tree as disposable read-only snapshot dat
     repositoryRoot: value.repositoryRoot,
     headSha: value.headSha,
     scratchParent: value.root,
+    evidenceFiles: { '.gatereeve-agent-evidence/feature.patch': 'complete patch\n' },
   });
   assert.equal(await readFile(join(snapshot.repositoryPath, 'app.txt'), 'utf8'), 'after\n');
+  assert.equal(
+    await readFile(join(snapshot.repositoryPath, '.gatereeve-agent-evidence/feature.patch'), 'utf8'),
+    'complete patch\n'
+  );
+  assert.equal(snapshot.evidence['.gatereeve-agent-evidence/feature.patch'].bytes, 15);
   assert.equal((await stat(join(snapshot.repositoryPath, 'app.txt'))).mode & 0o222, 0);
   assert.match(snapshot.digest, /^sha256:[a-f0-9]{64}$/u);
   const path = snapshot.repositoryPath;

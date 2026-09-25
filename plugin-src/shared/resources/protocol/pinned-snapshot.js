@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { chmod, mkdtemp, mkdir, readdir, readlink, realpath, rm, stat } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readdir, readlink, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
@@ -9,7 +9,8 @@ import { ContractError } from './errors.js';
 
 const execFileAsync = promisify(execFile);
 const SHA = /^[0-9a-f]{40,64}$/u;
-const MAX_PACKET_BYTES = 900 * 1024;
+const MAX_PACKET_BYTES = 12 * 1024 * 1024;
+const EVIDENCE_ROOT = '.gatereeve-agent-evidence';
 
 async function defaultRunner(executable, args, options) {
   const result = await execFileAsync(executable, args, {
@@ -74,6 +75,38 @@ async function makeWritable(root) {
   }
 }
 
+async function materializeEvidenceFiles(repositoryPath, evidenceFiles) {
+  if (evidenceFiles === null || typeof evidenceFiles !== 'object' || Array.isArray(evidenceFiles)) {
+    throw new ContractError('Pinned snapshot evidence files must be an object');
+  }
+  const evidenceRoot = join(repositoryPath, EVIDENCE_ROOT);
+  try {
+    await stat(evidenceRoot);
+    throw new ContractError(`Pinned repository already contains reserved path ${EVIDENCE_ROOT}`);
+  } catch (error) {
+    if (error instanceof ContractError) throw error;
+    if (error?.code !== 'ENOENT') throw error;
+  }
+  const manifest = {};
+  for (const [rawPath, content] of Object.entries(evidenceFiles).sort(([left], [right]) => left.localeCompare(right))) {
+    const path = safeRelativePath(rawPath, 'Pinned snapshot evidence path');
+    if (!path.startsWith(`${EVIDENCE_ROOT}/`)) {
+      throw new ContractError(`Pinned snapshot evidence must be beneath ${EVIDENCE_ROOT}`);
+    }
+    if (typeof content !== 'string') {
+      throw new ContractError(`Pinned snapshot evidence ${path} must be text`);
+    }
+    const target = join(repositoryPath, path);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, content, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+    manifest[path] = {
+      hash: sha256Digest(content),
+      bytes: Buffer.byteLength(content, 'utf8'),
+    };
+  }
+  return manifest;
+}
+
 function lines(value) {
   return value.split(/\r?\n/u).filter(Boolean);
 }
@@ -85,6 +118,7 @@ async function git(runner, repositoryRoot, args) {
 export async function createPinnedRepositorySnapshot({
   repositoryRoot,
   headSha,
+  evidenceFiles = {},
   runner = defaultRunner,
   scratchParent = tmpdir(),
 }) {
@@ -103,13 +137,15 @@ export async function createPinnedRepositorySnapshot({
     await runner('git', ['-C', root, 'archive', '--format=tar', `--output=${archivePath}`, headSha], { cwd: root });
     await runner('tar', ['-xf', archivePath, '-C', repositoryPath], { cwd: scratchRoot });
     await rm(archivePath, { force: true });
+    const evidence = await materializeEvidenceFiles(repositoryPath, evidenceFiles);
     await makeReadOnly(repositoryPath);
     return {
       schemaVersion: 1,
       repositoryPath,
       headSha,
       treeSha,
-      digest: sha256Digest({ headSha, treeSha }),
+      digest: sha256Digest({ headSha, treeSha, evidence }),
+      evidence,
       async cleanup() {
         await makeWritable(scratchRoot);
         await rm(scratchRoot, { recursive: true, force: true });

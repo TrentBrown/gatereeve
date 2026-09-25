@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { relative, resolve, sep } from 'node:path';
 
 import { runAgentWorkflow } from './agent-workflow-runtime.js';
+import { sha256Digest } from './agent-workflow.js';
 import { publishAgentWorkflowArtifacts } from './artifact-publisher.js';
 import { ContractError } from './errors.js';
 import { gateInputFingerprint } from './fingerprint.js';
@@ -34,6 +35,24 @@ function evidencePath(featureHome, artifactRoot, path) {
     throw new ContractError('Agent workflow artifacts must be published inside the feature record');
   }
   return relative(feature, target).split(sep).join('/');
+}
+
+function externalizePatches(change) {
+  const value = structuredClone(change);
+  const evidenceFiles = {};
+  for (const [field, filename] of [['patch', 'feature.patch'], ['slicePatch', 'slice.patch']]) {
+    const content = value[field];
+    if (typeof content !== 'string') continue;
+    const path = `.gatereeve-agent-evidence/${filename}`;
+    evidenceFiles[path] = content;
+    value[field] = {
+      kind: 'snapshot-file',
+      path,
+      hash: sha256Digest(content),
+      bytes: Buffer.byteLength(content, 'utf8'),
+    };
+  }
+  return { value, evidenceFiles };
 }
 
 export async function executeAgentWorkflowGate({
@@ -78,6 +97,7 @@ export async function executeAgentWorkflowGate({
     sliceBaseSha: range.sliceBaseSha,
     featureHome,
   });
+  const externalized = externalizePatches(change);
   const input = {
     schemaVersion: 1,
     source: {
@@ -90,9 +110,13 @@ export async function executeAgentWorkflowGate({
       inputFingerprint,
     },
     boundary: structuredClone(prepared.inputs),
-    change,
+    change: externalized.value,
   };
-  const snapshot = await createSnapshot({ repositoryRoot, headSha: range.headSha });
+  const snapshot = await createSnapshot({
+    repositoryRoot,
+    headSha: range.headSha,
+    evidenceFiles: externalized.evidenceFiles,
+  });
   try {
     const evaluator = await resources.loadEvaluator({
       pluginId: module.run.resourcePlugin,

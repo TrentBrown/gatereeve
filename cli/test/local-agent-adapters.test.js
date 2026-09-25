@@ -103,3 +103,16 @@ test('adapter parsers require structured output and opaque context IDs', () => {
   );
   assert.throws(() => parseCodexContextId('{"type":"turn.completed"}\n'), /fresh context ID/);
 });
+
+test('provider adapters reject oversized prompts before launching a process', async () => {
+  let launched = false;
+  const adapter = createCodexAgentAdapter({
+    model: 'gpt-test',
+    runner: async () => { launched = true; },
+  });
+  await assert.rejects(
+    adapter.runStage({ ...request(), input: { oversized: 'x'.repeat(513 * 1024) } }),
+    /prompt exceeds the bounded/u
+  );
+  assert.equal(launched, false);
+});

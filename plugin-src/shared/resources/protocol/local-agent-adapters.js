@@ -7,6 +7,7 @@ import { sha256Digest } from './agent-workflow.js';
 import { ContractError } from './errors.js';
 
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
+const MAX_PROMPT_CHARACTERS = 512 * 1024;
 
 function iso(value) {
   return value instanceof Date ? value.toISOString() : value;
@@ -67,7 +68,7 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
 }
 
 function promptFor(request) {
-  return [
+  const prompt = [
     request.instructions.trim(),
     '',
     'Operate only on the supplied pinned evidence and the read-only repository view.',
@@ -77,6 +78,12 @@ function promptFor(request) {
     JSON.stringify(request.input),
     '</gatereeve-input>',
   ].join('\n');
+  if (prompt.length > MAX_PROMPT_CHARACTERS) {
+    throw new ContractError(
+      `Agent workflow prompt exceeds the bounded ${MAX_PROMPT_CHARACTERS}-character provider limit`
+    );
+  }
+  return prompt;
 }
 
 function receiptFor(request, descriptor, output, contextId, method, processResult) {
