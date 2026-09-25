@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PR 67 Explained — Whiteboard Test and Isolated Judge</title>
+  <style>
+    :root { color-scheme: light; --ink:#172033; --muted:#5a6478; --paper:#f6f2e9; --card:#fffdf8; --line:#d9d1c2; --blue:#315ca8; --green:#17734a; --red:#a33a32; --amber:#9a6200; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--paper); font:16px/1.62 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    header { padding:4.5rem max(1.25rem,calc((100vw - 1080px)/2)); color:white; background:linear-gradient(135deg,#172033,#315ca8); }
+    header p { max-width:760px; font-size:1.15rem; }
+    main { max-width:1080px; margin:auto; padding:2rem 1.25rem 5rem; }
+    nav,.card,.callout,.quiz { background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:0 8px 24px #17203310; }
+    nav { padding:1rem 1.4rem; margin:-3.2rem 0 3rem; }
+    nav a { display:inline-block; margin:.35rem 1.1rem .35rem 0; color:var(--blue); }
+    section { scroll-margin-top:1rem; margin:4rem 0; }
+    h1 { font-size:clamp(2.25rem,6vw,4.5rem); line-height:1.04; margin:0; }
+    h2 { font-size:clamp(1.8rem,4vw,2.7rem); line-height:1.15; }
+    h3 { margin-top:2rem; }
+    code { background:#17203312; padding:.1rem .32rem; border-radius:4px; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; padding:1rem; border-radius:12px; color:#eef4ff; background:#172033; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.14em; font-weight:800; font-size:.78rem; opacity:.78; }
+    .muted { color:var(--muted); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:1rem; }
+    .card,.callout,.quiz { padding:1.25rem; }
+    .callout { border-left:6px solid var(--blue); }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(130px,1fr)); align-items:stretch; gap:.6rem; overflow-x:auto; padding-bottom:.5rem; }
+    .node { min-width:130px; padding:1rem; border:2px solid var(--blue); border-radius:14px; background:white; position:relative; }
+    .node:not(:last-child)::after { content:"→"; position:absolute; right:-.75rem; top:42%; z-index:2; color:var(--blue); font-weight:900; background:var(--paper); }
+    .node strong { display:block; margin-bottom:.35rem; }
+    .split { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .lane { padding:1rem; border-radius:14px; background:#fff; border:1px solid var(--line); }
+    .lane.judge { border-top:6px solid var(--red); }
+    .lane.whiteboard { border-top:6px solid var(--green); }
+    .badge { display:inline-block; padding:.2rem .55rem; border-radius:999px; background:#315ca818; color:var(--blue); font-weight:750; font-size:.82rem; }
+    .answer { margin-top:.7rem; padding:.8rem; border-radius:10px; background:#1720330b; display:none; }
+    .answer.show { display:block; }
+    .choices { display:grid; gap:.55rem; margin-top:.8rem; }
+    button { text-align:left; padding:.75rem .9rem; border:1px solid var(--line); border-radius:10px; background:white; color:var(--ink); cursor:pointer; font:inherit; }
+    button:hover,button:focus-visible { border-color:var(--blue); outline:3px solid #315ca830; }
+    button.correct { border-color:var(--green); background:#17734a12; }
+    button.incorrect { border-color:var(--red); background:#a33a3212; }
+    .result { min-height:1.6rem; margin:.7rem 0 0; font-weight:700; }
+    table { width:100%; border-collapse:collapse; background:white; }
+    th,td { text-align:left; vertical-align:top; border:1px solid var(--line); padding:.75rem; }
+    @media (max-width:720px) { header { padding-top:3rem; } .split { grid-template-columns:1fr; } .flow { grid-template-columns:1fr; } .node:not(:last-child)::after { content:"↓"; right:auto; left:48%; top:auto; bottom:-1.2rem; } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">GateReeve · PR #67 · exact range 10e54a0…60780d1</div>
+  <h1>Two kinds of scrutiny,<br>one governed runtime</h1>
+  <p>This change adds a Whiteboard Defense that teaches a human how a PR works, while rebuilding Judge as a genuinely independent blocking reviewer. They share plumbing—not purpose, evidence, or verdicts.</p>
+</header>
+<main>
+  <nav aria-label="Table of contents">
+    <strong>Jump to:</strong>
+    <a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#architecture">Architecture</a><a href="#code">Code walkthrough</a><a href="#failure">Failure model</a><a href="#quiz">Quiz</a>
+  </nav>
+
+  <section id="background">
+    <div class="eyebrow">Background</div>
+    <h2>What GateReeve already did—and what was missing</h2>
+    <p>GateReeve governs a feature through an append-only protocol record. At a PR boundary, named gates evaluate one pinned base/head range. The protocol core—the <em>reeve</em>—decides eligibility, verifies freshness, and records outcomes. A skill, model, UI, or shell command cannot grant passage by itself.</p>
+    <div class="grid">
+      <article class="card"><span class="badge">Before</span><h3>Judge</h3><p>Judge expressed a compliance decision, but its execution did not yet have a reusable, runtime-enforced guarantee of a fresh context with no inherited implementation history.</p></article>
+      <article class="card"><span class="badge">Missing</span><h3>Whiteboard Defense</h3><p>There was no independent artifact that asked adversarial open-ended questions, then let a colleague reveal concise, deep, evidence-backed, and “Push Harder” answers.</p></article>
+      <article class="card"><span class="badge">Constraint</span><h3>Portable plugins</h3><p>The behavior must work under Codex and Claude Code, through the headless CLI and Desktop, without welding either gate into the core product.</p></article>
+    </div>
+    <div class="callout"><strong>Key distinction:</strong> Judge answers “does the work satisfy the approved contract?” Whiteboard answers “did we produce a defensible explanation of exactly this change?” Whiteboard never certifies that a human understands the code.</div>
+  </section>
+
+  <section id="intuition">
+    <div class="eyebrow">Intuition</div>
+    <h2>Think of the runtime as a clean-room review conveyor</h2>
+    <p>Each agent stage receives a sealed snapshot and a typed assignment. It returns typed output plus a receipt. Only trusted host code validates and publishes the declared artifacts; only the protocol core records the gate result.</p>
+    <div class="flow" role="img" aria-label="Pinned pull request flows through a disposable snapshot, fresh agent stage, trusted validation, artifact publication, and protocol recording">
+      <div class="node"><strong>1. Pin</strong>Exact base/head and gate inputs</div>
+      <div class="node"><strong>2. Snapshot</strong>Read-only commit plus digest-bound sidecars</div>
+      <div class="node"><strong>3. Isolate</strong>Fresh Codex or Claude context</div>
+      <div class="node"><strong>4. Validate</strong>Schema, receipts, HTML runtime, evaluator</div>
+      <div class="node"><strong>5. Record</strong>Recheck freshness, then append outcome</div>
+    </div>
+    <h3>Toy example</h3>
+    <p>Suppose a PR moves route selection into a central router. Challenger asks: “Why does routing belong here?” Defender answers at three depths and cites <code>src/router.js:10-22</code>. If the implementation has poor rejection metrics, the artifact highlights that limitation but may still pass. If the HTML omits the evidence reveal or loads <code>helper.js</code>, the artifact itself is defective and must fail.</p>
+  </section>
+
+  <section id="architecture">
+    <div class="eyebrow">Architecture</div>
+    <h2>Shared mechanics, separate responsibilities</h2>
+    <div class="split">
+      <article class="lane judge"><h3>Judge lane</h3><ol><li>Waits for Verification.</li><li>Runs one independent compliance-review context.</li><li>Receives spec, rubric, pinned change, and Verification evidence.</li><li>Publishes bound JSON, Markdown, and receipt.</li><li><strong>FAIL blocks.</strong> It never edits code.</li></ol></article>
+      <article class="lane whiteboard"><h3>Whiteboard lane</h3><ol><li>Depends on Verification and conditionally waits for Judge.</li><li>Runs isolated Challenger, then isolated Defender/Publisher.</li><li>Preserves every question verbatim.</li><li>Publishes a challenge-and-reveal HTML study artifact.</li><li><strong>Work findings do not block;</strong> artifact defects do.</li></ol></article>
+    </div>
+    <p>The <code>after</code> edge is only an ordering/freshness edge. Whiteboard receives no Judge output. Content flows only through explicit <code>dependsOn</code> edges, which prevents the explanation from simply echoing the Judge.</p>
+  </section>
+
+  <section id="code">
+    <div class="eyebrow">Code walkthrough</div>
+    <h2>Four changes make the design real</h2>
+    <h3>1. A reusable staged-agent primitive</h3>
+    <p>Module definitions now declare stages, provider-neutral capability requirements, resources, output schemas, isolation policy, artifact allowlists, and one authoritative evidence root. The runtime checks the provider descriptor before launch and binds each result to its request.</p>
+    <pre><code>module.run = {
+  kind: "agent-workflow",
+  capabilityProfile: { id: "high-capability-v1", minimumReasoning: "high" },
+  isolation: { freshContext: true, inheritedTurns: 0 },
+  repositoryAccess: "read-only-pinned",
+  networkAccess: "denied",
+  stages: [/* typed, ordered stages */]
+}</code></pre>
+
+    <h3>2. Actual isolation in both providers</h3>
+    <p>Codex uses an ephemeral execution against GateReeve’s disposable snapshot. Claude Code uses a non-persistent restricted custom agent. Receipts record requested capability, actual provider/model/reasoning, opaque context ID, zero inherited turns, timestamps, policies, and digests. A reused context or mismatched capability leaves the gate <code>UNSET</code>.</p>
+
+    <h3>3. A genuinely independent Whiteboard plugin</h3>
+    <p>The marketplace registry composes Agentic Development Workflow and Whiteboard Test into separate Codex and Claude packages. Installing Whiteboard does not activate it; policy selection and any in-flight model migration remain explicit.</p>
+
+    <h3>4. Free-form presentation with governed artifact validation</h3>
+    <p>The model retains freedom to author embedded HTML, CSS, JavaScript, SVG, animation, and diagrams. The host then parses and executes the exact generated bytes in a restricted DOM, rejects non-embedded resources, checks runtime errors, exercises native reveals, verifies visual alternatives and finding links, and binds that receipt into <code>whiteboard-defense.json</code>. Desktop adds a sandboxed, no-authority CSP when displaying it.</p>
+    <table>
+      <thead><tr><th>Layer</th><th>What it proves</th><th>What it deliberately does not prove</th></tr></thead>
+      <tbody>
+        <tr><td>Typed agent outputs</td><td>Required questions, answers, evidence, findings, and visuals exist</td><td>That the prose is philosophically perfect</td></tr>
+        <tr><td>DOM/runtime receipt</td><td>The exact HTML loads, stays self-contained, and has working required mechanics</td><td>Every optional animation path on every browser</td></tr>
+        <tr><td>Electron smoke</td><td>Representative behavior works in the production sandbox and narrow viewport</td><td>That a fixed fixture substitutes for per-artifact validation</td></tr>
+        <tr><td>Judge</td><td>The implementation meets the approved spec and rubric</td><td>Human comprehension or Whiteboard pedagogy</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="failure">
+    <div class="eyebrow">Failure model</div>
+    <h2>Three outcomes that must not be confused</h2>
+    <div class="grid">
+      <article class="card"><h3>Judge FAIL</h3><p>The work is noncompliant. The gate blocks. A separate implementation context repairs it, then a new pinned Judge attempt reviews again.</p></article>
+      <article class="card"><h3>Whiteboard FAIL</h3><p>The explanatory artifact is malformed, unsupported, incomplete, or mechanically broken. This says nothing by itself about implementation quality.</p></article>
+      <article class="card"><h3>Whiteboard PASS + finding</h3><p>The artifact honestly exposes an implementation limitation or unknown. That disclosure is successful explanatory behavior, not a reason to pretend the weakness does not exist.</p></article>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <div class="eyebrow">Quiz</div>
+    <h2>Check your mental model</h2>
+    <p class="muted">Choose one answer. Feedback appears immediately.</p>
+
+    <article class="quiz" data-answer="1"><h3>1. Why is Whiteboard’s Judge relationship represented by <code>after</code> rather than <code>dependsOn</code>?</h3><div class="choices"><button>Because <code>after</code> lets Whiteboard reuse Judge’s conclusions without making Judge mandatory.</button><button>Because it orders and freshness-binds the gates without placing Judge content in Whiteboard’s evidence packet.</button><button>Because <code>dependsOn</code> is reserved for command modules and cannot reference agent workflows.</button></div><p class="result" aria-live="polite"></p></article>
+
+    <article class="quiz" data-answer="2"><h3>2. Which condition should make Whiteboard fail?</h3><div class="choices"><button>The defense openly states that production metrics do not distinguish two rejection causes.</button><button>The defense calls an architectural choice risky and lists a future mitigation.</button><button>The generated HTML references <code>helper.js</code>, so the required interaction is not self-contained.</button></div><p class="result" aria-live="polite"></p></article>
+
+    <article class="quiz" data-answer="0"><h3>3. What does the generated-artifact validator add beyond the Electron fixture smoke?</h3><div class="choices"><button>It parses and executes every run’s exact generated HTML and binds the result to that artifact’s digest.</button><button>It proves the same fixed fixture works under both Codex and Claude Code.</button><button>It replaces the Desktop CSP, allowing the HTML to run without a sandbox.</button></div><p class="result" aria-live="polite"></p></article>
+
+    <article class="quiz" data-answer="1"><h3>4. If Codex is unavailable or a receipt claims the wrong requested capability, what should GateReeve record?</h3><div class="choices"><button>A gate FAIL, because infrastructure failure is equivalent to noncompliant work.</button><button>No gate verdict; the gate remains <code>UNSET</code> and reports the workflow unavailable.</button><button>A human waiver, because provider availability is outside the PR’s control.</button></div><p class="result" aria-live="polite"></p></article>
+
+    <article class="quiz" data-answer="2"><h3>5. Why can the model still author free-form HTML instead of using only a fixed renderer?</h3><div class="choices"><button>Because the development domain makes containment and provenance unnecessary.</button><button>Because Judge reviews the HTML and repairs unsafe markup before publication.</button><button>Because a strict manifest, host DOM validation, native core controls, and display sandbox constrain authority while preserving expressive presentation.</button></div><p class="result" aria-live="polite"></p></article>
+  </section>
+</main>
+<script>
+  const feedback = [
+    'The ordering edge controls sequence and freshness; only explicit content dependencies enter the evidence packet.',
+    'Disclosed implementation weaknesses are educational. A missing local dependency makes the artifact itself incomplete.',
+    'Every generated artifact—not just a fixture—is executed and receives a digest-bound validation result.',
+    'Infrastructure or unverifiable isolation cannot judge the work, so the protocol fails closed without recording FAIL.',
+    'The hybrid keeps visual freedom while trusted host checks and the browser sandbox remove undeclared authority.'
+  ];
+  document.querySelectorAll('.quiz').forEach((quiz, quizIndex) => {
+    const correct = Number(quiz.dataset.answer);
+    const buttons = [...quiz.querySelectorAll('button')];
+    buttons.forEach((button, index) => button.addEventListener('click', () => {
+      buttons.forEach((item, itemIndex) => {
+        item.classList.toggle('correct', itemIndex === correct);
+        item.classList.toggle('incorrect', itemIndex === index && itemIndex !== correct);
+      });
+      quiz.querySelector('.result').textContent = `${index === correct ? 'Correct.' : 'Not quite.'} ${feedback[quizIndex]}`;
+    }));
+  });
+</script>
+</body>
+</html>

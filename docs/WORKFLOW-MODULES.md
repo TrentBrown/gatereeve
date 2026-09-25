@@ -175,6 +175,12 @@ The module's `after` edge controls ordering and freshness only. Only artifacts
 from declared `dependsOn` edges enter an agent-workflow evidence packet, so a
 Whiteboard run can inspect Verification but cannot inspect Judge output.
 
+PR boundary manifests use schema version 2 when a gate's current human artifact
+lives under an immutable attempt directory. Each applicable gate records the
+packet-relative artifact path and SHA-256 digest; packet validation follows that
+reference instead of assuming that a mutable root filename is current. Schema
+version 1 remains readable for historical fixed-filename packets.
+
 ## Runtime and consent
 
 A skill adapter exposes copyable invocation context and can open the persistent

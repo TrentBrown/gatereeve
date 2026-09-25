@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import subprocess
@@ -297,6 +298,66 @@ class BoundaryPacketTests(unittest.TestCase):
         )
 
         self.assertEqual(result["evaluatedSourceSha"], NEXT_HEAD_SHA)
+
+    def test_v2_binds_current_attempt_artifacts_without_rejecting_history(self) -> None:
+        packet = self.write_packet()
+        attempt = packet / "attempts" / "attempt-2"
+        attempt.mkdir(parents=True)
+        (packet / "judge.md").replace(attempt / "judge.md")
+        (attempt / "judge.json").write_text('{"outcome":"PASS"}\n', encoding="utf-8")
+        value = self.manifest()
+        value["schemaVersion"] = 2
+        for gate, artifact_name in ARTIFACTS.items():
+            gate_value = value["gates"][gate]
+            if gate_value["disposition"] == "not_applicable":
+                gate_value["evidence"] = None
+                continue
+            relative = (
+                "attempts/attempt-2/judge.md"
+                if gate == "judge"
+                else artifact_name
+            )
+            artifact = packet / relative
+            gate_value["evidence"] = {
+                "path": relative,
+                "sha256": f"sha256:{hashlib.sha256(artifact.read_bytes()).hexdigest()}",
+            }
+        (packet / "boundary.json").write_text(
+            f"{json.dumps(value, indent=2)}\n", encoding="utf-8"
+        )
+
+        result = self.validate()
+
+        self.assertEqual(result["status"], "valid")
+        (attempt / "judge.md").write_text("changed\n", encoding="utf-8")
+        with self.assertRaisesRegex(BoundaryPacketError, "digest mismatch"):
+            self.validate()
+
+    def test_v2_rejects_unlisted_current_files_but_allows_attempt_history(self) -> None:
+        packet = self.write_packet()
+        value = self.manifest()
+        value["schemaVersion"] = 2
+        for gate, artifact_name in ARTIFACTS.items():
+            gate_value = value["gates"][gate]
+            if gate_value["disposition"] == "not_applicable":
+                gate_value["evidence"] = None
+                continue
+            artifact = packet / artifact_name
+            gate_value["evidence"] = {
+                "path": artifact_name,
+                "sha256": f"sha256:{hashlib.sha256(artifact.read_bytes()).hexdigest()}",
+            }
+        (packet / "boundary.json").write_text(
+            f"{json.dumps(value, indent=2)}\n", encoding="utf-8"
+        )
+        history = packet / "attempts" / "attempt-1"
+        history.mkdir(parents=True)
+        (history / "judge.json").write_text("{}\n", encoding="utf-8")
+        self.assertEqual(self.validate()["status"], "valid")
+
+        (packet / "latest.md").write_text("mutable pointer\n", encoding="utf-8")
+        with self.assertRaisesRegex(BoundaryPacketError, "Unexpected packet file"):
+            self.validate()
 
     def test_later_pr_cannot_change_an_earlier_packet(self) -> None:
         self.write_packet()

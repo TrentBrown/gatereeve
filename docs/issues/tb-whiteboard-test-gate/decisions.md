@@ -6,6 +6,23 @@ Permanent record of decisions promoted from `scratchpad.md`.
 
 ---
 
+## Bind current boundary artifacts without rewriting attempt history
+
+**Confidence:** HIGH
+
+**Blast Radius:** PR boundary packet manifest and validation
+
+Add boundary manifest schema version 2. Each applicable gate now identifies its current human artifact with a packet-relative path and SHA-256 digest, so a packet can point at the exact immutable attempt artifact that granted passage. Retain schema version 1 for historical packets. Version 2 permits audited files under `attempts/<attempt-id>/` and the known legacy root Judge/Verification files, rejects symlinks and unrelated extras, and verifies every current gate reference by name, regular-file status, nonempty content, and digest.
+
+**Triggered by:** Packet validation after the attempt-12 Judge PASS found that the legacy fixed-filename contract would read PR #67's preserved attempt-8 root `judge.md` failure instead of the current attempt-12 PASS under its immutable attempt directory.
+
+**Alternatives considered:**
+Overwrite the packet-root Judge files - rejected because the attempt-8 event binds those exact bytes and history must remain immutable. Copy the latest result to a mutable `latest` file - rejected because it recreates ambiguous unbound evidence. Delete failed attempt evidence - rejected because it destroys the review history. Ignore nested attempt files in packet validation - rejected because current passage would still resolve the wrong root artifact.
+
+**Promoted:** 2026-09-24. PR: 67.
+
+---
+
 ## Execute and bind every generated Whiteboard artifact before passage
 
 **Confidence:** HIGH

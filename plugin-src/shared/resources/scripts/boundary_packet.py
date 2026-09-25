@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -16,6 +17,7 @@ from workflow_context import WorkflowContext, resolve_workflow_context
 
 
 SCHEMA_VERSION = 1
+BOUNDARY_SCHEMA_VERSIONS = {1, 2}
 SHA = re.compile(r"^[0-9a-fA-F]{40,64}$")
 PACKET_NAME = re.compile(r"^pr-[A-Za-z0-9._-]+$")
 DISPOSITIONS = {"passed", "waived", "not_applicable"}
@@ -118,8 +120,14 @@ def _validate_gate(
     value: object,
     applicable: bool,
     packet: Path,
+    manifest_version: int,
 ) -> dict[str, object]:
-    fields = _exact_keys(value, {"disposition", "reason"}, f"gates.{gate}")
+    expected_fields = (
+        {"disposition", "reason"}
+        if manifest_version == 1
+        else {"disposition", "reason", "evidence"}
+    )
+    fields = _exact_keys(value, expected_fields, f"gates.{gate}")
     disposition = _required_string(
         fields.get("disposition"), f"gates.{gate}.disposition"
     )
@@ -150,18 +158,98 @@ def _validate_gate(
                 f"Inapplicable gate {gate} must be not_applicable"
             )
 
-    artifact = packet / ARTIFACTS[gate]
     required = gate in CORE_GATES or disposition != "not_applicable"
+    evidence = fields.get("evidence") if manifest_version == 2 else None
+    if manifest_version == 2:
+        if not required:
+            if evidence is not None:
+                raise BoundaryPacketError(
+                    f"Inapplicable gate {gate} must set evidence to null"
+                )
+            artifact = packet / ARTIFACTS[gate]
+        else:
+            reference = _exact_keys(
+                evidence, {"path", "sha256"}, f"gates.{gate}.evidence"
+            )
+            raw_path = _required_string(reference.get("path"), f"gates.{gate}.evidence.path")
+            relative_path = PurePosixPath(raw_path)
+            if (
+                relative_path.is_absolute()
+                or not relative_path.parts
+                or any(part in {"", ".", ".."} for part in relative_path.parts)
+                or relative_path.name != ARTIFACTS[gate]
+            ):
+                raise BoundaryPacketError(
+                    f"gates.{gate}.evidence.path must safely end in {ARTIFACTS[gate]}"
+                )
+            expected_hash = _required_string(
+                reference.get("sha256"), f"gates.{gate}.evidence.sha256"
+            ).lower()
+            if not re.fullmatch(r"sha256:[0-9a-f]{64}", expected_hash):
+                raise BoundaryPacketError(
+                    f"gates.{gate}.evidence.sha256 must be a SHA-256 digest"
+                )
+            artifact = packet.joinpath(*relative_path.parts)
+    else:
+        artifact = packet / ARTIFACTS[gate]
     if required:
         if not artifact.is_file() or artifact.is_symlink() or artifact.stat().st_size == 0:
             raise BoundaryPacketError(
-                f"Gate {gate} requires nonempty regular artifact {ARTIFACTS[gate]}"
+                f"Gate {gate} requires nonempty regular artifact {artifact.relative_to(packet)}"
             )
+        if manifest_version == 2:
+            actual_hash = f"sha256:{hashlib.sha256(artifact.read_bytes()).hexdigest()}"
+            if actual_hash != expected_hash:
+                raise BoundaryPacketError(f"Gate {gate} evidence digest mismatch")
     elif artifact.exists():
         raise BoundaryPacketError(
             f"Inapplicable gate {gate} must not include {ARTIFACTS[gate]}"
         )
-    return {"disposition": disposition, "reason": reason}
+    return {
+        "disposition": disposition,
+        "reason": reason,
+        "artifactPath": str(artifact.relative_to(packet)) if required else None,
+    }
+
+
+def _validate_v2_packet_files(
+    packet: Path,
+    normalized_gates: Mapping[str, Mapping[str, object]],
+) -> None:
+    expected = {"boundary.json"}
+    expected.update(
+        str(value["artifactPath"])
+        for value in normalized_gates.values()
+        if value["artifactPath"] is not None
+    )
+    legacy_root = {
+        "judge.json", "judge-result.json", "judge-receipt.json", "judge.md",
+        "verification.md",
+    }
+    actual = set()
+    for item in packet.rglob("*"):
+        if item.is_symlink():
+            raise BoundaryPacketError(f"Packet history must not contain symlinks: {item}")
+        if not item.is_file():
+            continue
+        relative = item.relative_to(packet).as_posix()
+        actual.add(relative)
+        parts = PurePosixPath(relative).parts
+        historical = (
+            relative in legacy_root
+            or (
+                len(parts) >= 3
+                and parts[0] == "attempts"
+                and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", parts[1])
+            )
+        )
+        if relative not in expected and not historical:
+            raise BoundaryPacketError(f"Unexpected packet file: {relative}")
+    missing = expected - actual
+    if missing:
+        raise BoundaryPacketError(
+            f"Packet files omit manifest evidence: {sorted(missing)}"
+        )
 
 
 def _validate_tracker_link(feature_home: Path, pr_number: int, packet_id: str) -> None:
@@ -326,9 +414,10 @@ def validate_packet(
         MANIFEST_KEYS,
         "boundary.json",
     )
-    if manifest.get("schemaVersion") != SCHEMA_VERSION:
+    manifest_version = manifest.get("schemaVersion")
+    if manifest_version not in BOUNDARY_SCHEMA_VERSIONS:
         raise BoundaryPacketError(
-            f"boundary.json schemaVersion must be {SCHEMA_VERSION}"
+            f"boundary.json schemaVersion must be one of {sorted(BOUNDARY_SCHEMA_VERSIONS)}"
         )
     scope = _required_string(manifest.get("scope"), "boundary.json.scope")
     if scope not in SCOPES:
@@ -380,18 +469,22 @@ def validate_packet(
             value,
             bool(applicability.get(gate, True)),
             packet,
+            manifest_version,
         )
 
-    expected_files = {"boundary.json"}
-    for gate, artifact in ARTIFACTS.items():
-        if gate in CORE_GATES or normalized_gates[gate]["disposition"] != "not_applicable":
-            expected_files.add(artifact)
-    actual_files = {item.name for item in packet.iterdir()}
-    if actual_files != expected_files:
-        raise BoundaryPacketError(
-            "Packet files differ from the manifest contract: expected "
-            f"{sorted(expected_files)}, found {sorted(actual_files)}"
-        )
+    if manifest_version == 1:
+        expected_files = {"boundary.json"}
+        for gate, artifact in ARTIFACTS.items():
+            if gate in CORE_GATES or normalized_gates[gate]["disposition"] != "not_applicable":
+                expected_files.add(artifact)
+        actual_files = {item.name for item in packet.iterdir()}
+        if actual_files != expected_files:
+            raise BoundaryPacketError(
+                "Packet files differ from the manifest contract: expected "
+                f"{sorted(expected_files)}, found {sorted(actual_files)}"
+            )
+    else:
+        _validate_v2_packet_files(packet, normalized_gates)
 
     _validate_tracker_link(
         workflow.feature_home, context.pull_request.number, expected_name
