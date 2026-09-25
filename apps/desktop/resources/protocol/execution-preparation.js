@@ -22,9 +22,17 @@ export async function verifyBoundaryContextCurrent({
     encoding: 'utf8', mode: 0o600, flag: 'wx',
   });
   try {
+    const compact = context?.schemaVersion !== 1 || typeof context?.pullRequest !== 'object';
     const result = await runGuard(
       'boundary.context.current',
-      ['check-current', '--context', contextPath, '--git-executable', gitExecutable, '--gh-executable', ghExecutable],
+      compact
+        ? [
+            'check-boundary-current', '--cwd', repositoryRoot,
+            '--context', contextPath,
+            '--git-executable', gitExecutable,
+            '--gh-executable', ghExecutable,
+          ]
+        : ['check-current', '--context', contextPath, '--git-executable', gitExecutable, '--gh-executable', ghExecutable],
       { cwd: repositoryRoot, pythonExecutable },
     );
     if (!result.passed || !result.data) {

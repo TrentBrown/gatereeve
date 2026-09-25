@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:606d3103a299bfa479ee14066b58c294f6ee166d6c1d96c50049d586b4ac9146",
+  "protocolHash": "sha256:32aa79e138abbcc44eee9c918d396040f0de67bf4527c33734809f3bc78b3f4c",
   "modelSha256": "c342f3ec710920d3a9ace7657f86a855bf723b4003a72d44f217772415e839d3",
   "files": [
     {
@@ -16,13 +16,13 @@
     },
     {
       "path": "agent-workflow-scheduler.js",
-      "size": 4557,
-      "sha256": "921f55a1251c3ae1c1dbd38c9da859b0fdb954ef74ebc0517f0874c944d847a0"
+      "size": 4980,
+      "sha256": "adf5eb778afafd4642dd49149fd882f56134f5ff2d9fdfbfd32a5fbb087dc1b4"
     },
     {
       "path": "agent-workflow-service.js",
-      "size": 5704,
-      "sha256": "93c48b17f08b1987b4a024bb7c038049cc8c95dffa1763c2432fa3728581313d"
+      "size": 6458,
+      "sha256": "fda3a58a2ed80530858032a29701973fed9ba968a2f96f9cd903c86e5e22976a"
     },
     {
       "path": "agent-workflow.js",
@@ -66,8 +66,8 @@
     },
     {
       "path": "execution-preparation.js",
-      "size": 3367,
-      "sha256": "df1c3c471622630e5b0908ea984be022445895aac18cb450f0b35f6b6eee794d"
+      "size": 3696,
+      "sha256": "c15d48a50cd5466ae5825332bf13e4b8bf2181fc2ecaf4c7b8fd3673d0973aaf"
     },
     {
       "path": "feature.js",
@@ -111,8 +111,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 9075,
-      "sha256": "5b996d3c3756b17c0c3dd05444fcdc6da22adfef4667914de16772addc591be9"
+      "size": 9354,
+      "sha256": "71142e2069f0ebae37d88585e42484470650087200330fe0e43483aff4762f64"
     },
     {
       "path": "model/default-workflow-policy.json",
@@ -151,8 +151,8 @@
     },
     {
       "path": "pinned-snapshot.js",
-      "size": 7397,
-      "sha256": "3c93df9086936da614933b525c063a6d26f0ab9996f2e698b72057c9baf8e030"
+      "size": 9202,
+      "sha256": "d9a30ecec217f2a02e82d99cd656a16c46e2827745e9bd0cb15b765a0b2c6316"
     },
     {
       "path": "plugin-adapter.js",
