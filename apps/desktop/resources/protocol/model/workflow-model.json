@@ -308,7 +308,7 @@
   },
   "moduleGraph": {
     "schemaVersion": 1,
-    "policyDigest": "sha256:e735bfb81aecda8131261b5bbf538ff52f393995393e3bf27540c5f625d72ae0",
+    "policyDigest": "sha256:f1a71802ff08f6784b3ce29ecc8c53a6f01694af8dbfb65a058e0df5a07108f3",
     "enabledModuleIds": [
       "gatereeve/pin-context",
       "gatereeve/release",
@@ -527,7 +527,7 @@
         "schemaVersion": 1,
         "id": "whiteboard-test/defense",
         "version": "1.0.0",
-        "digest": "sha256:a78b1818d401f3c443519c229907764558fec9bd6420d06eca9df01eaddb19ca",
+        "digest": "sha256:ed7d86c6c7df6238aad12515443ded715395d53182a92a90ecdfeea1a5345e08",
         "label": "Whiteboard Defense",
         "description": "Builds an adversarial, evidence-backed challenge-and-reveal explanation of the exact pinned change.",
         "slot": "boundary.evaluation",
@@ -537,6 +537,7 @@
         "locked": false,
         "enabledByDefault": false,
         "waiverAllowed": true,
+        "waiverPolicy": "non-behavioral-only",
         "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
         "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
         "boundary": {

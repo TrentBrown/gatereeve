@@ -4,7 +4,7 @@
     "minimum": "1.0.0"
   },
   "coreVersion": "1.0.0",
-  "createdAt": "2026-09-25T00:17:57.030Z",
+  "createdAt": "2026-09-25T01:39:26.403Z",
   "guardIds": [
     "boundary.context.current",
     "boundary.requiredGates.current",
@@ -739,7 +739,7 @@
             "gatereeve/verification"
           ],
           "description": "Builds an adversarial, evidence-backed challenge-and-reveal explanation of the exact pinned change.",
-          "digest": "sha256:a78b1818d401f3c443519c229907764558fec9bd6420d06eca9df01eaddb19ca",
+          "digest": "sha256:ed7d86c6c7df6238aad12515443ded715395d53182a92a90ecdfeea1a5345e08",
           "disposition": "required",
           "enabledByDefault": false,
           "evidence": {
@@ -834,7 +834,8 @@
           "schemaVersion": 1,
           "slot": "boundary.evaluation",
           "version": "1.0.0",
-          "waiverAllowed": true
+          "waiverAllowed": true,
+          "waiverPolicy": "non-behavioral-only"
         },
         {
           "after": [
@@ -961,7 +962,7 @@
           "waiverAllowed": false
         }
       ],
-      "policyDigest": "sha256:e735bfb81aecda8131261b5bbf538ff52f393995393e3bf27540c5f625d72ae0",
+      "policyDigest": "sha256:f1a71802ff08f6784b3ce29ecc8c53a6f01694af8dbfb65a058e0df5a07108f3",
       "schemaVersion": 1
     },
     "presentation": {
@@ -1104,7 +1105,7 @@
       ]
     }
   },
-  "modelHash": "sha256:606e364201b0c766c65dde4764e657cbcca1842154b05dab1ac5a88fc3164b2e",
+  "modelHash": "sha256:95ba8ada95c12e6301c87402d5fc8f312d28f0fccf5545fb664cb74b0520f16f",
   "modelId": "gatereeve/workflow",
   "modelVersion": "1.3.0",
   "schemaVersion": 1

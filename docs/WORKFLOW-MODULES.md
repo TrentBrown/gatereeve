@@ -151,12 +151,20 @@ The selector in this model release is:
 {
   "id": "whiteboard-test/defense",
   "version": "1.0.0",
-  "digest": "sha256:a78b1818d401f3c443519c229907764558fec9bd6420d06eca9df01eaddb19ca",
+  "digest": "sha256:ed7d86c6c7df6238aad12515443ded715395d53182a92a90ecdfeea1a5345e08",
   "enabled": true
 }
 ```
 
 This is one entry in the complete policy array, not a standalone policy file.
+Whiteboard declares `waiverPolicy: "non-behavioral-only"`. A waiver therefore
+requires an explicit human confirmation, a `NON_BEHAVIORAL` classification, and
+a digest-bound evidence reference supplied through `gate waive
+--waiver-basis-file`; a free-form rationale by itself cannot waive the gate.
+
+The module's `after` edge controls ordering and freshness only. Only artifacts
+from declared `dependsOn` edges enter an agent-workflow evidence packet, so a
+Whiteboard run can inspect Verification but cannot inspect Judge output.
 
 ## Runtime and consent
 

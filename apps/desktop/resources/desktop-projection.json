@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:488e020ec5a1340e3042ee5c4625007b5e83a25c74a579ef41fddefca0cd3cb2",
-  "modelSha256": "c342f3ec710920d3a9ace7657f86a855bf723b4003a72d44f217772415e839d3",
+  "protocolHash": "sha256:e2ba225f4310da96025366d82050cc4e941b41a88c6c29b9c9295a37e00f1369",
+  "modelSha256": "35b2f840322d7216d9749c30ede6f989738d9bec862b17e33f44b5f1c98f20f3",
   "files": [
     {
       "path": "agent-workflow-resources.js",
@@ -21,8 +21,8 @@
     },
     {
       "path": "agent-workflow-service.js",
-      "size": 9765,
-      "sha256": "f1f5ccdf42355a251cdbb952071e9ae60958178bfb4120fb3356c30fddd56a5b"
+      "size": 10191,
+      "sha256": "92eac8a4d0bb4cdb8a8cf4136bf76123b79a731567937c51dd5739fd0ac93912"
     },
     {
       "path": "agent-workflow.js",
@@ -36,8 +36,8 @@
     },
     {
       "path": "boundary.js",
-      "size": 7666,
-      "sha256": "ec9c2214bfaa35547c8d518779660b8bb90cbcdbf217d95ad26248a9dc1b4184"
+      "size": 8337,
+      "sha256": "581103c8625e6fa4766587bc5b308d2f610b59f911aa7453b68a2555d45a649f"
     },
     {
       "path": "changes.js",
@@ -117,17 +117,17 @@
     {
       "path": "model/default-workflow-policy.json",
       "size": 2322,
-      "sha256": "8b3c4f427922fa1e2aa5bdd87981e75f5fd64b0334cd4888b1d65064064c0250"
+      "sha256": "8d0776dd50e905f326771624dc9193f01d5b70648cc1315545b8e83329091b75"
     },
     {
       "path": "model/workflow-model.json",
-      "size": 25577,
-      "sha256": "c342f3ec710920d3a9ace7657f86a855bf723b4003a72d44f217772415e839d3"
+      "size": 25624,
+      "sha256": "35b2f840322d7216d9749c30ede6f989738d9bec862b17e33f44b5f1c98f20f3"
     },
     {
       "path": "model.js",
-      "size": 15070,
-      "sha256": "9f0b05c79c1d9a72352c8b707f0aada1703e67df538e4068bc314c99fb36fca2"
+      "size": 15232,
+      "sha256": "2c03eb8f640aeed153ce41ceefe6c3c74d20725d2a0686f314deb60bc3d42e4d"
     },
     {
       "path": "module-runtime.js",
@@ -136,8 +136,8 @@
     },
     {
       "path": "modules.js",
-      "size": 32050,
-      "sha256": "f576dccabe795ac1134aa1cb6ad904edc5b52da9d8b75b44101c8387b39b1ad7"
+      "size": 32643,
+      "sha256": "25239510eec713966c787f3bf952e2ea0e79296adc8e762c8fe028b209867472"
     },
     {
       "path": "observer.js",
@@ -161,8 +161,8 @@
     },
     {
       "path": "projection.js",
-      "size": 43773,
-      "sha256": "9787a73e21b6e9df4e318ba14f9f081045816463c54158d1049e7c843ec8384c"
+      "size": 44606,
+      "sha256": "924d15b3a0d13b8846219bc304f2426ee350df4d03ea070aafe47bbf639bce82"
     },
     {
       "path": "python-guards.js",
@@ -176,8 +176,8 @@
     },
     {
       "path": "snapshot.js",
-      "size": 61105,
-      "sha256": "e7f28db90d946119e614638077841590e59aec3cd689bce1fb80e1310e67d608"
+      "size": 61515,
+      "sha256": "16c1ca2ddf8569b764acedc56eec4630596417e0b4266a5884b4969fb32ebe7c"
     },
     {
       "path": "storage.js",

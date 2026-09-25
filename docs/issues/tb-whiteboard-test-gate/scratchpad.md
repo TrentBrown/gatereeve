@@ -176,3 +176,18 @@ Publish every agent-workflow bundle beneath `pr-<n>/attempts/<attempt-id>/` and 
 
 **Alternatives considered:**
 Overwrite packet-root artifacts and rely on Git history - rejected because the working boundary event must remain locally auditable before commit and across retries. Copy failed artifacts aside without changing event paths - rejected because the event would still reference mutable bytes. Encode the attempt only inside the manifest - rejected because filesystem publication would remain destructive.
+
+## [14] Separate ordering edges from evidence flow and constrain Whiteboard waivers
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Boundary agent inputs, module contracts, waiver events, CLI, snapshots, and model migration
+
+Treat `after` as ordering and freshness only. Agent-workflow inputs externalize artifacts only for the module's declared `dependsOn` edges, never for `after` predecessors. Add the generic `non-behavioral-only` waiver policy and apply it to Whiteboard Defense. Such a waiver requires a human-confirmed event plus a structured `NON_BEHAVIORAL` classification and digest-bound evidence reference; the basis is preserved in the event and projection.
+
+**Triggered by:** Attempt-9 Judge correctly found that the boundary DAG combined `after` with hard dependencies and the runtime then exposed the Judge artifact to Whiteboard. It also found that Whiteboard's waiver flag did not enforce the approved non-behavioral restriction.
+
+**Alternatives considered:**
+Remove Judge ordering - rejected because the approved flow should wait for Judge when enabled. Hide only the Judge gate by ID - rejected because ordering-only semantics must be generic for plugins. Trust a free-form waiver reason - rejected because it is neither typed nor evidence-bound. Disable waivers entirely - rejected because approved non-behavioral exemptions remain useful.

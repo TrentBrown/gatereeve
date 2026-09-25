@@ -56,6 +56,7 @@ async function appendGateEvent(
     dependencyIds,
     actor,
     waiver,
+    waiverBasis,
     eventId,
     recordedAt,
   }
@@ -73,6 +74,7 @@ async function appendGateEvent(
       inputFingerprint,
       evidence,
       reason,
+      ...(waiverBasis === null ? {} : { waiverBasis }),
       dependencyEventIds: dependencyIds,
     },
     eventId,
@@ -137,6 +139,7 @@ export async function recordGateOutcome(
     dependencyIds: dependencyEventIds(attempt, gate),
     actor,
     waiver: false,
+    waiverBasis: null,
     eventId,
     recordedAt,
   });
@@ -156,6 +159,7 @@ export async function recordGateWaiver(
     inputs,
     currentFingerprints = {},
     reason,
+    waiverBasis = null,
     actor,
     eventId,
     recordedAt,
@@ -183,6 +187,19 @@ export async function recordGateWaiver(
       blockers: gate.blockers,
     });
   }
+  if (gate.waiverPolicy === 'non-behavioral-only') {
+    if (
+      waiverBasis?.classification !== 'NON_BEHAVIORAL'
+      || Object.keys(waiverBasis).some((key) => !['classification', 'evidence'].includes(key))
+    ) {
+      throw new TransitionRejectedError(
+        `${gateId} requires an explicit non-behavioral waiver basis`
+      );
+    }
+    validateEvidenceReference(waiverBasis.evidence);
+  } else if (waiverBasis !== null) {
+    throw new TransitionRejectedError(`${gateId} does not accept a constrained waiver basis`);
+  }
   const event = await appendGateEvent(record, {
     attemptId,
     gateId,
@@ -193,6 +210,7 @@ export async function recordGateWaiver(
     dependencyIds: dependencyEventIds(attempt, gate),
     actor,
     waiver: true,
+    waiverBasis,
     eventId,
     recordedAt,
   });

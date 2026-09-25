@@ -14,7 +14,7 @@ const SHA = 'a'.repeat(40);
 const BASE = 'b'.repeat(40);
 const MODEL = `sha256:${'c'.repeat(64)}`;
 
-function moduleDefinition() {
+function moduleDefinition({ dependsOn = [] } = {}) {
   const value = {
     schemaVersion: 1,
     id: 'example/report',
@@ -23,7 +23,7 @@ function moduleDefinition() {
     label: 'Report',
     description: 'Fixture report.',
     slot: 'boundary.evaluation',
-    dependsOn: [],
+    dependsOn,
     disposition: 'required',
     locked: false,
     enabledByDefault: true,
@@ -101,7 +101,8 @@ function prepared(dependency = null) {
     attempt: {
       id: 'attempt-1', scope: 'SLICE',
       gates: dependency === null ? [] : [{
-        id: 'verification', outcome: 'PASS', recordedEventId: 'evt-verification',
+        id: 'verification', moduleId: 'gatereeve/verification',
+        outcome: 'PASS', recordedEventId: 'evt-verification',
         evidence: dependency,
       }],
     },
@@ -124,7 +125,7 @@ test('publishes a validated root and records only the completed governed outcome
       featureHome: root,
       artifactRoot: join(root, 'packet'),
       modelHash: MODEL,
-      module: moduleDefinition(),
+      module: moduleDefinition({ dependsOn: ['gatereeve/verification'] }),
       prepared: prepared({ path: 'verification.md', hash: sha256Digest(verification) }),
       adapter: adapter({ onRequest: (value) => { stageRequest = value; } }),
       resources: {
@@ -174,6 +175,62 @@ test('publishes a validated root and records only the completed governed outcome
   }
 });
 
+test('ordering-only predecessors are never exposed as agent evidence', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'gatereeve-agent-ordering-'));
+  let stageRequest = null;
+  let snapshotOptions = null;
+  try {
+    const verification = '# Verification\n\nPASS\n';
+    const judge = '{"outcome":"PASS","private":"must-not-leak"}\n';
+    await writeFile(join(root, 'verification.md'), verification);
+    await writeFile(join(root, 'judge.json'), judge);
+    const preparedWithOrdering = prepared({
+      path: 'verification.md', hash: sha256Digest(verification),
+    });
+    preparedWithOrdering.attempt.gates.push({
+      id: 'judge', moduleId: 'gatereeve/judge', outcome: 'PASS',
+      recordedEventId: 'evt-judge',
+      evidence: { path: 'judge.json', hash: sha256Digest(judge) },
+    });
+    preparedWithOrdering.target.dependsOn.push('judge');
+
+    await executeAgentWorkflowGate({
+      repositoryRoot: root,
+      featureHome: root,
+      artifactRoot: join(root, 'packet'),
+      modelHash: MODEL,
+      module: moduleDefinition({ dependsOn: ['gatereeve/verification'] }),
+      prepared: preparedWithOrdering,
+      adapter: adapter({ onRequest: (value) => { stageRequest = value; } }),
+      resources: {
+        loadResource: async ({ path }) => path.endsWith('.md')
+          ? 'Create the report.'
+          : JSON.stringify({ type: 'object' }),
+        loadEvaluator: async () => ({ module, outputs }) => ({
+          outcome: 'PASS', files: { 'report.json': { module: module.id, answer: outputs.report.answer } },
+        }),
+      },
+      buildChangeInput: async () => ({}),
+      createSnapshot: async (options) => {
+        snapshotOptions = options;
+        return {
+          repositoryPath: root, digest: `sha256:${'d'.repeat(64)}`, cleanup: async () => {},
+        };
+      },
+      recordOutcome: async () => ({ event: { eventId: 'evt-result' } }),
+      createId: () => 'run-ordering',
+    });
+
+    assert.deepEqual(Object.keys(stageRequest.input.initial.dependencyEvidence), ['verification']);
+    assert.equal(
+      Object.keys(snapshotOptions.evidenceFiles).some((path) => path.includes('/judge/')),
+      false
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('provider unavailability leaves the gate UNSET and does not call the recorder', async () => {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-agent-service-unavailable-'));
   let recorded = false;
@@ -210,7 +267,7 @@ test('changed dependency evidence fails before snapshot or provider launch', asy
         featureHome: root,
         artifactRoot: join(root, 'packet'),
         modelHash: MODEL,
-        module: moduleDefinition(),
+        module: moduleDefinition({ dependsOn: ['gatereeve/verification'] }),
         prepared: prepared({ path: 'verification.md', hash: sha256Digest('expected\n') }),
         adapter: adapter(),
         resources: {

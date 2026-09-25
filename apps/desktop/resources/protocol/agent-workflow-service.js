@@ -85,10 +85,20 @@ async function evidenceFile(repositoryRoot, featureHome, reference) {
   throw new ContractError(`Dependency gate evidence is unavailable or changed: ${reference.path}`);
 }
 
-async function externalizeDependencyEvidence({ repositoryRoot, featureHome, prepared }) {
+function evidenceDependencyGateIds(module, prepared) {
+  return (module.dependsOn ?? []).map((moduleId) => {
+    const gate = prepared.attempt.gates?.find((item) => item.moduleId === moduleId);
+    if (!gate || !(prepared.target.dependsOn ?? []).includes(gate.id)) {
+      throw new ContractError(`Content dependency ${moduleId} is unavailable for agent input`);
+    }
+    return gate.id;
+  });
+}
+
+async function externalizeDependencyEvidence({ repositoryRoot, featureHome, module, prepared }) {
   const value = {};
   const evidenceFiles = {};
-  for (const gateId of prepared.target.dependsOn ?? []) {
+  for (const gateId of evidenceDependencyGateIds(module, prepared)) {
     const gate = prepared.attempt.gates?.find((item) => item.id === gateId);
     if (!gate) throw new ContractError(`Dependency gate ${gateId} is unavailable`);
     const file = gate.evidence
@@ -169,7 +179,7 @@ export async function executeAgentWorkflowGate({
   });
   const externalized = externalizePatches(change);
   const dependencyEvidence = await externalizeDependencyEvidence({
-    repositoryRoot, featureHome, prepared,
+    repositoryRoot, featureHome, module, prepared,
   });
   const input = {
     schemaVersion: 1,

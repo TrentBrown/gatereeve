@@ -246,6 +246,7 @@ function createAttempt(model, slice, event, boundarySnapshots) {
       optional: definition.optional,
       locked: definition.locked,
       waiverAllowed: definition.waiverAllowed,
+      waiverPolicy: definition.waiverPolicy,
       outcome: 'UNSET',
       evidence: null,
       inputFingerprint: null,
@@ -253,6 +254,7 @@ function createAttempt(model, slice, event, boundarySnapshots) {
       recordedSequence: null,
       invalidatedSequence: null,
       reason: null,
+      waiverBasis: null,
       freshness: 'UNKNOWN',
       eligible: false,
       blockers: [],
@@ -581,6 +583,24 @@ function applyGateEvent(boundaryAttempts, event) {
     if (!gate.waiverAllowed || typeof event.payload.reason !== 'string' || event.payload.reason.length === 0) {
       throw new ContractError(`Event ${event.eventId} is not a permitted gate waiver`);
     }
+    if (
+      gate.waiverPolicy === 'non-behavioral-only'
+      && (
+        event.payload.waiverBasis?.classification !== 'NON_BEHAVIORAL'
+        || Object.keys(event.payload.waiverBasis ?? {}).some(
+          (key) => !['classification', 'evidence'].includes(key)
+        )
+      )
+    ) {
+      throw new ContractError(
+        `Event ${event.eventId} lacks a non-behavioral waiver classification and evidence`
+      );
+    }
+    if (gate.waiverPolicy === 'non-behavioral-only') {
+      validateEvidenceReference(event.payload.waiverBasis.evidence);
+    } else if (event.payload.waiverBasis !== undefined) {
+      throw new ContractError(`Event ${event.eventId} has an unexpected waiver basis`);
+    }
   } else {
     assertActorAuthority(event, 'agent');
     if (
@@ -596,6 +616,7 @@ function applyGateEvent(boundaryAttempts, event) {
   gate.recordedEventId = event.eventId;
   gate.recordedSequence = event.sequence;
   gate.reason = event.payload.reason ?? null;
+  gate.waiverBasis = event.payload.waiverBasis ?? null;
 }
 
 function finalizeAttempts(

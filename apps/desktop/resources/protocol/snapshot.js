@@ -40,6 +40,7 @@ const BOUNDARY_SCOPE_SET = new Set(BOUNDARY_SCOPES);
 const GATE_EVALUATION_SCOPES = new Set(['SLICE', 'FEATURE']);
 const GATE_OUTCOME_SET = new Set(GATE_OUTCOMES);
 const GATE_FRESHNESS_SET = new Set(GATE_FRESHNESS);
+const WAIVER_POLICY_SET = new Set(['any-change', 'non-behavioral-only']);
 const MILESTONE_STATUSES = new Set([
   'complete', 'active', 'pending', 'available', 'ready', 'blocked',
 ]);
@@ -229,6 +230,7 @@ function validateGate(gate, label) {
   assertOneOf(gate.evaluationScope, GATE_EVALUATION_SCOPES, `${label}.evaluationScope`);
   assertBoolean(gate.optional, `${label}.optional`);
   assertBoolean(gate.waiverAllowed, `${label}.waiverAllowed`);
+  assertOneOf(gate.waiverPolicy, WAIVER_POLICY_SET, `${label}.waiverPolicy`);
   assertOneOf(gate.outcome, GATE_OUTCOME_SET, `${label}.outcome`);
   assertOneOf(gate.freshness, GATE_FRESHNESS_SET, `${label}.freshness`);
   assertBoolean(gate.eligible, `${label}.eligible`);
@@ -246,6 +248,7 @@ function validateGate(gate, label) {
     minimum: 1,
   });
   assertString(gate.reason, `${label}.reason`, { nullable: true });
+  assertNullableObject(gate.waiverBasis, `${label}.waiverBasis`);
 }
 
 function validateAttempt(attempt, label) {
@@ -1064,6 +1067,7 @@ function moduleInventory(record, projection, facts) {
         locked: module.locked,
         disposition: module.disposition,
         waiverAllowed: module.waiverAllowed,
+        waiverPolicy: module.waiverPolicy ?? 'any-change',
         dependsOn: [...module.dependsOn],
         after: [...(module.after ?? [])],
         boundaryGateId: module.boundary?.gateId ?? null,
@@ -1230,6 +1234,11 @@ export function validateSnapshot(snapshot) {
         for (const field of ['enabled', 'locked', 'waiverAllowed']) {
           assertBoolean(module[field], `${moduleLabel}.${field}`);
         }
+        assertOneOf(
+          module.waiverPolicy,
+          WAIVER_POLICY_SET,
+          `${moduleLabel}.waiverPolicy`,
+        );
         assertStringArray(module.dependsOn, `${moduleLabel}.dependsOn`);
         assertStringArray(module.after, `${moduleLabel}.after`);
         assertString(module.boundaryGateId, `${moduleLabel}.boundaryGateId`, { nullable: true });

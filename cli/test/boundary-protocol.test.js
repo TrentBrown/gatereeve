@@ -7,6 +7,7 @@ import test from 'node:test';
 import {
   fingerprint,
   initializeFeature,
+  loadDefaultModel,
   nextActions,
   projectRecord,
   proposeSlice,
@@ -15,19 +16,21 @@ import {
   recordGateOutcome,
   recordGateWaiver,
   recordSliceTransition,
+  resolveModuleGraph,
   requestBoundaryHumanReview,
 } from '../../plugin-src/shared/resources/protocol/index.js';
 
 const agent = { kind: 'agent', label: 'boundary-agent' };
 const human = { kind: 'human-confirmed', label: 'boundary-user' };
 
-async function createBoundary() {
+async function createBoundary(model = null) {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve boundary '));
   const featureHome = resolve(root, 'docs/issues/boundary-feature');
   await initializeFeature({
     featureHome,
     featureId: 'boundary-feature',
     actor: agent,
+    ...(model === null ? {} : { model }),
     eventId: 'evt-init',
   });
   await recordFeatureTransition(featureHome, 'approve-design', {
@@ -179,6 +182,74 @@ test('failed gates block dependents and a permitted human waiver unblocks passag
   assert.equal(
     review.projection.boundaryAttempts[0].gates.find((gate) => gate.id === 'judge').outcome,
     'WAIVED'
+  );
+});
+
+test('a constrained Whiteboard waiver requires human-classified non-behavioral evidence', async () => {
+  const model = structuredClone(await loadDefaultModel());
+  const enabled = new Set(model.moduleGraph.enabledModuleIds);
+  enabled.add('whiteboard-test/defense');
+  const graph = resolveModuleGraph({
+    definitions: model.moduleGraph.modules,
+    policy: {
+      schemaVersion: 1,
+      modules: model.moduleGraph.modules.map((module) => ({
+        id: module.id,
+        version: module.version,
+        digest: module.digest,
+        enabled: enabled.has(module.id),
+      })),
+    },
+  });
+  model.moduleGraph = {
+    schemaVersion: graph.schemaVersion,
+    policyDigest: graph.policyDigest,
+    modules: graph.modules,
+    enabledModuleIds: graph.enabledModuleIds,
+  };
+  const fixture = await createBoundary(model);
+  const current = {};
+  await record(fixture, current, 'pinContext');
+  await record(fixture, current, 'reconcile');
+  await record(fixture, current, 'verification');
+  await record(fixture, current, 'judge');
+
+  const request = {
+    attemptId: fixture.attemptId,
+    gateId: 'whiteboardDefense',
+    inputs: { gateId: 'whiteboardDefense', revision: 1 },
+    currentFingerprints: current,
+    reason: 'The pinned change affects documentation only.',
+    actor: human,
+    eventId: 'evt-whiteboard-waiver',
+  };
+  await assert.rejects(
+    recordGateWaiver(fixture.featureHome, request),
+    /requires an explicit non-behavioral waiver basis/u
+  );
+  await assert.rejects(
+    recordGateWaiver(fixture.featureHome, {
+      ...request,
+      waiverBasis: {
+        classification: 'BEHAVIORAL',
+        evidence: evidence('non-behavioral-assessment'),
+      },
+    }),
+    /requires an explicit non-behavioral waiver basis/u
+  );
+
+  const waiver = await recordGateWaiver(fixture.featureHome, {
+    ...request,
+    waiverBasis: {
+      classification: 'NON_BEHAVIORAL',
+      evidence: evidence('non-behavioral-assessment'),
+    },
+  });
+  assert.equal(waiver.event.payload.waiverBasis.classification, 'NON_BEHAVIORAL');
+  assert.deepEqual(
+    waiver.projection.boundaryAttempts[0].gates
+      .find((gate) => gate.id === 'whiteboardDefense').waiverBasis,
+    waiver.event.payload.waiverBasis
   );
 });
 

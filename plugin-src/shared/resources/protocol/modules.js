@@ -23,6 +23,7 @@ const GATE_ID = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
 const DISPOSITIONS = new Set(['required', 'optional']);
 const RUN_KINDS = new Set(['skill', 'manual', 'command', 'agent-workflow']);
 const EVALUATION_SCOPES = new Set(['SLICE', 'FEATURE']);
+const WAIVER_POLICIES = new Set(['any-change', 'non-behavioral-only']);
 const DEFINITION_KEYS = new Set([
   'schemaVersion',
   'id',
@@ -37,6 +38,7 @@ const DEFINITION_KEYS = new Set([
   'locked',
   'enabledByDefault',
   'waiverAllowed',
+  'waiverPolicy',
   'evidence',
   'fingerprint',
   'boundary',
@@ -437,6 +439,17 @@ export function validateModuleDefinition(definition, { checkDigest = true } = {}
       throw new ContractError(`Module ${definition.id} ${field} must be boolean`);
     }
   }
+  if (
+    definition.waiverPolicy !== undefined
+    && !WAIVER_POLICIES.has(definition.waiverPolicy)
+  ) {
+    throw new ContractError(
+      `Module ${definition.id} waiverPolicy must be any-change or non-behavioral-only`
+    );
+  }
+  if (!definition.waiverAllowed && definition.waiverPolicy !== undefined) {
+    throw new ContractError(`Non-waivable module ${definition.id} cannot declare waiverPolicy`);
+  }
   if (definition.locked && (!definition.enabledByDefault || definition.waiverAllowed)) {
     throw new ContractError(`Locked module ${definition.id} must be enabled by default and non-waivable`);
   }
@@ -716,6 +729,7 @@ export function boundaryGateDefinitions(model) {
         optional: module.disposition === 'optional',
         locked: module.locked,
         waiverAllowed: module.waiverAllowed,
+        waiverPolicy: module.waiverPolicy ?? 'any-change',
         guards: [...module.boundary.guards],
         evaluationScope: structuredClone(module.boundary.evaluationScope),
       }));
@@ -726,6 +740,7 @@ export function boundaryGateDefinitions(model) {
     moduleVersion: null,
     moduleDigest: null,
     locked: !gate.waiverAllowed,
+    waiverPolicy: 'any-change',
     evaluationScope: Object.fromEntries(
       BOUNDARY_SCOPES.map((scope) => [scope, model.boundary.scopeRouting[scope][gate.id]])
     ),

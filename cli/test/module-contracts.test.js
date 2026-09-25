@@ -39,6 +39,7 @@ function definition({
   locked = false,
   enabledByDefault = false,
   waiverAllowed = true,
+  waiverPolicy = undefined,
   disposition = 'required',
   run = undefined,
   observe = undefined,
@@ -57,6 +58,7 @@ function definition({
     locked,
     enabledByDefault,
     waiverAllowed,
+    ...(waiverPolicy === undefined ? {} : { waiverPolicy }),
     evidence: { kind: 'reference', requiredFor: ['PASS', 'FAIL'] },
     fingerprint: {
       kind: slot === 'boundary.evaluation' ? 'boundary-gate-v1' : 'feature-finalization-v1',
@@ -126,6 +128,20 @@ test('bundled policy resolves the declarative boundary with exact legacy behavio
       { id: 'explainDiff', dependsOn: ['decisionTriage'], optional: false, locked: false, waiverAllowed: false },
       { id: 'packetValidation', dependsOn: ['explainDiff'], optional: false, locked: true, waiverAllowed: false },
     ]
+  );
+  const whiteboard = model.moduleGraph.modules.find(
+    (module) => module.id === 'whiteboard-test/defense'
+  );
+  assert.equal(whiteboard.waiverPolicy, 'non-behavioral-only');
+  assert.equal(
+    boundaryGateDefinitions({
+      ...model,
+      moduleGraph: {
+        ...model.moduleGraph,
+        enabledModuleIds: [...model.moduleGraph.enabledModuleIds, whiteboard.id],
+      },
+    }).find((gate) => gate.id === 'whiteboardDefense').waiverPolicy,
+    'non-behavioral-only'
   );
 });
 
