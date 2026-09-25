@@ -44,9 +44,14 @@ Append PR boundary entries here.
   does not authorize primary or Cask publication.
 - **Branch direction:** No `development` or `development-*` branch was merged
   or rebased into this topic.
-- **Boundary result:** All required gates are current and nonblocking at pinned
-  source `fd0b14795e4aa4e21d773813c3bebb7d2a04822b`; packet validation passes,
-  retention is `tracked`, and governed human review is requested.
+- **Boundary result:** All required gates passed at pinned source
+  `fd0b14795e4aa4e21d773813c3bebb7d2a04822b`; packet validation and tracked
+  retention passed. The user approved the boundary, approval-head CI run
+  [33417134683](https://github.com/TrentBrown/gatereeve/actions/runs/33417134683)
+  passed all 13 checks at `431ceba0d34785a7dd55d226e28e733d5789f5d4`,
+  and PR #38 merged to `main` as
+  `1220138bf4248a72c1717955c4f62e3f1cda0599`. Git ancestry verifies both the
+  evaluated source and final approved head on `origin/main`.
 
 ### Mainline acceptance preflight
 

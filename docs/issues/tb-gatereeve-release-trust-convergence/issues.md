@@ -106,7 +106,7 @@ reviewed topic changes on `main` before live environment mutation.
 
 ## I-9 - Complete live cutover and nonpublishing acceptance
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d plus Apple processing time
 - **Plan steps:** P9
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
@@ -120,8 +120,9 @@ mutation evidence, and complete full rubric/judge verification.
 I-10 is resolved on reviewed `main`. RC.3 remains immutable trust/native
 evidence only. RC.4 subsequently proved the corrected GitHub reviewer gates,
 exact trust and native evidence, sealed read-only publication rehearsal, zero
-public mutation, and disjoint live credential custody. Feature-final review is
-the only remaining I-9 action.
+public mutation, and disjoint live credential custody. PR #38 was approved and
+merged to `main` as `1220138bf4248a72c1717955c4f62e3f1cda0599`; the evaluated
+source and final approved head are verified ancestors.
 
 ## I-10 - Enforce protected environment deployment approvals
 
