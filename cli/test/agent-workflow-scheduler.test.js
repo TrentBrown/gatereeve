@@ -77,3 +77,58 @@ test('a blocking Judge failure is recorded and leaves Whiteboard ineligible', as
   assert.deepEqual(fixture.calls, ['gatereeve/judge']);
   assert.deepEqual(result.results.map((item) => [item.gateId, item.outcome]), [['judge', 'FAIL']]);
 });
+
+test('scheduler restores recorded gate fingerprints before selecting eligible work', async () => {
+  const calls = [];
+  const module = modules[0];
+  const recordValue = {
+    modelLock: { modelHash: `sha256:${'a'.repeat(64)}`, model: { moduleGraph: { modules: [module] } } },
+    events: [{
+      type: 'BOUNDARY_STARTED', payload: {
+        attemptId: 'attempt-1', moduleGraph: { modules: [module] },
+      },
+    }],
+  };
+  let judgeOutcome = 'UNSET';
+  const project = (_record, facts = {}) => {
+    const verificationCurrent = facts.gateFingerprints?.['attempt-1']?.verification === 'verification-fingerprint';
+    return {
+      activeSliceId: 'slice-1',
+      slices: [{ id: 'slice-1', activeAttemptId: 'attempt-1' }],
+      boundaryAttempts: [{
+        id: 'attempt-1', state: 'ACTIVE', scope: 'SLICE', context: {},
+        gates: [
+          { id: 'verification', outcome: 'PASS', inputFingerprint: 'verification-fingerprint' },
+          {
+            id: 'judge', moduleId: module.id, moduleVersion: module.version,
+            moduleDigest: module.digest, eligible: verificationCurrent,
+            outcome: judgeOutcome, inputFingerprint: null,
+          },
+        ],
+      }],
+    };
+  };
+  const result = await runEligibleAgentWorkflowGates({
+    repositoryRoot: '/repo', featureHome: '/repo/docs/issues/feature', adapter: {}, resources: {},
+    readRecord: async () => recordValue,
+    project,
+    prepare: async () => ({
+      modelHash: recordValue.modelLock.modelHash,
+      currentFingerprints: { verification: 'verification-fingerprint' },
+      inputs: { schemaVersion: 1, context: { headSha: 'head' }, gateId: 'judge' },
+    }),
+    execute: async ({ recordOutcome }) => {
+      calls.push('judge');
+      await recordOutcome({
+        outcome: 'PASS',
+        evidence: { path: 'judge.json', hash: `sha256:${'b'.repeat(64)}` },
+        reason: null,
+      });
+      return { schemaVersion: 1, status: 'completed', outcome: 'PASS', artifacts: [], receipts: [], failure: null };
+    },
+    record: async (_featureHome, value) => { judgeOutcome = value.outcome; return { event: {} }; },
+    createId: () => 'id-1',
+  });
+  assert.deepEqual(calls, ['judge']);
+  assert.deepEqual(result.results.map((item) => [item.gateId, item.outcome]), [['judge', 'PASS']]);
+});

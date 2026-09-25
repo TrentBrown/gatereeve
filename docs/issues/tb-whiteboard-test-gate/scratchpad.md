@@ -56,3 +56,18 @@ Use TrentBrown/gatereeve as the Git-backed marketplace source because the coordi
 
 **Alternatives considered:**
 Continue publishing while documenting the stale repository, which would install rc.2 instead of the current marketplace; rely only on later candidate validation, which weakens the conductor's fail-early contract; hard-code the Whiteboard paths, which would recreate the next multi-plugin maintenance defect.
+
+## [6] Restore recorded fingerprints before automatic agent scheduling
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Automatic Judge and Whiteboard execution at active PR boundaries
+
+The scheduler now reconstructs the active attempt fingerprint map from recorded gate outcomes and supplies it to protocol projection before selecting an eligible agent-workflow gate. The execution-preparation guard still rechecks the pinned PR context and reconstructs the same fingerprint map immediately before launch and again before outcome recording.
+
+**Triggered by:** The first real PR #67 agent-workflow launch returned no eligible results after Verification passed because projection omitted all recorded fingerprints.
+
+**Alternatives considered:**
+Require an external fingerprints file for automatic scheduling - rejected because Desktop and headless automatic launches must be self-contained. Treat UNKNOWN freshness as eligible - rejected because it weakens protocol fail-closed semantics.

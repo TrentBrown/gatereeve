@@ -62,12 +62,19 @@ export async function runEligibleAgentWorkflowGates({
   let resolvedAttemptId = attemptId;
   while (true) {
     const featureRecord = await readRecord(featureHome);
-    const projection = project(featureRecord);
-    const attempt = activeBoundaryAttempt(projection, attemptId);
-    if (!attempt || attempt.state !== 'ACTIVE') {
+    const initialProjection = project(featureRecord);
+    const initialAttempt = activeBoundaryAttempt(initialProjection, attemptId);
+    if (!initialAttempt || initialAttempt.state !== 'ACTIVE') {
       if (results.length === 0) throw new Error('No active boundary attempt is available.');
       break;
     }
+    const currentFingerprints = Object.fromEntries(initialAttempt.gates
+      .filter((gate) => typeof gate.inputFingerprint === 'string')
+      .map((gate) => [gate.id, gate.inputFingerprint]));
+    const projection = project(featureRecord, {
+      gateFingerprints: { [initialAttempt.id]: currentFingerprints },
+    });
+    const attempt = activeBoundaryAttempt(projection, attemptId);
     resolvedAttemptId = attempt.id;
     const target = attempt.gates.find((gate) => (
       gate.eligible
