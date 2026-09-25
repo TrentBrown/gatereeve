@@ -467,10 +467,15 @@ export async function verifyMarketplaceRelease({
     );
 
     release = await loadJsonForCheck(checks, 'release-metadata', resolve(checkout, 'RELEASE.json'));
+    const pluginIds = Array.isArray(release?.plugins) ? release.plugins : [];
     if (release) {
       const valid =
         release.schemaVersion === 1 &&
         release.plugin === PLUGIN_ID &&
+        pluginIds.length > 0 &&
+        new Set(pluginIds).size === pluginIds.length &&
+        pluginIds.includes(PLUGIN_ID) &&
+        pluginIds.every((pluginId) => typeof pluginId === 'string' && pluginId.length > 0) &&
         release.marketplace === MARKETPLACE_ID &&
         release.sourceTag === tag &&
         release.version === parsedTag.version &&
@@ -496,16 +501,20 @@ export async function verifyMarketplaceRelease({
       resolve(checkout, '.claude-plugin/marketplace.json')
     );
     if (codexCatalog && claudeCatalog) {
+      const expectedPluginIds = [...pluginIds].sort();
+      const codexPluginIds = (codexCatalog.plugins ?? []).map((plugin) => plugin.name).sort();
+      const claudePluginIds = (claudeCatalog.plugins ?? []).map((plugin) => plugin.name).sort();
       const valid =
         codexCatalog.name === MARKETPLACE_ID &&
         claudeCatalog.name === MARKETPLACE_ID &&
-        codexCatalog.plugins?.length === 1 &&
-        claudeCatalog.plugins?.length === 1 &&
-        codexCatalog.plugins[0].name === PLUGIN_ID &&
-        claudeCatalog.plugins[0].name === PLUGIN_ID &&
-        codexCatalog.plugins[0].source?.path ===
-          `./plugins/codex/${PLUGIN_ID}` &&
-        claudeCatalog.plugins[0].source === `./plugins/claude/${PLUGIN_ID}`;
+        JSON.stringify(codexPluginIds) === JSON.stringify(expectedPluginIds) &&
+        JSON.stringify(claudePluginIds) === JSON.stringify(expectedPluginIds) &&
+        (codexCatalog.plugins ?? []).every((plugin) =>
+          plugin.source?.path === `./plugins/codex/${plugin.name}`
+        ) &&
+        (claudeCatalog.plugins ?? []).every((plugin) =>
+          plugin.source === `./plugins/claude/${plugin.name}`
+        );
       addCheck(
         checks,
         'marketplace-catalogs',
@@ -517,98 +526,99 @@ export async function verifyMarketplaceRelease({
     }
 
     const packageData = {};
-    for (const platform of ['codex', 'claude']) {
-      const packageRoot = resolve(checkout, 'plugins', platform, PLUGIN_ID);
-      const manifestPath =
-        platform === 'codex'
+    for (const pluginId of pluginIds) {
+      packageData[pluginId] = {};
+      for (const platform of ['codex', 'claude']) {
+        const suffix = pluginId === PLUGIN_ID ? '' : `-${pluginId}`;
+        const packageRoot = resolve(checkout, 'plugins', platform, pluginId);
+        const manifestPath = platform === 'codex'
           ? resolve(packageRoot, '.codex-plugin/plugin.json')
           : resolve(packageRoot, '.claude-plugin/plugin.json');
-      const manifest = await loadJsonForCheck(
-        checks,
-        `${platform}-package`,
-        manifestPath
-      );
-      const hooks = await loadJsonForCheck(
-        checks,
-        `${platform}-hooks`,
-        resolve(packageRoot, 'hooks/hooks.json')
-      );
-      const provenance = await loadJsonForCheck(
-        checks,
-        `${platform}-provenance`,
-        resolve(packageRoot, '.workflow-build/provenance.json')
-      );
-      const inventory = await loadJsonForCheck(
-        checks,
-        `${platform}-inventory`,
-        resolve(packageRoot, '.workflow-build/shared-files.json')
-      );
-      if (manifest) {
-        const valid =
-          manifest.name === PLUGIN_ID &&
-          manifest.version === parsedTag.version &&
-          manifest.skills === './skills/';
-        addCheck(
+        const manifest = await loadJsonForCheck(checks, `${platform}${suffix}-package`, manifestPath);
+        const provenance = await loadJsonForCheck(
           checks,
-          `${platform}-package`,
-          valid,
-          valid
-            ? `${platform} manifest is ${PLUGIN_ID} ${parsedTag.version}`
-            : `${platform} manifest identity/version differs`
+          `${platform}${suffix}-provenance`,
+          resolve(packageRoot, '.workflow-build/provenance.json')
         );
-      }
-      if (hooks) {
-        const valid = hasSessionStartHook(hooks);
-        addCheck(
+        const inventory = await loadJsonForCheck(
           checks,
-          `${platform}-hooks`,
-          valid,
-          valid
-            ? `${platform} package contains one command-based SessionStart hook`
-            : `${platform} SessionStart hook is missing or malformed`
+          `${platform}${suffix}-inventory`,
+          resolve(packageRoot, '.workflow-build/shared-files.json')
         );
-      }
-      if (provenance) {
-        const valid =
-          provenance.platform === platform &&
-          provenance.version === parsedTag.version &&
-          provenance.sourceTag === tag &&
-          provenance.sourceCommit === sourceCommit;
-        addCheck(
-          checks,
-          `${platform}-provenance`,
-          valid,
-          valid ? `${platform} provenance matches the release` : `${platform} provenance differs`
-        );
-      }
-      if (inventory) {
-        try {
-          await validateSharedFiles(packageRoot, inventory);
+        if (manifest) {
+          const valid = manifest.name === pluginId &&
+            manifest.version === parsedTag.version &&
+            manifest.skills === './skills/';
           addCheck(
             checks,
-            `${platform}-inventory`,
-            true,
-            `${inventory.files?.length ?? 0} shared files match size and hash`
+            `${platform}${suffix}-package`,
+            valid,
+            valid
+              ? `${platform} manifest is ${pluginId} ${parsedTag.version}`
+              : `${platform} ${pluginId} manifest identity/version differs`
           );
-        } catch (error) {
-          addCheck(checks, `${platform}-inventory`, false, error.message);
         }
+        if (pluginId === PLUGIN_ID) {
+          const hooks = await loadJsonForCheck(
+            checks,
+            `${platform}-hooks`,
+            resolve(packageRoot, 'hooks/hooks.json')
+          );
+          if (hooks) {
+            const valid = hasSessionStartHook(hooks);
+            addCheck(
+              checks,
+              `${platform}-hooks`,
+              valid,
+              valid
+                ? `${platform} package contains one command-based SessionStart hook`
+                : `${platform} SessionStart hook is missing or malformed`
+            );
+          }
+        }
+        if (provenance) {
+          const valid = provenance.plugin === pluginId &&
+            provenance.platform === platform &&
+            provenance.version === parsedTag.version &&
+            provenance.sourceTag === tag &&
+            provenance.sourceCommit === sourceCommit;
+          addCheck(
+            checks,
+            `${platform}${suffix}-provenance`,
+            valid,
+            valid
+              ? `${platform} ${pluginId} provenance matches the release`
+              : `${platform} ${pluginId} provenance differs`
+          );
+        }
+        if (inventory) {
+          try {
+            await validateSharedFiles(packageRoot, inventory);
+            addCheck(
+              checks,
+              `${platform}${suffix}-inventory`,
+              true,
+              `${pluginId} has ${inventory.files?.length ?? 0} shared files matching size and hash`
+            );
+          } catch (error) {
+            addCheck(checks, `${platform}${suffix}-inventory`, false, error.message);
+          }
+        }
+        packageData[pluginId][platform] = { inventory };
       }
-      packageData[platform] = { inventory };
-    }
 
-    if (packageData.codex.inventory && packageData.claude.inventory) {
-      const matching =
-        JSON.stringify(packageData.codex.inventory) ===
-        JSON.stringify(packageData.claude.inventory);
-      addCheck(
-        checks,
-        'shared-inventory-parity',
-        matching,
-        matching
-          ? 'Codex and Claude shared-file inventories are identical'
-          : 'Codex and Claude shared-file inventories differ'
-      );
+      const { codex, claude } = packageData[pluginId];
+      if (codex.inventory && claude.inventory) {
+        const matching = JSON.stringify(codex.inventory) === JSON.stringify(claude.inventory);
+        addCheck(
+          checks,
+          pluginId === PLUGIN_ID ? 'shared-inventory-parity' : `shared-inventory-parity-${pluginId}`,
+          matching,
+          matching
+            ? `${pluginId} Codex and Claude shared-file inventories are identical`
+            : `${pluginId} Codex and Claude shared-file inventories differ`
+        );
+      }
     }
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });

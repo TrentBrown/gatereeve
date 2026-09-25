@@ -17,6 +17,8 @@ test('validates the repository contract fixtures', async () => {
   assert.equal(result.skillCount, 27);
   assert.equal(result.plannedSkillCount, 0);
   assert.equal(result.marketplace, 'quality-code');
+  assert.equal(result.pluginCount, 2);
+  assert.deepEqual(result.plugins, ['agentic-development-workflow', 'whiteboard-test']);
   assert.deepEqual(result.platforms, ['codex', 'claude']);
 });
 

@@ -111,11 +111,77 @@ evidence.
 - `run.kind: "manual"` with instructions.
 - `run.kind: "command"` with an executable, argument array, working directory,
   optional entrypoint and support-file digests, disclosed effects, and timeout.
+- `run.kind: "agent-workflow"` with a portable capability profile, ordered
+  typed stages, fresh-context policy, read-only pinned repository access,
+  denied network access, declared artifacts, a plugin-supplied evaluator, and
+  one required evidence root.
 - `observe` with an installed provider ID and exact provider version.
 
 Repository manifests cannot provide provider executables, and no command runs
 during discovery, resolution, project open, readiness calculation, or
 background observation.
+
+Agent workflows are different from command modules. Enabling one is standing
+authorization for GateReeve to launch it automatically when its gate becomes
+eligible. Each stage gets a newly created Codex or Claude Code context with zero
+inherited implementation turns. GateReeve materializes the exact head commit as
+a disposable read-only repository, supplies a bounded base/head change packet,
+validates typed outputs and isolation receipts, invokes the module's trusted
+bundle evaluator, publishes only declared files, and rechecks the current
+boundary before recording an outcome. Provider, isolation, schema, or
+publication failures leave the gate `UNSET`; they are not converted into a
+gate `FAIL`.
+
+Before Whiteboard evaluation, the trusted host parses and executes the actual
+generated HTML in a restricted DOM. It rejects relative or external resources,
+inline-script failures, missing or inoperable reveal controls, inaccessible
+visual models, missing inline findings or linked-summary entries, grading and
+answer-submission controls, audio or video assessment, any Explain Diff
+dependency, and broken finding links. The resulting digest-bound validation
+receipt is part of the authoritative Whiteboard evidence. A run-specific
+Electron smoke separately verifies representative behavior in the Desktop's
+sandboxed browser surface. Agent receipts bind both the requested capability
+profile and the provider configuration that actually ran.
+
+The built-in Judge is an agent workflow as of module version 2. It retains
+blocking compliance semantics and has no correction loop. The separately
+installable `whiteboard-test/defense` module is disabled by default. It depends
+on Verification and conditionally follows Judge through `after`, so disabling
+Judge does not disable Whiteboard. Its human artifact is a sandboxed,
+self-contained `whiteboard-defense.html`; `whiteboard-defense.json` remains the
+authoritative digest-bound evidence root.
+
+To activate Whiteboard, enable the exact bundled selector in the complete
+tracked `.gatereeve/workflow.json` policy and explicitly migrate any already
+governed feature to the resulting model. Installation alone never changes
+repository policy.
+
+The selector in this model release is:
+
+```json
+{
+  "id": "whiteboard-test/defense",
+  "version": "1.0.0",
+  "digest": "sha256:ed7d86c6c7df6238aad12515443ded715395d53182a92a90ecdfeea1a5345e08",
+  "enabled": true
+}
+```
+
+This is one entry in the complete policy array, not a standalone policy file.
+Whiteboard declares `waiverPolicy: "non-behavioral-only"`. A waiver therefore
+requires an explicit human confirmation, a `NON_BEHAVIORAL` classification, and
+a digest-bound evidence reference supplied through `gate waive
+--waiver-basis-file`; a free-form rationale by itself cannot waive the gate.
+
+The module's `after` edge controls ordering and freshness only. Only artifacts
+from declared `dependsOn` edges enter an agent-workflow evidence packet, so a
+Whiteboard run can inspect Verification but cannot inspect Judge output.
+
+PR boundary manifests use schema version 2 when a gate's current human artifact
+lives under an immutable attempt directory. Each applicable gate records the
+packet-relative artifact path and SHA-256 digest; packet validation follows that
+reference instead of assuming that a mutable root filename is current. Schema
+version 1 remains readable for historical fixed-filename packets.
 
 ## Runtime and consent
 
@@ -143,6 +209,22 @@ transcript. Providerless exit `0` maps to `PASS`; nonzero exit, signal, or timeo
 maps to `FAIL`; explicit cancellation retains the attempt and leaves the gate
 `UNSET`. Optional structured JSON output can enrich evidence but cannot declare
 or override an outcome.
+
+For headless operation, configure an explicit local provider/model and run the
+automatic scheduler at boundary checkpoints:
+
+```bash
+gatereeve agent-workflow run-eligible \
+  --provider codex \
+  --model gpt-5.5
+```
+
+`GATEREEVE_AGENT_PROVIDER` and `GATEREEVE_AGENT_MODEL`, or a JSON file passed
+with `--agent-config`, provide the same standing host mapping. A packaged CLI
+can receive trusted plugin resource locations with repeatable
+`--plugin-root plugin-id=/absolute/path` or the `GATEREEVE_PLUGIN_ROOTS` JSON
+object. GateReeve Desktop maps the first selected, ready agent to the same
+scheduler automatically; it exposes no separate launch button for these gates.
 
 ## Observation providers
 

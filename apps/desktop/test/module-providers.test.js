@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import { chmod, mkdir, mkdtemp, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, realpath, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -77,7 +77,7 @@ function supervisor(options = {}) {
 }
 
 test('installed provider discovery admits only exact allowlisted regular manifests', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'gatereeve-providers-'));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'gatereeve-providers-')));
   await mkdir(join(root, 'bin'));
   await writeFile(join(root, 'bin/provider'), '#!/bin/sh\n');
   await chmod(join(root, 'bin/provider'), 0o755);
@@ -138,7 +138,7 @@ test('provider discovery rejects executable bytes that differ from the exact man
 });
 
 test('electron-node providers use the trusted app runtime without requiring system Node', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'gatereeve-electron-provider-'));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'gatereeve-electron-provider-')));
   const entrypoint = 'provider.mjs';
   await writeFile(join(root, entrypoint), 'process.stdout.write("ready\\n");\n');
   const allowed = manifest({

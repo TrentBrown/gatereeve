@@ -117,7 +117,7 @@ test('real PTY cleanup terminates a descendant sentinel process', { skip: !suppo
       { path: projectPath, name: 'child-probe' },
       { cols: 80, rows: 24 },
     );
-    manager.write(projectPath, session.id, "sleep 30 & printf 'GATEREEVE_CHILD:%s\\n' \"$!\"\r");
+    manager.write(projectPath, session.id, "/bin/sleep 30 & printf 'GATEREEVE_CHILD:%s\\n' $!\r");
     const childPid = Number((await waitFor(
       () => output.match(/GATEREEVE_CHILD:(\d+)/)?.[1],
       'descendant sentinel PID',

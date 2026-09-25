@@ -36,12 +36,13 @@ calculate a plan.
 ## 1. Prepare reviewed source
 
 Choose the next RC identity in the normal source PR. The base version must agree
-in all of these files before merge:
+in the CLI, Desktop, and every plugin registered by
+`plugin-src/contracts/marketplace-plugins.json` before merge:
 
 - `cli/package.json`;
 - `apps/desktop/package.json`;
-- `plugin-src/codex/.codex-plugin/plugin.json`;
-- `plugin-src/claude/.claude-plugin/plugin.json`.
+- each registered plugin's Codex manifest; and
+- each registered plugin's Claude Code manifest.
 
 Update any other release notes or product metadata required by that source
 change, run the ordinary verification ladder, and merge the PR. The conductor

@@ -198,7 +198,7 @@ Add focused Node or Python tests whenever behavior changes. Python helpers have
 tests beneath `plugin-src/shared/resources/scripts/tests/` and the pattern
 system has its own tests under `resources/scripts/pattern/tests/`.
 
-### 6. Build and inspect both native packages
+### 6. Build and inspect every native plugin package
 
 ```bash
 npm start --prefix cli -- plugin clean
@@ -209,17 +209,22 @@ npm start --prefix cli -- plugin build \
 Inspect generated identity and provenance rather than editing the output:
 
 ```bash
-python3 -m json.tool dist/codex/.codex-plugin/plugin.json
-python3 -m json.tool dist/claude/.claude-plugin/plugin.json
-python3 -m json.tool dist/codex/.workflow-build/provenance.json
+python3 -m json.tool dist/codex/agentic-development-workflow/.codex-plugin/plugin.json
+python3 -m json.tool dist/claude/agentic-development-workflow/.claude-plugin/plugin.json
+python3 -m json.tool dist/codex/whiteboard-test/.codex-plugin/plugin.json
+python3 -m json.tool dist/claude/whiteboard-test/.claude-plugin/plugin.json
+python3 -m json.tool dist/codex/agentic-development-workflow/.workflow-build/provenance.json
 cmp \
-  dist/codex/.workflow-build/shared-files.json \
-  dist/claude/.workflow-build/shared-files.json
+  dist/codex/agentic-development-workflow/.workflow-build/shared-files.json \
+  dist/claude/agentic-development-workflow/.workflow-build/shared-files.json
+cmp \
+  dist/codex/whiteboard-test/.workflow-build/shared-files.json \
+  dist/claude/whiteboard-test/.workflow-build/shared-files.json
 ```
 
-The shared-file inventories must match exactly. Platform overlays may add only
-their native manifest and hook differences; the composer rejects collisions
-with shared paths.
+Each plugin's Codex and Claude shared-file inventories must match exactly.
+Platform overlays may add only their native manifest and hook differences; the
+composer rejects collisions with shared paths.
 
 ### 7. Run broad acceptance
 
@@ -396,6 +401,15 @@ Choose the smallest checks that can fail early, then broaden before review:
 7. Ubuntu Docker images when portability or release confidence matters;
 8. behavioral fresh-session smoke testing for activation changes; and
 9. the hosted four-job CI matrix.
+
+For the staged-agent adapters, a live structured-output smoke is available for
+each supported provider. It creates a fresh, read-only context and prints only
+the returned object plus its isolation receipt:
+
+```bash
+node cli/scripts/provider-adapter-smoke.js codex gpt-5.5 .
+node cli/scripts/provider-adapter-smoke.js claude-code opus .
+```
 
 Do not substitute a successful package build for behavioral activation, or a
 native-manager install listing for doctor and skill-integrity checks.

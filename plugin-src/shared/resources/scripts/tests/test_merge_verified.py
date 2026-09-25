@@ -26,6 +26,7 @@ class MergeVerifiedTests(unittest.TestCase):
         self.git("config", "user.name", "Merge Verification")
         self.git("config", "user.email", "merge@example.test")
         self.git("config", "commit.gpgsign", "false")
+        self.git("config", "core.hooksPath", "/dev/null")
         self.write("README.md", "base\n")
         self.git("add", "README.md")
         self.git("commit", "-m", "base")

@@ -9,7 +9,7 @@ import {
 } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
-import { composePackages } from './compose.js';
+import { composeMarketplacePackages } from './compose.js';
 import { writePluginCandidateIntegrity } from './plugin-candidate-integrity.js';
 import { prepareLocalMarketplace } from './smoke.js';
 
@@ -148,7 +148,7 @@ export async function prepareRelease({
   const releaseRoot = resolve(stagingParent, 'release');
 
   try {
-    const build = await composePackages({
+    const build = await composeMarketplacePackages({
       sourceRoot: resolve(sourceRoot),
       distRoot,
       platforms: ['codex', 'claude'],
@@ -167,6 +167,7 @@ export async function prepareRelease({
         {
           schemaVersion: 1,
           plugin: 'agentic-development-workflow',
+          plugins: build.plugins.map((plugin) => plugin.id),
           marketplace: 'quality-code',
           version,
           sourceTag,
@@ -207,7 +208,7 @@ export async function prepareRelease({
       stable: stableVersion(version),
       packageCount: build.packages.length,
       fileCounts: Object.fromEntries(
-        build.packages.map((item) => [item.platform, item.fileCount])
+        build.packages.map((item) => [`${item.pluginId}:${item.platform}`, item.fileCount])
       ),
       integrity: integrity
         ? { path: integrity.path, bytes: integrity.bytes, sha256: integrity.sha256 }

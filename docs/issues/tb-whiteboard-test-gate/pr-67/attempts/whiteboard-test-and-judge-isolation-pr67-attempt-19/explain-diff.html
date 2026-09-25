@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR #67 — Whiteboard Test and Isolated Judge</title>
+  <style>
+    :root { color-scheme:light dark; --ink:#182033; --paper:#f5f1e8; --card:#fffdf8; --accent:#4b55c5; --teal:#087f73; --line:#c9c1b4; --good:#08734f; --warn:#9a4e08; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font:17px/1.62 ui-sans-serif,system-ui,-apple-system,sans-serif; color:var(--ink); background:var(--paper); }
+    header,main,footer { width:min(1040px,92vw); margin:auto; }
+    header { padding:4rem 0 2rem; }
+    h1 { font-size:clamp(2.4rem,6vw,5rem); line-height:.98; margin:.25rem 0 1.1rem; letter-spacing:-.05em; max-width:14ch; }
+    h2 { margin-top:4rem; font-size:2.1rem; line-height:1.15; }
+    h3 { margin-top:0; }
+    .eyebrow { color:var(--accent); text-transform:uppercase; letter-spacing:.14em; font-weight:850; font-size:.8rem; }
+    .lede { font-size:1.25rem; max-width:72ch; }
+    nav,.card,details,.callout { background:var(--card); border:1px solid var(--line); border-radius:17px; padding:1.15rem 1.35rem; box-shadow:0 8px 26px #18233a12; }
+    nav ol { columns:2; margin:.5rem 0; }
+    a { color:var(--accent); }
+    code { background:#18233a12; padding:.1em .35em; border-radius:5px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; }
+    .flow { overflow:auto; background:#111827; border-radius:18px; padding:1rem; }
+    .flow svg { min-width:820px; width:100%; height:auto; display:block; }
+    .pass { color:var(--good); font-weight:850; }
+    .callout { border-left:6px solid var(--warn); }
+    .contract { border-left:6px solid var(--teal); }
+    details { margin:1rem 0; }
+    summary { cursor:pointer; font-weight:850; }
+    summary:focus-visible { outline:3px solid var(--accent); outline-offset:4px; }
+    table { width:100%; border-collapse:collapse; font-size:.95rem; }
+    th,td { text-align:left; vertical-align:top; padding:.75rem; border-bottom:1px solid var(--line); }
+    footer { padding:4rem 0; color:#626879; }
+    @media (prefers-color-scheme:dark) { :root { --ink:#eef1f8; --paper:#101521; --card:#171f2e; --line:#39445a; --accent:#a6b5ff; --teal:#6ed8c9; --good:#72d8b2; --warn:#ffc06d; } code { background:#ffffff18; } }
+    @media (max-width:640px) { nav ol { columns:1; } header { padding-top:2rem; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">Explain Diff · PR #67 · Attempt 19</div>
+    <h1>Teach the change. Judge the change. Never confuse the two.</h1>
+    <p class="lede">This PR adds a separately packaged Whiteboard Test that teaches the exact pinned change through adversarial challenge-and-reveal, upgrades Judge into a fresh blocking review, and introduces the reusable isolated agent-workflow runtime that both use without sharing authority or context.</p>
+    <p><strong>Pinned range:</strong> <code>10e54a0…a930cb0</code></p>
+  </header>
+  <main>
+    <nav aria-label="Table of contents"><strong>Contents</strong><ol>
+      <li><a href="#background">Background</a></li><li><a href="#intuition">Intuition</a></li>
+      <li><a href="#architecture">Architecture</a></li><li><a href="#contracts">Code contracts</a></li>
+      <li><a href="#evidence">Evidence and attempts</a></li><li><a href="#quiz">Check your model</a></li>
+    </ol></nav>
+
+    <section id="background">
+      <h2>1. Background: explanation is not validation</h2>
+      <div class="grid">
+        <article class="card"><h3>Whiteboard teaches</h3><p>It asks open-ended questions, lets a reader pause, then reveals concise and deep defenses, exact evidence, visual models, and “Push Harder” follow-ups. It highlights weaknesses without grading the work.</p></article>
+        <article class="card"><h3>Judge validates</h3><p>It independently checks the pinned implementation against the approved specification and rubric. A FAIL blocks the boundary. It never edits code or consumes Whiteboard output.</p></article>
+      </div>
+      <p>These responsibilities deliberately overlap in subject matter but not authority. A persuasive explanation cannot turn broken code into acceptable code, while a correct implementation can still be explained poorly.</p>
+    </section>
+
+    <section id="intuition">
+      <h2>2. Intuition: a governed oral exam</h2>
+      <p>Think of Whiteboard as a self-guided oral exam prepared by two strangers to the implementation thread. The Challenger decides what an engineer should be able to defend. A separate Defender/Publisher answers every unchanged question from pinned repository evidence and packages the result as a self-contained interactive page.</p>
+      <div class="callout contract"><strong>A Whiteboard PASS means:</strong> the explanation artifact is complete, substantive, evidence-backed, internally consistent, and operable. It does not certify the implementation and it does not claim a human reader understands it.</div>
+    </section>
+
+    <section id="architecture">
+      <h2>3. Architecture: shared mechanics, separate minds</h2>
+      <figure class="flow">
+        <svg viewBox="0 0 960 390" role="img" aria-labelledby="flow-title flow-desc">
+          <title id="flow-title">GateReeve boundary and isolated agent workflows</title>
+          <desc id="flow-desc">Verification feeds independent Judge and Whiteboard work. Judge may block. Whiteboard runs Challenger and Defender Publisher in separate fresh contexts. GateReeve validates receipts and artifacts before recording outcomes.</desc>
+          <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#a6b5ff"/></marker></defs>
+          <g fill="#1f2937" stroke="#a6b5ff" stroke-width="2">
+            <rect x="25" y="155" width="170" height="72" rx="14"/><rect x="250" y="48" width="165" height="72" rx="14"/><rect x="250" y="260" width="165" height="72" rx="14"/>
+            <rect x="485" y="225" width="175" height="58" rx="14"/><rect x="485" y="310" width="175" height="58" rx="14"/><rect x="750" y="155" width="185" height="72" rx="14"/>
+          </g>
+          <g fill="#f8fafc" font-family="system-ui" font-size="17" text-anchor="middle">
+            <text x="110" y="184">Verification</text><text x="110" y="207">pinned evidence</text>
+            <text x="332" y="78">Judge</text><text x="332" y="101">fresh blocking review</text>
+            <text x="332" y="290">Whiteboard</text><text x="332" y="313">ordering only</text>
+            <text x="572" y="260">Challenger context</text><text x="572" y="345">Defender context</text>
+            <text x="842" y="184">GateReeve core</text><text x="842" y="207">records outcomes</text>
+          </g>
+          <g fill="none" stroke="#a6b5ff" stroke-width="3" marker-end="url(#arrow)">
+            <path d="M195 175 C225 135 225 90 250 84"/><path d="M195 210 C225 248 225 292 250 296"/>
+            <path d="M415 296 L485 254"/><path d="M572 283 L572 310"/><path d="M415 84 C600 84 645 155 750 175"/><path d="M660 339 C725 320 710 232 775 214"/>
+          </g>
+        </svg>
+      </figure>
+      <p>Each stage receives an immutable read-only Git snapshot, denied network access, disposable scratch space, typed schemas, a high-capability provider profile, and a receipt binding context identity, provider settings, instructions, input, output, and snapshot. The protocol core rechecks freshness before it accepts the evaluator's result.</p>
+    </section>
+
+    <section id="contracts">
+      <h2>4. Code contracts: freedom inside hard boundaries</h2>
+      <table><thead><tr><th>Concern</th><th>Implementation</th><th>Failure mode caught</th></tr></thead><tbody>
+        <tr><td>Fresh isolation</td><td>Unique zero-history context IDs and bound stage receipts</td><td>Same-thread self-review or hidden conversational inheritance</td></tr>
+        <tr><td>Substance</td><td>Defender/Publisher emits <code>substantiveAttestation</code>; manifest derives rather than invents it</td><td>Structurally complete but shallow artifact passing</td></tr>
+        <tr><td>Evidence</td><td>Every cited file and line span must exist; visual references copy an exact declared evidence key</td><td>Hallucinated lines, widened spans, or decorative provenance</td></tr>
+        <tr><td>Findings</td><td>Stable IDs bind typed findings inline and in a linked summary with exact visible language</td><td>Weaknesses hidden, generalized, misplaced, or unlinked</td></tr>
+        <tr><td>Experience</td><td>Native <code>details/summary</code>, executed DOM, accessible SVG, bounded inline code</td><td>Broken reveals, inaccessible visuals, or runtime-only failures</td></tr>
+        <tr><td>Separation</td><td>Prohibited quiz scoring, answer submission, audio/video assessment, and any Explain Diff reference</td><td>Whiteboard becoming a grader or depending on a different artifact</td></tr>
+        <tr><td>Containment</td><td>No external/relative resources, navigation, parent-window authority, or network APIs</td><td>Generated artifact escaping its development-domain sandbox</td></tr>
+      </tbody></table>
+      <p>Freeform embedded HTML, CSS, JavaScript, SVG, and animation remain available. The trusted host validates semantics and behavior around that freedom instead of forcing the model through a rigid page renderer.</p>
+    </section>
+
+    <section id="evidence">
+      <h2>5. Evidence: retries remain history, not clutter</h2>
+      <p>Every attempt gets its own immutable directory. Boundary manifest schema v2 names the exact current artifact path and SHA-256 digest, so a preserved earlier failure can never masquerade as the current pass and a later retry never overwrites old evidence.</p>
+      <p class="pass">Attempt 19: Judge PASS; Whiteboard PASS; 22 challenges, 9 typed findings, 1 evidence-linked visual, 0 artifact deficiencies.</p>
+      <p>Earlier attempts exposed real contract gaps: missing machine-enforced presentation semantics, weakened finding language, synthetic substantive status, an invalid evidence line, and widened visual evidence spans. Each failure produced a targeted deterministic fix and a fresh isolated attempt—no ten-turn correction loop inside one Judge context.</p>
+      <aside class="callout"><strong>Release-stage check:</strong> the public Homebrew install smoke still targets the currently published older release. It is expected to remain red or inapplicable until this PR is merged and the coordinated release publishes the new Cask.</aside>
+    </section>
+
+    <section id="quiz">
+      <h2>6. Check your model</h2>
+      <details><summary>Why is Whiteboard ordered after Judge but not dependent on Judge evidence?</summary><p>Ordering avoids simultaneous expensive work and lets Judge finish first when present. Keeping Judge out of Whiteboard's evidence dependencies prevents bias and lets Whiteboard run when Judge is disabled.</p></details>
+      <details><summary>What is the most important difference between a work weakness and an artifact deficiency?</summary><p>A work weakness belongs in a visible finding and does not make Whiteboard fail. An artifact deficiency—missing evidence, broken interaction, omitted question, false attestation, or invalid provenance—means GateReeve did not produce a defensible explanation and therefore does fail Whiteboard.</p></details>
+      <details><summary>Why are both schema validation and DOM execution necessary?</summary><p>Schemas prove the structured claims are complete and typed. Executing the actual HTML proves those claims survive publication: controls operate, findings are visibly located and linked, scripts do not fail, visuals are accessible, and forbidden authority is absent.</p></details>
+      <details><summary>Why does the manifest derive substantive status from the Defender?</summary><p>The host may validate structure and behavior, but it cannot honestly invent the model's claim that the explanation is deep and defensible. Requiring and binding the attestation makes that responsibility explicit and auditable.</p></details>
+      <details><summary>Why preserve every failed attempt?</summary><p>Failures explain how the contract was hardened and provide immutable evidence for the event that referenced them. Current passage is selected by an exact path-and-digest manifest, not by deleting history or overwriting a mutable “latest” file.</p></details>
+    </section>
+  </main>
+  <footer>Generated for GateReeve PR #67, attempt 19. Self-contained; no external resources.</footer>
+</body>
+</html>

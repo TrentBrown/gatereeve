@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "modelId": "gatereeve/workflow",
-  "modelVersion": "1.2.0",
+  "modelVersion": "1.3.0",
   "eventSchemaVersion": 1,
   "resultSchemaVersion": 1,
   "coreCompatibility": {
@@ -235,19 +235,19 @@
     "invalidationByTarget": {
       "design": {
         "implementationAuthorization": true,
-        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "whiteboardDefense", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
       },
       "spec": {
         "implementationAuthorization": true,
-        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "whiteboardDefense", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
       },
       "plan": {
         "implementationAuthorization": false,
-        "gateIds": ["reconcile", "verification", "specEvaluation", "patternReview", "judge", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+        "gateIds": ["reconcile", "verification", "specEvaluation", "patternReview", "judge", "whiteboardDefense", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
       },
       "slice": {
         "implementationAuthorization": false,
-        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "whiteboardDefense", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
       }
     },
     "transitions": [
@@ -308,7 +308,7 @@
   },
   "moduleGraph": {
     "schemaVersion": 1,
-    "policyDigest": "sha256:6d99047254f4ecfa3bbdb47b6658a4d4d3f3cab8e550b1e18018df2a54007a09",
+    "policyDigest": "sha256:f1a71802ff08f6784b3ce29ecc8c53a6f01694af8dbfb65a058e0df5a07108f3",
     "enabledModuleIds": [
       "gatereeve/pin-context",
       "gatereeve/release",
@@ -450,10 +450,10 @@
       {
         "schemaVersion": 1,
         "id": "gatereeve/judge",
-        "version": "1.0.0",
-        "digest": "sha256:6573e9ba2b3f3c6fdf186624b3764e56bcbe9885e10a80f86eff27bc182328d4",
+        "version": "2.0.0",
+        "digest": "sha256:907057982965bc28ed60ade138774f7ca69ed9b43201891f1e34a46e3d8be480",
         "label": "Judge",
-        "description": "Performs an independent compliance evaluation against the approved scope.",
+        "description": "Performs an independent compliance evaluation against the approved scope in a fresh read-only agent context.",
         "slot": "boundary.evaluation",
         "dependsOn": ["gatereeve/verification"],
         "disposition": "required",
@@ -467,7 +467,39 @@
           "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "FEATURE"},
           "guards": ["boundary.context.current"]
         },
-        "run": {"kind": "skill", "skillId": "agentic-development-workflow:workflow-judge"}
+        "run": {
+          "kind": "agent-workflow",
+          "protocolVersion": 1,
+          "resourcePlugin": "agentic-development-workflow",
+          "capabilityProfile": {"id": "high-capability-v1", "minimumReasoning": "high"},
+          "automatic": true,
+          "isolation": {"freshContext": true, "inheritedTurns": 0},
+          "repositoryAccess": "read-only-pinned",
+          "networkAccess": "denied",
+          "stages": [
+            {
+              "id": "judge",
+              "role": "Independent compliance judge",
+              "dependsOn": [],
+              "promptResource": "resources/agent-workflows/judge/agent.md",
+              "inputSchema": "resources/agent-workflows/judge/stage-input.schema.json",
+              "outputSchema": "resources/agent-workflows/judge/result.schema.json"
+            }
+          ],
+          "artifacts": [
+            {"path": "judge.json", "mediaType": "application/json", "required": true},
+            {"path": "judge-result.json", "mediaType": "application/json", "required": true},
+            {"path": "judge-receipt.json", "mediaType": "application/json", "required": true},
+            {"path": "judge.md", "mediaType": "text/markdown", "required": true}
+          ],
+          "evaluator": {
+            "resource": "resources/agent-workflows/judge/validator.js",
+            "export": "createJudgeBundle"
+          },
+          "evidenceRoot": "judge.json",
+          "timeoutSeconds": 1800,
+          "maxAttempts": 1
+        }
       },
       {
         "schemaVersion": 1,
@@ -490,6 +522,72 @@
           "guards": ["boundary.context.current"]
         },
         "run": {"kind": "skill", "skillId": "agentic-development-workflow:workflow-pr-review"}
+      },
+      {
+        "schemaVersion": 1,
+        "id": "whiteboard-test/defense",
+        "version": "1.0.0",
+        "digest": "sha256:ed7d86c6c7df6238aad12515443ded715395d53182a92a90ecdfeea1a5345e08",
+        "label": "Whiteboard Defense",
+        "description": "Builds an adversarial, evidence-backed challenge-and-reveal explanation of the exact pinned change.",
+        "slot": "boundary.evaluation",
+        "dependsOn": ["gatereeve/verification"],
+        "after": ["gatereeve/judge"],
+        "disposition": "required",
+        "locked": false,
+        "enabledByDefault": false,
+        "waiverAllowed": true,
+        "waiverPolicy": "non-behavioral-only",
+        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
+        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "boundary": {
+          "gateId": "whiteboardDefense",
+          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "FEATURE"},
+          "guards": ["boundary.context.current"]
+        },
+        "run": {
+          "kind": "agent-workflow",
+          "protocolVersion": 1,
+          "resourcePlugin": "whiteboard-test",
+          "capabilityProfile": {"id": "high-capability-v1", "minimumReasoning": "high"},
+          "automatic": true,
+          "isolation": {"freshContext": true, "inheritedTurns": 0},
+          "repositoryAccess": "read-only-pinned",
+          "networkAccess": "denied",
+          "stages": [
+            {
+              "id": "challenger",
+              "role": "Adversarial Whiteboard Challenger",
+              "dependsOn": [],
+              "promptResource": "resources/whiteboard-test/agents/challenger.md",
+              "inputSchema": "resources/whiteboard-test/schemas/stage-input.schema.json",
+              "outputSchema": "resources/whiteboard-test/schemas/challenges.schema.json"
+            },
+            {
+              "id": "defender-publisher",
+              "role": "Whiteboard Defender and Publisher",
+              "dependsOn": ["challenger"],
+              "promptResource": "resources/whiteboard-test/agents/defender-publisher.md",
+              "inputSchema": "resources/whiteboard-test/schemas/stage-input.schema.json",
+              "outputSchema": "resources/whiteboard-test/schemas/defense.schema.json"
+            }
+          ],
+          "artifacts": [
+            {"path": "whiteboard-defense.json", "mediaType": "application/json", "required": true},
+            {"path": "whiteboard-defense.html", "mediaType": "text/html", "required": true},
+            {"path": "challenger.json", "mediaType": "application/json", "required": true},
+            {"path": "defender-publisher.json", "mediaType": "application/json", "required": true},
+            {"path": "challenger-receipt.json", "mediaType": "application/json", "required": true},
+            {"path": "defender-publisher-receipt.json", "mediaType": "application/json", "required": true}
+          ],
+          "evaluator": {
+            "resource": "resources/whiteboard-test/validator.js",
+            "export": "createWhiteboardBundle"
+          },
+          "evidenceRoot": "whiteboard-defense.json",
+          "timeoutSeconds": 1800,
+          "maxAttempts": 1
+        }
       },
       {
         "schemaVersion": 1,

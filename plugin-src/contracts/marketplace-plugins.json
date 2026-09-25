@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "marketplace": "quality-code",
+  "plugins": [
+    {
+      "id": "agentic-development-workflow",
+      "displayName": "Agentic Software Development Workflow",
+      "sourceRoot": ".",
+      "initialVersion": "0.1.0",
+      "requiresSessionStartHook": true
+    },
+    {
+      "id": "whiteboard-test",
+      "displayName": "Whiteboard Test",
+      "sourceRoot": "plugins/whiteboard-test",
+      "initialVersion": "0.1.0",
+      "requiresSessionStartHook": false
+    }
+  ]
+}

@@ -6,11 +6,12 @@ import { fileURLToPath } from 'node:url';
 
 import { Command, Option } from 'commander';
 
-import { composePackages } from '../plugin/compose.js';
+import { composeMarketplacePackages } from '../plugin/compose.js';
 import { loadAndValidateContracts } from '../plugin/contracts.js';
 import { lintPortability } from '../plugin/portability.js';
 import { loadAndValidateNativeSources } from '../plugin/native.js';
-import { runNativeInstallSmoke } from '../plugin/smoke.js';
+import { loadMarketplacePluginRegistry } from '../plugin/registry.js';
+import { installedSkillNames, runNativeInstallSmoke } from '../plugin/smoke.js';
 import { releaseCommands } from './release.js';
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
@@ -39,7 +40,7 @@ function printBuildResult(result, asJson) {
 
   for (const item of result.packages) {
     console.log(
-      `Built ${item.platform}: ${item.outputPath} ` +
+      `Built ${item.pluginId} for ${item.platform}: ${item.outputPath} ` +
         `(${item.fileCount} files; ${item.sharedFileCount} shared)`
     );
   }
@@ -70,7 +71,7 @@ export function pluginCommands() {
       const sourceCommit = options.sourceCommit ?? currentCommit();
       const platforms = options.platform === 'all' ? ['codex', 'claude'] : [options.platform];
 
-      const result = await composePackages({
+      const result = await composeMarketplacePackages({
         sourceRoot,
         distRoot: resolve(options.distRoot),
         platforms,
@@ -151,6 +152,11 @@ export function pluginCommands() {
       const inventory = JSON.parse(
         await readFile(resolve(sourceRoot, 'contracts/workflow-inventory.json'), 'utf8')
       );
+      const registry = await loadMarketplacePluginRegistry(sourceRoot);
+      const plugins = await Promise.all(registry.plugins.map(async (entry) => ({
+        id: entry.id,
+        expectedSkills: await installedSkillNames(resolve(sourceRoot, entry.sourceRoot, 'shared')),
+      })));
       const workspace = options.workspace
         ? resolve(options.workspace)
         : await mkdtemp(resolve(tmpdir(), 'workflow-native-smoke-'));
@@ -158,7 +164,7 @@ export function pluginCommands() {
       let succeeded = false;
 
       try {
-        await composePackages({
+        await composeMarketplacePackages({
           sourceRoot,
           distRoot,
           platforms: ['codex', 'claude'],
@@ -172,6 +178,7 @@ export function pluginCommands() {
           workspace,
           version,
           expectedSkills: inventory.skills.map((item) => item.name).sort(),
+          plugins,
         });
         result.workspaceRemoved = removeWorkspace;
         if (options.json) {
@@ -180,7 +187,7 @@ export function pluginCommands() {
           for (const item of result.platforms) {
             console.log(
               `${item.platform}: installed ${item.version}, ` +
-                `${item.skillCount} skills, doctor ready`
+                `${item.plugins.length} plugins and ${item.skillCount} skills, doctor ready`
             );
           }
           console.log(result.note);

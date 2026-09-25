@@ -1,8 +1,14 @@
-# Install the Agentic Development Workflow
+# Install GateReeve workflow plugins
 
 This guide installs the private Agentic Software Development Workflow through
 the native Codex or Claude Code plugin manager. You may install it in Codex,
 Claude Code, or both.
+
+The marketplace also contains the independent **Whiteboard Test** plugin. It is
+optional and does not enable itself in any repository. Install it on agents
+where you want its skill to be discoverable; GateReeve Desktop carries the
+trusted runtime resources needed to execute an explicitly activated
+`whiteboard-test/defense` module.
 
 The supported operating systems are macOS and Ubuntu 22.04 or 24.04. Windows
 users should currently run the workflow inside Ubuntu on WSL; native Windows
@@ -172,15 +178,15 @@ registration and plugin installation steps.
 ### Alternative: private Git-backed marketplace
 
 The managed Git-backed path remains available to users with read access to
-`TrentBrown/agentic-development-workflow`. Authenticate GitHub CLI and confirm
+`TrentBrown/gatereeve`. Authenticate GitHub CLI and confirm
 the repository can be fetched:
 
 ```bash
 gh auth login --hostname github.com --git-protocol https --web
 gh auth setup-git
 gh auth status
-gh repo view TrentBrown/agentic-development-workflow
-git ls-remote https://github.com/TrentBrown/agentic-development-workflow.git main
+gh repo view TrentBrown/gatereeve
+git ls-remote https://github.com/TrentBrown/gatereeve.git main
 ```
 
 Use the Git-backed commands in section 5 instead of setting
@@ -202,7 +208,7 @@ Alternatively, register the private Git-backed marketplace:
 
 ```bash
 codex plugin marketplace add \
-  TrentBrown/agentic-development-workflow \
+  TrentBrown/gatereeve \
   --ref marketplace
 ```
 
@@ -210,11 +216,13 @@ Then install and verify the plugin:
 
 ```bash
 codex plugin add agentic-development-workflow@quality-code
+# Optional Whiteboard Defense capability:
+codex plugin add whiteboard-test@quality-code
 codex plugin list --marketplace quality-code
 ```
 
-The list must show `agentic-development-workflow` installed and enabled from
-the `quality-code` marketplace.
+The list must show `agentic-development-workflow` and, when selected,
+`whiteboard-test` installed and enabled from the `quality-code` marketplace.
 
 ### 5B. Claude Code
 
@@ -228,7 +236,7 @@ Alternatively, register the private Git-backed marketplace:
 
 ```bash
 claude plugin marketplace add \
-  TrentBrown/agentic-development-workflow@marketplace \
+  TrentBrown/gatereeve@marketplace \
   --scope user
 ```
 
@@ -238,11 +246,14 @@ Then install and verify the plugin:
 claude plugin install \
   agentic-development-workflow@quality-code \
   --scope user
+# Optional Whiteboard Defense capability:
+claude plugin install whiteboard-test@quality-code --scope user
 claude plugin list
 ```
 
-The list must show `agentic-development-workflow@quality-code` installed,
-enabled, and scoped to the user.
+The list must show `agentic-development-workflow@quality-code` and, when
+selected, `whiteboard-test@quality-code` installed, enabled, and scoped to the
+user.
 
 ## 6. Trust the Codex activation hook
 
@@ -323,7 +334,7 @@ used for rollback if needed:
 
 ```bash
 git ls-remote \
-  https://github.com/TrentBrown/agentic-development-workflow.git \
+  https://github.com/TrentBrown/gatereeve.git \
   refs/heads/marketplace
 ```
 
@@ -363,7 +374,7 @@ maintainer. Replace `<MARKETPLACE_COMMIT>` in every command with that commit.
 codex plugin remove agentic-development-workflow@quality-code
 codex plugin marketplace remove quality-code
 codex plugin marketplace add \
-  TrentBrown/agentic-development-workflow \
+  TrentBrown/gatereeve \
   --ref <MARKETPLACE_COMMIT>
 codex plugin add agentic-development-workflow@quality-code
 ```
@@ -376,7 +387,7 @@ claude plugin uninstall \
   --scope user
 claude plugin marketplace remove quality-code --scope user
 claude plugin marketplace add \
-  TrentBrown/agentic-development-workflow@<MARKETPLACE_COMMIT> \
+  TrentBrown/gatereeve@<MARKETPLACE_COMMIT> \
   --scope user
 claude plugin install \
   agentic-development-workflow@quality-code \
@@ -420,7 +431,7 @@ caches, create skill symlinks, or copy skills into personal agent directories.
 ## Troubleshooting
 
 - **Private marketplace fetch fails:** rerun `gh auth status`,
-  `gh auth setup-git`, `gh repo view TrentBrown/agentic-development-workflow`,
+  `gh auth setup-git`, `gh repo view TrentBrown/gatereeve`,
   and the `git ls-remote` check from section 4.
 - **Codex doctor reports activation missing:** start a fresh session, run
   `/hooks`, and trust the workflow's current `SessionStart` hook.

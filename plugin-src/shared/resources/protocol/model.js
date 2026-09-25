@@ -195,6 +195,9 @@ export function validateModel(model) {
         `boundary.${gate.id} must declare boolean optional and waiverAllowed fields`
       );
     }
+    if (!['any-change', 'non-behavioral-only'].includes(gate.waiverPolicy)) {
+      throw new ContractError(`boundary.${gate.id}.waiverPolicy is invalid`);
+    }
     for (const dependency of gate.dependsOn) {
       if (dependency === gate.id || !gateIds.has(dependency)) {
         throw new ContractError(

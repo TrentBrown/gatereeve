@@ -1878,6 +1878,7 @@ function moduleAdapterLabel(module) {
   if (run?.kind === 'skill') return `Skill · ${run.skillId}`;
   if (run?.kind === 'manual') return 'Manual instructions';
   if (run?.kind === 'command') return `Command · ${run.executable}`;
+  if (run?.kind === 'agent-workflow') return 'Automatic isolated agent workflow';
   return 'Observation only';
 }
 
@@ -2546,6 +2547,8 @@ function renderArtifactDetail(detail, capabilities, requestSequence, position) {
         title: `${current.label} interactive explanation`,
         attributes: {
           src: `gatereeve-artifact://desktop/${encodeURIComponent(current.id)}?refresh=${requestSequence}`,
+          sandbox: 'allow-scripts',
+          referrerpolicy: 'no-referrer',
         },
       }));
     } else {

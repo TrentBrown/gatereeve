@@ -407,6 +407,8 @@ test('bundle creates a complete offline marketplace ZIP and checksum', async () 
     `${root}.claude-plugin/marketplace.json`,
     `${root}plugins/codex/agentic-development-workflow/.codex-plugin/plugin.json`,
     `${root}plugins/claude/agentic-development-workflow/.claude-plugin/plugin.json`,
+    `${root}plugins/codex/whiteboard-test/.codex-plugin/plugin.json`,
+    `${root}plugins/claude/whiteboard-test/.claude-plugin/plugin.json`,
   ]) {
     assert(listing.includes(required), `missing archive entry: ${required}`);
   }
@@ -478,4 +480,11 @@ test('release workflow exposes only conductor start and resume', async () => {
   assert.match(workflow, /- start\n\s+- resume/);
   assert.match(workflow, /coordinated-release-prepare\.yml/);
   assert.match(workflow, /plugin release conductor discover/);
+  assert.match(workflow, /loadMarketplacePluginRegistry/);
+  assert.match(workflow, /registry\.plugins\.flatMap/);
+  assert.match(workflow, /plugin\.initialVersion !== parsed\.baseVersion/);
+  assert.doesNotMatch(
+    workflow,
+    /"plugin-src\/codex\/\.codex-plugin\/plugin\.json"/
+  );
 });

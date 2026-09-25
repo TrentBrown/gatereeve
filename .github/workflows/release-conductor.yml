@@ -61,16 +61,29 @@ jobs:
           test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)"
           node --input-type=module -e '
             import { readFileSync } from "node:fs";
+            import { join } from "node:path";
             import { parseReleaseTag } from "./cli/src/plugin/release.js";
+            import { loadMarketplacePluginRegistry } from "./cli/src/plugin/registry.js";
             const parsed = parseReleaseTag(process.env.RELEASE_TAG);
             if (!/^rc\.(?:0|[1-9]\d*)$/u.test(parsed.prerelease ?? "")) {
               throw new Error("Release Conductor start requires a canonical RC tag");
             }
+            const registry = await loadMarketplacePluginRegistry("./plugin-src");
             const manifests = [
               "cli/package.json",
               "apps/desktop/package.json",
-              "plugin-src/codex/.codex-plugin/plugin.json",
-              "plugin-src/claude/.claude-plugin/plugin.json",
+              ...registry.plugins.flatMap((plugin) => {
+                if (plugin.initialVersion !== parsed.baseVersion) {
+                  throw new Error(plugin.id + " initialVersion " + plugin.initialVersion + " differs from " + parsed.baseVersion);
+                }
+                const root = plugin.sourceRoot === "."
+                  ? "plugin-src"
+                  : join("plugin-src", plugin.sourceRoot);
+                return [
+                  join(root, "codex/.codex-plugin/plugin.json"),
+                  join(root, "claude/.claude-plugin/plugin.json"),
+                ];
+              }),
             ];
             for (const path of manifests) {
               const version = JSON.parse(readFileSync(path, "utf8")).version;

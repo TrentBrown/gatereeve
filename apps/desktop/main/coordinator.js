@@ -68,6 +68,7 @@ export function createDesktopCoordinator({
   initialSetup = defaultSetup(),
   setupObserver = async () => defaultSetup(),
   modulePolicyManager = null,
+  automaticAgentWorkflows = () => null,
   notify = () => {},
 } = {}) {
   let preferences = initialPreferences;
@@ -253,6 +254,12 @@ export function createDesktopCoordinator({
     syncActiveProject();
     if (typeof github.needsPolling === 'boolean') updatePolling(github.needsPolling);
     publish();
+    automaticAgentWorkflows({
+      repositoryRoot: git.repositoryRoot,
+      featureHome: selection.featureHome,
+      snapshot,
+      setup,
+    });
   }
 
   async function refreshGitHub() {

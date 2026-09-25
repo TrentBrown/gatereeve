@@ -69,16 +69,36 @@ export async function prepareLocalMarketplace({ sourceRoot, distRoot, marketplac
 
   await writeJson(resolve(root, '.agents/plugins/marketplace.json'), codexCatalog);
   await writeJson(resolve(root, '.claude-plugin/marketplace.json'), claudeCatalog);
-  await cp(
-    resolve(distRoot, 'codex'),
-    resolve(root, 'plugins/codex', PLUGIN_ID),
-    { recursive: true }
-  );
-  await cp(
-    resolve(distRoot, 'claude'),
-    resolve(root, 'plugins/claude', PLUGIN_ID),
-    { recursive: true }
-  );
+
+  for (const [platform, catalog] of [
+    ['codex', codexCatalog],
+    ['claude', claudeCatalog],
+  ]) {
+    for (const plugin of catalog.plugins ?? []) {
+      const catalogPath = platform === 'codex' ? plugin.source?.path : plugin.source;
+      const expectedPath = `./plugins/${platform}/${plugin.name}`;
+      if (catalogPath !== expectedPath) {
+        throw new Error(
+          `${platform} marketplace source for ${plugin.name} must be ${expectedPath}`
+        );
+      }
+      const nestedSource = resolve(distRoot, platform, plugin.name);
+      let packageSource = nestedSource;
+      try {
+        await access(nestedSource);
+      } catch {
+        if ((catalog.plugins ?? []).length !== 1) {
+          throw new Error(`Built package is missing: ${nestedSource}`);
+        }
+        packageSource = resolve(distRoot, platform);
+      }
+      await cp(
+        packageSource,
+        resolve(root, 'plugins', platform, plugin.name),
+        { recursive: true }
+      );
+    }
+  }
 
   return root;
 }
@@ -120,13 +140,13 @@ function parseJson(output, label) {
   }
 }
 
-export function findInstalledPackage(platform, payload, version) {
+export function findInstalledPackage(platform, payload, version, pluginId = PLUGIN_ID) {
   if (platform === 'codex') {
     const plugin = payload.installed?.find(
-      (item) => item.pluginId === `${PLUGIN_ID}@${MARKETPLACE}`
+      (item) => item.pluginId === `${pluginId}@${MARKETPLACE}`
     );
     if (!plugin?.installed || !plugin.enabled || plugin.version !== version) {
-      throw new Error(`Codex did not report enabled ${PLUGIN_ID} ${version}`);
+      throw new Error(`Codex did not report enabled ${pluginId} ${version}`);
     }
     if (!plugin.source?.path) {
       throw new Error('Codex did not report the installed package source path');
@@ -135,10 +155,10 @@ export function findInstalledPackage(platform, payload, version) {
   }
 
   const plugin = payload.find?.(
-    (item) => item.id === `${PLUGIN_ID}@${MARKETPLACE}`
+    (item) => item.id === `${pluginId}@${MARKETPLACE}`
   );
   if (!plugin?.enabled || plugin.version !== version) {
-    throw new Error(`Claude Code did not report enabled ${PLUGIN_ID} ${version}`);
+    throw new Error(`Claude Code did not report enabled ${pluginId} ${version}`);
   }
   if (!plugin.installPath) {
     throw new Error('Claude Code did not report the installed package path');
@@ -156,7 +176,7 @@ async function verifyInstalledPlatform({
   workspace,
   marketplaceRoot,
   version,
-  expectedSkills,
+  plugins,
   baseEnvironment,
   runner,
   pythonExecutable,
@@ -176,7 +196,6 @@ async function verifyInstalledPlatform({
       : { CLAUDE_CONFIG_DIR: profileRoot }),
   };
 
-  let installed;
   if (platform === 'codex') {
     runJson(
       runner,
@@ -185,48 +204,61 @@ async function verifyInstalledPlatform({
       platformEnvironment,
       'codex marketplace add'
     );
-    runJson(
-      runner,
-      'codex',
-      ['plugin', 'add', `${PLUGIN_ID}@${MARKETPLACE}`, '--json'],
-      platformEnvironment,
-      'codex plugin add'
-    );
-    installed = runJson(
-      runner,
-      'codex',
-      ['plugin', 'list', '--json'],
-      platformEnvironment,
-      'codex plugin list'
-    );
+    for (const plugin of plugins) {
+      runJson(
+        runner,
+        'codex',
+        ['plugin', 'add', `${plugin.id}@${MARKETPLACE}`, '--json'],
+        platformEnvironment,
+        `codex plugin add ${plugin.id}`
+      );
+    }
   } else {
     runner(
       'claude',
       ['plugin', 'marketplace', 'add', marketplaceRoot, '--scope', 'user'],
       { env: platformEnvironment }
     );
-    runner(
-      'claude',
-      ['plugin', 'install', `${PLUGIN_ID}@${MARKETPLACE}`, '--scope', 'user'],
-      { env: platformEnvironment }
-    );
-    installed = runJson(
+    for (const plugin of plugins) {
+      runner(
+        'claude',
+        ['plugin', 'install', `${plugin.id}@${MARKETPLACE}`, '--scope', 'user'],
+        { env: platformEnvironment }
+      );
+    }
+  }
+  const installed = platform === 'codex'
+    ? runJson(
+      runner,
+      'codex',
+      ['plugin', 'list', '--json'],
+      platformEnvironment,
+      'codex plugin list'
+    )
+    : runJson(
       runner,
       'claude',
       ['plugin', 'list', '--json'],
       platformEnvironment,
       'claude plugin list'
     );
+
+  const installedPlugins = [];
+  for (const plugin of plugins) {
+    const pluginRoot = findInstalledPackage(platform, installed, version, plugin.id);
+    const skills = await installedSkillNames(pluginRoot);
+    if (JSON.stringify(skills) !== JSON.stringify(plugin.expectedSkills)) {
+      throw new Error(
+        `${platform} ${plugin.id} skill inventory differs: expected ` +
+          `${plugin.expectedSkills.length}, found ${skills.length}`
+      );
+    }
+    installedPlugins.push({ id: plugin.id, pluginRoot, skillCount: skills.length });
   }
 
-  const pluginRoot = findInstalledPackage(platform, installed, version);
-  const skills = await installedSkillNames(pluginRoot);
-  if (JSON.stringify(skills) !== JSON.stringify(expectedSkills)) {
-    throw new Error(
-      `${platform} installed skill inventory differs: expected ` +
-        `${expectedSkills.length}, found ${skills.length}`
-    );
-  }
+  const workflowPlugin = installedPlugins.find((plugin) => plugin.id === PLUGIN_ID);
+  if (!workflowPlugin) throw new Error(`Smoke set must include ${PLUGIN_ID}`);
+  const pluginRoot = workflowPlugin.pluginRoot;
 
   const scriptsRoot = resolve(pluginRoot, 'resources/scripts');
   const setup = runJson(
@@ -274,7 +306,8 @@ async function verifyInstalledPlatform({
     pluginRoot,
     version,
     enabled: true,
-    skillCount: skills.length,
+    skillCount: installedPlugins.reduce((total, plugin) => total + plugin.skillCount, 0),
+    plugins: installedPlugins,
     setup,
     doctor: { ready: true, checkCount: doctor.checks.length },
   };
@@ -285,7 +318,8 @@ export async function runNativeInstallSmoke({
   distRoot,
   workspace,
   version,
-  expectedSkills,
+  expectedSkills = null,
+  plugins = null,
   environment = process.env,
   runner = defaultRunner,
   pythonExecutable,
@@ -300,6 +334,10 @@ export async function runNativeInstallSmoke({
   const baseEnvironment = { ...environment };
   const selectedPython =
     pythonExecutable ?? (await selectCompatiblePython(baseEnvironment, runner));
+  const smokePlugins = plugins ?? [{ id: PLUGIN_ID, expectedSkills }];
+  if (smokePlugins.some((plugin) => !Array.isArray(plugin.expectedSkills))) {
+    throw new Error('Every smoke plugin must declare its expected skill inventory');
+  }
   const platforms = [];
 
   for (const platform of ['codex', 'claude']) {
@@ -309,7 +347,7 @@ export async function runNativeInstallSmoke({
         workspace: root,
         marketplaceRoot,
         version,
-        expectedSkills,
+        plugins: smokePlugins,
         baseEnvironment,
         runner,
         pythonExecutable: selectedPython,

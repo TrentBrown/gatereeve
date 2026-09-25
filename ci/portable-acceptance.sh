@@ -30,9 +30,11 @@ node cli/bin/workflow.js plugin build \
   --source-commit portable-acceptance \
   --json
 
-cmp \
-  dist/codex/.workflow-build/shared-files.json \
-  dist/claude/.workflow-build/shared-files.json
+for plugin in agentic-development-workflow whiteboard-test; do
+  cmp \
+    "dist/codex/$plugin/.workflow-build/shared-files.json" \
+    "dist/claude/$plugin/.workflow-build/shared-files.json"
+done
 
 if find dist -type l -print -quit | grep -q .; then
   echo "Generated packages must not contain symbolic links" >&2
@@ -54,7 +56,7 @@ done
 
 for platform in codex claude; do
   package_root="$(mktemp -d)/workflow package $platform"
-  cp -R "dist/$platform/." "$package_root/"
+  cp -R "dist/$platform/agentic-development-workflow/." "$package_root/"
   isolated_home="$(mktemp -d)"
   git_config="$(mktemp)"
   platform_home="$(mktemp -d)"

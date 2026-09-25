@@ -353,6 +353,7 @@ function gateCommands() {
   ))
     .requiredOption('--inputs-file <path>', 'JSON value containing current gate inputs')
     .option('--fingerprints-file <path>', 'JSON map of all current gate fingerprints')
+    .option('--waiver-basis-file <path>', 'JSON non-behavioral classification and evidence')
     .requiredOption('--reason <text>', 'Risk-acceptance reason');
   waive.action(async (attemptId, gateId, options, commander) => {
     const resolvedOptions = commander?.opts?.() ?? options;
@@ -364,6 +365,7 @@ function gateCommands() {
         gateId,
         inputs: await readJsonFile(resolve(resolvedOptions.inputsFile), 'Gate inputs'),
         currentFingerprints: await optionalJson(resolvedOptions.fingerprintsFile, 'Fingerprint file', {}),
+        waiverBasis: await optionalJson(resolvedOptions.waiverBasisFile, 'Waiver basis file', null),
         reason: resolvedOptions.reason,
       }),
     }, resolvedOptions, printMutation);

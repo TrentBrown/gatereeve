@@ -1,0 +1,33 @@
+{
+  "name": "whiteboard-test",
+  "version": "0.1.0",
+  "description": "Build an adversarial, evidence-backed Whiteboard Defense for a governed code change.",
+  "author": {
+    "name": "QualityCode",
+    "url": "https://qualitycode.io"
+  },
+  "homepage": "https://github.com/TrentBrown/agentic-development-workflow",
+  "repository": "https://github.com/TrentBrown/agentic-development-workflow",
+  "keywords": [
+    "whiteboard-test",
+    "code-explanation",
+    "pull-request",
+    "agentic"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Whiteboard Test",
+    "shortDescription": "Defend a code change under adversarial questioning",
+    "longDescription": "Generate a rich, evidence-bound Whiteboard Defense with challenge-and-reveal explanations, deeper follow-ups, findings, and visual models.",
+    "developerName": "QualityCode",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Create a Whiteboard Defense for the current governed change."
+    ],
+    "brandColor": "#7C3AED"
+  }
+}

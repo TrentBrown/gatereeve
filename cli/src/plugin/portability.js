@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { relative, resolve, sep } from 'node:path';
 
 const RESOURCE_ROOTS = {
+  agentWorkflows: 'resources/agent-workflows',
   commands: 'resources/commands',
   scripts: 'resources/scripts',
   protocol: 'resources/protocol',
@@ -15,8 +16,8 @@ const FORBIDDEN_TEXT = [
   { label: 'personal Linux home path', pattern: /\/home\/[^/\s`"']+/ },
   { label: 'personal Windows home path', pattern: /[A-Za-z]:\\Users\\[^\\\s`"']+/ },
   { label: 'legacy agent home path', pattern: /~\/\.(?:agents|codex|claude)(?:\/|\b)/ },
-  { label: 'canonical source checkout path', pattern: /~\/agentic-development-workflow(?:\/|\b)/ },
-  { label: 'source-only workflow path', pattern: /agentic-development-workflow\/(?:skills|commands|scripts|templates)\// },
+  { label: 'canonical source checkout path', pattern: /~\/(?:agentic-development-workflow|gatereeve)(?:\/|\b)/ },
+  { label: 'source-only workflow path', pattern: /(?:agentic-development-workflow|gatereeve)\/(?:skills|commands|scripts|templates)\// },
   { label: 'plugin-root escape', pattern: /(?:^|[\s`"'])\.\.\//m },
   { label: 'platform root marker in shared source', pattern: /\$\{?(?:CLAUDE_)?PLUGIN_ROOT\}?/ },
   { label: 'unresolved build root marker', pattern: /(?:__|\{\{)PLUGIN_ROOT(?:__|\}\})/ },

@@ -19,6 +19,7 @@ from pr_context import (  # noqa: E402
     PullRequestContextError,
     finalize_pull_request_context,
     resolve_pull_request_context,
+    verify_boundary_context_is_current,
     verify_context_is_current,
 )
 from workflow_context import RepositoryContext  # noqa: E402
@@ -190,6 +191,54 @@ class PullRequestContextTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "current")
         self.assertEqual(result["evaluatedSourceSha"], self.head_sha)
+
+    def test_compact_boundary_check_expands_context_and_allows_evidence_dirt(self) -> None:
+        self.write("docs/issues/tb-feature/pr-42/verification.md", "working evidence\n")
+        compact = {
+            "repository": "example/product",
+            "pullRequest": 42,
+            "url": "https://github.com/example/product/pull/42",
+            "diffBaseSha": self.base_sha,
+            "diffHeadSha": self.head_sha,
+            "featureBaseSha": self.base_sha,
+        }
+
+        result = verify_boundary_context_is_current(
+            compact,
+            self.repository,
+            self.provider(),
+            git_executable=self.git,
+        )
+
+        self.assertEqual(result["schemaVersion"], 1)
+        self.assertEqual(result["mergeBaseSha"], self.base_sha)
+        self.assertEqual(result["evaluatedSourceSha"], self.head_sha)
+        self.assertEqual(result["pullRequest"]["number"], 42)
+
+    def test_compact_boundary_check_rejects_stale_head_and_feature_base(self) -> None:
+        compact = {
+            "repository": "example/product",
+            "pullRequest": 42,
+            "url": "https://github.com/example/product/pull/42",
+            "diffBaseSha": self.base_sha,
+            "diffHeadSha": self.head_sha,
+            "featureBaseSha": self.base_sha,
+        }
+        with self.assertRaisesRegex(PullRequestContextError, "became stale"):
+            verify_boundary_context_is_current(
+                compact,
+                self.repository,
+                self.provider(headRefOid=self.base_sha),
+                git_executable=self.git,
+            )
+        compact["featureBaseSha"] = self.head_sha
+        with self.assertRaisesRegex(PullRequestContextError, "feature base"):
+            verify_boundary_context_is_current(
+                compact,
+                self.repository,
+                self.provider(),
+                git_executable=self.git,
+            )
 
     def test_finalization_allows_only_declared_evidence_and_requires_sync(self) -> None:
         context = self.resolve()

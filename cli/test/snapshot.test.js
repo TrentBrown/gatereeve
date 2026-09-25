@@ -10,6 +10,7 @@ import {
   createModelLock,
   initializeFeature,
   loadDefaultModel,
+  loadDefaultWorkflowPolicy,
   proposeSlice,
   readDetail,
   recordFeatureTransition,
@@ -321,6 +322,67 @@ test('boundary snapshots inventory pinned gates and expose attempt detail by ID'
       ['packetValidation', 7, null, '7'],
     ]
   );
+});
+
+test('boundary snapshots expose manifest-bound Whiteboard companion artifacts', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'gatereeve whiteboard snapshot '));
+  const featureHome = resolve(root, 'docs/issues/whiteboard-snapshot');
+  const policy = await loadDefaultWorkflowPolicy();
+  policy.modules.find((module) => module.id === 'whiteboard-test/defense').enabled = true;
+  await mkdir(resolve(root, '.gatereeve'), { recursive: true });
+  await writeFile(
+    resolve(root, '.gatereeve/workflow.json'),
+    `${JSON.stringify(policy, null, 2)}\n`
+  );
+  await initializeFeature({
+    featureHome,
+    featureId: 'whiteboard-snapshot',
+    repositoryRoot: root,
+    actor: agent,
+    eventId: 'evt-init',
+  });
+  await completeInterview(featureHome);
+  await recordFeatureTransition(featureHome, 'approve-design', { actor: human, eventId: 'evt-design' });
+  await recordFeatureTransition(featureHome, 'validate-spec', {
+    actor: agent, facts: { specValidationCurrent: true }, eventId: 'evt-spec',
+  });
+  await recordFeatureTransition(featureHome, 'authorize-plan', { actor: human, eventId: 'evt-plan' });
+  await proposeSlice(featureHome, { sliceId: 'slice-1', actor: agent, eventId: 'evt-propose' });
+  await recordSliceTransition(featureHome, 'plan-slice', 'slice-1', {
+    actor: agent, eventId: 'evt-slice-plan',
+  });
+  await recordSliceTransition(featureHome, 'start-slice', 'slice-1', {
+    actor: agent, facts: { sliceReadinessCurrent: true }, eventId: 'evt-start',
+  });
+  const packet = resolve(featureHome, 'pr-1');
+  await mkdir(packet);
+  await writeFile(resolve(packet, 'whiteboard-defense.html'), '<!doctype html><h1>Defense</h1>\n');
+  await writeFile(resolve(packet, 'challenger.json'), '{"schemaVersion":1}\n');
+  await writeFile(resolve(packet, 'challenger-receipt.json'), '{"stage":"challenger"}\n');
+  await writeFile(resolve(packet, 'whiteboard-defense.json'), `${JSON.stringify({
+    schemaVersion: 1,
+    kind: 'whiteboard-defense',
+    files: {
+      html: { path: 'whiteboard-defense.html', sha256: 'sha256:test' },
+      challenger: { path: 'challenger.json', sha256: 'sha256:test' },
+    },
+    receipts: [{ stage: 'challenger', path: 'challenger-receipt.json', sha256: 'sha256:test' }],
+  })}\n`);
+  await recordSliceTransition(featureHome, 'begin-boundary', 'slice-1', {
+    actor: agent,
+    payload: { attemptId: 'attempt-1', scope: 'SLICE', context: { packetPath: packet } },
+    eventId: 'evt-boundary',
+  });
+
+  const observed = await snapshot(featureHome);
+  const prefix = 'attempt:attempt-1:gate:whiteboardDefense:file:';
+  assert.deepEqual(
+    observed.data.artifacts.filter((item) => item.id.startsWith(prefix)).map((item) => item.id).sort(),
+    [`${prefix}challenger`, `${prefix}html`, `${prefix}receipt-1`]
+  );
+  const html = await readDetail(featureHome, 'artifact', `${prefix}html`);
+  assert.match(html.data.data.content, /<h1>Defense<\/h1>/);
+  assert.equal(html.data.data.artifact.format, 'html');
 });
 
 test('snapshot exposes missing, legacy, inconsistent, and incompatible modes read-only', async () => {

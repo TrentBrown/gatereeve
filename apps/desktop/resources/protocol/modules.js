@@ -16,12 +16,14 @@ export const MODULE_SLOTS = Object.freeze([
 
 const MODULE_SEGMENT = '[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?';
 const MODULE_ID = new RegExp(`^${MODULE_SEGMENT}/${MODULE_SEGMENT}(?:/${MODULE_SEGMENT})*$`);
+const STAGE_ID = new RegExp(`^${MODULE_SEGMENT}$`);
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const SHA256 = /^sha256:[0-9a-f]{64}$/;
 const GATE_ID = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
 const DISPOSITIONS = new Set(['required', 'optional']);
-const RUN_KINDS = new Set(['skill', 'manual', 'command']);
+const RUN_KINDS = new Set(['skill', 'manual', 'command', 'agent-workflow']);
 const EVALUATION_SCOPES = new Set(['SLICE', 'FEATURE']);
+const WAIVER_POLICIES = new Set(['any-change', 'non-behavioral-only']);
 const DEFINITION_KEYS = new Set([
   'schemaVersion',
   'id',
@@ -36,6 +38,7 @@ const DEFINITION_KEYS = new Set([
   'locked',
   'enabledByDefault',
   'waiverAllowed',
+  'waiverPolicy',
   'evidence',
   'fingerprint',
   'boundary',
@@ -186,7 +189,7 @@ function validateBoundaryContract(boundary, label) {
 function validateRunAdapter(run, label) {
   assertObject(run, label);
   if (!RUN_KINDS.has(run.kind)) {
-    throw new ContractError(`${label}.kind must be skill, manual, or command`);
+    throw new ContractError(`${label}.kind must be skill, manual, command, or agent-workflow`);
   }
   if (run.kind === 'skill') {
     assertAllowedKeys(run, new Set(['kind', 'skillId', 'invocation']), label);
@@ -197,6 +200,125 @@ function validateRunAdapter(run, label) {
   if (run.kind === 'manual') {
     assertAllowedKeys(run, new Set(['kind', 'instructions']), label);
     assertNonemptyString(run.instructions, `${label}.instructions`);
+    return;
+  }
+  if (run.kind === 'agent-workflow') {
+    assertAllowedKeys(
+      run,
+      new Set([
+        'kind',
+        'protocolVersion',
+        'resourcePlugin',
+        'capabilityProfile',
+        'automatic',
+        'isolation',
+        'repositoryAccess',
+        'networkAccess',
+        'stages',
+        'artifacts',
+        'evaluator',
+        'evidenceRoot',
+        'timeoutSeconds',
+        'maxAttempts',
+      ]),
+      label
+    );
+    if (run.protocolVersion !== 1) {
+      throw new ContractError(`${label}.protocolVersion must be 1`);
+    }
+    if (typeof run.resourcePlugin !== 'string' || !STAGE_ID.test(run.resourcePlugin)) {
+      throw new ContractError(`${label}.resourcePlugin must be a portable plugin ID`);
+    }
+    assertObject(run.capabilityProfile, `${label}.capabilityProfile`);
+    assertAllowedKeys(run.capabilityProfile, new Set(['id', 'minimumReasoning']), `${label}.capabilityProfile`);
+    if (
+      run.capabilityProfile.id !== 'high-capability-v1'
+      || !['high', 'xhigh', 'max', 'ultra'].includes(run.capabilityProfile.minimumReasoning)
+    ) {
+      throw new ContractError(`${label}.capabilityProfile must request high-capability-v1 at high reasoning or above`);
+    }
+    if (run.automatic !== true) throw new ContractError(`${label}.automatic must be true`);
+    assertObject(run.isolation, `${label}.isolation`);
+    assertAllowedKeys(run.isolation, new Set(['freshContext', 'inheritedTurns']), `${label}.isolation`);
+    if (run.isolation.freshContext !== true || run.isolation.inheritedTurns !== 0) {
+      throw new ContractError(`${label}.isolation must require a fresh context with zero inherited turns`);
+    }
+    if (run.repositoryAccess !== 'read-only-pinned') {
+      throw new ContractError(`${label}.repositoryAccess must be read-only-pinned`);
+    }
+    if (run.networkAccess !== 'denied') {
+      throw new ContractError(`${label}.networkAccess must be denied`);
+    }
+    if (!Array.isArray(run.stages) || run.stages.length === 0) {
+      throw new ContractError(`${label}.stages must contain at least one stage`);
+    }
+    const stageIds = new Set();
+    for (const stage of run.stages) {
+      assertObject(stage, `${label}.stages entry`);
+      assertAllowedKeys(
+        stage,
+        new Set(['id', 'role', 'dependsOn', 'promptResource', 'inputSchema', 'outputSchema']),
+        `${label}.stages entry`
+      );
+      if (typeof stage.id !== 'string' || !STAGE_ID.test(stage.id) || stageIds.has(stage.id)) {
+        throw new ContractError(`${label}.stages IDs must be unique portable segments`);
+      }
+      stageIds.add(stage.id);
+      assertNonemptyString(stage.role, `${label}.stages.${stage.id}.role`);
+      for (const [field, path] of [
+        ['promptResource', stage.promptResource],
+        ['inputSchema', stage.inputSchema],
+        ['outputSchema', stage.outputSchema],
+      ]) {
+        if (!isSafeRepositoryPath(path)) {
+          throw new ContractError(`${label}.stages.${stage.id}.${field} must be a safe relative resource path`);
+        }
+      }
+      if (!Array.isArray(stage.dependsOn) || new Set(stage.dependsOn).size !== stage.dependsOn.length) {
+        throw new ContractError(`${label}.stages.${stage.id}.dependsOn must contain unique stage IDs`);
+      }
+      for (const dependency of stage.dependsOn) {
+        if (!stageIds.has(dependency)) {
+          throw new ContractError(`${label}.stages.${stage.id} dependency ${dependency} must precede it`);
+        }
+      }
+    }
+    if (!Array.isArray(run.artifacts) || run.artifacts.length === 0) {
+      throw new ContractError(`${label}.artifacts must contain at least one artifact`);
+    }
+    const artifactPaths = new Set();
+    for (const artifact of run.artifacts) {
+      assertObject(artifact, `${label}.artifacts entry`);
+      assertAllowedKeys(artifact, new Set(['path', 'mediaType', 'required']), `${label}.artifacts entry`);
+      if (!isSafeRepositoryPath(artifact.path) || artifactPaths.has(artifact.path)) {
+        throw new ContractError(`${label}.artifacts paths must be unique and relative`);
+      }
+      artifactPaths.add(artifact.path);
+      assertNonemptyString(artifact.mediaType, `${label}.artifacts.${artifact.path}.mediaType`);
+      if (typeof artifact.required !== 'boolean') {
+        throw new ContractError(`${label}.artifacts.${artifact.path}.required must be boolean`);
+      }
+    }
+    assertObject(run.evaluator, `${label}.evaluator`);
+    assertAllowedKeys(run.evaluator, new Set(['resource', 'export']), `${label}.evaluator`);
+    if (!isSafeRepositoryPath(run.evaluator.resource)) {
+      throw new ContractError(`${label}.evaluator.resource must be a safe relative resource path`);
+    }
+    if (typeof run.evaluator.export !== 'string' || !/^[A-Za-z_$][A-Za-z0-9_$]*$/u.test(run.evaluator.export)) {
+      throw new ContractError(`${label}.evaluator.export must be a JavaScript export name`);
+    }
+    if (!isSafeRepositoryPath(run.evidenceRoot) || !artifactPaths.has(run.evidenceRoot)) {
+      throw new ContractError(`${label}.evidenceRoot must name a declared artifact`);
+    }
+    if (run.artifacts.find((artifact) => artifact.path === run.evidenceRoot)?.required !== true) {
+      throw new ContractError(`${label}.evidenceRoot must be required`);
+    }
+    if (!Number.isSafeInteger(run.timeoutSeconds) || run.timeoutSeconds < 1) {
+      throw new ContractError(`${label}.timeoutSeconds must be a positive integer`);
+    }
+    if (!Number.isSafeInteger(run.maxAttempts) || run.maxAttempts < 1 || run.maxAttempts > 3) {
+      throw new ContractError(`${label}.maxAttempts must be between 1 and 3`);
+    }
     return;
   }
   assertAllowedKeys(
@@ -317,6 +439,17 @@ export function validateModuleDefinition(definition, { checkDigest = true } = {}
       throw new ContractError(`Module ${definition.id} ${field} must be boolean`);
     }
   }
+  if (
+    definition.waiverPolicy !== undefined
+    && !WAIVER_POLICIES.has(definition.waiverPolicy)
+  ) {
+    throw new ContractError(
+      `Module ${definition.id} waiverPolicy must be any-change or non-behavioral-only`
+    );
+  }
+  if (!definition.waiverAllowed && definition.waiverPolicy !== undefined) {
+    throw new ContractError(`Non-waivable module ${definition.id} cannot declare waiverPolicy`);
+  }
   if (definition.locked && (!definition.enabledByDefault || definition.waiverAllowed)) {
     throw new ContractError(`Locked module ${definition.id} must be enabled by default and non-waivable`);
   }
@@ -413,6 +546,12 @@ export function assessModuleReadiness(module, availability = null) {
   const missing = [];
   if (module.run?.kind === 'skill' && !skills.has(module.run.skillId)) {
     missing.push({ kind: 'skill', id: module.run.skillId });
+  }
+  if (
+    module.run?.kind === 'agent-workflow'
+    && !(availability.agentWorkflowProfiles ?? []).includes(module.run.capabilityProfile.id)
+  ) {
+    missing.push({ kind: 'agent-workflow-profile', id: module.run.capabilityProfile.id });
   }
   if (
     module.observe
@@ -590,6 +729,7 @@ export function boundaryGateDefinitions(model) {
         optional: module.disposition === 'optional',
         locked: module.locked,
         waiverAllowed: module.waiverAllowed,
+        waiverPolicy: module.waiverPolicy ?? 'any-change',
         guards: [...module.boundary.guards],
         evaluationScope: structuredClone(module.boundary.evaluationScope),
       }));
@@ -600,6 +740,7 @@ export function boundaryGateDefinitions(model) {
     moduleVersion: null,
     moduleDigest: null,
     locked: !gate.waiverAllowed,
+    waiverPolicy: 'any-change',
     evaluationScope: Object.fromEntries(
       BOUNDARY_SCOPES.map((scope) => [scope, model.boundary.scopeRouting[scope][gate.id]])
     ),
