@@ -27,6 +27,7 @@ test('Desktop stages the exact protocol and trusted waiver guard without a CLI r
   assert.deepEqual(packageJson.dependencies, {
     '@xterm/addon-fit': '0.11.0',
     '@xterm/xterm': '6.0.0',
+    linkedom: '0.18.12',
     'node-pty': '1.2.0-beta.15',
   });
   assert.equal(Object.keys(packageJson.dependencies).some((name) => /cli|commander/iu.test(name)), false);
