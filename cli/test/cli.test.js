@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -8,6 +8,28 @@ import test from 'node:test';
 
 const execFileAsync = promisify(execFile);
 const cliRoot = resolve(import.meta.dirname, '..');
+
+test('CLI starts from a clean checkout without staged protocol resources', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workflow unstaged cli '));
+  try {
+    const cli = join(root, 'cli');
+    await mkdir(cli);
+    await cp(join(cliRoot, 'bin'), join(cli, 'bin'), { recursive: true });
+    await cp(join(cliRoot, 'src'), join(cli, 'src'), { recursive: true });
+    await cp(join(cliRoot, 'package.json'), join(cli, 'package.json'));
+    await symlink(join(cliRoot, 'node_modules'), join(cli, 'node_modules'));
+    await symlink(resolve(cliRoot, '../plugin-src'), join(root, 'plugin-src'));
+
+    const result = await execFileAsync(
+      process.execPath,
+      [join(cli, 'bin/workflow.js'), 'plugin', 'release', 'conductor', 'advance', '--help'],
+      { cwd: cli }
+    );
+    assert.match(result.stdout, /Append one validated Release Conductor state/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 async function createCliFixture() {
   const root = await mkdtemp(join(tmpdir(), 'workflow cli integration '));

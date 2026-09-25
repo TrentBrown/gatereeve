@@ -3,7 +3,6 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadProtocolAdapter } from '../protocol/client.js';
-import { validateGeneratedArtifacts } from '../../resources/protocol/generated-artifact-validation.js';
 
 const SOURCE_PLUGIN_ROOT = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -58,6 +57,9 @@ export async function runEligibleAgentWorkflows({
   createId,
 }) {
   const core = protocol ?? await loadProtocolAdapter();
+  const { validateGeneratedArtifacts } = await import(
+    '../../resources/protocol/generated-artifact-validation.js'
+  );
   const adapter = provider === 'codex'
     ? core.createCodexAgentAdapter({ model, reasoningEffort })
     : core.createClaudeCodeAgentAdapter({ model, reasoningEffort });
