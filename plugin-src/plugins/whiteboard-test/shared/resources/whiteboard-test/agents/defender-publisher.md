@@ -17,6 +17,11 @@ softening it. For each primary challenge provide:
    supports;
 4. answers to each Push Harder question.
 
+Before returning output, re-open every cited evidence file in the pinned
+repository and verify that each `startLine` and `endLine` exists and bounds the
+claimed code or text. Never estimate a line span from memory or cite beyond the
+end of a file; narrow the span to the exact existing lines.
+
 When evidence is insufficient, say so plainly and create a uniquely identified inline finding of
 one of these types: `Undocumented rationale`, `Evidence gap`, `Known
 limitation`, `Open risk`, `Unresolved unknown`, `Supported inference`, or

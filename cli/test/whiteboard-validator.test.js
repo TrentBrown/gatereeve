@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -153,6 +153,19 @@ test('work deficiencies remain visible without failing a substantive Whiteboard 
   const value = bundle();
   assert.equal(validateWhiteboardBundle(value).outcome, 'PASS');
   assert.equal(value.defenseOutput.findings[0].type, 'Known limitation');
+});
+
+test('Defender and Publisher instructions require a final exact evidence-span audit', async () => {
+  const prompt = await readFile(
+    new URL(
+      '../../plugin-src/plugins/whiteboard-test/shared/resources/whiteboard-test/agents/defender-publisher.md',
+      import.meta.url,
+    ),
+    'utf8',
+  );
+  assert.match(prompt, /re-open every cited evidence file/u);
+  assert.match(prompt, /Never estimate a line span/u);
+  assert.match(prompt, /cite beyond the\s+end of a file/u);
 });
 
 test('Whiteboard PASS requires the Defender and Publisher substantive attestation', () => {
