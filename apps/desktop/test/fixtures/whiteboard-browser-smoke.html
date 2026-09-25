@@ -38,10 +38,13 @@
       <summary>Push Harder: what fails when route metadata is stale?</summary>
       <p>The router rejects the request before a handler runs.</p>
     </details>
+    <aside id="finding-routing-metrics" data-finding-id="routing-metrics" data-finding-type="Known limitation">
+      <strong>Known limitation:</strong> Routing metrics do not distinguish every rejection cause.
+    </aside>
   </article>
   <section id="defense-findings" aria-labelledby="findings-title">
     <h2 id="findings-title">Defense findings</h2>
-    <p><a href="#challenge-routing">Known limitation in routing metrics</a></p>
+    <p><a data-finding-ref="routing-metrics" href="#finding-routing-metrics">Known limitation: Routing metrics do not distinguish every rejection cause.</a></p>
   </section>
   <figure data-visual-id="request-flow">
     <svg viewBox="0 0 600 160" role="img" aria-labelledby="flow-title flow-description">

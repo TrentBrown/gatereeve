@@ -147,8 +147,22 @@ function validateHtml(html, challengeOutput, defenseOutput) {
   for (const push of challengeOutput.challenges.flatMap((challenge) => challenge.pushHarder ?? [])) {
     requireNativeReveal(html, { 'data-push-harder-id': push.id }, `Push Harder ${push.id}`);
   }
-  if (defenseOutput.findings.length > 0 && !/id=["']defense-findings["']/u.test(html)) {
-    fail('HTML omits the linked Defense Findings summary');
+  if (defenseOutput.findings.length > 0) {
+    if (!/id=["']defense-findings["']/u.test(html)) {
+      fail('HTML omits the linked Defense Findings summary');
+    }
+    for (const finding of defenseOutput.findings) {
+      const findingId = escaped(finding.id);
+      const findingType = escaped(finding.type);
+      if (!new RegExp(
+        `<[^>]+(?=[^>]*\\bid=["']finding-${findingId}["'])(?=[^>]*\\bdata-finding-id=["']${findingId}["'])(?=[^>]*\\bdata-finding-type=["']${findingType}["'])`,
+        'iu'
+      ).test(html)) fail(`HTML omits inline finding ${finding.id}`);
+      if (!new RegExp(
+        `<a\\b(?=[^>]*\\bdata-finding-ref=["']${findingId}["'])(?=[^>]*\\bhref=["']#finding-${findingId}["'])`,
+        'iu'
+      ).test(html)) fail(`Defense Findings summary does not link finding ${finding.id}`);
+    }
   }
   for (const visual of defenseOutput.visualModels ?? []) {
     const escaped = visual.id.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
@@ -162,8 +176,15 @@ function validateHtml(html, challengeOutput, defenseOutput) {
     }
     if (!/<(?:svg|figure)[\s>]/iu.test(html)) fail('HTML omits its declared visual model');
   }
+  if (/\bExplain\s+Diff\b/iu.test(html)) fail('HTML must be independent of Explain Diff');
+  if (/<(?:audio|video|source)\b/iu.test(html)) fail('HTML cannot contain audio or video assessment');
+  if (
+    /<(?:input|select|textarea)\b/iu.test(html)
+    || /\brole=["'](?:radio|radiogroup|checkbox)["']/iu.test(html)
+    || /\bdata-(?:quiz|answer-option|correct-answer|score)\b/iu.test(html)
+  ) fail('HTML cannot contain multiple-choice, scored, or answer-submission controls');
   const forbidden = [
-    /<(?:script|img|iframe|link|audio|video|source)\b[^>]+\b(?:src|href)\s*=\s*["'](?!data:|#)[^"']+/iu,
+    /<(?:script|img|iframe|link)\b[^>]+\b(?:src|href)\s*=\s*["'](?!data:|#)[^"']+/iu,
     /<(?:base|form|object|embed)\b/iu,
     /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\s*\(/u,
     /\b(?:window\.parent|window\.top|parent\.|top\.)/u,
@@ -270,7 +291,10 @@ export function validateWhiteboardBundle({
   validateArtifactValidation(artifactValidation, html, manifest.outcome);
 
   if (!Array.isArray(defenseOutput.findings)) fail('findings must be an array');
+  unique(defenseOutput.findings.map((finding) => finding.id), 'finding IDs');
   for (const finding of defenseOutput.findings) {
+    nonempty(finding.id, 'finding id');
+    if (!/^[a-z0-9][a-z0-9._-]*$/u.test(finding.id)) fail(`finding id is invalid: ${finding.id}`);
     if (!FINDING_TYPES.has(finding.type)) fail(`unknown finding type ${finding.type}`);
     nonempty(finding.summary, 'finding summary');
     if (finding.challengeId !== null && !challengeOutput.challenges.some((item) => item.id === finding.challengeId)) {

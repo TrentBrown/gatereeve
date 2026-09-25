@@ -68,8 +68,9 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["type", "summary", "challengeId"],
+        "required": ["id", "type", "summary", "challengeId"],
         "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
           "type": {"enum": ["Undocumented rationale", "Evidence gap", "Known limitation", "Open risk", "Unresolved unknown", "Supported inference", "Accepted tradeoff"]},
           "summary": {"type": "string", "minLength": 1},
           "challengeId": {"type": ["string", "null"]}

@@ -221,3 +221,18 @@ Add boundary manifest schema version 2. Each applicable gate now identifies its 
 
 **Alternatives considered:**
 Overwrite the packet-root Judge files - rejected because the attempt-8 event binds those exact bytes and history must remain immutable. Copy the latest result to a mutable `latest` file - rejected because it recreates ambiguous unbound evidence. Delete failed attempt evidence - rejected because it destroys the review history. Ignore nested attempt files in packet validation - rejected because current passage would still resolve the wrong root artifact.
+
+## [17] Make Whiteboard presentation semantics machine-enforceable
+
+[ ] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Whiteboard Defender output schema, generated HTML validation, plugin validator, staged Desktop resources, and representative browser fixtures
+
+Give every finding a stable portable ID. Require an inline element whose ID and typed data attributes bind that finding, place challenge-scoped findings inside their owning challenge, require a summary link back to the inline marker, and require both locations to visibly name the finding type and summary. Reject answer-entry and grading controls, audio or video media, and any Explain Diff mention before Whiteboard can pass.
+
+**Triggered by:** Attempt-14 Judge found that prompt-level requirements for inline linked findings and the bans on grading, audio assessment, and Explain Diff dependency were not all required by the deterministic PASS contract.
+
+**Alternatives considered:**
+Rely only on the Defender prompt - rejected because model compliance is not a deterministic gate. Link findings directly to the challenge root - rejected because it does not identify the exact inline finding or prove that its type and summary are rendered. Add a constrained renderer - rejected because the approved freeform HTML model remains valuable; a semantic DOM contract preserves visual freedom while enforcing the required behavior.

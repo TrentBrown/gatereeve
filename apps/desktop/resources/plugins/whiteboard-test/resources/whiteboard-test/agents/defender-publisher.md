@@ -17,7 +17,7 @@ softening it. For each primary challenge provide:
    supports;
 4. answers to each Push Harder question.
 
-When evidence is insufficient, say so plainly and create an inline finding of
+When evidence is insufficient, say so plainly and create a uniquely identified inline finding of
 one of these types: `Undocumented rationale`, `Evidence gap`, `Known
 limitation`, `Open risk`, `Unresolved unknown`, `Supported inference`, or
 `Accepted tradeoff`. A work deficiency is not an artifact failure and must not
@@ -34,7 +34,16 @@ primary challenge; one native `<details><summary>` control for each
 `data-layer="concise"`, `data-layer="deep"`, and `data-layer="evidence"`
 region, with `data-challenge-ref` set to the owning primary challenge ID; one
 native `<details><summary>` control carrying `data-push-harder-id` for every
-follow-up; `#defense-findings` when findings exist; and `data-visual-id` for
-every declared visual. Native details controls are the required dependable
-reveal mechanism; you may add richer inline behavior around them. Return only
-the declared structured output.
+follow-up; and `data-visual-id` for every declared visual. For each finding
+with ID `<id>`, place an inline element with `id="finding-<id>"`,
+`data-finding-id="<id>"`, and `data-finding-type="<type>"`; when the finding
+names a challenge, that element must be inside the owning challenge. Its
+visible text must include the finding type and summary. Also include one
+`#defense-findings` summary link with `data-finding-ref="<id>"` and
+`href="#finding-<id>"`, visibly naming the same type and summary. Native
+details controls are the required dependable reveal mechanism; you may add
+richer inline behavior around them.
+
+Do not create answer options, multiple-choice or scored controls, reader answer
+submission, audio or video assessment, or any dependency on or mention of
+Explain Diff. Return only the declared structured output.

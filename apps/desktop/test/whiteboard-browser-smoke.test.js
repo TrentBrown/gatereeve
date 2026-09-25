@@ -41,7 +41,7 @@ test('representative Whiteboard Defense works in a sandboxed narrow Electron vie
     primaryOpen: true,
     harderOpen: true,
     layers: 3,
-    findingTarget: '#challenge-routing',
+    findingTarget: '#finding-routing-metrics',
     visualRole: 'img',
     visualDescription: 'A request passes through validation and routing before one handler executes.',
     horizontalOverflow: false,

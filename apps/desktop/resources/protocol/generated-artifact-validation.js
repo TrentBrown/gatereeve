@@ -25,7 +25,7 @@ function allowedReference(element, attribute, value) {
 }
 
 function validateReferences(document, errors) {
-  for (const element of document.querySelectorAll('base, form, iframe, object, embed, link')) {
+  for (const element of document.querySelectorAll('base, form, iframe, object, embed, link, audio, video, source')) {
     errors.push(`forbidden embedded element: ${element.localName}`);
   }
   for (const element of document.querySelectorAll('[src], [href], [action], [poster], [srcset]')) {
@@ -134,11 +134,50 @@ function validateControls(document, challengeOutput, defenseOutput, errors) {
   if ((defenseOutput?.findings ?? []).length > 0) {
     const summary = document.querySelector('#defense-findings');
     if (!summary) errors.push('missing Defense Findings summary');
-    for (const link of summary?.querySelectorAll('a[href^="#"]') ?? []) {
-      if (!document.querySelector(link.getAttribute('href'))) {
-        errors.push(`finding link has no target: ${link.getAttribute('href')}`);
+    for (const finding of defenseOutput.findings) {
+      const targetId = `finding-${finding.id}`;
+      const inline = document.getElementById(targetId);
+      const link = summary?.querySelector(
+        `a[data-finding-ref="${finding.id}"][href="#${targetId}"]`
+      );
+      if (!inline || inline.getAttribute('data-finding-id') !== finding.id) {
+        errors.push(`missing inline finding ${finding.id}`);
+        continue;
+      }
+      if (inline.getAttribute('data-finding-type') !== finding.type) {
+        errors.push(`inline finding ${finding.id} has the wrong type`);
+      }
+      if (summary?.contains(inline)) errors.push(`finding ${finding.id} is not placed inline`);
+      if (finding.challengeId !== null) {
+        const challenge = document.querySelector(`[data-challenge-id="${finding.challengeId}"]`);
+        if (!challenge?.contains(inline)) {
+          errors.push(`finding ${finding.id} is outside challenge ${finding.challengeId}`);
+        }
+      }
+      const inlineText = inline.textContent ?? '';
+      if (!inlineText.includes(finding.type) || !inlineText.includes(finding.summary)) {
+        errors.push(`inline finding ${finding.id} omits its type or summary`);
+      }
+      if (!link) {
+        errors.push(`missing Defense Findings link for ${finding.id}`);
+      } else {
+        const linkText = link.textContent ?? '';
+        if (!linkText.includes(finding.type) || !linkText.includes(finding.summary)) {
+          errors.push(`Defense Findings link ${finding.id} omits its type or summary`);
+        }
       }
     }
+  }
+}
+
+function validateExperienceBoundaries(document, errors) {
+  if (/\bExplain\s+Diff\b/iu.test(document.body?.textContent ?? '')) {
+    errors.push('Whiteboard must be independent of Explain Diff');
+  }
+  if (document.querySelector(
+    'input, select, textarea, [role="radio"], [role="radiogroup"], [role="checkbox"], [data-quiz], [data-answer-option], [data-correct-answer], [data-score]'
+  )) {
+    errors.push('multiple-choice, scored, and answer-submission controls are forbidden');
   }
 }
 
@@ -155,6 +194,7 @@ export async function validateGeneratedArtifacts({ module, outputs }) {
         errors.push('generated HTML has no Whiteboard Defense document root');
       }
       validateReferences(document, errors);
+      validateExperienceBoundaries(document, errors);
       executeInlineScripts(window, document, errors);
       validateControls(document, outputs?.challenger, outputs?.['defender-publisher'], errors);
     } catch (error) {

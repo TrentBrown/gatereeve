@@ -50,6 +50,7 @@ const defenseOutput = {
     }],
   }],
   findings: [{
+    id: 'routing-metrics',
     type: 'Known limitation', challengeId: 'routing-boundary',
     summary: 'The current metrics do not distinguish every rejection cause.',
   }],
@@ -66,8 +67,9 @@ const html = `<!doctype html><html><body><main id="whiteboard-defense">
   <details data-challenge-ref="routing-boundary" data-layer="concise"><summary>Reveal concise defense</summary><p>Concise</p></details>
   <details data-layer="deep" data-challenge-ref="routing-boundary"><summary>Reveal deep defense</summary><p>Deep</p></details>
   <details data-challenge-ref="routing-boundary" data-layer="evidence"><summary>Reveal evidence</summary><p>Evidence</p></details>
-  <details data-push-harder-id="routing-failure"><summary>Push harder</summary><p>Answer</p></details></article>
-  <section id="defense-findings">Known limitation</section>
+  <details data-push-harder-id="routing-failure"><summary>Push harder</summary><p>Answer</p></details>
+  <aside id="finding-routing-metrics" data-finding-id="routing-metrics" data-finding-type="Known limitation">Known limitation: The current metrics do not distinguish every rejection cause.</aside></article>
+  <section id="defense-findings"><a data-finding-ref="routing-metrics" href="#finding-routing-metrics">Known limitation: The current metrics do not distinguish every rejection cause.</a></section>
   <figure data-visual-id="request-flow"><svg role="img" aria-label="Request flow"></svg><figcaption>Request flow</figcaption></figure>
 </main><script>document.documentElement.dataset.whiteboardReady='true';</script></body></html>`;
 
@@ -198,6 +200,43 @@ test('nontrivial defenses require a bound visual and self-contained sandbox-safe
   external.artifactValidation = artifactValidation(external.html);
   refreshValidation(external);
   assert.throws(() => validateWhiteboardBundle(external), /forbidden external authority/);
+});
+
+test('findings require inline placement and a linked summary', () => {
+  const missingInline = bundle();
+  missingInline.html = missingInline.html.replace(
+    '<aside id="finding-routing-metrics" data-finding-id="routing-metrics" data-finding-type="Known limitation">Known limitation: The current metrics do not distinguish every rejection cause.</aside>',
+    ''
+  );
+  missingInline.manifest.files.html.sha256 = whiteboardDigest(missingInline.html);
+  missingInline.artifactValidation = artifactValidation(missingInline.html);
+  refreshValidation(missingInline);
+  assert.throws(() => validateWhiteboardBundle(missingInline), /omits inline finding routing-metrics/u);
+
+  const missingLink = bundle();
+  missingLink.html = missingLink.html.replace(
+    '<a data-finding-ref="routing-metrics" href="#finding-routing-metrics">Known limitation: The current metrics do not distinguish every rejection cause.</a>',
+    'Known limitation: The current metrics do not distinguish every rejection cause.'
+  );
+  missingLink.manifest.files.html.sha256 = whiteboardDigest(missingLink.html);
+  missingLink.artifactValidation = artifactValidation(missingLink.html);
+  refreshValidation(missingLink);
+  assert.throws(() => validateWhiteboardBundle(missingLink), /does not link finding routing-metrics/u);
+});
+
+test('grading, audio assessment, and Explain Diff dependencies are artifact deficiencies', () => {
+  for (const [markup, message] of [
+    ['<input type="radio" name="answer">', /multiple-choice/u],
+    ['<audio src="data:audio/wav;base64,AA=="></audio>', /audio or video assessment/u],
+    ['<p>Review Explain Diff first.</p>', /independent of Explain Diff/u],
+  ]) {
+    const value = bundle();
+    value.html = value.html.replace('</main>', `${markup}</main>`);
+    value.manifest.files.html.sha256 = whiteboardDigest(value.html);
+    value.artifactValidation = artifactValidation(value.html);
+    refreshValidation(value);
+    assert.throws(() => validateWhiteboardBundle(value), message);
+  }
 });
 
 test('bundle creation turns artifact defects into an auditable gate FAIL without grading work findings', () => {

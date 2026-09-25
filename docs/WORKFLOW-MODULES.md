@@ -135,7 +135,9 @@ gate `FAIL`.
 Before Whiteboard evaluation, the trusted host parses and executes the actual
 generated HTML in a restricted DOM. It rejects relative or external resources,
 inline-script failures, missing or inoperable reveal controls, inaccessible
-visual models, and broken finding links. The resulting digest-bound validation
+visual models, missing inline findings or linked-summary entries, grading and
+answer-submission controls, audio or video assessment, any Explain Diff
+dependency, and broken finding links. The resulting digest-bound validation
 receipt is part of the authoritative Whiteboard evidence. A run-specific
 Electron smoke separately verifies representative behavior in the Desktop's
 sandboxed browser surface. Agent receipts bind both the requested capability
