@@ -471,6 +471,80 @@ def verify_context_is_current(
     }
 
 
+def verify_boundary_context_is_current(
+    value: object,
+    repository_context: RepositoryContext,
+    provider: PullRequestProvider,
+    *,
+    git_executable: str = "git",
+    runner: CommandRunner = default_command_runner,
+    environment: Mapping[str, str] | None = None,
+) -> dict[str, object]:
+    """Expand and verify the compact context stored in a boundary event."""
+    if not isinstance(value, dict):
+        raise PullRequestContextError("Boundary context must be a JSON object")
+    repository_name = _required_string(value.get("repository"), "repository")
+    number = _required_number(value.get("pullRequest"), "pullRequest")
+    url = _required_string(value.get("url"), "url")
+    merge_base_sha = _required_sha(value.get("diffBaseSha"), "diffBaseSha")
+    evaluated_source_sha = _required_sha(value.get("diffHeadSha"), "diffHeadSha")
+    raw_feature_base = value.get("featureBaseSha")
+    feature_base_sha = (
+        _required_sha(raw_feature_base, "featureBaseSha")
+        if raw_feature_base is not None
+        else None
+    )
+    repository = GitRepository(
+        repository_context,
+        git_executable=git_executable,
+        runner=runner,
+        environment=environment,
+    )
+    current = provider.snapshot(str(number))
+    _validate_snapshot_identity(current, repository)
+    if current.repository != repository_name:
+        raise PullRequestContextError(
+            f"Boundary repository changed: {repository_name!r} -> {current.repository!r}"
+        )
+    if current.url != url:
+        raise PullRequestContextError(
+            f"Boundary pull-request URL changed: {url!r} -> {current.url!r}"
+        )
+    if repository.branch() != current.head_branch:
+        raise PullRequestContextError("Local branch differs from the current PR head branch")
+    if current.head_sha != evaluated_source_sha:
+        raise PullRequestContextError(
+            f"PR head became stale: evaluated {evaluated_source_sha}, "
+            f"current remote head {current.head_sha}; rerun affected gates"
+        )
+    if repository.head() != evaluated_source_sha:
+        raise PullRequestContextError(
+            "Local HEAD changed after evaluation; rerun affected gates before continuing"
+        )
+    repository.ensure_commit(current.base_sha, current.base_branch)
+    repository.ensure_commit(current.head_sha, current.head_branch)
+    current_merge_base = repository.merge_base(current.base_sha, current.head_sha)
+    if current_merge_base != merge_base_sha:
+        raise PullRequestContextError(
+            f"Boundary merge base became stale: evaluated {merge_base_sha}, "
+            f"current {current_merge_base}; rerun affected gates"
+        )
+    if feature_base_sha != repository_context.feature_base_sha:
+        raise PullRequestContextError(
+            "Boundary feature base differs from the configured feature base"
+        )
+    return PullRequestContext(
+        repository_root=repository.root,
+        repository_alias=repository_context.alias,
+        remote=repository.remote,
+        source=provider.source,
+        pull_request=current,
+        merge_base_sha=merge_base_sha,
+        evaluated_source_sha=evaluated_source_sha,
+        feature_base_sha=feature_base_sha,
+    ).to_dict()
+
+
 def _require_same_pull_request(
     expected: PullRequestSnapshot,
     current: PullRequestSnapshot,
@@ -574,6 +648,14 @@ def load_context(path: str | Path) -> PullRequestContext:
         raise PullRequestContextError(f"Cannot read PR context from {source}: {error}") from error
 
 
+def load_json_value(path: str | Path, label: str) -> object:
+    source = Path(path).expanduser().resolve()
+    try:
+        return json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise PullRequestContextError(f"Cannot read {label} from {source}: {error}") from error
+
+
 def _write_json(path: str | Path, value: object) -> None:
     target = Path(path).expanduser().resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -626,6 +708,18 @@ def main() -> int:
     current_parser.add_argument("--gh-executable", default="gh")
     current_parser.add_argument("--output")
 
+    boundary_current_parser = subparsers.add_parser(
+        "check-boundary-current",
+        help="Expand and verify a compact protocol boundary context",
+    )
+    boundary_current_parser.add_argument("--cwd", default=".")
+    boundary_current_parser.add_argument("--repository")
+    boundary_current_parser.add_argument("--context", required=True)
+    boundary_current_parser.add_argument("--pr-data", help="Explicit current PR JSON instead of gh")
+    boundary_current_parser.add_argument("--git-executable", default="git")
+    boundary_current_parser.add_argument("--gh-executable", default="gh")
+    boundary_current_parser.add_argument("--output")
+
     finalize_parser = subparsers.add_parser(
         "finalize", help="Verify declared evidence deltas and final synchronization"
     )
@@ -656,6 +750,26 @@ def main() -> int:
                 git_executable=args.git_executable,
             )
             _print_result(context.to_dict(), args.output)
+            return 0
+
+        if args.command == "check-boundary-current":
+            workflow = resolve_workflow_context(
+                args.cwd,
+                repository_alias=args.repository,
+                git_executable=args.git_executable,
+            )
+            provider = _provider_for(
+                args.pr_data,
+                workflow.repository.path,
+                gh_executable=args.gh_executable,
+            )
+            result = verify_boundary_context_is_current(
+                load_json_value(args.context, "boundary context"),
+                workflow.repository,
+                provider,
+                git_executable=args.git_executable,
+            )
+            _print_result(result, args.output)
             return 0
 
         context = load_context(args.context)

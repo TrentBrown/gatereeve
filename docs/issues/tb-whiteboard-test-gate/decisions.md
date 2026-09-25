@@ -85,3 +85,20 @@ The scheduler now reconstructs the active attempt fingerprint map from recorded 
 Require an external fingerprints file for automatic scheduling - rejected because Desktop and headless automatic launches must be self-contained. Treat UNKNOWN freshness as eligible - rejected because it weakens protocol fail-closed semantics.
 
 **Promoted:** 2026-09-24. PR: 67.
+
+---
+
+## Expand compact boundary context through the trusted PR resolver
+
+**Confidence:** HIGH
+
+**Blast Radius:** Automatic agent-workflow launches and boundary currentness checks
+
+Keep the compact context as the stable protocol event contract. Before an automatic agent launch, use a new trusted pr_context.py check-boundary-current operation to validate the compact repository, PR, URL, merge base, source head, and feature base against current Git and GitHub state, then return the full canonical PR context to the isolated workflow. The check intentionally allows uncommitted boundary evidence while rejecting source drift.
+
+**Triggered by:** The repaired scheduler reached execution preparation, where the trusted PR validator rejected the protocol compact boundary context because it expected the richer persisted PR-context schema.
+
+**Alternatives considered:**
+Store the full tool-specific PR context in future boundary events - rejected because it changes the stable protocol event shape and does not repair existing attempts. Skip currentness validation for compact events - rejected because it would allow stale source to reach an isolated reviewer.
+
+**Promoted:** 2026-09-24. PR: 67.
