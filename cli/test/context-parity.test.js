@@ -54,6 +54,8 @@ test('JavaScript and Python resolve the same configured multi-repository context
         path: 'client',
         remote: 'origin',
         integrationBranch: 'development-client',
+        releaseBranch: 'main',
+        sliceBoundaryMode: 'synthetic-commit',
       },
       backend: {
         path: 'services/backend',
@@ -149,6 +151,34 @@ test('JavaScript rejects the same unsafe configured contexts as Python', async (
             path: '.',
             integrationBranch: 'main',
             featureBaseSha: 'not-an-object-id',
+          },
+        },
+      },
+    },
+    {
+      expected: /sliceBoundaryMode/u,
+      value: {
+        schemaVersion: 1,
+        featureId: 'feature',
+        repositories: {
+          product: {
+            path: '.',
+            integrationBranch: 'main',
+            sliceBoundaryMode: 'hidden-pr',
+          },
+        },
+      },
+    },
+    {
+      expected: /releaseBranch/u,
+      value: {
+        schemaVersion: 1,
+        featureId: 'feature',
+        repositories: {
+          product: {
+            path: '.',
+            integrationBranch: 'development',
+            releaseBranch: 'bad branch',
           },
         },
       },

@@ -53,6 +53,8 @@ class WorkflowContextTests(unittest.TestCase):
                         "path": ".",
                         "remote": "origin",
                         "integrationBranch": "main",
+                        "releaseBranch": "release",
+                        "sliceBoundaryMode": "synthetic-commit",
                         "featureBaseSha": "A" * 40,
                     }
                 },
@@ -72,6 +74,8 @@ class WorkflowContextTests(unittest.TestCase):
         self.assertEqual(context.repository.path, self.root.resolve())
         self.assertEqual(context.repository.remote, "origin")
         self.assertEqual(context.repository.integration_branch, "main")
+        self.assertEqual(context.repository.release_branch, "release")
+        self.assertEqual(context.repository.slice_boundary_mode, "synthetic-commit")
         self.assertEqual(context.repository.feature_base_sha, "a" * 40)
         self.assertEqual(context.external_task.id, "1234")
 
@@ -106,6 +110,8 @@ class WorkflowContextTests(unittest.TestCase):
         self.assertEqual(nested.repository.alias, "client")
         self.assertEqual(explicit.repository.alias, "backend")
         self.assertEqual(explicit.repository.remote, "upstream")
+        self.assertEqual(explicit.repository.release_branch, "development")
+        self.assertEqual(explicit.repository.slice_boundary_mode, "pull-request")
         self.assertTrue(explicit.multi_repository)
 
     def test_rejects_invalid_or_ambiguous_configuration(self) -> None:
@@ -161,6 +167,34 @@ class WorkflowContextTests(unittest.TestCase):
                     },
                 },
                 "featureBaseSha",
+            ),
+            (
+                {
+                    "schemaVersion": 1,
+                    "featureId": "tb-feature",
+                    "repositories": {
+                        "repo": {
+                            "path": ".",
+                            "integrationBranch": "main",
+                            "sliceBoundaryMode": "hidden-pr",
+                        }
+                    },
+                },
+                "sliceBoundaryMode",
+            ),
+            (
+                {
+                    "schemaVersion": 1,
+                    "featureId": "tb-feature",
+                    "repositories": {
+                        "repo": {
+                            "path": ".",
+                            "integrationBranch": "development",
+                            "releaseBranch": "bad branch",
+                        }
+                    },
+                },
+                "releaseBranch",
             ),
         ]
 
@@ -222,6 +256,8 @@ class WorkflowContextTests(unittest.TestCase):
             repository.resolve() / "docs/issues/tb-legacy-feature",
         )
         self.assertEqual(context.repository.path, repository.resolve())
+        self.assertEqual(context.repository.release_branch, "")
+        self.assertEqual(context.repository.slice_boundary_mode, "pull-request")
         self.assertFalse(context.multi_repository)
 
     def test_legacy_mode_preserves_branch_prefixes_containing_slashes(self) -> None:

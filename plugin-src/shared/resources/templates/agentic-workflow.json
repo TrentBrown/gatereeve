@@ -10,6 +10,8 @@
       "path": ".",
       "remote": "origin",
       "integrationBranch": "main",
+      "releaseBranch": "main",
+      "sliceBoundaryMode": "pull-request",
       "featureBaseSha": "1111111111111111111111111111111111111111"
     }
   }

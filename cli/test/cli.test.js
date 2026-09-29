@@ -262,7 +262,7 @@ test('renders hierarchical help through the local command-tree helper', async ()
   assert.match(result.stdout, /read Read one canonical snapshot detail/);
   assert.match(result.stdout, /feature Govern the feature lifecycle/);
   assert.match(result.stdout, /slice Govern sequential delivery slices/);
-  assert.match(result.stdout, /gate Record and invalidate PR-boundary evidence/);
+  assert.match(result.stdout, /gate Record and invalidate review-boundary evidence/);
   assert.match(result.stdout, /change Govern discoveries that alter approved work/);
   assert.match(result.stdout, /plugin Build and maintain native workflow plugin packages/);
   assert.match(result.stdout, /build Compose native packages/);

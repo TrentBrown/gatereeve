@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve and validate durable pull-request evidence packets."""
+"""Resolve and validate durable review-boundary evidence packets."""
 
 from __future__ import annotations
 
@@ -11,15 +11,21 @@ import subprocess
 from pathlib import Path, PurePosixPath
 from typing import Mapping, Sequence
 
+from boundary_context import (
+    BoundaryContext,
+    BoundaryContextError,
+    load_context,
+    normalize_context,
+)
 from feature_final import FeatureFinalError, effective_feature_base
-from pr_context import PullRequestContext, PullRequestContextError, load_context
+from pr_context import PullRequestContext
 from workflow_context import WorkflowContext, resolve_workflow_context
 
 
 SCHEMA_VERSION = 1
-BOUNDARY_SCHEMA_VERSIONS = {1, 2}
+BOUNDARY_SCHEMA_VERSIONS = {1, 2, 3}
 SHA = re.compile(r"^[0-9a-fA-F]{40,64}$")
-PACKET_NAME = re.compile(r"^pr-[A-Za-z0-9._-]+$")
+PACKET_NAME = re.compile(r"^(?:pr|review)-[A-Za-z0-9._-]+$")
 DISPOSITIONS = {"passed", "waived", "not_applicable"}
 SCOPES = {"slice", "feature-final"}
 
@@ -46,6 +52,7 @@ MANIFEST_KEYS = {
     "applicability",
     "gates",
 }
+SYNTHETIC_MANIFEST_KEYS = (MANIFEST_KEYS - {"pullRequest"}) | {"review"}
 
 
 class BoundaryPacketError(RuntimeError):
@@ -93,6 +100,28 @@ def packet_path(workflow: WorkflowContext, pr_number: int) -> Path:
     return workflow.feature_home / packet_name(workflow, pr_number)
 
 
+def packet_name_for_context(
+    workflow: WorkflowContext,
+    context: BoundaryContext | PullRequestContext,
+) -> str:
+    normalized = normalize_context(context)
+    if normalized.transport == "pull-request":
+        return packet_name(workflow, normalized.pull_request.number)
+    suffix = normalized.reference
+    if workflow.multi_repository and not suffix.startswith(
+        f"{workflow.repository.alias}-"
+    ):
+        suffix = f"{workflow.repository.alias}-{suffix}"
+    return f"review-{suffix}"
+
+
+def packet_path_for_context(
+    workflow: WorkflowContext,
+    context: BoundaryContext | PullRequestContext,
+) -> Path:
+    return workflow.feature_home / packet_name_for_context(workflow, context)
+
+
 def _load_json(path: Path, label: str) -> object:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -102,16 +131,17 @@ def _load_json(path: Path, label: str) -> object:
 
 def _validate_context_alignment(
     workflow: WorkflowContext,
-    context: PullRequestContext,
+    context: BoundaryContext | PullRequestContext,
 ) -> None:
+    context = normalize_context(context)
     if context.repository_alias != workflow.repository.alias:
         raise BoundaryPacketError(
-            f"PR context repository alias {context.repository_alias!r} differs from "
+            f"Boundary context repository alias {context.repository_alias!r} differs from "
             f"workflow alias {workflow.repository.alias!r}"
         )
     if context.repository_root != workflow.repository.path.resolve():
         raise BoundaryPacketError(
-            "PR context repository root differs from the selected workflow repository"
+            "Boundary context repository root differs from the selected workflow repository"
         )
 
 
@@ -159,8 +189,8 @@ def _validate_gate(
             )
 
     required = gate in CORE_GATES or disposition != "not_applicable"
-    evidence = fields.get("evidence") if manifest_version == 2 else None
-    if manifest_version == 2:
+    evidence = fields.get("evidence") if manifest_version >= 2 else None
+    if manifest_version >= 2:
         if not required:
             if evidence is not None:
                 raise BoundaryPacketError(
@@ -197,7 +227,7 @@ def _validate_gate(
             raise BoundaryPacketError(
                 f"Gate {gate} requires nonempty regular artifact {artifact.relative_to(packet)}"
             )
-        if manifest_version == 2:
+        if manifest_version >= 2:
             actual_hash = f"sha256:{hashlib.sha256(artifact.read_bytes()).hexdigest()}"
             if actual_hash != expected_hash:
                 raise BoundaryPacketError(f"Gate {gate} evidence digest mismatch")
@@ -273,6 +303,32 @@ def _validate_tracker_link(feature_home: Path, pr_number: int, packet_id: str) -
         )
 
 
+def _validate_review_tracker_link(
+    feature_home: Path,
+    review_id: str,
+    packet_id: str,
+) -> None:
+    tracker = feature_home / "tracker.md"
+    try:
+        text = tracker.read_text(encoding="utf-8")
+    except OSError as error:
+        raise BoundaryPacketError(f"Cannot read cumulative tracker {tracker}: {error}") from error
+    pattern = re.compile(
+        rf"^### Review {re.escape(review_id)}\b(?P<body>.*?)(?=^### (?:Review|PR #)|\Z)",
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    match = pattern.search(text)
+    if not match:
+        raise BoundaryPacketError(
+            f"Tracker Review Log has no Review {review_id} entry"
+        )
+    link = re.compile(rf"\]\((?:\./)?{re.escape(packet_id)}/(?:boundary\.json)?\)")
+    if not link.search(match.group("body")):
+        raise BoundaryPacketError(
+            f"Tracker Review {review_id} entry does not link packet {packet_id}/"
+        )
+
+
 def _validate_centralized_ownership(
     workflow: WorkflowContext,
     expected_packet: Path,
@@ -289,7 +345,9 @@ def _validate_centralized_ownership(
         if not subordinate_home.is_dir():
             continue
         duplicates = sorted(
-            item for item in subordinate_home.iterdir() if item.name.startswith("pr-")
+            item
+            for item in subordinate_home.iterdir()
+            if item.name.startswith(("pr-", "review-"))
         )
         if duplicates:
             rendered = ", ".join(str(item) for item in duplicates)
@@ -330,8 +388,9 @@ def _git_output(args: Sequence[str], cwd: Path) -> str:
 
 def _derived_changed_paths(
     workflow: WorkflowContext,
-    context: PullRequestContext,
+    context: BoundaryContext | PullRequestContext,
 ) -> tuple[tuple[str, ...], str]:
+    context = normalize_context(context)
     try:
         evidence_root = Path(
             _git_output(["rev-parse", "--show-toplevel"], workflow.feature_home)
@@ -386,21 +445,93 @@ def _validate_prior_packet_immutability(
 ) -> None:
     for path in changed_paths:
         top = PurePosixPath(path).parts[0]
-        if top.startswith("pr-") and top != current_packet:
+        if top.startswith(("pr-", "review-")) and top != current_packet:
             raise BoundaryPacketError(
                 f"Current boundary changes earlier or foreign packet {top}: {path}"
             )
 
 
+def _context_fingerprint(context: BoundaryContext) -> str:
+    encoded = json.dumps(
+        context.to_dict(), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+
+
+def _validate_synthetic_review(
+    value: object,
+    context: BoundaryContext,
+) -> None:
+    if not isinstance(value, dict):
+        raise BoundaryPacketError("boundary.json review must be an object")
+    if value.get("transport") != "synthetic-commit":
+        raise BoundaryPacketError("boundary.json review transport must be synthetic-commit")
+    if value.get("reviewId") != context.reference:
+        raise BoundaryPacketError("boundary.json reviewId differs from pinned context")
+    if value.get("contextFingerprint") != _context_fingerprint(context):
+        raise BoundaryPacketError("boundary.json context fingerprint differs from pinned context")
+    if _required_sha(value.get("candidateSourceSha"), "review.candidateSourceSha") != context.evaluated_source_sha:
+        raise BoundaryPacketError("boundary.json candidate source differs from pinned context")
+    if _required_sha(value.get("baseSha"), "review.baseSha") != context.base_sha:
+        raise BoundaryPacketError("boundary.json review base differs from pinned context")
+    if value.get("baseBranch") != context.base_branch:
+        raise BoundaryPacketError("boundary.json review base branch differs from pinned context")
+    if value.get("reviewRef") != context.review.get("reviewRef"):
+        raise BoundaryPacketError("boundary.json review ref differs from pinned context")
+    review_sha = _required_sha(value.get("reviewCommitSha"), "review.reviewCommitSha")
+    tree_sha = _required_sha(value.get("treeSha"), "review.treeSha")
+    url = _required_string(value.get("url"), "review.url")
+    if not url.endswith(f"/commit/{review_sha}"):
+        raise BoundaryPacketError("boundary.json review URL does not name the review commit")
+    comments = value.get("comments")
+    if not isinstance(comments, list):
+        raise BoundaryPacketError("boundary.json review comments must be an array")
+    comments_fingerprint = value.get("commentsFingerprint")
+    encoded_comments = json.dumps(
+        comments, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+    if comments_fingerprint != f"sha256:{hashlib.sha256(encoded_comments).hexdigest()}":
+        raise BoundaryPacketError("boundary.json review comments fingerprint differs")
+    declared = value.get("declaredEvidencePaths")
+    evidence_changes = value.get("evidenceChanges")
+    if not isinstance(declared, list) or not all(isinstance(item, str) for item in declared):
+        raise BoundaryPacketError("boundary.json declaredEvidencePaths must be strings")
+    if not isinstance(evidence_changes, list) or not all(
+        isinstance(item, str) for item in evidence_changes
+    ):
+        raise BoundaryPacketError("boundary.json evidenceChanges must be strings")
+    _normalize_changed_paths(declared)
+    _normalize_changed_paths(evidence_changes)
+    commit = _git_output(["cat-file", "-p", review_sha], context.repository_root).splitlines()
+    if [line for line in commit if line.startswith("tree ")] != [f"tree {tree_sha}"]:
+        raise BoundaryPacketError("Synthetic review commit tree differs from boundary.json")
+    if [line for line in commit if line.startswith("parent ")] != [f"parent {context.base_sha}"]:
+        raise BoundaryPacketError("Synthetic review commit parent differs from pinned base")
+    integration = value.get("integration")
+    if integration is not None:
+        if not isinstance(integration, dict):
+            raise BoundaryPacketError("boundary.json review integration must be null or an object")
+        if integration.get("status") != "integrated":
+            raise BoundaryPacketError("Synthetic integration receipt must be integrated")
+        if _required_sha(integration.get("integrationSha"), "integration.integrationSha") != review_sha:
+            raise BoundaryPacketError("Integration receipt does not name the reviewed commit")
+        if _required_sha(
+            integration.get("previousIntegrationSha"),
+            "integration.previousIntegrationSha",
+        ) != context.base_sha:
+            raise BoundaryPacketError("Integration receipt previous SHA differs from pinned base")
+
+
 def validate_packet(
     workflow: WorkflowContext,
-    context: PullRequestContext,
+    context: BoundaryContext | PullRequestContext,
     *,
     changed_paths: Sequence[str] | None = None,
 ) -> dict[str, object]:
+    context = normalize_context(context)
     _validate_context_alignment(workflow, context)
-    expected_name = packet_name(workflow, context.pull_request.number)
-    packet = packet_path(workflow, context.pull_request.number)
+    expected_name = packet_name_for_context(workflow, context)
+    packet = packet_path_for_context(workflow, context)
     if not PACKET_NAME.fullmatch(expected_name):
         raise BoundaryPacketError(f"Derived packet name is invalid: {expected_name}")
     if not packet.is_dir() or packet.is_symlink():
@@ -410,9 +541,13 @@ def validate_packet(
     manifest_path = packet / "boundary.json"
     if manifest_path.is_symlink():
         raise BoundaryPacketError("boundary.json must not be a symbolic link")
+    raw_manifest = _load_json(manifest_path, "boundary manifest")
+    if not isinstance(raw_manifest, dict):
+        raise BoundaryPacketError("boundary.json must be an object")
+    raw_version = raw_manifest.get("schemaVersion")
     manifest = _exact_keys(
-        _load_json(manifest_path, "boundary manifest"),
-        MANIFEST_KEYS,
+        raw_manifest,
+        SYNTHETIC_MANIFEST_KEYS if raw_version == 3 else MANIFEST_KEYS,
         "boundary.json",
     )
     manifest_version = manifest.get("schemaVersion")
@@ -423,6 +558,8 @@ def validate_packet(
     scope = _required_string(manifest.get("scope"), "boundary.json.scope")
     if scope not in SCOPES:
         raise BoundaryPacketError(f"boundary.json.scope must be one of {sorted(SCOPES)}")
+    if context.transport == "synthetic-commit" and scope != "slice":
+        raise BoundaryPacketError("Synthetic transport is valid only for slice scope")
     if manifest.get("featureId") != workflow.feature_id:
         raise BoundaryPacketError("boundary.json featureId differs from workflow context")
     if manifest.get("repositoryAlias") != workflow.repository.alias:
@@ -431,9 +568,16 @@ def validate_packet(
         raise BoundaryPacketError(
             f"boundary.json packetId must be {expected_name!r}"
         )
-    expected_pr = context.pull_request.to_dict()
-    if manifest.get("pullRequest") != expected_pr:
-        raise BoundaryPacketError("boundary.json pullRequest differs from pinned PR context")
+    if context.transport == "pull-request":
+        if manifest_version == 3:
+            raise BoundaryPacketError("PR packets cannot use synthetic schemaVersion 3")
+        expected_pr = context.pull_request.to_dict()
+        if manifest.get("pullRequest") != expected_pr:
+            raise BoundaryPacketError("boundary.json pullRequest differs from pinned PR context")
+    else:
+        if manifest_version != 3:
+            raise BoundaryPacketError("Synthetic packets require schemaVersion 3")
+        _validate_synthetic_review(manifest.get("review"), context)
     if _required_sha(manifest.get("mergeBaseSha"), "mergeBaseSha") != context.merge_base_sha:
         raise BoundaryPacketError("boundary.json mergeBaseSha differs from pinned context")
     evaluated = _required_sha(manifest.get("evaluatedSourceSha"), "evaluatedSourceSha")
@@ -487,9 +631,14 @@ def validate_packet(
     else:
         _validate_v2_packet_files(packet, normalized_gates)
 
-    _validate_tracker_link(
-        workflow.feature_home, context.pull_request.number, expected_name
-    )
+    if context.transport == "pull-request":
+        _validate_tracker_link(
+            workflow.feature_home, context.pull_request.number, expected_name
+        )
+    else:
+        _validate_review_tracker_link(
+            workflow.feature_home, context.reference, expected_name
+        )
     if changed_paths is None:
         normalized_changes, change_source = _derived_changed_paths(workflow, context)
     else:
@@ -504,7 +653,11 @@ def validate_packet(
         "packetId": expected_name,
         "packetPath": str(packet.resolve()),
         "repositoryAlias": workflow.repository.alias,
-        "pullRequestNumber": context.pull_request.number,
+        "transport": context.transport,
+        "reviewReference": context.reference,
+        "pullRequestNumber": (
+            context.pull_request.number if context.transport == "pull-request" else None
+        ),
         "evaluatedSourceSha": context.evaluated_source_sha,
         "scope": scope,
         "changeSource": change_source,
@@ -552,7 +705,7 @@ def main() -> int:
         else:
             print(f"PASS: {result['packetId']} is valid")
         return 0
-    except (BoundaryPacketError, PullRequestContextError) as error:
+    except (BoundaryPacketError, BoundaryContextError) as error:
         parser.error(str(error))
 
 

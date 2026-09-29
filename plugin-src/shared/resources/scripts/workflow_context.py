@@ -18,6 +18,7 @@ CONFIG_NAME = ".agentic-workflow.json"
 SCHEMA_VERSION = 1
 IDENTIFIER = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$")
 OBJECT_ID = re.compile(r"^[0-9a-fA-F]{40,64}$")
+SLICE_BOUNDARY_MODES = {"pull-request", "synthetic-commit"}
 
 
 class WorkflowContextError(RuntimeError):
@@ -39,6 +40,8 @@ class RepositoryContext:
     path: Path
     remote: str
     integration_branch: str
+    release_branch: str = ""
+    slice_boundary_mode: str = "pull-request"
     feature_base_sha: str | None = None
 
     def to_dict(self) -> dict[str, str | None]:
@@ -47,6 +50,8 @@ class RepositoryContext:
             "path": str(self.path),
             "remote": self.remote,
             "integrationBranch": self.integration_branch,
+            "releaseBranch": self.release_branch,
+            "sliceBoundaryMode": self.slice_boundary_mode,
             "featureBaseSha": self.feature_base_sha,
         }
 
@@ -205,6 +210,18 @@ def _parse_repositories(
             ),
             f"repositories.{alias}.integrationBranch",
         )
+        slice_boundary_mode = raw_repository.get(
+            "sliceBoundaryMode", "pull-request"
+        )
+        if slice_boundary_mode not in SLICE_BOUNDARY_MODES:
+            raise WorkflowContextError(
+                f"repositories.{alias}.sliceBoundaryMode must be pull-request "
+                "or synthetic-commit"
+            )
+        release_branch = _validate_branch_name(
+            raw_repository.get("releaseBranch", integration_branch),
+            f"repositories.{alias}.releaseBranch",
+        )
         raw_feature_base = raw_repository.get("featureBaseSha")
         if raw_feature_base is None:
             feature_base_sha = None
@@ -223,6 +240,8 @@ def _parse_repositories(
                 path=path,
                 remote=remote,
                 integration_branch=integration_branch,
+                release_branch=release_branch,
+                slice_boundary_mode=slice_boundary_mode,
                 feature_base_sha=feature_base_sha,
             )
         )
@@ -308,6 +327,8 @@ def _legacy_context(
         path=root,
         remote="origin",
         integration_branch="",
+        release_branch="",
+        slice_boundary_mode="pull-request",
     )
     return WorkflowContext(
         mode="legacy",

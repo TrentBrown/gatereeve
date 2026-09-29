@@ -16,6 +16,7 @@ from feature_final import (  # noqa: E402
     FeatureFinalError,
     resolve_feature_final_context,
 )
+from boundary_context import BoundaryContext  # noqa: E402
 from pr_context import PullRequestContext, PullRequestSnapshot  # noqa: E402
 from workflow_context import resolve_workflow_context  # noqa: E402
 
@@ -180,6 +181,43 @@ class FeatureFinalTests(unittest.TestCase):
 
         with self.assertRaisesRegex(FeatureFinalError, "Local HEAD"):
             resolve_feature_final_context(self.workflow, self.context)
+
+    def test_rejects_synthetic_transport_for_feature_final_scope(self) -> None:
+        synthetic = BoundaryContext(
+            repository_root=self.context.repository_root,
+            repository_alias=self.context.repository_alias,
+            remote=self.context.remote,
+            source="git",
+            transport="synthetic-commit",
+            base_branch="main",
+            base_sha=self.slice_base_sha,
+            head_branch="tb-1234-feature-05-final-context",
+            head_sha=self.head_sha,
+            merge_base_sha=self.slice_base_sha,
+            evaluated_source_sha=self.head_sha,
+            feature_base_sha=self.feature_base_sha,
+            review={
+                "mode": "synthetic-commit",
+                "reviewId": "tb-1234-feature-product-final",
+                "candidateSourceSha": self.head_sha,
+                "reviewRef": "refs/heads/review/tb-1234-feature/product/final",
+            },
+        )
+
+        with self.assertRaisesRegex(FeatureFinalError, "real pull request"):
+            resolve_feature_final_context(self.workflow, synthetic)
+
+    def test_distinct_release_branch_requires_integration_to_release_pr(self) -> None:
+        config_path = self.root / ".agentic-workflow.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        repository = config["repositories"]["product"]
+        repository["integrationBranch"] = "tb-1234-feature-05-final-context"
+        repository["releaseBranch"] = "release"
+        config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+        workflow = resolve_workflow_context(self.root)
+
+        with self.assertRaisesRegex(FeatureFinalError, "base must equal"):
+            resolve_feature_final_context(workflow, self.context)
 
     def test_cli_emits_the_versioned_feature_final_context(self) -> None:
         context_path = self.root / "pr-context.json"

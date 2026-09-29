@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve one deterministic gate view of a pinned PR boundary."""
+"""Resolve one deterministic gate view of a pinned review boundary."""
 
 from __future__ import annotations
 
@@ -10,9 +10,15 @@ import subprocess
 from pathlib import Path
 from typing import Sequence
 
-from boundary_packet import ARTIFACTS, packet_path
+from boundary_context import (
+    BoundaryContext,
+    BoundaryContextError,
+    normalize_context,
+    load_context,
+)
+from boundary_packet import ARTIFACTS, packet_path_for_context
 from feature_final import FeatureFinalError, resolve_feature_final_context
-from pr_context import PullRequestContext, PullRequestContextError, load_context
+from pr_context import PullRequestContext
 from workflow_context import (
     WorkflowContext,
     WorkflowContextError,
@@ -45,12 +51,13 @@ def _git_output(args: Sequence[str], cwd: Path) -> str:
 
 def resolve_gate_context(
     workflow: WorkflowContext,
-    context: PullRequestContext,
+    context: BoundaryContext | PullRequestContext,
     gate: str,
     *,
     scope: str = "slice",
     attempt_id: str | None = None,
 ) -> dict[str, object]:
+    context = normalize_context(context)
     if gate not in ARTIFACTS:
         raise BoundaryGateError(
             f"Unknown boundary gate {gate!r}; expected one of {sorted(ARTIFACTS)}"
@@ -66,13 +73,13 @@ def resolve_gate_context(
         )
     if context.repository_alias != workflow.repository.alias:
         raise BoundaryGateError(
-            f"PR context repository alias {context.repository_alias!r} differs from "
+            f"Boundary context repository alias {context.repository_alias!r} differs from "
             f"workflow alias {workflow.repository.alias!r}"
         )
     repository_root = workflow.repository.path.resolve()
     if context.repository_root != repository_root:
         raise BoundaryGateError(
-            "PR context repository root differs from the selected workflow repository"
+            "Boundary context repository root differs from the selected workflow repository"
         )
     git_root = Path(
         _git_output(["rev-parse", "--show-toplevel"], repository_root)
@@ -82,10 +89,10 @@ def resolve_gate_context(
             "Selected workflow repository is not the Git repository root"
         )
     branch = _git_output(["branch", "--show-current"], repository_root)
-    if branch != context.pull_request.head_branch:
+    if branch != context.head_branch:
         raise BoundaryGateError(
-            f"Local branch {branch!r} differs from pinned PR head branch "
-            f"{context.pull_request.head_branch!r}"
+            f"Local branch {branch!r} differs from pinned boundary head branch "
+            f"{context.head_branch!r}"
         )
     local_head = _git_output(["rev-parse", "HEAD"], repository_root).lower()
     if local_head != context.evaluated_source_sha:
@@ -96,7 +103,7 @@ def resolve_gate_context(
     merge_base = _git_output(
         [
             "merge-base",
-            context.pull_request.base_sha,
+            context.base_sha,
             context.evaluated_source_sha,
         ],
         repository_root,
@@ -115,7 +122,7 @@ def resolve_gate_context(
         ],
         repository_root,
     )
-    packet = packet_path(workflow, context.pull_request.number).resolve()
+    packet = packet_path_for_context(workflow, context).resolve()
     output = (
         packet / "attempts" / attempt_id / ARTIFACTS[gate]
         if attempt_id is not None
@@ -152,7 +159,8 @@ def resolve_gate_context(
         "packetPath": str(packet),
         "attemptId": attempt_id,
         "outputPath": str(output),
-        "pullRequest": context.pull_request.to_dict(),
+        "transport": context.transport,
+        "review": dict(context.review),
         "evaluationScope": evaluation_scope,
         "featureBaseSha": feature_base,
         "sliceBaseSha": context.merge_base_sha,
@@ -197,7 +205,7 @@ def main() -> int:
     except (
         BoundaryGateError,
         FeatureFinalError,
-        PullRequestContextError,
+        BoundaryContextError,
         WorkflowContextError,
     ) as error:
         parser.error(str(error))

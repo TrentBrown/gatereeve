@@ -39,6 +39,8 @@ function activeBoundaryAttempt(projection, requestedAttemptId = null) {
 function defaultArtifactRoot(featureHome, attempt) {
   const number = attempt.context?.pullRequest?.number ?? attempt.context?.pullRequest;
   if (Number.isSafeInteger(number) && number > 0) return resolve(featureHome, `pr-${number}`);
+  const reviewId = attempt.context?.review?.reviewId;
+  if (typeof reviewId === 'string') return resolve(featureHome, `review-${safeSegment(reviewId)}`);
   return resolve(featureHome, 'runtime', 'agent-workflows', safeSegment(attempt.id));
 }
 

@@ -15,6 +15,7 @@ import { ProtocolError } from './errors.js';
 const executeFile = promisify(execFile);
 const CONFIG_NAME = '.agentic-workflow.json';
 const SCHEMA_VERSION = 1;
+const SLICE_BOUNDARY_MODES = new Set(['pull-request', 'synthetic-commit']);
 const IDENTIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/u;
 const OBJECT_ID = /^[0-9a-fA-F]{40,64}$/u;
 
@@ -178,6 +179,16 @@ async function parseRepositories(value, workspaceRoot, environment) {
       requiredString(rawRepository, 'integrationBranch', `repositories.${alias}`),
       `repositories.${alias}.integrationBranch`
     );
+    const sliceBoundaryMode = rawRepository.sliceBoundaryMode ?? 'pull-request';
+    if (!SLICE_BOUNDARY_MODES.has(sliceBoundaryMode)) {
+      throw new Error(
+        `repositories.${alias}.sliceBoundaryMode must be pull-request or synthetic-commit`
+      );
+    }
+    const releaseBranch = validateBranchName(
+      rawRepository.releaseBranch ?? integrationBranch,
+      `repositories.${alias}.releaseBranch`
+    );
     const rawFeatureBase = rawRepository.featureBaseSha;
     let featureBaseSha = null;
     if (rawFeatureBase !== undefined && rawFeatureBase !== null) {
@@ -193,6 +204,8 @@ async function parseRepositories(value, workspaceRoot, environment) {
       path,
       remote,
       integrationBranch,
+      releaseBranch,
+      sliceBoundaryMode,
       featureBaseSha,
     });
   }
@@ -267,6 +280,8 @@ async function legacyContext(start, options) {
     path: root,
     remote: 'origin',
     integrationBranch: '',
+    releaseBranch: '',
+    sliceBoundaryMode: 'pull-request',
     featureBaseSha: null,
   };
   return {

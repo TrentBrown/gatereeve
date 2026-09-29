@@ -39,6 +39,26 @@ test('default workflow model validates and hashes deterministically', async () =
   assert.deepEqual([...lock.guardIds].sort(), lock.guardIds);
 });
 
+test('historical PR_BOUNDARY model locks remain valid', async () => {
+  const legacy = structuredClone(await loadDefaultModel());
+  legacy.modelVersion = '1.3.0';
+  legacy.slice.states = legacy.slice.states.map((state) => (
+    state === 'REVIEW_BOUNDARY' ? 'PR_BOUNDARY' : state
+  ));
+  legacy.slice.transitions = legacy.slice.transitions.map((transition) => ({
+    ...transition,
+    from: transition.from === 'REVIEW_BOUNDARY' ? 'PR_BOUNDARY' : transition.from,
+    to: transition.to === 'REVIEW_BOUNDARY' ? 'PR_BOUNDARY' : transition.to,
+  }));
+  legacy.presentation.sliceOrder = legacy.presentation.sliceOrder.map((state) => (
+    state === 'REVIEW_BOUNDARY' ? 'PR_BOUNDARY' : state
+  ));
+
+  assert.equal(validateModel(legacy), legacy);
+  const lock = createModelLock(legacy, { createdAt: '2026-09-28T00:00:00Z' });
+  assert.equal(validateModelLock(lock), lock);
+});
+
 test('model validation rejects unknown guards, cycles, and provider injection fields', async () => {
   const model = structuredClone(await loadDefaultModel());
   model.feature.transitions[0].guards.push('shell.run-anything');

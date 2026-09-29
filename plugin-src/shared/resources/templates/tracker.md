@@ -7,10 +7,10 @@
 
 ## Rubric Status
 
-| # | Criterion (short) | Status | PR | Notes |
+| # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|----|-------|
 | R1 | TODO | NOT YET | - | Planned for P1 / I-1 |
 
-## PR Log
+## Review Log
 
-Append PR boundary entries here.
+Append PR or synthetic review boundary entries here.
