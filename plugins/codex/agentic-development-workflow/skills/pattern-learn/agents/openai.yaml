@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pattern Learn"
+  short_description: "Learn pattern rules from failure events"
+  default_prompt: "Learn from the available pattern learning events."

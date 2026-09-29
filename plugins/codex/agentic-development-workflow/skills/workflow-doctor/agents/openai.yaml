@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Doctor"
+  short_description: "Diagnose workflow installation readiness"
+  default_prompt: "Use $workflow-doctor to check whether my workflow plugin is ready."

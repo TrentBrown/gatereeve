@@ -1,0 +1,19 @@
+{
+  "name": "quality-code",
+  "owner": {
+    "name": "QualityCode"
+  },
+  "description": "Private QualityCode plugins for agentic software development.",
+  "plugins": [
+    {
+      "name": "agentic-development-workflow",
+      "source": "./plugins/claude/agentic-development-workflow",
+      "description": "A gated agentic software development lifecycle for Codex and Claude Code."
+    },
+    {
+      "name": "whiteboard-test",
+      "source": "./plugins/claude/whiteboard-test",
+      "description": "An adversarial, evidence-backed Whiteboard Defense for governed code changes."
+    }
+  ]
+}
