@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "modelId": "gatereeve/workflow",
-  "modelVersion": "1.3.0",
+  "modelVersion": "1.4.0",
   "eventSchemaVersion": 1,
   "resultSchemaVersion": 1,
   "coreCompatibility": {
@@ -137,7 +137,7 @@
       "PROPOSED",
       "PLANNED",
       "IMPLEMENTING",
-      "PR_BOUNDARY",
+      "REVIEW_BOUNDARY",
       "HUMAN_REVIEW",
       "MERGED",
       "ABANDONED"
@@ -162,14 +162,14 @@
       {
         "id": "begin-boundary",
         "from": "IMPLEMENTING",
-        "to": "PR_BOUNDARY",
+        "to": "REVIEW_BOUNDARY",
         "eventType": "BOUNDARY_STARTED",
         "authority": "agent",
         "guards": ["slice.active", "suspension.notPaused", "change.blockers.none"]
       },
       {
         "id": "remediate-boundary",
-        "from": "PR_BOUNDARY",
+        "from": "REVIEW_BOUNDARY",
         "to": "IMPLEMENTING",
         "eventType": "REMEDIATION_STARTED",
         "authority": "agent",
@@ -177,7 +177,7 @@
       },
       {
         "id": "request-human-review",
-        "from": "PR_BOUNDARY",
+        "from": "REVIEW_BOUNDARY",
         "to": "HUMAN_REVIEW",
         "eventType": "HUMAN_REVIEW_REQUESTED",
         "authority": "agent",
@@ -308,7 +308,7 @@
   },
   "moduleGraph": {
     "schemaVersion": 1,
-    "policyDigest": "sha256:f1a71802ff08f6784b3ce29ecc8c53a6f01694af8dbfb65a058e0df5a07108f3",
+    "policyDigest": "sha256:787a35efc26f7c6c831e7d083cdd4053668b2dee3cd1972f952031f2cad9370d",
     "enabledModuleIds": [
       "gatereeve/pin-context",
       "gatereeve/release",
@@ -326,10 +326,10 @@
       {
         "schemaVersion": 1,
         "id": "gatereeve/pin-context",
-        "version": "1.0.0",
-        "digest": "sha256:5f050c8a7c11e5bab32b25bd6fdb18c743167ba17fed49ebc498638b3299dcdc",
+        "version": "1.1.0",
+        "digest": "sha256:43d1e0c7fc45a712ad5c0ceb8c4cfd4f852c50245e8fccefae64a89d271fdf63",
         "label": "Pin Context",
-        "description": "Pins the pull request and exact source inputs for the boundary attempt.",
+        "description": "Pins the review transport and exact source inputs for the boundary attempt.",
         "slot": "boundary.evaluation",
         "dependsOn": [],
         "disposition": "required",
@@ -659,7 +659,7 @@
   },
   "presentation": {
     "featureOrder": ["DESIGNING", "SPECIFYING", "PLANNING", "DELIVERING_SLICES", "FINALIZING", "COMPLETE"],
-    "sliceOrder": ["PROPOSED", "PLANNED", "IMPLEMENTING", "PR_BOUNDARY", "HUMAN_REVIEW", "MERGED"],
+    "sliceOrder": ["PROPOSED", "PLANNED", "IMPLEMENTING", "REVIEW_BOUNDARY", "HUMAN_REVIEW", "MERGED"],
     "defaultGraphDepth": 2
   }
 }

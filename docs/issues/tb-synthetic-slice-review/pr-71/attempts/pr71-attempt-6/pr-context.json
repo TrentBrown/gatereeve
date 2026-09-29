@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "source": "github",
+  "repositoryRoot": "/Users/trent.brown/.codex/worktrees/synthetic-slice-review/gatereeve",
+  "repositoryAlias": "gatereeve",
+  "remote": "origin",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 71,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/71",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "0da23d3316150cd2fa404616d1b538ad730979c4",
+    "headRefName": "tb-synthetic-slice-review",
+    "headRefOid": "7cbbd636bd9c3fda5a686ce0353f0125b3e44418"
+  },
+  "mergeBaseSha": "0da23d3316150cd2fa404616d1b538ad730979c4",
+  "evaluatedSourceSha": "7cbbd636bd9c3fda5a686ce0353f0125b3e44418",
+  "featureBaseSha": "0da23d3316150cd2fa404616d1b538ad730979c4"
+}

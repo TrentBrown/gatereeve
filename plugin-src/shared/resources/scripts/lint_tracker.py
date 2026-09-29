@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Tracker lint: rubric statuses must be PASS / NOT YET / FAIL. With --final,
-zero NOT YET and zero FAIL may remain. Backs the per-PR and final gates."""
+zero NOT YET and zero FAIL may remain. Backs review and final gates."""
 
 from __future__ import annotations
 
@@ -35,8 +35,8 @@ def main() -> int:
 
     if "## Rubric Status" not in text:
         failures.append("missing '## Rubric Status' section")
-    if "## PR Log" not in text:
-        warnings.append("missing '## PR Log' section")
+    if "## Review Log" not in text and "## PR Log" not in text:
+        warnings.append("missing '## Review Log' section")
 
     rows = re.findall(r"^\|\s*(R\d+)\s*\|(.+)$", text, flags=re.MULTILINE)
     if not rows and "## Rubric Status" in text:

@@ -17,6 +17,8 @@ used to deliver one PR. A configured feature workspace contains
       "path": ".",
       "remote": "origin",
       "integrationBranch": "main",
+      "releaseBranch": "main",
+      "sliceBoundaryMode": "pull-request",
       "featureBaseSha": "1111111111111111111111111111111111111111"
     }
   }
@@ -109,6 +111,59 @@ GitHub repository, and any local `HEAD` that differs from the pushed PR head.
 The resulting context pins the PR base, head, merge base, and
 `evaluatedSourceSha`; it also pins the configured `featureBaseSha` when one is
 present. All diff-driven gates consume these exact values.
+
+`sliceBoundaryMode` is optional and defaults to `pull-request`. The alternative
+`synthetic-commit` is an explicit, squash-only repository policy for slice
+boundaries. `releaseBranch` is also optional and defaults to
+`integrationBranch`. When these branches differ, feature-final review must be
+a real pull request whose head is `integrationBranch` and whose base is
+`releaseBranch`; synthetic transport is never valid for that final boundary.
+
+## Authoritative synthetic-commit context
+
+For an opted-in repository, start a slice topic branch from the current remote
+integration branch, commit the candidate source, keep the checkout clean, and
+resolve the pinned context without creating a pull request:
+
+```bash
+python3 "<plugin-root>/resources/scripts/synthetic_review.py" resolve \
+  --cwd "$PWD" \
+  --output /tmp/review-context.json
+```
+
+Run every boundary gate against that context. After committing only declared
+evidence paths, publish the finalized tree as a single-parent review commit:
+
+```bash
+python3 "<plugin-root>/resources/scripts/synthetic_review.py" publish \
+  --context /tmp/review-context.json \
+  --evidence-path docs/issues/tb-1234-my-important-feature \
+  --output /tmp/review-receipt.json
+```
+
+The parent is the pinned remote integration SHA; the tree is the finalized
+topic-branch tree. Publication pushes only the deterministic temporary review
+ref and prints the GitHub commit URL. It refuses dirty or detached state,
+integration drift, an existing review ref, or undeclared post-evaluation
+changes. It never opens a PR or force-pushes as fallback.
+
+Export GitHub commit comments into the durable receipt, then provide separate
+explicit human-acceptance JSON containing `accepted: true`, `actor`, and the
+exact `reviewCommitSha`. Promotion rechecks the base, review ref, local tree,
+commit parent, commit tree, and acceptance before a non-force update:
+
+```bash
+python3 "<plugin-root>/resources/scripts/synthetic_review.py" capture-comments \
+  --context /tmp/review-context.json \
+  --receipt /tmp/review-receipt.json \
+  --output /tmp/review-evidence.json
+
+python3 "<plugin-root>/resources/scripts/synthetic_review.py" promote \
+  --context /tmp/review-context.json \
+  --receipt /tmp/review-evidence.json \
+  --acceptance /tmp/review-acceptance.json \
+  --output /tmp/integration-receipt.json
+```
 
 For the last sequential PR, resolve and inspect the complete-feature view:
 

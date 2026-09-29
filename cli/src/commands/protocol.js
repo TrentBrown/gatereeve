@@ -291,7 +291,7 @@ function sliceCommands() {
   slice.addCommand(propose);
   slice.addCommand(transitionCommand('plan', 'Move a proposed slice to PLANNED', 'slice.transition', 'plan-slice', { slice: true }));
   slice.addCommand(transitionCommand('start', 'Start implementation of a ready slice', 'slice.transition', 'start-slice', { slice: true }));
-  slice.addCommand(transitionCommand('begin-boundary', 'Begin a PR-boundary attempt', 'slice.transition', 'begin-boundary', { slice: true }));
+  slice.addCommand(transitionCommand('begin-boundary', 'Begin a review-boundary attempt', 'slice.transition', 'begin-boundary', { slice: true }));
   slice.addCommand(transitionCommand('remediate', 'Return a boundary slice to implementation', 'slice.transition', 'remediate-boundary', { slice: true }));
   slice.addCommand(transitionCommand('changes-requested', 'Record human-requested review changes', 'slice.transition', 'apply-review-changes', { slice: true }));
   slice.addCommand(transitionCommand('record-merge', 'Record verified reviewed content on the integration branch', 'slice.transition', 'record-merge', { slice: true }));
@@ -317,7 +317,7 @@ function sliceCommands() {
 }
 
 function gateCommands() {
-  const gate = new Command('gate').description('Record and invalidate PR-boundary evidence');
+  const gate = new Command('gate').description('Record and invalidate review-boundary evidence');
   const record = addContextOptions(addEventOptions(
     new Command('record').description('Record one eligible gate outcome')
       .argument('<attempt-id>', 'Boundary attempt ID')
@@ -386,7 +386,7 @@ function gateCommands() {
 }
 
 function boundaryCommands() {
-  const boundary = new Command('boundary').description('Govern PR-boundary passage');
+  const boundary = new Command('boundary').description('Govern review-boundary passage');
   const request = addContextOptions(addEventOptions(
     new Command('request-review').description('Pass a current nonblocking boundary to HUMAN_REVIEW')
       .argument('<attempt-id>', 'Boundary attempt ID')

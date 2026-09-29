@@ -1,4 +1,4 @@
-# Pull-Request Evidence Packets
+# Review-Boundary Evidence Packets
 
 Each formal pull-request boundary owns one durable packet directly beneath the
 cumulative feature folder:
@@ -12,6 +12,16 @@ The first form is used when the workspace contains one repository. The second
 form prevents PR-number collisions when several repositories participate. No
 `pr-boundaries/` wrapper, mutable latest copy, or top-level pointer is created.
 Existing top-level reports remain untouched as legacy evidence.
+
+An opted-in synthetic slice boundary instead uses:
+
+```text
+docs/issues/<featureId>/review-<review-id>/
+```
+
+Within the feature folder, the review ID is derived from the repository alias
+and pinned candidate SHA. Pull-request packet names and schema versions 1-2
+remain valid.
 
 Resolve a packet path mechanically:
 
@@ -94,9 +104,30 @@ disposition make every omission explicit. Applicable or waived gates retain a
 nonempty artifact; an inapplicable gate uses `not_applicable`, supplies a
 reason, and omits the file. A waiver also requires a reason.
 
+## Version 3 synthetic manifest
+
+Synthetic packets use `schemaVersion: 3`, must use `scope: slice`, and replace
+the top-level `pullRequest` field with `review`. The review value is the durable
+receipt emitted by `synthetic_review.py publish` and optionally enriched by
+`capture-comments` and the promotion receipt. It records at least:
+
+- `transport: synthetic-commit`, stable `reviewId`, and context fingerprint;
+- candidate source, finalized source, tree, pinned base, exact single-parent
+  review commit, deterministic review ref, and GitHub commit URL;
+- declared evidence paths and the actual post-evaluation evidence changes;
+- exported commit comments; and
+- `integration: null` before promotion or an integration receipt whose final
+  SHA equals the exact review commit.
+
+Schema version 3 uses version-2 hashed gate-evidence references. The validator
+proves the review commit's local tree and sole parent, rejects feature-final
+synthetic packets, and checks the cumulative `### Review <review-id>` tracker
+link. The temporary remote review ref is therefore not the only durable record
+of human review.
+
 ## Deterministic validation
 
-Validate the active packet against the pinned PR context and cumulative
+Validate the active packet against the pinned boundary context and cumulative
 tracker:
 
 ```bash
@@ -108,20 +139,21 @@ python3 "<plugin-root>/resources/scripts/boundary_packet.py" validate \
 
 The validator checks packet naming and centralized ownership, exact manifest
 identity and Git context, artifact presence and dispositions, unexpected
-files, the cumulative PR Log link, and prior-packet immutability. In a tracked
+files, the cumulative Review Log link, and prior-packet immutability. In a tracked
 single-repository workspace it derives changed feature paths from Git. When
 code and centralized evidence use different repositories, or the feature home
 is intentionally untracked, the coordination layer supplies repeated
 feature-home-relative `--changed-path` values. This makes the otherwise
 unavailable change set explicit rather than silently claiming immutability.
 
-A rerun of the same PR updates the same packet and is allowed to change that
-packet. A later PR that changes any other `pr-*` directory fails validation.
+A rerun of the same boundary updates the same packet and is allowed to change
+that packet. A later boundary that changes any other `pr-*` or `review-*`
+directory fails validation.
 
 ## Shared gate context
 
 Every diff-driven gate in a formal boundary resolves its view from the same
-persisted PR context:
+persisted transport-neutral context:
 
 ```bash
 python3 "<plugin-root>/resources/scripts/boundary_gate.py" \

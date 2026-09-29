@@ -1,6 +1,6 @@
 ---
 name: software-development-workflow
-description: "Portable software development lifecycle workflow. Use for non-trivial coding work, specced feature work, branch lifecycle docs, acceptance criteria, implementation plans, issue breakdowns, trackers, decision logs, PR boundaries, completion reports, commits, and PR reviews."
+description: "Portable software development lifecycle workflow. Use for non-trivial coding work, specced feature work, branch lifecycle docs, acceptance criteria, implementation plans, issue breakdowns, trackers, decision logs, review boundaries, completion reports, commits, and code reviews."
 ---
 
 # Software Development Workflow
@@ -21,7 +21,7 @@ or cumulative document placement, also load:
 `<plugin-root>/resources/policy/WORKSPACE-CONTEXT.md`
 
 Load that file before substantial implementation, branch planning, workflow doc
-maintenance, PR boundary work, or completion reporting.
+maintenance, review-boundary work, or completion reporting.
 
 For workflow-state observation, preflight, or passage, also load:
 
@@ -45,7 +45,7 @@ Load the specific command file when the task matches:
 - Independent compliance pass: `<plugin-root>/resources/commands/judge.md`
 - Record decision: `<plugin-root>/resources/commands/decision-record.md`
 - Triage decisions: `<plugin-root>/resources/commands/decision-triage.md`
-- PR boundary: `<plugin-root>/resources/commands/pr-boundary.md`
+- Review boundary: `<plugin-root>/resources/commands/pr-boundary.md`
 - Commit: `<plugin-root>/resources/commands/commit.md`
 - PR/code review: `<plugin-root>/resources/commands/pr-review.md`
 - Pattern rule-scope initialization: `<plugin-root>/resources/commands/pattern-init.md`
@@ -66,8 +66,10 @@ for deterministic mechanics:
 
 - `bootstrap_branch_docs.py`
 - `pr_context.py`
+- `boundary_context.py`
 - `boundary_gate.py`
 - `boundary_packet.py`
+- `synthetic_review.py`
 - `feature_final.py`
 - `decision_record.py`
 - `decision_triage.py`

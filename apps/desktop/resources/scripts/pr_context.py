@@ -483,6 +483,72 @@ def verify_boundary_context_is_current(
     """Expand and verify the compact context stored in a boundary event."""
     if not isinstance(value, dict):
         raise PullRequestContextError("Boundary context must be a JSON object")
+    if value.get("schemaVersion") == 2:
+        from boundary_context import BoundaryContext, BoundaryContextError
+
+        try:
+            context = BoundaryContext.from_dict(value)
+        except BoundaryContextError as error:
+            raise PullRequestContextError(str(error)) from error
+        if context.transport == "pull-request":
+            legacy = PullRequestContext.from_dict(context.to_legacy_pr_dict())
+            verify_context_is_current(
+                legacy,
+                provider,
+                git_executable=git_executable,
+                runner=runner,
+                environment=environment,
+            )
+            return {**context.to_dict(), "status": "current"}
+        if repository_context.slice_boundary_mode != "synthetic-commit":
+            raise PullRequestContextError(
+                "Configured repository no longer selects synthetic-commit mode"
+            )
+        if context.repository_alias != repository_context.alias:
+            raise PullRequestContextError("Boundary repository alias changed")
+        if context.repository_root != repository_context.path.resolve():
+            raise PullRequestContextError("Boundary repository root changed")
+        if context.base_branch != repository_context.integration_branch:
+            raise PullRequestContextError("Boundary integration branch changed")
+        repository = GitRepository(
+            repository_context,
+            git_executable=git_executable,
+            runner=runner,
+            environment=environment,
+        )
+        if repository.branch() != context.head_branch:
+            raise PullRequestContextError(
+                "Local branch differs from the pinned synthetic candidate branch"
+            )
+        if repository.head() != context.evaluated_source_sha:
+            raise PullRequestContextError(
+                "Local HEAD changed after synthetic context resolution"
+            )
+        remote_output = repository.git(
+            "ls-remote",
+            "--refs",
+            repository.remote,
+            f"refs/heads/{context.base_branch}",
+        )
+        if not remote_output:
+            raise PullRequestContextError("Remote integration branch is missing")
+        remote_sha = _required_sha(remote_output.split()[0], "remote integration SHA")
+        if remote_sha != context.base_sha:
+            raise PullRequestContextError(
+                f"Integration branch became stale: evaluated {context.base_sha}, "
+                f"current {remote_sha}; rerun affected gates"
+            )
+        current_merge_base = repository.merge_base(
+            context.base_sha, context.evaluated_source_sha
+        )
+        if current_merge_base != context.merge_base_sha:
+            raise PullRequestContextError(
+                "Synthetic boundary merge base became stale; rerun affected gates"
+            )
+        return {
+            **context.to_dict(),
+            "status": "current",
+        }
     repository_name = _required_string(value.get("repository"), "repository")
     number = _required_number(value.get("pullRequest"), "pullRequest")
     url = _required_string(value.get("url"), "url")

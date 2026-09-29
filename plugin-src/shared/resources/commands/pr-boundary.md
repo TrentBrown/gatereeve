@@ -1,12 +1,17 @@
-# PR Boundary
+# Review Boundary
 
-Use when a coherent slice is ready to become a PR, update a draft PR, or mark a
-boundary inside a long-running PR.
+Use when a coherent slice is ready for governed review. Pull requests are the
+default transport. A repository that explicitly configures
+`sliceBoundaryMode: synthetic-commit` uses an exact synthetic review commit for
+slice boundaries and still uses a real feature-final PR from integration to a
+distinct release branch.
 
 1. Run provisional implementation verification, then commit every intended
-   source change, push the delivery branch, and open or update its draft PR.
+   source change. Resolve `workflow_context.py` and read the selected
+   repository's effective `sliceBoundaryMode`.
 2. Resolve and persist the authoritative context while the selected repository
-   is clean and synchronized:
+   is clean and synchronized. In default PR mode, push the delivery branch,
+   open or update its draft PR, and run:
 
    ```bash
    python3 "<plugin-root>/resources/scripts/pr_context.py" resolve \
@@ -14,13 +19,22 @@ boundary inside a long-running PR.
      --output /tmp/pr-context.json
    ```
 
-   Do not begin persistent boundary evidence before this succeeds. If this is
-   the last sequential PR, the selected configured repository must already
-   define its original `featureBaseSha`. Run `feature_final.py` with the
-   persisted context and declare the packet `scope: feature-final` only after
-   its ancestry and retention report pass.
+   In synthetic mode, do not open a slice PR. Run instead:
+
+   ```bash
+   python3 "<plugin-root>/resources/scripts/synthetic_review.py" resolve \
+     --cwd "$PWD" \
+     --output /tmp/review-context.json
+   ```
+
+   Do not begin persistent boundary evidence before this succeeds. For a
+   feature-final boundary, always use PR mode. The selected configured
+   repository must already define its original `featureBaseSha`; when release
+   differs from integration, the PR must be integration into release. Run
+   `feature_final.py` with that persisted PR context and declare the packet
+   `scope: feature-final` only after its ancestry and retention report pass.
 3. Reconcile `issues.md` in the resolved cumulative feature home:
-   - Completed work moves to `in-review` once a PR exists.
+   - Completed work moves to `in-review` once its review surface exists.
    - New discovered work becomes new issues.
    - Drift between plan/issues/spec is resolved before PR review.
 4. Update the cumulative `tracker.md` with plan steps covered, rubric criteria
@@ -60,7 +74,7 @@ boundary inside a long-running PR.
 10. Run `judge` for significant specced changes. A judge `FAIL` blocks review
     unless the user explicitly accepts the risk. Write the result at the
     `judge` `outputPath` and record its verdict in the tracker or PR body.
-11. Run `workflow-pr-review` on the pinned PR diff. Findings must include
+11. Run `workflow-pr-review` on the pinned boundary diff. Findings must include
     file/line references; if none exist, record residual risks and test gaps at
     the `codeReview` `outputPath`.
 12. Run `explain-diff` against the same pinned diff after the review and
@@ -68,19 +82,24 @@ boundary inside a long-running PR.
     `outputPath`.
 13. Run `decision-triage`, then `gate_triage.py` to confirm zero untriaged
     entries remain.
-14. Immediately before finalizing evidence, run `pr_context.py check-current`.
-    Any changed remote or local source invalidates affected gates.
-15. Finalize `boundary.json`, the tracker PR Log packet link, and the PR
-    description with summary, decisions, verification matrix, judge verdict,
-    PR-review result, explain-diff artifact, known failures, and manual checks.
+14. Immediately before finalizing evidence, recheck the persisted context.
+    PR mode uses `pr_context.py check-current`; governed module execution checks
+    either transport through the same protocol guard. Any changed remote or
+    local source invalidates affected gates.
+15. Finalize `boundary.json`, the tracker Review Log packet link, and the review
+    surface with summary, decisions, verification matrix, judge verdict,
+    code-review result, explain-diff artifact, known failures, and manual checks.
     A feature-final PR description and completion report must also include the
     retention status from `feature_final.py`. If retention is not `tracked`,
     completion requires an explicit human retention decision; do not imply
     that the feature record was archived.
 16. Validate the pending packet structurally with explicit changed paths when
-    necessary, commit and push the evidence, then run:
-    - `pr_context.py finalize` with every evidence path;
-    - `boundary_packet.py validate` from the clean final checkout.
+    necessary and commit the evidence. PR mode pushes it, runs
+    `pr_context.py finalize` with every evidence path, then runs
+    `boundary_packet.py validate` from the clean final checkout. Synthetic mode
+    runs `synthetic_review.py publish` with every evidence path, captures commit
+    comments, writes the publication receipt into a schema-version-3 packet,
+    and validates that packet.
 
     The first proves the post-evaluation delta is evidence-only and synchronized;
     the second derives feature changes from Git where possible and enforces
@@ -89,3 +108,8 @@ boundary inside a long-running PR.
     waived by the user. For governed features, every gate result must first be
     recorded with its current input fingerprint and the request must pass through
     the protocol adapter; direct artifact completion does not advance state.
+18. In synthetic mode, promote only after explicit human acceptance naming the
+    exact review commit. `synthetic_review.py promote` must recheck integration,
+    review ref, context fingerprint, parent, and tree, then advance integration
+    to that exact SHA without force. A failure stops; it never falls back to a
+    pull request or branch-rule bypass.

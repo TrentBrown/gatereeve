@@ -3,7 +3,7 @@
 GateReeve keeps its feature and slice lifecycle fixed. Version 1 modules extend
 only two named slots:
 
-- `boundary.evaluation` for checks within a pinned PR-boundary attempt.
+- `boundary.evaluation` for checks within a pinned review-boundary attempt.
 - `feature.finalization` for post-merge obligations before Complete.
 
 The protocol ships built-in definitions. A repository may add declarative JSON
@@ -177,7 +177,7 @@ The module's `after` edge controls ordering and freshness only. Only artifacts
 from declared `dependsOn` edges enter an agent-workflow evidence packet, so a
 Whiteboard run can inspect Verification but cannot inspect Judge output.
 
-PR boundary manifests use schema version 2 when a gate's current human artifact
+Review boundary manifests use schema version 2 when a gate's current human artifact
 lives under an immutable attempt directory. Each applicable gate records the
 packet-relative artifact path and SHA-256 digest; packet validation follows that
 reference instead of assuming that a mutable root filename is current. Schema

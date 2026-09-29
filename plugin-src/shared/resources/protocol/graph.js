@@ -34,7 +34,7 @@ export function modelGraph(model) {
   const gateNodes = gates.map((gate) => ({
     id: `gate:${gate.id}`,
     label: gate.id,
-    group: 'PR boundary gates',
+    group: 'Review boundary gates',
   }));
   const gateEdges = gates.flatMap((gate) =>
     gate.dependsOn.map((dependency) => ({

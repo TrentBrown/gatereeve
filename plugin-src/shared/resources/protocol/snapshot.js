@@ -730,7 +730,7 @@ async function buildMilestones(record, projection, artifacts, actions) {
       { sliceId: projection.activeSliceId }
     ),
     milestone(
-      'delivery.boundary', 'PR boundary active', 'DELIVERING_SLICES',
+      'delivery.boundary', 'Review boundary active', 'DELIVERING_SLICES',
       projection.boundaryAttempts.some((attempt) => attempt.state === 'ACTIVE') ? 'active' : 'pending',
       { attemptId: projection.boundaryAttempts.find((attempt) => attempt.state === 'ACTIVE')?.id ?? null }
     ),

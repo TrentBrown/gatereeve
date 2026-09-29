@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 2,
+  "scope": "feature-final",
+  "featureId": "tb-synthetic-slice-review",
+  "repositoryAlias": "gatereeve",
+  "packetId": "pr-71",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 71,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/71",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "0da23d3316150cd2fa404616d1b538ad730979c4",
+    "headRefName": "tb-synthetic-slice-review",
+    "headRefOid": "7cbbd636bd9c3fda5a686ce0353f0125b3e44418"
+  },
+  "mergeBaseSha": "0da23d3316150cd2fa404616d1b538ad730979c4",
+  "evaluatedSourceSha": "7cbbd636bd9c3fda5a686ce0353f0125b3e44418",
+  "featureBaseSha": "0da23d3316150cd2fa404616d1b538ad730979c4",
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/pr71-attempt-6/verification.md",
+        "sha256": "sha256:0cd5bbdd9a751ffe5f9003fc91886c244e12dbdf89f7592b3fa9845c4a5b0706"
+      }
+    },
+    "specEvaluation": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/pr71-attempt-6/spec-evaluation.md",
+        "sha256": "sha256:f60d94a94803b57088db9436ce44bf08fc727bdd6dd4f9b89c1611f529089f7c"
+      }
+    },
+    "judge": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/pr71-attempt-6/judge.md",
+        "sha256": "sha256:ea866a01c6e292aa78b61cee38fe41ef4fc5819da2ade32925d7d4d7d1a50f16"
+      }
+    },
+    "codeReview": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/pr71-attempt-6/code-review.md",
+        "sha256": "sha256:32c66ef3be1a2efe1aa715f519aaf77f0cade2ff247fad050a7994d40d703fd5"
+      }
+    },
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No .pattern-review scope is configured in the GateReeve repository.",
+      "evidence": null
+    },
+    "explainDiff": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/pr71-attempt-6/explain-diff.html",
+        "sha256": "sha256:61686f9434fa74e7de24fbb0f060e7d8b0c96123612d2c9d82ccfc12c4a5f7fd"
+      }
+    }
+  }
+}

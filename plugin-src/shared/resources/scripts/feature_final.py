@@ -9,7 +9,13 @@ import subprocess
 from pathlib import Path, PurePosixPath
 from typing import Sequence
 
-from pr_context import PullRequestContext, PullRequestContextError, load_context
+from boundary_context import (
+    BoundaryContext,
+    BoundaryContextError,
+    load_context,
+    normalize_context,
+)
+from pr_context import PullRequestContext
 from workflow_context import (
     WorkflowContext,
     WorkflowContextError,
@@ -49,9 +55,10 @@ def _git_output(args: Sequence[str], cwd: Path) -> str:
 
 def effective_feature_base(
     workflow: WorkflowContext,
-    context: PullRequestContext,
+    context: BoundaryContext | PullRequestContext,
 ) -> str:
     """Return the explicit original base for a feature-final boundary."""
+    context = normalize_context(context)
     if workflow.mode == "legacy":
         if context.feature_base_sha not in {None, context.merge_base_sha}:
             raise FeatureFinalError(
@@ -216,23 +223,42 @@ def feature_home_retention(feature_home: Path) -> dict[str, object]:
 
 def resolve_feature_final_context(
     workflow: WorkflowContext,
-    context: PullRequestContext,
+    context: BoundaryContext | PullRequestContext,
 ) -> dict[str, object]:
     """Resolve one complete-feature view anchored to a real final PR."""
+    context = normalize_context(context)
+    if context.transport != "pull-request":
+        raise FeatureFinalError(
+            "Feature-final review requires a real pull request; synthetic transport "
+            "is slice-only"
+        )
     repository = workflow.repository.path.resolve()
     if context.repository_alias != workflow.repository.alias:
         raise FeatureFinalError(
-            "PR context repository alias differs from the selected workflow repository"
+            "Boundary context repository alias differs from the selected workflow repository"
         )
     if context.repository_root != repository:
         raise FeatureFinalError(
-            "PR context repository root differs from the selected workflow repository"
+            "Boundary context repository root differs from the selected workflow repository"
         )
+    if (
+        workflow.mode == "configured"
+        and workflow.repository.release_branch
+        and workflow.repository.release_branch != workflow.repository.integration_branch
+    ):
+        if context.base_branch != workflow.repository.release_branch:
+            raise FeatureFinalError(
+                "Feature-final PR base must equal the configured release branch"
+            )
+        if context.head_branch != workflow.repository.integration_branch:
+            raise FeatureFinalError(
+                "Feature-final PR head must equal the configured integration branch"
+            )
     branch = _git_output(["branch", "--show-current"], repository)
-    if branch != context.pull_request.head_branch:
+    if branch != context.head_branch:
         raise FeatureFinalError(
             f"Local branch {branch!r} differs from pinned PR head branch "
-            f"{context.pull_request.head_branch!r}"
+            f"{context.head_branch!r}"
         )
     local_head = _git_output(["rev-parse", "HEAD"], repository).lower()
     if local_head != context.evaluated_source_sha:
@@ -243,7 +269,7 @@ def resolve_feature_final_context(
     merge_base = _git_output(
         [
             "merge-base",
-            context.pull_request.base_sha,
+            context.base_sha,
             context.evaluated_source_sha,
         ],
         repository,
@@ -278,6 +304,8 @@ def resolve_feature_final_context(
         "featureId": workflow.feature_id,
         "repositoryAlias": workflow.repository.alias,
         "featureHome": str(workflow.feature_home.resolve()),
+        "transport": context.transport,
+        "review": dict(context.review),
         "pullRequest": context.pull_request.to_dict(),
         "featureBaseSha": feature_base,
         "sliceBaseSha": context.merge_base_sha,
@@ -316,7 +344,7 @@ def main() -> int:
         return 0
     except (
         FeatureFinalError,
-        PullRequestContextError,
+        BoundaryContextError,
         WorkflowContextError,
     ) as error:
         parser.error(str(error))

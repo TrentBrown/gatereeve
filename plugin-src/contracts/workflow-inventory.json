@@ -202,6 +202,7 @@
       "spec-validate.md"
     ],
     "scripts": [
+      "boundary_context.py",
       "boundary_gate.py",
       "boundary_packet.py",
       "bootstrap_branch_docs.py",
@@ -216,6 +217,7 @@
       "pattern_tool.py",
       "pr_context.py",
       "session_start.py",
+      "synthetic_review.py",
       "pattern/__init__.py",
       "pattern/buckets.py",
       "pattern/git_context.py",
@@ -234,6 +236,7 @@
       "tests/test_pr_context.py",
       "tests/test_sequential_workflow_acceptance.py",
       "tests/test_session_start.py",
+      "tests/test_synthetic_review.py",
       "tests/test_workflow_context.py",
       "validate_branch_docs.py",
       "workflow_common.py",

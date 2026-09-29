@@ -163,7 +163,7 @@ Full body here.
 - Option B - why rejected
 ```
 
-At each PR boundary, triage all scratchpad entries:
+At each review boundary, triage all scratchpad entries:
 
 - `[x]` promotes to `decisions.md`.
 - `[-]` remains dismissed in `scratchpad.md`.
@@ -262,19 +262,23 @@ Free-form body.
 Do not reuse issue IDs. Append newly discovered work as new issues rather than
 expanding old ones silently.
 
-## PR Boundary
+## Review Boundary
 
-When a natural PR boundary is reached:
+When a natural slice review boundary is reached:
 
-1. Complete provisional verification, commit and push every intended source
-   change, and open or update the draft PR.
-2. Resolve and persist one authoritative PR context from the clean synchronized
-   checkout. Every formal gate must consume `boundary_gate.py` output from that
-   same context; no gate may independently infer its upstream, base, head,
-   feature folder, packet, or filename.
+1. Complete provisional verification and commit every intended source change.
+   Read the selected repository's `sliceBoundaryMode`. Omission means
+   `pull-request`: push the delivery branch and open or update its draft PR.
+   `synthetic-commit` means do not create a slice PR; pin the clean committed
+   candidate with `synthetic_review.py resolve`.
+2. Resolve and persist one authoritative boundary context from the clean
+   synchronized checkout. Every formal gate must consume `boundary_gate.py`
+   output from that same context; no gate may independently infer its upstream,
+   base, head, feature folder, packet, or filename.
 3. Update `tracker.md` with plan steps covered and rubric criteria addressed.
 4. Reconcile `issues.md` against completed work. Move shipping issues to
-   `in-review` with the PR number/URL once available.
+   `in-review` with the PR number/URL or synthetic review reference once
+   available.
 5. Build the per-PR verification matrix and execute it. It must explicitly
    cover, or explicitly mark as not applicable, each of:
    - Build/typecheck.
@@ -292,25 +296,31 @@ When a natural PR boundary is reached:
 7. Run an independent `judge` pass for specced significant work. Treat `FAIL`
    as blocking until fixed or explicitly accepted by the user. Preserve the
    judge's findings in the active packet, tracker, and PR description.
-8. Run pattern review when applicable, PR/code review, and `explain-diff` on
+8. Run pattern review when applicable, code review, and `explain-diff` on
    the exact pinned base/head. Persist each artifact at its fixed active-packet
    path.
 9. Triage decisions.
-10. Recheck the remote PR head, finalize the manifest and cumulative tracker
-   link, and open or update the PR description with summary, decisions, verification
-   matrix, judge result, PR-review result, explain-diff artifact, known
+10. Recheck the pinned context, finalize the manifest and cumulative tracker
+   link, and update the review surface with summary, decisions, verification
+   matrix, judge result, code-review result, explain-diff artifact, known
    failures, and manual checks.
-11. When evidence is tracked, commit and push only declared boundary artifacts.
-   Finalize PR synchronization and run deterministic packet validation from the
-   clean checkout.
+11. When evidence is tracked, commit only declared boundary artifacts. In PR
+   mode push and finalize PR synchronization. In synthetic mode publish the
+   exact finalized tree with `synthetic_review.py publish`, capture commit
+   comments, and bind the receipt into schema-version-3 packet evidence. Run
+   deterministic packet validation from the resulting checkout.
 12. Request human review only after the prior steps complete or are explicitly
-   waived by the user.
+   waived by the user. Synthetic integration additionally requires explicit
+   acceptance of the exact review commit and a successful fail-closed
+   `synthetic_review.py promote` operation.
 
 ## Feature Completion
 
-1. Use the last real delivery PR as the `feature-final` boundary. Preserve its
-   immediate slice base and the configured original feature base; do not create
-   a completion pseudo-boundary.
+1. Use a real PR as the `feature-final` boundary. When `releaseBranch` differs
+   from `integrationBranch`, that PR must run from integration to release even
+   if prior slice boundaries were synthetic. Preserve its immediate PR base and
+   the configured original feature base; do not create a completion
+   pseudo-boundary.
 2. Detect when all rubric criteria are `PASS`.
 3. Run full verification against the complete spec and assembled feature while
    retaining focused review of the final PR slice.
