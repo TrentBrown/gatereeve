@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Synthetic Slice Review - PR 71</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b1020; --panel:#141c31; --ink:#eef3ff; --muted:#aebbd5; --accent:#72e0b8; --warn:#ffd479; --line:#2a3858; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:16px/1.55 system-ui,sans-serif; background:linear-gradient(145deg,#08101c,var(--bg)); color:var(--ink); }
+    main { width:min(980px,92vw); margin:0 auto; padding:48px 0 72px; }
+    h1 { font-size:clamp(2rem,5vw,4rem); line-height:1.03; margin:.2rem 0 1rem; }
+    h2 { margin-top:2.3rem; }
+    h3 { margin-bottom:.35rem; }
+    p, li { color:var(--muted); }
+    code { color:#d7e7ff; background:#0a1222; padding:.12rem .35rem; border-radius:.3rem; }
+    .eyebrow { color:var(--accent); letter-spacing:.14em; text-transform:uppercase; font-weight:700; }
+    .card { background:rgba(20,28,49,.92); border:1px solid var(--line); border-radius:16px; padding:1.2rem 1.35rem; margin:1rem 0; }
+    .flow { display:grid; grid-template-columns:repeat(5,1fr); gap:.55rem; align-items:center; margin:1.4rem 0; }
+    .node { min-height:92px; display:grid; place-items:center; text-align:center; border:1px solid var(--line); border-radius:12px; padding:.6rem; background:#10182b; }
+    .node strong { display:block; color:var(--accent); }
+    .arrow { display:none; }
+    .guard { border-left:4px solid var(--warn); }
+    .good { border-left:4px solid var(--accent); }
+    details { border-top:1px solid var(--line); padding:.75rem 0; }
+    summary { cursor:pointer; font-weight:700; color:var(--ink); }
+    fieldset { border:0; padding:0; margin:0 0 1.4rem; }
+    label { display:block; margin:.45rem 0; padding:.55rem .7rem; border:1px solid var(--line); border-radius:8px; cursor:pointer; }
+    button { border:0; border-radius:9px; padding:.7rem 1rem; background:var(--accent); color:#052018; font-weight:800; cursor:pointer; }
+    #score { font-weight:800; color:var(--accent); margin-left:.8rem; }
+    @media (max-width:760px) { .flow { grid-template-columns:1fr; } .node { min-height:auto; } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">PR 71 · reviewed source 7cbbd63</div>
+  <h1>Review slices without creating intermediate pull requests</h1>
+  <p>This change adds an opt-in synthetic review transport for slice boundaries while preserving ordinary pull requests as the default and requiring a real integration-to-release pull request for feature-final review.</p>
+
+  <section>
+    <h2>Background</h2>
+    <div class="card guard">
+      <h3>The constraint</h3>
+      <p>Quality Process needs reviewable slices without filling GitHub's pull-request list. Other users should see no behavior change. The final promotion from an integration branch into the release branch must still use a real PR.</p>
+    </div>
+    <div class="card good">
+      <h3>The switch</h3>
+      <p>Each repository chooses <code>sliceBoundaryMode</code>. Omission means <code>pull-request</code>; <code>synthetic-commit</code> is explicit. <code>releaseBranch</code> defaults to the integration branch, preserving historical one-branch repositories.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Intuition</h2>
+    <div class="flow" aria-label="Synthetic review flow">
+      <div class="node"><div><strong>1. Pin</strong>integration SHA + topic SHA</div></div>
+      <div class="node"><div><strong>2. Build</strong>one-parent exact-tree commit</div></div>
+      <div class="node"><div><strong>3. Publish</strong>deterministic review ref</div></div>
+      <div class="node"><div><strong>4. Review</strong>commit URL + captured comments</div></div>
+      <div class="node"><div><strong>5. Promote</strong>exact reviewed SHA</div></div>
+    </div>
+    <p>The synthetic commit is not an approximation of the reviewed content: its tree is the finalized slice tree, and its sole parent is the pinned integration SHA. After explicit acceptance, integration advances to that same commit with a normal non-force push.</p>
+  </section>
+
+  <section>
+    <h2>Code map</h2>
+    <details open>
+      <summary>Configuration and compatibility</summary>
+      <p>The JavaScript and Python context resolvers agree on defaults, explicit modes, release roles, and Git-compatible branch validation. Historical PR contexts and <code>PR_BOUNDARY</code> model locks remain readable.</p>
+    </details>
+    <details>
+      <summary>Transport-neutral boundary context</summary>
+      <p><code>BoundaryContext</code> gives gates common base/head/source fields and nests only the transport-specific review identity. Synthetic contexts carry the feature ID, candidate SHA, review ID, and deterministic review ref.</p>
+    </details>
+    <details>
+      <summary>Safe publication</summary>
+      <p><code>synthetic_review.py</code> re-resolves the active workflow configuration at the mutation point. It derives the only permitted ref from feature ID, repository alias, and candidate SHA; a persisted alternate ref is rejected before commit creation or push. It also rejects dirty/detached state, moved bases, existing refs, and undeclared source changes.</p>
+    </details>
+    <details>
+      <summary>Evidence and promotion</summary>
+      <p>Commit comments are captured and fingerprinted. Promotion requires explicit human acceptance naming the reviewed SHA, then rechecks the configured ref, remote base, local source, tree, parent, and receipt before advancing integration.</p>
+    </details>
+    <details>
+      <summary>Final PR boundary</summary>
+      <p>Synthetic transport is rejected at feature-final scope. When integration and release branches differ, the final PR must be integration → release and retains both complete-feature and final-slice comparison ranges.</p>
+    </details>
+  </section>
+
+  <section>
+    <h2>Why the failure cases matter</h2>
+    <div class="card">
+      <p><strong>Invalid branch name:</strong> configuration now rejects the lone <code>@</code> and DEL/control characters instead of accepting names Git cannot represent.</p>
+      <p><strong>Wrong destination ref:</strong> even a syntactically valid alternate branch cannot be smuggled through a modified context. A bare-remote regression test proves neither the wrong ref nor the expected ref is created.</p>
+      <p><strong>Provider mismatch:</strong> GitHub identity is validated before publication, avoiding a partially published review when URL construction cannot succeed.</p>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>Five-question review check</h2>
+    <form>
+      <fieldset data-answer="b"><legend>1. What happens when <code>sliceBoundaryMode</code> is omitted?</legend><label><input type="radio" name="q1" value="a"> Synthetic mode</label><label><input type="radio" name="q1" value="b"> Pull-request mode</label><label><input type="radio" name="q1" value="c"> Configuration error</label></fieldset>
+      <fieldset data-answer="c"><legend>2. Which object is promoted after synthetic acceptance?</legend><label><input type="radio" name="q2" value="a"> A new squash commit</label><label><input type="radio" name="q2" value="b"> The topic HEAD</label><label><input type="radio" name="q2" value="c"> The exact reviewed commit</label></fieldset>
+      <fieldset data-answer="a"><legend>3. How is the review destination protected?</legend><label><input type="radio" name="q3" value="a"> It is re-derived from active workflow identity</label><label><input type="radio" name="q3" value="b"> Any unused branch is accepted</label><label><input type="radio" name="q3" value="c"> A force push repairs drift</label></fieldset>
+      <fieldset data-answer="b"><legend>4. Can synthetic transport replace the final integration-to-release PR?</legend><label><input type="radio" name="q4" value="a"> Yes</label><label><input type="radio" name="q4" value="b"> No</label><label><input type="radio" name="q4" value="c"> Only on main</label></fieldset>
+      <fieldset data-answer="c"><legend>5. What does promotion recheck?</legend><label><input type="radio" name="q5" value="a"> Only the acceptance actor</label><label><input type="radio" name="q5" value="b"> Only the review URL</label><label><input type="radio" name="q5" value="c"> Ref, base, source, tree, parent, receipt, and acceptance</label></fieldset>
+      <button type="button" id="grade">Check answers</button><span id="score" role="status" aria-live="polite"></span>
+    </form>
+  </section>
+</main>
+<script>
+  document.getElementById('grade').addEventListener('click', () => {
+    const sets = [...document.querySelectorAll('fieldset[data-answer]')];
+    const correct = sets.filter((set) => set.querySelector('input:checked')?.value === set.dataset.answer).length;
+    document.getElementById('score').textContent = `${correct} / ${sets.length} correct`;
+  });
+</script>
+</body>
+</html>

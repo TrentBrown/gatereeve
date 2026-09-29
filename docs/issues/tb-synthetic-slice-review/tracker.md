@@ -23,4 +23,10 @@
 Append boundary entries here. Synthetic slice boundaries use a stable review
 reference in place of a PR number; the feature-final boundary remains a PR.
 
-- **PR #71 - feature final:** source `5b597fb89604ee227dd1a3f5e042fcf24e167b30`; base `0da23d3316150cd2fa404616d1b538ad730979c4`; scope P1-P7 / R1-R8; retention `tracked`; boundary packet [`pr-71/boundary.json`](pr-71/boundary.json).
+### PR #71 - feature final
+
+- **Source:** `7cbbd636bd9c3fda5a686ce0353f0125b3e44418`
+- **Base:** `0da23d3316150cd2fa404616d1b538ad730979c4`
+- **Scope:** P1-P7 / R1-R8
+- **Retention:** `tracked`
+- **Evidence packet:** [`pr-71/boundary.json`](pr-71/boundary.json)
