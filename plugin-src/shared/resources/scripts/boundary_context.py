@@ -34,6 +34,20 @@ def _required_sha(value: object, label: str) -> str:
     return result
 
 
+def synthetic_review_identity(
+    feature_id: object,
+    repository_alias: object,
+    candidate_sha: object,
+) -> tuple[str, str]:
+    """Return the only review identity allowed for one synthetic candidate."""
+    feature = _required_string(feature_id, "review.featureId")
+    alias = _required_string(repository_alias, "repositoryAlias")
+    candidate = _required_sha(candidate_sha, "review.candidateSourceSha")
+    review_id = f"{alias}-{candidate[:12]}"
+    review_ref = f"refs/heads/review/{feature}/{alias}/{candidate[:12]}"
+    return review_id, review_ref
+
+
 @dataclass(frozen=True)
 class BoundaryContext:
     repository_root: Path
@@ -179,13 +193,22 @@ class BoundaryContext:
             except (KeyError, PullRequestContextError) as error:
                 raise BoundaryContextError(str(error)) from error
         else:
+            feature_id = _required_string(review.get("featureId"), "review.featureId")
             review_id = _required_string(review.get("reviewId"), "review.reviewId")
             candidate = _required_sha(
                 review.get("candidateSourceSha"), "review.candidateSourceSha"
             )
-            if candidate != evaluated or review_id != context.reference:
+            review_ref = _required_string(review.get("reviewRef"), "review.reviewRef")
+            expected_id, expected_ref = synthetic_review_identity(
+                feature_id, context.repository_alias, candidate
+            )
+            if (
+                candidate != evaluated
+                or review_id != expected_id
+                or review_ref != expected_ref
+            ):
                 raise BoundaryContextError(
-                    "Synthetic review identity must match the evaluated source"
+                    "Synthetic review identity and deterministic ref must match the evaluated source"
                 )
         return context
 

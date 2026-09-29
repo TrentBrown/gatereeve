@@ -16,6 +16,7 @@ from boundary_context import (
     BoundaryContext,
     BoundaryContextError,
     load_context,
+    synthetic_review_identity,
 )
 from workflow_context import (
     RepositoryContext,
@@ -157,6 +158,50 @@ def _repository_for(context: BoundaryContext) -> RepositoryContext:
     )
 
 
+def _configured_review_ref(
+    context: BoundaryContext,
+    repository: GitRepository,
+) -> str:
+    """Bind the mutation destination to current configured workflow identity."""
+    try:
+        workflow = resolve_workflow_context(
+            context.repository_root,
+            repository_alias=context.repository_alias,
+            git_executable=repository.git_executable,
+        )
+    except WorkflowContextError as error:
+        raise SyntheticReviewError(
+            f"Cannot resolve the configured synthetic review identity: {error}"
+        ) from error
+    configured = workflow.repository
+    if (
+        configured.path.resolve() != context.repository_root.resolve()
+        or configured.alias != context.repository_alias
+        or configured.remote != context.remote
+        or configured.integration_branch != context.base_branch
+        or configured.slice_boundary_mode != "synthetic-commit"
+    ):
+        raise SyntheticReviewError(
+            "Pinned context no longer matches the configured synthetic repository"
+        )
+    expected_id, expected_ref = synthetic_review_identity(
+        workflow.feature_id,
+        configured.alias,
+        context.evaluated_source_sha,
+    )
+    if (
+        context.review.get("featureId") != workflow.feature_id
+        or context.review.get("reviewId") != expected_id
+        or context.review.get("candidateSourceSha") != context.evaluated_source_sha
+        or context.review.get("reviewRef") != expected_ref
+    ):
+        raise SyntheticReviewError(
+            "Pinned synthetic review identity does not match the deterministic configured ref"
+        )
+    repository.git("check-ref-format", expected_ref)
+    return expected_ref
+
+
 def resolve_synthetic_context(
     repository_context: RepositoryContext,
     feature_id: str,
@@ -197,9 +242,10 @@ def resolve_synthetic_context(
         raise SyntheticReviewError(
             "Candidate does not descend from the pinned integration commit"
         )
-    review_id = f"{repository_context.alias}-{head_sha[:12]}"
-    review_ref = (
-        f"refs/heads/review/{feature_id}/{repository_context.alias}/{head_sha[:12]}"
+    review_id, review_ref = synthetic_review_identity(
+        feature_id,
+        repository_context.alias,
+        head_sha,
     )
     repository.git("check-ref-format", review_ref)
     return BoundaryContext(
@@ -217,6 +263,7 @@ def resolve_synthetic_context(
         feature_base_sha=repository_context.feature_base_sha,
         review={
             "mode": "synthetic-commit",
+            "featureId": feature_id,
             "reviewId": review_id,
             "candidateSourceSha": head_sha,
             "reviewRef": review_ref,
@@ -285,10 +332,10 @@ def publish_review(
     environment: Mapping[str, str] | None = None,
 ) -> dict[str, object]:
     repository = GitRepository(_repository_for(context), git_executable)
+    review_ref = _configured_review_ref(context, repository)
     final_head, tree_sha, declared, changed = _require_context_current(
         context, repository, evidence_paths=evidence_paths
     )
-    review_ref = _required_string(context.review.get("reviewRef"), "review.reviewRef")
     if repository.remote_ref(review_ref) is not None:
         raise SyntheticReviewError(
             f"Synthetic review ref already exists and will not be overwritten: {review_ref}"
@@ -441,12 +488,14 @@ def promote_review(
     ) != review_sha:
         raise SyntheticReviewError("Acceptance does not name the reviewed commit")
     repository = GitRepository(_repository_for(context), git_executable)
+    review_ref = _configured_review_ref(context, repository)
     repository.require_clean()
     if repository.branch() != context.head_branch:
         raise SyntheticReviewError("Local branch changed after context resolution")
     if repository.remote_ref(f"refs/heads/{context.base_branch}") != context.base_sha:
         raise SyntheticReviewError("Integration branch moved after review publication")
-    review_ref = str(normalized["reviewRef"])
+    if normalized["reviewRef"] != review_ref:
+        raise SyntheticReviewError("Receipt reviewRef is not the deterministic configured ref")
     if repository.remote_ref(review_ref) != review_sha:
         raise SyntheticReviewError("Review ref no longer names the reviewed commit")
     if repository.head() != normalized["finalHeadSha"]:

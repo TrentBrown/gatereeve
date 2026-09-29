@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 
@@ -231,6 +232,28 @@ class SyntheticReviewTests(unittest.TestCase):
             publish_review(context, git_executable=self.git)
 
         self.assertIsNone(self.remote_ref(str(context.review["reviewRef"])))
+
+    def test_refuses_non_deterministic_review_ref_without_mutation(self) -> None:
+        context = self.context()
+        expected_ref = str(context.review["reviewRef"])
+        wrong_ref = (
+            "refs/heads/review/other-feature/"
+            f"{context.repository_alias}/{context.evaluated_source_sha[:12]}"
+        )
+        tampered = replace(
+            context,
+            review={**context.review, "reviewRef": wrong_ref},
+        )
+
+        with self.assertRaisesRegex(SyntheticReviewError, "deterministic"):
+            publish_review(
+                tampered,
+                github_repository="example/product",
+                git_executable=self.git,
+            )
+
+        self.assertIsNone(self.remote_ref(wrong_ref))
+        self.assertIsNone(self.remote_ref(expected_ref))
 
     def test_gate_and_packet_use_transport_neutral_synthetic_identity(self) -> None:
         context = self.context()
