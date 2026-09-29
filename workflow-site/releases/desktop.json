@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "product": "gatereeve-desktop",
-  "generatedAt": "2026-09-25T15:52:03.565Z",
+  "generatedAt": "2026-09-29T03:44:02.242Z",
   "channels": {
     "stable": null,
     "rc": {
-      "version": "0.1.0-rc.13",
-      "publishedAt": "2026-09-25T15:52:03.565Z",
-      "sourceCommit": "94bad7535f71a9e31b2ce61ef40dbff6463e51bb",
+      "version": "0.1.0-rc.14",
+      "publishedAt": "2026-09-29T03:44:02.242Z",
+      "sourceCommit": "ac759c94bf127a1b8d40b50ef94c31ee9e06a2a6",
       "artifact": {
-        "name": "GateReeve-0.1.0-rc.13-macos-universal.dmg",
-        "bytes": 258642550,
-        "sha256": "aff1fbb0014494426f0d4912dc292c555ae46d072314e6efa6d609600e7a5e9f"
+        "name": "GateReeve-0.1.0-rc.14-macos-universal.dmg",
+        "bytes": 258177336,
+        "sha256": "d63e22735358078b23ab0b39df230a0448813b93c331100cb93d462dbc558c61"
       },
       "appleTrust": {
         "developerIdApplication": true,
