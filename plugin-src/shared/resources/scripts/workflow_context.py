@@ -108,11 +108,12 @@ def _validate_identifier(value: object, label: str) -> str:
 def validate_feature_id(value: object) -> str:
     if not isinstance(value, str) or not value:
         raise WorkflowContextError("featureId must be a nonempty Git-compatible name")
-    if any(character.isspace() or ord(character) < 32 for character in value):
+    if any(character.isspace() or ord(character) < 32 or ord(character) == 127 for character in value):
         raise WorkflowContextError("featureId must not contain whitespace or control characters")
     invalid_fragments = ("..", "//", "@{", "\\", "~", "^", ":", "?", "*", "[")
     if (
-        value.startswith(("/", ".", "-"))
+        value == "@"
+        or value.startswith(("/", ".", "-"))
         or value.endswith(("/", "."))
         or any(fragment in value for fragment in invalid_fragments)
         or any(part.startswith(".") or part.endswith(".lock") for part in value.split("/"))

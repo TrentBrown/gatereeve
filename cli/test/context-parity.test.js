@@ -183,6 +183,19 @@ test('JavaScript rejects the same unsafe configured contexts as Python', async (
         },
       },
     },
+    {
+      expected: /integrationBranch/u,
+      value: {
+        schemaVersion: 1,
+        featureId: 'feature',
+        repositories: {
+          product: {
+            path: '.',
+            integrationBranch: '@',
+          },
+        },
+      },
+    },
   ];
 
   for (const fixture of cases) {

@@ -196,6 +196,19 @@ class WorkflowContextTests(unittest.TestCase):
                 },
                 "releaseBranch",
             ),
+            (
+                {
+                    "schemaVersion": 1,
+                    "featureId": "tb-feature",
+                    "repositories": {
+                        "repo": {
+                            "path": ".",
+                            "integrationBranch": "@",
+                        }
+                    },
+                },
+                "integrationBranch",
+            ),
         ]
 
         for value, message in cases:

@@ -65,12 +65,13 @@ export function validateFeatureId(value) {
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error('featureId must be a nonempty Git-compatible name');
   }
-  if (/\s|[\u0000-\u001f]/u.test(value)) {
+  if (/\s|[\u0000-\u001f\u007f]/u.test(value)) {
     throw new Error('featureId must not contain whitespace or control characters');
   }
   const invalidFragments = ['..', '//', '@{', '\\', '~', '^', ':', '?', '*', '['];
   if (
-    value.startsWith('/')
+    value === '@'
+    || value.startsWith('/')
     || value.startsWith('.')
     || value.startsWith('-')
     || value.endsWith('/')

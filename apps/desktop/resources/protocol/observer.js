@@ -123,7 +123,7 @@ export function nextActions(projection) {
       );
       if (activeSlice?.state === 'IMPLEMENTING') {
         actions.push(action(`slice begin-boundary ${activeSlice.id}`, true, 'agent'));
-      } else if (activeSlice?.state === 'PR_BOUNDARY') {
+      } else if (['REVIEW_BOUNDARY', 'PR_BOUNDARY'].includes(activeSlice?.state)) {
         const attempt = activeAttempt(projection);
         for (const gate of attempt?.gates ?? []) {
           if (

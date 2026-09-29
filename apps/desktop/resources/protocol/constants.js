@@ -17,6 +17,7 @@ export const SLICE_STATES = Object.freeze([
   'PROPOSED',
   'PLANNED',
   'IMPLEMENTING',
+  'REVIEW_BOUNDARY',
   'PR_BOUNDARY',
   'HUMAN_REVIEW',
   'MERGED',

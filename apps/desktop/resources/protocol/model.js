@@ -56,13 +56,27 @@ function assertExactStringSet(actual, expected, label) {
   }
 }
 
-function validateMachine(machine, expectedStates, label) {
+function validateMachine(
+  machine,
+  expectedStates,
+  label,
+  { compatibleStateSets = [] } = {}
+) {
   assertObject(machine, label);
-  assertExactStringSet(machine.states, expectedStates, `${label}.states`);
-  if (!expectedStates.includes(machine.initial)) {
+  const variants = [expectedStates, ...compatibleStateSets];
+  const declaredStates = variants.find((variant) => {
+    if (!Array.isArray(machine.states)) return false;
+    const actual = [...new Set(machine.states)].sort();
+    const expected = [...variant].sort();
+    return JSON.stringify(actual) === JSON.stringify(expected);
+  });
+  if (!declaredStates) {
+    assertExactStringSet(machine.states, expectedStates, `${label}.states`);
+  }
+  if (!declaredStates.includes(machine.initial)) {
     throw new ContractError(`${label}.initial is not a declared state`);
   }
-  if (!Array.isArray(machine.terminal) || machine.terminal.some((state) => !expectedStates.includes(state))) {
+  if (!Array.isArray(machine.terminal) || machine.terminal.some((state) => !declaredStates.includes(state))) {
     throw new ContractError(`${label}.terminal contains an undeclared state`);
   }
   if (!Array.isArray(machine.transitions)) {
@@ -76,7 +90,7 @@ function validateMachine(machine, expectedStates, label) {
       throw new ContractError(`${label} transition IDs must be nonempty and unique`);
     }
     transitionIds.add(transition.id);
-    if (!expectedStates.includes(transition.from) || !expectedStates.includes(transition.to)) {
+    if (!declaredStates.includes(transition.from) || !declaredStates.includes(transition.to)) {
       throw new ContractError(`${label}.${transition.id} references an undeclared state`);
     }
     if (typeof transition.eventType !== 'string' || transition.eventType.length === 0) {
@@ -135,7 +149,16 @@ export function validateModel(model) {
   }
   assertExactStringSet(model.guardIds, TRUSTED_GUARD_IDS, 'guardIds');
   validateMachine(model.feature, FEATURE_STATES, 'feature');
-  validateMachine(model.slice, SLICE_STATES, 'slice');
+  validateMachine(
+    model.slice,
+    SLICE_STATES.filter((state) => state !== 'PR_BOUNDARY'),
+    'slice',
+    {
+      compatibleStateSets: [
+        SLICE_STATES.filter((state) => state !== 'REVIEW_BOUNDARY'),
+      ],
+    }
+  );
   validateMachine(model.change, CHANGE_STATES, 'change');
   assertObject(model.change.authorityByTarget, 'change.authorityByTarget');
   const expectedChangeAuthorities = {

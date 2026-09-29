@@ -11,7 +11,12 @@ import {
   validateResolvedModuleGraph,
 } from './modules.js';
 
-const ACTIVE_SLICE_STATES = new Set(['IMPLEMENTING', 'PR_BOUNDARY', 'HUMAN_REVIEW']);
+const REVIEW_BOUNDARY_STATES = new Set(['REVIEW_BOUNDARY', 'PR_BOUNDARY']);
+const ACTIVE_SLICE_STATES = new Set([
+  'IMPLEMENTING',
+  ...REVIEW_BOUNDARY_STATES,
+  'HUMAN_REVIEW',
+]);
 const PASSAGE_FREE_EVENTS = new Set([
   'FEATURE_INITIALIZED',
   'FEATURE_PAUSED',
@@ -657,7 +662,7 @@ function finalizeAttempts(
       }
 
       const blockers = [];
-      if (attempt.state !== 'ACTIVE' || slice?.state !== 'PR_BOUNDARY') {
+      if (attempt.state !== 'ACTIVE' || !REVIEW_BOUNDARY_STATES.has(slice?.state)) {
         blockers.push({ type: 'attempt', state: attempt.state });
       }
       if (blockingChangeIds.length > 0) {

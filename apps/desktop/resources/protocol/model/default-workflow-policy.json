@@ -3,8 +3,8 @@
   "modules": [
     {
       "id": "gatereeve/pin-context",
-      "version": "1.0.0",
-      "digest": "sha256:5f050c8a7c11e5bab32b25bd6fdb18c743167ba17fed49ebc498638b3299dcdc",
+      "version": "1.1.0",
+      "digest": "sha256:43d1e0c7fc45a712ad5c0ceb8c4cfd4f852c50245e8fccefae64a89d271fdf63",
       "enabled": true
     },
     {
