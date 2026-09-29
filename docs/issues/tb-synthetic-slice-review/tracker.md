@@ -30,3 +30,13 @@ reference in place of a PR number; the feature-final boundary remains a PR.
 - **Scope:** P1-P7 / R1-R8
 - **Retention:** `tracked`
 - **Evidence packet:** [`pr-71/boundary.json`](pr-71/boundary.json)
+
+## Feature Completion
+
+- **Feature-final merge:** [PR #71](https://github.com/TrentBrown/gatereeve/pull/71), merge commit `ac759c94bf127a1b8d40b50ef94c31ee9e06a2a6`
+- **Release:** [v0.1.0-rc.14](https://github.com/TrentBrown/gatereeve/releases/tag/v0.1.0-rc.14)
+- **Release source:** `ac759c94bf127a1b8d40b50ef94c31ee9e06a2a6`
+- **Release Conductor:** start run [36517583196](https://github.com/TrentBrown/gatereeve/actions/runs/36517583196), resume run [36518941920](https://github.com/TrentBrown/gatereeve/actions/runs/36518941920)
+- **Terminal state:** `COMPLETE`, sequence 12, state SHA-256 `aba125281f156038937a9820ca92cc042d7b436b026ab88f1df2bd2a55401ea5`
+- **Release evidence:** [`release-closeout.md`](release-closeout.md)
+- **Feature record retention:** tracked

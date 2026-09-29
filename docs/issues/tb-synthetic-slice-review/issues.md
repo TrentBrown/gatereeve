@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan.
 
 ## I-1 - Configuration and context contracts
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P1, P2
 - **Rubric criteria:** R1, R2, R7, R8
@@ -21,7 +21,7 @@ retaining historical PR context support.
 
 ## I-2 - Synthetic review publication and promotion
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1.5d
 - **Plan steps:** P3
 - **Rubric criteria:** R3, R4, R5, R6
@@ -33,7 +33,7 @@ comment capture, currentness checks, and exact fast-forward promotion.
 
 ## I-3 - Lifecycle, evidence, and final PR routing
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1.5d
 - **Plan steps:** P4, P5
 - **Rubric criteria:** R5, R6, R7, R8
@@ -45,7 +45,7 @@ and preserve the integration-to-release feature-final PR.
 
 ## I-4 - Documentation, packaging, and acceptance
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** 1d
 - **Plan steps:** P6, P7
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8
