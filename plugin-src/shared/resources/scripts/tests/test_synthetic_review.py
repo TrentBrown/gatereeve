@@ -224,6 +224,14 @@ class SyntheticReviewTests(unittest.TestCase):
             )
         self.assertIsNone(self.remote_ref(str(context.review["reviewRef"])))
 
+    def test_resolves_github_identity_before_publishing_review_ref(self) -> None:
+        context = self.context()
+
+        with self.assertRaisesRegex(SyntheticReviewError, "GitHub repository"):
+            publish_review(context, git_executable=self.git)
+
+        self.assertIsNone(self.remote_ref(str(context.review["reviewRef"])))
+
     def test_gate_and_packet_use_transport_neutral_synthetic_identity(self) -> None:
         context = self.context()
         workflow = resolve_workflow_context(self.repository, git_executable=self.git)

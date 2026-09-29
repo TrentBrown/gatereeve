@@ -293,6 +293,12 @@ def publish_review(
         raise SyntheticReviewError(
             f"Synthetic review ref already exists and will not be overwritten: {review_ref}"
         )
+    remote_url = repository.git("remote", "get-url", repository.remote)
+    github_name = github_repository or _github_repository(remote_url)
+    if github_name is None:
+        raise SyntheticReviewError(
+            "Cannot derive a GitHub repository for the synthetic review URL"
+        )
     commit_environment = dict(os.environ)
     if environment is not None:
         commit_environment.update(environment)
@@ -311,12 +317,6 @@ def publish_review(
     repository.git("push", repository.remote, f"{review_sha}:{review_ref}")
     if repository.remote_ref(review_ref) != review_sha:
         raise SyntheticReviewError("Published review ref does not name the synthetic commit")
-    remote_url = repository.git("remote", "get-url", repository.remote)
-    github_name = github_repository or _github_repository(remote_url)
-    if github_name is None:
-        raise SyntheticReviewError(
-            "Cannot derive a GitHub repository for the synthetic review URL"
-        )
     return {
         "schemaVersion": SCHEMA_VERSION,
         "status": "published",
