@@ -2,7 +2,7 @@
 
 ## Local implementation checks
 
-- CLI suite: 277 tests passed in final portable acceptance.
+- CLI suite: 278 tests passed in final portable acceptance.
 - Desktop suite: 206 tests passed, including sandboxed Electron checks.
 - Python lifecycle regression suite: 23 tests passed, including native Git fixtures, authorization, head drift, closure failure, re-closure and archive decoding.
 - Gate-adapter suite: 9 tests passed.

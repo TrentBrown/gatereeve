@@ -9,13 +9,13 @@
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|--------|-------|
-| R1 | Configuration | NOT YET | - | I-1 |
-| R2 | PR preparation | NOT YET | - | I-1 |
-| R3 | Pinned closed review | NOT YET | - | I-1 |
-| R4 | Authorized merge window | NOT YET | - | I-1 |
-| R5 | Synthetic retirement | NOT YET | - | I-1 |
-| R6 | Portable delivery | NOT YET | - | I-1 |
+| R1 | Configuration | PASS | PR #74 attempt 3 | Strict boolean/default and retired-mode parity tests |
+| R2 | PR preparation | PASS | PR #74 attempt 3 | Create/reuse/close tests; live PR #74 closed |
+| R3 | Pinned closed review | PASS | PR #74 attempt 3 | Policy/source/base drift and live-ref tests |
+| R4 | Authorized merge window | PASS | PR #74 attempt 3 | Exact-head authorization/failure re-closure tests |
+| R5 | Synthetic retirement | PASS | PR #74 attempt 3 | Archived decoding retained; active synthetic rejected |
+| R6 | Portable delivery | PASS | PR #74 attempt 3 | Portable 278 CLI/96 Python/206 Desktop; GitHub receipt |
 
 ## Review Log
 
-None.
+2026-10-09: Implementation self-evaluation passes R1–R6 at source 604bf207c610cf5bc7703e84186fb6a282c69055. Independent Judge and code review pending. Source is not merged, published or installed.
