@@ -4,10 +4,10 @@
 
 - CLI suite: 278 tests passed in final portable acceptance.
 - Desktop suite: 206 tests passed, including sandboxed Electron checks.
-- Python lifecycle regression suite: 23 tests passed, including native Git fixtures, authorization, head drift, closure failure, re-closure and archive decoding.
+- Python lifecycle regression suite: 24 tests passed, including native Git fixtures, authorization, head drift, closure failure, re-closure and archive decoding.
 - Gate-adapter suite: 9 tests passed.
 - Plugin validate and lint passed; branch docs and decision-triage validators passed.
-- Full portable acceptance passed (Darwin arm64, Python 3.11.11, Node v26.0.0), including 96 workflow Python tests, 28 pattern tests, plugin smoke tests, dual-platform builds and determinism checks.
+- Full portable acceptance passed (Darwin arm64, Python 3.11.11, Node v26.0.0), including 97 workflow Python tests, 28 pattern tests, plugin smoke tests, dual-platform builds and determinism checks.
 
 ## Scope
 

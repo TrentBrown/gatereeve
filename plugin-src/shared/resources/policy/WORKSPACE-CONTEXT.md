@@ -106,14 +106,14 @@ JSON object containing `repository`, `number`, `url`, `state`, `isDraft`,
 `baseRefName`, `baseRefOid`, `headRefName`, and `headRefOid`.
 
 Resolution is a blocking synchronization preflight. It rejects a dirty target
-repository, detached or wrong local branch, a PR in the wrong policy-required state or a non-draft PR, mismatched
+repository, detached or wrong local branch, a PR in the wrong policy-required state or a non-draft OPEN review PR, mismatched
 GitHub repository, and any local `HEAD` that differs from the pushed PR head.
 The resulting context pins the PR base, head, merge base, and
 `evaluatedSourceSha`; it also pins the configured `featureBaseSha` when one is
 present. All diff-driven gates consume these exact values.
 
 `keepPullRequestsClosed` is optional, strictly boolean, and defaults to false.
-When true, draft PRs must be CLOSED during review; otherwise they must be OPEN.
+When true, PRs must be CLOSED during review; otherwise they must be OPEN drafts. A closed PR that became ready during a failed merge window can be reused for another review without reopening it.
 The preference is pinned in PR context and checked against current configuration
 throughout the boundary. Old contexts without the field retain false behavior.
 `sliceBoundaryMode` is retired: remove it from configuration rather than

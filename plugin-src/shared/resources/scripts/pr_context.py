@@ -395,7 +395,7 @@ def _validate_snapshot_identity(
         raise PullRequestContextError(
             f"Pull request #{snapshot.number} is {snapshot.state}, not {required_state}"
         )
-    if not snapshot.is_draft:
+    if not snapshot.is_draft and not repository.context.keep_pull_requests_closed:
         raise PullRequestContextError(
             f"Pull request #{snapshot.number} must be draft when the boundary begins"
         )

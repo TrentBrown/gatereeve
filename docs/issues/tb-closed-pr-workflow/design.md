@@ -30,7 +30,7 @@ The setting defaults to false and applies to slice and feature-final PRs. Keep r
 
 ### Create and keep closed
 
-- Reuse ordinary draft PRs and their native identity, branches, and checks. Closed-PR review uses the existing exact-commit GateReeve packet and branch comparison when GitHub's native diff is stale.
+- Create ordinary draft PRs and reuse their native identity, branches, and checks. A closed PR left ready after a failed merge can begin another review while closed. Closed-PR review uses the existing exact-commit GateReeve packet and branch comparison when GitHub's native diff is stale.
 - Provide a deterministic shared helper to create or reuse the intended PR, close it immediately when the preference is true, verify CLOSED state, and resolve its exact context. Fail visibly if closure fails; do not claim the queue is clear.
 - Keep the PR closed throughout preparation, evidence finalization, and human review. Helpers must find closed PRs explicitly and must not create duplicate PRs because an open-only search returned nothing.
 - CLOSED is a permitted pre-merge state only when explicitly configured. MERGED and missing/deleted PRs remain invalid for starting or continuing a new boundary.

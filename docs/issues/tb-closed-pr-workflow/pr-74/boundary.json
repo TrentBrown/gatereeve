@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 2,
+  "scope": "feature-final",
+  "featureId": "tb-closed-pr-workflow",
+  "repositoryAlias": "gatereeve",
+  "packetId": "pr-74",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 74,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/74",
+    "state": "CLOSED",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93",
+    "headRefName": "tb-closed-pr-workflow",
+    "headRefOid": "7dbf4741bb69c726d4636ec316284d8de2f4bb77",
+    "githubReportedHeadSha": "2a174c16b97a3875042726a7acf69a18041f39f6",
+    "githubReportedBaseSha": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93"
+  },
+  "mergeBaseSha": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93",
+  "evaluatedSourceSha": "7dbf4741bb69c726d4636ec316284d8de2f4bb77",
+  "featureBaseSha": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93",
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": false
+  },
+  "gates": {
+    "verification": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/closed-pr-attempt-4/verification.md",
+        "sha256": "sha256:aa781962109c4730c99d827cdf7bac5f52d05a4931dd0b1120befd26bf750eb1"
+      }
+    },
+    "specEvaluation": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/closed-pr-attempt-4/spec-evaluation.md",
+        "sha256": "sha256:0b377dfe6301cad4e19d3a5f2da34f7e066281e075bf640e5ec99f238c5cc068"
+      }
+    },
+    "judge": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/closed-pr-attempt-4/judge.md",
+        "sha256": "sha256:91d2e4d5c531b98aa30f18d237d3451f06d10da410e747428641cf3391bb182b"
+      }
+    },
+    "codeReview": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/closed-pr-attempt-4/code-review.md",
+        "sha256": "sha256:8d3c425f1c8536df4c6d534f68ac8d3471f50d0760fb9169908dabbc4bd0caff"
+      }
+    },
+    "patternReview": {
+      "disposition": "not_applicable",
+      "reason": "No configured active pattern rule scope",
+      "evidence": null
+    },
+    "explainDiff": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/closed-pr-attempt-4/explain-diff.html",
+        "sha256": "sha256:f9102ab587fcc3c5beeab01a58a0134e88b40f373d72170891fff1a9a476967d"
+      }
+    }
+  }
+}

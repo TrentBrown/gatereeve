@@ -134,6 +134,22 @@ class ClosedPullRequestTests(fixtures.PullRequestContextTests):
             with self.assertRaisesRegex(PullRequestContextError, "Multiple"):
                 prepare_pull_request(repository, provider, title="Feature", body_file=body.name)
 
+    def test_closed_ready_pr_can_start_another_review_after_failed_merge(self):
+        repository = self.closed_repository()
+        provider = Provider(self.payload(state="CLOSED"), fail="merge")
+        context = resolve_pull_request_context(repository, provider)
+        with self.assertRaisesRegex(PullRequestContextError, "merge failed"):
+            merge_pull_request(context, provider, reviewed_head=self.head_sha, authorization="Approved")
+        self.assertEqual(provider.payload["state"], "CLOSED")
+        self.assertFalse(provider.payload["isDraft"])
+        provider.calls.clear()
+        with fixtures.tempfile.NamedTemporaryFile() as body:
+            replacement = prepare_pull_request(repository, provider, title="Retry", body_file=body.name)
+        self.assertEqual(replacement.pull_request.state, "CLOSED")
+        self.assertFalse(replacement.pull_request.is_draft)
+        self.assertNotIn("reopen", [call[1] for call in provider.calls])
+        self.assertEqual(verify_context_is_current(replacement, provider)["status"], "current")
+
     def test_default_preparation_keeps_pr_open(self):
         provider = Provider(self.payload(), listed=False)
         with fixtures.tempfile.NamedTemporaryFile() as body:
