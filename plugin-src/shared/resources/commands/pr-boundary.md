@@ -19,6 +19,10 @@ preference (default false); it applies to both slice and feature-final PRs.
    policy. Do not reopen for preparation or review. Existing manually prepared
    PRs can also use `pr_context.py resolve` after their state matches policy.
 
+   GitHub freezes the native diff of a closed PR after pushes. Use the pinned
+   GateReeve packet and branch comparison for current review; the provider
+   resolves live refs and preserves GitHub-reported refs in the context.
+
    Do not begin persistent boundary evidence before this succeeds. For a
    feature-final boundary, always use PR mode. The selected configured
    repository must already define its original `featureBaseSha`; when release

@@ -33,4 +33,4 @@ The global software-development workflow Definition of Done applies. Source revi
 
 ## Changes
 
-None.
+- 2026-10-09: AC3 uses the live remote branch source/base when a closed PR reports stale native refs. Evidence also preserves GitHub-reported refs. AC4 must compare the actual reopened PR head with the accepted final head before merge. This clarifies the approved exact-source behavior after empirical discovery, without adding scope or weakening criteria.

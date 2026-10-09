@@ -141,5 +141,22 @@
   "pendingReviewCreated": true,
   "pendingReviewState": "PENDING",
   "pendingReviewId": 5474530392,
-  "pendingReviewDeleted": true
+  "pendingReviewDeleted": true,
+  "closedPush": {
+    "pushedHead": "a1f35a6527de089a08355f65b67a7d5200131c69",
+    "githubReportedHead": "2a174c16b97a3875042726a7acf69a18041f39f6",
+    "stateAfterPush": "CLOSED",
+    "nativeDiffFrozen": true
+  },
+  "liveRefResolution": {
+    "headRefOid": "a1f35a6527de089a08355f65b67a7d5200131c69",
+    "githubReportedHeadSha": "2a174c16b97a3875042726a7acf69a18041f39f6",
+    "missingRefBehavior": "reject rather than fall back to frozen metadata"
+  },
+  "limitations": [
+    "Pending review creation verified and draft deleted without submission. Formal submitted review was not tested.",
+    "No reopening or merging was authorized or performed. Native reopened-head matching and failure re-closure are covered by injected-provider tests.",
+    "Native PR diff remains stale after closed branch pushes. Review uses pinned GateReeve evidence and branch refs.",
+    "Checks listed here belong to the initial opened PR head; they are not proof for subsequent closed-branch heads."
+  ]
 }

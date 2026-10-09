@@ -11,6 +11,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Callable, Mapping, Sequence
+from urllib.parse import quote
 
 from workflow_context import RepositoryContext, resolve_workflow_context
 
@@ -76,6 +77,8 @@ class PullRequestSnapshot:
     base_sha: str
     head_branch: str
     head_sha: str
+    github_reported_head_sha: str | None = None
+    github_reported_base_sha: str | None = None
 
     @classmethod
     def from_dict(cls, value: object) -> "PullRequestSnapshot":
@@ -98,6 +101,14 @@ class PullRequestSnapshot:
                 value.get("headRefName"), "pullRequest.headRefName"
             ),
             head_sha=_required_sha(value.get("headRefOid"), "pullRequest.headRefOid"),
+            github_reported_head_sha=(
+                _required_sha(value["githubReportedHeadSha"], "githubReportedHeadSha")
+                if "githubReportedHeadSha" in value else None
+            ),
+            github_reported_base_sha=(
+                _required_sha(value["githubReportedBaseSha"], "githubReportedBaseSha")
+                if "githubReportedBaseSha" in value else None
+            ),
         )
 
     def to_dict(self) -> dict[str, object]:
@@ -111,6 +122,10 @@ class PullRequestSnapshot:
             "baseRefOid": self.base_sha,
             "headRefName": self.head_branch,
             "headRefOid": self.head_sha,
+            **({"githubReportedHeadSha": self.github_reported_head_sha}
+               if self.github_reported_head_sha is not None else {}),
+            **({"githubReportedBaseSha": self.github_reported_base_sha}
+               if self.github_reported_base_sha is not None else {}),
         }
 
 
@@ -345,11 +360,26 @@ class GitHubPullRequestProvider(PullRequestProvider):
                     "--json",
                     (
                         "number,url,state,isDraft,baseRefName,baseRefOid,"
-                        "headRefName,headRefOid"
+                        "headRefName,headRefOid,headRepository"
                     ),
                 ]
             )
             payload = json.loads(self.gh(*args))
+            if payload.get("state") == "CLOSED":
+                # GitHub freezes a closed PR's reported refs and native diff.
+                # Review the live branches, while retaining what GitHub reports.
+                head_repository = payload.get("headRepository") or {}
+                head_name = _required_string(head_repository.get("nameWithOwner"), "PR head repository")
+                for field, repo, branch, reported in [
+                    ("headRefOid", head_name, payload["headRefName"], "githubReportedHeadSha"),
+                    ("baseRefOid", repository, payload["baseRefName"], "githubReportedBaseSha"),
+                ]:
+                    payload[reported] = payload[field]
+                    ref = quote(branch, safe="")
+                    payload[field] = _required_sha(
+                        self.gh("api", f"repos/{repo}/git/ref/heads/{ref}", "--jq", ".object.sha"),
+                        f"Live {field}",
+                    )
         except json.JSONDecodeError as error:
             raise PullRequestContextError(f"gh returned invalid JSON: {error}") from error
         payload["repository"] = repository

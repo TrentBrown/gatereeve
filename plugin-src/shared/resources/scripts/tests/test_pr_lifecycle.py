@@ -10,6 +10,7 @@ from boundary_context import BoundaryContext, synthetic_review_identity
 from boundary_gate import resolve_gate_context, BoundaryGateError
 from pr_context import (
     PullRequestContext, PullRequestContextError, PullRequestSnapshot,
+    GitHubPullRequestProvider,
     resolve_pull_request_context, verify_context_is_current,
     verify_boundary_context_is_current, finalize_pull_request_context,
 )
@@ -51,6 +52,28 @@ class Provider:
 
 
 class ClosedPullRequestTests(fixtures.PullRequestContextTests):
+    def test_github_closed_pr_uses_live_branch_refs_and_preserves_frozen_metadata(self):
+        payload = self.payload(state="CLOSED", headRefOid=self.base_sha)
+        payload["headRepository"] = {"nameWithOwner": "example/product"}
+        def runner(executable, args, cwd, environment):
+            if args[0] == "repo":
+                return json.dumps({"nameWithOwner": "example/product"})
+            if args[0] == "pr":
+                return json.dumps(payload)
+            if "tb-feature-02-pr-context" in args[1]:
+                return self.head_sha
+            return self.base_sha
+        snapshot = GitHubPullRequestProvider(self.root, runner=runner).snapshot("42")
+        self.assertEqual(snapshot.head_sha, self.head_sha)
+        self.assertEqual(snapshot.github_reported_head_sha, self.base_sha)
+        self.assertEqual(PullRequestSnapshot.from_dict(snapshot.to_dict()), snapshot)
+        def missing_ref(*args):
+            if args[1][0] == "api":
+                raise PullRequestContextError("live branch missing")
+            return runner(*args)
+        with self.assertRaisesRegex(PullRequestContextError, "live branch missing"):
+            GitHubPullRequestProvider(self.root, runner=missing_ref).snapshot("42")
+
     def closed_repository(self):
         self.repository = replace(self.repository, keep_pull_requests_closed=True)
         self.config = {"schemaVersion": 1, "featureId": "tb-feature",

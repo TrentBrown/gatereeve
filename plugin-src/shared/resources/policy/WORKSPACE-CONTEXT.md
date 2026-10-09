@@ -137,7 +137,14 @@ python3 "<plugin-root>/resources/scripts/pr_lifecycle.py" prepare \
 Add `--scope feature-final` for the final PR. Preparation searches all PR
 states for the exact head/base, reuses a single unmerged match, and rejects
 ambiguity. When configured, it closes immediately and verifies closure before
-pinning context. Closing clears the open queue; it does not make a PR private
+pinning context. GitHub freezes a closed PR's reported head and native diff after pushes.
+GateReeve therefore resolves live head/base branch refs and records the frozen
+refs as `githubReportedHeadSha`/`githubReportedBaseSha`. Review the exact pinned
+GateReeve packet or branch comparison while closed; do not treat the native
+Files changed tab as current after a push. Missing branch refs block review.
+Reopening must expose the exact accepted final head before merge.
+
+Closing clears the open queue; it does not make a PR private
 or suppress GitHub creation notifications.
 
 ## Authorized merge window

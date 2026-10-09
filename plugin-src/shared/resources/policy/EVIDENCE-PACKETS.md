@@ -32,7 +32,10 @@ python3 "<plugin-root>/resources/scripts/boundary_packet.py" path \
 ```
 
 PR contexts may pin `keepPullRequestsClosed: true`. Their PR metadata records
-CLOSED state during preparation/review; packet identity and evidence hashing
+CLOSED state during preparation/review. `headRefOid`/`baseRefOid` resolve live
+branch refs; optional `githubReportedHeadSha`/`githubReportedBaseSha` preserve
+the closed PR's frozen native metadata. Review the exact pinned packet rather
+than a stale native PR diff. Packet identity and evidence hashing
 remain unchanged. Historical contexts without that preference retain ordinary
 OPEN-PR semantics.
 
