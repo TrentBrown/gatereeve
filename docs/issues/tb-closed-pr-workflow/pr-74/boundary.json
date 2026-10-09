@@ -13,12 +13,12 @@
     "baseRefName": "main",
     "baseRefOid": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93",
     "headRefName": "tb-closed-pr-workflow",
-    "headRefOid": "7dbf4741bb69c726d4636ec316284d8de2f4bb77",
+    "headRefOid": "c93859546738d1476b4ac4799f55bad994a63354",
     "githubReportedHeadSha": "2a174c16b97a3875042726a7acf69a18041f39f6",
     "githubReportedBaseSha": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93"
   },
   "mergeBaseSha": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93",
-  "evaluatedSourceSha": "7dbf4741bb69c726d4636ec316284d8de2f4bb77",
+  "evaluatedSourceSha": "c93859546738d1476b4ac4799f55bad994a63354",
   "featureBaseSha": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93",
   "applicability": {
     "specEvaluation": true,
@@ -30,32 +30,32 @@
       "disposition": "passed",
       "reason": null,
       "evidence": {
-        "path": "attempts/closed-pr-attempt-4/verification.md",
-        "sha256": "sha256:aa781962109c4730c99d827cdf7bac5f52d05a4931dd0b1120befd26bf750eb1"
+        "path": "attempts/closed-pr-attempt-5/verification.md",
+        "sha256": "sha256:ad2b84aba30ba8c983ce231f3bc796a65df592dbbb227cedefaecde75e7edac6"
       }
     },
     "specEvaluation": {
       "disposition": "passed",
       "reason": null,
       "evidence": {
-        "path": "attempts/closed-pr-attempt-4/spec-evaluation.md",
-        "sha256": "sha256:0b377dfe6301cad4e19d3a5f2da34f7e066281e075bf640e5ec99f238c5cc068"
+        "path": "attempts/closed-pr-attempt-5/spec-evaluation.md",
+        "sha256": "sha256:011f61a2d0cac98418ca69d2a5841653084be4f85e1cb4b3c24ff1e946d79e49"
       }
     },
     "judge": {
       "disposition": "passed",
       "reason": null,
       "evidence": {
-        "path": "attempts/closed-pr-attempt-4/judge.md",
-        "sha256": "sha256:91d2e4d5c531b98aa30f18d237d3451f06d10da410e747428641cf3391bb182b"
+        "path": "attempts/closed-pr-attempt-5/judge.md",
+        "sha256": "sha256:7792f1a2d9dfa53dda330a3c2b24d6cd95272266b640a5b34229ba0c370d88ec"
       }
     },
     "codeReview": {
       "disposition": "passed",
       "reason": null,
       "evidence": {
-        "path": "attempts/closed-pr-attempt-4/code-review.md",
-        "sha256": "sha256:8d3c425f1c8536df4c6d534f68ac8d3471f50d0760fb9169908dabbc4bd0caff"
+        "path": "attempts/closed-pr-attempt-5/code-review.md",
+        "sha256": "sha256:b1061ec90ae914adbba401e47064ec9324f030a61d69fc67fda4d388567f6c1f"
       }
     },
     "patternReview": {
@@ -67,8 +67,8 @@
       "disposition": "passed",
       "reason": null,
       "evidence": {
-        "path": "attempts/closed-pr-attempt-4/explain-diff.html",
-        "sha256": "sha256:f9102ab587fcc3c5beeab01a58a0134e88b40f373d72170891fff1a9a476967d"
+        "path": "attempts/closed-pr-attempt-5/explain-diff.html",
+        "sha256": "sha256:cc1e1220ecfad443074d67ed5270b37fa26f67505bbddfb08984985ab0adba61"
       }
     }
   }
