@@ -253,6 +253,9 @@ export async function recordSliceTransition(
     recordedAt,
   } = {}
 ) {
+  if (transitionId === 'begin-boundary' && payload.context?.transport === 'synthetic-commit') {
+    throw new TransitionRejectedError('Synthetic review is retired; create a new PR boundary');
+  }
   const record = await readFeatureRecord(featureHome);
   const preflight = preflightSliceTransition(record, transitionId, sliceId, {
     actor,

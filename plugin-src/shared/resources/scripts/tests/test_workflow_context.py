@@ -54,7 +54,7 @@ class WorkflowContextTests(unittest.TestCase):
                         "remote": "origin",
                         "integrationBranch": "main",
                         "releaseBranch": "release",
-                        "sliceBoundaryMode": "synthetic-commit",
+                        "keepPullRequestsClosed": True,
                         "featureBaseSha": "A" * 40,
                     }
                 },
@@ -75,7 +75,7 @@ class WorkflowContextTests(unittest.TestCase):
         self.assertEqual(context.repository.remote, "origin")
         self.assertEqual(context.repository.integration_branch, "main")
         self.assertEqual(context.repository.release_branch, "release")
-        self.assertEqual(context.repository.slice_boundary_mode, "synthetic-commit")
+        self.assertEqual(context.repository.keep_pull_requests_closed, True)
         self.assertEqual(context.repository.feature_base_sha, "a" * 40)
         self.assertEqual(context.external_task.id, "1234")
 
@@ -111,7 +111,7 @@ class WorkflowContextTests(unittest.TestCase):
         self.assertEqual(explicit.repository.alias, "backend")
         self.assertEqual(explicit.repository.remote, "upstream")
         self.assertEqual(explicit.repository.release_branch, "development")
-        self.assertEqual(explicit.repository.slice_boundary_mode, "pull-request")
+        self.assertEqual(explicit.repository.keep_pull_requests_closed, False)
         self.assertTrue(explicit.multi_repository)
 
     def test_rejects_invalid_or_ambiguous_configuration(self) -> None:
@@ -270,7 +270,7 @@ class WorkflowContextTests(unittest.TestCase):
         )
         self.assertEqual(context.repository.path, repository.resolve())
         self.assertEqual(context.repository.release_branch, "")
-        self.assertEqual(context.repository.slice_boundary_mode, "pull-request")
+        self.assertEqual(context.repository.keep_pull_requests_closed, False)
         self.assertFalse(context.multi_repository)
 
     def test_legacy_mode_preserves_branch_prefixes_containing_slashes(self) -> None:

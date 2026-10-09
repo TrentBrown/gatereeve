@@ -69,7 +69,7 @@ for deterministic mechanics:
 - `boundary_context.py`
 - `boundary_gate.py`
 - `boundary_packet.py`
-- `synthetic_review.py`
+- `pr_lifecycle.py`
 - `feature_final.py`
 - `decision_record.py`
 - `decision_triage.py`

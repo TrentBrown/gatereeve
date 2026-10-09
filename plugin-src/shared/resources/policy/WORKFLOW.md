@@ -267,17 +267,16 @@ expanding old ones silently.
 When a natural slice review boundary is reached:
 
 1. Complete provisional verification and commit every intended source change.
-   Read the selected repository's `sliceBoundaryMode`. Omission means
-   `pull-request`: push the delivery branch and open or update its draft PR.
-   `synthetic-commit` means do not create a slice PR; pin the clean committed
-   candidate with `synthetic_review.py resolve`.
+   Push the delivery branch and prepare its draft PR with `pr_lifecycle.py
+   prepare`. The repository preference `keepPullRequestsClosed` defaults to
+   false; when true the helper immediately closes the PR and verifies closure.
 2. Resolve and persist one authoritative boundary context from the clean
    synchronized checkout. Every formal gate must consume `boundary_gate.py`
    output from that same context; no gate may independently infer its upstream,
    base, head, feature folder, packet, or filename.
 3. Update `tracker.md` with plan steps covered and rubric criteria addressed.
 4. Reconcile `issues.md` against completed work. Move shipping issues to
-   `in-review` with the PR number/URL or synthetic review reference once
+   `in-review` with the PR number/URL once
    available.
 5. Build the per-PR verification matrix and execute it. It must explicitly
    cover, or explicitly mark as not applicable, each of:
@@ -304,21 +303,19 @@ When a natural slice review boundary is reached:
    link, and update the review surface with summary, decisions, verification
    matrix, judge result, code-review result, explain-diff artifact, known
    failures, and manual checks.
-11. When evidence is tracked, commit only declared boundary artifacts. In PR
-   mode push and finalize PR synchronization. In synthetic mode publish the
-   exact finalized tree with `synthetic_review.py publish`, capture commit
-   comments, and bind the receipt into schema-version-3 packet evidence. Run
-   deterministic packet validation from the resulting checkout.
+11. When evidence is tracked, commit only declared boundary artifacts, push,
+    and finalize PR synchronization. Run deterministic packet validation from
+    the resulting checkout. Keep a configured closed PR closed throughout.
 12. Request human review only after the prior steps complete or are explicitly
-   waived by the user. Synthetic integration additionally requires explicit
-   acceptance of the exact review commit and a successful fail-closed
-   `synthetic_review.py promote` operation.
+    waived. After explicit authorization to merge the exact reviewed head,
+    `pr_lifecycle.py merge` verifies it, reopens if configured, runs normal
+    checks and protected merge, and re-closes an unmerged PR if the attempt
+    fails. No helper may reopen a PR just to run preparation or review gates.
 
 ## Feature Completion
 
 1. Use a real PR as the `feature-final` boundary. When `releaseBranch` differs
-   from `integrationBranch`, that PR must run from integration to release even
-   if prior slice boundaries were synthetic. Preserve its immediate PR base and
+   from `integrationBranch`, that PR must run from integration to release for the final integration boundary. Preserve its immediate PR base and
    the configured original feature base; do not create a completion
    pseudo-boundary.
 2. Detect when all rubric criteria are `PASS`.

@@ -13,7 +13,7 @@ form prevents PR-number collisions when several repositories participate. No
 `pr-boundaries/` wrapper, mutable latest copy, or top-level pointer is created.
 Existing top-level reports remain untouched as legacy evidence.
 
-An opted-in synthetic slice boundary instead uses:
+Archived synthetic slice boundaries used:
 
 ```text
 docs/issues/<featureId>/review-<review-id>/
@@ -30,6 +30,11 @@ python3 "<plugin-root>/resources/scripts/boundary_packet.py" path \
   --cwd "$PWD" \
   --pr-number 42
 ```
+
+PR contexts may pin `keepPullRequestsClosed: true`. Their PR metadata records
+CLOSED state during preparation/review; packet identity and evidence hashing
+remain unchanged. Historical contexts without that preference retain ordinary
+OPEN-PR semantics.
 
 ## Version 1 manifest
 
@@ -104,12 +109,11 @@ disposition make every omission explicit. Applicable or waived gates retain a
 nonempty artifact; an inapplicable gate uses `not_applicable`, supplies a
 reason, and omits the file. A waiver also requires a reason.
 
-## Version 3 synthetic manifest
+## Archived version 3 synthetic manifest
 
-Synthetic packets use `schemaVersion: 3`, must use `scope: slice`, and replace
+Historical synthetic packets use `schemaVersion: 3`, must use `scope: slice`, and replace
 the top-level `pullRequest` field with `review`. The review value is the durable
-receipt emitted by `synthetic_review.py publish` and optionally enriched by
-`capture-comments` and the promotion receipt. It records at least:
+receipt retained from the retired synthetic publisher and comment capture. It records at least:
 
 - `transport: synthetic-commit`, stable `reviewId`, and context fingerprint;
 - candidate source, finalized source, tree, pinned base, exact single-parent

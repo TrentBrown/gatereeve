@@ -1,6 +1,6 @@
 ---
 name: workflow-pr-boundary
-description: "Run the software workflow review boundary process. Use when a code slice is ready for a PR, an opted-in synthetic-commit review, or a draft PR update; when reconciling issues.md and tracker.md; when running scoped verification; or when moving issues to in-review."
+description: "Run the software workflow review boundary process. Use when a code slice is ready for a PR, a closed PR review, or a draft PR update; when reconciling issues.md and tracker.md; when running scoped verification; or when moving issues to in-review."
 ---
 
 # Workflow Review Boundary
@@ -20,12 +20,14 @@ Read:
 At a boundary, reconcile docs before presenting the work as ready. Keep review
 log entries append-only unless correcting a clear mistake.
 
-The formal boundary must read the selected repository's `sliceBoundaryMode`,
-resolve one persisted transport-neutral context, route every gate through
-`boundary_gate.py`, commit only declared evidence after the pinned source, and
-pass transport finalization plus packet validation before requesting human
-review. Omitted mode means `pull-request`. Never create a PR for an explicitly
-configured `synthetic-commit` slice.
+The formal boundary reads the repository's `keepPullRequestsClosed` preference,
+prepares or reuses one draft PR through `pr_lifecycle.py prepare`, and persists
+its exact context. When true, preparation immediately closes the PR and all
+review/evidence work keeps it closed. Route every gate through
+`boundary_gate.py`, finalize only declared evidence, and validate the packet
+before requesting human review. Never reopen a PR for a helper. After explicit
+human merge authorization, `pr_lifecycle.py merge` checks the accepted head,
+reopens, satisfies normal GitHub protections, and re-closes on failure.
 
 For governed features, begin a boundary attempt, record every gate result and
 fingerprint, and request human review through the plugin protocol adapter.

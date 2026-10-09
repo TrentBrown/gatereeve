@@ -18,7 +18,7 @@ used to deliver one PR. A configured feature workspace contains
       "remote": "origin",
       "integrationBranch": "main",
       "releaseBranch": "main",
-      "sliceBoundaryMode": "pull-request",
+      "keepPullRequestsClosed": false,
       "featureBaseSha": "1111111111111111111111111111111111111111"
     }
   }
@@ -106,64 +106,59 @@ JSON object containing `repository`, `number`, `url`, `state`, `isDraft`,
 `baseRefName`, `baseRefOid`, `headRefName`, and `headRefOid`.
 
 Resolution is a blocking synchronization preflight. It rejects a dirty target
-repository, detached or wrong local branch, closed or non-draft PR, mismatched
+repository, detached or wrong local branch, a PR in the wrong policy-required state or a non-draft PR, mismatched
 GitHub repository, and any local `HEAD` that differs from the pushed PR head.
 The resulting context pins the PR base, head, merge base, and
 `evaluatedSourceSha`; it also pins the configured `featureBaseSha` when one is
 present. All diff-driven gates consume these exact values.
 
-`sliceBoundaryMode` is optional and defaults to `pull-request`. The alternative
-`synthetic-commit` is an explicit, squash-only repository policy for slice
-boundaries. `releaseBranch` is also optional and defaults to
-`integrationBranch`. When these branches differ, feature-final review must be
-a real pull request whose head is `integrationBranch` and whose base is
-`releaseBranch`; synthetic transport is never valid for that final boundary.
+`keepPullRequestsClosed` is optional, strictly boolean, and defaults to false.
+When true, draft PRs must be CLOSED during review; otherwise they must be OPEN.
+The preference is pinned in PR context and checked against current configuration
+throughout the boundary. Old contexts without the field retain false behavior.
+`sliceBoundaryMode` is retired: remove it from configuration rather than
+silently switching an in-flight synthetic review. Archived synthetic records
+remain readable, but no new synthetic publication or promotion is supported.
 
-## Authoritative synthetic-commit context
+`releaseBranch` defaults to `integrationBranch`. When these differ, the final
+PR's head is integration and its base is release, subject to the user's branch
+direction policy. The closure preference applies to both slice and final PRs.
 
-For an opted-in repository, start a slice topic branch from the current remote
-integration branch, commit the candidate source, keep the checkout clean, and
-resolve the pinned context without creating a pull request:
+## Prepare a PR with the configured closure preference
 
-```bash
-python3 "<plugin-root>/resources/scripts/synthetic_review.py" resolve \
-  --cwd "$PWD" \
-  --output /tmp/review-context.json
-```
-
-Run every boundary gate against that context. After committing only declared
-evidence paths, publish the finalized tree as a single-parent review commit:
+Push the committed branch and prepare its draft PR from a clean checkout:
 
 ```bash
-python3 "<plugin-root>/resources/scripts/synthetic_review.py" publish \
-  --context /tmp/review-context.json \
-  --evidence-path docs/issues/tb-1234-my-important-feature \
-  --output /tmp/review-receipt.json
+python3 "<plugin-root>/resources/scripts/pr_lifecycle.py" prepare \
+  --cwd "$PWD" --title "Describe the change" --body-file /tmp/pr-body.md \
+  --output /tmp/pr-context.json
 ```
 
-The parent is the pinned remote integration SHA; the tree is the finalized
-topic-branch tree. Publication pushes only the deterministic temporary review
-ref and prints the GitHub commit URL. It refuses dirty or detached state,
-integration drift, an existing review ref, or undeclared post-evaluation
-changes. It never opens a PR or force-pushes as fallback.
+Add `--scope feature-final` for the final PR. Preparation searches all PR
+states for the exact head/base, reuses a single unmerged match, and rejects
+ambiguity. When configured, it closes immediately and verifies closure before
+pinning context. Closing clears the open queue; it does not make a PR private
+or suppress GitHub creation notifications.
 
-Export GitHub commit comments into the durable receipt, then provide separate
-explicit human-acceptance JSON containing `accepted: true`, `actor`, and the
-exact `reviewCommitSha`. Promotion rechecks the base, review ref, local tree,
-commit parent, commit tree, and acceptance before a non-force update:
+## Authorized merge window
+
+Keep preparation, gate checks, and human review on the closed PR. Only after
+explicit authorization of the exact final reviewed head, run:
 
 ```bash
-python3 "<plugin-root>/resources/scripts/synthetic_review.py" capture-comments \
-  --context /tmp/review-context.json \
-  --receipt /tmp/review-receipt.json \
-  --output /tmp/review-evidence.json
-
-python3 "<plugin-root>/resources/scripts/synthetic_review.py" promote \
-  --context /tmp/review-context.json \
-  --receipt /tmp/review-evidence.json \
-  --acceptance /tmp/review-acceptance.json \
-  --output /tmp/integration-receipt.json
+python3 "<plugin-root>/resources/scripts/pr_lifecycle.py" merge \
+  --context /tmp/pr-context.json --reviewed-head "<accepted-final-head-sha>" \
+  --authorization "<observed-human-merge-authorization>" \
+  --evidence-path "docs/issues/<featureId>" --output /tmp/merge-receipt.json
 ```
+
+The helper validates evidence-only deltas, policy, identity and branch direction
+before reopening. It waits for reported checks, uses native merge protection
+with the accepted head, and verifies MERGED state. Failed or interrupted
+attempts re-close unmerged PRs; failed cleanup is reported explicitly. The
+human authorization label is a cooperative record, not authentication. The
+protocol core separately verifies reviewed-content integration before recording
+merge passage. Never use reopening to work around a preparation/review helper.
 
 For the last sequential PR, resolve and inspect the complete-feature view:
 

@@ -124,6 +124,7 @@ class PullRequestContext:
     merge_base_sha: str
     evaluated_source_sha: str
     feature_base_sha: str | None = None
+    keep_pull_requests_closed: bool = False
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -136,6 +137,7 @@ class PullRequestContext:
             "mergeBaseSha": self.merge_base_sha,
             "evaluatedSourceSha": self.evaluated_source_sha,
             "featureBaseSha": self.feature_base_sha,
+            **({"keepPullRequestsClosed": True} if self.keep_pull_requests_closed else {}),
         }
 
     @classmethod
@@ -144,6 +146,9 @@ class PullRequestContext:
             raise PullRequestContextError(
                 f"PR context schemaVersion must be {SCHEMA_VERSION}"
             )
+        policy = value.get("keepPullRequestsClosed", False)
+        if not isinstance(policy, bool):
+            raise PullRequestContextError("keepPullRequestsClosed must be boolean")
         source = _required_string(value.get("source"), "source")
         if source not in {"github", "explicit"}:
             raise PullRequestContextError(f"Unsupported PR context source: {source}")
@@ -174,6 +179,7 @@ class PullRequestContext:
             merge_base_sha=_required_sha(value.get("mergeBaseSha"), "mergeBaseSha"),
             evaluated_source_sha=evaluated_source_sha,
             feature_base_sha=feature_base_sha,
+            keep_pull_requests_closed=policy,
         )
 
 
@@ -354,9 +360,10 @@ def _validate_snapshot_identity(
     snapshot: PullRequestSnapshot,
     repository: GitRepository,
 ) -> None:
-    if snapshot.state != "OPEN":
+    required_state = "CLOSED" if repository.context.keep_pull_requests_closed else "OPEN"
+    if snapshot.state != required_state:
         raise PullRequestContextError(
-            f"Pull request #{snapshot.number} is {snapshot.state}, not OPEN"
+            f"Pull request #{snapshot.number} is {snapshot.state}, not {required_state}"
         )
     if not snapshot.is_draft:
         raise PullRequestContextError(
@@ -423,6 +430,7 @@ def resolve_pull_request_context(
         merge_base_sha=merge_base,
         evaluated_source_sha=snapshot.head_sha,
         feature_base_sha=repository_context.feature_base_sha,
+        keep_pull_requests_closed=repository_context.keep_pull_requests_closed,
     )
 
 
@@ -433,7 +441,20 @@ def _repository_for_context(context: PullRequestContext) -> RepositoryContext:
         remote=context.remote,
         integration_branch=context.pull_request.base_branch,
         feature_base_sha=context.feature_base_sha,
+        keep_pull_requests_closed=context.keep_pull_requests_closed,
     )
+
+
+def require_current_policy(context: PullRequestContext) -> None:
+    workflow = resolve_workflow_context(context.repository_root)
+    if workflow.repository.keep_pull_requests_closed != context.keep_pull_requests_closed:
+        raise PullRequestContextError("keepPullRequestsClosed changed after context resolution; rerun the boundary")
+    if workflow.mode == "configured" and (
+        workflow.repository.alias != context.repository_alias
+        or workflow.repository.remote != context.remote
+        or workflow.repository.feature_base_sha != context.feature_base_sha
+    ):
+        raise PullRequestContextError("Configured boundary repository or feature base changed")
 
 
 def verify_context_is_current(
@@ -451,7 +472,8 @@ def verify_context_is_current(
         environment=environment,
     )
     current = provider.snapshot(str(context.pull_request.number))
-    _require_same_pull_request(context.pull_request, current)
+    require_current_policy(context)
+    _require_same_pull_request(context.pull_request, current, context.keep_pull_requests_closed)
     if repository.branch() != context.pull_request.head_branch:
         raise PullRequestContextError("Local branch changed after PR context resolution")
     if current.head_sha != context.evaluated_source_sha:
@@ -492,6 +514,8 @@ def verify_boundary_context_is_current(
             raise PullRequestContextError(str(error)) from error
         if context.transport == "pull-request":
             legacy = PullRequestContext.from_dict(context.to_legacy_pr_dict())
+            if legacy.keep_pull_requests_closed != repository_context.keep_pull_requests_closed:
+                raise PullRequestContextError("keepPullRequestsClosed changed after context resolution")
             verify_context_is_current(
                 legacy,
                 provider,
@@ -500,55 +524,12 @@ def verify_boundary_context_is_current(
                 environment=environment,
             )
             return {**context.to_dict(), "status": "current"}
-        if repository_context.slice_boundary_mode != "synthetic-commit":
-            raise PullRequestContextError(
-                "Configured repository no longer selects synthetic-commit mode"
-            )
-        if context.repository_alias != repository_context.alias:
-            raise PullRequestContextError("Boundary repository alias changed")
-        if context.repository_root != repository_context.path.resolve():
-            raise PullRequestContextError("Boundary repository root changed")
-        if context.base_branch != repository_context.integration_branch:
-            raise PullRequestContextError("Boundary integration branch changed")
-        repository = GitRepository(
-            repository_context,
-            git_executable=git_executable,
-            runner=runner,
-            environment=environment,
+        raise PullRequestContextError(
+            "Synthetic review is retired; create a new PR boundary with keepPullRequestsClosed"
         )
-        if repository.branch() != context.head_branch:
-            raise PullRequestContextError(
-                "Local branch differs from the pinned synthetic candidate branch"
-            )
-        if repository.head() != context.evaluated_source_sha:
-            raise PullRequestContextError(
-                "Local HEAD changed after synthetic context resolution"
-            )
-        remote_output = repository.git(
-            "ls-remote",
-            "--refs",
-            repository.remote,
-            f"refs/heads/{context.base_branch}",
-        )
-        if not remote_output:
-            raise PullRequestContextError("Remote integration branch is missing")
-        remote_sha = _required_sha(remote_output.split()[0], "remote integration SHA")
-        if remote_sha != context.base_sha:
-            raise PullRequestContextError(
-                f"Integration branch became stale: evaluated {context.base_sha}, "
-                f"current {remote_sha}; rerun affected gates"
-            )
-        current_merge_base = repository.merge_base(
-            context.base_sha, context.evaluated_source_sha
-        )
-        if current_merge_base != context.merge_base_sha:
-            raise PullRequestContextError(
-                "Synthetic boundary merge base became stale; rerun affected gates"
-            )
-        return {
-            **context.to_dict(),
-            "status": "current",
-        }
+    policy = value.get("keepPullRequestsClosed", False)
+    if not isinstance(policy, bool) or policy != repository_context.keep_pull_requests_closed:
+        raise PullRequestContextError("keepPullRequestsClosed differs from the pinned boundary policy")
     repository_name = _required_string(value.get("repository"), "repository")
     number = _required_number(value.get("pullRequest"), "pullRequest")
     url = _required_string(value.get("url"), "url")
@@ -608,12 +589,14 @@ def verify_boundary_context_is_current(
         merge_base_sha=merge_base_sha,
         evaluated_source_sha=evaluated_source_sha,
         feature_base_sha=feature_base_sha,
+        keep_pull_requests_closed=policy,
     ).to_dict()
 
 
 def _require_same_pull_request(
     expected: PullRequestSnapshot,
     current: PullRequestSnapshot,
+    keep_pull_requests_closed: bool = False,
 ) -> None:
     comparisons = (
         ("repository", expected.repository, current.repository),
@@ -627,10 +610,13 @@ def _require_same_pull_request(
             raise PullRequestContextError(
                 f"Pull-request {label} changed after context resolution: {old!r} -> {new!r}"
             )
-    if current.state != "OPEN":
+    required_state = "CLOSED" if keep_pull_requests_closed else "OPEN"
+    if current.state != required_state:
         raise PullRequestContextError(
-            f"Pull request #{current.number} is no longer OPEN ({current.state})"
+            f"Pull request #{current.number} is no longer {required_state} ({current.state})"
         )
+    if current.base_sha != expected.base_sha:
+        raise PullRequestContextError("PR base became stale; rerun affected gates")
 
 
 def _normalize_evidence_paths(paths: Sequence[str]) -> tuple[str, ...]:
@@ -667,7 +653,8 @@ def finalize_pull_request_context(
         environment=environment,
     )
     current = provider.snapshot(str(context.pull_request.number))
-    _require_same_pull_request(context.pull_request, current)
+    require_current_policy(context)
+    _require_same_pull_request(context.pull_request, current, context.keep_pull_requests_closed)
     repository.require_clean()
     if repository.branch() != context.pull_request.head_branch:
         raise PullRequestContextError("Local branch changed after PR context resolution")
