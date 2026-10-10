@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Branch Bootstrap"
+  short_description: "Create standard branch lifecycle docs"
+  default_prompt: "Bootstrap the branch workflow docs."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pattern Extract"
+  short_description: "Extract pattern rules from instructions"
+  default_prompt: "Extract pattern-review rules from the applicable instruction files."
