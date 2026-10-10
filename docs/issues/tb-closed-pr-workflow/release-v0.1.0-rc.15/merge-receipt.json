@@ -1,0 +1,16 @@
+{
+  "status": "merged",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 74,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/74",
+    "state": "MERGED",
+    "isDraft": false,
+    "baseRefName": "main",
+    "baseRefOid": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93",
+    "headRefName": "tb-closed-pr-workflow",
+    "headRefOid": "4fed5cfc892c28a2547fd3d310c249af8acc3eea"
+  },
+  "reviewedHeadSha": "4fed5cfc892c28a2547fd3d310c249af8acc3eea",
+  "authorization": "Trent explicitly approved merge and publication in the active conversation"
+}
