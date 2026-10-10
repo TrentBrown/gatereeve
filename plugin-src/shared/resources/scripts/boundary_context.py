@@ -63,6 +63,7 @@ class BoundaryContext:
     evaluated_source_sha: str
     feature_base_sha: str | None
     review: Mapping[str, object]
+    keep_pull_requests_closed: bool = False
 
     @property
     def reference(self) -> str:
@@ -95,6 +96,7 @@ class BoundaryContext:
             "mergeBaseSha": self.merge_base_sha,
             "evaluatedSourceSha": self.evaluated_source_sha,
             "featureBaseSha": self.feature_base_sha,
+            **({"keepPullRequestsClosed": True} if self.keep_pull_requests_closed else {}),
         }
 
     def to_dict(self) -> dict[str, object]:
@@ -112,6 +114,7 @@ class BoundaryContext:
             "mergeBaseSha": self.merge_base_sha,
             "evaluatedSourceSha": self.evaluated_source_sha,
             "featureBaseSha": self.feature_base_sha,
+            **({"keepPullRequestsClosed": True} if self.keep_pull_requests_closed else {}),
             "review": dict(self.review),
         }
 
@@ -119,6 +122,7 @@ class BoundaryContext:
     def from_pull_request(cls, context: PullRequestContext) -> "BoundaryContext":
         pull_request = context.pull_request
         return cls(
+            keep_pull_requests_closed=context.keep_pull_requests_closed,
             repository_root=context.repository_root,
             repository_alias=context.repository_alias,
             remote=context.remote,
@@ -168,7 +172,11 @@ class BoundaryContext:
             if raw_feature_base is not None
             else None
         )
+        policy = value.get("keepPullRequestsClosed", False)
+        if not isinstance(policy, bool):
+            raise BoundaryContextError("keepPullRequestsClosed must be boolean")
         context = cls(
+            keep_pull_requests_closed=policy,
             repository_root=Path(
                 _required_string(value.get("repositoryRoot"), "repositoryRoot")
             ).expanduser().resolve(),

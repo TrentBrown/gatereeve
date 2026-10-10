@@ -58,6 +58,10 @@ def resolve_gate_context(
     attempt_id: str | None = None,
 ) -> dict[str, object]:
     context = normalize_context(context)
+    if context.transport != "pull-request":
+        raise BoundaryGateError("Synthetic review is retired; create a new PR boundary")
+    if context.keep_pull_requests_closed != workflow.repository.keep_pull_requests_closed:
+        raise BoundaryGateError("keepPullRequestsClosed differs from the pinned boundary policy")
     if gate not in ARTIFACTS:
         raise BoundaryGateError(
             f"Unknown boundary gate {gate!r}; expected one of {sorted(ARTIFACTS)}"

@@ -230,7 +230,7 @@ def resolve_feature_final_context(
     if context.transport != "pull-request":
         raise FeatureFinalError(
             "Feature-final review requires a real pull request; synthetic transport "
-            "is slice-only"
+            "is retired"
         )
     repository = workflow.repository.path.resolve()
     if context.repository_alias != workflow.repository.alias:

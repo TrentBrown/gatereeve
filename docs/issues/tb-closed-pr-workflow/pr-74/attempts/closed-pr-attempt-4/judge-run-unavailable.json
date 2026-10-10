@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "attemptId": "closed-pr-attempt-4",
+  "results": [
+    {
+      "gateId": "judge",
+      "moduleId": "gatereeve/judge",
+      "schemaVersion": 1,
+      "status": "unavailable",
+      "outcome": "UNSET",
+      "stageId": "judge",
+      "artifacts": [],
+      "receipts": [],
+      "failure": {
+        "code": "AGENT_WORKFLOW_UNAVAILABLE",
+        "message": "/Users/trent.brown/.local/bin/codex failed (SIGTERM): stderr:\n2026-10-09T19:50:19.279974Z ERROR codex_models_manager::cache: failed to load models cache: missing field `base_instructions` at line 140 column 5\n2026-10-09T19:50:19.626998Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back\n2026-10-09T19:50:19.630779Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back\n2026-10-09T19:50:19.632700Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back\n2026-10-09T19:50:19.635675Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back\n2026-10-09T19:50:19.639134Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back\n2026-10-09T19:50:19.642608Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back\n2026-10-09T19:50:19.646179Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back\n2026-10-09T19:50:19.649387Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back\n2026-10-09T19:50:19.692390Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/trent.brown/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json\n2026-10-09T19:50:19.696128Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/trent.brown/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json\n2026-10-09T19:50:19.749973Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/trent.brown/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json\n2026-10-09T19:50:20.907015Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/trent.brown/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json\nstdout:\n{\"type\":\"thread.started\",\"thread_id\":\"01a12237-6ab0-7ac0-ae10-e2473df592d3\"}\n{\"type\":\"turn.started\"}"
+      },
+      "inputFingerprint": "sha256:03255296861c52ece75cbe50f3232a54960442f3328691cbc14702f737d5e336"
+    }
+  ]
+}

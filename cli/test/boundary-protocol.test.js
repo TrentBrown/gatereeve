@@ -23,6 +23,18 @@ import {
 const agent = { kind: 'agent', label: 'boundary-agent' };
 const human = { kind: 'human-confirmed', label: 'boundary-user' };
 
+test('new synthetic boundaries are rejected without changing historical journals', async () => {
+  const fixture = await createBoundary();
+  await recordSliceTransition(fixture.featureHome, 'remediate-boundary', 'slice-1', { actor: agent });
+  const before = await readFeatureRecord(fixture.featureHome);
+  await assert.rejects(recordSliceTransition(fixture.featureHome, 'begin-boundary', 'slice-1', {
+    actor: agent,
+    payload: { attemptId: 'retired-synthetic', scope: 'SLICE', context: { transport: 'synthetic-commit' } },
+  }), /Synthetic review is retired/u);
+  const after = await readFeatureRecord(fixture.featureHome);
+  assert.deepEqual(after.events, before.events);
+});
+
 async function createBoundary(model = null) {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve boundary '));
   const featureHome = resolve(root, 'docs/issues/boundary-feature');

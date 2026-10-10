@@ -55,7 +55,7 @@ test('JavaScript and Python resolve the same configured multi-repository context
         remote: 'origin',
         integrationBranch: 'development-client',
         releaseBranch: 'main',
-        sliceBoundaryMode: 'synthetic-commit',
+        keepPullRequestsClosed: true,
       },
       backend: {
         path: 'services/backend',
@@ -197,6 +197,25 @@ test('JavaScript rejects the same unsafe configured contexts as Python', async (
       },
     },
   ];
+
+  for (const invalid of [null, 1, 'true', []]) {
+    cases.push({
+      expected: /keepPullRequestsClosed/u,
+      value: {
+        schemaVersion: 1, featureId: 'feature',
+        repositories: { product: { path: '.', integrationBranch: 'main', keepPullRequestsClosed: invalid } },
+      },
+    });
+  }
+  for (const retired of ['pull-request', 'synthetic-commit']) {
+    cases.push({
+      expected: /retired/u,
+      value: {
+        schemaVersion: 1, featureId: 'feature',
+        repositories: { product: { path: '.', integrationBranch: 'main', sliceBoundaryMode: retired } },
+      },
+    });
+  }
 
   for (const fixture of cases) {
     await writeJson(join(workspace, '.agentic-workflow.json'), fixture.value);

@@ -1,0 +1,623 @@
+
+> @quality-code/gatereeve@0.1.0 pretest
+> npm run stage:protocol
+
+
+> @quality-code/gatereeve@0.1.0 stage:protocol
+> node scripts/stage-protocol.js
+
+
+> @quality-code/gatereeve@0.1.0 test
+> node --test
+
+✔ agent workflow receipts bind provider configuration, isolation policy, and stage output (1.12875ms)
+✔ agent workflow receipts reject inherited context and output substitution (0.264083ms)
+✔ agent workflow runtime executes stage dependencies in fresh contexts and publishes only after validation (3.045708ms)
+✔ agent workflow runtime fails closed without recording a gate failure when isolation or capability is weak (2.2255ms)
+✔ agent workflow runtime refuses passage when required publication is missing (0.96325ms)
+✔ scheduler runs Judge then conditionally eligible Whiteboard in separate governed stages (1.623416ms)
+✔ a blocking Judge failure is recorded and leaves Whiteboard ineligible (0.141584ms)
+✔ scheduler restores recorded gate fingerprints before selecting eligible work (0.204375ms)
+✔ publishes a validated root and records only the completed governed outcome (16.007833ms)
+✔ ordering-only predecessors are never exposed as agent evidence (25.837167ms)
+✔ provider unavailability leaves the gate UNSET and does not call the recorder (14.5095ms)
+✔ changed dependency evidence fails before snapshot or provider launch (3.552458ms)
+✔ GateReeve publishes only declared complete artifact sets (9.68925ms)
+✔ GateReeve rejects missing, undeclared, and symlink-target artifacts (3.61325ms)
+✔ new synthetic boundaries are rejected without changing historical journals (437.068042ms)
+✔ boundary DAG rejects out-of-order gates without recording an event (601.552375ms)
+✔ failed gates block dependents and a permitted human waiver unblocks passage (1048.404083ms)
+✔ a constrained Whiteboard waiver requires human-classified non-behavioral evidence (588.191584ms)
+✔ changed inputs and upstream reruns make dependent evidence stale (663.594166ms)
+✔ remediation preserves the failed attempt and a later attempt starts cleanly (423.239541ms)
+✔ design changes block delivery and require human approval plus renewed authorization (562.529875ms)
+✔ in-scope plan changes remain agent-manageable and invalidate boundary dependents (897.0595ms)
+✔ CLI starts from a clean checkout without staged protocol resources (250.972209ms)
+✔ plugin build and clean commands work through the Commander entrypoint (948.256458ms)
+✔ uses the selected source root when resolving the default version (474.446875ms)
+✔ prepares a release through the grouped command path (3521.193333ms)
+✔ legacy local publication entrypoints are removed (230.028166ms)
+✔ hosted mutation commands require a dispatched Release Conductor context (155.740917ms)
+✔ renders hierarchical help through the local command-tree helper (77.9215ms)
+✔ composes both packages with matching shared content and provenance (110.842875ms)
+✔ composes every registered marketplace plugin into independent platform packages (703.201833ms)
+✔ removes stale package output before rebuilding (221.4305ms)
+✔ produces identical content for identical inputs (508.631417ms)
+✔ rejects overlay paths that duplicate shared content (15.820625ms)
+✔ rejects symlinks so generated packages remain self-contained (102.240625ms)
+✔ rejects transient interpreter and operating-system files (50.369125ms)
+✔ rejects invalid versions and unsupported platforms (74.400875ms)
+✔ rejects platform manifests with different plugin identities (77.597708ms)
+✔ JavaScript and Python resolve the same configured multi-repository context (554.014958ms)
+✔ JavaScript and Python preserve the same legacy branch-derived context (446.944417ms)
+✔ JavaScript preserves Python workspace semantics for a symlinked config file (366.850458ms)
+✔ JavaScript rejects the same unsafe configured contexts as Python (2311.295458ms)
+✔ validates the repository contract fixtures (9.291083ms)
+✔ rejects duplicate skills and cross-contract identity drift (5.262583ms)
+✔ refuses to force the marketplace over an equal or newer deployment (1.153292ms)
+✔ waits for the exact production manifest without query or credential leakage (20.716084ms)
+✔ bounds streamed website verification responses (0.348ms)
+✔ prepares one immutable Plugin and Desktop release record without publication authority (5450.916542ms)
+✔ trusted preparation seals exact checksum and update-manifest outputs (1817.103292ms)
+✔ stable promotion is bound to the exact coordinated RC source (1769.078542ms)
+✔ rejects contradictory release state and unsafe artifact identity (611.856917ms)
+✔ rejects a Desktop candidate whose release version diverges from the Plugin tag (358.655042ms)
+✔ publication resumes every partial boundary without duplicating a remote mutation (2491.551ms)
+✔ release phases are reusable-only production units with no manual dispatch (6.320209ms)
+✔ protected preparation binds the conductor source and remains publication-free (1.555541ms)
+✔ bounded recovery reuses retained trust bytes without signing authority (1.0615ms)
+✔ finalization and rehearsals are read-only while publication retains its own gate (2.75325ms)
+✔ Cask finalization and smoke bind conductor runs and exact public artifacts (1.213958ms)
+✔ Release Conductor is the sole start/resume entry point and derives every phase identity (0.942959ms)
+✔ state checkpoint action always emits a dashboard and immutable retained artifact (1.852708ms)
+✔ full product CI ignores only the sealed Desktop metadata transport path (1.434209ms)
+✔ PR automation reduces only chained review-artifact updates and cancels only PR work (1.57025ms)
+✔ all GitHub workflows use Node-24-compatible official action majors and Node 24 jobs (1.559792ms)
+✔ renders one exact trusted RC manifest and checksum output (2.4945ms)
+✔ preserves the other channel and rejects incomplete trust (0.48925ms)
+✔ routes users, developers, and release maintainers from the root README (3.3735ms)
+✔ developer guide covers the complete canonical-to-PR lifecycle (0.882917ms)
+✔ release runbook documents only the conductor production interface (0.868625ms)
+✔ Apple release setup is actionable, protected, and team-key only (2.345833ms)
+✔ keeps developer and release bash examples syntactically valid (152.651709ms)
+✔ feature initialization atomically creates a governed DESIGNING record (37.769083ms)
+✔ atomic directory creation removes prepared content when its writer fails (32.147708ms)
+✔ legacy and incomplete records are never silently treated as governed (27.630042ms)
+✔ journal append revalidates sequence and preserves the prior journal on rejection (103.535666ms)
+✔ an existing journal lock rejects mutation without changing the journal (50.783375ms)
+✔ journal parsing and core compatibility fail closed (50.765209ms)
+✔ model migration requires confirmation, reports impact, and preserves history (258.984792ms)
+✔ model migration validates replay before writing durable state (149.320709ms)
+✔ pending model migration fails closed and can deterministically roll forward (218.143292ms)
+✔ pending migration recovery validates replay before rolling forward (112.961167ms)
+✔ required finalization modules bind merge input, dependencies, waivers, and completion (1752.2995ms)
+✔ required finalization modules reject N/A and stale merge inputs cannot share attempts (925.045209ms)
+✔ finalization replay rejects forged waivers and missing required evidence (1483.601625ms)
+✔ active finalization can be replaced after model migration and pause blocks mutation (833.03875ms)
+✔ migration preserves a legacy feature-final merge and enables new finalization (387.021917ms)
+✔ conflicting feature-final merge identities are rejected without append (292.697542ms)
+✔ replay rejects a second current-model finalization attempt (341.572875ms)
+✔ zero-module models complete without creating a finalization attempt (411.058708ms)
+✔ zero-module completion remains replayable after finalization modules are added (433.514667ms)
+✔ finalization dependency evidence is canonical across manifest key order (364.5255ms)
+✔ optional CLI and plugin adapter produce the same governed projection (686.719375ms)
+✔ queries do not mutate and check alone uses binary failure exit semantics (776.580666ms)
+✔ rejected mutations return the stable envelope and append no event (139.841416ms)
+✔ public command tree retains maintainer namespaces without force passage (670.099375ms)
+✔ executes and inspects the generated Whiteboard artifact in a DOM (6.040833ms)
+✔ rejects relative resources instead of treating them as self-contained (1.465542ms)
+✔ rejects inline runtime errors from the generated artifact (1.525417ms)
+✔ rejects missing reveal controls and inaccessible visual models (0.864583ms)
+✔ requires findings both inline and in a linked summary (1.512084ms)
+✔ permits inline styling but rejects weakened finding copies (2.115208ms)
+✔ rejects grading controls, media assessment, and Explain Diff dependencies (2.445ms)
+✔ uses a deterministic branch and self-verifying pull request marker (2.317167ms)
+✔ preflight is read-only and exact publication is recoverably merge-committed (1.331833ms)
+✔ leaves a blocked exact pull request for safe retry (0.581083ms)
+✔ rejects a pre-existing publication branch with unapproved history (0.136125ms)
+✔ rejects an otherwise exact publication pull request with any extra path (0.34975ms)
+✔ test/helpers/plugin-candidate.js (64.957ms)
+✔ renders one checksum-pinned Cask for the exact approved universal DMG (1.449541ms)
+✔ binds tap creation, exact Cask bytes, and direct-install proof to one plan (0.900083ms)
+✔ verifies packet identity and performs an absent-tap dry run without mutation (55.870542ms)
+✔ accepts an exact canonical predecessor Cask during an upgrade dry run (79.542792ms)
+✔ orders large semantic-version base identifiers without precision loss (57.708542ms)
+✔ rejects noncanonical, equal-version, and newer public Cask bytes (90.378667ms)
+✔ rejects a canonical predecessor without an exact public release (25.179375ms)
+✔ models an upgrade from a predecessor while preserving exact download bytes (0.462375ms)
+✔ creates the dedicated public tap only after exact approval and persists a receipt (36.846125ms)
+✔ detects changed Cask bytes inside a prepared packet (31.254834ms)
+✔ finalizes trusted schema-v2 bytes into one sealed hosted publication packet (1040.202291ms)
+✔ rejects finalization inputs that differ from the trusted lifecycle (347.504ms)
+✔ dry run performs only preflights and real retry records each surface once (916.112542ms)
+✔ keeps Cask pending until primary publication and then links one idempotent receipt (753.438917ms)
+✔ documents the verified native plugin lifecycle for both managers (5.404209ms)
+✔ keeps every documented bash block syntactically valid (287.667125ms)
+✔ connects installation, operational guidance, and visual orientation (4.337959ms)
+✔ validates the bounded schema vocabulary used by agent workflows (1.651375ms)
+✔ enforces maxProperties on stage dependency packets (0.087083ms)
+✔ Judge bundle binds an isolated receipt and preserves blocking FAIL semantics (4.387375ms)
+✔ Judge bundle rejects same-thread fallback and contradictory verdicts (1.224042ms)
+✔ Judge fails when an independent scope, gap, or contradiction check fails (0.132459ms)
+✔ Judge bundle creation preserves the model verdict without remediation behavior (0.190291ms)
+✔ feature lifecycle rejects out-of-order passage without appending an event (344.919292ms)
+✔ many slices may be planned but only one may be active (558.169542ms)
+✔ semantic event rejection leaves the journal unchanged (342.538458ms)
+✔ pause preserves lifecycle position and blocks ordinary passage until resume (349.782459ms)
+✔ sequential slices reach a feature-final closeout through human review (1631.630375ms)
+✔ Codex adapter launches a fresh ephemeral read-only structured run (45.247542ms)
+✔ Claude Code adapter launches a non-persistent restricted custom agent (1.098458ms)
+✔ adapter parsers require structured output and opaque context IDs (1.001375ms)
+✔ provider adapters reject oversized prompts before launching a process (7.662875ms)
+✔ failed provider processes retain stdout errors alongside stderr warnings (73.938208ms)
+✔ bundled provider output schemas type every constant (2.437458ms)
+✔ bundled policy resolves the declarative boundary with exact legacy behavior keys (29.152583ms)
+✔ module resolution is deterministic and rejects invalid definitions and graphs (9.896834ms)
+✔ locked modules remain enabled while conditional predecessors can be disabled (6.643ms)
+✔ project discovery pins selected manifests and reports readiness separately (29.83775ms)
+✔ project discovery rejects symlinked manifests (19.734541ms)
+✔ module enablement and definition changes are explicit migration impact (6.935ms)
+✔ boundary attempts retain their pinned module graph after a model migration (665.94925ms)
+✔ legacy boundary attempts retain their pinned boundary after migration to modules (430.02725ms)
+✔ provider request and response bind exact provider, module, request, and input identities (1.317667ms)
+✔ command completion is fail-closed and provider observation cannot override process failure (0.6555ms)
+✔ command structured output is optional enrichment without an outcome field (0.140375ms)
+✔ GateReeve native evidence reproduces the shared exact-byte and request anchors (2.114833ms)
+✔ the repository-local conformance fixture preserves shared semantics and GateReeve topology (16.741083ms)
+✔ aggregation rejects missing, duplicate, stale, altered, synthetic, and Rosetta evidence (0.694792ms)
+✔ validates matching native manifests, catalogs, and hooks (32.112292ms)
+✔ rejects native identity and hook drift (11.914042ms)
+✔ enforces contract-declared manifest and catalog fields (18.756625ms)
+✔ read-only observers share one projection and never append events (137.467167ms)
+✔ blocked and stale-capable status remains successful while check is binary (131.966792ms)
+✔ legacy and missing feature modes are observable without adoption (47.933209ms)
+✔ model graph and current graph expose matching machine identity (69.443792ms)
+✔ materializes the exact committed tree as disposable read-only snapshot data (757.711167ms)
+✔ builds slice and feature-final packets from explicit base and head objects (778.196584ms)
+✔ plugin adapter initializes and governs a feature without a PATH CLI (525.492125ms)
+✔ plugin adapter process emits the same stable JSON envelope (608.947542ms)
+✔ model graph remains available when no repository context exists (2.274291ms)
+✔ producer integrity manifest verifies the complete Plugin candidate tree (247.916875ms)
+✔ verification rejects a missing hidden file (163.367542ms)
+✔ verification rejects a missing visible file (190.069125ms)
+✔ verification rejects an unexpected extra file (141.282833ms)
+✔ verification rejects a changed file byte (186.305458ms)
+✔ verification rejects a malformed integrity manifest (129.001958ms)
+✔ verification rejects an exact but semantically incomplete Plugin tree (226.173417ms)
+✔ verification rejects symbolic links in the Plugin candidate tree (169.162542ms)
+✔ lints the canonical repository plugin sources (49.074417ms)
+✔ rejects personal paths before inventory validation (37.339584ms)
+✔ rejects root escapes and native platform markers in shared source (55.397416ms)
+✔ rejects symlinks in canonical package sources (37.633209ms)
+✔ default workflow model validates and hashes deterministically (20.7895ms)
+✔ historical PR_BOUNDARY model locks remain valid (4.805583ms)
+✔ model validation rejects unknown guards, cycles, and provider injection fields (9.060834ms)
+✔ event contract accepts complete events and rejects malformed identity (2.035625ms)
+✔ result envelope has one stable success and failure shape (0.159125ms)
+✔ native packages retain one identical canonical protocol manifest (2216.502459ms)
+To /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/workflow publication LNZom7/remote.git
+ * [new branch]      marketplace -> marketplace
+Cloning into '/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/workflow publication LNZom7/after-failure'...
+done.
+To /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/workflow publication LNZom7/remote.git
+ + a4b6f30...e047abf HEAD -> marketplace (forced update)
+Cloning into '/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/workflow publication LNZom7/after-success'...
+done.
+✔ publication failure preserves the previous marketplace ref (1812.017042ms)
+✔ trusted spec guard uses the existing Python validator as a leaf provider (288.396083ms)
+✔ model data cannot select an arbitrary Python executable (0.336917ms)
+✔ writes and verifies a self-consistent state, status, checksum, and summary bundle (28.143917ms)
+✔ refuses nonempty output and detects changed state projections (59.620459ms)
+✔ detects changed chain bytes even when the latest state file is untouched (41.379625ms)
+✔ CLI appends and inspects immutable conductor bundles (397.126792ms)
+✔ CLI rejects identity arguments after initialization (211.404709ms)
+✔ CLI discovers a downloaded conductor bundle without operator-supplied run identity (555.731958ms)
+✔ discovers an unordered unique chain by tag and projects retry state (2.709709ms)
+✔ rejects absent, expired, renamed, wrong-run, non-main, and nonconductor artifacts (1.430667ms)
+✔ rejects divergent sequences and source commits outside the workflow history (0.41825ms)
+✔ accepts completed checkpoints from a conductor run that later failed (0.222834ms)
+✔ reads the exact public DMG identity from a published schema-v2 lifecycle (1.771209ms)
+✔ rejects the schema-v1 projection shape that caused the RC.11 state failure (0.23975ms)
+✔ rejects an unpublished or ambiguous lifecycle receipt (0.177708ms)
+✔ rejects a published lifecycle without an exact DMG digest (0.095042ms)
+✔ creates a canonical initialized record and deterministic artifact identity (2.505584ms)
+✔ validates the complete lifecycle and renders matching JSON and summary status (2.248875ms)
+✔ records retryable failure without advancing and then resumes forward (0.684333ms)
+✔ marks nonretryable conflicts as requiring a burned RC (0.949875ms)
+✔ rejects skipped, reversed, repeated-success, and terminal passages (0.868209ms)
+✔ rejects tampered predecessors, identity changes, duplicate sequences, and time reversal (0.653625ms)
+✔ rejects malformed evidence, wrong version, and misbound attestation (0.915417ms)
+✔ rejects unknown keys so state cannot carry unreviewed authority (0.453417ms)
+✔ schema v2 advances through the exact GateReeve lifecycle prefix (23.262542ms)
+✔ schema v2 rejects skipped, duplicate, unknown, and tampered stages (0.767542ms)
+✔ Apple-bound bytes are immutable and idempotent for the same identity (0.816708ms)
+✔ schema dispatch reads legacy v1 through an explicit validator but forbids mutation (0.136542ms)
+✔ the published RC.2 schema-v1 fixture dispatches read-only without changing bytes (8.273167ms)
+✔ publish dry-run is nonmutating and confirmed publish pushes only the tag (1201.55575ms)
+✔ publish cancellation leaves the release tag absent (434.120375ms)
+✔ publish composes tag, watch, and verification by default (493.7755ms)
+✔ publish refuses a dirty or different release checkout (578.29675ms)
+✔ promotion validates and tags the deployed historical commit in an isolated worktree (689.024166ms)
+✔ release list joins tags, workflow runs, and deployed provenance (0.700458ms)
+✔ watch selects a tagged run and preserves a failed watch status (0.227333ms)
+✔ marketplace verification accepts a complete tree and rejects version drift (2210.016917ms)
+✔ bundle creates a complete offline marketplace ZIP and checksum (1913.81775ms)
+✔ bundle preserves output when marketplace verification fails (167.978958ms)
+✔ release workflow exposes only conductor start and resume (0.370791ms)
+✔ orders candidate tags without numeric precision loss (0.896291ms)
+✔ plans next RC, promotion, and release-line bumps from an RC (0.2355ms)
+✔ starts the next patch RC from stable and rejects invalid promotion baselines (0.783292ms)
+✔ supports large semantic-version identifiers without number precision loss (0.065416ms)
+✔ validates deployed release identity and exposes proposed interactive choices (0.118291ms)
+✔ requires one explicit selector for noninteractive publication (0.196125ms)
+✔ resolves explicit, computed, and injected interactive plans (0.102833ms)
+✔ verification defaults to validated deployed metadata while retaining an exact override (0.233084ms)
+✔ prepares a traceable release-candidate marketplace (1950.183875ms)
+✔ preparation emits and verifies a companion full-tree integrity manifest (1316.209542ms)
+✔ preparation rejects an integrity manifest inside the publishable tree (918.674792ms)
+✔ requires complete Ubuntu evidence for stable publication (420.889167ms)
+✔ rejects stable evidence for a different candidate commit (0.74ms)
+✔ rejects malformed release-candidate evidence (3.546041ms)
+✔ matches RC lineage for stable tags with build metadata (406.469833ms)
+✔ creates missing release output parents (507.199292ms)
+✔ rejects invalid tags and preserves existing output (0.592708ms)
+✔ refuses to merge a new release into previous output (0.588292ms)
+✔ review artifact classifier admits only lifecycle evidence surfaces (1.260625ms)
+✔ review artifact classifier fails closed for empty, source, and requirement changes (0.053583ms)
+✔ changed path parser supports NUL-delimited Git output (0.128625ms)
+✔ assembles native marketplace layout from generated packages (175.55475ms)
+✔ verifies native manager installation, discovery, setup, and doctor (181.04025ms)
+✔ selects a compatible python later on PATH (29.807ms)
+✔ refuses to reuse a nonempty smoke workspace (79.916167ms)
+✔ snapshot distinguishes blocked, available, and ready actions from current evidence (146.778542ms)
+✔ snapshot presents normalized provider progress separately from module outcomes (32.609625ms)
+✔ snapshot reports source and governance facts without collapsing ordinary activity (31.420417ms)
+✔ named reads are schema-valid, allow-listed, and preserve full event and model detail (106.603708ms)
+✔ boundary snapshots inventory pinned gates and expose attempt detail by ID (320.875166ms)
+✔ boundary snapshots expose manifest-bound Whiteboard companion artifacts (196.252709ms)
+✔ snapshot exposes missing, legacy, inconsistent, and incompatible modes read-only (15.172708ms)
+✔ Commander and plugin adapter return the same canonical snapshot and named read (245.204292ms)
+✔ snapshot validators reject malformed readiness and detail contracts (0.2775ms)
+✔ snapshot validators reject malformed nested contracts (14.520875ms)
+✔ CLI staging records an exact canonical protocol inventory and hash (469.361ms)
+✔ consumer staging copies only validated support paths and names its manifest (55.7155ms)
+✔ trusted production creates a schema-v2 lifecycle through Desktop trust (99.004417ms)
+✔ trusted production rejects cross-request or changed-byte aggregation (70.017791ms)
+✔ trusted production rejects a same-source Plugin candidate from another RC (53.064041ms)
+✔ work deficiencies remain visible without failing a substantive Whiteboard Defense (3.546041ms)
+✔ Defender and Publisher instructions require a final exact evidence-span audit (2.276041ms)
+✔ Whiteboard PASS requires the Defender and Publisher substantive attestation (0.477209ms)
+✔ manifest substantive status must match the Defender and Publisher attestation (0.134166ms)
+✔ artifact deficiencies fail validation when questions are softened or evidence is omitted (0.42425ms)
+✔ missing native reveal controls and stale validation receipts prevent passage (0.515583ms)
+✔ nontrivial defenses require a bound visual and self-contained sandbox-safe HTML (0.462875ms)
+✔ findings require inline placement and a linked summary (0.388167ms)
+✔ grading, audio assessment, and Explain Diff dependencies are artifact deficiencies (0.969334ms)
+✔ bundle creation turns artifact defects into an auditable gate FAIL without grading work findings (0.947291ms)
+✔ governed validation resolves every evidence line against the pinned repository (2.730791ms)
+ℹ tests 277
+ℹ suites 0
+ℹ pass 277
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12639.498833
+found 0 vulnerabilities
+............................
+----------------------------------------------------------------------
+Ran 28 tests in 1.825s
+
+OK
+................................................................................................
+----------------------------------------------------------------------
+Ran 96 tests in 21.097s
+
+OK
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.037s
+
+OK
+{
+  "schemaVersion": 1,
+  "skillCount": 27,
+  "plannedSkillCount": 0,
+  "marketplace": "quality-code",
+  "platforms": [
+    "codex",
+    "claude"
+  ],
+  "pluginCount": 2,
+  "plugins": [
+    "agentic-development-workflow",
+    "whiteboard-test"
+  ]
+}
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "plugins": [
+    "agentic-development-workflow",
+    "whiteboard-test"
+  ],
+  "version": "0.1.0",
+  "marketplace": "quality-code",
+  "platforms": [
+    "codex",
+    "claude"
+  ]
+}
+{
+  "schemaVersion": 1,
+  "fileCount": 179,
+  "existingSkillCount": 27
+}
+{
+  "schemaVersion": 1,
+  "marketplace": "quality-code",
+  "sourceRoot": "/Users/trent.brown/.codex/worktrees/closed-pr-workflow/gatereeve/plugin-src",
+  "distRoot": "/Users/trent.brown/.codex/worktrees/closed-pr-workflow/gatereeve/dist",
+  "version": "0.1.0",
+  "sourceCommit": "portable-acceptance",
+  "sourceTag": null,
+  "plugins": [
+    {
+      "id": "agentic-development-workflow",
+      "displayName": "Agentic Software Development Workflow",
+      "sourceRoot": "."
+    },
+    {
+      "id": "whiteboard-test",
+      "displayName": "Whiteboard Test",
+      "sourceRoot": "plugins/whiteboard-test"
+    }
+  ],
+  "packages": [
+    {
+      "platform": "codex",
+      "pluginName": "agentic-development-workflow",
+      "outputPath": "/Users/trent.brown/.codex/worktrees/closed-pr-workflow/gatereeve/dist/codex/agentic-development-workflow",
+      "fileCount": 184,
+      "sharedFileCount": 179,
+      "pluginId": "agentic-development-workflow"
+    },
+    {
+      "platform": "claude",
+      "pluginName": "agentic-development-workflow",
+      "outputPath": "/Users/trent.brown/.codex/worktrees/closed-pr-workflow/gatereeve/dist/claude/agentic-development-workflow",
+      "fileCount": 184,
+      "sharedFileCount": 179,
+      "pluginId": "agentic-development-workflow"
+    },
+    {
+      "platform": "codex",
+      "pluginName": "whiteboard-test",
+      "outputPath": "/Users/trent.brown/.codex/worktrees/closed-pr-workflow/gatereeve/dist/codex/whiteboard-test",
+      "fileCount": 12,
+      "sharedFileCount": 9,
+      "pluginId": "whiteboard-test"
+    },
+    {
+      "platform": "claude",
+      "pluginName": "whiteboard-test",
+      "outputPath": "/Users/trent.brown/.codex/worktrees/closed-pr-workflow/gatereeve/dist/claude/whiteboard-test",
+      "fileCount": 12,
+      "sharedFileCount": 9,
+      "pluginId": "whiteboard-test"
+    }
+  ]
+}
+{
+  "schemaVersion": 1,
+  "scope": "global",
+  "repository": null,
+  "profile": "quality-code",
+  "branchPrefix": "smoke-",
+  "profilePath": "/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.oSJhUfWPHX/workflow package codex/resources/policy/profiles/quality-code.md"
+}
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "platform": "codex",
+  "ready": true,
+  "checks": [
+    {
+      "id": "platform",
+      "status": "pass",
+      "message": "Detected codex package"
+    },
+    {
+      "id": "python",
+      "status": "pass",
+      "message": "Python 3.11 is supported"
+    },
+    {
+      "id": "executable-git",
+      "status": "pass",
+      "message": "Found git: /usr/bin/git"
+    },
+    {
+      "id": "executable-python3",
+      "status": "pass",
+      "message": "Found python3: /Users/trent.brown/.pyenv/versions/3.11.11/bin/python3"
+    },
+    {
+      "id": "executable-node",
+      "status": "pass",
+      "message": "Found node: /opt/homebrew/bin/node"
+    },
+    {
+      "id": "executable-gh",
+      "status": "pass",
+      "message": "Found gh: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.uW5xL7dPHM/gh"
+    },
+    {
+      "id": "executable-codex",
+      "status": "pass",
+      "message": "Found codex: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.uW5xL7dPHM/codex"
+    },
+    {
+      "id": "node-version",
+      "status": "pass",
+      "message": "Node 26.0.0 is supported"
+    },
+    {
+      "id": "github-auth",
+      "status": "pass",
+      "message": "GitHub CLI authentication is ready"
+    },
+    {
+      "id": "package-integrity",
+      "status": "pass",
+      "message": "Verified all shared package files and 27 skills"
+    },
+    {
+      "id": "required-skills",
+      "status": "pass",
+      "message": "All 27 workflow skills are present"
+    },
+    {
+      "id": "activation-hook",
+      "status": "pass",
+      "message": "SessionStart hook is present"
+    },
+    {
+      "id": "codex-hook-feature",
+      "status": "pass",
+      "message": "Codex hooks use the enabled-by-default setting"
+    },
+    {
+      "id": "activation-observed",
+      "status": "pass",
+      "message": "The current session contains the workflow activation policy"
+    },
+    {
+      "id": "profile",
+      "status": "pass",
+      "message": "Effective profile: quality-code"
+    },
+    {
+      "id": "branch-prefix",
+      "status": "pass",
+      "message": "Effective branch prefix: smoke-"
+    },
+    {
+      "id": "duplicate-legacy-skills",
+      "status": "pass",
+      "message": "No duplicate legacy workflow skills found"
+    },
+    {
+      "id": "optional-integrations",
+      "status": "info",
+      "message": "No optional specialist integrations detected"
+    }
+  ]
+}
+{
+  "schemaVersion": 1,
+  "scope": "global",
+  "repository": null,
+  "profile": "quality-code",
+  "branchPrefix": "smoke-",
+  "profilePath": "/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.aaTRUVxFWj/workflow package claude/resources/policy/profiles/quality-code.md"
+}
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "platform": "claude",
+  "ready": true,
+  "checks": [
+    {
+      "id": "platform",
+      "status": "pass",
+      "message": "Detected claude package"
+    },
+    {
+      "id": "python",
+      "status": "pass",
+      "message": "Python 3.11 is supported"
+    },
+    {
+      "id": "executable-git",
+      "status": "pass",
+      "message": "Found git: /usr/bin/git"
+    },
+    {
+      "id": "executable-python3",
+      "status": "pass",
+      "message": "Found python3: /Users/trent.brown/.pyenv/versions/3.11.11/bin/python3"
+    },
+    {
+      "id": "executable-node",
+      "status": "pass",
+      "message": "Found node: /opt/homebrew/bin/node"
+    },
+    {
+      "id": "executable-gh",
+      "status": "pass",
+      "message": "Found gh: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.uW5xL7dPHM/gh"
+    },
+    {
+      "id": "executable-claude",
+      "status": "pass",
+      "message": "Found claude: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.uW5xL7dPHM/claude"
+    },
+    {
+      "id": "node-version",
+      "status": "pass",
+      "message": "Node 26.0.0 is supported"
+    },
+    {
+      "id": "github-auth",
+      "status": "pass",
+      "message": "GitHub CLI authentication is ready"
+    },
+    {
+      "id": "package-integrity",
+      "status": "pass",
+      "message": "Verified all shared package files and 27 skills"
+    },
+    {
+      "id": "required-skills",
+      "status": "pass",
+      "message": "All 27 workflow skills are present"
+    },
+    {
+      "id": "activation-hook",
+      "status": "pass",
+      "message": "SessionStart hook is present"
+    },
+    {
+      "id": "activation-observed",
+      "status": "pass",
+      "message": "The current session contains the workflow activation policy"
+    },
+    {
+      "id": "profile",
+      "status": "pass",
+      "message": "Effective profile: quality-code"
+    },
+    {
+      "id": "branch-prefix",
+      "status": "pass",
+      "message": "Effective branch prefix: smoke-"
+    },
+    {
+      "id": "duplicate-legacy-skills",
+      "status": "pass",
+      "message": "No duplicate legacy workflow skills found"
+    },
+    {
+      "id": "optional-integrations",
+      "status": "info",
+      "message": "No optional specialist integrations detected"
+    }
+  ]
+}
+PASS
+PASS
+PASS
+PASS
+PASS
+Portable acceptance passed on Darwin arm64 with Python 3.11.11 and Node v26.0.0

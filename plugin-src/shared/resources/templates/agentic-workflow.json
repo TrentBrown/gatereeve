@@ -11,7 +11,7 @@
       "remote": "origin",
       "integrationBranch": "main",
       "releaseBranch": "main",
-      "sliceBoundaryMode": "pull-request",
+      "keepPullRequestsClosed": false,
       "featureBaseSha": "1111111111111111111111111111111111111111"
     }
   }

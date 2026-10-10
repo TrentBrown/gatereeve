@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "source": "github",
+  "repositoryRoot": "/Users/trent.brown/.codex/worktrees/closed-pr-workflow/gatereeve",
+  "repositoryAlias": "gatereeve",
+  "remote": "origin",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 74,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/74",
+    "state": "CLOSED",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93",
+    "headRefName": "tb-closed-pr-workflow",
+    "headRefOid": "7dbf4741bb69c726d4636ec316284d8de2f4bb77",
+    "githubReportedHeadSha": "2a174c16b97a3875042726a7acf69a18041f39f6",
+    "githubReportedBaseSha": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93"
+  },
+  "mergeBaseSha": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93",
+  "evaluatedSourceSha": "7dbf4741bb69c726d4636ec316284d8de2f4bb77",
+  "featureBaseSha": "174bcc60465fdd9494f8cfb9b5bdbf8e03b11b93",
+  "keepPullRequestsClosed": true
+}

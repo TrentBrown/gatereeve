@@ -13,4 +13,4 @@
 
 ## Review Log
 
-Append PR or synthetic review boundary entries here.
+Append pull-request review boundary entries here.

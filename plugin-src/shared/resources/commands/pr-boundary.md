@@ -1,31 +1,27 @@
 # Review Boundary
 
 Use when a coherent slice is ready for governed review. Pull requests are the
-default transport. A repository that explicitly configures
-`sliceBoundaryMode: synthetic-commit` uses an exact synthetic review commit for
-slice boundaries and still uses a real feature-final PR from integration to a
-distinct release branch.
+only active review mechanism. Read the repository's keepPullRequestsClosed
+preference (default false); it applies to both slice and feature-final PRs.
 
-1. Run provisional implementation verification, then commit every intended
-   source change. Resolve `workflow_context.py` and read the selected
-   repository's effective `sliceBoundaryMode`.
-2. Resolve and persist the authoritative context while the selected repository
-   is clean and synchronized. In default PR mode, push the delivery branch,
-   open or update its draft PR, and run:
+1. Complete provisional verification, commit intended source, and push the
+   delivery branch.
+2. Prepare or reuse the exact PR and persist its context from a clean checkout:
 
    ```bash
-   python3 "<plugin-root>/resources/scripts/pr_context.py" resolve \
-     --cwd "$PWD" \
+   python3 "<plugin-root>/resources/scripts/pr_lifecycle.py" prepare \
+     --cwd "$PWD" --title "Describe the change" --body-file /tmp/pr-body.md \
      --output /tmp/pr-context.json
    ```
 
-   In synthetic mode, do not open a slice PR. Run instead:
+   Add `--scope feature-final` for a final boundary. With the preference true,
+   the helper immediately closes the PR, verifies closure, and pins that
+   policy. Do not reopen for preparation or review. Existing manually prepared
+   PRs can also use `pr_context.py resolve` after their state matches policy.
 
-   ```bash
-   python3 "<plugin-root>/resources/scripts/synthetic_review.py" resolve \
-     --cwd "$PWD" \
-     --output /tmp/review-context.json
-   ```
+   GitHub freezes the native diff of a closed PR after pushes. Use the pinned
+   GateReeve packet and branch comparison for current review; the provider
+   resolves live refs and preserves GitHub-reported refs in the context.
 
    Do not begin persistent boundary evidence before this succeeds. For a
    feature-final boundary, always use PR mode. The selected configured
@@ -83,8 +79,8 @@ distinct release branch.
 13. Run `decision-triage`, then `gate_triage.py` to confirm zero untriaged
     entries remain.
 14. Immediately before finalizing evidence, recheck the persisted context.
-    PR mode uses `pr_context.py check-current`; governed module execution checks
-    either transport through the same protocol guard. Any changed remote or
+    Use `pr_context.py check-current`; governed module execution checks
+    the PR through the same protocol guard. Any changed remote or
     local source invalidates affected gates.
 15. Finalize `boundary.json`, the tracker Review Log packet link, and the review
     surface with summary, decisions, verification matrix, judge verdict,
@@ -93,23 +89,17 @@ distinct release branch.
     retention status from `feature_final.py`. If retention is not `tracked`,
     completion requires an explicit human retention decision; do not imply
     that the feature record was archived.
-16. Validate the pending packet structurally with explicit changed paths when
-    necessary and commit the evidence. PR mode pushes it, runs
-    `pr_context.py finalize` with every evidence path, then runs
-    `boundary_packet.py validate` from the clean final checkout. Synthetic mode
-    runs `synthetic_review.py publish` with every evidence path, captures commit
-    comments, writes the publication receipt into a schema-version-3 packet,
-    and validates that packet.
-
-    The first proves the post-evaluation delta is evidence-only and synchronized;
-    the second derives feature changes from Git where possible and enforces
-    packet integrity and prior-packet immutability.
+16. Validate the pending packet structurally, commit only declared evidence,
+    push it while the PR remains in its configured review state, run
+    `pr_context.py finalize` with each evidence path, and run `boundary_packet.py validate`
+    from the clean final checkout.
 17. Request human review only after the prior steps complete or are explicitly
     waived by the user. For governed features, every gate result must first be
     recorded with its current input fingerprint and the request must pass through
     the protocol adapter; direct artifact completion does not advance state.
-18. In synthetic mode, promote only after explicit human acceptance naming the
-    exact review commit. `synthetic_review.py promote` must recheck integration,
-    review ref, context fingerprint, parent, and tree, then advance integration
-    to that exact SHA without force. A failure stops; it never falls back to a
-    pull request or branch-rule bypass.
+18. After explicit human authorization to merge the exact reviewed final head,
+    run `pr_lifecycle.py merge` with that head, an authorization label and each
+    evidence path. It validates direction, identity and evidence before
+    reopening, waits for reported checks, and uses GitHub's protected merge.
+    Failure re-closes the unmerged PR. Record actual merge passage only through
+    the protocol after reviewed-content integration is verified.

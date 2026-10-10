@@ -1,0 +1,162 @@
+{
+  "pullRequest": "https://github.com/TrentBrown/gatereeve/pull/74",
+  "sourceHead": "2a174c16b97a3875042726a7acf69a18041f39f6",
+  "closedState": "CLOSED",
+  "isDraft": true,
+  "diffReadable": true,
+  "diffBytes": 184649,
+  "checks": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T19:33:06Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991079235",
+      "name": "Resolve CI scope",
+      "startedAt": "2026-10-09T19:32:58Z",
+      "status": "COMPLETED",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T19:33:06Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991154181",
+      "name": "Review artifact validation",
+      "startedAt": "2026-10-09T19:33:07Z",
+      "status": "COMPLETED",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991151952",
+      "name": "Ubuntu 22.04 acceptance",
+      "startedAt": "2026-10-09T19:33:09Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991151888",
+      "name": "Ubuntu 24.04 acceptance",
+      "startedAt": "2026-10-09T19:33:09Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991151979",
+      "name": "Ubuntu 22.04 container",
+      "startedAt": "2026-10-09T19:33:09Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991152046",
+      "name": "Ubuntu 24.04 container",
+      "startedAt": "2026-10-09T19:33:10Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T19:33:23Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991151966",
+      "name": "Desktop contract on Ubuntu 22.04",
+      "startedAt": "2026-10-09T19:33:09Z",
+      "status": "COMPLETED",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T19:33:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991152036",
+      "name": "Desktop contract on Ubuntu 24.04",
+      "startedAt": "2026-10-09T19:33:10Z",
+      "status": "COMPLETED",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T19:33:26Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991152039",
+      "name": "Desktop runtime on Ubuntu 22.04",
+      "startedAt": "2026-10-09T19:33:10Z",
+      "status": "COMPLETED",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T19:33:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991151914",
+      "name": "Desktop runtime on Ubuntu 24.04",
+      "startedAt": "2026-10-09T19:33:09Z",
+      "status": "COMPLETED",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991151929",
+      "name": "Desktop runtime on macOS",
+      "startedAt": "2026-10-09T19:33:13Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/37980971701/job/113991152027",
+      "name": "Universal macOS package",
+      "startedAt": "2026-10-09T19:33:19Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "Plugin CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-09T19:33:13Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://dash.cloudflare.com/?to=/170294139fbdde10f378555a6ac83751/pages/view/gatereeve/a57e15c6-7977-4a36-b7a8-a7a769a1b305",
+      "name": "Cloudflare Pages",
+      "startedAt": "2026-10-09T19:33:13Z",
+      "status": "COMPLETED",
+      "workflowName": ""
+    }
+  ],
+  "reviewProbe": "pending draft only; never submitted",
+  "pendingReviewCreated": true,
+  "pendingReviewState": "PENDING",
+  "pendingReviewId": 5474530392,
+  "pendingReviewDeleted": true,
+  "closedPush": {
+    "pushedHead": "a1f35a6527de089a08355f65b67a7d5200131c69",
+    "githubReportedHead": "2a174c16b97a3875042726a7acf69a18041f39f6",
+    "stateAfterPush": "CLOSED",
+    "nativeDiffFrozen": true
+  },
+  "liveRefResolution": {
+    "headRefOid": "a1f35a6527de089a08355f65b67a7d5200131c69",
+    "githubReportedHeadSha": "2a174c16b97a3875042726a7acf69a18041f39f6",
+    "missingRefBehavior": "reject rather than fall back to frozen metadata"
+  },
+  "limitations": [
+    "Pending review creation verified and draft deleted without submission. Formal submitted review was not tested.",
+    "No reopening or merging was authorized or performed. Native reopened-head matching and failure re-closure are covered by injected-provider tests.",
+    "Native PR diff remains stale after closed branch pushes. Review uses pinned GateReeve evidence and branch refs.",
+    "Checks listed here belong to the initial opened PR head; they are not proof for subsequent closed-branch heads."
+  ]
+}

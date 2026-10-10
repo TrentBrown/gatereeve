@@ -10,11 +10,11 @@ per-user or repository configuration.
 - Start topic branches from the repository's declared upstream branch and
   merge them through pull requests. Never infer a direct-commit exception from
   the repository name.
-- Pull requests remain the default slice boundary. A repository may explicitly
-  set `sliceBoundaryMode: synthetic-commit` to review a squash-only synthetic
-  commit before advancing its configured integration branch. This exception
-  never permits a force push, branch-rule bypass, or replacement of a distinct
-  integration-to-release feature-final PR.
+- Pull requests are the only active slice-review mechanism. An optional
+  repository `keepPullRequestsClosed: true` closes PRs immediately after
+  creation and keeps them closed through preparation and review. Reopen only
+  immediately before an explicitly authorized merge. This preference never
+  permits force pushes, rule bypass, or premature reopening for helpers.
 - When a repository uses environment branches, treat those branches as
   deployment snapshots rather than the durable home for fixes.
 - Use canonical promotion PR titles: `main <-- <topic>` upstream and

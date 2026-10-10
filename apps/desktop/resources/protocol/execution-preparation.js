@@ -38,7 +38,9 @@ export async function verifyBoundaryContextCurrent({
     if (!result.passed || !result.data) {
       throw new Error(result.stderr || 'Cannot verify that the pinned boundary context is current.');
     }
-    return result.data;
+    // The legacy guard returns currentness and PR metadata, not the pinned
+    // feature/slice range required by automatic review modules.
+    return { ...context, ...result.data };
   } finally {
     await unlink(contextPath).catch(() => {});
   }

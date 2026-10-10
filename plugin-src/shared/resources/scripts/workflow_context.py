@@ -18,7 +18,6 @@ CONFIG_NAME = ".agentic-workflow.json"
 SCHEMA_VERSION = 1
 IDENTIFIER = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$")
 OBJECT_ID = re.compile(r"^[0-9a-fA-F]{40,64}$")
-SLICE_BOUNDARY_MODES = {"pull-request", "synthetic-commit"}
 
 
 class WorkflowContextError(RuntimeError):
@@ -41,17 +40,17 @@ class RepositoryContext:
     remote: str
     integration_branch: str
     release_branch: str = ""
-    slice_boundary_mode: str = "pull-request"
+    keep_pull_requests_closed: bool = False
     feature_base_sha: str | None = None
 
-    def to_dict(self) -> dict[str, str | None]:
+    def to_dict(self) -> dict[str, object]:
         return {
             "alias": self.alias,
             "path": str(self.path),
             "remote": self.remote,
             "integrationBranch": self.integration_branch,
             "releaseBranch": self.release_branch,
-            "sliceBoundaryMode": self.slice_boundary_mode,
+            "keepPullRequestsClosed": self.keep_pull_requests_closed,
             "featureBaseSha": self.feature_base_sha,
         }
 
@@ -211,13 +210,15 @@ def _parse_repositories(
             ),
             f"repositories.{alias}.integrationBranch",
         )
-        slice_boundary_mode = raw_repository.get(
-            "sliceBoundaryMode", "pull-request"
-        )
-        if slice_boundary_mode not in SLICE_BOUNDARY_MODES:
+        if "sliceBoundaryMode" in raw_repository:
             raise WorkflowContextError(
-                f"repositories.{alias}.sliceBoundaryMode must be pull-request "
-                "or synthetic-commit"
+                f"repositories.{alias}.sliceBoundaryMode is retired; remove it and "
+                "use keepPullRequestsClosed: true to keep PRs closed until merge"
+            )
+        keep_pull_requests_closed = raw_repository.get("keepPullRequestsClosed", False)
+        if not isinstance(keep_pull_requests_closed, bool):
+            raise WorkflowContextError(
+                f"repositories.{alias}.keepPullRequestsClosed must be boolean"
             )
         release_branch = _validate_branch_name(
             raw_repository.get("releaseBranch", integration_branch),
@@ -242,7 +243,7 @@ def _parse_repositories(
                 remote=remote,
                 integration_branch=integration_branch,
                 release_branch=release_branch,
-                slice_boundary_mode=slice_boundary_mode,
+                keep_pull_requests_closed=keep_pull_requests_closed,
                 feature_base_sha=feature_base_sha,
             )
         )
@@ -329,7 +330,7 @@ def _legacy_context(
         remote="origin",
         integration_branch="",
         release_branch="",
-        slice_boundary_mode="pull-request",
+        keep_pull_requests_closed=False,
     )
     return WorkflowContext(
         mode="legacy",
