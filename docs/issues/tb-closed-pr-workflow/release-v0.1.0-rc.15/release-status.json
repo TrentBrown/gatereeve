@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "release": {
+    "sourceCommit": "d2456ded8f4d9120b105b7af7f3b10177256207e",
+    "tag": "v0.1.0-rc.15"
+  },
+  "stage": "COMPLETE",
+  "condition": "complete",
+  "nextAction": "NONE",
+  "failure": null,
+  "sequence": 12,
+  "stateSha256": "c96b3c3fc9659515de56167176ec8c3e660c154b18107cee478631b0c7b24f16",
+  "actor": {
+    "login": "TrentBrown"
+  },
+  "recordedAt": "2026-10-10T00:55:52.420Z",
+  "run": {
+    "id": "38010784767",
+    "attempt": 1,
+    "repository": "TrentBrown/gatereeve",
+    "workflowRef": "TrentBrown/gatereeve/.github/workflows/release-conductor.yml@refs/heads/main"
+  },
+  "evidence": {
+    "caskFinalizationRunId": "38010784767",
+    "caskPlanArtifact": "gatereeve-v0.1.0-rc.15-linked-homebrew-cask",
+    "caskPlanSha256": "5a128cab25efe472a258d0e5ab74936e6a7428610d64aec34c716caa1ee0a5c6",
+    "caskPublicationArtifact": "gatereeve-v0.1.0-rc.15-linked-homebrew-cask-result",
+    "caskPublicationRunId": "38010784767",
+    "caskRecordSha256": "93fd97e6cd7b8af80806c4e62d65a0c91b904b2c2eea334c0721a03031e5b778",
+    "caskRehearsalArtifact": "gatereeve-v0.1.0-rc.15-linked-homebrew-cask-rehearsal",
+    "caskRehearsalRunId": "38010784767",
+    "directInstallAttestation": {
+      "confirmedAt": "2026-10-10T00:51:21.695Z",
+      "confirmedBy": "TrentBrown",
+      "publicDmgSha256": "ad33d4c70a32931178061a16c0195ec1d9556818eba4296abd3f3dc20f6c173b"
+    },
+    "dmgSha256": "ad33d4c70a32931178061a16c0195ec1d9556818eba4296abd3f3dc20f6c173b",
+    "pluginArtifact": "coordinated-plugin-candidate",
+    "preparationArtifact": "coordinated-plugin-candidate",
+    "preparationRunId": "38009713880",
+    "primaryFinalizationRunId": "38009713880",
+    "primaryPlanArtifact": "gatereeve-v0.1.0-rc.15-hosted-publication",
+    "primaryPlanSha256": "f0e6f0e2a1809f683e72457414fa99a8f7f7b051e8a836b12f898b19078b8bb8",
+    "primaryPublicationArtifact": "gatereeve-v0.1.0-rc.15-hosted-publication-result",
+    "primaryPublicationRunId": "38009713880",
+    "primaryRecordSha256": "678288f7b9e43a5ae46388065a4bf555e4890e57ea41a337ac59eab25436b3e4",
+    "primaryRehearsalArtifact": "gatereeve-v0.1.0-rc.15-hosted-publication-rehearsal",
+    "primaryRehearsalRunId": "38009713880",
+    "publicDmgSha256": "ad33d4c70a32931178061a16c0195ec1d9556818eba4296abd3f3dc20f6c173b",
+    "smokeArtifacts": [
+      "homebrew-cask-smoke-arm64",
+      "homebrew-cask-smoke-x64",
+      "public-homebrew-cask-smoke-arm64",
+      "public-homebrew-cask-smoke-x64"
+    ],
+    "smokeRunId": "38010784767",
+    "trustArtifact": "coordinated-desktop-trusted",
+    "trustArtifactRunId": "38009713880",
+    "version": "0.1.0-rc.15"
+  },
+  "history": [
+    {
+      "sequence": 1,
+      "stage": "INITIALIZED",
+      "condition": "ready",
+      "recordedAt": "2026-10-10T00:35:55.852Z",
+      "sha256": "ad39b199801ea4a31510f5dc014d5ee15d9cf64b917b591182238d5125f77484"
+    },
+    {
+      "sequence": 2,
+      "stage": "TRUST_PENDING",
+      "condition": "waiting",
+      "recordedAt": "2026-10-10T00:36:13.891Z",
+      "sha256": "9727c22c1450f0a6d6aab09f601a33679ec97a8bb5bab9a6c6a4c42b62f0ffdc"
+    },
+    {
+      "sequence": 3,
+      "stage": "TRUSTED",
+      "condition": "ready",
+      "recordedAt": "2026-10-10T00:45:24.141Z",
+      "sha256": "3ef05511dd8ace17a27952142f83d4c2c4f2287e5f58e2983a7917d59a9687dc"
+    },
+    {
+      "sequence": 4,
+      "stage": "PRIMARY_FINALIZED",
+      "condition": "ready",
+      "recordedAt": "2026-10-10T00:46:25.885Z",
+      "sha256": "720f78e0f2741cb79745fa3607a37db5964eafafa48446b04a498b1f4fc1e020"
+    },
+    {
+      "sequence": 5,
+      "stage": "PRIMARY_REHEARSED",
+      "condition": "waiting",
+      "recordedAt": "2026-10-10T00:47:11.056Z",
+      "sha256": "ce3546d13b9d02e4d65523365711dfa492ad50dcc74b069d627bd11bf661f483"
+    },
+    {
+      "sequence": 6,
+      "stage": "PRIMARY_PUBLISHED",
+      "condition": "ready",
+      "recordedAt": "2026-10-10T00:50:12.779Z",
+      "sha256": "f881dcd563c9af9eb23ce2809b93d9fb6a37c64d068a7acd3ca48db5cf0f6823"
+    },
+    {
+      "sequence": 7,
+      "stage": "WAITING_FOR_DIRECT_INSTALL",
+      "condition": "waiting",
+      "recordedAt": "2026-10-10T00:50:24.956Z",
+      "sha256": "a59124090b3108d5a122b05cb58339238d1f6d853a49c1497aaf783a4baa17f6"
+    },
+    {
+      "sequence": 8,
+      "stage": "CASK_FINALIZED",
+      "condition": "ready",
+      "recordedAt": "2026-10-10T00:51:56.426Z",
+      "sha256": "3c86793ad46f1fd20e88f9b63ca81067383af3c9efba774fc8c09f3be9112ce8"
+    },
+    {
+      "sequence": 9,
+      "stage": "CASK_REHEARSED",
+      "condition": "waiting",
+      "recordedAt": "2026-10-10T00:52:26.209Z",
+      "sha256": "ee983f53919844d6d8b0ab48973787615c7fef4e774f954905afb89054c5241f"
+    },
+    {
+      "sequence": 10,
+      "stage": "CASK_PUBLISHED",
+      "condition": "ready",
+      "recordedAt": "2026-10-10T00:53:32.504Z",
+      "sha256": "8d382383caecc3fa898931c0594788a7ddfac8ab9125548e72f44cc2571ddaa7"
+    },
+    {
+      "sequence": 11,
+      "stage": "SMOKE_VERIFIED",
+      "condition": "ready",
+      "recordedAt": "2026-10-10T00:55:39.039Z",
+      "sha256": "27e544c8cd7e3c10cbc325325f12c93582b55c3a51ca999f1bb95fcf6043055f"
+    },
+    {
+      "sequence": 12,
+      "stage": "COMPLETE",
+      "condition": "complete",
+      "recordedAt": "2026-10-10T00:55:52.420Z",
+      "sha256": "c96b3c3fc9659515de56167176ec8c3e660c154b18107cee478631b0c7b24f16"
+    }
+  ]
+}

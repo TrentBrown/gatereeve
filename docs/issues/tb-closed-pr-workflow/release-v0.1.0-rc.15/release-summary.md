@@ -1,0 +1,22 @@
+# GateReeve Release v0.1.0-rc.15
+
+- Source: `d2456ded8f4d9120b105b7af7f3b10177256207e`
+- Current stage: **COMPLETE**
+- Condition: **complete**
+- Next action: **NONE**
+- State SHA-256: `c96b3c3fc9659515de56167176ec8c3e660c154b18107cee478631b0c7b24f16`
+
+| Sequence | Stage | Condition | State SHA-256 |
+|---:|---|---|---|
+| 1 | INITIALIZED | ready | `ad39b199801ea4a31510f5dc014d5ee15d9cf64b917b591182238d5125f77484` |
+| 2 | TRUST_PENDING | waiting | `9727c22c1450f0a6d6aab09f601a33679ec97a8bb5bab9a6c6a4c42b62f0ffdc` |
+| 3 | TRUSTED | ready | `3ef05511dd8ace17a27952142f83d4c2c4f2287e5f58e2983a7917d59a9687dc` |
+| 4 | PRIMARY_FINALIZED | ready | `720f78e0f2741cb79745fa3607a37db5964eafafa48446b04a498b1f4fc1e020` |
+| 5 | PRIMARY_REHEARSED | waiting | `ce3546d13b9d02e4d65523365711dfa492ad50dcc74b069d627bd11bf661f483` |
+| 6 | PRIMARY_PUBLISHED | ready | `f881dcd563c9af9eb23ce2809b93d9fb6a37c64d068a7acd3ca48db5cf0f6823` |
+| 7 | WAITING_FOR_DIRECT_INSTALL | waiting | `a59124090b3108d5a122b05cb58339238d1f6d853a49c1497aaf783a4baa17f6` |
+| 8 | CASK_FINALIZED | ready | `3c86793ad46f1fd20e88f9b63ca81067383af3c9efba774fc8c09f3be9112ce8` |
+| 9 | CASK_REHEARSED | waiting | `ee983f53919844d6d8b0ab48973787615c7fef4e774f954905afb89054c5241f` |
+| 10 | CASK_PUBLISHED | ready | `8d382383caecc3fa898931c0594788a7ddfac8ab9125548e72f44cc2571ddaa7` |
+| 11 | SMOKE_VERIFIED | ready | `27e544c8cd7e3c10cbc325325f12c93582b55c3a51ca999f1bb95fcf6043055f` |
+| 12 | COMPLETE | complete | `c96b3c3fc9659515de56167176ec8c3e660c154b18107cee478631b0c7b24f16` |

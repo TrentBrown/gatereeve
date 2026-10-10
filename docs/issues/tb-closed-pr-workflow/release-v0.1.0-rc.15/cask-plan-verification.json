@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "caskReleaseId": "gatereeve-cask-v0.1.0-rc.15",
+  "primary": {
+    "releaseId": "gatereeve-v0.1.0-rc.15",
+    "recordSha256": "607051964a310fe5c1681f5455654291099e1f77edc8790fceefcefad8ea6c92",
+    "publishedStageSha256": "23d2ea550db5941355ea39c1291084c74ac7297e5965a7b43b0e865a60ef308d",
+    "planSha256": "f0e6f0e2a1809f683e72457414fa99a8f7f7b051e8a836b12f898b19078b8bb8",
+    "receiptsSha256": "980f83cc4c677ddcec3e7d1a23f2e56887db839303c11ab1c6e48d65d25cd4a5"
+  },
+  "state": "prepared",
+  "planSha256": "5a128cab25efe472a258d0e5ab74936e6a7428610d64aec34c716caa1ee0a5c6",
+  "surface": {
+    "state": "pending",
+    "receipt": null
+  }
+}
