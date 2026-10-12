@@ -278,7 +278,10 @@ async function preparedAdvisory(
         refs.push(ref);
       }
     }
-    const history = await advisoryHistory(home, slice.id, { omitReadinessId });
+    const history = await advisoryHistory(home, slice.id, {
+      omitReadinessId,
+      featureId: context.featureId,
+    });
     const priorFindings = [
       ...history.findings,
       ...(await formalAdvisoryFindings(record, slice.id)),
@@ -961,6 +964,11 @@ export async function checkAdvisoryDisposition(
             ...(!clean ? [proceed.reference] : []),
             ...p.refs,
             ...reusedReferences,
+            ...p.history.references,
+            ...p.priorFindings.flatMap((finding) => [
+              finding.source.reference,
+              ...(finding.source.bindings ?? []),
+            ]),
           ],
           p.source.headSha
         );

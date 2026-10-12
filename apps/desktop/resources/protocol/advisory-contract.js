@@ -266,6 +266,16 @@ export function validateDefectClassReview(
       matching.length === review.findingIds.length,
       'remediation references unknown findings'
     );
+    advisoryAssert(
+      matching.every((finding) =>
+        finding.affectedPaths.every((path) =>
+          review.examinedPaths.some(
+            (examined) => path === examined || path.startsWith(examined + '/')
+          )
+        )
+      ),
+      'defect-class review must examine every identified affected path'
+    );
     const priorFixes = previousDeclarations.flatMap((declaration) =>
       (declaration.remediation ?? []).map((old) => ({
         declaration,

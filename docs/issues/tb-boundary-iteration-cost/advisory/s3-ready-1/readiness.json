@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-readiness",
+  "featureId": "tb-boundary-iteration-cost",
+  "sliceId": "s3-advisory-discovery",
+  "readinessId": "s3-ready-1",
+  "declaredAt": "2026-10-12T22:37:29.040Z",
+  "scope": "SLICE",
+  "baseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+  "sliceBaseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+  "criteria": [
+    "R1",
+    "R2",
+    "R3",
+    "R6",
+    "R7",
+    "R8",
+    "R9",
+    "R10",
+    "R11",
+    "R23"
+  ],
+  "source": {
+    "baseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "headSha": "69b2e6fb4e180819861e97adad6a92238cae3cfd",
+    "sliceBaseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "scope": "SLICE",
+    "boundaryScope": "SLICE"
+  },
+  "inputIdentity": "sha256:0f1cb1d81a7e57f0cdb7645626e5568ba37adbcbb5f3f429ecc81e020c5c7aeb",
+  "requestIdentity": "sha256:ada463760e56cd0b40f5fcaa061f4ca50737367d0312e38270b90afce80c4501",
+  "inputManifest": {
+    "schemaVersion": 1,
+    "kind": "slice-advisory-inputs",
+    "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "opaqueHistoryIdentity": "sha256:57efececdc5b82618371fb5e460facdb4a851302a9fd6524a1b615ff523ac82a",
+    "reviewInputIdentity": "sha256:059667a661e1046d46575a06e04ec7565cb4546ba68efc10395f760f39e7c27c",
+    "scope": "SLICE",
+    "boundaryScope": "SLICE",
+    "criteria": [
+      "R1",
+      "R2",
+      "R3",
+      "R6",
+      "R7",
+      "R8",
+      "R9",
+      "R10",
+      "R11",
+      "R23"
+    ],
+    "formalJudge": {
+      "id": "gatereeve/judge",
+      "version": "3.0.0",
+      "digest": "sha256:a3cabc1a01f0b885c3b7333c6f9d1cf92d21e1f18cc322d14ce1cf01fbd5fa07",
+      "scope": "SLICE",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "isolation": {
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "repositoryAccess": "read-only-pinned",
+      "networkAccess": "denied"
+    },
+    "advisoryModule": {
+      "id": "gatereeve/advisory-review",
+      "version": "1.0.0",
+      "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+    },
+    "applicable": true,
+    "resources": {
+      "resources/agent-workflows/advisory/agent.md": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+      "resources/agent-workflows/advisory/stage-input.schema.json": "sha256:b7c5b74d8d3b6a1ca1cb355df540d5ff0e2e5255ad34a72b903838f8f68bf38f",
+      "resources/agent-workflows/advisory/result.schema.json": "sha256:f863eb92f594143c402328bff6016a9b0205106f0735922a23145d182724a532",
+      "resources/agent-workflows/advisory/validator.js": "sha256:629dc6ac07eed04ac477130aee91a031de6ecadeb345f24dc7a068925412e88e"
+    },
+    "adapter": {
+      "id": "codex/fresh-exec",
+      "version": "1.0.0",
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "reasoningEffort": "high",
+      "capabilityProfiles": [
+        "high-capability-v1"
+      ],
+      "isolationMethods": [
+        "codex-ephemeral-exec"
+      ]
+    },
+    "checks": [
+      {
+        "kind": "fast",
+        "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node cli/bin/workflow.js plugin lint --json ; python3 plugin-src/shared/resources/scripts/validate_branch_docs.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_issues.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_tracker.py docs/issues/tb-boundary-iteration-cost ; git diff --check",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "runtime/advisory-checks/s3-fast.log",
+            "hash": "sha256:ac5f2283f29613154a4b10cb899a3a4791a2cb1e5f7cca036c3d46e55f595442"
+          }
+        ]
+      },
+      {
+        "kind": "focused",
+        "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/advisory.test.js cli/test/protocol-contracts.test.js",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "runtime/advisory-checks/s3-focused.log",
+            "hash": "sha256:946a53bb8e8145a9067e1347b797c216927dc27ced6d6ee4a9e93b9fda356661"
+          }
+        ]
+      }
+    ],
+    "priorFindingsIdentity": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "governance": {
+      "featureId": "tb-boundary-iteration-cost",
+      "repositoryAlias": "product",
+      "remote": "origin",
+      "integrationBranch": "main",
+      "releaseBranch": "main",
+      "featureBaseSha": "ef725bbedfda28be0967fefde6cf2748679612c2",
+      "keepPullRequestsClosed": false
+    }
+  },
+  "checks": [
+    {
+      "kind": "fast",
+      "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node cli/bin/workflow.js plugin lint --json ; python3 plugin-src/shared/resources/scripts/validate_branch_docs.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_issues.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_tracker.py docs/issues/tb-boundary-iteration-cost ; git diff --check",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "runtime/advisory-checks/s3-fast.log",
+          "hash": "sha256:ac5f2283f29613154a4b10cb899a3a4791a2cb1e5f7cca036c3d46e55f595442"
+        }
+      ]
+    },
+    {
+      "kind": "focused",
+      "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/advisory.test.js cli/test/protocol-contracts.test.js",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "runtime/advisory-checks/s3-focused.log",
+          "hash": "sha256:946a53bb8e8145a9067e1347b797c216927dc27ced6d6ee4a9e93b9fda356661"
+        }
+      ]
+    }
+  ],
+  "remediation": null,
+  "priorFindings": [],
+  "execution": {
+    "provider": "codex",
+    "model": "gpt-5.5",
+    "reasoningEffort": "high"
+  },
+  "declaredBy": {
+    "kind": "agent",
+    "label": "Implementer declares approved P4 slice ready after actual pinned fast/focused checks"
+  }
+}

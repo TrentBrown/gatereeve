@@ -1162,3 +1162,55 @@ test('tracked compact advisory evidence remains usable in a fresh checkout', asy
   assert.equal(result.eligible, true, JSON.stringify(result));
   assert.equal(result.outcome, 'READY_FOR_FORMAL_REVIEW');
 });
+
+test('defect-class readiness requires affected-path coverage and historical evidence is tracked before formal entry', async (t) => {
+  const f = await fixture(t);
+  await declareAdvisoryReadiness(f.home, f.input, {
+    adapter: transport({ output: findingResult }).adapter,
+  });
+  const revised = {
+    ...f.input,
+    readinessId: 'ready-2',
+    remediation: [
+      {
+        findingIds: ['advisory:ready-1:0'],
+        invariant: 'Newer intent must survive a late response',
+        examinedPaths: ['app.test.mjs'],
+        approach: 'Inspect ownership and response order.',
+        regressions: [
+          {
+            scenario: 'Late response ordering',
+            command: 'node --test app.test.mjs',
+            outcome: 'PASS',
+            evidence: [f.input.checks[1].evidence[0]],
+          },
+        ],
+      },
+    ],
+  };
+  await assert.rejects(
+    declareAdvisoryReadiness(f.home, revised, { adapter: transport().adapter }),
+    /every identified affected path/
+  );
+  revised.remediation[0].examinedPaths.push('app.mjs');
+  await declareAdvisoryReadiness(f.home, revised, {
+    adapter: transport().adapter,
+  });
+  await f.git(
+    'add',
+    'docs/issues/advisory-feature/advisory/ready-2',
+    'docs/issues/advisory-feature/runtime'
+  );
+  await f.git(
+    'commit',
+    '-m',
+    'Deliberately omit earlier advisory record fixture'
+  );
+  const checked = await checkAdvisoryDisposition(
+    f.home,
+    { readinessId: 'ready-2', repositoryRoot: f.root },
+    { requireTracked: true }
+  );
+  assert.equal(checked.eligible, false);
+  assert.match(checked.blockers[0].message, /commit each advisory record/);
+});

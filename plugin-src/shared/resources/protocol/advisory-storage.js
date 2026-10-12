@@ -120,7 +120,7 @@ export async function existingAdvisoryJSON(home, path) {
 export async function advisoryHistory(
   home,
   sliceId,
-  { omitReadinessId = null } = {}
+  { omitReadinessId = null, featureId = null } = {}
 ) {
   const root = resolve(home, 'advisory');
   let names = [];
@@ -130,7 +130,8 @@ export async function advisoryHistory(
     if (error.code !== 'ENOENT') throw error;
   }
   const records = [],
-    declarations = [];
+    declarations = [],
+    references = [];
   for (const name of names.sort()) {
     const metadata = await lstat(resolve(root, name));
     advisoryAssert(
@@ -145,10 +146,15 @@ export async function advisoryHistory(
       continue;
     validateAdvisoryReadiness(ready.value);
     advisoryAssert(
+      !featureId || ready.value.featureId === featureId,
+      'advisory history belongs to another feature'
+    );
+    advisoryAssert(
       ready.value.readinessId === name,
       'readiness history binding is invalid'
     );
     declarations.push(ready.value);
+    references.push(ready.reference);
     const review = await existingAdvisoryJSON(
       home,
       'advisory/' + name + '/review.json'
@@ -168,6 +174,7 @@ export async function advisoryHistory(
       reference: review.reference,
       declaration: ready.value,
     });
+    references.push(review.reference);
   }
   const findings = records
     .filter((r) => r.outcome === 'FINDINGS')
@@ -184,7 +191,7 @@ export async function advisoryHistory(
       a.declaredAt.localeCompare(b.declaredAt) ||
       a.readinessId.localeCompare(b.readinessId)
   );
-  return { records, declarations, findings };
+  return { records, declarations, findings, references };
 }
 
 export async function validateAdvisoryReuse(home, record, seen = new Set()) {

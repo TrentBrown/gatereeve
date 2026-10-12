@@ -140,6 +140,10 @@ export async function formalAdvisoryFindings(record, sliceId) {
           kind: 'formal',
           eventId: event.eventId,
           reference: event.payload.evidence,
+          bindings: Object.values(root.files).map((binding) => ({
+            path: directory + binding.path,
+            hash: binding.sha256,
+          })),
         },
         criterionIds: result.criteria
           .filter((c) => c.result === 'FAIL')
