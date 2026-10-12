@@ -128,9 +128,12 @@ test('rename edits and binary old/new content retain exact identities and access
   const f = await fixture(t);
   const before = Buffer.from([0, 1, 2, 3]); const after = Buffer.from([0, 4, 5, 6]);
   await writeFile(join(f.root, 'picture\tname.bin'), before);
+  await writeFile(join(f.root, 'removed.bin'), before);
   await writeFile(join(f.root, 'rename.txt'), 'stable line\n'.repeat(100));
   const baseSha = await f.commit();
   await writeFile(join(f.root, 'picture\tname.bin'), after);
+  await rm(join(f.root, 'removed.bin'));
+  await writeFile(join(f.root, 'created.bin'), after);
   await rename(join(f.root, 'rename.txt'), join(f.root, 'renamed.txt'));
   await writeFile(join(f.root, 'renamed.txt'), 'stable line\n'.repeat(99) + 'edited\n');
   const head = await f.commit(); const compact = await f.build(head, { baseSha }); t.after(compact.cleanup);
@@ -141,6 +144,12 @@ test('rename edits and binary old/new content retain exact identities and access
   assert.deepEqual(await readFile(join(view.repositoryPath, binary.oldContent.path)), before);
   assert.deepEqual(await readFile(join(view.repositoryPath, binary.newContent.path)), after);
   assert.equal(binary.oldContent.hash, sha256Digest(before));
+  const created = inventory.find((entry) => entry.newPath === 'created.bin');
+  const removed = inventory.find((entry) => entry.oldPath === 'removed.bin');
+  assert.equal(created.oldContent, null);
+  assert.equal(removed.newContent, null);
+  assert.deepEqual(await readFile(join(view.repositoryPath, created.newContent.path)), after);
+  assert.deepEqual(await readFile(join(view.repositoryPath, removed.oldContent.path)), before);
   const renamed = inventory.find((entry) => entry.newPath === 'renamed.txt');
   assert.match(renamed.status, /^R/u); assert.equal(renamed.oldPath, 'rename.txt');
   const index = JSON.parse(await readFile(join(view.repositoryPath, compact.change.patch.path), 'utf8'));
@@ -153,6 +162,8 @@ test('rename edits and binary old/new content retain exact identities and access
 
 test('905-file, 24 MiB review uses bounded chunks without changing mixed-feature scope', async (t) => {
   const f = await fixture(t);
+  await writeFile(join(f.root, 'app.txt'), 'earlier integrated feature on shared code\n');
+  await writeFile(join(f.root, 'package.json'), '{"dependencies":{"shared":"1.0.0"}}\n');
   for (let i = 0; i < 905; i += 1) await writeFile(join(f.root, `source-${i}.txt`), `source ${i}\n`);
   await writeFile(join(f.root, 'large.txt'), '0123456789abcdef\n'.repeat(Math.ceil(24 * 1024 * 1024 / 17)));
   const sliceBaseSha = await f.commit();
@@ -165,6 +176,13 @@ test('905-file, 24 MiB review uses bounded chunks without changing mixed-feature
   assert.deepEqual(compact.change.sliceChangedFiles, ['app.txt']);
   assert.equal(compact.change.source.baseSha, f.baseSha);
   assert.equal(compact.change.source.headSha, head);
+  const view = await snapshot(f, compact, head); t.after(view.cleanup);
+  assert.equal(await readFile(join(view.repositoryPath, 'app.txt'), 'utf8'), 'final slice\n');
+  assert.match(await readFile(join(view.repositoryPath, 'package.json'), 'utf8'), /shared/u);
+  assert.equal(await readFile(join(view.repositoryPath, 'source-0.txt'), 'utf8'), 'source 0\n');
+  const featureIndex = JSON.parse(compact.evidenceFiles[compact.change.inventory.path]);
+  assert.ok(featureIndex.some((entry) => entry.newPath === 'package.json'));
+  assert.ok(featureIndex.some((entry) => entry.newPath === 'app.txt'));
   const index = JSON.parse(compact.evidenceFiles[compact.change.patch.path]);
   assert.ok(index.chunks.length > 300);
   assert.ok(index.chunks.every((chunk) => chunk.bytes <= 64 * 1024));
