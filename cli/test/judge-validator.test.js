@@ -81,3 +81,25 @@ test('Judge bundle creation preserves the model verdict without remediation beha
   assert.equal(created.files['judge-result.json'].verdict, 'FAIL');
   assert.equal(Object.hasOwn(created, 'remediation'), false);
 });
+
+test('compact Judge audit is bound outside the reviewer input and rejects changed provenance', () => {
+  const value = bundle();
+  const reviewView = { policy: { kind: 'compact-review-v1', history: 'exclude' },
+    inputIdentity: `sha256:${'b'.repeat(64)}` };
+  const audit = { view: reviewView, source: { headSha: 'c'.repeat(40) }, excludedPaths: ['private-history.md'] };
+  const options = { module: { id: 'gatereeve/judge', version: '3.0.0',
+    digest: `sha256:${'a'.repeat(64)}`, run: { reviewInput: reviewView.policy } },
+  input: { source: { headSha: 'c'.repeat(40) }, change: { reviewView, criteria: ['R1'] } },
+  outputs: { judge: value.result }, receipts: [value.receipt], reviewViewAudit: audit };
+  const created = createJudgeBundle(options);
+  const validation = { manifest: created.manifest, result: value.result,
+    markdown: value.markdown, receipt: value.receipt, viewAudit: audit };
+  assert.equal(validateJudgeBundle(validation).outcome, 'PASS');
+  assert.equal(created.files['judge-view-audit.json'], audit);
+  assert.equal(JSON.stringify(options.input).includes('private-history'), false);
+  assert.throws(() => validateJudgeBundle({ ...validation,
+    viewAudit: { ...audit, excludedPaths: ['changed-history.md'] } }), /audit binding/u);
+  assert.throws(() => createJudgeBundle({ ...options, reviewViewAudit: null }), /audit is missing/u);
+  assert.throws(() => createJudgeBundle({ ...options,
+    input: { ...options.input, change: { reviewView, criteria: ['R1', 'R2'] } } }), /rubric scope/u);
+});

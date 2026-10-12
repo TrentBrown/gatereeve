@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process';
-import { chmod, mkdtemp, mkdir, readdir, readlink, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
+import { chmod, copyFile, lstat, mkdtemp, mkdir, readdir, readlink, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
@@ -93,16 +95,25 @@ async function materializeEvidenceFiles(repositoryPath, evidenceFiles) {
     if (!path.startsWith(`${EVIDENCE_ROOT}/`)) {
       throw new ContractError(`Pinned snapshot evidence must be beneath ${EVIDENCE_ROOT}`);
     }
-    if (typeof content !== 'string') {
-      throw new ContractError(`Pinned snapshot evidence ${path} must be text`);
-    }
     const target = join(repositoryPath, path);
     await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, content, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
-    manifest[path] = {
-      hash: sha256Digest(content),
-      bytes: Buffer.byteLength(content, 'utf8'),
-    };
+    if (typeof content === 'string') {
+      await writeFile(target, content, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+      manifest[path] = { hash: sha256Digest(content), bytes: Buffer.byteLength(content, 'utf8') };
+    } else if (content && typeof content.sourcePath === 'string'
+      && /^sha256:[0-9a-f]{64}$/u.test(content.hash) && Number.isSafeInteger(content.bytes) && content.bytes >= 0) {
+      const info = await lstat(content.sourcePath);
+      if (!info.isFile() || info.isSymbolicLink()) throw new ContractError('Review evidence source must be a regular file');
+      await copyFile(content.sourcePath, target, 1); // COPYFILE_EXCL
+      const digest = createHash('sha256');
+      let bytes = 0;
+      for await (const chunk of createReadStream(target)) { digest.update(chunk); bytes += chunk.length; }
+      const hash = `sha256:${digest.digest('hex')}`;
+      if (hash !== content.hash || bytes !== content.bytes) throw new ContractError('Review evidence changed during materialization');
+      manifest[path] = { hash, bytes };
+    } else {
+      throw new ContractError(`Pinned snapshot evidence ${path} must be text or a bound file`);
+    }
   }
   return manifest;
 }
@@ -115,12 +126,36 @@ async function git(runner, repositoryRoot, args) {
   return (await runner('git', ['-C', repositoryRoot, ...args], { cwd: repositoryRoot })).trim();
 }
 
+async function validateSourceView(repositoryPath, entries) {
+  for (const entry of entries) {
+    const path = join(repositoryPath, safeRelativePath(entry.path, 'Review source'));
+    const info = await lstat(path);
+    const symlink = entry.mode === '120000';
+    if (symlink !== info.isSymbolicLink() || (!symlink && !info.isFile())) {
+      throw new ContractError(`Review source type differs from Git: ${entry.path}`);
+    }
+    const target = symlink ? await readlink(path, { encoding: 'buffer' }) : null;
+    const size = target?.length ?? info.size;
+    const hash = createHash(entry.oid.length === 64 ? 'sha256' : 'sha1');
+    hash.update(`blob ${size}\0`);
+    if (target) hash.update(target);
+    else for await (const chunk of createReadStream(path)) hash.update(chunk);
+    if (hash.digest('hex') !== entry.oid
+      || (!symlink && Boolean(info.mode & 0o111) !== (entry.mode === '100755'))) {
+      throw new ContractError(`Review source content or mode differs from Git: ${entry.path}`);
+    }
+  }
+}
+
 export async function createPinnedRepositorySnapshot({
   repositoryRoot,
   headSha,
   evidenceFiles = {},
   runner = defaultRunner,
   scratchParent = tmpdir(),
+  excludedPaths = [],
+  reviewView = null,
+  expectedEntries = null,
 }) {
   const root = await realpath(resolve(repositoryRoot));
   validateSha(headSha, 'Pinned head SHA');
@@ -134,9 +169,31 @@ export async function createPinnedRepositorySnapshot({
   const archivePath = join(scratchRoot, 'snapshot.tar');
   await mkdir(repositoryPath);
   try {
-    await runner('git', ['-C', root, 'archive', '--format=tar', `--output=${archivePath}`, headSha], { cwd: root });
+    if (reviewView) {
+      if (!Array.isArray(expectedEntries)) throw new ContractError('Compact snapshot requires a bound source inventory');
+      // An empty checkout/index prevents export-ignore/export-subst attributes
+      // from changing review source. The shared object database is read-only;
+      // remove the temporary Git directory before any agent gets its view.
+      const objects = join(scratchRoot, 'objects');
+      const template = join(scratchRoot, 'empty-template');
+      await mkdir(template);
+      const env = { ...process.env, GIT_ATTR_NOSYSTEM: '1' };
+      await runner('git', ['-c', `init.templateDir=${template}`, 'clone', '-q', '--shared', '--no-checkout', root, objects], { cwd: scratchRoot, env });
+      await runner('git', ['-c', 'core.attributesFile=/dev/null', '-C', objects, 'archive', '--worktree-attributes',
+        '--format=tar', `--output=${archivePath}`, headSha], { cwd: scratchRoot, env });
+      await rm(objects, { recursive: true, force: true });
+      await rm(template, { recursive: true, force: true });
+    } else {
+      await runner('git', ['-C', root, 'archive', '--format=tar', `--output=${archivePath}`, headSha], { cwd: root });
+    }
     await runner('tar', ['-xf', archivePath, '-C', repositoryPath], { cwd: scratchRoot });
     await rm(archivePath, { force: true });
+    for (const rawPath of excludedPaths) {
+      const path = safeRelativePath(rawPath, 'Review exclusion');
+      // Tree entries are individual files, never recursive directory masks.
+      await rm(join(repositoryPath, path), { force: true });
+    }
+    if (reviewView) await validateSourceView(repositoryPath, expectedEntries);
     const evidence = await materializeEvidenceFiles(repositoryPath, evidenceFiles);
     await makeReadOnly(repositoryPath);
     return {
@@ -144,7 +201,7 @@ export async function createPinnedRepositorySnapshot({
       repositoryPath,
       headSha,
       treeSha,
-      digest: sha256Digest({ headSha, treeSha, evidence }),
+      digest: sha256Digest({ headSha, treeSha, evidence, ...(reviewView ? { reviewView } : {}) }),
       evidence,
       async cleanup() {
         await makeWritable(scratchRoot);

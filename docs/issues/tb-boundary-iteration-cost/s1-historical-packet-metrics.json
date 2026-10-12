@@ -1,0 +1,14 @@
+{
+  "source": {
+    "baseSha": "5c296643a8d29dad55c3ed086425aa42c55738a1",
+    "headSha": "68d3dd25dcea45d8e95d5da60f0a311c24d94b8e",
+    "sliceBaseSha": "d31709ec8b23b4562b68ef496c162e4c691a8013"
+  },
+  "metrics": {
+    "manifestBytes": 23193,
+    "materialBytes": 8476425,
+    "duplicatePatchBytesAvoided": 0,
+    "changedFiles": 396
+  },
+  "excludedFiles": 3616
+}

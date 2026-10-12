@@ -220,11 +220,19 @@ function validateRunAdapter(run, label) {
         'evidenceRoot',
         'timeoutSeconds',
         'maxAttempts',
+        'reviewInput',
       ]),
       label
     );
     if (run.protocolVersion !== 1) {
       throw new ContractError(`${label}.protocolVersion must be 1`);
+    }
+    if (run.reviewInput !== undefined) {
+      assertObject(run.reviewInput, `${label}.reviewInput`);
+      assertAllowedKeys(run.reviewInput, new Set(['kind', 'history']), `${label}.reviewInput`);
+      if (run.reviewInput.kind !== 'compact-review-v1' || run.reviewInput.history !== 'exclude') {
+        throw new ContractError(`${label}.reviewInput must select compact-review-v1 with history exclusion`);
+      }
     }
     if (typeof run.resourcePlugin !== 'string' || !STAGE_ID.test(run.resourcePlugin)) {
       throw new ContractError(`${label}.resourcePlugin must be a portable plugin ID`);

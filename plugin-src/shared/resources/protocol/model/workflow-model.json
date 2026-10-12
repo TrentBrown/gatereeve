@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "modelId": "gatereeve/workflow",
-  "modelVersion": "1.4.0",
+  "modelVersion": "1.5.0",
   "eventSchemaVersion": 1,
   "resultSchemaVersion": 1,
   "coreCompatibility": {
-    "minimum": "1.0.0",
+    "minimum": "1.1.0",
     "maximumExclusive": "2.0.0"
   },
   "guardIds": [
@@ -308,7 +308,7 @@
   },
   "moduleGraph": {
     "schemaVersion": 1,
-    "policyDigest": "sha256:787a35efc26f7c6c831e7d083cdd4053668b2dee3cd1972f952031f2cad9370d",
+    "policyDigest": "sha256:0a4254117f3c0a58124bb81a25ab733b7abe97b5f415c3f0d287d9ebf6596d7f",
     "enabledModuleIds": [
       "gatereeve/pin-context",
       "gatereeve/release",
@@ -450,8 +450,8 @@
       {
         "schemaVersion": 1,
         "id": "gatereeve/judge",
-        "version": "2.0.0",
-        "digest": "sha256:907057982965bc28ed60ade138774f7ca69ed9b43201891f1e34a46e3d8be480",
+        "version": "3.0.0",
+        "digest": "sha256:a3cabc1a01f0b885c3b7333c6f9d1cf92d21e1f18cc322d14ce1cf01fbd5fa07",
         "label": "Judge",
         "description": "Performs an independent compliance evaluation against the approved scope in a fresh read-only agent context.",
         "slot": "boundary.evaluation",
@@ -481,8 +481,8 @@
               "id": "judge",
               "role": "Independent compliance judge",
               "dependsOn": [],
-              "promptResource": "resources/agent-workflows/judge/agent.md",
-              "inputSchema": "resources/agent-workflows/judge/stage-input.schema.json",
+              "promptResource": "resources/agent-workflows/judge/compact-agent.md",
+              "inputSchema": "resources/agent-workflows/judge/compact-stage-input.schema.json",
               "outputSchema": "resources/agent-workflows/judge/result.schema.json"
             }
           ],
@@ -490,7 +490,8 @@
             {"path": "judge.json", "mediaType": "application/json", "required": true},
             {"path": "judge-result.json", "mediaType": "application/json", "required": true},
             {"path": "judge-receipt.json", "mediaType": "application/json", "required": true},
-            {"path": "judge.md", "mediaType": "text/markdown", "required": true}
+            {"path": "judge.md", "mediaType": "text/markdown", "required": true},
+            {"path": "judge-view-audit.json", "mediaType": "application/json", "required": true}
           ],
           "evaluator": {
             "resource": "resources/agent-workflows/judge/validator.js",
@@ -498,7 +499,8 @@
           },
           "evidenceRoot": "judge.json",
           "timeoutSeconds": 1800,
-          "maxAttempts": 1
+          "maxAttempts": 1,
+          "reviewInput": {"kind": "compact-review-v1", "history": "exclude"}
         }
       },
       {

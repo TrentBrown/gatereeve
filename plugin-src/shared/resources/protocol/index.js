@@ -3,6 +3,7 @@ export * from './agent-workflow.js';
 export * from './agent-workflow-runtime.js';
 export * from './agent-workflow-resources.js';
 export * from './agent-workflow-service.js';
+export * from './review-input.js';
 export * from './agent-workflow-scheduler.js';
 export * from './artifact-publisher.js';
 export * from './changes.js';
