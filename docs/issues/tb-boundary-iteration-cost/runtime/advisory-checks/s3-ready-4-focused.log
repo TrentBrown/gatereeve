@@ -1,0 +1,72 @@
+Pinned source: 42bd2d2e3cc97ad0d422de22f03d5758da500eec
+
+COMMAND: /opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/advisory.test.js cli/test/protocol-contracts.test.js
+EXIT: 0
+✔ one readiness declaration automatically reviews complete scope in isolation without formal passage (2345.281166ms)
+✔ formal entry cannot manufacture advisory facts or bypass missing retained reason (3158.24925ms)
+✔ inapplicable formal Judge does not launch an advisory provider (745.375292ms)
+▶ transient advisory execution retries once; persistent isolation/config/schema errors do not retry
+  ✔ recover (972.890666ms)
+  ✔ exhaust (963.833ms)
+  ✔ config (966.197959ms)
+  ✔ inherited context (880.438875ms)
+  ✔ missing model (1117.248542ms)
+✔ transient advisory execution retries once; persistent isolation/config/schema errors do not retry (4901.440875ms)
+▶ clean advisory is reusable across evidence-only commits but each reviewed input change prevents reuse
+  ✔ app.mjs (1747.861583ms)
+  ✔ app.test.mjs (1666.456709ms)
+  ✔ package.json (1402.971666ms)
+  ✔ dependency-lock.json (1352.64975ms)
+  ✔ docs/issues/advisory-feature/spec.md (1311.209625ms)
+  ✔ docs/issues/advisory-feature/design.md (1325.525083ms)
+  ✔ docs/issues/advisory-feature/runtime/advisory-checks/focused.log (1151.342583ms)
+✔ clean advisory is reusable across evidence-only commits but each reviewed input change prevents reuse (9958.892792ms)
+✔ defect-class review and changed approach are required for revised readiness; reruns still inspect all criteria (1599.774625ms)
+✔ evidence-only declarations reuse clean inputs and retain the original reviewed source (1742.885167ms)
+▶ retained records reject tampering, unknown transcript fields and unsafe evidence before formal entry
+  ✔ outcome (753.813333ms)
+  ✔ source (797.626042ms)
+  ✔ receipt (775.355458ms)
+  ✔ transcript (777.35125ms)
+  ✔ capability (816.449916ms)
+  ✔ provider model (803.753792ms)
+  ✔ isolation method (805.406458ms)
+  ✔ symlink evidence (555.533375ms)
+  ✔ untracked formal evidence (894.694791ms)
+✔ retained records reject tampering, unknown transcript fields and unsafe evidence before formal entry (6980.947041ms)
+▶ snapshot and output-schema failures are unavailable; valid code findings survive publication errors
+  ✔ snapshot (564.99775ms)
+  ✔ output schema (625.075875ms)
+  ✔ finding publication (880.706708ms)
+✔ snapshot and output-schema failures are unavailable; valid code findings survive publication errors (2071.154041ms)
+✔ advisory uses the formal whole-feature scope and portable Claude receipt contract (769.50325ms)
+✔ adoption preserves historical boundaries and formal graph requirements; older features never auto-adopt (846.885875ms)
+▶ ambiguous JSON and YAML configuration in evidence namespaces cannot gain evidence-only reuse
+  ✔ runtime/config.json (1050.8755ms)
+  ✔ runtime/config.yaml (944.212542ms)
+✔ ambiguous JSON and YAML configuration in evidence namespaces cannot gain evidence-only reuse (1995.39925ms)
+✔ formal failures enter the full advisory fix checklist; formal Judge snapshots exclude every advisory record (1804.244333ms)
+✔ optional CLI and plugin adapter share advisory operational results and read-only check behavior (1014.921542ms)
+✔ ordinary edits never launch review; revised readiness selects revised pinned source (1193.363584ms)
+✔ tracked compact advisory evidence remains usable in a fresh checkout (1054.742833ms)
+✔ defect-class readiness requires affected-path coverage and historical evidence is tracked before formal entry (1502.827541ms)
+✔ reasoned pending admission retains the claim and never certifies a formal gate or relaunches it (1365.153041ms)
+▶ existing formal FAIL rows without concern findings enter the fix checklist, including conservative path reconciliation
+  ✔ criterion (1353.977833ms)
+  ✔ criterion without paths (1467.611375ms)
+  ✔ scope without paths (1372.587458ms)
+✔ existing formal FAIL rows without concern findings enter the fix checklist, including conservative path reconciliation (4194.679375ms)
+✔ default workflow model validates and hashes deterministically (16.851333ms)
+✔ historical PR_BOUNDARY model locks remain valid (4.356458ms)
+✔ model validation rejects unknown guards, cycles, and provider injection fields (6.164542ms)
+✔ event contract accepts complete events and rejects malformed identity (2.481083ms)
+✔ result envelope has one stable success and failure shape (0.233625ms)
+✔ native packages retain one identical canonical protocol manifest (244.617583ms)
+ℹ tests 54
+ℹ suites 0
+ℹ pass 54
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 49336.412958

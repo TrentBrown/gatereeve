@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-readiness",
+  "featureId": "tb-boundary-iteration-cost",
+  "sliceId": "s3-advisory-discovery",
+  "readinessId": "s3-ready-4",
+  "declaredAt": "2026-10-12T23:23:04.740Z",
+  "scope": "SLICE",
+  "baseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+  "sliceBaseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+  "criteria": [
+    "R1",
+    "R2",
+    "R3",
+    "R6",
+    "R7",
+    "R8",
+    "R9",
+    "R10",
+    "R11",
+    "R23"
+  ],
+  "source": {
+    "baseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "headSha": "42bd2d2e3cc97ad0d422de22f03d5758da500eec",
+    "sliceBaseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "scope": "SLICE",
+    "boundaryScope": "SLICE"
+  },
+  "inputIdentity": "sha256:b9b6f9e0e72ae3cf8c3ea4d5792997b33caa0a4a49b6576520dcd5e8e51b986e",
+  "requestIdentity": "sha256:81c959d1406b543c935845822b8f2aae95e701d9652c1742312767cb1a9b9a60",
+  "inputManifest": {
+    "schemaVersion": 1,
+    "kind": "slice-advisory-inputs",
+    "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "opaqueHistoryIdentity": "sha256:57efececdc5b82618371fb5e460facdb4a851302a9fd6524a1b615ff523ac82a",
+    "reviewInputIdentity": "sha256:dd62b3759a84ea853c54e27b1667820f01dfe419de884f4199e0134a687240c9",
+    "scope": "SLICE",
+    "boundaryScope": "SLICE",
+    "criteria": [
+      "R1",
+      "R2",
+      "R3",
+      "R6",
+      "R7",
+      "R8",
+      "R9",
+      "R10",
+      "R11",
+      "R23"
+    ],
+    "formalJudge": {
+      "id": "gatereeve/judge",
+      "version": "3.0.0",
+      "digest": "sha256:a3cabc1a01f0b885c3b7333c6f9d1cf92d21e1f18cc322d14ce1cf01fbd5fa07",
+      "scope": "SLICE",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "isolation": {
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "repositoryAccess": "read-only-pinned",
+      "networkAccess": "denied"
+    },
+    "advisoryModule": {
+      "id": "gatereeve/advisory-review",
+      "version": "1.0.0",
+      "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+    },
+    "applicable": true,
+    "resources": {
+      "resources/agent-workflows/advisory/agent.md": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+      "resources/agent-workflows/advisory/stage-input.schema.json": "sha256:b7c5b74d8d3b6a1ca1cb355df540d5ff0e2e5255ad34a72b903838f8f68bf38f",
+      "resources/agent-workflows/advisory/result.schema.json": "sha256:f863eb92f594143c402328bff6016a9b0205106f0735922a23145d182724a532",
+      "resources/agent-workflows/advisory/validator.js": "sha256:629dc6ac07eed04ac477130aee91a031de6ecadeb345f24dc7a068925412e88e"
+    },
+    "adapter": {
+      "id": "codex/fresh-exec",
+      "version": "1.0.0",
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "reasoningEffort": "high",
+      "capabilityProfiles": [
+        "high-capability-v1"
+      ],
+      "isolationMethods": [
+        "codex-ephemeral-exec"
+      ]
+    },
+    "checks": [
+      {
+        "kind": "fast",
+        "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node cli/bin/workflow.js plugin lint --json ; python3 plugin-src/shared/resources/scripts/validate_branch_docs.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_issues.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_tracker.py docs/issues/tb-boundary-iteration-cost ; git diff --check",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "runtime/advisory-checks/s3-ready-4-fast.log",
+            "hash": "sha256:bbe6e445d9ea8359545387060392049f4dd08dbccc27659ae06b026a20e087ee"
+          }
+        ]
+      },
+      {
+        "kind": "focused",
+        "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/advisory.test.js cli/test/protocol-contracts.test.js",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "runtime/advisory-checks/s3-ready-4-focused.log",
+            "hash": "sha256:c896cee067e98fae2f503194180db986b85d22e1c0b192a5cb40958bd6cc2857"
+          }
+        ]
+      }
+    ],
+    "priorFindingsIdentity": "sha256:b737fcdd81e20d8582e30c36d2790961d2c1ad509ddcc691b44e6fbfeaed43e2",
+    "governance": {
+      "featureId": "tb-boundary-iteration-cost",
+      "repositoryAlias": "product",
+      "remote": "origin",
+      "integrationBranch": "main",
+      "releaseBranch": "main",
+      "featureBaseSha": "ef725bbedfda28be0967fefde6cf2748679612c2",
+      "keepPullRequestsClosed": false
+    }
+  },
+  "checks": [
+    {
+      "kind": "fast",
+      "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node cli/bin/workflow.js plugin lint --json ; python3 plugin-src/shared/resources/scripts/validate_branch_docs.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_issues.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_tracker.py docs/issues/tb-boundary-iteration-cost ; git diff --check",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "runtime/advisory-checks/s3-ready-4-fast.log",
+          "hash": "sha256:bbe6e445d9ea8359545387060392049f4dd08dbccc27659ae06b026a20e087ee"
+        }
+      ]
+    },
+    {
+      "kind": "focused",
+      "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/advisory.test.js cli/test/protocol-contracts.test.js",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "runtime/advisory-checks/s3-ready-4-focused.log",
+          "hash": "sha256:c896cee067e98fae2f503194180db986b85d22e1c0b192a5cb40958bd6cc2857"
+        }
+      ]
+    }
+  ],
+  "remediation": [
+    {
+      "findingIds": [
+        "advisory:s3-ready-3:0"
+      ],
+      "invariant": "A pending claim cannot certify a formal gate or permit another provider launch; the approved reasoned-bypass policy may independently admit formal entry.",
+      "examinedPaths": [
+        "plugin-src/shared/resources/protocol/advisory.js",
+        "plugin-src/shared/resources/protocol/advisory-contract.js",
+        "plugin-src/shared/resources/protocol/transitions.js",
+        "plugin-src/shared/resources/commands/advisory-review.md"
+      ],
+      "approach": "Clarify claim reconciliation before another launch separately from approved formal reasoned admission. Exercise pending admission, retained claim, once-only provider launch, and all formal gates remaining unset.",
+      "regressions": [
+        {
+          "scenario": "Pending advisory claim remains single-run and noncertifying when formal entry has a retained reason.",
+          "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/advisory.test.js cli/test/protocol-contracts.test.js",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "runtime/advisory-checks/s3-ready-4-focused.log",
+              "hash": "sha256:c896cee067e98fae2f503194180db986b85d22e1c0b192a5cb40958bd6cc2857"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:2b3b3feae36deaf85510321d8f602127764d90d6206a2559329d74a412dd8507"
+      ]
+    },
+    {
+      "findingIds": [
+        "advisory:s3-ready-3:1"
+      ],
+      "invariant": "Every valid recorded formal FAIL must remain code-failure checklist work without requiring a different historical formal contract.",
+      "examinedPaths": [
+        "plugin-src/shared/resources/agent-workflows/judge/result.schema.json",
+        "plugin-src/shared/resources/agent-workflows/judge/validator.js",
+        "plugin-src/shared/resources/protocol/advisory-history.js",
+        "plugin-src/shared/resources/protocol/advisory.js",
+        "cli/test/advisory.test.js"
+      ],
+      "approach": "Normalize failed rubric/independent-check rows when separate concerns are absent. Preserve bound report/receipt, use reported paths or marked complete-scope reconciliation areas, require class coverage and passing regressions, and retain full-scope advisory review.",
+      "regressions": [
+        {
+          "scenario": "Criterion-only FAIL, FAIL without exact paths and independent-scope-only FAIL all enter the complete fix checklist and require defect-class review.",
+          "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/advisory.test.js cli/test/protocol-contracts.test.js",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "runtime/advisory-checks/s3-ready-4-focused.log",
+              "hash": "sha256:c896cee067e98fae2f503194180db986b85d22e1c0b192a5cb40958bd6cc2857"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:e21525781be5f26580720cb2d398d26dc35818f4e4ee0a145e92e6b13cf628f5"
+      ]
+    }
+  ],
+  "priorFindings": [
+    {
+      "id": "advisory:s3-ready-3:0",
+      "underlyingKey": "sha256:2b3b3feae36deaf85510321d8f602127764d90d6206a2559329d74a412dd8507",
+      "source": {
+        "kind": "advisory",
+        "reference": {
+          "path": "advisory/s3-ready-3/review.json",
+          "hash": "sha256:471e48a2839b81cd82a150b46e4c672dee6400bd865627bdaed1e0bf26917309"
+        }
+      },
+      "summary": "Proceed can admit formal entry while advisory execution is still IN_PROGRESS.",
+      "criterionIds": [
+        "R11"
+      ],
+      "invariant": "A retained proceed reason may bypass only a completed non-clean advisory disposition such as FINDINGS or UNAVAILABLE after the retry/error contract, not an unreconciled execution claim.",
+      "affectedPaths": [
+        "plugin-src/shared/resources/protocol/advisory.js",
+        "plugin-src/shared/resources/protocol/advisory-contract.js",
+        "plugin-src/shared/resources/commands/advisory-review.md"
+      ],
+      "evidence": [
+        "plugin-src/shared/resources/commands/advisory-review.md:53 states an execution claim without a result is IN_PROGRESS and must be reconciled.",
+        "plugin-src/shared/resources/protocol/advisory.js:775 records proceed reasons after only finding readiness.json; it does not require a review result or unavailable disposition.",
+        "plugin-src/shared/resources/protocol/advisory.js:889 treats missing review.json as IN_PROGRESS, and lines 893-895 accept any non-clean outcome when proceed.json exists.",
+        "plugin-src/shared/resources/protocol/advisory.js:916 can bind proof.review to claim.json, while plugin-src/shared/resources/protocol/advisory-contract.js:544-550 explicitly permits IN_PROGRESS with proceed evidence."
+      ]
+    },
+    {
+      "id": "advisory:s3-ready-3:1",
+      "underlyingKey": "sha256:e21525781be5f26580720cb2d398d26dc35818f4e4ee0a145e92e6b13cf628f5",
+      "source": {
+        "kind": "advisory",
+        "reference": {
+          "path": "advisory/s3-ready-3/review.json",
+          "hash": "sha256:471e48a2839b81cd82a150b46e4c672dee6400bd865627bdaed1e0bf26917309"
+        }
+      },
+      "summary": "Formal Judge FAIL records can be accepted without structured findings, then cannot enter the advisory checklist.",
+      "criterionIds": [
+        "R6",
+        "R7"
+      ],
+      "invariant": "Every recorded formal code failure that drives revised readiness must expose structured supported findings with invariant and affected paths so advisory reruns can bind and check them exactly once.",
+      "affectedPaths": [
+        "plugin-src/shared/resources/agent-workflows/judge/result.schema.json",
+        "plugin-src/shared/resources/agent-workflows/judge/validator.js",
+        "plugin-src/shared/resources/protocol/advisory-history.js"
+      ],
+      "evidence": [
+        "plugin-src/shared/resources/agent-workflows/judge/result.schema.json:55 defines findings as an array without minItems or any requirement tied to FAIL results.",
+        "plugin-src/shared/resources/agent-workflows/judge/validator.js:21-24 derives FAIL solely from criteria/scope/gap/contradiction results and does not require concern findings for a FAIL verdict.",
+        "plugin-src/shared/resources/protocol/advisory-history.js:110-113 later requires at least one severity concern finding before building prior formal advisory findings, so an accepted formal FAIL with empty findings cannot become the required checklist/remediation input."
+      ]
+    }
+  ],
+  "execution": {
+    "provider": "codex",
+    "model": "gpt-5.5",
+    "reasoningEffort": "high"
+  },
+  "declaredBy": {
+    "kind": "agent",
+    "label": "Implementer declares approved P4 slice ready after actual pinned fast/focused checks"
+  }
+}
