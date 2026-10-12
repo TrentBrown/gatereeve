@@ -20,6 +20,11 @@ unchanged and quote the actual user confirmation. A historical waiver also
 needs a bound surrounding passage explicitly establishing whole-feature or
 feature-final scope. Ambiguous authority needs clarification; a tooling failure,
 slice Judge PASS or generic proceed instruction is insufficient.
+The observed quote or its verbatim approval context must also identify
+`feature <featureId>`, the selected integration SHA and approved requirements
+identity. A short reply can bind the concrete context actually shown to the
+human. Preserve an ambiguous historical record and obtain explicit applicability
+reconciliation instead of inserting new source identities into its old text.
 
 Read [the recovery evidence contract](../policy/COMPLETION-RECOVERY.md) for report
 fields. Commit/retain the reports before claiming TRACKED retention. If records

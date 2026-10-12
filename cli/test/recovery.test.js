@@ -91,7 +91,8 @@ async function fixture(t, { oldModel = false, finalScope = false, checkFalseFina
   };
   const run = await exec(process.execPath, ['--test', 'smoke.test.mjs'], { cwd: root });
   const log = await save('checks.log', 'Selected FEATURE source ' + integrated + '\n' + run.stdout);
-  const quote = 'Waive the whole-feature Judge for this exact integrated source ' + integrated;
+  const quote = 'Waive the whole-feature Judge for feature recovery at integrated source ' + integrated
+    + ' with approved requirements ' + source.requirementsIdentity;
   const observed = await save('confirmation.md', quote + '\n');
   const common = { schemaVersion: 1, featureId: 'recovery', scope: 'FEATURE', source };
   const reports = {
@@ -147,6 +148,44 @@ test('recovery preflight rejects invalid authority, scope, evidence and delivery
   const cases = {
     'general proceed is not a waiver': async (f) => { const ref = await f.save('confirmation.md', 'Proceed with work.\n'); f.reports.waiver.confirmation = { kind: 'observed-confirmation', quote: 'Proceed with work.', evidence: ref }; await f.refresh('waiver'); },
     'ambiguous historical waiver': async (f) => { f.reports.waiver.confirmation.kind = 'historical-confirmation'; await f.refresh('waiver'); },
+    'ambiguous observed Judge waiver': async (f) => {
+      const quote = 'Waive the Judge';
+      f.reports.waiver.confirmation = { kind: 'observed-confirmation', quote, evidence: await f.save('confirmation.md', quote) };
+      await f.refresh('waiver');
+    },
+    'wrong observed feature applicability': async (f) => {
+      const quote = f.reports.waiver.confirmation.quote.replace('feature recovery', 'feature another');
+      f.reports.waiver.confirmation = { kind: 'observed-confirmation', quote, evidence: await f.save('confirmation.md', quote) };
+      await f.refresh('waiver');
+    },
+    'feature name prefix is not applicability': async (f) => {
+      const quote = f.reports.waiver.confirmation.quote.replace('feature recovery', 'feature recovery-other');
+      f.reports.waiver.confirmation = { kind: 'observed-confirmation', quote, evidence: await f.save('confirmation.md', quote) };
+      await f.refresh('waiver');
+    },
+    'observed source without whole-feature scope': async (f) => {
+      const quote = f.reports.waiver.confirmation.quote.replace('whole-feature', 'formal');
+      f.reports.waiver.confirmation = { kind: 'observed-confirmation', quote, evidence: await f.save('confirmation.md', quote) };
+      await f.refresh('waiver');
+    },
+    'historical scope without source applicability': async (f) => {
+      const quote = 'Proceed, waving the judge issue';
+      const context = 'The whole-feature Judge was unavailable.';
+      f.reports.waiver.confirmation = { kind: 'historical-confirmation', quote, context,
+        evidence: await f.save('confirmation.md', context + '\n' + quote) };
+      await f.refresh('waiver');
+    },
+    'wrong observed requirements applicability': async (f) => {
+      const quote = f.reports.waiver.confirmation.quote.replace(f.source.requirementsIdentity, fingerprint('other requirements'));
+      f.reports.waiver.confirmation = { kind: 'observed-confirmation', quote, evidence: await f.save('confirmation.md', quote) };
+      await f.refresh('waiver');
+    },
+    'unobserved approval context': async (f) => {
+      const context = f.reports.waiver.confirmation.quote;
+      const quote = 'Waive the Judge';
+      f.reports.waiver.confirmation = { kind: 'observed-confirmation', quote, context, evidence: await f.save('confirmation.md', quote) };
+      await f.refresh('waiver');
+    },
     'nonhuman waiver': async (f) => { f.reports.waiver.confirmedBy = agent; await f.refresh('waiver'); },
     'wrong feature': async (f) => { f.reports.waiver.featureId = 'another'; await f.refresh('waiver'); },
     'changed requirement identity': async (f) => { f.reports.verification.source = { ...f.source, requirementsIdentity: fingerprint('wrong') }; await f.refresh('verification'); },
@@ -180,6 +219,21 @@ test('recovery preflight rejects invalid authority, scope, evidence and delivery
       f.reports.verification.outcome = 'WAIVED';
       f.reports.verification.waiver = { confirmedBy: human, obligation: 'feature-verification', reason: 'Do not run checks', evidence: [f.reports.waiver.confirmation.evidence] };
       await f.refresh('verification');
+    },
+    'verification waiver with ambiguous applicability': async (f) => {
+      const quote = 'Waive whole-feature verification';
+      const reference = await f.save('verification-confirmation.md', quote);
+      f.reports.verification.outcome = 'WAIVED';
+      f.reports.verification.waiver = { confirmedBy: human, obligation: 'feature-verification', reason: 'Fixture waiver',
+        evidence: [reference], confirmation: { quote, evidence: reference } };
+      await f.refresh('verification');
+    },
+    'workspace retention with ambiguous applicability': async (f) => {
+      const quote = 'Keep the workspace for whole-feature completion';
+      const reference = await f.save('retention-confirmation.md', quote);
+      f.reports.retention = { ...f.reports.retention, outcome: 'HUMAN_RETAINED', confirmedBy: human,
+        decision: 'retain-workspace', reason: 'Fixture retention', evidence: [reference], confirmation: { quote, evidence: reference } };
+      await f.refresh('retention');
     },
     'unintegrated source': async (f) => { f.input.integrationSha = await f.git('rev-parse', 'HEAD'); },
     'missing accepted review': async (f) => {
@@ -228,7 +282,8 @@ test('explicit retention decision can preserve untracked records without claimin
   const f = await fixture(t); f.reports.retention.outcome = 'HUMAN_RETAINED';
   f.reports.retention.confirmedBy = human; f.reports.retention.decision = 'retain-workspace';
   f.reports.retention.reason = 'Keep the workspace and its untracked notes for later retention.';
-  const quote = 'Keep this workspace and its untracked feature records.';
+  const quote = 'Keep this workspace and its untracked records for whole-feature completion of feature recovery at '
+    + f.integrated + ' with approved requirements ' + f.source.requirementsIdentity;
   const reference = await f.save('retention-confirmation.md', quote);
   f.reports.retention.evidence = [reference]; f.reports.retention.confirmation = { quote, evidence: reference };
   await f.refresh('retention');
@@ -238,7 +293,8 @@ test('explicit retention decision can preserve untracked records without claimin
 });
 
 test('remaining verification waiver follows its own pinned policy and explicit confirmation', async (t) => {
-  const f = await fixture(t); const quote = 'Waive whole-feature verification for this exact source ' + f.integrated;
+  const f = await fixture(t); const quote = 'Waive whole-feature verification for feature recovery at ' + f.integrated
+    + ' with approved requirements ' + f.source.requirementsIdentity;
   const reference = await f.save('verification-confirmation.md', quote);
   f.reports.verification.outcome = 'WAIVED';
   f.reports.verification.waiver = { confirmedBy: human, obligation: 'feature-verification',
@@ -294,7 +350,8 @@ test('completion accounts for every accepted slice in the selected assembled sou
     facts: { reviewedContentMerged: true }, payload: { integrationSha: source, reviewedBaseSha: sliceBase, reviewedHeadSha: reviewed } });
   f.input.integrationSha = source;
   for (const report of Object.values(f.reports)) report.source = { ...f.source, integrationSha: source };
-  const quote = 'Waive whole-feature Judge at ' + source;
+  const quote = 'Waive whole-feature Judge for feature recovery at ' + source
+    + ' with approved requirements ' + f.source.requirementsIdentity;
   f.reports.waiver.confirmation = { kind: 'observed-confirmation', quote, evidence: await f.save('confirmation.md', quote) };
   const run = await exec(process.execPath, ['--test', 'smoke.test.mjs'], { cwd: f.root });
   const log = await f.save('checks.log', 'FEATURE source ' + source + '\\n' + run.stdout);
@@ -308,11 +365,24 @@ test('completion accounts for every accepted slice in the selected assembled sou
 
 test('historical whole-feature waiver can be explicitly bound without rewriting its source', async (t) => {
   const f = await fixture(t); const quote = 'Proceed, waving the judge issue';
-  const context = 'The whole-feature Judge could not be constructed; waiver requested for the integrated feature.';
+  const context = 'The whole-feature Judge could not be constructed; waiver requested for feature recovery at '
+    + f.integrated + ' with approved requirements ' + f.source.requirementsIdentity + '.';
   const original = context + '\nUser: ' + quote + '\n';
   const ref = await f.save('historical-decision.md', original);
   f.reports.waiver.confirmation = { kind: 'historical-confirmation', quote, context, evidence: ref }; await f.refresh('waiver');
   await recoverFeatureFinalization(f.home, f.input);
+  assert.equal(await readFile(join(f.home, ref.path), 'utf8'), original);
+});
+
+test('an observed short waiver can use the exact bound approval context', async (t) => {
+  const f = await fixture(t);
+  const context = f.reports.waiver.confirmation.quote;
+  const quote = 'Waive the Judge';
+  const original = context + '\nUser: ' + quote + '\n';
+  const ref = await f.save('observed-approval.md', original);
+  f.reports.waiver.confirmation = { kind: 'observed-confirmation', quote, context, evidence: ref };
+  await f.refresh('waiver');
+  assert.equal((await recoverFeatureFinalization(f.home, f.input)).projection.feature.state, 'FINALIZING');
   assert.equal(await readFile(join(f.home, ref.path), 'utf8'), original);
 });
 

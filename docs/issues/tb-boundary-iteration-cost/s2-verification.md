@@ -5,7 +5,7 @@ P3 completion recovery, scoped portable guidance/API and model/core adoption are
 | Category | Command | Result |
 |---|---|---|
 | Build/package/lint | `PYTHONDONTWRITEBYTECODE=1 bash ci/portable-acceptance.sh` | PASS: Codex/Claude validation/native validation/lint, repeatable package builds, setup/doctor smoke. |
-| CLI unit/integration | above: `npm test --prefix cli` | PASS: 330 tests. Recovery cases use real temporary Git merges, accepted review journals, source-bound reports and executed Node fixture contracts. |
+| CLI unit/integration | above: `npm test --prefix cli` | PASS: 340 tests. Recovery cases use real temporary Git merges, accepted review journals, source-bound reports and executed Node fixture contracts. |
 | Python | above: three unittest discovery commands | PASS: 28 pattern, 97 scripts, 2 smoke tests. |
 | Dependency audit | above: `npm audit --prefix cli --audit-level=high` | PASS: zero vulnerabilities. |
 | Desktop build/unit/integration | `PYTHONDONTWRITEBYTECODE=1 npm run check --prefix apps/desktop` | PASS: staged shared protocol, renderer build, 206 tests. |
@@ -21,3 +21,5 @@ Corrected provisional issues: temporary fixture Git hooks inherited the personal
 Protocol adoption applies only to this in-flight feature under approved P3 authorization. Its retained migration preview reports feature.recovery.validated and recover-finalization added, no guards/transitions removed and no gate/module definitions changed. Source checks still require normal current formal evidence and exact-head human merge authorization.
 
 Judge-driven retention correction: TRACKED now rejects ignored untracked feature records and proves index membership for every bound report, confirmation and supporting file. The ignored report/log/confirmation regression fixtures have clean ordinary status and reject without appending. Fresh full portable acceptance (330 CLI, 127 Python) and Desktop (206) passed after this correction. Prior failed formal review remains immutable in pr-78/attempts/s2-pr78-a1; a fresh blind attempt is required.
+
+Authority applicability correction: every human waiver/retention variant binds feature, scope, selected source and requirements in its observed quote or actual approval context. Bound contexts are verified against retained bytes and replay validates the same contract. Historical records remain unchanged; ambiguous applicability requires reconciliation. Latest complete portable acceptance passes 340 CLI +127 Python tests; Desktop passes 206. A targeted invocation created only ignored Python bytecode; the package guard rejected it, generated cache files were removed, and the full portable acceptance rerun passed with bytecode disabled. New formal attempt required.

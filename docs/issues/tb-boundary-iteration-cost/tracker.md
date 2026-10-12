@@ -70,3 +70,7 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 - P3 / I-3 in-review; model1.6/core1.2 explicitly adopted for this feature only.
 - Verification PASS (325 CLI, 127 Python, 206 Desktop + portable package checks); scoped assessment PASS; code review no unresolved findings; pattern review PASS_WITH_WARNINGS empty rules.
 - Independent Judge FAIL for R19/R20: ignored untracked evidence could bypass TRACKED retention. Source returned to implementation; defect-class review recorded and revised source requires a fresh attempt. R23 whole-feature portability and advisory/retry/cost obligations remain future work. No S2 merge/release/real MyLifeMap recovery.
+
+- 2026-10-12: Retention defect class fixed, ignored-file regression cases reject without append, fresh full verification passed (330 CLI, 127 Python, 206 Desktop). New source 8314062ca2f174af122a41fb31ac03ebb514bb52 entered fresh attempt s2-pr78-a2; prior failed attempt remains retained. All current gates must be recorded anew; independent blind Judge pending.
+
+- 2026-10-12: Attempt s2-pr78-a2 Judge FAIL for R19 observed authority applicability; R20-R23 passed. Returned through protocol to implementation. Review expanded to every human-authority variant, with source/requirements/feature/scope bound to observed text or actual approval context and mirrored on replay. Fresh validation and attempt required.

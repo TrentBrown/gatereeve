@@ -76,8 +76,12 @@ async function supportingEvidence(home, report, retained) {
   if (report.waiver?.waiverBasis?.evidence) refs.push(report.waiver.waiverBasis.evidence);
   for (const ref of refs) await boundFile(home, ref, { retained });
   const confirmation = report.waiver?.confirmation ?? report.confirmation;
-  if (confirmation) requireRecovery((await boundFile(home, confirmation.evidence, { text: true, retained }))
-    .includes(confirmation.quote), 'observed confirmation is absent from its bound evidence');
+  if (confirmation) {
+    const content = await boundFile(home, confirmation.evidence, { text: true, retained });
+    requireRecovery(content.includes(confirmation.quote), 'observed confirmation is absent from its bound evidence');
+    if (confirmation.context !== undefined) requireRecovery(content.includes(confirmation.context),
+      'observed approval context is absent from its bound evidence');
+  }
 }
 
 function identity(input) {
@@ -131,8 +135,8 @@ async function prepare(featureHome, input) {
   validateRecoveryWaiver(waiver, featureId, source);
   const confirmationText = await boundFile(home, waiver.confirmation.evidence, { text: true, retained });
   requireRecovery(confirmationText.includes(waiver.confirmation.quote), 'waiver quote is not present in its bound confirmation evidence');
-  if (waiver.confirmation.kind === 'historical-confirmation') requireRecovery(
-    confirmationText.includes(waiver.confirmation.context), 'historical waiver context is not present in its bound evidence');
+  if (waiver.confirmation.context) requireRecovery(typeof waiver.confirmation.context === 'string'
+    && confirmationText.includes(waiver.confirmation.context), 'waiver approval context is not present in its bound evidence');
   const reports = {};
   for (const key of ['verification', 'specEvaluation', 'retention']) reports[key] = await boundFile(home, input.evidence?.[key], { json: true, retained });
   const receipt = { schemaVersion: 1, kind: 'validated-feature-recovery', featureId, source,

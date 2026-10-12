@@ -22,6 +22,18 @@ export function confirmation(value, label) {
     && value.label.trim().length > 0, `${label} requires explicit human confirmation`);
 }
 
+function sourceBoundAuthority(value, featureId, source, label) {
+  requireRecovery(typeof value?.quote === 'string'
+    && (value.context === undefined || typeof value.context === 'string'), `${label} confirmation text is invalid`);
+  const authority = value.quote + '\n' + (value.context ?? '');
+  const escapedFeature = featureId.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  requireRecovery(/whole[- ]feature|feature[- ]final/iu.test(authority)
+    && new RegExp('\\bfeature\\s+' + escapedFeature + '(?![A-Za-z0-9._-])', 'u').test(authority)
+    && new RegExp('\\b' + source.integrationSha + '\\b', 'u').test(authority)
+    && new RegExp('\\b' + source.requirementsIdentity + '\\b', 'u').test(authority),
+  `${label} observed authority must identify whole-feature scope, this feature, exact integrated source and approved requirements; reconcile ambiguous applicability`);
+}
+
 export function validateRecoveryWaiver(report, featureId, source) {
   boundReport(report, 'whole-feature-judge-waiver', featureId, source);
   requireRecovery(report.obligation === 'whole-feature-judge'
@@ -39,6 +51,7 @@ export function validateRecoveryWaiver(report, featureId, source) {
     typeof report.confirmation.context === 'string'
     && /whole[- ]feature|feature[- ]final/iu.test(report.confirmation.context),
     'ambiguous historical scope requires reconciliation against explicit whole-feature context');
+  sourceBoundAuthority(report.confirmation, featureId, source, 'Judge waiver');
   const quotedSources = [...report.confirmation.quote.matchAll(/\b[0-9a-f]{40}\b/giu)]
     .map((match) => match[0].toLowerCase());
   requireRecovery(quotedSources.every((sha) => [source.integrationSha, source.featureBaseSha].includes(sha)),
@@ -71,6 +84,7 @@ export function validateRecoveryReports(receipt, modules) {
         && (gateId === 'verification' ? /verification/iu : /spec/iu).test(report.waiver.confirmation.quote),
       `${gateId} waiver requires its own observed explicit confirmation`);
       evidenceReferences([report.waiver.confirmation.evidence], `${gateId} confirmation`);
+      sourceBoundAuthority(report.waiver.confirmation, featureId, source, `${gateId} waiver`);
       if (module.waiverPolicy === 'non-behavioral-only') {
         requireRecovery(report.waiver.waiverBasis?.classification === 'NON_BEHAVIORAL',
           `${gateId} waiver requires human non-behavioral classification`);
@@ -112,6 +126,7 @@ export function validateRecoveryReports(receipt, modules) {
       && /retain|keep|preserve/iu.test(retention.confirmation.quote)
       && /workspace/iu.test(retention.confirmation.quote), 'retention requires an observed explicit workspace decision');
     evidenceReferences([retention.confirmation.evidence], 'retention confirmation');
+    sourceBoundAuthority(retention.confirmation, featureId, source, 'workspace retention');
   }
 }
 

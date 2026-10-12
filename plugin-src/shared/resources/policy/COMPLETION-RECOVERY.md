@@ -35,6 +35,14 @@ Report kinds and content:
   The quote must actually waive the applicable Judge and occur in its bound
   text evidence. Historical confirmation adds `context`, a verbatim bound
   surrounding passage explicitly identifying whole-feature/feature-final scope.
+  For either confirmation kind, the quote or verbatim approval `context` must
+  identify whole-feature/feature-final scope, `feature <featureId>`, the exact
+  `integrationSha` and `requirementsIdentity`. Both quote and any context must
+  occur in the bound confirmation evidence. A short answer may use the exact
+  source/requirements shown in its approval prompt; agent-authored source fields
+  alone do not establish human applicability. Historical text without those
+  bindings requires explicit applicability reconciliation; do not edit its
+  original evidence to manufacture an approval.
 - `feature-verification`: outcome PASS; exactly one check for each category
   `build`, `lint`, `unit`, `integration`, `endToEnd`, `runtime`. Each check has
   category and outcome PASS or NOT_APPLICABLE. PASS retains command and nonempty
@@ -52,6 +60,8 @@ pinned waiver policy. It retains `waiver:{obligation,reason,confirmedBy,evidence
 confirmation:{quote,evidence}}`; obligation is its report kind, not Judge.
 Constrained non-behavioral policies also require the same human classification
 and bound evidence as ordinary gate waivers. No implicit policy waiver exists.
+Assessment waivers and HUMAN_RETAINED decisions require the same observed
+feature/source/requirements/scope bindings in their quote or approval context.
 
 All report/supporting references resolve inside the feature home, cannot traverse
 symlinks, are nonempty and must match actual hashes. Structured reports and quoted
