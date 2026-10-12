@@ -13,17 +13,17 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|--------|-------|
-| R1 | Readiness trigger and applicability | NOT YET | - | AC1; planned for P4 / I-4; final proof P7 / I-7. |
-| R2 | Advisory isolation and evidence | NOT YET | - | AC1; planned for P4 / I-4; P6 / I-6; final proof P7 / I-7. |
-| R3 | Readiness outcome and nonblocking bypass | NOT YET | - | AC1; planned for P4 / I-4; P5 / I-5; final proof P7 / I-7. |
+| R1 | Readiness trigger and applicability | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R2 | Advisory isolation and evidence | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R3 | Readiness outcome and nonblocking bypass | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
 | R4 | Formal Judge history exclusion | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
 | R5 | Approved requirements and audited filtered identity | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
-| R6 | Defect-class remediation | NOT YET | - | AC3; planned for P4 / I-4; final proof P7 / I-7. |
-| R7 | Complete advisory rerun review | NOT YET | - | AC3; planned for P4 / I-4; P6 / I-6; final proof P7 / I-7. |
-| R8 | Recurrence and broader findings | NOT YET | - | AC3; planned for P4 / I-4; P6 / I-6; final proof P7 / I-7. |
-| R9 | Compact durable advisory retention | NOT YET | - | AC4; planned for P4 / I-4; final proof P7 / I-7. |
-| R10 | Verified evidence-only advisory reuse | NOT YET | - | AC4; planned for P1 / I-1; P4 / I-4; final proof P7 / I-7. |
-| R11 | Advisory errors and one retry | NOT YET | - | AC4; planned for P4 / I-4; P6 / I-6; final proof P7 / I-7. |
+| R6 | Defect-class remediation | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R7 | Complete advisory rerun review | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R8 | Recurrence and broader findings | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R9 | Compact durable advisory retention | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R10 | Verified evidence-only advisory reuse | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R11 | Advisory errors and one retry | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
 | R12 | Discovery before presentation | NOT YET | - | AC5; planned for P5 / I-5; P6 / I-6; final proof P7 / I-7. |
 | R13 | Guarded retry orchestration | NOT YET | - | AC5; planned for P5 / I-5; P6 / I-6; final proof P7 / I-7. |
 | R14 | Interruption recovery and formal freshness | NOT YET | - | AC5; planned for P5 / I-5; final proof P7 / I-7. |
@@ -35,7 +35,7 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 | R20 | Recovery blockers | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
 | R21 | Dedicated recovery event and normal closeout | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
 | R22 | Historical compatibility and explicit adoption | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
-| R23 | Portable invocation and observable errors | NOT YET | - | AC8; planned for P3 / I-3; P4 / I-4; P5 / I-5; P6 / I-6; final proof P7 / I-7. |
+| R23 | Portable invocation and observable errors | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
 | R24 | Consistent workflow guidance and measurable cost | NOT YET | - | AC8; planned for P2 / I-2; P5 / I-5; P6 / I-6; final proof P7 / I-7. |
 
 ## Review Log
@@ -111,3 +111,5 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 - S3 first formal attempt s3-pr79-a1: mandatory Verification passed on d11171f; independent native Judge passed all ten scoped criteria. The late advisory s3-ready-3 retained two findings: pending-claim guide ambiguity and a valid formal-FAIL checklist compatibility gap. The core recorded evt-s3-pr79-a1-remediation and returned the slice to IMPLEMENTING; no human review or final presentation was requested. Fixed formal-FAIL normalization without changing formal Judge requirements, clarified the existing reasoned pending policy, and added pending/no-certification and failed-row/path-reconciliation regressions. All 48 advisory tests passed; original reports and formal PASS remain historical only, and a new attempt will start with all formal outcomes unset.
 
 - Readiness s3-ready-4 completed with UNAVAILABLE/PERSISTENT CONTRACT_INVALID after one native attempt; no clean result or code certification is claimed. The source-bound proceed reason records complete defect-class/regression evidence and requires a fresh full Verification and independent Judge. All48 advisory tests and full portable acceptance (CLI389/Python98+28) pass on revised source42bd; Desktop206 pass. Source/records will be pinned for s3-pr79-a2; no old formal PASS is carried forward.
+
+- S3 current formal attempt s3-pr79-a2 passed Verification, scoped spec assessment, code review, pattern review (empty rules warning), independent Judge (all ten criteria/no findings), decision triage and Explain Diff at source a0dd084. Packet: [PR #79](pr-79/boundary.json); interactive explanation: [Explain Diff](pr-79/attempts/s3-pr79-a2/explain-diff.html). Full local verification: CLI389, Desktop206, workflow98/pattern28; native inventory/doctor/deterministic rebuild and document validation pass. Current source hosted CI has zero failures/pending. Advisory4 is UNAVAILABLE with the retained noncertifying reason; no formal requirement was waived. Clean source synchronization/packet validation and core human-review request still pending.
