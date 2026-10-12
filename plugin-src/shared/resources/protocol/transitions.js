@@ -141,7 +141,14 @@ export async function recordFeatureTransition(
   transitionId,
   { actor, facts = {}, payload = {}, eventId, recordedAt } = {}
 ) {
+  if (transitionId === 'recover-finalization') {
+    throw new TransitionRejectedError('Use feature.recover-finalization with validated source, waiver and completion evidence');
+  }
   const record = await readFeatureRecord(featureHome);
+  if (transitionId === 'begin-finalizing'
+    && record.modelLock.model.feature.transitions.some((item) => item.id === 'recover-finalization')) {
+    throw new TransitionRejectedError('Finalizing requires a true feature-final merge or feature.recover-finalization');
+  }
   let effectiveFacts = facts;
   let effectivePayload = payload;
   if (transitionId === 'complete-feature') {
@@ -265,6 +272,13 @@ export async function recordSliceTransition(
   if (!preflight.eligible) reject(preflight);
   let featurePassage = null;
   if (transitionId === 'record-merge' && payload.featureFinal === true) {
+    const recoveryCapable = record.modelLock.model.feature.transitions
+      .some((item) => item.id === 'recover-finalization');
+    const boundary = preflight.projection.boundaryAttempts
+      .find((item) => item.id === preflight.slice.activeAttemptId);
+    if (recoveryCapable && boundary?.scope !== 'FEATURE_FINAL') {
+      throw new TransitionRejectedError('A feature-final merge requires an actual FEATURE_FINAL boundary; use guarded recovery for an already-merged slice boundary');
+    }
     const mergeInputShas = [payload.integrationSha, payload.mergeCommitSha]
       .filter((value) => /^[0-9a-f]{40}$/u.test(value));
     if (new Set(mergeInputShas).size > 1) {
@@ -292,6 +306,7 @@ export async function recordSliceTransition(
     featurePassage = {
       transitionId: featureTransition.id,
       guards: featureEvaluation.guards,
+      ...(recoveryCapable ? { scopeProof: { sliceId, attemptId: boundary.id, scope: 'FEATURE_FINAL' } } : {}),
     };
   }
   await appendPassage(

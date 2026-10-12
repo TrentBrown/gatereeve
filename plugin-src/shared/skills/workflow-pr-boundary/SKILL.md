@@ -38,3 +38,8 @@ For feature-final review, use a real PR. When `releaseBranch` differs from
 Resolve `feature_final.py` from that pinned PR context and pass `--scope
 feature-final` to every gate. Preserve complete-feature evaluation alongside
 focused final-slice review, and surface any required human retention decision.
+
+When all delivery already merged at slice scope and an explicit whole-feature
+Judge waiver applies, use `<plugin-root>/resources/commands/completion-recovery.md`
+for the guarded recovery preflight and dedicated event. Do not create another
+merge or reinterpret old slice evidence as feature-final certification.

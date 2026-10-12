@@ -147,7 +147,11 @@ export function validateModel(model) {
   if (model.resultSchemaVersion !== RESULT_SCHEMA_VERSION) {
     throw new ContractError(`Workflow model resultSchemaVersion must be ${RESULT_SCHEMA_VERSION}`);
   }
-  assertExactStringSet(model.guardIds, TRUSTED_GUARD_IDS, 'guardIds');
+  const recoveryCapable = model.feature?.transitions?.some((item) => item.id === 'recover-finalization');
+  const legacyGuards = TRUSTED_GUARD_IDS.filter((id) => id !== 'feature.recovery.validated');
+  const expectedGuards = !recoveryCapable && !model.guardIds?.includes('feature.recovery.validated')
+    ? legacyGuards : TRUSTED_GUARD_IDS;
+  assertExactStringSet(model.guardIds, expectedGuards, 'guardIds');
   validateMachine(model.feature, FEATURE_STATES, 'feature');
   validateMachine(
     model.slice,

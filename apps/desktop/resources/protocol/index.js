@@ -14,6 +14,7 @@ export * from './errors.js';
 export * from './execution-preparation.js';
 export * from './feature.js';
 export * from './finalization.js';
+export * from './recovery.js';
 export * from './fingerprint.js';
 export * from './guards.js';
 export * from './graph.js';

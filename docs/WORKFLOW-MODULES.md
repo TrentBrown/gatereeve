@@ -341,3 +341,21 @@ bytes, executable modes and symlink targets against their pinned Git blobs.
 Temporary object databases are removed before the provider sees the snapshot.
 Legacy standalone review/verification reports beside feature documents are
 also excluded by their record names; approved spec/design remain available.
+
+## Recovery as a finalization source anchor
+
+Model 1.6/core 1.2 adds `feature.recovery-preflight` and
+`feature.recover-finalization`. Older locks need explicit compatible adoption.
+The dedicated `FEATURE_FINALIZATION_RECOVERED` event preserves previous merges
+and binds a verified integrated source, approved requirements, explicit
+whole-feature Judge waiver and remaining verification/spec/retention dispositions.
+Replay checks receipt/hash, accepted delivery and immutable merge-event bindings;
+generic transitions cannot manufacture recovery. Repeated identical requests
+reconcile the same event without another append.
+
+Ordinary finalization starts against that source using the existing module graph.
+Required modules, dependency event binding, invalidation and Complete remain
+unchanged. The recovery receipt exposes waivers as WAIVED, not PASS. The
+canonical portable procedure and structured report fields are in
+`resources/commands/completion-recovery.md` and
+`resources/policy/COMPLETION-RECOVERY.md` within each native plugin package.

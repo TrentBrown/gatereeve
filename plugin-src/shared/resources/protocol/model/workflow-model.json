@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "modelId": "gatereeve/workflow",
-  "modelVersion": "1.5.0",
+  "modelVersion": "1.6.0",
   "eventSchemaVersion": 1,
   "resultSchemaVersion": 1,
   "coreCompatibility": {
-    "minimum": "1.1.0",
+    "minimum": "1.2.0",
     "maximumExclusive": "2.0.0"
   },
   "guardIds": [
@@ -16,6 +16,7 @@
     "design.approval.confirmed",
     "feature.abandonment.confirmed",
     "feature.closeout.current",
+    "feature.recovery.validated",
     "feature.record.absent",
     "human.review.accepted",
     "merge.reviewedContent.verified",
@@ -63,6 +64,14 @@
         "eventType": "PLAN_AUTHORIZED",
         "authority": "human-confirmation",
         "guards": ["plan.authorization.current", "suspension.notPaused"]
+      },
+      {
+        "id": "recover-finalization",
+        "from": "DELIVERING_SLICES",
+        "to": "FINALIZING",
+        "eventType": "FEATURE_FINALIZATION_RECOVERED",
+        "authority": "agent",
+        "guards": ["slice.noneActive", "plan.authorization.current", "suspension.notPaused", "change.blockers.none", "feature.recovery.validated"]
       },
       {
         "id": "begin-finalizing",

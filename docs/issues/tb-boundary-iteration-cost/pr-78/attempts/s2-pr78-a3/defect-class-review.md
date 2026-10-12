@@ -1,0 +1,7 @@
+# Durable receipt defect-class review
+
+Judge FAIL R21 on465d051: pure replay accepted a Judge waiver confirmation without its evidence reference if receiptHash was recomputed. R19/R20/R22/R23 passed.
+
+Expanded review from that one property to the full preparation/replay contract. Shared evidence-reference validation now requires safe relative paths and SHA-256 hashes in IO preparation and pure replay. Replay checks the Judge confirmation, verification/spec/retention reference closure, approved spec/design descriptors and rubric ID shapes, the exact top-level report-reference set, and canonical requestIdentity recomputed from those report references. Receipt generation normalizes only the four authorized report bindings. This prevents dropped/malformed/unsafe/swapped references, missing requirement descriptors and request-binding drift while preserving the offline journal replay model. Actual filesystem bytes, symlink avoidance, retention and merge/source proofs remain validated before append; replay validates retained receipt structure/bindings rather than rereading mutable external files.
+
+Regression mutations recompute receiptHash after dropping/corrupting/escaping confirmation and report references, removing the receipt reference set, dropping one report, altering a report digest, swapping verification/spec references or adding an unbound reference. A forged requestIdentity also rejects. Existing valid replay, old-lock adoption, normal finalization, idempotence and blocked premature Complete cases remain required. No prior formal PASS is reused.

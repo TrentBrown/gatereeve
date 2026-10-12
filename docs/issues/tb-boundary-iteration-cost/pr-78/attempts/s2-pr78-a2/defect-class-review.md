@@ -1,0 +1,7 @@
+# Authority applicability defect-class review
+
+Judge FAIL on source 8314062, R19: an observed quote with waive+Judge could be attached to agent-authored source metadata without observed feature/scope/source/requirements authority. The corrected retention checks passed R20.
+
+Changed remediation approach: inspect every human-authority variant, not only the Judge quote. A shared validator now requires the quote or verbatim approval context to identify whole-feature/feature-final scope, exact feature name, selected integration SHA and approved requirement identity. Each context is verified against its bound text, including assessment waiver and workspace-retention confirmations. This same validation applies on event replay. Report JSON cannot substitute for observation. Short human answers remain usable with the actual concrete approval prompt; historical text stays unchanged and missing source applicability requires explicit reconciliation.
+
+Regression coverage includes vague observed waiver, whole-feature scope without selected-source applicability, wrong feature and matching-name prefix, wrong requirements, missing context in the evidence, historical scope without source applicability, ambiguous assessment waiver and workspace-retention authority. Positive short-answer/context and historical-context fixtures preserve their original text. Full fresh verification and a new independent blind Judge are required before declaring this slice reviewed. No prior formal PASS is reused.

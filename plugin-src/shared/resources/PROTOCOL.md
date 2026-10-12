@@ -40,7 +40,7 @@ public user surface.
 
 Supported internal operations are `status`, `snapshot`, `read`, `next`,
 `history`, `explain`, `check`, `graph`, `graph.model`, `feature.init`, `feature.transition`,
-`feature.abandon`, `feature.pause`, `feature.resume`, `feature.migration-impact`, `feature.migrate-model`,
+`feature.abandon`, `feature.recovery-preflight`, `feature.recover-finalization`, `feature.pause`, `feature.resume`, `feature.migration-impact`, `feature.migrate-model`,
 `slice.propose`, `slice.transition`, `slice.abandon`, `slice.accept-review`, `boundary.request-review`,
 `gate.record`, `gate.waive`, `gate.invalidate`, `finalization.start`,
 `finalization.record`, `finalization.waive`, `finalization.invalidate`,
@@ -65,3 +65,12 @@ operation cannot be used as an arbitrary path reader. These operations are
 read-only and never append to the event journal. Artifact metadata includes an
 `unsafe` boolean; lexical escapes and symlinks resolving outside the feature
 record are unavailable, report `unsafe: true`, and cannot be read.
+
+## Post-merge completion recovery
+
+Read `commands/completion-recovery.md` and `policy/COMPLETION-RECOVERY.md` before
+preparing recovery evidence. `feature.recovery-preflight` returns eligibility,
+actionable blockers, stable request identity and the validated receipt without
+writing. `feature.recover-finalization` revalidates and appends one dedicated
+repeat-safe event; unsupported pinned models require explicit adoption. All
+remaining finalization modules bind to its verified integrated source.

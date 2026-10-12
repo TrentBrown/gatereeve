@@ -60,7 +60,7 @@ function action(command, eligible, authority, reasons = []) {
   return { command, eligible, authority, reasons };
 }
 
-export function nextActions(projection) {
+export function nextActions(projection, { recoverySupported = false } = {}) {
   if (projection.suspension.paused) {
     return [action('feature resume', true, 'agent')];
   }
@@ -102,6 +102,11 @@ export function nextActions(projection) {
       break;
     case 'DELIVERING_SLICES': {
       actions.push(action('slice propose', true, 'agent'));
+      if (recoverySupported && projection.slices.some((slice) => slice.state === 'MERGED')
+        && projection.slices.every((slice) => ['MERGED', 'ABANDONED'].includes(slice.state))) {
+        actions.push(action('feature recovery-preflight', true, 'agent'));
+        actions.push(action('feature recover-finalization', true, 'agent'));
+      }
       for (const slice of projection.slices) {
         if (slice.state === 'PROPOSED') actions.push(action(`slice plan ${slice.id}`, true, 'agent'));
         if (slice.state === 'PLANNED') {
@@ -242,7 +247,8 @@ async function observe(
     mode.featureHome,
     record,
     projection,
-    nextActions(projection),
+    nextActions(projection, { recoverySupported: record.modelLock.model.feature.transitions
+      .some((item) => item.id === 'recover-finalization') }),
     {
       facts,
       sources,

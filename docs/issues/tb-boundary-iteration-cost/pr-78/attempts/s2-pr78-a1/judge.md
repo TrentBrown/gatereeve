@@ -1,0 +1,5 @@
+**Verdict: FAIL**
+
+The recovery path is mostly present, but TRACKED retention is under-enforced. `boundFile()` and `supportingEvidence()` prove that referenced files are safe, nonempty and hash-matching, but they do not prove those files are tracked. The TRACKED retention branch then relies on `git status --porcelain=v1 -z --untracked-files=all`, which does not report ignored untracked files, and checks only that already tracked feature records are not symlinks. That leaves a reachable path where ignored untracked reports or supporting evidence are accepted while retention claims TRACKED.
+
+This fails R19 because remaining retention/evidence obligations are not fully demonstrated, and R20 because invalid retained content can bypass recovery blockers and allow an event append. R21-R23 otherwise pass based on the dedicated recovery event, finalization-module binding, old-model adoption behavior, and plugin-local/CLI parity evidence.

@@ -1,0 +1,7 @@
+# S2 code review
+
+No unresolved findings in `ae9bc5a370d95d81f2b7acc8e6f90077087a7514..a5a9a42afb06b4682a97d6680d7bd1ad159baee3`. Reviewed the recovery service/contract, trusted merge verifier and surrounding context/actor/journal APIs, projection and finalization anchors, model migration compatibility, CLI/plugin adapter routes, snapshot availability metadata, canonical skills/policy, inventory and staged Desktop copies.
+
+Resolved before source freeze: older guard catalogues remain valid; fixture-only Git hook isolation and initialization corrected; quoted explicit source mismatch rejected; bound JSON bytes are rechecked after reading; merge proof tuples and receipt coverage validated on replay; actual boundary scope governs feature-final flags and recovery eligibility; unsupported recovery targets cannot jump to Complete. Every rejection is tested for no append. Repeat-safe requests revalidate evidence and reconcile an existing event, including after finalization.
+
+Residual limits: confirmation labels remain cooperative, not authentication. Recovery requires configured original base and unambiguous selected-repository provenance; opaque/cross-repository records need reconciliation. Structured evidence is bounded to 1 MiB per report/confirmation; supporting logs are stream-hashed. The operation enters Finalizing and leaves configured modules authoritative. Real client recovery and release are separate operations. Future advisory/readiness/retry behavior is outside this slice.
