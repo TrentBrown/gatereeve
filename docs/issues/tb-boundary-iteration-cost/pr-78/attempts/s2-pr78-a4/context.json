@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "source": "github",
+  "repositoryRoot": "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve",
+  "repositoryAlias": "product",
+  "remote": "origin",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 78,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/78",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "ae9bc5a370d95d81f2b7acc8e6f90077087a7514",
+    "headRefName": "tb-boundary-iteration-cost-02-completion-recovery",
+    "headRefOid": "7a998a9ad9545f53c3df778d848f72a3399f8050"
+  },
+  "mergeBaseSha": "ae9bc5a370d95d81f2b7acc8e6f90077087a7514",
+  "evaluatedSourceSha": "7a998a9ad9545f53c3df778d848f72a3399f8050",
+  "featureBaseSha": "ef725bbedfda28be0967fefde6cf2748679612c2"
+}

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "scope": "slice",
+  "featureId": "tb-boundary-iteration-cost",
+  "repositoryAlias": "product",
+  "packetId": "pr-78",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 78,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/78",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "ae9bc5a370d95d81f2b7acc8e6f90077087a7514",
+    "headRefName": "tb-boundary-iteration-cost-02-completion-recovery",
+    "headRefOid": "7a998a9ad9545f53c3df778d848f72a3399f8050"
+  },
+  "mergeBaseSha": "ae9bc5a370d95d81f2b7acc8e6f90077087a7514",
+  "evaluatedSourceSha": "7a998a9ad9545f53c3df778d848f72a3399f8050",
+  "featureBaseSha": null,
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": true
+  },
+  "gates": {
+    "verification": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/s2-pr78-a4/verification.md",
+        "sha256": "sha256:9f79958b93d82f313c28aa9f893e7a436e52a61d47d0f20121949711a468b236"
+      }
+    },
+    "specEvaluation": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/s2-pr78-a4/spec-evaluation.md",
+        "sha256": "sha256:1f7435db551cec97be7cb48df081d40d370248535087348c777e65241e558fa1"
+      }
+    },
+    "judge": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/s2-pr78-a4/judge.md",
+        "sha256": "sha256:9eb479869921f1fcbb50b28f808a461452b51c9ac3b5588bdbfc2f6931b89ca5"
+      }
+    },
+    "codeReview": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/s2-pr78-a4/code-review.md",
+        "sha256": "sha256:4003f2cb55a29af0bc70c7d7506638fd96c461023462527d0d79ab65129bebcd"
+      }
+    },
+    "patternReview": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/s2-pr78-a4/pattern-review.md",
+        "sha256": "sha256:ff2d711e8044f52c61dcdae728dafb10ad7e90d43c39db28f4425ffd61cd2b1a"
+      }
+    },
+    "explainDiff": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/s2-pr78-a4/explain-diff.html",
+        "sha256": "sha256:6159e20ca20b8015de12acc894d82d92e80148d507b92932056fc1a9e615ab23"
+      }
+    }
+  }
+}

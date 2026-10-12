@@ -31,10 +31,10 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 | R16 | Patch deduplication and rename representation | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
 | R17 | Binary before/after evidence access | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
 | R18 | Whole-feature scope and shared-code preservation | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
-| R19 | Source-bound recovery authority and remaining evidence | FAIL | S2 / PR #78 | Scoped assessment and source/protocol regression evidence; independent Judge pending. |
-| R20 | Recovery blockers | FAIL | S2 / PR #78 | Scoped assessment and source/protocol regression evidence; independent Judge pending. |
-| R21 | Dedicated recovery event and normal closeout | PASS | S2 / PR #78 | Scoped assessment and source/protocol regression evidence; independent Judge pending. |
-| R22 | Historical compatibility and explicit adoption | PASS | S2 / PR #78 | Scoped assessment and source/protocol regression evidence; independent Judge pending. |
+| R19 | Source-bound recovery authority and remaining evidence | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
+| R20 | Recovery blockers | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
+| R21 | Dedicated recovery event and normal closeout | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
+| R22 | Historical compatibility and explicit adoption | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
 | R23 | Portable invocation and observable errors | NOT YET | - | AC8; planned for P3 / I-3; P4 / I-4; P5 / I-5; P6 / I-6; final proof P7 / I-7. |
 | R24 | Consistent workflow guidance and measurable cost | NOT YET | - | AC8; planned for P2 / I-2; P5 / I-5; P6 / I-6; final proof P7 / I-7. |
 
@@ -66,10 +66,10 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 
 - PR: https://github.com/TrentBrown/gatereeve/pull/78
 - Packet: [boundary evidence](pr-78/boundary.json)
-- Source: a5a9a42afb06b4682a97d6680d7bd1ad159baee3; attempt s2-pr78-a1; scope SLICE.
+- Current source: 7a998a9ad9545f53c3df778d848f72a3399f8050; attempt s2-pr78-a4; scope SLICE. Earlier frozen attempts remain below and in the packet.
 - P3 / I-3 in-review; model1.6/core1.2 explicitly adopted for this feature only.
-- Verification PASS (325 CLI, 127 Python, 206 Desktop + portable package checks); scoped assessment PASS; code review no unresolved findings; pattern review PASS_WITH_WARNINGS empty rules.
-- Independent Judge FAIL for R19/R20: ignored untracked evidence could bypass TRACKED retention. Source returned to implementation; defect-class review recorded and revised source requires a fresh attempt. R23 whole-feature portability and advisory/retry/cost obligations remain future work. No S2 merge/release/real MyLifeMap recovery.
+- Current Verification PASS (340 CLI, 127 Python, 206 Desktop + portable package checks); scoped assessment PASS; code review no unresolved findings; pattern review PASS_WITH_WARNINGS empty rules.
+- Initial attempt s2-pr78-a1 Independent Judge FAIL for R19/R20: ignored untracked evidence could bypass TRACKED retention. Source returned to implementation; defect-class review recorded and revised source requires a fresh attempt. R23 whole-feature portability and advisory/retry/cost obligations remain future work. No S2 merge/release/real MyLifeMap recovery.
 
 - 2026-10-12: Retention defect class fixed, ignored-file regression cases reject without append, fresh full verification passed (330 CLI, 127 Python, 206 Desktop). New source 8314062ca2f174af122a41fb31ac03ebb514bb52 entered fresh attempt s2-pr78-a2; prior failed attempt remains retained. All current gates must be recorded anew; independent blind Judge pending.
 
@@ -78,3 +78,9 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 - 2026-10-12: Human-authority variants and replay now require observed feature/scope/source/requirements applicability; positive exact approval-context and historical-text tests pass. Fresh complete verification passes 340 CLI, 127 Python, 206 Desktop. Source 465d051ba5ef3dbe59dd86808a61663ef4f56872 entered fresh s2-pr78-a3; blind Judge pending. Earlier failures remain preserved.
 
 - 2026-10-12: Attempt s2-pr78-a3 Judge FAIL R21 replay evidence-reference validation; R19/R20/R22/R23 passed. Returned to implementation via core. Remediation expanded to complete receipt/reference/requirement/request-binding schema, including malformed/unsafe/missing/swapped references with resealed hashes. Fresh full verification and review required.
+
+- 2026-10-12: Complete replay receipt/reference schema and request bindings remediated; fresh full portable340CLI/127Python and Desktop206 PASS. Source 7a998a9ad9545f53c3df778d848f72a3399f8050 entered fresh s2-pr78-a4. All current gate results recorded anew; independent blind Judge pending.
+
+- 2026-10-12: Independent Judge PASS in s2-pr78-a4 for all R19-R23 recovery-scope criteria; scope/gap/contradiction PASS and no findings. Current source hosted checks14SUCCESS/1intentionalSKIP before packet finalization. Full local340CLI/127Python/206Desktop and portable packages PASS. R19-R22 PASS; R23 whole-feature advisory/retry portability, R10/R24 and remaining slice obligations still NOT YET. No S2 merge or feature completion. Presentation and clean packet validation follow substantive PASS.
+
+- 2026-10-12: Decision triage PASS with zero unreviewed entries. Explain Diff generated after substantive PASS for the pinned source; navigation, preformatted code and all five quiz feedback interactions validated. Manifest finalized; clean pushed-checkout packet validation and core review request pending.
