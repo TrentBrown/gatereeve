@@ -115,11 +115,15 @@ test('historical capture scripts remain source while their old verification logs
   const f = await fixture(t);
   const directory = join(f.featureHome, 'p12-verification'); await mkdir(directory);
   await writeFile(join(directory, 'capture.mjs'), 'export const capture = true;\n');
+  await writeFile(join(directory, 'gatereeve.rb'), 'cask "gatereeve" do\nend\n');
+  await writeFile(join(directory, 'config.toml'), 'name = "source"\n');
   await writeFile(join(directory, 'lint.log'), 'PREVIOUS VERIFICATION RESULT\n');
   await writeFile(join(f.featureHome, 'contract-review-response-20261012.md'), 'PREVIOUS REVIEW FINDINGS\n');
   const head = await f.commit(); const compact = await f.build(head); t.after(compact.cleanup);
   const view = await snapshot(f, compact, head); t.after(view.cleanup);
   assert.match(await readFile(join(view.repositoryPath, 'docs/issues/feature/p12-verification/capture.mjs'), 'utf8'), /capture/u);
+  assert.match(await readFile(join(view.repositoryPath, 'docs/issues/feature/p12-verification/gatereeve.rb'), 'utf8'), /cask/u);
+  assert.match(await readFile(join(view.repositoryPath, 'docs/issues/feature/p12-verification/config.toml'), 'utf8'), /source/u);
   await assert.rejects(access(join(view.repositoryPath, 'docs/issues/feature/p12-verification/lint.log')), /ENOENT/);
   await assert.rejects(access(join(view.repositoryPath, 'docs/issues/feature/contract-review-response-20261012.md')), /ENOENT/);
 });

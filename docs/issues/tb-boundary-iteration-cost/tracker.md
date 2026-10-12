@@ -43,3 +43,5 @@ Implementation authorized; S1 is implementing under adopted model 1.5.0/core 1.1
 - 2026-10-12: Design approved in this chat and recorded through protocol; spec validation PASS and validate-spec recorded. Planning artifacts complete; no PR or implementation evidence exists yet.
 
 - 2026-10-12: P1/P2 source implemented; large-input, isolation, current Verification attachment and exact-source checks passed provisionally. Model adoption preserved all gate requirements and prior events. No PR or merge yet.
+
+- 2026-10-12: Draft PR #77 source `37c753d` entered attempt s1-pr77-a1. Preparation was unavailable before provider launch because a legacy Ruby cask was unclassified. Returned to implementation through protocol; source/config classification fixed and regression-tested. New source will use a fresh attempt, with no old formal PASS reused.

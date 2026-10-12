@@ -20,7 +20,7 @@ Add an optional versioned review-input declaration to agent-workflow definitions
 - Replace the existing builder globally: changes old pinned gates implicitly.
 - Increase its aggregate buffer: leaves duplicated payloads and history exposure.
 
-**Promoted:** 2026-10-12.
+**Promoted:** 2026-10-12. PR: [#77](https://github.com/TrentBrown/gatereeve/pull/77).
 
 ---
 
@@ -41,7 +41,7 @@ Current Verification image/PDF references require explicit path/hash attachments
 - Restore all old evidence: exposes unrelated prior review records.
 - Guess image authority from file location: loses explicit source and digest binding.
 
-**Promoted:** 2026-10-12.
+**Promoted:** 2026-10-12. PR: [#77](https://github.com/TrentBrown/gatereeve/pull/77).
 
 ---
 
@@ -61,4 +61,4 @@ Compact snapshots bypass Git export-ignore/export-subst through an empty tempora
 - Provide the raw plan again: leaks decision/review history.
 - Trust git archive without content validation: can alter the exact reviewed source.
 
-**Promoted:** 2026-10-12.
+**Promoted:** 2026-10-12. PR: [#77](https://github.com/TrentBrown/gatereeve/pull/77).

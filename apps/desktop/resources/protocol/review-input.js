@@ -24,7 +24,7 @@ const JOURNALS = new Set([
   'pattern-review.md', 'explain-diff.html', 'boundary.json',
 ]);
 const RECORD_EXTENSION = /\.(?:md|json|jsonl|yaml|yml|html|txt|log|png|jpg|jpeg|webp|svg|pdf)$/iu;
-const SOURCE_EXTENSION = /\.(?:js|mjs|cjs|ts|tsx|jsx|py|sh|vue|css|scss|sql|yaml|yml)$/iu;
+const SOURCE_EXTENSION = /\.(?:js|mjs|cjs|ts|tsx|jsx|py|sh|bash|zsh|rb|go|rs|c|h|cc|cpp|hpp|java|kt|swift|cs|php|vue|svelte|astro|css|scss|sass|less|sql|graphql|gql|toml|ini|cfg|yaml|yml)$/iu;
 
 function pathOf(value) {
   if (typeof value !== 'string' || !value || value.startsWith('/')
