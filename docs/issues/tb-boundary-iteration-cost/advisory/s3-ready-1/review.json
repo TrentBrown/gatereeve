@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-boundary-iteration-cost",
+  "sliceId": "s3-advisory-discovery",
+  "readinessId": "s3-ready-1",
+  "source": {
+    "baseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "headSha": "69b2e6fb4e180819861e97adad6a92238cae3cfd",
+    "sliceBaseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "scope": "SLICE",
+    "boundaryScope": "SLICE"
+  },
+  "inputIdentity": "sha256:0f1cb1d81a7e57f0cdb7645626e5568ba37adbcbb5f3f429ecc81e020c5c7aeb",
+  "requestIdentity": "sha256:ada463760e56cd0b40f5fcaa061f4ca50737367d0312e38270b90afce80c4501",
+  "readiness": {
+    "path": "advisory/s3-ready-1/readiness.json",
+    "hash": "sha256:b946e749bbf29efadd4cab5d76d65d7f9d95ef066c6858e1953754720e84680a"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "READY_FOR_FORMAL_REVIEW",
+  "result": {
+    "schemaVersion": 1,
+    "outcome": "READY_FOR_FORMAL_REVIEW",
+    "fullVerification": "PENDING",
+    "summary": "Advisory review found no supported findings in the declared slice scope. Full verification and independent formal Judge remain pending.",
+    "criteria": [
+      {
+        "id": "R1",
+        "result": "SATISFIED",
+        "explanation": "Readiness is explicit, active-slice scoped, tied to the formal Judge applicability/evaluation scope, and ordinary edits do not launch review.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:128 requires an explicit readinessId and repository root.",
+          "plugin-src/shared/resources/protocol/advisory.js:143 binds readiness to the active authorized IMPLEMENTING slice.",
+          "plugin-src/shared/resources/protocol/advisory.js:174 derives applicability and scope from the formal Judge module.",
+          "plugin-src/shared/resources/protocol/advisory.js:515 returns NOT_APPLICABLE or reuses a clean result without provider launch.",
+          "cli/test/advisory.test.js:300 covers one declaration launching one isolated review.",
+          "cli/test/advisory.test.js:431 covers inapplicable Judge not launching a provider.",
+          "cli/test/advisory.test.js:1109 covers ordinary edits not launching review and revised readiness selecting revised source."
+        ]
+      },
+      {
+        "id": "R2",
+        "result": "SATISFIED",
+        "explanation": "Advisory execution uses a pinned read-only snapshot, fresh provider context receipts, denied-network policy, approved documents, source/tests, and fast/focused evidence with full verification marked pending.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:650 invokes the agent workflow with pinned snapshot, inputIdentity, fullVerification PENDING, fastFocusedEvidence and priorFindings.",
+          "plugin-src/shared/resources/protocol/pinned-snapshot.js:196 validates the filtered source view before materializing evidence and making the snapshot read-only.",
+          "plugin-src/shared/resources/protocol/local-agent-adapters.js:111 records freshContext true and inheritedTurns 0 in receipts.",
+          "plugin-src/shared/resources/protocol/local-agent-adapters.js:195 configures Codex ephemeral read-only execution.",
+          "plugin-src/shared/resources/protocol/local-agent-adapters.js:247 configures Claude restricted execution with only Read/Glob/Grep tools.",
+          "plugin-src/shared/resources/protocol/review-input.js:234 binds approved spec.md and design.md into the compact manifest."
+        ]
+      },
+      {
+        "id": "R3",
+        "result": "SATISFIED",
+        "explanation": "Clean advisory output is only READY_FOR_FORMAL_REVIEW with full verification pending; findings/unavailable require a retained source-bound proceed reason before formal entry, and advisory never records a formal gate outcome.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory-contract.js:190 makes READY_FOR_FORMAL_REVIEW exactly match all clean criteria/checklist/scope checks.",
+          "plugin-src/shared/resources/protocol/advisory.js:772 records proceedWithoutCleanAdvisory with a bounded nonempty reason.",
+          "plugin-src/shared/resources/protocol/advisory.js:887 treats only READY_FOR_FORMAL_REVIEW and NOT_APPLICABLE as clean; otherwise a proceed record is required.",
+          "plugin-src/shared/resources/protocol/transitions.js:269 checks advisory disposition before begin-boundary but records only the boundary transition.",
+          "cli/test/advisory.test.js:353 covers missing proceed reason blocking formal entry.",
+          "cli/test/advisory.test.js:300 verifies advisory review does not append formal passage events."
+        ]
+      },
+      {
+        "id": "R6",
+        "result": "SATISFIED",
+        "explanation": "Revised readiness after prior code failures requires defect-class analysis, affected paths, changed approach, and passing regression evidence; operational unavailability is kept separate from code findings.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory-contract.js:223 validates defect-class remediation when prior findings exist.",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:240 requires findingIds, invariant, examinedPaths, approach and regression evidence.",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:308 requires every distinct prior failure to be covered.",
+          "plugin-src/shared/resources/protocol/advisory.js:380 applies defect-class validation before rerun.",
+          "plugin-src/shared/resources/protocol/advisory.js:569 records missing adapter/configuration as UNAVAILABLE rather than a code finding.",
+          "cli/test/advisory.test.js:536 covers required defect-class review and changed approach."
+        ]
+      },
+      {
+        "id": "R7",
+        "result": "SATISFIED",
+        "explanation": "Reruns bind earlier advisory and formal findings as a checklist, require each prior ID exactly once, and the reviewer prompt still requires full-scope review.",
+        "evidence": [
+          "plugin-src/shared/resources/agent-workflows/advisory/agent.md:14 instructs checking every prior finding ID exactly once and not using earlier verdicts as proof.",
+          "plugin-src/shared/resources/agent-workflows/advisory/agent.md:19 requires reporting every supported finding and reviewing full scope.",
+          "plugin-src/shared/resources/protocol/advisory-storage.js:172 converts prior advisory FINDINGS into checklist findings.",
+          "plugin-src/shared/resources/protocol/advisory-history.js:20 extracts formal Judge FAIL findings for the same slice.",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:169 requires checklist length and IDs to match bound prior findings.",
+          "cli/test/advisory.test.js:865 covers formal failures entering the advisory fix checklist while formal snapshots exclude advisory records."
+        ]
+      },
+      {
+        "id": "R8",
+        "result": "SATISFIED",
+        "explanation": "Prompts and validators preserve distinct underlying findings, require all supported findings, and enforce changed remediation for recurrence without adding a default count halt.",
+        "evidence": [
+          "plugin-src/shared/resources/agent-workflows/advisory/agent.md:18 states distinct defects sharing one criterion remain separate.",
+          "plugin-src/shared/resources/agent-workflows/advisory/agent.md:19 instructs reporting every supported finding, including related scenarios.",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:146 rejects duplicate underlying findings by invariant and affected paths.",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:275 detects repeated underlying findings after claimed fixes.",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:294 requires failed-fix explanation and changed approach for recurrence.",
+          "plugin-src/shared/resources/commands/advisory-review.md:69 states recurrence requires failedFixExplanation and a different approach, with no default failure-count halt."
+        ]
+      },
+      {
+        "id": "R9",
+        "result": "SATISFIED",
+        "explanation": "Advisory records are compact immutable JSON files containing source/input identity, outcome, errors, remediation/proceed data, and bounded receipts without full transcripts, and formal entry can require those files to be tracked.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:422 defines compact slice-advisory-review records with source, inputIdentity, requestIdentity, outcome, result, receipts and operationalErrors.",
+          "plugin-src/shared/resources/protocol/advisory-storage.js:65 writes immutable bounded advisory JSON records with wx.",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:408 limits receipts to one and states compact records must not contain transcripts.",
+          "plugin-src/shared/resources/protocol/advisory.js:95 verifies advisory records and bound evidence are committed and match hashes before formal entry when required.",
+          "plugin-src/shared/resources/protocol/advisory.js:797 records source-bound proceed reasons separately.",
+          "cli/test/advisory.test.js:1142 covers tracked compact advisory evidence remaining usable in a fresh checkout."
+        ]
+      },
+      {
+        "id": "R10",
+        "result": "SATISFIED",
+        "explanation": "Clean-result reuse is tied to deterministic input identity, compact filtered source identity, resources, checks, prior findings and opaque history classification, and current disposition rejects changed inputs.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/review-input.js:289 computes reviewView.inputIdentity from filtered base/source/sliceBase trees and criteria.",
+          "plugin-src/shared/resources/protocol/advisory-inputs.js:69 binds opaque excluded configuration-shaped data and rejects changed ambiguous record-space data.",
+          "plugin-src/shared/resources/protocol/advisory.js:330 builds inputManifest over model, review input identity, scope, criteria, resources, adapter, checks, prior findings and governance.",
+          "plugin-src/shared/resources/protocol/advisory.js:510 reuses only READY_FOR_FORMAL_REVIEW records with identical inputIdentity.",
+          "plugin-src/shared/resources/protocol/advisory.js:862 rejects current disposition when inputIdentity/requestIdentity changed.",
+          "cli/test/advisory.test.js:497 covers source/test/config/dependency/requirements/evidence changes preventing reuse.",
+          "cli/test/advisory.test.js:606 covers evidence-only clean reuse retaining original reviewed source."
+        ]
+      },
+      {
+        "id": "R11",
+        "result": "SATISFIED",
+        "explanation": "Transient advisory execution errors are retried once; persistent configuration, resource, schema, isolation and exhausted transient failures become UNAVAILABLE and do not become code failures or formal passes.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:78 classifies transient versus persistent advisory unavailability.",
+          "plugin-src/shared/resources/protocol/advisory.js:569 records missing adapter or preparation unavailability without launching the provider.",
+          "plugin-src/shared/resources/protocol/advisory.js:615 records snapshot/isolation setup failure as UNAVAILABLE with zero provider attempts.",
+          "plugin-src/shared/resources/protocol/advisory.js:647 loops for two total attempts, permitting one retry.",
+          "plugin-src/shared/resources/protocol/advisory.js:748 stops immediately for persistent errors or after the second transient attempt.",
+          "cli/test/advisory.test.js:440 covers transient retry, exhausted retry, persistent configuration, inherited context, and missing model behavior."
+        ]
+      },
+      {
+        "id": "R23",
+        "result": "SATISFIED",
+        "explanation": "Portable plugin-local contracts expose advisory operations through shared protocol resources and both Codex and Claude adapters with stable operational results; optional CLI is only a wrapper.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:68 selects native Codex or Claude Code adapters from execution.provider.",
+          "plugin-src/shared/resources/protocol/local-agent-adapters.js:175 defines the Codex adapter against the same runStage contract.",
+          "plugin-src/shared/resources/protocol/local-agent-adapters.js:223 defines the Claude Code adapter against the same runStage contract.",
+          "plugin-src/shared/resources/protocol/plugin-adapter.js:111 exposes advisory.declare-readiness, advisory.proceed and advisory.check through the plugin-local protocol adapter.",
+          "plugin-src/shared/resources/commands/advisory-review.md:44 says the optional CLI exposes the same operations as the protocol adapter.",
+          "cli/test/advisory.test.js:782 covers whole-feature scope and portable Claude receipt contract.",
+          "cli/test/advisory.test.js:1062 covers optional CLI and plugin adapter sharing advisory operational results."
+        ]
+      }
+    ],
+    "scopeCheck": {
+      "result": "SATISFIED",
+      "explanation": "The advisory review covered the declared SLICE criteria R1, R2, R3, R6, R7, R8, R9, R10, R11 and R23 across the pinned compact manifest, source files, tests, docs and patch chunks; no out-of-scope defect was supported.",
+      "evidence": [
+        "docs/issues/tb-boundary-iteration-cost/spec.md:42 lists the in-scope rubric criteria and acceptance criteria.",
+        ".gatereeve-agent-evidence/inventory.json records the changed file inventory for the pinned slice.",
+        ".gatereeve-agent-evidence/patches/feature.json lists seven digest-bound patch chunks for the complete feature/slice patch.",
+        "plugin-src/shared/resources/protocol/advisory.js and related advisory protocol files implement the declared advisory behavior.",
+        "cli/test/advisory.test.js covers the declared advisory acceptance scenarios."
+      ]
+    },
+    "gapCheck": {
+      "result": "SATISFIED",
+      "explanation": "No implementation gap was supported for the declared criteria: readiness launch, isolation, outcomes, defect remediation, rerun checklist, recurrence handling, durable records, deterministic reuse, retry/unavailable handling and portable invocation are represented in code, guidance and tests.",
+      "evidence": [
+        "plugin-src/shared/resources/protocol/advisory.js:441 implements declareAdvisoryReadiness.",
+        "plugin-src/shared/resources/protocol/advisory.js:772 implements proceedWithoutCleanAdvisory.",
+        "plugin-src/shared/resources/protocol/advisory.js:832 implements checkAdvisoryDisposition.",
+        "plugin-src/shared/resources/protocol/advisory-contract.js:87 validates advisory results and prior-finding checklists.",
+        "plugin-src/shared/resources/commands/advisory-review.md:1 documents the implementer workflow and remediation/proceed rules.",
+        "initial.fastFocusedEvidence shows plugin lint and focused advisory/protocol tests passed with full verification still PENDING."
+      ]
+    },
+    "contradictionCheck": {
+      "result": "SATISFIED",
+      "explanation": "No contradiction was supported between approved spec/design and implementation. The shipped guidance consistently says advisory discovery is noncertifying, full verification remains pending, formal Judge remains independent, and proceed reasons do not waive formal obligations.",
+      "evidence": [
+        "docs/issues/tb-boundary-iteration-cost/design.md:26 states advisory is noncertifying and preserves independent formal Judge/full verification.",
+        "plugin-src/shared/resources/agent-workflows/advisory/agent.md:10 states clean means ready for formal review with full verification and formal Judge still required.",
+        "plugin-src/shared/resources/commands/advisory-review.md:57 states READY_FOR_FORMAL_REVIEW leaves full Verification PENDING and no result certifies or waives a formal gate.",
+        "plugin-src/shared/resources/commands/pr-boundary.md:13 repeats that clean advisory means ready for formal review with full Verification pending.",
+        "plugin-src/shared/resources/protocol/transitions.js:269 enforces current advisory disposition before formal boundary while preserving formal gate recording."
+      ]
+    },
+    "findings": [],
+    "checklist": []
+  },
+  "receipts": [
+    {
+      "schemaVersion": 1,
+      "kind": "gatereeve-agent-workflow-receipt",
+      "protocolVersion": 1,
+      "runId": "advisory-s3-ready-1-1",
+      "attemptId": "advisory-s3-ready-1",
+      "module": {
+        "id": "gatereeve/advisory-review",
+        "version": "1.0.0",
+        "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+      },
+      "stage": "advisory",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "provider": {
+        "id": "codex",
+        "adapterVersion": "1.0.0",
+        "model": "gpt-5.5",
+        "reasoningEffort": "high",
+        "contextId": "01a13243-8d00-75a0-af0b-600d14c8358c"
+      },
+      "isolation": {
+        "method": "codex-ephemeral-exec",
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "policy": {
+        "repositoryAccess": "read-only-pinned",
+        "networkAccess": "denied",
+        "scratch": "disposable"
+      },
+      "startedAt": "2026-10-12T22:37:29.710Z",
+      "completedAt": "2026-10-12T22:42:31.687Z",
+      "status": "completed",
+      "digests": {
+        "instructions": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+        "input": "sha256:1bafc0763d038ef76078da9cf05f291a5239a0ac16069db3e4a9ee60f465277f",
+        "output": "sha256:80f3bbc10ce1113da5236830733b94cc4b61097afbcc67cc2c7fd298c2666436",
+        "snapshot": "sha256:8a9f1d6652457c8254b151e3ee561c7f5df1aa46116e89b79c28fba84d33f8dd"
+      }
+    }
+  ],
+  "operationalErrors": []
+}
