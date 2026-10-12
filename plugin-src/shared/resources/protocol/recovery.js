@@ -13,7 +13,7 @@ import { projectRecord } from './projection.js';
 import { preflightFeatureTransition } from './transitions.js';
 import { runTrustedPythonGuard } from './python-guards.js';
 import { RECOVERY_ID, RECOVERY_SHA, requireRecovery, validateRecoveryReports,
-  validateRecoveryWaiver } from './recovery-contract.js';
+  validateRecoveryWaiver, validateRecoveryEvidenceReference } from './recovery-contract.js';
 
 const exec = promisify(execFile);
 async function git(root, args) {
@@ -25,10 +25,7 @@ async function ancestor(root, before, after) {
 }
 
 async function boundFile(home, reference, { json = false, text = false, retained = null } = {}) {
-  requireRecovery(typeof reference?.path === 'string' && reference.path.length > 0
-    && !reference.path.startsWith('/') && !reference.path.includes('\\')
-    && reference.path.split('/').every((part) => part && part !== '.' && part !== '..')
-    && /^sha256:[0-9a-f]{64}$/u.test(reference.hash ?? ''), 'evidence needs a safe feature-relative path/hash');
+  validateRecoveryEvidenceReference(reference);
   let path = home;
   for (const part of reference.path.split('/')) {
     path = resolve(path, part);
@@ -86,7 +83,8 @@ async function supportingEvidence(home, report, retained) {
 
 function identity(input) {
   return fingerprint({ recoveryId: input.recoveryId, integrationSha: input.integrationSha,
-    waiver: input.waiver, evidence: input.evidence });
+    waiver: input.waiver, evidence: { verification: input.evidence?.verification,
+      specEvaluation: input.evidence?.specEvaluation, retention: input.evidence?.retention } });
 }
 
 async function prepare(featureHome, input) {
@@ -140,7 +138,9 @@ async function prepare(featureHome, input) {
   const reports = {};
   for (const key of ['verification', 'specEvaluation', 'retention']) reports[key] = await boundFile(home, input.evidence?.[key], { json: true, retained });
   const receipt = { schemaVersion: 1, kind: 'validated-feature-recovery', featureId, source,
-    requirements, waiver, ...reports, references: { waiver: input.waiver, ...input.evidence }, merges: [] };
+    requirements, waiver, ...reports, references: { waiver: input.waiver,
+      verification: input.evidence.verification, specEvaluation: input.evidence.specEvaluation,
+      retention: input.evidence.retention }, merges: [] };
   validateRecoveryReports(receipt, record.modelLock.model.moduleGraph?.modules ?? []);
   for (const report of Object.values(reports)) await supportingEvidence(home, report, retained);
   if (reports.retention.outcome === 'TRACKED') {

@@ -74,3 +74,7 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 - 2026-10-12: Retention defect class fixed, ignored-file regression cases reject without append, fresh full verification passed (330 CLI, 127 Python, 206 Desktop). New source 8314062ca2f174af122a41fb31ac03ebb514bb52 entered fresh attempt s2-pr78-a2; prior failed attempt remains retained. All current gates must be recorded anew; independent blind Judge pending.
 
 - 2026-10-12: Attempt s2-pr78-a2 Judge FAIL for R19 observed authority applicability; R20-R23 passed. Returned through protocol to implementation. Review expanded to every human-authority variant, with source/requirements/feature/scope bound to observed text or actual approval context and mirrored on replay. Fresh validation and attempt required.
+
+- 2026-10-12: Human-authority variants and replay now require observed feature/scope/source/requirements applicability; positive exact approval-context and historical-text tests pass. Fresh complete verification passes 340 CLI, 127 Python, 206 Desktop. Source 465d051ba5ef3dbe59dd86808a61663ef4f56872 entered fresh s2-pr78-a3; blind Judge pending. Earlier failures remain preserved.
+
+- 2026-10-12: Attempt s2-pr78-a3 Judge FAIL R21 replay evidence-reference validation; R19/R20/R22/R23 passed. Returned to implementation via core. Remediation expanded to complete receipt/reference/requirement/request-binding schema, including malformed/unsafe/missing/swapped references with resealed hashes. Fresh full verification and review required.

@@ -52,23 +52,52 @@ export function validateRecoveryWaiver(report, featureId, source) {
     && /whole[- ]feature|feature[- ]final/iu.test(report.confirmation.context),
     'ambiguous historical scope requires reconciliation against explicit whole-feature context');
   sourceBoundAuthority(report.confirmation, featureId, source, 'Judge waiver');
+  evidenceReferences([report.confirmation.evidence], 'Judge waiver confirmation');
   const quotedSources = [...report.confirmation.quote.matchAll(/\b[0-9a-f]{40}\b/giu)]
     .map((match) => match[0].toLowerCase());
   requireRecovery(quotedSources.every((sha) => [source.integrationSha, source.featureBaseSha].includes(sha)),
     'explicit source in waiver confirmation conflicts with the selected source; reconcile its applicability');
 }
 
+export function validateRecoveryEvidenceReference(ref, label = 'recovery') {
+  requireRecovery(typeof ref?.path === 'string' && ref.path.length > 0
+    && !ref.path.startsWith('/') && !ref.path.includes('\\')
+    && ref.path.split('/').every((part) => part && part !== '.' && part !== '..')
+    && SHA256_FINGERPRINT.test(ref.hash), `${label} evidence reference is invalid`);
+}
+
 function evidenceReferences(value, label) {
   requireRecovery(Array.isArray(value) && value.length > 0, `${label} requires concrete evidence`);
-  for (const ref of value) requireRecovery(typeof ref?.path === 'string'
-    && ref.path.length > 0 && SHA256_FINGERPRINT.test(ref.hash), `${label} evidence reference is invalid`);
+  for (const ref of value) validateRecoveryEvidenceReference(ref, label);
+}
+
+function reportEvidenceClosure(report) {
+  for (const items of [report.checks, report.criteria]) {
+    if (items === undefined) continue;
+    requireRecovery(Array.isArray(items), 'report evidence rows must be an array');
+    for (const item of items) if (item.evidence !== undefined) evidenceReferences(item.evidence, 'report row');
+  }
+  if (report.evidence !== undefined) evidenceReferences(report.evidence, 'report');
+  if (report.waiver?.evidence !== undefined) evidenceReferences(report.waiver.evidence, 'report waiver');
+  if (report.waiver?.waiverBasis?.evidence !== undefined) validateRecoveryEvidenceReference(report.waiver.waiverBasis.evidence);
+  const observed = report.waiver?.confirmation ?? report.confirmation;
+  if (observed !== undefined) validateRecoveryEvidenceReference(observed.evidence, 'report confirmation');
 }
 
 export function validateRecoveryReports(receipt, modules) {
   const { featureId, source, requirements, verification, specEvaluation, retention } = receipt;
   requireRecovery(Array.isArray(requirements?.rubricIds) && requirements.rubricIds.length > 0
+    && requirements.rubricIds.every((id) => typeof id === 'string' && /^R\d+$/u.test(id))
     && new Set(requirements.rubricIds).size === requirements.rubricIds.length
     && source.requirementsIdentity === fingerprint(requirements), 'approved requirement identity is invalid');
+  for (const name of ['spec', 'design']) {
+    requireRecovery(requirements[name]?.path === `docs/issues/${featureId}/${name}.md`, 'approved requirement path is invalid');
+    validateRecoveryEvidenceReference(requirements[name], 'approved ' + name);
+  }
+  for (const report of [verification, specEvaluation, retention]) {
+    requireRecovery(report && typeof report === 'object', 'required recovery report is missing');
+    reportEvidenceClosure(report);
+  }
   for (const [report, kind, gateId] of [[verification, 'feature-verification', 'verification'],
     [specEvaluation, 'feature-spec-evaluation', 'specEvaluation']]) {
     boundReport(report, kind, featureId, source);
@@ -144,6 +173,16 @@ export function validateRecoveryEvent(payload, { featureId, slices, acceptedRevi
     && payload.receiptHash === fingerprint(receipt), 'validated receipt binding is invalid');
   validateRecoveryWaiver(receipt.waiver, featureId, receipt.source);
   validateRecoveryReports(receipt, modules);
+  const references = receipt.references;
+  requireRecovery(references && fingerprint(Object.keys(references).sort())
+    === fingerprint(['waiver', 'verification', 'specEvaluation', 'retention'].sort()),
+  'recovery receipt reference set is incomplete or ambiguous');
+  evidenceReferences(['waiver', 'verification', 'specEvaluation', 'retention'].map((key) => references?.[key]),
+    'recovery receipt');
+  requireRecovery(payload.requestIdentity === fingerprint({ recoveryId: payload.recoveryId,
+    integrationSha: payload.integrationSha, waiver: references.waiver,
+    evidence: { verification: references.verification, specEvaluation: references.specEvaluation,
+      retention: references.retention } }), 'recovery request and receipt evidence bindings disagree');
   requireRecovery(slices.length > 0 && slices.every((slice) => ['MERGED', 'ABANDONED'].includes(slice.state)),
     'all delivery must be resolved');
   const merged = slices.filter((slice) => slice.state === 'MERGED');

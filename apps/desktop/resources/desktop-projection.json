@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:c8d81539befa659283fb0369c22e83fd230e6f7eecd35dc17e3c8bae0def0356",
+  "protocolHash": "sha256:2f04ab31f1487020ccca31d7e23468abf5d7536773589fdc08f3a0cdf47b3789",
   "modelSha256": "514c4c785d1e73f7380716c23c53fe0c5517c48b731373f35d90eda40bfb1c1d",
   "files": [
     {
@@ -176,13 +176,13 @@
     },
     {
       "path": "recovery-contract.js",
-      "size": 12445,
-      "sha256": "b34ab7bf55117533d329c59b168ba95132e9114e2d60d499f3c1e2382d36fb54"
+      "size": 14958,
+      "sha256": "0b02fa5d552600b9a390aec97f42459bc0feb6b7d33ba0071b065a59ecf52d25"
     },
     {
       "path": "recovery.js",
-      "size": 17732,
-      "sha256": "03eb38790e7ea8d1f8e318bc675eeb5ec225d2e2fd81efde1c074cc80ea2ac6d"
+      "size": 17702,
+      "sha256": "60f6d8b532be650d6f3bb27aa2f4113854f076280a30137fafbc429164363e15"
     },
     {
       "path": "result.js",

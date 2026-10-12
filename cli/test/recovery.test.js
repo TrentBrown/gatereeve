@@ -270,12 +270,25 @@ test('replay rejects altered receipts, merge provenance and human authority', as
     (receipt) => { receipt.merges[0].eventHash = fingerprint('forged merge'); },
     (receipt) => { receipt.verification.checks.pop(); },
     (receipt) => { receipt.waiver.confirmedBy = agent; },
+    (receipt) => { delete receipt.waiver.confirmation.evidence; },
+    (receipt) => { receipt.waiver.confirmation.evidence.hash = 'not-a-digest'; },
+    (receipt) => { receipt.waiver.confirmation.evidence.path = '../outside.md'; },
+    (receipt) => { receipt.verification.checks.find((check) => check.outcome === 'PASS').evidence[0].path = '/outside.log'; },
+    (receipt) => { receipt.specEvaluation.criteria[0].evidence[0].path = 'runtime/../outside.log'; },
+    (receipt) => { delete receipt.references; },
+    (receipt) => { delete receipt.references.waiver; },
+    (receipt) => { receipt.references.waiver.hash = fingerprint('different waiver report'); },
+    (receipt) => { [receipt.references.verification, receipt.references.specEvaluation] = [receipt.references.specEvaluation, receipt.references.verification]; },
+    (receipt) => { receipt.references.other = { path: 'unbound.json', hash: fingerprint('unbound') }; },
   ];
   for (const mutate of mutations) {
     const forged = structuredClone(record); const event = forged.events.at(-1);
     mutate(event.payload.receipt); event.payload.receiptHash = fingerprint(event.payload.receipt);
     assert.throws(() => projectRecord(forged), /recovery/iu);
   }
+  const forged = structuredClone(record);
+  forged.events.at(-1).payload.requestIdentity = fingerprint('another request');
+  assert.throws(() => projectRecord(forged), /recovery/iu);
 });
 
 test('explicit retention decision can preserve untracked records without claiming archival', async (t) => {
