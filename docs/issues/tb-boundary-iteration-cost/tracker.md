@@ -7,7 +7,7 @@
 
 ## Workflow Position
 
-Implementation authorized; S1 is implementing under adopted model 1.5.0/core 1.1.0. Compact inputs and filtered review views are implemented locally. Formal boundary and independent review are pending; S1 scoped spec evaluation marks R4/R5/R15-R18 PASS from evidence; the independent Judge passed. R22 remains NOT YET at feature level because recovery adoption is still pending in S2. R10 advisory reuse and R24 complete guidance/cost orchestration are foundations only in S1 and remain obligations for later slices.
+S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fresh completion-recovery branch. This feature explicitly adopted model 1.6/core 1.2 after reviewing its impact: one additive guard/transition, no removed guards/modules or changed gate definitions. The recovery implementation and local suites pass; scoped formal review remains pending. R10/R24 and advisory/retry behavior remain later obligations. No real MyLifeMap recovery, publication or installed-cache change occurred.
 
 ## Rubric Status
 
@@ -59,3 +59,5 @@ Implementation authorized; S1 is implementing under adopted model 1.5.0/core 1.1
 - 2026-10-12: Independent Judge PASS; substantive gates clean; Explain Diff and decision triage complete. Initial packet-validation bookkeeping error was invalidated before review. Clean Git-derived packet validation is valid and declared evidence synchronization passed; actual result recorded with the unchanged source preparation fingerprint.
 
 - 2026-10-12: Core accepted HUMAN_REVIEW_REQUESTED for s1-pr77-a2 after all required gates and clean synchronized packet validation. Human acceptance and exact-head merge authorization remain pending.
+
+- 2026-10-12: Trent accepted review and authorized exact head d342aac; PR #77 merged ae9bc5a with verified reviewed-content ancestry. Core records S1 MERGED. S2 P3 started on tb-boundary-iteration-cost-02-completion-recovery from that updated main commit.

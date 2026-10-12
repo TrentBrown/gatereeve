@@ -41,6 +41,7 @@ Load the specific command file when the task matches:
 - Draft AC/rubric: `<plugin-root>/resources/commands/spec-draft.md`
 - Validate spec before planning: `<plugin-root>/resources/commands/spec-validate.md`
 - Draft implementation plan: `<plugin-root>/resources/commands/plan.md`
+- Post-merge completion recovery: `<plugin-root>/resources/commands/completion-recovery.md`
 - Evaluate implementation against rubric: `<plugin-root>/resources/commands/spec-evaluate.md`
 - Independent compliance pass: `<plugin-root>/resources/commands/judge.md`
 - Record decision: `<plugin-root>/resources/commands/decision-record.md`

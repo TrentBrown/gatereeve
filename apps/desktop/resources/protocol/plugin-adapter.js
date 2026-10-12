@@ -37,6 +37,8 @@ import {
   resumeFeature,
   snapshot,
   startFeatureFinalization,
+  recoverFeatureFinalization,
+  preflightFeatureFinalizationRecovery,
   status,
   successResult,
 } from './index.js';
@@ -94,6 +96,13 @@ async function executeResolvedPluginRequest(rawRequest) {
         operation,
         await recordFeatureTransition(featureHome, request.transitionId, request.input)
       );
+    case 'feature.recovery-preflight':
+    case 'feature.recover-finalization': {
+      const input = { ...request.input,
+        repositoryRoot: request.context?.repository?.path ?? request.input?.repositoryRoot ?? request.cwd };
+      return mutationResult(operation, await (operation === 'feature.recovery-preflight'
+        ? preflightFeatureFinalizationRecovery : recoverFeatureFinalization)(featureHome, input));
+    }
     case 'feature.abandon':
       return mutationResult(operation, await abandonFeature(featureHome, request.input));
     case 'feature.pause':

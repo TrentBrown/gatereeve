@@ -181,6 +181,7 @@
       "package.json"
     ],
     "commands": [
+      "completion-recovery.md",
       "branch-bootstrap.md",
       "commit.md",
       "decision-record.md",
@@ -280,6 +281,8 @@
       "observer.js",
       "pinned-snapshot.js",
       "review-input.js",
+      "recovery-contract.js",
+      "recovery.js",
       "package.json",
       "plugin-adapter.js",
       "projection.js",
@@ -309,6 +312,7 @@
       "plugin-smoke/acceptance-answers.md"
     ],
   "policy": [
+      "COMPLETION-RECOVERY.md",
     "EVIDENCE-PACKETS.md",
     "WORKSPACE-CONTEXT.md",
     "WORKFLOW.md",

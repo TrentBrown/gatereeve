@@ -19,6 +19,7 @@ export const GUARD_DESCRIPTORS = Object.freeze({
     fact: 'reviewedContentMerged',
   },
   'feature.closeout.current': { provider: 'core', fact: 'featureCloseoutCurrent' },
+  'feature.recovery.validated': { provider: 'core', fact: 'featureRecoveryValidated' },
   'feature.abandonment.confirmed': {
     provider: 'core',
     fact: 'featureAbandonmentConfirmed',

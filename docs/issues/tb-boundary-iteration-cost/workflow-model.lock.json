@@ -1,10 +1,10 @@
 {
   "coreCompatibility": {
     "maximumExclusive": "2.0.0",
-    "minimum": "1.1.0"
+    "minimum": "1.2.0"
   },
-  "coreVersion": "1.1.0",
-  "createdAt": "2026-10-12T18:43:50.969Z",
+  "coreVersion": "1.2.0",
+  "createdAt": "2026-10-12T20:15:18.084Z",
   "guardIds": [
     "boundary.context.current",
     "boundary.requiredGates.current",
@@ -14,6 +14,7 @@
     "feature.abandonment.confirmed",
     "feature.closeout.current",
     "feature.record.absent",
+    "feature.recovery.validated",
     "human.review.accepted",
     "merge.reviewedContent.verified",
     "model.migration.confirmed",
@@ -194,7 +195,7 @@
     },
     "coreCompatibility": {
       "maximumExclusive": "2.0.0",
-      "minimum": "1.1.0"
+      "minimum": "1.2.0"
     },
     "eventSchemaVersion": 1,
     "feature": {
@@ -245,6 +246,20 @@
           ],
           "id": "authorize-plan",
           "to": "DELIVERING_SLICES"
+        },
+        {
+          "authority": "agent",
+          "eventType": "FEATURE_FINALIZATION_RECOVERED",
+          "from": "DELIVERING_SLICES",
+          "guards": [
+            "slice.noneActive",
+            "plan.authorization.current",
+            "suspension.notPaused",
+            "change.blockers.none",
+            "feature.recovery.validated"
+          ],
+          "id": "recover-finalization",
+          "to": "FINALIZING"
         },
         {
           "authority": "agent",
@@ -339,6 +354,7 @@
       "design.approval.confirmed",
       "feature.abandonment.confirmed",
       "feature.closeout.current",
+      "feature.recovery.validated",
       "feature.record.absent",
       "human.review.accepted",
       "merge.reviewedContent.verified",
@@ -351,7 +367,7 @@
       "suspension.notPaused"
     ],
     "modelId": "gatereeve/workflow",
-    "modelVersion": "1.5.0",
+    "modelVersion": "1.6.0",
     "moduleGraph": {
       "enabledModuleIds": [
         "gatereeve/pin-context",
@@ -1114,8 +1130,8 @@
       ]
     }
   },
-  "modelHash": "sha256:1e07bde22f4affc07446fe777f4b0723b1c41544bd9022c615196b3b4be20d9f",
+  "modelHash": "sha256:a752ad49dcb70b0c6f1280105684f3d5f6a19ce07368e387638a1df6ba43f449",
   "modelId": "gatereeve/workflow",
-  "modelVersion": "1.5.0",
+  "modelVersion": "1.6.0",
   "schemaVersion": 1
 }

@@ -1,0 +1,33 @@
+{
+  "featureId": "tb-boundary-iteration-cost",
+  "impact": {
+    "fromModelVersion": "1.5.0",
+    "toModelVersion": "1.6.0",
+    "fromModelHash": "sha256:1e07bde22f4affc07446fe777f4b0723b1c41544bd9022c615196b3b4be20d9f",
+    "toModelHash": "sha256:a752ad49dcb70b0c6f1280105684f3d5f6a19ce07368e387638a1df6ba43f449",
+    "guardsAdded": [
+      "feature.recovery.validated"
+    ],
+    "guardsRemoved": [],
+    "transitionsAdded": [
+      "feature:recover-finalization"
+    ],
+    "transitionsRemoved": [],
+    "modulesAdded": [],
+    "modulesRemoved": [],
+    "modulesChanged": [],
+    "boundaryGateIdsInvalidated": [
+      "codeReview",
+      "decisionTriage",
+      "explainDiff",
+      "judge",
+      "packetValidation",
+      "patternReview",
+      "pinContext",
+      "reconcile",
+      "specEvaluation",
+      "verification"
+    ]
+  },
+  "confirmationRequired": true
+}

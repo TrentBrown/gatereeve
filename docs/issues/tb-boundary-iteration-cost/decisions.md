@@ -62,3 +62,24 @@ Compact snapshots bypass Git export-ignore/export-subst through an empty tempora
 - Trust git archive without content validation: can alter the exact reviewed source.
 
 **Promoted:** 2026-10-12. PR: [#77](https://github.com/TrentBrown/gatereeve/pull/77).
+
+---
+
+## Bind completion recovery to typed whole-feature evidence and a dedicated event
+
+**Confidence:** HIGH
+
+**Blast Radius:** Portable recovery API, model/core compatibility, journal replay and finalization source anchors.
+
+Use structured, digest-bound reports for whole-feature verification, full-rubric assessment, explicit Judge waiver and retention. Bind them to the configured original base, selected integrated commit and approved spec/design hashes. Validate actual files and confirmation quotes, including explicit historical scope; preserve source evidence rather than rewriting a legacy decision. Additional assessment waivers retain their own observed confirmation and pinned policy permission. Existing slice reports cannot pass merely by changing a label.
+
+Append FEATURE_FINALIZATION_RECOVERED with stable request/receipt identities and accepted merge-event provenance. Preserve ordinary feature-final merge behavior and configured finalization modules. Opt-in requires model1.6/core1.2 adoption; older non-capable guard catalogues remain valid. Block generic transitions so caller-supplied facts cannot manufacture the new passage. Current feature alone adopts the approved P3 semantics; MyLifeMap's actual journal is untouched. New-model feature-final merge flags require an actual feature-final review and retain a scope proof. Recovery uses the last actual review scope, allowing a planned final slice that was reviewed at slice scope; unsupported recovery targets cannot jump to Complete.
+
+**Triggered by:** P3's reviewed recovery requirement and the malformed generic slice-merge replay.
+
+**Alternatives considered:**
+- Rewrite the last old merge as feature-final: changes historical meaning and authority.
+- Accept a slice report or general proceed text: does not establish whole-feature obligations.
+- Skip finalization modules after recovery: weakens normal closeout guards.
+
+**Promoted:** 2026-10-12.

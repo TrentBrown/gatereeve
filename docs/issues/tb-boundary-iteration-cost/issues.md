@@ -9,7 +9,7 @@ Operational task breakdown derived from P1-P7. Estimates remain unknown pending 
 
 ## I-1 - Review view identity and formal history exclusion
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P1
 - **Rubric criteria:** R4, R5, R10, R18, R22
@@ -20,7 +20,7 @@ Build the immutable allowed-input view and audit receipt; cover semantic record 
 
 ## I-2 - Bounded large review input and binary/rename fidelity
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P2
 - **Rubric criteria:** R15, R16, R17, R18, R24
@@ -31,7 +31,7 @@ Replace aggregate payload construction with references; prove deduplication, ren
 
 ## I-3 - Guarded post-merge finalization recovery
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** P3
 - **Rubric criteria:** R19, R20, R21, R22, R23

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:53ba0169a1af47fdbd6e0113c807d369ba4d87c6a99c0bd54820d0f6e94ff427",
-  "modelSha256": "6171e7d9a65c8d256884e266ca0ed4713bd8bb31207a04450fb75b3f82fa0beb",
+  "protocolHash": "sha256:57cafeb4ec7d401cfd77a1d2d2e8afad5b6bce2a746886dc63bb1ae1b9ead4a9",
+  "modelSha256": "514c4c785d1e73f7380716c23c53fe0c5517c48b731373f35d90eda40bfb1c1d",
   "files": [
     {
       "path": "agent-workflow-resources.js",
@@ -51,8 +51,8 @@
     },
     {
       "path": "constants.js",
-      "size": 2059,
-      "sha256": "b1eb9a0eac7984b00bc0c9360354a423ac670348f2d255a11c2086487fb3ae37"
+      "size": 2095,
+      "sha256": "8ee82710f1126b330c3312517e241b70d2a2a39f1ca895421633862630044e1f"
     },
     {
       "path": "context.js",
@@ -76,8 +76,8 @@
     },
     {
       "path": "finalization.js",
-      "size": 10507,
-      "sha256": "2c881136a865de0126b40e8c9cb2588c4478ace33ec903ce37db2c1c1a734f07"
+      "size": 10583,
+      "sha256": "20d445c446be3013ce4e6119a50e5104bfb1a74ce83d13d774601282f2ad7996"
     },
     {
       "path": "fingerprint.js",
@@ -96,13 +96,13 @@
     },
     {
       "path": "guards.js",
-      "size": 2290,
-      "sha256": "c1445687739bced863373b9d0e8879c211f366217d0f54bd1b6dfe421e1679e6"
+      "size": 2378,
+      "sha256": "72346b3d8fd1ef0b9828ed39389e4ee4a808d3de5642c123f2dc52a3e0f1c0fc"
     },
     {
       "path": "index.js",
-      "size": 1119,
-      "sha256": "90f550af25c926c133f85596da4117a364294f9592291327268baa106e87f7d4"
+      "size": 1150,
+      "sha256": "0922cbb37a76c0f5e04984dbaf30aac9ed737594229549a5810f538567a4c501"
     },
     {
       "path": "journal.js",
@@ -126,13 +126,13 @@
     },
     {
       "path": "model/workflow-model.json",
-      "size": 25840,
-      "sha256": "6171e7d9a65c8d256884e266ca0ed4713bd8bb31207a04450fb75b3f82fa0beb"
+      "size": 26226,
+      "sha256": "514c4c785d1e73f7380716c23c53fe0c5517c48b731373f35d90eda40bfb1c1d"
     },
     {
       "path": "model.js",
-      "size": 15824,
-      "sha256": "f138a92d0d134a2cb2b3d5a1355fda56cc6697420d43183b57da7bdb3c95f266"
+      "size": 16162,
+      "sha256": "6715112b45ba1300d0d0ec5d9915474bc1f6a46d0c1a0a71a32cf13cec2b0ad2"
     },
     {
       "path": "module-runtime.js",
@@ -146,8 +146,8 @@
     },
     {
       "path": "observer.js",
-      "size": 13249,
-      "sha256": "738405b6756ff73734c9301351612c0d2d728efbf8ac94421a2b723a75ae2875"
+      "size": 13757,
+      "sha256": "b0f959fc4a817ee3a8261354fb2160548b7490bd4d35b5a64f03f35175e73b42"
     },
     {
       "path": "package.json",
@@ -161,18 +161,28 @@
     },
     {
       "path": "plugin-adapter.js",
-      "size": 7517,
-      "sha256": "b6e6343e5f315ddc1cdb3a49e775b7fb8dc3237568147847a72a1886d83b58b8"
+      "size": 8012,
+      "sha256": "08f37415c4e75f98be33fc706e9bf45cdd7d159127ad88736294509c7200a3e2"
     },
     {
       "path": "projection.js",
-      "size": 45337,
-      "sha256": "eec0ae5e821f01d180f709f3d5b875f8ba457f5d7ffcf711212b9051ddb02067"
+      "size": 47102,
+      "sha256": "db6d3f68fcf4d7102b4e020437eae79171dbaacda4a44ff6e319000487309551"
     },
     {
       "path": "python-guards.js",
       "size": 2815,
       "sha256": "ce4e4ac1a7e5e31534c27fae332d7bd5e99c03128ca871ae7cfa41a26146afb4"
+    },
+    {
+      "path": "recovery-contract.js",
+      "size": 11302,
+      "sha256": "ac9ef8c987585b4840b2d1b635f04b25602e59e7f9c39c221e9da3d129be574a"
+    },
+    {
+      "path": "recovery.js",
+      "size": 17025,
+      "sha256": "c8cd3e8d2b3b72af8e178da78850094bb99bfa0d0047442d0ddd02e01b224ab2"
     },
     {
       "path": "result.js",
@@ -186,8 +196,8 @@
     },
     {
       "path": "snapshot.js",
-      "size": 61519,
-      "sha256": "198464fbf8ad1005308554b6862bb3c5aa4309c945742d168c778fb465009230"
+      "size": 62114,
+      "sha256": "fff13b4ceb0151442f12c7bfe4de9e5f531eaabf77e5a3b634b2bd34ac58c2b7"
     },
     {
       "path": "storage.js",
@@ -196,8 +206,8 @@
     },
     {
       "path": "transitions.js",
-      "size": 14859,
-      "sha256": "6e4555197ca28af52a2e109ade8bf6a5fdbc8130746afe8a1a2fde48c05b8d2a"
+      "size": 15919,
+      "sha256": "7de40f8c1685e277b10ce49f0109df2e5a39e58cba0ce450eb95d6d0c5f4556f"
     }
   ]
 }

@@ -260,6 +260,19 @@ function featureCommands() {
     }, resolvedOptions);
   });
   feature.addCommand(migrationImpact);
+  for (const operation of ['recovery-preflight', 'recover-finalization']) {
+    const recovery = addContextOptions(addEventOptions(new Command(operation)
+      .description(operation === 'recovery-preflight' ? 'Validate post-merge completion recovery without writing'
+        : 'Recover Finalizing from accepted slice merges and explicit whole-feature completion evidence')))
+      .requiredOption('--input-file <path>', 'Source-bound recovery request JSON');
+    recovery.action(async (options, commander) => {
+      const selected = commander?.opts?.() ?? options;
+      const result = await run({ operation: 'feature.' + operation, ...contextRequest(selected),
+        input: eventInput(selected, await readJsonFile(resolve(selected.inputFile), 'Recovery input')) }, selected);
+      if (result?.data?.eligible === false) process.exitCode = 1;
+    });
+    feature.addCommand(recovery);
+  }
   return feature;
 }
 

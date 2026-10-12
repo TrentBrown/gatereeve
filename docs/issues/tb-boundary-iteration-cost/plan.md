@@ -5,7 +5,7 @@
 **Design:** [design.md](design.md)
 **Interview:** [interview.md](interview.md)
 **Created:** 2026-10-12
-**Status:** implementation authorized; S1 implemented locally and preparing its formal boundary
+**Status:** implementation authorized; S1 integrated, S2 implemented locally and preparing formal review
 
 ## Inputs
 

@@ -314,7 +314,7 @@ When a natural slice review boundary is reached:
 
 ## Feature Completion
 
-1. Use a real PR as the `feature-final` boundary. When `releaseBranch` differs
+1. For ordinary feature completion, use a real PR as the `feature-final` boundary. When `releaseBranch` differs
    from `integrationBranch`, that PR must run from integration to release for the final integration boundary. Preserve its immediate PR base and
    the configured original feature base; do not create a completion
    pseudo-boundary.
@@ -326,6 +326,18 @@ When a natural slice review boundary is reached:
 5. Confirm zero `NOT YET` and zero `FAIL` criteria remain.
 6. Produce a completion report with concrete evidence and the deterministic
    feature-record retention status.
+
+### Already-merged completion recovery
+
+If all delivery is resolved and its last merge was slice-scoped, use
+[`completion-recovery`](../commands/completion-recovery.md) only with an explicit
+applicable whole-feature Judge waiver and source-bound remaining verification,
+spec and retention evidence. The core preflight verifies accepted merge
+provenance against the selected integrated source; slice reports cannot be
+relabeled as whole-feature proof. Explicit compatible adoption is required for
+older model locks. Recovery appends a dedicated event entering Finalizing;
+ordinary configured finalization modules still govern Complete. Do not hand-edit
+old merge events or use generic begin-finalizing to repair the record.
 
 ## Feature Close-out
 

@@ -796,6 +796,9 @@ function actionInputs(command, authority) {
       input('mergeInput', 'Recorded feature-final merge SHA', { placeholder: '<merge-sha>' }),
     );
   }
+  if (command === 'feature recovery-preflight' || command === 'feature recover-finalization') {
+    inputs.push(input('inputFile', 'Source-bound recovery request JSON', { placeholder: '<recovery.json>' }));
+  }
   if (/^finalization record /.test(command)) {
     inputs.push(
       input('outcome', 'Module outcome', { placeholder: '<PASS|FAIL|NOT_APPLICABLE>' }),
@@ -844,6 +847,7 @@ function actionCommandTemplate(command, featureHome, inputs) {
   if (byId.has('evidenceFile')) {
     value += ` --evidence-file ${JSON.stringify(byId.get('evidenceFile').placeholder)}`;
   }
+  if (byId.has('inputFile')) value += ` --input-file ${JSON.stringify(byId.get('inputFile').placeholder)}`;
   return `${value} --feature-home ${JSON.stringify(resolve(featureHome))}`;
 }
 
@@ -940,6 +944,10 @@ async function actionReadiness(featureHome, structuralActions, artifacts, facts)
             : 'Run complete feature closeout verification',
         result.evidence
       ));
+    }
+    if (item.command === 'feature recover-finalization') {
+      prerequisites.push(prerequisite('feature.recovery.validated', 'unknown',
+        'Run recovery-preflight with explicit whole-feature waiver and source-bound completion evidence; passage revalidates it'));
     }
     const readiness = readinessFrom(prerequisites, item.eligible !== false);
     const inputs = actionInputs(item.command, item.authority);

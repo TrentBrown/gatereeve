@@ -1,5 +1,6 @@
 import { BOUNDARY_SCOPES, GATE_OUTCOMES } from './constants.js';
 import { ContractError } from './errors.js';
+import { validateRecoveryEvent } from './recovery-contract.js';
 import {
   gateInputFingerprint,
   SHA256_FINGERPRINT,
@@ -811,6 +812,27 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
           pausedAt: event.recordedAt,
         };
         break;
+      case 'FEATURE_FINALIZATION_RECOVERED': {
+        if (featureState !== 'DELIVERING_SLICES' || paused
+          || [...changes.values()].some((change) => !['REJECTED', 'VALIDATED', 'SUPERSEDED'].includes(change.state))
+          || !implementationAuthorization?.current) {
+          throw new ContractError(`Event ${event.eventId} recovers while delivery is blocked`);
+        }
+        if (events.slice(0, index).some((item) => item.type === event.type
+          && item.payload.recoveryId === event.payload.recoveryId)) {
+          throw new ContractError(`Event ${event.eventId} duplicates a recovery identity`);
+        }
+        const transition = transitionFor(model.feature, featureState, event);
+        if (transition.to !== 'FINALIZING') {
+          throw new ContractError(`Event ${event.eventId} recovery cannot bypass finalization`);
+        }
+        const eventModel = modelForEvent(model, modelLock.modelHash, boundarySnapshots, event);
+        validateRecoveryEvent(event.payload, { featureId: event.featureId, slices: [...slices.values()],
+          acceptedReviews, events: events.slice(0, index), modules: eventModel.moduleGraph?.modules ?? [] });
+        featureFinalMergeInputSha = event.payload.integrationSha;
+        featureState = transition.to;
+        break;
+      }
       case 'FEATURE_RESUMED':
         assertActorAuthority(event, 'agent');
         if (!paused) throw new ContractError(`Event ${event.eventId} resumes an active feature`);
@@ -944,6 +966,11 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
             }
             featureFinalMergeInputSha = mergeInputSha;
             const passage = event.payload.featurePassage;
+            if (passage?.scopeProof && (attempt?.scope !== 'FEATURE_FINAL'
+              || passage.scopeProof.scope !== 'FEATURE_FINAL' || passage.scopeProof.sliceId !== slice.id
+              || passage.scopeProof.attemptId !== attempt.id)) {
+              throw new ContractError(`Event ${event.eventId} has an invalid feature-final scope proof`);
+            }
             const transition = transitionFor(model.feature, featureState, event, passage);
             featureState = transition.to;
           }
@@ -1164,6 +1191,7 @@ export function projectionFacts(projection) {
     featureCloseoutCurrent: zeroModuleCloseout
       || activeFinalization?.requiredCurrentAndNonblocking === true,
     featureAbandonmentConfirmed: false,
+    featureRecoveryValidated: false,
     featureNotPaused: !projection.suspension.paused,
     noBlockingChanges: projection.blockingChangeIds.length === 0,
     changeAuthoritySatisfied: false,

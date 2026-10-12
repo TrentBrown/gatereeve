@@ -13,7 +13,8 @@ const SHA1 = /^[0-9a-f]{40}$/u;
 
 export function recordedFeatureFinalMergeSha(record) {
   const event = record.events.findLast((item) => (
-    item.type === 'SLICE_MERGE_RECORDED' && item.payload?.featureFinal === true
+    (item.type === 'SLICE_MERGE_RECORDED' && item.payload?.featureFinal === true)
+    || item.type === 'FEATURE_FINALIZATION_RECOVERED'
   ));
   const values = [event?.payload?.integrationSha, event?.payload?.mergeCommitSha]
     .filter((value) => SHA1.test(value));
@@ -97,7 +98,7 @@ export async function startFeatureFinalization(featureHome, {
     throw new TransitionRejectedError('A finalization attempt is already active');
   }
   if (recordedFeatureFinalMergeSha(record) !== mergeInputSha) {
-    throw new TransitionRejectedError('Finalization merge input must match the recorded feature-final merge');
+    throw new TransitionRejectedError('Finalization merge input must match the recorded feature-final merge or recovered source');
   }
   const moduleGraph = record.modelLock.model.moduleGraph;
   if (!moduleGraph) throw new ContractError('Finalization requires a pinned module graph');
