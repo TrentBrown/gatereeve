@@ -98,3 +98,12 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 - S3 retained-result validation now rechecks the recorded formal capability, provider/model/reasoning/adapter version and allowed isolation method against the pinned input manifest. Fourteen focused regression cases passed, including modified capability/provider/isolation receipts; the actual first native receipt also satisfies this stronger contract. Fresh final-source readiness remains required.
 
 - Revised live advisory s3-ready-2 returned READY_FOR_FORMAL_REVIEW at pinned 32859c6, one actual native launch, no findings and full Verification pending. PR #79 is draft OPEN. Hosted Ubuntu acceptance/container jobs then exposed a packaging registration defect: workflow_doctor REQUIRED_SKILLS still expected the old 27-skill catalog. Updated its independent inventory guard to include workflow-advisory-review and added a cross-catalog regression; seven doctor tests passed. The guard remains strict. Complete portable acceptance and another readiness declaration are required on this source change.
+
+### PR #79
+
+- Slice: s3-advisory-discovery (P4 and portable advisory registration).
+- Review surface: draft OPEN, https://github.com/TrentBrown/gatereeve/pull/79.
+- In-scope criteria: R1, R2, R3, R6, R7, R8, R9, R10, R11, R23; other criteria remain outside this slice.
+- Source 93cd8d7: full portable acceptance passes after strict doctor-catalog registration fix; CLI384, Desktop206, workflow Python98, pattern Python28. Native package doctor activation checks are structural simulations, not installed activation.
+- Advisory: earlier native runs were clean at their pinned sources. Fresh s3-ready-3 automatically started for the doctor change. The implementer recorded a source-bound reason to proceed while this advisory completes; formal Verification, Judge and freshness remain required. The formal Judge receives no advisory/decision/review history.
+- Formal boundary: pending; no formal gate PASS or human-review readiness claimed yet.

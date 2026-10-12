@@ -100,3 +100,20 @@ Use semantic advisory.declare-readiness/proceed/check APIs outside the formal mo
 None recorded.
 
 **Promoted:** 2026-10-12.
+
+---
+
+## Keep the independent doctor skill allow-list strict when adding advisory review
+
+**Confidence:** HIGH
+
+**Blast Radius:** workflow_doctor, canonical skill inventory, native package readiness and portable acceptance
+
+Include workflow-advisory-review in REQUIRED_SKILLS and add a regression comparing the source inventory to the independent doctor catalog. Preserve the unknown/missing-skill readiness guard. Inspect the contract inventory, native composition, doctor catalog and existing count assertions for the same registration defect. Re-run full portable acceptance on the corrected source. Do not waive the failing acceptance jobs or claim installed activation from structural package tests.
+
+**Triggered by:** Hosted Ubuntu acceptance detected the newly registered advisory skill as unexpected in the separate doctor catalog
+
+**Alternatives considered:**
+None recorded.
+
+**Promoted:** 2026-10-12. PR: #79.
