@@ -1,3 +1,4 @@
+import { loadHistoricalModel } from './helpers/historical-model.js';
 import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -7,7 +8,6 @@ import test from 'node:test';
 import {
   fingerprint,
   initializeFeature,
-  loadDefaultModel,
   nextActions,
   projectRecord,
   proposeSlice,
@@ -42,7 +42,7 @@ async function createBoundary(model = null) {
     featureHome,
     featureId: 'boundary-feature',
     actor: agent,
-    ...(model === null ? {} : { model }),
+    model: model ?? await loadHistoricalModel(),
     eventId: 'evt-init',
   });
   await recordFeatureTransition(featureHome, 'approve-design', {
@@ -198,7 +198,7 @@ test('failed gates block dependents and a permitted human waiver unblocks passag
 });
 
 test('a constrained Whiteboard waiver requires human-classified non-behavioral evidence', async () => {
-  const model = structuredClone(await loadDefaultModel());
+  const model = structuredClone(await loadHistoricalModel());
   const enabled = new Set(model.moduleGraph.enabledModuleIds);
   enabled.add('whiteboard-test/defense');
   const graph = resolveModuleGraph({

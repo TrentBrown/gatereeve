@@ -4,7 +4,7 @@
     "id": "agentic-development-workflow",
     "displayName": "Agentic Software Development Workflow",
     "initialVersion": "0.1.0",
-    "expectedSkillCount": 27
+    "expectedSkillCount": 28
   },
   "skills": [
     {
@@ -168,6 +168,12 @@
       "group": "review",
       "state": "existing",
       "canonicalPath": "shared/skills/explain-diff"
+    },
+    {
+      "name": "workflow-advisory-review",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/workflow-advisory-review"
     }
   ],
   "resources": {
@@ -178,7 +184,11 @@
       "judge/result.schema.json",
       "judge/stage-input.schema.json",
       "judge/validator.js",
-      "package.json"
+      "package.json",
+      "advisory/agent.md",
+      "advisory/stage-input.schema.json",
+      "advisory/result.schema.json",
+      "advisory/validator.js"
     ],
     "commands": [
       "completion-recovery.md",
@@ -202,7 +212,8 @@
       "pr-review.md",
       "spec-draft.md",
       "spec-evaluate.md",
-      "spec-validate.md"
+      "spec-validate.md",
+      "advisory-review.md"
     ],
     "scripts": [
       "boundary_context.py",
@@ -290,16 +301,21 @@
       "result.js",
       "snapshot.js",
       "storage.js",
-      "transitions.js"
+      "transitions.js",
+      "advisory.js",
+      "advisory-contract.js",
+      "advisory-history.js",
+      "advisory-inputs.js",
+      "advisory-storage.js"
     ],
     "release": [
       "release-conductor-artifact.js",
       "release-conductor-discovery.js",
       "release-conductor-state.js"
     ],
-  "templates": [
-    "agentic-workflow.json",
-    "decisions.md",
+    "templates": [
+      "agentic-workflow.json",
+      "decisions.md",
       "design.md",
       "interview.md",
       "issues.md",
@@ -311,11 +327,11 @@
       "plugin-smoke/test_greet.py",
       "plugin-smoke/acceptance-answers.md"
     ],
-  "policy": [
+    "policy": [
       "COMPLETION-RECOVERY.md",
-    "EVIDENCE-PACKETS.md",
-    "WORKSPACE-CONTEXT.md",
-    "WORKFLOW.md",
+      "EVIDENCE-PACKETS.md",
+      "WORKSPACE-CONTEXT.md",
+      "WORKFLOW.md",
       "STANDARDS.md",
       "WORKFLOW.mermaid",
       "profiles/portable-core.md",

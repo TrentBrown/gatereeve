@@ -7,6 +7,7 @@ export const GUARD_DESCRIPTORS = Object.freeze({
   'plan.authorization.current': { provider: 'core', fact: 'planAuthorizationCurrent' },
   'slice.noneActive': { provider: 'core', fact: 'noActiveSlice' },
   'slice.readiness.current': { provider: 'core', fact: 'sliceReadinessCurrent' },
+  'slice.advisory.disposition.current': { provider: 'core', fact: 'advisoryDispositionCurrent' },
   'slice.active': { provider: 'core', fact: 'activeSliceExists' },
   'boundary.context.current': { provider: 'python', fact: 'boundaryContextCurrent' },
   'boundary.requiredGates.current': {

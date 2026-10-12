@@ -210,3 +210,16 @@ require recipients to access this repository.
 The build rejects symlinks and overlay collisions, removes stale package output,
 sets the native manifest version, and records source provenance plus the shared
 file inventory under `.workflow-build/` in each generated package.
+
+### Advisory readiness
+
+For an explicitly adopted advisory-capable model, `gatereeve advisory
+declare-readiness --input-file request.json` runs isolated noncertifying
+discovery after the implementer declares readiness with completed fast/focused
+evidence. `advisory proceed` retains a nonempty source-bound reason;
+`advisory check` only verifies current inputs. Each accepts normal `--cwd`,
+repository/feature selection and `--json` options. READY_FOR_FORMAL_REVIEW
+leaves full Verification pending. FINDINGS/check-ineligible exits 1;
+UNAVAILABLE/IN_PROGRESS exits 2. The installed plugin exposes the same API
+without requiring this optional CLI. See the packaged
+`resources/commands/advisory-review.md` for exact request and remediation fields.

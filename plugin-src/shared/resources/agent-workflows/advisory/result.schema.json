@@ -1,0 +1,224 @@
+{
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "outcome",
+    "fullVerification",
+    "summary",
+    "criteria",
+    "scopeCheck",
+    "gapCheck",
+    "contradictionCheck",
+    "findings",
+    "checklist"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "outcome": {
+      "enum": ["READY_FOR_FORMAL_REVIEW", "FINDINGS"]
+    },
+    "fullVerification": {
+      "type": "string",
+      "const": "PENDING"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "result", "explanation", "evidence"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "result": {
+            "enum": ["SATISFIED", "FINDING"]
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "scopeCheck": {
+      "type": "object",
+      "required": ["result", "explanation", "evidence"],
+      "properties": {
+        "result": {
+          "enum": ["SATISFIED", "FINDING"]
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "gapCheck": {
+      "type": "object",
+      "required": ["result", "explanation", "evidence"],
+      "properties": {
+        "result": {
+          "enum": ["SATISFIED", "FINDING"]
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "contradictionCheck": {
+      "type": "object",
+      "required": ["result", "explanation", "evidence"],
+      "properties": {
+        "result": {
+          "enum": ["SATISFIED", "FINDING"]
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "summary",
+          "criterionIds",
+          "invariant",
+          "affectedPaths",
+          "evidence"
+        ],
+        "properties": {
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "criterionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "invariant": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "affectedPaths": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "checklist": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["findingId", "result", "explanation", "evidence"],
+        "properties": {
+          "findingId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "result": {
+            "enum": ["RESOLVED", "STILL_PRESENT"]
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

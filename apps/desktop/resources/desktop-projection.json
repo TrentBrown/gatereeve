@@ -1,9 +1,34 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:2f04ab31f1487020ccca31d7e23468abf5d7536773589fdc08f3a0cdf47b3789",
-  "modelSha256": "514c4c785d1e73f7380716c23c53fe0c5517c48b731373f35d90eda40bfb1c1d",
+  "protocolHash": "sha256:04f617c3d62c8f2ac2d5ab322b484787474ee7bf0b5263eb98b361ec0e8c3e33",
+  "modelSha256": "a8bbfc7402f82d622c8b77417db99c0d4217b183ffa8d557a265fc90deebf080",
   "files": [
+    {
+      "path": "advisory-contract.js",
+      "size": 17407,
+      "sha256": "303596e0fac4b95999ce7a232f6815b1561b7cf2d12982c4dbc06fb07f833a55"
+    },
+    {
+      "path": "advisory-history.js",
+      "size": 4811,
+      "sha256": "0785b24d5ccaab489af228d38b65aa7005795bc12ab6b25fc546f63dd176d8e2"
+    },
+    {
+      "path": "advisory-inputs.js",
+      "size": 3936,
+      "sha256": "194a2fddbb1f89deeac7a67b709a4d1016df43f4bfd2fe7885948e40feb45680"
+    },
+    {
+      "path": "advisory-storage.js",
+      "size": 6744,
+      "sha256": "cfa3c72ddfd23244f136125515e12f0adfc2f97608c1bb9780137b929f1801cf"
+    },
+    {
+      "path": "advisory.js",
+      "size": 31584,
+      "sha256": "f1df5aa572ce5da578e46517021e26ee4d72b47f03db0f267cabcd50c1d7b7ca"
+    },
     {
       "path": "agent-workflow-resources.js",
       "size": 1880,
@@ -52,7 +77,7 @@
     {
       "path": "constants.js",
       "size": 2095,
-      "sha256": "8ee82710f1126b330c3312517e241b70d2a2a39f1ca895421633862630044e1f"
+      "sha256": "ae8a0282b8e6caf771f275f1ea966525ff932fcdca1bd8a596648bcca6eeaae0"
     },
     {
       "path": "context.js",
@@ -71,8 +96,8 @@
     },
     {
       "path": "feature.js",
-      "size": 14628,
-      "sha256": "c95e0d20dc8e7c68c4278b3eca2142c4f19073cddd54498b3d279478567418b0"
+      "size": 14807,
+      "sha256": "1993064adaeaa5545fb10d5f9e000aa599b8f5668139400ee11a3799d339cdd7"
     },
     {
       "path": "finalization.js",
@@ -96,13 +121,13 @@
     },
     {
       "path": "guards.js",
-      "size": 2378,
-      "sha256": "72346b3d8fd1ef0b9828ed39389e4ee4a808d3de5642c123f2dc52a3e0f1c0fc"
+      "size": 2476,
+      "sha256": "9185748b4d8e8f5167086e5abc8d39592a3934dca80cc77d999fac136d6f7705"
     },
     {
       "path": "index.js",
-      "size": 1150,
-      "sha256": "0922cbb37a76c0f5e04984dbaf30aac9ed737594229549a5810f538567a4c501"
+      "size": 1221,
+      "sha256": "13b413653279e523077f3d16bffeeddeb1821772d899481d447821dbcc088447"
     },
     {
       "path": "journal.js",
@@ -116,8 +141,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 9606,
-      "sha256": "8b9a2ed7ebe2f9e72941421d27215ea381cf9cd4d47544ba4b4123c985c04b07"
+      "size": 9873,
+      "sha256": "c5f2f17aca97bc3a42a1d7a0daa2eebea192b178d09011b32d6a2ed350d89af7"
     },
     {
       "path": "model/default-workflow-policy.json",
@@ -126,13 +151,13 @@
     },
     {
       "path": "model/workflow-model.json",
-      "size": 26226,
-      "sha256": "514c4c785d1e73f7380716c23c53fe0c5517c48b731373f35d90eda40bfb1c1d"
+      "size": 33258,
+      "sha256": "a8bbfc7402f82d622c8b77417db99c0d4217b183ffa8d557a265fc90deebf080"
     },
     {
       "path": "model.js",
-      "size": 16162,
-      "sha256": "6715112b45ba1300d0d0ec5d9915474bc1f6a46d0c1a0a71a32cf13cec2b0ad2"
+      "size": 18396,
+      "sha256": "4990586e900f673a64ff62259d58ddff8fc91665a196171ade572d67f7543323"
     },
     {
       "path": "module-runtime.js",
@@ -161,13 +186,13 @@
     },
     {
       "path": "plugin-adapter.js",
-      "size": 8012,
-      "sha256": "08f37415c4e75f98be33fc706e9bf45cdd7d159127ad88736294509c7200a3e2"
+      "size": 8600,
+      "sha256": "dade8d2234f15ab4057398a9ff6c5fa1f34df4d504274465b8dbe034c015f705"
     },
     {
       "path": "projection.js",
-      "size": 47102,
-      "sha256": "db6d3f68fcf4d7102b4e020437eae79171dbaacda4a44ff6e319000487309551"
+      "size": 48081,
+      "sha256": "4eee8f7058555e671c60d1626b5ef7dbbaf6ac1c2c5278f08b523a8906af8845"
     },
     {
       "path": "python-guards.js",
@@ -191,8 +216,8 @@
     },
     {
       "path": "review-input.js",
-      "size": 16214,
-      "sha256": "aa10cd619445eb98bd9b251a0a3668c00775e899befefc6ea5d8bced0fb3b9ca"
+      "size": 16270,
+      "sha256": "7bef37b18d57b4a740ed151ecc86cd7437192e03fe13bc41a231f01f64a99ae2"
     },
     {
       "path": "snapshot.js",
@@ -206,8 +231,8 @@
     },
     {
       "path": "transitions.js",
-      "size": 15919,
-      "sha256": "7de40f8c1685e277b10ce49f0109df2e5a39e58cba0ce450eb95d6d0c5f4556f"
+      "size": 16932,
+      "sha256": "d61f475d4e4199f5b3810a422ff0f2b46350c2d71c5c1d3177efa8b64bf6fc1c"
     }
   ]
 }

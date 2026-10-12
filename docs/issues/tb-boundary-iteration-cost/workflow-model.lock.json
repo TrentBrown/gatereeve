@@ -1,10 +1,10 @@
 {
   "coreCompatibility": {
     "maximumExclusive": "2.0.0",
-    "minimum": "1.2.0"
+    "minimum": "1.3.0"
   },
-  "coreVersion": "1.2.0",
-  "createdAt": "2026-10-12T20:15:18.084Z",
+  "coreVersion": "1.3.0",
+  "createdAt": "2026-10-12T22:33:17.363Z",
   "guardIds": [
     "boundary.context.current",
     "boundary.requiredGates.current",
@@ -20,12 +20,93 @@
     "model.migration.confirmed",
     "plan.authorization.current",
     "slice.active",
+    "slice.advisory.disposition.current",
     "slice.noneActive",
     "slice.readiness.current",
     "spec.validation.current",
     "suspension.notPaused"
   ],
   "model": {
+    "advisory": {
+      "module": {
+        "boundary": {
+          "evaluationScope": {
+            "FEATURE_FINAL": "FEATURE",
+            "SLICE": "SLICE"
+          },
+          "gateId": "advisory",
+          "guards": []
+        },
+        "dependsOn": [],
+        "description": "Noncertifying discovery from pinned source and focused evidence, outside the formal gate graph.",
+        "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9",
+        "disposition": "required",
+        "enabledByDefault": true,
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "dependencyBinding": "event-ids",
+          "kind": "boundary-gate-v1"
+        },
+        "id": "gatereeve/advisory-review",
+        "label": "Slice Readiness Advisory",
+        "locked": false,
+        "run": {
+          "artifacts": [
+            {
+              "mediaType": "application/json",
+              "path": "review.json",
+              "required": true
+            }
+          ],
+          "automatic": true,
+          "capabilityProfile": {
+            "id": "high-capability-v1",
+            "minimumReasoning": "high"
+          },
+          "evaluator": {
+            "export": "evaluateAdvisoryReview",
+            "resource": "resources/agent-workflows/advisory/validator.js"
+          },
+          "evidenceRoot": "review.json",
+          "isolation": {
+            "freshContext": true,
+            "inheritedTurns": 0
+          },
+          "kind": "agent-workflow",
+          "maxAttempts": 1,
+          "networkAccess": "denied",
+          "protocolVersion": 1,
+          "repositoryAccess": "read-only-pinned",
+          "resourcePlugin": "agentic-development-workflow",
+          "reviewInput": {
+            "history": "exclude",
+            "kind": "compact-review-v1"
+          },
+          "stages": [
+            {
+              "dependsOn": [],
+              "id": "advisory",
+              "inputSchema": "resources/agent-workflows/advisory/stage-input.schema.json",
+              "outputSchema": "resources/agent-workflows/advisory/result.schema.json",
+              "promptResource": "resources/agent-workflows/advisory/agent.md",
+              "role": "Slice readiness advisory reviewer"
+            }
+          ],
+          "timeoutSeconds": 1800
+        },
+        "schemaVersion": 1,
+        "slot": "boundary.evaluation",
+        "version": "1.0.0",
+        "waiverAllowed": false
+      },
+      "schemaVersion": 1
+    },
     "boundary": {
       "freshness": [
         "CURRENT",
@@ -195,7 +276,7 @@
     },
     "coreCompatibility": {
       "maximumExclusive": "2.0.0",
-      "minimum": "1.2.0"
+      "minimum": "1.3.0"
     },
     "eventSchemaVersion": 1,
     "feature": {
@@ -354,20 +435,21 @@
       "design.approval.confirmed",
       "feature.abandonment.confirmed",
       "feature.closeout.current",
-      "feature.recovery.validated",
       "feature.record.absent",
+      "feature.recovery.validated",
       "human.review.accepted",
       "merge.reviewedContent.verified",
       "model.migration.confirmed",
       "plan.authorization.current",
       "slice.active",
+      "slice.advisory.disposition.current",
       "slice.noneActive",
       "slice.readiness.current",
       "spec.validation.current",
       "suspension.notPaused"
     ],
     "modelId": "gatereeve/workflow",
-    "modelVersion": "1.6.0",
+    "modelVersion": "1.7.0",
     "moduleGraph": {
       "enabledModuleIds": [
         "gatereeve/pin-context",
@@ -1056,7 +1138,8 @@
           "guards": [
             "slice.active",
             "suspension.notPaused",
-            "change.blockers.none"
+            "change.blockers.none",
+            "slice.advisory.disposition.current"
           ],
           "id": "begin-boundary",
           "to": "REVIEW_BOUNDARY"
@@ -1130,8 +1213,8 @@
       ]
     }
   },
-  "modelHash": "sha256:a752ad49dcb70b0c6f1280105684f3d5f6a19ce07368e387638a1df6ba43f449",
+  "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
   "modelId": "gatereeve/workflow",
-  "modelVersion": "1.6.0",
+  "modelVersion": "1.7.0",
   "schemaVersion": 1
 }

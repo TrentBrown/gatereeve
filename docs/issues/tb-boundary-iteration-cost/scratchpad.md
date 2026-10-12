@@ -81,3 +81,18 @@ Append FEATURE_FINALIZATION_RECOVERED with stable request/receipt identities and
 - Rewrite the last old merge as feature-final: changes historical meaning and authority.
 - Accept a slice report or general proceed text: does not establish whole-feature obligations.
 - Skip finalization modules after recovery: weakens normal closeout guards.
+
+## [5] Keep advisory readiness outside formal certification and pin its model contract
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Protocol 1.3/model 1.7, historical replay, advisory records and portable invocation
+
+Use semantic advisory.declare-readiness/proceed/check APIs outside the formal module graph. The core derives formal-entry disposition from tracked compact source-bound records and evidence; no advisory verdict creates a formal PASS. Bind all reviewed inputs, provider capability and prompt resources before evidence-only reuse; retain the original reviewed source and validated provider receipt. Require defect-class and regression coverage after advisory/formal code failures and changed remediation after recurrence. Record one transient retry, persistent errors as unavailable, and an explicit reason for proceeding. Model adoption is explicit; retain the historical slice/advisory contract in migration snapshots and replay older boundaries without newly introduced readiness guards. Formal Judge continues to exclude all advisory and raw review/decision history. Approved consolidated design and P4 authorize this new compatible model for this feature; existing features keep their locks.
+
+**Triggered by:** P4 approved advisory discovery requires automatic readiness launch without weakening formal independence or freshness
+
+**Alternatives considered:**
+None recorded.

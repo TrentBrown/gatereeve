@@ -264,9 +264,28 @@ export async function recordSliceTransition(
     throw new TransitionRejectedError('Synthetic review is retired; create a new PR boundary');
   }
   const record = await readFeatureRecord(featureHome);
+  let effectiveFacts = facts;
+  let effectivePayload = payload;
+  if (transitionId === 'begin-boundary' && record.modelLock.model.advisory !== undefined) {
+    const { checkAdvisoryDisposition } = await import('./advisory.js');
+    const checked = await checkAdvisoryDisposition(featureHome, {
+      readinessId: payload.readinessId,
+      repositoryRoot: payload.context?.repositoryRoot,
+      repositoryAlias: payload.context?.repositoryAlias,
+      actor,
+      scope: payload.scope,
+      criteria: payload.criteria,
+      boundaryContext: payload.context,
+    }, { requireTracked: true });
+    if (!checked.eligible || checked.proof.sliceId !== sliceId) {
+      throw new TransitionRejectedError('Formal entry requires current advisory readiness or its retained proceed reason', checked.blockers);
+    }
+    effectiveFacts = { ...facts, advisoryDispositionCurrent: true };
+    effectivePayload = { ...payload, criteria: checked.proof.criteria, advisoryDecision: checked.proof };
+  }
   const preflight = preflightSliceTransition(record, transitionId, sliceId, {
     actor,
-    facts,
+    facts: effectiveFacts,
     currentFingerprints,
   });
   if (!preflight.eligible) reject(preflight);
@@ -315,7 +334,7 @@ export async function recordSliceTransition(
     actor,
     preflight.guards,
     {
-      ...payload,
+      ...effectivePayload,
       sliceId,
       ...(transitionId === 'begin-boundary' && record.modelLock.model.moduleGraph
         ? { moduleGraph: structuredClone(record.modelLock.model.moduleGraph) }

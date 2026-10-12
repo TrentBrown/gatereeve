@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "workflow-model-migration-impact",
+  "impact": {
+    "fromModelVersion": "1.6.0",
+    "toModelVersion": "1.7.0",
+    "fromModelHash": "sha256:a752ad49dcb70b0c6f1280105684f3d5f6a19ce07368e387638a1df6ba43f449",
+    "toModelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "guardsAdded": [
+      "slice.advisory.disposition.current"
+    ],
+    "guardsRemoved": [],
+    "transitionsAdded": [],
+    "transitionsRemoved": [],
+    "modulesAdded": [],
+    "modulesRemoved": [],
+    "modulesChanged": [],
+    "boundaryGateIdsInvalidated": [
+      "codeReview",
+      "decisionTriage",
+      "explainDiff",
+      "judge",
+      "packetValidation",
+      "patternReview",
+      "pinContext",
+      "reconcile",
+      "specEvaluation",
+      "verification"
+    ]
+  },
+  "recordedEventId": "evt-s3-adopt-advisory-model",
+  "approval": "Approved consolidated design and four-slice implementation plan (P4)",
+  "historicalEventsRetained": true
+}

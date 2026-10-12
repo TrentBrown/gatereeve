@@ -14,7 +14,7 @@ const sourceRoot = resolve(repositoryRoot, 'plugin-src');
 test('validates the repository contract fixtures', async () => {
   const result = await loadAndValidateContracts(sourceRoot);
 
-  assert.equal(result.skillCount, 27);
+  assert.equal(result.skillCount, 28);
   assert.equal(result.plannedSkillCount, 0);
   assert.equal(result.marketplace, 'quality-code');
   assert.equal(result.pluginCount, 2);

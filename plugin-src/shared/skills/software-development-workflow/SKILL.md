@@ -46,6 +46,7 @@ Load the specific command file when the task matches:
 - Independent compliance pass: `<plugin-root>/resources/commands/judge.md`
 - Record decision: `<plugin-root>/resources/commands/decision-record.md`
 - Triage decisions: `<plugin-root>/resources/commands/decision-triage.md`
+- Explicit slice readiness/advisory discovery: `<plugin-root>/resources/commands/advisory-review.md`
 - Review boundary: `<plugin-root>/resources/commands/pr-boundary.md`
 - Commit: `<plugin-root>/resources/commands/commit.md`
 - PR/code review: `<plugin-root>/resources/commands/pr-review.md`

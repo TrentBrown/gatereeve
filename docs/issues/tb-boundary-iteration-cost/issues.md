@@ -31,7 +31,7 @@ Replace aggregate payload construction with references; prove deduplication, ren
 
 ## I-3 - Guarded post-merge finalization recovery
 
-- **Status:** in-review
+- **Status:** closed
 - **Estimate:** unknown
 - **Plan steps:** P3
 - **Rubric criteria:** R19, R20, R21, R22, R23
@@ -42,7 +42,7 @@ Add dedicated semantic recovery/replay, source/waiver/remaining-evidence checks 
 
 ## I-4 - Advisory readiness execution and durable records
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** P4
 - **Rubric criteria:** R1, R2, R3, R6, R7, R8, R9, R10, R11, R23

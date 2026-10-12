@@ -329,6 +329,23 @@ function sliceCommands() {
   return slice;
 }
 
+function advisoryCommands() {
+  const advisory = new Command('advisory').description('Declare slice readiness and run isolated noncertifying advisory review');
+  for (const operation of ['declare-readiness', 'proceed', 'check']) {
+    const command = addContextOptions(addEventOptions(new Command(operation)))
+      .requiredOption('--input-file <path>', 'Bound readiness or disposition request JSON');
+    command.action(async (options, commander) => {
+      const selected = commander?.opts?.() ?? options;
+      const result = await run({ operation: 'advisory.' + operation, ...contextRequest(selected),
+        input: eventInput(selected, await readJsonFile(resolve(selected.inputFile), 'Advisory input')) }, selected);
+      if (result?.data?.eligible === false || result?.data?.outcome === 'FINDINGS') process.exitCode = 1;
+      if (['UNAVAILABLE', 'IN_PROGRESS'].includes(result?.data?.outcome)) process.exitCode = 2;
+    });
+    advisory.addCommand(command);
+  }
+  return advisory;
+}
+
 function gateCommands() {
   const gate = new Command('gate').description('Record and invalidate review-boundary evidence');
   const record = addContextOptions(addEventOptions(
@@ -670,6 +687,6 @@ export function protocolCommands() {
   });
   commands.push(check);
 
-  commands.push(featureCommands(), sliceCommands(), boundaryCommands(), gateCommands(), finalizationCommands(), changeCommands());
+  commands.push(featureCommands(), sliceCommands(), advisoryCommands(), boundaryCommands(), gateCommands(), finalizationCommands(), changeCommands());
   return commands;
 }

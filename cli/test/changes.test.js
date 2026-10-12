@@ -1,3 +1,4 @@
+import { loadHistoricalModel } from './helpers/historical-model.js';
 import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -25,6 +26,7 @@ async function implementingFeature() {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve changes '));
   const featureHome = resolve(root, 'docs/issues/change-feature');
   await initializeFeature({
+    model: await loadHistoricalModel(),
     featureHome,
     featureId: 'change-feature',
     actor: agent,

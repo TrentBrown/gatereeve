@@ -1,3 +1,4 @@
+import { loadHistoricalModel } from './helpers/historical-model.js';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -7,7 +8,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import test from 'node:test';
 import { acceptHumanReview, completeFinalizedFeature, fingerprint, initializeFeature,
-  loadDefaultModel, migrateFeatureModel, pauseFeature, preflightFeatureFinalizationRecovery,
+  migrateFeatureModel, pauseFeature, preflightFeatureFinalizationRecovery,
   projectRecord, proposeSlice, proposeChange, readFeatureRecord, recordFeatureTransition, recordFinalizationOutcome,
   recordGateOutcome, recordSliceTransition, recoverFeatureFinalization, requestBoundaryHumanReview,
   startFeatureFinalization, serializeJournal } from '../../plugin-src/shared/resources/protocol/index.js';
@@ -27,7 +28,7 @@ async function fixture(t, { oldModel = false, finalScope = false, checkFalseFina
   await git('config', 'user.email', 'fixture@example.invalid');
   await writeFile(join(root, '.git/info/exclude'), '.agentic-workflow.json\n');
   const home = join(root, 'docs/issues/recovery');
-  let model = await loadDefaultModel();
+  let model = await loadHistoricalModel();
   if (badRecoveryTarget) model.feature.transitions.find((item) => item.id === 'recover-finalization').to = 'COMPLETE';
   if (oldModel) model = { ...model, modelVersion: '1.5.0', coreCompatibility: { minimum: '1.1.0', maximumExclusive: '2.0.0' },
     guardIds: model.guardIds.filter((id) => id !== 'feature.recovery.validated'),
@@ -402,7 +403,7 @@ test('an observed short waiver can use the exact bound approval context', async 
 test('older locks need explicit adoption and retain their historical attempts', async (t) => {
   const f = await fixture(t, { oldModel: true });
   const before = await readFeatureRecord(f.home); await rejectsWithoutWriting(f);
-  await migrateFeatureModel({ featureHome: f.home, nextModel: await loadDefaultModel(), confirmedBy: human, eventId: 'evt-adopt-recovery' });
+  await migrateFeatureModel({ featureHome: f.home, nextModel: await loadHistoricalModel(), confirmedBy: human, eventId: 'evt-adopt-recovery' });
   await f.commit('Explicit recovery model adoption');
   const current = await readFeatureRecord(f.home); assert.deepEqual(current.events.slice(0, before.events.length), before.events);
   assert.equal(projectRecord(current).boundaryAttempts[0].state, 'MERGED');

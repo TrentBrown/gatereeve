@@ -1,3 +1,4 @@
+import { loadHistoricalModel } from './helpers/historical-model.js';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -467,7 +468,7 @@ test('boundary attempts retain their pinned module graph after a model migration
   const featureHome = resolve(root, 'docs', 'issues', 'module-history');
   const agent = { kind: 'agent', label: 'module test' };
   const human = { kind: 'human-confirmed', label: 'module test user' };
-  await initializeFeature({ featureHome, featureId: 'module-history', actor: agent });
+  await initializeFeature({ featureHome, featureId: 'module-history', actor: agent, model: await loadHistoricalModel() });
   await recordFeatureTransition(featureHome, 'approve-design', { actor: human });
   await recordFeatureTransition(featureHome, 'validate-spec', {
     actor: agent,
@@ -525,7 +526,7 @@ test('legacy boundary attempts retain their pinned boundary after migration to m
   const featureHome = resolve(root, 'docs', 'issues', 'legacy-module-history');
   const agent = { kind: 'agent', label: 'legacy module test' };
   const human = { kind: 'human-confirmed', label: 'legacy module test user' };
-  const legacyModel = structuredClone(await loadDefaultModel());
+  const legacyModel = await loadHistoricalModel();
   const legacyGates = boundaryGateDefinitions(legacyModel);
   legacyModel.modelVersion = '1.0.0';
   legacyModel.boundary.gates = legacyGates.map((gate) => ({

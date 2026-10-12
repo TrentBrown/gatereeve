@@ -39,6 +39,9 @@ import {
   startFeatureFinalization,
   recoverFeatureFinalization,
   preflightFeatureFinalizationRecovery,
+  declareAdvisoryReadiness,
+  proceedWithoutCleanAdvisory,
+  checkAdvisoryDisposition,
   status,
   successResult,
 } from './index.js';
@@ -105,6 +108,14 @@ async function executeResolvedPluginRequest(rawRequest) {
     }
     case 'feature.abandon':
       return mutationResult(operation, await abandonFeature(featureHome, request.input));
+    case 'advisory.declare-readiness':
+    case 'advisory.proceed':
+    case 'advisory.check': {
+      const input = {...request.input,repositoryRoot:request.context?.repository?.path??request.input?.repositoryRoot??request.cwd};
+      const action = operation === 'advisory.declare-readiness' ? declareAdvisoryReadiness
+        : operation === 'advisory.proceed' ? proceedWithoutCleanAdvisory : checkAdvisoryDisposition;
+      return mutationResult(operation, await action(featureHome,input));
+    }
     case 'feature.pause':
       return mutationResult(operation, await pauseFeature(featureHome, request.input));
     case 'feature.resume':

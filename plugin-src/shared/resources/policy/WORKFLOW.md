@@ -264,6 +264,17 @@ expanding old ones silently.
 
 ## Review Boundary
 
+For advisory-capable governed features, the implementer first declares the
+slice ready after fast/focused checks through `workflow-advisory-review`
+(`resources/commands/advisory-review.md`). The helper automatically performs
+isolated noncertifying discovery. Fix findings and review the defect class
+before revised readiness, or retain a source-bound nonempty reason to proceed.
+Track compact records and referenced focused evidence, and pass `readinessId`
+to `begin-boundary`. Clean means ready for formal review with full Verification
+pending. Keep formal Judge inputs, diff and repository blind to advisory history,
+prior reports and raw decision journals. Existing models require explicit adoption;
+formal gate dependencies, freshness and human authorization remain mandatory.
+
 When a natural slice review boundary is reached:
 
 1. Complete provisional verification and commit every intended source change.

@@ -10,7 +10,7 @@ const repositoryRoot = resolve(import.meta.dirname, '../..');
 
 test('lints the canonical repository plugin sources', async () => {
   const result = await lintPortability(resolve(repositoryRoot, 'plugin-src'));
-  assert.equal(result.existingSkillCount, 27);
+  assert.equal(result.existingSkillCount, 28);
   assert(result.fileCount > 50);
 });
 
