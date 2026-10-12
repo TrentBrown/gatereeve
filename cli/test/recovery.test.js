@@ -168,6 +168,10 @@ test('recovery preflight rejects invalid authority, scope, evidence and delivery
     },
     'unsafe evidence alias': async (f) => { await rm(join(f.home, 'runtime/recovery/checks.log')); await symlink(join(f.root, 'app.mjs'), join(f.home, 'runtime/recovery/checks.log')); await f.commit(); },
     'untracked retained file': async (f) => { await writeFile(join(f.home, 'untracked.md'), 'untracked feature record'); },
+    'ignored untracked retained file': async (f) => {
+      await writeFile(join(f.root, '.git/info/exclude'), '.agentic-workflow.json\ndocs/issues/recovery/ignored.md\n');
+      await writeFile(join(f.home, 'ignored.md'), 'Ignored feature record is not retained in Git.');
+    },
     'paused feature': async (f) => { await pauseFeature(f.home, { actor: agent }); },
     'unresolved delivery': async (f) => { await proposeSlice(f.home, { sliceId: 'pending', actor: agent }); },
     'blocking change': async (f) => { await proposeChange(f.home, { changeId: 'blocked', target: 'plan', rationale: 'Unresolved obligation', actor: agent }); },
@@ -190,6 +194,19 @@ test('recovery preflight rejects invalid authority, scope, evidence and delivery
     },
   };
   for (const [name, mutate] of Object.entries(cases)) await t.test(name, async (t) => { const f = await fixture(t); await mutate(f); await rejectsWithoutWriting(f); });
+});
+
+test('TRACKED recovery rejects ignored untracked reports, supporting evidence and confirmations', async (t) => {
+  for (const name of ['verification.json', 'checks.log', 'confirmation.md']) await t.test(name, async (t) => {
+    const f = await fixture(t);
+    const path = 'docs/issues/recovery/runtime/recovery/' + name;
+    await f.git('rm', '--cached', '--', path);
+    await writeFile(join(f.root, '.git/info/exclude'), '.agentic-workflow.json\n' + path + '\n');
+    await f.commit('Remove ignored evidence from retained Git record');
+    // All source bindings and hashes remain valid, and ordinary status is clean.
+    assert.equal(await f.git('status', '--porcelain=v1', '--untracked-files=all', '--', 'docs/issues/recovery'), '');
+    await rejectsWithoutWriting(f, /tracked retention/);
+  });
 });
 
 test('replay rejects altered receipts, merge provenance and human authority', async (t) => {

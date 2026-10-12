@@ -24,7 +24,7 @@ async function ancestor(root, before, after) {
   catch (error) { if (error.code === 1) return false; throw error; }
 }
 
-async function boundFile(home, reference, { json = false, text = false } = {}) {
+async function boundFile(home, reference, { json = false, text = false, retained = null } = {}) {
   requireRecovery(typeof reference?.path === 'string' && reference.path.length > 0
     && !reference.path.startsWith('/') && !reference.path.includes('\\')
     && reference.path.split('/').every((part) => part && part !== '.' && part !== '..')
@@ -39,6 +39,7 @@ async function boundFile(home, reference, { json = false, text = false } = {}) {
   const hash = createHash('sha256'); let bytes = 0;
   for await (const chunk of createReadStream(canonical)) { hash.update(chunk); bytes += chunk.length; }
   requireRecovery(bytes > 0 && reference.hash === 'sha256:' + hash.digest('hex'), 'evidence is empty or its content changed');
+  retained?.add(reference.path);
   if (!json && !text) return;
   requireRecovery(bytes <= 1024 * 1024, 'structured evidence or confirmation exceeds the bounded report size');
   const buffer = await readFile(canonical);
@@ -67,15 +68,15 @@ async function approvedRequirements(root, home, sha) {
   return result;
 }
 
-async function supportingEvidence(home, report) {
+async function supportingEvidence(home, report, retained) {
   const refs = [];
   for (const check of report.checks ?? []) refs.push(...check.evidence ?? []);
   for (const criterion of report.criteria ?? []) refs.push(...criterion.evidence ?? []);
   refs.push(...report.evidence ?? [], ...report.waiver?.evidence ?? []);
   if (report.waiver?.waiverBasis?.evidence) refs.push(report.waiver.waiverBasis.evidence);
-  for (const ref of refs) await boundFile(home, ref);
+  for (const ref of refs) await boundFile(home, ref, { retained });
   const confirmation = report.waiver?.confirmation ?? report.confirmation;
-  if (confirmation) requireRecovery((await boundFile(home, confirmation.evidence, { text: true }))
+  if (confirmation) requireRecovery((await boundFile(home, confirmation.evidence, { text: true, retained }))
     .includes(confirmation.quote), 'observed confirmation is absent from its bound evidence');
 }
 
@@ -125,24 +126,28 @@ async function prepare(featureHome, input) {
   const requirements = await approvedRequirements(root, home, input.integrationSha);
   const source = { featureBaseSha: base, integrationSha: input.integrationSha, requirementsIdentity: fingerprint(requirements) };
   const featureId = context.featureId;
-  const waiver = await boundFile(home, input.waiver, { json: true });
+  const retained = new Set();
+  const waiver = await boundFile(home, input.waiver, { json: true, retained });
   validateRecoveryWaiver(waiver, featureId, source);
-  const confirmationText = await boundFile(home, waiver.confirmation.evidence, { text: true });
+  const confirmationText = await boundFile(home, waiver.confirmation.evidence, { text: true, retained });
   requireRecovery(confirmationText.includes(waiver.confirmation.quote), 'waiver quote is not present in its bound confirmation evidence');
   if (waiver.confirmation.kind === 'historical-confirmation') requireRecovery(
     confirmationText.includes(waiver.confirmation.context), 'historical waiver context is not present in its bound evidence');
   const reports = {};
-  for (const key of ['verification', 'specEvaluation', 'retention']) reports[key] = await boundFile(home, input.evidence?.[key], { json: true });
+  for (const key of ['verification', 'specEvaluation', 'retention']) reports[key] = await boundFile(home, input.evidence?.[key], { json: true, retained });
   const receipt = { schemaVersion: 1, kind: 'validated-feature-recovery', featureId, source,
     requirements, waiver, ...reports, references: { waiver: input.waiver, ...input.evidence }, merges: [] };
   validateRecoveryReports(receipt, record.modelLock.model.moduleGraph?.modules ?? []);
-  for (const report of Object.values(reports)) await supportingEvidence(home, report);
+  for (const report of Object.values(reports)) await supportingEvidence(home, report, retained);
   if (reports.retention.outcome === 'TRACKED') {
     const path = relative(root, home).split(sep).join('/');
-    const dirty = (await git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--', path]))
+    const dirty = (await git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--ignored=matching', '--', path]))
       .split('\0').filter(Boolean);
     requireRecovery(dirty.length === 0 || (existing && dirty.every((item) => item.slice(3) === path + '/events.jsonl')),
       'tracked retention requires a clean fully tracked feature record before recovery');
+    const trackedPaths = new Set((await git(root, ['ls-files', '-z', '--', path])).split('\0'));
+    requireRecovery([...retained].every((reference) => trackedPaths.has(path + '/' + reference)),
+      'tracked retention requires every bound report, confirmation and supporting evidence file to be tracked');
     const tracked = (await git(root, ['ls-files', '--stage', '--', path])).split('\n');
     requireRecovery(!tracked.some((line) => line.startsWith('120000 ')), 'retained feature records contain a symlink');
   }

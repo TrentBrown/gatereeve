@@ -31,12 +31,12 @@ Replace aggregate payload construction with references; prove deduplication, ren
 
 ## I-3 - Guarded post-merge finalization recovery
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P3
 - **Rubric criteria:** R19, R20, R21, R22, R23
 - **Depends on:** I-1, I-2
-- **PR:** -
+- **PR:** [#78](https://github.com/TrentBrown/gatereeve/pull/78)
 
 Add dedicated semantic recovery/replay, source/waiver/remaining-evidence checks and explicit compatible adoption; preserve ordinary closeout and old journals.
 

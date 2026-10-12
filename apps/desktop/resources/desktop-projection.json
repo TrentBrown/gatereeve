@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:57cafeb4ec7d401cfd77a1d2d2e8afad5b6bce2a746886dc63bb1ae1b9ead4a9",
+  "protocolHash": "sha256:f618777ffb8c5dd2e7875eabe806896f58e1516a4c2042ee434dc4d6dba4e72a",
   "modelSha256": "514c4c785d1e73f7380716c23c53fe0c5517c48b731373f35d90eda40bfb1c1d",
   "files": [
     {
@@ -181,8 +181,8 @@
     },
     {
       "path": "recovery.js",
-      "size": 17025,
-      "sha256": "c8cd3e8d2b3b72af8e178da78850094bb99bfa0d0047442d0ddd02e01b224ab2"
+      "size": 17509,
+      "sha256": "6736f3567a9988f41f6dca656283255012464ce72c08f55a5c4718b65822ae28"
     },
     {
       "path": "result.js",

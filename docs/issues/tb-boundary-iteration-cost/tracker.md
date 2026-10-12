@@ -31,10 +31,10 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 | R16 | Patch deduplication and rename representation | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
 | R17 | Binary before/after evidence access | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
 | R18 | Whole-feature scope and shared-code preservation | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
-| R19 | Source-bound recovery authority and remaining evidence | NOT YET | - | AC7; planned for P3 / I-3; P6 / I-6; final proof P7 / I-7. |
-| R20 | Recovery blockers | NOT YET | - | AC7; planned for P3 / I-3; final proof P7 / I-7. |
-| R21 | Dedicated recovery event and normal closeout | NOT YET | - | AC7; planned for P3 / I-3; P6 / I-6; final proof P7 / I-7. |
-| R22 | Historical compatibility and explicit adoption | NOT YET | - | AC8; planned for P1 / I-1; P3 / I-3; P6 / I-6; final proof P7 / I-7. |
+| R19 | Source-bound recovery authority and remaining evidence | FAIL | S2 / PR #78 | Scoped assessment and source/protocol regression evidence; independent Judge pending. |
+| R20 | Recovery blockers | FAIL | S2 / PR #78 | Scoped assessment and source/protocol regression evidence; independent Judge pending. |
+| R21 | Dedicated recovery event and normal closeout | PASS | S2 / PR #78 | Scoped assessment and source/protocol regression evidence; independent Judge pending. |
+| R22 | Historical compatibility and explicit adoption | PASS | S2 / PR #78 | Scoped assessment and source/protocol regression evidence; independent Judge pending. |
 | R23 | Portable invocation and observable errors | NOT YET | - | AC8; planned for P3 / I-3; P4 / I-4; P5 / I-5; P6 / I-6; final proof P7 / I-7. |
 | R24 | Consistent workflow guidance and measurable cost | NOT YET | - | AC8; planned for P2 / I-2; P5 / I-5; P6 / I-6; final proof P7 / I-7. |
 
@@ -61,3 +61,12 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 - 2026-10-12: Core accepted HUMAN_REVIEW_REQUESTED for s1-pr77-a2 after all required gates and clean synchronized packet validation. Human acceptance and exact-head merge authorization remain pending.
 
 - 2026-10-12: Trent accepted review and authorized exact head d342aac; PR #77 merged ae9bc5a with verified reviewed-content ancestry. Core records S1 MERGED. S2 P3 started on tb-boundary-iteration-cost-02-completion-recovery from that updated main commit.
+
+### PR #78
+
+- PR: https://github.com/TrentBrown/gatereeve/pull/78
+- Packet: [boundary evidence](pr-78/boundary.json)
+- Source: a5a9a42afb06b4682a97d6680d7bd1ad159baee3; attempt s2-pr78-a1; scope SLICE.
+- P3 / I-3 in-review; model1.6/core1.2 explicitly adopted for this feature only.
+- Verification PASS (325 CLI, 127 Python, 206 Desktop + portable package checks); scoped assessment PASS; code review no unresolved findings; pattern review PASS_WITH_WARNINGS empty rules.
+- Independent Judge FAIL for R19/R20: ignored untracked evidence could bypass TRACKED retention. Source returned to implementation; defect-class review recorded and revised source requires a fresh attempt. R23 whole-feature portability and advisory/retry/cost obligations remain future work. No S2 merge/release/real MyLifeMap recovery.

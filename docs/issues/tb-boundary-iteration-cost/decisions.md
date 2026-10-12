@@ -82,4 +82,4 @@ Append FEATURE_FINALIZATION_RECOVERED with stable request/receipt identities and
 - Accept a slice report or general proceed text: does not establish whole-feature obligations.
 - Skip finalization modules after recovery: weakens normal closeout guards.
 
-**Promoted:** 2026-10-12.
+**Promoted:** 2026-10-12. PR: [#78](https://github.com/TrentBrown/gatereeve/pull/78).
