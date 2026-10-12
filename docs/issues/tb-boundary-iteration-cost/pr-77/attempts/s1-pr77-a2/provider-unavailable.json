@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "outcome": "UNAVAILABLE",
+  "stage": "native-codex",
+  "gateOutcome": "UNSET",
+  "model": "gpt-6.1-sol",
+  "reason": "CLI account inference endpoint rejected configured model as unsupported",
+  "providerContextId": "01a13191-352e-77d3-8467-461adc352020",
+  "remediation": "Attempt cached GPT-5.5 at the same high reasoning/isolation; no saved configuration change or same-thread fallback."
+}

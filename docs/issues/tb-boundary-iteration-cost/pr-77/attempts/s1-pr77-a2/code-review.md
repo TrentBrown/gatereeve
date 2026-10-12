@@ -1,0 +1,9 @@
+# Code review
+
+No unresolved findings in the pinned `ef725bbedfda28be0967fefde6cf2748679612c2..ad022461458d1dda4c66ad11f6b26c9462c40327` diff. Reviewed shared source and surrounding runtime, module validation, snapshot, preparation/projection, bundle evaluator, tests, policy selectors, inventory and staged Desktop copies.
+
+Resolved during provisional review: tab-containing binary filenames now preserve numstat paths; legacy standalone reports are excluded; archive export attributes cannot omit/rewrite allowed source; current image/PDF evidence is explicitly bound; binary create/delete and shared-source/dependency regression coverage added. Formal preparation then exposed a legacy Ruby cask classification error; common source/config extensions are retained in loose legacy evidence directories and the revised source passes real-tree preparation. No Judge had run on that unavailable preparation; the attempt is retained and a fresh attempt is used.
+
+Key checks: absence of reviewInput preserves legacy builder; model/default-selector/policy digest agreement; compact criterion scope is frozen/fingerprinted and exact result coverage validated; unchanged gate dependency graph still requires full Verification; binary blobs and streamed files are validated after copy; filtered snapshot validates Git byte/mode identities and removes temporary object databases before provider execution; host audit stays outside provider input.
+
+Residual risks/test gaps: typed classification intentionally rejects unclassified files in reserved history locations; future advisory readiness/reuse/retry and recovery behavior is not implemented by this slice. Fixture execution proves service/provider contracts, not actual model quality; the independent native Judge gate supplies the live execution evidence. No UI journey changed; Desktop host tests/renderer build pass.
