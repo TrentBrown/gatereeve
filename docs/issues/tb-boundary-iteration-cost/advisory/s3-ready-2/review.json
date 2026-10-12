@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-boundary-iteration-cost",
+  "sliceId": "s3-advisory-discovery",
+  "readinessId": "s3-ready-2",
+  "source": {
+    "baseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "headSha": "32859c68dc78352ba3017f0339cd8d8472f2b526",
+    "sliceBaseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "scope": "SLICE",
+    "boundaryScope": "SLICE"
+  },
+  "inputIdentity": "sha256:7e63a8bd744529eb79a46dff4e95dc4c2993ec62ac6338f6c93abd142dfc6659",
+  "requestIdentity": "sha256:663fa4d24e24faad88a977928665874516b44139d9511c0b47e859d32a223546",
+  "readiness": {
+    "path": "advisory/s3-ready-2/readiness.json",
+    "hash": "sha256:76e41e87b1fda094fddfb43e7a3a6a7f465a91ed8c42263e907c58478940120e"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "READY_FOR_FORMAL_REVIEW",
+  "result": {
+    "schemaVersion": 1,
+    "outcome": "READY_FOR_FORMAL_REVIEW",
+    "fullVerification": "PENDING",
+    "summary": "Pinned slice review found no supported readiness findings for the declared criteria. Full verification and independent formal Judge remain required.",
+    "criteria": [
+      {
+        "id": "R1",
+        "result": "SATISFIED",
+        "explanation": "Readiness is explicit, requires active authorized implementing slice state, fast and focused checks, and launches the provider only when the formal Judge is applicable; inapplicable Judge records NOT_APPLICABLE without provider launch.",
+        "evidence": [
+          "docs/issues/tb-boundary-iteration-cost/spec.md:41",
+          "plugin-src/shared/resources/protocol/advisory.js:128",
+          "plugin-src/shared/resources/protocol/advisory.js:145",
+          "plugin-src/shared/resources/protocol/advisory.js:177",
+          "plugin-src/shared/resources/protocol/advisory.js:261",
+          "plugin-src/shared/resources/protocol/advisory.js:518",
+          "plugin-src/shared/resources/commands/advisory-review.md:3"
+        ]
+      },
+      {
+        "id": "R2",
+        "result": "SATISFIED",
+        "explanation": "Advisory input is built from pinned compact review material, approved documents, fast/focused evidence and prior findings, with fullVerification PENDING; the agent workflow enforces read-only pinned repository policy, denied network policy, fresh context and formal capability binding.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:224",
+          "plugin-src/shared/resources/protocol/advisory.js:333",
+          "plugin-src/shared/resources/protocol/advisory.js:590",
+          "plugin-src/shared/resources/protocol/advisory.js:653",
+          "plugin-src/shared/resources/protocol/advisory.js:665",
+          "plugin-src/shared/resources/protocol/agent-workflow-runtime.js:184",
+          "plugin-src/shared/resources/protocol/local-agent-adapters.js:111"
+        ]
+      },
+      {
+        "id": "R3",
+        "result": "SATISFIED",
+        "explanation": "Clean advisory output is READY_FOR_FORMAL_REVIEW with fullVerification PENDING, and non-clean or unavailable outcomes require a retained nonempty proceed reason before formal entry; advisory records are separate from gate outcome recording.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory-contract.js:100",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:107",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:190",
+          "plugin-src/shared/resources/protocol/advisory.js:775",
+          "plugin-src/shared/resources/protocol/advisory.js:893",
+          "plugin-src/shared/resources/agent-workflows/advisory/agent.md:10"
+        ]
+      },
+      {
+        "id": "R6",
+        "result": "SATISFIED",
+        "explanation": "Revised readiness requires defect-class remediation for every prior code finding, including invariant, examined mutation/transition paths and passing regression evidence; formal code failures are converted into advisory findings rather than operational errors.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory-contract.js:223",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:243",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:250",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:318",
+          "plugin-src/shared/resources/protocol/advisory-history.js:106",
+          "plugin-src/shared/resources/commands/advisory-review.md:64"
+        ]
+      },
+      {
+        "id": "R7",
+        "result": "SATISFIED",
+        "explanation": "Reruns bind prior advisory and formal findings into the host-supplied checklist while result validation also requires every declared criterion plus scope/gap/contradiction checks, so checklist review cannot replace full scope review.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:281",
+          "plugin-src/shared/resources/protocol/advisory.js:285",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:110",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:130",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:169",
+          "plugin-src/shared/resources/agent-workflows/advisory/agent.md:6"
+        ]
+      },
+      {
+        "id": "R8",
+        "result": "SATISFIED",
+        "explanation": "The prompt requests all supported findings and distinct defect identities, result validation permits distinct same-criterion findings while rejecting duplicate underlying findings, and recurrence requires failed-fix explanation plus changed approach without adding a count-based halt.",
+        "evidence": [
+          "plugin-src/shared/resources/agent-workflows/advisory/agent.md:17",
+          "plugin-src/shared/resources/agent-workflows/advisory/agent.md:19",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:146",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:165",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:304",
+          "plugin-src/shared/resources/commands/advisory-review.md:69"
+        ]
+      },
+      {
+        "id": "R9",
+        "result": "SATISFIED",
+        "explanation": "Compact immutable records retain source/input identity, readiness, result, receipts and operational errors without transcripts, are size bounded, and formal entry verifies tracked hashes for records and referenced evidence.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory-storage.js:65",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:15",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:379",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:418",
+          "plugin-src/shared/resources/protocol/advisory.js:425",
+          "plugin-src/shared/resources/protocol/advisory.js:957"
+        ]
+      },
+      {
+        "id": "R10",
+        "result": "SATISFIED",
+        "explanation": "Clean reuse is allowed only when the recomputed input identity matches, and that identity binds compact source view, criteria, checks, resources, provider descriptor, governance and prior-findings identity; changed reviewed inputs require a revised readiness declaration.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/review-input.js:290",
+          "plugin-src/shared/resources/protocol/advisory.js:333",
+          "plugin-src/shared/resources/protocol/advisory.js:360",
+          "plugin-src/shared/resources/protocol/advisory.js:374",
+          "plugin-src/shared/resources/protocol/advisory.js:513",
+          "plugin-src/shared/resources/protocol/advisory.js:865",
+          "plugin-src/shared/resources/commands/advisory-review.md:80"
+        ]
+      },
+      {
+        "id": "R11",
+        "result": "SATISFIED",
+        "explanation": "Transient provider failures are classified separately and retried once; persistent configuration, resource, isolation, schema or publication failures become UNAVAILABLE rather than code findings or formal results.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:78",
+          "plugin-src/shared/resources/protocol/advisory.js:572",
+          "plugin-src/shared/resources/protocol/advisory.js:630",
+          "plugin-src/shared/resources/protocol/advisory.js:648",
+          "plugin-src/shared/resources/protocol/advisory.js:751",
+          "plugin-src/shared/resources/commands/advisory-review.md:57"
+        ]
+      },
+      {
+        "id": "R23",
+        "result": "SATISFIED",
+        "explanation": "Packaged plugin resources include advisory contracts, agent workflow resources and command guidance; plugin and optional CLI route to the same protocol operations, while Codex and Claude adapters share the same workflow runtime contract and expose stable unavailable/failure results.",
+        "evidence": [
+          "plugin-src/contracts/workflow-inventory.json:173",
+          "plugin-src/contracts/workflow-inventory.json:188",
+          "plugin-src/contracts/workflow-inventory.json:305",
+          "plugin-src/shared/resources/protocol/plugin-adapter.js:111",
+          "plugin-src/shared/resources/protocol/local-agent-adapters.js:175",
+          "plugin-src/shared/resources/protocol/local-agent-adapters.js:223"
+        ]
+      }
+    ],
+    "scopeCheck": {
+      "result": "SATISFIED",
+      "explanation": "Review covered the declared slice criteria R1, R2, R3, R6, R7, R8, R9, R10, R11 and R23 against the supplied pinned source, approved spec/design, inventory and patch evidence.",
+      "evidence": [
+        "docs/issues/tb-boundary-iteration-cost/spec.md:41",
+        "docs/issues/tb-boundary-iteration-cost/spec.md:63",
+        ".gatereeve-agent-evidence/inventory.json:1",
+        ".gatereeve-agent-evidence/patches/feature.json:1"
+      ]
+    },
+    "gapCheck": {
+      "result": "SATISFIED",
+      "explanation": "No unsupported implementation gap was identified for the declared advisory/readiness, remediation, retention, reuse, retry or portability criteria in this slice.",
+      "evidence": [
+        "plugin-src/shared/resources/protocol/advisory.js:123",
+        "plugin-src/shared/resources/protocol/advisory-contract.js:87",
+        "plugin-src/shared/resources/protocol/advisory-storage.js:120",
+        "plugin-src/shared/resources/protocol/agent-workflow-runtime.js:103"
+      ]
+    },
+    "contradictionCheck": {
+      "result": "SATISFIED",
+      "explanation": "The implementation and shipped guidance consistently keep advisory noncertifying, full verification pending, formal Judge independent, and proceeding without clean advisory source-bound by reason.",
+      "evidence": [
+        "docs/issues/tb-boundary-iteration-cost/design.md:31",
+        "plugin-src/shared/resources/agent-workflows/advisory/agent.md:10",
+        "plugin-src/shared/resources/commands/advisory-review.md:57",
+        "plugin-src/shared/resources/commands/advisory-review.md:92"
+      ]
+    },
+    "findings": [],
+    "checklist": []
+  },
+  "receipts": [
+    {
+      "schemaVersion": 1,
+      "kind": "gatereeve-agent-workflow-receipt",
+      "protocolVersion": 1,
+      "runId": "advisory-s3-ready-2-1",
+      "attemptId": "advisory-s3-ready-2",
+      "module": {
+        "id": "gatereeve/advisory-review",
+        "version": "1.0.0",
+        "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+      },
+      "stage": "advisory",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "provider": {
+        "id": "codex",
+        "adapterVersion": "1.0.0",
+        "model": "gpt-5.5",
+        "reasoningEffort": "high",
+        "contextId": "01a1324e-139c-7663-a04c-c6521879185c"
+      },
+      "isolation": {
+        "method": "codex-ephemeral-exec",
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "policy": {
+        "repositoryAccess": "read-only-pinned",
+        "networkAccess": "denied",
+        "scratch": "disposable"
+      },
+      "startedAt": "2026-10-12T22:48:59.452Z",
+      "completedAt": "2026-10-12T22:52:38.956Z",
+      "status": "completed",
+      "digests": {
+        "instructions": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+        "input": "sha256:422589003264fd7d7ed4d3af79ff6bd6e0c2afcecdf3016b37aa21b91840231d",
+        "output": "sha256:f9408868f44b365d7acd56777af4f86c80aa024b68e5524fcf7845ec294f30f8",
+        "snapshot": "sha256:f37755eadc4d32fd9add8e9ed0d3f7bbec50ab461fb78346003b5a551b9fc55e"
+      }
+    }
+  ],
+  "operationalErrors": []
+}

@@ -27,6 +27,14 @@ def sha256(path: Path) -> str:
 
 
 class WorkflowDoctorTests(unittest.TestCase):
+    def test_required_skills_match_the_canonical_plugin_inventory(self) -> None:
+        inventory_path = SCRIPTS.parents[2] / "contracts" / "workflow-inventory.json"
+        if not inventory_path.exists():
+            self.skipTest("Canonical source inventory is not shipped in installed packages")
+        inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+        declared = {skill["name"] for skill in inventory["skills"] if skill["state"] == "existing"}
+        self.assertEqual(set(REQUIRED_SKILLS), declared)
+
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(prefix="workflow doctor ")
         self.root = Path(self.temporary.name)
