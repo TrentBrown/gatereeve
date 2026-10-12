@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "source": "github",
+  "repositoryRoot": "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve",
+  "repositoryAlias": "product",
+  "remote": "origin",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 79,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/79",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "headRefName": "tb-boundary-iteration-cost-03-advisory-discovery",
+    "headRefOid": "d11171fed2c1d30b44cf685a883e49ff4c5124e7"
+  },
+  "mergeBaseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+  "evaluatedSourceSha": "d11171fed2c1d30b44cf685a883e49ff4c5124e7",
+  "featureBaseSha": "ef725bbedfda28be0967fefde6cf2748679612c2"
+}

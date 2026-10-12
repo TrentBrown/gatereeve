@@ -111,3 +111,18 @@ Include workflow-advisory-review in REQUIRED_SKILLS and add a regression compari
 
 **Alternatives considered:**
 None recorded.
+
+## [7] Normalize valid formal FAIL rows without changing the formal Judge contract
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Advisory history/checklists, conservative scope reconciliation, readiness guidance and focused fixtures
+
+Consume failed rubric or independent-check rows when the recorded formal FAIL has no concern list. Preserve the bound report, receipt and original formal outcome. Use exact reported paths when present; otherwise mark conservative complete-scope reconciliation areas from the assembled pinned source and require class review/regressions there. Do not retroactively require a different formal report schema. Clarify that pending claims are reconciled before another provider launch; the approved nonclean reasoned-bypass policy may still admit formal entry without certifying any gate. This is existing spec/design policy, not a new requirement inferred from advisory history. Formal Judge remains blind to these records and receives fresh independent review after remediation.
+
+**Triggered by:** Live advisory found that a valid formal FAIL with no separate concern findings could block revised readiness; pending-claim guidance was ambiguous
+
+**Alternatives considered:**
+None recorded.

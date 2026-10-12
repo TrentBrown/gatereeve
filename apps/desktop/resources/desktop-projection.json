@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:75c4410a0223dc537f20095d9338865d42f99a62e60fa3d29f4d8a6735790acc",
+  "protocolHash": "sha256:220961c4c381b8d3b48908ddbc637e98334d3755fcfd33f6103e4691f6b257cd",
   "modelSha256": "a8bbfc7402f82d622c8b77417db99c0d4217b183ffa8d557a265fc90deebf080",
   "files": [
     {
@@ -11,8 +11,8 @@
     },
     {
       "path": "advisory-history.js",
-      "size": 4970,
-      "sha256": "d9d7f75a167dfa31b97d97e68848413dc20ae9c311078526d8b2026d1561df94"
+      "size": 6171,
+      "sha256": "abd982409ce9c6608dfbee0c91997e3f957a86702939640d1d9945a3b1c76f9b"
     },
     {
       "path": "advisory-inputs.js",
@@ -26,8 +26,8 @@
     },
     {
       "path": "advisory.js",
-      "size": 31828,
-      "sha256": "07f4d42182838f12929af5762c42d8611e83dbd32983252760173ee17ba41335"
+      "size": 31991,
+      "sha256": "1cf38e99ba94b0993ff9c81f09981527d851da49a21f3a61ccc195b5eab772ab"
     },
     {
       "path": "agent-workflow-resources.js",

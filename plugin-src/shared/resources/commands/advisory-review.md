@@ -51,8 +51,11 @@ The helper persists compact immutable records under
 claim, structured result and isolation receipt, and any proceed reason. No
 provider transcripts are retained. Repeat the same ID to inspect/reconcile its
 existing disposition; changed reviewed inputs require a new ID. An execution
-claim without a result is IN_PROGRESS and must be reconciled, never relaunched
-under that ID.
+claim without a result is IN_PROGRESS. Reconcile the claim before another
+provider launch; never relaunch under that ID. The approved reasoned-bypass
+policy also permits formal entry while a claimed execution remains pending.
+Retain that reason and the claim, and assess its eventual findings. A pending
+claim is neither a clean review nor an UNAVAILABLE result.
 
 READY_FOR_FORMAL_REVIEW means full Verification remains PENDING. FINDINGS
 requires implementation work or an explicitly retained proceed reason.
@@ -76,6 +79,12 @@ still assess the complete in-scope slice. Operational failure alone creates no
 code-defect remediation requirement. Promote binding decisions into the
 approved spec/design; never silently turn raw journals or prior reports into
 formal Judge requirements.
+
+Existing formal FAIL reports can express the failure in rubric or independent
+check rows without a separate concern list. The helper consumes those rows.
+When exact affected paths were not reported, it marks complete-scope
+reconciliation areas; examine all in-scope mutation/transition paths in those
+areas and provide regression coverage before revised readiness.
 
 To proceed without a clean advisory, submit `advisory.proceed` with
 `readinessId`, `actor` and a bounded nonempty `reason`. The helper checks current

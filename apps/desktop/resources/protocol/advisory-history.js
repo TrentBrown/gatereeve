@@ -17,7 +17,11 @@ const { validateJudgeBundle } = await import(
 
 // Only explicitly published failure evidence for this slice enters the advisory
 // checklist. The formal Judge's view continues to exclude this entire history.
-export async function formalAdvisoryFindings(record, sliceId) {
+export async function formalAdvisoryFindings(
+  record,
+  sliceId,
+  { scopeAreas = [] } = {}
+) {
   const starts = new Map(
     record.events
       .filter(
@@ -107,13 +111,28 @@ export async function formalAdvisoryFindings(record, sliceId) {
       result.verdict === 'FAIL',
       'formal finding report is not a code failure'
     );
-    const supported = result.findings.filter((f) => f.severity === 'concern');
+    const concerns = result.findings.filter((f) => f.severity === 'concern');
+    // Existing formal contracts can legitimately express FAIL through rubric
+    // or independent-check rows without repeating the failure in findings.
+    // Preserve those failures as checklist work rather than changing historical
+    // formal requirements or misclassifying a code failure as unavailable.
+    const negativeRows = [
+      ...result.criteria.filter((row) => row.result === 'FAIL'),
+      ...['scopeCheck', 'gapCheck', 'contradictionCheck']
+        .map((key) => result[key])
+        .filter((row) => row.result === 'FAIL'),
+    ].map((row) => ({
+      summary: row.explanation,
+      evidence: row.evidence,
+      criterionIds: row.id ? [row.id] : [],
+    }));
+    const supported = concerns.length ? concerns : negativeRows;
     advisoryAssert(
       supported.length > 0,
-      'formal code failure needs structured supported findings before revised readiness'
+      'formal FAIL lacks a failing rubric or independent check'
     );
     for (const [index, finding] of supported.entries()) {
-      const paths = [
+      const reportedPaths = [
         ...new Set(
           finding.evidence.flatMap((e) =>
             [
@@ -124,6 +143,10 @@ export async function formalAdvisoryFindings(record, sliceId) {
           )
         ),
       ].sort();
+      // If the report did not cite exact paths, require conservative review of
+      // every area in the current pinned scope. These are reconciliation areas,
+      // not invented claims that every file in an area is defective.
+      const paths = reportedPaths.length ? reportedPaths : scopeAreas;
       advisoryAssert(
         paths.length > 0,
         'formal finding needs affected paths for defect-class reconciliation'
@@ -140,14 +163,17 @@ export async function formalAdvisoryFindings(record, sliceId) {
           kind: 'formal',
           eventId: event.eventId,
           reference: event.payload.evidence,
+          pathBasis: reportedPaths.length
+            ? 'reported'
+            : 'complete-scope-reconciliation',
           bindings: Object.values(root.files).map((binding) => ({
             path: directory + binding.path,
             hash: binding.sha256,
           })),
         },
-        criterionIds: result.criteria
-          .filter((c) => c.result === 'FAIL')
-          .map((c) => c.id),
+        criterionIds:
+          finding.criterionIds ??
+          result.criteria.filter((c) => c.result === 'FAIL').map((c) => c.id),
         summary: finding.summary,
         evidence: finding.evidence,
         ...value,

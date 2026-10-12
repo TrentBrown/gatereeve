@@ -284,7 +284,13 @@ async function preparedAdvisory(
     });
     const priorFindings = [
       ...history.findings,
-      ...(await formalAdvisoryFindings(record, slice.id)),
+      ...(await formalAdvisoryFindings(record, slice.id, {
+        scopeAreas: [
+          ...new Set(
+            compact.expectedEntries.map((entry) => entry.path.split('/')[0])
+          ),
+        ].sort(),
+      })),
     ].sort((a, b) => a.id.localeCompare(b.id));
     let remediation = clone(input.remediation ?? null);
     const execution = clone(input.execution ?? {});

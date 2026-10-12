@@ -1232,3 +1232,235 @@ test('defect-class readiness requires affected-path coverage and historical evid
   assert.equal(checked.eligible, false);
   assert.match(checked.blockers[0].message, /commit each advisory record/);
 });
+
+test('reasoned pending admission retains the claim and never certifies a formal gate or relaunches it', async (t) => {
+  const f = await fixture(t),
+    provider = transport();
+  let release, started;
+  const held = new Promise((resolve) => {
+    release = resolve;
+  });
+  const reached = new Promise((resolve) => {
+    started = resolve;
+  });
+  let stages = 0;
+  const adapter = {
+    describe: () => provider.adapter.describe(),
+    runStage: async (request) => {
+      stages++;
+      started();
+      await held;
+      return provider.adapter.runStage(request);
+    },
+  };
+  const running = declareAdvisoryReadiness(f.home, f.input, { adapter });
+  await reached;
+  const repeated = await declareAdvisoryReadiness(f.home, f.input, { adapter });
+  assert.equal(repeated.outcome, 'IN_PROGRESS');
+  assert.equal(stages, 1);
+  await proceedWithoutCleanAdvisory(f.home, {
+    readinessId: 'ready-1',
+    repositoryRoot: f.root,
+    actor,
+    reason:
+      'Formal verification and independent Judge will proceed while this claimed advisory completes.',
+  });
+  await f.commit('Track pending advisory reason');
+  const begun = await recordSliceTransition(f.home, 'begin-boundary', 's1', {
+    actor,
+    payload: {
+      attemptId: 'pending-boundary',
+      scope: 'SLICE',
+      readinessId: 'ready-1',
+      context: {
+        repositoryRoot: f.root,
+        repositoryAlias: 'product',
+        evaluatedSourceSha: await f.git('rev-parse', 'HEAD'),
+        mergeBaseSha: f.base,
+      },
+    },
+  });
+  assert.equal(begun.event.payload.advisoryDecision.outcome, 'IN_PROGRESS');
+  assert.ok(
+    begun.event.payload.advisoryDecision.review.path.endsWith('claim.json')
+  );
+  assert.ok(
+    begun.projection.boundaryAttempts[0].gates.every(
+      (g) => g.outcome === 'UNSET'
+    )
+  );
+  release();
+  const completed = await running;
+  assert.equal(completed.outcome, 'READY_FOR_FORMAL_REVIEW');
+  assert.equal(stages, 1);
+  assert.equal(provider.calls, 1);
+});
+
+test('existing formal FAIL rows without concern findings enter the fix checklist, including conservative path reconciliation', async (t) => {
+  for (const mode of [
+    'criterion',
+    'criterion without paths',
+    'scope without paths',
+  ])
+    await t.test(mode, async (t) => {
+      const f = await fixture(t, { oldModel: true });
+      const ctx = {
+        repositoryRoot: f.root,
+        repositoryAlias: 'product',
+        evaluatedSourceSha: f.source,
+        mergeBaseSha: f.base,
+      };
+      await recordSliceTransition(f.home, 'begin-boundary', 's1', {
+        actor,
+        payload: {
+          attemptId: 'formal-1',
+          scope: 'SLICE',
+          criteria: ['R1', 'R2'],
+          context: ctx,
+        },
+      });
+      const current = {};
+      for (const gateId of ['pinContext', 'reconcile', 'verification']) {
+        const r = await recordGateOutcome(f.home, {
+          attemptId: 'formal-1',
+          gateId,
+          outcome: 'PASS',
+          inputs: { context: ctx },
+          currentFingerprints: current,
+          actor,
+          evidence: f.input.checks[1].evidence[0],
+          eventId: 'evt-' + gateId,
+        });
+        current[gateId] = r.inputFingerprint;
+      }
+      const record = await readFeatureRecord(f.home),
+        projection = projectRecord(record, {
+          gateFingerprints: { 'formal-1': current },
+        }),
+        module = record.modelLock.model.moduleGraph.modules.find(
+          (m) => m.boundary?.gateId === 'judge'
+        );
+      const provider = transport({
+        output: (initial) => {
+          const pass = {
+            result: 'PASS',
+            explanation: 'Fixture pinned scope inspected.',
+            evidence: ['app.mjs:1'],
+          };
+          const failure = {
+            result: 'FAIL',
+            explanation: 'Newer intent must survive a late response',
+            evidence:
+              mode === 'criterion'
+                ? ['app.mjs:1 late write violates ownership']
+                : [],
+          };
+          return {
+            schemaVersion: 1,
+            verdict: 'FAIL',
+            summary:
+              'Fixture formal FAIL expressed in rows, not concern findings.',
+            criteria: initial.change.criteria.map((id) => ({
+              id,
+              title: 'Fixture criterion',
+              ...(id === 'R1' && mode !== 'scope without paths'
+                ? failure
+                : pass),
+            })),
+            scopeCheck: mode === 'scope without paths' ? failure : pass,
+            gapCheck: pass,
+            contradictionCheck: pass,
+            findings: [],
+            markdown:
+              '# Fixture formal row failure\n' +
+              'The reported pinned mutation invariant requires remediation. '.repeat(
+                5
+              ),
+          };
+        },
+      });
+      const formal = await executeAgentWorkflowGate({
+        repositoryRoot: f.root,
+        featureHome: f.home,
+        artifactRoot: join(f.home, 'pr-1'),
+        modelHash: record.modelLock.modelHash,
+        module,
+        prepared: {
+          attempt: projection.boundaryAttempts[0],
+          target: { id: 'judge', dependsOn: ['verification'] },
+          inputs: { context: ctx },
+        },
+        adapter: provider.adapter,
+        resources: createPluginResourceAccess({
+          pluginRoots: {
+            'agentic-development-workflow': new URL(
+              '../../plugin-src/shared',
+              import.meta.url
+            ).pathname,
+          },
+        }),
+        recordOutcome: (value) =>
+          recordGateOutcome(f.home, {
+            attemptId: 'formal-1',
+            gateId: 'judge',
+            inputs: { context: ctx },
+            currentFingerprints: current,
+            actor,
+            eventId: 'evt-formal-row-fail',
+            ...value,
+          }),
+      });
+      assert.equal(formal.status, 'completed');
+      assert.equal(formal.outcome, 'FAIL');
+      await recordSliceTransition(f.home, 'remediate-boundary', 's1', {
+        actor,
+      });
+      await migrateFeatureModel({
+        featureHome: f.home,
+        nextModel: await loadDefaultModel(),
+        confirmedBy: human,
+      });
+      await f.commit('Preserve existing formal row failure and adopt advisory');
+      await assert.rejects(
+        declareAdvisoryReadiness(f.home, f.input, {
+          adapter: transport().adapter,
+        }),
+        /defect-class/
+      );
+      const input = {
+        ...f.input,
+        remediation: [
+          {
+            findingIds: ['formal:evt-formal-row-fail:0'],
+            invariant: 'Newer intent must survive a late response',
+            examinedPaths: ['app.mjs', 'app.test.mjs', 'docs'],
+            approach: 'Review every scoped mutation and ownership path.',
+            regressions: [
+              {
+                scenario: 'Late response ownership',
+                command: 'node --test app.test.mjs',
+                outcome: 'PASS',
+                evidence: [f.input.checks[1].evidence[0]],
+              },
+            ],
+          },
+        ],
+      };
+      const advisory = transport();
+      const reviewed = await declareAdvisoryReadiness(f.home, input, {
+        adapter: advisory.adapter,
+      });
+      assert.equal(reviewed.outcome, 'READY_FOR_FORMAL_REVIEW');
+      assert.equal(advisory.requests[0].initial.priorFindings.length, 1);
+      assert.equal(advisory.requests[0].initial.change.criteria.length, 2);
+      const finding = advisory.requests[0].initial.priorFindings[0];
+      assert.equal(
+        finding.source.pathBasis,
+        mode === 'criterion' ? 'reported' : 'complete-scope-reconciliation'
+      );
+      assert.deepEqual(
+        finding.criterionIds,
+        mode === 'scope without paths' ? [] : ['R1']
+      );
+    });
+});
