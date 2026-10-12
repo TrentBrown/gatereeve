@@ -1,0 +1,66 @@
+Pinned source: 32859c68dc78352ba3017f0339cd8d8472f2b526
+
+COMMAND: /opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/advisory.test.js cli/test/protocol-contracts.test.js
+EXIT: 0
+✔ one readiness declaration automatically reviews complete scope in isolation without formal passage (1424.13975ms)
+✔ formal entry cannot manufacture advisory facts or bypass missing retained reason (3206.278375ms)
+✔ inapplicable formal Judge does not launch an advisory provider (974.717167ms)
+▶ transient advisory execution retries once; persistent isolation/config/schema errors do not retry
+  ✔ recover (1038.907458ms)
+  ✔ exhaust (850.596417ms)
+  ✔ config (927.510042ms)
+  ✔ inherited context (891.752958ms)
+  ✔ missing model (1215.768333ms)
+✔ transient advisory execution retries once; persistent isolation/config/schema errors do not retry (4925.545458ms)
+▶ clean advisory is reusable across evidence-only commits but each reviewed input change prevents reuse
+  ✔ app.mjs (1646.592542ms)
+  ✔ app.test.mjs (1666.064334ms)
+  ✔ package.json (1462.403791ms)
+  ✔ dependency-lock.json (1332.310958ms)
+  ✔ docs/issues/advisory-feature/spec.md (1266.078042ms)
+  ✔ docs/issues/advisory-feature/design.md (1315.900583ms)
+  ✔ docs/issues/advisory-feature/runtime/advisory-checks/focused.log (1086.099292ms)
+✔ clean advisory is reusable across evidence-only commits but each reviewed input change prevents reuse (9776.394542ms)
+✔ defect-class review and changed approach are required for revised readiness; reruns still inspect all criteria (1505.163625ms)
+✔ evidence-only declarations reuse clean inputs and retain the original reviewed source (1576.5765ms)
+▶ retained records reject tampering, unknown transcript fields and unsafe evidence before formal entry
+  ✔ outcome (768.842125ms)
+  ✔ source (811.809792ms)
+  ✔ receipt (802.586542ms)
+  ✔ transcript (764.865167ms)
+  ✔ capability (734.936958ms)
+  ✔ provider model (734.805083ms)
+  ✔ isolation method (743.771625ms)
+  ✔ symlink evidence (519.59925ms)
+  ✔ untracked formal evidence (758.214917ms)
+✔ retained records reject tampering, unknown transcript fields and unsafe evidence before formal entry (6640.306042ms)
+▶ snapshot and output-schema failures are unavailable; valid code findings survive publication errors
+  ✔ snapshot (586.024167ms)
+  ✔ output schema (607.919625ms)
+  ✔ finding publication (755.712ms)
+✔ snapshot and output-schema failures are unavailable; valid code findings survive publication errors (1949.974333ms)
+✔ advisory uses the formal whole-feature scope and portable Claude receipt contract (744.197417ms)
+✔ adoption preserves historical boundaries and formal graph requirements; older features never auto-adopt (694.844959ms)
+▶ ambiguous JSON and YAML configuration in evidence namespaces cannot gain evidence-only reuse
+  ✔ runtime/config.json (1253.468292ms)
+  ✔ runtime/config.yaml (915.824542ms)
+✔ ambiguous JSON and YAML configuration in evidence namespaces cannot gain evidence-only reuse (2169.589708ms)
+✔ formal failures enter the full advisory fix checklist; formal Judge snapshots exclude every advisory record (1734.340208ms)
+✔ optional CLI and plugin adapter share advisory operational results and read-only check behavior (897.230791ms)
+✔ ordinary edits never launch review; revised readiness selects revised pinned source (1110.442583ms)
+✔ tracked compact advisory evidence remains usable in a fresh checkout (981.989042ms)
+✔ defect-class readiness requires affected-path coverage and historical evidence is tracked before formal entry (1311.341084ms)
+✔ default workflow model validates and hashes deterministically (15.91275ms)
+✔ historical PR_BOUNDARY model locks remain valid (4.377375ms)
+✔ model validation rejects unknown guards, cycles, and provider injection fields (5.284833ms)
+✔ event contract accepts complete events and rejects malformed identity (2.018166ms)
+✔ result envelope has one stable success and failure shape (0.1705ms)
+✔ native packages retain one identical canonical protocol manifest (213.243583ms)
+ℹ tests 49
+ℹ suites 0
+ℹ pass 49
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 41708.020834
