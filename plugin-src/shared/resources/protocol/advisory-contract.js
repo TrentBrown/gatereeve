@@ -454,6 +454,20 @@ export function validateAdvisoryRecord(record, readiness = null) {
       );
       const receipt = validateAgentWorkflowReceipt(record.receipts[0]);
       advisoryAssert(
+        fingerprint(receipt.capabilityProfile) ===
+          fingerprint(readiness.inputManifest.formalJudge?.capabilityProfile) &&
+          receipt.provider.id === readiness.inputManifest.adapter.provider &&
+          receipt.provider.model === readiness.inputManifest.adapter.model &&
+          receipt.provider.reasoningEffort ===
+            readiness.inputManifest.adapter.reasoningEffort &&
+          receipt.provider.adapterVersion ===
+            readiness.inputManifest.adapter.version &&
+          readiness.inputManifest.adapter.isolationMethods.includes(
+            receipt.isolation.method
+          ),
+        'review receipt differs from the pinned formal capability/provider/isolation contract'
+      );
+      advisoryAssert(
         receipt.status === 'completed' &&
           receipt.stage === 'advisory' &&
           receipt.digests.output === sha256Digest(record.result) &&

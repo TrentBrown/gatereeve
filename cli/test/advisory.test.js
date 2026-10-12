@@ -673,6 +673,24 @@ test('retained records reject tampering, unknown transcript fields and unsafe ev
         r.transcript = 'private history';
       },
     ],
+    [
+      'capability',
+      (r) => {
+        r.receipts[0].capabilityProfile.minimumReasoning = 'low';
+      },
+    ],
+    [
+      'provider model',
+      (r) => {
+        r.receipts[0].provider.model = 'another-model';
+      },
+    ],
+    [
+      'isolation method',
+      (r) => {
+        r.receipts[0].isolation.method = 'unrecognized-isolation';
+      },
+    ],
   ])
     await t.test(name, async (t) => {
       const f = await fixture(t);
