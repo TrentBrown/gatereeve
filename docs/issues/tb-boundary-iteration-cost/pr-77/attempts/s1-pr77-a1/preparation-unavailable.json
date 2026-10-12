@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "outcome": "UNAVAILABLE",
+  "stage": "compact-input-preparation",
+  "judgeLaunched": false,
+  "source": "37c753d5a84e912a16eb724865a2fcdc5b0fb226",
+  "error": "Legacy evidence Ruby cask was unclassified",
+  "defectClass": {
+    "invariant": "Retain source/config in loose legacy evidence locations; only validated record namespaces exclude them.",
+    "affectedPaths": [
+      "review-input historyPath",
+      "pinned review construction across every feature record in selected tree"
+    ],
+    "remediation": "Expand source/config language coverage; keep strict packet/advisory record-location rejection.",
+    "regression": "Ruby cask and TOML configuration remain inspectable; all source aliases/symlinks/history tests retained.",
+    "results": "291 CLI and 206 Desktop tests passed; real GateReeve tree preparation now succeeds."
+  }
+}

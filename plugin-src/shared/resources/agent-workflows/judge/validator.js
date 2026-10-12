@@ -13,7 +13,7 @@ function fail(message) {
   throw new Error(`Judge artifact invalid: ${message}`);
 }
 
-export function validateJudgeBundle({ manifest, result, markdown, receipt }) {
+export function validateJudgeBundle({ manifest, result, markdown, receipt, viewAudit = null }) {
   if (manifest?.schemaVersion !== 1 || manifest.kind !== 'workflow-judge') fail('manifest kind or version is unsupported');
   if (!['PASS', 'FAIL'].includes(manifest.outcome) || manifest.outcome !== result?.verdict) fail('manifest verdict mismatch');
   if (result.schemaVersion !== 1 || !Array.isArray(result.criteria) || result.criteria.length === 0) fail('structured result is incomplete');
@@ -40,6 +40,20 @@ export function validateJudgeBundle({ manifest, result, markdown, receipt }) {
     || receipt?.policy?.repositoryAccess !== 'read-only-pinned'
     || receipt?.policy?.networkAccess !== 'denied'
   ) fail('receipt does not prove isolated read-only execution');
+  if (manifest.reviewView !== undefined) {
+    if (!viewAudit || JSON.stringify(viewAudit.view) !== JSON.stringify(manifest.reviewView)
+      || ['baseSha', 'headSha', 'sliceBaseSha'].some((key) => viewAudit.source?.[key] !== manifest.source?.[key])
+      || manifest.files.viewAudit?.path !== 'judge-view-audit.json'
+      || manifest.files.viewAudit.sha256 !== digest(viewAudit)) {
+      fail('review view audit binding mismatch');
+    }
+    const actual = result.criteria.map((item) => item.id);
+    if (!Array.isArray(manifest.criteria) || !manifest.criteria.length
+      || new Set(actual).size !== actual.length
+      || JSON.stringify([...manifest.criteria].sort()) !== JSON.stringify([...actual].sort())) {
+      fail('result does not cover the exact declared rubric scope');
+    }
+  }
   return manifest;
 }
 
@@ -47,7 +61,7 @@ export function judgeDigest(value) {
   return digest(value);
 }
 
-export function createJudgeBundle({ module, input, outputs, receipts }) {
+export function createJudgeBundle({ module, input, outputs, receipts, reviewViewAudit = null }) {
   const result = outputs?.judge;
   const receipt = receipts?.find((item) => item.stage === 'judge') ?? null;
   const markdown = result?.markdown ?? '';
@@ -64,7 +78,21 @@ export function createJudgeBundle({ module, input, outputs, receipts }) {
       receipt: { path: 'judge-receipt.json', sha256: digest(receipt) },
     },
   };
-  validateJudgeBundle({ manifest, result, markdown, receipt });
+  if (module.run?.reviewInput !== undefined) {
+    if (!reviewViewAudit || reviewViewAudit.view?.inputIdentity !== input?.change?.reviewView?.inputIdentity) {
+      fail('compact review view audit is missing or mismatched');
+    }
+    const expected = input.change.criteria;
+    const actual = result.criteria.map((item) => item.id);
+    if (!Array.isArray(expected) || !expected.length || new Set(actual).size !== actual.length
+      || JSON.stringify([...expected].sort()) !== JSON.stringify([...actual].sort())) {
+      fail('result does not cover the exact declared rubric scope');
+    }
+    manifest.criteria = [...expected];
+    manifest.reviewView = input.change.reviewView;
+    manifest.files.viewAudit = { path: 'judge-view-audit.json', sha256: digest(reviewViewAudit) };
+  }
+  validateJudgeBundle({ manifest, result, markdown, receipt, viewAudit: reviewViewAudit });
   return {
     outcome: manifest.outcome,
     summary: manifest.summary,
@@ -74,6 +102,7 @@ export function createJudgeBundle({ module, input, outputs, receipts }) {
       'judge-result.json': result,
       'judge-receipt.json': receipt,
       'judge.md': markdown,
+      ...(module.run?.reviewInput ? { 'judge-view-audit.json': reviewViewAudit } : {}),
     },
   };
 }

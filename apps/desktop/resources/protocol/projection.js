@@ -229,12 +229,21 @@ function createAttempt(model, slice, event, boundarySnapshots) {
       : model;
   const definitions = boundaryGateDefinitions(attemptModel);
   const ordering = dependencyOrdering(definitions);
+  const compact = attemptModel.moduleGraph?.modules.some((module) => module.run?.reviewInput);
+  const criteria = compact ? event.payload.criteria : undefined;
+  if (criteria !== undefined && (!Array.isArray(criteria) || criteria.length === 0
+    || criteria.some((id) => typeof id !== 'string' || !/^R\d+$/u.test(id))
+    || new Set(criteria).size !== criteria.length
+    || (event.payload.scope === 'SLICE' && criteria.some((id) => !slice.rubricCriteria.includes(id))))) {
+    throw new ContractError('Boundary criteria must be unique rubric IDs');
+  }
   return {
     id: attemptId,
     modelHash: event.modelHash,
     sliceId: slice.id,
     scope: event.payload.scope,
     context: event.payload.context ?? null,
+    ...(criteria === undefined ? {} : { criteria: [...criteria] }),
     startedBy: event.eventId,
     startedSequence: event.sequence,
     state: 'ACTIVE',

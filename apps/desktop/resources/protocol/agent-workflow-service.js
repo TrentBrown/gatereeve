@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import { lstat, readFile, realpath } from 'node:fs/promises';
 import { basename, join, relative, resolve, sep } from 'node:path';
 
@@ -9,6 +11,7 @@ import { ContractError } from './errors.js';
 import { gateInputFingerprint } from './fingerprint.js';
 import { validateJsonSchema } from './json-schema.js';
 import { buildPinnedChangeInput, createPinnedRepositorySnapshot } from './pinned-snapshot.js';
+import { buildCompactReviewInput } from './review-input.js';
 
 function contextRange(module, attempt, context) {
   const scope = module.boundary?.evaluationScope?.[attempt.scope];
@@ -56,7 +59,7 @@ function externalizePatches(change) {
   return { value, evidenceFiles };
 }
 
-async function evidenceFile(repositoryRoot, featureHome, reference) {
+async function evidenceFile(repositoryRoot, featureHome, reference, { boundFile = false } = {}) {
   if (
     reference === null
     || typeof reference !== 'object'
@@ -75,6 +78,13 @@ async function evidenceFile(repositoryRoot, featureHome, reference) {
       const [canonical, metadata] = await Promise.all([realpath(candidate), lstat(candidate)]);
       if (!metadata.isFile() || metadata.isSymbolicLink()) continue;
       if (canonical !== root && !canonical.startsWith(`${root}${sep}`)) continue;
+      if (boundFile) {
+        const digest = createHash('sha256'); let bytes = 0;
+        for await (const chunk of createReadStream(canonical)) { digest.update(chunk); bytes += chunk.length; }
+        const hash = `sha256:${digest.digest('hex')}`;
+        if (hash !== reference.hash) continue;
+        return { filename: basename(canonical), descriptor: { sourcePath: canonical, hash, bytes } };
+      }
       const content = await readFile(canonical, 'utf8');
       if (sha256Digest(content) !== reference.hash) continue;
       return { content, filename: basename(canonical) };
@@ -119,6 +129,31 @@ async function externalizeDependencyEvidence({ repositoryRoot, featureHome, modu
     const safeGateId = gateId.replace(/[^A-Za-z0-9._-]/gu, '-');
     const path = `.gatereeve-agent-evidence/gates/${safeGateId}/${file.filename}`;
     evidenceFiles[path] = file.content;
+    if (module.run?.reviewInput && gateId === 'verification') {
+      const attachments = gate.evidence?.attachments ?? [];
+      if (!Array.isArray(attachments)) throw new ContractError('Verification attachments must be bound references');
+      const files = [];
+      for (const reference of attachments) {
+        if (!/\.(?:png|jpg|jpeg|webp|gif|pdf)$/iu.test(reference?.path ?? '')) {
+          throw new ContractError('Verification attachment must be an image or PDF, not review narrative');
+        }
+        const attached = await evidenceFile(repositoryRoot, featureHome, reference, { boundFile: true });
+        if (files.some((item) => item.filename === attached.filename)) {
+          throw new ContractError('Verification attachment names must be unambiguous');
+        }
+        const attachmentPath = `.gatereeve-agent-evidence/gates/verification/attachments/${attached.filename}`;
+        evidenceFiles[attachmentPath] = attached.descriptor;
+        files.push({ kind: 'snapshot-file', filename: attached.filename, path: attachmentPath,
+          hash: attached.descriptor.hash, bytes: attached.descriptor.bytes });
+      }
+      const linkedImages = [...file.content.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/gu)]
+        .map((match) => decodeURIComponent(match[1].trim().split(/\s+["']/u)[0].replace(/^<|>$/gu, '')))
+        .filter((href) => /\.(?:png|jpg|jpeg|webp|gif|pdf)(?:[?#].*)?$/iu.test(href));
+      if (linkedImages.some((href) => !files.some((item) => item.filename === basename(href.split(/[?#]/u)[0])))) {
+        throw new ContractError('Bind referenced Verification images/PDFs in evidence.attachments before compact review');
+      }
+      if (files.length) value.verificationAttachments = files;
+    }
     const hash = sha256Digest(file.content);
     value[gateId] = {
       outcome: gate.outcome,
@@ -132,7 +167,7 @@ async function externalizeDependencyEvidence({ repositoryRoot, featureHome, modu
   return { value, evidenceFiles };
 }
 
-export async function executeAgentWorkflowGate({
+async function executeAgentWorkflowGateInternal({
   repositoryRoot,
   featureHome,
   artifactRoot,
@@ -147,6 +182,7 @@ export async function executeAgentWorkflowGate({
   publishArtifacts = publishAgentWorkflowArtifacts,
   validateGeneratedArtifacts = async () => null,
   createId = randomUUID,
+  reviewViewAudit = null,
 }) {
   if (module?.run?.kind !== 'agent-workflow') throw new ContractError('An agent-workflow module is required');
   if (!prepared?.attempt || !prepared?.target || !prepared?.inputs) {
@@ -193,7 +229,7 @@ export async function executeAgentWorkflowGate({
       sliceBaseSha: range.sliceBaseSha ?? range.baseSha,
       inputFingerprint,
     },
-    boundary: structuredClone(prepared.inputs),
+    boundary: reviewViewAudit === null ? structuredClone(prepared.inputs) : { scope: prepared.attempt.scope },
     change: externalized.value,
     dependencyEvidence: dependencyEvidence.value,
   };
@@ -239,6 +275,7 @@ export async function executeAgentWorkflowGate({
           receipts,
           repositoryPath,
           artifactValidation,
+          reviewViewAudit,
         });
       },
       publishArtifacts: async ({ module: evaluatedModule, evaluation }) => publishArtifacts({
@@ -263,4 +300,23 @@ export async function executeAgentWorkflowGate({
   } finally {
     await snapshot.cleanup();
   }
+}
+
+export async function executeAgentWorkflowGate(options) {
+  if (options.module?.run?.reviewInput === undefined) return executeAgentWorkflowGateInternal(options);
+  const range = contextRange(options.module, options.prepared.attempt,
+    options.prepared.inputs.context ?? options.prepared.attempt.context ?? {});
+  const compact = await buildCompactReviewInput({ repositoryRoot: options.repositoryRoot,
+    featureHome: options.featureHome, criteria: options.prepared.attempt.criteria ?? null, ...range });
+  try {
+    const createSnapshot = options.createSnapshot ?? createPinnedRepositorySnapshot;
+    return await executeAgentWorkflowGateInternal({ ...options,
+      buildChangeInput: async () => compact.change,
+      createSnapshot: (input) => createSnapshot({ ...input,
+        evidenceFiles: { ...compact.evidenceFiles, ...input.evidenceFiles },
+        excludedPaths: compact.excludedPaths, expectedEntries: compact.expectedEntries,
+        reviewView: compact.change.reviewView }),
+      reviewViewAudit: compact.audit,
+    });
+  } finally { await compact.cleanup(); }
 }

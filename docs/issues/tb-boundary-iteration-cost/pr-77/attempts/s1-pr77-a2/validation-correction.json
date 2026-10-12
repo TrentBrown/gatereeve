@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "initialOutcome": "invalidated",
+  "reason": "Dirty-checkout packet validator failed; command sequence continued and recorded its empty output.",
+  "invalidatedBy": "evt-s1-pr77-a2-packet-validation-corrected",
+  "correctOutcome": "PASS",
+  "evidence": "packet-validation-clean.json",
+  "recordedBy": "evt-s1-pr77-a2-packet-validation-clean",
+  "sourceIntegrity": "pr_context finalize verified synchronized remote/local head and only exact declared packet/tracker/journal paths changed since evaluated source; original gate preparation fingerprint unchanged.",
+  "emptyPriorArtifact": "packet-validation.json is retained as the invalidated original artifact; no human review was requested before correction."
+}

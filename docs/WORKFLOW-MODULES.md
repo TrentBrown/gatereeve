@@ -271,3 +271,73 @@ and proves that the released source contains the feature-final merge. Only a
 terminal, failure-free `COMPLETE` chain records `PASS`; intermediate stages and
 failures remain live observational status with safe links back to the protected
 workflow.
+
+## Compact independent review inputs
+
+Model 1.5.0 requires protocol core 1.1.0 and selects Judge module 3.0.0.
+Its agent-workflow adapter declares:
+
+```json
+"reviewInput": {"kind": "compact-review-v1", "history": "exclude"}
+```
+
+This opt-in declaration is version/digest bound. Definitions without it retain
+legacy input construction; an installed upgrade does not migrate feature locks.
+Explicit model migration preserves earlier attempts and their definitions.
+
+Compact input schema 2 retains the exact selected base/head and source inventory.
+Patch references name an index with ordered, offset-bound chunks of at most
+64 KiB. Inventory and binary old/new contents are digest-bound snapshot files;
+identical feature/slice patches share one payload. Git exports go directly to
+disk rather than assembling all changes into a bounded JSON field. Renames keep
+their substantive edits, and shared or unrelated integrated source remains
+available for complete-feature evaluation.
+
+Formal Judge receives approved spec/design and current full Verification. Raw
+feature journals, advisory records and earlier review packets are excluded from
+the supplied documents, diff and read-only snapshot. A source alias or symlink
+that exposes excluded history rejects preparation; an unclassified executable
+in a history location is rejected rather than silently hidden. Missing approved
+requirements require reconciliation. This policy does not summarize journals
+into new requirements.
+
+The input and execution receipt bind the original source tree and filtered-view
+identity. The trusted host publishes `judge-view-audit.json` afterward, binds it
+in `judge.json`, and retains excluded paths and size metrics there. That audit is
+outside the Judge's repository view. Verification remains a hard dependency;
+compact inputs do not substitute for tests, fresh-context isolation, gate
+currentness or human merge authority.
+
+Current Verification images/PDFs must be retained as explicit bound attachments
+on the gate evidence reference:
+
+```json
+{
+  "path": "docs/issues/example/pr-1/attempts/a1/verification.md",
+  "hash": "sha256:<report hash>",
+  "attachments": [
+    {"path": "docs/issues/example/slice-1-evidence/screen.png", "hash": "sha256:<image hash>"}
+  ]
+}
+```
+
+The host verifies each attachment, copies it into the reserved evidence area,
+and supplies `verificationAttachments` separately from the unchanged report.
+Missing linked images, duplicate attachment filenames, changed bytes, or
+narrative attachments reject preparation. Historical capture scripts and
+YAML test/configuration files in evidence directories remain inspectable source;
+old logs and reports are excluded. Governed packet/advisory namespaces remain
+reserved for records and reject unclassified executables.
+
+Compact boundary attempts may freeze a `criteria` array of unique approved
+rubric IDs. Slice criteria must belong to the slice's declared rubric; a
+whole-feature review must include the complete approved rubric. The scope is
+bound into preparation/fingerprints, and the Judge must score exactly that set
+while checking changed work for scope, gaps and contradictions. Legacy attempts
+retain their existing scope behavior.
+
+Compact snapshots suppress archive export attributes and verify allowed file
+bytes, executable modes and symlink targets against their pinned Git blobs.
+Temporary object databases are removed before the provider sees the snapshot.
+Legacy standalone review/verification reports beside feature documents are
+also excluded by their record names; approved spec/design remain available.

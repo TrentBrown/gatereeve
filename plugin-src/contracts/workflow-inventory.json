@@ -173,6 +173,8 @@
   "resources": {
     "agentWorkflows": [
       "judge/agent.md",
+      "judge/compact-agent.md",
+      "judge/compact-stage-input.schema.json",
       "judge/result.schema.json",
       "judge/stage-input.schema.json",
       "judge/validator.js",
@@ -277,6 +279,7 @@
       "modules.js",
       "observer.js",
       "pinned-snapshot.js",
+      "review-input.js",
       "package.json",
       "plugin-adapter.js",
       "projection.js",

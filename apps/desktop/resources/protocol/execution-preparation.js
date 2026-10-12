@@ -93,6 +93,7 @@ export async function prepareBoundaryModuleExecution({
         moduleDigest: target.moduleDigest ?? null,
       },
       context,
+      ...(module?.run?.reviewInput ? { criteria: attempt.criteria ?? null } : {}),
     },
   };
 }

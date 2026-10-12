@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:f04255fb6ed290f450e4e6b6dbbf03dd33209933b1dc1821bc22eabe8faa94ac",
-  "modelSha256": "66f2b5cf1ad5e6958326fc0881832e8e7f96e1d0f603b0f74da930c499513725",
+  "protocolHash": "sha256:53ba0169a1af47fdbd6e0113c807d369ba4d87c6a99c0bd54820d0f6e94ff427",
+  "modelSha256": "6171e7d9a65c8d256884e266ca0ed4713bd8bb31207a04450fb75b3f82fa0beb",
   "files": [
     {
       "path": "agent-workflow-resources.js",
@@ -21,8 +21,8 @@
     },
     {
       "path": "agent-workflow-service.js",
-      "size": 10552,
-      "sha256": "0825cf4f58c148e45d1ee273057bd900a9c0f5cb97c044b3ffdbb0c2d51e4f52"
+      "size": 14064,
+      "sha256": "37c640bae4cbd4efa54c0d4dd486540a81b84a2d40079825e65911077f460825"
     },
     {
       "path": "agent-workflow.js",
@@ -52,7 +52,7 @@
     {
       "path": "constants.js",
       "size": 2059,
-      "sha256": "422fa216ea7e1e89dc3245805fc1ee3606932dcc6c4beee62bb721a9e952255f"
+      "sha256": "b1eb9a0eac7984b00bc0c9360354a423ac670348f2d255a11c2086487fb3ae37"
     },
     {
       "path": "context.js",
@@ -66,8 +66,8 @@
     },
     {
       "path": "execution-preparation.js",
-      "size": 3856,
-      "sha256": "33450bc703bc4fa1b7e18c3b244cc42c3d49e27357da01a307896390fe1d0799"
+      "size": 3939,
+      "sha256": "0e541fdd029e52a5e4d067a3936f8a54b12dad68d291c97f16653227eae1510f"
     },
     {
       "path": "feature.js",
@@ -101,8 +101,8 @@
     },
     {
       "path": "index.js",
-      "size": 1084,
-      "sha256": "5369a3ec18b519c12be04b2352b27595e50c311cb6d4529283cf24b419475e9d"
+      "size": 1119,
+      "sha256": "90f550af25c926c133f85596da4117a364294f9592291327268baa106e87f7d4"
     },
     {
       "path": "journal.js",
@@ -122,12 +122,12 @@
     {
       "path": "model/default-workflow-policy.json",
       "size": 2322,
-      "sha256": "af980e3a66012700fdbdd0dc5e424730e6fa04cbb71d893d00ae1559dd2afedd"
+      "sha256": "30ba3484c386ed5a394de9250b846a4c2a20aec3fc8faa2a93344f7ac5e2a7c4"
     },
     {
       "path": "model/workflow-model.json",
-      "size": 25648,
-      "sha256": "66f2b5cf1ad5e6958326fc0881832e8e7f96e1d0f603b0f74da930c499513725"
+      "size": 25840,
+      "sha256": "6171e7d9a65c8d256884e266ca0ed4713bd8bb31207a04450fb75b3f82fa0beb"
     },
     {
       "path": "model.js",
@@ -141,8 +141,8 @@
     },
     {
       "path": "modules.js",
-      "size": 32643,
-      "sha256": "25239510eec713966c787f3bf952e2ea0e79296adc8e762c8fe028b209867472"
+      "size": 33087,
+      "sha256": "cda1780cf982a54330ad8c65fd25e058fca785a529b0a8a99224b89bb972604d"
     },
     {
       "path": "observer.js",
@@ -156,8 +156,8 @@
     },
     {
       "path": "pinned-snapshot.js",
-      "size": 9202,
-      "sha256": "d9a30ecec217f2a02e82d99cd656a16c46e2827745e9bd0cb15b765a0b2c6316"
+      "size": 12685,
+      "sha256": "806b01da8386dc972a6c3f963f731ae90443dfe7b4419119bc99bc192b7dcbcd"
     },
     {
       "path": "plugin-adapter.js",
@@ -166,8 +166,8 @@
     },
     {
       "path": "projection.js",
-      "size": 44714,
-      "sha256": "eb573722bba7bb9e7621a583d5473d59da52aade43553e24babe29276defbb93"
+      "size": 45337,
+      "sha256": "eec0ae5e821f01d180f709f3d5b875f8ba457f5d7ffcf711212b9051ddb02067"
     },
     {
       "path": "python-guards.js",
@@ -178,6 +178,11 @@
       "path": "result.js",
       "size": 2502,
       "sha256": "e1530a683d25bd7250c14d5e5c849ac7862cfecedc35d8c81080360ed0f75ce5"
+    },
+    {
+      "path": "review-input.js",
+      "size": 16214,
+      "sha256": "aa10cd619445eb98bd9b251a0a3668c00775e899befefc6ea5d8bced0fb3b9ca"
     },
     {
       "path": "snapshot.js",
