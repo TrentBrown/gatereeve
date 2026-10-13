@@ -1,0 +1,32 @@
+Pinned source: cf9e2ed6ca1ddf252f86766fb9e9818925bf3079
+
+COMMAND: python3 -m unittest discover -s plugin-src/shared/resources/scripts/tests -p test_boundary_retry.py
+EXIT: 0
+......
+----------------------------------------------------------------------
+Ran 6 tests in 2.272s
+
+OK
+
+COMMAND: /opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/boundary-retry.test.js cli/test/portability.test.js
+EXIT: 0
+✔ uncertain begin-boundary resumes exact PR without duplicating attempt or events (149.49425ms)
+✔ uncertain gate recording reconciles actual bytes/event and never duplicates PASS (129.064458ms)
+✔ FAIL is early retained discovery; presentation waits and revised attempt carries no PASS (231.203125ms)
+✔ clean substantive path orders discovery/triage before presentation and finalizes repeat-safely (364.237792ms)
+✔ source movement, changed identity, model/input mismatch and premature packet block passage (107.495959ms)
+✔ recording refuses native Judge shortcuts and changed evidence cannot become CURRENT (224.343833ms)
+✔ stale preparation dependency identity is rejected instead of copying PASS (119.819834ms)
+✔ status is observational and pause prevents further mutations (123.147584ms)
+✔ lints the canonical repository plugin sources (35.577916ms)
+✔ rejects personal paths before inventory validation (1.421834ms)
+✔ rejects root escapes and native platform markers in shared source (0.889042ms)
+✔ rejects symlinks in canonical package sources (2.997834ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1536.975667
