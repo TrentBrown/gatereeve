@@ -365,7 +365,7 @@
   "retention": {
     "status": "tracked",
     "gitRoot": "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve",
-    "trackedFileCount": 175,
+    "trackedFileCount": 176,
     "untrackedFileCount": 0,
     "untrackedFiles": [],
     "ignoredFileCount": 0,
