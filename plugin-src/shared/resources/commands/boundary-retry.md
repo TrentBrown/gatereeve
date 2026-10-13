@@ -65,8 +65,9 @@ Final Explain Diff, narrative and consolidated summaries wait for all
 substantive gates to be current and nonblocking under existing policies,
 including explicit applicable waivers. Decision triage precedes Explain Diff,
 matching the graph. After `PREPARE_PACKET`, use `action: packet` to construct
-the digest-bound manifest from recorded gates. Reconcile the tracker packet
-link, commit/push only returned declared evidence paths, then `action: finalize`
+the digest-bound manifest from recorded gates. Reconcile issues to in-review
+and the tracker packet link; both canonical documents are declared evidence.
+Commit/push only returned evidence paths, then `action: finalize`
 performs trusted clean-checkout synchronization, Git-derived packet validation
 and core passage. Each `COMMIT_AND_PUSH_EVIDENCE` requires committing/pushing
 that bookkeeping before resuming `finalize`, including packet-validation and

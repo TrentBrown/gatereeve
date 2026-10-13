@@ -95,7 +95,9 @@ test('clean substantive path orders discovery/triage before presentation and fin
  assert.ok(trace.indexOf('codeReview')<trace.indexOf('judge'));
  assert.ok(trace.indexOf('specEvaluation')<trace.indexOf('judge'));
  assert.ok(trace.indexOf('decisionTriage')<trace.indexOf('explainDiff'));
- assert.equal((await f.invoke({action:'packet'})).status,'COMMIT_AND_PUSH_EVIDENCE');
+ const packetStep=await f.invoke({action:'packet'});
+ assert.equal(packetStep.status,'COMMIT_AND_PUSH_EVIDENCE');
+ assert.ok(packetStep.evidencePaths.includes('docs/issues/feature/issues.md'));
  const manifest=JSON.parse(await readFile(join(f.home,'pr-42/boundary.json')));
  assert.equal(manifest.gates.judge.evidence.path,'attempts/retry-ready-1/judge.md');
  assert.equal((await f.invoke({action:'finalize'})).status,'COMMIT_AND_PUSH_EVIDENCE');

@@ -301,6 +301,6 @@ export async function retryBoundary(featureHome, input, dependencies = {}) {
 }
 
 function evidencePaths(home, root, packet) {
-  return [join(home, packet), join(home, 'tracker.md'), join(home, 'events.jsonl')]
+  return [join(home, packet), join(home, 'issues.md'), join(home, 'tracker.md'), join(home, 'events.jsonl')]
     .map(path => relative(root, path).split('\\').join('/'));
 }
