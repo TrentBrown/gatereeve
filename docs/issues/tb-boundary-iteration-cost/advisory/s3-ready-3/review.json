@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-boundary-iteration-cost",
+  "sliceId": "s3-advisory-discovery",
+  "readinessId": "s3-ready-3",
+  "source": {
+    "baseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "headSha": "93cd8d7b2e4765a3dc43be10c90bd5530c139542",
+    "sliceBaseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "scope": "SLICE",
+    "boundaryScope": "SLICE"
+  },
+  "inputIdentity": "sha256:ec2abf5530762762d7035f6261480375fedf37f2994435af1c64375d5c11b434",
+  "requestIdentity": "sha256:de003b631c5eb7a422971b8aaf22f79234073507701ef97f446a533322e73755",
+  "readiness": {
+    "path": "advisory/s3-ready-3/readiness.json",
+    "hash": "sha256:a03f7465865a9d35d6e1d0c8e3634ec40733ae5631245182d45559986a6e692e"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "FINDINGS",
+  "result": {
+    "schemaVersion": 1,
+    "outcome": "FINDINGS",
+    "fullVerification": "PENDING",
+    "summary": "Advisory review found two supported readiness defects: unreconciled IN_PROGRESS advisory claims can be bypassed into formal entry, and some accepted formal FAIL records cannot be converted into the required advisory fix checklist.",
+    "criteria": [
+      {
+        "id": "R1",
+        "result": "SATISFIED",
+        "explanation": "Readiness declaration is explicit, requires fast and focused checks, launches the provider only when Judge is applicable, and revised declarations bind the current pinned source.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:128",
+          "plugin-src/shared/resources/protocol/advisory.js:260",
+          "plugin-src/shared/resources/protocol/advisory.js:177",
+          "plugin-src/shared/resources/protocol/advisory.js:518"
+        ]
+      },
+      {
+        "id": "R2",
+        "result": "SATISFIED",
+        "explanation": "The advisory input uses compact pinned source, approved spec/design, fast/focused evidence, fullVerification PENDING, and receipts are checked against the formal Judge capability/isolation contract.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:224",
+          "plugin-src/shared/resources/protocol/advisory.js:659",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:455",
+          "plugin-src/shared/resources/protocol/model.js:224"
+        ]
+      },
+      {
+        "id": "R3",
+        "result": "SATISFIED",
+        "explanation": "Clean advisory output is represented as READY_FOR_FORMAL_REVIEW with PENDING full verification, non-clean formal entry requires a retained reason, and advisory passage does not record a formal gate outcome.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory-contract.js:190",
+          "plugin-src/shared/resources/protocol/advisory.js:893",
+          "plugin-src/shared/resources/protocol/transitions.js:283",
+          "cli/test/advisory.test.js:300"
+        ]
+      },
+      {
+        "id": "R6",
+        "result": "FINDING",
+        "explanation": "Formal FAIL records accepted without structured concern findings cannot be mapped into defect-class remediation with invariant and affected paths.",
+        "evidence": [
+          "plugin-src/shared/resources/agent-workflows/judge/result.schema.json:55",
+          "plugin-src/shared/resources/agent-workflows/judge/validator.js:21",
+          "plugin-src/shared/resources/protocol/advisory-history.js:110"
+        ]
+      },
+      {
+        "id": "R7",
+        "result": "FINDING",
+        "explanation": "Because accepted formal failures may have no structured findings, a rerun cannot receive every prior formal finding as a fix checklist item.",
+        "evidence": [
+          "plugin-src/shared/resources/agent-workflows/judge/result.schema.json:55",
+          "plugin-src/shared/resources/protocol/advisory-history.js:110",
+          "plugin-src/shared/resources/protocol/advisory.js:285"
+        ]
+      },
+      {
+        "id": "R8",
+        "result": "SATISFIED",
+        "explanation": "The advisory prompt requests all supported findings, keeps distinct defects separate, and remediation recurrence requires failed-fix explanation plus changed approach without adding a count halt.",
+        "evidence": [
+          "plugin-src/shared/resources/agent-workflows/advisory/agent.md:17",
+          "plugin-src/shared/resources/agent-workflows/advisory/agent.md:19",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:304",
+          "plugin-src/shared/resources/commands/advisory-review.md:64"
+        ]
+      },
+      {
+        "id": "R9",
+        "result": "SATISFIED",
+        "explanation": "Tracked advisory records retain source/input identity, findings or operational errors, compact receipts, and are checked as committed evidence before formal entry.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:425",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:418",
+          "plugin-src/shared/resources/protocol/advisory.js:957",
+          "plugin-src/shared/resources/protocol/advisory-storage.js:65"
+        ]
+      },
+      {
+        "id": "R10",
+        "result": "SATISFIED",
+        "explanation": "Clean reuse is keyed to the full advisory input identity, including compact review input, resources, checks, prior findings, governance and opaque record-space data; changed inputs are rejected.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:333",
+          "plugin-src/shared/resources/protocol/advisory.js:513",
+          "plugin-src/shared/resources/protocol/advisory.js:865",
+          "plugin-src/shared/resources/protocol/advisory-inputs.js:108"
+        ]
+      },
+      {
+        "id": "R11",
+        "result": "FINDING",
+        "explanation": "Formal entry can be made eligible for an advisory whose execution is only IN_PROGRESS, without an unavailable result or exhausted retry.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:775",
+          "plugin-src/shared/resources/protocol/advisory.js:889",
+          "plugin-src/shared/resources/protocol/advisory.js:916",
+          "plugin-src/shared/resources/protocol/advisory-contract.js:544"
+        ]
+      },
+      {
+        "id": "R23",
+        "result": "SATISFIED",
+        "explanation": "Codex and Claude adapters share the same plugin-local workflow resources and protocol adapter operations, with stable operational outcomes exposed through CLI/plugin entrypoints.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory.js:303",
+          "plugin-src/shared/resources/protocol/local-agent-adapters.js:175",
+          "plugin-src/shared/resources/protocol/local-agent-adapters.js:223",
+          "plugin-src/shared/resources/protocol/plugin-adapter.js:111"
+        ]
+      }
+    ],
+    "scopeCheck": {
+      "result": "SATISFIED",
+      "explanation": "The review covered the supplied slice files, approved spec/design and every declared in-scope criterion R1,R2,R3,R6,R7,R8,R9,R10,R11,R23.",
+      "evidence": [
+        "docs/issues/tb-boundary-iteration-cost/spec.md:39",
+        ".gatereeve-agent-evidence/inventory.json",
+        "plugin-src/shared/resources/protocol/advisory.js:1"
+      ]
+    },
+    "gapCheck": {
+      "result": "FINDING",
+      "explanation": "The slice has behavioral gaps for unreconciled advisory claims and formal FAIL records lacking structured concern findings.",
+      "evidence": [
+        "plugin-src/shared/resources/protocol/advisory.js:889",
+        "plugin-src/shared/resources/protocol/advisory-contract.js:544",
+        "plugin-src/shared/resources/protocol/advisory-history.js:110"
+      ]
+    },
+    "contradictionCheck": {
+      "result": "FINDING",
+      "explanation": "The shipped guidance says an IN_PROGRESS execution claim must be reconciled, but the boundary proof validator and disposition check can accept IN_PROGRESS with a proceed reason.",
+      "evidence": [
+        "plugin-src/shared/resources/commands/advisory-review.md:53",
+        "plugin-src/shared/resources/protocol/advisory.js:893",
+        "plugin-src/shared/resources/protocol/advisory-contract.js:544"
+      ]
+    },
+    "findings": [
+      {
+        "summary": "Proceed can admit formal entry while advisory execution is still IN_PROGRESS.",
+        "criterionIds": [
+          "R11"
+        ],
+        "invariant": "A retained proceed reason may bypass only a completed non-clean advisory disposition such as FINDINGS or UNAVAILABLE after the retry/error contract, not an unreconciled execution claim.",
+        "affectedPaths": [
+          "plugin-src/shared/resources/protocol/advisory.js",
+          "plugin-src/shared/resources/protocol/advisory-contract.js",
+          "plugin-src/shared/resources/commands/advisory-review.md"
+        ],
+        "evidence": [
+          "plugin-src/shared/resources/commands/advisory-review.md:53 states an execution claim without a result is IN_PROGRESS and must be reconciled.",
+          "plugin-src/shared/resources/protocol/advisory.js:775 records proceed reasons after only finding readiness.json; it does not require a review result or unavailable disposition.",
+          "plugin-src/shared/resources/protocol/advisory.js:889 treats missing review.json as IN_PROGRESS, and lines 893-895 accept any non-clean outcome when proceed.json exists.",
+          "plugin-src/shared/resources/protocol/advisory.js:916 can bind proof.review to claim.json, while plugin-src/shared/resources/protocol/advisory-contract.js:544-550 explicitly permits IN_PROGRESS with proceed evidence."
+        ]
+      },
+      {
+        "summary": "Formal Judge FAIL records can be accepted without structured findings, then cannot enter the advisory checklist.",
+        "criterionIds": [
+          "R6",
+          "R7"
+        ],
+        "invariant": "Every recorded formal code failure that drives revised readiness must expose structured supported findings with invariant and affected paths so advisory reruns can bind and check them exactly once.",
+        "affectedPaths": [
+          "plugin-src/shared/resources/agent-workflows/judge/result.schema.json",
+          "plugin-src/shared/resources/agent-workflows/judge/validator.js",
+          "plugin-src/shared/resources/protocol/advisory-history.js"
+        ],
+        "evidence": [
+          "plugin-src/shared/resources/agent-workflows/judge/result.schema.json:55 defines findings as an array without minItems or any requirement tied to FAIL results.",
+          "plugin-src/shared/resources/agent-workflows/judge/validator.js:21-24 derives FAIL solely from criteria/scope/gap/contradiction results and does not require concern findings for a FAIL verdict.",
+          "plugin-src/shared/resources/protocol/advisory-history.js:110-113 later requires at least one severity concern finding before building prior formal advisory findings, so an accepted formal FAIL with empty findings cannot become the required checklist/remediation input."
+        ]
+      }
+    ],
+    "checklist": []
+  },
+  "receipts": [
+    {
+      "schemaVersion": 1,
+      "kind": "gatereeve-agent-workflow-receipt",
+      "protocolVersion": 1,
+      "runId": "advisory-s3-ready-3-1",
+      "attemptId": "advisory-s3-ready-3",
+      "module": {
+        "id": "gatereeve/advisory-review",
+        "version": "1.0.0",
+        "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+      },
+      "stage": "advisory",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "provider": {
+        "id": "codex",
+        "adapterVersion": "1.0.0",
+        "model": "gpt-5.5",
+        "reasoningEffort": "high",
+        "contextId": "01a13257-639a-7a80-9519-178de57848cf"
+      },
+      "isolation": {
+        "method": "codex-ephemeral-exec",
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "policy": {
+        "repositoryAccess": "read-only-pinned",
+        "networkAccess": "denied",
+        "scratch": "disposable"
+      },
+      "startedAt": "2026-10-12T22:59:09.735Z",
+      "completedAt": "2026-10-12T23:05:10.104Z",
+      "status": "completed",
+      "digests": {
+        "instructions": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+        "input": "sha256:d6ae6bddae6b67d07a1966b5c2e1f1fd7de89500effaf2929d35794ac0aabefc",
+        "output": "sha256:f8bcbc028bdbd494a32dd906d8568e9de1dabb6103e96325478c034a2bc4ca60",
+        "snapshot": "sha256:af41e475175fddf28c3d94484e03a3a706e7fa2039b916a817353f803bc72983"
+      }
+    }
+  ],
+  "operationalErrors": []
+}

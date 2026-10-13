@@ -182,9 +182,14 @@ function moduleDescriptors(model) {
 }
 
 function boundarySnapshot(model) {
-  return model.moduleGraph
+  const snapshot = model.moduleGraph
     ? { moduleGraph: structuredClone(model.moduleGraph) }
     : { boundary: structuredClone(model.boundary) };
+  if (model.advisory !== undefined) {
+    snapshot.advisory = structuredClone(model.advisory);
+    snapshot.slice = structuredClone(model.slice);
+  }
+  return snapshot;
 }
 
 function moduleMigration(currentModel, nextModel) {

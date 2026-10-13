@@ -1,0 +1,62 @@
+Pinned source: 69b2e6fb4e180819861e97adad6a92238cae3cfd
+
+COMMAND: /opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/advisory.test.js cli/test/protocol-contracts.test.js
+EXIT: 0
+✔ one readiness declaration automatically reviews complete scope in isolation without formal passage (1083.432709ms)
+✔ formal entry cannot manufacture advisory facts or bypass missing retained reason (1778.66175ms)
+✔ inapplicable formal Judge does not launch an advisory provider (475.829916ms)
+▶ transient advisory execution retries once; persistent isolation/config/schema errors do not retry
+  ✔ recover (501.298083ms)
+  ✔ exhaust (505.228958ms)
+  ✔ config (499.236458ms)
+  ✔ inherited context (496.599583ms)
+  ✔ missing model (655.159583ms)
+✔ transient advisory execution retries once; persistent isolation/config/schema errors do not retry (2658.1045ms)
+▶ clean advisory is reusable across evidence-only commits but each reviewed input change prevents reuse
+  ✔ app.mjs (949.268834ms)
+  ✔ app.test.mjs (941.61425ms)
+  ✔ package.json (952.970459ms)
+  ✔ dependency-lock.json (924.610875ms)
+  ✔ docs/issues/advisory-feature/spec.md (980.075708ms)
+  ✔ docs/issues/advisory-feature/design.md (942.997625ms)
+  ✔ docs/issues/advisory-feature/runtime/advisory-checks/focused.log (881.1035ms)
+✔ clean advisory is reusable across evidence-only commits but each reviewed input change prevents reuse (6573.267834ms)
+✔ defect-class review and changed approach are required for revised readiness; reruns still inspect all criteria (1215.874959ms)
+✔ evidence-only declarations reuse clean inputs and retain the original reviewed source (1267.5855ms)
+▶ retained records reject tampering, unknown transcript fields and unsafe evidence before formal entry
+  ✔ outcome (613.230833ms)
+  ✔ source (624.508625ms)
+  ✔ receipt (614.010416ms)
+  ✔ transcript (606.422542ms)
+  ✔ symlink evidence (432.991709ms)
+  ✔ untracked formal evidence (620.058125ms)
+✔ retained records reject tampering, unknown transcript fields and unsafe evidence before formal entry (3511.756584ms)
+▶ snapshot and output-schema failures are unavailable; valid code findings survive publication errors
+  ✔ snapshot (444.226333ms)
+  ✔ output schema (499.403958ms)
+  ✔ finding publication (620.374625ms)
+✔ snapshot and output-schema failures are unavailable; valid code findings survive publication errors (1564.30025ms)
+✔ advisory uses the formal whole-feature scope and portable Claude receipt contract (625.986292ms)
+✔ adoption preserves historical boundaries and formal graph requirements; older features never auto-adopt (584.906584ms)
+▶ ambiguous JSON and YAML configuration in evidence namespaces cannot gain evidence-only reuse
+  ✔ runtime/config.json (750.816417ms)
+  ✔ runtime/config.yaml (801.238958ms)
+✔ ambiguous JSON and YAML configuration in evidence namespaces cannot gain evidence-only reuse (1552.310291ms)
+✔ formal failures enter the full advisory fix checklist; formal Judge snapshots exclude every advisory record (1401.943375ms)
+✔ optional CLI and plugin adapter share advisory operational results and read-only check behavior (790.879625ms)
+✔ ordinary edits never launch review; revised readiness selects revised pinned source (931.184334ms)
+✔ tracked compact advisory evidence remains usable in a fresh checkout (834.24375ms)
+✔ default workflow model validates and hashes deterministically (14.766375ms)
+✔ historical PR_BOUNDARY model locks remain valid (3.921417ms)
+✔ model validation rejects unknown guards, cycles, and provider injection fields (5.06ms)
+✔ event contract accepts complete events and rejects malformed identity (1.613583ms)
+✔ result envelope has one stable success and failure shape (0.137541ms)
+✔ native packages retain one identical canonical protocol manifest (202.936958ms)
+ℹ tests 45
+ℹ suites 0
+ℹ pass 45
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 26934.40925

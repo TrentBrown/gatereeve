@@ -1,6 +1,7 @@
 import { BOUNDARY_SCOPES, GATE_OUTCOMES } from './constants.js';
 import { ContractError } from './errors.js';
 import { validateRecoveryEvent } from './recovery-contract.js';
+import { validateAdvisoryBoundaryProof } from './advisory-contract.js';
 import {
   gateInputFingerprint,
   SHA256_FINGERPRINT,
@@ -166,9 +167,19 @@ function dependencyOrdering(definitions) {
 }
 
 function boundaryModelFromSnapshot(model, snapshot, event) {
+  // Older snapshots predate advisory readiness. Replay their passage against
+  // that contract, rather than retroactively requiring the newly added guard.
+  const slice = snapshot.slice ?? {
+    ...model.slice,
+    transitions: model.slice.transitions.map(transition => ({
+      ...transition,
+      guards: transition.guards.filter(id => id !== 'slice.advisory.disposition.current'),
+    })),
+  };
+  const historical = { ...model, advisory: snapshot.advisory, slice };
   if (snapshot?.moduleGraph !== undefined && snapshot?.boundary === undefined) {
     validateResolvedModuleGraph(snapshot.moduleGraph);
-    return { ...model, moduleGraph: snapshot.moduleGraph };
+    return { ...historical, moduleGraph: snapshot.moduleGraph };
   }
   if (snapshot?.boundary !== undefined && snapshot?.moduleGraph === undefined) {
     if (!Array.isArray(snapshot.boundary?.gates) || snapshot.boundary.gates.length === 0) {
@@ -176,7 +187,7 @@ function boundaryModelFromSnapshot(model, snapshot, event) {
         `Event ${event.eventId} has an invalid legacy boundary snapshot`
       );
     }
-    return { ...model, moduleGraph: undefined, boundary: snapshot.boundary };
+    return { ...historical, moduleGraph: undefined, boundary: snapshot.boundary };
   }
   throw new ContractError(`Event ${event.eventId} has an invalid boundary snapshot`);
 }
@@ -909,10 +920,17 @@ export function projectRecord(record, { gateFingerprints = {} } = {}) {
       case 'SLICE_ABANDONED':
       case 'SLICE_MERGE_RECORDED': {
         const slice = sliceFor(slices, event);
-        const transition = transitionFor(model.slice, slice.state, event);
+        const eventModel = modelForEvent(model, modelLock.modelHash, boundarySnapshots, event);
+        const transition = transitionFor(eventModel.slice, slice.state, event);
         slice.state = transition.to;
         slice.latestEventId = event.eventId;
         if (event.type === 'BOUNDARY_STARTED') {
+          if (eventModel.advisory !== undefined) {
+            validateAdvisoryBoundaryProof(event.payload.advisoryDecision, {
+              featureId: event.featureId, sliceId: slice.id, context: event.payload.context,
+              scope: event.payload.scope, criteria: event.payload.criteria,
+            });
+          }
           const attemptId = event.payload.attemptId;
           if (
             typeof attemptId !== 'string'

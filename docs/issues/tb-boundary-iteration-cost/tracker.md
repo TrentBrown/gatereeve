@@ -13,17 +13,17 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|--------|-------|
-| R1 | Readiness trigger and applicability | NOT YET | - | AC1; planned for P4 / I-4; final proof P7 / I-7. |
-| R2 | Advisory isolation and evidence | NOT YET | - | AC1; planned for P4 / I-4; P6 / I-6; final proof P7 / I-7. |
-| R3 | Readiness outcome and nonblocking bypass | NOT YET | - | AC1; planned for P4 / I-4; P5 / I-5; final proof P7 / I-7. |
+| R1 | Readiness trigger and applicability | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R2 | Advisory isolation and evidence | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R3 | Readiness outcome and nonblocking bypass | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
 | R4 | Formal Judge history exclusion | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
 | R5 | Approved requirements and audited filtered identity | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
-| R6 | Defect-class remediation | NOT YET | - | AC3; planned for P4 / I-4; final proof P7 / I-7. |
-| R7 | Complete advisory rerun review | NOT YET | - | AC3; planned for P4 / I-4; P6 / I-6; final proof P7 / I-7. |
-| R8 | Recurrence and broader findings | NOT YET | - | AC3; planned for P4 / I-4; P6 / I-6; final proof P7 / I-7. |
-| R9 | Compact durable advisory retention | NOT YET | - | AC4; planned for P4 / I-4; final proof P7 / I-7. |
-| R10 | Verified evidence-only advisory reuse | NOT YET | - | AC4; planned for P1 / I-1; P4 / I-4; final proof P7 / I-7. |
-| R11 | Advisory errors and one retry | NOT YET | - | AC4; planned for P4 / I-4; P6 / I-6; final proof P7 / I-7. |
+| R6 | Defect-class remediation | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R7 | Complete advisory rerun review | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R8 | Recurrence and broader findings | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R9 | Compact durable advisory retention | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R10 | Verified evidence-only advisory reuse | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
+| R11 | Advisory errors and one retry | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
 | R12 | Discovery before presentation | NOT YET | - | AC5; planned for P5 / I-5; P6 / I-6; final proof P7 / I-7. |
 | R13 | Guarded retry orchestration | NOT YET | - | AC5; planned for P5 / I-5; P6 / I-6; final proof P7 / I-7. |
 | R14 | Interruption recovery and formal freshness | NOT YET | - | AC5; planned for P5 / I-5; final proof P7 / I-7. |
@@ -35,7 +35,7 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 | R20 | Recovery blockers | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
 | R21 | Dedicated recovery event and normal closeout | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
 | R22 | Historical compatibility and explicit adoption | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
-| R23 | Portable invocation and observable errors | NOT YET | - | AC8; planned for P3 / I-3; P4 / I-4; P5 / I-5; P6 / I-6; final proof P7 / I-7. |
+| R23 | Portable invocation and observable errors | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
 | R24 | Consistent workflow guidance and measurable cost | NOT YET | - | AC8; planned for P2 / I-2; P5 / I-5; P6 / I-6; final proof P7 / I-7. |
 
 ## Review Log
@@ -86,3 +86,36 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 - 2026-10-12: Decision triage PASS with zero unreviewed entries. Explain Diff generated after substantive PASS for the pinned source; navigation, preformatted code and all five quiz feedback interactions validated. Manifest finalized; clean pushed-checkout packet validation and core review request pending.
 
 - 2026-10-12: Clean Git-derived packet validation is valid; trusted evidence-only synchronization preserves reviewed source7a998a9. Core recorded packetValidation PASS and accepted HUMAN_REVIEW_REQUESTED for s2-pr78-a4 with every required gate current/nonblocking. S2 is HUMAN_REVIEW; exact final-head human acceptance/merge authorization is pending. S3/S4 remain queued; feature remains Delivering Slices.
+
+- 2026-10-12: Trent approved and merged PR #78 at reviewed head9f51ed5; GitHub mergef7fc664 verified by trusted reviewed-content ancestry. Core accepted review and records S2 MERGED. P4/S3 started from updated origin/main on tb-boundary-iteration-cost-03-advisory-discovery.
+
+- 2026-10-12 S3 implementation: advisory.declare-readiness/proceed/check, tracked compact records, full-scope fix checklists, defect-class and recurrence review, input-bound reuse, one transient retry and portable workflow-advisory-review are implemented. This feature explicitly adopted model 1.7/core 1.3 through evt-s3-adopt-advisory-model; all six historical boundary attempts replay intact and formal module definitions/dependencies are unchanged. Current verification: 39 advisory tests, 380 CLI tests, 206 Desktop tests, 97 workflow Python tests and 28 pattern tests passed; plugin/native/portability and new skill validation passed. Live advisory and formal review remain pending. No new rubric PASS is asserted yet.
+
+- S3 early implementation review tightened defect-class affected-path coverage and required tracking of the complete prior advisory/formal evidence chain before formal entry. Added a no-write negative regression; all 40 advisory tests pass. Initial live advisory remains bound to source 69b2e6f and will be retained; revised source requires a new explicit readiness declaration and fresh review. Formal gates remain pending.
+
+- Initial live advisory s3-ready-1 returned READY_FOR_FORMAL_REVIEW on pinned 69b2e6f after one actual Codex gpt-5.5/high execution, with zero inherited turns, read-only repository and denied network receipt. Current source a24bcd0 includes later implementation-review guard fixes; advisory.check correctly rejects the old clean result as stale. It is retained for audit and is not a formal Judge/Verification PASS. Revised source verification: CLI381, Desktop206, Python97+pattern28; fresh readiness/advisory pending.
+
+- S3 retained-result validation now rechecks the recorded formal capability, provider/model/reasoning/adapter version and allowed isolation method against the pinned input manifest. Fourteen focused regression cases passed, including modified capability/provider/isolation receipts; the actual first native receipt also satisfies this stronger contract. Fresh final-source readiness remains required.
+
+- Revised live advisory s3-ready-2 returned READY_FOR_FORMAL_REVIEW at pinned 32859c6, one actual native launch, no findings and full Verification pending. PR #79 is draft OPEN. Hosted Ubuntu acceptance/container jobs then exposed a packaging registration defect: workflow_doctor REQUIRED_SKILLS still expected the old 27-skill catalog. Updated its independent inventory guard to include workflow-advisory-review and added a cross-catalog regression; seven doctor tests passed. The guard remains strict. Complete portable acceptance and another readiness declaration are required on this source change.
+
+### PR #79
+
+- Slice: s3-advisory-discovery (P4 and portable advisory registration).
+- Review surface: draft OPEN, https://github.com/TrentBrown/gatereeve/pull/79.
+- In-scope criteria: R1, R2, R3, R6, R7, R8, R9, R10, R11, R23; other criteria remain outside this slice.
+- Source 93cd8d7: full portable acceptance passes after strict doctor-catalog registration fix; CLI384, Desktop206, workflow Python98, pattern Python28. Native package doctor activation checks are structural simulations, not installed activation.
+- Advisory: earlier native runs were clean at their pinned sources. Fresh s3-ready-3 automatically started for the doctor change. The implementer recorded a source-bound reason to proceed while this advisory completes; formal Verification, Judge and freshness remain required. The formal Judge receives no advisory/decision/review history.
+- Formal boundary: pending; no formal gate PASS or human-review readiness claimed yet.
+
+- S3 first formal attempt s3-pr79-a1: mandatory Verification passed on d11171f; independent native Judge passed all ten scoped criteria. The late advisory s3-ready-3 retained two findings: pending-claim guide ambiguity and a valid formal-FAIL checklist compatibility gap. The core recorded evt-s3-pr79-a1-remediation and returned the slice to IMPLEMENTING; no human review or final presentation was requested. Fixed formal-FAIL normalization without changing formal Judge requirements, clarified the existing reasoned pending policy, and added pending/no-certification and failed-row/path-reconciliation regressions. All 48 advisory tests passed; original reports and formal PASS remain historical only, and a new attempt will start with all formal outcomes unset.
+
+- Readiness s3-ready-4 completed with UNAVAILABLE/PERSISTENT CONTRACT_INVALID after one native attempt; no clean result or code certification is claimed. The source-bound proceed reason records complete defect-class/regression evidence and requires a fresh full Verification and independent Judge. All48 advisory tests and full portable acceptance (CLI389/Python98+28) pass on revised source42bd; Desktop206 pass. Source/records will be pinned for s3-pr79-a2; no old formal PASS is carried forward.
+
+- S3 current formal attempt s3-pr79-a2 passed Verification, scoped spec assessment, code review, pattern review (empty rules warning), independent Judge (all ten criteria/no findings), decision triage and Explain Diff at source a0dd084. Packet: [PR #79](pr-79/boundary.json); interactive explanation: [Explain Diff](pr-79/attempts/s3-pr79-a2/explain-diff.html). Full local verification: CLI389, Desktop206, workflow98/pattern28; native inventory/doctor/deterministic rebuild and document validation pass. Current source hosted CI has zero failures/pending. Advisory4 is UNAVAILABLE with the retained noncertifying reason; no formal requirement was waived. Clean source synchronization/packet validation and core human-review request still pending.
+
+- Clean Git-derived packet validation and trusted PR source synchronization passed at evidence head9ac5bab. Reviewed source remains a0dd084; only the declared pr79/tracker/events evidence paths changed. The core recorded evt-s3-pr79-a2-packetValidation PASS from the actual report. All current formal gates are nonblocking; the next passage is the core human-review request. No merge authority has been observed for S3.
+
+- Correction to the premature human-review entry: the core rejected the first request because the supplied fingerprint map omitted the completed packetValidation fingerprint. No request event was recorded and S3 remains REVIEW_BOUNDARY. The actual packetValidation PASS and clean source/packet proof are retained; the map is being completed from the recorded, independently recomputed gate fingerprint before a fresh request. No S3 merge/release/installed activation/external recovery is claimed.
+
+- The verified packetValidation fingerprint was recomputed from the saved source-current preparation and matched to the actual PASS event. The complete current map then passed all ten gates, and the core recorded HUMAN_REVIEW_REQUESTED evt-s3-pr79-a2-human-review-requested. S3 is now HUMAN_REVIEW. Final clean source/packet synchronization follows this retained event; exact-head human authorization is still required before merge/S4.

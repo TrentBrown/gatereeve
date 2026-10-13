@@ -29,6 +29,17 @@ before requesting human review. Never reopen a PR for a helper. After explicit
 human merge authorization, `pr_lifecycle.py merge` checks the accepted head,
 reopens, satisfies normal GitHub protections, and re-closes on failure.
 
+For advisory-capable governed features, the implementer first declares the
+slice ready after fast/focused checks through `workflow-advisory-review`
+(`resources/commands/advisory-review.md`). The helper automatically performs
+isolated noncertifying discovery. Fix findings and review the defect class
+before revised readiness, or retain a source-bound nonempty reason to proceed.
+Track compact records and referenced focused evidence, and pass `readinessId`
+to `begin-boundary`. Clean means ready for formal review with full Verification
+pending. Keep formal Judge inputs, diff and repository blind to advisory history,
+prior reports and raw decision journals. Existing models require explicit adoption;
+formal gate dependencies, freshness and human authorization remain mandatory.
+
 For governed features, begin a boundary attempt, record every gate result and
 fingerprint, and request human review through the plugin protocol adapter.
 Direct prose or artifact creation cannot advance boundary state.

@@ -81,3 +81,48 @@ Append FEATURE_FINALIZATION_RECOVERED with stable request/receipt identities and
 - Rewrite the last old merge as feature-final: changes historical meaning and authority.
 - Accept a slice report or general proceed text: does not establish whole-feature obligations.
 - Skip finalization modules after recovery: weakens normal closeout guards.
+
+## [5] Keep advisory readiness outside formal certification and pin its model contract
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Protocol 1.3/model 1.7, historical replay, advisory records and portable invocation
+
+Use semantic advisory.declare-readiness/proceed/check APIs outside the formal module graph. The core derives formal-entry disposition from tracked compact source-bound records and evidence; no advisory verdict creates a formal PASS. Bind all reviewed inputs, provider capability and prompt resources before evidence-only reuse; retain the original reviewed source and validated provider receipt. Require defect-class and regression coverage after advisory/formal code failures and changed remediation after recurrence. Record one transient retry, persistent errors as unavailable, and an explicit reason for proceeding. Model adoption is explicit; retain the historical slice/advisory contract in migration snapshots and replay older boundaries without newly introduced readiness guards. Formal Judge continues to exclude all advisory and raw review/decision history. Approved consolidated design and P4 authorize this new compatible model for this feature; existing features keep their locks.
+
+**Triggered by:** P4 approved advisory discovery requires automatic readiness launch without weakening formal independence or freshness
+
+**Alternatives considered:**
+None recorded.
+
+## [6] Keep the independent doctor skill allow-list strict when adding advisory review
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** workflow_doctor, canonical skill inventory, native package readiness and portable acceptance
+
+Include workflow-advisory-review in REQUIRED_SKILLS and add a regression comparing the source inventory to the independent doctor catalog. Preserve the unknown/missing-skill readiness guard. Inspect the contract inventory, native composition, doctor catalog and existing count assertions for the same registration defect. Re-run full portable acceptance on the corrected source. Do not waive the failing acceptance jobs or claim installed activation from structural package tests.
+
+**Triggered by:** Hosted Ubuntu acceptance detected the newly registered advisory skill as unexpected in the separate doctor catalog
+
+**Alternatives considered:**
+None recorded.
+
+## [7] Normalize valid formal FAIL rows without changing the formal Judge contract
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Advisory history/checklists, conservative scope reconciliation, readiness guidance and focused fixtures
+
+Consume failed rubric or independent-check rows when the recorded formal FAIL has no concern list. Preserve the bound report, receipt and original formal outcome. Use exact reported paths when present; otherwise mark conservative complete-scope reconciliation areas from the assembled pinned source and require class review/regressions there. Do not retroactively require a different formal report schema. Clarify that pending claims are reconciled before another provider launch; the approved nonclean reasoned-bypass policy may still admit formal entry without certifying any gate. This is existing spec/design policy, not a new requirement inferred from advisory history. Formal Judge remains blind to these records and receives fresh independent review after remediation.
+
+**Triggered by:** Live advisory found that a valid formal FAIL with no separate concern findings could block revised readiness; pending-claim guidance was ambiguous
+
+**Alternatives considered:**
+None recorded.

@@ -46,7 +46,7 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
       clearTimeout(timer);
       if (killTimer !== null) clearTimeout(killTimer);
       const completedAt = new Date();
-      if (timedOut) return reject(new Error(`${executable} timed out`));
+      if (timedOut) return reject(Object.assign(new Error(`${executable} timed out`), {code:'AGENT_PROVIDER_TIMEOUT'}));
       if (size > MAX_OUTPUT_BYTES) return reject(new Error(`${executable} exceeded the output limit`));
       const result = {
         code,
@@ -61,9 +61,10 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
           result.stderr.trim() ? `stderr:\n${result.stderr.trim()}` : null,
           result.stdout.trim() ? `stdout:\n${result.stdout.trim()}` : null,
         ].filter(Boolean).join('\n');
-        return reject(new Error(
+        const transient = /rate.?limit|\b429\b|\b50[234]\b|temporar(?:y|ily)|connection reset|timed out/iu.test(result.stderr);
+        return reject(Object.assign(new Error(
           `${executable} failed (${signal ?? code}): ${diagnostic}`
-        ));
+        ), {code:transient?'AGENT_PROVIDER_TRANSIENT':'AGENT_PROVIDER_CONFIGURATION'}));
       }
       resolve(result);
     });

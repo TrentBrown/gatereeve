@@ -1,3 +1,4 @@
+import { loadHistoricalModel } from './helpers/historical-model.js';
 import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -30,6 +31,7 @@ async function createFeature() {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve lifecycle '));
   const featureHome = resolve(root, 'docs/issues/protocol-lifecycle');
   await initializeFeature({
+    model: await loadHistoricalModel(),
     featureHome,
     featureId: 'protocol-lifecycle',
     actor: agent,

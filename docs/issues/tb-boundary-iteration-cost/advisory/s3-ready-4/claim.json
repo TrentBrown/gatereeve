@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-claim",
+  "readinessId": "s3-ready-4",
+  "requestIdentity": "sha256:81c959d1406b543c935845822b8f2aae95e701d9652c1742312767cb1a9b9a60"
+}

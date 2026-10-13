@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "modelId": "gatereeve/workflow",
-  "modelVersion": "1.6.0",
+  "modelVersion": "1.7.0",
   "eventSchemaVersion": 1,
   "resultSchemaVersion": 1,
   "coreCompatibility": {
-    "minimum": "1.2.0",
+    "minimum": "1.3.0",
     "maximumExclusive": "2.0.0"
   },
   "guardIds": [
@@ -16,13 +16,14 @@
     "design.approval.confirmed",
     "feature.abandonment.confirmed",
     "feature.closeout.current",
-    "feature.recovery.validated",
     "feature.record.absent",
+    "feature.recovery.validated",
     "human.review.accepted",
     "merge.reviewedContent.verified",
     "model.migration.confirmed",
     "plan.authorization.current",
     "slice.active",
+    "slice.advisory.disposition.current",
     "slice.noneActive",
     "slice.readiness.current",
     "spec.validation.current",
@@ -30,7 +31,10 @@
   ],
   "feature": {
     "initial": "DESIGNING",
-    "terminal": ["COMPLETE", "ABANDONED_FEATURE"],
+    "terminal": [
+      "COMPLETE",
+      "ABANDONED_FEATURE"
+    ],
     "states": [
       "DESIGNING",
       "SPECIFYING",
@@ -47,7 +51,10 @@
         "to": "SPECIFYING",
         "eventType": "DESIGN_APPROVED",
         "authority": "human-confirmation",
-        "guards": ["design.approval.confirmed", "suspension.notPaused"]
+        "guards": [
+          "design.approval.confirmed",
+          "suspension.notPaused"
+        ]
       },
       {
         "id": "validate-spec",
@@ -55,7 +62,10 @@
         "to": "PLANNING",
         "eventType": "SPEC_VALIDATED",
         "authority": "agent",
-        "guards": ["spec.validation.current", "suspension.notPaused"]
+        "guards": [
+          "spec.validation.current",
+          "suspension.notPaused"
+        ]
       },
       {
         "id": "authorize-plan",
@@ -63,7 +73,10 @@
         "to": "DELIVERING_SLICES",
         "eventType": "PLAN_AUTHORIZED",
         "authority": "human-confirmation",
-        "guards": ["plan.authorization.current", "suspension.notPaused"]
+        "guards": [
+          "plan.authorization.current",
+          "suspension.notPaused"
+        ]
       },
       {
         "id": "recover-finalization",
@@ -71,7 +84,13 @@
         "to": "FINALIZING",
         "eventType": "FEATURE_FINALIZATION_RECOVERED",
         "authority": "agent",
-        "guards": ["slice.noneActive", "plan.authorization.current", "suspension.notPaused", "change.blockers.none", "feature.recovery.validated"]
+        "guards": [
+          "slice.noneActive",
+          "plan.authorization.current",
+          "suspension.notPaused",
+          "change.blockers.none",
+          "feature.recovery.validated"
+        ]
       },
       {
         "id": "begin-finalizing",
@@ -79,7 +98,10 @@
         "to": "FINALIZING",
         "eventType": "SLICE_MERGE_RECORDED",
         "authority": "agent",
-        "guards": ["merge.reviewedContent.verified", "change.blockers.none"]
+        "guards": [
+          "merge.reviewedContent.verified",
+          "change.blockers.none"
+        ]
       },
       {
         "id": "resume-delivery",
@@ -87,7 +109,10 @@
         "to": "DELIVERING_SLICES",
         "eventType": "SLICE_PROPOSED",
         "authority": "agent",
-        "guards": ["slice.noneActive", "suspension.notPaused"]
+        "guards": [
+          "slice.noneActive",
+          "suspension.notPaused"
+        ]
       },
       {
         "id": "complete-feature",
@@ -95,7 +120,10 @@
         "to": "COMPLETE",
         "eventType": "FEATURE_FINALIZED",
         "authority": "agent",
-        "guards": ["feature.closeout.current", "change.blockers.none"]
+        "guards": [
+          "feature.closeout.current",
+          "change.blockers.none"
+        ]
       },
       {
         "id": "abandon-designing-feature",
@@ -103,7 +131,9 @@
         "to": "ABANDONED_FEATURE",
         "eventType": "FEATURE_ABANDONED",
         "authority": "human-confirmation",
-        "guards": ["feature.abandonment.confirmed"]
+        "guards": [
+          "feature.abandonment.confirmed"
+        ]
       },
       {
         "id": "abandon-specifying-feature",
@@ -111,7 +141,9 @@
         "to": "ABANDONED_FEATURE",
         "eventType": "FEATURE_ABANDONED",
         "authority": "human-confirmation",
-        "guards": ["feature.abandonment.confirmed"]
+        "guards": [
+          "feature.abandonment.confirmed"
+        ]
       },
       {
         "id": "abandon-planning-feature",
@@ -119,7 +151,9 @@
         "to": "ABANDONED_FEATURE",
         "eventType": "FEATURE_ABANDONED",
         "authority": "human-confirmation",
-        "guards": ["feature.abandonment.confirmed"]
+        "guards": [
+          "feature.abandonment.confirmed"
+        ]
       },
       {
         "id": "abandon-delivering-feature",
@@ -127,7 +161,9 @@
         "to": "ABANDONED_FEATURE",
         "eventType": "FEATURE_ABANDONED",
         "authority": "human-confirmation",
-        "guards": ["feature.abandonment.confirmed"]
+        "guards": [
+          "feature.abandonment.confirmed"
+        ]
       },
       {
         "id": "abandon-finalizing-feature",
@@ -135,13 +171,18 @@
         "to": "ABANDONED_FEATURE",
         "eventType": "FEATURE_ABANDONED",
         "authority": "human-confirmation",
-        "guards": ["feature.abandonment.confirmed"]
+        "guards": [
+          "feature.abandonment.confirmed"
+        ]
       }
     ]
   },
   "slice": {
     "initial": "PROPOSED",
-    "terminal": ["MERGED", "ABANDONED"],
+    "terminal": [
+      "MERGED",
+      "ABANDONED"
+    ],
     "states": [
       "PROPOSED",
       "PLANNED",
@@ -166,7 +207,13 @@
         "to": "IMPLEMENTING",
         "eventType": "SLICE_STARTED",
         "authority": "agent",
-        "guards": ["slice.noneActive", "slice.readiness.current", "plan.authorization.current", "suspension.notPaused", "change.blockers.none"]
+        "guards": [
+          "slice.noneActive",
+          "slice.readiness.current",
+          "plan.authorization.current",
+          "suspension.notPaused",
+          "change.blockers.none"
+        ]
       },
       {
         "id": "begin-boundary",
@@ -174,7 +221,12 @@
         "to": "REVIEW_BOUNDARY",
         "eventType": "BOUNDARY_STARTED",
         "authority": "agent",
-        "guards": ["slice.active", "suspension.notPaused", "change.blockers.none"]
+        "guards": [
+          "slice.active",
+          "suspension.notPaused",
+          "change.blockers.none",
+          "slice.advisory.disposition.current"
+        ]
       },
       {
         "id": "remediate-boundary",
@@ -182,7 +234,10 @@
         "to": "IMPLEMENTING",
         "eventType": "REMEDIATION_STARTED",
         "authority": "agent",
-        "guards": ["slice.active", "suspension.notPaused"]
+        "guards": [
+          "slice.active",
+          "suspension.notPaused"
+        ]
       },
       {
         "id": "request-human-review",
@@ -190,7 +245,11 @@
         "to": "HUMAN_REVIEW",
         "eventType": "HUMAN_REVIEW_REQUESTED",
         "authority": "agent",
-        "guards": ["boundary.requiredGates.current", "change.blockers.none", "suspension.notPaused"]
+        "guards": [
+          "boundary.requiredGates.current",
+          "change.blockers.none",
+          "suspension.notPaused"
+        ]
       },
       {
         "id": "apply-review-changes",
@@ -198,7 +257,9 @@
         "to": "IMPLEMENTING",
         "eventType": "HUMAN_REVIEW_CHANGES_REQUESTED",
         "authority": "human-confirmation",
-        "guards": ["suspension.notPaused"]
+        "guards": [
+          "suspension.notPaused"
+        ]
       },
       {
         "id": "record-merge",
@@ -219,7 +280,9 @@
         "to": "ABANDONED",
         "eventType": "SLICE_ABANDONED",
         "authority": "agent",
-        "guards": ["change.authority.satisfied"]
+        "guards": [
+          "change.authority.satisfied"
+        ]
       },
       {
         "id": "abandon-implementing-slice",
@@ -227,14 +290,27 @@
         "to": "ABANDONED",
         "eventType": "SLICE_ABANDONED",
         "authority": "agent",
-        "guards": ["change.authority.satisfied"]
+        "guards": [
+          "change.authority.satisfied"
+        ]
       }
     ]
   },
   "change": {
     "initial": "PROPOSED",
-    "terminal": ["REJECTED", "VALIDATED", "SUPERSEDED"],
-    "states": ["PROPOSED", "APPROVED", "REJECTED", "APPLIED", "VALIDATED", "SUPERSEDED"],
+    "terminal": [
+      "REJECTED",
+      "VALIDATED",
+      "SUPERSEDED"
+    ],
+    "states": [
+      "PROPOSED",
+      "APPROVED",
+      "REJECTED",
+      "APPLIED",
+      "VALIDATED",
+      "SUPERSEDED"
+    ],
     "authorityByTarget": {
       "design": "human-confirmation",
       "spec": "human-confirmation",
@@ -244,19 +320,66 @@
     "invalidationByTarget": {
       "design": {
         "implementationAuthorization": true,
-        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "whiteboardDefense", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+        "gateIds": [
+          "pinContext",
+          "reconcile",
+          "verification",
+          "specEvaluation",
+          "patternReview",
+          "judge",
+          "whiteboardDefense",
+          "codeReview",
+          "decisionTriage",
+          "explainDiff",
+          "packetValidation"
+        ]
       },
       "spec": {
         "implementationAuthorization": true,
-        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "whiteboardDefense", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+        "gateIds": [
+          "pinContext",
+          "reconcile",
+          "verification",
+          "specEvaluation",
+          "patternReview",
+          "judge",
+          "whiteboardDefense",
+          "codeReview",
+          "decisionTriage",
+          "explainDiff",
+          "packetValidation"
+        ]
       },
       "plan": {
         "implementationAuthorization": false,
-        "gateIds": ["reconcile", "verification", "specEvaluation", "patternReview", "judge", "whiteboardDefense", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+        "gateIds": [
+          "reconcile",
+          "verification",
+          "specEvaluation",
+          "patternReview",
+          "judge",
+          "whiteboardDefense",
+          "codeReview",
+          "decisionTriage",
+          "explainDiff",
+          "packetValidation"
+        ]
       },
       "slice": {
         "implementationAuthorization": false,
-        "gateIds": ["pinContext", "reconcile", "verification", "specEvaluation", "patternReview", "judge", "whiteboardDefense", "codeReview", "decisionTriage", "explainDiff", "packetValidation"]
+        "gateIds": [
+          "pinContext",
+          "reconcile",
+          "verification",
+          "specEvaluation",
+          "patternReview",
+          "judge",
+          "whiteboardDefense",
+          "codeReview",
+          "decisionTriage",
+          "explainDiff",
+          "packetValidation"
+        ]
       }
     },
     "transitions": [
@@ -266,7 +389,9 @@
         "to": "APPROVED",
         "eventType": "CHANGE_APPROVED",
         "authority": "agent",
-        "guards": ["change.authority.satisfied"]
+        "guards": [
+          "change.authority.satisfied"
+        ]
       },
       {
         "id": "reject-change",
@@ -274,7 +399,9 @@
         "to": "REJECTED",
         "eventType": "CHANGE_REJECTED",
         "authority": "agent",
-        "guards": ["change.authority.satisfied"]
+        "guards": [
+          "change.authority.satisfied"
+        ]
       },
       {
         "id": "apply-change",
@@ -282,7 +409,9 @@
         "to": "APPLIED",
         "eventType": "CHANGE_APPLIED",
         "authority": "agent",
-        "guards": ["suspension.notPaused"]
+        "guards": [
+          "suspension.notPaused"
+        ]
       },
       {
         "id": "validate-change",
@@ -290,7 +419,9 @@
         "to": "VALIDATED",
         "eventType": "CHANGE_VALIDATED",
         "authority": "agent",
-        "guards": ["change.authority.satisfied"]
+        "guards": [
+          "change.authority.satisfied"
+        ]
       },
       {
         "id": "supersede-proposed-change",
@@ -298,7 +429,9 @@
         "to": "SUPERSEDED",
         "eventType": "CHANGE_SUPERSEDED",
         "authority": "agent",
-        "guards": ["change.authority.satisfied"]
+        "guards": [
+          "change.authority.satisfied"
+        ]
       },
       {
         "id": "supersede-applied-change",
@@ -306,14 +439,29 @@
         "to": "SUPERSEDED",
         "eventType": "CHANGE_SUPERSEDED",
         "authority": "agent",
-        "guards": ["change.authority.satisfied"]
+        "guards": [
+          "change.authority.satisfied"
+        ]
       }
     ]
   },
   "boundary": {
-    "scopes": ["SLICE", "FEATURE_FINAL"],
-    "outcomes": ["UNSET", "PASS", "FAIL", "WAIVED", "NOT_APPLICABLE"],
-    "freshness": ["CURRENT", "STALE", "UNKNOWN"]
+    "scopes": [
+      "SLICE",
+      "FEATURE_FINAL"
+    ],
+    "outcomes": [
+      "UNSET",
+      "PASS",
+      "FAIL",
+      "WAIVED",
+      "NOT_APPLICABLE"
+    ],
+    "freshness": [
+      "CURRENT",
+      "STALE",
+      "UNKNOWN"
+    ]
   },
   "moduleGraph": {
     "schemaVersion": 1,
@@ -345,12 +493,27 @@
         "locked": true,
         "enabledByDefault": true,
         "waiverAllowed": false,
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "boundary-gate-v1",
+          "dependencyBinding": "event-ids"
+        },
         "boundary": {
           "gateId": "pinContext",
-          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
-          "guards": ["slice.active", "suspension.notPaused"]
+          "evaluationScope": {
+            "SLICE": "SLICE",
+            "FEATURE_FINAL": "SLICE"
+          },
+          "guards": [
+            "slice.active",
+            "suspension.notPaused"
+          ]
         }
       },
       {
@@ -366,9 +529,21 @@
         "locked": false,
         "enabledByDefault": true,
         "waiverAllowed": true,
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "feature-finalization-v1", "dependencyBinding": "event-ids"},
-        "observe": {"providerId": "gatereeve/release-conductor", "version": "1.0.0"}
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "feature-finalization-v1",
+          "dependencyBinding": "event-ids"
+        },
+        "observe": {
+          "providerId": "gatereeve/release-conductor",
+          "version": "1.0.0"
+        }
       },
       {
         "schemaVersion": 1,
@@ -378,17 +553,33 @@
         "label": "Reconcile",
         "description": "Reconciles workflow documents and dependency freshness against pinned context.",
         "slot": "boundary.evaluation",
-        "dependsOn": ["gatereeve/pin-context"],
+        "dependsOn": [
+          "gatereeve/pin-context"
+        ],
         "disposition": "required",
         "locked": true,
         "enabledByDefault": true,
         "waiverAllowed": false,
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "boundary-gate-v1",
+          "dependencyBinding": "event-ids"
+        },
         "boundary": {
           "gateId": "reconcile",
-          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
-          "guards": ["boundary.context.current"]
+          "evaluationScope": {
+            "SLICE": "SLICE",
+            "FEATURE_FINAL": "SLICE"
+          },
+          "guards": [
+            "boundary.context.current"
+          ]
         }
       },
       {
@@ -399,17 +590,33 @@
         "label": "Verification",
         "description": "Runs and records the boundary's scoped deterministic verification.",
         "slot": "boundary.evaluation",
-        "dependsOn": ["gatereeve/reconcile"],
+        "dependsOn": [
+          "gatereeve/reconcile"
+        ],
         "disposition": "required",
         "locked": false,
         "enabledByDefault": true,
         "waiverAllowed": true,
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "boundary-gate-v1",
+          "dependencyBinding": "event-ids"
+        },
         "boundary": {
           "gateId": "verification",
-          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "FEATURE"},
-          "guards": ["boundary.context.current"]
+          "evaluationScope": {
+            "SLICE": "SLICE",
+            "FEATURE_FINAL": "FEATURE"
+          },
+          "guards": [
+            "boundary.context.current"
+          ]
         }
       },
       {
@@ -420,19 +627,38 @@
         "label": "Spec Evaluation",
         "description": "Evaluates the implementation against the approved specification and rubric.",
         "slot": "boundary.evaluation",
-        "dependsOn": ["gatereeve/verification"],
+        "dependsOn": [
+          "gatereeve/verification"
+        ],
         "disposition": "required",
         "locked": false,
         "enabledByDefault": true,
         "waiverAllowed": true,
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "boundary-gate-v1",
+          "dependencyBinding": "event-ids"
+        },
         "boundary": {
           "gateId": "specEvaluation",
-          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "FEATURE"},
-          "guards": ["boundary.context.current"]
+          "evaluationScope": {
+            "SLICE": "SLICE",
+            "FEATURE_FINAL": "FEATURE"
+          },
+          "guards": [
+            "boundary.context.current"
+          ]
         },
-        "run": {"kind": "skill", "skillId": "agentic-development-workflow:workflow-spec-evaluate"}
+        "run": {
+          "kind": "skill",
+          "skillId": "agentic-development-workflow:workflow-spec-evaluate"
+        }
       },
       {
         "schemaVersion": 1,
@@ -442,19 +668,38 @@
         "label": "Pattern Review",
         "description": "Checks the pinned change against the active project pattern rules.",
         "slot": "boundary.evaluation",
-        "dependsOn": ["gatereeve/verification"],
+        "dependsOn": [
+          "gatereeve/verification"
+        ],
         "disposition": "optional",
         "locked": false,
         "enabledByDefault": true,
         "waiverAllowed": true,
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "boundary-gate-v1",
+          "dependencyBinding": "event-ids"
+        },
         "boundary": {
           "gateId": "patternReview",
-          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
-          "guards": ["boundary.context.current"]
+          "evaluationScope": {
+            "SLICE": "SLICE",
+            "FEATURE_FINAL": "SLICE"
+          },
+          "guards": [
+            "boundary.context.current"
+          ]
         },
-        "run": {"kind": "skill", "skillId": "agentic-development-workflow:pattern-review"}
+        "run": {
+          "kind": "skill",
+          "skillId": "agentic-development-workflow:pattern-review"
+        }
       },
       {
         "schemaVersion": 1,
@@ -464,25 +709,47 @@
         "label": "Judge",
         "description": "Performs an independent compliance evaluation against the approved scope in a fresh read-only agent context.",
         "slot": "boundary.evaluation",
-        "dependsOn": ["gatereeve/verification"],
+        "dependsOn": [
+          "gatereeve/verification"
+        ],
         "disposition": "required",
         "locked": false,
         "enabledByDefault": true,
         "waiverAllowed": true,
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "boundary-gate-v1",
+          "dependencyBinding": "event-ids"
+        },
         "boundary": {
           "gateId": "judge",
-          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "FEATURE"},
-          "guards": ["boundary.context.current"]
+          "evaluationScope": {
+            "SLICE": "SLICE",
+            "FEATURE_FINAL": "FEATURE"
+          },
+          "guards": [
+            "boundary.context.current"
+          ]
         },
         "run": {
           "kind": "agent-workflow",
           "protocolVersion": 1,
           "resourcePlugin": "agentic-development-workflow",
-          "capabilityProfile": {"id": "high-capability-v1", "minimumReasoning": "high"},
+          "capabilityProfile": {
+            "id": "high-capability-v1",
+            "minimumReasoning": "high"
+          },
           "automatic": true,
-          "isolation": {"freshContext": true, "inheritedTurns": 0},
+          "isolation": {
+            "freshContext": true,
+            "inheritedTurns": 0
+          },
           "repositoryAccess": "read-only-pinned",
           "networkAccess": "denied",
           "stages": [
@@ -496,11 +763,31 @@
             }
           ],
           "artifacts": [
-            {"path": "judge.json", "mediaType": "application/json", "required": true},
-            {"path": "judge-result.json", "mediaType": "application/json", "required": true},
-            {"path": "judge-receipt.json", "mediaType": "application/json", "required": true},
-            {"path": "judge.md", "mediaType": "text/markdown", "required": true},
-            {"path": "judge-view-audit.json", "mediaType": "application/json", "required": true}
+            {
+              "path": "judge.json",
+              "mediaType": "application/json",
+              "required": true
+            },
+            {
+              "path": "judge-result.json",
+              "mediaType": "application/json",
+              "required": true
+            },
+            {
+              "path": "judge-receipt.json",
+              "mediaType": "application/json",
+              "required": true
+            },
+            {
+              "path": "judge.md",
+              "mediaType": "text/markdown",
+              "required": true
+            },
+            {
+              "path": "judge-view-audit.json",
+              "mediaType": "application/json",
+              "required": true
+            }
           ],
           "evaluator": {
             "resource": "resources/agent-workflows/judge/validator.js",
@@ -509,7 +796,10 @@
           "evidenceRoot": "judge.json",
           "timeoutSeconds": 1800,
           "maxAttempts": 1,
-          "reviewInput": {"kind": "compact-review-v1", "history": "exclude"}
+          "reviewInput": {
+            "kind": "compact-review-v1",
+            "history": "exclude"
+          }
         }
       },
       {
@@ -520,19 +810,38 @@
         "label": "Code Review",
         "description": "Reviews the pinned change for defects, regressions, security risks, and test gaps.",
         "slot": "boundary.evaluation",
-        "dependsOn": ["gatereeve/verification"],
+        "dependsOn": [
+          "gatereeve/verification"
+        ],
         "disposition": "required",
         "locked": false,
         "enabledByDefault": true,
         "waiverAllowed": true,
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "boundary-gate-v1",
+          "dependencyBinding": "event-ids"
+        },
         "boundary": {
           "gateId": "codeReview",
-          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
-          "guards": ["boundary.context.current"]
+          "evaluationScope": {
+            "SLICE": "SLICE",
+            "FEATURE_FINAL": "SLICE"
+          },
+          "guards": [
+            "boundary.context.current"
+          ]
         },
-        "run": {"kind": "skill", "skillId": "agentic-development-workflow:workflow-pr-review"}
+        "run": {
+          "kind": "skill",
+          "skillId": "agentic-development-workflow:workflow-pr-review"
+        }
       },
       {
         "schemaVersion": 1,
@@ -542,27 +851,51 @@
         "label": "Whiteboard Defense",
         "description": "Builds an adversarial, evidence-backed challenge-and-reveal explanation of the exact pinned change.",
         "slot": "boundary.evaluation",
-        "dependsOn": ["gatereeve/verification"],
-        "after": ["gatereeve/judge"],
+        "dependsOn": [
+          "gatereeve/verification"
+        ],
+        "after": [
+          "gatereeve/judge"
+        ],
         "disposition": "required",
         "locked": false,
         "enabledByDefault": false,
         "waiverAllowed": true,
         "waiverPolicy": "non-behavioral-only",
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "boundary-gate-v1",
+          "dependencyBinding": "event-ids"
+        },
         "boundary": {
           "gateId": "whiteboardDefense",
-          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "FEATURE"},
-          "guards": ["boundary.context.current"]
+          "evaluationScope": {
+            "SLICE": "SLICE",
+            "FEATURE_FINAL": "FEATURE"
+          },
+          "guards": [
+            "boundary.context.current"
+          ]
         },
         "run": {
           "kind": "agent-workflow",
           "protocolVersion": 1,
           "resourcePlugin": "whiteboard-test",
-          "capabilityProfile": {"id": "high-capability-v1", "minimumReasoning": "high"},
+          "capabilityProfile": {
+            "id": "high-capability-v1",
+            "minimumReasoning": "high"
+          },
           "automatic": true,
-          "isolation": {"freshContext": true, "inheritedTurns": 0},
+          "isolation": {
+            "freshContext": true,
+            "inheritedTurns": 0
+          },
           "repositoryAccess": "read-only-pinned",
           "networkAccess": "denied",
           "stages": [
@@ -577,19 +910,45 @@
             {
               "id": "defender-publisher",
               "role": "Whiteboard Defender and Publisher",
-              "dependsOn": ["challenger"],
+              "dependsOn": [
+                "challenger"
+              ],
               "promptResource": "resources/whiteboard-test/agents/defender-publisher.md",
               "inputSchema": "resources/whiteboard-test/schemas/stage-input.schema.json",
               "outputSchema": "resources/whiteboard-test/schemas/defense.schema.json"
             }
           ],
           "artifacts": [
-            {"path": "whiteboard-defense.json", "mediaType": "application/json", "required": true},
-            {"path": "whiteboard-defense.html", "mediaType": "text/html", "required": true},
-            {"path": "challenger.json", "mediaType": "application/json", "required": true},
-            {"path": "defender-publisher.json", "mediaType": "application/json", "required": true},
-            {"path": "challenger-receipt.json", "mediaType": "application/json", "required": true},
-            {"path": "defender-publisher-receipt.json", "mediaType": "application/json", "required": true}
+            {
+              "path": "whiteboard-defense.json",
+              "mediaType": "application/json",
+              "required": true
+            },
+            {
+              "path": "whiteboard-defense.html",
+              "mediaType": "text/html",
+              "required": true
+            },
+            {
+              "path": "challenger.json",
+              "mediaType": "application/json",
+              "required": true
+            },
+            {
+              "path": "defender-publisher.json",
+              "mediaType": "application/json",
+              "required": true
+            },
+            {
+              "path": "challenger-receipt.json",
+              "mediaType": "application/json",
+              "required": true
+            },
+            {
+              "path": "defender-publisher-receipt.json",
+              "mediaType": "application/json",
+              "required": true
+            }
           ],
           "evaluator": {
             "resource": "resources/whiteboard-test/validator.js",
@@ -609,19 +968,41 @@
         "description": "Resolves implementation decisions before the review packet is finalized.",
         "slot": "boundary.evaluation",
         "dependsOn": [],
-        "after": ["gatereeve/spec-evaluation", "gatereeve/pattern-review", "gatereeve/judge", "gatereeve/code-review"],
+        "after": [
+          "gatereeve/spec-evaluation",
+          "gatereeve/pattern-review",
+          "gatereeve/judge",
+          "gatereeve/code-review"
+        ],
         "disposition": "required",
         "locked": true,
         "enabledByDefault": true,
         "waiverAllowed": false,
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "boundary-gate-v1",
+          "dependencyBinding": "event-ids"
+        },
         "boundary": {
           "gateId": "decisionTriage",
-          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
-          "guards": ["boundary.requiredGates.current"]
+          "evaluationScope": {
+            "SLICE": "SLICE",
+            "FEATURE_FINAL": "SLICE"
+          },
+          "guards": [
+            "boundary.requiredGates.current"
+          ]
         },
-        "run": {"kind": "skill", "skillId": "agentic-development-workflow:workflow-decision-triage"}
+        "run": {
+          "kind": "skill",
+          "skillId": "agentic-development-workflow:workflow-decision-triage"
+        }
       },
       {
         "schemaVersion": 1,
@@ -631,19 +1012,38 @@
         "label": "Explain Diff",
         "description": "Produces the human-facing explanation of the pinned code change.",
         "slot": "boundary.evaluation",
-        "dependsOn": ["gatereeve/decision-triage"],
+        "dependsOn": [
+          "gatereeve/decision-triage"
+        ],
         "disposition": "required",
         "locked": false,
         "enabledByDefault": true,
         "waiverAllowed": false,
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "boundary-gate-v1",
+          "dependencyBinding": "event-ids"
+        },
         "boundary": {
           "gateId": "explainDiff",
-          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
-          "guards": ["boundary.context.current"]
+          "evaluationScope": {
+            "SLICE": "SLICE",
+            "FEATURE_FINAL": "SLICE"
+          },
+          "guards": [
+            "boundary.context.current"
+          ]
         },
-        "run": {"kind": "skill", "skillId": "agentic-development-workflow:explain-diff"}
+        "run": {
+          "kind": "skill",
+          "skillId": "agentic-development-workflow:explain-diff"
+        }
       },
       {
         "schemaVersion": 1,
@@ -653,24 +1053,135 @@
         "label": "Packet Validation",
         "description": "Validates the complete evidence packet before human review begins.",
         "slot": "boundary.evaluation",
-        "dependsOn": ["gatereeve/explain-diff"],
+        "dependsOn": [
+          "gatereeve/explain-diff"
+        ],
         "disposition": "required",
         "locked": true,
         "enabledByDefault": true,
         "waiverAllowed": false,
-        "evidence": {"kind": "reference", "requiredFor": ["PASS", "FAIL"]},
-        "fingerprint": {"kind": "boundary-gate-v1", "dependencyBinding": "event-ids"},
+        "evidence": {
+          "kind": "reference",
+          "requiredFor": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "fingerprint": {
+          "kind": "boundary-gate-v1",
+          "dependencyBinding": "event-ids"
+        },
         "boundary": {
           "gateId": "packetValidation",
-          "evaluationScope": {"SLICE": "SLICE", "FEATURE_FINAL": "SLICE"},
-          "guards": ["boundary.context.current", "boundary.requiredGates.current"]
+          "evaluationScope": {
+            "SLICE": "SLICE",
+            "FEATURE_FINAL": "SLICE"
+          },
+          "guards": [
+            "boundary.context.current",
+            "boundary.requiredGates.current"
+          ]
         }
       }
     ]
   },
   "presentation": {
-    "featureOrder": ["DESIGNING", "SPECIFYING", "PLANNING", "DELIVERING_SLICES", "FINALIZING", "COMPLETE"],
-    "sliceOrder": ["PROPOSED", "PLANNED", "IMPLEMENTING", "REVIEW_BOUNDARY", "HUMAN_REVIEW", "MERGED"],
+    "featureOrder": [
+      "DESIGNING",
+      "SPECIFYING",
+      "PLANNING",
+      "DELIVERING_SLICES",
+      "FINALIZING",
+      "COMPLETE"
+    ],
+    "sliceOrder": [
+      "PROPOSED",
+      "PLANNED",
+      "IMPLEMENTING",
+      "REVIEW_BOUNDARY",
+      "HUMAN_REVIEW",
+      "MERGED"
+    ],
     "defaultGraphDepth": 2
+  },
+  "advisory": {
+    "schemaVersion": 1,
+    "module": {
+      "schemaVersion": 1,
+      "id": "gatereeve/advisory-review",
+      "version": "1.0.0",
+      "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9",
+      "label": "Slice Readiness Advisory",
+      "description": "Noncertifying discovery from pinned source and focused evidence, outside the formal gate graph.",
+      "slot": "boundary.evaluation",
+      "dependsOn": [],
+      "disposition": "required",
+      "locked": false,
+      "enabledByDefault": true,
+      "waiverAllowed": false,
+      "evidence": {
+        "kind": "reference",
+        "requiredFor": [
+          "PASS",
+          "FAIL"
+        ]
+      },
+      "fingerprint": {
+        "kind": "boundary-gate-v1",
+        "dependencyBinding": "event-ids"
+      },
+      "boundary": {
+        "gateId": "advisory",
+        "evaluationScope": {
+          "SLICE": "SLICE",
+          "FEATURE_FINAL": "FEATURE"
+        },
+        "guards": []
+      },
+      "run": {
+        "kind": "agent-workflow",
+        "protocolVersion": 1,
+        "resourcePlugin": "agentic-development-workflow",
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "automatic": true,
+        "isolation": {
+          "freshContext": true,
+          "inheritedTurns": 0
+        },
+        "repositoryAccess": "read-only-pinned",
+        "networkAccess": "denied",
+        "stages": [
+          {
+            "id": "advisory",
+            "role": "Slice readiness advisory reviewer",
+            "dependsOn": [],
+            "promptResource": "resources/agent-workflows/advisory/agent.md",
+            "inputSchema": "resources/agent-workflows/advisory/stage-input.schema.json",
+            "outputSchema": "resources/agent-workflows/advisory/result.schema.json"
+          }
+        ],
+        "artifacts": [
+          {
+            "path": "review.json",
+            "mediaType": "application/json",
+            "required": true
+          }
+        ],
+        "evaluator": {
+          "resource": "resources/agent-workflows/advisory/validator.js",
+          "export": "evaluateAdvisoryReview"
+        },
+        "evidenceRoot": "review.json",
+        "timeoutSeconds": 1800,
+        "maxAttempts": 1,
+        "reviewInput": {
+          "kind": "compact-review-v1",
+          "history": "exclude"
+        }
+      }
+    }
   }
 }

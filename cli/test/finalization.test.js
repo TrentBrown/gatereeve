@@ -1,3 +1,4 @@
+import { loadHistoricalModel } from './helpers/historical-model.js';
 import assert from 'node:assert/strict';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -12,7 +13,6 @@ import {
   hashModuleDefinition,
   initializeFeature,
   invalidateFinalizationModules,
-  loadDefaultModel,
   migrateFeatureModel,
   pauseFeature,
   projectRecord,
@@ -40,7 +40,7 @@ function moduleDefinition(value) {
 }
 
 async function modelWithFinalization() {
-  const base = await loadDefaultModel();
+  const base = await loadHistoricalModel();
   const prepare = moduleDefinition({
     schemaVersion: 1,
     id: 'example/prepare',
@@ -89,7 +89,7 @@ async function modelWithFinalization() {
 }
 
 async function modelWithoutFinalization() {
-  const base = await loadDefaultModel();
+  const base = await loadHistoricalModel();
   const policy = createDefaultWorkflowPolicy(base.moduleGraph.modules);
   policy.modules.find((item) => item.id === 'gatereeve/release').enabled = false;
   const graph = resolveModuleGraph({ definitions: base.moduleGraph.modules, policy });
@@ -345,7 +345,7 @@ test('migration preserves a legacy feature-final merge and enables new finalizat
   const featureHome = await finalizingFeature(legacyModel, {
     mergePayload: { featureFinal: true, mergeCommitSha: mergeInputSha },
   });
-  const nextModel = await loadDefaultModel();
+  const nextModel = await loadHistoricalModel();
   await migrateFeatureModel({
     featureHome,
     nextModel,
@@ -407,7 +407,7 @@ test('zero-module completion remains replayable after finalization modules are a
   });
   await migrateFeatureModel({
     featureHome,
-    nextModel: await loadDefaultModel(),
+    nextModel: await loadHistoricalModel(),
     confirmedBy: human,
     eventId: 'evt-model-with-finalization-added',
   });
@@ -417,7 +417,7 @@ test('zero-module completion remains replayable after finalization modules are a
 });
 
 test('finalization dependency evidence is canonical across manifest key order', async () => {
-  const base = await loadDefaultModel();
+  const base = await loadHistoricalModel();
   const definition = (id, dependsOn = []) => moduleDefinition({
     schemaVersion: 1,
     id,

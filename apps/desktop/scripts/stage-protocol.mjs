@@ -12,6 +12,7 @@ await stageProtocolResources({
   manifestName: 'desktop-projection.json',
   includePaths: [
     'protocol',
+    'agent-workflows',
     'release',
     'scripts/pr_context.py',
     'scripts/workflow_common.py',

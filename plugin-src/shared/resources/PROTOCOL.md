@@ -41,6 +41,7 @@ public user surface.
 Supported internal operations are `status`, `snapshot`, `read`, `next`,
 `history`, `explain`, `check`, `graph`, `graph.model`, `feature.init`, `feature.transition`,
 `feature.abandon`, `feature.recovery-preflight`, `feature.recover-finalization`, `feature.pause`, `feature.resume`, `feature.migration-impact`, `feature.migrate-model`,
+`advisory.declare-readiness`, `advisory.proceed`, `advisory.check`,
 `slice.propose`, `slice.transition`, `slice.abandon`, `slice.accept-review`, `boundary.request-review`,
 `gate.record`, `gate.waive`, `gate.invalidate`, `finalization.start`,
 `finalization.record`, `finalization.waive`, `finalization.invalidate`,
@@ -74,3 +75,19 @@ actionable blockers, stable request identity and the validated receipt without
 writing. `feature.recover-finalization` revalidates and appends one dedicated
 repeat-safe event; unsupported pinned models require explicit adoption. All
 remaining finalization modules bind to its verified integrated source.
+
+## Advisory readiness (compatible model adoption)
+
+Model 1.7/core 1.3 adds noncertifying advisory discovery outside the formal
+module graph. Existing locks are unchanged until explicit model adoption.
+See `resources/commands/advisory-review.md` for readiness, remediation,
+operational retry, reuse and proceed contracts. The adapter owns the launch;
+`advisory.check` is read-only. Findings are an advisory checklist only.
+
+The `begin-boundary` slice transition accepts `readinessId`. Its core checks
+current reviewed inputs, tracked compact records and referenced focused evidence,
+and records the resulting `advisoryDecision` proof. It does not trust a supplied
+`advisoryDispositionCurrent` fact. Clean, inapplicable or a retained nonempty
+reason admits formal entry; no advisory disposition records a formal PASS.
+Historical passages replay under their retained model contract. Formal gate
+fingerprints and the independent Judge's history exclusions remain unchanged.

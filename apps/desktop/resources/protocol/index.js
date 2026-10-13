@@ -1,4 +1,6 @@
 export * from './boundary.js';
+export * from './advisory.js';
+export * from './advisory-contract.js';
 export * from './agent-workflow.js';
 export * from './agent-workflow-runtime.js';
 export * from './agent-workflow-resources.js';

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-boundary-iteration-cost",
+  "sliceId": "s3-advisory-discovery",
+  "readinessId": "s3-ready-4",
+  "source": {
+    "baseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "headSha": "42bd2d2e3cc97ad0d422de22f03d5758da500eec",
+    "sliceBaseSha": "f7fc664d90e2488bd4732b046276747c3af701b1",
+    "scope": "SLICE",
+    "boundaryScope": "SLICE"
+  },
+  "inputIdentity": "sha256:b9b6f9e0e72ae3cf8c3ea4d5792997b33caa0a4a49b6576520dcd5e8e51b986e",
+  "requestIdentity": "sha256:81c959d1406b543c935845822b8f2aae95e701d9652c1742312767cb1a9b9a60",
+  "readiness": {
+    "path": "advisory/s3-ready-4/readiness.json",
+    "hash": "sha256:beb7d6b14eebb9903ab961da24143cd231155a3388ae363ed93378ebbd27d2e9"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "UNAVAILABLE",
+  "result": null,
+  "receipts": [],
+  "operationalErrors": [
+    {
+      "code": "CONTRACT_INVALID",
+      "category": "PERSISTENT",
+      "message": "Advisory configuration, isolation, input schema or publication could not be established."
+    }
+  ]
+}

@@ -34,7 +34,7 @@ function pathOf(value) {
   return value;
 }
 
-function historyPath(path) {
+export function isReviewHistoryPath(path) {
   const match = /^docs\/issues\/[^/]+\/(.+)$/u.exec(path);
   if (!match) return false;
   const rest = match[1];
@@ -54,6 +54,7 @@ function historyPath(path) {
   }
   return false;
 }
+const historyPath = isReviewHistoryPath;
 
 async function git(repositoryRoot, args) {
   const { stdout } = await exec('git', ['-C', repositoryRoot, ...args], {

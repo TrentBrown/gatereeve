@@ -17,6 +17,7 @@ import {
   SLICE_STATES,
 } from './constants.js';
 import { ContractError } from './errors.js';
+import { compareVersions } from './compatibility.js';
 import { assertTrustedGuardIds, TRUSTED_GUARD_IDS } from './guards.js';
 import {
   boundaryGateDefinitions,
@@ -25,6 +26,7 @@ import {
   resolveModuleGraph,
   validateWorkflowPolicy,
   validateResolvedModuleGraph,
+  validateModuleDefinition,
 } from './modules.js';
 
 const DEFAULT_MODEL_URL = new URL('./model/workflow-model.json', import.meta.url);
@@ -148,9 +150,9 @@ export function validateModel(model) {
     throw new ContractError(`Workflow model resultSchemaVersion must be ${RESULT_SCHEMA_VERSION}`);
   }
   const recoveryCapable = model.feature?.transitions?.some((item) => item.id === 'recover-finalization');
-  const legacyGuards = TRUSTED_GUARD_IDS.filter((id) => id !== 'feature.recovery.validated');
-  const expectedGuards = !recoveryCapable && !model.guardIds?.includes('feature.recovery.validated')
-    ? legacyGuards : TRUSTED_GUARD_IDS;
+  const expectedGuards = TRUSTED_GUARD_IDS.filter(id =>
+    (recoveryCapable || model.guardIds?.includes('feature.recovery.validated') || id !== 'feature.recovery.validated')
+    && (model.advisory !== undefined || id !== 'slice.advisory.disposition.current'));
   assertExactStringSet(model.guardIds, expectedGuards, 'guardIds');
   validateMachine(model.feature, FEATURE_STATES, 'feature');
   validateMachine(
@@ -200,6 +202,36 @@ export function validateModel(model) {
       throw new ContractError('Module workflow models cannot also declare hardcoded boundary gates');
     }
     validateResolvedModuleGraph(model.moduleGraph);
+    if (model.advisory !== undefined) {
+      if (model.advisory.schemaVersion !== 1) throw new ContractError('Advisory policy schemaVersion must be 1');
+      validateModuleDefinition(model.advisory.module);
+      const advisory = model.advisory.module;
+      if (compareVersions(model.coreCompatibility.minimum, '1.3.0') < 0
+        || advisory.id !== 'gatereeve/advisory-review'
+        || model.moduleGraph.modules.some(module => module.id === advisory.id)
+        || advisory.dependsOn.length !== 0 || advisory.waiverAllowed !== false
+        || advisory.boundary?.gateId !== 'advisory'
+        || advisory.run.kind !== 'agent-workflow' || advisory.run.stages.length !== 1
+        || advisory.run.stages[0].id !== 'advisory' || advisory.run.evidenceRoot !== 'review.json') {
+        throw new ContractError('Advisory must use the compatible noncertifying single-stage contract outside formal modules');
+      }
+      const judge = model.moduleGraph.modules.find(module => module.boundary?.gateId === 'judge');
+      if (judge && (judge.run?.kind !== 'agent-workflow'
+        || judge.run.reviewInput?.kind !== 'compact-review-v1'
+        || judge.run.reviewInput.history !== 'exclude')) {
+        throw new ContractError('Advisory-capable models require a formal Judge whose input and repository exclude review history');
+      }
+      if (judge && ['capabilityProfile', 'isolation', 'repositoryAccess', 'networkAccess'].some(key =>
+        stableJson(model.advisory.module.run[key]) !== stableJson(judge.run[key]))) {
+        throw new ContractError('Advisory must preserve the pinned formal Judge capability and isolation policy');
+      }
+      if (judge && stableJson(model.advisory.module.boundary.evaluationScope) !== stableJson(judge.boundary.evaluationScope)) {
+        throw new ContractError('Advisory must use the formal Judge evaluation scopes');
+      }
+      if (!model.slice.transitions.find(t => t.id === 'begin-boundary')?.guards.includes('slice.advisory.disposition.current')) {
+        throw new ContractError('Advisory-capable models must guard formal entry with current disposition');
+      }
+    }
   } else if (!Array.isArray(model.boundary.gates) || model.boundary.gates.length === 0) {
     throw new ContractError('Legacy workflow models must declare a nonempty boundary.gates array');
   }

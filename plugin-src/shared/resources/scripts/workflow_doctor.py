@@ -41,6 +41,7 @@ REQUIRED_SKILLS = (
     "pattern-review",
     "pattern-status",
     "software-development-workflow",
+    "workflow-advisory-review",
     "workflow-branch-bootstrap",
     "workflow-commit",
     "workflow-decision-record",

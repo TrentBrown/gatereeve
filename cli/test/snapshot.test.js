@@ -1,3 +1,4 @@
+import { loadHistoricalModel } from './helpers/historical-model.js';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
@@ -31,6 +32,7 @@ async function featureFixture(featureId = 'snapshot-feature') {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve snapshot '));
   const featureHome = resolve(root, 'docs/issues', featureId);
   await initializeFeature({
+    model: await loadHistoricalModel(),
     featureHome,
     featureId,
     actor: agent,
@@ -335,6 +337,7 @@ test('boundary snapshots expose manifest-bound Whiteboard companion artifacts', 
     `${JSON.stringify(policy, null, 2)}\n`
   );
   await initializeFeature({
+    model: await loadHistoricalModel(policy),
     featureHome,
     featureId: 'whiteboard-snapshot',
     repositoryRoot: root,
