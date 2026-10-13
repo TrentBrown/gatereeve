@@ -126,3 +126,33 @@ Consume failed rubric or independent-check rows when the recorded formal FAIL ha
 
 **Alternatives considered:**
 None recorded.
+
+## [8] Portable retry cursor delegates substantive review and preserves journal authority
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Portable boundary coordinator, PR lifecycle bridge and both skill adapters
+
+Use one boundary.retry entrypoint repeatedly for advance, record, packet and finalize. Recoverable cursors live in worktree Git metadata; exact PR observations and stable protocol events govern passage after uncertainty. Substantive skills and native independent runners own verdicts; native manual recording is refused. Recompute same-attempt fingerprints, validate bytes and predecessor events, and start fresh attempts with no carried PASS. Defer presentation until substantive gates and triage are current and nonblocking. Explicit commit/push checkpoints precede packet and final-head review claims; final ready response follows clean trusted synchronization without further journal mutation. Preserve implementer remediation/readiness, project stop rules, model adoption, closure/direction and human merge authority.
+
+**Triggered by:** P5 repeat-safe orchestration; existing procedure placed Explain Diff before its decision-triage prerequisite
+
+**Alternatives considered:**
+Monolithic autonomous code fixing rejected because implementer owns readiness; copying previous PASS rejected because formal freshness remains unchanged; checkpoint as authority rejected because the protocol core and live source remain binding.
+
+## [9] Classify retained mechanical review evidence without changing historical packets
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Whole-feature advisory preflight and conservative unknown-data binding
+
+Add exact-shape and field-type recognition for retained mechanical diagnostics, merge proofs, migration impact and structural measurements. Do not mutate old packets or narrow the complete-feature range. Empty prior artifacts qualify as history only when their exact evidence reference was subsequently invalidated and superseded by PASS in a valid governed journal, with the events also present in the selected source. Unknown configuration data still blocks readiness; added or altered configuration fields fail classification. No advisory result or formal waiver was inferred from the failed preflight.
+
+**Triggered by:** S4 whole-feature readiness rejected legacy unavailable/correction/integration/migration reports before launching any provider
+
+**Alternatives considered:**
+Classifying by filename or narrowing to the final-slice diff rejected because production/config inputs must remain protected; editing old evidence rejected because attempt history is immutable.

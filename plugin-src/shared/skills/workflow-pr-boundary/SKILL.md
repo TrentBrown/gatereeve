@@ -54,3 +54,10 @@ When all delivery already merged at slice scope and an explicit whole-feature
 Judge waiver applies, use `<plugin-root>/resources/commands/completion-recovery.md`
 for the guarded recovery preflight and dedicated event. Do not create another
 merge or reinterpret old slice evidence as feature-final certification.
+
+For revised ready slices, read `<plugin-root>/resources/commands/boundary-retry.md`
+and use the shared `boundary.retry` adapter operation. The implementer owns
+fixes/readiness; the coordinator owns fresh context/attempt identities, gate
+recording and recoverable packet bookkeeping. Keep code review/spec assessment
+early and presentation after current nonblocking substantive checks. Preserve
+native independent Judge execution, formal guards/freshness and human authority.

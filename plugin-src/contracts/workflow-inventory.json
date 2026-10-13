@@ -213,7 +213,8 @@
       "spec-draft.md",
       "spec-evaluate.md",
       "spec-validate.md",
-      "advisory-review.md"
+      "advisory-review.md",
+      "boundary-retry.md"
     ],
     "scripts": [
       "boundary_context.py",
@@ -258,7 +259,9 @@
       "workflow_doctor.py",
       "workflow_setup.py",
       "tests/test_workflow_doctor.py",
-      "tests/test_workflow_setup.py"
+      "tests/test_workflow_setup.py",
+      "boundary_retry.py",
+      "tests/test_boundary_retry.py"
     ],
     "protocol": [
       "agent-workflow.js",
@@ -306,7 +309,8 @@
       "advisory-contract.js",
       "advisory-history.js",
       "advisory-inputs.js",
-      "advisory-storage.js"
+      "advisory-storage.js",
+      "boundary-retry.js"
     ],
     "release": [
       "release-conductor-artifact.js",

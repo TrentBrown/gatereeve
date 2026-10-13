@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "scope": "feature-final",
+  "featureId": "tb-boundary-iteration-cost",
+  "repositoryAlias": "product",
+  "packetId": "pr-80",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 80,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/80",
+    "state": "OPEN",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "f7c07b3bcc207fa5d92e6f6247362d41bd1e8085",
+    "headRefName": "tb-boundary-iteration-cost-04-boundary-retry",
+    "headRefOid": "ba4fc6a939acaee654829d93c2a67cdf8b86d2b9"
+  },
+  "mergeBaseSha": "f7c07b3bcc207fa5d92e6f6247362d41bd1e8085",
+  "evaluatedSourceSha": "ba4fc6a939acaee654829d93c2a67cdf8b86d2b9",
+  "featureBaseSha": "ef725bbedfda28be0967fefde6cf2748679612c2",
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": true
+  },
+  "gates": {
+    "verification": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/retry-s4-ready-3-pr80-a2/verification.md",
+        "sha256": "sha256:ff63efdf51fdeec2d702f25e1addb7d8eff477cd9d54e80c9ec44d9327afd6d8"
+      }
+    },
+    "specEvaluation": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/retry-s4-ready-3-pr80-a2/spec-evaluation.md",
+        "sha256": "sha256:3ed23bf20100315b2b827ecf2ac40d3e647a4b9073ddf5e876a14ad9cc4dfafc"
+      }
+    },
+    "judge": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/retry-s4-ready-3-pr80-a2/judge.md",
+        "sha256": "sha256:390f68a248812b930134ae0cb19aad8374aaec8104cee4463373208bacdd2a4f"
+      }
+    },
+    "codeReview": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/retry-s4-ready-3-pr80-a2/code-review.md",
+        "sha256": "sha256:4f3beccf5cb96783e26c8df88e5a7a074adfdacfc20c4b7c6e3c983a7b2a4768"
+      }
+    },
+    "patternReview": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/retry-s4-ready-3-pr80-a2/pattern-review.md",
+        "sha256": "sha256:08b36b3bbb21baf0099bc53af1489f6847b67f8d52ac8d4291a8dc0c570bed7a"
+      }
+    },
+    "explainDiff": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/retry-s4-ready-3-pr80-a2/explain-diff.html",
+        "sha256": "sha256:4bc4bdd96bff62248e4f015bd1a954a48bd241171cb248af580fddc946f0d7de"
+      }
+    }
+  }
+}

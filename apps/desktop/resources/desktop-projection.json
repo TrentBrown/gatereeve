@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:220961c4c381b8d3b48908ddbc637e98334d3755fcfd33f6103e4691f6b257cd",
+  "protocolHash": "sha256:05430f37eec62843285a6b4c3ee9f64702c476533b1df1360e2872b5126a68d5",
   "modelSha256": "a8bbfc7402f82d622c8b77417db99c0d4217b183ffa8d557a265fc90deebf080",
   "files": [
     {
@@ -16,8 +16,8 @@
     },
     {
       "path": "advisory-inputs.js",
-      "size": 3936,
-      "sha256": "194a2fddbb1f89deeac7a67b709a4d1016df43f4bfd2fe7885948e40feb45680"
+      "size": 11868,
+      "sha256": "e7b75f9b6274e9bc55eb6463f056083c61c42082fb4d212217e48b2d484a7c04"
     },
     {
       "path": "advisory-storage.js",
@@ -58,6 +58,11 @@
       "path": "artifact-publisher.js",
       "size": 2997,
       "sha256": "f3d1d7ddb68091c819d25aff104dc444f04fc2d6a46618520831ccbbba354b8a"
+    },
+    {
+      "path": "boundary-retry.js",
+      "size": 22091,
+      "sha256": "2ba6ace87ac1b92c7c7178e1d45dd62b0a5780c3cb72e9d4117516d3a3df6303"
     },
     {
       "path": "boundary.js",
@@ -126,8 +131,8 @@
     },
     {
       "path": "index.js",
-      "size": 1221,
-      "sha256": "13b413653279e523077f3d16bffeeddeb1821772d899481d447821dbcc088447"
+      "size": 1258,
+      "sha256": "61d5a8505c6c821be8f51d68931a602337c30506ade49c3f75248069444895a5"
     },
     {
       "path": "journal.js",
@@ -186,8 +191,8 @@
     },
     {
       "path": "plugin-adapter.js",
-      "size": 8600,
-      "sha256": "dade8d2234f15ab4057398a9ff6c5fa1f34df4d504274465b8dbe034c015f705"
+      "size": 8942,
+      "sha256": "15cc2be69ac9dbd828bbc8bf51fb543f064d31af9bfa4e94238b70cbc59edd74"
     },
     {
       "path": "projection.js",

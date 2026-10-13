@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "structural-cost-verification",
+  "cases": [
+    {
+      "name": "24 MiB text, identical feature/slice range, rename and binary fixture",
+      "source": {
+        "baseSha": "8cc946e34265507d54a3ba3ea802835fbcb6371b",
+        "headSha": "9a48b4ecd7a689aba07e800a360c7f5049158c62",
+        "sliceBaseSha": "8cc946e34265507d54a3ba3ea802835fbcb6371b"
+      },
+      "metrics": {
+        "manifestBytes": 2080,
+        "materialBytes": 26646731,
+        "duplicatePatchBytesAvoided": 26646731,
+        "changedFiles": 4
+      },
+      "inlineManifestFractionOfReferencedText": 0.00007805835545080558,
+      "retainedBinaryBlobsAndRepositorySnapshot": "excluded from text-byte metric"
+    },
+    {
+      "name": "Read-only historical MyLifeMap pinned range",
+      "source": {
+        "baseSha": "5c296643a8d29dad55c3ed086425aa42c55738a1",
+        "headSha": "68d3dd25dcea45d8e95d5da60f0a311c24d94b8e",
+        "sliceBaseSha": "d31709ec8b23b4562b68ef496c162e4c691a8013"
+      },
+      "metrics": {
+        "manifestBytes": 23141,
+        "materialBytes": 8466602,
+        "duplicatePatchBytesAvoided": 0,
+        "changedFiles": 393
+      },
+      "inlineManifestFractionOfReferencedText": 0.002733209852075248,
+      "retainedBinaryBlobsAndRepositorySnapshot": "excluded from text-byte metric"
+    }
+  ],
+  "orchestration": {
+    "evidence": "cli/test/advisory.test.js complete readiness-to-retry journey; cli/test/boundary-retry.test.js",
+    "formalAttemptsBeforeAdvisoryDefectDiscovery": 0,
+    "formalAttemptsAfterRevisedReadyAndInterruptedResume": 1,
+    "duplicateAttemptEventsAfterInterruptedResume": 0,
+    "duplicateGateEventsAfterUncertainRecord": 0,
+    "commandContract": "One shared coordinator entrypoint, repeated for advance/record/packet/finalize. Skill/native reviewers still execute substantive work.",
+    "bookkeepingCommitPushCheckpoints": 3,
+    "bookkeepingLimitation": "Checkpoint count is the verified sequential contract, not a measured reduction versus historical manual operator actions."
+  },
+  "timing": {
+    "measuredModelLatency": false,
+    "historicalWallClockEstimates": "No estimates used as measured savings"
+  },
+  "proof": "Synthetic input and provider-contract fixtures; optional actual read-only historical source rehearsal. No installed activation, publication or real-feature journal mutation."
+}

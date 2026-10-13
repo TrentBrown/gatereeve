@@ -7,6 +7,7 @@ import {
   readFile,
   writeFile,
   rm,
+  realpath,
   symlink,
 } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -34,6 +35,8 @@ import {
   resolveModuleGraph,
   executeAgentWorkflowGate,
   createPluginResourceAccess,
+  retryBoundary,
+  runBoundaryRetryBridge,
 } from '../../plugin-src/shared/resources/protocol/index.js';
 import { createJudgeBundle } from '../../plugin-src/shared/resources/agent-workflows/judge/validator.js';
 import { executePluginRequest } from '../../plugin-src/shared/resources/protocol/plugin-adapter.js';
@@ -1463,4 +1466,72 @@ test('existing formal FAIL rows without concern findings enter the fix checklist
         mode === 'scope without paths' ? [] : ['R1']
       );
     });
+});
+
+test('complete readiness-to-retry journey retains advisory defects, reconciles interruption and reviews the full feature independently', async (t) => {
+  const f = await fixture(t, {scope:'FEATURE_FINAL'});
+  await declareAdvisoryReadiness(f.home, f.input, {adapter:transport({output:findingResult}).adapter});
+  assert.equal(projectRecord(await readFeatureRecord(f.home)).boundaryAttempts.length, 0);
+  await assert.rejects(declareAdvisoryReadiness(f.home, {...f.input, readinessId:'ready-2'}, {adapter:transport().adapter}), /defect-class/);
+  const revised = {...f.input, readinessId:'ready-2', remediation:[{
+    findingIds:['advisory:ready-1:0'], invariant:'Newer intent must survive a late response',
+    examinedPaths:['app.mjs'], approach:'Inspect every writer and cover both response orders before readiness.',
+    regressions:[{scenario:'Late response after newer intent', command:'node --test app.test.mjs',
+      outcome:'PASS', evidence:[f.input.checks[1].evidence[0]]}]}]};
+  assert.equal((await declareAdvisoryReadiness(f.home, revised, {adapter:transport().adapter})).outcome,'READY_FOR_FORMAL_REVIEW');
+  await f.commit('Retain complete advisory remediation and current readiness');
+  const root=await realpath(f.root); const home=await realpath(f.home); const head=await f.git('rev-parse','HEAD');
+  const context={schemaVersion:1,repositoryRoot:root,repositoryAlias:'product',remote:'origin',source:'github',
+    evaluatedSourceSha:head,mergeBaseSha:f.base,featureBaseSha:f.base,keepPullRequestsClosed:false,
+    pullRequest:{repository:'example/product',number:42,url:'https://github.com/example/product/pull/42',
+      state:'OPEN',isDraft:true,baseRefName:'main',baseRefOid:f.base,headRefName:'delivery',headRefOid:head}};
+  const input={retryId:'journey-ready-2',readinessId:'ready-2',sliceId:'s1',pullRequest:42,
+    scope:'FEATURE_FINAL',repositoryRoot:root,actor};
+  let crash=true;
+  const dependencies={checkpointDirectory:join(root,'.git'),
+    verifyCurrent:async({context})=>({...context,status:'current'}),
+    bridge:async request=>request.action==='prepare'?{context,packetId:'pr-42'}:runBoundaryRetryBridge(request),
+    afterMutation:async action=>{if(action==='begin-boundary'&&crash){crash=false;throw Error('fixture interruption after begin');}}};
+  const invoke=extra=>retryBoundary(home,{...input,...extra},dependencies);
+  await assert.rejects(invoke(),/interruption/);await invoke();
+  const initial=projectRecord(await readFeatureRecord(f.home)).boundaryAttempts[0];
+  assert.equal(initial.scope,'FEATURE_FINAL');assert.equal(initial.gates.find(g=>g.id==='verification').outcome,'UNSET');
+  const trace=[];
+  for(let index=0;index<15;index++) {
+    const step=await invoke();if(step.status==='PREPARE_PACKET')break;
+    assert.equal(step.status,'RUN_GATE');trace.push(step.gateId);
+    if(step.gateId==='judge') {
+      const provider=transport({output:initial=>{
+        assert.deepEqual(initial.change.criteria,['R1','R2']);
+        const check={result:'PASS',explanation:'Fixture pinned code and complete feature inspected.',evidence:['app.mjs:1']};
+        return {schemaVersion:1,verdict:'PASS',summary:'Fixture independent review; no live-provider claim.',
+          criteria:initial.change.criteria.map(id=>({id,title:'Fixture criterion',...check})),
+          scopeCheck:check,gapCheck:check,contradictionCheck:check,findings:[],
+          markdown:'# Fixture independent review\n'+'Pinned full feature inspected independently. '.repeat(8)};
+      }});
+      const r=await executeAgentWorkflowGate({repositoryRoot:root,featureHome:home,
+        artifactRoot:join(home,'pr-42'),modelHash:step.preparation.modelHash,module:step.module,
+        prepared:step.preparation,adapter:provider.adapter,
+        resources:createPluginResourceAccess({pluginRoots:{'agentic-development-workflow':new URL('../../plugin-src/shared',import.meta.url).pathname}}),
+        recordOutcome:value=>recordGateOutcome(f.home,{attemptId:step.attemptId,gateId:'judge',inputs:step.preparation.inputs,
+          currentFingerprints:step.preparation.currentFingerprints,actor,eventId:'evt-journey-judge',...value})});
+      assert.equal(r.outcome,'PASS');
+      const viewed=JSON.stringify(provider.requests[0].initial);
+      assert.equal(viewed.includes('Stale results overwrite newer intent'),false);
+      assert.equal(viewed.includes('advisory:ready-1'),false);
+    } else {
+      const name=step.gateContext?.artifact??`${step.gateId}.md`;
+      const output=`pr-42/attempts/${step.attemptId}/${name}`;
+      const evidence=await f.save(output,`# Fixture ${step.gateId}\nPinned source ${head}\n`);
+      await invoke({action:'record',gateId:step.gateId,outcome:'PASS',evidencePath:evidence.path});
+    }
+  }
+  assert.ok(trace.indexOf('codeReview')<trace.indexOf('judge'));
+  assert.ok(trace.indexOf('decisionTriage')<trace.indexOf('explainDiff'));
+  assert.equal((await invoke({action:'packet'})).status,'COMMIT_AND_PUSH_EVIDENCE');
+  const record=await readFeatureRecord(f.home);
+  assert.equal(record.events.filter(e=>e.type==='BOUNDARY_STARTED').length,1);
+  const manifest=JSON.parse(await readFile(join(f.home,'pr-42/boundary.json')));
+  assert.equal(manifest.scope,'feature-final');assert.equal(manifest.featureBaseSha,f.base);
+  assert.equal(manifest.gates.judge.disposition,'passed');
 });

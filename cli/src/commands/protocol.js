@@ -417,6 +417,16 @@ function gateCommands() {
 
 function boundaryCommands() {
   const boundary = new Command('boundary').description('Govern review-boundary passage');
+  const retry = addContextOptions(addEventOptions(new Command('retry')
+    .description('Resume exact-PR boundary orchestration after implementer readiness')))
+    .requiredOption('--input-file <path>', 'Stable retry identity and action request JSON');
+  retry.action(async (options, commander) => {
+    const selected = commander?.opts?.() ?? options;
+    const result = await run({ operation: 'boundary.retry', ...contextRequest(selected),
+      input: eventInput(selected, await readJsonFile(resolve(selected.inputFile), 'Boundary retry input')) }, selected);
+    if (['BLOCKED', 'REMEDIATION_REQUIRED'].includes(result?.data?.status)) process.exitCode = 1;
+  });
+  boundary.addCommand(retry);
   const request = addContextOptions(addEventOptions(
     new Command('request-review').description('Pass a current nonblocking boundary to HUMAN_REVIEW')
       .argument('<attempt-id>', 'Boundary attempt ID')

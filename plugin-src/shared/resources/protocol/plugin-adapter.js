@@ -32,6 +32,7 @@ import {
   recordGateWaiver,
   recordSliceTransition,
   requestBoundaryHumanReview,
+  retryBoundary,
   readDetail,
   resolveWorkflowContext,
   resumeFeature,
@@ -132,6 +133,10 @@ async function executeResolvedPluginRequest(rawRequest) {
       );
     case 'slice.propose':
       return mutationResult(operation, await proposeSlice(featureHome, request.input));
+    case 'boundary.retry':
+      return mutationResult(operation, await retryBoundary(featureHome, { ...request.input,
+        repositoryRoot: request.context?.repository?.path ?? request.input?.repositoryRoot ?? request.cwd,
+        repositoryAlias: request.context?.repository?.alias ?? request.input?.repositoryAlias }));
     case 'slice.transition':
       return mutationResult(
         operation,

@@ -1,0 +1,40 @@
+Pinned source: 649799f6b646e7d7a44670b5229edf861ac47b74
+
+COMMAND: python3 -m unittest discover -s plugin-src/shared/resources/scripts/tests -p test_boundary_retry.py
+EXIT: 0
+......
+----------------------------------------------------------------------
+Ran 6 tests in 2.287s
+
+OK
+
+COMMAND: /opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/boundary-retry.test.js cli/test/advisory-inputs.test.js cli/test/portability.test.js
+EXIT: 0
+✔ historical mechanical record pr-77/attempts/s1-pr77-a1/preparation-unavailable.json has a bounded recognized shape; configuration additions are not history (3.39175ms)
+✔ historical mechanical record pr-77/attempts/s1-pr77-a2/provider-unavailable.json has a bounded recognized shape; configuration additions are not history (0.6765ms)
+✔ historical mechanical record pr-77/attempts/s1-pr77-a2/validation-correction.json has a bounded recognized shape; configuration additions are not history (0.574291ms)
+✔ historical mechanical record runtime/s1-integration.json has a bounded recognized shape; configuration additions are not history (0.685708ms)
+✔ historical mechanical record runtime/s2-model-migration-impact.json has a bounded recognized shape; configuration additions are not history (0.633542ms)
+✔ historical mechanical record runtime/s3-integration.json has a bounded recognized shape; configuration additions are not history (0.303333ms)
+✔ historical mechanical record runtime/s4-cost-verification.json has a bounded recognized shape; configuration additions are not history (0.327084ms)
+✔ empty history needs actual invalidation and superseding journal proof; empty/config-shaped new files still block (1025.361875ms)
+✔ uncertain begin-boundary resumes exact PR without duplicating attempt or events (193.422167ms)
+✔ uncertain gate recording reconciles actual bytes/event and never duplicates PASS (164.301667ms)
+✔ FAIL is early retained discovery; presentation waits and revised attempt carries no PASS (255.5035ms)
+✔ clean substantive path orders discovery/triage before presentation and finalizes repeat-safely (403.850333ms)
+✔ source movement, changed identity, model/input mismatch and premature packet block passage (117.460417ms)
+✔ recording refuses native Judge shortcuts and changed evidence cannot become CURRENT (233.296542ms)
+✔ stale preparation dependency identity is rejected instead of copying PASS (124.423ms)
+✔ status is observational and pause prevents further mutations (124.895458ms)
+✔ lints the canonical repository plugin sources (38.678459ms)
+✔ rejects personal paths before inventory validation (1.966083ms)
+✔ rejects root escapes and native platform markers in shared source (6.125958ms)
+✔ rejects symlinks in canonical package sources (6.823167ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1708.485041

@@ -79,3 +79,10 @@ for deterministic mechanics:
 
 Use templates from `<plugin-root>/resources/templates/`
 when creating branch docs.
+
+For revised ready slices, read `<plugin-root>/resources/commands/boundary-retry.md`
+and use the shared `boundary.retry` adapter operation. The implementer owns
+fixes/readiness; the coordinator owns fresh context/attempt identities, gate
+recording and recoverable packet bookkeeping. Keep code review/spec assessment
+early and presentation after current nonblocking substantive checks. Preserve
+native independent Judge execution, formal guards/freshness and human authority.

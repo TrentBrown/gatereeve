@@ -359,3 +359,23 @@ unchanged. The recovery receipt exposes waivers as WAIVED, not PASS. The
 canonical portable procedure and structured report fields are in
 `resources/commands/completion-recovery.md` and
 `resources/policy/COMPLETION-RECOVERY.md` within each native plugin package.
+
+## Portable boundary retry coordinator
+
+`boundary.retry` is a shared protocol-adapter operation, with optional
+`gatereeve boundary retry --input-file request.json --json`. The pinned formal
+graph remains authoritative. The helper reuses one exact existing unmerged PR,
+pins fresh context/attempt identities after implementer readiness, returns
+eligible substantive runner preparations, derives gate recording fingerprints
+and validates packet bookkeeping. It refuses manual native Judge recording,
+reopening, merge and waivers. Cursors in worktree Git metadata reconcile against
+journal events and live source after uncertainty; they never certify passage.
+
+Code review/spec assessment remain early eligible defect finders. Final
+presentation waits for current nonblocking substantive checks and triage.
+Commit/push checkpoints preserve clean source/evidence validation; only the
+final synchronized response exposes exact-head human-review readiness. Existing
+module selectors, guards, dependency currentness, compatible model adoption and
+human authority remain intact. See
+`plugin-src/shared/resources/commands/boundary-retry.md` for the shared contract.
+Configurable addition/removal/reordering UI remains outside this feature.

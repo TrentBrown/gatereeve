@@ -275,6 +275,12 @@ pending. Keep formal Judge inputs, diff and repository blind to advisory history
 prior reports and raw decision journals. Existing models require explicit adoption;
 formal gate dependencies, freshness and human authorization remain mandatory.
 
+For revised ready slices, use `boundary.retry` through the protocol adapter
+as described in `commands/boundary-retry.md`. It owns repeat-safe preparation,
+gate recording and packet bookkeeping; the implementer owns fixes/readiness.
+No default halt is based on failure count. Repeated findings require a changed
+remediation approach, with explicit project stops/escalation preserved.
+
 When a natural slice review boundary is reached:
 
 1. Complete provisional verification and commit every intended source change.
@@ -306,10 +312,12 @@ When a natural slice review boundary is reached:
 7. Run an independent `judge` pass for specced significant work. Treat `FAIL`
    as blocking until fixed or explicitly accepted by the user. Preserve the
    judge's findings in the active packet, tracker, and PR description.
-8. Run pattern review when applicable, code review, and `explain-diff` on
-   the exact pinned base/head. Persist each artifact at its fixed active-packet
-   path.
-9. Triage decisions.
+8. Run pattern review when applicable and code review on the exact pinned
+   base/head. Keep code review and spec assessment as early eligible defect
+   finders. Persist their findings even when substantive checks fail.
+9. Triage decisions after substantive checks are current and nonblocking under
+   their policies. Then generate `explain-diff`, final narrative and consolidated
+   summaries. Preserve this ordering and all graph dependencies.
 10. Recheck the pinned context, finalize the manifest and cumulative tracker
    link, and update the review surface with summary, decisions, verification
    matrix, judge result, code-review result, explain-diff artifact, known
