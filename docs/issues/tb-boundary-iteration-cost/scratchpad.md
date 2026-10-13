@@ -141,3 +141,18 @@ Use one boundary.retry entrypoint repeatedly for advance, record, packet and fin
 
 **Alternatives considered:**
 Monolithic autonomous code fixing rejected because implementer owns readiness; copying previous PASS rejected because formal freshness remains unchanged; checkpoint as authority rejected because the protocol core and live source remain binding.
+
+## [9] Classify retained mechanical review evidence without changing historical packets
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Whole-feature advisory preflight and conservative unknown-data binding
+
+Add exact-shape and field-type recognition for retained mechanical diagnostics, merge proofs, migration impact and structural measurements. Do not mutate old packets or narrow the complete-feature range. Empty prior artifacts qualify as history only when their exact evidence reference was subsequently invalidated and superseded by PASS in a valid governed journal, with the events also present in the selected source. Unknown configuration data still blocks readiness; added or altered configuration fields fail classification. No advisory result or formal waiver was inferred from the failed preflight.
+
+**Triggered by:** S4 whole-feature readiness rejected legacy unavailable/correction/integration/migration reports before launching any provider
+
+**Alternatives considered:**
+Classifying by filename or narrowing to the final-slice diff rejected because production/config inputs must remain protected; editing old evidence rejected because attempt history is immutable.

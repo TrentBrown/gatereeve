@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:e241b6a04a44ea67a2615864cb513fefb1bbd5b9ef1ab28cec7e63b125260ffd",
+  "protocolHash": "sha256:8f7ba092f35d44aeac9b5e08c07369855d5fac548939a2b5604d0cbe8f3f7812",
   "modelSha256": "a8bbfc7402f82d622c8b77417db99c0d4217b183ffa8d557a265fc90deebf080",
   "files": [
     {
@@ -16,8 +16,8 @@
     },
     {
       "path": "advisory-inputs.js",
-      "size": 3936,
-      "sha256": "194a2fddbb1f89deeac7a67b709a4d1016df43f4bfd2fe7885948e40feb45680"
+      "size": 11868,
+      "sha256": "e7b75f9b6274e9bc55eb6463f056083c61c42082fb4d212217e48b2d484a7c04"
     },
     {
       "path": "advisory-storage.js",
