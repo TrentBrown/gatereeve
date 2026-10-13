@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-boundary-iteration-cost",
+  "sliceId": "s4-boundary-retry",
+  "readinessId": "s4-ready-3",
+  "source": {
+    "baseSha": "ef725bbedfda28be0967fefde6cf2748679612c2",
+    "headSha": "649799f6b646e7d7a44670b5229edf861ac47b74",
+    "sliceBaseSha": "f7c07b3bcc207fa5d92e6f6247362d41bd1e8085",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:bb671278c8a9cf082613b47e6872a4353e870ef725cc60137322968892e4260d",
+  "requestIdentity": "sha256:d11116d14a43a34979d150c2e65f565ac6e673d06013c97fdc2605eea08532a0",
+  "readiness": {
+    "path": "advisory/s4-ready-3/readiness.json",
+    "hash": "sha256:5c820d972f70d060b18c5eb026435b3988eca9d008fe51f22a7a321f25948791"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "UNAVAILABLE",
+  "result": null,
+  "receipts": [],
+  "operationalErrors": [
+    {
+      "code": "AGENT_PROVIDER_CONFIGURATION",
+      "category": "PERSISTENT",
+      "message": "Advisory configuration, isolation, input schema or publication could not be established."
+    }
+  ]
+}

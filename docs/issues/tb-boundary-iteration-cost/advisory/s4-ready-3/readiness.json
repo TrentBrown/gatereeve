@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-readiness",
+  "featureId": "tb-boundary-iteration-cost",
+  "sliceId": "s4-boundary-retry",
+  "readinessId": "s4-ready-3",
+  "declaredAt": "2026-10-13T06:01:50.843Z",
+  "scope": "FEATURE_FINAL",
+  "baseSha": "ef725bbedfda28be0967fefde6cf2748679612c2",
+  "sliceBaseSha": "f7c07b3bcc207fa5d92e6f6247362d41bd1e8085",
+  "criteria": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8",
+    "R9",
+    "R10",
+    "R11",
+    "R12",
+    "R13",
+    "R14",
+    "R15",
+    "R16",
+    "R17",
+    "R18",
+    "R19",
+    "R20",
+    "R21",
+    "R22",
+    "R23",
+    "R24"
+  ],
+  "source": {
+    "baseSha": "ef725bbedfda28be0967fefde6cf2748679612c2",
+    "headSha": "649799f6b646e7d7a44670b5229edf861ac47b74",
+    "sliceBaseSha": "f7c07b3bcc207fa5d92e6f6247362d41bd1e8085",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:bb671278c8a9cf082613b47e6872a4353e870ef725cc60137322968892e4260d",
+  "requestIdentity": "sha256:d11116d14a43a34979d150c2e65f565ac6e673d06013c97fdc2605eea08532a0",
+  "inputManifest": {
+    "schemaVersion": 1,
+    "kind": "slice-advisory-inputs",
+    "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "opaqueHistoryIdentity": "sha256:f010d02c057b230e70993c0c136080a52ee0521160061151b3b5c2e46c277d79",
+    "reviewInputIdentity": "sha256:30a12f856874cb4c457f1d71f37cfb4a4d5f6759cdea759def2ac91292bf2400",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL",
+    "criteria": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7",
+      "R8",
+      "R9",
+      "R10",
+      "R11",
+      "R12",
+      "R13",
+      "R14",
+      "R15",
+      "R16",
+      "R17",
+      "R18",
+      "R19",
+      "R20",
+      "R21",
+      "R22",
+      "R23",
+      "R24"
+    ],
+    "formalJudge": {
+      "id": "gatereeve/judge",
+      "version": "3.0.0",
+      "digest": "sha256:a3cabc1a01f0b885c3b7333c6f9d1cf92d21e1f18cc322d14ce1cf01fbd5fa07",
+      "scope": "FEATURE",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "isolation": {
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "repositoryAccess": "read-only-pinned",
+      "networkAccess": "denied"
+    },
+    "advisoryModule": {
+      "id": "gatereeve/advisory-review",
+      "version": "1.0.0",
+      "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+    },
+    "applicable": true,
+    "resources": {
+      "resources/agent-workflows/advisory/agent.md": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+      "resources/agent-workflows/advisory/stage-input.schema.json": "sha256:b7c5b74d8d3b6a1ca1cb355df540d5ff0e2e5255ad34a72b903838f8f68bf38f",
+      "resources/agent-workflows/advisory/result.schema.json": "sha256:f863eb92f594143c402328bff6016a9b0205106f0735922a23145d182724a532",
+      "resources/agent-workflows/advisory/validator.js": "sha256:629dc6ac07eed04ac477130aee91a031de6ecadeb345f24dc7a068925412e88e"
+    },
+    "adapter": {
+      "id": "codex/fresh-exec",
+      "version": "1.0.0",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "reasoningEffort": "high",
+      "capabilityProfiles": [
+        "high-capability-v1"
+      ],
+      "isolationMethods": [
+        "codex-ephemeral-exec"
+      ]
+    },
+    "checks": [
+      {
+        "kind": "fast",
+        "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node cli/bin/workflow.js plugin lint --json ; python3 plugin-src/shared/resources/scripts/validate_branch_docs.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_issues.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_tracker.py docs/issues/tb-boundary-iteration-cost ; git diff --check",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "runtime/advisory-checks/s4-ready-3-fast.log",
+            "hash": "sha256:0c1b3b90790ab9b72e02788d5479896934b8c337daac2ca68f3b6cc5c1d594a2"
+          }
+        ]
+      },
+      {
+        "kind": "focused",
+        "command": "python3 -m unittest discover -s plugin-src/shared/resources/scripts/tests -p test_boundary_retry.py ; /opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/boundary-retry.test.js cli/test/advisory-inputs.test.js cli/test/portability.test.js",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "runtime/advisory-checks/s4-ready-3-focused.log",
+            "hash": "sha256:93d81256e21df436e2f0a2c067da9f318b19a0193c54636cf0e27494e78861b3"
+          }
+        ]
+      }
+    ],
+    "priorFindingsIdentity": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "governance": {
+      "featureId": "tb-boundary-iteration-cost",
+      "repositoryAlias": "product",
+      "remote": "origin",
+      "integrationBranch": "main",
+      "releaseBranch": "main",
+      "featureBaseSha": "ef725bbedfda28be0967fefde6cf2748679612c2",
+      "keepPullRequestsClosed": false
+    }
+  },
+  "checks": [
+    {
+      "kind": "fast",
+      "command": "/opt/homebrew/Cellar/node/26.0.0/bin/node cli/bin/workflow.js plugin lint --json ; python3 plugin-src/shared/resources/scripts/validate_branch_docs.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_issues.py docs/issues/tb-boundary-iteration-cost ; python3 plugin-src/shared/resources/scripts/lint_tracker.py docs/issues/tb-boundary-iteration-cost ; git diff --check",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "runtime/advisory-checks/s4-ready-3-fast.log",
+          "hash": "sha256:0c1b3b90790ab9b72e02788d5479896934b8c337daac2ca68f3b6cc5c1d594a2"
+        }
+      ]
+    },
+    {
+      "kind": "focused",
+      "command": "python3 -m unittest discover -s plugin-src/shared/resources/scripts/tests -p test_boundary_retry.py ; /opt/homebrew/Cellar/node/26.0.0/bin/node --test cli/test/boundary-retry.test.js cli/test/advisory-inputs.test.js cli/test/portability.test.js",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "runtime/advisory-checks/s4-ready-3-focused.log",
+          "hash": "sha256:93d81256e21df436e2f0a2c067da9f318b19a0193c54636cf0e27494e78861b3"
+        }
+      ]
+    }
+  ],
+  "remediation": null,
+  "priorFindings": [],
+  "execution": {
+    "provider": "codex",
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "high"
+  },
+  "declaredBy": {
+    "kind": "agent",
+    "label": "Implementer declares approved P5/P6/P7 slice ready after actual pinned fast/focused checks"
+  }
+}
