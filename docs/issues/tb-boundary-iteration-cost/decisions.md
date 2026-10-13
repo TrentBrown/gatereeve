@@ -134,3 +134,20 @@ Consume failed rubric or independent-check rows when the recorded formal FAIL ha
 None recorded.
 
 **Promoted:** 2026-10-12. PR: #79.
+
+---
+
+## Portable retry cursor delegates substantive review and preserves journal authority
+
+**Confidence:** HIGH
+
+**Blast Radius:** Portable boundary coordinator, PR lifecycle bridge and both skill adapters
+
+Use one boundary.retry entrypoint repeatedly for advance, record, packet and finalize. Recoverable cursors live in worktree Git metadata; exact PR observations and stable protocol events govern passage after uncertainty. Substantive skills and native independent runners own verdicts; native manual recording is refused. Recompute same-attempt fingerprints, validate bytes and predecessor events, and start fresh attempts with no carried PASS. Defer presentation until substantive gates and triage are current and nonblocking. Explicit commit/push checkpoints precede packet and final-head review claims; final ready response follows clean trusted synchronization without further journal mutation. Preserve implementer remediation/readiness, project stop rules, model adoption, closure/direction and human merge authority.
+
+**Triggered by:** P5 repeat-safe orchestration; existing procedure placed Explain Diff before its decision-triage prerequisite
+
+**Alternatives considered:**
+Monolithic autonomous code fixing rejected because implementer owns readiness; copying previous PASS rejected because formal freshness remains unchanged; checkpoint as authority rejected because the protocol core and live source remain binding.
+
+**Promoted:** 2026-10-12.

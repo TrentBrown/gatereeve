@@ -42,7 +42,7 @@ Supported internal operations are `status`, `snapshot`, `read`, `next`,
 `history`, `explain`, `check`, `graph`, `graph.model`, `feature.init`, `feature.transition`,
 `feature.abandon`, `feature.recovery-preflight`, `feature.recover-finalization`, `feature.pause`, `feature.resume`, `feature.migration-impact`, `feature.migrate-model`,
 `advisory.declare-readiness`, `advisory.proceed`, `advisory.check`,
-`slice.propose`, `slice.transition`, `slice.abandon`, `slice.accept-review`, `boundary.request-review`,
+`boundary.retry`, `slice.propose`, `slice.transition`, `slice.abandon`, `slice.accept-review`, `boundary.request-review`,
 `gate.record`, `gate.waive`, `gate.invalidate`, `finalization.start`,
 `finalization.record`, `finalization.waive`, `finalization.invalidate`,
 `finalization.complete`, `change.propose`,
@@ -91,3 +91,15 @@ and records the resulting `advisoryDecision` proof. It does not trust a supplied
 reason admits formal entry; no advisory disposition records a formal PASS.
 Historical passages replay under their retained model contract. Formal gate
 fingerprints and the independent Judge's history exclusions remain unchanged.
+
+## Boundary retry orchestration
+
+Read `commands/boundary-retry.md` after implementer remediation/readiness.
+`boundary.retry` reuses an exact existing PR and recoverable local execution
+cursor, derives fresh attempt/gate identities, records through the core and
+reconciles uncertain outcomes before replay. It defers presentation until
+substantive checks are current and nonblocking, handles packet bookkeeping and
+reports exact final-head review readiness. Native Judge execution, project stop
+rules, PR closure/direction, formal freshness and human merge authority retain
+their existing contracts. The helper cannot supply fixes, waivers or native
+Judge verdicts. Cursor status alone is not current-source proof.

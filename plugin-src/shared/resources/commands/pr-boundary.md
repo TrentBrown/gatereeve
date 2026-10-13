@@ -15,6 +15,10 @@ pending. Keep formal Judge inputs, diff and repository blind to advisory history
 prior reports and raw decision journals. Existing models require explicit adoption;
 formal gate dependencies, freshness and human authorization remain mandatory.
 
+For a revised ready slice, use `boundary.retry` as described in
+`boundary-retry.md` for exact-PR context, fresh attempts, gate recording and
+repeat-safe packet bookkeeping. The implementer owns fixes and readiness.
+
 1. Complete provisional verification, commit intended source, and push the
    delivery branch.
 2. Prepare or reuse the exact PR and persist its context from a clean checkout:
@@ -81,14 +85,16 @@ formal gate dependencies, freshness and human authorization remain mandatory.
 10. Run `judge` for significant specced changes. A judge `FAIL` blocks review
     unless the user explicitly accepts the risk. Write the result at the
     `judge` `outputPath` and record its verdict in the tracker or PR body.
-11. Run `workflow-pr-review` on the pinned boundary diff. Findings must include
+11. Run `workflow-pr-review` on the pinned boundary diff as an early eligible
+    defect-finding activity alongside spec assessment. Findings must include
     file/line references; if none exist, record residual risks and test gaps at
     the `codeReview` `outputPath`.
-12. Run `explain-diff` against the same pinned diff after the review and
-    evaluation artifacts are current. Persist it at the `explainDiff`
-    `outputPath`.
-13. Run `decision-triage`, then `gate_triage.py` to confirm zero untriaged
+12. Run `decision-triage`, then `gate_triage.py` to confirm zero untriaged
     entries remain.
+13. After all substantive checks are current and nonblocking under their
+    policies, run `explain-diff` and persist it at the `explainDiff` `outputPath`.
+    Final narrative and consolidated summaries follow the same checkpoint.
+    Retain early findings on failing paths without final presentation.
 14. Immediately before finalizing evidence, recheck the persisted context.
     Use `pr_context.py check-current`; governed module execution checks
     the PR through the same protocol guard. Any changed remote or

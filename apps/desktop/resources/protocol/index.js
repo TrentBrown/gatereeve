@@ -1,4 +1,5 @@
 export * from './boundary.js';
+export * from './boundary-retry.js';
 export * from './advisory.js';
 export * from './advisory-contract.js';
 export * from './agent-workflow.js';

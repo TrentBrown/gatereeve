@@ -18,7 +18,7 @@ from workflow_context import WorkflowContextError, resolve_workflow_context
 
 
 def prepare_pull_request(repository, provider, *, title: str, body_file: str,
-                         scope: str = "slice") -> PullRequestContext:
+                         scope: str = "slice", expected_pr: int | None = None) -> PullRequestContext:
     git = GitRepository(repository)
     git.require_clean()
     head = git.branch()
@@ -42,6 +42,8 @@ def prepare_pull_request(repository, provider, *, title: str, body_file: str,
             and row["headRefName"] == head and row["state"] != "MERGED"]
     if len(rows) > 1:
         raise PullRequestContextError("Multiple unmerged PRs match; resolve the ambiguity before preparation")
+    if expected_pr is not None and (len(rows) != 1 or rows[0]["number"] != expected_pr):
+        raise PullRequestContextError("Retry requires the exact existing unmerged PR; no PR was created")
     if rows:
         selector = str(rows[0]["number"])
     else:

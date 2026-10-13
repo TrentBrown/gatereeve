@@ -7,7 +7,7 @@
 
 ## Workflow Position
 
-S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fresh completion-recovery branch. This feature explicitly adopted model 1.6/core 1.2 after reviewing its impact: one additive guard/transition, no removed guards/modules or changed gate definitions. The recovery implementation and local suites pass; scoped formal review remains pending. R10/R24 and advisory/retry behavior remain later obligations. No real MyLifeMap recovery, publication or installed-cache change occurred.
+S1, S2 and S3 are integrated through PRs #77-#79. PR #79 merged at the accepted exact head c4b9cc6, integration f7c07b3; actual GitHub state and trusted reviewed-content ancestry were verified before core acceptance/merge passage. S4 P5/P6/P7 is IMPLEMENTING on fresh tb-boundary-iteration-cost-04-boundary-retry from updated main. Model 1.7/core 1.3 remains pinned. Retry orchestration and local combined journey tests are implemented; whole-feature verification, spec evaluation, independent Judge and formal boundary remain pending. No publication, installed activation or MyLifeMap mutation occurred.
 
 ## Rubric Status
 
@@ -119,3 +119,6 @@ S1 is integrated through PR #77, merge ae9bc5a. S2 P3 is implementing on the fre
 - Correction to the premature human-review entry: the core rejected the first request because the supplied fingerprint map omitted the completed packetValidation fingerprint. No request event was recorded and S3 remains REVIEW_BOUNDARY. The actual packetValidation PASS and clean source/packet proof are retained; the map is being completed from the recorded, independently recomputed gate fingerprint before a fresh request. No S3 merge/release/installed activation/external recovery is claimed.
 
 - The verified packetValidation fingerprint was recomputed from the saved source-current preparation and matched to the actual PASS event. The complete current map then passed all ten gates, and the core recorded HUMAN_REVIEW_REQUESTED evt-s3-pr79-a2-human-review-requested. S3 is now HUMAN_REVIEW. Final clean source/packet synchronization follows this retained event; exact-head human authorization is still required before merge/S4.
+
+- 2026-10-12: Trent confirmed approval and merge of PR #79. Verified GitHub MERGED at c4b9cc6 and trusted integration ancestry at f7c07b3; core recorded human acceptance and S3 MERGED. Approved S4 P5/P6/P7 proposed/planned/started through the core from updated main, scope FEATURE_FINAL and all 24 criteria.
+- 2026-10-12: S4 targeted retry and real-Git bridge tests pass. Combined latest-model advisory-remediation/native-independent-review fixture passes, including uncertain begin reconciliation and deferred presentation. These are fixture/contract results; full final acceptance remains pending.
