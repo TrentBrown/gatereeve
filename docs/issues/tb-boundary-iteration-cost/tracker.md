@@ -7,36 +7,36 @@
 
 ## Workflow Position
 
-S1, S2 and S3 are integrated through PRs #77-#79. PR #79 merged at the accepted exact head c4b9cc6, integration f7c07b3; actual GitHub state and trusted reviewed-content ancestry were verified before core acceptance/merge passage. S4 P5/P6/P7 is IMPLEMENTING on fresh tb-boundary-iteration-cost-04-boundary-retry from updated main. Model 1.7/core 1.3 remains pinned. Retry orchestration and local combined journey tests are implemented; whole-feature verification, spec evaluation, independent Judge and formal boundary remain pending. No publication, installed activation or MyLifeMap mutation occurred.
+S1-S3 are verified integrated through PRs77-79. S4 P5/P6/P7 is at FEATURE_FINAL review in PR80, fresh attempt retry-s4-ready-3-pr80-a2, source ba4fc6a939acaee654829d93c2a67cdf8b86d2b9. Full Verification, implementer spec evaluation, code review and independent isolated Judge PASS; all24 criteria PASS, zero NOT YET. Model1.7/core1.3 and all formal guards/requirements remain intact. Native configured advisory was unavailable; retained source-bound reason admits entry without waiver. Final presentation/packet/human-review passage are being completed. Nothing merged/published/activated for S4; configured post-merge finalization still governs actual Complete.
 
 ## Rubric Status
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|--------|-------|
-| R1 | Readiness trigger and applicability | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
-| R2 | Advisory isolation and evidence | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
-| R3 | Readiness outcome and nonblocking bypass | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
-| R4 | Formal Judge history exclusion | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
-| R5 | Approved requirements and audited filtered identity | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
-| R6 | Defect-class remediation | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
-| R7 | Complete advisory rerun review | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
-| R8 | Recurrence and broader findings | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
-| R9 | Compact durable advisory retention | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
-| R10 | Verified evidence-only advisory reuse | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
-| R11 | Advisory errors and one retry | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
-| R12 | Discovery before presentation | NOT YET | - | AC5; planned for P5 / I-5; P6 / I-6; final proof P7 / I-7. |
-| R13 | Guarded retry orchestration | NOT YET | - | AC5; planned for P5 / I-5; P6 / I-6; final proof P7 / I-7. |
-| R14 | Interruption recovery and formal freshness | NOT YET | - | AC5; planned for P5 / I-5; final proof P7 / I-7. |
-| R15 | Large bounded review construction | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
-| R16 | Patch deduplication and rename representation | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
-| R17 | Binary before/after evidence access | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
-| R18 | Whole-feature scope and shared-code preservation | PASS | S1 / PR #77 | Scoped spec evaluation and deterministic tests; independent Judge PASS. |
-| R19 | Source-bound recovery authority and remaining evidence | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
-| R20 | Recovery blockers | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
-| R21 | Dedicated recovery event and normal closeout | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
-| R22 | Historical compatibility and explicit adoption | PASS | S2 / PR #78 | Scoped assessment, source/protocol regressions and independent Judge PASS in s2-pr78-a4. |
-| R23 | Portable invocation and observable errors | PASS | [PR #79 packet](pr-79/boundary.json) | P4 scoped evidence and independent Judge PASS at a0dd084; final P7 whole-feature proof remains pending. |
-| R24 | Consistent workflow guidance and measurable cost | NOT YET | - | AC8; planned for P2 / I-2; P5 / I-5; P6 / I-6; final proof P7 / I-7. |
+| R1 | Readiness trigger and applicability | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R2 | Advisory isolation and evidence | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R3 | Readiness outcome and nonblocking bypass | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R4 | Formal Judge history exclusion | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R5 | Approved requirements and audited filtered identity | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R6 | Defect-class remediation | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R7 | Complete advisory rerun review | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R8 | Recurrence and broader findings | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R9 | Compact durable advisory retention | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R10 | Verified evidence-only advisory reuse | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R11 | Advisory errors and one retry | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R12 | Discovery before presentation | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R13 | Guarded retry orchestration | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R14 | Interruption recovery and formal freshness | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R15 | Large bounded review construction | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R16 | Patch deduplication and rename representation | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R17 | Binary before/after evidence access | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R18 | Whole-feature scope and shared-code preservation | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R19 | Source-bound recovery authority and remaining evidence | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R20 | Recovery blockers | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R21 | Dedicated recovery event and normal closeout | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R22 | Historical compatibility and explicit adoption | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R23 | Portable invocation and observable errors | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
+| R24 | Consistent workflow guidance and measurable cost | PASS | [PR #80 packet](pr-80/boundary.json) | Complete-feature spec and independent Judge PASS at ba4fc6a; finalization/merge remain distinct obligations. |
 
 ## Review Log
 
@@ -130,3 +130,5 @@ S1, S2 and S3 are integrated through PRs #77-#79. PR #79 merged at the accepted 
 - Scope: FEATURE_FINAL; P5/P6/P7; all 24 criteria require whole-feature proof.
 - Initial attempt retry-s4-ready-2-pr80-a1 recorded pin context through the new helper. Early mechanics review found missing issues.md reconciliation in its declared evidence set; core returned to IMPLEMENTING before substantive Judge/presentation. Corrected source requires fresh readiness/attempt and carries no PASS.
 - Advisory s4-ready-2 was UNAVAILABLE due persistent provider configuration; retained reason preserved formal requirements. This is not a code verdict. Formal boundary remains pending.
+
+- 2026-10-12: Fresh attempt retry-s4-ready-3-pr80-a2 source ba4fc6a: full Verification406CLI/206Desktop/132Python and portable package acceptance PASS; self spec all24PASS; independent native Judge all24PASS/no findings, scope/gap/contradiction PASS, gpt-5.5/high fresh readonly deniednetwork zero inherited turns. Code no unresolved findings; pattern0active PASS_WITH_WARNINGS. Core reconciles native outcome; decision triage0pending PASS. ExplainDiff generated only after substantive/triage PASS, five correct/incorrect DOM interactions and navigation/prewrap PASS. Packet manifest built by coordinator; packet-validation/human passage remain pending clean synchronization.

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "questions": 5,
+  "correctAndIncorrectPaths": 10,
+  "navigationTargets": 4,
+  "preWrap": true,
+  "proof": "DOM event interaction and source/style assertions; no browser screenshot claim"
+}
