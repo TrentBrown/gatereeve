@@ -125,3 +125,18 @@ test('public model graph renders configured finalization owner edges without fla
  const {readiness,...graph}=resolveModuleGraph({definitions:[...base.moduleGraph.modules,custom],policy});
  const diagram=modelGraph({...base,moduleGraph:graph});assert.equal(diagram.edges.find(e=>e.from==='finalization-module:example/final-check'&&e.to==='finalization-module:gatereeve/release').label,'owner ordering');
 });
+
+
+test('retained finalization inventory, edges and numbers stay pinned through ordering reversal/removal and disabled current modules',async()=>{
+ const {finalizationOwnerFixture}=await import('./helpers/owner-finalization-fixture.js');
+ for(const [ordering,disabled] of [[{'example/prepare':{after:['example/release']}},[]],[{},[]],[{},['example/prepare']]]){
+  const f=await finalizationOwnerFixture();await f.migrate(ordering,disabled);let view=await f.observe();
+  let rows=view.modules.slots.find(slot=>slot.id==='feature.finalization').modules.filter(m=>m.enabled);
+  assert.deepEqual(rows.map(m=>[m.id,m.orderLabel,m.ownerAfter]),[['example/prepare','1',[]],['example/release','2',['example/prepare']]]);
+  const old=view.projection.finalizationAttempts[0];assert(old.modules.find(m=>m.id==='example/release').dependencyEdges.some(e=>e.from==='example/prepare'&&e.kind==='owner'));
+  assert.equal(rows[0].attemptId,'retained-owner');assert.equal(view.modules.policyDigest,f.modelFor(ordering,disabled).moduleGraph.policyDigest);
+  await f.replace('current-owner');view=await f.observe();rows=view.modules.slots.find(slot=>slot.id==='feature.finalization').modules.filter(m=>m.enabled);
+  const current=view.projection.finalizationAttempts.at(-1);assert.deepEqual(rows.map(m=>m.id).sort(),current.modules.map(m=>m.id).sort());
+  for(const row of rows){const result=current.modules.find(m=>m.id===row.id);assert.equal(row.orderLabel,result.orderLabel);assert.deepEqual(row.ownerAfter,ordering[row.id]?.after??[]);assert.equal(row.attemptId,'current-owner');}
+ }
+});

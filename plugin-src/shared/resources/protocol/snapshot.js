@@ -1067,18 +1067,24 @@ function eventSummaries(events, limit = 20) {
 function moduleInventory(record, projection, facts) {
   const graph = record.modelLock.model.moduleGraph;
   if (!graph) return null;
-  const enabled = new Set(graph.enabledModuleIds);
   const availability = facts.moduleAvailability ?? null;
   const live = isObject(facts.moduleLive) ? facts.moduleLive : {};
   const finalizationAttempt = projection.finalizationAttempts.find((attempt) => attempt.state === 'ACTIVE')
     ?? projection.finalizationAttempts.at(-1)
     ?? null;
+  const retainedGraph = finalizationAttempt
+    ? record.events.find(event => event.type === 'FEATURE_FINALIZATION_STARTED'
+      && event.payload.attemptId === finalizationAttempt.id)?.payload.moduleGraph ?? graph
+    : graph;
   return {
     schemaVersion: 1,
     policyDigest: graph.policyDigest,
-    slots: MODULE_SLOTS.map((slot) => ({
+    slots: MODULE_SLOTS.map((slot) => {
+      const selectedGraph = slot === 'feature.finalization' ? retainedGraph : graph;
+      const enabled = new Set(selectedGraph.enabledModuleIds);
+      return ({
       id: slot,
-      modules: graph.modules.filter((module) => module.slot === slot).map((module) => {
+      modules: selectedGraph.modules.filter((module) => module.slot === slot).map((module) => {
         const result = slot === 'feature.finalization'
           ? finalizationAttempt?.modules.find((item) => item.id === module.id) ?? null
           : null;
@@ -1096,7 +1102,7 @@ function moduleInventory(record, projection, facts) {
         waiverPolicy: module.waiverPolicy ?? 'any-change',
         dependsOn: [...module.dependsOn],
         after: [...(module.after ?? [])],
-        ownerAfter: [...(graph.ordering?.[module.id]?.after ?? [])],
+        ownerAfter: [...(selectedGraph.ordering?.[module.id]?.after ?? [])],
         boundaryGateId: module.boundary?.gateId ?? null,
         run: module.run ? structuredClone(module.run) : null,
         observe: module.observe ? structuredClone(module.observe) : null,
@@ -1113,7 +1119,7 @@ function moduleInventory(record, projection, facts) {
           blockers: structuredClone(result.blockers),
         } : {}),
       }); }),
-    })),
+    }); }),
   };
 }
 

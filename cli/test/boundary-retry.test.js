@@ -13,14 +13,14 @@ import { initializeFeature, proposeSlice, recordFeatureTransition, recordSliceTr
 const agent = {kind:'agent',label:'fixture implementer'};
 const human = {kind:'human-confirmed',label:'fixture approval'};
 const hash = b => 'sha256:'+createHash('sha256').update(b).digest('hex');
-async function fixture(model = null) {
+async function fixture(model = null, scope = 'SLICE') {
  const root=await realpath(await mkdtemp(join(tmpdir(),'gatereeve-retry-')));
  const home=join(root,'docs/issues/feature');
  await initializeFeature({featureHome:home,featureId:'feature',actor:agent,model:model ?? await loadHistoricalModel()});
  await recordFeatureTransition(home,'approve-design',{actor:human});
  await recordFeatureTransition(home,'validate-spec',{actor:agent,facts:{specValidationCurrent:true}});
  await recordFeatureTransition(home,'authorize-plan',{actor:human});
- await proposeSlice(home,{sliceId:'s1',branch:'tb-feature',scope:'SLICE',rubricCriteria:['R1'],actor:agent});
+ await proposeSlice(home,{sliceId:'s1',branch:'tb-feature',scope,rubricCriteria:['R1'],actor:agent});
  await recordSliceTransition(home,'plan-slice','s1',{actor:agent});
  await recordSliceTransition(home,'start-slice','s1',{actor:agent,facts:{sliceReadinessCurrent:true}});
  const context={schemaVersion:1,repositoryRoot:root,repositoryAlias:'product',remote:'origin',source:'github',
@@ -33,7 +33,7 @@ async function fixture(model = null) {
     if(request.action==='gate')return {outputPath:join(home,'pr-42/attempts/retry-ready-1',request.gateId),packetId:'pr-42'};
     if(request.action==='finalize')return {synchronization:{finalHeadSha:'c'.repeat(40)},packet:{status:'valid'}};
     throw Error(request.action);}};
- const input={retryId:'ready-1',sliceId:'s1',pullRequest:42,scope:'SLICE',repositoryRoot:root,actor:agent};
+ const input={retryId:'ready-1',sliceId:'s1',pullRequest:42,scope,repositoryRoot:root,actor:agent};
  const invoke=extra=>retryBoundary(home,{...input,...extra},deps);
  return {root,home,input,deps,calls,invoke,context};
 }
@@ -236,4 +236,18 @@ test('emitted modular packet remains classified workflow history for a later adv
  const {buildCompactReviewInput}=await import('../../plugin-src/shared/resources/protocol/review-input.js');
  const change=await buildCompactReviewInput({repositoryRoot:f.root,featureHome:f.home,baseSha:base,headSha:head,sliceBaseSha:base,scope:'FEATURE'});
  try{assert.match(await opaqueAdvisoryInputIdentity(f.root,change),/^sha256:/);}finally{await change.cleanup();}
+});
+
+
+test('feature-final retry declares the deferred completion report and slice retries keep that scope closed',async()=>{
+ for(const scope of ['FEATURE_FINAL','SLICE']){
+  const f=await fixture(null,scope);
+  for(let n=0;n<15;n++){const step=await f.invoke();if(step.status==='PREPARE_PACKET')break;if(step.status==='RUN_GATE')await runGate(f,step);else assert.equal(step.status,'RECORDED');}
+  await writeFile(join(f.home,'completion-report.md'),'Deferred final narrative after substantive checks');
+  const result=await f.invoke({action:'packet'});
+  assert.equal(result.evidencePaths.includes('docs/issues/feature/completion-report.md'),scope==='FEATURE_FINAL');
+  let finalizationRequest;const original=f.deps.bridge;f.deps.bridge=async r=>{if(r.action==='finalize')finalizationRequest=r;return original(r);};
+  await f.invoke({action:'finalize'});
+  assert.equal(finalizationRequest.evidencePaths.includes('docs/issues/feature/completion-report.md'),scope==='FEATURE_FINAL');
+ }
 });

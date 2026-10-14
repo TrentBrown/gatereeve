@@ -199,7 +199,7 @@ export async function retryBoundary(featureHome, input, dependencies = {}) {
     if (observed.attempt.state === 'HUMAN_REVIEW') {
       if (action !== 'finalize') return result(state, 'COMMIT_AND_PUSH_EVIDENCE', { reason: 'Commit/push the human-review journal event, then finalize to resolve the exact final head' });
       const verified = await bridgeRun({ ...identity, action: 'finalize', context: state.context,
-        evidencePaths: evidencePaths(featureHome, repositoryRoot, state.packetId) });
+        evidencePaths: evidencePaths(featureHome, repositoryRoot, state.packetId, scope) });
       if (!observed.attempt.requiredCurrentAndNonblocking) throw new ContractError('Human-review evidence is no longer current');
       state.progress = 'FINAL_HEAD_VERIFIED'; await save(path, state);
       return result(state, 'AWAITING_HUMAN_REVIEW', { finalHeadSha: verified.synchronization.finalHeadSha });
@@ -265,12 +265,12 @@ export async function retryBoundary(featureHome, input, dependencies = {}) {
           dependencies: Object.fromEntries(gate.dependsOn.map(id => [id, observed.attempt.gates.find(x => x.id === id).recordedEventId])) };
         state.progress = 'PACKET_PREPARED'; await save(path, state);
         return result(state, 'COMMIT_AND_PUSH_EVIDENCE', { packetPath: join(featureHome, packet, 'boundary.json'),
-          evidencePaths: evidencePaths(featureHome, repositoryRoot, packet) });
+          evidencePaths: evidencePaths(featureHome, repositoryRoot, packet, scope) });
       }
       if (!state.packetPreparation) throw new ContractError('Prepare packet before final synchronization');
       const packet = state.packetId;
       const verified = await bridgeRun({ ...identity, action: 'finalize', context: state.context,
-        evidencePaths: evidencePaths(featureHome, repositoryRoot, packet) });
+        evidencePaths: evidencePaths(featureHome, repositoryRoot, packet, scope) });
       const gate = observed.attempt.gates.find(x => x.id === 'packetValidation');
       if (fingerprint(state.packetPreparation.dependencies) !== fingerprint(Object.fromEntries(gate.dependsOn.map(id => [id, observed.attempt.gates.find(x => x.id === id).recordedEventId])))) throw new ContractError('Packet predecessor changed; prepare packet again');
       const output = `${packet}/attempts/${state.attemptId}/packet-validation-clean.json`;
@@ -282,7 +282,7 @@ export async function retryBoundary(featureHome, input, dependencies = {}) {
           evidence: { path: output, hash: hash(await evidenceBytes(featureHome, output)) },
           expectedModelHash: identity.modelHash, expectedDependencyEventIds: state.packetPreparation.dependencies, actor, eventId: outcomeId });
         state.progress = 'PACKET_RECORDED'; await save(path, state);
-        return result(state, 'COMMIT_AND_PUSH_EVIDENCE', { evidencePaths: evidencePaths(featureHome, repositoryRoot, packet) });
+        return result(state, 'COMMIT_AND_PUSH_EVIDENCE', { evidencePaths: evidencePaths(featureHome, repositoryRoot, packet, scope) });
       }
       observed = await currentAttempt(featureHome, state);
       if (!observed.attempt.requiredCurrentAndNonblocking) return result(state, 'CONTINUE_GATES', {
@@ -291,7 +291,7 @@ export async function retryBoundary(featureHome, input, dependencies = {}) {
       await requestBoundaryHumanReview(featureHome, { attemptId: state.attemptId,
         currentFingerprints: observed.fingerprints, actor, eventId: `evt-retry-${retryId}-human-review` });
       state.progress = 'HUMAN_REVIEW_REQUESTED'; await save(path, state);
-      return result(state, 'COMMIT_AND_PUSH_EVIDENCE', { evidencePaths: evidencePaths(featureHome, repositoryRoot, packet),
+      return result(state, 'COMMIT_AND_PUSH_EVIDENCE', { evidencePaths: evidencePaths(featureHome, repositoryRoot, packet, scope),
         reason: 'Commit/push the human-review journal event, then finalize to resolve the exact final head' });
     }
     if (observed.attempt.requiredCurrentAndNonblocking) return result(state, 'FINALIZE_PACKET');
@@ -331,7 +331,8 @@ export async function retryBoundary(featureHome, input, dependencies = {}) {
   } finally { await release(); }
 }
 
-function evidencePaths(home, root, packet) {
-  return [join(home, packet), join(home, 'issues.md'), join(home, 'tracker.md'), join(home, 'events.jsonl')]
+function evidencePaths(home, root, packet, scope) {
+  return [join(home, packet), join(home, 'issues.md'), join(home, 'tracker.md'), join(home, 'events.jsonl'),
+    ...(scope === 'FEATURE_FINAL' ? [join(home, 'completion-report.md')] : [])]
     .map(path => relative(root, path).split('\\').join('/'));
 }

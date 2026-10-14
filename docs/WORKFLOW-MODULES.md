@@ -482,3 +482,17 @@ them as ambiguous configuration. Extra configuration fields remain unclassified.
 Both public model/current graph observations and Desktop diagrams distinguish
 required, manifest-conditional and owner edges. Public current graphs also retain
 named finalization attempts/modules and their exact edge origins.
+
+
+Finalization inventory, diagram edges, detail groups and numbers describe the
+selected retained attempt's pinned graph. Ordering changes, edge removal or
+module disabling do not reinterpret that historical view. Start current
+finalization replaces a stale-model attempt with one using the adopted graph;
+obsolete-model waiver actions stay unavailable. An empty current attempt still
+exposes the core-authorized completion action. Module settings remain the
+current repository-policy editor.
+
+Feature-final retry declares the canonical deferred `completion-report.md` as
+an exact evidence path during clean-head synchronization. Slice retries keep
+their narrower declarations. This permits the required post-check narrative
+without widening accepted code/configuration changes after evaluation.

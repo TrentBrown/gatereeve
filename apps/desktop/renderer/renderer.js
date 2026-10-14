@@ -923,6 +923,7 @@ function moduleStages(modules) {
 }
 
 function canOfferFinalizationWaiver(attempt, module) {
+  if (attempt?.modelHash !== currentState?.snapshot?.projection?.model?.hash) return false;
   if (!attempt || attempt.state !== 'ACTIVE' || !module.waiverAllowed || module.locked) return false;
   const byId = new Map(attempt.modules.map((candidate) => [candidate.id, candidate]));
   return module.dependsOn.every((dependencyId) => (
@@ -960,18 +961,20 @@ function renderFinalizationModules(snapshot) {
   const attempts = snapshot?.projection?.finalizationAttempts ?? [];
   const attempt = attempts.find((item) => item.state === 'ACTIVE') ?? attempts.at(-1) ?? null;
   const surface = elements['finalization-surface'];
-  surface.hidden = modules.length === 0;
+  surface.hidden = modules.length === 0 && !attempt;
   clear(elements['finalization-summary']);
   const graph = clear(elements['finalization-dag']);
-  if (modules.length === 0) return;
+  if (modules.length === 0 && !attempt) return;
   const summary = elements['finalization-summary'];
   summary.append(document.createTextNode(
     attempt
       ? `${attempt.state} attempt ${attempt.id} · merge ${attempt.mergeInputSha.slice(0, 12)} · ${attempts.length} retained attempt${attempts.length === 1 ? '' : 's'}.`
       : `${modules.length} enabled finalization module${modules.length === 1 ? '' : 's'} await an attempt bound to the recorded feature-final merge.`,
   ));
-  if (!attempt && snapshot?.projection?.feature?.state === 'FINALIZING') {
-    const start = node('button', { className: 'secondary', text: 'Start finalization', type: 'button' });
+  const replacementNeeded = attempt && attempt.modelHash !== snapshot?.projection?.model?.hash;
+  if ((!attempt || replacementNeeded) && snapshot?.projection?.feature?.state === 'FINALIZING') {
+    if (replacementNeeded) summary.append(node('p', { text: 'Workflow changed since this retained attempt. Its graph and groups remain pinned; start a current attempt to use the adopted workflow.' }));
+    const start = node('button', { className: 'secondary', text: replacementNeeded ? 'Start current finalization' : 'Start finalization', type: 'button' });
     start.addEventListener('click', async () => {
       start.disabled = true;
       try { render(await desktop.startFinalization()); }
@@ -1013,7 +1016,10 @@ function renderFinalizationModules(snapshot) {
     : modules.flatMap(m => [...m.dependsOn.map(from => ({ from, to: m.id, kind: 'required' })), ...m.after.map(from => ({ from, to: m.id, kind: 'conditional' })), ...(m.ownerAfter ?? []).map(from => ({ from, to: m.id, kind: 'owner' }))]).filter(e => activeIds.has(e.from));
   renderDependencyDiagram(graph, diagramNodes, diagramEdges);
   const cards = node('details', { className: 'dependency-cards' }, [node('summary', { text: 'Finalization details and actions' })]);graph.append(cards);
-  const stages = moduleStages(modules);
+  const stages = attempt
+    ? [...new Set(diagramNodes.map(module => module.dependencyStage))].sort((a, b) => a - b)
+      .map(number => ({ number, modules: diagramNodes.filter(module => module.dependencyStage === number) }))
+    : moduleStages(modules);
   stages.forEach((stage, index) => {
     const wrapper = node('div', {
       className: `gate-stage${stage.modules.length > 1 ? ' gate-stage-branch' : ''}`,

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:06c7741b74a924c018672dec8c2f8ba33941228a826186b732cfb95815320584",
+  "protocolHash": "sha256:1e91669010c1bd71820c1833e24f038ff562c40b1f17914caf4f99639d68044f",
   "modelSha256": "a8bbfc7402f82d622c8b77417db99c0d4217b183ffa8d557a265fc90deebf080",
   "files": [
     {
@@ -61,8 +61,8 @@
     },
     {
       "path": "boundary-retry.js",
-      "size": 23857,
-      "sha256": "da2c31d3780b9b8817154204e73c35a8c704b092094ba81dbd0ab4712593a7db"
+      "size": 23979,
+      "sha256": "59b95a8cdd00664343584f2ef26f7d3d399ee21a5691c0356dedb7c67e1c4932"
     },
     {
       "path": "boundary.js",
@@ -226,8 +226,8 @@
     },
     {
       "path": "snapshot.js",
-      "size": 63154,
-      "sha256": "f202409fa631bce3ff932f43611b556227c555ffb4dff149f6a88a0d34cdd066"
+      "size": 63513,
+      "sha256": "43bc5a1225f1c1c7e9d3a06c9603cc7396602a0fb3489f406f68bf1d9f937745"
     },
     {
       "path": "storage.js",

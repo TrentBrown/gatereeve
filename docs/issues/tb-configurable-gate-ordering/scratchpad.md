@@ -73,3 +73,28 @@ Advisory5 found four remaining gaps after independent a5 PASS. Classify core-cer
 
 **Triggered by:** advisory5 R7/R8/R10; one recurring refusal-path finding and three consumer-contract omissions.
 **Alternatives considered:** baseline equality alone confuses unrelated progress with this operation's publication; dereferencing null waiver evidence weakens valid waiver support; broad JSON filename recognition can hide configuration; fixing only Desktop diagrams leaves the public graph contradictory.
+
+
+## [7] Pin retained finalization inventory and display groups to one attempt
+
+[x] **Promote**
+
+**Confidence:** HIGH
+**Blast Radius:** finalization snapshot descriptors, retained/current graphs, groups, labels and replacement actions.
+
+Formal Judge6 found that retained graph edges and numbers could be mixed with current-model owner relationships/grouping after adoption. Select finalization descriptors from the selected attempt's stored graph, and derive its card groups directly from projected pinned dependencyStage metadata. Keep repository settings/current policy metadata separate. Offer Start current finalization when the model has changed, preserve old views until replacement, hide obsolete-model waiver actions, and retain completion controls for an empty current attempt. Actual-core snapshots and real DOM jointly cover reversal, owner-edge removal, current module disabling, replacement and empty-attempt completion in disposable fixtures.
+
+**Triggered by:** formal Judge6 R9 gap/contradiction finding.
+**Alternatives considered:** recomputing only group numbers leaves current metadata or enabled-module selections mixed with historical edges; replacing old graphs silently would reinterpret history; offering only stale actions traps a migrated finalization view.
+
+## [8] Declare the deferred final completion report narrowly
+
+[x] **Promote**
+
+**Confidence:** HIGH
+**Blast Radius:** feature-final retry packet bookkeeping and trusted final-head synchronization.
+
+Final packet inspection found that canonical completion-report.md is written after substantive checks, but the coordinator declared only packet, issues, tracker and journal paths. Add exactly completion-report.md for FEATURE_FINAL synchronization and returned commit paths. Preserve the narrower SLICE declaration and all source/currentness guards. Full boundary-flow tests verify both scopes and the bridge's actual declaration payload.
+
+**Triggered by:** required deferred artifact and exact evidence-only finalization contract.
+**Alternatives considered:** writing a false report before checks violates deferral; broadening the entire feature directory could admit post-evaluation requirements/configuration changes; omitting the canonical report leaves feature evidence incomplete.
