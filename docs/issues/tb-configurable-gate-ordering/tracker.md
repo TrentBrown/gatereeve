@@ -7,22 +7,22 @@
 
 ## Workflow Position
 
-The approved configurable ordering design is implemented in one FEATURE_FINAL slice P1-P5, PR #81. Formal attempt a4 failed R4/R7/R10 with four independent findings. Core returned the slice to IMPLEMENTING through evt-ordering-a4-remediation before changes. Class-wide remediation now covers launch-event binding, explicit presentation descendants, disabled-review packet inventory and pre-mutation migration refusal/reload adoption. Fresh readiness, current full verification and a new history-blind formal Judge remain required; no prior formal PASS is reused and no release/activation is asserted.
+Implementation P1-P5 is assessed PASS for pre-merge scope. Current whole-feature source c8a0bb276ab86f91f3cd94a6d7bc0bd64544aab6; actual independent formal attempt retry-ordering-ready-8-pr81-a8 PASS R1-R10. Fresh verification, code/spec/pattern checks and decision triage are recorded through the core. Interactive presentation and packet synchronization follow. PR #81 awaits exact-head human acceptance; merge and post-merge publication/activation remain separate. Advisory8 is UNAVAILABLE with a retained assessed proceed reason, not a clean advisory or a formal waiver.
 
 ## Rubric Status
 
 | # | Criterion | Status | Review | Notes |
 |---|-----------|--------|--------|-------|
-| R1 | Policy and graph compatibility | NOT YET | - | P1 |
-| R2 | Validation | NOT YET | - | P1 |
-| R3 | Conditional and protected behavior | NOT YET | - | P1 |
-| R4 | Eligibility and freshness | NOT YET | - | P2 |
-| R5 | Isolation and migration | NOT YET | - | P2 |
-| R6 | Owner controls | NOT YET | - | P3 |
-| R7 | Apply/discard safety | NOT YET | - | P3 |
-| R8 | Exact DAG | NOT YET | - | P4 |
-| R9 | Accessibility and derived grouping | NOT YET | - | P4 |
-| R10 | Portable integration and safeguards | NOT YET | - | P5 |
+| R1 | Policy and graph compatibility | PASS | [Judge](pr-81/attempts/retry-ordering-ready-8-pr81-a8/judge.md) | P1; scoped tests and current verification |
+| R2 | Validation | PASS | [Judge](pr-81/attempts/retry-ordering-ready-8-pr81-a8/judge.md) | P1; scoped tests and current verification |
+| R3 | Conditional and protected behavior | PASS | [Judge](pr-81/attempts/retry-ordering-ready-8-pr81-a8/judge.md) | P1; scoped tests and current verification |
+| R4 | Eligibility and freshness | PASS | [Judge](pr-81/attempts/retry-ordering-ready-8-pr81-a8/judge.md) | P2; scoped tests and current verification |
+| R5 | Isolation and migration | PASS | [Judge](pr-81/attempts/retry-ordering-ready-8-pr81-a8/judge.md) | P2; scoped tests and current verification |
+| R6 | Owner controls | PASS | [Judge](pr-81/attempts/retry-ordering-ready-8-pr81-a8/judge.md) | P3; scoped tests and current verification |
+| R7 | Apply/discard safety | PASS | [Judge](pr-81/attempts/retry-ordering-ready-8-pr81-a8/judge.md) | P3; scoped tests and current verification |
+| R8 | Exact DAG | PASS | [Judge](pr-81/attempts/retry-ordering-ready-8-pr81-a8/judge.md) | P4; scoped tests and current verification |
+| R9 | Accessibility and derived grouping | PASS | [Judge](pr-81/attempts/retry-ordering-ready-8-pr81-a8/judge.md) | P4; scoped tests and current verification |
+| R10 | Portable integration and safeguards | PASS | [Judge](pr-81/attempts/retry-ordering-ready-8-pr81-a8/judge.md) | P5; scoped tests and current verification |
 
 ## Review Log
 
@@ -47,3 +47,5 @@ The approved configurable ordering design is implemented in one FEATURE_FINAL sl
 - Final packet inspection additionally corrected the missing exact FEATURE_FINAL completion-report.md evidence declaration; SLICE scope stays narrower and final source guards remain intact.
 
 - Advisory7: FINDINGS, one public Mermaid identity defect; all thirteen prior findings resolved. Formal7 was not started. Valid punctuation variants collapsed to one identifier/self-loop. Revision8 uses one injective fixed-width encoding for all rendered node IDs/endpoints, preserving labels and JSON identities. Resolver-backed boundary/finalization model/current tests and standalone punctuation/Unicode cases PASS12; full suites follow. Fresh readiness8 and independent formal review remain required.
+
+- Actual independent formal a8: PASS all R1-R10, with exact native receipt and source-bound report at [Judge](pr-81/attempts/retry-ordering-ready-8-pr81-a8/judge.md). Current full CLI422/Desktop219/Python104+28/templates2 and portable acceptance PASS. Pattern report warns that the existing rule scope is empty. Advisory8 UNAVAILABLE/PERSISTENT CONTRACT_INVALID with one actual provider attempt and no verdict; all fourteen earlier findings have retained class-wide fixes and current regressions. No old formal PASS is reused. Packet validation/retention and human review follow through the core.
