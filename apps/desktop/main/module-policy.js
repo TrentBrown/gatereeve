@@ -370,8 +370,10 @@ export function createModulePolicyManager({
             expectedJournalSequence: preview.baseline.sequence,
           }); } catch (error) {
             // Restore only when the core confirms no migration was published.
-            // Pending markers or changed state require core recovery first.
-            let unchanged = error.code === 'MODEL_MIGRATION_CONFLICT';
+            // Conflict/lock-refusal codes certify this operation made no writes,
+            // even when another journal writer progresses before we observe it.
+            // Unknown failures with pending markers/changed state need recovery.
+            let unchanged = ['MODEL_MIGRATION_CONFLICT', 'JOURNAL_LOCKED'].includes(error.code);
             if (!unchanged) {
               try { const current = await readFeatureRecord(featureHome);
                 unchanged = current.modelLock.modelHash === preview.baseline.modelHash

@@ -9,6 +9,7 @@ import {
   migrateFeatureModel,
   readFeatureRecord,
 } from '../../../plugin-src/shared/resources/protocol/feature.js';
+import { withJournalMutationLock } from '../../../plugin-src/shared/resources/protocol/journal.js';
 import { recordFeatureTransition } from '../../../plugin-src/shared/resources/protocol/transitions.js';
 import { loadDefaultModel } from '../../../plugin-src/shared/resources/protocol/model.js';
 import { hashModuleDefinition } from '../../../plugin-src/shared/resources/protocol/modules.js';
@@ -298,4 +299,21 @@ test('journal lock refusal restores the previous policy and leaves the confirmed
   await manager.apply(context.repositoryRoot,context.featureHome,enabled,options);
   assert.equal((await manager.inspect(context.repositoryRoot,context.featureHome)).migrationRequired,false);
  }
+});
+
+
+test('core-certified journal-lock refusal restores owned publication even after unrelated journal progress',async()=>{
+ const context=await fixture('progress-after-refusal');let refusal;
+ const manager=createModulePolicyManager({async migrate(){
+  const lock=join(context.featureHome,'events.jsonl.lock');await writeFile(lock,'busy');
+  try{await withJournalMutationLock(context.featureHome,()=>assert.fail('refused lock entered callback'));}catch(error){refusal=error;}finally{await unlink(lock);}
+  assert.equal(refusal.code,'JOURNAL_LOCKED');
+  await recordFeatureTransition(context.featureHome,'approve-design',{actor:{kind:'human-confirmed',label:'Unrelated journal writer'}});throw refusal;
+ }});
+ const settings=await manager.inspect(context.repositoryRoot,context.featureHome);const enabled=settings.modules.filter(m=>m.enabled).map(m=>m.id);
+ const ordering={'gatereeve/judge':{after:['gatereeve/code-review']}};const preview=await manager.preview(context.repositoryRoot,context.featureHome,enabled,ordering);
+ await assert.rejects(manager.apply(context.repositoryRoot,context.featureHome,enabled,{ordering,confirmedMigration:true,confirmationLabel:'Exact preview',expectedPreviewFingerprint:preview.previewFingerprint}),error=>error===refusal);
+ await assert.rejects(readFile(join(context.repositoryRoot,'.gatereeve/workflow.json')),{code:'ENOENT'});
+ const after=await readFeatureRecord(context.featureHome);assert.equal(after.events.length,2);assert.equal(after.events.at(-1).type,'DESIGN_APPROVED');
+ assert.equal(after.modelLock.modelHash,preview.baseline.modelHash);assert(!after.events.some(e=>e.type==='MODEL_MIGRATED'));
 });

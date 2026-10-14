@@ -71,3 +71,17 @@ Independent Judge findings expose four reachable gaps beyond graph resolution. C
 **Alternatives considered:** adding more owner ordering restrictions would create an unapproved stage barrier; allowing arbitrary missing packet artifacts would weaken enabled modules; copying current predecessor IDs would launder stale in-flight results; rolling back policy after unknown core mutation would hide recovery state.
 
 **Promoted:** 2026-10-14. PR: 81.
+
+---
+
+## Preserve refusal provenance and disposition/history contracts across consumers
+
+**Confidence:** HIGH
+**Blast Radius:** policy rollback after concurrent journal progress, modular packet waivers/history and public graph consumers.
+
+Advisory5 found four remaining gaps after independent a5 PASS. Classify core-certified no-write errors (`JOURNAL_LOCKED`, `MODEL_MIGRATION_CONFLICT`) as operation refusal even if unrelated journal events advance before observation, retaining exclusive own-publication rollback. For unclassified errors keep pending-marker/state recovery guards. Modular packet checks compare actual artifacts only for recorded PASS; valid WAIVED dispositions have null core evidence but still require their report/hash and matching recorded reason. Recognize emitted schema-4 packets through an exact bounded history shape, and reject configuration additions. Preserve origin labels across public model/current graphs, including finalization modules, instead of flattening their dependency arrays.
+
+**Triggered by:** advisory5 R7/R8/R10; one recurring refusal-path finding and three consumer-contract omissions.
+**Alternatives considered:** baseline equality alone confuses unrelated progress with this operation's publication; dereferencing null waiver evidence weakens valid waiver support; broad JSON filename recognition can hide configuration; fixing only Desktop diagrams leaves the public graph contradictory.
+
+**Promoted:** 2026-10-14. PR: 81.

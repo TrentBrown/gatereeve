@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:91961c157c64c8a0059dbedbded036042aebf18496bf4d82f2833d73c330bdaf",
+  "protocolHash": "sha256:06c7741b74a924c018672dec8c2f8ba33941228a826186b732cfb95815320584",
   "modelSha256": "a8bbfc7402f82d622c8b77417db99c0d4217b183ffa8d557a265fc90deebf080",
   "files": [
     {
@@ -16,8 +16,8 @@
     },
     {
       "path": "advisory-inputs.js",
-      "size": 11868,
-      "sha256": "e7b75f9b6274e9bc55eb6463f056083c61c42082fb4d212217e48b2d484a7c04"
+      "size": 14229,
+      "sha256": "85d30ea6c5ddf55868fa7d47b0edd446006ef25e63e2372a3c3c7b51e6ebc3ee"
     },
     {
       "path": "advisory-storage.js",
@@ -121,8 +121,8 @@
     },
     {
       "path": "graph.js",
-      "size": 5315,
-      "sha256": "7e35e80d7fc5ee670553adc61f422de7c78841a3175ace88dad6524d026cb875"
+      "size": 7561,
+      "sha256": "90c18e1e0f4836228799ce02927798d6bf4ab2f186053ff5f7bd71431248cee1"
     },
     {
       "path": "guards.js",

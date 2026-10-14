@@ -463,7 +463,22 @@ rejects omissions of enabled checks or mismatched dispositions and evidence.
 Historical packet schemas remain supported.
 
 Apply restores the previous policy after any confirmed pre-mutation migration
-refusal, including a busy feature journal lock. A pending migration marker or
+refusal, including a busy feature journal lock. For unclassified failures, a pending migration marker or
 changed model/journal requires core reconciliation; the manager retains the
 published policy and reports that recovery requirement instead of hiding a
 partially completed core operation.
+
+
+Core `JOURNAL_LOCKED` and `MODEL_MIGRATION_CONFLICT` refusals certify that this
+migration operation made no writes. They allow restoration of the manager's
+owned policy publication even when another writer advances the journal before
+observation. Unclassified failures retain the state-based recovery check.
+Modular packet validation preserves recorded human-confirmed waivers, including
+their required report, reason and digest, without inventing a core artifact for
+a waiver whose recorded evidence is null. Emitted schema-4 packets have a bounded
+recognized workflow-history shape, so later advisory preparation does not treat
+them as ambiguous configuration. Extra configuration fields remain unclassified.
+
+Both public model/current graph observations and Desktop diagrams distinguish
+required, manifest-conditional and owner edges. Public current graphs also retain
+named finalization attempts/modules and their exact edge origins.

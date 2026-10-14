@@ -123,7 +123,7 @@ def _modular_packet_gates(workflow, manifest):
             if expected != "passed" and value.get("reason") != gate["reason"]:
                 raise ValueError(f"{key} reason differs from the recorded disposition")
             reference = value.get("evidence")
-            if key != "judge" and expected != "not_applicable":
+            if key != "judge" and expected == "passed":
                 evidence = gate["evidence"]
                 if reference != {"path": str(Path(evidence["path"]).relative_to(manifest["packetId"])), "sha256": evidence["hash"]}:
                     raise ValueError(f"{key} evidence differs from the recorded artifact")

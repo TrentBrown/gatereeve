@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { loadHistoricalModel } from './helpers/historical-model.js';
 import { initializeFeature, proposeSlice, recordFeatureTransition, recordSliceTransition,
-  retryBoundary, readFeatureRecord, recordGateOutcome, projectRecord } from '../../plugin-src/shared/resources/protocol/index.js';
+  retryBoundary, readFeatureRecord, recordGateOutcome, recordGateWaiver, projectRecord } from '../../plugin-src/shared/resources/protocol/index.js';
 
 const agent = {kind:'agent',label:'fixture implementer'};
 const human = {kind:'human-confirmed',label:'fixture approval'};
@@ -180,6 +180,15 @@ test('owner ordering after Explain Diff and Packet Validation completes without 
  }
 });
 
+async function packetValidator(f) {
+  await writeFile(join(f.root,'.agentic-workflow.json'),JSON.stringify({schemaVersion:1,featureId:'feature',repositories:{product:{path:'.',remote:'origin',integrationBranch:'main'}}}));
+  await writeFile(join(f.home,'tracker.md'),'### PR #42\n[Packet](pr-42/boundary.json)\n');
+  await writeFile(join(f.root,'context.json'),JSON.stringify(f.context));
+  const scripts=fileURLToPath(new URL('../../plugin-src/shared/resources/scripts/',import.meta.url));
+  const validate=()=>execFileSync('python3',['-c','import sys,json;sys.path.insert(0,sys.argv[1]);from boundary_packet import validate_packet;from workflow_context import resolve_workflow_context;from pr_context import PullRequestContext;w=resolve_workflow_context(sys.argv[2]);c=PullRequestContext.from_dict(json.load(open(sys.argv[3])));print(json.dumps(validate_packet(w,c,changed_paths=[])))',scripts,f.root,join(f.root,'context.json')],{env:{...process.env,PYTHONDONTWRITEBYTECODE:'1'},encoding:'utf8',stdio:['pipe','pipe','pipe']});
+  return validate;
+}
+
 test('disabled standard review checks omit packet artifacts and retain enabled requirements',async()=>{
  for(const id of ['gatereeve/judge','gatereeve/code-review','gatereeve/pattern-review','gatereeve/spec-evaluation']) {
   const f=await fixture(await orderedModel('gatereeve/explain-diff',[id]));
@@ -188,13 +197,43 @@ test('disabled standard review checks omit packet artifacts and retain enabled r
   const manifest=JSON.parse(await readFile(join(f.home,'pr-42/boundary.json')));
   const gate={ 'gatereeve/judge':'judge','gatereeve/code-review':'codeReview','gatereeve/pattern-review':'patternReview','gatereeve/spec-evaluation':'specEvaluation'}[id];
   assert.equal(manifest.schemaVersion,4);assert.equal(manifest.attemptId,'retry-ready-1');assert(!Object.hasOwn(manifest.gates,gate));assert(manifest.gates.verification);
-  await writeFile(join(f.root,'.agentic-workflow.json'),JSON.stringify({schemaVersion:1,featureId:'feature',repositories:{product:{path:'.',remote:'origin',integrationBranch:'main'}}}));
-  await writeFile(join(f.home,'tracker.md'),'### PR #42\n[Packet](pr-42/boundary.json)\n');
-  await writeFile(join(f.root,'context.json'),JSON.stringify(f.context));
-  const scripts=fileURLToPath(new URL('../../plugin-src/shared/resources/scripts/',import.meta.url));
-  const validate=()=>execFileSync('python3',['-c','import sys,json;sys.path.insert(0,sys.argv[1]);from boundary_packet import validate_packet;from workflow_context import resolve_workflow_context;from pr_context import PullRequestContext;w=resolve_workflow_context(sys.argv[2]);c=PullRequestContext.from_dict(json.load(open(sys.argv[3])));print(json.dumps(validate_packet(w,c,changed_paths=[])))',scripts,f.root,join(f.root,'context.json')],{env:{...process.env,PYTHONDONTWRITEBYTECODE:'1'},encoding:'utf8'});
+  const validate=await packetValidator(f);
   assert.equal(JSON.parse(validate()).status,'valid');
   delete manifest.gates.verification;await writeFile(join(f.home,'pr-42/boundary.json'),JSON.stringify(manifest));
   assert.throws(validate,/verification does not match|fields differ/);
  }
+});
+
+
+test('modular packets preserve each supported enabled human waiver while other reviews are disabled',async()=>{
+ for(const waived of ['verification','specEvaluation','codeReview','patternReview','judge']){
+  const disabled=waived==='judge'?'gatereeve/pattern-review':'gatereeve/judge';
+  const f=await fixture(await orderedModel('gatereeve/explain-diff',[disabled]));
+  for(let n=0;n<20;n++){const step=await f.invoke();if(step.status==='PREPARE_PACKET')break;if(step.status==='RUN_GATE'){
+   if(step.gateId===waived){await report(f,waived,'Human-confirmed fixture waiver report');
+    if(waived==='judge')await writeFile(join(f.home,'pr-42/attempts/retry-ready-1/judge.md'),'Human-confirmed fixture waiver report');
+    await recordGateWaiver(f.home,{attemptId:step.attemptId,gateId:waived,inputs:step.preparation.inputs,currentFingerprints:step.preparation.currentFingerprints,
+     actor:human,reason:'Fixture human risk acceptance',...(step.preparation.target.waiverPolicy==='non-behavioral-only'?{waiverBasis:{classification:'NON_BEHAVIORAL',evidence:{path:'waiver-basis.md',hash:hash('fixture')}}}:{})});
+   }else await runGate(f,step);
+  }else assert.equal(step.status,'RECORDED');}
+  await f.invoke({action:'packet'});const manifest=JSON.parse(await readFile(join(f.home,'pr-42/boundary.json')));
+  assert.equal(manifest.gates[waived].disposition,'waived');assert.equal(JSON.parse((await packetValidator(f))()).status,'valid');
+ }
+});
+
+test('emitted modular packet remains classified workflow history for a later advisory source range',async()=>{
+ const f=await fixture(await orderedModel('gatereeve/explain-diff',['gatereeve/judge']));
+ for(let n=0;n<20;n++){const step=await f.invoke();if(step.status==='PREPARE_PACKET')break;if(step.status==='RUN_GATE')await runGate(f,step);else assert.equal(step.status,'RECORDED');}
+ await f.invoke({action:'packet'});const path=join(f.home,'pr-42/boundary.json'),bytes=await readFile(path);
+ const {isAdvisoryWorkflowRecord,opaqueAdvisoryInputIdentity}=await import('../../plugin-src/shared/resources/protocol/advisory-inputs.js');
+ assert.equal(isAdvisoryWorkflowRecord(JSON.parse(bytes)),true);assert.equal(isAdvisoryWorkflowRecord({...JSON.parse(bytes),productionMode:'changed'}),false);
+ const {unlink}=await import('node:fs/promises');await unlink(path);
+ await writeFile(join(f.home,'design.md'),'# Design\n**Status:** approved\n');await writeFile(join(f.home,'spec.md'),'# Spec\n| R1 | behavior | pass | fail | evidence |\n');
+ const git=(...args)=>execFileSync('git',['-c','core.hooksPath=/dev/null','-C',f.root,...args],{encoding:'utf8'}).trim();
+ git('init','-b','main');git('config','user.name','Fixture');git('config','user.email','fixture@example.invalid');git('config','commit.gpgsign','false');
+ git('add','.');git('commit','-m','fixture base');const base=git('rev-parse','HEAD');
+ await writeFile(path,bytes);git('add','.');git('commit','-m','modular packet');const head=git('rev-parse','HEAD');
+ const {buildCompactReviewInput}=await import('../../plugin-src/shared/resources/protocol/review-input.js');
+ const change=await buildCompactReviewInput({repositoryRoot:f.root,featureHome:f.home,baseSha:base,headSha:head,sliceBaseSha:base,scope:'FEATURE'});
+ try{assert.match(await opaqueAdvisoryInputIdentity(f.root,change),/^sha256:/);}finally{await change.cleanup();}
 });

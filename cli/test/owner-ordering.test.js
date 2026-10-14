@@ -3,6 +3,7 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { currentGraph, modelGraph } from '../../plugin-src/shared/resources/protocol/graph.js';
 import { loadHistoricalModel } from './helpers/historical-model.js';
 import { boundaryGateDefinitions, hashWorkflowPolicy, moduleDependencyEdges, resolveModuleGraph, validateResolvedModuleGraph } from '../../plugin-src/shared/resources/protocol/modules.js';
 import { buildModelMigrationImpact, createModelLock, fingerprint, initializeFeature, loadDefaultModel, loadDefaultWorkflowPolicy, migrateFeatureModel, projectRecord, proposeSlice, readFeatureRecord, recordFeatureTransition, recordGateOutcome, recordSliceTransition } from '../../plugin-src/shared/resources/protocol/index.js';
@@ -95,5 +96,32 @@ test('completion ordering blocks only its dependent and binds predecessor events
   await assert.rejects(migrateFeatureModel({ featureHome: home, nextModel: base, confirmedBy: human, expectedModelHash: `sha256:${'0'.repeat(64)}`, expectedJournalSequence: baseline.events.length }), /baseline changed/);
   assert.deepEqual((await readFeatureRecord(home)).events, baseline.events);
   await migrateFeatureModel({ featureHome: home, nextModel: base, confirmedBy: human, expectedModelHash: baseline.modelLock.modelHash, expectedJournalSequence: baseline.events.length });
-  const historical = projectRecord(await readFeatureRecord(home)).boundaryAttempts[0];assert(historical.gates.find(g => g.id === 'judge').dependsOn.includes('codeReview'));
+  const projection = projectRecord(await readFeatureRecord(home));
+  const historical = projection.boundaryAttempts[0];assert(historical.gates.find(g => g.id === 'judge').dependsOn.includes('codeReview'));
+  const graph = currentGraph(projection);
+  assert.equal(graph.edges.find(e => e.from === 'attempt:a1:gate:codeReview' && e.to === 'attempt:a1:gate:judge').label, 'owner ordering');
+  assert.equal(graph.edges.find(e => e.from === 'attempt:a1:gate:judge' && e.to === 'attempt:a1:gate:decisionTriage').label, 'after when enabled');
+  assert.equal(graph.edges.find(e => e.from === 'attempt:a1:gate:verification' && e.to === 'attempt:a1:gate:judge').label, 'requires');
+  assert.match(graph.mermaid,/owner ordering/);
+});
+
+
+test('public finalization graph retains exact dependency origins with named modules',()=>{
+ const projection={featureId:'feature',feature:{state:'FINALIZING'},slices:[],boundaryAttempts:[],changes:[],blockingChangeIds:[],
+  finalizationAttempts:[{id:'final1',state:'ACTIVE',modules:[
+   {id:'example/check',outcome:'PASS',freshness:'CURRENT',eligible:true,dependsOn:[],dependencyEdges:[]},
+   {id:'gatereeve/release',outcome:'UNSET',freshness:'UNKNOWN',eligible:true,dependsOn:['example/check'],dependencyEdges:[{from:'example/check',to:'gatereeve/release',kind:'owner'}]}]}]};
+ const graph=currentGraph(projection);assert(graph.nodes.some(n=>n.id==='finalization:final1:module:gatereeve/release'));
+ assert.equal(graph.edges.find(e=>e.from==='finalization:final1:module:example/check').label,'owner ordering');
+ assert.match(graph.mermaid,/owner ordering/);
+});
+
+
+test('public model graph renders configured finalization owner edges without flattening',async()=>{
+ const base=await loadDefaultModel();const template=base.moduleGraph.modules.find(m=>m.id==='gatereeve/release');
+ const {hashModuleDefinition}=await import('../../plugin-src/shared/resources/protocol/modules.js');
+ const custom={...structuredClone(template),id:'example/final-check',label:'Final check',run:{kind:'manual',instructions:'Check finalization'}};custom.digest=hashModuleDefinition(custom);
+ const policy={schemaVersion:2,modules:[...base.moduleGraph.modules.map(m=>({id:m.id,version:m.version,digest:m.digest,enabled:base.moduleGraph.enabledModuleIds.includes(m.id)})),{id:custom.id,version:custom.version,digest:custom.digest,enabled:true}],ordering:{'gatereeve/release':{after:[custom.id]}}};
+ const {readiness,...graph}=resolveModuleGraph({definitions:[...base.moduleGraph.modules,custom],policy});
+ const diagram=modelGraph({...base,moduleGraph:graph});assert.equal(diagram.edges.find(e=>e.from==='finalization-module:example/final-check'&&e.to==='finalization-module:gatereeve/release').label,'owner ordering');
 });

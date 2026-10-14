@@ -1,0 +1,393 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-5",
+  "source": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "b1fe45e5c149b77d8cb5c08ef3370003d964bd19",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:2a43fdbf777b63258938f6018a3de70e2dd84828971adbaf32679879bc35a48c",
+  "requestIdentity": "sha256:1c2e5fced659a4df251521b00e7565e7903cb57c79fe0d9c519f6599e22e5257",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-5/readiness.json",
+    "hash": "sha256:c6c695c06aa6c5f681506f409fe15984b884f3ae117fe22c409486421575f3dc"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "FINDINGS",
+  "result": {
+    "schemaVersion": 1,
+    "outcome": "FINDINGS",
+    "fullVerification": "PENDING",
+    "summary": "Four supported findings. Seven prior findings are resolved; one remains partially present. Supplied fast/focused checks pass. Full verification and independent formal Judge remain required.",
+    "criteria": [
+      {
+        "id": "R1",
+        "result": "SATISFIED",
+        "explanation": "Schema-1 compatibility is preserved; schema-2 ordering is retained separately from unchanged module definitions.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:120 — version-specific policy hashing.",
+          "plugin-src/shared/resources/protocol/model.js:346 — ordering retained in resolved models.",
+          "cli/test/owner-ordering.test.js:19 — compatibility, definition identity and round-trip regressions."
+        ]
+      },
+      {
+        "id": "R2",
+        "result": "SATISFIED",
+        "explanation": "Ordering shape, endpoints, duplicates, slots and active combined cycles are validated before policy publication.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:134 — ordering shape validation.",
+          "plugin-src/shared/resources/protocol/modules.js:645 — endpoint, slot and existing-edge checks.",
+          "plugin-src/shared/resources/protocol/modules.js:569 — combined-cycle rejection.",
+          "apps/desktop/main/module-policy.js:325 — invalid candidates reject before publication."
+        ]
+      },
+      {
+        "id": "R3",
+        "result": "SATISFIED",
+        "explanation": "Owner links become dormant when either endpoint is disabled, while locked modules and hard prerequisites remain enforced.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:150 — dependency edges include only enabled endpoints.",
+          "plugin-src/shared/resources/protocol/modules.js:624 — locked-module enforcement.",
+          "plugin-src/shared/resources/protocol/modules.js:666 — disabled hard-prerequisite rejection.",
+          "cli/test/owner-ordering.test.js:54 — dormant-edge and re-enablement regression."
+        ]
+      },
+      {
+        "id": "R4",
+        "result": "SATISFIED",
+        "explanation": "Compiled owner dependencies govern eligibility and freshness. Native and Desktop completion preserve launch predecessor bindings and reject replacements.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:780 — owner ordering compiled into gate dependencies.",
+          "plugin-src/shared/resources/protocol/projection.js:596 — recorded predecessor identities checked.",
+          "plugin-src/shared/resources/protocol/projection.js:701 — eligibility checks individual dependencies.",
+          "plugin-src/shared/resources/protocol/boundary.js:127 — launch dependency expectations checked before recording."
+        ]
+      },
+      {
+        "id": "R5",
+        "result": "SATISFIED",
+        "explanation": "Ordering survives model and attempt snapshots, appears in migration impact, and remains separate from Judge content dependencies.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/feature.js:172 — ordering included in migration descriptors.",
+          "plugin-src/shared/resources/protocol/feature.js:185 — historical graph snapshots retained.",
+          "plugin-src/shared/resources/protocol/projection.js:237 — attempts use their pinned graph.",
+          "cli/test/agent-workflow-service.test.js:185 — ordering-only predecessors excluded from evidence inputs."
+        ]
+      },
+      {
+        "id": "R6",
+        "result": "SATISFIED",
+        "explanation": "Same-slot controls stage complete ordering policies, distinguish protected relationships, and preserve ordering through dependency absorption.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1201 — Run after controls and protected relationships.",
+          "apps/desktop/renderer/renderer.js:1352 — initial preview submits captured ordering.",
+          "apps/desktop/renderer/renderer.js:1365 — dependency-expanded preview submits the same ordering.",
+          "apps/desktop/shared/contracts.js:382 — ordering carried through validated requests."
+        ]
+      },
+      {
+        "id": "R7",
+        "result": "FINDING",
+        "explanation": "Preview/discard and confirmation binding defects are fixed, but a journal-lock refusal can still leave policy partially committed when unrelated journal progress occurs.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1332 — Apply checks the exact validated draft.",
+          "apps/desktop/main/module-policy.js:328 — confirmation fingerprint checked.",
+          "apps/desktop/main/module-policy.js:374 — rollback depends on error classification or unchanged journal state.",
+          "apps/desktop/main/module-policy.js:393 — changed journal state retains the published policy despite pre-mutation refusal."
+        ]
+      },
+      {
+        "id": "R8",
+        "result": "FINDING",
+        "explanation": "Desktop diagrams retain exact edge origins, but the public current-graph rendering collapses owner and conditional ordering into requires edges.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:871 — Desktop boundary rendering consumes dependencyEdges.",
+          "plugin-src/shared/resources/protocol/graph.js:110 — current graph reconstructs edges from dependsOn.",
+          "plugin-src/shared/resources/protocol/graph.js:118 — every current dependency is labeled requires.",
+          "cli/src/commands/protocol.js:680 — this graph is rendered as public Mermaid output."
+        ]
+      },
+      {
+        "id": "R9",
+        "result": "SATISFIED",
+        "explanation": "Desktop diagrams provide named textual relationships, non-color distinctions and explanatory grouping without introducing execution barriers.",
+        "evidence": [
+          "apps/desktop/renderer/dependency-diagram.js:68 — textual legend explains edge origins and dependency depth.",
+          "apps/desktop/renderer/dependency-diagram.js:69 — accessible relationship disclosure.",
+          "apps/desktop/renderer/dependency-diagram.js:71 — named textual edges.",
+          "plugin-src/shared/resources/protocol/projection.js:701 — execution depends on actual predecessors rather than display groups."
+        ]
+      },
+      {
+        "id": "R10",
+        "result": "FINDING",
+        "explanation": "Bundled protocol resources match and supplied checks pass, but schema-4 packets break supported waiver and subsequent advisory-history scenarios.",
+        "evidence": [
+          ".gatereeve-agent-evidence/fast-checks/1-0-ordering-regressions-5.log:106 — 45 focused tests.",
+          ".gatereeve-agent-evidence/fast-checks/1-1-portable-acceptance-5.log:502 — 413 CLI tests.",
+          ".gatereeve-agent-evidence/fast-checks/1-2-desktop-tests-5.log:236 — 217 Desktop tests.",
+          ".gatereeve-agent-evidence/fast-checks/1-1-portable-acceptance-5.log:827 — portable acceptance passed.",
+          "plugin-src/shared/resources/scripts/boundary_packet.py:126 — waived gates incorrectly require recorded artifact evidence.",
+          "plugin-src/shared/resources/protocol/advisory-inputs.js:123 — packet recognition supports schema 2 but omits schema 4."
+        ]
+      }
+    ],
+    "scopeCheck": {
+      "result": "SATISFIED",
+      "explanation": "Reviewed both bound documents, all patch chunks, the 54-file inventory and assembled source. Digests and head blobs match; there are no binary entries. Changes remain within policy, governed execution, Desktop diagrams and supporting documentation/tests.",
+      "evidence": [
+        "docs/issues/tb-configurable-gate-ordering/spec.md:4 — approved scope and post-merge publication boundary.",
+        ".gatereeve-agent-evidence/inventory.json — verified digest and all 54 assembled head blobs; no binary changes.",
+        ".gatereeve-agent-evidence/patches/feature.json — verified index, four chunk digests and assembled material digest.",
+        "apps/desktop/resources/desktop-projection.json — verified manifest entries and byte-identical canonical/bundled protocol files."
+      ]
+    },
+    "gapCheck": {
+      "result": "FINDING",
+      "explanation": "Coverage misses modular packets containing waivers, recognition of emitted schema-4 history, journal progress during lock refusal, and current-graph edge origins.",
+      "evidence": [
+        "cli/test/boundary-retry.test.js:183 — disabled-module packet regression exercises passed gates.",
+        "apps/desktop/test/module-policy.test.js:281 — journal-lock regression leaves the baseline unchanged.",
+        "plugin-src/shared/resources/protocol/advisory-inputs.js:123 — schema-4 classification gap.",
+        "plugin-src/shared/resources/protocol/graph.js:118 — edge-origin rendering gap."
+      ]
+    },
+    "contradictionCheck": {
+      "result": "FINDING",
+      "explanation": "Schema-4 validation contradicts the core waiver representation, and current-graph output contradicts the retained edge-origin metadata.",
+      "evidence": [
+        "plugin-src/shared/resources/protocol/boundary.js:216 — core waivers record evidence as null.",
+        "plugin-src/shared/resources/scripts/boundary_packet.py:127 — modular validation dereferences that evidence.",
+        "plugin-src/shared/resources/protocol/modules.js:150 — compiled edges retain distinct origins.",
+        "plugin-src/shared/resources/protocol/graph.js:118 — current rendering labels all origins requires."
+      ]
+    },
+    "findings": [
+      {
+        "summary": "Journal progress during JOURNAL_LOCKED refusal can still leave failed Apply partially committed.",
+        "criterionIds": [
+          "R7",
+          "R10"
+        ],
+        "invariant": "f4 — journal_locked leaves a failed apply partially committed. the manager saves workflow.json before migration and restores it only for model_migration_conflict. journal-lock refusal occurs before core mutation, so the saved policy changes while the feature lock/journal remain unchanged. reloading these saved choices disables unchanged apply and hides the outstanding migration preview.",
+        "affectedPaths": [
+          "apps/desktop/main/module-policy.js",
+          "apps/desktop/renderer/renderer.js",
+          "plugin-src/shared/resources/protocol/feature.js",
+          "plugin-src/shared/resources/protocol/journal.js"
+        ],
+        "evidence": [
+          "apps/desktop/main/module-policy.js:358 — policy published before migration.",
+          "plugin-src/shared/resources/protocol/feature.js:327 — journal lock acquired before migration publication.",
+          "plugin-src/shared/resources/protocol/journal.js:107 — existing lock throws JOURNAL_LOCKED.",
+          "apps/desktop/main/module-policy.js:374 — JOURNAL_LOCKED rolls back only when subsequent model and journal reads match the baseline.",
+          "apps/desktop/main/module-policy.js:393 — unrelated journal advancement instead retains policy and reports reconciliation.",
+          "Read-only in-memory reproduction using the actual manager, real resolver and migration-impact builder with virtual persistence: the migration stub advanced only an unrelated journal event and threw JOURNAL_LOCKED; Apply rejected, new Judge ordering remained saved, and the feature model remained unchanged. The quiet-lock and reload portions of the earlier finding are fixed."
+        ]
+      },
+      {
+        "summary": "Schema-4 packets reject enabled waived review gates when another review module is disabled.",
+        "criterionIds": [
+          "R10"
+        ],
+        "invariant": "Supported module disabling must preserve valid human-confirmed waiver dispositions during packet validation.",
+        "affectedPaths": [
+          "plugin-src/shared/resources/scripts/boundary_packet.py"
+        ],
+        "evidence": [
+          "plugin-src/shared/resources/protocol/boundary-retry.js:255 — disabling a standard artifact gate selects schema 4.",
+          "plugin-src/shared/resources/protocol/boundary.js:216 — waived gate evidence is null.",
+          "plugin-src/shared/resources/scripts/boundary_packet.py:120 — WAIVED is accepted as a disposition.",
+          "plugin-src/shared/resources/scripts/boundary_packet.py:126 — waived non-Judge gates nevertheless enter recorded-artifact comparison.",
+          "plugin-src/shared/resources/scripts/boundary_packet.py:128 — null evidence is dereferenced.",
+          "Read-only reproduction of the actual modular validator with a mocked trusted snapshot containing waived Code Review produced BoundaryPacketError: 'NoneType' object is not subscriptable. Verification, Spec Evaluation and Pattern Review waivers reach the same branch."
+        ]
+      },
+      {
+        "summary": "Emitted schema-4 packets can block subsequent advisory preparation as unclassified history.",
+        "criterionIds": [
+          "R10"
+        ],
+        "invariant": "Packets emitted by the supported retry workflow must remain recognized workflow history during subsequent advisory preparation.",
+        "affectedPaths": [
+          "plugin-src/shared/resources/protocol/boundary-retry.js",
+          "plugin-src/shared/resources/protocol/advisory-inputs.js",
+          "apps/desktop/resources/protocol/boundary-retry.js",
+          "apps/desktop/resources/protocol/advisory-inputs.js"
+        ],
+        "evidence": [
+          "plugin-src/shared/resources/protocol/boundary-retry.js:256 — emits schema-4 boundary manifests for disabled checks.",
+          "plugin-src/shared/resources/protocol/review-input.js:46 — PR packet files are excluded as review history.",
+          "plugin-src/shared/resources/protocol/advisory-inputs.js:123 — recognizes schema-2 packets, with no schema-4 counterpart.",
+          "plugin-src/shared/resources/protocol/advisory-inputs.js:197 — changed unrecognized history rejects preparation.",
+          "plugin-src/shared/resources/protocol/advisory.js:335 — readiness preparation invokes this classifier.",
+          "Read-only invocation of isAdvisoryWorkflowRecord returned false for an emitted schema-4-shaped packet and truthy for the equivalent schema-2 packet. A committed modular packet changed within a later advisory range therefore reaches the classification rejection."
+        ]
+      },
+      {
+        "summary": "Public current-graph output loses owner and manifest-conditional edge origins.",
+        "criterionIds": [
+          "R8"
+        ],
+        "invariant": "Rendered dependency graphs must distinguish hard prerequisites, manifest conditional ordering and owner-selected ordering.",
+        "affectedPaths": [
+          "plugin-src/shared/resources/protocol/graph.js",
+          "apps/desktop/resources/protocol/graph.js"
+        ],
+        "evidence": [
+          "plugin-src/shared/resources/protocol/graph.js:110 — currentGraph ignores dependencyEdges and uses flattened dependsOn.",
+          "plugin-src/shared/resources/protocol/graph.js:118 — hard, conditional and owner relationships all receive requires labels.",
+          "plugin-src/shared/resources/protocol/observer.js:378 — public graph observation uses currentGraph.",
+          "cli/src/commands/protocol.js:680 — default graph command renders its Mermaid output.",
+          "Read-only reproduction using the actual resolver and graph functions: Code Review → Judge owner ordering rendered as requires in currentGraph, while modelGraph retained owner ordering; Judge → Decision Triage manifest ordering also rendered as requires."
+        ]
+      }
+    ],
+    "checklist": [
+      {
+        "findingId": "advisory:ordering-s1-ready-1:0",
+        "result": "RESOLVED",
+        "explanation": "Both preview requests use the same captured staged ordering, including dependency absorption.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1343 — captures draft ordering.",
+          "apps/desktop/renderer/renderer.js:1352 — first preview includes ordering.",
+          "apps/desktop/renderer/renderer.js:1365 — dependency-expanded preview includes ordering."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-1:1",
+        "result": "RESOLVED",
+        "explanation": "Discard advances the preview generation, invalidates validation and restores committed drafts; pending responses fail generation checks.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:3078 — Discard advances modulePreviewRequest.",
+          "apps/desktop/renderer/renderer.js:3080 — validated draft cleared.",
+          "apps/desktop/renderer/renderer.js:1353 — first response generation check.",
+          "apps/desktop/renderer/renderer.js:1366 — expanded response generation check.",
+          "apps/desktop/test/ordering-renderer.test.js:74 — delayed ordinary and dependency responses tested after Discard."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-1:2",
+        "result": "RESOLVED",
+        "explanation": "New edits invalidate the preview and close confirmation. Apply submits a captured, exactly validated draft.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1344 — validation marked pending and previous preview cleared.",
+          "apps/desktop/renderer/renderer.js:1348 — existing confirmation closed.",
+          "apps/desktop/renderer/renderer.js:1332 — exact draft validation check.",
+          "apps/desktop/renderer/renderer.js:1435 — validated submission captured.",
+          "apps/desktop/renderer/renderer.js:1443 — captured values submitted."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-2:0",
+        "result": "RESOLVED",
+        "explanation": "Schema-2 Apply binds the resolved policy, full discovered catalog, repository/feature identity and feature baseline, with pre-publication and core baseline rechecks.",
+        "evidence": [
+          "apps/desktop/main/module-policy.js:279 — preview fingerprint binds catalog, policy, model and journal baseline.",
+          "apps/desktop/main/module-policy.js:328 — stale fingerprint rejected.",
+          "apps/desktop/main/module-policy.js:350 — fingerprint rechecked before publication.",
+          "plugin-src/shared/resources/protocol/feature.js:291 — confirmed baseline checked.",
+          "plugin-src/shared/resources/protocol/feature.js:333 — baseline rechecked under the journal mutation lock."
+        ]
+      },
+      {
+        "findingId": "formal:evt-agent-workflow-ca398c55-1ddc-4a5a-9cd9-4005058c941f:0",
+        "result": "RESOLVED",
+        "explanation": "Native and Desktop execution retain preparation and compare launch predecessor events; boundary and finalization recording enforce those expectations.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/execution-preparation.js:17 — launch preparation comparison.",
+          "plugin-src/shared/resources/protocol/agent-workflow-scheduler.js:112 — comparison before native recording.",
+          "apps/desktop/main/module-execution.js:92 — preparation retained on execution context.",
+          "apps/desktop/main/protocol-adapter.js:229 — finalization launch comparison.",
+          "apps/desktop/main/protocol-adapter.js:288 — boundary launch comparison.",
+          "plugin-src/shared/resources/protocol/finalization.js:142 — core predecessor expectation check."
+        ]
+      },
+      {
+        "findingId": "formal:evt-agent-workflow-ca398c55-1ddc-4a5a-9cd9-4005058c941f:1",
+        "result": "RESOLVED",
+        "explanation": "Presentation readiness excludes its graph descendants, packet prerequisites exclude descendants of Packet Validation, and human review waits for all enabled gates.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/boundary-retry.js:108 — transitive descendants computed.",
+          "plugin-src/shared/resources/protocol/boundary-retry.js:119 — presentation permits explicitly later checks.",
+          "plugin-src/shared/resources/protocol/boundary-retry.js:235 — packet descendants excluded from pre-packet barrier.",
+          "plugin-src/shared/resources/protocol/boundary-retry.js:288 — remaining descendants must complete before human review."
+        ]
+      },
+      {
+        "findingId": "formal:evt-agent-workflow-ca398c55-1ddc-4a5a-9cd9-4005058c941f:2",
+        "result": "RESOLVED",
+        "explanation": "The fixed missing-gate failure is removed: absent disabled checks are omitted and schema-4 inventory is checked against the pinned attempt. The separate waiver and history-classification defects are reported above.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/boundary-retry.js:247 — absent disabled gates skipped.",
+          "plugin-src/shared/resources/protocol/boundary-retry.js:256 — modular packet binds attemptId.",
+          "plugin-src/shared/resources/scripts/boundary_packet.py:117 — inventory derived from pinned attempt.",
+          "cli/test/boundary-retry.test.js:183 — each previously reported disabled review module covered."
+        ]
+      },
+      {
+        "findingId": "formal:evt-agent-workflow-ca398c55-1ddc-4a5a-9cd9-4005058c941f:3",
+        "result": "STILL_PRESENT",
+        "explanation": "Quiet journal-lock refusal now restores policy, and reload exposes outstanding adoption. However, unrelated journal advancement during refusal prevents rollback and leaves the failed Apply partially committed.",
+        "evidence": [
+          "apps/desktop/main/module-policy.js:376 — rollback fallback requires the journal sequence to remain unchanged.",
+          "apps/desktop/main/module-policy.js:393 — changed sequence retains published policy.",
+          "apps/desktop/renderer/renderer.js:1271 — outstanding migration now enables adoption preview.",
+          "apps/desktop/test/module-policy.test.js:281 — regression covers a stationary journal lock.",
+          "Read-only actual-manager reproduction with virtual persistence retained new ordering after JOURNAL_LOCKED plus one unrelated journal event, without changing the feature model."
+        ]
+      }
+    ]
+  },
+  "receipts": [
+    {
+      "schemaVersion": 1,
+      "kind": "gatereeve-agent-workflow-receipt",
+      "protocolVersion": 1,
+      "runId": "advisory-ordering-s1-ready-5-1",
+      "attemptId": "advisory-ordering-s1-ready-5",
+      "module": {
+        "id": "gatereeve/advisory-review",
+        "version": "1.0.0",
+        "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+      },
+      "stage": "advisory",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "provider": {
+        "id": "codex",
+        "adapterVersion": "1.0.0",
+        "model": "gpt-6.1-sol",
+        "reasoningEffort": "high",
+        "contextId": "01a13bf2-ddd6-7182-8de6-17909249817d"
+      },
+      "isolation": {
+        "method": "codex-ephemeral-exec",
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "policy": {
+        "repositoryAccess": "read-only-pinned",
+        "networkAccess": "denied",
+        "scratch": "disposable"
+      },
+      "startedAt": "2026-10-14T19:45:32.733Z",
+      "completedAt": "2026-10-14T19:57:18.861Z",
+      "status": "completed",
+      "digests": {
+        "instructions": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+        "input": "sha256:391c60909b1cdb1370f2af5bf5ddf95304aa702ef5e3c3d0740d6938382bb242",
+        "output": "sha256:844e6831856b6a7f78b97263e7e529189465281b5c326f8872d8ea0911da128b",
+        "snapshot": "sha256:dd00560b8af21efcabe486205bd60d180f160475bfab44178c35aff7e3587d39"
+      }
+    }
+  ],
+  "operationalErrors": []
+}
