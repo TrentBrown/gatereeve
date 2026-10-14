@@ -1364,7 +1364,7 @@ async function refreshModulePreview({ absorbDependencies = true } = {}) {
       if (request !== modulePreviewRequest) return;
     }
     modulePreview = preview;
-    if (preview.valid) moduleValidatedDraft = { request, projectPath: projectPath(), enabledModuleIds: [...moduleDraftIds], ordering, policyDigest: moduleSettings.policyDigest };
+    if (preview.valid) moduleValidatedDraft = { request, projectPath: projectPath(), enabledModuleIds: [...moduleDraftIds], ordering, policyDigest: moduleSettings.policyDigest, previewFingerprint: preview.previewFingerprint };
   } catch (error) {
     if (request !== modulePreviewRequest) return;
     modulePreview = null;
@@ -1441,6 +1441,7 @@ async function applyModulePolicy(confirmedMigration = false) {
       confirmedMigration ? 'GateReeve Desktop module settings' : null,
       validated.ordering,
       validated.policyDigest,
+      validated.previewFingerprint,
     );
     if (targetProjectPath !== projectPath()) {
       showToast('Module policy applied to the previously selected project');

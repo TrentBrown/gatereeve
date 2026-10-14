@@ -82,6 +82,9 @@ test('completion ordering blocks only its dependent and binds predecessor events
   assert(boundaryGateDefinitions(model).find(g => g.id === 'judge').dependsOn.includes('codeReview'));
   const createdAt = '2026-10-14T12:00:00.000Z';
   const impact = buildModelMigrationImpact(createModelLock(base, { createdAt }), createModelLock(model, { createdAt }));assert(impact.modulesChanged.includes('gatereeve/judge'));assert(impact.boundaryGateIdsInvalidated.includes('judge'));
-  await migrateFeatureModel({ featureHome: home, nextModel: base, confirmedBy: human });
+  const baseline = await readFeatureRecord(home);
+  await assert.rejects(migrateFeatureModel({ featureHome: home, nextModel: base, confirmedBy: human, expectedModelHash: `sha256:${'0'.repeat(64)}`, expectedJournalSequence: baseline.events.length }), /baseline changed/);
+  assert.deepEqual((await readFeatureRecord(home)).events, baseline.events);
+  await migrateFeatureModel({ featureHome: home, nextModel: base, confirmedBy: human, expectedModelHash: baseline.modelLock.modelHash, expectedJournalSequence: baseline.events.length });
   const historical = projectRecord(await readFeatureRecord(home)).boundaryAttempts[0];assert(historical.gates.find(g => g.id === 'judge').dependsOn.includes('codeReview'));
 });

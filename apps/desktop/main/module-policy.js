@@ -1,7 +1,7 @@
 // @ts-check
 
 import { randomUUID } from 'node:crypto';
-import { lstat, mkdir, rename, unlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
 import {
@@ -11,6 +11,7 @@ import {
 } from '../resources/protocol/feature.js';
 import { hashModel, loadDefaultModel, loadProjectModel } from '../resources/protocol/model.js';
 import { moduleDependencyEdges, resolveModuleGraph } from '../resources/protocol/modules.js';
+import { fingerprint } from '../resources/protocol/fingerprint.js';
 
 function stableJson(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
@@ -189,6 +190,7 @@ async function inspect(repositoryRoot, featureHome, availability) {
 export function createModulePolicyManager({
   getAvailability = async () => null,
   randomId = randomUUID,
+  migrate = migrateFeatureModel,
 } = {}) {
   async function candidate(repositoryRoot, featureHome, enabledModuleIds, ordering) {
     const availability = await getAvailability();
@@ -259,6 +261,16 @@ export function createModulePolicyManager({
       ordering: nextPolicy.ordering ?? {},
       orderingChanged: error === null ? orderingIdentity(current.policy.ordering) !== orderingIdentity(nextPolicy.ordering) : true,
       edges: graph ? moduleDependencyEdges(graph) : [],
+      previewFingerprint: error === null && nextModel !== null ? fingerprint({
+        policyDigest: graph.policyDigest,
+        nextModelHash: hashModel(nextModel),
+        featureModelHash: record.modelLock.modelHash,
+        featureSequence: record.events.length,
+        featureEventId: record.events.at(-1)?.eventId,
+        currentPolicyDigest: current.model.moduleGraph.policyDigest,
+        catalog: definitions.map(({ id, version, digest }) => ({ id, version, digest })).sort((a, b) => a.id.localeCompare(b.id)),
+      }) : null,
+      baseline: { modelHash: record.modelLock.modelHash, sequence: record.events.length },
       migrationImpact,
       policy: nextPolicy,
       nextModel,
@@ -280,6 +292,7 @@ export function createModulePolicyManager({
       confirmationLabel = null,
       ordering,
       expectedPolicyDigest,
+      expectedPreviewFingerprint,
     } = {}) {
       if (expectedPolicyDigest !== undefined) {
         const current = await loadProjectModel(repositoryRoot);
@@ -290,6 +303,9 @@ export function createModulePolicyManager({
       const preview = await candidate(repositoryRoot, featureHome, enabledModuleIds, ordering);
       if (!preview.valid || preview.nextModel === null) {
         throw new Error(preview.error ?? 'The module policy is invalid.');
+      }
+      if (preview.policy.schemaVersion === 2 && expectedPreviewFingerprint !== preview.previewFingerprint) {
+        throw new Error('Current preview confirmation is required: the module catalog, feature baseline or staged policy changed. Reload and confirm the current impact.');
       }
       if (preview.autoEnabled.length > 0) {
         throw new Error(`Apply the visible dependency additions first: ${preview.autoEnabled.join(', ')}`);
@@ -303,6 +319,7 @@ export function createModulePolicyManager({
       await ensurePolicyDirectory(policyPath);
       await regularFileState(policyPath);
       const temporary = `${policyPath}.${randomId()}.tmp`;
+      let previousPolicy = null;
       let temporaryCreated = false;
       try {
         await writeFile(temporary, stableJson(preview.policy), {
@@ -311,18 +328,44 @@ export function createModulePolicyManager({
           flag: 'wx',
         });
         temporaryCreated = true;
+        const currentPreview = await candidate(repositoryRoot, featureHome, enabledModuleIds, ordering);
+        if (currentPreview.previewFingerprint !== preview.previewFingerprint || !currentPreview.valid) {
+          throw new Error('Project or feature changed during policy preparation. Reload and confirm the current preview.');
+        }
+        previousPolicy = await readFile(policyPath, 'utf8').catch(error => {
+          if (error.code === 'ENOENT') return null;
+          throw error;
+        });
         await rename(temporary, policyPath);
       } catch (error) {
         if (temporaryCreated) await unlink(temporary).catch(() => {});
         throw error;
       }
       if (preview.migrationImpact !== null) {
-        await migrateFeatureModel({
+        try { await migrate({
           featureHome,
           nextModel: preview.nextModel,
           confirmedBy: { kind: 'human-confirmed', label: confirmationLabel },
           eventId: `evt-module-policy-${randomId()}`,
-        });
+          expectedModelHash: preview.baseline.modelHash,
+          expectedJournalSequence: preview.baseline.sequence,
+        }); } catch (error) {
+          // A guarded baseline conflict occurs before core mutation. Restore
+          // only our own just-published bytes; never overwrite another writer.
+          if (error.code === 'MODEL_MIGRATION_CONFLICT') {
+            const published = await readFile(policyPath, 'utf8');
+            if (published !== stableJson(preview.policy)) {
+              throw new Error('Migration conflicted and another policy writer changed the file; reload and reconcile before applying.', { cause: error });
+            }
+            if (previousPolicy === null) await unlink(policyPath);
+            else {
+              const rollback = `${policyPath}.${randomId()}.rollback.tmp`;
+              try { await writeFile(rollback, previousPolicy, { flag: 'wx', mode: 0o644 });await rename(rollback, policyPath); }
+              finally { await unlink(rollback).catch(() => {}); }
+            }
+          }
+          throw error;
+        }
       }
       return inspect(repositoryRoot, featureHome, await getAvailability());
     },

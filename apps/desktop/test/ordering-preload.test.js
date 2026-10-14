@@ -14,7 +14,7 @@ test('real preload carries Run after choices through preview and apply IPC and r
   const ordering = { 'gatereeve/judge': { after: ['gatereeve/code-review'] } };
   await api.previewModulePolicy(['gatereeve/judge'], ordering);
   assert.deepEqual(requireModulePolicyRequest(structuredClone(requests.at(-1).request)).ordering, ordering);
-  await api.applyModulePolicy(['gatereeve/judge'], true, 'Confirmed owner choice', ordering, 'sha256:policy');
-  const request = requireModulePolicyApplyRequest(structuredClone(requests.at(-1).request));assert.deepEqual(request.ordering, ordering);assert.equal(request.expectedPolicyDigest, 'sha256:policy');
+  await api.applyModulePolicy(['gatereeve/judge'], true, 'Confirmed owner choice', ordering, 'sha256:policy', 'sha256:preview');
+  const request = requireModulePolicyApplyRequest(structuredClone(requests.at(-1).request));assert.deepEqual(request.ordering, ordering);assert.equal(request.expectedPolicyDigest, 'sha256:policy');assert.equal(request.expectedPreviewFingerprint, 'sha256:preview');
   const count = requests.length;await assert.rejects(api.previewModulePolicy([], { 'gatereeve/judge': { after: ['gatereeve/judge'] } }), /ordering/);assert.equal(requests.length, count);
 });

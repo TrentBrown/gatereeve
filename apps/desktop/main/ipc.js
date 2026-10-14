@@ -139,6 +139,7 @@ export function registerDesktopIpc({
         confirmationLabel: request.confirmationLabel,
         ...(request.ordering === undefined ? {} : { ordering: request.ordering }),
         ...(request.expectedPolicyDigest === undefined ? {} : { expectedPolicyDigest: request.expectedPolicyDigest }),
+        ...(request.expectedPreviewFingerprint === undefined ? {} : { expectedPreviewFingerprint: request.expectedPreviewFingerprint }),
       },
     ));
   });

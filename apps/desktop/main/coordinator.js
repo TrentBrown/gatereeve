@@ -124,7 +124,7 @@ export function createDesktopCoordinator({
   }
 
   function publicModulePreview(value) {
-    const { policy: _policy, nextModel: _nextModel, ...preview } = value;
+    const { policy: _policy, nextModel: _nextModel, baseline: _baseline, ...preview } = value;
     return preview;
   }
 

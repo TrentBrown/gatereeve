@@ -350,7 +350,7 @@ function requireModulePolicyPreview(value) {
     !exactObject(value, [
       'schemaVersion', 'valid', 'error', 'autoEnabled', 'blockingDependents',
       'enabledModuleIds', 'suggestedEnabledModuleIds', 'diff', 'migrationImpact',
-      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.orderingChanged === undefined ? [] : ['orderingChanged']), ...(value.edges === undefined ? [] : ['edges']),
+      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.orderingChanged === undefined ? [] : ['orderingChanged']), ...(value.edges === undefined ? [] : ['edges']), ...(value.previewFingerprint === undefined ? [] : ['previewFingerprint']),
     ])
     || value.schemaVersion !== 1
     || typeof value.valid !== 'boolean'
@@ -367,6 +367,7 @@ function requireModulePolicyPreview(value) {
   if (value.ordering !== undefined) requireOrdering(value.ordering);
   if (value.edges !== undefined) requireDependencyEdges(value.edges);
   if (value.orderingChanged !== undefined && typeof value.orderingChanged !== 'boolean') throw new Error('Invalid ordering change flag');
+  if (value.previewFingerprint !== undefined && value.previewFingerprint !== null && typeof value.previewFingerprint !== 'string') throw new Error('Invalid preview fingerprint');
   return value;
 }
 
@@ -597,17 +598,20 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     confirmationLabel = null,
     ordering,
     expectedPolicyDigest,
+    expectedPreviewFingerprint,
   ) => {
     if (typeof confirmedMigration !== 'boolean') {
       throw new TypeError('Migration confirmation must be boolean.');
     }
     if (expectedPolicyDigest !== undefined && (typeof expectedPolicyDigest !== 'string' || expectedPolicyDigest.length > 512)) throw new TypeError('Policy digest is invalid.');
+    if (expectedPreviewFingerprint !== undefined && (typeof expectedPreviewFingerprint !== 'string' || expectedPreviewFingerprint.length > 512)) throw new TypeError('Preview fingerprint is invalid.');
     return requireModuleSettings(await ipcRenderer.invoke(channels.applyModulePolicy, {
       enabledModuleIds: requireModuleIds(enabledModuleIds),
       confirmedMigration,
       confirmationLabel: requireConfirmationLabel(confirmationLabel),
       ...(ordering === undefined ? {} : { ordering: requireOrdering(ordering) }),
       ...(expectedPolicyDigest === undefined ? {} : { expectedPolicyDigest }),
+      ...(expectedPreviewFingerprint === undefined ? {} : { expectedPreviewFingerprint }),
     }));
   },
   readDetail: async (kind, id = null) => ipcRenderer.invoke(

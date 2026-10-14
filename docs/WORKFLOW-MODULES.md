@@ -149,6 +149,13 @@ disabled, but hard prerequisites of retained modules cannot. For example, locked
 Packet Validation still requires Explain Diff.
 Applying from Desktop also checks the saved policy digest against the policy
 used to prepare the choices; an intervening policy edit requires reloading.
+Completion-order Apply also requires the host's preview fingerprint, which binds
+the exact resolved policy/model, full discovered catalog and feature model/journal
+baseline. New definitions or feature progress invalidate confirmation even when
+the saved policy digest is unchanged. The host rechecks before publication and
+the core guards the confirmed migration baseline under its mutation lock; a late
+baseline conflict restores the policy only if its bytes are still the host's own
+publication, preserving another writer's changes.
 
 Workflow overview, finalization and policy preview draw actual individual edges:
 solid for hard prerequisites, dashed for manifest conditional ordering and dotted

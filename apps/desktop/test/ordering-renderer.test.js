@@ -34,10 +34,10 @@ test('Run after edits preview exact edges, discard/cancel write nothing, and ord
     async getModuleSettings() { return requireModuleSettings(await manager.inspect(root, home)); },
     async previewModulePolicy(enabled, ordering) {
       const deferred = deferNextPreview;deferNextPreview = false;requests.push({ enabled: [...enabled], ordering: structuredClone(ordering) });
-      const { policy, nextModel, ...preview } = await manager.preview(root, home, enabled, ordering);const result = requireModulePolicyPreview(preview);
+      const { policy, nextModel, baseline, ...preview } = await manager.preview(root, home, enabled, ordering);const result = requireModulePolicyPreview(preview);
       return deferred ? new Promise(resolve => { releasePreview = () => resolve(result); }) : result;
     },
-    async applyModulePolicy(enabled, confirmedMigration, confirmationLabel, ordering, expectedPolicyDigest) { applies += 1;return requireModuleSettings(await manager.apply(root, home, enabled, { confirmedMigration, confirmationLabel, ordering, expectedPolicyDigest })); },
+    async applyModulePolicy(enabled, confirmedMigration, confirmationLabel, ordering, expectedPolicyDigest, expectedPreviewFingerprint) { applies += 1;return requireModuleSettings(await manager.apply(root, home, enabled, { confirmedMigration, confirmationLabel, ordering, expectedPolicyDigest, expectedPreviewFingerprint })); },
     async readDetail(kind, id) { return protocol.read(home, kind, id); }, async refresh() { return state; },
     subscribe() { return () => {}; },subscribeUpdates() { return () => {}; },
   };

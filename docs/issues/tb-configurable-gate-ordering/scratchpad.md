@@ -23,3 +23,15 @@ Native advisory found three related failures: dependency absorption dropped stag
 
 **Triggered by:** advisory findings at ordering-s1-ready-1; defects violate AC4 / R6-R7 and graph preview R8.
 **Alternatives considered:** patching only the missing argument would leave stale response/confirmation authority defects; keeping the previous valid preview clickable during validation can submit unreviewed choices.
+
+## [3] Bind owner confirmation to the host candidate and migration baseline
+
+[x] **Promote**
+
+**Confidence:** HIGH
+**Blast Radius:** module-policy application, IPC preview identity and core model migration conflict handling.
+
+The second advisory confirmed the frontend fixes and found that saved-policy digest alone misses new unselected catalog definitions and independent feature-model changes. Extend the authority binding to a host-computed fingerprint of the exact resolved policy/model, complete discovered definition identities and feature model/journal baseline. Transport that identity through preview/confirmation/Apply, revalidate it before publication, and let core migration reject a baseline different from the one confirmed. On a late guarded conflict, restore only the host's own published policy bytes; never overwrite another writer.
+
+**Triggered by:** native advisory ordering-s1-ready-2, one R6/R7 finding affecting manager and renderer.
+**Alternatives considered:** UI snapshots and saved-policy digest protect draft identity but cannot bind undisclosed host state. Recomputing an impact at Apply without checking the old fingerprint is not consent to a changed impact.

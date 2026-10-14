@@ -29,3 +29,5 @@ PR81 source f26f938 entered attempt retry-ordering-ready-1-pr81-a1 with a pendin
 ## Review Log
 
 - 2026-10-14: Design direction approved: "Okay, I approve of this. Make it so." Spec validation PASS; routine implementation plan derived from approved scope. No PR yet.
+
+- Native advisory ordering-s1-ready-2 confirmed the three frontend fixes and identified one host catalog/feature-baseline drift defect. Core returned through evt-ordering-a2-remediation before changes. Host-computed candidate/catalog/model/journal fingerprint and expected-baseline core guard now bind confirmation; publication rechecks and guarded own-byte rollback cover late conflicts. New actual-manager/IPC tests pass; full CLI410/Desktop212/Python132+template2 and portable checks PASS. Fresh readiness3 and full-scope advisory review follow; no formal Judge PASS is claimed.

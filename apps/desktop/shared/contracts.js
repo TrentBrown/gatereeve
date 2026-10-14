@@ -409,8 +409,9 @@ function validDependencyEdges(edges) {
 export function requireModulePolicyApplyRequest(value) {
   if (
     !isObject(value)
-    || !exactKeys(value, ['enabledModuleIds', 'confirmedMigration', 'confirmationLabel', ...(value.ordering === undefined ? [] : ['ordering']), ...(value.expectedPolicyDigest === undefined ? [] : ['expectedPolicyDigest'])])
+    || !exactKeys(value, ['enabledModuleIds', 'confirmedMigration', 'confirmationLabel', ...(value.ordering === undefined ? [] : ['ordering']), ...(value.expectedPolicyDigest === undefined ? [] : ['expectedPolicyDigest']), ...(value.expectedPreviewFingerprint === undefined ? [] : ['expectedPreviewFingerprint'])])
     || (value.expectedPolicyDigest !== undefined && (typeof value.expectedPolicyDigest !== 'string' || value.expectedPolicyDigest.length > 512))
+    || (value.expectedPreviewFingerprint !== undefined && (typeof value.expectedPreviewFingerprint !== 'string' || value.expectedPreviewFingerprint.length > 512))
     || typeof value.confirmedMigration !== 'boolean'
     || !nullableString(value.confirmationLabel)
     || (value.confirmationLabel !== null && value.confirmationLabel.length > 1_024)
@@ -423,6 +424,7 @@ export function requireModulePolicyApplyRequest(value) {
     confirmedMigration: value.confirmedMigration,
     confirmationLabel: value.confirmationLabel,
     ...(value.expectedPolicyDigest === undefined ? {} : { expectedPolicyDigest: value.expectedPolicyDigest }),
+    ...(value.expectedPreviewFingerprint === undefined ? {} : { expectedPreviewFingerprint: value.expectedPreviewFingerprint }),
   };
 }
 
@@ -446,12 +448,13 @@ export function requireModulePolicyPreview(value) {
     || !exactKeys(value, [
       'schemaVersion', 'valid', 'error', 'autoEnabled', 'blockingDependents',
       'enabledModuleIds', 'suggestedEnabledModuleIds', 'diff', 'migrationImpact',
-      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.orderingChanged === undefined ? [] : ['orderingChanged']), ...(value.edges === undefined ? [] : ['edges']),
+      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.orderingChanged === undefined ? [] : ['orderingChanged']), ...(value.edges === undefined ? [] : ['edges']), ...(value.previewFingerprint === undefined ? [] : ['previewFingerprint']),
     ])
     || value.schemaVersion !== 1
     || typeof value.valid !== 'boolean'
     || (value.ordering !== undefined && !validOrdering(value.ordering))
     || (value.orderingChanged !== undefined && typeof value.orderingChanged !== 'boolean')
+    || (value.previewFingerprint !== undefined && !nullableString(value.previewFingerprint))
     || (value.edges !== undefined && !validDependencyEdges(value.edges))
     || !nullableString(value.error)
     || !Array.isArray(value.autoEnabled)

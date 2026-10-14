@@ -1,0 +1,18 @@
+✔ ordering-only policy preview/apply preserves definitions, requires confirmation and retains links on later enablement edits (199.520083ms)
+✔ host confirmation rejects newly discovered modules and changed feature models even when saved policy digest is unchanged (112.293958ms)
+✔ pre-publication feature progress invalidates confirmation without publishing, and late guarded conflicts restore policy (101.673375ms)
+✔ module settings stage a complete policy and require explicit active-feature migration (76.018208ms)
+✔ module settings disclose dependents instead of silently cascading removals (12.210542ms)
+✔ module policy writes refuse symlink targets (4.025458ms)
+✔ newly enabled modules fail closed when their local implementation is unavailable (23.947084ms)
+✔ failed atomic creation neither writes policy nor deletes a colliding file (18.217625ms)
+✔ real preload carries Run after choices through preview and apply IPC and rejects malformed ordering (4.295333ms)
+✔ Run after edits preview exact edges, discard/cancel write nothing, and ordering-only apply requires explicit confirmation (314.791375ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 630.905417
