@@ -87,5 +87,7 @@ test('Run after edits preview exact edges, discard/cancel write nothing, and ord
     await waitFor(() => releasePreview, 'newer draft preview');releasePreview();await waitFor(() => !window.document.getElementById('module-apply').disabled, 'validated newer draft');
     assert(window.document.querySelector('#module-preview [data-edge-from="gatereeve/spec-evaluation"][data-edge-to="gatereeve/code-review"]'));
     window.document.getElementById('module-discard').click();assert.equal(applies, 1);assert.deepEqual(JSON.parse(await readFile(join(root, '.gatereeve/workflow.json'))).ordering, saved.ordering);
+    window.document.getElementById('module-reload').click();await waitFor(() => !window.document.getElementById('module-reload').disabled, 'fresh saved-policy reload');
+    assert.equal(choice('Code Review', 'Spec Evaluation').checked, false);assert.equal(runAfter().checked, true);assert(window.document.getElementById('module-apply').disabled);
   } finally { delete globalThis.window;delete globalThis.document; }
 });

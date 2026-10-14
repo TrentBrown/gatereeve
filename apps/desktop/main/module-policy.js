@@ -1,7 +1,7 @@
 // @ts-check
 
 import { randomUUID } from 'node:crypto';
-import { lstat, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, open, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
 import {
@@ -149,6 +149,21 @@ function orderingIdentity(value = {}) {
     .map(([id, rule]) => [id, [...rule.after].sort()]));
 }
 
+async function withPolicyMutationLock(policyPath, mutation) {
+  const path = `${policyPath}.lock`;
+  let handle;
+  try { handle = await open(path, 'wx', 0o600); }
+  catch (error) {
+    if (error.code === 'EEXIST') throw new Error(`Module policy is locked by another operation. Inspect ${path} before retrying.`);
+    throw error;
+  }
+  try {
+    await handle.writeFile(`${JSON.stringify({ schemaVersion: 1, pid: process.pid, createdAt: new Date().toISOString() })}\n`);
+    await handle.sync();
+    return await mutation();
+  } finally { await handle.close();await unlink(path); }
+}
+
 async function inspect(repositoryRoot, featureHome, availability) {
   const policyPath = resolve(repositoryRoot, '.gatereeve', 'workflow.json');
   const policyExists = await regularFileState(policyPath);
@@ -262,6 +277,9 @@ export function createModulePolicyManager({
       orderingChanged: error === null ? orderingIdentity(current.policy.ordering) !== orderingIdentity(nextPolicy.ordering) : true,
       edges: graph ? moduleDependencyEdges(graph) : [],
       previewFingerprint: error === null && nextModel !== null ? fingerprint({
+        repositoryRoot: resolve(repositoryRoot),
+        featureHome: resolve(featureHome),
+        featureId: record.events[0].featureId,
         policyDigest: graph.policyDigest,
         nextModelHash: hashModel(nextModel),
         featureModelHash: record.modelLock.modelHash,
@@ -294,80 +312,82 @@ export function createModulePolicyManager({
       expectedPolicyDigest,
       expectedPreviewFingerprint,
     } = {}) {
-      if (expectedPolicyDigest !== undefined) {
-        const current = await loadProjectModel(repositoryRoot);
-        if (current.model.moduleGraph.policyDigest !== expectedPolicyDigest) {
-          throw new Error('Project policy changed since preview. Reload module settings before applying.');
-        }
-      }
-      const preview = await candidate(repositoryRoot, featureHome, enabledModuleIds, ordering);
-      if (!preview.valid || preview.nextModel === null) {
-        throw new Error(preview.error ?? 'The module policy is invalid.');
-      }
-      if (preview.policy.schemaVersion === 2 && expectedPreviewFingerprint !== preview.previewFingerprint) {
-        throw new Error('Current preview confirmation is required: the module catalog, feature baseline or staged policy changed. Reload and confirm the current impact.');
-      }
-      if (preview.autoEnabled.length > 0) {
-        throw new Error(`Apply the visible dependency additions first: ${preview.autoEnabled.join(', ')}`);
-      }
-      if (preview.migrationImpact !== null && (!confirmedMigration || !confirmationLabel?.trim())) {
-        const error = new Error('Active feature migration confirmation is required.');
-        error.code = 'MODULE_MIGRATION_CONFIRMATION_REQUIRED';
-        throw error;
-      }
       const policyPath = join(repositoryRoot, '.gatereeve', 'workflow.json');
       await ensurePolicyDirectory(policyPath);
-      await regularFileState(policyPath);
-      const temporary = `${policyPath}.${randomId()}.tmp`;
-      let previousPolicy = null;
-      let temporaryCreated = false;
-      try {
-        await writeFile(temporary, stableJson(preview.policy), {
-          encoding: 'utf8',
-          mode: 0o644,
-          flag: 'wx',
-        });
-        temporaryCreated = true;
-        const currentPreview = await candidate(repositoryRoot, featureHome, enabledModuleIds, ordering);
-        if (currentPreview.previewFingerprint !== preview.previewFingerprint || !currentPreview.valid) {
-          throw new Error('Project or feature changed during policy preparation. Reload and confirm the current preview.');
-        }
-        previousPolicy = await readFile(policyPath, 'utf8').catch(error => {
-          if (error.code === 'ENOENT') return null;
-          throw error;
-        });
-        await rename(temporary, policyPath);
-      } catch (error) {
-        if (temporaryCreated) await unlink(temporary).catch(() => {});
-        throw error;
-      }
-      if (preview.migrationImpact !== null) {
-        try { await migrate({
-          featureHome,
-          nextModel: preview.nextModel,
-          confirmedBy: { kind: 'human-confirmed', label: confirmationLabel },
-          eventId: `evt-module-policy-${randomId()}`,
-          expectedModelHash: preview.baseline.modelHash,
-          expectedJournalSequence: preview.baseline.sequence,
-        }); } catch (error) {
-          // A guarded baseline conflict occurs before core mutation. Restore
-          // only our own just-published bytes; never overwrite another writer.
-          if (error.code === 'MODEL_MIGRATION_CONFLICT') {
-            const published = await readFile(policyPath, 'utf8');
-            if (published !== stableJson(preview.policy)) {
-              throw new Error('Migration conflicted and another policy writer changed the file; reload and reconcile before applying.', { cause: error });
-            }
-            if (previousPolicy === null) await unlink(policyPath);
-            else {
-              const rollback = `${policyPath}.${randomId()}.rollback.tmp`;
-              try { await writeFile(rollback, previousPolicy, { flag: 'wx', mode: 0o644 });await rename(rollback, policyPath); }
-              finally { await unlink(rollback).catch(() => {}); }
-            }
+      return withPolicyMutationLock(policyPath, async () => {
+        if (expectedPolicyDigest !== undefined) {
+          const current = await loadProjectModel(repositoryRoot);
+          if (current.model.moduleGraph.policyDigest !== expectedPolicyDigest) {
+            throw new Error('Project policy changed since preview. Reload module settings before applying.');
           }
+        }
+        const preview = await candidate(repositoryRoot, featureHome, enabledModuleIds, ordering);
+        if (!preview.valid || preview.nextModel === null) {
+          throw new Error(preview.error ?? 'The module policy is invalid.');
+        }
+        if (preview.policy.schemaVersion === 2 && expectedPreviewFingerprint !== preview.previewFingerprint) {
+          throw new Error('Current preview confirmation is required: the module catalog, feature baseline or staged policy changed. Reload and confirm the current impact.');
+        }
+        if (preview.autoEnabled.length > 0) {
+          throw new Error(`Apply the visible dependency additions first: ${preview.autoEnabled.join(', ')}`);
+        }
+        if (preview.migrationImpact !== null && (!confirmedMigration || !confirmationLabel?.trim())) {
+          const error = new Error('Active feature migration confirmation is required.');
+          error.code = 'MODULE_MIGRATION_CONFIRMATION_REQUIRED';
           throw error;
         }
-      }
-      return inspect(repositoryRoot, featureHome, await getAvailability());
+        await regularFileState(policyPath);
+        const temporary = `${policyPath}.${randomId()}.tmp`;
+        let previousPolicy = null;
+        let temporaryCreated = false;
+        try {
+          await writeFile(temporary, stableJson(preview.policy), {
+            encoding: 'utf8',
+            mode: 0o644,
+            flag: 'wx',
+          });
+          temporaryCreated = true;
+          const currentPreview = await candidate(repositoryRoot, featureHome, enabledModuleIds, ordering);
+          if (currentPreview.previewFingerprint !== preview.previewFingerprint || !currentPreview.valid) {
+            throw new Error('Project or feature changed during policy preparation. Reload and confirm the current preview.');
+          }
+          previousPolicy = await readFile(policyPath, 'utf8').catch(error => {
+            if (error.code === 'ENOENT') return null;
+            throw error;
+          });
+          await rename(temporary, policyPath);
+        } catch (error) {
+          if (temporaryCreated) await unlink(temporary).catch(() => {});
+          throw error;
+        }
+        if (preview.migrationImpact !== null) {
+          try { await migrate({
+            featureHome,
+            nextModel: preview.nextModel,
+            confirmedBy: { kind: 'human-confirmed', label: confirmationLabel },
+            eventId: `evt-module-policy-${randomId()}`,
+            expectedModelHash: preview.baseline.modelHash,
+            expectedJournalSequence: preview.baseline.sequence,
+          }); } catch (error) {
+            // A guarded baseline conflict occurs before core mutation. Restore
+            // only our own just-published bytes; never overwrite another writer.
+            if (error.code === 'MODEL_MIGRATION_CONFLICT') {
+              const published = await readFile(policyPath, 'utf8');
+              if (published !== stableJson(preview.policy)) {
+                throw new Error('Migration conflicted and another policy writer changed the file; reload and reconcile before applying.', { cause: error });
+              }
+              if (previousPolicy === null) await unlink(policyPath);
+              else {
+                const rollback = `${policyPath}.${randomId()}.rollback.tmp`;
+                try { await writeFile(rollback, previousPolicy, { flag: 'wx', mode: 0o644 });await rename(rollback, policyPath); }
+                finally { await unlink(rollback).catch(() => {}); }
+              }
+            }
+            throw error;
+          }
+        }
+        return inspect(repositoryRoot, featureHome, await getAvailability());
+      });
     },
   });
 }

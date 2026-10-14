@@ -82,6 +82,34 @@ test('pre-publication feature progress invalidates confirmation without publishi
   }
 });
 
+test('competing policy application cannot overlap publication, core migration or rollback ownership', async () => {
+  const context = await fixture('exclusive-publication');let release;let entered;
+  const migrationStarted = new Promise(resolve => { entered = resolve; });
+  const continueMigration = new Promise(resolve => { release = resolve; });
+  const first = createModulePolicyManager({ async migrate(input) { entered();await continueMigration;return migrateFeatureModel(input); } });
+  const second = createModulePolicyManager();
+  const settings = await first.inspect(context.repositoryRoot, context.featureHome);const enabled = settings.modules.filter(m => m.enabled).map(m => m.id);
+  const ordering = { 'gatereeve/judge': { after: ['gatereeve/code-review'] } };const preview = await first.preview(context.repositoryRoot, context.featureHome, enabled, ordering);
+  const options = { ordering, confirmedMigration: true, confirmationLabel: 'Owner confirmed exact preview', expectedPreviewFingerprint: preview.previewFingerprint };
+  const application = first.apply(context.repositoryRoot, context.featureHome, enabled, options);await migrationStarted;
+  try {
+    await assert.rejects(second.apply(context.repositoryRoot, context.featureHome, enabled, options), /locked by another operation/);
+    assert.deepEqual(JSON.parse(await readFile(join(context.repositoryRoot, '.gatereeve/workflow.json'))).ordering, ordering);
+  } finally { release(); }
+  await application;
+  assert.deepEqual((await first.inspect(context.repositoryRoot, context.featureHome)).ordering, ordering);
+  assert.equal((await readFeatureRecord(context.featureHome)).events.filter(e => e.type === 'MODEL_MIGRATED').length, 1);
+  await assert.rejects(readFile(join(context.repositoryRoot, '.gatereeve/workflow.json.lock')), { code: 'ENOENT' });
+});
+
+test('a confirmation fingerprint cannot move to another repository with identical catalog and model/journal IDs', async () => {
+  const first = await fixture('identical-context');const second = await fixture('identical-context');const manager = createModulePolicyManager();
+  const settings = await manager.inspect(first.repositoryRoot, first.featureHome);const enabled = settings.modules.filter(m => m.enabled).map(m => m.id);const ordering = { 'gatereeve/judge': { after: ['gatereeve/code-review'] } };
+  const preview = await manager.preview(first.repositoryRoot, first.featureHome, enabled, ordering);
+  await assert.rejects(manager.apply(second.repositoryRoot, second.featureHome, enabled, { ordering, confirmedMigration: true, confirmationLabel: 'Owner confirmed first context', expectedPreviewFingerprint: preview.previewFingerprint }), /Current preview confirmation/);
+  assert.equal((await readFeatureRecord(second.featureHome)).events.length, 1);await assert.rejects(readFile(join(second.repositoryRoot, '.gatereeve/workflow.json')), { code: 'ENOENT' });
+});
+
 async function fixture(name) {
   const repositoryRoot = await mkdtemp(join(tmpdir(), `gatereeve-module-${name}-`));
   const featureHome = join(repositoryRoot, 'docs/issues/module-policy');

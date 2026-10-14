@@ -156,6 +156,12 @@ the saved policy digest is unchanged. The host rechecks before publication and
 the core guards the confirmed migration baseline under its mutation lock; a late
 baseline conflict restores the policy only if its bytes are still the host's own
 publication, preserving another writer's changes.
+Managed policy application holds an exclusive `workflow.json.lock` across
+validation, publication, migration and rollback, preventing overlapping writers
+from mistaking identical policy bytes for their own publication. A competing
+operation fails before writing; inspect a retained lock's PID/time before retrying
+after an interrupted operation. **Reload saved policy** fetches the current
+catalog and baseline and restores saved choices after a stale confirmation.
 
 Workflow overview, finalization and policy preview draw actual individual edges:
 solid for hard prerequisites, dashed for manifest conditional ordering and dotted

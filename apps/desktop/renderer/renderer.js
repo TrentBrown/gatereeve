@@ -47,6 +47,7 @@ const ids = [
   'check-updates', 'update-banner', 'update-title', 'update-detail', 'open-update',
   'module-policy-state', 'module-settings-alert', 'module-policy-path',
   'module-settings-list', 'module-preview-surface', 'module-preview', 'module-discard',
+  'module-reload',
   'module-apply', 'module-confirm-dialog', 'module-confirm-close', 'module-confirm-summary',
   'module-confirm-impact', 'module-confirm-cancel', 'module-confirm-apply',
   'module-waiver-dialog', 'module-waiver-close', 'module-waiver-title',
@@ -1212,12 +1213,13 @@ function orderingControls(module) {
       moduleDependencyNotice = null;void refreshModulePreview();
     });
     const suffix = required.has(predecessor.id) ? 'required; protected' : conditional.has(predecessor.id) ? 'module ordering; protected' : moduleDraftIds.has(module.id) && moduleDraftIds.has(predecessor.id) ? 'owner ordering' : 'owner ordering; dormant while disabled';
-    controls.append(node('label', { className: 'module-ordering-choice' }, [input, node('span', { text: `${predecessor.label} · ${suffix}` })]));
+    controls.append(node('label', { className: 'module-ordering-choice' }, [input, node('span', { text: `${predecessor.label} (${predecessor.id}) · ${suffix}` })]));
   }
   return controls;
 }
 
 function renderModuleSettings() {
+  elements['module-reload'].disabled = modulePolicyApplying || moduleSettingsPromise !== null;
   const list = clear(elements['module-settings-list']);
   if (moduleSettings === null) {
     elements['module-apply'].disabled = true;
@@ -1387,6 +1389,8 @@ async function ensureModuleSettings({ force = false } = {}) {
   modulePreviewRequest += 1;
   modulePreviewPending = false;
   moduleValidatedDraft = null;
+  closeDialog(elements['module-confirm-dialog']);
+  elements['module-confirm-apply'].disabled = true;
   moduleSettings = null;
   modulePreview = null;
   moduleDependencyNotice = null;
@@ -1412,6 +1416,7 @@ async function ensureModuleSettings({ force = false } = {}) {
   });
   moduleSettingsPromise = promise;
   moduleSettingsPromiseKey = key;
+  renderModuleSettings();
   return promise;
 }
 
@@ -3080,6 +3085,9 @@ elements['module-discard'].addEventListener('click', () => {
   modulePreview = null;
   moduleDependencyNotice = null;
   renderModuleSettings();
+});
+elements['module-reload'].addEventListener('click', () => {
+  if (!modulePolicyApplying) void ensureModuleSettings({ force: true });
 });
 elements['module-apply'].addEventListener('click', () => {
   if (modulePreview?.migrationImpact) showModuleMigrationConfirmation();

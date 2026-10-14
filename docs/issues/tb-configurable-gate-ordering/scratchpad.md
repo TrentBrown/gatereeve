@@ -35,3 +35,15 @@ The second advisory confirmed the frontend fixes and found that saved-policy dig
 
 **Triggered by:** native advisory ordering-s1-ready-2, one R6/R7 finding affecting manager and renderer.
 **Alternatives considered:** UI snapshots and saved-policy digest protect draft identity but cannot bind undisclosed host state. Recomputing an impact at Apply without checking the old fingerprint is not consent to a changed impact.
+
+## [4] Serialize policy publication and rollback ownership
+
+[x] **Promote**
+
+**Confidence:** HIGH
+**Blast Radius:** concurrent repository policy mutations and recovery from a guarded model conflict.
+
+Formal spec assessment identified that fingerprint checks and own-byte rollback alone cannot distinguish overlapping successful/failed operations, especially identical published bytes. Hold one exclusive repository policy mutation lock across validation, publication, migration and cleanup/rollback. Reject a competing operation before it can write; retain PID/time when an interrupted owner leaves a lock rather than deleting another operation's lock automatically. Add a deterministic manager test that holds migration open while a competing Apply attempts the same preview. Reload saved policy provides a fresh catalog/baseline after confirmation drift.
+
+**Triggered by:** R7 formal assessment and class-wide publication/rollback ownership review.
+**Alternatives considered:** comparing bytes alone is not ownership; retrying the competing writer under its earlier fingerprint could apply a stale confirmation.
