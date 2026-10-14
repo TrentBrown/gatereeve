@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-1",
+  "source": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "6eb9f94fc65ad521f56cb23255ea30f022a63f8a",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:96ead006b6ae788c16d634529233b0f7ef9a0d0d9bc758532fb01613785f4a15",
+  "requestIdentity": "sha256:12342a6627161ec6a781c5f4af9e8bdf37c2af596b0c4a0068ce994a4250851a",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-1/readiness.json",
+    "hash": "sha256:e16571e11bab9d68973f34b91ea09de3e1af2387b33545cb484b95bd78532fbc"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "FINDINGS",
+  "result": {
+    "schemaVersion": 1,
+    "outcome": "FINDINGS",
+    "fullVerification": "PENDING",
+    "summary": "Three supported Desktop preview/apply defects remain. Pinned evidence digests and bundled protocol integrity match; selected read-only core/preload checks pass. Full verification and independent formal Judge remain required.",
+    "criteria": [
+      {
+        "id": "R1",
+        "result": "SATISFIED",
+        "explanation": "Schema-1 compatibility remains intact; schema-2 ordering is retained separately from module definitions.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:120",
+          "plugin-src/shared/resources/protocol/model.js:345",
+          "cli/test/owner-ordering.test.js:20 — compatibility and round-trip check passed during this review."
+        ]
+      },
+      {
+        "id": "R2",
+        "result": "SATISFIED",
+        "explanation": "Policy resolution rejects malformed relationships, invalid endpoints, protected duplicates, cross-slot links and active combined cycles before mutation.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:134",
+          "plugin-src/shared/resources/protocol/modules.js:614",
+          "cli/test/owner-ordering.test.js:33 — negative checks passed during this review."
+        ]
+      },
+      {
+        "id": "R3",
+        "result": "SATISFIED",
+        "explanation": "Owner edges require enabled endpoints; saved relationships survive disabling, while locked modules and hard prerequisites remain enforced.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:150",
+          "plugin-src/shared/resources/protocol/modules.js:625",
+          "cli/test/owner-ordering.test.js:49 — endpoint enablement checks passed during this review."
+        ]
+      },
+      {
+        "id": "R4",
+        "result": "SATISFIED",
+        "explanation": "Compiled owner dependencies participate in eligibility and predecessor-event freshness without imposing global barriers.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:766",
+          "plugin-src/shared/resources/protocol/boundary.js:38",
+          "plugin-src/shared/resources/protocol/projection.js:650",
+          "cli/test/owner-ordering.test.js:58",
+          ".gatereeve-agent-evidence/fast-checks/1-0-focused-tests.log:12"
+        ]
+      },
+      {
+        "id": "R5",
+        "result": "SATISFIED",
+        "explanation": "Migration detects ordering changes, retains historical graphs and keeps ordering-only predecessors outside Judge evidence inputs.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/feature.js:161",
+          "plugin-src/shared/resources/protocol/feature.js:183",
+          "plugin-src/shared/resources/protocol/projection.js:237",
+          "plugin-src/shared/resources/protocol/agent-workflow-service.js:103"
+        ]
+      },
+      {
+        "id": "R6",
+        "result": "FINDING",
+        "explanation": "Dependency absorption omits staged ordering from its follow-up preview, and pending responses can overwrite discarded draft state.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1331",
+          "apps/desktop/renderer/renderer.js:1333",
+          "apps/desktop/renderer/renderer.js:3028"
+        ]
+      },
+      {
+        "id": "R7",
+        "result": "FINDING",
+        "explanation": "Discard does not cancel pending previews, and Apply can confirm and submit edits whose current preview has not completed.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1267",
+          "apps/desktop/renderer/renderer.js:1315",
+          "apps/desktop/renderer/renderer.js:1397",
+          "apps/desktop/renderer/renderer.js:3028"
+        ]
+      },
+      {
+        "id": "R8",
+        "result": "FINDING",
+        "explanation": "Individual-edge rendering is implemented, but dependency absorption can supply the preview with saved edges instead of the staged combined graph.",
+        "evidence": [
+          "apps/desktop/renderer/dependency-diagram.js:43",
+          "apps/desktop/renderer/renderer.js:1303",
+          "apps/desktop/renderer/renderer.js:1333"
+        ]
+      },
+      {
+        "id": "R9",
+        "result": "SATISFIED",
+        "explanation": "Named textual relationships distinguish edge origins, and derived layout explicitly explains that rows impose no completion barrier.",
+        "evidence": [
+          "apps/desktop/renderer/dependency-diagram.js:3",
+          "apps/desktop/renderer/dependency-diagram.js:68",
+          "plugin-src/shared/resources/protocol/projection.js:135",
+          "docs/WORKFLOW-MODULES.md:151"
+        ]
+      },
+      {
+        "id": "R10",
+        "result": "SATISFIED",
+        "explanation": "Canonical and bundled protocol files match, projection hashes validate, and supplied logs report portable and regression checks passing. Full verification remains pending.",
+        "evidence": [
+          "apps/desktop/resources/desktop-projection.json:4 — protocol hash and listed file digests independently matched.",
+          "apps/desktop/resources/protocol/modules.js:120 — bundled protocol files are byte-identical to canonical sources.",
+          "docs/WORKFLOW-MODULES.md:106",
+          ".gatereeve-agent-evidence/fast-checks/0-0-fast-checks.log:4"
+        ]
+      }
+    ],
+    "scopeCheck": {
+      "result": "SATISFIED",
+      "explanation": "All 33 inventoried changes concern the approved policy, graph, Desktop, documentation or regression-test scope. Document, inventory, patch-chunk and changed-source identities match. No binary changes are inventoried.",
+      "evidence": [
+        ".gatereeve-agent-evidence/inventory.json:1",
+        ".gatereeve-agent-evidence/patches/feature.json:1",
+        "docs/issues/tb-configurable-gate-ordering/spec.md:4",
+        "docs/issues/tb-configurable-gate-ordering/design.md:19"
+      ]
+    },
+    "gapCheck": {
+      "result": "FINDING",
+      "explanation": "The supplied renderer coverage waits for completed previews; it misses ordering combined with dependency absorption, Discard during pending requests and Apply during pending validation. Read-only execution of the source functions reproduced these gaps.",
+      "evidence": [
+        "apps/desktop/test/ordering-renderer.test.js:39",
+        "apps/desktop/renderer/renderer.js:1315",
+        "apps/desktop/renderer/renderer.js:3028"
+      ]
+    },
+    "contradictionCheck": {
+      "result": "FINDING",
+      "explanation": "The implementation can display one policy and migration impact while submitting another, contradicting the approved accurate-preview and stale-apply requirements.",
+      "evidence": [
+        "docs/issues/tb-configurable-gate-ordering/spec.md:11",
+        "docs/issues/tb-configurable-gate-ordering/spec.md:25",
+        "apps/desktop/renderer/renderer.js:1333",
+        "apps/desktop/renderer/renderer.js:1383",
+        "apps/desktop/renderer/renderer.js:1397"
+      ]
+    },
+    "findings": [
+      {
+        "summary": "Dependency absorption previews saved ordering while Apply submits staged ordering.",
+        "criterionIds": [
+          "R6",
+          "R7",
+          "R8"
+        ],
+        "invariant": "Every preview and migration disclosure must describe the complete staged policy that Apply will submit.",
+        "affectedPaths": [
+          "apps/desktop/renderer/renderer.js"
+        ],
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1320 — the first preview includes moduleDraftOrdering.",
+          "apps/desktop/renderer/renderer.js:1333 — after auto-enabling prerequisites, the second preview omits ordering.",
+          "apps/desktop/main/module-policy.js:104 — omitted ordering falls back to committed policy.",
+          "apps/desktop/renderer/renderer.js:1401 — Apply still submits moduleDraftOrdering.",
+          "Read-only source-function reproduction: staging Judge after Code Review and enabling a module with an auto-enabled prerequisite produced a displayed preview with ordering={} while the draft retained the owner edge. Staged removals of saved edges are likewise previewed incorrectly."
+        ]
+      },
+      {
+        "summary": "Pending previews can restore changes after Discard.",
+        "criterionIds": [
+          "R6",
+          "R7"
+        ],
+        "invariant": "Discard must invalidate outstanding draft requests so their responses cannot restore discarded state.",
+        "affectedPaths": [
+          "apps/desktop/renderer/renderer.js"
+        ],
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:3028 — Discard resets drafts and preview without advancing modulePreviewRequest.",
+          "apps/desktop/renderer/renderer.js:1321 — the pending response therefore passes its request-generation check.",
+          "apps/desktop/renderer/renderer.js:1331 — dependency absorption can replace the restored enabled IDs with discarded IDs.",
+          "apps/desktop/renderer/renderer.js:1336 — an ordinary pending response can restore discarded ordering disclosure and re-enable Apply.",
+          "Read-only delayed-response reproduction: Discard restored committed enabled IDs; releasing a pending dependency preview re-staged the discarded child and parent modules. A pending ordering-only response also restored its discarded preview while ordering controls remained reset."
+        ]
+      },
+      {
+        "summary": "Apply can confirm newer ordering edits against an older preview.",
+        "criterionIds": [
+          "R6",
+          "R7"
+        ],
+        "invariant": "Apply and migration confirmation must be bound to the latest completed validation of the exact submitted draft.",
+        "affectedPaths": [
+          "apps/desktop/renderer/renderer.js"
+        ],
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1205 — ordering controls immediately mutate the draft and start asynchronous validation.",
+          "apps/desktop/renderer/renderer.js:1315 — refresh leaves the previous valid preview and enabled Apply button in place while awaiting IPC.",
+          "apps/desktop/renderer/renderer.js:1383 — confirmation displays the previous preview's migration impact.",
+          "apps/desktop/renderer/renderer.js:1397 — submission reads the newer mutable draft.",
+          "Read-only delayed-response reproduction: while the displayed preview contained only Judge after Code Review, Apply remained enabled and submitted an additional Code Review after Pattern Review edge with confirmedMigration=true before its preview completed."
+        ]
+      }
+    ],
+    "checklist": []
+  },
+  "receipts": [
+    {
+      "schemaVersion": 1,
+      "kind": "gatereeve-agent-workflow-receipt",
+      "protocolVersion": 1,
+      "runId": "advisory-ordering-s1-ready-1-1",
+      "attemptId": "advisory-ordering-s1-ready-1",
+      "module": {
+        "id": "gatereeve/advisory-review",
+        "version": "1.0.0",
+        "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+      },
+      "stage": "advisory",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "provider": {
+        "id": "codex",
+        "adapterVersion": "1.0.0",
+        "model": "gpt-6.1-sol",
+        "reasoningEffort": "high",
+        "contextId": "01a13b8f-491a-7cf0-b74d-02d5a3607271"
+      },
+      "isolation": {
+        "method": "codex-ephemeral-exec",
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "policy": {
+        "repositoryAccess": "read-only-pinned",
+        "networkAccess": "denied",
+        "scratch": "disposable"
+      },
+      "startedAt": "2026-10-14T17:56:48.384Z",
+      "completedAt": "2026-10-14T18:01:48.780Z",
+      "status": "completed",
+      "digests": {
+        "instructions": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+        "input": "sha256:bed59e94ba76ae43859731bafc019ca365a68c57d4707340733e75d75659a901",
+        "output": "sha256:a0e0c463a3733e5c0217191461730a6cff99d330d8317c07d240a5f7a31199b6",
+        "snapshot": "sha256:f2b8be5bb9b610d9fcd7d427005e5909a179c73776db376df194db282c5922ca"
+      }
+    }
+  ],
+  "operationalErrors": []
+}

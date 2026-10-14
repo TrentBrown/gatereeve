@@ -9,6 +9,8 @@
 
 Approved dependency/DAG design and user instruction to implement recorded; specification validation PASS. One feature-final slice P1-P5. No implementation PASS or release/activation is asserted yet.
 
+PR81 source f26f938 entered attempt retry-ordering-ready-1-pr81-a1 with a pending-advisory proceed reason. Native advisory then reported three related asynchronous policy-preview defects (R6/R7/R8). Core returned the slice to IMPLEMENTING via evt-ordering-a1-remediation before source changes. Full defect-class remediation and delayed-response regressions are in progress; fresh readiness and a fresh formal attempt are required. No formal Judge result or old PASS is reused.
+
 ## Rubric Status
 
 | # | Criterion | Status | Review | Notes |

@@ -83,6 +83,9 @@ let moduleSettingsRequest = 0;
 let modulePreviewRequest = 0;
 let moduleDraftIds = new Set();
 let moduleDraftOrdering = {};
+let moduleValidatedDraft = null;
+let modulePreviewPending = false;
+let modulePolicyApplying = false;
 let modulePreview = null;
 let moduleDependencyNotice = null;
 let pendingModuleWaiver = null;
@@ -1158,7 +1161,7 @@ function moduleSettingRow(module) {
     },
   });
   checkbox.checked = checked;
-  checkbox.disabled = module.locked || unavailableNew;
+  checkbox.disabled = modulePolicyApplying || module.locked || unavailableNew;
   checkbox.addEventListener('change', () => {
     if (checkbox.checked) moduleDraftIds.add(module.id);
     else moduleDraftIds.delete(module.id);
@@ -1201,7 +1204,7 @@ function orderingControls(module) {
     const immutable = required.has(predecessor.id) || conditional.has(predecessor.id);
     const selected = moduleDraftOrdering[module.id]?.after ?? [];
     const input = node('input', { type: 'checkbox', attributes: { 'aria-label': `Run ${module.label} after ${predecessor.label}` } });
-    input.checked = immutable || selected.includes(predecessor.id);input.disabled = immutable;
+    input.checked = immutable || selected.includes(predecessor.id);input.disabled = immutable || modulePolicyApplying;
     input.addEventListener('change', () => {
       const after = new Set(moduleDraftOrdering[module.id]?.after ?? []);
       if (input.checked) after.add(predecessor.id);else after.delete(predecessor.id);
@@ -1263,11 +1266,12 @@ function impactList(impact) {
 function renderModulePreview() {
   const surface = elements['module-preview-surface'];
   const content = clear(elements['module-preview']);
-  const changed = modulePreview?.diff?.length > 0 || modulePreview?.orderingChanged === true;
-  elements['module-apply'].disabled = !modulePreview?.valid || !changed;
-  elements['module-discard'].disabled = !changed;
+  const changed = moduleDraftChanged();
+  elements['module-apply'].disabled = modulePolicyApplying || modulePreviewPending || !modulePreview?.valid || !changed || !moduleValidatedDraft;
+  elements['module-discard'].disabled = modulePolicyApplying || !changed;
   surface.hidden = !changed && !modulePreview?.error && moduleDependencyNotice === null;
   if (surface.hidden) return;
+  if (modulePreviewPending) content.append(node('p', { text: 'Checking the complete staged policy…' }));
   if (moduleDependencyNotice) {
     content.append(node('div', { className: 'notice info', text: moduleDependencyNotice }));
   }
@@ -1312,12 +1316,38 @@ function renderModulePreview() {
   }
 }
 
+function orderingDraftKey(ordering) {
+  return JSON.stringify(Object.entries(ordering).sort(([a], [b]) => a.localeCompare(b)).map(([id, rule]) => [id, [...rule.after].sort()]));
+}
+
+function moduleDraftChanged() {
+  if (!moduleSettings) return false;
+  const savedIds = moduleSettings.modules.filter(module => module.enabled).map(module => module.id).sort();
+  return JSON.stringify([...moduleDraftIds].sort()) !== JSON.stringify(savedIds)
+    || orderingDraftKey(moduleDraftOrdering) !== orderingDraftKey(moduleSettings.ordering ?? {});
+}
+
+function hasValidatedModuleDraft() {
+  return !modulePreviewPending && modulePreview?.valid && moduleValidatedDraft
+    && moduleValidatedDraft.request === modulePreviewRequest
+    && moduleValidatedDraft.projectPath === projectPath()
+    && JSON.stringify([...moduleDraftIds].sort()) === JSON.stringify([...moduleValidatedDraft.enabledModuleIds].sort())
+    && orderingDraftKey(moduleDraftOrdering) === orderingDraftKey(moduleValidatedDraft.ordering);
+}
+
 async function refreshModulePreview({ absorbDependencies = true } = {}) {
   if (moduleSettings === null) return;
   const request = ++modulePreviewRequest;
+  const ordering = structuredClone(moduleDraftOrdering);
+  modulePreviewPending = true;
+  modulePreview = null;
+  moduleValidatedDraft = null;
+  elements['module-confirm-apply'].disabled = true;
+  closeDialog(elements['module-confirm-dialog']);
+  renderModulePreview();
   elements['module-settings-alert'].hidden = true;
   try {
-    const preview = await desktop.previewModulePolicy([...moduleDraftIds], moduleDraftOrdering);
+    let preview = await desktop.previewModulePolicy([...moduleDraftIds], ordering);
     if (request !== modulePreviewRequest) return;
     if (
       absorbDependencies
@@ -1330,17 +1360,20 @@ async function refreshModulePreview({ absorbDependencies = true } = {}) {
       ));
       moduleDraftIds = new Set(preview.enabledModuleIds);
       moduleDependencyNotice = `Required dependencies were staged visibly: ${labels.join(', ')}.`;
-      modulePreview = await desktop.previewModulePolicy([...moduleDraftIds]);
+      preview = await desktop.previewModulePolicy([...moduleDraftIds], ordering);
       if (request !== modulePreviewRequest) return;
-    } else {
-      modulePreview = preview;
     }
+    modulePreview = preview;
+    if (preview.valid) moduleValidatedDraft = { request, projectPath: projectPath(), enabledModuleIds: [...moduleDraftIds], ordering, policyDigest: moduleSettings.policyDigest };
   } catch (error) {
     if (request !== modulePreviewRequest) return;
     modulePreview = null;
     elements['module-settings-alert'].textContent = error.message ?? String(error);
     elements['module-settings-alert'].hidden = false;
+  } finally {
+    if (request === modulePreviewRequest) modulePreviewPending = false;
   }
+  if (request !== modulePreviewRequest) return;
   renderModuleSettings();
 }
 
@@ -1352,6 +1385,8 @@ async function ensureModuleSettings({ force = false } = {}) {
   }
   const request = ++moduleSettingsRequest;
   modulePreviewRequest += 1;
+  modulePreviewPending = false;
+  moduleValidatedDraft = null;
   moduleSettings = null;
   modulePreview = null;
   moduleDependencyNotice = null;
@@ -1381,25 +1416,31 @@ async function ensureModuleSettings({ force = false } = {}) {
 }
 
 function showModuleMigrationConfirmation() {
+  if (!hasValidatedModuleDraft() || modulePolicyApplying) return;
   const impact = modulePreview?.migrationImpact;
   if (!impact) return;
   elements['module-confirm-summary'].textContent = 'The tracked project policy and this active feature’s pinned module graph will change together. GateReeve will record who confirmed the migration.';
   clear(elements['module-confirm-impact']).append(impactList(impact));
+  elements['module-confirm-apply'].disabled = false;
   openDialog(elements['module-confirm-dialog']);
 }
 
 async function applyModulePolicy(confirmedMigration = false) {
+  if (!hasValidatedModuleDraft() || modulePolicyApplying) return;
+  const validated = structuredClone(moduleValidatedDraft);
   const targetProjectPath = projectPath();
+  modulePolicyApplying = true;
+  renderModuleSettings();
   elements['module-settings-alert'].hidden = true;
   elements['module-apply'].disabled = true;
   elements['module-confirm-apply'].disabled = true;
   try {
     const applied = await desktop.applyModulePolicy(
-      [...moduleDraftIds],
+      validated.enabledModuleIds,
       confirmedMigration,
       confirmedMigration ? 'GateReeve Desktop module settings' : null,
-      moduleDraftOrdering,
-      moduleSettings.policyDigest,
+      validated.ordering,
+      validated.policyDigest,
     );
     if (targetProjectPath !== projectPath()) {
       showToast('Module policy applied to the previously selected project');
@@ -1408,8 +1449,9 @@ async function applyModulePolicy(confirmedMigration = false) {
     moduleSettings = applied;
     moduleSettingsKey = modulePolicyKey();
     moduleDraftIds = new Set(moduleSettings.modules.filter((module) => module.enabled).map((module) => module.id));
-  moduleDraftOrdering = structuredClone(moduleSettings.ordering ?? {});
+    moduleDraftOrdering = structuredClone(moduleSettings.ordering ?? {});
     modulePreview = null;
+    moduleValidatedDraft = null;
     moduleDependencyNotice = null;
     closeDialog(elements['module-confirm-dialog']);
     renderModuleSettings();
@@ -1418,8 +1460,9 @@ async function applyModulePolicy(confirmedMigration = false) {
     elements['module-settings-alert'].textContent = error.message ?? String(error);
     elements['module-settings-alert'].hidden = false;
   } finally {
+    modulePolicyApplying = false;
     elements['module-confirm-apply'].disabled = false;
-    renderModulePreview();
+    renderModuleSettings();
   }
 }
 
@@ -3026,7 +3069,11 @@ elements['attempt-select'].addEventListener('change', (event) => {
   if (artifact) void openArtifact(artifact);
 });
 elements['module-discard'].addEventListener('click', () => {
-  if (moduleSettings === null) return;
+  if (moduleSettings === null || modulePolicyApplying) return;
+  modulePreviewRequest += 1;
+  modulePreviewPending = false;
+  moduleValidatedDraft = null;
+  closeDialog(elements['module-confirm-dialog']);
   moduleDraftIds = new Set(moduleSettings.modules.filter((module) => module.enabled).map((module) => module.id));
   moduleDraftOrdering = structuredClone(moduleSettings.ordering ?? {});
   modulePreview = null;
