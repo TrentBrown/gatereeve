@@ -37,11 +37,11 @@ export function modelGraph(model) {
     group: 'Review boundary gates',
   }));
   const gateEdges = gates.flatMap((gate) =>
-    gate.dependsOn.map((dependency) => ({
-      id: `gate:${dependency}->${gate.id}`,
-      from: `gate:${dependency}`,
+    (gate.dependencyEdges ?? gate.dependsOn.map(from => ({ from, kind: 'required' }))).map((edge) => ({
+      id: `gate:${edge.from}->${gate.id}`,
+      from: `gate:${edge.from}`,
       to: `gate:${gate.id}`,
-      label: 'requires',
+      label: edge.kind === 'required' ? 'requires' : edge.kind === 'owner' ? 'owner ordering' : 'after when enabled',
     }))
   );
   const graph = {

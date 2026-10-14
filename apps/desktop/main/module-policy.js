@@ -10,7 +10,7 @@ import {
   readFeatureRecord,
 } from '../resources/protocol/feature.js';
 import { hashModel, loadDefaultModel, loadProjectModel } from '../resources/protocol/model.js';
-import { resolveModuleGraph } from '../resources/protocol/modules.js';
+import { moduleDependencyEdges, resolveModuleGraph } from '../resources/protocol/modules.js';
 
 function stableJson(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
@@ -101,10 +101,11 @@ function enabledDependents(definitions, requested, currentEnabled) {
   return [...result.values()].filter((item) => byId.has(item.id));
 }
 
-function policyFor(definitions, currentPolicy, enabled) {
+function policyFor(definitions, currentPolicy, enabled, ordering = currentPolicy.ordering) {
   const current = new Map(currentPolicy.modules.map((selector) => [selector.id, selector]));
   return {
-    schemaVersion: 1,
+    schemaVersion: ordering === undefined ? 1 : 2,
+    ...(ordering === undefined ? {} : { ordering: structuredClone(ordering) }),
     modules: definitions.map((module) => ({
       id: module.id,
       version: current.get(module.id)?.version ?? module.version,
@@ -142,6 +143,11 @@ function policyDiff(currentPolicy, candidatePolicy) {
     .map((item) => ({ id: item.id, before: current.get(item.id) === true, after: item.enabled }));
 }
 
+function orderingIdentity(value = {}) {
+  return JSON.stringify(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, rule]) => [id, [...rule.after].sort()]));
+}
+
 async function inspect(repositoryRoot, featureHome, availability) {
   const policyPath = resolve(repositoryRoot, '.gatereeve', 'workflow.json');
   const policyExists = await regularFileState(policyPath);
@@ -153,7 +159,8 @@ async function inspect(repositoryRoot, featureHome, availability) {
   const definitions = [...baseModel.moduleGraph.modules, ...project.projectDefinitions];
   const selected = new Set(project.policy.modules.map((item) => item.id));
   const catalogPolicy = {
-    schemaVersion: 1,
+    schemaVersion: project.policy.schemaVersion,
+    ...(project.policy.ordering ? { ordering: project.policy.ordering } : {}),
     modules: [
       ...project.policy.modules,
       ...definitions.filter((module) => !selected.has(module.id)).map((module) => ({
@@ -174,6 +181,8 @@ async function inspect(repositoryRoot, featureHome, availability) {
     projectModelHash: hashModel(project.model),
     migrationRequired: record.modelLock.modelHash !== hashModel(project.model),
     modules: moduleRows({ moduleGraph: catalog }, catalog.readiness),
+    ordering: project.policy.ordering ?? {},
+    edges: moduleDependencyEdges(catalog),
   };
 }
 
@@ -181,7 +190,7 @@ export function createModulePolicyManager({
   getAvailability = async () => null,
   randomId = randomUUID,
 } = {}) {
-  async function candidate(repositoryRoot, featureHome, enabledModuleIds) {
+  async function candidate(repositoryRoot, featureHome, enabledModuleIds, ordering) {
     const availability = await getAvailability();
     await regularFileState(resolve(repositoryRoot, '.gatereeve', 'workflow.json'));
     const [baseModel, current, record] = await Promise.all([
@@ -195,7 +204,7 @@ export function createModulePolicyManager({
     const currentEnabled = new Set(current.model.moduleGraph.enabledModuleIds);
     const dependents = enabledDependents(definitions, requested, currentEnabled);
     const closure = dependencyClosure(definitions, requested);
-    const nextPolicy = policyFor(definitions, current.policy, closure.enabled);
+    const nextPolicy = policyFor(definitions, current.policy, closure.enabled, ordering);
     let graph = null;
     let error = null;
     try {
@@ -225,8 +234,10 @@ export function createModulePolicyManager({
         policyDigest: graph.policyDigest,
         modules: graph.modules,
         enabledModuleIds: graph.enabledModuleIds,
+        ...(graph.ordering ? { ordering: graph.ordering } : {}),
       },
     };
+    if (graph?.schemaVersion === 2) nextModel.coreCompatibility.minimum = '1.4.0';
     let migrationImpact = null;
     if (nextModel !== null && record.modelLock.modelHash !== hashModel(nextModel)) {
       migrationImpact = (await previewFeatureModelMigration({
@@ -245,6 +256,9 @@ export function createModulePolicyManager({
       enabledModuleIds: graph?.enabledModuleIds ?? [...closure.enabled],
       suggestedEnabledModuleIds: [...suggested],
       diff: policyDiff(current.policy, nextPolicy),
+      ordering: nextPolicy.ordering ?? {},
+      orderingChanged: error === null ? orderingIdentity(current.policy.ordering) !== orderingIdentity(nextPolicy.ordering) : true,
+      edges: graph ? moduleDependencyEdges(graph) : [],
       migrationImpact,
       policy: nextPolicy,
       nextModel,
@@ -264,8 +278,16 @@ export function createModulePolicyManager({
     async apply(repositoryRoot, featureHome, enabledModuleIds, {
       confirmedMigration = false,
       confirmationLabel = null,
+      ordering,
+      expectedPolicyDigest,
     } = {}) {
-      const preview = await candidate(repositoryRoot, featureHome, enabledModuleIds);
+      if (expectedPolicyDigest !== undefined) {
+        const current = await loadProjectModel(repositoryRoot);
+        if (current.model.moduleGraph.policyDigest !== expectedPolicyDigest) {
+          throw new Error('Project policy changed since preview. Reload module settings before applying.');
+        }
+      }
+      const preview = await candidate(repositoryRoot, featureHome, enabledModuleIds, ordering);
       if (!preview.valid || preview.nextModel === null) {
         throw new Error(preview.error ?? 'The module policy is invalid.');
       }

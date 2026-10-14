@@ -11,6 +11,35 @@ import {
 import { hashModuleDefinition } from '../../../plugin-src/shared/resources/protocol/modules.js';
 import { createModulePolicyManager } from '../main/module-policy.js';
 
+test('ordering-only policy preview/apply preserves definitions, requires confirmation and retains links on later enablement edits', async () => {
+  const context = await fixture('ordering');const manager = createModulePolicyManager();
+  const settings = await manager.inspect(context.repositoryRoot, context.featureHome);
+  const enabled = settings.modules.filter(m => m.enabled).map(m => m.id);
+  const ordering = { 'gatereeve/judge': { after: ['gatereeve/code-review'] } };
+  const before = await readFeatureRecord(context.featureHome);
+  const preview = await manager.preview(context.repositoryRoot, context.featureHome, enabled, ordering);
+  assert.equal(preview.valid, true);assert.deepEqual(preview.diff, []);assert.equal(preview.orderingChanged, true);
+  assert(preview.edges.some(e => e.from === 'gatereeve/code-review' && e.to === 'gatereeve/judge' && e.kind === 'owner'));
+  assert(preview.migrationImpact.modulesChanged.includes('gatereeve/judge'));
+  assert.deepEqual((await readFeatureRecord(context.featureHome)).events, before.events);
+  await assert.rejects(manager.apply(context.repositoryRoot, context.featureHome, enabled, { ordering }), /confirmation/);
+  assert.deepEqual((await readFeatureRecord(context.featureHome)).events, before.events);
+  await manager.apply(context.repositoryRoot, context.featureHome, enabled, { ordering, confirmedMigration: true, confirmationLabel: 'Owner confirmed exact ordering change' });
+  const after = await manager.inspect(context.repositoryRoot, context.featureHome);assert.deepEqual(after.ordering, ordering);assert.equal(after.migrationRequired, false);
+  const eventCount = (await readFeatureRecord(context.featureHome)).events.length;
+  await assert.rejects(manager.apply(context.repositoryRoot, context.featureHome, enabled, { ordering: {}, confirmedMigration: true, confirmationLabel: 'Stale owner preview', expectedPolicyDigest: settings.policyDigest }), /changed since preview/);
+  assert.equal((await readFeatureRecord(context.featureHome)).events.length, eventCount);
+  assert.deepEqual((await manager.inspect(context.repositoryRoot, context.featureHome)).ordering, ordering);
+  const record = await readFeatureRecord(context.featureHome);assert.equal(record.modelLock.model.coreCompatibility.minimum, '1.4.0');
+  assert.deepEqual(record.modelLock.model.moduleGraph.modules.find(m => m.id === 'gatereeve/judge'), before.modelLock.model.moduleGraph.modules.find(m => m.id === 'gatereeve/judge'));
+  const disableCode = enabled.filter(id => id !== 'gatereeve/code-review');
+  const next = await manager.preview(context.repositoryRoot, context.featureHome, disableCode);assert.deepEqual(next.ordering, ordering);assert.equal(next.valid, true);assert(!next.edges.some(e => e.kind === 'owner'));
+  await manager.apply(context.repositoryRoot, context.featureHome, disableCode, { confirmedMigration: true, confirmationLabel: 'Owner disabled Code Review' });
+  const saved = JSON.parse(await readFile(join(context.repositoryRoot, '.gatereeve/workflow.json')));assert.deepEqual(saved.ordering, ordering);assert.equal(saved.schemaVersion, 2);
+  const restored = await manager.preview(context.repositoryRoot, context.featureHome, enabled);assert(restored.edges.some(e => e.kind === 'owner'));
+  const invalid = await manager.preview(context.repositoryRoot, context.featureHome, enabled, { ...ordering, 'gatereeve/code-review': { after: ['gatereeve/judge'] } });assert.equal(invalid.valid, false);assert.match(invalid.error, /cycle/);
+});
+
 async function fixture(name) {
   const repositoryRoot = await mkdtemp(join(tmpdir(), `gatereeve-module-${name}-`));
   const featureHome = join(repositoryRoot, 'docs/issues/module-policy');

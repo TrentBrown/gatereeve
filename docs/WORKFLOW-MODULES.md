@@ -103,6 +103,59 @@ in the governed feature model lock. Each new boundary attempt also pins that
 resolved graph so a later explicit model migration cannot reinterpret earlier
 evidence.
 
+## Owner-selected completion ordering
+
+Policy schema 2 retains the exact `modules` selectors and adds `ordering`:
+
+```json
+{
+  "schemaVersion": 2,
+  "modules": [],
+  "ordering": {
+    "gatereeve/judge": {
+      "after": ["gatereeve/code-review"]
+    }
+  }
+}
+```
+
+The abbreviated `modules` array above must be replaced with all exact built-in
+selectors and any selected repository modules, as in schema 1. Existing schema-1
+policies, defaults and pinned historical model locks remain unchanged/readable.
+Schema-2 graphs require protocol core 1.4 or newer; active features adopt a
+changed graph only through explicit model migration.
+
+An owner link waits for a current acceptable predecessor outcome, not merely
+earlier scheduling. It affects dependency-event freshness but does not supply
+the predecessor's report to an independent Judge. Both endpoints must be
+selected and belong to the same slot. Links are conditional while both endpoints
+are enabled; disabling an endpoint keeps the saved link dormant, and enabling it
+restores the relationship. Required module prerequisites remain enforced.
+Unknown/unselected IDs, self/duplicate relationships, duplicates of manifest
+requirements, cross-slot edges and active combined cycles reject resolution.
+
+Ordering lives separately from module definitions: their versions, digests and
+declared evidence inputs are unchanged. Array position remains insignificant.
+The compiled graph is pinned in the model and each attempt, so ordering changes
+cannot reinterpret past evidence. A changed predecessor event can make dependent
+evidence stale even when source bytes are unchanged.
+
+Desktop Modules settings provides **Run after** choices with protected manifest
+requirements shown separately. Enablement and ordering are staged together;
+preview shows the exact proposed dependencies and migration consequences.
+Apply requires a valid policy and explicit active-feature migration confirmation;
+Discard restores saved choices. Standard unlocked checks such as Judge may be
+disabled, but hard prerequisites of retained modules cannot. For example, locked
+Packet Validation still requires Explain Diff.
+Applying from Desktop also checks the saved policy digest against the policy
+used to prepare the choices; an intervening policy edit requires reloading.
+
+Workflow overview, finalization and policy preview draw actual individual edges:
+solid for hard prerequisites, dashed for manifest conditional ordering and dotted
+for owner ordering, with named textual relationships. Display rows/numbers are
+derived dependency depth, not configurable stages or global completion barriers.
+Independent branches can remain eligible while an unrelated branch is unfinished.
+
 ## Adapter declarations
 
 `run` and `observe` are independent. The schema recognizes:

@@ -1,3 +1,4 @@
+import { renderDependencyDiagram } from './dependency-diagram.js';
 import { clear, node, renderJson, renderMarkdown } from './dom.js';
 import { createWorkspaceStore, workspaceDefaults } from './workspace-state.js';
 import {
@@ -81,6 +82,7 @@ let moduleSettingsPromiseKey = null;
 let moduleSettingsRequest = 0;
 let modulePreviewRequest = 0;
 let moduleDraftIds = new Set();
+let moduleDraftOrdering = {};
 let modulePreview = null;
 let moduleDependencyNotice = null;
 let pendingModuleWaiver = null;
@@ -662,25 +664,6 @@ function gateStatusPill(value) {
   return pill;
 }
 
-function gateConnector(fromCount, toCount) {
-  const kind = toCount > 1 ? 'fan-out' : fromCount > 1 ? 'fan-in' : 'simple';
-  const branchCount = Math.max(fromCount, toCount);
-  const connector = node('div', {
-    className: `gate-connector gate-connector-${kind}`,
-    attributes: { 'aria-hidden': 'true' },
-  });
-  connector.style.setProperty('--branch-count', String(branchCount));
-  connector.append(node('span', { className: 'connector-trunk' }));
-  if (kind !== 'simple') {
-    connector.append(node('span', { className: 'connector-bar' }));
-    for (let index = 0; index < branchCount; index += 1) {
-      const stem = node('span', { className: 'connector-stem' });
-      stem.style.setProperty('--stem-index', String(index));
-      connector.append(stem);
-    }
-  }
-  return connector;
-}
 
 function modulePresentation(module, gate = null) {
   const outcome = gate?.outcome ?? module?.outcome ?? 'UNSET';
@@ -880,6 +863,10 @@ function renderBoundary(snapshot) {
   });
   elements['boundary-summary'].append(inspect);
   const graph = clear(elements['gate-dag']);
+  const diagramNodes = attempt.gates.map(g => ({ ...g, label: moduleForGate(snapshot, g.id)?.label ?? humanize(g.id) }));
+  const diagramEdges = attempt.gates.flatMap(g => g.dependencyEdges ?? g.dependsOn.map(from => ({ from, to: g.id, kind: 'required' })));
+  renderDependencyDiagram(graph, diagramNodes, diagramEdges, { onSelect: gate => renderGateDetail(attempt, gate) });
+  const cards = node('details', { className: 'dependency-cards' }, [node('summary', { text: 'Gate details and actions' })]);graph.append(cards);
   const stages = [];
   for (const gate of attempt.gates) {
     const stageNumber = Number.parseInt(gate.orderLabel, 10);
@@ -891,7 +878,6 @@ function renderBoundary(snapshot) {
     stage.gates.push(gate);
   }
   stages.forEach((stage, index) => {
-    if (index > 0) graph.append(gateConnector(stages[index - 1].gates.length, stage.gates.length));
     const wrapper = node('div', {
       className: `gate-stage${stage.gates.length > 1 ? ' gate-stage-branch' : ''}`,
       attributes: { 'aria-label': `Gate dependency stage ${stage.number}` },
@@ -900,7 +886,7 @@ function renderBoundary(snapshot) {
     for (const gate of stage.gates) {
       wrapper.append(gateCard(attempt, gate, gate.id === selectedGateId));
     }
-    graph.append(wrapper);
+    cards.append(wrapper);
   });
   if (initialized) {
     const artifact = attemptArtifact(snapshot, selectedAttemptId);
@@ -915,7 +901,7 @@ function moduleStages(modules) {
     if (depth.has(module.id)) return depth.get(module.id);
     if (path.has(module.id)) return 0;
     const nextPath = new Set(path).add(module.id);
-    const predecessors = [...module.dependsOn, ...module.after]
+    const predecessors = [...module.dependsOn, ...module.after, ...(module.ownerAfter ?? [])]
       .filter((id) => activeIds.has(id))
       .map((id) => modules.find((candidate) => candidate.id === id))
       .filter(Boolean);
@@ -1017,9 +1003,14 @@ function renderFinalizationModules(snapshot) {
       summary.append(complete);
     }
   }
+  const diagramNodes = attempt ? attempt.modules.map(result => ({ ...modules.find(m => m.id === result.id), ...result, label: modules.find(m => m.id === result.id)?.label ?? humanize(result.id) })) : modules;
+  const activeIds = new Set(diagramNodes.map(m => m.id));
+  const diagramEdges = attempt ? attempt.modules.flatMap(m => m.dependencyEdges ?? m.dependsOn.map(from => ({ from, to: m.id, kind: 'required' })))
+    : modules.flatMap(m => [...m.dependsOn.map(from => ({ from, to: m.id, kind: 'required' })), ...m.after.map(from => ({ from, to: m.id, kind: 'conditional' })), ...(m.ownerAfter ?? []).map(from => ({ from, to: m.id, kind: 'owner' }))]).filter(e => activeIds.has(e.from));
+  renderDependencyDiagram(graph, diagramNodes, diagramEdges);
+  const cards = node('details', { className: 'dependency-cards' }, [node('summary', { text: 'Finalization details and actions' })]);graph.append(cards);
   const stages = moduleStages(modules);
   stages.forEach((stage, index) => {
-    if (index > 0) graph.append(gateConnector(stages[index - 1].modules.length, stage.modules.length));
     const wrapper = node('div', {
       className: `gate-stage${stage.modules.length > 1 ? ' gate-stage-branch' : ''}`,
       attributes: { 'aria-label': `Finalization dependency stage ${stage.number}` },
@@ -1036,7 +1027,7 @@ function renderFinalizationModules(snapshot) {
         workspaceState().activeTabId === `module:${module.id}`,
       ));
     });
-    graph.append(wrapper);
+    cards.append(wrapper);
   });
 }
 
@@ -1189,7 +1180,7 @@ function moduleSettingRow(module) {
   ];
   if (module.locked) detail.push('Structural protection: this module cannot be disabled or waived.');
   if (unavailableNew) detail.push('Install the declared implementation before enabling this module.');
-  return node('label', { className: `module-setting${checkbox.disabled ? ' unavailable' : ''}` }, [
+  const row = node('div', { className: `module-setting${checkbox.disabled ? ' unavailable' : ''}` }, [
     checkbox,
     node('span', { className: 'module-setting-copy' }, [
       node('span', { className: 'card-header' }, [
@@ -1197,8 +1188,30 @@ function moduleSettingRow(module) {
         badges,
       ]),
       node('span', { className: 'module-description', text: detail.join(' · ') }),
+      orderingControls(module),
     ]),
   ]);
+  return row;
+}
+
+function orderingControls(module) {
+  const controls = node('details', { className: 'module-ordering' }, [node('summary', { text: 'Run after' })]);
+  const required = new Set(module.dependsOn);const conditional = new Set(module.after);
+  for (const predecessor of moduleSettings.modules.filter(m => m.slot === module.slot && m.id !== module.id)) {
+    const immutable = required.has(predecessor.id) || conditional.has(predecessor.id);
+    const selected = moduleDraftOrdering[module.id]?.after ?? [];
+    const input = node('input', { type: 'checkbox', attributes: { 'aria-label': `Run ${module.label} after ${predecessor.label}` } });
+    input.checked = immutable || selected.includes(predecessor.id);input.disabled = immutable;
+    input.addEventListener('change', () => {
+      const after = new Set(moduleDraftOrdering[module.id]?.after ?? []);
+      if (input.checked) after.add(predecessor.id);else after.delete(predecessor.id);
+      if (after.size) moduleDraftOrdering[module.id] = { after: [...after].sort() };else delete moduleDraftOrdering[module.id];
+      moduleDependencyNotice = null;void refreshModulePreview();
+    });
+    const suffix = required.has(predecessor.id) ? 'required; protected' : conditional.has(predecessor.id) ? 'module ordering; protected' : moduleDraftIds.has(module.id) && moduleDraftIds.has(predecessor.id) ? 'owner ordering' : 'owner ordering; dormant while disabled';
+    controls.append(node('label', { className: 'module-ordering-choice' }, [input, node('span', { text: `${predecessor.label} · ${suffix}` })]));
+  }
+  return controls;
 }
 
 function renderModuleSettings() {
@@ -1250,7 +1263,7 @@ function impactList(impact) {
 function renderModulePreview() {
   const surface = elements['module-preview-surface'];
   const content = clear(elements['module-preview']);
-  const changed = modulePreview?.diff?.length > 0;
+  const changed = modulePreview?.diff?.length > 0 || modulePreview?.orderingChanged === true;
   elements['module-apply'].disabled = !modulePreview?.valid || !changed;
   elements['module-discard'].disabled = !changed;
   surface.hidden = !changed && !modulePreview?.error && moduleDependencyNotice === null;
@@ -1281,6 +1294,15 @@ function renderModulePreview() {
       content.append(button);
     }
   }
+  if (modulePreview?.orderingChanged) content.append(node('p', { text: 'Completion ordering changed. The graph shows the enabled relationships; disabled endpoints keep their saved relationships dormant.' }));
+  if (modulePreview?.valid && modulePreview.edges) {
+    for (const slot of ['boundary.evaluation', 'feature.finalization']) {
+      const modules = moduleSettings.modules.filter(m => m.slot === slot && modulePreview.enabledModuleIds.includes(m.id));
+      if (!modules.length) continue;
+      content.append(node('h4', { text: slot === 'boundary.evaluation' ? 'Proposed review dependencies' : 'Proposed finalization dependencies' }));
+      renderDependencyDiagram(content, modules, modulePreview.edges);
+    }
+  }
   if (modulePreview?.migrationImpact) {
     content.append(
       node('h4', { text: 'Active feature migration' }),
@@ -1295,7 +1317,7 @@ async function refreshModulePreview({ absorbDependencies = true } = {}) {
   const request = ++modulePreviewRequest;
   elements['module-settings-alert'].hidden = true;
   try {
-    const preview = await desktop.previewModulePolicy([...moduleDraftIds]);
+    const preview = await desktop.previewModulePolicy([...moduleDraftIds], moduleDraftOrdering);
     if (request !== modulePreviewRequest) return;
     if (
       absorbDependencies
@@ -1340,6 +1362,7 @@ async function ensureModuleSettings({ force = false } = {}) {
     moduleSettings = settings;
     moduleSettingsKey = modulePolicyKey();
     moduleDraftIds = new Set(settings.modules.filter((module) => module.enabled).map((module) => module.id));
+    moduleDraftOrdering = structuredClone(settings.ordering ?? {});
     return refreshModulePreview({ absorbDependencies: false });
   }).catch((error) => {
     if (request !== moduleSettingsRequest) return;
@@ -1375,6 +1398,8 @@ async function applyModulePolicy(confirmedMigration = false) {
       [...moduleDraftIds],
       confirmedMigration,
       confirmedMigration ? 'GateReeve Desktop module settings' : null,
+      moduleDraftOrdering,
+      moduleSettings.policyDigest,
     );
     if (targetProjectPath !== projectPath()) {
       showToast('Module policy applied to the previously selected project');
@@ -1383,6 +1408,7 @@ async function applyModulePolicy(confirmedMigration = false) {
     moduleSettings = applied;
     moduleSettingsKey = modulePolicyKey();
     moduleDraftIds = new Set(moduleSettings.modules.filter((module) => module.enabled).map((module) => module.id));
+  moduleDraftOrdering = structuredClone(moduleSettings.ordering ?? {});
     modulePreview = null;
     moduleDependencyNotice = null;
     closeDialog(elements['module-confirm-dialog']);
@@ -3002,6 +3028,7 @@ elements['attempt-select'].addEventListener('change', (event) => {
 elements['module-discard'].addEventListener('click', () => {
   if (moduleSettings === null) return;
   moduleDraftIds = new Set(moduleSettings.modules.filter((module) => module.enabled).map((module) => module.id));
+  moduleDraftOrdering = structuredClone(moduleSettings.ordering ?? {});
   modulePreview = null;
   moduleDependencyNotice = null;
   renderModuleSettings();

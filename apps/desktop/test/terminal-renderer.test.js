@@ -93,6 +93,7 @@ test('renderer lazily preserves one terminal view per project and presents exit/
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const rendererPath = resolve(desktopRoot, 'renderer/renderer.js');
   let source = await readFile(rendererPath, 'utf8');
+  source = source.replace("'./dependency-diagram.js'", JSON.stringify(pathToFileURL(resolve(desktopRoot, 'renderer/dependency-diagram.js')).href));
   for (const moduleName of ['dom.js', 'workspace-state.js', 'presentation.js']) {
     source = source.replace(
       `'./${moduleName}'`,

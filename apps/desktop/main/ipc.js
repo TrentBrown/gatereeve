@@ -125,7 +125,7 @@ export function registerDesktopIpc({
     if (values.length !== 1) throw new Error('Module policy preview requires one request.');
     const request = requireModulePolicyRequest(values[0]);
     return requireModulePolicyPreview(
-      await coordinator.previewModulePolicy(request.enabledModuleIds),
+      await coordinator.previewModulePolicy(request.enabledModuleIds, request.ordering),
     );
   });
   ipcMain.handle(IPC_CHANNELS.applyModulePolicy, async (event, ...values) => {
@@ -137,6 +137,8 @@ export function registerDesktopIpc({
       {
         confirmedMigration: request.confirmedMigration,
         confirmationLabel: request.confirmationLabel,
+        ...(request.ordering === undefined ? {} : { ordering: request.ordering }),
+        ...(request.expectedPolicyDigest === undefined ? {} : { expectedPolicyDigest: request.expectedPolicyDigest }),
       },
     ));
   });

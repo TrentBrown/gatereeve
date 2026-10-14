@@ -522,13 +522,14 @@ export function createDesktopCoordinator({
       const selected = selectedContext();
       return modulePolicyManager.inspect(selected.repositoryRoot, selected.featureHome);
     },
-    async previewModulePolicy(enabledModuleIds) {
+    async previewModulePolicy(enabledModuleIds, ordering) {
       if (modulePolicyManager === null) throw new Error('Module settings are unavailable.');
       const selected = selectedContext();
       return publicModulePreview(await modulePolicyManager.preview(
         selected.repositoryRoot,
         selected.featureHome,
         enabledModuleIds,
+        ordering,
       ));
     },
     async applyModulePolicy(enabledModuleIds, options) {

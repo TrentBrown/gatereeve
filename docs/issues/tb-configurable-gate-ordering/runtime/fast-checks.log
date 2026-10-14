@@ -1,0 +1,6 @@
+Syntax checks PASS: 28 JavaScript files.
+Spec lint, branch docs, issues/tracker lint and decision triage PASS.
+Focused core/manager/DOM/preload regressions PASS.
+Desktop full suite: 210 PASS.
+Portable acceptance: CLI 410 PASS, pattern Python 28 PASS, workflow Python 104 PASS, template Python 2 PASS; zero audit vulnerabilities; deterministic Codex/Claude package rebuild and isolated structural Doctor simulations PASS.
+Browser visual fixture: actual SVG arrows, named relationships and node inspection rendered; fixture is simulated, not installed application activation.

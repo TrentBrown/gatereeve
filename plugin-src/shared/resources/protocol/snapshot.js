@@ -224,6 +224,7 @@ function validateGate(gate, label) {
   assertObject(gate, label);
   assertString(gate.id, `${label}.id`);
   assertStringArray(gate.dependsOn, `${label}.dependsOn`);
+  validateDependencyEdges(gate, label);
   assertInteger(gate.dependencyStage, `${label}.dependencyStage`, { minimum: 1 });
   assertString(gate.dependencyBranch, `${label}.dependencyBranch`, { nullable: true });
   assertString(gate.orderLabel, `${label}.orderLabel`);
@@ -249,6 +250,22 @@ function validateGate(gate, label) {
   });
   assertString(gate.reason, `${label}.reason`, { nullable: true });
   assertNullableObject(gate.waiverBasis, `${label}.waiverBasis`);
+}
+
+function validateDependencyEdges(value, label) {
+  if (value.dependencyEdges === undefined) return;
+  assertArray(value.dependencyEdges, `${label}.dependencyEdges`);
+  const seen = new Set();
+  for (const edge of value.dependencyEdges) {
+    assertObject(edge, `${label}.dependencyEdge`);
+    assertString(edge.from, `${label}.dependencyEdge.from`);
+    assertOneOf(edge.kind, new Set(['required', 'conditional', 'owner']), `${label}.dependencyEdge.kind`);
+    if (edge.to !== value.id || !value.dependsOn.includes(edge.from) || seen.has(edge.from)) {
+      throw new ContractError(`${label} has inconsistent dependency edges`);
+    }
+    seen.add(edge.from);
+  }
+  if (seen.size !== value.dependsOn.length) throw new ContractError(`${label} is missing dependency edges`);
 }
 
 function validateAttempt(attempt, label) {
@@ -280,6 +297,7 @@ function validateFinalizationAttempt(attempt, label) {
       assertString(module[field], `${item}.${field}`);
     }
     assertStringArray(module.dependsOn, `${item}.dependsOn`);
+    validateDependencyEdges(module, item);
     assertInteger(module.dependencyStage, `${item}.dependencyStage`, { minimum: 1 });
     assertString(module.dependencyBranch, `${item}.dependencyBranch`, { nullable: true });
     for (const field of ['optional', 'locked', 'waiverAllowed', 'eligible']) {
@@ -1078,6 +1096,7 @@ function moduleInventory(record, projection, facts) {
         waiverPolicy: module.waiverPolicy ?? 'any-change',
         dependsOn: [...module.dependsOn],
         after: [...(module.after ?? [])],
+        ownerAfter: [...(graph.ordering?.[module.id]?.after ?? [])],
         boundaryGateId: module.boundary?.gateId ?? null,
         run: module.run ? structuredClone(module.run) : null,
         observe: module.observe ? structuredClone(module.observe) : null,
@@ -1249,6 +1268,7 @@ export function validateSnapshot(snapshot) {
         );
         assertStringArray(module.dependsOn, `${moduleLabel}.dependsOn`);
         assertStringArray(module.after, `${moduleLabel}.after`);
+        if (module.ownerAfter !== undefined) assertStringArray(module.ownerAfter, `${moduleLabel}.ownerAfter`);
         assertString(module.boundaryGateId, `${moduleLabel}.boundaryGateId`, { nullable: true });
         assertNullableObject(module.run, `${moduleLabel}.run`);
         assertNullableObject(module.observe, `${moduleLabel}.observe`);

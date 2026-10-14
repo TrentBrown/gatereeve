@@ -745,6 +745,21 @@ select { max-width: 22rem; border: 1px solid var(--line); border-radius: 0.45rem
 .module-setting.unavailable { cursor: default; }
 .module-setting > input { width: 1.1rem; height: 1.1rem; margin: 0.12rem 0 0; accent-color: var(--purple-700); }
 .module-setting-copy, .module-description { display: block; min-width: 0; }
+.module-ordering { margin-top: 0.55rem; font-size: 0.8rem; }
+.module-ordering-choice { display: flex; gap: 0.45rem; align-items: start; margin: 0.4rem 0; }
+.module-ordering-choice input { flex-shrink: 0; accent-color: var(--purple-700); }
+.dependency-diagram { display: block; width: 100%; min-width: 680px; max-height: none; }
+.dependency-edge { fill: none; stroke: var(--purple-700); stroke-width: 2; }
+.dependency-edge-conditional { stroke-dasharray: 8 5; }
+.dependency-edge-owner { stroke: #146e80; stroke-dasharray: 2 5; stroke-width: 2.5; }
+.dependency-node rect { fill: var(--purple-50); stroke: var(--purple-700); stroke-width: 1.5; }
+.dependency-node text { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.dependency-node .dependency-node-status { font-size: 10px; font-weight: 400; }
+.dependency-node[role="button"] { cursor: pointer; }
+.dependency-node[role="button"]:focus rect { stroke: #146e80; stroke-width: 3; }
+.dependency-legend { font-size: 0.8rem; line-height: 1.5; margin: 0.6rem 0; }
+.dependency-relationships, .dependency-cards { margin: 0.65rem 0; font-size: 0.85rem; }
+.dependency-cards .gate-stage { margin-top: 0.6rem; }
 .module-setting-copy strong { display: block; }
 .module-setting-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.28rem; }
 .module-description { margin-top: 0.4rem; color: var(--muted); font-size: 0.72rem; line-height: 1.5; }

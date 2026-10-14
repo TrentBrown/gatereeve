@@ -169,6 +169,7 @@ function moduleDescriptors(model) {
       slot: module.slot,
       gateId: module.boundary?.gateId ?? null,
       enabled: enabledIds.has(module.id),
+      ownerAfter: [...(model.moduleGraph.ordering?.[module.id]?.after ?? [])].sort(),
     }));
   }
   return model.boundary.gates.map((gate) => ({

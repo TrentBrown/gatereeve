@@ -197,6 +197,9 @@ export function validateModel(model) {
 
   assertObject(model.boundary, 'boundary');
   const usesModuleGraph = model.moduleGraph !== undefined;
+  if (model.moduleGraph?.schemaVersion === 2 && compareVersions(model.coreCompatibility.minimum, '1.4.0') < 0) {
+    throw new ContractError('Owner ordering requires minimum core 1.4.0');
+  }
   if (usesModuleGraph) {
     if (model.boundary.gates !== undefined || model.boundary.scopeRouting !== undefined) {
       throw new ContractError('Module workflow models cannot also declare hardcoded boundary gates');
@@ -345,7 +348,9 @@ export async function loadProjectModel(repositoryRoot, { availability = null } =
     policyDigest: graph.policyDigest,
     modules: graph.modules,
     enabledModuleIds: graph.enabledModuleIds,
+    ...(graph.ordering ? { ordering: graph.ordering } : {}),
   };
+  if (graph.schemaVersion === 2) model.coreCompatibility.minimum = '1.4.0';
   return {
     model: validateModel(model),
     policy,
