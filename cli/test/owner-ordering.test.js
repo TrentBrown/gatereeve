@@ -140,3 +140,27 @@ test('retained finalization inventory, edges and numbers stay pinned through ord
   for(const row of rows){const result=current.modules.find(m=>m.id===row.id);assert.equal(row.orderLabel,result.orderLabel);assert.deepEqual(row.ownerAfter,ordering[row.id]?.after??[]);assert.equal(row.attemptId,'current-owner');}
  }
 });
+
+
+test('Mermaid serialization keeps valid punctuation variants distinct for model and current boundary/finalization graphs',async()=>{
+ const {hashModuleDefinition}=await import('../../plugin-src/shared/resources/protocol/modules.js');
+ const {renderMermaid}=await import('../../plugin-src/shared/resources/protocol/graph.js');
+ const check=graph=>{
+  const declarations=graph.mermaid.split('\n').filter(line=>/^    n_[0-9a-f]+\[/.test(line)).map(line=>line.trim().split('[')[0]);
+  assert.equal(new Set(declarations).size,graph.nodes.length);assert.equal(declarations.length,graph.nodes.length);
+  const dependencies=graph.mermaid.split('\n').filter(line=>line.includes('-->')).map(line=>{const match=line.trim().match(/^(n_[0-9a-f]+) -->\|[^|]*\| (n_[0-9a-f]+)$/);assert(match,line);return [match[1],match[2]];});
+  assert.equal(dependencies.length,graph.edges.length);assert(dependencies.every(([from,to])=>from!==to));
+  assert(dependencies.every(([from,to])=>declarations.includes(from)&&declarations.includes(to)));
+ };
+ for(const slot of ['boundary.evaluation','feature.finalization']){
+  const base=await loadDefaultModel();const template=base.moduleGraph.modules.find(m=>m.id===(slot==='boundary.evaluation'?'gatereeve/code-review':'gatereeve/release'));
+  const variants=['check-one','check.one'].map(name=>{const module={...structuredClone(template),id:'example/'+name,label:name,run:{kind:'manual',instructions:'Check result'},...(slot==='boundary.evaluation'?{boundary:{...template.boundary,gateId:name}}:{})};return {...module,digest:hashModuleDefinition(module)};});
+  const {readiness,...moduleGraph}=resolveModuleGraph({definitions:[...base.moduleGraph.modules,...variants],policy:{schemaVersion:2,modules:[...base.moduleGraph.modules.map(m=>({id:m.id,version:m.version,digest:m.digest,enabled:base.moduleGraph.enabledModuleIds.includes(m.id)})),...variants.map(m=>({id:m.id,version:m.version,digest:m.digest,enabled:true}))],ordering:{[variants[1].id]:{after:[variants[0].id]}}}});
+  const graph=modelGraph({...base,moduleGraph});check(graph);assert(graph.edges.some(e=>e.label==='owner ordering'));
+  const ids=slot==='boundary.evaluation'?variants.map(m=>m.boundary.gateId):variants.map(m=>m.id);
+  const modules=ids.map((id,i)=>({id,moduleId:variants[i].id,dependsOn:i?[ids[0]]:[],dependencyEdges:i?[{from:ids[0],to:id,kind:'owner'}]:[],outcome:'UNSET',freshness:'UNKNOWN',eligible:!i}));
+  const projection={featureId:'feature',feature:{state:slot==='boundary.evaluation'?'DELIVERING_SLICES':'FINALIZING'},slices:[{id:'s1',state:'IMPLEMENTING'}],activeSliceId:'s1',changes:[],blockingChangeIds:[],boundaryAttempts:slot==='boundary.evaluation'?[{id:'a1',sliceId:'s1',state:'ACTIVE',scope:'SLICE',gates:modules}]:[],finalizationAttempts:slot==='feature.finalization'?[{id:'a1',state:'ACTIVE',modules}]:[]};
+  check(currentGraph(projection));
+ }
+ check({nodes:['x-y','x.y','x_y','x/y','x:y','Ω','😀'].map(id=>({id,label:id})),edges:[],mermaid:renderMermaid({nodes:['x-y','x.y','x_y','x/y','x:y','Ω','😀'].map(id=>({id,label:id})),edges:[]})});
+});

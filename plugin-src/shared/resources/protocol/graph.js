@@ -1,7 +1,9 @@
 import { boundaryGateDefinitions, finalizationModuleDefinitions } from './modules.js';
 
 function nodeId(value) {
-  return String(value).replace(/[^A-Za-z0-9_]/g, '_');
+  // Fixed-width UTF-16 units preserve every distinct ID without punctuation
+  // collisions and remain valid Mermaid identifiers. Labels stay readable.
+  return `n_${String(value).split('').map(unit => unit.charCodeAt(0).toString(16).padStart(4, '0')).join('')}`;
 }
 
 function quote(value) {

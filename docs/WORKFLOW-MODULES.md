@@ -496,3 +496,9 @@ Feature-final retry declares the canonical deferred `completion-report.md` as
 an exact evidence path during clean-head synchronization. Slice retries keep
 their narrower declarations. This permits the required post-check narrative
 without widening accepted code/configuration changes after evaluation.
+
+
+Public Mermaid output uses deterministic collision-free node encoding, while
+labels and JSON node IDs remain readable and unchanged. Distinct supported IDs
+such as `check-one` and `check.one` retain separate endpoints and cannot turn a
+valid owner dependency into a renderer-created self-loop.

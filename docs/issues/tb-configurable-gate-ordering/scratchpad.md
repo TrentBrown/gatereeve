@@ -98,3 +98,16 @@ Final packet inspection found that canonical completion-report.md is written aft
 
 **Triggered by:** required deferred artifact and exact evidence-only finalization contract.
 **Alternatives considered:** writing a false report before checks violates deferral; broadening the entire feature directory could admit post-evaluation requirements/configuration changes; omitting the canonical report leaves feature evidence incomplete.
+
+
+## [9] Encode public graph IDs injectively
+
+[x] **Promote**
+
+**Confidence:** HIGH
+**Blast Radius:** public Mermaid model/current boundary and finalization output.
+
+Advisory7 confirmed all thirteen prior findings resolved, then found valid punctuation variants could collapse to one underscore-normalized Mermaid identifier. Use fixed-width UTF-16 code-unit encoding for internal Mermaid IDs, leaving readable labels and JSON graph identities unchanged. Apply the shared encoder to declarations and every endpoint. Real resolver model graphs and current projections cover boundary/finalization check-one versus check.one owner dependencies, distinct declarations, preserved endpoints and no accidental self-loop, with punctuation/Unicode standalone cases.
+
+**Triggered by:** advisory7 R8/R9 graph identity finding.
+**Alternatives considered:** underscore normalization is not injective; order-dependent collision suffixes make output unstable; preserving readable labels separately permits a deterministic exact ID representation without changing policy or module definitions.

@@ -1,0 +1,20 @@
+✔ read-only observers share one projection and never append events (38.546959ms)
+✔ blocked and stale-capable status remains successful while check is binary (42.545583ms)
+✔ legacy and missing feature modes are observable without adoption (1.263292ms)
+✔ model graph and current graph expose matching machine identity (14.0265ms)
+✔ schema-2 ordering preserves exact definitions and schema-1 hashes and round-trips independently (15.700416ms)
+✔ invalid shapes, endpoints, protected duplicates, cross-slot and cyclic owner links reject (4.250959ms)
+✔ owner links become dormant at either disabled endpoint and return on re-enablement (3.248958ms)
+✔ completion ordering blocks only its dependent and binds predecessor events for freshness; migration retains history (259.535917ms)
+✔ public finalization graph retains exact dependency origins with named modules (0.173792ms)
+✔ public model graph renders configured finalization owner edges without flattening (2.425958ms)
+✔ retained finalization inventory, edges and numbers stay pinned through ordering reversal/removal and disabled current modules (1185.124666ms)
+✔ Mermaid serialization keeps valid punctuation variants distinct for model and current boundary/finalization graphs (6.377792ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1568.543625
