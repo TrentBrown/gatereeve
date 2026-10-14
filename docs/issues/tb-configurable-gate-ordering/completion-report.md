@@ -45,4 +45,4 @@
 
 Independent formal Judge PASS is actual native evidence for this pinned source; prior failures/advisories and raw decision journals were excluded from its view. Advisory8 is operationally UNAVAILABLE/CONTRACT_INVALID (persistent, one provider attempt), with a retained assessed proceed reason. It is not a clean advisory or a formal waiver. The empty active pattern scope produces a retained PASS_WITH_WARNINGS report.
 
-Retention inspection: tracked, 141 current files, zero untracked or ignored feature files. Trusted clean-checkout packet validation passed and its actual core event/report are retained. Human review passage and exact final-head synchronization follow; no merge, publication or installed activation is claimed here.
+Retention inspection: tracked, 141 current files, zero untracked or ignored feature files. Trusted clean-checkout packet validation passed and its actual core event/report are retained. Human-review passage is recorded through the core; exact final-head synchronization follows; no merge, publication or installed activation is claimed here.
