@@ -103,6 +103,25 @@ async function currentAttempt(home, state) {
   return { record, projection, fingerprints, attempt: projection.boundaryAttempts.find(x => x.id === state.attemptId) };
 }
 
+// Presentation normally waits for substantive work. An explicit graph edge
+// through presentation makes its descendants wait instead; never add a barrier.
+function descendants(gates, id) {
+  const found = new Set([id]);
+  let changed = true;
+  while (changed) { changed = false;
+    for (const gate of gates) if (!found.has(gate.id) && gate.dependsOn.some(dep => found.has(dep))) {
+      found.add(gate.id); changed = true;
+    }
+  }
+  found.delete(id); return found;
+}
+
+function presentationReady(gates, id) {
+  const later = descendants(gates, id);
+  return gates.filter(gate => !presentation.has(gate.id) && !later.has(gate.id))
+    .every(gate => nonblocking.has(gate.outcome) && gate.freshness === 'CURRENT');
+}
+
 function result(state, status, extra = {}) {
   return { schemaVersion: 1, status, retryId: state.identity.retryId, attemptId: state.attemptId,
     pullRequest: state.identity.pullRequest, progress: state.progress, ...extra };
@@ -204,14 +223,20 @@ export async function retryBoundary(featureHome, input, dependencies = {}) {
             || fingerprint(existing.payload.evidence) !== fingerprint(evidence)) throw new ContractError('Uncertain gate result conflicts with recorded event; reconcile before replay');
       } else { await recordGateOutcome(featureHome, { attemptId: state.attemptId, gateId: gate.id,
         outcome: input.outcome, reason: input.reason ?? null, evidence, inputs: prepared.inputs,
-        currentFingerprints: observed.fingerprints, actor, eventId });
+        currentFingerprints: observed.fingerprints, expectedModelHash: identity.modelHash,
+        expectedDependencyEventIds: prepared.dependencies, actor, eventId });
         await dependencies.afterMutation?.(`record:${gate.id}`); }
       state.progress = `RECORDED:${gate.id}`; await save(path, state);
       return result(state, 'RECORDED', { gateId: gate.id });
     }
     if (action === 'packet' || action === 'finalize') {
-      const beforePacket = observed.attempt.gates.filter(x => x.id !== 'packetValidation');
-      if (beforePacket.some(x => !nonblocking.has(x.outcome) || x.freshness !== 'CURRENT')) throw new ContractError('All substantive and presentation gates must be current before packet preparation');
+      const packetGate = observed.attempt.gates.find(x => x.id === 'packetValidation');
+      const afterPacket = descendants(observed.attempt.gates, 'packetValidation');
+      const beforePacket = observed.attempt.gates.filter(x => x.id !== 'packetValidation' && !afterPacket.has(x.id));
+      if (beforePacket.some(x => !nonblocking.has(x.outcome) || x.freshness !== 'CURRENT')
+          || (!nonblocking.has(packetGate.outcome) && !packetGate.eligible)) {
+        throw new ContractError('All substantive and presentation prerequisites must be current before packet preparation');
+      }
       if (action === 'packet') {
         const gate = observed.attempt.gates.find(x => x.id === 'packetValidation');
         const module = observed.record.modelLock.model.moduleGraph.modules.find(x => x.boundary?.gateId === gate.id);
@@ -219,18 +244,21 @@ export async function retryBoundary(featureHome, input, dependencies = {}) {
         const gates = {};
         for (const [id, filename] of Object.entries(artifacts)) {
           const recorded = observed.attempt.gates.find(x => x.id === id);
-          if (!recorded) throw new ContractError(`Packet requires configured ${id}`);
+          if (!recorded) continue; // Disabled checks have no artifact requirement.
           const disposition = recorded.outcome === 'WAIVED' ? 'waived' : recorded.outcome === 'NOT_APPLICABLE' ? 'not_applicable' : 'passed';
-          const artifact = `attempts/${state.attemptId}/${filename}`;
+          const artifact = recorded.evidence?.path?.startsWith(`${packet}/`)
+            ? recorded.evidence.path.slice(packet.length + 1).replace(/[^/]+$/u, filename)
+            : `attempts/${state.attemptId}/${filename}`;
           gates[id] = { disposition, reason: disposition === 'passed' ? null : recorded.reason,
             evidence: disposition === 'not_applicable' ? null : { path: artifact, sha256: hash(await evidenceBytes(featureHome, `${packet}/${artifact}`)) } };
         }
-        const manifest = { schemaVersion: 2, scope: scope.toLowerCase().replace('_', '-'),
+        const modular = Object.keys(gates).length !== Object.keys(artifacts).length;
+        const manifest = { schemaVersion: modular ? 4 : 2, ...(modular ? { attemptId: state.attemptId } : {}), scope: scope.toLowerCase().replace('_', '-'),
           featureId: identity.featureId, repositoryAlias: state.context.repositoryAlias, packetId: packet,
           pullRequest: state.context.pullRequest, mergeBaseSha: state.context.mergeBaseSha,
           evaluatedSourceSha: state.context.evaluatedSourceSha,
           featureBaseSha: scope === 'FEATURE_FINAL' ? state.context.featureBaseSha : null,
-          applicability: Object.fromEntries(['specEvaluation', 'judge', 'patternReview'].map(id => [id, gates[id].disposition !== 'not_applicable'])), gates };
+          applicability: Object.fromEntries(['specEvaluation', 'judge', 'patternReview'].filter(id => gates[id]).map(id => [id, gates[id].disposition !== 'not_applicable'])), gates };
         await mkdir(join(featureHome, packet), { recursive: true });
         await save(join(featureHome, packet, 'boundary.json'), manifest);
         state.packetPreparation = { inputs: inputsFor(state, gate, module),
@@ -251,21 +279,24 @@ export async function retryBoundary(featureHome, input, dependencies = {}) {
         await save(join(featureHome, output), verified);
         await recordGateOutcome(featureHome, { attemptId: state.attemptId, gateId: 'packetValidation',
           outcome: 'PASS', inputs: state.packetPreparation.inputs, currentFingerprints: observed.fingerprints,
-          evidence: { path: output, hash: hash(await evidenceBytes(featureHome, output)) }, actor, eventId: outcomeId });
+          evidence: { path: output, hash: hash(await evidenceBytes(featureHome, output)) },
+          expectedModelHash: identity.modelHash, expectedDependencyEventIds: state.packetPreparation.dependencies, actor, eventId: outcomeId });
         state.progress = 'PACKET_RECORDED'; await save(path, state);
         return result(state, 'COMMIT_AND_PUSH_EVIDENCE', { evidencePaths: evidencePaths(featureHome, repositoryRoot, packet) });
       }
       observed = await currentAttempt(featureHome, state);
+      if (!observed.attempt.requiredCurrentAndNonblocking) return result(state, 'CONTINUE_GATES', {
+        reason: 'Packet prerequisites are validated; run the remaining graph descendants before human review',
+      });
       await requestBoundaryHumanReview(featureHome, { attemptId: state.attemptId,
         currentFingerprints: observed.fingerprints, actor, eventId: `evt-retry-${retryId}-human-review` });
       state.progress = 'HUMAN_REVIEW_REQUESTED'; await save(path, state);
       return result(state, 'COMMIT_AND_PUSH_EVIDENCE', { evidencePaths: evidencePaths(featureHome, repositoryRoot, packet),
         reason: 'Commit/push the human-review journal event, then finalize to resolve the exact final head' });
     }
-    const clean = observed.attempt.gates.filter(x => !presentation.has(x.id))
-      .every(x => nonblocking.has(x.outcome) && x.freshness === 'CURRENT');
+    if (observed.attempt.requiredCurrentAndNonblocking) return result(state, 'FINALIZE_PACKET');
     const candidates = observed.attempt.gates.filter(x => x.eligible && x.outcome === 'UNSET'
-      && (!presentation.has(x.id) || clean));
+      && (!presentation.has(x.id) || presentationReady(observed.attempt.gates, x.id)));
     candidates.sort((a, b) => (['codeReview', 'specEvaluation'].includes(a.id) ? -1 : 0)
       - (['codeReview', 'specEvaluation'].includes(b.id) ? -1 : 0));
     const target = candidates[0];

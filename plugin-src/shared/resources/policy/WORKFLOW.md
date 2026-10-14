@@ -317,7 +317,10 @@ When a natural slice review boundary is reached:
    finders. Persist their findings even when substantive checks fail.
 9. Triage decisions after substantive checks are current and nonblocking under
    their policies. Then generate `explain-diff`, final narrative and consolidated
-   summaries. Preserve this ordering and all graph dependencies.
+   summaries. Honor the pinned module DAG: explicit owner edges through
+   presentation run those prerequisites before their descendants without a
+   global barrier. All enabled gates must be current before human review, and
+   disabled modules impose no artifact requirement.
 10. Recheck the pinned context, finalize the manifest and cumulative tracker
    link, and update the review surface with summary, decisions, verification
    matrix, judge result, code-review result, explain-diff artifact, known

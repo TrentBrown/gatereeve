@@ -75,7 +75,16 @@ test('completion ordering blocks only its dependent and binds predecessor events
   assert.equal(attempt.gates.find(g => g.id === 'specEvaluation').eligible, true);
   const before = (await readFeatureRecord(home)).events.length;
   await assert.rejects(record('judge'), /not eligible/);assert.equal((await readFeatureRecord(home)).events.length, before);
-  await record('codeReview');await record('judge');await record('specEvaluation');
+  await record('codeReview');
+  const launch = (await project()).boundaryAttempts[0];
+  const launchJudge = launch.gates.find(g => g.id === 'judge');
+  const expectedDependencyEventIds = Object.fromEntries(launchJudge.dependsOn.map(id => [id, launch.gates.find(g => g.id === id).recordedEventId]));
+  await record('codeReview');
+  const count = (await readFeatureRecord(home)).events.length;
+  await assert.rejects(recordGateOutcome(home, { attemptId: 'a1', gateId: 'judge', outcome: 'PASS', inputs: { unchanged: true },
+    expectedDependencyEventIds, currentFingerprints: current, evidence: { path: 'judge.json', hash: fingerprint('same') }, actor: agent }), /predecessor events changed/);
+  assert.equal((await readFeatureRecord(home)).events.length, count);
+  await record('judge');await record('specEvaluation');
   await record('codeReview', 2);attempt = (await project()).boundaryAttempts[0];
   assert.equal(attempt.gates.find(g => g.id === 'judge').freshness, 'STALE');assert.equal(attempt.gates.find(g => g.id === 'specEvaluation').freshness, 'CURRENT');
   const judge = model.moduleGraph.modules.find(m => m.id === 'gatereeve/judge');assert.deepEqual(judge.dependsOn, ['gatereeve/verification']);

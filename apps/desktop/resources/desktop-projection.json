@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:bec1df0b6ae0e5cd049b4ffe91af6ffdd214e9bf84f62a89345ba761dab459a9",
+  "protocolHash": "sha256:91961c157c64c8a0059dbedbded036042aebf18496bf4d82f2833d73c330bdaf",
   "modelSha256": "a8bbfc7402f82d622c8b77417db99c0d4217b183ffa8d557a265fc90deebf080",
   "files": [
     {
@@ -41,8 +41,8 @@
     },
     {
       "path": "agent-workflow-scheduler.js",
-      "size": 5217,
-      "sha256": "c949f60320a8188c8849dcf54a18270e13cf0e85651a373bbbe12b1b187e777b"
+      "size": 5288,
+      "sha256": "8a58b773fccf0f2e9974532235d323ffcb58b701dc332d26d9c05f361d6bb6c3"
     },
     {
       "path": "agent-workflow-service.js",
@@ -61,13 +61,13 @@
     },
     {
       "path": "boundary-retry.js",
-      "size": 22091,
-      "sha256": "2ba6ace87ac1b92c7c7178e1d45dd62b0a5780c3cb72e9d4117516d3a3df6303"
+      "size": 23857,
+      "sha256": "da2c31d3780b9b8817154204e73c35a8c704b092094ba81dbd0ab4712593a7db"
     },
     {
       "path": "boundary.js",
-      "size": 8337,
-      "sha256": "581103c8625e6fa4766587bc5b308d2f610b59f911aa7453b68a2555d45a649f"
+      "size": 8814,
+      "sha256": "27298745b6853834cff2b8fc0b68c57b63e6faa9a69faba2157084995d85b2de"
     },
     {
       "path": "changes.js",
@@ -96,8 +96,8 @@
     },
     {
       "path": "execution-preparation.js",
-      "size": 3939,
-      "sha256": "0e541fdd029e52a5e4d067a3936f8a54b12dad68d291c97f16653227eae1510f"
+      "size": 4692,
+      "sha256": "4e6162f96565301f8b4b45d4040787031a58c4eb42ee464f60b7237b6beaa344"
     },
     {
       "path": "feature.js",
@@ -106,8 +106,8 @@
     },
     {
       "path": "finalization.js",
-      "size": 10583,
-      "sha256": "20d445c446be3013ce4e6119a50e5104bfb1a74ce83d13d774601282f2ad7996"
+      "size": 11029,
+      "sha256": "938dd4ccfe6938d08731eec89a2582ba360841feeae7f601dea3f5a7b884beba"
     },
     {
       "path": "fingerprint.js",

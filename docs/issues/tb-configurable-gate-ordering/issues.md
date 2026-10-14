@@ -8,7 +8,7 @@ No external tracker task is assigned or created. User authorized implementation 
 - **Plan steps:** P1-P5
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8, R9, R10
 - **Depends on:** none
-- **PR:** pending preparation
+- **PR:** https://github.com/TrentBrown/gatereeve/pull/81
 - **Slice:** s1-configurable-ordering
 - **Scope:** FEATURE_FINAL
 - **Estimate:** unknown

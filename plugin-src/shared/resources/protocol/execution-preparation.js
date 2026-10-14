@@ -5,6 +5,23 @@ import { join } from 'node:path';
 
 import { readFeatureRecord } from './feature.js';
 import { projectRecord } from './projection.js';
+import { fingerprint } from './fingerprint.js';
+
+export function executionDependencyEvents(prepared) {
+  const targets = prepared.attempt?.gates ?? prepared.attempt?.modules ?? [];
+  return Object.fromEntries((prepared.target?.dependsOn ?? []).map(id => [
+    id, targets.find(target => target.id === id)?.recordedEventId ?? null,
+  ]));
+}
+
+export function assertExecutionPreparationCurrent(prepared, current) {
+  if (prepared.modelHash !== current.modelHash
+      || fingerprint(prepared.inputs) !== fingerprint(current.inputs)
+      || fingerprint(executionDependencyEvents(prepared)) !== fingerprint(executionDependencyEvents(current))) {
+    throw new Error('Module execution inputs or predecessor events changed before outcome recording.');
+  }
+}
+
 import { runTrustedPythonGuard } from './python-guards.js';
 
 export async function verifyBoundaryContextCurrent({

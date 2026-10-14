@@ -1,5 +1,7 @@
 // @ts-check
 
+import { assertExecutionPreparationCurrent, executionDependencyEvents } from '../resources/protocol/execution-preparation.js';
+
 import { randomUUID } from 'node:crypto';
 import { writeFile, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -95,6 +97,7 @@ export function createProtocolAdapter({
         attempt: currentAttempt,
         target: currentTarget,
         currentFingerprints,
+        modelHash: record.modelLock.modelHash,
         inputs: {
           schemaVersion: 1,
           scope: attempt.scope,
@@ -131,6 +134,7 @@ export function createProtocolAdapter({
     return {
       attempt,
       target,
+      modelHash: record.modelLock.modelHash,
       inputs: {
         schemaVersion: 1,
         scope: 'FEATURE',
@@ -218,12 +222,16 @@ export function createProtocolAdapter({
     },
 
     async recordFinalizationModuleOutcome({
-      featureHome, attemptId, gateId, module, outcome, evidence, reason = null, actor,
+      featureHome, attemptId, gateId, module, outcome, evidence, reason = null, actor, preparation,
     }) {
-      await currentFinalizationModule({ featureHome, attemptId, gateId, module });
+      const current = await currentFinalizationModule({ featureHome, attemptId, gateId, module });
+      const prepared = preparation ?? current;
+      assertExecutionPreparationCurrent(prepared, current);
       return recordFinalizationResult(featureHome, {
         attemptId,
         moduleId: gateId,
+        expectedModelHash: prepared.modelHash,
+        expectedDependencyEventIds: executionDependencyEvents(prepared),
         outcome,
         evidence,
         reason,
@@ -271,11 +279,16 @@ export function createProtocolAdapter({
       evidence,
       reason = null,
       actor,
+      preparation,
     }) {
-      const prepared = await currentBoundaryGate({
+      const current = await currentBoundaryGate({
         featureHome, repositoryRoot, attemptId, gateId, module,
       });
+      const prepared = preparation ?? current;
+      assertExecutionPreparationCurrent(prepared, current);
       return recordOutcome(featureHome, {
+        expectedModelHash: prepared.modelHash,
+        expectedDependencyEventIds: executionDependencyEvents(prepared),
         attemptId,
         gateId,
         outcome,

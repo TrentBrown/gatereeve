@@ -1,0 +1,827 @@
+
+> @quality-code/gatereeve@0.1.0 pretest
+> npm run stage:protocol
+
+
+> @quality-code/gatereeve@0.1.0 stage:protocol
+> node scripts/stage-protocol.js
+
+
+> @quality-code/gatereeve@0.1.0 test
+> node --test
+
+✔ historical mechanical record pr-77/attempts/s1-pr77-a1/preparation-unavailable.json has a bounded recognized shape; configuration additions are not history (12.124583ms)
+✔ historical mechanical record pr-77/attempts/s1-pr77-a2/provider-unavailable.json has a bounded recognized shape; configuration additions are not history (6.388ms)
+✔ historical mechanical record pr-77/attempts/s1-pr77-a2/validation-correction.json has a bounded recognized shape; configuration additions are not history (7.470791ms)
+✔ historical mechanical record runtime/s1-integration.json has a bounded recognized shape; configuration additions are not history (1.298542ms)
+✔ historical mechanical record runtime/s2-model-migration-impact.json has a bounded recognized shape; configuration additions are not history (2.593166ms)
+✔ historical mechanical record runtime/s3-integration.json has a bounded recognized shape; configuration additions are not history (1.513875ms)
+✔ historical mechanical record runtime/s4-cost-verification.json has a bounded recognized shape; configuration additions are not history (1.459166ms)
+✔ empty history needs actual invalidation and superseding journal proof; empty/config-shaped new files still block (3008.969625ms)
+✔ one readiness declaration automatically reviews complete scope in isolation without formal passage (4347.094667ms)
+✔ formal entry cannot manufacture advisory facts or bypass missing retained reason (4148.188125ms)
+✔ inapplicable formal Judge does not launch an advisory provider (1025.472583ms)
+▶ transient advisory execution retries once; persistent isolation/config/schema errors do not retry
+  ✔ recover (1363.782375ms)
+  ✔ exhaust (1153.229833ms)
+  ✔ config (1025.399209ms)
+  ✔ inherited context (1014.31475ms)
+  ✔ missing model (1286.772583ms)
+✔ transient advisory execution retries once; persistent isolation/config/schema errors do not retry (5844.316041ms)
+▶ clean advisory is reusable across evidence-only commits but each reviewed input change prevents reuse
+  ✔ app.mjs (1864.280583ms)
+  ✔ app.test.mjs (1582.129ms)
+  ✔ package.json (1515.970375ms)
+  ✔ dependency-lock.json (1485.444875ms)
+  ✔ docs/issues/advisory-feature/spec.md (1485.14425ms)
+  ✔ docs/issues/advisory-feature/design.md (1462.111208ms)
+  ✔ docs/issues/advisory-feature/runtime/advisory-checks/focused.log (1267.939291ms)
+✔ clean advisory is reusable across evidence-only commits but each reviewed input change prevents reuse (10663.825125ms)
+✔ defect-class review and changed approach are required for revised readiness; reruns still inspect all criteria (1850.61575ms)
+✔ evidence-only declarations reuse clean inputs and retain the original reviewed source (1969.034834ms)
+▶ retained records reject tampering, unknown transcript fields and unsafe evidence before formal entry
+  ✔ outcome (881.824ms)
+  ✔ source (897.004291ms)
+  ✔ receipt (877.413167ms)
+  ✔ transcript (884.815041ms)
+  ✔ capability (892.182ms)
+  ✔ provider model (868.310708ms)
+  ✔ isolation method (873.653083ms)
+  ✔ symlink evidence (640.175375ms)
+  ✔ untracked formal evidence (887.192416ms)
+✔ retained records reject tampering, unknown transcript fields and unsafe evidence before formal entry (7703.576417ms)
+▶ snapshot and output-schema failures are unavailable; valid code findings survive publication errors
+  ✔ snapshot (612.127ms)
+  ✔ output schema (680.230667ms)
+  ✔ finding publication (987.16775ms)
+✔ snapshot and output-schema failures are unavailable; valid code findings survive publication errors (2279.970542ms)
+✔ advisory uses the formal whole-feature scope and portable Claude receipt contract (876.815541ms)
+✔ adoption preserves historical boundaries and formal graph requirements; older features never auto-adopt (786.925083ms)
+▶ ambiguous JSON and YAML configuration in evidence namespaces cannot gain evidence-only reuse
+  ✔ runtime/config.json (1196.054083ms)
+  ✔ runtime/config.yaml (1130.179ms)
+✔ ambiguous JSON and YAML configuration in evidence namespaces cannot gain evidence-only reuse (2326.606334ms)
+✔ formal failures enter the full advisory fix checklist; formal Judge snapshots exclude every advisory record (2070.462458ms)
+✔ optional CLI and plugin adapter share advisory operational results and read-only check behavior (1096.045417ms)
+✔ ordinary edits never launch review; revised readiness selects revised pinned source (1273.935875ms)
+✔ tracked compact advisory evidence remains usable in a fresh checkout (1180.689875ms)
+✔ defect-class readiness requires affected-path coverage and historical evidence is tracked before formal entry (1587.660708ms)
+✔ reasoned pending admission retains the claim and never certifies a formal gate or relaunches it (1552.533917ms)
+▶ existing formal FAIL rows without concern findings enter the fix checklist, including conservative path reconciliation
+  ✔ criterion (1485.438042ms)
+  ✔ criterion without paths (1578.361042ms)
+  ✔ scope without paths (1531.923292ms)
+✔ existing formal FAIL rows without concern findings enter the fix checklist, including conservative path reconciliation (4596.183334ms)
+✔ complete readiness-to-retry journey retains advisory defects, reconciles interruption and reviews the full feature independently (4607.831709ms)
+✔ agent workflow receipts bind provider configuration, isolation policy, and stage output (0.917875ms)
+✔ agent workflow receipts reject inherited context and output substitution (0.268667ms)
+✔ agent workflow runtime executes stage dependencies in fresh contexts and publishes only after validation (3.093917ms)
+✔ agent workflow runtime fails closed without recording a gate failure when isolation or capability is weak (0.952583ms)
+✔ agent workflow runtime refuses passage when required publication is missing (0.656125ms)
+✔ scheduler runs Judge then conditionally eligible Whiteboard in separate governed stages (1.881042ms)
+✔ a blocking Judge failure is recorded and leaves Whiteboard ineligible (0.166792ms)
+✔ scheduler restores recorded gate fingerprints before selecting eligible work (0.22525ms)
+✔ native completion refuses replacement predecessor events even with identical launch content (0.289ms)
+✔ publishes a validated root and records only the completed governed outcome (38.695959ms)
+✔ ordering-only predecessors are never exposed as agent evidence (80.086333ms)
+✔ provider unavailability leaves the gate UNSET and does not call the recorder (9.099958ms)
+✔ changed dependency evidence fails before snapshot or provider launch (11.040375ms)
+✔ GateReeve publishes only declared complete artifact sets (32.832542ms)
+✔ GateReeve rejects missing, undeclared, and symlink-target artifacts (4.9015ms)
+✔ new synthetic boundaries are rejected without changing historical journals (375.874583ms)
+✔ boundary DAG rejects out-of-order gates without recording an event (334.573ms)
+✔ failed gates block dependents and a permitted human waiver unblocks passage (924.459708ms)
+✔ a constrained Whiteboard waiver requires human-classified non-behavioral evidence (425.372ms)
+✔ changed inputs and upstream reruns make dependent evidence stale (1170.67125ms)
+✔ remediation preserves the failed attempt and a later attempt starts cleanly (977.25025ms)
+✔ uncertain begin-boundary resumes exact PR without duplicating attempt or events (514.947625ms)
+✔ uncertain gate recording reconciles actual bytes/event and never duplicates PASS (799.362333ms)
+✔ FAIL is early retained discovery; presentation waits and revised attempt carries no PASS (1218.9875ms)
+✔ clean substantive path orders discovery/triage before presentation and finalizes repeat-safely (3033.213792ms)
+✔ source movement, changed identity, model/input mismatch and premature packet block passage (473.873084ms)
+✔ recording refuses native Judge shortcuts and changed evidence cannot become CURRENT (961.958667ms)
+✔ stale preparation dependency identity is rejected instead of copying PASS (553.414125ms)
+✔ status is observational and pause prevents further mutations (411.389625ms)
+✔ owner ordering after Explain Diff and Packet Validation completes without a hidden barrier (2191.618291ms)
+Traceback (most recent call last):
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 122, in _modular_packet_gates
+    raise ValueError(f"{key} does not match the recorded gate outcome")
+ValueError: verification does not match the recorded gate outcome
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 647, in validate_packet
+    required_gates = _modular_packet_gates(workflow, manifest) if manifest_version == 4 else set(ARTIFACTS)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 132, in _modular_packet_gates
+    raise BoundaryPacketError(f"Modular packet does not match the protocol-pinned attempt: {error}") from error
+boundary_packet.BoundaryPacketError: Modular packet does not match the protocol-pinned attempt: verification does not match the recorded gate outcome
+Traceback (most recent call last):
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 122, in _modular_packet_gates
+    raise ValueError(f"{key} does not match the recorded gate outcome")
+ValueError: verification does not match the recorded gate outcome
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 647, in validate_packet
+    required_gates = _modular_packet_gates(workflow, manifest) if manifest_version == 4 else set(ARTIFACTS)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 132, in _modular_packet_gates
+    raise BoundaryPacketError(f"Modular packet does not match the protocol-pinned attempt: {error}") from error
+boundary_packet.BoundaryPacketError: Modular packet does not match the protocol-pinned attempt: verification does not match the recorded gate outcome
+Traceback (most recent call last):
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 122, in _modular_packet_gates
+    raise ValueError(f"{key} does not match the recorded gate outcome")
+ValueError: verification does not match the recorded gate outcome
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 647, in validate_packet
+    required_gates = _modular_packet_gates(workflow, manifest) if manifest_version == 4 else set(ARTIFACTS)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 132, in _modular_packet_gates
+    raise BoundaryPacketError(f"Modular packet does not match the protocol-pinned attempt: {error}") from error
+boundary_packet.BoundaryPacketError: Modular packet does not match the protocol-pinned attempt: verification does not match the recorded gate outcome
+Traceback (most recent call last):
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 122, in _modular_packet_gates
+    raise ValueError(f"{key} does not match the recorded gate outcome")
+ValueError: verification does not match the recorded gate outcome
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 647, in validate_packet
+    required_gates = _modular_packet_gates(workflow, manifest) if manifest_version == 4 else set(ARTIFACTS)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 132, in _modular_packet_gates
+    raise BoundaryPacketError(f"Modular packet does not match the protocol-pinned attempt: {error}") from error
+boundary_packet.BoundaryPacketError: Modular packet does not match the protocol-pinned attempt: verification does not match the recorded gate outcome
+✔ disabled standard review checks omit packet artifacts and retain enabled requirements (4940.343917ms)
+✔ design changes block delivery and require human approval plus renewed authorization (511.301833ms)
+✔ in-scope plan changes remain agent-manageable and invalidate boundary dependents (707.758542ms)
+✔ CLI starts from a clean checkout without staged protocol resources (475.483625ms)
+✔ plugin build and clean commands work through the Commander entrypoint (563.926167ms)
+✔ uses the selected source root when resolving the default version (281.941125ms)
+✔ prepares a release through the grouped command path (7247.806916ms)
+✔ legacy local publication entrypoints are removed (263.834333ms)
+✔ hosted mutation commands require a dispatched Release Conductor context (160.891666ms)
+✔ renders hierarchical help through the local command-tree helper (80.529666ms)
+✔ history is absent from documents, patch chunks and repository view; allowed source remains (1428.279625ms)
+✔ compact snapshots preserve exact source despite archive export attributes (1123.8025ms)
+✔ declared criteria cannot omit whole-feature obligations or invent rubric IDs (1229.638542ms)
+✔ history aliases, symlinks and cross-boundary renames reject rather than hide production paths (2397.880875ms)
+✔ missing approval and unclassified production code in record locations fail closed (641.909417ms)
+✔ empty files shared with empty history do not contain leaked review information (911.006417ms)
+✔ historical capture scripts remain source while their old verification logs are removed (858.84925ms)
+✔ rename edits and binary old/new content retain exact identities and accessible bytes (844.6355ms)
+✔ 905-file, 24 MiB review uses bounded chunks without changing mixed-feature scope (6673.294208ms)
+✔ filtered input identity survives history-only changes but not source or requirement changes (692.192083ms)
+✔ changed spooled evidence rejects before the snapshot is exposed (396.780708ms)
+✔ adopted formal Judge receives filtered source and full Verification, then publishes a bound host audit (667.0865ms)
+✔ composes both packages with matching shared content and provenance (208.61825ms)
+✔ composes every registered marketplace plugin into independent platform packages (555.758334ms)
+✔ removes stale package output before rebuilding (306.199792ms)
+✔ produces identical content for identical inputs (424.433083ms)
+✔ rejects overlay paths that duplicate shared content (71.443458ms)
+✔ rejects symlinks so generated packages remain self-contained (71.770417ms)
+✔ rejects transient interpreter and operating-system files (58.634917ms)
+✔ rejects invalid versions and unsupported platforms (34.044916ms)
+✔ rejects platform manifests with different plugin identities (38.983166ms)
+✔ JavaScript and Python resolve the same configured multi-repository context (423.284791ms)
+✔ JavaScript and Python preserve the same legacy branch-derived context (450.013375ms)
+✔ JavaScript preserves Python workspace semantics for a symlinked config file (201.807291ms)
+✔ JavaScript rejects the same unsafe configured contexts as Python (3226.681917ms)
+✔ validates the repository contract fixtures (6.138ms)
+✔ rejects duplicate skills and cross-contract identity drift (1.337792ms)
+✔ refuses to force the marketplace over an equal or newer deployment (4.325875ms)
+✔ waits for the exact production manifest without query or credential leakage (45.817209ms)
+✔ bounds streamed website verification responses (0.249041ms)
+✔ prepares one immutable Plugin and Desktop release record without publication authority (9302.972167ms)
+✔ trusted preparation seals exact checksum and update-manifest outputs (3209.918291ms)
+✔ stable promotion is bound to the exact coordinated RC source (4119.463625ms)
+✔ rejects contradictory release state and unsafe artifact identity (1073.183875ms)
+✔ rejects a Desktop candidate whose release version diverges from the Plugin tag (518.797667ms)
+✔ publication resumes every partial boundary without duplicating a remote mutation (3832.170083ms)
+✔ release phases are reusable-only production units with no manual dispatch (8.133583ms)
+✔ protected preparation binds the conductor source and remains publication-free (2.076667ms)
+✔ bounded recovery reuses retained trust bytes without signing authority (1.340542ms)
+✔ finalization and rehearsals are read-only while publication retains its own gate (2.118125ms)
+✔ Cask finalization and smoke bind conductor runs and exact public artifacts (2.044792ms)
+✔ Release Conductor is the sole start/resume entry point and derives every phase identity (0.636167ms)
+✔ state checkpoint action always emits a dashboard and immutable retained artifact (0.466125ms)
+✔ full product CI ignores only the sealed Desktop metadata transport path (0.641375ms)
+✔ PR automation reduces only chained review-artifact updates and cancels only PR work (1.343375ms)
+✔ all GitHub workflows use Node-24-compatible official action majors and Node 24 jobs (2.71425ms)
+✔ renders one exact trusted RC manifest and checksum output (2.227375ms)
+✔ preserves the other channel and rejects incomplete trust (0.249291ms)
+✔ routes users, developers, and release maintainers from the root README (5.398333ms)
+✔ developer guide covers the complete canonical-to-PR lifecycle (1.490625ms)
+✔ release runbook documents only the conductor production interface (1.188292ms)
+✔ Apple release setup is actionable, protected, and team-key only (1.020542ms)
+✔ keeps developer and release bash examples syntactically valid (155.103458ms)
+✔ verified legacy PR contexts retain the exact ranges and closure policy for automatic review (41.988167ms)
+✔ feature initialization atomically creates a governed DESIGNING record (29.737542ms)
+✔ atomic directory creation removes prepared content when its writer fails (26.901042ms)
+✔ legacy and incomplete records are never silently treated as governed (68.237167ms)
+✔ journal append revalidates sequence and preserves the prior journal on rejection (67.2925ms)
+✔ an existing journal lock rejects mutation without changing the journal (29.8805ms)
+✔ journal parsing and core compatibility fail closed (44.831875ms)
+✔ model migration requires confirmation, reports impact, and preserves history (143.253417ms)
+✔ model migration validates replay before writing durable state (135.573458ms)
+✔ pending model migration fails closed and can deterministically roll forward (200.880125ms)
+✔ pending migration recovery validates replay before rolling forward (93.006041ms)
+✔ required finalization modules bind merge input, dependencies, waivers, and completion (1298.567375ms)
+✔ required finalization modules reject N/A and stale merge inputs cannot share attempts (1232.721708ms)
+✔ finalization replay rejects forged waivers and missing required evidence (2768.076333ms)
+✔ active finalization can be replaced after model migration and pause blocks mutation (1711.622666ms)
+✔ migration preserves a legacy feature-final merge and enables new finalization (772.817667ms)
+✔ conflicting feature-final merge identities are rejected without append (442.655333ms)
+✔ replay rejects a second current-model finalization attempt (513.489167ms)
+✔ zero-module models complete without creating a finalization attempt (551.55525ms)
+✔ zero-module completion remains replayable after finalization modules are added (654.619833ms)
+✔ finalization dependency evidence is canonical across manifest key order (693.953791ms)
+✔ optional CLI and plugin adapter produce the same governed projection (589.737417ms)
+✔ queries do not mutate and check alone uses binary failure exit semantics (735.649959ms)
+✔ rejected mutations return the stable envelope and append no event (139.722ms)
+✔ public command tree retains maintainer namespaces without force passage (924.937833ms)
+✔ executes and inspects the generated Whiteboard artifact in a DOM (7.403625ms)
+✔ rejects relative resources instead of treating them as self-contained (2.095958ms)
+✔ rejects inline runtime errors from the generated artifact (1.526792ms)
+✔ rejects missing reveal controls and inaccessible visual models (0.935875ms)
+✔ requires findings both inline and in a linked summary (2.050375ms)
+✔ permits inline styling but rejects weakened finding copies (2.6045ms)
+✔ rejects grading controls, media assessment, and Explain Diff dependencies (3.67625ms)
+✔ uses a deterministic branch and self-verifying pull request marker (2.028125ms)
+✔ preflight is read-only and exact publication is recoverably merge-committed (1.352292ms)
+✔ leaves a blocked exact pull request for safe retry (0.575417ms)
+✔ rejects a pre-existing publication branch with unapproved history (0.13025ms)
+✔ rejects an otherwise exact publication pull request with any extra path (0.687625ms)
+✔ test/helpers/historical-model.js (64.452959ms)
+✔ test/helpers/plugin-candidate.js (77.266459ms)
+✔ renders one checksum-pinned Cask for the exact approved universal DMG (1.783292ms)
+✔ binds tap creation, exact Cask bytes, and direct-install proof to one plan (0.897333ms)
+✔ verifies packet identity and performs an absent-tap dry run without mutation (25.776875ms)
+✔ accepts an exact canonical predecessor Cask during an upgrade dry run (24.994708ms)
+✔ orders large semantic-version base identifiers without precision loss (61.760833ms)
+✔ rejects noncanonical, equal-version, and newer public Cask bytes (32.837917ms)
+✔ rejects a canonical predecessor without an exact public release (32.753417ms)
+✔ models an upgrade from a predecessor while preserving exact download bytes (0.389334ms)
+✔ creates the dedicated public tap only after exact approval and persists a receipt (46.03475ms)
+✔ detects changed Cask bytes inside a prepared packet (22.309208ms)
+✔ finalizes trusted schema-v2 bytes into one sealed hosted publication packet (694.007041ms)
+✔ rejects finalization inputs that differ from the trusted lifecycle (329.65925ms)
+✔ dry run performs only preflights and real retry records each surface once (1166.288083ms)
+✔ keeps Cask pending until primary publication and then links one idempotent receipt (1507.61ms)
+✔ documents the verified native plugin lifecycle for both managers (5.628708ms)
+✔ keeps every documented bash block syntactically valid (151.783042ms)
+✔ connects installation, operational guidance, and visual orientation (1.442ms)
+✔ validates the bounded schema vocabulary used by agent workflows (1.682667ms)
+✔ enforces maxProperties on stage dependency packets (0.082875ms)
+✔ Judge bundle binds an isolated receipt and preserves blocking FAIL semantics (1.685334ms)
+✔ Judge bundle rejects same-thread fallback and contradictory verdicts (0.444792ms)
+✔ Judge fails when an independent scope, gap, or contradiction check fails (0.178209ms)
+✔ Judge bundle creation preserves the model verdict without remediation behavior (0.234833ms)
+✔ compact Judge audit is bound outside the reviewer input and rejects changed provenance (0.305875ms)
+✔ feature lifecycle rejects out-of-order passage without appending an event (245.740875ms)
+✔ many slices may be planned but only one may be active (460.474334ms)
+✔ semantic event rejection leaves the journal unchanged (360.227208ms)
+✔ pause preserves lifecycle position and blocks ordinary passage until resume (524.169041ms)
+✔ sequential slices reach a feature-final closeout through human review (2350.97675ms)
+✔ Codex adapter launches a fresh ephemeral read-only structured run (48.636667ms)
+✔ Claude Code adapter launches a non-persistent restricted custom agent (0.806958ms)
+✔ adapter parsers require structured output and opaque context IDs (3.646541ms)
+✔ provider adapters reject oversized prompts before launching a process (26.303833ms)
+✔ failed provider processes retain stdout errors alongside stderr warnings (200.228917ms)
+✔ bundled provider output schemas type every constant (3.024708ms)
+✔ bundled policy resolves the declarative boundary with exact legacy behavior keys (128.3875ms)
+✔ module resolution is deterministic and rejects invalid definitions and graphs (27.079167ms)
+✔ locked modules remain enabled while conditional predecessors can be disabled (14.657125ms)
+✔ project discovery pins selected manifests and reports readiness separately (172.079458ms)
+✔ project discovery rejects symlinked manifests (38.436708ms)
+✔ module enablement and definition changes are explicit migration impact (10.275291ms)
+✔ boundary attempts retain their pinned module graph after a model migration (737.860417ms)
+✔ legacy boundary attempts retain their pinned boundary after migration to modules (819.4205ms)
+✔ provider request and response bind exact provider, module, request, and input identities (1.356791ms)
+✔ command completion is fail-closed and provider observation cannot override process failure (0.704792ms)
+✔ command structured output is optional enrichment without an outcome field (0.140875ms)
+✔ GateReeve native evidence reproduces the shared exact-byte and request anchors (2.926708ms)
+✔ the repository-local conformance fixture preserves shared semantics and GateReeve topology (2.659959ms)
+✔ aggregation rejects missing, duplicate, stale, altered, synthetic, and Rosetta evidence (0.688042ms)
+✔ validates matching native manifests, catalogs, and hooks (60.041167ms)
+✔ rejects native identity and hook drift (31.727084ms)
+✔ enforces contract-declared manifest and catalog fields (3.978125ms)
+✔ read-only observers share one projection and never append events (154.563916ms)
+✔ blocked and stale-capable status remains successful while check is binary (172.716958ms)
+✔ legacy and missing feature modes are observable without adoption (69.133083ms)
+✔ model graph and current graph expose matching machine identity (100.860291ms)
+✔ schema-2 ordering preserves exact definitions and schema-1 hashes and round-trips independently (22.355916ms)
+✔ invalid shapes, endpoints, protected duplicates, cross-slot and cyclic owner links reject (8.848541ms)
+✔ owner links become dormant at either disabled endpoint and return on re-enablement (5.447167ms)
+✔ completion ordering blocks only its dependent and binds predecessor events for freshness; migration retains history (1363.373875ms)
+✔ materializes the exact committed tree as disposable read-only snapshot data (1081.008042ms)
+✔ builds slice and feature-final packets from explicit base and head objects (831.140666ms)
+✔ plugin adapter initializes and governs a feature without a PATH CLI (730.166417ms)
+✔ plugin adapter process emits the same stable JSON envelope (661.602459ms)
+✔ model graph remains available when no repository context exists (4.116667ms)
+✔ producer integrity manifest verifies the complete Plugin candidate tree (256.282709ms)
+✔ verification rejects a missing hidden file (199.705709ms)
+✔ verification rejects a missing visible file (291.4515ms)
+✔ verification rejects an unexpected extra file (179.487ms)
+✔ verification rejects a changed file byte (179.597875ms)
+✔ verification rejects a malformed integrity manifest (160.964541ms)
+✔ verification rejects an exact but semantically incomplete Plugin tree (177.444958ms)
+✔ verification rejects symbolic links in the Plugin candidate tree (130.192ms)
+✔ lints the canonical repository plugin sources (60.185667ms)
+✔ rejects personal paths before inventory validation (42.904334ms)
+✔ rejects root escapes and native platform markers in shared source (44.019125ms)
+✔ rejects symlinks in canonical package sources (33.919958ms)
+✔ default workflow model validates and hashes deterministically (22.735167ms)
+✔ historical PR_BOUNDARY model locks remain valid (5.35325ms)
+✔ model validation rejects unknown guards, cycles, and provider injection fields (7.435375ms)
+✔ event contract accepts complete events and rejects malformed identity (3.1785ms)
+✔ result envelope has one stable success and failure shape (0.215958ms)
+✔ native packages retain one identical canonical protocol manifest (2574.472833ms)
+To /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/workflow publication z1QNmE/remote.git
+ * [new branch]      marketplace -> marketplace
+Cloning into '/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/workflow publication z1QNmE/after-failure'...
+done.
+To /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/workflow publication z1QNmE/remote.git
+ + 131a792...2268ece HEAD -> marketplace (forced update)
+Cloning into '/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/workflow publication z1QNmE/after-success'...
+done.
+✔ publication failure preserves the previous marketplace ref (1904.462167ms)
+✔ trusted spec guard uses the existing Python validator as a leaf provider (331.294958ms)
+✔ model data cannot select an arbitrary Python executable (0.365292ms)
+✔ source-bound recovery appends one dedicated event, preserves merges and requires configured finalization (4864.381833ms)
+▶ recovery preflight rejects invalid authority, scope, evidence and delivery without writing
+  ✔ general proceed is not a waiver (1615.032709ms)
+  ✔ ambiguous historical waiver (1360.387875ms)
+  ✔ ambiguous observed Judge waiver (1320.791083ms)
+  ✔ wrong observed feature applicability (1226.853458ms)
+  ✔ feature name prefix is not applicability (1177.736333ms)
+  ✔ observed source without whole-feature scope (1049.863792ms)
+  ✔ historical scope without source applicability (976.352833ms)
+  ✔ wrong observed requirements applicability (936.518958ms)
+  ✔ unobserved approval context (980.75025ms)
+  ✔ nonhuman waiver (974.119458ms)
+  ✔ wrong feature (883.103459ms)
+  ✔ changed requirement identity (919.147042ms)
+  ✔ waiver quote for another source (876.710541ms)
+  ✔ slice report cannot be relabeled (883.402083ms)
+  ✔ slice verification scope (941.455ms)
+  ✔ missing verification category (884.028916ms)
+  ✔ unresolved spec criterion (934.860208ms)
+  ✔ changed bound evidence (890.298791ms)
+  ✔ empty matching evidence (962.51775ms)
+  ✔ unsafe evidence alias (905.894875ms)
+  ✔ untracked retained file (893.797209ms)
+  ✔ ignored untracked retained file (871.611292ms)
+  ✔ paused feature (681.058833ms)
+  ✔ unresolved delivery (694.622792ms)
+  ✔ blocking change (676.975042ms)
+  ✔ missing stable identity (683.065625ms)
+  ✔ verification waiver without its own confirmation (931.80775ms)
+  ✔ verification waiver with ambiguous applicability (929.927792ms)
+  ✔ workspace retention with ambiguous applicability (918.312958ms)
+  ✔ unintegrated source (803.840833ms)
+  ✔ missing accepted review (744.515708ms)
+  ✔ forged integration claim (1471.984833ms)
+✔ recovery preflight rejects invalid authority, scope, evidence and delivery without writing (31004.736708ms)
+▶ TRACKED recovery rejects ignored untracked reports, supporting evidence and confirmations
+  ✔ verification.json (1049.010458ms)
+  ✔ checks.log (998.9645ms)
+  ✔ confirmation.md (987.6245ms)
+✔ TRACKED recovery rejects ignored untracked reports, supporting evidence and confirmations (3035.993958ms)
+✔ replay rejects altered receipts, merge provenance and human authority (1254.387709ms)
+✔ explicit retention decision can preserve untracked records without claiming archival (1252.620917ms)
+✔ remaining verification waiver follows its own pinned policy and explicit confirmation (1262.276166ms)
+✔ plugin-local preflight and optional CLI share source identity, blockers and repeat-safe passage (3227.599958ms)
+✔ completion accounts for every accepted slice in the selected assembled source (2349.041292ms)
+✔ historical whole-feature waiver can be explicitly bound without rewriting its source (1327.985792ms)
+✔ an observed short waiver can use the exact bound approval context (1270.101792ms)
+✔ older locks need explicit adoption and retain their historical attempts (1287.717667ms)
+✔ ordinary feature-final merge stays on its original finalization path (662.349541ms)
+✔ generic transitions cannot manufacture recovery and conflicting repeat identities reject (1227.877333ms)
+✔ an unsupported recovery target cannot bypass finalization modules (635.9705ms)
+✔ writes and verifies a self-consistent state, status, checksum, and summary bundle (41.195708ms)
+✔ refuses nonempty output and detects changed state projections (43.863959ms)
+✔ detects changed chain bytes even when the latest state file is untouched (44.132042ms)
+✔ CLI appends and inspects immutable conductor bundles (353.507916ms)
+✔ CLI rejects identity arguments after initialization (203.568542ms)
+✔ CLI discovers a downloaded conductor bundle without operator-supplied run identity (547.541167ms)
+✔ discovers an unordered unique chain by tag and projects retry state (3.046375ms)
+✔ rejects absent, expired, renamed, wrong-run, non-main, and nonconductor artifacts (1.595166ms)
+✔ rejects divergent sequences and source commits outside the workflow history (0.40075ms)
+✔ accepts completed checkpoints from a conductor run that later failed (0.235292ms)
+✔ reads the exact public DMG identity from a published schema-v2 lifecycle (2.00475ms)
+✔ rejects the schema-v1 projection shape that caused the RC.11 state failure (0.219875ms)
+✔ rejects an unpublished or ambiguous lifecycle receipt (0.177125ms)
+✔ rejects a published lifecycle without an exact DMG digest (0.1035ms)
+✔ creates a canonical initialized record and deterministic artifact identity (2.691416ms)
+✔ validates the complete lifecycle and renders matching JSON and summary status (2.665833ms)
+✔ records retryable failure without advancing and then resumes forward (0.730958ms)
+✔ marks nonretryable conflicts as requiring a burned RC (0.4365ms)
+✔ rejects skipped, reversed, repeated-success, and terminal passages (2.075791ms)
+✔ rejects tampered predecessors, identity changes, duplicate sequences, and time reversal (0.802458ms)
+✔ rejects malformed evidence, wrong version, and misbound attestation (0.567292ms)
+✔ rejects unknown keys so state cannot carry unreviewed authority (1.802666ms)
+✔ schema v2 advances through the exact GateReeve lifecycle prefix (6.073042ms)
+✔ schema v2 rejects skipped, duplicate, unknown, and tampered stages (0.611459ms)
+✔ Apple-bound bytes are immutable and idempotent for the same identity (0.770292ms)
+✔ schema dispatch reads legacy v1 through an explicit validator but forbids mutation (0.145875ms)
+✔ the published RC.2 schema-v1 fixture dispatches read-only without changing bytes (4.043541ms)
+✔ publish dry-run is nonmutating and confirmed publish pushes only the tag (1146.621125ms)
+✔ publish cancellation leaves the release tag absent (821.069375ms)
+✔ publish composes tag, watch, and verification by default (624.177416ms)
+✔ publish refuses a dirty or different release checkout (898.418375ms)
+✔ promotion validates and tags the deployed historical commit in an isolated worktree (1009.154708ms)
+✔ release list joins tags, workflow runs, and deployed provenance (0.592209ms)
+✔ watch selects a tagged run and preserves a failed watch status (0.212959ms)
+✔ marketplace verification accepts a complete tree and rejects version drift (4133.261375ms)
+✔ bundle creates a complete offline marketplace ZIP and checksum (3342.354ms)
+✔ bundle preserves output when marketplace verification fails (194.676375ms)
+✔ release workflow exposes only conductor start and resume (0.624833ms)
+✔ orders candidate tags without numeric precision loss (0.939166ms)
+✔ plans next RC, promotion, and release-line bumps from an RC (0.303708ms)
+✔ starts the next patch RC from stable and rejects invalid promotion baselines (1.083416ms)
+✔ supports large semantic-version identifiers without number precision loss (0.092417ms)
+✔ validates deployed release identity and exposes proposed interactive choices (0.148292ms)
+✔ requires one explicit selector for noninteractive publication (0.239291ms)
+✔ resolves explicit, computed, and injected interactive plans (0.250041ms)
+✔ verification defaults to validated deployed metadata while retaining an exact override (0.116667ms)
+✔ prepares a traceable release-candidate marketplace (3786.10025ms)
+✔ preparation emits and verifies a companion full-tree integrity manifest (2446.720292ms)
+✔ preparation rejects an integrity manifest inside the publishable tree (1059.115959ms)
+✔ requires complete Ubuntu evidence for stable publication (1129.867542ms)
+✔ rejects stable evidence for a different candidate commit (0.932416ms)
+✔ rejects malformed release-candidate evidence (0.625125ms)
+✔ matches RC lineage for stable tags with build metadata (994.30725ms)
+✔ creates missing release output parents (905.1455ms)
+✔ rejects invalid tags and preserves existing output (0.770625ms)
+✔ refuses to merge a new release into previous output (0.844875ms)
+✔ review artifact classifier admits only lifecycle evidence surfaces (1.425166ms)
+✔ review artifact classifier fails closed for empty, source, and requirement changes (0.063583ms)
+✔ changed path parser supports NUL-delimited Git output (0.158375ms)
+✔ assembles native marketplace layout from generated packages (96.571875ms)
+✔ verifies native manager installation, discovery, setup, and doctor (123.631375ms)
+✔ selects a compatible python later on PATH (15.317792ms)
+✔ refuses to reuse a nonempty smoke workspace (54.534416ms)
+✔ snapshot distinguishes blocked, available, and ready actions from current evidence (156.888083ms)
+✔ snapshot presents normalized provider progress separately from module outcomes (59.933375ms)
+✔ snapshot reports source and governance facts without collapsing ordinary activity (50.411459ms)
+✔ named reads are schema-valid, allow-listed, and preserve full event and model detail (137.753375ms)
+✔ boundary snapshots inventory pinned gates and expose attempt detail by ID (448.860875ms)
+✔ boundary snapshots expose manifest-bound Whiteboard companion artifacts (294.153334ms)
+✔ snapshot exposes missing, legacy, inconsistent, and incompatible modes read-only (18.005375ms)
+✔ Commander and plugin adapter return the same canonical snapshot and named read (366.466583ms)
+✔ snapshot validators reject malformed readiness and detail contracts (0.276708ms)
+✔ snapshot validators reject malformed nested contracts (42.513375ms)
+✔ CLI staging records an exact canonical protocol inventory and hash (622.596792ms)
+✔ consumer staging copies only validated support paths and names its manifest (301.478417ms)
+✔ trusted production creates a schema-v2 lifecycle through Desktop trust (65.927334ms)
+✔ trusted production rejects cross-request or changed-byte aggregation (43.811291ms)
+✔ trusted production rejects a same-source Plugin candidate from another RC (132.610417ms)
+✔ work deficiencies remain visible without failing a substantive Whiteboard Defense (4.204166ms)
+✔ Defender and Publisher instructions require a final exact evidence-span audit (2.46ms)
+✔ Whiteboard PASS requires the Defender and Publisher substantive attestation (0.629458ms)
+✔ manifest substantive status must match the Defender and Publisher attestation (0.149666ms)
+✔ artifact deficiencies fail validation when questions are softened or evidence is omitted (0.265667ms)
+✔ missing native reveal controls and stale validation receipts prevent passage (0.26325ms)
+✔ nontrivial defenses require a bound visual and self-contained sandbox-safe HTML (0.4315ms)
+✔ findings require inline placement and a linked summary (0.36375ms)
+✔ grading, audio assessment, and Explain Diff dependencies are artifact deficiencies (1.026292ms)
+✔ bundle creation turns artifact defects into an auditable gate FAIL without grading work findings (0.918959ms)
+✔ governed validation resolves every evidence line against the pinned repository (13.955125ms)
+ℹ tests 413
+ℹ suites 0
+ℹ pass 413
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 61944.348958
+found 0 vulnerabilities
+............................
+----------------------------------------------------------------------
+Ran 28 tests in 1.851s
+
+OK
+........................................................................................................
+----------------------------------------------------------------------
+Ran 104 tests in 25.524s
+
+OK
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.043s
+
+OK
+{
+  "schemaVersion": 1,
+  "skillCount": 28,
+  "plannedSkillCount": 0,
+  "marketplace": "quality-code",
+  "platforms": [
+    "codex",
+    "claude"
+  ],
+  "pluginCount": 2,
+  "plugins": [
+    "agentic-development-workflow",
+    "whiteboard-test"
+  ]
+}
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "plugins": [
+    "agentic-development-workflow",
+    "whiteboard-test"
+  ],
+  "version": "0.1.0",
+  "marketplace": "quality-code",
+  "platforms": [
+    "codex",
+    "claude"
+  ]
+}
+{
+  "schemaVersion": 1,
+  "fileCount": 201,
+  "existingSkillCount": 28
+}
+{
+  "schemaVersion": 1,
+  "marketplace": "quality-code",
+  "sourceRoot": "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src",
+  "distRoot": "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/dist",
+  "version": "0.1.0",
+  "sourceCommit": "portable-acceptance",
+  "sourceTag": null,
+  "plugins": [
+    {
+      "id": "agentic-development-workflow",
+      "displayName": "Agentic Software Development Workflow",
+      "sourceRoot": "."
+    },
+    {
+      "id": "whiteboard-test",
+      "displayName": "Whiteboard Test",
+      "sourceRoot": "plugins/whiteboard-test"
+    }
+  ],
+  "packages": [
+    {
+      "platform": "codex",
+      "pluginName": "agentic-development-workflow",
+      "outputPath": "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/dist/codex/agentic-development-workflow",
+      "fileCount": 206,
+      "sharedFileCount": 201,
+      "pluginId": "agentic-development-workflow"
+    },
+    {
+      "platform": "claude",
+      "pluginName": "agentic-development-workflow",
+      "outputPath": "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/dist/claude/agentic-development-workflow",
+      "fileCount": 206,
+      "sharedFileCount": 201,
+      "pluginId": "agentic-development-workflow"
+    },
+    {
+      "platform": "codex",
+      "pluginName": "whiteboard-test",
+      "outputPath": "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/dist/codex/whiteboard-test",
+      "fileCount": 12,
+      "sharedFileCount": 9,
+      "pluginId": "whiteboard-test"
+    },
+    {
+      "platform": "claude",
+      "pluginName": "whiteboard-test",
+      "outputPath": "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/dist/claude/whiteboard-test",
+      "fileCount": 12,
+      "sharedFileCount": 9,
+      "pluginId": "whiteboard-test"
+    }
+  ]
+}
+{
+  "schemaVersion": 1,
+  "scope": "global",
+  "repository": null,
+  "profile": "quality-code",
+  "branchPrefix": "smoke-",
+  "profilePath": "/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.vprWwi080T/workflow package codex/resources/policy/profiles/quality-code.md"
+}
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "platform": "codex",
+  "ready": true,
+  "checks": [
+    {
+      "id": "platform",
+      "status": "pass",
+      "message": "Detected codex package"
+    },
+    {
+      "id": "python",
+      "status": "pass",
+      "message": "Python 3.11 is supported"
+    },
+    {
+      "id": "executable-git",
+      "status": "pass",
+      "message": "Found git: /usr/bin/git"
+    },
+    {
+      "id": "executable-python3",
+      "status": "pass",
+      "message": "Found python3: /Users/trent.brown/.pyenv/versions/3.11.11/bin/python3"
+    },
+    {
+      "id": "executable-node",
+      "status": "pass",
+      "message": "Found node: /opt/homebrew/bin/node"
+    },
+    {
+      "id": "executable-gh",
+      "status": "pass",
+      "message": "Found gh: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.QNt4EDZokl/gh"
+    },
+    {
+      "id": "executable-codex",
+      "status": "pass",
+      "message": "Found codex: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.QNt4EDZokl/codex"
+    },
+    {
+      "id": "node-version",
+      "status": "pass",
+      "message": "Node 26.0.0 is supported"
+    },
+    {
+      "id": "github-auth",
+      "status": "pass",
+      "message": "GitHub CLI authentication is ready"
+    },
+    {
+      "id": "package-integrity",
+      "status": "pass",
+      "message": "Verified all shared package files and 28 skills"
+    },
+    {
+      "id": "required-skills",
+      "status": "pass",
+      "message": "All 28 workflow skills are present"
+    },
+    {
+      "id": "activation-hook",
+      "status": "pass",
+      "message": "SessionStart hook is present"
+    },
+    {
+      "id": "codex-hook-feature",
+      "status": "pass",
+      "message": "Codex hooks use the enabled-by-default setting"
+    },
+    {
+      "id": "activation-observed",
+      "status": "pass",
+      "message": "The current session contains the workflow activation policy"
+    },
+    {
+      "id": "profile",
+      "status": "pass",
+      "message": "Effective profile: quality-code"
+    },
+    {
+      "id": "branch-prefix",
+      "status": "pass",
+      "message": "Effective branch prefix: smoke-"
+    },
+    {
+      "id": "duplicate-legacy-skills",
+      "status": "pass",
+      "message": "No duplicate legacy workflow skills found"
+    },
+    {
+      "id": "optional-integrations",
+      "status": "info",
+      "message": "No optional specialist integrations detected"
+    }
+  ]
+}
+{
+  "schemaVersion": 1,
+  "scope": "global",
+  "repository": null,
+  "profile": "quality-code",
+  "branchPrefix": "smoke-",
+  "profilePath": "/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.imJ2iU113M/workflow package claude/resources/policy/profiles/quality-code.md"
+}
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "platform": "claude",
+  "ready": true,
+  "checks": [
+    {
+      "id": "platform",
+      "status": "pass",
+      "message": "Detected claude package"
+    },
+    {
+      "id": "python",
+      "status": "pass",
+      "message": "Python 3.11 is supported"
+    },
+    {
+      "id": "executable-git",
+      "status": "pass",
+      "message": "Found git: /usr/bin/git"
+    },
+    {
+      "id": "executable-python3",
+      "status": "pass",
+      "message": "Found python3: /Users/trent.brown/.pyenv/versions/3.11.11/bin/python3"
+    },
+    {
+      "id": "executable-node",
+      "status": "pass",
+      "message": "Found node: /opt/homebrew/bin/node"
+    },
+    {
+      "id": "executable-gh",
+      "status": "pass",
+      "message": "Found gh: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.QNt4EDZokl/gh"
+    },
+    {
+      "id": "executable-claude",
+      "status": "pass",
+      "message": "Found claude: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.QNt4EDZokl/claude"
+    },
+    {
+      "id": "node-version",
+      "status": "pass",
+      "message": "Node 26.0.0 is supported"
+    },
+    {
+      "id": "github-auth",
+      "status": "pass",
+      "message": "GitHub CLI authentication is ready"
+    },
+    {
+      "id": "package-integrity",
+      "status": "pass",
+      "message": "Verified all shared package files and 28 skills"
+    },
+    {
+      "id": "required-skills",
+      "status": "pass",
+      "message": "All 28 workflow skills are present"
+    },
+    {
+      "id": "activation-hook",
+      "status": "pass",
+      "message": "SessionStart hook is present"
+    },
+    {
+      "id": "activation-observed",
+      "status": "pass",
+      "message": "The current session contains the workflow activation policy"
+    },
+    {
+      "id": "profile",
+      "status": "pass",
+      "message": "Effective profile: quality-code"
+    },
+    {
+      "id": "branch-prefix",
+      "status": "pass",
+      "message": "Effective branch prefix: smoke-"
+    },
+    {
+      "id": "duplicate-legacy-skills",
+      "status": "pass",
+      "message": "No duplicate legacy workflow skills found"
+    },
+    {
+      "id": "optional-integrations",
+      "status": "info",
+      "message": "No optional specialist integrations detected"
+    }
+  ]
+}
+PASS
+PASS
+PASS
+PASS
+PASS
+Portable acceptance passed on Darwin arm64 with Python 3.11.11 and Node v26.0.0

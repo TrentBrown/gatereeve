@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, symlink, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -275,4 +275,27 @@ test('failed atomic creation neither writes policy nor deletes a colliding file'
     /ENOENT/,
   );
   assert.equal((await readFeatureRecord(context.featureHome)).events.length, before.events.length);
+});
+
+
+test('journal lock refusal restores the previous policy and leaves the confirmed change retryable',async()=>{
+ for(const saved of [false,true]) {
+  const context=await fixture('journal-lock');const manager=createModulePolicyManager();
+  const path=join(context.repositoryRoot,'.gatereeve/workflow.json');
+  if(saved){await mkdir(join(context.repositoryRoot,'.gatereeve'),{recursive:true});const {loadDefaultWorkflowPolicy}=await import('../../../plugin-src/shared/resources/protocol/model.js');await writeFile(path,JSON.stringify(await loadDefaultWorkflowPolicy())+'\n');}
+  const before=saved?await readFile(path,'utf8'):null;
+  const settings=await manager.inspect(context.repositoryRoot,context.featureHome);const enabled=settings.modules.filter(m=>m.enabled).map(m=>m.id);
+  const ordering={'gatereeve/judge':{after:['gatereeve/code-review']}};
+  const preview=await manager.preview(context.repositoryRoot,context.featureHome,enabled,ordering);
+  const options={ordering,confirmedMigration:true,confirmationLabel:'Exact preview',expectedPreviewFingerprint:preview.previewFingerprint};
+  const lock=join(context.featureHome,'events.jsonl.lock');await writeFile(lock,'busy');
+  await assert.rejects(manager.apply(context.repositoryRoot,context.featureHome,enabled,options),error=>error.code==='JOURNAL_LOCKED');
+  if(saved)assert.equal(await readFile(path,'utf8'),before);else await assert.rejects(readFile(path),{code:'ENOENT'});
+  assert.equal((await readFeatureRecord(context.featureHome)).events.length,1);
+  await assert.rejects(readFile(path+'.lock'),{code:'ENOENT'});
+  await unlink(lock);const reloaded=await manager.preview(context.repositoryRoot,context.featureHome,enabled,ordering);
+  assert.equal(reloaded.previewFingerprint,preview.previewFingerprint);
+  await manager.apply(context.repositoryRoot,context.featureHome,enabled,options);
+  assert.equal((await manager.inspect(context.repositoryRoot,context.featureHome)).migrationRequired,false);
+ }
 });

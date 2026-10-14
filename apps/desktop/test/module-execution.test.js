@@ -120,7 +120,7 @@ async function harness(module, {
     async onChanged(value) { changes.push(value); },
   });
   return {
-    featureHome, manager, taskManager, starts, records, changes,
+    featureHome, manager, taskManager, starts, records, changes, protocol,
     get grants() { return grants; },
   };
 }
@@ -250,4 +250,13 @@ test('a stale provider result replaces running status with an explicit blocked f
   }), /became stale/);
   assert.equal(rejecting.changes.at(-1).live.status, 'blocked');
   assert.match(rejecting.changes.at(-1).live.detail, /not recorded/);
+});
+
+
+test('command and provider completion retain their original execution preparation',async()=>{
+ const module=moduleDefinition();const fixture=await harness(module);let predecessor='evt-first';
+ fixture.protocol.prepareBoundaryModule=async()=>({modelHash:'model',inputs:{same:true},attempt:{gates:[{id:'prior',recordedEventId:predecessor}]},target:{dependsOn:['prior']}});
+ fixture.protocol.recordBoundaryModuleOutcome=async request=>{assert.equal(request.preparation.attempt.gates[0].recordedEventId,'evt-first');fixture.records.push(request);};
+ await fixture.manager.startCommand({repositoryRoot:'/repo',featureHome:fixture.featureHome,project:{path:'/repo',name:'repo'},moduleId:module.id,attemptId:'attempt-1',gateId:'command',consent:'once',dimensions:{cols:80,rows:24}});
+ predecessor='evt-second';fixture.taskManager.finish(taskSession(module));await fixture.manager.waitForCompletions();assert.equal(fixture.records.length,1);
 });

@@ -1268,7 +1268,7 @@ function impactList(impact) {
 function renderModulePreview() {
   const surface = elements['module-preview-surface'];
   const content = clear(elements['module-preview']);
-  const changed = moduleDraftChanged();
+  const changed = moduleDraftChanged() || moduleSettings?.migrationRequired === true;
   elements['module-apply'].disabled = modulePolicyApplying || modulePreviewPending || !modulePreview?.valid || !changed || !moduleValidatedDraft;
   elements['module-discard'].disabled = modulePolicyApplying || !changed;
   surface.hidden = !changed && !modulePreview?.error && moduleDependencyNotice === null;

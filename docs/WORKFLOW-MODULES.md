@@ -445,3 +445,25 @@ module selectors, guards, dependency currentness, compatible model adoption and
 human authority remain intact. See
 `plugin-src/shared/resources/commands/boundary-retry.md` for the shared contract.
 Configurable addition/removal/reordering UI remains outside this feature.
+
+
+Execution binds the exact predecessor event IDs captured when work starts.
+Native review, Desktop command/provider work and finalization outcomes reject
+replacement predecessors even when their content is identical. Recording checks
+that binding again through the core; it never reattaches an in-flight result to
+a newer review event.
+
+The retry coordinator normally defers presentation until substantive work is
+clean. Explicit owner dependencies remain authoritative: a check after Explain
+Diff or Packet Validation runs after that prerequisite, without a hidden global
+barrier. Human review still requires every enabled gate to be current and
+nonblocking. A modular schema-4 packet names its attempt and includes only enabled
+standard artifact gates; validation obtains a trusted protocol snapshot and
+rejects omissions of enabled checks or mismatched dispositions and evidence.
+Historical packet schemas remain supported.
+
+Apply restores the previous policy after any confirmed pre-mutation migration
+refusal, including a busy feature journal lock. A pending migration marker or
+changed model/journal requires core reconciliation; the manager retains the
+published policy and reports that recovery requirement instead of hiding a
+partially completed core operation.

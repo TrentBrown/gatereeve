@@ -57,3 +57,17 @@ Formal spec assessment identified that fingerprint checks and own-byte rollback 
 **Alternatives considered:** comparing bytes alone is not ownership; retrying the competing writer under its earlier fingerprint could apply a stale confirmation.
 
 **Promoted:** 2026-10-14. PR: #81.
+
+---
+
+## Make execution and packets obey the pinned configurable DAG
+
+**Confidence:** HIGH
+**Blast Radius:** shared boundary retry, native and Desktop execution, finalization recording, packet validation and policy recovery.
+
+Independent Judge findings expose four reachable gaps beyond graph resolution. Capture the execution preparation at launch and enforce its model/input/predecessor identity at completion and again during core recording. Remove retry-wide barriers that contradict explicit owner dependencies through Explain Diff or Packet Validation; all enabled checks remain required before human review. For disabled standard artifact checks, use modular packet schema 4 naming the attempt, and derive its exact inventory/dispositions/evidence from a trusted protocol snapshot rather than permitting manifest authors to disable gates. Preserve historical packet schemas. Restore previous policy only after core state confirms that a failed migration did not publish; pending markers/changed state require recovery, and unchanged saved-policy adoption remains previewable after reload.
+
+**Triggered by:** independent Judge a4 F1-F4, R4/R7/R10.
+**Alternatives considered:** adding more owner ordering restrictions would create an unapproved stage barrier; allowing arbitrary missing packet artifacts would weaken enabled modules; copying current predecessor IDs would launder stale in-flight results; rolling back policy after unknown core mutation would hide recovery state.
+
+**Promoted:** 2026-10-14. PR: 81.

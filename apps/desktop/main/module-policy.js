@@ -369,12 +369,19 @@ export function createModulePolicyManager({
             expectedModelHash: preview.baseline.modelHash,
             expectedJournalSequence: preview.baseline.sequence,
           }); } catch (error) {
-            // A guarded baseline conflict occurs before core mutation. Restore
-            // only our own just-published bytes; never overwrite another writer.
-            if (error.code === 'MODEL_MIGRATION_CONFLICT') {
+            // Restore only when the core confirms no migration was published.
+            // Pending markers or changed state require core recovery first.
+            let unchanged = error.code === 'MODEL_MIGRATION_CONFLICT';
+            if (!unchanged) {
+              try { const current = await readFeatureRecord(featureHome);
+                unchanged = current.modelLock.modelHash === preview.baseline.modelHash
+                  && current.events.length === preview.baseline.sequence;
+              } catch { /* Pending migration is intentionally not rolled back. */ }
+            }
+            if (unchanged) {
               const published = await readFile(policyPath, 'utf8');
               if (published !== stableJson(preview.policy)) {
-                throw new Error('Migration conflicted and another policy writer changed the file; reload and reconcile before applying.', { cause: error });
+                throw new Error('Migration was refused and another policy writer changed the file; reload and reconcile before applying.', { cause: error });
               }
               if (previousPolicy === null) await unlink(policyPath);
               else {
@@ -383,6 +390,7 @@ export function createModulePolicyManager({
                 finally { await unlink(rollback).catch(() => {}); }
               }
             }
+            if (!unchanged) throw new Error('Policy saved but migration state requires reconciliation. Recover any pending core migration and reload module settings before retrying.', { cause: error });
             throw error;
           }
         }

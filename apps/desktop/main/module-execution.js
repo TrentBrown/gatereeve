@@ -5,6 +5,7 @@ import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 
 import { gateInputFingerprint } from '../resources/protocol/fingerprint.js';
+import { assertExecutionPreparationCurrent } from '../resources/protocol/execution-preparation.js';
 import { readFeatureRecord } from '../resources/protocol/feature.js';
 
 function sha256(value) {
@@ -83,10 +84,13 @@ export function createModuleExecutionManager({
     return { repositoryRoot, featureHome, record, module, attemptId, gateId };
   }
 
-  function prepare(active) {
-    return active.module.slot === 'feature.finalization'
-      ? protocol.prepareFinalizationModule(active)
-      : protocol.prepareBoundaryModule(active);
+  async function prepare(active) {
+    const current = active.module.slot === 'feature.finalization'
+      ? await protocol.prepareFinalizationModule(active)
+      : await protocol.prepareBoundaryModule(active);
+    if (active.preparation) assertExecutionPreparationCurrent(active.preparation, current);
+    else active.preparation = structuredClone(current);
+    return active.preparation;
   }
 
   function recordOutcome(active, options) {
@@ -114,10 +118,9 @@ export function createModuleExecutionManager({
           stages: [], actions: [], attempts: [], evidence: [], links: [], failure: null,
         },
       });
-      const record = await readRecord(active.featureHome);
       const prepared = await prepare(active);
       const inputFingerprint = gateInputFingerprint({
-        modelHash: record.modelLock.modelHash,
+        modelHash: prepared.modelHash ?? active.record.modelLock.modelHash,
         attemptId: active.attemptId,
         gateId: active.gateId,
         inputs: prepared.inputs,
@@ -133,7 +136,7 @@ export function createModuleExecutionManager({
           digest: active.module.digest,
         },
         input: {
-          featureId: record.events[0].featureId,
+          featureId: active.record.events[0].featureId,
           attemptId: active.attemptId,
           scope: prepared.attempt.scope ?? 'FEATURE',
           inputFingerprint,
@@ -253,6 +256,7 @@ export function createModuleExecutionManager({
       if (active.module.run?.kind !== 'manual') throw new Error('The selected module is not manual.');
       if (!['PASS', 'FAIL', 'NOT_APPLICABLE'].includes(outcome)) throw new Error('Manual outcome is invalid.');
       if (!summary?.trim() || !confirmationLabel?.trim()) throw new Error('Manual attestation requires a summary and confirmation.');
+      await prepare(active);
       const task = {
         schemaVersion: 1,
         id: `manual_${randomId()}`,

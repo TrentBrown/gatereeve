@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { GATE_OUTCOMES } from './constants.js';
 import { ContractError, TransitionRejectedError } from './errors.js';
-import { gateInputFingerprint, validateEvidenceReference } from './fingerprint.js';
+import { fingerprint, gateInputFingerprint, validateEvidenceReference } from './fingerprint.js';
 import { readFeatureRecord } from './feature.js';
 import { appendProjectedEvent, createEvent } from './journal.js';
 import { finalizationModuleDefinitions } from './modules.js';
@@ -124,6 +124,8 @@ async function appendResult(featureHome, {
   reason,
   actor,
   waiver,
+  expectedModelHash,
+  expectedDependencyEventIds,
   eventId,
   recordedAt,
 }) {
@@ -136,6 +138,11 @@ async function appendResult(featureHome, {
   const module = selectedModule(attempt, moduleId);
   if (!module.eligible) {
     throw new TransitionRejectedError(`${moduleId} is not eligible`, { blockers: module.blockers });
+  }
+  if ((expectedModelHash !== undefined && expectedModelHash !== record.modelLock.modelHash)
+      || (expectedDependencyEventIds !== undefined
+        && fingerprint(expectedDependencyEventIds) !== fingerprint(dependencyEventIds(attempt, module)))) {
+    throw new TransitionRejectedError('Finalization execution inputs or predecessor events changed before outcome recording');
   }
   const inputs = moduleInputs(attempt, module);
   const inputFingerprint = gateInputFingerprint({

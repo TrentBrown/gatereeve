@@ -5,7 +5,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
 import { parseHTML } from 'linkedom';
-import { initializeFeature, readFeatureRecord } from '../../../plugin-src/shared/resources/protocol/feature.js';
+import { initializeFeature, readFeatureRecord, migrateFeatureModel } from '../../../plugin-src/shared/resources/protocol/feature.js';
+import { loadDefaultModel } from '../../../plugin-src/shared/resources/protocol/model.js';
 import { createModulePolicyManager } from '../main/module-policy.js';
 import { createProtocolAdapter } from '../main/protocol-adapter.js';
 import { requireModulePolicyPreview, requireModuleSettings } from '../shared/contracts.js';
@@ -89,5 +90,15 @@ test('Run after edits preview exact edges, discard/cancel write nothing, and ord
     window.document.getElementById('module-discard').click();assert.equal(applies, 1);assert.deepEqual(JSON.parse(await readFile(join(root, '.gatereeve/workflow.json'))).ordering, saved.ordering);
     window.document.getElementById('module-reload').click();await waitFor(() => !window.document.getElementById('module-reload').disabled, 'fresh saved-policy reload');
     assert.equal(choice('Code Review', 'Spec Evaluation').checked, false);assert.equal(runAfter().checked, true);assert(window.document.getElementById('module-apply').disabled);
+    // A saved repository policy can be adopted by a feature with an older pin,
+    // including after recovery/reload, without fabricating an additional edit.
+    await migrateFeatureModel({featureHome:home,nextModel:await loadDefaultModel(),confirmedBy:{kind:'human-confirmed',label:'Fixture older feature pin'}});
+    window.document.getElementById('module-reload').click();await waitFor(()=>!window.document.getElementById('module-reload').disabled,'reload older pin');
+    await waitFor(()=>!window.document.getElementById('module-apply').disabled,'unchanged policy adoption');
+    assert.equal(window.document.getElementById('module-preview-surface').hidden,false);
+    window.document.getElementById('module-apply').click();assert(window.document.getElementById('module-confirm-dialog').hasAttribute('open'));
+    window.document.getElementById('module-confirm-apply').click();await waitFor(()=>applies===2,'adoption started');
+    await waitFor(()=>!window.document.getElementById('module-confirm-dialog').hasAttribute('open')&&window.document.getElementById('module-apply').disabled,'adopted current pin');
+    assert.equal((await manager.inspect(root,home)).migrationRequired,false);
   } finally { delete globalThis.window;delete globalThis.document; }
 });

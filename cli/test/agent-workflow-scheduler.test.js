@@ -132,3 +132,13 @@ test('scheduler restores recorded gate fingerprints before selecting eligible wo
   assert.deepEqual(calls, ['judge']);
   assert.deepEqual(result.results.map((item) => [item.gateId, item.outcome]), [['judge', 'PASS']]);
 });
+
+
+test('native completion refuses replacement predecessor events even with identical launch content', async()=>{
+ const fixture=harness();let predecessor='evt-code-review-1';let recorded=false;
+ fixture.options.prepare=async()=>({modelHash:'same-model',inputs:{same:true},
+  attempt:{gates:[{id:'codeReview',recordedEventId:predecessor}]},target:{dependsOn:['codeReview']}});
+ fixture.options.execute=async({recordOutcome})=>{predecessor='evt-code-review-2';await recordOutcome({outcome:'PASS',evidence:{path:'judge.json',hash:'sha256:'+'b'.repeat(64)}});};
+ fixture.options.record=async()=>{recorded=true;};
+ await assert.rejects(runEligibleAgentWorkflowGates(fixture.options),/predecessor events changed/);assert.equal(recorded,false);
+});

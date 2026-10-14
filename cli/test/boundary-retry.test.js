@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { loadHistoricalModel } from './helpers/historical-model.js';
 import { initializeFeature, proposeSlice, recordFeatureTransition, recordSliceTransition,
   retryBoundary, readFeatureRecord, recordGateOutcome, projectRecord } from '../../plugin-src/shared/resources/protocol/index.js';
@@ -11,10 +13,10 @@ import { initializeFeature, proposeSlice, recordFeatureTransition, recordSliceTr
 const agent = {kind:'agent',label:'fixture implementer'};
 const human = {kind:'human-confirmed',label:'fixture approval'};
 const hash = b => 'sha256:'+createHash('sha256').update(b).digest('hex');
-async function fixture() {
+async function fixture(model = null) {
  const root=await realpath(await mkdtemp(join(tmpdir(),'gatereeve-retry-')));
  const home=join(root,'docs/issues/feature');
- await initializeFeature({featureHome:home,featureId:'feature',actor:agent,model:await loadHistoricalModel()});
+ await initializeFeature({featureHome:home,featureId:'feature',actor:agent,model:model ?? await loadHistoricalModel()});
  await recordFeatureTransition(home,'approve-design',{actor:human});
  await recordFeatureTransition(home,'validate-spec',{actor:agent,facts:{specValidationCurrent:true}});
  await recordFeatureTransition(home,'authorize-plan',{actor:human});
@@ -37,7 +39,7 @@ async function fixture() {
 }
 async function report(f,id,text='fixture passed') {
  const filename={reconcile:'reconcile.md',verification:'verification.md',specEvaluation:'spec-evaluation.md',patternReview:'pattern-review.md',
- judge:'judge.json',codeReview:'code-review.md',decisionTriage:'decision-triage.md',explainDiff:'explain-diff.html'}[id];
+ judge:'judge.json',codeReview:'code-review.md',decisionTriage:'decision-triage.md',explainDiff:'explain-diff.html'}[id] ?? `${id}.md`;
  const path=`pr-42/attempts/retry-${f.input.retryId}/${filename}`;
  await mkdir(join(f.home,`pr-42/attempts/retry-${f.input.retryId}`),{recursive:true});
  await writeFile(join(f.home,path),text);return path;
@@ -50,7 +52,7 @@ async function runGate(f,step,outcome='PASS') {
    await recordGateOutcome(f.home,{attemptId:step.attemptId,gateId:step.gateId,outcome,
      inputs:step.preparation.inputs,currentFingerprints:step.preparation.currentFingerprints,
      evidence:{path,hash:hash(await readFile(join(f.home,path)))},actor:agent});
-   await writeFile(join(f.home,'pr-42/attempts',step.attemptId,'judge.md'),'fixture native report');
+   if(step.gateId==='judge')await writeFile(join(f.home,'pr-42/attempts',step.attemptId,'judge.md'),'fixture native report');
  } else await f.invoke({action:'record',gateId:step.gateId,outcome,evidencePath:path});
 }
 
@@ -144,4 +146,55 @@ test('status is observational and pause prevents further mutations',async()=>{
  const {pauseFeature}=await import('../../plugin-src/shared/resources/protocol/index.js');
  await pauseFeature(f.home,{actor:agent});
  await assert.rejects(f.invoke(),/pause/);
+});
+
+
+async function orderedModel(after, disabled = []) {
+ const {loadDefaultModel,loadDefaultWorkflowPolicy}=await import('../../plugin-src/shared/resources/protocol/model.js');
+ const {resolveModuleGraph,hashModuleDefinition}=await import('../../plugin-src/shared/resources/protocol/modules.js');
+ const base=await loadDefaultModel();const policy=await loadDefaultWorkflowPolicy();
+ const template=base.moduleGraph.modules.find(m=>m.id==='gatereeve/code-review');
+ const custom={...structuredClone(template),id:'example/late-check',version:'1.0.0',label:'Late check',
+  description:'Owner ordered regression check',enabledByDefault:true,
+  boundary:{...template.boundary,gateId:'lateCheck'},run:{kind:'manual',instructions:'Check the result'}};
+ custom.digest=hashModuleDefinition(custom);
+ const {readiness,...graph}=resolveModuleGraph({definitions:[...base.moduleGraph.modules,custom],policy:{...policy,schemaVersion:2,
+  modules:[...policy.modules.map(m=>({...m,enabled:disabled.includes(m.id)?false:m.enabled})),{id:custom.id,version:custom.version,digest:custom.digest,enabled:true}],
+  ordering:{[custom.id]:{after:[after]}}}});
+ const legacy=await loadHistoricalModel();return {...legacy,moduleGraph:graph,coreCompatibility:{...legacy.coreCompatibility,minimum:'1.4.0'}};
+}
+
+test('owner ordering after Explain Diff and Packet Validation completes without a hidden barrier',async()=>{
+ for(const predecessor of ['gatereeve/explain-diff','gatereeve/packet-validation']) {
+  const f=await fixture(await orderedModel(predecessor));const trace=[];let final;
+  for(let n=0;n<35;n++) {
+   const step=await f.invoke();trace.push(step.gateId??step.status);
+   if(step.status==='RUN_GATE')await runGate(f,step);
+   else if(step.status==='PREPARE_PACKET') {await f.invoke({action:'packet'});await f.invoke({action:'finalize'});}
+   else if(step.status==='FINALIZE_PACKET') {final=await f.invoke({action:'finalize'});if(final.status==='COMMIT_AND_PUSH_EVIDENCE')final=await f.invoke({action:'finalize'});break;}
+   else assert.equal(step.status,'RECORDED',JSON.stringify(step));
+  }
+  assert.equal(final?.status,'AWAITING_HUMAN_REVIEW');
+  assert(trace.indexOf('explainDiff')<trace.indexOf('lateCheck'));
+  if(predecessor==='gatereeve/packet-validation')assert(trace.indexOf('PREPARE_PACKET')<trace.indexOf('lateCheck'));
+ }
+});
+
+test('disabled standard review checks omit packet artifacts and retain enabled requirements',async()=>{
+ for(const id of ['gatereeve/judge','gatereeve/code-review','gatereeve/pattern-review','gatereeve/spec-evaluation']) {
+  const f=await fixture(await orderedModel('gatereeve/explain-diff',[id]));
+  for(let n=0;n<20;n++) {const step=await f.invoke();if(step.status==='PREPARE_PACKET')break;if(step.status==='RUN_GATE')await runGate(f,step);else assert.equal(step.status,'RECORDED');}
+  await f.invoke({action:'packet'});
+  const manifest=JSON.parse(await readFile(join(f.home,'pr-42/boundary.json')));
+  const gate={ 'gatereeve/judge':'judge','gatereeve/code-review':'codeReview','gatereeve/pattern-review':'patternReview','gatereeve/spec-evaluation':'specEvaluation'}[id];
+  assert.equal(manifest.schemaVersion,4);assert.equal(manifest.attemptId,'retry-ready-1');assert(!Object.hasOwn(manifest.gates,gate));assert(manifest.gates.verification);
+  await writeFile(join(f.root,'.agentic-workflow.json'),JSON.stringify({schemaVersion:1,featureId:'feature',repositories:{product:{path:'.',remote:'origin',integrationBranch:'main'}}}));
+  await writeFile(join(f.home,'tracker.md'),'### PR #42\n[Packet](pr-42/boundary.json)\n');
+  await writeFile(join(f.root,'context.json'),JSON.stringify(f.context));
+  const scripts=fileURLToPath(new URL('../../plugin-src/shared/resources/scripts/',import.meta.url));
+  const validate=()=>execFileSync('python3',['-c','import sys,json;sys.path.insert(0,sys.argv[1]);from boundary_packet import validate_packet;from workflow_context import resolve_workflow_context;from pr_context import PullRequestContext;w=resolve_workflow_context(sys.argv[2]);c=PullRequestContext.from_dict(json.load(open(sys.argv[3])));print(json.dumps(validate_packet(w,c,changed_paths=[])))',scripts,f.root,join(f.root,'context.json')],{env:{...process.env,PYTHONDONTWRITEBYTECODE:'1'},encoding:'utf8'});
+  assert.equal(JSON.parse(validate()).status,'valid');
+  delete manifest.gates.verification;await writeFile(join(f.home,'pr-42/boundary.json'),JSON.stringify(manifest));
+  assert.throws(validate,/verification does not match|fields differ/);
+ }
 });
