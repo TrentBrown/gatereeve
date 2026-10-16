@@ -1,0 +1,348 @@
+{
+  "schemaVersion": 1,
+  "providerManifest": {
+    "schemaVersion": 1,
+    "id": "gatereeve/release-conductor",
+    "version": "1.0.0",
+    "digest": "sha256:2b28224b025cfd828559791dbf524c93a879181de11757f5495697605b087882",
+    "runtime": "electron-node",
+    "executable": "release-conductor-provider.mjs",
+    "executableDigest": "sha256:94627ca3a573de44f6632eb3f2af0fd649f532e8270a898885089edfb6e8c575",
+    "args": [],
+    "timeoutSeconds": 300
+  },
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "pr81-rc16-installed-provider",
+    "operation": "observe",
+    "provider": {
+      "id": "gatereeve/release-conductor",
+      "version": "1.0.0"
+    },
+    "module": {
+      "id": "gatereeve/release",
+      "version": "1.0.0",
+      "digest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978"
+    },
+    "input": {
+      "featureId": "tb-configurable-gate-ordering",
+      "attemptId": "pr81-rc16-release",
+      "scope": "FEATURE",
+      "inputFingerprint": "sha256:230d6cd7a9eec9f0e26a5315a597e56a3aa6254a4ba72f7d1f7529164c4066ab",
+      "dependencyEventIds": {},
+      "evidence": {
+        "taskId": null,
+        "result": null,
+        "structuredOutput": null,
+        "repositoryRoot": "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve",
+        "featureHome": "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/docs/issues/tb-configurable-gate-ordering",
+        "mergeInputSha": "bf9f656535bce04dca659d8f6a1e975d552b1d6d"
+      }
+    }
+  },
+  "response": {
+    "schemaVersion": 1,
+    "requestId": "pr81-rc16-installed-provider",
+    "provider": {
+      "id": "gatereeve/release-conductor",
+      "version": "1.0.0"
+    },
+    "module": {
+      "id": "gatereeve/release",
+      "version": "1.0.0",
+      "digest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978"
+    },
+    "observedInputFingerprint": "sha256:230d6cd7a9eec9f0e26a5315a597e56a3aa6254a4ba72f7d1f7529164c4066ab",
+    "live": {
+      "status": "waiting",
+      "detail": "v0.1.0-rc.16 completed every Release Conductor stage and contains this feature.",
+      "updatedAt": "2026-10-16T15:29:58.699Z",
+      "stages": [
+        {
+          "id": "INITIALIZED",
+          "label": "INITIALIZED",
+          "status": "ready",
+          "detail": "Sequence 1"
+        },
+        {
+          "id": "TRUST_PENDING",
+          "label": "TRUST PENDING",
+          "status": "waiting",
+          "detail": "Sequence 2"
+        },
+        {
+          "id": "TRUSTED",
+          "label": "TRUSTED",
+          "status": "ready",
+          "detail": "Sequence 3"
+        },
+        {
+          "id": "PRIMARY_FINALIZED",
+          "label": "PRIMARY FINALIZED",
+          "status": "ready",
+          "detail": "Sequence 4"
+        },
+        {
+          "id": "PRIMARY_REHEARSED",
+          "label": "PRIMARY REHEARSED",
+          "status": "waiting",
+          "detail": "Sequence 5"
+        },
+        {
+          "id": "PRIMARY_PUBLISHED",
+          "label": "PRIMARY PUBLISHED",
+          "status": "ready",
+          "detail": "Sequence 6"
+        },
+        {
+          "id": "WAITING_FOR_DIRECT_INSTALL",
+          "label": "WAITING FOR DIRECT INSTALL",
+          "status": "waiting",
+          "detail": "Sequence 7"
+        },
+        {
+          "id": "CASK_FINALIZED",
+          "label": "CASK FINALIZED",
+          "status": "ready",
+          "detail": "Sequence 8"
+        },
+        {
+          "id": "CASK_REHEARSED",
+          "label": "CASK REHEARSED",
+          "status": "waiting",
+          "detail": "Sequence 9"
+        },
+        {
+          "id": "CASK_PUBLISHED",
+          "label": "CASK PUBLISHED",
+          "status": "ready",
+          "detail": "Sequence 10"
+        },
+        {
+          "id": "CASK_PUBLISHED",
+          "label": "CASK PUBLISHED",
+          "status": "failed",
+          "detail": "Sequence 11"
+        },
+        {
+          "id": "SMOKE_VERIFIED",
+          "label": "SMOKE VERIFIED",
+          "status": "ready",
+          "detail": "Sequence 12"
+        },
+        {
+          "id": "COMPLETE",
+          "label": "COMPLETE",
+          "status": "complete",
+          "detail": "Sequence 13"
+        }
+      ],
+      "actions": [],
+      "attempts": [
+        {
+          "id": "sequence-1",
+          "label": "INITIALIZED",
+          "status": "ready",
+          "recordedAt": "2026-10-16T15:02:53.929Z"
+        },
+        {
+          "id": "sequence-2",
+          "label": "TRUST_PENDING",
+          "status": "waiting",
+          "recordedAt": "2026-10-16T15:03:10.348Z"
+        },
+        {
+          "id": "sequence-3",
+          "label": "TRUSTED",
+          "status": "ready",
+          "recordedAt": "2026-10-16T15:14:42.472Z"
+        },
+        {
+          "id": "sequence-4",
+          "label": "PRIMARY_FINALIZED",
+          "status": "ready",
+          "recordedAt": "2026-10-16T15:16:19.650Z"
+        },
+        {
+          "id": "sequence-5",
+          "label": "PRIMARY_REHEARSED",
+          "status": "waiting",
+          "recordedAt": "2026-10-16T15:17:12.534Z"
+        },
+        {
+          "id": "sequence-6",
+          "label": "PRIMARY_PUBLISHED",
+          "status": "ready",
+          "recordedAt": "2026-10-16T15:20:09.898Z"
+        },
+        {
+          "id": "sequence-7",
+          "label": "WAITING_FOR_DIRECT_INSTALL",
+          "status": "waiting",
+          "recordedAt": "2026-10-16T15:20:23.630Z"
+        },
+        {
+          "id": "sequence-8",
+          "label": "CASK_FINALIZED",
+          "status": "ready",
+          "recordedAt": "2026-10-16T15:21:59.660Z"
+        },
+        {
+          "id": "sequence-9",
+          "label": "CASK_REHEARSED",
+          "status": "waiting",
+          "recordedAt": "2026-10-16T15:22:27.564Z"
+        },
+        {
+          "id": "sequence-10",
+          "label": "CASK_PUBLISHED",
+          "status": "ready",
+          "recordedAt": "2026-10-16T15:23:54.611Z"
+        },
+        {
+          "id": "sequence-11",
+          "label": "CASK_PUBLISHED",
+          "status": "failed",
+          "recordedAt": "2026-10-16T15:26:05.405Z"
+        },
+        {
+          "id": "sequence-12",
+          "label": "SMOKE_VERIFIED",
+          "status": "ready",
+          "recordedAt": "2026-10-16T15:29:07.441Z"
+        },
+        {
+          "id": "sequence-13",
+          "label": "COMPLETE",
+          "status": "complete",
+          "recordedAt": "2026-10-16T15:29:19.343Z"
+        }
+      ],
+      "evidence": [
+        {
+          "label": "Release Conductor state",
+          "tag": "v0.1.0-rc.16",
+          "sourceCommit": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+          "stateSha256": "ce504b222bb8374e85e72f0c6c69608370b5f60070e8e87e7eb33370e49fba84",
+          "artifactIds": [
+            12053934870,
+            12053249743,
+            12054827034,
+            12054758547,
+            12055915705,
+            12054593628,
+            12054479897,
+            12054608577,
+            12055207715,
+            12055787030,
+            12056116241,
+            12054584972,
+            12056575023
+          ]
+        }
+      ],
+      "links": [
+        {
+          "label": "Release Conductor",
+          "url": "https://github.com/TrentBrown/gatereeve/actions/workflows/release-conductor.yml"
+        }
+      ],
+      "failure": null
+    },
+    "outcome": "PASS",
+    "evidence": {
+      "releaseTag": "v0.1.0-rc.16",
+      "releaseSourceCommit": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+      "featureMergeInputSha": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+      "stateSha256": "ce504b222bb8374e85e72f0c6c69608370b5f60070e8e87e7eb33370e49fba84",
+      "artifactIds": [
+        12053934870,
+        12053249743,
+        12054827034,
+        12054758547,
+        12055915705,
+        12054593628,
+        12054479897,
+        12054608577,
+        12055207715,
+        12055787030,
+        12056116241,
+        12054584972,
+        12056575023
+      ]
+    }
+  },
+  "preparation": {
+    "attempt": {
+      "id": "pr81-rc16-release",
+      "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+      "mergeInputSha": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+      "startedBy": "evt-ordering-rc16-finalization-started",
+      "startedSequence": 64,
+      "state": "ACTIVE",
+      "modules": [
+        {
+          "id": "gatereeve/release",
+          "moduleId": "gatereeve/release",
+          "moduleVersion": "1.0.0",
+          "moduleDigest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978",
+          "dependsOn": [],
+          "dependencyEdges": [],
+          "dependencyStage": 1,
+          "dependencyBranch": null,
+          "orderLabel": "1",
+          "optional": false,
+          "locked": false,
+          "waiverAllowed": true,
+          "outcome": "UNSET",
+          "evidence": null,
+          "inputFingerprint": null,
+          "recordedEventId": null,
+          "recordedSequence": null,
+          "invalidatedSequence": null,
+          "reason": null,
+          "freshness": "UNKNOWN",
+          "eligible": true,
+          "blockers": []
+        }
+      ],
+      "requiredCurrentAndNonblocking": false
+    },
+    "target": {
+      "id": "gatereeve/release",
+      "moduleId": "gatereeve/release",
+      "moduleVersion": "1.0.0",
+      "moduleDigest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978",
+      "dependsOn": [],
+      "dependencyEdges": [],
+      "dependencyStage": 1,
+      "dependencyBranch": null,
+      "orderLabel": "1",
+      "optional": false,
+      "locked": false,
+      "waiverAllowed": true,
+      "outcome": "UNSET",
+      "evidence": null,
+      "inputFingerprint": null,
+      "recordedEventId": null,
+      "recordedSequence": null,
+      "invalidatedSequence": null,
+      "reason": null,
+      "freshness": "UNKNOWN",
+      "eligible": true,
+      "blockers": []
+    },
+    "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "inputs": {
+      "schemaVersion": 1,
+      "scope": "FEATURE",
+      "mergeInputSha": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+      "module": {
+        "id": "gatereeve/release",
+        "version": "1.0.0",
+        "digest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978"
+      },
+      "dependencyEventIds": {}
+    }
+  }
+}

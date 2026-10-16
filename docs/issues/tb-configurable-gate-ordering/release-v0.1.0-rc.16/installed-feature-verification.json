@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "version": "0.1.0-rc.16",
+  "sourceCommit": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+  "paths": [
+    {
+      "path": "protocol/modules.js",
+      "sha256": "2cbac57ee4f60e33375e05c05b3281b551460ef788d3270b6463f2136e531a07"
+    },
+    {
+      "path": "protocol/model.js",
+      "sha256": "0f92a0f5714388a4f5d0e19508368ce714ee676e0dc51f4daf67ec43e8c63db9"
+    },
+    {
+      "path": "protocol/snapshot.js",
+      "sha256": "43bc5a1225f1c1c7e9d3a06c9603cc7396602a0fb3489f406f68bf1d9f937745"
+    },
+    {
+      "path": "protocol/boundary-retry.js",
+      "sha256": "59b95a8cdd00664343584f2ef26f7d3d399ee21a5691c0356dedb7c67e1c4932"
+    },
+    {
+      "path": "protocol/finalization.js",
+      "sha256": "938dd4ccfe6938d08731eec89a2582ba360841feeae7f601dea3f5a7b884beba"
+    }
+  ],
+  "verifiedAt": "2026-10-16T15:19:39.813Z"
+}

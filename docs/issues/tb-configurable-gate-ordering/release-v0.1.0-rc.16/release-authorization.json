@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "userRequest": "Proceed with Release Conductor for PR #81 and complete the remaining feature finalization.",
+  "tag": "v0.1.0-rc.16",
+  "featureMergeSha": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+  "startRunId": 38920667836,
+  "startRunUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/38920667836",
+  "protectedEnvironments": [
+    {
+      "name": "release-trust",
+      "id": 20893546887,
+      "state": "approved",
+      "authority": "User explicitly authorized Release Conductor for the approved merged source"
+    },
+    {
+      "name": "release-publication",
+      "id": 20741161933,
+      "state": "approved",
+      "planSha256": "78527006b3e2d904c71b18221390dc3456afd0ca12ae8eca6e47092e254bf847",
+      "basis": "Explicit user release authorization; canonical downloaded-packet inspection and hosted rehearsal passed"
+    },
+    {
+      "name": "release-publication",
+      "id": 20741161933,
+      "runId": 38923169297,
+      "state": "approved",
+      "planSha256": "44193491f901742c16219034a46445bf824fca4a177c53956f82023e98991a10",
+      "basis": "Explicit user release authorization; exact linked Cask packet inspection and hosted rehearsal passed; public DMG actually installed and launched"
+    }
+  ],
+  "lastObservedAt": "2026-10-16T15:17:49.473Z",
+  "resumeRunId": 38923169297,
+  "resumeRunUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/38923169297",
+  "directInstallAttestation": {
+    "confirmed": true,
+    "basis": "Actual independently downloaded public DMG checksum, signature, Gatekeeper, installed version and launch verified; five installed reviewed protocol resources match",
+    "evidence": "direct-install-verification.json",
+    "sha256": "d363a90e8497fe9f923ceb90eb36b3a1932015510e6d487023dd35452649fbbc"
+  },
+  "acceptanceRecoveryRunId": 38923968321,
+  "acceptanceRecoveryRunUrl": "https://github.com/TrentBrown/gatereeve/actions/runs/38923968321",
+  "acceptanceRecoveryBasis": "Documented conductor resume from retained CASK_PUBLISHED after mixed Gatekeeper smoke outcomes; no trust production or publication rerun"
+}

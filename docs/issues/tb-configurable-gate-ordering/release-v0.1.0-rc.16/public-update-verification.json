@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "url": "https://gatereeve.pages.dev/releases/desktop.json",
+  "sha256": "93fe4ba78f482500afe4758fe08a221d26b27ef2ef6b63f140ff8500d14592b9",
+  "rc": {
+    "version": "0.1.0-rc.16",
+    "publishedAt": "2026-10-16T15:15:49.122Z",
+    "sourceCommit": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+    "artifact": {
+      "name": "GateReeve-0.1.0-rc.16-macos-universal.dmg",
+      "bytes": 259045867,
+      "sha256": "d363a90e8497fe9f923ceb90eb36b3a1932015510e6d487023dd35452649fbbc"
+    },
+    "appleTrust": {
+      "developerIdApplication": true,
+      "hardenedRuntime": true,
+      "secureTimestamp": true,
+      "notarized": true,
+      "stapled": true,
+      "gatekeeperAccepted": true
+    }
+  }
+}

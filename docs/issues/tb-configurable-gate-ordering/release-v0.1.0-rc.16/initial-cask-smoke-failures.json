@@ -1,0 +1,27 @@
+{
+  "status": "FAILED_ACCEPTANCE_RETAINED",
+  "runId": 38923169297,
+  "phase": "CASK_PUBLISHED",
+  "code": "CASK_SMOKE_FAILED",
+  "findings": [
+    {
+      "jobId": 117049592525,
+      "name": "Public Cask install (arm64)",
+      "message": "Gatekeeper assessment rejected installed app: Unnotarized Developer ID"
+    },
+    {
+      "jobId": 117049592560,
+      "name": "Cask install and upgrade (x64)",
+      "message": "Gatekeeper assessment rejected installed app: Unnotarized Developer ID"
+    }
+  ],
+  "passingCompanions": [
+    "Cask install and upgrade (arm64)",
+    "Public Cask install (x64)"
+  ],
+  "corroboration": [
+    "Protected native trust checks passed both architectures",
+    "Exact public DMG signature, Gatekeeper, direct install and launch passed locally"
+  ],
+  "assessment": "The same immutable release has mixed Gatekeeper outcomes across runners. A transient Apple trust lookup or cache condition is a hypothesis, not a proven cause. Use the documented retained-state resume to recompute read-only acceptance on fresh runners; preserve failures and all trust and publication history."
+}

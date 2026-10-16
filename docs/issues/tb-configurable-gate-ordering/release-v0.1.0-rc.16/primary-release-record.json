@@ -1,0 +1,2553 @@
+{
+  "schemaVersion": 2,
+  "kind": "gatereeve-coordinated-release",
+  "releaseId": "gatereeve-v0.1.0-rc.16",
+  "version": "0.1.0-rc.16",
+  "channel": "rc",
+  "source": {
+    "repository": "https://github.com/TrentBrown/gatereeve",
+    "commit": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+    "tag": "v0.1.0-rc.16"
+  },
+  "candidate": {
+    "id": "gatereeve-v0.1.0-rc.16",
+    "version": "0.1.0-rc.16",
+    "sourceCommit": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+    "reservation": {
+      "state": "apple-bound",
+      "reservedAt": "2026-10-16T15:14:05.711Z"
+    },
+    "appleArtifact": {
+      "filename": "GateReeve-0.1.0-rc.16-macos-universal.dmg",
+      "bytes": 259045867,
+      "sha256": "d363a90e8497fe9f923ceb90eb36b3a1932015510e6d487023dd35452649fbbc",
+      "boundAt": "2026-10-16T15:14:05.723Z",
+      "bindingSha256": "5774fcb5f3d4c398063246e974f065a1dd1572c5ab1663e3f39fb6e075a44503"
+    }
+  },
+  "stages": [
+    {
+      "sequence": 1,
+      "stage": "source-pinned",
+      "completedAt": "2026-10-16T15:14:05.711Z",
+      "evidence": {
+        "source": {
+          "repository": "https://github.com/TrentBrown/gatereeve",
+          "commit": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+          "tag": "v0.1.0-rc.16"
+        }
+      },
+      "evidenceSha256": "8ea800046b205dfb3c13bfef7dcbf3bdf21013ab7c065d1675959f034c34604a",
+      "previousStageSha256": null,
+      "stageSha256": "e32abbde3ba1ceee03b74191ce270b8483460056f640b843e2ca0b864d0469a8"
+    },
+    {
+      "sequence": 2,
+      "stage": "policy-resolved",
+      "completedAt": "2026-10-16T15:14:05.712Z",
+      "evidence": {
+        "trustEnvironment": "release-trust",
+        "publicationAuthority": false,
+        "topology": {
+          "plugin": true,
+          "desktop": "universal-dmg",
+          "nativeAuthorities": [
+            "arm64",
+            "x64"
+          ]
+        }
+      },
+      "evidenceSha256": "8bb6d515da38a2a1bee097d11c7633c47103596550a41a4e9d0a75aa3996e211",
+      "previousStageSha256": "e32abbde3ba1ceee03b74191ce270b8483460056f640b843e2ca0b864d0469a8",
+      "stageSha256": "c20d7cd11375dc43999fa5a253d1854e45a094a8dc8f8a2a643623522fc1a6b7"
+    },
+    {
+      "sequence": 3,
+      "stage": "plugin-candidate-built",
+      "completedAt": "2026-10-16T15:14:05.712Z",
+      "evidence": {
+        "release": {
+          "tag": "v0.1.0-rc.16",
+          "version": "0.1.0-rc.16",
+          "sourceCommit": "bf9f656535bce04dca659d8f6a1e975d552b1d6d"
+        },
+        "treeSha256": "da3539f25cc929de67370c5a048f0b3d17552f783ed3d8c9f2b9a74a757feea5",
+        "files": [
+          {
+            "path": ".agents/plugins/marketplace.json",
+            "bytes": 701,
+            "sha256": "d7e77849ec030fd3c8191f9e371081aea023e622c27a323dfe068ab65847c8cc"
+          },
+          {
+            "path": ".claude-plugin/marketplace.json",
+            "bytes": 594,
+            "sha256": "af9add9153d759a792e916e8e74006fd002a8d37ab7227cef43ea4ecbc0d4ac8"
+          },
+          {
+            "path": "RELEASE.json",
+            "bytes": 329,
+            "sha256": "d55319a55c53db8eeef4628485d01b837b0c3a2bc6a8d8137574dcba1729d8d4"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/.claude-plugin/plugin.json",
+            "bytes": 609,
+            "sha256": "d4f3db6850a724e082800f1b8a15f2ccc5e330073fc0ad2ba49b42302596ae72"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/.workflow-build/protocol-source.json",
+            "bytes": 7232,
+            "sha256": "3e2cdfcfa5106acdad4bb4a4eacc6f3f9d68714560cd0956b5aefc64cc22ab09"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/.workflow-build/provenance.json",
+            "bytes": 307,
+            "sha256": "ee4291a36131cce5bc5793686f38b4d33fd25dd4fb010affcc277f981aac5029"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/.workflow-build/shared-files.json",
+            "bytes": 38878,
+            "sha256": "8b7a35576c5831e1dfa4f2add6b6074b6d613f4eb32d48acd44c44762835c738"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/hooks/hooks.json",
+            "bytes": 366,
+            "sha256": "0e7401a9eefc3dd13b6962c9f221058fcfc166b1cc2d97a98eeed7d510efe878"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/PROTOCOL.md",
+            "bytes": 5411,
+            "sha256": "cb0a756c38a61d99819d8dfaa7df831e40cb3469acc77b6e1b81d95c06946013"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/RESOURCE-ROOT.md",
+            "bytes": 718,
+            "sha256": "a1f3a052bd7921fb8460a1ce78833e591485de5dae20aa7b179c0643222c0a47"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/agent-workflows/advisory/agent.md",
+            "bytes": 1920,
+            "sha256": "299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/agent-workflows/advisory/result.schema.json",
+            "bytes": 5232,
+            "sha256": "f863eb92f594143c402328bff6016a9b0205106f0735922a23145d182724a532"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/agent-workflows/advisory/stage-input.schema.json",
+            "bytes": 10125,
+            "sha256": "b7c5b74d8d3b6a1ca1cb355df540d5ff0e2e5255ad34a72b903838f8f68bf38f"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/agent-workflows/advisory/validator.js",
+            "bytes": 350,
+            "sha256": "629dc6ac07eed04ac477130aee91a031de6ecadeb345f24dc7a068925412e88e"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/agent-workflows/judge/agent.md",
+            "bytes": 943,
+            "sha256": "35c88550554ecb678ae0c9ca0c5785b832248e1a8eb303605811a3e96d05fb3a"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/agent-workflows/judge/compact-agent.md",
+            "bytes": 2438,
+            "sha256": "65abe1f251518d28972d0f13636b87f577f20537e59f032a85aafff05417d562"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/agent-workflows/judge/compact-stage-input.schema.json",
+            "bytes": 11808,
+            "sha256": "701be543bc267d4d31f150509196a4e1afd2960fc838808c4f1fa25a1252cca7"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/agent-workflows/judge/result.schema.json",
+            "bytes": 2567,
+            "sha256": "dacb40750cf509b6eca3cd5e6241032a80822973b217baa4be9c89f48439c98d"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/agent-workflows/judge/stage-input.schema.json",
+            "bytes": 1243,
+            "sha256": "d834f11a45fb2fb9c301c99484e3878733b9ead2f45e9d662b4df48a39f4ae6a"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/agent-workflows/judge/validator.js",
+            "bytes": 5086,
+            "sha256": "d64262f2822267b5f7de3caaf2c85c1e1f6395a905fe76d885f2164dd5c1ca09"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/agent-workflows/package.json",
+            "bytes": 42,
+            "sha256": "609158e6c5fbc237939fa3ddf7faab80ab690bdc0c8d584414a885130103c4e8"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/advisory-review.md",
+            "bytes": 6163,
+            "sha256": "3fd36d545b733bc5a638a87d64a1439372b93214c4e2d9df0e6bce2aa8784ca6"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/boundary-retry.md",
+            "bytes": 5383,
+            "sha256": "86276fca8730cf8feb048b0ac06500a1a82d78bbaadf5fe3385c9900575bcf6c"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/branch-bootstrap.md",
+            "bytes": 1753,
+            "sha256": "1108b3426352c6e7337086397da5d341b456c4c272d20320b9766e1dc4898d8b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/commit.md",
+            "bytes": 917,
+            "sha256": "d26f6892fe343b9f06688b92eeda85ada788307cd144aa65f16c9c71078cc363"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/completion-recovery.md",
+            "bytes": 4411,
+            "sha256": "2db64517fc656db2684401483f404f214feeb2ba9e2cf7beadd9d5d71cca4ac4"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/decision-record.md",
+            "bytes": 690,
+            "sha256": "c237ed362cfedc833a93cffd25aa90debc1dd33daace305e25aeeb2efe07aa81"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/decision-triage.md",
+            "bytes": 541,
+            "sha256": "d6e55f2e79385dc7749b68cc180a0b1ff06ba8ffd80dd5aa58350487d3a49049"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/design.md",
+            "bytes": 1201,
+            "sha256": "d6184ab9ab01e64c5679e347cb8c3fa7d174054d7cee8ac6900dc8d5ed35b865"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/judge.md",
+            "bytes": 2531,
+            "sha256": "2ee0b53df5e35ad934923ebeeb1681f5c3b345b2f739cc9a2650ab3e38cc2372"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/pattern-audit.md",
+            "bytes": 1232,
+            "sha256": "912e26924e6b43f05fe0f0591059d0a11e98912736a5f8ff247705519c6b229d"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/pattern-extract.md",
+            "bytes": 3079,
+            "sha256": "e675499c90657b032eb1f5dbb879a25156154b287ca7f6348b30febcb2510aa0"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/pattern-harvest.md",
+            "bytes": 2573,
+            "sha256": "904a6cdbb0fa3c3cabe4051c0c3dcdbb165257b4894e23fa70881aa76bdc4e33"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/pattern-help.md",
+            "bytes": 1576,
+            "sha256": "c4b7a417f856b7ea10652aa7dfc48bfd8b6ab6fa4369f1564be4036314c83412"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/pattern-init.md",
+            "bytes": 979,
+            "sha256": "7f471a4b295bddf4b280d19cb8a8112a7a601f306a0e117682c12a003811ddb1"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/pattern-learn.md",
+            "bytes": 2450,
+            "sha256": "bfc036c3f6949023a2733888213e113c1bbf6415b2839605cdd8fb6170418186"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/pattern-promote.md",
+            "bytes": 3450,
+            "sha256": "c4b66db553b46ad271e861129c2843885b202729b8da1b91f41173ce78bf4e2a"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/pattern-review.md",
+            "bytes": 2465,
+            "sha256": "ad36bc207ad70839ed999d8ef31aae996fd28568ffffa0d846680adb0e529474"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/pattern-status.md",
+            "bytes": 2431,
+            "sha256": "f780dbc68d5778d1fe36c86629ce4d7eaf5a6cc5304a5573a90425e52797c6b1"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/plan.md",
+            "bytes": 1341,
+            "sha256": "1219cbbdc2099dd8727ae67993d0b77997cc389d3aad27acb4ca49f86d90688e"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/pr-boundary.md",
+            "bytes": 7839,
+            "sha256": "dde47ae07536fafd258eb46916521e28cff1dea1dc8f0618dd71d29b741a856a"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/pr-review.md",
+            "bytes": 1851,
+            "sha256": "ce45759766660e288d369c194f6a3d4431fc2a89c4dfce81ac0b2e19974a85f3"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/spec-draft.md",
+            "bytes": 1863,
+            "sha256": "75db76410239d14fa70cbde192aa5935207215151549625f5b566b9b2d926d1c"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/spec-evaluate.md",
+            "bytes": 1627,
+            "sha256": "75062cf0f7fe7f16502d14a30eac5969c93fa52c361964d3d23e9d44c6e39312"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/commands/spec-validate.md",
+            "bytes": 1400,
+            "sha256": "6dd70fa43c89712dbfe42ea4892ac4c9cb7c037c9e452940e5bb4672d6409aeb"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/policy/COMPLETION-RECOVERY.md",
+            "bytes": 4922,
+            "sha256": "9473989c93d97d5e0c542ba393fca3d0c9592dbace68dac15c249b4d6dbbfc77"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/policy/EVIDENCE-PACKETS.md",
+            "bytes": 7406,
+            "sha256": "2a33f6f8b73816eb790198283c8bd73b72d12430fe0caacd08d1fadf2f3ca524"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/policy/STANDARDS.md",
+            "bytes": 5281,
+            "sha256": "72706ffad1ee140ea43b4617a471f7d247c816f0b6d1aeb2d9c847ebc7c4db7b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/policy/WORKFLOW.md",
+            "bytes": 24136,
+            "sha256": "2d9abf4840e1e2bc26d8f7acc87fc28474a08afeffd586af535fb0ceff70c8bb"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/policy/WORKFLOW.mermaid",
+            "bytes": 6379,
+            "sha256": "c01022750e0ce07d60cf0dff085ff45efff87a93f4dd3687e63693ba32e42a2b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/policy/WORKSPACE-CONTEXT.md",
+            "bytes": 8749,
+            "sha256": "a67e238e97a84ee883f86582af7e4eb3f73939c52aa153bc4615226dc833a774"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/policy/profiles/portable-core.md",
+            "bytes": 644,
+            "sha256": "1743127407850e1a44a096f0e80046416dc3e1a66c51f2a412d187c60944b23f"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/policy/profiles/quality-code.md",
+            "bytes": 1615,
+            "sha256": "c13d1b21d5fcefc229247b8321668f368e66ef61690146bc12136f6df9007c2c"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/advisory-contract.js",
+            "bytes": 18477,
+            "sha256": "8d14866019acd5eb3834a5418d040612f0a30dcad76610cd5dfc0cebf0bdbd88"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/advisory-history.js",
+            "bytes": 6171,
+            "sha256": "abd982409ce9c6608dfbee0c91997e3f957a86702939640d1d9945a3b1c76f9b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/advisory-inputs.js",
+            "bytes": 14229,
+            "sha256": "85d30ea6c5ddf55868fa7d47b0edd446006ef25e63e2372a3c3c7b51e6ebc3ee"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/advisory-storage.js",
+            "bytes": 7008,
+            "sha256": "a14850f03c0e4f344352a4d55b60947e786d53b096e3c45c19f2c5107c79bbfb"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/advisory.js",
+            "bytes": 31991,
+            "sha256": "1cf38e99ba94b0993ff9c81f09981527d851da49a21f3a61ccc195b5eab772ab"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/agent-workflow-resources.js",
+            "bytes": 1880,
+            "sha256": "2406dd24946abc8d75c9a2f08adb69e4203652e4643a23d5d81b6c70ee1f2b83"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/agent-workflow-runtime.js",
+            "bytes": 9778,
+            "sha256": "17d8fe6469b279d7f1a4fc241a71229ebaa10d1040f2ecb131c5b79f9bddcd59"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/agent-workflow-scheduler.js",
+            "bytes": 5288,
+            "sha256": "8a58b773fccf0f2e9974532235d323ffcb58b701dc332d26d9c05f361d6bb6c3"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/agent-workflow-service.js",
+            "bytes": 14064,
+            "sha256": "37c640bae4cbd4efa54c0d4dd486540a81b84a2d40079825e65911077f460825"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/agent-workflow.js",
+            "bytes": 5999,
+            "sha256": "38f78164de28dc98293d35736aea11350c0b38d5c8496873feaea3c97fdc5156"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/artifact-publisher.js",
+            "bytes": 2997,
+            "sha256": "f3d1d7ddb68091c819d25aff104dc444f04fc2d6a46618520831ccbbba354b8a"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/boundary-retry.js",
+            "bytes": 23979,
+            "sha256": "59b95a8cdd00664343584f2ef26f7d3d399ee21a5691c0356dedb7c67e1c4932"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/boundary.js",
+            "bytes": 8814,
+            "sha256": "27298745b6853834cff2b8fc0b68c57b63e6faa9a69faba2157084995d85b2de"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/changes.js",
+            "bytes": 7159,
+            "sha256": "ea8fdc226c01a9ae2ec62a0f8ce5f22565ead266f13c7d7d5fd1df7b7136de59"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/compatibility.js",
+            "bytes": 2369,
+            "sha256": "dcd0546a9907d1fd16e83d1c8b3f6abd8d56961ef1046504f6294749d2c7b333"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/constants.js",
+            "bytes": 2095,
+            "sha256": "aad1248dfbd9c553567803abfe5d7c61f260b86be84a575bd6f2debd2c501878"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/context.js",
+            "bytes": 12080,
+            "sha256": "2cea98175760133ac3bfe5f2f9cb8a4d9ef47882e276537938ebedbdcba3cec7"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/errors.js",
+            "bytes": 897,
+            "sha256": "adec91e206d3af2387bb2c85820bee4ea4fd490ed881ce5626deece230afcda5"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/execution-preparation.js",
+            "bytes": 4692,
+            "sha256": "4e6162f96565301f8b4b45d4040787031a58c4eb42ee464f60b7237b6beaa344"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/feature.js",
+            "bytes": 15276,
+            "sha256": "4ad9bcf088dfe7ccc4c318eab54acfd5c9b755246c794a8552fae28b68d70b55"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/finalization.js",
+            "bytes": 11029,
+            "sha256": "938dd4ccfe6938d08731eec89a2582ba360841feeae7f601dea3f5a7b884beba"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/fingerprint.js",
+            "bytes": 1437,
+            "sha256": "691d41ac4633059180b0fb910adfe6672a9cfc3add418c1386b1ad0a0647759f"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/generated-artifact-validation.js",
+            "bytes": 9080,
+            "sha256": "dc8706b45f5e255a8075bb4cfd6bcfdc3bee33dea915e2bd86c855e523d967fe"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/graph.js",
+            "bytes": 7771,
+            "sha256": "aaa0a3bfaec8ffa1a587c2cad223c9837c60d9715c019f18181112b42d5acad2"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/guards.js",
+            "bytes": 2476,
+            "sha256": "9185748b4d8e8f5167086e5abc8d39592a3934dca80cc77d999fac136d6f7705"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/index.js",
+            "bytes": 1258,
+            "sha256": "61d5a8505c6c821be8f51d68931a602337c30506ade49c3f75248069444895a5"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/journal.js",
+            "bytes": 6531,
+            "sha256": "999f6a30c25f9e4641a4c7067abe9eb0e3dab59083918b7d659c76a936971a89"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/json-schema.js",
+            "bytes": 3984,
+            "sha256": "f8ecf7ea29682db2fded10730222d961270273af86ce335024cf217b5e7cd243"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/local-agent-adapters.js",
+            "bytes": 9873,
+            "sha256": "c5f2f17aca97bc3a42a1d7a0daa2eebea192b178d09011b32d6a2ed350d89af7"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/model.js",
+            "bytes": 18725,
+            "sha256": "0f92a0f5714388a4f5d0e19508368ce714ee676e0dc51f4daf67ec43e8c63db9"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/model/default-workflow-policy.json",
+            "bytes": 2322,
+            "sha256": "30ba3484c386ed5a394de9250b846a4c2a20aec3fc8faa2a93344f7ac5e2a7c4"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/model/workflow-model.json",
+            "bytes": 33258,
+            "sha256": "a8bbfc7402f82d622c8b77417db99c0d4217b183ffa8d557a265fc90deebf080"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/module-runtime.js",
+            "bytes": 8571,
+            "sha256": "c4c4432d31b42e4b25e12ecd9942d3a15eb605be7b954864909bdd829c814226"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/modules.js",
+            "bytes": 36473,
+            "sha256": "2cbac57ee4f60e33375e05c05b3281b551460ef788d3270b6463f2136e531a07"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/observer.js",
+            "bytes": 13757,
+            "sha256": "b0f959fc4a817ee3a8261354fb2160548b7490bd4d35b5a64f03f35175e73b42"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/package.json",
+            "bytes": 173,
+            "sha256": "b180641870fee59509d8a4f9111fe682c7e5b45e016baa14a189557d80320a77"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/pinned-snapshot.js",
+            "bytes": 12685,
+            "sha256": "806b01da8386dc972a6c3f963f731ae90443dfe7b4419119bc99bc192b7dcbcd"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/plugin-adapter.js",
+            "bytes": 8942,
+            "sha256": "15cc2be69ac9dbd828bbc8bf51fb543f064d31af9bfa4e94238b70cbc59edd74"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/projection.js",
+            "bytes": 48303,
+            "sha256": "0d82b796bfa76d4a9dd0c8f0830e15d79e1b7e757dc21b139c50852df0d78ded"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/python-guards.js",
+            "bytes": 2815,
+            "sha256": "ce4e4ac1a7e5e31534c27fae332d7bd5e99c03128ca871ae7cfa41a26146afb4"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/recovery-contract.js",
+            "bytes": 14958,
+            "sha256": "0b02fa5d552600b9a390aec97f42459bc0feb6b7d33ba0071b065a59ecf52d25"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/recovery.js",
+            "bytes": 17702,
+            "sha256": "60f6d8b532be650d6f3bb27aa2f4113854f076280a30137fafbc429164363e15"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/result.js",
+            "bytes": 2502,
+            "sha256": "e1530a683d25bd7250c14d5e5c849ac7862cfecedc35d8c81080360ed0f75ce5"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/review-input.js",
+            "bytes": 16270,
+            "sha256": "7bef37b18d57b4a740ed151ecc86cd7437192e03fe13bc41a231f01f64a99ae2"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/snapshot.js",
+            "bytes": 63513,
+            "sha256": "43bc5a1225f1c1c7e9d3a06c9603cc7396602a0fb3489f406f68bf1d9f937745"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/storage.js",
+            "bytes": 1964,
+            "sha256": "736d68ac8a56441d9b033273bb2bea36cd2073d8ca068a59313796c29091ad48"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/protocol/transitions.js",
+            "bytes": 16932,
+            "sha256": "d61f475d4e4199f5b3810a422ff0f2b46350c2d71c5c1d3177efa8b64bf6fc1c"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/release/release-conductor-artifact.js",
+            "bytes": 3738,
+            "sha256": "1b9d6407cf9f073c39a4a2f8d43679dfff6b14fcc65cfebdea923fe9b8baf4f8"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/release/release-conductor-discovery.js",
+            "bytes": 4252,
+            "sha256": "81d70a8af08b564384e0a9e4d9c839275025dc2a0ab25055012b77fe55371d3b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/release/release-conductor-state.js",
+            "bytes": 13128,
+            "sha256": "dbb2cebe59e6b639048de9b0348d5e36ab330b0ef55fc799a910f8432437262a"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/bootstrap_branch_docs.py",
+            "bytes": 4198,
+            "sha256": "c0bad19b455740efabeb2a3b1a4618d6451cb8ab41d3affb89862d8fbfe3a65a"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/boundary_context.py",
+            "bytes": 9835,
+            "sha256": "d8d03298d473a094aa6b86ceb3dabb21aaf0795850ff705c1c92f7ce81bdabda"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/boundary_gate.py",
+            "bytes": 7655,
+            "sha256": "6fa8f52c66546300eb9a44a19a3d256503c6855792fa5f25b329cc80935eb967"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/boundary_packet.py",
+            "bytes": 31772,
+            "sha256": "a3a810e78960aed89ef4f3fee1addc67c3e6d6d5159fc7d8ef5a21569a5ebb8b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/boundary_retry.py",
+            "bytes": 2620,
+            "sha256": "ccf8ca1d18beb11cef2789af398a51df200ae973250a98206f4c36a19cfbb99d"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/decision_record.py",
+            "bytes": 1726,
+            "sha256": "fbfa353fbf7d8daa86553b37839a16c74fe6dcb101e34d5cc53ee462304bf1ea"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/decision_triage.py",
+            "bytes": 2405,
+            "sha256": "fb4eec690c124320bd2ad25a6312eb6260a0a534ef256604cfb8f0545eb50525"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/feature_final.py",
+            "bytes": 11964,
+            "sha256": "792b6723928fc1f80be1b88ce6939f37221be75c506caabd2530ea7f23fd4eac"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/gate_triage.py",
+            "bytes": 1516,
+            "sha256": "efb4c7eb5c1a4638e4b4cc9769c830cd8950435ca3bf9c1464fe55adec0872ab"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/lint_issues.py",
+            "bytes": 2801,
+            "sha256": "1d618b2a25f6ca8dedd4428e828812b2848555c8317cf27142263197e67b0334"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/lint_spec.py",
+            "bytes": 2612,
+            "sha256": "66b3d9f5aadfda76f888a732d7d34600ca91d65d9f423fa4c0e7c9738228a6f6"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/lint_tracker.py",
+            "bytes": 2403,
+            "sha256": "ee8728dc91223473ffc2a0439e701957cece0f3e560f9959e5e3a11679b2a255"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/merge_verified.py",
+            "bytes": 5373,
+            "sha256": "afbb44ce40a020e151ff6fa11b322c6ff23ed185c06ba6ca0e6b5bf725357d74"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pattern/__init__.py",
+            "bytes": 56,
+            "sha256": "449eaa9344754df3b61efc2a992d8d3a495f1aaa75e3594afbf50430de2c5c2b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pattern/buckets.py",
+            "bytes": 1509,
+            "sha256": "c874ad298a3ca5f9c78ef20468b202ab930a874e800d5da544ef1485daa6df41"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pattern/git_context.py",
+            "bytes": 2911,
+            "sha256": "df1139c82a12de2acf898c69b1cbef19a0b965b72bc28013b4610bb15e783e1c"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pattern/harvest.py",
+            "bytes": 27804,
+            "sha256": "357c1faa39a1d0826acd6412115f78d06d90d3bff4816f425b9d4c78318608df"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pattern/learning_events.py",
+            "bytes": 3293,
+            "sha256": "5be23a3de0758fc8e53357f0c4d162b69dd20eadbaf7d1b795b79a340537ae96"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pattern/rules.py",
+            "bytes": 6109,
+            "sha256": "3c8c560608bfd5b386221bddcfbaae791eaadeaf67e852ba034ccecb9573c053"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pattern/simple_yaml.py",
+            "bytes": 7878,
+            "sha256": "9600e34daf079df59af0a12035486a77d57be3d3d3dcb841a75e1115ef62dbbb"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pattern/status.py",
+            "bytes": 15600,
+            "sha256": "5907a9cb560af54d0f8945cde1af0d2120b34e336edf4a2a9d21f12fafa15f6c"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pattern/tests/test_pattern_helpers.py",
+            "bytes": 44908,
+            "sha256": "a008788235dccd334483b0530e43b883587870a259aa332ee4d1f26d0d3af43f"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pattern_tool.py",
+            "bytes": 29603,
+            "sha256": "5f6be8a40d88a26ba086bedf7f8c1eb5d28c533b7eced35bc219b856eec800ff"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pr_context.py",
+            "bytes": 35008,
+            "sha256": "5fe9653f506c9b28291763d514d31a2ea5deb345007bafc200103052dd66d83b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/pr_lifecycle.py",
+            "bytes": 9538,
+            "sha256": "31eef8e400daa74e2ed40897d569e57059f1625ddc50f4c9edfb855dfae9af98"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/session_start.py",
+            "bytes": 2861,
+            "sha256": "7433b38a1d8c7fb46e5410f79bbbda5e7efcf597dcba376f3082461651913151"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_bootstrap_branch_docs.py",
+            "bytes": 4877,
+            "sha256": "dfa33d6685174b531fd760ad706ff518d56afb34cbe0515f8d7eff042eb1f69d"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_boundary_gate.py",
+            "bytes": 10202,
+            "sha256": "d53bc19557ecb61e014931d2281d49d0889a4d923b56ee38db796f2a5cfd3eda"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_boundary_packet.py",
+            "bytes": 19043,
+            "sha256": "c855d2c871665349e4a6f51c50fc94a71cf661b0550ce1d48f1c9ec954583a16"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_boundary_retry.py",
+            "bytes": 6958,
+            "sha256": "54b4059b4de3c866871c4d0bcb7d2884945d1028eb3c9e8eadaee36f4aa675ec"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_decision_triage.py",
+            "bytes": 1449,
+            "sha256": "d66248ff1874ff2923cf7464c8654216fcdbcc70a5bb284ce9635158525bd0ec"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_feature_final.py",
+            "bytes": 10118,
+            "sha256": "5f3bcb9de621d065c0da6d95fed1519f95d45a791f75fbdd975af3362a53b15e"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_merge_verified.py",
+            "bytes": 3919,
+            "sha256": "c23463a18dd6642ef3ea0f3b754f868f4849d53d0a407081bfac3a81e7812d20"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_pr_context.py",
+            "bytes": 13468,
+            "sha256": "2a5dd3f8178cc4cae4fed76c058f9b4cb47613fe05aa337e6488e73e4fd76992"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_pr_lifecycle.py",
+            "bytes": 13827,
+            "sha256": "f609043b4082bde0a8ad35579e074e55d1c57b9666ec13f6cb672b37a24863e3"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_sequential_workflow_acceptance.py",
+            "bytes": 18116,
+            "sha256": "de44a78be65626c5250748643989aefdb24b2238d8247770e7ab4d17f6eaac55"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_session_start.py",
+            "bytes": 3204,
+            "sha256": "acf09ce64f130cc59039bd1c6e5494d10993d1da0ee8ebd60f4100d603ddbe24"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_workflow_context.py",
+            "bytes": 11596,
+            "sha256": "5d721e6c8f549a252bb483b45b1f57594c2e61ed97c241673d568ad838711b86"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_workflow_doctor.py",
+            "bytes": 6800,
+            "sha256": "67ca57174dbedd611662e0c56fbdd97c9d5e619f44a153a05edc77c73f0b4fc2"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/tests/test_workflow_setup.py",
+            "bytes": 4229,
+            "sha256": "8ca8809f3d52566d5991a3eb23f84a366e7cff0924b47f3c4455741d8a17f6a7"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/validate_branch_docs.py",
+            "bytes": 2627,
+            "sha256": "791772b1dd6a5cbf396517b759947bd0d7813723f8b63e7b51ab877f5f5b9fb9"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/workflow_common.py",
+            "bytes": 3980,
+            "sha256": "695aade7e014563bf3912b753ce2311408e5b42b0659b523b86a46b8dbcb42bd"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/workflow_context.py",
+            "bytes": 16382,
+            "sha256": "ca818835a71a3171549d0855d256a5009f7343aee4c9dd33f4808cff3ec6e1e5"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/workflow_doctor.py",
+            "bytes": 16376,
+            "sha256": "1caa722e5fe06c7b3964ba502158678ec17a6f02f1ac1cdef6f09937c5b13d9c"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/scripts/workflow_setup.py",
+            "bytes": 3887,
+            "sha256": "ad3811eb14d0c13ba5478023d08993e019da751228aa2b22f073a3cd2be6d066"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/agentic-workflow.json",
+            "bytes": 428,
+            "sha256": "3c8b9a725c31882fd460305538e1f5de2b3d9bdca2b28a307e4154a9e12896f7"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/decisions.md",
+            "bytes": 112,
+            "sha256": "5d7c2c6a797eb072a7a33127b7b98d914d38bb9cd554f124bfe502d0d7dccb3c"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/design.md",
+            "bytes": 186,
+            "sha256": "cc3491d12dab4cd0f10562426dc5153ed9e568898c1508af7bbf4b4f853eac75"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/interview.md",
+            "bytes": 590,
+            "sha256": "ea240756a0d1dbdae24d7bfaf33b448de741ed60e004130fd9f6e61ede4c6320"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/issues.md",
+            "bytes": 326,
+            "sha256": "f21e2f883a1fc6023fdbadd20238e4987295da0267229603ec48ae9e49e61747"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/plan.md",
+            "bytes": 620,
+            "sha256": "bef6a31e88b266ad1475faba4dd6cdb84220f44c1166f16aff74f1f9b4c257e9"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/plugin-smoke/acceptance-answers.md",
+            "bytes": 1054,
+            "sha256": "3c9f86da2421947e83edfa397657e180df0dfc86fa768bdb7b781b36653b6f0d"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/plugin-smoke/greet.py",
+            "bytes": 633,
+            "sha256": "3c1711b0abfe4dc1caba0f047204baba203c7013e471f98f2ecbb5d13b0b5c0b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/plugin-smoke/test_greet.py",
+            "bytes": 725,
+            "sha256": "64151411aa54cc3d3069a36f5d754985c09ea84dae0cc343088943c12572bd40"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/scratchpad.md",
+            "bytes": 257,
+            "sha256": "742f11af0eeb0dfd85f0511abdbaedfe601d69d2f979259c78d8f6eb3afe022a"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/spec.md",
+            "bytes": 520,
+            "sha256": "8c278e85aa2c731803bd9c23c362d4a9b30d5466bb8e64ebcaf243d2565e46ce"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/resources/templates/tracker.md",
+            "bytes": 384,
+            "sha256": "f645c5f75c7bb2809bbcf0789e12ed8ef89f1e89cbb31a0627c41c639d414f3b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/checkpoint/SKILL.md",
+            "bytes": 1324,
+            "sha256": "61b697a23c60f8c97f00ebc0d198b1e285900219b7435b8d6cc6660e4ddea212"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/explain-diff/SKILL.md",
+            "bytes": 3911,
+            "sha256": "72472db87ed8a46f31ae5d4c3d0b72a581dd95787227f1b6f7d6a04f7a18093a"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/grill-me/SKILL.md",
+            "bytes": 3705,
+            "sha256": "88d6d2fb38f3ba95886e245baa242dd64acf95e9227ba47577393875a7750b14"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/handoff/SKILL.md",
+            "bytes": 1304,
+            "sha256": "05031907c8b9a5e2ddb7bb86ba8b4b424fa0c60defe8f8c8952cb38d3b3a73d3"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-audit/SKILL.md",
+            "bytes": 1961,
+            "sha256": "f61bddf181e4885784637badcd589a917729a6b5e77a55ef75cf07c9ed5c72b6"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-audit/agents/openai.yaml",
+            "bytes": 147,
+            "sha256": "31876b92317f5a6bb03c83ef6d3f20525a3121e494e0bb9aa1589f6f37f75466"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-extract/SKILL.md",
+            "bytes": 3864,
+            "sha256": "a7eb2208139f7969f5920f75f0a9b2764903b6b82cc5b652dfd06d18b46f76cf"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-extract/agents/openai.yaml",
+            "bytes": 196,
+            "sha256": "da9c16af38dd3c44bef78e2ff3a6d68d89a80ead88e6698a23e4f4f36496396b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-harvest/SKILL.md",
+            "bytes": 3105,
+            "sha256": "f042df9286b4bdc14fd107266c59b8bb0155cf2b54068a477e12a985be9a5aca"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-harvest/agents/openai.yaml",
+            "bytes": 202,
+            "sha256": "b107f90564a6a5b7aedad5b6e139fda194fc0d21bb93349087f8778d138673ea"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-help/SKILL.md",
+            "bytes": 5630,
+            "sha256": "8a83b2c944de58e10415a73a085cb845755973596c06798a94813c423e97ba07"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-help/agents/openai.yaml",
+            "bytes": 171,
+            "sha256": "fad11663491f5cbac8217125e47d1122c47bd78f7e514b99dfc6088dc8337e28"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-init/SKILL.md",
+            "bytes": 1570,
+            "sha256": "720a4b800a357fb9c58967ea67b08f8d149637d5df66eae66215ec71ef432bc7"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-init/agents/openai.yaml",
+            "bytes": 186,
+            "sha256": "1ac3476ad405b3d406877bd565a8007c5c83437d4df8b426f3b591bcc9199bde"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-learn/SKILL.md",
+            "bytes": 2951,
+            "sha256": "74047587fdb422bf53d4081f158b5742693ae24b86caa91f97246cf39455a414"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-learn/agents/openai.yaml",
+            "bytes": 176,
+            "sha256": "933ec84758b970f7e57beac9ea781e125ae55d2e150585b5544c817e2ef18c8b"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-promote/SKILL.md",
+            "bytes": 3764,
+            "sha256": "2dc7e35ac2ac35a702347e7d72cafee0b2fca776bbad1dfe3920da0f0954ab02"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-promote/agents/openai.yaml",
+            "bytes": 164,
+            "sha256": "746fdb7493ba519bd602fbebc37633aeaf2e07f8157dc87f6edd9250abc4a7f0"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-review/SKILL.md",
+            "bytes": 3236,
+            "sha256": "913ca78120a1a17c8f50dfd9efaafcabd6067d287407a3bf0903aa65b6f85ff2"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-review/agents/openai.yaml",
+            "bytes": 149,
+            "sha256": "25ad33952b8addfc697248b84fbe9c7357bfd1b7035de256f1b61692b274e3e8"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-status/SKILL.md",
+            "bytes": 2890,
+            "sha256": "abcd9ab85d6d51f3040fe491427b6ed717099bba3fd9d3a13f3a09b77d0d4bbe"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/pattern-status/agents/openai.yaml",
+            "bytes": 167,
+            "sha256": "907e07f667ecf3a52ac5c66970ee94fa0e21a8d1a63b2c1db54e84cf9e4f8b50"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/software-development-workflow/SKILL.md",
+            "bytes": 4105,
+            "sha256": "054c7eaa04c8e82a26ac2a4bf874bea4defd22522b974ce732ac0fe1534383a3"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-advisory-review/SKILL.md",
+            "bytes": 897,
+            "sha256": "5839f7080336b013c01a4252e4f2e8e72bcfceabc8bbb1f5f1a3f159bc229ad4"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-branch-bootstrap/SKILL.md",
+            "bytes": 1187,
+            "sha256": "4d377f3c4ba720505f245cfa97f4430e41df824dc7fce846bc68ac0bf8f42f78"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-branch-bootstrap/agents/openai.yaml",
+            "bytes": 172,
+            "sha256": "72a7f5ec10a3bbb778ce54905eab86491bd1da698ed034329e6a9c6309d7013e"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-commit/SKILL.md",
+            "bytes": 834,
+            "sha256": "5a037e1a3ee15765440e99b073243d2c47597f5d73ed6412cc7c2cde766a1411"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-commit/agents/openai.yaml",
+            "bytes": 166,
+            "sha256": "b7a16ad6696ad0124ae5283f77f1bff6d2fb21244511470ad8192ab39d92b243"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-decision-record/SKILL.md",
+            "bytes": 998,
+            "sha256": "7945049708b077c7347bdc1a7aa68e625a1cabbb877847dbf8d536579f40ccf6"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-decision-record/agents/openai.yaml",
+            "bytes": 171,
+            "sha256": "d0792bcd2cd518dacc20086c9e858adea44c0edb42e2a74299a3bad91aef39bb"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-decision-triage/SKILL.md",
+            "bytes": 867,
+            "sha256": "5ecea0a9ff7b92dce5f22616492681e2ae5c6e21c3b47d02316a627b892a2b8a"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-decision-triage/agents/openai.yaml",
+            "bytes": 163,
+            "sha256": "76444b4bf3fbfa7325cb53d0542b23e0ed45b536f1a4507d0d2bea810a11c592"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-design/SKILL.md",
+            "bytes": 735,
+            "sha256": "f194b15581df42f586d1477fb467762cc05b827dfefede169c9583a633a10853"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-doctor/SKILL.md",
+            "bytes": 1686,
+            "sha256": "1d6530028191d9e67e31906119fab26719d4eb300f45c50f5707464031218f02"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-doctor/agents/openai.yaml",
+            "bytes": 196,
+            "sha256": "aae12bd94be703ad51c9acf31ccc5bc52022d8a5229ac7ac2698e8fcc6bd7e79"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-judge/SKILL.md",
+            "bytes": 1083,
+            "sha256": "c60636d555385719eb877f35c8e6b85130530d755cb105cb19e25159e1ae29d1"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-judge/agents/openai.yaml",
+            "bytes": 158,
+            "sha256": "b148ec305267a2018818ebb6a75c441910ecc263fdccb79d17e1aadbd313d922"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-pr-boundary/SKILL.md",
+            "bytes": 3618,
+            "sha256": "fc7903581024fc9ca0515f42c71d8a9b03ac004b835c485bdf2208e1834a68df"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-pr-boundary/agents/openai.yaml",
+            "bytes": 159,
+            "sha256": "9eec1f8560f172f248a84d7fcae5da4bf34a9482618dee4d394b1d7ba5f4bf34"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-pr-review/SKILL.md",
+            "bytes": 981,
+            "sha256": "badfccec40de950d74f29bb72028ce89d2772a8eb41a1b90007ece8b0dd1cc53"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-pr-review/agents/openai.yaml",
+            "bytes": 147,
+            "sha256": "59aabf6ae57575cf99ff07b481645c7b4d3aa65ab90dfb084db9b0735b9519db"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-setup/SKILL.md",
+            "bytes": 1511,
+            "sha256": "aa852ae1b9f39f4e4ed527a1ee9b3c72d678275ad614b0fbb10089d7feb11163"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-setup/agents/openai.yaml",
+            "bytes": 208,
+            "sha256": "0d3d9eefc8820f3d431cd3b18b9aa3187364f0e8200e14af9168f63da59bf201"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-spec-draft/SKILL.md",
+            "bytes": 840,
+            "sha256": "d4a472ce6eaf13b8858121ad95afd63577866e1cb00a4b66ba7414813a38c488"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-spec-draft/agents/openai.yaml",
+            "bytes": 169,
+            "sha256": "e3080152ccfaedfb0202976acf6a6536fa84a63da77f43cd887127a27a3d7acd"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-spec-evaluate/SKILL.md",
+            "bytes": 1068,
+            "sha256": "0d415da304a3d397f9dd63fd6bb15b91bbcf0af33f5d927af28e63c888baba29"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-spec-evaluate/agents/openai.yaml",
+            "bytes": 181,
+            "sha256": "f8d99e67cc2d68a55763d88fdcfdbc14db150887edecb792499b78307e012cc9"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-spec-validate/SKILL.md",
+            "bytes": 808,
+            "sha256": "851945acc27b6d8562b845d2dbaab8c36a6af09cf64a2cebba7e849e3e087aa6"
+          },
+          {
+            "path": "plugins/claude/agentic-development-workflow/skills/workflow-spec-validate/agents/openai.yaml",
+            "bytes": 175,
+            "sha256": "1d6e5ddd3a52ed3dd9d9fcb2dcb0387ca9717c8f76f37abc47d992a6400514eb"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/.claude-plugin/plugin.json",
+            "bytes": 564,
+            "sha256": "47e2b767450e3df7e0150ec8effdab2dc8f2db9f08dd62cdcf8de85810528960"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/.workflow-build/provenance.json",
+            "bytes": 201,
+            "sha256": "b4ae0b8c047f81e232ee4b25e9f8a56de1bbd55539bd7b5097b1860d5749c340"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/.workflow-build/shared-files.json",
+            "bytes": 1880,
+            "sha256": "a279f510e9fd4c7ef22f5514ec725dd67cbb1e171cf2e62b3a9a11b4799d43d3"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/resources/whiteboard-test/agents/challenger.md",
+            "bytes": 1302,
+            "sha256": "36b98dbadc6bab47b0c27382f89890602d0c4f4b74e82308f8ac907b7969d095"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/resources/whiteboard-test/agents/defender-publisher.md",
+            "bytes": 4176,
+            "sha256": "c5ed5625b025f175cbb53156b1bd980ec6a04dee017feb90b29727c55b730ad3"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/resources/whiteboard-test/package.json",
+            "bytes": 42,
+            "sha256": "609158e6c5fbc237939fa3ddf7faab80ab690bdc0c8d584414a885130103c4e8"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/resources/whiteboard-test/schemas/challenges.schema.json",
+            "bytes": 1318,
+            "sha256": "92880b8ee562e31bd672de15c3a3bd7f3c022b7490a9b5797f78138c031e3627"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/resources/whiteboard-test/schemas/defense.schema.json",
+            "bytes": 3957,
+            "sha256": "47d744dc14e77d0db0b1d0221229856c73d070f2b07d4b757a894a95558a1c96"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/resources/whiteboard-test/schemas/stage-input.schema.json",
+            "bytes": 257,
+            "sha256": "7c60db19f5e1108bc6c4dc3ba0221014b38ea0afc87dcc0651932a0034e23a2e"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/resources/whiteboard-test/schemas/whiteboard-defense.schema.json",
+            "bytes": 2265,
+            "sha256": "dfd1ee75a25896bb7251812f6e576a9f0c377b42515ed481739dcbe89ec0806c"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/resources/whiteboard-test/validator.js",
+            "bytes": 18180,
+            "sha256": "b65f58a9d1f376cded1da735b8e52b0b98bcff5f2bf6fbfa182c12d29b09ff70"
+          },
+          {
+            "path": "plugins/claude/whiteboard-test/skills/whiteboard-test/SKILL.md",
+            "bytes": 655,
+            "sha256": "6bd151482198f57daca0174e2c44104f8abb32242aed393e47fbeccee40adf2d"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/.codex-plugin/plugin.json",
+            "bytes": 1183,
+            "sha256": "0aecba3ba00570f4d37a9c7fb0ce543d43860b88f56a078125b96c7ae5008645"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/.workflow-build/protocol-source.json",
+            "bytes": 7232,
+            "sha256": "3e2cdfcfa5106acdad4bb4a4eacc6f3f9d68714560cd0956b5aefc64cc22ab09"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/.workflow-build/provenance.json",
+            "bytes": 306,
+            "sha256": "257eb30da59fc6f61e229827380e7c8e0e17d1f16ad30dd91b461618b95064c8"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/.workflow-build/shared-files.json",
+            "bytes": 38878,
+            "sha256": "8b7a35576c5831e1dfa4f2add6b6074b6d613f4eb32d48acd44c44762835c738"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/hooks/hooks.json",
+            "bytes": 308,
+            "sha256": "8b4b8ce81ce4a8771be1e0f4cc6987b9fdc4bc0dba246a35f4f939f71e432829"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/PROTOCOL.md",
+            "bytes": 5411,
+            "sha256": "cb0a756c38a61d99819d8dfaa7df831e40cb3469acc77b6e1b81d95c06946013"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/RESOURCE-ROOT.md",
+            "bytes": 718,
+            "sha256": "a1f3a052bd7921fb8460a1ce78833e591485de5dae20aa7b179c0643222c0a47"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/agent-workflows/advisory/agent.md",
+            "bytes": 1920,
+            "sha256": "299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/agent-workflows/advisory/result.schema.json",
+            "bytes": 5232,
+            "sha256": "f863eb92f594143c402328bff6016a9b0205106f0735922a23145d182724a532"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/agent-workflows/advisory/stage-input.schema.json",
+            "bytes": 10125,
+            "sha256": "b7c5b74d8d3b6a1ca1cb355df540d5ff0e2e5255ad34a72b903838f8f68bf38f"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/agent-workflows/advisory/validator.js",
+            "bytes": 350,
+            "sha256": "629dc6ac07eed04ac477130aee91a031de6ecadeb345f24dc7a068925412e88e"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/agent-workflows/judge/agent.md",
+            "bytes": 943,
+            "sha256": "35c88550554ecb678ae0c9ca0c5785b832248e1a8eb303605811a3e96d05fb3a"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/agent-workflows/judge/compact-agent.md",
+            "bytes": 2438,
+            "sha256": "65abe1f251518d28972d0f13636b87f577f20537e59f032a85aafff05417d562"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/agent-workflows/judge/compact-stage-input.schema.json",
+            "bytes": 11808,
+            "sha256": "701be543bc267d4d31f150509196a4e1afd2960fc838808c4f1fa25a1252cca7"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/agent-workflows/judge/result.schema.json",
+            "bytes": 2567,
+            "sha256": "dacb40750cf509b6eca3cd5e6241032a80822973b217baa4be9c89f48439c98d"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/agent-workflows/judge/stage-input.schema.json",
+            "bytes": 1243,
+            "sha256": "d834f11a45fb2fb9c301c99484e3878733b9ead2f45e9d662b4df48a39f4ae6a"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/agent-workflows/judge/validator.js",
+            "bytes": 5086,
+            "sha256": "d64262f2822267b5f7de3caaf2c85c1e1f6395a905fe76d885f2164dd5c1ca09"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/agent-workflows/package.json",
+            "bytes": 42,
+            "sha256": "609158e6c5fbc237939fa3ddf7faab80ab690bdc0c8d584414a885130103c4e8"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/advisory-review.md",
+            "bytes": 6163,
+            "sha256": "3fd36d545b733bc5a638a87d64a1439372b93214c4e2d9df0e6bce2aa8784ca6"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/boundary-retry.md",
+            "bytes": 5383,
+            "sha256": "86276fca8730cf8feb048b0ac06500a1a82d78bbaadf5fe3385c9900575bcf6c"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/branch-bootstrap.md",
+            "bytes": 1753,
+            "sha256": "1108b3426352c6e7337086397da5d341b456c4c272d20320b9766e1dc4898d8b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/commit.md",
+            "bytes": 917,
+            "sha256": "d26f6892fe343b9f06688b92eeda85ada788307cd144aa65f16c9c71078cc363"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/completion-recovery.md",
+            "bytes": 4411,
+            "sha256": "2db64517fc656db2684401483f404f214feeb2ba9e2cf7beadd9d5d71cca4ac4"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/decision-record.md",
+            "bytes": 690,
+            "sha256": "c237ed362cfedc833a93cffd25aa90debc1dd33daace305e25aeeb2efe07aa81"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/decision-triage.md",
+            "bytes": 541,
+            "sha256": "d6e55f2e79385dc7749b68cc180a0b1ff06ba8ffd80dd5aa58350487d3a49049"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/design.md",
+            "bytes": 1201,
+            "sha256": "d6184ab9ab01e64c5679e347cb8c3fa7d174054d7cee8ac6900dc8d5ed35b865"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/judge.md",
+            "bytes": 2531,
+            "sha256": "2ee0b53df5e35ad934923ebeeb1681f5c3b345b2f739cc9a2650ab3e38cc2372"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/pattern-audit.md",
+            "bytes": 1232,
+            "sha256": "912e26924e6b43f05fe0f0591059d0a11e98912736a5f8ff247705519c6b229d"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/pattern-extract.md",
+            "bytes": 3079,
+            "sha256": "e675499c90657b032eb1f5dbb879a25156154b287ca7f6348b30febcb2510aa0"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/pattern-harvest.md",
+            "bytes": 2573,
+            "sha256": "904a6cdbb0fa3c3cabe4051c0c3dcdbb165257b4894e23fa70881aa76bdc4e33"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/pattern-help.md",
+            "bytes": 1576,
+            "sha256": "c4b7a417f856b7ea10652aa7dfc48bfd8b6ab6fa4369f1564be4036314c83412"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/pattern-init.md",
+            "bytes": 979,
+            "sha256": "7f471a4b295bddf4b280d19cb8a8112a7a601f306a0e117682c12a003811ddb1"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/pattern-learn.md",
+            "bytes": 2450,
+            "sha256": "bfc036c3f6949023a2733888213e113c1bbf6415b2839605cdd8fb6170418186"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/pattern-promote.md",
+            "bytes": 3450,
+            "sha256": "c4b66db553b46ad271e861129c2843885b202729b8da1b91f41173ce78bf4e2a"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/pattern-review.md",
+            "bytes": 2465,
+            "sha256": "ad36bc207ad70839ed999d8ef31aae996fd28568ffffa0d846680adb0e529474"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/pattern-status.md",
+            "bytes": 2431,
+            "sha256": "f780dbc68d5778d1fe36c86629ce4d7eaf5a6cc5304a5573a90425e52797c6b1"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/plan.md",
+            "bytes": 1341,
+            "sha256": "1219cbbdc2099dd8727ae67993d0b77997cc389d3aad27acb4ca49f86d90688e"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/pr-boundary.md",
+            "bytes": 7839,
+            "sha256": "dde47ae07536fafd258eb46916521e28cff1dea1dc8f0618dd71d29b741a856a"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/pr-review.md",
+            "bytes": 1851,
+            "sha256": "ce45759766660e288d369c194f6a3d4431fc2a89c4dfce81ac0b2e19974a85f3"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/spec-draft.md",
+            "bytes": 1863,
+            "sha256": "75db76410239d14fa70cbde192aa5935207215151549625f5b566b9b2d926d1c"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/spec-evaluate.md",
+            "bytes": 1627,
+            "sha256": "75062cf0f7fe7f16502d14a30eac5969c93fa52c361964d3d23e9d44c6e39312"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/commands/spec-validate.md",
+            "bytes": 1400,
+            "sha256": "6dd70fa43c89712dbfe42ea4892ac4c9cb7c037c9e452940e5bb4672d6409aeb"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/policy/COMPLETION-RECOVERY.md",
+            "bytes": 4922,
+            "sha256": "9473989c93d97d5e0c542ba393fca3d0c9592dbace68dac15c249b4d6dbbfc77"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/policy/EVIDENCE-PACKETS.md",
+            "bytes": 7406,
+            "sha256": "2a33f6f8b73816eb790198283c8bd73b72d12430fe0caacd08d1fadf2f3ca524"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/policy/STANDARDS.md",
+            "bytes": 5281,
+            "sha256": "72706ffad1ee140ea43b4617a471f7d247c816f0b6d1aeb2d9c847ebc7c4db7b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/policy/WORKFLOW.md",
+            "bytes": 24136,
+            "sha256": "2d9abf4840e1e2bc26d8f7acc87fc28474a08afeffd586af535fb0ceff70c8bb"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/policy/WORKFLOW.mermaid",
+            "bytes": 6379,
+            "sha256": "c01022750e0ce07d60cf0dff085ff45efff87a93f4dd3687e63693ba32e42a2b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/policy/WORKSPACE-CONTEXT.md",
+            "bytes": 8749,
+            "sha256": "a67e238e97a84ee883f86582af7e4eb3f73939c52aa153bc4615226dc833a774"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/policy/profiles/portable-core.md",
+            "bytes": 644,
+            "sha256": "1743127407850e1a44a096f0e80046416dc3e1a66c51f2a412d187c60944b23f"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/policy/profiles/quality-code.md",
+            "bytes": 1615,
+            "sha256": "c13d1b21d5fcefc229247b8321668f368e66ef61690146bc12136f6df9007c2c"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/advisory-contract.js",
+            "bytes": 18477,
+            "sha256": "8d14866019acd5eb3834a5418d040612f0a30dcad76610cd5dfc0cebf0bdbd88"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/advisory-history.js",
+            "bytes": 6171,
+            "sha256": "abd982409ce9c6608dfbee0c91997e3f957a86702939640d1d9945a3b1c76f9b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/advisory-inputs.js",
+            "bytes": 14229,
+            "sha256": "85d30ea6c5ddf55868fa7d47b0edd446006ef25e63e2372a3c3c7b51e6ebc3ee"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/advisory-storage.js",
+            "bytes": 7008,
+            "sha256": "a14850f03c0e4f344352a4d55b60947e786d53b096e3c45c19f2c5107c79bbfb"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/advisory.js",
+            "bytes": 31991,
+            "sha256": "1cf38e99ba94b0993ff9c81f09981527d851da49a21f3a61ccc195b5eab772ab"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/agent-workflow-resources.js",
+            "bytes": 1880,
+            "sha256": "2406dd24946abc8d75c9a2f08adb69e4203652e4643a23d5d81b6c70ee1f2b83"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/agent-workflow-runtime.js",
+            "bytes": 9778,
+            "sha256": "17d8fe6469b279d7f1a4fc241a71229ebaa10d1040f2ecb131c5b79f9bddcd59"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/agent-workflow-scheduler.js",
+            "bytes": 5288,
+            "sha256": "8a58b773fccf0f2e9974532235d323ffcb58b701dc332d26d9c05f361d6bb6c3"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/agent-workflow-service.js",
+            "bytes": 14064,
+            "sha256": "37c640bae4cbd4efa54c0d4dd486540a81b84a2d40079825e65911077f460825"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/agent-workflow.js",
+            "bytes": 5999,
+            "sha256": "38f78164de28dc98293d35736aea11350c0b38d5c8496873feaea3c97fdc5156"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/artifact-publisher.js",
+            "bytes": 2997,
+            "sha256": "f3d1d7ddb68091c819d25aff104dc444f04fc2d6a46618520831ccbbba354b8a"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/boundary-retry.js",
+            "bytes": 23979,
+            "sha256": "59b95a8cdd00664343584f2ef26f7d3d399ee21a5691c0356dedb7c67e1c4932"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/boundary.js",
+            "bytes": 8814,
+            "sha256": "27298745b6853834cff2b8fc0b68c57b63e6faa9a69faba2157084995d85b2de"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/changes.js",
+            "bytes": 7159,
+            "sha256": "ea8fdc226c01a9ae2ec62a0f8ce5f22565ead266f13c7d7d5fd1df7b7136de59"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/compatibility.js",
+            "bytes": 2369,
+            "sha256": "dcd0546a9907d1fd16e83d1c8b3f6abd8d56961ef1046504f6294749d2c7b333"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/constants.js",
+            "bytes": 2095,
+            "sha256": "aad1248dfbd9c553567803abfe5d7c61f260b86be84a575bd6f2debd2c501878"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/context.js",
+            "bytes": 12080,
+            "sha256": "2cea98175760133ac3bfe5f2f9cb8a4d9ef47882e276537938ebedbdcba3cec7"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/errors.js",
+            "bytes": 897,
+            "sha256": "adec91e206d3af2387bb2c85820bee4ea4fd490ed881ce5626deece230afcda5"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/execution-preparation.js",
+            "bytes": 4692,
+            "sha256": "4e6162f96565301f8b4b45d4040787031a58c4eb42ee464f60b7237b6beaa344"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/feature.js",
+            "bytes": 15276,
+            "sha256": "4ad9bcf088dfe7ccc4c318eab54acfd5c9b755246c794a8552fae28b68d70b55"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/finalization.js",
+            "bytes": 11029,
+            "sha256": "938dd4ccfe6938d08731eec89a2582ba360841feeae7f601dea3f5a7b884beba"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/fingerprint.js",
+            "bytes": 1437,
+            "sha256": "691d41ac4633059180b0fb910adfe6672a9cfc3add418c1386b1ad0a0647759f"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/generated-artifact-validation.js",
+            "bytes": 9080,
+            "sha256": "dc8706b45f5e255a8075bb4cfd6bcfdc3bee33dea915e2bd86c855e523d967fe"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/graph.js",
+            "bytes": 7771,
+            "sha256": "aaa0a3bfaec8ffa1a587c2cad223c9837c60d9715c019f18181112b42d5acad2"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/guards.js",
+            "bytes": 2476,
+            "sha256": "9185748b4d8e8f5167086e5abc8d39592a3934dca80cc77d999fac136d6f7705"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/index.js",
+            "bytes": 1258,
+            "sha256": "61d5a8505c6c821be8f51d68931a602337c30506ade49c3f75248069444895a5"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/journal.js",
+            "bytes": 6531,
+            "sha256": "999f6a30c25f9e4641a4c7067abe9eb0e3dab59083918b7d659c76a936971a89"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/json-schema.js",
+            "bytes": 3984,
+            "sha256": "f8ecf7ea29682db2fded10730222d961270273af86ce335024cf217b5e7cd243"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/local-agent-adapters.js",
+            "bytes": 9873,
+            "sha256": "c5f2f17aca97bc3a42a1d7a0daa2eebea192b178d09011b32d6a2ed350d89af7"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/model.js",
+            "bytes": 18725,
+            "sha256": "0f92a0f5714388a4f5d0e19508368ce714ee676e0dc51f4daf67ec43e8c63db9"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/model/default-workflow-policy.json",
+            "bytes": 2322,
+            "sha256": "30ba3484c386ed5a394de9250b846a4c2a20aec3fc8faa2a93344f7ac5e2a7c4"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/model/workflow-model.json",
+            "bytes": 33258,
+            "sha256": "a8bbfc7402f82d622c8b77417db99c0d4217b183ffa8d557a265fc90deebf080"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/module-runtime.js",
+            "bytes": 8571,
+            "sha256": "c4c4432d31b42e4b25e12ecd9942d3a15eb605be7b954864909bdd829c814226"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/modules.js",
+            "bytes": 36473,
+            "sha256": "2cbac57ee4f60e33375e05c05b3281b551460ef788d3270b6463f2136e531a07"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/observer.js",
+            "bytes": 13757,
+            "sha256": "b0f959fc4a817ee3a8261354fb2160548b7490bd4d35b5a64f03f35175e73b42"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/package.json",
+            "bytes": 173,
+            "sha256": "b180641870fee59509d8a4f9111fe682c7e5b45e016baa14a189557d80320a77"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/pinned-snapshot.js",
+            "bytes": 12685,
+            "sha256": "806b01da8386dc972a6c3f963f731ae90443dfe7b4419119bc99bc192b7dcbcd"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/plugin-adapter.js",
+            "bytes": 8942,
+            "sha256": "15cc2be69ac9dbd828bbc8bf51fb543f064d31af9bfa4e94238b70cbc59edd74"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/projection.js",
+            "bytes": 48303,
+            "sha256": "0d82b796bfa76d4a9dd0c8f0830e15d79e1b7e757dc21b139c50852df0d78ded"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/python-guards.js",
+            "bytes": 2815,
+            "sha256": "ce4e4ac1a7e5e31534c27fae332d7bd5e99c03128ca871ae7cfa41a26146afb4"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/recovery-contract.js",
+            "bytes": 14958,
+            "sha256": "0b02fa5d552600b9a390aec97f42459bc0feb6b7d33ba0071b065a59ecf52d25"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/recovery.js",
+            "bytes": 17702,
+            "sha256": "60f6d8b532be650d6f3bb27aa2f4113854f076280a30137fafbc429164363e15"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/result.js",
+            "bytes": 2502,
+            "sha256": "e1530a683d25bd7250c14d5e5c849ac7862cfecedc35d8c81080360ed0f75ce5"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/review-input.js",
+            "bytes": 16270,
+            "sha256": "7bef37b18d57b4a740ed151ecc86cd7437192e03fe13bc41a231f01f64a99ae2"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/snapshot.js",
+            "bytes": 63513,
+            "sha256": "43bc5a1225f1c1c7e9d3a06c9603cc7396602a0fb3489f406f68bf1d9f937745"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/storage.js",
+            "bytes": 1964,
+            "sha256": "736d68ac8a56441d9b033273bb2bea36cd2073d8ca068a59313796c29091ad48"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/protocol/transitions.js",
+            "bytes": 16932,
+            "sha256": "d61f475d4e4199f5b3810a422ff0f2b46350c2d71c5c1d3177efa8b64bf6fc1c"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/release/release-conductor-artifact.js",
+            "bytes": 3738,
+            "sha256": "1b9d6407cf9f073c39a4a2f8d43679dfff6b14fcc65cfebdea923fe9b8baf4f8"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/release/release-conductor-discovery.js",
+            "bytes": 4252,
+            "sha256": "81d70a8af08b564384e0a9e4d9c839275025dc2a0ab25055012b77fe55371d3b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/release/release-conductor-state.js",
+            "bytes": 13128,
+            "sha256": "dbb2cebe59e6b639048de9b0348d5e36ab330b0ef55fc799a910f8432437262a"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/bootstrap_branch_docs.py",
+            "bytes": 4198,
+            "sha256": "c0bad19b455740efabeb2a3b1a4618d6451cb8ab41d3affb89862d8fbfe3a65a"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/boundary_context.py",
+            "bytes": 9835,
+            "sha256": "d8d03298d473a094aa6b86ceb3dabb21aaf0795850ff705c1c92f7ce81bdabda"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/boundary_gate.py",
+            "bytes": 7655,
+            "sha256": "6fa8f52c66546300eb9a44a19a3d256503c6855792fa5f25b329cc80935eb967"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/boundary_packet.py",
+            "bytes": 31772,
+            "sha256": "a3a810e78960aed89ef4f3fee1addc67c3e6d6d5159fc7d8ef5a21569a5ebb8b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/boundary_retry.py",
+            "bytes": 2620,
+            "sha256": "ccf8ca1d18beb11cef2789af398a51df200ae973250a98206f4c36a19cfbb99d"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/decision_record.py",
+            "bytes": 1726,
+            "sha256": "fbfa353fbf7d8daa86553b37839a16c74fe6dcb101e34d5cc53ee462304bf1ea"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/decision_triage.py",
+            "bytes": 2405,
+            "sha256": "fb4eec690c124320bd2ad25a6312eb6260a0a534ef256604cfb8f0545eb50525"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/feature_final.py",
+            "bytes": 11964,
+            "sha256": "792b6723928fc1f80be1b88ce6939f37221be75c506caabd2530ea7f23fd4eac"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/gate_triage.py",
+            "bytes": 1516,
+            "sha256": "efb4c7eb5c1a4638e4b4cc9769c830cd8950435ca3bf9c1464fe55adec0872ab"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/lint_issues.py",
+            "bytes": 2801,
+            "sha256": "1d618b2a25f6ca8dedd4428e828812b2848555c8317cf27142263197e67b0334"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/lint_spec.py",
+            "bytes": 2612,
+            "sha256": "66b3d9f5aadfda76f888a732d7d34600ca91d65d9f423fa4c0e7c9738228a6f6"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/lint_tracker.py",
+            "bytes": 2403,
+            "sha256": "ee8728dc91223473ffc2a0439e701957cece0f3e560f9959e5e3a11679b2a255"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/merge_verified.py",
+            "bytes": 5373,
+            "sha256": "afbb44ce40a020e151ff6fa11b322c6ff23ed185c06ba6ca0e6b5bf725357d74"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pattern/__init__.py",
+            "bytes": 56,
+            "sha256": "449eaa9344754df3b61efc2a992d8d3a495f1aaa75e3594afbf50430de2c5c2b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pattern/buckets.py",
+            "bytes": 1509,
+            "sha256": "c874ad298a3ca5f9c78ef20468b202ab930a874e800d5da544ef1485daa6df41"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pattern/git_context.py",
+            "bytes": 2911,
+            "sha256": "df1139c82a12de2acf898c69b1cbef19a0b965b72bc28013b4610bb15e783e1c"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pattern/harvest.py",
+            "bytes": 27804,
+            "sha256": "357c1faa39a1d0826acd6412115f78d06d90d3bff4816f425b9d4c78318608df"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pattern/learning_events.py",
+            "bytes": 3293,
+            "sha256": "5be23a3de0758fc8e53357f0c4d162b69dd20eadbaf7d1b795b79a340537ae96"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pattern/rules.py",
+            "bytes": 6109,
+            "sha256": "3c8c560608bfd5b386221bddcfbaae791eaadeaf67e852ba034ccecb9573c053"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pattern/simple_yaml.py",
+            "bytes": 7878,
+            "sha256": "9600e34daf079df59af0a12035486a77d57be3d3d3dcb841a75e1115ef62dbbb"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pattern/status.py",
+            "bytes": 15600,
+            "sha256": "5907a9cb560af54d0f8945cde1af0d2120b34e336edf4a2a9d21f12fafa15f6c"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pattern/tests/test_pattern_helpers.py",
+            "bytes": 44908,
+            "sha256": "a008788235dccd334483b0530e43b883587870a259aa332ee4d1f26d0d3af43f"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pattern_tool.py",
+            "bytes": 29603,
+            "sha256": "5f6be8a40d88a26ba086bedf7f8c1eb5d28c533b7eced35bc219b856eec800ff"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pr_context.py",
+            "bytes": 35008,
+            "sha256": "5fe9653f506c9b28291763d514d31a2ea5deb345007bafc200103052dd66d83b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/pr_lifecycle.py",
+            "bytes": 9538,
+            "sha256": "31eef8e400daa74e2ed40897d569e57059f1625ddc50f4c9edfb855dfae9af98"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/session_start.py",
+            "bytes": 2861,
+            "sha256": "7433b38a1d8c7fb46e5410f79bbbda5e7efcf597dcba376f3082461651913151"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_bootstrap_branch_docs.py",
+            "bytes": 4877,
+            "sha256": "dfa33d6685174b531fd760ad706ff518d56afb34cbe0515f8d7eff042eb1f69d"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_boundary_gate.py",
+            "bytes": 10202,
+            "sha256": "d53bc19557ecb61e014931d2281d49d0889a4d923b56ee38db796f2a5cfd3eda"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_boundary_packet.py",
+            "bytes": 19043,
+            "sha256": "c855d2c871665349e4a6f51c50fc94a71cf661b0550ce1d48f1c9ec954583a16"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_boundary_retry.py",
+            "bytes": 6958,
+            "sha256": "54b4059b4de3c866871c4d0bcb7d2884945d1028eb3c9e8eadaee36f4aa675ec"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_decision_triage.py",
+            "bytes": 1449,
+            "sha256": "d66248ff1874ff2923cf7464c8654216fcdbcc70a5bb284ce9635158525bd0ec"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_feature_final.py",
+            "bytes": 10118,
+            "sha256": "5f3bcb9de621d065c0da6d95fed1519f95d45a791f75fbdd975af3362a53b15e"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_merge_verified.py",
+            "bytes": 3919,
+            "sha256": "c23463a18dd6642ef3ea0f3b754f868f4849d53d0a407081bfac3a81e7812d20"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_pr_context.py",
+            "bytes": 13468,
+            "sha256": "2a5dd3f8178cc4cae4fed76c058f9b4cb47613fe05aa337e6488e73e4fd76992"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_pr_lifecycle.py",
+            "bytes": 13827,
+            "sha256": "f609043b4082bde0a8ad35579e074e55d1c57b9666ec13f6cb672b37a24863e3"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_sequential_workflow_acceptance.py",
+            "bytes": 18116,
+            "sha256": "de44a78be65626c5250748643989aefdb24b2238d8247770e7ab4d17f6eaac55"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_session_start.py",
+            "bytes": 3204,
+            "sha256": "acf09ce64f130cc59039bd1c6e5494d10993d1da0ee8ebd60f4100d603ddbe24"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_workflow_context.py",
+            "bytes": 11596,
+            "sha256": "5d721e6c8f549a252bb483b45b1f57594c2e61ed97c241673d568ad838711b86"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_workflow_doctor.py",
+            "bytes": 6800,
+            "sha256": "67ca57174dbedd611662e0c56fbdd97c9d5e619f44a153a05edc77c73f0b4fc2"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/tests/test_workflow_setup.py",
+            "bytes": 4229,
+            "sha256": "8ca8809f3d52566d5991a3eb23f84a366e7cff0924b47f3c4455741d8a17f6a7"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/validate_branch_docs.py",
+            "bytes": 2627,
+            "sha256": "791772b1dd6a5cbf396517b759947bd0d7813723f8b63e7b51ab877f5f5b9fb9"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/workflow_common.py",
+            "bytes": 3980,
+            "sha256": "695aade7e014563bf3912b753ce2311408e5b42b0659b523b86a46b8dbcb42bd"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/workflow_context.py",
+            "bytes": 16382,
+            "sha256": "ca818835a71a3171549d0855d256a5009f7343aee4c9dd33f4808cff3ec6e1e5"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/workflow_doctor.py",
+            "bytes": 16376,
+            "sha256": "1caa722e5fe06c7b3964ba502158678ec17a6f02f1ac1cdef6f09937c5b13d9c"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/scripts/workflow_setup.py",
+            "bytes": 3887,
+            "sha256": "ad3811eb14d0c13ba5478023d08993e019da751228aa2b22f073a3cd2be6d066"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/agentic-workflow.json",
+            "bytes": 428,
+            "sha256": "3c8b9a725c31882fd460305538e1f5de2b3d9bdca2b28a307e4154a9e12896f7"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/decisions.md",
+            "bytes": 112,
+            "sha256": "5d7c2c6a797eb072a7a33127b7b98d914d38bb9cd554f124bfe502d0d7dccb3c"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/design.md",
+            "bytes": 186,
+            "sha256": "cc3491d12dab4cd0f10562426dc5153ed9e568898c1508af7bbf4b4f853eac75"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/interview.md",
+            "bytes": 590,
+            "sha256": "ea240756a0d1dbdae24d7bfaf33b448de741ed60e004130fd9f6e61ede4c6320"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/issues.md",
+            "bytes": 326,
+            "sha256": "f21e2f883a1fc6023fdbadd20238e4987295da0267229603ec48ae9e49e61747"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/plan.md",
+            "bytes": 620,
+            "sha256": "bef6a31e88b266ad1475faba4dd6cdb84220f44c1166f16aff74f1f9b4c257e9"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/plugin-smoke/acceptance-answers.md",
+            "bytes": 1054,
+            "sha256": "3c9f86da2421947e83edfa397657e180df0dfc86fa768bdb7b781b36653b6f0d"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/plugin-smoke/greet.py",
+            "bytes": 633,
+            "sha256": "3c1711b0abfe4dc1caba0f047204baba203c7013e471f98f2ecbb5d13b0b5c0b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/plugin-smoke/test_greet.py",
+            "bytes": 725,
+            "sha256": "64151411aa54cc3d3069a36f5d754985c09ea84dae0cc343088943c12572bd40"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/scratchpad.md",
+            "bytes": 257,
+            "sha256": "742f11af0eeb0dfd85f0511abdbaedfe601d69d2f979259c78d8f6eb3afe022a"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/spec.md",
+            "bytes": 520,
+            "sha256": "8c278e85aa2c731803bd9c23c362d4a9b30d5466bb8e64ebcaf243d2565e46ce"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/resources/templates/tracker.md",
+            "bytes": 384,
+            "sha256": "f645c5f75c7bb2809bbcf0789e12ed8ef89f1e89cbb31a0627c41c639d414f3b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/checkpoint/SKILL.md",
+            "bytes": 1324,
+            "sha256": "61b697a23c60f8c97f00ebc0d198b1e285900219b7435b8d6cc6660e4ddea212"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/explain-diff/SKILL.md",
+            "bytes": 3911,
+            "sha256": "72472db87ed8a46f31ae5d4c3d0b72a581dd95787227f1b6f7d6a04f7a18093a"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/grill-me/SKILL.md",
+            "bytes": 3705,
+            "sha256": "88d6d2fb38f3ba95886e245baa242dd64acf95e9227ba47577393875a7750b14"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/handoff/SKILL.md",
+            "bytes": 1304,
+            "sha256": "05031907c8b9a5e2ddb7bb86ba8b4b424fa0c60defe8f8c8952cb38d3b3a73d3"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-audit/SKILL.md",
+            "bytes": 1961,
+            "sha256": "f61bddf181e4885784637badcd589a917729a6b5e77a55ef75cf07c9ed5c72b6"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-audit/agents/openai.yaml",
+            "bytes": 147,
+            "sha256": "31876b92317f5a6bb03c83ef6d3f20525a3121e494e0bb9aa1589f6f37f75466"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-extract/SKILL.md",
+            "bytes": 3864,
+            "sha256": "a7eb2208139f7969f5920f75f0a9b2764903b6b82cc5b652dfd06d18b46f76cf"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-extract/agents/openai.yaml",
+            "bytes": 196,
+            "sha256": "da9c16af38dd3c44bef78e2ff3a6d68d89a80ead88e6698a23e4f4f36496396b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-harvest/SKILL.md",
+            "bytes": 3105,
+            "sha256": "f042df9286b4bdc14fd107266c59b8bb0155cf2b54068a477e12a985be9a5aca"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-harvest/agents/openai.yaml",
+            "bytes": 202,
+            "sha256": "b107f90564a6a5b7aedad5b6e139fda194fc0d21bb93349087f8778d138673ea"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-help/SKILL.md",
+            "bytes": 5630,
+            "sha256": "8a83b2c944de58e10415a73a085cb845755973596c06798a94813c423e97ba07"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-help/agents/openai.yaml",
+            "bytes": 171,
+            "sha256": "fad11663491f5cbac8217125e47d1122c47bd78f7e514b99dfc6088dc8337e28"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-init/SKILL.md",
+            "bytes": 1570,
+            "sha256": "720a4b800a357fb9c58967ea67b08f8d149637d5df66eae66215ec71ef432bc7"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-init/agents/openai.yaml",
+            "bytes": 186,
+            "sha256": "1ac3476ad405b3d406877bd565a8007c5c83437d4df8b426f3b591bcc9199bde"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-learn/SKILL.md",
+            "bytes": 2951,
+            "sha256": "74047587fdb422bf53d4081f158b5742693ae24b86caa91f97246cf39455a414"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-learn/agents/openai.yaml",
+            "bytes": 176,
+            "sha256": "933ec84758b970f7e57beac9ea781e125ae55d2e150585b5544c817e2ef18c8b"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-promote/SKILL.md",
+            "bytes": 3764,
+            "sha256": "2dc7e35ac2ac35a702347e7d72cafee0b2fca776bbad1dfe3920da0f0954ab02"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-promote/agents/openai.yaml",
+            "bytes": 164,
+            "sha256": "746fdb7493ba519bd602fbebc37633aeaf2e07f8157dc87f6edd9250abc4a7f0"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-review/SKILL.md",
+            "bytes": 3236,
+            "sha256": "913ca78120a1a17c8f50dfd9efaafcabd6067d287407a3bf0903aa65b6f85ff2"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-review/agents/openai.yaml",
+            "bytes": 149,
+            "sha256": "25ad33952b8addfc697248b84fbe9c7357bfd1b7035de256f1b61692b274e3e8"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-status/SKILL.md",
+            "bytes": 2890,
+            "sha256": "abcd9ab85d6d51f3040fe491427b6ed717099bba3fd9d3a13f3a09b77d0d4bbe"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/pattern-status/agents/openai.yaml",
+            "bytes": 167,
+            "sha256": "907e07f667ecf3a52ac5c66970ee94fa0e21a8d1a63b2c1db54e84cf9e4f8b50"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/software-development-workflow/SKILL.md",
+            "bytes": 4105,
+            "sha256": "054c7eaa04c8e82a26ac2a4bf874bea4defd22522b974ce732ac0fe1534383a3"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-advisory-review/SKILL.md",
+            "bytes": 897,
+            "sha256": "5839f7080336b013c01a4252e4f2e8e72bcfceabc8bbb1f5f1a3f159bc229ad4"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-branch-bootstrap/SKILL.md",
+            "bytes": 1187,
+            "sha256": "4d377f3c4ba720505f245cfa97f4430e41df824dc7fce846bc68ac0bf8f42f78"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-branch-bootstrap/agents/openai.yaml",
+            "bytes": 172,
+            "sha256": "72a7f5ec10a3bbb778ce54905eab86491bd1da698ed034329e6a9c6309d7013e"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-commit/SKILL.md",
+            "bytes": 834,
+            "sha256": "5a037e1a3ee15765440e99b073243d2c47597f5d73ed6412cc7c2cde766a1411"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-commit/agents/openai.yaml",
+            "bytes": 166,
+            "sha256": "b7a16ad6696ad0124ae5283f77f1bff6d2fb21244511470ad8192ab39d92b243"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-decision-record/SKILL.md",
+            "bytes": 998,
+            "sha256": "7945049708b077c7347bdc1a7aa68e625a1cabbb877847dbf8d536579f40ccf6"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-decision-record/agents/openai.yaml",
+            "bytes": 171,
+            "sha256": "d0792bcd2cd518dacc20086c9e858adea44c0edb42e2a74299a3bad91aef39bb"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-decision-triage/SKILL.md",
+            "bytes": 867,
+            "sha256": "5ecea0a9ff7b92dce5f22616492681e2ae5c6e21c3b47d02316a627b892a2b8a"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-decision-triage/agents/openai.yaml",
+            "bytes": 163,
+            "sha256": "76444b4bf3fbfa7325cb53d0542b23e0ed45b536f1a4507d0d2bea810a11c592"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-design/SKILL.md",
+            "bytes": 735,
+            "sha256": "f194b15581df42f586d1477fb467762cc05b827dfefede169c9583a633a10853"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-doctor/SKILL.md",
+            "bytes": 1686,
+            "sha256": "1d6530028191d9e67e31906119fab26719d4eb300f45c50f5707464031218f02"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-doctor/agents/openai.yaml",
+            "bytes": 196,
+            "sha256": "aae12bd94be703ad51c9acf31ccc5bc52022d8a5229ac7ac2698e8fcc6bd7e79"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-judge/SKILL.md",
+            "bytes": 1083,
+            "sha256": "c60636d555385719eb877f35c8e6b85130530d755cb105cb19e25159e1ae29d1"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-judge/agents/openai.yaml",
+            "bytes": 158,
+            "sha256": "b148ec305267a2018818ebb6a75c441910ecc263fdccb79d17e1aadbd313d922"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-pr-boundary/SKILL.md",
+            "bytes": 3618,
+            "sha256": "fc7903581024fc9ca0515f42c71d8a9b03ac004b835c485bdf2208e1834a68df"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-pr-boundary/agents/openai.yaml",
+            "bytes": 159,
+            "sha256": "9eec1f8560f172f248a84d7fcae5da4bf34a9482618dee4d394b1d7ba5f4bf34"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-pr-review/SKILL.md",
+            "bytes": 981,
+            "sha256": "badfccec40de950d74f29bb72028ce89d2772a8eb41a1b90007ece8b0dd1cc53"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-pr-review/agents/openai.yaml",
+            "bytes": 147,
+            "sha256": "59aabf6ae57575cf99ff07b481645c7b4d3aa65ab90dfb084db9b0735b9519db"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-setup/SKILL.md",
+            "bytes": 1511,
+            "sha256": "aa852ae1b9f39f4e4ed527a1ee9b3c72d678275ad614b0fbb10089d7feb11163"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-setup/agents/openai.yaml",
+            "bytes": 208,
+            "sha256": "0d3d9eefc8820f3d431cd3b18b9aa3187364f0e8200e14af9168f63da59bf201"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-spec-draft/SKILL.md",
+            "bytes": 840,
+            "sha256": "d4a472ce6eaf13b8858121ad95afd63577866e1cb00a4b66ba7414813a38c488"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-spec-draft/agents/openai.yaml",
+            "bytes": 169,
+            "sha256": "e3080152ccfaedfb0202976acf6a6536fa84a63da77f43cd887127a27a3d7acd"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-spec-evaluate/SKILL.md",
+            "bytes": 1068,
+            "sha256": "0d415da304a3d397f9dd63fd6bb15b91bbcf0af33f5d927af28e63c888baba29"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-spec-evaluate/agents/openai.yaml",
+            "bytes": 181,
+            "sha256": "f8d99e67cc2d68a55763d88fdcfdbc14db150887edecb792499b78307e012cc9"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-spec-validate/SKILL.md",
+            "bytes": 808,
+            "sha256": "851945acc27b6d8562b845d2dbaab8c36a6af09cf64a2cebba7e849e3e087aa6"
+          },
+          {
+            "path": "plugins/codex/agentic-development-workflow/skills/workflow-spec-validate/agents/openai.yaml",
+            "bytes": 175,
+            "sha256": "1d6e5ddd3a52ed3dd9d9fcb2dcb0387ca9717c8f76f37abc47d992a6400514eb"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/.codex-plugin/plugin.json",
+            "bytes": 1090,
+            "sha256": "f8f7127219f3ba229da3d3c1be588c2374a63a83807db2f2a1e68426fa5246e2"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/.workflow-build/provenance.json",
+            "bytes": 200,
+            "sha256": "f44d17cf60a1e2bea67148f137c9805b046c1f7977bc7a4c987013be96e2a42f"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/.workflow-build/shared-files.json",
+            "bytes": 1880,
+            "sha256": "a279f510e9fd4c7ef22f5514ec725dd67cbb1e171cf2e62b3a9a11b4799d43d3"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/resources/whiteboard-test/agents/challenger.md",
+            "bytes": 1302,
+            "sha256": "36b98dbadc6bab47b0c27382f89890602d0c4f4b74e82308f8ac907b7969d095"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/resources/whiteboard-test/agents/defender-publisher.md",
+            "bytes": 4176,
+            "sha256": "c5ed5625b025f175cbb53156b1bd980ec6a04dee017feb90b29727c55b730ad3"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/resources/whiteboard-test/package.json",
+            "bytes": 42,
+            "sha256": "609158e6c5fbc237939fa3ddf7faab80ab690bdc0c8d584414a885130103c4e8"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/resources/whiteboard-test/schemas/challenges.schema.json",
+            "bytes": 1318,
+            "sha256": "92880b8ee562e31bd672de15c3a3bd7f3c022b7490a9b5797f78138c031e3627"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/resources/whiteboard-test/schemas/defense.schema.json",
+            "bytes": 3957,
+            "sha256": "47d744dc14e77d0db0b1d0221229856c73d070f2b07d4b757a894a95558a1c96"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/resources/whiteboard-test/schemas/stage-input.schema.json",
+            "bytes": 257,
+            "sha256": "7c60db19f5e1108bc6c4dc3ba0221014b38ea0afc87dcc0651932a0034e23a2e"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/resources/whiteboard-test/schemas/whiteboard-defense.schema.json",
+            "bytes": 2265,
+            "sha256": "dfd1ee75a25896bb7251812f6e576a9f0c377b42515ed481739dcbe89ec0806c"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/resources/whiteboard-test/validator.js",
+            "bytes": 18180,
+            "sha256": "b65f58a9d1f376cded1da735b8e52b0b98bcff5f2bf6fbfa182c12d29b09ff70"
+          },
+          {
+            "path": "plugins/codex/whiteboard-test/skills/whiteboard-test/SKILL.md",
+            "bytes": 655,
+            "sha256": "6bd151482198f57daca0174e2c44104f8abb32242aed393e47fbeccee40adf2d"
+          }
+        ],
+        "integrityManifest": {
+          "schemaVersion": 1,
+          "bytes": 99099,
+          "sha256": "2d03fc0a19a54b1f2a34f100d9f2b3de0db325a6b3e106bbe307e66d7584e864",
+          "treeSha256": "da3539f25cc929de67370c5a048f0b3d17552f783ed3d8c9f2b9a74a757feea5"
+        }
+      },
+      "evidenceSha256": "b0830623095ef0a0b5f2f682f99a5eecae7f633f70d47c8ea00ac038e9a2e196",
+      "previousStageSha256": "c20d7cd11375dc43999fa5a253d1854e45a094a8dc8f8a2a643623522fc1a6b7",
+      "stageSha256": "1bf4912b1f20f12d52b9dce67884b0f7d971a7241a97e3da709cfa22c9b45b26"
+    },
+    {
+      "sequence": 4,
+      "stage": "universal-desktop-packaged",
+      "completedAt": "2026-10-16T15:14:05.716Z",
+      "evidence": {
+        "submittedArtifact": {
+          "filename": "GateReeve-0.1.0-rc.16-macos-universal.dmg",
+          "bytes": 259043484,
+          "sha256": "ce20fb4ea94e239a46df0a7f13c6a4d9d819523ddefb9df3a9a3f3042a1deeee"
+        }
+      },
+      "evidenceSha256": "f7df57f7b43ea8656390fc3d5396086773a41fcedc7b27424c2ea5345f5215c6",
+      "previousStageSha256": "1bf4912b1f20f12d52b9dce67884b0f7d971a7241a97e3da709cfa22c9b45b26",
+      "stageSha256": "3c59509a71fcad45a2ab4464400ba2b5eea2af44e590f44b81222a21f3524fd6"
+    },
+    {
+      "sequence": 5,
+      "stage": "artifact-digests-established",
+      "completedAt": "2026-10-16T15:14:05.717Z",
+      "evidence": {
+        "pluginTreeSha256": "da3539f25cc929de67370c5a048f0b3d17552f783ed3d8c9f2b9a74a757feea5",
+        "submittedDmgSha256": "ce20fb4ea94e239a46df0a7f13c6a4d9d819523ddefb9df3a9a3f3042a1deeee",
+        "finalTrustedDmgSha256": "d363a90e8497fe9f923ceb90eb36b3a1932015510e6d487023dd35452649fbbc",
+        "appleTrustEvidenceSha256": "a7f1f16eabd214f3e75a257c92754e12160cd116d16641aac2fe659365e2d17b"
+      },
+      "evidenceSha256": "d329a34e9cdbe7c72f3acc27b825a4e2c957d25722cc7f1bb4c09803e3c75767",
+      "previousStageSha256": "3c59509a71fcad45a2ab4464400ba2b5eea2af44e590f44b81222a21f3524fd6",
+      "stageSha256": "29fc27ace0802bef69db97ca098878320bc6a9706fc24ae3678994ef79e71337"
+    },
+    {
+      "sequence": 6,
+      "stage": "candidate-qualified",
+      "completedAt": "2026-10-16T15:14:05.720Z",
+      "evidence": {
+        "sourceCommit": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+        "candidateId": "gatereeve-v0.1.0-rc.16",
+        "topology": "plugin-plus-universal-dmg"
+      },
+      "evidenceSha256": "e4542ae71d2b8ee6e4eafd47708fa2a38dd4aaf3ce2ed8d7fbc397f4f8f357be",
+      "previousStageSha256": "29fc27ace0802bef69db97ca098878320bc6a9706fc24ae3678994ef79e71337",
+      "stageSha256": "2cb5eb96801ec963897536a8aba543dec7c6226314dd7833e5c2feb89a3369aa"
+    },
+    {
+      "sequence": 7,
+      "stage": "trusted-universal-dmg-established",
+      "completedAt": "2026-10-16T15:14:05.726Z",
+      "evidence": {
+        "artifact": {
+          "filename": "GateReeve-0.1.0-rc.16-macos-universal.dmg",
+          "bytes": 259045867,
+          "sha256": "d363a90e8497fe9f923ceb90eb36b3a1932015510e6d487023dd35452649fbbc"
+        },
+        "submittedArtifact": {
+          "filename": "GateReeve-0.1.0-rc.16-macos-universal.dmg",
+          "bytes": 259043484,
+          "sha256": "ce20fb4ea94e239a46df0a7f13c6a4d9d819523ddefb9df3a9a3f3042a1deeee"
+        },
+        "notarization": {
+          "attemptId": "e6c06547-7bd2-4f9e-94e1-df58c3e016be",
+          "requestId": "656dc5e3-131a-439a-880e-a14fc6a5665e",
+          "status": "Accepted"
+        },
+        "appleTrustEvidenceSha256": "a7f1f16eabd214f3e75a257c92754e12160cd116d16641aac2fe659365e2d17b"
+      },
+      "evidenceSha256": "c227c66b7dd660139d9d706bfb82e881438b52540e5c2ff727e86b3dec5550d7",
+      "previousStageSha256": "2cb5eb96801ec963897536a8aba543dec7c6226314dd7833e5c2feb89a3369aa",
+      "stageSha256": "5c45dc1a4355704e487ac969effd111e3ca6aaef7b05d5bf732e5174d178790f"
+    },
+    {
+      "sequence": 8,
+      "stage": "authoritative-native-verified",
+      "completedAt": "2026-10-16T15:14:05.729Z",
+      "evidence": {
+        "aggregateSha256": "1dd48874731f01ed151ba4088388e7ce4cace11d6e66fa601490ea78b4aa6d0f",
+        "architectures": [
+          "arm64",
+          "x64"
+        ],
+        "documents": [
+          {
+            "architecture": "arm64",
+            "evidenceSha256": "5637289106c1ade9d8dc88d9d96dcf664614f65aec1ec84d2b4ea823e1bf78f8",
+            "verifiedAt": "2026-10-16T15:12:08.446Z"
+          },
+          {
+            "architecture": "x64",
+            "evidenceSha256": "c6a2772a5320160b16f5675e27758d9193fb34fab5d7b868ab469ecc332101bd",
+            "verifiedAt": "2026-10-16T15:13:01.205Z"
+          }
+        ]
+      },
+      "evidenceSha256": "1efbbd5c94448878b6da85ba88f654af6f48af4956adc6cfce8a8161033251a4",
+      "previousStageSha256": "5c45dc1a4355704e487ac969effd111e3ca6aaef7b05d5bf732e5174d178790f",
+      "stageSha256": "64c403ab3f19da31cebba54031a88a4eb55f3b77a678e1ce3fd0a2183cad36a1"
+    },
+    {
+      "sequence": 9,
+      "stage": "desktop-trust-verified",
+      "completedAt": "2026-10-16T15:14:05.731Z",
+      "evidence": {
+        "appleTrustEvidenceSha256": "a7f1f16eabd214f3e75a257c92754e12160cd116d16641aac2fe659365e2d17b",
+        "signature": {
+          "identity": "Developer ID Application: Trent Brown (PMWYD5A82A)",
+          "teamId": "PMWYD5A82A",
+          "hardenedRuntime": true,
+          "secureTimestamp": true
+        },
+        "notarization": {
+          "attemptId": "e6c06547-7bd2-4f9e-94e1-df58c3e016be",
+          "requestId": "656dc5e3-131a-439a-880e-a14fc6a5665e",
+          "status": "Accepted",
+          "submittedArtifactSha256": "ce20fb4ea94e239a46df0a7f13c6a4d9d819523ddefb9df3a9a3f3042a1deeee"
+        },
+        "staple": {
+          "validated": true
+        },
+        "gatekeeper": {
+          "diskImage": "accepted"
+        }
+      },
+      "evidenceSha256": "b0e236b62e7f2dfed2d327cbd9419aeaddb2f44fccadd0bd919c157ef3bbe5bf",
+      "previousStageSha256": "64c403ab3f19da31cebba54031a88a4eb55f3b77a678e1ce3fd0a2183cad36a1",
+      "stageSha256": "c5e3d668424586881fd721ad05c95c4b8865395abd350239f0918d76737fb752"
+    },
+    {
+      "sequence": 10,
+      "stage": "distribution-finalized",
+      "completedAt": "2026-10-16T15:15:49.313Z",
+      "evidence": {
+        "schemaVersion": 2,
+        "kind": "gatereeve-distribution-packet",
+        "promotion": null,
+        "candidates": {
+          "plugin": {
+            "artifact": {
+              "path": "plugin/marketplace",
+              "fileCount": 439,
+              "sha256": "da3539f25cc929de67370c5a048f0b3d17552f783ed3d8c9f2b9a74a757feea5"
+            },
+            "commitment": {
+              "path": "plugin/integrity.json",
+              "bytes": 99099,
+              "sha256": "2d03fc0a19a54b1f2a34f100d9f2b3de0db325a6b3e106bbe307e66d7584e864",
+              "treeSha256": "da3539f25cc929de67370c5a048f0b3d17552f783ed3d8c9f2b9a74a757feea5"
+            },
+            "verification": {
+              "status": "passed",
+              "packageCount": 2,
+              "releaseMetadata": "plugin/marketplace/RELEASE.json"
+            }
+          },
+          "desktop": {
+            "applicationVersion": "0.1.0-rc.16",
+            "artifact": {
+              "path": "desktop/GateReeve-0.1.0-rc.16-macos-universal.dmg",
+              "filename": "GateReeve-0.1.0-rc.16-macos-universal.dmg",
+              "bytes": 259045867,
+              "sha256": "d363a90e8497fe9f923ceb90eb36b3a1932015510e6d487023dd35452649fbbc"
+            },
+            "verification": {
+              "status": "passed",
+              "architectures": [
+                "arm64",
+                "x64"
+              ],
+              "evidence": [
+                {
+                  "architecture": "arm64",
+                  "path": "evidence/desktop-arm64.json",
+                  "sha256": "8f4eec89174d3dcb88bae37cf850d2fb3c47635289262f15410d745fbf713bd3"
+                },
+                {
+                  "architecture": "x64",
+                  "path": "evidence/desktop-x64.json",
+                  "sha256": "ceb12faa95bbdeb45c7e1c3904db4ed9433abe8ce5c0f24f8f510050b4afce52"
+                }
+              ]
+            },
+            "trust": {
+              "status": "developer-id-notarized",
+              "identity": "Developer ID Application: Trent Brown (PMWYD5A82A)",
+              "teamId": "PMWYD5A82A",
+              "hardenedRuntime": true,
+              "secureTimestamp": true,
+              "notarizationId": "656dc5e3-131a-439a-880e-a14fc6a5665e",
+              "notarizationStatus": "Accepted",
+              "stapled": true,
+              "gatekeeperAccepted": true,
+              "evidence": [
+                "codesign:Developer ID Application: Trent Brown (PMWYD5A82A)",
+                "notarytool:656dc5e3-131a-439a-880e-a14fc6a5665e",
+                "stapler:validated",
+                "spctl:accepted"
+              ]
+            }
+          }
+        },
+        "publication": {
+          "order": [
+            "tag",
+            "pluginMarketplace",
+            "desktopPrerelease",
+            "updateManifest",
+            "earlyAccessWebsite"
+          ],
+          "inputs": {
+            "updateManifest": {
+              "path": "publication/desktop.base.json",
+              "filename": "desktop.base.json",
+              "bytes": 736,
+              "sha256": "b263b9823c67cad52c83e6969113253fc65a3adab2778212ce244ad4634f65f8"
+            }
+          },
+          "outputs": {
+            "checksums": {
+              "path": "publication/SHA256SUMS",
+              "filename": "SHA256SUMS",
+              "bytes": 108,
+              "sha256": "a57e3d99a810e07f033823b3c380a5857afeda1f1402d7091723b45b5f500fb1"
+            },
+            "updateManifest": {
+              "path": "publication/desktop.json",
+              "filename": "desktop.json",
+              "bytes": 736,
+              "sha256": "93fe4ba78f482500afe4758fe08a221d26b27ef2ef6b63f140ff8500d14592b9"
+            }
+          }
+        },
+        "planSha256": "78527006b3e2d904c71b18221390dc3456afd0ca12ae8eca6e47092e254bf847"
+      },
+      "evidenceSha256": "3717be25e60c15ef1f56b5854e89a9720ab32f2a740d6cf776cb9395aa3927ca",
+      "previousStageSha256": "c5e3d668424586881fd721ad05c95c4b8865395abd350239f0918d76737fb752",
+      "stageSha256": "849c0448e967f095cd9b53aeeb7cae9af4004d9270671c4ad037591b9b3b2075"
+    },
+    {
+      "sequence": 11,
+      "stage": "publication-approved",
+      "completedAt": "2026-10-16T15:18:16.073Z",
+      "evidence": {
+        "approvedBy": "TrentBrown",
+        "approvedAt": "2026-10-16T15:18:16.073Z",
+        "planSha256": "78527006b3e2d904c71b18221390dc3456afd0ca12ae8eca6e47092e254bf847",
+        "environment": "release-publication"
+      },
+      "evidenceSha256": "ff5eb7caea4ef4f75c7862569a2f0276fb52251428aa31fabc2488e5bfd9f8a6",
+      "previousStageSha256": "849c0448e967f095cd9b53aeeb7cae9af4004d9270671c4ad037591b9b3b2075",
+      "stageSha256": "39f25bc5fe095fb542819b68134526c194dde505f50f1269b028c34e6a7a176d"
+    },
+    {
+      "sequence": 12,
+      "stage": "published",
+      "completedAt": "2026-10-16T15:19:37.835Z",
+      "evidence": {
+        "planSha256": "78527006b3e2d904c71b18221390dc3456afd0ca12ae8eca6e47092e254bf847",
+        "receiptsSha256": "246a7485b89157cbdbce56b819a19f7a304f81e0c68db8edf2ca4f7ced7b0bad",
+        "surfaces": [
+          "tag",
+          "pluginMarketplace",
+          "desktopPrerelease",
+          "updateManifest",
+          "earlyAccessWebsite"
+        ]
+      },
+      "evidenceSha256": "0a4adfdf705688370268de83227ce0ac1b9303e81f49823ee287f704ffe62f35",
+      "previousStageSha256": "39f25bc5fe095fb542819b68134526c194dde505f50f1269b028c34e6a7a176d",
+      "stageSha256": "11856ddd1a51a5e00d377c582b360a3505ecb31e924ef3f2ca3e0a252988c910"
+    }
+  ],
+  "createdAt": "2026-10-16T15:14:05.711Z",
+  "updatedAt": "2026-10-16T15:19:37.835Z"
+}

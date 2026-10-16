@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "featureId": "tb-configurable-gate-ordering",
+  "feature": {
+    "state": "COMPLETE"
+  },
+  "slices": [
+    {
+      "id": "s1-configurable-ordering",
+      "state": "MERGED"
+    }
+  ],
+  "finalization": {
+    "id": "pr81-rc16-release",
+    "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "mergeInputSha": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+    "startedBy": "evt-ordering-rc16-finalization-started",
+    "startedSequence": 64,
+    "state": "COMPLETE",
+    "modules": [
+      {
+        "id": "gatereeve/release",
+        "moduleId": "gatereeve/release",
+        "moduleVersion": "1.0.0",
+        "moduleDigest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978",
+        "dependsOn": [],
+        "dependencyEdges": [],
+        "dependencyStage": 1,
+        "dependencyBranch": null,
+        "orderLabel": "1",
+        "optional": false,
+        "locked": false,
+        "waiverAllowed": true,
+        "outcome": "PASS",
+        "evidence": {
+          "hash": "sha256:1b3317e400047f3cabae9a0280df1f3edfdf2f8ac1d504e2943e175c94efe71f",
+          "path": "release-v0.1.0-rc.16/provider-response.json"
+        },
+        "inputFingerprint": "sha256:230d6cd7a9eec9f0e26a5315a597e56a3aa6254a4ba72f7d1f7529164c4066ab",
+        "recordedEventId": "evt-ordering-rc16-release-passed",
+        "recordedSequence": 65,
+        "invalidatedSequence": null,
+        "reason": null,
+        "freshness": "CURRENT",
+        "eligible": false,
+        "blockers": [
+          {
+            "type": "attempt",
+            "state": "COMPLETE"
+          }
+        ]
+      }
+    ],
+    "requiredCurrentAndNonblocking": false
+  },
+  "blockers": [],
+  "journal": {
+    "eventCount": 66,
+    "lastEventId": "evt-ordering-feature-complete",
+    "lastSequence": 66
+  },
+  "observedAt": "2026-10-16T15:31:00.890Z"
+}
