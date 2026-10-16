@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Spec Draft"
+  short_description: "Draft acceptance criteria and rubric"
+  default_prompt: "Draft acceptance criteria and a rubric."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Setup"
+  short_description: "Configure a portable workflow profile and prefix"
+  default_prompt: "Use $workflow-setup to configure my workflow profile and branch prefix."

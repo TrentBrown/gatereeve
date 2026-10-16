@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow PR Boundary"
+  short_description: "Run the PR boundary process"
+  default_prompt: "Run the workflow PR boundary process."

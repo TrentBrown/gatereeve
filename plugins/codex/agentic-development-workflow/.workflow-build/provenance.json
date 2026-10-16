@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "platform": "codex",
+  "version": "0.1.0-rc.16",
+  "sourceCommit": "bf9f656535bce04dca659d8f6a1e975d552b1d6d",
+  "sourceTag": "v0.1.0-rc.16",
+  "protocolHash": "sha256:d1c3607dcead203abdc0ec77918926469298880c093110def2b165d75d80ce86"
+}
