@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-2",
+  "source": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "0c4e553c73dd31f7e35ca973d1d06ef31b103e67",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:9308519c63c708b717c904453c8fbf76c0013dcb7a489f3bf5a268b851efd307",
+  "requestIdentity": "sha256:4d5de383fa0e7c7da8b8f5778dc1ab026c33fb59b7b942a15dff4f6bf3092e5a",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-2/readiness.json",
+    "hash": "sha256:cfae23767ed2770ed95901f14ee89e1a0dbc798fec704929ee7abaaf0fd5a4b5"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "FINDINGS",
+  "result": {
+    "schemaVersion": 1,
+    "outcome": "FINDINGS",
+    "fullVerification": "PENDING",
+    "summary": "One additional preview/Apply binding defect identified. All three prior renderer findings are resolved. Full Verification and independent formal Judge remain required.",
+    "criteria": [
+      {
+        "id": "R1",
+        "result": "SATISFIED",
+        "explanation": "Schema-1 defaults remain compatible; schema-2 ordering is retained separately from definition identity.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:120 — preserves schema-1 hashing and canonicalizes schema-2 ordering.",
+          "plugin-src/shared/resources/protocol/model.js:346 — retains ordering in the resolved model.",
+          "cli/test/owner-ordering.test.js:19 — covers compatibility, unchanged definitions and graph round-trip."
+        ]
+      },
+      {
+        "id": "R2",
+        "result": "SATISFIED",
+        "explanation": "Resolution rejects malformed relationships, invalid endpoints, duplicates, cross-slot edges and active combined cycles before policy persistence.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:134 — validates ordering shape, self-links and duplicate endpoints.",
+          "plugin-src/shared/resources/protocol/modules.js:645 — validates selected endpoints, slots and protected duplicates.",
+          "plugin-src/shared/resources/protocol/modules.js:571 — rejects cyclic dependencies."
+        ]
+      },
+      {
+        "id": "R3",
+        "result": "SATISFIED",
+        "explanation": "Owner edges become dormant when either endpoint is disabled, return on re-enablement, and preserve hard prerequisites and locked modules.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:148 — emits edges only between enabled endpoints.",
+          "plugin-src/shared/resources/protocol/modules.js:620 — enforces locked module selection and enablement.",
+          "plugin-src/shared/resources/protocol/modules.js:667 — rejects disabled hard prerequisites.",
+          "cli/test/owner-ordering.test.js:49 — covers disabling either owner-edge endpoint; read-only resolver probes confirmed these cases."
+        ]
+      },
+      {
+        "id": "R4",
+        "result": "SATISFIED",
+        "explanation": "Owner ordering feeds eligibility and predecessor-event freshness without imposing barriers on unrelated gates.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:780 — compiles owner ordering into gate dependencies.",
+          "plugin-src/shared/resources/protocol/projection.js:554 — checks predecessor event sequence for historical freshness.",
+          "plugin-src/shared/resources/protocol/projection.js:701 — determines eligibility from individual dependencies.",
+          "cli/test/owner-ordering.test.js:74 — covers blocked Judge, eligible unrelated gates and stale Judge evidence after a new Code Review event."
+        ]
+      },
+      {
+        "id": "R5",
+        "result": "SATISFIED",
+        "explanation": "Ordering survives model and attempt snapshots; migration preserves historical graphs, and execution inputs exclude predecessor review findings.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/feature.js:172 — includes owner ordering in migration comparison.",
+          "plugin-src/shared/resources/protocol/feature.js:186 — retains the previous module graph.",
+          "plugin-src/shared/resources/protocol/projection.js:234 — reconstructs attempts from their pinned graph.",
+          "plugin-src/shared/resources/protocol/execution-preparation.js:86 — constructs execution inputs without predecessor reports.",
+          "plugin-src/shared/resources/protocol/review-input.js:16 — excludes review history."
+        ]
+      },
+      {
+        "id": "R6",
+        "result": "FINDING",
+        "explanation": "Run after controls stage enablement and ordering correctly, but Apply can silently add module selectors discovered after the displayed preview.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1200 — provides same-slot protected and owner ordering controls.",
+          "apps/desktop/main/module-policy.js:201 — reloads discovered definitions.",
+          "apps/desktop/main/module-policy.js:109 — creates selectors for every discovered definition.",
+          "apps/desktop/main/module-policy.js:290 — reconstructs the candidate during Apply without checking its identity against the displayed candidate."
+        ]
+      },
+      {
+        "id": "R7",
+        "result": "FINDING",
+        "explanation": "The prior asynchronous draft defects are fixed, but saved-policy digest alone does not bind confirmation to the resolved candidate and feature-model baseline.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1367 — records enabled IDs, ordering and saved-policy digest as the validated draft.",
+          "apps/desktop/main/module-policy.js:284 — checks only the saved-policy digest.",
+          "apps/desktop/main/module-policy.js:290 — recomputes policy and migration impact.",
+          "apps/desktop/main/module-policy.js:297 — accepts the earlier confirmation for the recomputed migration."
+        ]
+      },
+      {
+        "id": "R8",
+        "result": "SATISFIED",
+        "explanation": "Boundary, finalization and preview rendering use actual edges, preserve their origins and support partial dependencies and skipped layers.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:869 — renders boundary dependency edges.",
+          "apps/desktop/renderer/renderer.js:1009 — renders finalization dependency edges.",
+          "apps/desktop/renderer/renderer.js:1301 — renders proposed graphs by slot.",
+          "apps/desktop/renderer/dependency-diagram.js:37 — routes skipped-layer edges.",
+          "apps/desktop/test/dependency-diagram.test.js:6 — asserts exact edges without invented barriers."
+        ]
+      },
+      {
+        "id": "R9",
+        "result": "SATISFIED",
+        "explanation": "Named textual relationships and keyboard-accessible boundary nodes accompany derived grouping; edge meaning is not conveyed by color alone.",
+        "evidence": [
+          "apps/desktop/renderer/dependency-diagram.js:55 — supplies accessible node names and keyboard activation.",
+          "apps/desktop/renderer/dependency-diagram.js:68 — explains line styles and dependency depth.",
+          "apps/desktop/renderer/dependency-diagram.js:72 — lists named textual relationships.",
+          "plugin-src/shared/resources/protocol/projection.js:130 — derives numbering from dependencies."
+        ]
+      },
+      {
+        "id": "R10",
+        "result": "SATISFIED",
+        "explanation": "Advisory inspection found matching core/Desktop resources and preserved safeguards. Supplied fast and Desktop checks passed; full verification remains pending.",
+        "evidence": [
+          "apps/desktop/resources/desktop-projection.json:4 — protocol aggregate digest verified; all 47 listed resources matched canonical bytes, sizes and hashes.",
+          "cli/src/protocol/client.js:5 — source CLI selects the canonical protocol adapter.",
+          "docs/WORKFLOW-MODULES.md:107 — documents ordering, dormant links, protections, adoption and exact DAG behavior.",
+          ".gatereeve-agent-evidence/fast-checks/0-0-fast-checks-2.log:1 — supplied fast checks passed.",
+          ".gatereeve-agent-evidence/fast-checks/1-1-desktop-tests-2.log:229 — reports 210 tests and zero failures."
+        ]
+      }
+    ],
+    "scopeCheck": {
+      "result": "SATISFIED",
+      "explanation": "The inventory and both patch chunks cover the declared feature scope. Document and evidence digests match; patch material matches its bound hash. No binary changes are declared.",
+      "evidence": [
+        "docs/issues/tb-configurable-gate-ordering/spec.md:4 — defines pre-merge scope and separate publication obligations.",
+        ".gatereeve-agent-evidence/inventory.json:1 — lists the 33 changed paths, all nonbinary.",
+        ".gatereeve-agent-evidence/patches/feature.json:1 — both chunks assemble to the declared 120964 bytes and material digest."
+      ]
+    },
+    "gapCheck": {
+      "result": "FINDING",
+      "explanation": "Apply lacks a binding to the previewed resolved candidate and feature-model baseline; current regressions cover local draft races but not these external changes.",
+      "evidence": [
+        "apps/desktop/renderer/renderer.js:1367 — validated draft omits candidate model identity and feature-model baseline.",
+        "apps/desktop/main/module-policy.js:278 — Apply accepts only saved-policy digest as an identity precondition.",
+        "apps/desktop/test/ordering-renderer.test.js:81 — tests newer local edits while confirmation is open."
+      ]
+    },
+    "contradictionCheck": {
+      "result": "FINDING",
+      "explanation": "Applying a recomputed migration under an earlier confirmation contradicts the approved requirement for accurate staged-policy preview and explicit migration confirmation.",
+      "evidence": [
+        "docs/issues/tb-configurable-gate-ordering/spec.md:11 — requires accurate staged preview and explicit feature migration confirmation.",
+        "docs/issues/tb-configurable-gate-ordering/design.md:20 — requires ordering-change and migration disclosure.",
+        "apps/desktop/main/module-policy.js:290 — recomputes the candidate without comparing it to the confirmed preview."
+      ]
+    },
+    "findings": [
+      {
+        "summary": "Apply accepts undisclosed catalog or feature-model changes under an earlier migration confirmation.",
+        "criterionIds": [
+          "R6",
+          "R7"
+        ],
+        "invariant": "The applied resolved policy and migration baseline must match the policy and impact explicitly previewed and confirmed; external changes must invalidate that confirmation.",
+        "affectedPaths": [
+          "apps/desktop/main/module-policy.js",
+          "apps/desktop/renderer/renderer.js"
+        ],
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1367 — captures only enabled IDs, ordering and the saved-policy digest; apps/desktop/renderer/renderer.js:1438 submits those values.",
+          "apps/desktop/main/module-policy.js:284 — saved-policy digest does not bind unselected discovered definitions or the active feature lock.",
+          "apps/desktop/main/module-policy.js:201 — candidate reloads discovered definitions; apps/desktop/main/module-policy.js:109 selects every definition, including newly discovered disabled modules.",
+          "apps/desktop/main/module-policy.js:290 — recomputes the candidate; apps/desktop/main/module-policy.js:297 accepts the existing confirmation; apps/desktop/main/module-policy.js:308 and apps/desktop/main/module-policy.js:320 persist the recomputed policy and model.",
+          "Read-only in-memory manager reproduction using the real resolver and migration-impact builder, with persistence mocked: adding test/new-review after an ordering preview left the saved-policy digest unchanged. Displayed modulesAdded was [], but Apply selected the new disabled module and migrated with modulesAdded=[test/new-review].",
+          "Related in-memory reproduction: migrating the feature lock to Code Review after Pattern Review after preview also left the saved-policy digest unchanged. The confirmation disclosed only Judge changing; Apply additionally removed Code Review ordering and migrated from a different model hash."
+        ]
+      }
+    ],
+    "checklist": [
+      {
+        "findingId": "advisory:ordering-s1-ready-1:0",
+        "result": "RESOLVED",
+        "explanation": "Both dependency-absorption previews now receive the same captured staged ordering, including staged removals.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1341 — clones staged ordering.",
+          "apps/desktop/renderer/renderer.js:1350 — supplies ordering to the initial preview.",
+          "apps/desktop/renderer/renderer.js:1363 — supplies the same ordering to the dependency-expanded preview.",
+          "apps/desktop/test/ordering-renderer.test.js:69 — checks ordering preservation across both requests."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-1:1",
+        "result": "RESOLVED",
+        "explanation": "Discard advances the request generation, clears validation and restores committed drafts; outstanding responses cannot restore discarded state.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:3073 — invalidates outstanding preview requests before restoring committed state.",
+          "apps/desktop/renderer/renderer.js:1351 — rejects superseded initial responses.",
+          "apps/desktop/renderer/renderer.js:1364 — rejects superseded dependency-expanded responses.",
+          "apps/desktop/test/ordering-renderer.test.js:74 — covers delayed ordinary and dependency responses after Discard."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-1:2",
+        "result": "RESOLVED",
+        "explanation": "New local edits invalidate the old preview and confirmation immediately; Apply requires the latest validated draft and submits its captured values.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1342 — marks validation pending, clears the old preview and closes confirmation.",
+          "apps/desktop/renderer/renderer.js:1330 — checks request generation and exact enabled-ID/ordering equality.",
+          "apps/desktop/renderer/renderer.js:1429 — guards Apply and clones the validated draft.",
+          "apps/desktop/renderer/renderer.js:1438 — submits captured validated values.",
+          "apps/desktop/test/ordering-renderer.test.js:81 — covers editing while an earlier confirmation is open."
+        ]
+      }
+    ]
+  },
+  "receipts": [
+    {
+      "schemaVersion": 1,
+      "kind": "gatereeve-agent-workflow-receipt",
+      "protocolVersion": 1,
+      "runId": "advisory-ordering-s1-ready-2-1",
+      "attemptId": "advisory-ordering-s1-ready-2",
+      "module": {
+        "id": "gatereeve/advisory-review",
+        "version": "1.0.0",
+        "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+      },
+      "stage": "advisory",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "provider": {
+        "id": "codex",
+        "adapterVersion": "1.0.0",
+        "model": "gpt-6.1-sol",
+        "reasoningEffort": "high",
+        "contextId": "01a13b9c-0798-7d21-b32a-6b16dae37389"
+      },
+      "isolation": {
+        "method": "codex-ephemeral-exec",
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "policy": {
+        "repositoryAccess": "read-only-pinned",
+        "networkAccess": "denied",
+        "scratch": "disposable"
+      },
+      "startedAt": "2026-10-14T18:10:43.414Z",
+      "completedAt": "2026-10-14T18:17:14.603Z",
+      "status": "completed",
+      "digests": {
+        "instructions": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+        "input": "sha256:3e9dc355fb4f32a40ca9793d898141a920bf38ac4050227c48394ba55dae0a1e",
+        "output": "sha256:62f1da7e0017054177aebafd1ddcd243886e95608e535f5d7a22328167401a2e",
+        "snapshot": "sha256:e833c4fc8f411ade048d21fc93ff263b9bd339f4f3f66f8adc828bf5fdd1fb74"
+      }
+    }
+  ],
+  "operationalErrors": []
+}

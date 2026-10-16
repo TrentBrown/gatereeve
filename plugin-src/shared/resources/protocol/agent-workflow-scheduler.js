@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 
 import { executeAgentWorkflowGate } from './agent-workflow-service.js';
-import { prepareBoundaryModuleExecution } from './execution-preparation.js';
+import { prepareBoundaryModuleExecution, assertExecutionPreparationCurrent, executionDependencyEvents } from './execution-preparation.js';
 import { readFeatureRecord } from './feature.js';
 import { projectRecord } from './projection.js';
 import { recordGateOutcome } from './boundary.js';
@@ -109,14 +109,14 @@ export async function runEligibleAgentWorkflowGates({
         const current = await prepare({
           featureHome, repositoryRoot, attemptId: attempt.id, gateId: target.id, module,
         });
-        if (JSON.stringify(current.inputs) !== JSON.stringify(prepared.inputs)) {
-          throw new Error('Agent workflow inputs changed before outcome recording.');
-        }
+        assertExecutionPreparationCurrent(prepared, current);
         return record(featureHome, {
           attemptId: attempt.id,
           gateId: target.id,
           outcome,
-          inputs: current.inputs,
+          inputs: prepared.inputs,
+          expectedModelHash: prepared.modelHash,
+          expectedDependencyEventIds: executionDependencyEvents(prepared),
           currentFingerprints: current.currentFingerprints,
           evidence,
           reason,

@@ -1,0 +1,11 @@
+# Defect-class review — configurable ordering revision 7
+
+Formal Judge6 failed R9 only. Earlier exact-edge rendering and public graph fixes did not bind retained finalization inventory and grouped detail cards to the same graph. Examined selected finalization attempt selection, pinned start-event graph, snapshot slot descriptors, projected stage/branch/number metadata, renderer diagram/card selection, obsolete actions and current replacement, plus boundary equivalents.
+
+Use the selected retained attempt's stored graph for finalization descriptors, and its projected dependencyStage for card groups. Old edges, enabled selections, labels and numbers remain coherent when current owner ordering reverses, is removed or modules are disabled. Current repository settings/policy metadata remain current. Start current finalization uses the adopted model through the existing core, while obsolete-model waiver actions stay hidden. An empty replacement remains visible for the permitted completion action. No historical attempt is rewritten, and no stale evidence or old model can advance current completion.
+
+A shared disposable finalization fixture preserves the original actual-core feature authorization/review/merge setup. Core snapshots prove exact retained and replacement metadata. Real renderer DOM verifies actual edge arrays, stage labels, card numbers/labels, replacement notices/actions, removal/disablement and empty current completion. This is fixture proof, not live feature completion or installed activation.
+
+Final bookkeeping inspection also found that the required deferred canonical completion report was absent from the coordinator's exact evidence declarations. Add that single file for FEATURE_FINAL; keep SLICE narrower. Actual complete boundary-flow tests verify returned paths and final synchronization bridge declarations. No broad evidence-directory exception is added.
+
+All eight prior advisory and five formal findings remain covered. Focused41/CLI421/Desktop219/Python104+28/templates2, audit zero and portable package/integrity/structural Doctor fixtures PASS. Formal history stays excluded from the next independent Judge. New readiness and a fresh formal attempt are required; no previous PASS is reused.

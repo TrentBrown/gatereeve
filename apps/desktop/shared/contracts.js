@@ -360,6 +360,7 @@ export function requireModuleSettings(value) {
     || !exactKeys(value, [
       'schemaVersion', 'policyPath', 'policyExists', 'policyDigest',
       'featureModelHash', 'projectModelHash', 'migrationRequired', 'modules',
+      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.edges === undefined ? [] : ['edges']),
     ])
     || value.schemaVersion !== 1
     || typeof value.policyPath !== 'string'
@@ -370,6 +371,8 @@ export function requireModuleSettings(value) {
     || typeof value.migrationRequired !== 'boolean'
     || !Array.isArray(value.modules)
     || !value.modules.every(validModuleSetting)
+    || (value.ordering !== undefined && !validOrdering(value.ordering))
+    || (value.edges !== undefined && !validDependencyEdges(value.edges))
   ) {
     throw new Error('Module settings are invalid.');
   }
@@ -379,31 +382,49 @@ export function requireModuleSettings(value) {
 export function requireModulePolicyRequest(value) {
   if (
     !isObject(value)
-    || !exactKeys(value, ['enabledModuleIds'])
+    || !exactKeys(value, ['enabledModuleIds', ...(value.ordering === undefined ? [] : ['ordering'])])
+    || (value.ordering !== undefined && !validOrdering(value.ordering))
     || !Array.isArray(value.enabledModuleIds)
     || value.enabledModuleIds.some((id) => typeof id !== 'string' || id.length === 0 || id.length > 512)
     || new Set(value.enabledModuleIds).size !== value.enabledModuleIds.length
   ) {
     throw new Error('Module policy preview request is invalid.');
   }
-  return { enabledModuleIds: [...value.enabledModuleIds] };
+  return { enabledModuleIds: [...value.enabledModuleIds], ...(value.ordering === undefined ? {} : { ordering: structuredClone(value.ordering) }) };
+}
+
+function validOrdering(value) {
+  const moduleId = id => typeof id === 'string' && id.length <= 512 && /^[a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)+$/.test(id);
+  return isObject(value) && Object.entries(value).every(([id, rule]) => moduleId(id)
+    && isObject(rule) && exactKeys(rule, ['after']) && Array.isArray(rule.after)
+    && rule.after.every(from => moduleId(from) && from !== id) && new Set(rule.after).size === rule.after.length);
+}
+
+function validDependencyEdges(edges) {
+  return Array.isArray(edges) && edges.every(edge => isObject(edge) && exactKeys(edge, ['from', 'to', 'kind'])
+    && typeof edge.from === 'string' && typeof edge.to === 'string'
+    && ['required', 'conditional', 'owner'].includes(edge.kind));
 }
 
 export function requireModulePolicyApplyRequest(value) {
   if (
     !isObject(value)
-    || !exactKeys(value, ['enabledModuleIds', 'confirmedMigration', 'confirmationLabel'])
+    || !exactKeys(value, ['enabledModuleIds', 'confirmedMigration', 'confirmationLabel', ...(value.ordering === undefined ? [] : ['ordering']), ...(value.expectedPolicyDigest === undefined ? [] : ['expectedPolicyDigest']), ...(value.expectedPreviewFingerprint === undefined ? [] : ['expectedPreviewFingerprint'])])
+    || (value.expectedPolicyDigest !== undefined && (typeof value.expectedPolicyDigest !== 'string' || value.expectedPolicyDigest.length > 512))
+    || (value.expectedPreviewFingerprint !== undefined && (typeof value.expectedPreviewFingerprint !== 'string' || value.expectedPreviewFingerprint.length > 512))
     || typeof value.confirmedMigration !== 'boolean'
     || !nullableString(value.confirmationLabel)
     || (value.confirmationLabel !== null && value.confirmationLabel.length > 1_024)
   ) {
     throw new Error('Module policy apply request is invalid.');
   }
-  const policy = requireModulePolicyRequest({ enabledModuleIds: value.enabledModuleIds });
+  const policy = requireModulePolicyRequest({ enabledModuleIds: value.enabledModuleIds, ...(value.ordering === undefined ? {} : { ordering: value.ordering }) });
   return {
     ...policy,
     confirmedMigration: value.confirmedMigration,
     confirmationLabel: value.confirmationLabel,
+    ...(value.expectedPolicyDigest === undefined ? {} : { expectedPolicyDigest: value.expectedPolicyDigest }),
+    ...(value.expectedPreviewFingerprint === undefined ? {} : { expectedPreviewFingerprint: value.expectedPreviewFingerprint }),
   };
 }
 
@@ -427,9 +448,14 @@ export function requireModulePolicyPreview(value) {
     || !exactKeys(value, [
       'schemaVersion', 'valid', 'error', 'autoEnabled', 'blockingDependents',
       'enabledModuleIds', 'suggestedEnabledModuleIds', 'diff', 'migrationImpact',
+      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.orderingChanged === undefined ? [] : ['orderingChanged']), ...(value.edges === undefined ? [] : ['edges']), ...(value.previewFingerprint === undefined ? [] : ['previewFingerprint']),
     ])
     || value.schemaVersion !== 1
     || typeof value.valid !== 'boolean'
+    || (value.ordering !== undefined && !validOrdering(value.ordering))
+    || (value.orderingChanged !== undefined && typeof value.orderingChanged !== 'boolean')
+    || (value.previewFingerprint !== undefined && !nullableString(value.previewFingerprint))
+    || (value.edges !== undefined && !validDependencyEdges(value.edges))
     || !nullableString(value.error)
     || !Array.isArray(value.autoEnabled)
     || value.autoEnabled.some((id) => typeof id !== 'string')

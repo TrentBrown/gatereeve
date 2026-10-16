@@ -1,3 +1,4 @@
+import { renderDependencyDiagram } from './dependency-diagram.js';
 import { clear, node, renderJson, renderMarkdown } from './dom.js';
 import { createWorkspaceStore, workspaceDefaults } from './workspace-state.js';
 import {
@@ -46,6 +47,7 @@ const ids = [
   'check-updates', 'update-banner', 'update-title', 'update-detail', 'open-update',
   'module-policy-state', 'module-settings-alert', 'module-policy-path',
   'module-settings-list', 'module-preview-surface', 'module-preview', 'module-discard',
+  'module-reload',
   'module-apply', 'module-confirm-dialog', 'module-confirm-close', 'module-confirm-summary',
   'module-confirm-impact', 'module-confirm-cancel', 'module-confirm-apply',
   'module-waiver-dialog', 'module-waiver-close', 'module-waiver-title',
@@ -81,6 +83,10 @@ let moduleSettingsPromiseKey = null;
 let moduleSettingsRequest = 0;
 let modulePreviewRequest = 0;
 let moduleDraftIds = new Set();
+let moduleDraftOrdering = {};
+let moduleValidatedDraft = null;
+let modulePreviewPending = false;
+let modulePolicyApplying = false;
 let modulePreview = null;
 let moduleDependencyNotice = null;
 let pendingModuleWaiver = null;
@@ -662,25 +668,6 @@ function gateStatusPill(value) {
   return pill;
 }
 
-function gateConnector(fromCount, toCount) {
-  const kind = toCount > 1 ? 'fan-out' : fromCount > 1 ? 'fan-in' : 'simple';
-  const branchCount = Math.max(fromCount, toCount);
-  const connector = node('div', {
-    className: `gate-connector gate-connector-${kind}`,
-    attributes: { 'aria-hidden': 'true' },
-  });
-  connector.style.setProperty('--branch-count', String(branchCount));
-  connector.append(node('span', { className: 'connector-trunk' }));
-  if (kind !== 'simple') {
-    connector.append(node('span', { className: 'connector-bar' }));
-    for (let index = 0; index < branchCount; index += 1) {
-      const stem = node('span', { className: 'connector-stem' });
-      stem.style.setProperty('--stem-index', String(index));
-      connector.append(stem);
-    }
-  }
-  return connector;
-}
 
 function modulePresentation(module, gate = null) {
   const outcome = gate?.outcome ?? module?.outcome ?? 'UNSET';
@@ -880,6 +867,10 @@ function renderBoundary(snapshot) {
   });
   elements['boundary-summary'].append(inspect);
   const graph = clear(elements['gate-dag']);
+  const diagramNodes = attempt.gates.map(g => ({ ...g, label: moduleForGate(snapshot, g.id)?.label ?? humanize(g.id) }));
+  const diagramEdges = attempt.gates.flatMap(g => g.dependencyEdges ?? g.dependsOn.map(from => ({ from, to: g.id, kind: 'required' })));
+  renderDependencyDiagram(graph, diagramNodes, diagramEdges, { onSelect: gate => renderGateDetail(attempt, gate) });
+  const cards = node('details', { className: 'dependency-cards' }, [node('summary', { text: 'Gate details and actions' })]);graph.append(cards);
   const stages = [];
   for (const gate of attempt.gates) {
     const stageNumber = Number.parseInt(gate.orderLabel, 10);
@@ -891,7 +882,6 @@ function renderBoundary(snapshot) {
     stage.gates.push(gate);
   }
   stages.forEach((stage, index) => {
-    if (index > 0) graph.append(gateConnector(stages[index - 1].gates.length, stage.gates.length));
     const wrapper = node('div', {
       className: `gate-stage${stage.gates.length > 1 ? ' gate-stage-branch' : ''}`,
       attributes: { 'aria-label': `Gate dependency stage ${stage.number}` },
@@ -900,7 +890,7 @@ function renderBoundary(snapshot) {
     for (const gate of stage.gates) {
       wrapper.append(gateCard(attempt, gate, gate.id === selectedGateId));
     }
-    graph.append(wrapper);
+    cards.append(wrapper);
   });
   if (initialized) {
     const artifact = attemptArtifact(snapshot, selectedAttemptId);
@@ -915,7 +905,7 @@ function moduleStages(modules) {
     if (depth.has(module.id)) return depth.get(module.id);
     if (path.has(module.id)) return 0;
     const nextPath = new Set(path).add(module.id);
-    const predecessors = [...module.dependsOn, ...module.after]
+    const predecessors = [...module.dependsOn, ...module.after, ...(module.ownerAfter ?? [])]
       .filter((id) => activeIds.has(id))
       .map((id) => modules.find((candidate) => candidate.id === id))
       .filter(Boolean);
@@ -933,6 +923,7 @@ function moduleStages(modules) {
 }
 
 function canOfferFinalizationWaiver(attempt, module) {
+  if (attempt?.modelHash !== currentState?.snapshot?.projection?.model?.hash) return false;
   if (!attempt || attempt.state !== 'ACTIVE' || !module.waiverAllowed || module.locked) return false;
   const byId = new Map(attempt.modules.map((candidate) => [candidate.id, candidate]));
   return module.dependsOn.every((dependencyId) => (
@@ -970,18 +961,20 @@ function renderFinalizationModules(snapshot) {
   const attempts = snapshot?.projection?.finalizationAttempts ?? [];
   const attempt = attempts.find((item) => item.state === 'ACTIVE') ?? attempts.at(-1) ?? null;
   const surface = elements['finalization-surface'];
-  surface.hidden = modules.length === 0;
+  surface.hidden = modules.length === 0 && !attempt;
   clear(elements['finalization-summary']);
   const graph = clear(elements['finalization-dag']);
-  if (modules.length === 0) return;
+  if (modules.length === 0 && !attempt) return;
   const summary = elements['finalization-summary'];
   summary.append(document.createTextNode(
     attempt
       ? `${attempt.state} attempt ${attempt.id} · merge ${attempt.mergeInputSha.slice(0, 12)} · ${attempts.length} retained attempt${attempts.length === 1 ? '' : 's'}.`
       : `${modules.length} enabled finalization module${modules.length === 1 ? '' : 's'} await an attempt bound to the recorded feature-final merge.`,
   ));
-  if (!attempt && snapshot?.projection?.feature?.state === 'FINALIZING') {
-    const start = node('button', { className: 'secondary', text: 'Start finalization', type: 'button' });
+  const replacementNeeded = attempt && attempt.modelHash !== snapshot?.projection?.model?.hash;
+  if ((!attempt || replacementNeeded) && snapshot?.projection?.feature?.state === 'FINALIZING') {
+    if (replacementNeeded) summary.append(node('p', { text: 'Workflow changed since this retained attempt. Its graph and groups remain pinned; start a current attempt to use the adopted workflow.' }));
+    const start = node('button', { className: 'secondary', text: replacementNeeded ? 'Start current finalization' : 'Start finalization', type: 'button' });
     start.addEventListener('click', async () => {
       start.disabled = true;
       try { render(await desktop.startFinalization()); }
@@ -1017,9 +1010,17 @@ function renderFinalizationModules(snapshot) {
       summary.append(complete);
     }
   }
-  const stages = moduleStages(modules);
+  const diagramNodes = attempt ? attempt.modules.map(result => ({ ...modules.find(m => m.id === result.id), ...result, label: modules.find(m => m.id === result.id)?.label ?? humanize(result.id) })) : modules;
+  const activeIds = new Set(diagramNodes.map(m => m.id));
+  const diagramEdges = attempt ? attempt.modules.flatMap(m => m.dependencyEdges ?? m.dependsOn.map(from => ({ from, to: m.id, kind: 'required' })))
+    : modules.flatMap(m => [...m.dependsOn.map(from => ({ from, to: m.id, kind: 'required' })), ...m.after.map(from => ({ from, to: m.id, kind: 'conditional' })), ...(m.ownerAfter ?? []).map(from => ({ from, to: m.id, kind: 'owner' }))]).filter(e => activeIds.has(e.from));
+  renderDependencyDiagram(graph, diagramNodes, diagramEdges);
+  const cards = node('details', { className: 'dependency-cards' }, [node('summary', { text: 'Finalization details and actions' })]);graph.append(cards);
+  const stages = attempt
+    ? [...new Set(diagramNodes.map(module => module.dependencyStage))].sort((a, b) => a - b)
+      .map(number => ({ number, modules: diagramNodes.filter(module => module.dependencyStage === number) }))
+    : moduleStages(modules);
   stages.forEach((stage, index) => {
-    if (index > 0) graph.append(gateConnector(stages[index - 1].modules.length, stage.modules.length));
     const wrapper = node('div', {
       className: `gate-stage${stage.modules.length > 1 ? ' gate-stage-branch' : ''}`,
       attributes: { 'aria-label': `Finalization dependency stage ${stage.number}` },
@@ -1036,7 +1037,7 @@ function renderFinalizationModules(snapshot) {
         workspaceState().activeTabId === `module:${module.id}`,
       ));
     });
-    graph.append(wrapper);
+    cards.append(wrapper);
   });
 }
 
@@ -1167,7 +1168,7 @@ function moduleSettingRow(module) {
     },
   });
   checkbox.checked = checked;
-  checkbox.disabled = module.locked || unavailableNew;
+  checkbox.disabled = modulePolicyApplying || module.locked || unavailableNew;
   checkbox.addEventListener('change', () => {
     if (checkbox.checked) moduleDraftIds.add(module.id);
     else moduleDraftIds.delete(module.id);
@@ -1189,7 +1190,7 @@ function moduleSettingRow(module) {
   ];
   if (module.locked) detail.push('Structural protection: this module cannot be disabled or waived.');
   if (unavailableNew) detail.push('Install the declared implementation before enabling this module.');
-  return node('label', { className: `module-setting${checkbox.disabled ? ' unavailable' : ''}` }, [
+  const row = node('div', { className: `module-setting${checkbox.disabled ? ' unavailable' : ''}` }, [
     checkbox,
     node('span', { className: 'module-setting-copy' }, [
       node('span', { className: 'card-header' }, [
@@ -1197,11 +1198,34 @@ function moduleSettingRow(module) {
         badges,
       ]),
       node('span', { className: 'module-description', text: detail.join(' · ') }),
+      orderingControls(module),
     ]),
   ]);
+  return row;
+}
+
+function orderingControls(module) {
+  const controls = node('details', { className: 'module-ordering' }, [node('summary', { text: 'Run after' })]);
+  const required = new Set(module.dependsOn);const conditional = new Set(module.after);
+  for (const predecessor of moduleSettings.modules.filter(m => m.slot === module.slot && m.id !== module.id)) {
+    const immutable = required.has(predecessor.id) || conditional.has(predecessor.id);
+    const selected = moduleDraftOrdering[module.id]?.after ?? [];
+    const input = node('input', { type: 'checkbox', attributes: { 'aria-label': `Run ${module.label} after ${predecessor.label}` } });
+    input.checked = immutable || selected.includes(predecessor.id);input.disabled = immutable || modulePolicyApplying;
+    input.addEventListener('change', () => {
+      const after = new Set(moduleDraftOrdering[module.id]?.after ?? []);
+      if (input.checked) after.add(predecessor.id);else after.delete(predecessor.id);
+      if (after.size) moduleDraftOrdering[module.id] = { after: [...after].sort() };else delete moduleDraftOrdering[module.id];
+      moduleDependencyNotice = null;void refreshModulePreview();
+    });
+    const suffix = required.has(predecessor.id) ? 'required; protected' : conditional.has(predecessor.id) ? 'module ordering; protected' : moduleDraftIds.has(module.id) && moduleDraftIds.has(predecessor.id) ? 'owner ordering' : 'owner ordering; dormant while disabled';
+    controls.append(node('label', { className: 'module-ordering-choice' }, [input, node('span', { text: `${predecessor.label} (${predecessor.id}) · ${suffix}` })]));
+  }
+  return controls;
 }
 
 function renderModuleSettings() {
+  elements['module-reload'].disabled = modulePolicyApplying || moduleSettingsPromise !== null;
   const list = clear(elements['module-settings-list']);
   if (moduleSettings === null) {
     elements['module-apply'].disabled = true;
@@ -1250,11 +1274,12 @@ function impactList(impact) {
 function renderModulePreview() {
   const surface = elements['module-preview-surface'];
   const content = clear(elements['module-preview']);
-  const changed = modulePreview?.diff?.length > 0;
-  elements['module-apply'].disabled = !modulePreview?.valid || !changed;
-  elements['module-discard'].disabled = !changed;
+  const changed = moduleDraftChanged() || moduleSettings?.migrationRequired === true;
+  elements['module-apply'].disabled = modulePolicyApplying || modulePreviewPending || !modulePreview?.valid || !changed || !moduleValidatedDraft;
+  elements['module-discard'].disabled = modulePolicyApplying || !changed;
   surface.hidden = !changed && !modulePreview?.error && moduleDependencyNotice === null;
   if (surface.hidden) return;
+  if (modulePreviewPending) content.append(node('p', { text: 'Checking the complete staged policy…' }));
   if (moduleDependencyNotice) {
     content.append(node('div', { className: 'notice info', text: moduleDependencyNotice }));
   }
@@ -1281,6 +1306,15 @@ function renderModulePreview() {
       content.append(button);
     }
   }
+  if (modulePreview?.orderingChanged) content.append(node('p', { text: 'Completion ordering changed. The graph shows the enabled relationships; disabled endpoints keep their saved relationships dormant.' }));
+  if (modulePreview?.valid && modulePreview.edges) {
+    for (const slot of ['boundary.evaluation', 'feature.finalization']) {
+      const modules = moduleSettings.modules.filter(m => m.slot === slot && modulePreview.enabledModuleIds.includes(m.id));
+      if (!modules.length) continue;
+      content.append(node('h4', { text: slot === 'boundary.evaluation' ? 'Proposed review dependencies' : 'Proposed finalization dependencies' }));
+      renderDependencyDiagram(content, modules, modulePreview.edges);
+    }
+  }
   if (modulePreview?.migrationImpact) {
     content.append(
       node('h4', { text: 'Active feature migration' }),
@@ -1290,12 +1324,38 @@ function renderModulePreview() {
   }
 }
 
+function orderingDraftKey(ordering) {
+  return JSON.stringify(Object.entries(ordering).sort(([a], [b]) => a.localeCompare(b)).map(([id, rule]) => [id, [...rule.after].sort()]));
+}
+
+function moduleDraftChanged() {
+  if (!moduleSettings) return false;
+  const savedIds = moduleSettings.modules.filter(module => module.enabled).map(module => module.id).sort();
+  return JSON.stringify([...moduleDraftIds].sort()) !== JSON.stringify(savedIds)
+    || orderingDraftKey(moduleDraftOrdering) !== orderingDraftKey(moduleSettings.ordering ?? {});
+}
+
+function hasValidatedModuleDraft() {
+  return !modulePreviewPending && modulePreview?.valid && moduleValidatedDraft
+    && moduleValidatedDraft.request === modulePreviewRequest
+    && moduleValidatedDraft.projectPath === projectPath()
+    && JSON.stringify([...moduleDraftIds].sort()) === JSON.stringify([...moduleValidatedDraft.enabledModuleIds].sort())
+    && orderingDraftKey(moduleDraftOrdering) === orderingDraftKey(moduleValidatedDraft.ordering);
+}
+
 async function refreshModulePreview({ absorbDependencies = true } = {}) {
   if (moduleSettings === null) return;
   const request = ++modulePreviewRequest;
+  const ordering = structuredClone(moduleDraftOrdering);
+  modulePreviewPending = true;
+  modulePreview = null;
+  moduleValidatedDraft = null;
+  elements['module-confirm-apply'].disabled = true;
+  closeDialog(elements['module-confirm-dialog']);
+  renderModulePreview();
   elements['module-settings-alert'].hidden = true;
   try {
-    const preview = await desktop.previewModulePolicy([...moduleDraftIds]);
+    let preview = await desktop.previewModulePolicy([...moduleDraftIds], ordering);
     if (request !== modulePreviewRequest) return;
     if (
       absorbDependencies
@@ -1308,17 +1368,20 @@ async function refreshModulePreview({ absorbDependencies = true } = {}) {
       ));
       moduleDraftIds = new Set(preview.enabledModuleIds);
       moduleDependencyNotice = `Required dependencies were staged visibly: ${labels.join(', ')}.`;
-      modulePreview = await desktop.previewModulePolicy([...moduleDraftIds]);
+      preview = await desktop.previewModulePolicy([...moduleDraftIds], ordering);
       if (request !== modulePreviewRequest) return;
-    } else {
-      modulePreview = preview;
     }
+    modulePreview = preview;
+    if (preview.valid) moduleValidatedDraft = { request, projectPath: projectPath(), enabledModuleIds: [...moduleDraftIds], ordering, policyDigest: moduleSettings.policyDigest, previewFingerprint: preview.previewFingerprint };
   } catch (error) {
     if (request !== modulePreviewRequest) return;
     modulePreview = null;
     elements['module-settings-alert'].textContent = error.message ?? String(error);
     elements['module-settings-alert'].hidden = false;
+  } finally {
+    if (request === modulePreviewRequest) modulePreviewPending = false;
   }
+  if (request !== modulePreviewRequest) return;
   renderModuleSettings();
 }
 
@@ -1330,6 +1393,10 @@ async function ensureModuleSettings({ force = false } = {}) {
   }
   const request = ++moduleSettingsRequest;
   modulePreviewRequest += 1;
+  modulePreviewPending = false;
+  moduleValidatedDraft = null;
+  closeDialog(elements['module-confirm-dialog']);
+  elements['module-confirm-apply'].disabled = true;
   moduleSettings = null;
   modulePreview = null;
   moduleDependencyNotice = null;
@@ -1340,6 +1407,7 @@ async function ensureModuleSettings({ force = false } = {}) {
     moduleSettings = settings;
     moduleSettingsKey = modulePolicyKey();
     moduleDraftIds = new Set(settings.modules.filter((module) => module.enabled).map((module) => module.id));
+    moduleDraftOrdering = structuredClone(settings.ordering ?? {});
     return refreshModulePreview({ absorbDependencies: false });
   }).catch((error) => {
     if (request !== moduleSettingsRequest) return;
@@ -1354,27 +1422,37 @@ async function ensureModuleSettings({ force = false } = {}) {
   });
   moduleSettingsPromise = promise;
   moduleSettingsPromiseKey = key;
+  renderModuleSettings();
   return promise;
 }
 
 function showModuleMigrationConfirmation() {
+  if (!hasValidatedModuleDraft() || modulePolicyApplying) return;
   const impact = modulePreview?.migrationImpact;
   if (!impact) return;
   elements['module-confirm-summary'].textContent = 'The tracked project policy and this active feature’s pinned module graph will change together. GateReeve will record who confirmed the migration.';
   clear(elements['module-confirm-impact']).append(impactList(impact));
+  elements['module-confirm-apply'].disabled = false;
   openDialog(elements['module-confirm-dialog']);
 }
 
 async function applyModulePolicy(confirmedMigration = false) {
+  if (!hasValidatedModuleDraft() || modulePolicyApplying) return;
+  const validated = structuredClone(moduleValidatedDraft);
   const targetProjectPath = projectPath();
+  modulePolicyApplying = true;
+  renderModuleSettings();
   elements['module-settings-alert'].hidden = true;
   elements['module-apply'].disabled = true;
   elements['module-confirm-apply'].disabled = true;
   try {
     const applied = await desktop.applyModulePolicy(
-      [...moduleDraftIds],
+      validated.enabledModuleIds,
       confirmedMigration,
       confirmedMigration ? 'GateReeve Desktop module settings' : null,
+      validated.ordering,
+      validated.policyDigest,
+      validated.previewFingerprint,
     );
     if (targetProjectPath !== projectPath()) {
       showToast('Module policy applied to the previously selected project');
@@ -1383,7 +1461,9 @@ async function applyModulePolicy(confirmedMigration = false) {
     moduleSettings = applied;
     moduleSettingsKey = modulePolicyKey();
     moduleDraftIds = new Set(moduleSettings.modules.filter((module) => module.enabled).map((module) => module.id));
+    moduleDraftOrdering = structuredClone(moduleSettings.ordering ?? {});
     modulePreview = null;
+    moduleValidatedDraft = null;
     moduleDependencyNotice = null;
     closeDialog(elements['module-confirm-dialog']);
     renderModuleSettings();
@@ -1392,8 +1472,9 @@ async function applyModulePolicy(confirmedMigration = false) {
     elements['module-settings-alert'].textContent = error.message ?? String(error);
     elements['module-settings-alert'].hidden = false;
   } finally {
+    modulePolicyApplying = false;
     elements['module-confirm-apply'].disabled = false;
-    renderModulePreview();
+    renderModuleSettings();
   }
 }
 
@@ -3000,11 +3081,19 @@ elements['attempt-select'].addEventListener('change', (event) => {
   if (artifact) void openArtifact(artifact);
 });
 elements['module-discard'].addEventListener('click', () => {
-  if (moduleSettings === null) return;
+  if (moduleSettings === null || modulePolicyApplying) return;
+  modulePreviewRequest += 1;
+  modulePreviewPending = false;
+  moduleValidatedDraft = null;
+  closeDialog(elements['module-confirm-dialog']);
   moduleDraftIds = new Set(moduleSettings.modules.filter((module) => module.enabled).map((module) => module.id));
+  moduleDraftOrdering = structuredClone(moduleSettings.ordering ?? {});
   modulePreview = null;
   moduleDependencyNotice = null;
   renderModuleSettings();
+});
+elements['module-reload'].addEventListener('click', () => {
+  if (!modulePolicyApplying) void ensureModuleSettings({ force: true });
 });
 elements['module-apply'].addEventListener('click', () => {
   if (modulePreview?.migrationImpact) showModuleMigrationConfirmation();

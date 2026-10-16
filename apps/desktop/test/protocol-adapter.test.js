@@ -60,6 +60,7 @@ test('Desktop finalization adapter derives merge identity and routes scoped muta
     moduleDigest: `sha256:${'a'.repeat(64)}`, dependsOn: [], eligible: true,
   };
   const record = {
+    modelLock: { modelHash: `sha256:${'a'.repeat(64)}` },
     events: [{ featureId: 'feature' }, {
       type: 'SLICE_MERGE_RECORDED', payload: { featureFinal: true, integrationSha: 'b'.repeat(40) },
     }],
@@ -358,4 +359,23 @@ test('Desktop packaged waiver guard executes through discovered Python and GitHu
   assert.equal(recorded.inputs.context.status, 'current');
   assert.equal(recorded.inputs.context.evaluatedSourceSha, headSha);
   await assert.rejects(access(join(temporaryDirectory, 'gatereeve-waiver-packaged.json')), /ENOENT/);
+});
+
+
+test('Desktop completion refuses a changed predecessor after launch for boundary and finalization',async()=>{
+ for(const slot of ['boundary','finalization']) {
+  const temporaryDirectory=await mkdtemp(join(tmpdir(),'gatereeve-launch-binding-'));
+  const dependency={id:'prior',recordedEventId:'evt-first',inputFingerprint:'sha256:'+'a'.repeat(64)};
+  const target={id:'check',moduleId:'example/check',moduleVersion:'1.0.0',moduleDigest:'sha256:'+'b'.repeat(64),dependsOn:['prior'],eligible:true};
+  const attempt={id:'a1',state:'ACTIVE',scope:'SLICE',context:{headSha:'c'.repeat(40)},mergeInputSha:'c'.repeat(40),gates:[dependency,target],modules:[dependency,target]};
+  let recorded=false;const adapter=createProtocolAdapter({temporaryDirectory,readRecord:async()=>({modelLock:{modelHash:'sha256:'+'d'.repeat(64)}}),
+   project:()=>({boundaryAttempts:[attempt],finalizationAttempts:[attempt]}),runGuard:async()=>({passed:true,data:{headSha:'c'.repeat(40)}}),
+   recordOutcome:async()=>{recorded=true;},recordFinalizationResult:async()=>{recorded=true;}});
+  const options={featureHome:'/feature',repositoryRoot:'/repo',attemptId:'a1',gateId:'check',module:{id:target.moduleId,version:target.moduleVersion,digest:target.moduleDigest}};
+  const prepare=slot==='boundary'?adapter.prepareBoundaryModule:adapter.prepareFinalizationModule;
+  const record=slot==='boundary'?adapter.recordBoundaryModuleOutcome:adapter.recordFinalizationModuleOutcome;
+  const preparation=structuredClone(await prepare(options));dependency.recordedEventId='evt-second';
+  await assert.rejects(record({...options,preparation,outcome:'PASS',evidence:{path:'check.md',hash:'sha256:'+'e'.repeat(64)},actor:{kind:'agent',label:'Desktop'}}),/predecessor events changed/);
+  assert.equal(recorded,false);
+ }
 });

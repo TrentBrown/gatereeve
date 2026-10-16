@@ -1,4 +1,4 @@
-export const PROTOCOL_VERSION = '1.3.0';
+export const PROTOCOL_VERSION = '1.4.0';
 export const MODEL_SCHEMA_VERSION = 1;
 export const EVENT_SCHEMA_VERSION = 1;
 export const RESULT_SCHEMA_VERSION = 1;

@@ -1,0 +1,2 @@
+PASS: syntax checks for changed core/host files; lint_spec/issues/tracker, branch docs and gate_triage; git diff --check.
+PASS: focused38, complete CLI417/Desktop218, workflow Python104 + pattern28, templates2, audit zero and portable acceptance including deterministic plugin builds/structural Doctor fixtures.

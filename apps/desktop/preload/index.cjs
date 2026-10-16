@@ -291,11 +291,28 @@ function requireModuleIds(value) {
   return [...value];
 }
 
+function requireOrdering(value) {
+  const idValid = id => typeof id === 'string' && id.length <= 512 && /^[a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)+$/.test(id);
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.entries(value).every(([id, rule]) => idValid(id)
+    && rule && typeof rule === 'object' && exactObject(rule, ['after']) && Array.isArray(rule.after)
+    && rule.after.every(from => idValid(from) && from !== id) && new Set(rule.after).size === rule.after.length)) {
+    throw new TypeError('Module ordering must contain named Run after relationships.');
+  }
+  return structuredClone(value);
+}
+
+function requireDependencyEdges(value) {
+  if (!Array.isArray(value) || !value.every(edge => exactObject(edge, ['from', 'to', 'kind'])
+    && typeof edge.from === 'string' && typeof edge.to === 'string'
+    && ['required', 'conditional', 'owner'].includes(edge.kind))) throw new Error('Invalid dependency edges');
+}
+
 function requireModuleSettings(value) {
   if (
     !exactObject(value, [
       'schemaVersion', 'policyPath', 'policyExists', 'policyDigest',
       'featureModelHash', 'projectModelHash', 'migrationRequired', 'modules',
+      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.edges === undefined ? [] : ['edges']),
     ])
     || value.schemaVersion !== 1
     || typeof value.policyPath !== 'string'
@@ -323,6 +340,8 @@ function requireModuleSettings(value) {
   ) {
     throw new Error('The main process returned invalid module settings.');
   }
+  if (value.ordering !== undefined) requireOrdering(value.ordering);
+  if (value.edges !== undefined) requireDependencyEdges(value.edges);
   return value;
 }
 
@@ -331,6 +350,7 @@ function requireModulePolicyPreview(value) {
     !exactObject(value, [
       'schemaVersion', 'valid', 'error', 'autoEnabled', 'blockingDependents',
       'enabledModuleIds', 'suggestedEnabledModuleIds', 'diff', 'migrationImpact',
+      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.orderingChanged === undefined ? [] : ['orderingChanged']), ...(value.edges === undefined ? [] : ['edges']), ...(value.previewFingerprint === undefined ? [] : ['previewFingerprint']),
     ])
     || value.schemaVersion !== 1
     || typeof value.valid !== 'boolean'
@@ -344,6 +364,10 @@ function requireModulePolicyPreview(value) {
   ) {
     throw new Error('The main process returned an invalid module policy preview.');
   }
+  if (value.ordering !== undefined) requireOrdering(value.ordering);
+  if (value.edges !== undefined) requireDependencyEdges(value.edges);
+  if (value.orderingChanged !== undefined && typeof value.orderingChanged !== 'boolean') throw new Error('Invalid ordering change flag');
+  if (value.previewFingerprint !== undefined && value.previewFingerprint !== null && typeof value.previewFingerprint !== 'string') throw new Error('Invalid preview fingerprint');
   return value;
 }
 
@@ -562,23 +586,32 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     requirePath(path),
   )),
   openUpdateRelease: async () => ipcRenderer.invoke(channels.openUpdateRelease),
-  previewModulePolicy: async (enabledModuleIds) => requireModulePolicyPreview(
+  previewModulePolicy: async (enabledModuleIds, ordering) => requireModulePolicyPreview(
     await ipcRenderer.invoke(channels.previewModulePolicy, {
       enabledModuleIds: requireModuleIds(enabledModuleIds),
+      ...(ordering === undefined ? {} : { ordering: requireOrdering(ordering) }),
     }),
   ),
   applyModulePolicy: async (
     enabledModuleIds,
     confirmedMigration = false,
     confirmationLabel = null,
+    ordering,
+    expectedPolicyDigest,
+    expectedPreviewFingerprint,
   ) => {
     if (typeof confirmedMigration !== 'boolean') {
       throw new TypeError('Migration confirmation must be boolean.');
     }
+    if (expectedPolicyDigest !== undefined && (typeof expectedPolicyDigest !== 'string' || expectedPolicyDigest.length > 512)) throw new TypeError('Policy digest is invalid.');
+    if (expectedPreviewFingerprint !== undefined && (typeof expectedPreviewFingerprint !== 'string' || expectedPreviewFingerprint.length > 512)) throw new TypeError('Preview fingerprint is invalid.');
     return requireModuleSettings(await ipcRenderer.invoke(channels.applyModulePolicy, {
       enabledModuleIds: requireModuleIds(enabledModuleIds),
       confirmedMigration,
       confirmationLabel: requireConfirmationLabel(confirmationLabel),
+      ...(ordering === undefined ? {} : { ordering: requireOrdering(ordering) }),
+      ...(expectedPolicyDigest === undefined ? {} : { expectedPolicyDigest }),
+      ...(expectedPreviewFingerprint === undefined ? {} : { expectedPreviewFingerprint }),
     }));
   },
   readDetail: async (kind, id = null) => ipcRenderer.invoke(

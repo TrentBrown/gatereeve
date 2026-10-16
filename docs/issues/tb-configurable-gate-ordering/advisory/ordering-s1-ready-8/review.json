@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-8",
+  "source": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "b6781ea2a2e947d70ad9390f399541fa7bdf8cba",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:e266a67d05448e9d432c30a8e1d1bcc77661c47998222c80005bccf5405a8230",
+  "requestIdentity": "sha256:f9b863d6be3f45687273ea482ccca0149b9e31ff7cbd467119f6cdfb7d075804",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-8/readiness.json",
+    "hash": "sha256:7f198de5522ea0f9d88fa27a9723691d47cee080066a9d33b839a7b17da520af"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "UNAVAILABLE",
+  "result": null,
+  "receipts": [],
+  "operationalErrors": [
+    {
+      "code": "CONTRACT_INVALID",
+      "category": "PERSISTENT",
+      "message": "Advisory configuration, isolation, input schema or publication could not be established."
+    }
+  ]
+}

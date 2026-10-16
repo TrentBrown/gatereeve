@@ -1,3 +1,4 @@
+import { fingerprint } from './fingerprint.js';
 import { GATE_OUTCOMES } from './constants.js';
 import { ContractError, TransitionRejectedError } from './errors.js';
 import {
@@ -94,6 +95,8 @@ export async function recordGateOutcome(
     outcome,
     inputs,
     currentFingerprints = {},
+    expectedModelHash,
+    expectedDependencyEventIds,
     evidence = null,
     reason = null,
     actor,
@@ -120,6 +123,11 @@ export async function recordGateOutcome(
     throw new TransitionRejectedError(`${gateId} is not eligible`, {
       blockers: gate.blockers,
     });
+  }
+  if ((expectedModelHash !== undefined && expectedModelHash !== record.modelLock.modelHash)
+      || (expectedDependencyEventIds !== undefined
+        && fingerprint(expectedDependencyEventIds) !== fingerprint(dependencyEventIds(attempt, gate)))) {
+    throw new TransitionRejectedError('Module execution inputs or predecessor events changed before outcome recording');
   }
   if (outcome === 'NOT_APPLICABLE') {
     if (!gate.optional || typeof reason !== 'string' || reason.trim().length === 0) {

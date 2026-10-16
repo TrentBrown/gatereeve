@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-5",
+  "checkedSource": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "b1fe45e5c149b77d8cb5c08ef3370003d964bd19",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:2a43fdbf777b63258938f6018a3de70e2dd84828971adbaf32679879bc35a48c",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-5/readiness.json",
+    "hash": "sha256:c6c695c06aa6c5f681506f409fe15984b884f3ae117fe22c409486421575f3dc"
+  },
+  "reason": "All retained advisory and formal Judge F1-F4 findings have changed class-wide remediation and focused45/full CLI413/Desktop217/portable Python132+templates2/package verification PASS. The previous two native advisories were operationally unavailable; this fresh full-scope checklist rerun is pending. Proceed to independent formal checks with their requirements and freshness intact; retain and assess the actual advisory result before human review. No clean advisory, Judge waiver or formal PASS is inferred.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "Implementer assesses all four advisory and four formal findings after class-wide fixes"
+  }
+}

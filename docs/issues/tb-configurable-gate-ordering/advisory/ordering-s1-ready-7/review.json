@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-7",
+  "source": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "69db4e6c4e6c6dc53a8818aec80c808afbbb096e",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:6aab6842ad02ca125a62e6ccfb81c7f4bf37d3166a259195b10e16882b57b628",
+  "requestIdentity": "sha256:18fc76f7ed739273a6ef7d32bc2f9405366215a200a9549974f4e6a2758d66a1",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-7/readiness.json",
+    "hash": "sha256:8fc27857f18b72ac7ccb0bc77ead25dc8f38776ad3a211fac3f83394a2c2dcc5"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "FINDINGS",
+  "result": {
+    "schemaVersion": 1,
+    "outcome": "FINDINGS",
+    "fullVerification": "PENDING",
+    "summary": "One supported graph-rendering defect identified. All 13 prior findings are resolved. Supplied fast/focused checks pass; full verification and an independent formal Judge remain required.",
+    "criteria": [
+      {
+        "id": "R1",
+        "result": "SATISFIED",
+        "explanation": "Schema-1 policy and hashes remain supported; schema-2 ordering is retained separately from unchanged module definitions.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:120 — schema-2 ordering participates in policy hashing.",
+          "plugin-src/shared/resources/protocol/modules.js:509 — both policy versions are validated.",
+          "cli/test/owner-ordering.test.js:20 — compatibility, definition preservation and graph round-trip assertions."
+        ]
+      },
+      {
+        "id": "R2",
+        "result": "SATISFIED",
+        "explanation": "Ordering validation rejects malformed relationships, invalid endpoints, protected duplicates, cross-slot links and active combined cycles.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:134 — validates ordering shape, self-links and duplicates.",
+          "plugin-src/shared/resources/protocol/modules.js:645 — validates selected endpoints, slots and existing dependencies.",
+          "plugin-src/shared/resources/protocol/modules.js:569 — rejects combined cycles."
+        ]
+      },
+      {
+        "id": "R3",
+        "result": "SATISFIED",
+        "explanation": "Owner edges are conditional on enabled endpoints; hard prerequisites and locked modules remain protected.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:151 — dependency edges include only enabled endpoints.",
+          "plugin-src/shared/resources/protocol/modules.js:624 — locked modules must remain selected and enabled.",
+          "plugin-src/shared/resources/protocol/modules.js:666 — enabled modules cannot lose hard prerequisites.",
+          "cli/test/owner-ordering.test.js:50 — dormant links return on re-enablement."
+        ]
+      },
+      {
+        "id": "R4",
+        "result": "SATISFIED",
+        "explanation": "Compiled owner dependencies govern eligibility and freshness, and completion preserves launch predecessor bindings.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/modules.js:780 — owner ordering enters compiled completion dependencies.",
+          "plugin-src/shared/resources/protocol/projection.js:701 — eligibility checks each actual predecessor.",
+          "plugin-src/shared/resources/protocol/boundary.js:127 — recording rejects replacement predecessor events.",
+          "plugin-src/shared/resources/protocol/execution-preparation.js:17 — completion compares launch inputs and dependency events."
+        ]
+      },
+      {
+        "id": "R5",
+        "result": "SATISFIED",
+        "explanation": "Ordering migration discloses changes, retains historical attempt graphs and preserves independent Judge evidence inputs.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/feature.js:172 — migration descriptors retain owner ordering.",
+          "plugin-src/shared/resources/protocol/feature.js:227 — migration impact reports module changes and invalidated boundary gates.",
+          "plugin-src/shared/resources/protocol/projection.js:340 — finalization attempts retain edge origins.",
+          "plugin-src/shared/resources/protocol/agent-workflow-service.js:98 — content dependencies come from manifest dependsOn, excluding added owner ordering."
+        ]
+      },
+      {
+        "id": "R6",
+        "result": "SATISFIED",
+        "explanation": "Same-slot controls stage complete ordering, preserve it during dependency absorption and expose protected relationships.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1207 — Run after controls use discovered same-slot modules.",
+          "apps/desktop/renderer/renderer.js:1358 — initial preview submits staged ordering.",
+          "apps/desktop/renderer/renderer.js:1371 — dependency absorption submits the same ordering.",
+          "apps/desktop/test/ordering-renderer.test.js:70 — both preview requests retain the staged edge."
+        ]
+      },
+      {
+        "id": "R7",
+        "result": "SATISFIED",
+        "explanation": "Apply uses the validated draft and host-bound confirmation; discard invalidates pending requests, and certified migration refusals restore policy.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1338 — validates the exact current draft and request generation.",
+          "apps/desktop/renderer/renderer.js:1449 — submits captured validated values and preview fingerprint.",
+          "apps/desktop/main/module-policy.js:328 — schema-2 Apply requires the current host fingerprint.",
+          "apps/desktop/main/module-policy.js:376 — certified journal-lock and migration-conflict refusals trigger rollback.",
+          "apps/desktop/renderer/renderer.js:3085 — Discard invalidates outstanding previews."
+        ]
+      },
+      {
+        "id": "R8",
+        "result": "FINDING",
+        "explanation": "Desktop diagrams retain exact edges, but public Mermaid rendering merges distinct supported identifiers and invents self-loops.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/graph.js:4 — distinct punctuation characters all become underscores.",
+          "plugin-src/shared/resources/protocol/graph.js:174 — node declarations use the lossy identifier.",
+          "plugin-src/shared/resources/protocol/graph.js:178 — edge endpoints use the same lossy identifier.",
+          "Read-only reproduction with real resolution: example/check-one → example/check.one becomes a self-loop in model and current-finalization Mermaid output."
+        ]
+      },
+      {
+        "id": "R9",
+        "result": "FINDING",
+        "explanation": "Desktop textual alternatives and pinned grouping are present, but colliding Mermaid identifiers erase distinct named dependency endpoints.",
+        "evidence": [
+          "apps/desktop/renderer/dependency-diagram.js:72 — Desktop supplies named textual relationships.",
+          "apps/desktop/renderer/renderer.js:1019 — retained finalization groups use attempt-pinned stages.",
+          "plugin-src/shared/resources/protocol/graph.js:174 — distinct labels are declared under one Mermaid node ID.",
+          "Read-only boundary reproduction: check-one and check.one collapse to gate_check_one, obscuring the named predecessor relationship."
+        ]
+      },
+      {
+        "id": "R10",
+        "result": "SATISFIED",
+        "explanation": "Supplied integration checks pass, packaged protocol bytes match their manifest, and inspected lifecycle safeguards remain enforced. This does not complete full verification.",
+        "evidence": [
+          ".gatereeve-agent-evidence/fast-checks/1-1-portable-acceptance-7.log:452 — 421 CLI tests pass.",
+          ".gatereeve-agent-evidence/fast-checks/1-1-portable-acceptance-7.log:775 — portable acceptance passes.",
+          ".gatereeve-agent-evidence/fast-checks/1-2-desktop-tests-7.log:240 — 219 Desktop tests pass.",
+          "apps/desktop/resources/desktop-projection.json:1 — all 47 referenced protocol files match declared sizes and hashes; changed canonical/Desktop protocol files and patch hunks match.",
+          "plugin-src/shared/resources/protocol/boundary-retry.js:288 — remaining descendants must complete before human review."
+        ]
+      }
+    ],
+    "scopeCheck": {
+      "result": "SATISFIED",
+      "explanation": "The inventoried slice covers policy, governed graphs, Desktop controls/rendering, integration safeguards, tests and guidance within the approved pre-merge scope. No binary changes are inventoried.",
+      "evidence": [
+        "docs/issues/tb-configurable-gate-ordering/spec.md:4 — declared pre-merge scope.",
+        ".gatereeve-agent-evidence/inventory.json:1 — inspected change inventory; every binary flag is false.",
+        ".gatereeve-agent-evidence/patches/feature.json:1 — all five chunk digests, sizes and assembled material digest match.",
+        "docs/issues/tb-configurable-gate-ordering/design.md:20 — chosen policy, graph and Desktop implementation shape."
+      ]
+    },
+    "gapCheck": {
+      "result": "FINDING",
+      "explanation": "Public graph rendering does not handle distinct valid identifiers that normalize to the same Mermaid identifier.",
+      "evidence": [
+        "plugin-src/shared/resources/protocol/modules.js:17 — valid module identifiers permit periods, hyphens and underscores.",
+        "plugin-src/shared/resources/protocol/graph.js:4 — rendering does not preserve those distinctions.",
+        "Read-only resolver and graph reproductions confirm the gap for boundary and finalization owner edges."
+      ]
+    },
+    "contradictionCheck": {
+      "result": "FINDING",
+      "explanation": "A valid acyclic resolved relationship is presented as a self-dependency, contradicting the actual graph and exact-DAG requirement.",
+      "evidence": [
+        "docs/issues/tb-configurable-gate-ordering/spec.md:12 — rendered relationships must represent the actual graph.",
+        "plugin-src/shared/resources/protocol/graph.js:178 — normalized endpoints turn the reproduced owner relationship into a self-loop.",
+        "docs/WORKFLOW-MODULES.md:482 — public model/current graphs are described as retaining exact named relationships."
+      ]
+    },
+    "findings": [
+      {
+        "summary": "Public Mermaid graphs collapse distinct valid IDs, turning owner dependencies into self-loops.",
+        "criterionIds": [
+          "R8",
+          "R9"
+        ],
+        "invariant": "Every distinct supported graph node must retain a distinct rendered identity, and rendered relationships must preserve the resolved DAG's endpoints and topology.",
+        "affectedPaths": [
+          "plugin-src/shared/resources/protocol/graph.js",
+          "apps/desktop/resources/protocol/graph.js"
+        ],
+        "evidence": [
+          "plugin-src/shared/resources/protocol/graph.js:4 and apps/desktop/resources/protocol/graph.js:4 — nodeId replaces all punctuation with underscores.",
+          "plugin-src/shared/resources/protocol/graph.js:48 — newly rendered finalization nodes retain distinct module IDs before serialization.",
+          "plugin-src/shared/resources/protocol/graph.js:174 and :178 — serialization collapses both node declarations and edge endpoints.",
+          "Read-only real-resolver reproduction: valid finalization modules example/check-one and example/check.one with owner ordering resolve separately, but modelGraph emits two declarations named finalization_module_example_check_one and an owner-ordering self-loop. currentGraph produces the equivalent collision.",
+          "Related read-only reproduction using validateModel and compiled boundary definitions: valid gates check-one and check.one collapse in both model and current-boundary Mermaid output.",
+          "cli/src/commands/protocol.js:671 and :680 — Mermaid is the default public graph output."
+        ]
+      }
+    ],
+    "checklist": [
+      {
+        "findingId": "advisory:ordering-s1-ready-1:0",
+        "result": "RESOLVED",
+        "explanation": "Dependency absorption now previews the same staged ordering that Apply submits.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1349 — captures staged ordering.",
+          "apps/desktop/renderer/renderer.js:1358 and :1371 — both preview calls include it.",
+          "apps/desktop/renderer/renderer.js:1453 — Apply submits validated ordering."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-1:1",
+        "result": "RESOLVED",
+        "explanation": "Discard advances the request generation and clears validation, so delayed responses cannot restore discarded state.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:3085 — invalidates pending requests.",
+          "apps/desktop/renderer/renderer.js:3089 — restores saved enablement and ordering.",
+          "apps/desktop/renderer/renderer.js:1359 and :1372 — stale responses are rejected.",
+          "apps/desktop/test/ordering-renderer.test.js:75 — exercises delayed ordinary and dependency-expansion responses after Discard."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-1:2",
+        "result": "RESOLVED",
+        "explanation": "New edits clear the old preview and confirmation; Apply captures only the latest validated draft.",
+        "evidence": [
+          "apps/desktop/renderer/renderer.js:1350 — marks preview pending and clears prior validation.",
+          "apps/desktop/renderer/renderer.js:1354 — closes obsolete confirmation.",
+          "apps/desktop/renderer/renderer.js:1440 — requires current validation and captures the draft.",
+          "apps/desktop/test/ordering-renderer.test.js:82 — delayed newer edits cannot use an earlier confirmation."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-2:0",
+        "result": "RESOLVED",
+        "explanation": "Ordering confirmation now binds the resolved policy/model, catalog and feature baseline, with rechecks before publication and guarded migration.",
+        "evidence": [
+          "apps/desktop/main/module-policy.js:279 — fingerprint includes candidate identity, catalog and feature model/journal baseline.",
+          "apps/desktop/main/module-policy.js:328 — rejects an outdated fingerprint.",
+          "apps/desktop/main/module-policy.js:350 — rechecks before publication.",
+          "plugin-src/shared/resources/protocol/feature.js:291 and :333 — migration rejects changed baselines.",
+          "apps/desktop/test/module-policy.test.js:47 — covers catalog and feature-model drift."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-5:0",
+        "result": "RESOLVED",
+        "explanation": "JOURNAL_LOCKED now certifies pre-mutation refusal for rollback even if unrelated journal progress occurs before observation.",
+        "evidence": [
+          "apps/desktop/main/module-policy.js:376 — recognizes JOURNAL_LOCKED independently of subsequent journal state.",
+          "apps/desktop/main/module-policy.js:384 — verifies ownership before restoring prior policy.",
+          "plugin-src/shared/resources/protocol/feature.js:327 — journal locking precedes migration publication.",
+          "apps/desktop/test/module-policy.test.js:305 — covers unrelated journal advancement after actual lock refusal."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-5:1",
+        "result": "RESOLVED",
+        "explanation": "Modular validation compares recorded artifacts only for PASS, preserving waived gates whose core evidence is null.",
+        "evidence": [
+          "plugin-src/shared/resources/scripts/boundary_packet.py:120 — accepts the recorded WAIVED disposition.",
+          "plugin-src/shared/resources/scripts/boundary_packet.py:126 — artifact comparison is restricted to passed non-Judge gates.",
+          "cli/test/boundary-retry.test.js:208 — covers every supported enabled waiver with another review disabled."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-5:2",
+        "result": "RESOLVED",
+        "explanation": "Emitted schema-4 packets now have an explicit recognized workflow-history shape.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/advisory-inputs.js:96 — validates modular packet records.",
+          "plugin-src/shared/resources/protocol/advisory-inputs.js:125 — recognizes them before opaque-history rejection.",
+          "apps/desktop/resources/protocol/advisory-inputs.js:125 — matching bundled behavior.",
+          "cli/test/boundary-retry.test.js:224 — exercises a later advisory source range containing an emitted modular packet."
+        ]
+      },
+      {
+        "findingId": "advisory:ordering-s1-ready-5:3",
+        "result": "RESOLVED",
+        "explanation": "Public current graphs now use pinned dependencyEdges and preserve each edge's origin. The separately reported identifier collision is a distinct defect.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/graph.js:117 — reads dependencyEdges.",
+          "plugin-src/shared/resources/protocol/graph.js:125 — distinguishes required, owner and manifest ordering labels.",
+          "apps/desktop/resources/protocol/graph.js:117 — matching bundled implementation.",
+          "cli/test/owner-ordering.test.js:101 — asserts all three boundary edge origins."
+        ]
+      },
+      {
+        "findingId": "formal:evt-agent-workflow-a61ada83-a370-486b-ad2c-d9941cff54aa:0",
+        "result": "RESOLVED",
+        "explanation": "Retained finalization inventory, edges, groups and numbering now share the attempt's pinned graph.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/snapshot.js:1075 — obtains the retained attempt's module graph.",
+          "plugin-src/shared/resources/protocol/snapshot.js:1083 — uses that graph for finalization inventory.",
+          "apps/desktop/renderer/renderer.js:1019 — groups retained cards by attempt dependencyStage.",
+          "apps/desktop/test/ordering-finalization-renderer.test.js:14 — covers reversal, removal, disablement and empty replacement."
+        ]
+      },
+      {
+        "findingId": "formal:evt-agent-workflow-ca398c55-1ddc-4a5a-9cd9-4005058c941f:0",
+        "result": "RESOLVED",
+        "explanation": "Native and Desktop completions preserve launch preparation and core recording rejects replacement dependencies.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/agent-workflow-scheduler.js:112 — compares launch and completion preparation.",
+          "apps/desktop/main/module-execution.js:91 — retains the original preparation.",
+          "apps/desktop/main/protocol-adapter.js:230 and :289 — forwards expected launch dependency events.",
+          "plugin-src/shared/resources/protocol/boundary.js:127 — checks expected predecessor bindings.",
+          "plugin-src/shared/resources/protocol/finalization.js:142 — performs the corresponding finalization check."
+        ]
+      },
+      {
+        "findingId": "formal:evt-agent-workflow-ca398c55-1ddc-4a5a-9cd9-4005058c941f:1",
+        "result": "RESOLVED",
+        "explanation": "Presentation barriers exclude their graph descendants, allowing those prerequisites to complete first while human review still waits for all enabled gates.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/boundary-retry.js:120 — presentationReady excludes descendants.",
+          "plugin-src/shared/resources/protocol/boundary-retry.js:233 — packet preparation excludes downstream gates.",
+          "plugin-src/shared/resources/protocol/boundary-retry.js:288 — resumes remaining gates before human review.",
+          "cli/test/boundary-retry.test.js:167 — covers owner ordering after Explain Diff and Packet Validation."
+        ]
+      },
+      {
+        "findingId": "formal:evt-agent-workflow-ca398c55-1ddc-4a5a-9cd9-4005058c941f:2",
+        "result": "RESOLVED",
+        "explanation": "Disabled standard review gates are omitted from packets, while schema-4 validation derives required gates from the pinned attempt.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/boundary-retry.js:247 — skips absent disabled gates.",
+          "plugin-src/shared/resources/protocol/boundary-retry.js:255 — selects schema 4 for reduced inventories.",
+          "plugin-src/shared/resources/scripts/boundary_packet.py:117 and :654 — derives and enforces the pinned enabled inventory.",
+          "cli/test/boundary-retry.test.js:192 — covers each previously rejected disabled review gate."
+        ]
+      },
+      {
+        "findingId": "formal:evt-agent-workflow-ca398c55-1ddc-4a5a-9cd9-4005058c941f:3",
+        "result": "RESOLVED",
+        "explanation": "Certified journal-lock refusal restores the previous policy, and saved-policy adoption remains visible and retryable after reload.",
+        "evidence": [
+          "apps/desktop/main/module-policy.js:376 and :388 — rolls back owned publication on JOURNAL_LOCKED.",
+          "apps/desktop/renderer/renderer.js:1277 — outstanding migration enables unchanged-policy adoption.",
+          "apps/desktop/renderer/renderer.js:3095 — reloads saved policy and baseline.",
+          "apps/desktop/test/module-policy.test.js:282 — covers saved and absent policies, refusal, rollback and retry."
+        ]
+      }
+    ]
+  },
+  "receipts": [
+    {
+      "schemaVersion": 1,
+      "kind": "gatereeve-agent-workflow-receipt",
+      "protocolVersion": 1,
+      "runId": "advisory-ordering-s1-ready-7-1",
+      "attemptId": "advisory-ordering-s1-ready-7",
+      "module": {
+        "id": "gatereeve/advisory-review",
+        "version": "1.0.0",
+        "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+      },
+      "stage": "advisory",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "provider": {
+        "id": "codex",
+        "adapterVersion": "1.0.0",
+        "model": "gpt-6.1-sol",
+        "reasoningEffort": "high",
+        "contextId": "01a13c39-ce2a-77e1-9724-df8a74d57c92"
+      },
+      "isolation": {
+        "method": "codex-ephemeral-exec",
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "policy": {
+        "repositoryAccess": "read-only-pinned",
+        "networkAccess": "denied",
+        "scratch": "disposable"
+      },
+      "startedAt": "2026-10-14T21:03:01.692Z",
+      "completedAt": "2026-10-14T21:11:56.655Z",
+      "status": "completed",
+      "digests": {
+        "instructions": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+        "input": "sha256:8a615e10c5f10d175ed0e96db83225be78c9db206d23eb2573b5e9f6644e1be7",
+        "output": "sha256:b583c17d3f16ab2e2dc88cf1ff9cd096cfcea61426b56c9c2e51b252a0ecf96f",
+        "snapshot": "sha256:3c3c110ad3323ffc6c22b1bfeb14ecc6b057bbae1350877196f90c312bc0092f"
+      }
+    }
+  ],
+  "operationalErrors": []
+}

@@ -1,7 +1,9 @@
-import { boundaryGateDefinitions } from './modules.js';
+import { boundaryGateDefinitions, finalizationModuleDefinitions } from './modules.js';
 
 function nodeId(value) {
-  return String(value).replace(/[^A-Za-z0-9_]/g, '_');
+  // Fixed-width UTF-16 units preserve every distinct ID without punctuation
+  // collisions and remain valid Mermaid identifiers. Labels stay readable.
+  return `n_${String(value).split('').map(unit => unit.charCodeAt(0).toString(16).padStart(4, '0')).join('')}`;
 }
 
 function quote(value) {
@@ -37,20 +39,27 @@ export function modelGraph(model) {
     group: 'Review boundary gates',
   }));
   const gateEdges = gates.flatMap((gate) =>
-    gate.dependsOn.map((dependency) => ({
-      id: `gate:${dependency}->${gate.id}`,
-      from: `gate:${dependency}`,
+    (gate.dependencyEdges ?? gate.dependsOn.map(from => ({ from, kind: 'required' }))).map((edge) => ({
+      id: `gate:${edge.from}->${gate.id}`,
+      from: `gate:${edge.from}`,
       to: `gate:${gate.id}`,
-      label: 'requires',
+      label: edge.kind === 'required' ? 'requires' : edge.kind === 'owner' ? 'owner ordering' : 'after when enabled',
     }))
   );
+  const finalization = finalizationModuleDefinitions(model);
+  const finalizationNodes = finalization.map(module => ({ id: `finalization-module:${module.id}`, label: module.id, group: 'Feature finalization modules' }));
+  const finalizationEdges = finalization.flatMap(module =>
+    (module.dependencyEdges ?? module.dependsOn.map(from => ({ from, kind: 'required' }))).map(edge => ({
+      id: `finalization-module:${edge.from}->${module.id}`, from: `finalization-module:${edge.from}`, to: `finalization-module:${module.id}`,
+      label: edge.kind === 'required' ? 'requires' : edge.kind === 'owner' ? 'owner ordering' : 'after when enabled',
+    })));
   const graph = {
     schemaVersion: 1,
     kind: 'model',
     modelId: model.modelId,
     modelVersion: model.modelVersion,
-    nodes: [...machines.flatMap((machine) => machine.nodes), ...gateNodes],
-    edges: [...machines.flatMap((machine) => machine.edges), ...gateEdges],
+    nodes: [...machines.flatMap((machine) => machine.nodes), ...gateNodes, ...finalizationNodes],
+    edges: [...machines.flatMap((machine) => machine.edges), ...gateEdges, ...finalizationEdges],
   };
   return { ...graph, mermaid: renderMermaid(graph) };
 }
@@ -107,16 +116,32 @@ export function currentGraph(projection) {
                 ? 'passed'
                 : 'recorded',
       });
-      const dependencies = gate.dependsOn.length > 0
-        ? gate.dependsOn.map((dependency) => `attempt:${attempt.id}:gate:${dependency}`)
-        : [`attempt:${attempt.id}`];
+      const dependencies = gate.dependencyEdges
+        ?? gate.dependsOn.map(from => ({ from, kind: 'required' }));
+      if (!dependencies.length) edges.push({ id: `attempt:${attempt.id}->${id}`,
+        from: `attempt:${attempt.id}`, to: id, label: 'requires' });
       for (const dependency of dependencies) {
-        edges.push({
-          id: `${dependency}->${id}`,
-          from: dependency,
-          to: id,
-          label: 'requires',
-        });
+        const from = `attempt:${attempt.id}:gate:${dependency.from}`;
+        edges.push({ id: `${from}->${id}`, from, to: id,
+          label: dependency.kind === 'required' ? 'requires' : dependency.kind === 'owner' ? 'owner ordering' : 'after when enabled' });
+      }
+    }
+  }
+  for (const attempt of projection.finalizationAttempts ?? []) {
+    const parent = `finalization:${attempt.id}`;
+    nodes.push({ id: parent, label: `${attempt.id}: ${attempt.state}`,
+      group: 'Finalization attempts', status: attempt.state === 'ACTIVE' ? 'current' : 'recorded' });
+    edges.push({ id: `feature->${parent}`, from: `feature:${projection.feature.state}`, to: parent, label: 'finalization' });
+    for (const module of attempt.modules) {
+      const id = `${parent}:module:${module.id}`;
+      nodes.push({ id, label: `${module.id}: ${module.outcome}/${module.freshness}`,
+        group: 'Finalization modules', status: module.freshness === 'STALE' ? 'stale' : module.eligible ? 'eligible' : module.outcome === 'PASS' ? 'passed' : 'recorded' });
+      const dependencies = module.dependencyEdges ?? module.dependsOn.map(from => ({ from, kind: 'required' }));
+      if (!dependencies.length) edges.push({ id: `${parent}->${id}`, from: parent, to: id, label: 'requires' });
+      for (const dependency of dependencies) {
+        const from = `${parent}:module:${dependency.from}`;
+        edges.push({ id: `${from}->${id}`, from, to: id,
+          label: dependency.kind === 'required' ? 'requires' : dependency.kind === 'owner' ? 'owner ordering' : 'after when enabled' });
       }
     }
   }

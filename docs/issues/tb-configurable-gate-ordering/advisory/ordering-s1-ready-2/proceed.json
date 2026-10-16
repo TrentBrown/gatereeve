@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-2",
+  "checkedSource": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "0c4e553c73dd31f7e35ca973d1d06ef31b103e67",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:9308519c63c708b717c904453c8fbf76c0013dcb7a489f3bf5a268b851efd307",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-2/readiness.json",
+    "hash": "sha256:cfae23767ed2770ed95901f14ee89e1a0dbc798fec704929ee7abaaf0fd5a4b5"
+  },
+  "reason": "All three earlier advisory findings have class-wide fixes and delayed-response regression coverage; full remediated Desktop210 and existing core/portable verification are clean. The fresh full-scope advisory rerun is still pending. Proceed with independent formal checks in parallel, preserve the pending claim and assess eventual findings before requesting human review; no advisory PASS or waiver is asserted.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "Implementer assessed class-wide remediation and fresh passing regressions"
+  }
+}

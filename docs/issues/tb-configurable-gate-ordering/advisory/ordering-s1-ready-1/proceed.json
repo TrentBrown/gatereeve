@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-1",
+  "checkedSource": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "6eb9f94fc65ad521f56cb23255ea30f022a63f8a",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:96ead006b6ae788c16d634529233b0f7ef9a0d0d9bc758532fb01613785f4a15",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-1/readiness.json",
+    "hash": "sha256:e16571e11bab9d68973f34b91ea09de3e1af2387b33545cb484b95bd78532fbc"
+  },
+  "reason": "The isolated advisory run is still in progress. Local core, Desktop, IPC and portability verification are clean; proceed with formal boundary preparation and independent verification while preserving the pending advisory claim. No advisory PASS, waiver or unavailability is asserted; assess its findings when it completes.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "Implementer retains explicit proceed reason under approved advisory policy"
+  }
+}

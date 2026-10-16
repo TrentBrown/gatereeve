@@ -61,11 +61,17 @@ revised readiness. Project stop/escalation requirements still apply. Enter
 remediation through the core before revised readiness; the helper does not
 declare your fixes ready.
 
-Final Explain Diff, narrative and consolidated summaries wait for all
-substantive gates to be current and nonblocking under existing policies,
-including explicit applicable waivers. Decision triage precedes Explain Diff,
-matching the graph. After `PREPARE_PACKET`, use `action: packet` to construct
-the digest-bound manifest from recorded gates. Reconcile issues to in-review
+Final Explain Diff normally waits for substantive checks to be current and
+nonblocking, including applicable waivers. The configured DAG is authoritative:
+if an owner explicitly orders a check after Explain Diff or Packet Validation,
+run that prerequisite first and then the check. This adds no global stage barrier.
+Decision triage retains its configured prerequisites. Narrative and consolidated
+summaries require all enabled gates to be current before requesting human review. After `PREPARE_PACKET`, use `action: packet` to construct
+the digest-bound manifest from recorded enabled gates. Disabled standard checks
+produce no artifact requirement; modular schema-4 packets bind the exact attempt
+and validation checks their inventory against the actual protocol projection.
+After packet validation, `CONTINUE_GATES` means run remaining configured
+descendants using `advance`; `FINALIZE_PACKET` means resume `finalize`. Reconcile issues to in-review
 and the tracker packet link; both canonical documents are declared evidence.
 Commit/push only returned evidence paths, then `action: finalize`
 performs trusted clean-checkout synchronization, Git-derived packet validation

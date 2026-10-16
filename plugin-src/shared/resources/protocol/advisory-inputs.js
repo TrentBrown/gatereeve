@@ -93,7 +93,36 @@ function retainedMechanicalRecord(value) {
   }
   return false;
 }
+function modularPacketRecord(value) {
+  const fields = ['schemaVersion', 'scope', 'featureId', 'repositoryAlias', 'packetId',
+    'pullRequest', 'mergeBaseSha', 'evaluatedSourceSha', 'featureBaseSha', 'applicability', 'gates', 'attemptId'];
+  const gates = new Set(['verification', 'specEvaluation', 'judge', 'codeReview', 'patternReview', 'explainDiff']);
+  const conditional = new Set(['specEvaluation', 'judge', 'patternReview']);
+  if (!exact(value, fields) || value.schemaVersion !== 4
+      || !/^pr-(?:[A-Za-z0-9._-]+-)?[1-9][0-9]*$/u.test(value.packetId ?? '')
+      || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(value.attemptId ?? '')
+      || !['slice', 'feature-final'].includes(value.scope) || !text(value.featureId) || !text(value.repositoryAlias)
+      || !sha(value.mergeBaseSha) || !sha(value.evaluatedSourceSha)
+      || (value.scope === 'slice' ? value.featureBaseSha !== null : !sha(value.featureBaseSha))
+      || !exact(value.pullRequest, ['repository', 'number', 'url', 'state', 'isDraft', 'baseRefName', 'baseRefOid', 'headRefName', 'headRefOid'])
+      || !Number.isSafeInteger(value.pullRequest.number) || value.pullRequest.number < 1
+      || !['OPEN', 'CLOSED', 'MERGED'].includes(value.pullRequest.state) || typeof value.pullRequest.isDraft !== 'boolean'
+      || !sha(value.pullRequest.baseRefOid) || !sha(value.pullRequest.headRefOid)
+      || !['repository', 'url', 'baseRefName', 'headRefName'].every(key => text(value.pullRequest[key]))
+      || !value.gates || Array.isArray(value.gates) || !value.applicability) return false;
+  const keys = Object.keys(value.gates);
+  if (!keys.length || keys.some(key => !gates.has(key))
+      || !exact(value.applicability, keys.filter(key => conditional.has(key)))
+      || Object.values(value.applicability).some(applicable => typeof applicable !== 'boolean')) return false;
+  return Object.values(value.gates).every(gate => exact(gate, ['disposition', 'reason', 'evidence'])
+    && ['passed', 'waived', 'not_applicable'].includes(gate.disposition)
+    && (gate.disposition === 'passed' ? gate.reason === null : text(gate.reason))
+    && (gate.disposition === 'not_applicable' ? gate.evidence === null
+      : exact(gate.evidence, ['path', 'sha256']) && text(gate.evidence.path) && /^sha256:[0-9a-f]{64}$/u.test(gate.evidence.sha256 ?? '')));
+}
+
 export function isAdvisoryWorkflowRecord(value) {
+  if (modularPacketRecord(value)) return true;
   if (retainedMechanicalRecord(value)) return true;
   if (value?.kind === 'workflow-judge') {
     return (

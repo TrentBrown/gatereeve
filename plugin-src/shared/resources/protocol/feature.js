@@ -169,6 +169,7 @@ function moduleDescriptors(model) {
       slot: module.slot,
       gateId: module.boundary?.gateId ?? null,
       enabled: enabledIds.has(module.id),
+      ownerAfter: [...(model.moduleGraph.ordering?.[module.id]?.after ?? [])].sort(),
     }));
   }
   return model.boundary.gates.map((gate) => ({
@@ -282,9 +283,15 @@ export async function migrateFeatureModel({
   coreVersion = PROTOCOL_VERSION,
   recordedAt = new Date().toISOString(),
   eventId,
+  expectedModelHash = null,
+  expectedJournalSequence = null,
 }) {
   assertHumanConfirmation(confirmedBy);
   const record = await readFeatureRecord(featureHome, { coreVersion });
+  if ((expectedModelHash !== null && record.modelLock.modelHash !== expectedModelHash)
+    || (expectedJournalSequence !== null && record.events.length !== expectedJournalSequence)) {
+    throw new ProtocolError('MODEL_MIGRATION_CONFLICT', 'Feature baseline changed after the owner confirmed the migration preview');
+  }
   const nextLock = createModelLock(nextModel, { createdAt: recordedAt, coreVersion });
   assertVersionCompatible(coreVersion, nextLock.coreCompatibility);
   if (nextLock.modelHash === record.modelLock.modelHash) {

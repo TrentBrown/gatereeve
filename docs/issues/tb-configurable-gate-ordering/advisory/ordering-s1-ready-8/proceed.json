@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-8",
+  "checkedSource": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "512a1c13591855ff8b89f018f59599a548594b57",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:e266a67d05448e9d432c30a8e1d1bcc77661c47998222c80005bccf5405a8230",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-8/readiness.json",
+    "hash": "sha256:7f198de5522ea0f9d88fa27a9723691d47cee080066a9d33b839a7b17da520af"
+  },
+  "reason": "Advisory8 is UNAVAILABLE/CONTRACT_INVALID, classified persistent with one actual provider attempt and no accepted verdict. Advisory7 confirmed all thirteen prior findings resolved and identified only Mermaid ID collisions; the shared injective mapping now passes resolver-backed model/current boundary/finalization and punctuation/Unicode regressions. All nine advisory plus five formal findings have full-class remediation and retained evidence. Focused12, full CLI422/Desktop219/Python104+28/templates2 and portable acceptance PASS. Proceed to a fresh mandatory independent formal boundary; no clean advisory or formal waiver is inferred.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "Implementer assessed all fourteen retained findings after exact graph identity correction"
+  }
+}

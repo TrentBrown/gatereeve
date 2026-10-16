@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:05430f37eec62843285a6b4c3ee9f64702c476533b1df1360e2872b5126a68d5",
+  "protocolHash": "sha256:d1c3607dcead203abdc0ec77918926469298880c093110def2b165d75d80ce86",
   "modelSha256": "a8bbfc7402f82d622c8b77417db99c0d4217b183ffa8d557a265fc90deebf080",
   "files": [
     {
@@ -16,8 +16,8 @@
     },
     {
       "path": "advisory-inputs.js",
-      "size": 11868,
-      "sha256": "e7b75f9b6274e9bc55eb6463f056083c61c42082fb4d212217e48b2d484a7c04"
+      "size": 14229,
+      "sha256": "85d30ea6c5ddf55868fa7d47b0edd446006ef25e63e2372a3c3c7b51e6ebc3ee"
     },
     {
       "path": "advisory-storage.js",
@@ -41,8 +41,8 @@
     },
     {
       "path": "agent-workflow-scheduler.js",
-      "size": 5217,
-      "sha256": "c949f60320a8188c8849dcf54a18270e13cf0e85651a373bbbe12b1b187e777b"
+      "size": 5288,
+      "sha256": "8a58b773fccf0f2e9974532235d323ffcb58b701dc332d26d9c05f361d6bb6c3"
     },
     {
       "path": "agent-workflow-service.js",
@@ -61,13 +61,13 @@
     },
     {
       "path": "boundary-retry.js",
-      "size": 22091,
-      "sha256": "2ba6ace87ac1b92c7c7178e1d45dd62b0a5780c3cb72e9d4117516d3a3df6303"
+      "size": 23979,
+      "sha256": "59b95a8cdd00664343584f2ef26f7d3d399ee21a5691c0356dedb7c67e1c4932"
     },
     {
       "path": "boundary.js",
-      "size": 8337,
-      "sha256": "581103c8625e6fa4766587bc5b308d2f610b59f911aa7453b68a2555d45a649f"
+      "size": 8814,
+      "sha256": "27298745b6853834cff2b8fc0b68c57b63e6faa9a69faba2157084995d85b2de"
     },
     {
       "path": "changes.js",
@@ -82,7 +82,7 @@
     {
       "path": "constants.js",
       "size": 2095,
-      "sha256": "ae8a0282b8e6caf771f275f1ea966525ff932fcdca1bd8a596648bcca6eeaae0"
+      "sha256": "aad1248dfbd9c553567803abfe5d7c61f260b86be84a575bd6f2debd2c501878"
     },
     {
       "path": "context.js",
@@ -96,18 +96,18 @@
     },
     {
       "path": "execution-preparation.js",
-      "size": 3939,
-      "sha256": "0e541fdd029e52a5e4d067a3936f8a54b12dad68d291c97f16653227eae1510f"
+      "size": 4692,
+      "sha256": "4e6162f96565301f8b4b45d4040787031a58c4eb42ee464f60b7237b6beaa344"
     },
     {
       "path": "feature.js",
-      "size": 14807,
-      "sha256": "1993064adaeaa5545fb10d5f9e000aa599b8f5668139400ee11a3799d339cdd7"
+      "size": 15276,
+      "sha256": "4ad9bcf088dfe7ccc4c318eab54acfd5c9b755246c794a8552fae28b68d70b55"
     },
     {
       "path": "finalization.js",
-      "size": 10583,
-      "sha256": "20d445c446be3013ce4e6119a50e5104bfb1a74ce83d13d774601282f2ad7996"
+      "size": 11029,
+      "sha256": "938dd4ccfe6938d08731eec89a2582ba360841feeae7f601dea3f5a7b884beba"
     },
     {
       "path": "fingerprint.js",
@@ -121,8 +121,8 @@
     },
     {
       "path": "graph.js",
-      "size": 5162,
-      "sha256": "eafdd951a9a08a5e40ee72bcfcf2eef031e0f8b740692d702f77d5115875e9cb"
+      "size": 7771,
+      "sha256": "aaa0a3bfaec8ffa1a587c2cad223c9837c60d9715c019f18181112b42d5acad2"
     },
     {
       "path": "guards.js",
@@ -161,8 +161,8 @@
     },
     {
       "path": "model.js",
-      "size": 18396,
-      "sha256": "4990586e900f673a64ff62259d58ddff8fc91665a196171ade572d67f7543323"
+      "size": 18725,
+      "sha256": "0f92a0f5714388a4f5d0e19508368ce714ee676e0dc51f4daf67ec43e8c63db9"
     },
     {
       "path": "module-runtime.js",
@@ -171,8 +171,8 @@
     },
     {
       "path": "modules.js",
-      "size": 33087,
-      "sha256": "cda1780cf982a54330ad8c65fd25e058fca785a529b0a8a99224b89bb972604d"
+      "size": 36473,
+      "sha256": "2cbac57ee4f60e33375e05c05b3281b551460ef788d3270b6463f2136e531a07"
     },
     {
       "path": "observer.js",
@@ -196,8 +196,8 @@
     },
     {
       "path": "projection.js",
-      "size": 48081,
-      "sha256": "4eee8f7058555e671c60d1626b5ef7dbbaf6ac1c2c5278f08b523a8906af8845"
+      "size": 48303,
+      "sha256": "0d82b796bfa76d4a9dd0c8f0830e15d79e1b7e757dc21b139c50852df0d78ded"
     },
     {
       "path": "python-guards.js",
@@ -226,8 +226,8 @@
     },
     {
       "path": "snapshot.js",
-      "size": 62114,
-      "sha256": "fff13b4ceb0151442f12c7bfe4de9e5f531eaabf77e5a3b634b2bd34ac58c2b7"
+      "size": 63513,
+      "sha256": "43bc5a1225f1c1c7e9d3a06c9603cc7396602a0fb3489f406f68bf1d9f937745"
     },
     {
       "path": "storage.js",

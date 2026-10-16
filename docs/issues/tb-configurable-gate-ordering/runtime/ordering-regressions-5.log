@@ -1,0 +1,113 @@
+✔ previewing a command discloses consent state without starting it (4.378041ms)
+✔ execution retains the module definition pinned by its boundary attempt (0.853083ms)
+✔ explicit durable consent starts a dedicated task and fresh completion records core evidence (2.416958ms)
+✔ provider-backed completion publishes live progress and records only the verified provider outcome (3.558333ms)
+✔ finalization providers observe directly and record through the finalization core adapter (2.327541ms)
+✔ a stale provider result replaces running status with an explicit blocked failure (2.553167ms)
+✔ command and provider completion retain their original execution preparation (0.964291ms)
+✔ ordering-only policy preview/apply preserves definitions, requires confirmation and retains links on later enablement edits (339.2825ms)
+✔ host confirmation rejects newly discovered modules and changed feature models even when saved policy digest is unchanged (154.621792ms)
+✔ pre-publication feature progress invalidates confirmation without publishing, and late guarded conflicts restore policy (135.688917ms)
+✔ competing policy application cannot overlap publication, core migration or rollback ownership (96.494959ms)
+✔ a confirmation fingerprint cannot move to another repository with identical catalog and model/journal IDs (35.476416ms)
+✔ module settings stage a complete policy and require explicit active-feature migration (98.093917ms)
+✔ module settings disclose dependents instead of silently cascading removals (18.1915ms)
+✔ module policy writes refuse symlink targets (5.229334ms)
+✔ newly enabled modules fail closed when their local implementation is unavailable (33.246208ms)
+✔ failed atomic creation neither writes policy nor deletes a colliding file (25.526125ms)
+✔ journal lock refusal restores the previous policy and leaves the confirmed change retryable (261.300625ms)
+✔ Run after edits preview exact edges, discard/cancel write nothing, and ordering-only apply requires explicit confirmation (587.238083ms)
+✔ Desktop reads canonical snapshots and details without journal mutation or CLI execution (35.574208ms)
+✔ Desktop finalization adapter derives merge identity and routes scoped mutations (0.758292ms)
+✔ Desktop preserves canonical missing, legacy, inconsistent, and incompatible diagnostics (24.784916ms)
+✔ Desktop boundary waivers verify pinned context and retain only exact dependency fingerprints (8.781125ms)
+✔ Desktop rejects waiver mutation once human review has begun (0.19825ms)
+✔ Desktop module outcomes revalidate pinned identity and pass only through protocol core (2.632916ms)
+✔ Desktop packaged waiver guard executes through discovered Python and GitHub paths (791.510375ms)
+✔ Desktop completion refuses a changed predecessor after launch for boundary and finalization (1.954458ms)
+✔ scheduler runs Judge then conditionally eligible Whiteboard in separate governed stages (2.887958ms)
+✔ a blocking Judge failure is recorded and leaves Whiteboard ineligible (0.198333ms)
+✔ scheduler restores recorded gate fingerprints before selecting eligible work (0.24975ms)
+✔ native completion refuses replacement predecessor events even with identical launch content (0.3155ms)
+✔ uncertain begin-boundary resumes exact PR without duplicating attempt or events (259.24375ms)
+✔ uncertain gate recording reconciles actual bytes/event and never duplicates PASS (223.27125ms)
+✔ FAIL is early retained discovery; presentation waits and revised attempt carries no PASS (340.3495ms)
+✔ clean substantive path orders discovery/triage before presentation and finalizes repeat-safely (483.560583ms)
+✔ source movement, changed identity, model/input mismatch and premature packet block passage (128.054792ms)
+✔ recording refuses native Judge shortcuts and changed evidence cannot become CURRENT (1070.5375ms)
+✔ stale preparation dependency identity is rejected instead of copying PASS (634.116792ms)
+✔ status is observational and pause prevents further mutations (428.44025ms)
+✔ owner ordering after Explain Diff and Packet Validation completes without a hidden barrier (5082.49575ms)
+Traceback (most recent call last):
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 122, in _modular_packet_gates
+    raise ValueError(f"{key} does not match the recorded gate outcome")
+ValueError: verification does not match the recorded gate outcome
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 647, in validate_packet
+    required_gates = _modular_packet_gates(workflow, manifest) if manifest_version == 4 else set(ARTIFACTS)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 132, in _modular_packet_gates
+    raise BoundaryPacketError(f"Modular packet does not match the protocol-pinned attempt: {error}") from error
+boundary_packet.BoundaryPacketError: Modular packet does not match the protocol-pinned attempt: verification does not match the recorded gate outcome
+Traceback (most recent call last):
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 122, in _modular_packet_gates
+    raise ValueError(f"{key} does not match the recorded gate outcome")
+ValueError: verification does not match the recorded gate outcome
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 647, in validate_packet
+    required_gates = _modular_packet_gates(workflow, manifest) if manifest_version == 4 else set(ARTIFACTS)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 132, in _modular_packet_gates
+    raise BoundaryPacketError(f"Modular packet does not match the protocol-pinned attempt: {error}") from error
+boundary_packet.BoundaryPacketError: Modular packet does not match the protocol-pinned attempt: verification does not match the recorded gate outcome
+Traceback (most recent call last):
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 122, in _modular_packet_gates
+    raise ValueError(f"{key} does not match the recorded gate outcome")
+ValueError: verification does not match the recorded gate outcome
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 647, in validate_packet
+    required_gates = _modular_packet_gates(workflow, manifest) if manifest_version == 4 else set(ARTIFACTS)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 132, in _modular_packet_gates
+    raise BoundaryPacketError(f"Modular packet does not match the protocol-pinned attempt: {error}") from error
+boundary_packet.BoundaryPacketError: Modular packet does not match the protocol-pinned attempt: verification does not match the recorded gate outcome
+Traceback (most recent call last):
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 122, in _modular_packet_gates
+    raise ValueError(f"{key} does not match the recorded gate outcome")
+ValueError: verification does not match the recorded gate outcome
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 647, in validate_packet
+    required_gates = _modular_packet_gates(workflow, manifest) if manifest_version == 4 else set(ARTIFACTS)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/trent.brown/.codex/worktrees/boundary-iteration-cost/gatereeve/plugin-src/shared/resources/scripts/boundary_packet.py", line 132, in _modular_packet_gates
+    raise BoundaryPacketError(f"Modular packet does not match the protocol-pinned attempt: {error}") from error
+boundary_packet.BoundaryPacketError: Modular packet does not match the protocol-pinned attempt: verification does not match the recorded gate outcome
+✔ disabled standard review checks omit packet artifacts and retain enabled requirements (5947.360583ms)
+✔ schema-2 ordering preserves exact definitions and schema-1 hashes and round-trips independently (18.352166ms)
+✔ invalid shapes, endpoints, protected duplicates, cross-slot and cyclic owner links reject (4.621208ms)
+✔ owner links become dormant at either disabled endpoint and return on re-enablement (3.806458ms)
+✔ completion ordering blocks only its dependent and binds predecessor events for freshness; migration retains history (404.55275ms)
+ℹ tests 45
+ℹ suites 0
+ℹ pass 45
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14703.408917

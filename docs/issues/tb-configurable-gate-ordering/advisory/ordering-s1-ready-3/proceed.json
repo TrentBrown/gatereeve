@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-3",
+  "checkedSource": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "2856d864708ce8c93f05593209d30c3969c783b5",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:c53625bfe2827a0e8a3f51d29da9bfa47e32ad188b4ac940445bddaaf098bbb3",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-3/readiness.json",
+    "hash": "sha256:09a8996cb473aed8a55935fdd1448e46a4da815ca4360ccea76fbed09b031d11"
+  },
+  "reason": "The latest isolated advisory attempt returned UNAVAILABLE after CONTRACT_INVALID and did not publish an accepted verdict. All four prior code findings have class-wide renderer/host fixes, exact confirmation baseline guards and passing regressions; full CLI410/Desktop212/Python132+template2 and portable checks pass. Proceed to mandatory independent formal review under unchanged Judge requirements. This reason is not an advisory PASS, formal PASS or waiver.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "Implementer assessed all prior findings and retained operational unavailability"
+  }
+}

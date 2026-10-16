@@ -1,0 +1,16 @@
+✔ ordering-only policy preview/apply preserves definitions, requires confirmation and retains links on later enablement edits (214.04ms)
+✔ module settings stage a complete policy and require explicit active-feature migration (88.705ms)
+✔ module settings disclose dependents instead of silently cascading removals (15.049875ms)
+✔ module policy writes refuse symlink targets (4.566417ms)
+✔ newly enabled modules fail closed when their local implementation is unavailable (28.7995ms)
+✔ failed atomic creation neither writes policy nor deletes a colliding file (20.219958ms)
+✔ real preload carries Run after choices through preview and apply IPC and rejects malformed ordering (5.162333ms)
+✔ Run after edits preview exact edges, discard/cancel write nothing, and ordering-only apply requires explicit confirmation (194.062791ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 463.6485

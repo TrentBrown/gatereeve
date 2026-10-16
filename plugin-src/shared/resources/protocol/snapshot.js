@@ -224,6 +224,7 @@ function validateGate(gate, label) {
   assertObject(gate, label);
   assertString(gate.id, `${label}.id`);
   assertStringArray(gate.dependsOn, `${label}.dependsOn`);
+  validateDependencyEdges(gate, label);
   assertInteger(gate.dependencyStage, `${label}.dependencyStage`, { minimum: 1 });
   assertString(gate.dependencyBranch, `${label}.dependencyBranch`, { nullable: true });
   assertString(gate.orderLabel, `${label}.orderLabel`);
@@ -249,6 +250,22 @@ function validateGate(gate, label) {
   });
   assertString(gate.reason, `${label}.reason`, { nullable: true });
   assertNullableObject(gate.waiverBasis, `${label}.waiverBasis`);
+}
+
+function validateDependencyEdges(value, label) {
+  if (value.dependencyEdges === undefined) return;
+  assertArray(value.dependencyEdges, `${label}.dependencyEdges`);
+  const seen = new Set();
+  for (const edge of value.dependencyEdges) {
+    assertObject(edge, `${label}.dependencyEdge`);
+    assertString(edge.from, `${label}.dependencyEdge.from`);
+    assertOneOf(edge.kind, new Set(['required', 'conditional', 'owner']), `${label}.dependencyEdge.kind`);
+    if (edge.to !== value.id || !value.dependsOn.includes(edge.from) || seen.has(edge.from)) {
+      throw new ContractError(`${label} has inconsistent dependency edges`);
+    }
+    seen.add(edge.from);
+  }
+  if (seen.size !== value.dependsOn.length) throw new ContractError(`${label} is missing dependency edges`);
 }
 
 function validateAttempt(attempt, label) {
@@ -280,6 +297,7 @@ function validateFinalizationAttempt(attempt, label) {
       assertString(module[field], `${item}.${field}`);
     }
     assertStringArray(module.dependsOn, `${item}.dependsOn`);
+    validateDependencyEdges(module, item);
     assertInteger(module.dependencyStage, `${item}.dependencyStage`, { minimum: 1 });
     assertString(module.dependencyBranch, `${item}.dependencyBranch`, { nullable: true });
     for (const field of ['optional', 'locked', 'waiverAllowed', 'eligible']) {
@@ -1049,18 +1067,24 @@ function eventSummaries(events, limit = 20) {
 function moduleInventory(record, projection, facts) {
   const graph = record.modelLock.model.moduleGraph;
   if (!graph) return null;
-  const enabled = new Set(graph.enabledModuleIds);
   const availability = facts.moduleAvailability ?? null;
   const live = isObject(facts.moduleLive) ? facts.moduleLive : {};
   const finalizationAttempt = projection.finalizationAttempts.find((attempt) => attempt.state === 'ACTIVE')
     ?? projection.finalizationAttempts.at(-1)
     ?? null;
+  const retainedGraph = finalizationAttempt
+    ? record.events.find(event => event.type === 'FEATURE_FINALIZATION_STARTED'
+      && event.payload.attemptId === finalizationAttempt.id)?.payload.moduleGraph ?? graph
+    : graph;
   return {
     schemaVersion: 1,
     policyDigest: graph.policyDigest,
-    slots: MODULE_SLOTS.map((slot) => ({
+    slots: MODULE_SLOTS.map((slot) => {
+      const selectedGraph = slot === 'feature.finalization' ? retainedGraph : graph;
+      const enabled = new Set(selectedGraph.enabledModuleIds);
+      return ({
       id: slot,
-      modules: graph.modules.filter((module) => module.slot === slot).map((module) => {
+      modules: selectedGraph.modules.filter((module) => module.slot === slot).map((module) => {
         const result = slot === 'feature.finalization'
           ? finalizationAttempt?.modules.find((item) => item.id === module.id) ?? null
           : null;
@@ -1078,6 +1102,7 @@ function moduleInventory(record, projection, facts) {
         waiverPolicy: module.waiverPolicy ?? 'any-change',
         dependsOn: [...module.dependsOn],
         after: [...(module.after ?? [])],
+        ownerAfter: [...(selectedGraph.ordering?.[module.id]?.after ?? [])],
         boundaryGateId: module.boundary?.gateId ?? null,
         run: module.run ? structuredClone(module.run) : null,
         observe: module.observe ? structuredClone(module.observe) : null,
@@ -1094,7 +1119,7 @@ function moduleInventory(record, projection, facts) {
           blockers: structuredClone(result.blockers),
         } : {}),
       }); }),
-    })),
+    }); }),
   };
 }
 
@@ -1249,6 +1274,7 @@ export function validateSnapshot(snapshot) {
         );
         assertStringArray(module.dependsOn, `${moduleLabel}.dependsOn`);
         assertStringArray(module.after, `${moduleLabel}.after`);
+        if (module.ownerAfter !== undefined) assertStringArray(module.ownerAfter, `${moduleLabel}.ownerAfter`);
         assertString(module.boundaryGateId, `${moduleLabel}.boundaryGateId`, { nullable: true });
         assertNullableObject(module.run, `${moduleLabel}.run`);
         assertNullableObject(module.observe, `${moduleLabel}.observe`);

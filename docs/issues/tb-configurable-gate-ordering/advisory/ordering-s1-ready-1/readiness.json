@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-readiness",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-1",
+  "declaredAt": "2026-10-14T17:56:47.600Z",
+  "scope": "FEATURE_FINAL",
+  "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+  "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+  "criteria": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8",
+    "R9",
+    "R10"
+  ],
+  "source": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "6eb9f94fc65ad521f56cb23255ea30f022a63f8a",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:96ead006b6ae788c16d634529233b0f7ef9a0d0d9bc758532fb01613785f4a15",
+  "requestIdentity": "sha256:12342a6627161ec6a781c5f4af9e8bdf37c2af596b0c4a0068ce994a4250851a",
+  "inputManifest": {
+    "schemaVersion": 1,
+    "kind": "slice-advisory-inputs",
+    "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "opaqueHistoryIdentity": "sha256:46f781a491697f735ca83feae90b30e0f541fa7722213f999037d034fde97487",
+    "reviewInputIdentity": "sha256:8474de1e57f1c50a932845a8e47296fd4fe5ecd0a7b724e9ea0944b73602ec15",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL",
+    "criteria": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7",
+      "R8",
+      "R9",
+      "R10"
+    ],
+    "formalJudge": {
+      "id": "gatereeve/judge",
+      "version": "3.0.0",
+      "digest": "sha256:a3cabc1a01f0b885c3b7333c6f9d1cf92d21e1f18cc322d14ce1cf01fbd5fa07",
+      "scope": "FEATURE",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "isolation": {
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "repositoryAccess": "read-only-pinned",
+      "networkAccess": "denied"
+    },
+    "advisoryModule": {
+      "id": "gatereeve/advisory-review",
+      "version": "1.0.0",
+      "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+    },
+    "applicable": true,
+    "resources": {
+      "resources/agent-workflows/advisory/agent.md": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+      "resources/agent-workflows/advisory/stage-input.schema.json": "sha256:b7c5b74d8d3b6a1ca1cb355df540d5ff0e2e5255ad34a72b903838f8f68bf38f",
+      "resources/agent-workflows/advisory/result.schema.json": "sha256:f863eb92f594143c402328bff6016a9b0205106f0735922a23145d182724a532",
+      "resources/agent-workflows/advisory/validator.js": "sha256:629dc6ac07eed04ac477130aee91a031de6ecadeb345f24dc7a068925412e88e"
+    },
+    "adapter": {
+      "id": "codex/fresh-exec",
+      "version": "1.0.0",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "reasoningEffort": "high",
+      "capabilityProfiles": [
+        "high-capability-v1"
+      ],
+      "isolationMethods": [
+        "codex-ephemeral-exec"
+      ]
+    },
+    "checks": [
+      {
+        "kind": "fast",
+        "command": "node --check changed JS; workflow document validators; git diff --check",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "runtime/fast-checks.log",
+            "hash": "sha256:f298811f60be65ce261e17d0d02ebe9e40b2010b7c6bc9dac591bcf6fe2405a4"
+          }
+        ]
+      },
+      {
+        "kind": "focused",
+        "command": "node --test cli/test/owner-ordering.test.js apps/desktop/test/dependency-diagram.test.js apps/desktop/test/module-policy.test.js apps/desktop/test/ordering-preload.test.js apps/desktop/test/ordering-renderer.test.js",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "runtime/focused-tests.log",
+            "hash": "sha256:7589e9b9dfdfe38bcc707680a48ce63d6ce95818f2e7af79f1c5d273294da6b0"
+          },
+          {
+            "path": "runtime/apply-tests.log",
+            "hash": "sha256:d4c3156656f42910ac5bddba95f9e205b56b242a75b2d382501630d2fea38022"
+          }
+        ]
+      }
+    ],
+    "priorFindingsIdentity": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "governance": {
+      "featureId": "tb-configurable-gate-ordering",
+      "repositoryAlias": "product",
+      "remote": "origin",
+      "integrationBranch": "main",
+      "releaseBranch": "main",
+      "featureBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+      "keepPullRequestsClosed": false
+    }
+  },
+  "checks": [
+    {
+      "kind": "fast",
+      "command": "node --check changed JS; workflow document validators; git diff --check",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "runtime/fast-checks.log",
+          "hash": "sha256:f298811f60be65ce261e17d0d02ebe9e40b2010b7c6bc9dac591bcf6fe2405a4"
+        }
+      ]
+    },
+    {
+      "kind": "focused",
+      "command": "node --test cli/test/owner-ordering.test.js apps/desktop/test/dependency-diagram.test.js apps/desktop/test/module-policy.test.js apps/desktop/test/ordering-preload.test.js apps/desktop/test/ordering-renderer.test.js",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "runtime/focused-tests.log",
+          "hash": "sha256:7589e9b9dfdfe38bcc707680a48ce63d6ce95818f2e7af79f1c5d273294da6b0"
+        },
+        {
+          "path": "runtime/apply-tests.log",
+          "hash": "sha256:d4c3156656f42910ac5bddba95f9e205b56b242a75b2d382501630d2fea38022"
+        }
+      ]
+    }
+  ],
+  "remediation": null,
+  "priorFindings": [],
+  "execution": {
+    "provider": "codex",
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "high",
+    "executable": "/Users/trent.brown/.codex/plugins/.plugin-appserver/codex-cli/bin/codex"
+  },
+  "declaredBy": {
+    "kind": "agent",
+    "label": "Approved implementation complete; fast and focused checks PASS; declare slice ready for advisory discovery"
+  }
+}

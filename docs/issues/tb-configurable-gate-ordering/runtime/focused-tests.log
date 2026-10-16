@@ -1,0 +1,20 @@
+✔ exact diagram handles partial dependencies and skipped levels without all-to-all barriers (4.528333ms)
+✔ ordering-only policy preview/apply preserves definitions, requires confirmation and retains links on later enablement edits (192.809625ms)
+✔ module settings stage a complete policy and require explicit active-feature migration (79.045ms)
+✔ module settings disclose dependents instead of silently cascading removals (16.174875ms)
+✔ module policy writes refuse symlink targets (4.328917ms)
+✔ newly enabled modules fail closed when their local implementation is unavailable (25.091292ms)
+✔ failed atomic creation neither writes policy nor deletes a colliding file (18.084833ms)
+✔ renderer lazily preserves one terminal view per project and presents exit/restart state (31.761ms)
+✔ schema-2 ordering preserves exact definitions and schema-1 hashes and round-trips independently (15.651ms)
+✔ invalid shapes, endpoints, protected duplicates, cross-slot and cyclic owner links reject (3.743166ms)
+✔ owner links become dormant at either disabled endpoint and return on re-enablement (3.577625ms)
+✔ completion ordering blocks only its dependent and binds predecessor events for freshness; migration retains history (257.244166ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 420.092833

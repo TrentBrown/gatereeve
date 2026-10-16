@@ -103,6 +103,72 @@ in the governed feature model lock. Each new boundary attempt also pins that
 resolved graph so a later explicit model migration cannot reinterpret earlier
 evidence.
 
+## Owner-selected completion ordering
+
+Policy schema 2 retains the exact `modules` selectors and adds `ordering`:
+
+```json
+{
+  "schemaVersion": 2,
+  "modules": [],
+  "ordering": {
+    "gatereeve/judge": {
+      "after": ["gatereeve/code-review"]
+    }
+  }
+}
+```
+
+The abbreviated `modules` array above must be replaced with all exact built-in
+selectors and any selected repository modules, as in schema 1. Existing schema-1
+policies, defaults and pinned historical model locks remain unchanged/readable.
+Schema-2 graphs require protocol core 1.4 or newer; active features adopt a
+changed graph only through explicit model migration.
+
+An owner link waits for a current acceptable predecessor outcome, not merely
+earlier scheduling. It affects dependency-event freshness but does not supply
+the predecessor's report to an independent Judge. Both endpoints must be
+selected and belong to the same slot. Links are conditional while both endpoints
+are enabled; disabling an endpoint keeps the saved link dormant, and enabling it
+restores the relationship. Required module prerequisites remain enforced.
+Unknown/unselected IDs, self/duplicate relationships, duplicates of manifest
+requirements, cross-slot edges and active combined cycles reject resolution.
+
+Ordering lives separately from module definitions: their versions, digests and
+declared evidence inputs are unchanged. Array position remains insignificant.
+The compiled graph is pinned in the model and each attempt, so ordering changes
+cannot reinterpret past evidence. A changed predecessor event can make dependent
+evidence stale even when source bytes are unchanged.
+
+Desktop Modules settings provides **Run after** choices with protected manifest
+requirements shown separately. Enablement and ordering are staged together;
+preview shows the exact proposed dependencies and migration consequences.
+Apply requires a valid policy and explicit active-feature migration confirmation;
+Discard restores saved choices. Standard unlocked checks such as Judge may be
+disabled, but hard prerequisites of retained modules cannot. For example, locked
+Packet Validation still requires Explain Diff.
+Applying from Desktop also checks the saved policy digest against the policy
+used to prepare the choices; an intervening policy edit requires reloading.
+Completion-order Apply also requires the host's preview fingerprint, which binds
+the exact resolved policy/model, full discovered catalog and feature model/journal
+baseline. New definitions or feature progress invalidate confirmation even when
+the saved policy digest is unchanged. The host rechecks before publication and
+the core guards the confirmed migration baseline under its mutation lock; a late
+baseline conflict restores the policy only if its bytes are still the host's own
+publication, preserving another writer's changes.
+Managed policy application holds an exclusive `workflow.json.lock` across
+validation, publication, migration and rollback, preventing overlapping writers
+from mistaking identical policy bytes for their own publication. A competing
+operation fails before writing; inspect a retained lock's PID/time before retrying
+after an interrupted operation. **Reload saved policy** fetches the current
+catalog and baseline and restores saved choices after a stale confirmation.
+
+Workflow overview, finalization and policy preview draw actual individual edges:
+solid for hard prerequisites, dashed for manifest conditional ordering and dotted
+for owner ordering, with named textual relationships. Display rows/numbers are
+derived dependency depth, not configurable stages or global completion barriers.
+Independent branches can remain eligible while an unrelated branch is unfinished.
+
 ## Adapter declarations
 
 `run` and `observe` are independent. The schema recognizes:
@@ -379,3 +445,60 @@ module selectors, guards, dependency currentness, compatible model adoption and
 human authority remain intact. See
 `plugin-src/shared/resources/commands/boundary-retry.md` for the shared contract.
 Configurable addition/removal/reordering UI remains outside this feature.
+
+
+Execution binds the exact predecessor event IDs captured when work starts.
+Native review, Desktop command/provider work and finalization outcomes reject
+replacement predecessors even when their content is identical. Recording checks
+that binding again through the core; it never reattaches an in-flight result to
+a newer review event.
+
+The retry coordinator normally defers presentation until substantive work is
+clean. Explicit owner dependencies remain authoritative: a check after Explain
+Diff or Packet Validation runs after that prerequisite, without a hidden global
+barrier. Human review still requires every enabled gate to be current and
+nonblocking. A modular schema-4 packet names its attempt and includes only enabled
+standard artifact gates; validation obtains a trusted protocol snapshot and
+rejects omissions of enabled checks or mismatched dispositions and evidence.
+Historical packet schemas remain supported.
+
+Apply restores the previous policy after any confirmed pre-mutation migration
+refusal, including a busy feature journal lock. For unclassified failures, a pending migration marker or
+changed model/journal requires core reconciliation; the manager retains the
+published policy and reports that recovery requirement instead of hiding a
+partially completed core operation.
+
+
+Core `JOURNAL_LOCKED` and `MODEL_MIGRATION_CONFLICT` refusals certify that this
+migration operation made no writes. They allow restoration of the manager's
+owned policy publication even when another writer advances the journal before
+observation. Unclassified failures retain the state-based recovery check.
+Modular packet validation preserves recorded human-confirmed waivers, including
+their required report, reason and digest, without inventing a core artifact for
+a waiver whose recorded evidence is null. Emitted schema-4 packets have a bounded
+recognized workflow-history shape, so later advisory preparation does not treat
+them as ambiguous configuration. Extra configuration fields remain unclassified.
+
+Both public model/current graph observations and Desktop diagrams distinguish
+required, manifest-conditional and owner edges. Public current graphs also retain
+named finalization attempts/modules and their exact edge origins.
+
+
+Finalization inventory, diagram edges, detail groups and numbers describe the
+selected retained attempt's pinned graph. Ordering changes, edge removal or
+module disabling do not reinterpret that historical view. Start current
+finalization replaces a stale-model attempt with one using the adopted graph;
+obsolete-model waiver actions stay unavailable. An empty current attempt still
+exposes the core-authorized completion action. Module settings remain the
+current repository-policy editor.
+
+Feature-final retry declares the canonical deferred `completion-report.md` as
+an exact evidence path during clean-head synchronization. Slice retries keep
+their narrower declarations. This permits the required post-check narrative
+without widening accepted code/configuration changes after evaluation.
+
+
+Public Mermaid output uses deterministic collision-free node encoding, while
+labels and JSON node IDs remain readable and unchanged. Distinct supported IDs
+such as `check-one` and `check.one` retain separate endpoints and cannot turn a
+valid owner dependency into a renderer-created self-loop.

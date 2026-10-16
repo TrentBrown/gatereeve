@@ -122,6 +122,39 @@ export function hashWorkflowPolicy(policy) {
   return sha256({
     ...policy,
     modules: [...policy.modules].sort((left, right) => left.id.localeCompare(right.id)),
+    ...(policy.schemaVersion === 2 ? { ordering: canonicalOrdering(policy.ordering) } : {}),
+  });
+}
+
+function canonicalOrdering(ordering) {
+  return Object.fromEntries(Object.entries(ordering).sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, rule]) => [id, { after: [...rule.after].sort() }]));
+}
+
+function validateOrdering(ordering) {
+  assertObject(ordering, 'Workflow ordering');
+  for (const [id, rule] of Object.entries(ordering)) {
+    if (!MODULE_ID.test(id)) throw new ContractError('Ordering targets must be namespaced module IDs');
+    assertObject(rule, `Ordering ${id}`);
+    assertAllowedKeys(rule, new Set(['after']), `Ordering ${id}`);
+    if (!Array.isArray(rule.after) || rule.after.some(x => typeof x !== 'string' || !MODULE_ID.test(x)
+      || x === id) || new Set(rule.after).size !== rule.after.length) {
+      throw new ContractError(`Ordering ${id} after must contain unique other module IDs`);
+    }
+  }
+}
+
+/** Completion dependencies, with their origins retained for exact DAG display.
+ * Ordering does not modify definition identity or declare evidence inputs. */
+export function moduleDependencyEdges(graph) {
+  const enabled = new Set(graph.enabledModuleIds);
+  return graph.modules.filter(m => enabled.has(m.id)).flatMap(module => {
+    const kinds = new Map();
+    for (const id of graph.ordering?.[module.id]?.after ?? []) kinds.set(id, 'owner');
+    for (const id of module.after ?? []) kinds.set(id, 'conditional');
+    for (const id of module.dependsOn) kinds.set(id, 'required');
+    return [...kinds].filter(([id]) => enabled.has(id))
+      .map(([from, kind]) => ({ from, to: module.id, kind }));
   });
 }
 
@@ -475,10 +508,11 @@ export function validateModuleDefinition(definition, { checkDigest = true } = {}
 
 export function validateWorkflowPolicy(policy) {
   assertObject(policy, 'Workflow policy');
-  assertAllowedKeys(policy, new Set(['schemaVersion', 'modules']), 'Workflow policy');
-  if (policy.schemaVersion !== WORKFLOW_POLICY_SCHEMA_VERSION) {
-    throw new ContractError(`Workflow policy schemaVersion must be ${WORKFLOW_POLICY_SCHEMA_VERSION}`);
+  assertAllowedKeys(policy, new Set(['schemaVersion', 'modules', ...(policy.schemaVersion === 2 ? ['ordering'] : [])]), 'Workflow policy');
+  if (![1, 2].includes(policy.schemaVersion)) {
+    throw new ContractError('Workflow policy schemaVersion must be 1 or 2');
   }
+  if (policy.schemaVersion === 2) validateOrdering(policy.ordering);
   if (!Array.isArray(policy.modules)) {
     throw new ContractError('Workflow policy modules must be an array');
   }
@@ -516,13 +550,13 @@ export function createDefaultWorkflowPolicy(definitions) {
   };
 }
 
-function stableTopologicalOrder(modules, { enabledIds = null } = {}) {
+function stableTopologicalOrder(modules, { enabledIds = null, ordering = {} } = {}) {
   const byId = new Map(modules.map((module) => [module.id, module]));
   const index = new Map(modules.map((module, ordinal) => [module.id, ordinal]));
   const remaining = new Map(modules.map((module) => [
     module.id,
     new Set(
-      [...module.dependsOn, ...(module.after ?? [])]
+      [...module.dependsOn, ...(module.after ?? []), ...((enabledIds === null || enabledIds.has(module.id)) ? ordering[module.id]?.after ?? [] : [])]
         .filter((id) => byId.has(id) && (enabledIds === null || enabledIds.has(id)))
     ),
   ]));
@@ -608,6 +642,18 @@ export function resolveModuleGraph({ definitions, policy, availability = null })
   }
 
   const selectedDefinitions = definitions.filter((definition) => selected.has(definition.id));
+  for (const [id, rule] of Object.entries(policy.ordering ?? {})) {
+    const module = byId.get(id);
+    if (!selected.has(id) || !module) throw new ContractError(`Ordering references unselected module ${id}`);
+    for (const predecessor of rule.after) {
+      const dependency = byId.get(predecessor);
+      if (!selected.has(predecessor) || !dependency) throw new ContractError(`Ordering references unselected module ${predecessor}`);
+      if (dependency.slot !== module.slot) throw new ContractError(`Ordering ${id} crosses module slots`);
+      if ([...module.dependsOn, ...(module.after ?? [])].includes(predecessor)) {
+        throw new ContractError(`Ordering ${id} duplicates an existing dependency ${predecessor}`);
+      }
+    }
+  }
   for (const module of selectedDefinitions) {
     for (const dependencyId of [...module.dependsOn, ...(module.after ?? [])]) {
       const dependency = byId.get(dependencyId);
@@ -623,7 +669,8 @@ export function resolveModuleGraph({ definitions, policy, availability = null })
     }
   }
 
-  const modules = stableTopologicalOrder(selectedDefinitions, { enabledIds });
+  const ordering = policy.schemaVersion === 2 ? canonicalOrdering(policy.ordering) : undefined;
+  const modules = stableTopologicalOrder(selectedDefinitions, { enabledIds, ordering });
   const boundaryGateIds = new Set();
   for (const module of modules.filter((item) => item.slot === 'boundary.evaluation' && enabledIds.has(item.id))) {
     const gateId = module.boundary.gateId;
@@ -633,10 +680,11 @@ export function resolveModuleGraph({ definitions, policy, availability = null })
     boundaryGateIds.add(gateId);
   }
   return {
-    schemaVersion: MODULE_GRAPH_SCHEMA_VERSION,
+    schemaVersion: policy.schemaVersion,
     policyDigest: hashWorkflowPolicy(policy),
     modules: modules.map((module) => structuredClone(module)),
     enabledModuleIds: modules.filter((module) => enabledIds.has(module.id)).map((module) => module.id),
+    ...(ordering ? { ordering } : {}),
     readiness: Object.fromEntries(
       modules.map((module) => [module.id, assessModuleReadiness(module, availability)])
     ),
@@ -718,6 +766,8 @@ export async function resolveProjectModuleGraph({ repositoryRoot, builtIns, avai
 export function boundaryGateDefinitions(model) {
   if (model.moduleGraph) {
     const enabledIds = new Set(model.moduleGraph.enabledModuleIds);
+    const edges = moduleDependencyEdges(model.moduleGraph);
+    const gateIdFor = id => model.moduleGraph.modules.find(m => m.id === id).boundary.gateId;
     return model.moduleGraph.modules
       .filter((module) => module.slot === 'boundary.evaluation' && enabledIds.has(module.id))
       .map((module) => ({
@@ -725,7 +775,9 @@ export function boundaryGateDefinitions(model) {
         moduleId: module.id,
         moduleVersion: module.version,
         moduleDigest: module.digest,
-        dependsOn: [...module.dependsOn, ...(module.after ?? [])]
+        dependencyEdges: edges.filter(edge => edge.to === module.id)
+          .map(edge => ({ from: gateIdFor(edge.from), to: module.boundary.gateId, kind: edge.kind })),
+        dependsOn: [...new Set([...module.dependsOn, ...(module.after ?? []), ...(model.moduleGraph.ordering?.[module.id]?.after ?? [])])]
           .filter((dependencyId) => enabledIds.has(dependencyId))
           .map((dependencyId) => {
             const dependency = model.moduleGraph.modules.find((item) => item.id === dependencyId);
@@ -765,7 +817,8 @@ export function finalizationModuleDefinitions(model) {
       moduleId: module.id,
       moduleVersion: module.version,
       moduleDigest: module.digest,
-      dependsOn: [...module.dependsOn, ...(module.after ?? [])]
+      dependencyEdges: moduleDependencyEdges(model.moduleGraph).filter(edge => edge.to === module.id),
+      dependsOn: [...new Set([...module.dependsOn, ...(module.after ?? []), ...(model.moduleGraph.ordering?.[module.id]?.after ?? [])])]
         .filter((dependencyId) => enabledIds.has(dependencyId)),
       optional: module.disposition === 'optional',
       locked: module.locked,
@@ -775,8 +828,8 @@ export function finalizationModuleDefinitions(model) {
 
 export function validateResolvedModuleGraph(graph) {
   assertObject(graph, 'Resolved module graph');
-  assertAllowedKeys(graph, new Set(['schemaVersion', 'policyDigest', 'modules', 'enabledModuleIds']), 'Resolved module graph');
-  if (graph.schemaVersion !== MODULE_GRAPH_SCHEMA_VERSION || !SHA256.test(graph.policyDigest)) {
+  assertAllowedKeys(graph, new Set(['schemaVersion', 'policyDigest', 'modules', 'enabledModuleIds', ...(graph.schemaVersion === 2 ? ['ordering'] : [])]), 'Resolved module graph');
+  if (![1, 2].includes(graph.schemaVersion) || !SHA256.test(graph.policyDigest)) {
     throw new ContractError('Resolved module graph has an invalid version or policy digest');
   }
   if (
@@ -789,7 +842,8 @@ export function validateResolvedModuleGraph(graph) {
   }
   const enabledIds = new Set(graph.enabledModuleIds);
   const policy = {
-    schemaVersion: WORKFLOW_POLICY_SCHEMA_VERSION,
+    schemaVersion: graph.schemaVersion,
+    ...(graph.schemaVersion === 2 ? { ordering: graph.ordering } : {}),
     modules: graph.modules.map((module) => ({
       id: module.id,
       version: module.version,

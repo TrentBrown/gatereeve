@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-4",
+  "checkedSource": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "b8dc8d254d3f153e3f077b490272fceb9d2a8ce0",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:b08b74ee180533708967cab5f6ec02fc932364b7871d87114bb79b7d94b556b1",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-4/readiness.json",
+    "hash": "sha256:a2bbc310b123998d70691519dab553a9be022bac6925c41d74e10b4dab0f8660"
+  },
+  "reason": "All retained code findings and the formal R7 publication ownership gap have class-wide fixes with actual manager, context identity, exclusive writer, late-conflict and UI reload regressions; full Desktop214 and unchanged core/portable410CLI/Python132+template2 pass. The previous advisory run was operationally unavailable, and the new full-scope run is pending. Proceed with independent formal checks; retain and assess its eventual result before human review. No advisory verdict or formal waiver is inferred.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "Implementer assessed all retained findings and publication class fixes"
+  }
+}

@@ -23,7 +23,7 @@ from workflow_context import WorkflowContext, resolve_workflow_context
 
 
 SCHEMA_VERSION = 1
-BOUNDARY_SCHEMA_VERSIONS = {1, 2, 3}
+BOUNDARY_SCHEMA_VERSIONS = {1, 2, 3, 4}
 SHA = re.compile(r"^[0-9a-fA-F]{40,64}$")
 PACKET_NAME = re.compile(r"^(?:pr|review)-[A-Za-z0-9._-]+$")
 DISPOSITIONS = {"passed", "waived", "not_applicable"}
@@ -53,6 +53,7 @@ MANIFEST_KEYS = {
     "gates",
 }
 SYNTHETIC_MANIFEST_KEYS = (MANIFEST_KEYS - {"pullRequest"}) | {"review"}
+MODULAR_MANIFEST_KEYS = MANIFEST_KEYS | {"attemptId"}
 
 
 class BoundaryPacketError(RuntimeError):
@@ -86,6 +87,49 @@ def _exact_keys(value: object, expected: set[str], label: str) -> Mapping[str, o
             details.append(f"unexpected {', '.join(unexpected)}")
         raise BoundaryPacketError(f"{label} fields differ: {'; '.join(details)}")
     return value
+
+
+def _modular_packet_gates(workflow, manifest):
+    """The manifest cannot disable checks; the protocol-pinned attempt decides."""
+    adapter = Path(__file__).resolve().parents[1] / "protocol" / "plugin-adapter.js"
+    try:
+        result = subprocess.run(
+            ["node", str(adapter)],
+            input=json.dumps({"operation": "snapshot", "featureHome": str(workflow.feature_home)}),
+            capture_output=True, text=True, timeout=30, check=False,
+        )
+        envelope = json.loads(result.stdout)
+        snapshot = envelope["data"]
+        if result.returncode or not envelope["ok"] or snapshot["mode"] != "governed":
+            raise ValueError("governed protocol snapshot unavailable")
+        if snapshot["featureId"] != manifest["featureId"]:
+            raise ValueError("feature identity mismatch")
+        attempt_id = _required_string(manifest["attemptId"], "attemptId")
+        attempt = next(item for item in snapshot["projection"]["boundaryAttempts"] if item["id"] == attempt_id)
+        if attempt["state"] not in {"ACTIVE", "HUMAN_REVIEW", "ACCEPTED", "MERGED"}:
+            raise ValueError("attempt is no longer active or retained for acceptance")
+        context = attempt["context"]
+        for key in ("pullRequest", "mergeBaseSha", "evaluatedSourceSha"):
+            if context[key] != manifest[key]:
+                raise ValueError(f"attempt {key} mismatch")
+        if attempt["scope"].lower().replace("_", "-") != manifest["scope"]:
+            raise ValueError("attempt scope mismatch")
+        gates = {gate["id"]: gate for gate in attempt["gates"] if gate["id"] in ARTIFACTS}
+        for key, gate in gates.items():
+            value = manifest.get("gates", {}).get(key, {})
+            expected = {"PASS": "passed", "WAIVED": "waived", "NOT_APPLICABLE": "not_applicable"}.get(gate["outcome"])
+            if expected is None or value.get("disposition") != expected:
+                raise ValueError(f"{key} does not match the recorded gate outcome")
+            if expected != "passed" and value.get("reason") != gate["reason"]:
+                raise ValueError(f"{key} reason differs from the recorded disposition")
+            reference = value.get("evidence")
+            if key != "judge" and expected == "passed":
+                evidence = gate["evidence"]
+                if reference != {"path": str(Path(evidence["path"]).relative_to(manifest["packetId"])), "sha256": evidence["hash"]}:
+                    raise ValueError(f"{key} evidence differs from the recorded artifact")
+        return set(gates)
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError, StopIteration) as error:
+        raise BoundaryPacketError(f"Modular packet does not match the protocol-pinned attempt: {error}") from error
 
 
 def packet_name(workflow: WorkflowContext, pr_number: int) -> str:
@@ -547,7 +591,7 @@ def validate_packet(
     raw_version = raw_manifest.get("schemaVersion")
     manifest = _exact_keys(
         raw_manifest,
-        SYNTHETIC_MANIFEST_KEYS if raw_version == 3 else MANIFEST_KEYS,
+        SYNTHETIC_MANIFEST_KEYS if raw_version == 3 else MODULAR_MANIFEST_KEYS if raw_version == 4 else MANIFEST_KEYS,
         "boundary.json",
     )
     manifest_version = manifest.get("schemaVersion")
@@ -600,13 +644,14 @@ def validate_packet(
     elif feature_base is not None:
         raise BoundaryPacketError("Slice packets must set featureBaseSha to null")
 
+    required_gates = _modular_packet_gates(workflow, manifest) if manifest_version == 4 else set(ARTIFACTS)
     applicability = _exact_keys(
-        manifest.get("applicability"), CONDITIONAL_GATES, "applicability"
+        manifest.get("applicability"), CONDITIONAL_GATES & required_gates, "applicability"
     )
     for gate, applicable in applicability.items():
         if not isinstance(applicable, bool):
             raise BoundaryPacketError(f"applicability.{gate} must be boolean")
-    gates = _exact_keys(manifest.get("gates"), set(ARTIFACTS), "gates")
+    gates = _exact_keys(manifest.get("gates"), required_gates, "gates")
     normalized_gates = {}
     for gate, value in gates.items():
         normalized_gates[gate] = _validate_gate(

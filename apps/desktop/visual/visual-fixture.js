@@ -47,6 +47,7 @@ const attempt = {
     ['packetValidation', ['explainDiff'], 'PASS'],
   ].map(([id, dependsOn, outcome], index) => ({
     id, dependsOn, outcome, freshness: 'CURRENT', blockers: [], reason: null,
+    dependencyEdges: dependsOn.map(from => ({ from, to: id, kind: id === 'decisionTriage' ? 'conditional' : 'required' })),
     dependencyStage: index < 3 ? index + 1 : index < 7 ? 4 : index - 2,
     dependencyBranch: index >= 3 && index < 7 ? String.fromCharCode(97 + index - 3) : null,
     orderLabel: index >= 3 && index < 7 ? `4${String.fromCharCode(97 + index - 3)}` : String(index < 3 ? index + 1 : index - 2),

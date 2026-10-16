@@ -1,0 +1,46 @@
+✔ ordering-only policy preview/apply preserves definitions, requires confirmation and retains links on later enablement edits (322.30625ms)
+✔ host confirmation rejects newly discovered modules and changed feature models even when saved policy digest is unchanged (163.906ms)
+✔ pre-publication feature progress invalidates confirmation without publishing, and late guarded conflicts restore policy (126.188709ms)
+✔ competing policy application cannot overlap publication, core migration or rollback ownership (85.745167ms)
+✔ a confirmation fingerprint cannot move to another repository with identical catalog and model/journal IDs (41.848667ms)
+✔ module settings stage a complete policy and require explicit active-feature migration (94.80775ms)
+✔ module settings disclose dependents instead of silently cascading removals (18.607917ms)
+✔ module policy writes refuse symlink targets (4.734125ms)
+✔ newly enabled modules fail closed when their local implementation is unavailable (30.602041ms)
+✔ failed atomic creation neither writes policy nor deletes a colliding file (23.336166ms)
+✔ journal lock refusal restores the previous policy and leaves the confirmed change retryable (221.330833ms)
+✔ core-certified journal-lock refusal restores owned publication even after unrelated journal progress (54.685458ms)
+✔ historical mechanical record pr-77/attempts/s1-pr77-a1/preparation-unavailable.json has a bounded recognized shape; configuration additions are not history (2.8555ms)
+✔ historical mechanical record pr-77/attempts/s1-pr77-a2/provider-unavailable.json has a bounded recognized shape; configuration additions are not history (0.459541ms)
+✔ historical mechanical record pr-77/attempts/s1-pr77-a2/validation-correction.json has a bounded recognized shape; configuration additions are not history (0.409958ms)
+✔ historical mechanical record runtime/s1-integration.json has a bounded recognized shape; configuration additions are not history (0.490625ms)
+✔ historical mechanical record runtime/s2-model-migration-impact.json has a bounded recognized shape; configuration additions are not history (0.335625ms)
+✔ historical mechanical record runtime/s3-integration.json has a bounded recognized shape; configuration additions are not history (0.281042ms)
+✔ historical mechanical record runtime/s4-cost-verification.json has a bounded recognized shape; configuration additions are not history (0.397459ms)
+✔ empty history needs actual invalidation and superseding journal proof; empty/config-shaped new files still block (1203.400084ms)
+✔ uncertain begin-boundary resumes exact PR without duplicating attempt or events (290.265458ms)
+✔ uncertain gate recording reconciles actual bytes/event and never duplicates PASS (232.19675ms)
+✔ FAIL is early retained discovery; presentation waits and revised attempt carries no PASS (286.697166ms)
+✔ clean substantive path orders discovery/triage before presentation and finalizes repeat-safely (434.766667ms)
+✔ source movement, changed identity, model/input mismatch and premature packet block passage (107.869333ms)
+✔ recording refuses native Judge shortcuts and changed evidence cannot become CURRENT (224.622208ms)
+✔ stale preparation dependency identity is rejected instead of copying PASS (113.580708ms)
+✔ status is observational and pause prevents further mutations (115.985666ms)
+✔ owner ordering after Explain Diff and Packet Validation completes without a hidden barrier (842.583542ms)
+✔ disabled standard review checks omit packet artifacts and retain enabled requirements (3113.588667ms)
+✔ modular packets preserve each supported enabled human waiver while other reviews are disabled (2673.265541ms)
+✔ emitted modular packet remains classified workflow history for a later advisory source range (603.210958ms)
+✔ schema-2 ordering preserves exact definitions and schema-1 hashes and round-trips independently (15.998ms)
+✔ invalid shapes, endpoints, protected duplicates, cross-slot and cyclic owner links reject (3.992ms)
+✔ owner links become dormant at either disabled endpoint and return on re-enablement (3.528667ms)
+✔ completion ordering blocks only its dependent and binds predecessor events for freshness; migration retains history (439.190458ms)
+✔ public finalization graph retains exact dependency origins with named modules (0.172167ms)
+✔ public model graph renders configured finalization owner edges without flattening (2.99175ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9130.860542

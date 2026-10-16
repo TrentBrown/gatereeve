@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-readiness",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-2",
+  "declaredAt": "2026-10-14T18:10:42.680Z",
+  "scope": "FEATURE_FINAL",
+  "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+  "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+  "criteria": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8",
+    "R9",
+    "R10"
+  ],
+  "source": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "0c4e553c73dd31f7e35ca973d1d06ef31b103e67",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:9308519c63c708b717c904453c8fbf76c0013dcb7a489f3bf5a268b851efd307",
+  "requestIdentity": "sha256:4d5de383fa0e7c7da8b8f5778dc1ab026c33fb59b7b942a15dff4f6bf3092e5a",
+  "inputManifest": {
+    "schemaVersion": 1,
+    "kind": "slice-advisory-inputs",
+    "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "opaqueHistoryIdentity": "sha256:46f781a491697f735ca83feae90b30e0f541fa7722213f999037d034fde97487",
+    "reviewInputIdentity": "sha256:d71dd0d6d93863112179e93235f1b4761accfac33abed44c5721e39468fbdd85",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL",
+    "criteria": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7",
+      "R8",
+      "R9",
+      "R10"
+    ],
+    "formalJudge": {
+      "id": "gatereeve/judge",
+      "version": "3.0.0",
+      "digest": "sha256:a3cabc1a01f0b885c3b7333c6f9d1cf92d21e1f18cc322d14ce1cf01fbd5fa07",
+      "scope": "FEATURE",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "isolation": {
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "repositoryAccess": "read-only-pinned",
+      "networkAccess": "denied"
+    },
+    "advisoryModule": {
+      "id": "gatereeve/advisory-review",
+      "version": "1.0.0",
+      "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+    },
+    "applicable": true,
+    "resources": {
+      "resources/agent-workflows/advisory/agent.md": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+      "resources/agent-workflows/advisory/stage-input.schema.json": "sha256:b7c5b74d8d3b6a1ca1cb355df540d5ff0e2e5255ad34a72b903838f8f68bf38f",
+      "resources/agent-workflows/advisory/result.schema.json": "sha256:f863eb92f594143c402328bff6016a9b0205106f0735922a23145d182724a532",
+      "resources/agent-workflows/advisory/validator.js": "sha256:629dc6ac07eed04ac477130aee91a031de6ecadeb345f24dc7a068925412e88e"
+    },
+    "adapter": {
+      "id": "codex/fresh-exec",
+      "version": "1.0.0",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "reasoningEffort": "high",
+      "capabilityProfiles": [
+        "high-capability-v1"
+      ],
+      "isolationMethods": [
+        "codex-ephemeral-exec"
+      ]
+    },
+    "checks": [
+      {
+        "kind": "fast",
+        "command": "node --check apps/desktop/renderer/renderer.js; workflow branch validators; git diff --check",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "runtime/fast-checks-2.log",
+            "hash": "sha256:e4ef8c5428cb2a14c45df60386bc2e970139beeb12639d477d53e7f3b36bc6ad"
+          }
+        ]
+      },
+      {
+        "kind": "focused",
+        "command": "node --test apps/desktop/test/ordering-renderer.test.js; npm test --prefix apps/desktop",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "runtime/async-regressions-2.log",
+            "hash": "sha256:7f1f6e1c9cf6e8deeb60741fc1480f50e20d13fffa1c5cd532ef0933365a70b3"
+          },
+          {
+            "path": "runtime/desktop-tests-2.log",
+            "hash": "sha256:6f2d0b6f862ce861b6e8d61934601911ffdcecd6bd18ce76b1514a3d49bedf8d"
+          }
+        ]
+      }
+    ],
+    "priorFindingsIdentity": "sha256:e15d46b3a50e0c72e05b4cf1abfc997f9b7ab5fbde18d23a50f54a264fdf616b",
+    "governance": {
+      "featureId": "tb-configurable-gate-ordering",
+      "repositoryAlias": "product",
+      "remote": "origin",
+      "integrationBranch": "main",
+      "releaseBranch": "main",
+      "featureBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+      "keepPullRequestsClosed": false
+    }
+  },
+  "checks": [
+    {
+      "kind": "fast",
+      "command": "node --check apps/desktop/renderer/renderer.js; workflow branch validators; git diff --check",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "runtime/fast-checks-2.log",
+          "hash": "sha256:e4ef8c5428cb2a14c45df60386bc2e970139beeb12639d477d53e7f3b36bc6ad"
+        }
+      ]
+    },
+    {
+      "kind": "focused",
+      "command": "node --test apps/desktop/test/ordering-renderer.test.js; npm test --prefix apps/desktop",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "runtime/async-regressions-2.log",
+          "hash": "sha256:7f1f6e1c9cf6e8deeb60741fc1480f50e20d13fffa1c5cd532ef0933365a70b3"
+        },
+        {
+          "path": "runtime/desktop-tests-2.log",
+          "hash": "sha256:6f2d0b6f862ce861b6e8d61934601911ffdcecd6bd18ce76b1514a3d49bedf8d"
+        }
+      ]
+    }
+  ],
+  "remediation": [
+    {
+      "findingIds": [
+        "advisory:ordering-s1-ready-1:0",
+        "advisory:ordering-s1-ready-1:1",
+        "advisory:ordering-s1-ready-1:2"
+      ],
+      "invariant": "Only the exact completed staged-policy preview can authorize Apply; invalidated drafts and old asynchronous responses cannot restore or submit discarded or unreviewed changes.",
+      "examinedPaths": [
+        "apps/desktop/renderer/renderer.js",
+        "apps/desktop/main/module-policy.js",
+        "apps/desktop/main/ipc.js",
+        "apps/desktop/preload/index.cjs",
+        "apps/desktop/shared/contracts.js",
+        "apps/desktop/test/ordering-renderer.test.js",
+        "apps/desktop/test/ordering-preload.test.js",
+        "apps/desktop/test/module-policy.test.js"
+      ],
+      "approach": "Treat staged policy validation as generation-bound immutable authority: copy ordering into both preview calls, invalidate immediately on edits/Discard/project load, bind exact validated IDs/ordering/digest for Apply, and disable edits during application. Use delayed actual-manager/DOM tests across all three mutation paths.",
+      "regressions": [
+        {
+          "scenario": "Dependency absorption retains owner ordering in both complete-policy previews",
+          "command": "node --test apps/desktop/test/ordering-renderer.test.js",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "runtime/async-regressions-2.log",
+              "hash": "sha256:7f1f6e1c9cf6e8deeb60741fc1480f50e20d13fffa1c5cd532ef0933365a70b3"
+            }
+          ]
+        },
+        {
+          "scenario": "Ordinary and auto-dependency responses released after Discard cannot restore drafts or Apply",
+          "command": "node --test apps/desktop/test/ordering-renderer.test.js",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "runtime/async-regressions-2.log",
+              "hash": "sha256:7f1f6e1c9cf6e8deeb60741fc1480f50e20d13fffa1c5cd532ef0933365a70b3"
+            }
+          ]
+        },
+        {
+          "scenario": "New edits invalidate prior valid preview and close old confirmation before asynchronous validation completes",
+          "command": "node --test apps/desktop/test/ordering-renderer.test.js",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "runtime/async-regressions-2.log",
+              "hash": "sha256:7f1f6e1c9cf6e8deeb60741fc1480f50e20d13fffa1c5cd532ef0933365a70b3"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:5fbe8954f47fb505b31cc88f9df34bccac044fac91b8cd088f105b887c1ea223",
+        "sha256:75c19d4dd228b6b28f2471b31cd27e23c6cfad3687a141756b6188b2dbddb465",
+        "sha256:fd171de3170ec438651f688541cd06609caddf64d36639e42b3183df1ddcdab0"
+      ]
+    }
+  ],
+  "priorFindings": [
+    {
+      "id": "advisory:ordering-s1-ready-1:0",
+      "underlyingKey": "sha256:fd171de3170ec438651f688541cd06609caddf64d36639e42b3183df1ddcdab0",
+      "source": {
+        "kind": "advisory",
+        "reference": {
+          "path": "advisory/ordering-s1-ready-1/review.json",
+          "hash": "sha256:b16918e902e673aca8c1dd01ec4276e86c5870f33a3f8e88fa689adf4c94b97a"
+        }
+      },
+      "summary": "Dependency absorption previews saved ordering while Apply submits staged ordering.",
+      "criterionIds": [
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "invariant": "Every preview and migration disclosure must describe the complete staged policy that Apply will submit.",
+      "affectedPaths": [
+        "apps/desktop/renderer/renderer.js"
+      ],
+      "evidence": [
+        "apps/desktop/renderer/renderer.js:1320 — the first preview includes moduleDraftOrdering.",
+        "apps/desktop/renderer/renderer.js:1333 — after auto-enabling prerequisites, the second preview omits ordering.",
+        "apps/desktop/main/module-policy.js:104 — omitted ordering falls back to committed policy.",
+        "apps/desktop/renderer/renderer.js:1401 — Apply still submits moduleDraftOrdering.",
+        "Read-only source-function reproduction: staging Judge after Code Review and enabling a module with an auto-enabled prerequisite produced a displayed preview with ordering={} while the draft retained the owner edge. Staged removals of saved edges are likewise previewed incorrectly."
+      ]
+    },
+    {
+      "id": "advisory:ordering-s1-ready-1:1",
+      "underlyingKey": "sha256:5fbe8954f47fb505b31cc88f9df34bccac044fac91b8cd088f105b887c1ea223",
+      "source": {
+        "kind": "advisory",
+        "reference": {
+          "path": "advisory/ordering-s1-ready-1/review.json",
+          "hash": "sha256:b16918e902e673aca8c1dd01ec4276e86c5870f33a3f8e88fa689adf4c94b97a"
+        }
+      },
+      "summary": "Pending previews can restore changes after Discard.",
+      "criterionIds": [
+        "R6",
+        "R7"
+      ],
+      "invariant": "Discard must invalidate outstanding draft requests so their responses cannot restore discarded state.",
+      "affectedPaths": [
+        "apps/desktop/renderer/renderer.js"
+      ],
+      "evidence": [
+        "apps/desktop/renderer/renderer.js:3028 — Discard resets drafts and preview without advancing modulePreviewRequest.",
+        "apps/desktop/renderer/renderer.js:1321 — the pending response therefore passes its request-generation check.",
+        "apps/desktop/renderer/renderer.js:1331 — dependency absorption can replace the restored enabled IDs with discarded IDs.",
+        "apps/desktop/renderer/renderer.js:1336 — an ordinary pending response can restore discarded ordering disclosure and re-enable Apply.",
+        "Read-only delayed-response reproduction: Discard restored committed enabled IDs; releasing a pending dependency preview re-staged the discarded child and parent modules. A pending ordering-only response also restored its discarded preview while ordering controls remained reset."
+      ]
+    },
+    {
+      "id": "advisory:ordering-s1-ready-1:2",
+      "underlyingKey": "sha256:75c19d4dd228b6b28f2471b31cd27e23c6cfad3687a141756b6188b2dbddb465",
+      "source": {
+        "kind": "advisory",
+        "reference": {
+          "path": "advisory/ordering-s1-ready-1/review.json",
+          "hash": "sha256:b16918e902e673aca8c1dd01ec4276e86c5870f33a3f8e88fa689adf4c94b97a"
+        }
+      },
+      "summary": "Apply can confirm newer ordering edits against an older preview.",
+      "criterionIds": [
+        "R6",
+        "R7"
+      ],
+      "invariant": "Apply and migration confirmation must be bound to the latest completed validation of the exact submitted draft.",
+      "affectedPaths": [
+        "apps/desktop/renderer/renderer.js"
+      ],
+      "evidence": [
+        "apps/desktop/renderer/renderer.js:1205 — ordering controls immediately mutate the draft and start asynchronous validation.",
+        "apps/desktop/renderer/renderer.js:1315 — refresh leaves the previous valid preview and enabled Apply button in place while awaiting IPC.",
+        "apps/desktop/renderer/renderer.js:1383 — confirmation displays the previous preview's migration impact.",
+        "apps/desktop/renderer/renderer.js:1397 — submission reads the newer mutable draft.",
+        "Read-only delayed-response reproduction: while the displayed preview contained only Judge after Code Review, Apply remained enabled and submitted an additional Code Review after Pattern Review edge with confirmedMigration=true before its preview completed."
+      ]
+    }
+  ],
+  "execution": {
+    "provider": "codex",
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "high",
+    "executable": "/Users/trent.brown/.codex/plugins/.plugin-appserver/codex-cli/bin/codex"
+  },
+  "declaredBy": {
+    "kind": "agent",
+    "label": "Approved implementation complete; fast and focused checks PASS; declare slice ready for advisory discovery"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-configurable-gate-ordering",
+  "sliceId": "s1-configurable-ordering",
+  "readinessId": "ordering-s1-ready-6",
+  "checkedSource": {
+    "baseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "headSha": "ed32e0612e68a958a897dbcd8f173ffc046dd90b",
+    "sliceBaseSha": "64db6b635f03018581a8977a7b6933bc59b2ccbd",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:c643bf4a94ce553cf1c443ee8bc42d3d242d3fa877a573d5db659ef3ba0b2cc2",
+  "readiness": {
+    "path": "advisory/ordering-s1-ready-6/readiness.json",
+    "hash": "sha256:94e5ede164743d5c378bd5912629a41c415f6487740e9cd061e44dd5bcbf3ff7"
+  },
+  "reason": "Advisory6 is operationally UNAVAILABLE/CONTRACT_INVALID, classified persistent with one actual provider attempt and no accepted verdict. All eight prior advisory and four formal findings have retained full-class remediation, including changed refusal-provenance handling, five valid waiver dispositions, subsequent modular packet/advisory history and public boundary/finalization graph origins. Focused38, complete CLI417/Desktop218/Python132+templates2 and portable acceptance PASS. Proceed to a fresh independent formal boundary with full requirements/freshness intact; no clean advisory or formal waiver is inferred.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "Implementer assessed all twelve retained findings after complete consumer-contract remediation"
+  }
+}

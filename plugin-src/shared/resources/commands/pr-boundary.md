@@ -94,7 +94,11 @@ repeat-safe packet bookkeeping. The implementer owns fixes and readiness.
 13. After all substantive checks are current and nonblocking under their
     policies, run `explain-diff` and persist it at the `explainDiff` `outputPath`.
     Final narrative and consolidated summaries follow the same checkpoint.
-    Retain early findings on failing paths without final presentation.
+    Retain early findings on failing paths without final presentation. The pinned
+    module DAG governs execution: an explicit owner edge through presentation
+    permits that prerequisite before its descendants. All enabled gates still
+    must be current and nonblocking before human review; disabled checks require
+    no artifacts, and modular packets validate against the pinned attempt.
 14. Immediately before finalizing evidence, recheck the persisted context.
     Use `pr_context.py check-current`; governed module execution checks
     the PR through the same protocol guard. Any changed remote or
