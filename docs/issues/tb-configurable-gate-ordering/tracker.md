@@ -7,7 +7,7 @@
 
 ## Workflow Position
 
-Implementation P1-P5 is assessed PASS for pre-merge scope. Current whole-feature source c8a0bb276ab86f91f3cd94a6d7bc0bd64544aab6; actual independent formal attempt retry-ordering-ready-8-pr81-a8 PASS R1-R10. Fresh verification, code/spec/pattern checks and decision triage are recorded through the core. Interactive presentation and packet synchronization follow. PR #81 awaits exact-head human acceptance; merge and post-merge publication/activation remain separate. Advisory8 is UNAVAILABLE with a retained assessed proceed reason, not a clean advisory or a formal waiver.
+Implementation P1-P5 and all R1-R10 passed verification and actual independent formal review. Trent Brown accepted review and merge of exact head 7502477a8af43f24580b8d8e6955120919654b6c on 2026-10-16. PR #81 merged into main at bf9f656535bce04dca659d8f6a1e975d552b1d6d; the trusted ancestry provider verified integration, all ten gate inputs/evidence were rechecked, and the core recorded HUMAN_REVIEW_ACCEPTED and SLICE_MERGE_RECORDED. Slice MERGED; feature FINALIZING with required Release Conductor evidence pending. Publication and installed activation are not established. Advisory8 remains UNAVAILABLE with its retained assessed proceed reason.
 
 ## Rubric Status
 
@@ -34,7 +34,7 @@ Implementation P1-P5 is assessed PASS for pre-merge scope. Current whole-feature
 
 ### PR #81
 
-[Review packet](pr-81/boundary.json) — preparation in progress; no human-review passage yet.
+[Review packet](pr-81/boundary.json) — accepted and merged at the exact approved head; prior entries below retain the review history.
 
 - Formal Judge a4: FAIL R4/R7/R10. F1 in-flight predecessor rebinding; F2 hidden retry presentation/packet barriers; F3 disabled review modules still mandatory to packet inventory; F4 journal-lock refusal saved policy without adoption. Actual findings and independent receipt retained under pr-81/attempts/retry-ordering-ready-4-pr81-a4/.
 - Advisory4: UNAVAILABLE/CONTRACT_INVALID, with one actual provider attempt and no accepted advisory verdict. The retained proceed reason permitted formal entry; it did not waive formal checks.
@@ -53,3 +53,5 @@ Implementation P1-P5 is assessed PASS for pre-merge scope. Current whole-feature
 - Packet validation: actual PASS through retry/core after trusted clean-checkout evidence-only synchronization. Retention inspection: tracked, 141 files, zero ignored/untracked. Human-review request and exact final-head synchronization follow; implementation approval is not merge authority.
 
 - Actual HUMAN_REVIEW_REQUESTED passage recorded through the core for retry-ordering-ready-8-pr81-a8 after all configured gates are current and nonblocking. Final evidence-only synchronization will resolve the exact head for user acceptance. No merge is authorized or recorded.
+
+- 2026-10-16: Explicit exact-head review/merge approval received for 7502477a8af43f24580b8d8e6955120919654b6c. Protected pr_lifecycle.py merge succeeded; GitHub mergedAt 2026-10-16T14:56:28Z, integration bf9f656535bce04dca659d8f6a1e975d552b1d6d. Trusted reviewed-content ancestry proof and actual protocol passages retained in [integration receipt](runtime/pr81-integration.json) and events.jsonl. I-1 closed; feature FINALIZING, required release module pending. No release/publish/install/activation was performed by this merge task.
