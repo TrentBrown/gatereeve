@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-5",
+  "checkedSource": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "2efaee31903fdbbf59c56f4171d62672c51665f9",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:afba4375d641c6961f8675ac0f3018bd9b87f701330b0f0c82fa84ca87fc6c3a",
+  "readiness": {
+    "path": "advisory/model-led-formal-ready-5/readiness.json",
+    "hash": "sha256:a1400d78bfdeb3b2871a7d30c396f45770607e02764808628c8f563efcecf7ee"
+  },
+  "reason": "Proceed with user-authorized formal review while advisory discovery runs. All 31 prior advisory/native-Judge findings have retained claims and actual regressions; chronological history, receipt-derived coverage, canonical selection identities, and milestone/merge/human-decision state races are repaired. Current CLI, desktop172, Python58, rebuilt universal package and ARM64 runtime checks pass. The retained OpenAI adapter smoke is from round three; fresh native Judge evaluation is required for this revision. New independent code/spec and native Judge verdicts remain mandatory. Preserve and inspect eventual advisory outcome before human review; no formal gate is waived.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "implementation coordinator for user-authorized formal review"
+  }
+}
