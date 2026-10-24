@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "actualVerdict": "PASS",
+  "protocolVersion": "2.1.0",
+  "contextId": "01a16c9f-c355-7d31-a5d1-afc1322da058",
+  "reasoningEffort": "high",
+  "profile": {
+    "id": "high-capability-v1",
+    "minimumReasoning": "high"
+  },
+  "outputDigest": "sha256:a1be670914840674940cb1c2a2a35d33efbcef0cb67796c3290e9254a88c47cf"
+}
