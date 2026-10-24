@@ -1,0 +1,2513 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-readiness",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-3",
+  "declaredAt": "2026-10-24T01:12:10.704Z",
+  "scope": "FEATURE_FINAL",
+  "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+  "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+  "criteria": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8",
+    "R9",
+    "R10",
+    "R11",
+    "R12",
+    "R13",
+    "R14",
+    "R15",
+    "R16",
+    "R17",
+    "R18",
+    "R19",
+    "R20",
+    "R21"
+  ],
+  "source": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "87896ab28fda2beb686e7084a61ab984d5e3858d",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:2031a01a41bcdc28ccc6362f12d5d8ecaa4e7c864a7c98f5d6a29a137474e686",
+  "requestIdentity": "sha256:aecf84b5a44141624d6f017e80583c3827e2b2958dc11c5401b9f784e3ca7236",
+  "inputManifest": {
+    "schemaVersion": 1,
+    "kind": "slice-advisory-inputs",
+    "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "opaqueHistoryIdentity": "sha256:815d45592381247660926b3dc9837973c61b41ec27b0ec38c60cdccd12655b0f",
+    "reviewInputIdentity": "sha256:cb7756391421035d9ba691c4c1cde11765ff9870119611230cd5bf4fc1ee8284",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL",
+    "criteria": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7",
+      "R8",
+      "R9",
+      "R10",
+      "R11",
+      "R12",
+      "R13",
+      "R14",
+      "R15",
+      "R16",
+      "R17",
+      "R18",
+      "R19",
+      "R20",
+      "R21"
+    ],
+    "formalJudge": {
+      "id": "gatereeve/judge",
+      "version": "3.0.0",
+      "digest": "sha256:a3cabc1a01f0b885c3b7333c6f9d1cf92d21e1f18cc322d14ce1cf01fbd5fa07",
+      "scope": "FEATURE",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "isolation": {
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "repositoryAccess": "read-only-pinned",
+      "networkAccess": "denied"
+    },
+    "advisoryModule": {
+      "id": "gatereeve/advisory-review",
+      "version": "1.0.0",
+      "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+    },
+    "applicable": true,
+    "resources": {
+      "resources/agent-workflows/advisory/agent.md": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+      "resources/agent-workflows/advisory/stage-input.schema.json": "sha256:b7c5b74d8d3b6a1ca1cb355df540d5ff0e2e5255ad34a72b903838f8f68bf38f",
+      "resources/agent-workflows/advisory/result.schema.json": "sha256:f863eb92f594143c402328bff6016a9b0205106f0735922a23145d182724a532",
+      "resources/agent-workflows/advisory/validator.js": "sha256:629dc6ac07eed04ac477130aee91a031de6ecadeb345f24dc7a068925412e88e"
+    },
+    "adapter": {
+      "id": "codex/fresh-exec",
+      "version": "1.0.0",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "reasoningEffort": "high",
+      "capabilityProfiles": [
+        "high-capability-v1"
+      ],
+      "isolationMethods": [
+        "codex-ephemeral-exec"
+      ]
+    },
+    "checks": [
+      {
+        "kind": "fast",
+        "command": "node cli/bin/workflow.js plugin lint --json",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "verification/repair-round-2/plugin-lint.json",
+            "hash": "sha256:3961db36075bd8dc1d59500d07e053f5d3fbb6f5139a63189411ecbd1daa9ac7"
+          }
+        ]
+      },
+      {
+        "kind": "focused",
+        "command": "Full CLI260, desktop172, Python58, focused interactions, actual OpenAI evaluator and universal package/runtime checks",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "verification/repair-round-2/cli-tests.log",
+            "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+          },
+          {
+            "path": "verification/repair-round-2/desktop-tests.log",
+            "hash": "sha256:d39580855ff8c477480e4ae48b3911b25e33c1c91586392ab5fb6378907d2b79"
+          },
+          {
+            "path": "verification/repair-round-2/python-tests.log",
+            "hash": "sha256:dc0a245691867f37a4bb580eaf7e2851ecb686496784be18a7297563dab99c4a"
+          },
+          {
+            "path": "verification/repair-round-2/live-evaluator.json",
+            "hash": "sha256:2707973641aabf6819fc4b0bc06bd234f8090f8a101de3de17d7c15cd3be8fb8"
+          },
+          {
+            "path": "verification/repair-round-2/package-verified.json",
+            "hash": "sha256:d0d2bdcc88644451fb75af7ce4b25af266544b902a9ccc092cf590b1e00d7153"
+          },
+          {
+            "path": "verification/repair-round-2/focused-regressions.log",
+            "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+          },
+          {
+            "path": "verification/repair-round-2/failure-regressions.log",
+            "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+          },
+          {
+            "path": "verification/repair-round-2/continuation-regressions.log",
+            "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+          }
+        ]
+      }
+    ],
+    "priorFindingsIdentity": "sha256:d22013f609b1a22c3bdebc43a5bd29ee1099bd3921b4cf0ba5a62f03de9cdd57",
+    "governance": {
+      "featureId": "tb-multirepo-review-input",
+      "repositoryAlias": "product",
+      "remote": "origin",
+      "integrationBranch": "main",
+      "releaseBranch": "main",
+      "featureBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+      "keepPullRequestsClosed": true
+    }
+  },
+  "checks": [
+    {
+      "kind": "fast",
+      "command": "node cli/bin/workflow.js plugin lint --json",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "verification/repair-round-2/plugin-lint.json",
+          "hash": "sha256:3961db36075bd8dc1d59500d07e053f5d3fbb6f5139a63189411ecbd1daa9ac7"
+        }
+      ]
+    },
+    {
+      "kind": "focused",
+      "command": "Full CLI260, desktop172, Python58, focused interactions, actual OpenAI evaluator and universal package/runtime checks",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "verification/repair-round-2/cli-tests.log",
+          "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+        },
+        {
+          "path": "verification/repair-round-2/desktop-tests.log",
+          "hash": "sha256:d39580855ff8c477480e4ae48b3911b25e33c1c91586392ab5fb6378907d2b79"
+        },
+        {
+          "path": "verification/repair-round-2/python-tests.log",
+          "hash": "sha256:dc0a245691867f37a4bb580eaf7e2851ecb686496784be18a7297563dab99c4a"
+        },
+        {
+          "path": "verification/repair-round-2/live-evaluator.json",
+          "hash": "sha256:2707973641aabf6819fc4b0bc06bd234f8090f8a101de3de17d7c15cd3be8fb8"
+        },
+        {
+          "path": "verification/repair-round-2/package-verified.json",
+          "hash": "sha256:d0d2bdcc88644451fb75af7ce4b25af266544b902a9ccc092cf590b1e00d7153"
+        },
+        {
+          "path": "verification/repair-round-2/focused-regressions.log",
+          "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+        },
+        {
+          "path": "verification/repair-round-2/failure-regressions.log",
+          "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+        },
+        {
+          "path": "verification/repair-round-2/continuation-regressions.log",
+          "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+        }
+      ]
+    }
+  ],
+  "remediation": [
+    {
+      "findingIds": [
+        "advisory:model-led-formal-ready-1:0"
+      ],
+      "invariant": "Completion proof, human acceptance, and exceptions must apply to the current approved commitments.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/resources/protocol/current/core.js",
+        "apps/desktop/resources/protocol/current/evidence.js",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "plugin-src/shared/resources/protocol",
+        "plugin-src/shared/resources/protocol/current/core.js",
+        "plugin-src/shared/resources/protocol/current/evidence.js"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. Completion can accept superseded requirements. After an authorized amendment, the old candidate, acceptance, and exceptions remain usable because completion disables live requirement checks. Reobserving integration permits completion without refreshed assessment of the amended commitments. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. Completion can accept superseded requirements. After an authorized amendment, the old candidate, acceptance, and exceptions remain usable because completion disables live requirement checks. Reobserving integration permits completion without refreshed assessment of the amended commitments.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:a7cb70d45e81a4dde34fdbd4a157b68fe69af1992155ac4047f9660611d7b74d"
+      ]
+    },
+    {
+      "findingIds": [
+        "advisory:model-led-formal-ready-1:1"
+      ],
+      "invariant": "Every feature-home access must remain beneath the trusted workspace without symlink substitution in its internal path components.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/resources/protocol/current/adapter.js",
+        "apps/desktop/resources/protocol/current/store.js",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "plugin-src/shared/resources/protocol",
+        "plugin-src/shared/resources/protocol/current/adapter.js",
+        "plugin-src/shared/resources/protocol/current/store.js"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. Existing-run operations accept an ancestor-symlink substitution of the feature home. Redirecting workspace/docs or workspace/docs/issues to an external directory containing the retained feature bypasses workspace containment and redirects evidence publication. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. Existing-run operations accept an ancestor-symlink substitution of the feature home. Redirecting workspace/docs or workspace/docs/issues to an external directory containing the retained feature bypasses workspace containment and redirects evidence publication.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:39e7acc64d2109d4297ca941002429734b838623593a999e455502e0bb23c1de"
+      ]
+    },
+    {
+      "findingIds": [
+        "advisory:model-led-formal-ready-1:2"
+      ],
+      "invariant": "Complete-feature assessment must cover the feature's established source range, and changes to that range must invalidate affected applicability.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/resources/protocol/current/core.js",
+        "apps/desktop/resources/protocol/current/evidence.js",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "plugin-src/shared/resources/protocol",
+        "plugin-src/shared/resources/protocol/current/core.js",
+        "plugin-src/shared/resources/protocol/current/evidence.js"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. FEATURE preparation ignores the configured original feature base. A caller can select only the latest slice, or base=head, while naming every rubric row; completion treats the FEATURE label as complete-feature coverage. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. FEATURE preparation ignores the configured original feature base. A caller can select only the latest slice, or base=head, while naming every rubric row; completion treats the FEATURE label as complete-feature coverage.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:61057d1ff9133afd32511498ab984ef3b9c6f0d04be37683886767ff74766548"
+      ]
+    },
+    {
+      "findingIds": [
+        "advisory:model-led-formal-ready-1:3"
+      ],
+      "invariant": "Delta admission must identify and cover changes to both source endpoints and the resulting review range.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/resources/protocol/current/execution.js",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "plugin-src/shared/resources/protocol",
+        "plugin-src/shared/resources/protocol/current/execution.js"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. Delta coverage ignores base-snapshot changes. Expanding the review range with an unchanged head produces an empty changed-path list, allowing PASS without explicit coverage of newly included changes; the reviewer export also omits the prior base snapshot. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. Delta coverage ignores base-snapshot changes. Expanding the review range with an unchanged head produces an empty changed-path list, allowing PASS without explicit coverage of newly included changes; the reviewer export also omits the prior base snapshot.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:e50ce4554d53b011241c7c616c4ea8079fd3c2c22a4ef127af40319eb01650d7"
+      ]
+    },
+    {
+      "findingIds": [
+        "advisory:model-led-formal-ready-1:4"
+      ],
+      "invariant": "Ordinary current-status reports must display accepted exceptions separately from preserved check verdicts.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/src/commands/current.js",
+        "cli/test",
+        "plugin-src/shared/resources/protocol"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. Ordinary CLI status hides accepted exceptions. A waived failed or unavailable gate can yield 'acceptance: ready' without displaying its original outcome, exception, or accepted consequences. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. Ordinary CLI status hides accepted exceptions. A waived failed or unavailable gate can yield 'acceptance: ready' without displaying its original outcome, exception, or accepted consequences.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:6ddc3c70b8a9a70f45fc71d9a16767f06e5498e4b4c4325de6b163823214efc0"
+      ]
+    },
+    {
+      "findingIds": [
+        "advisory:model-led-formal-ready-1:5"
+      ],
+      "invariant": "Distributed consumer instructions must describe the current operations and capabilities.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "plugin-src/shared/resources/protocol"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. Shipped consumer documentation still advertises removed interfaces: CLI advisory declare-readiness/proceed/check operations and desktop module-task execution. These instructions contradict the current command tree and desktop boundary. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. Shipped consumer documentation still advertises removed interfaces: CLI advisory declare-readiness/proceed/check operations and desktop module-task execution. These instructions contradict the current command tree and desktop boundary.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:0b3f46f7f5ae5713beda3fc30fcac87503d09a9977f3b84c8f709bd3aefa8a3a"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:0"
+      ],
+      "invariant": "f1 — completion can certify superseded requirements.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "candidate.authorization.subject",
+        "candidate.requirements",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "core.js",
+        "integration.observe",
+        "plugin-src/shared/resources/protocol"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F1 — Completion can certify superseded requirements. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F1 — Completion can certify superseded requirements.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:07c054e03f39424b316c434bf4375bc419b55a3144e431d9400924bc0d9e0695"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:1"
+      ],
+      "invariant": "f2 — missing retained planning evidence does not block beginning implementation.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "core.js",
+        "plugin-src/shared/resources/protocol",
+        "store.closure"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F2 — Missing retained planning evidence does not block beginning implementation. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F2 — Missing retained planning evidence does not block beginning implementation.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:7c51b687954749e02cee73f9eb5e476b9219e11a456a06d227d02af005139fe8"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:2"
+      ],
+      "invariant": "f3 — broad bookkeeping exclusions conceal potentially reachable source changes.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "docs/issues",
+        "docs/issues/other/runtime.js",
+        "evidence.js",
+        "plugin-src/shared/resources/protocol"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F3 — Broad bookkeeping exclusions conceal potentially reachable source changes. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F3 — Broad bookkeeping exclusions conceal potentially reachable source changes.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:5691eab4795802dbb0c7b099dc0cdd1212b941865f4c7504605405674155f492"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:3"
+      ],
+      "invariant": "f4 — existing feature homes can be redirected through symlinked ancestors.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "adapter.js",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "plugin-src/shared/resources/protocol",
+        "store.js"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F4 — Existing feature homes can be redirected through symlinked ancestors. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F4 — Existing feature homes can be redirected through symlinked ancestors.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:a3b122c636ed8806cbc26e5cb3faaade728d07b7870d16f1f257c6e396a5799e"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:4"
+      ],
+      "invariant": "f5 — the required real local evaluator receipt is not supplied.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "current-core.test.js",
+        "plugin-src/shared/resources/protocol",
+        "runtime.png"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F5 — The required real local evaluator receipt is not supplied. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F5 — The required real local evaluator receipt is not supplied.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:4de4ba5a0889193f6ebdf73780edbf1e697c54474f8b8c5871ecc559827bb47e"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:5"
+      ],
+      "invariant": "f6 — default runner fingerprints miss nested installed dependencies.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/node_modules",
+        "cli/src/commands",
+        "cli/test",
+        "environment.js",
+        "plugin-src/shared/resources/protocol"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F6 — Default runner fingerprints miss nested installed dependencies. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F6 — Default runner fingerprints miss nested installed dependencies.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:c661a6b3fff81d6e2f6b5c9d52d9bb1431aed5b1d92b908f971b00e3932820b1"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:6"
+      ],
+      "invariant": "f7 — delta coverage omits review-base changes.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "execution.js",
+        "plugin-src/shared/resources/protocol"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F7 — Delta coverage omits review-base changes. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F7 — Delta coverage omits review-base changes.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:0b8d1a0820a02faeaf587f40917facc9e56cc8b67c16bddbc1ba62ec6d6d1779"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:7"
+      ],
+      "invariant": "f8 — identical-content commits unnecessarily invalidate quality exceptions.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "base/head",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "contracts.js",
+        "core.js",
+        "plugin-src/shared/resources/protocol"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F8 — Identical-content commits unnecessarily invalidate quality exceptions. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F8 — Identical-content commits unnecessarily invalidate quality exceptions.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:970ce100baabbab9eba1b3185a8bded0d345f8c04a741d577a4e967c6e4089ce"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:8"
+      ],
+      "invariant": "f9 — ordinary cli status hides accepted exceptions.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/src/commands/current.js",
+        "cli/test",
+        "current-view.js",
+        "outcomes.exception",
+        "plugin-src/shared/resources/protocol"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F9 — Ordinary CLI status hides accepted exceptions. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F9 — Ordinary CLI status hides accepted exceptions.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:0efbd364a0eadea9114d0d2d95cbcf73512ea364f50d375fa65e7b445db9d574"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:9"
+      ],
+      "invariant": "f10 — a pr can be retargeted after authorization validation and before merge execution.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "actions.js",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "plugin-src/shared/resources/protocol"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F10 — A PR can be retargeted after authorization validation and before merge execution. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F10 — A PR can be retargeted after authorization validation and before merge execution.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:c55278079cdd8c785e75c43eec997bb141f61ce5cf7c95a4e82f8c348742860f"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:10"
+      ],
+      "invariant": "f11 — shipped cli guidance still advertises the retired readiness workflow.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/src/index.js",
+        "cli/test",
+        "plugin-src/shared/resources/protocol"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F11 — Shipped CLI guidance still advertises the retired readiness workflow. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F11 — Shipped CLI guidance still advertises the retired readiness workflow.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:2117ab1f9b12c99e80cea14f5b94185bfffd2f5a8909087855b17065635df0d3"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:11"
+      ],
+      "invariant": "f12 — available provider token and cost data is discarded.",
+      "examinedPaths": [
+        ".github/workflows/plugin-ci.yml",
+        "0.12",
+        "apps/desktop/README.md",
+        "apps/desktop/resources/protocol",
+        "apps/desktop/scripts",
+        "apps/desktop/test",
+        "ci",
+        "cli/README.md",
+        "cli/src/commands",
+        "cli/test",
+        "execution.js",
+        "local-agent-adapters.js",
+        "plugin-src/shared/resources/protocol"
+      ],
+      "approach": "Reassessed after the second formal findings. See verification/formal-pr84-remediation-1.md and verification/formal-pr84-remediation-2.md for the concrete invariant repairs. Repair the actual mutation and admission paths described in verification/formal-pr84-remediation-1.md. F12 — Available provider token and cost data is discarded. Preserve prior failure evidence; validate current commitments, source range, retained closure, environment and human scope at admission. Short tokens in the prior formal checklist are mapped to canonical paths in that report.",
+      "regressions": [
+        {
+          "scenario": "Regression coverage of the affected invariant, plus grouped current-protocol behavior, provider receipt and consumer integration checks. F12 — Available provider token and cost data is discarded.",
+          "command": "Full CLI260 passing tests and focused second-round regressions",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:2d328b455699da398442034a5775487fa2855c8a952ab34ed70f45992f5b2595"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d:0"
+      ],
+      "invariant": "f1: tracked history bypasses bounded reviewer context and unnecessarily invalidates proof.",
+      "examinedPaths": [
+        "advisory/round-1.md",
+        "base/head",
+        "code-review.md",
+        "events.jsonl",
+        "evidence.js",
+        "execution.js",
+        "pr-12/judge.json",
+        "report/journal",
+        "workflow-model.lock.json",
+        "plugin-src/shared/resources/protocol/current",
+        "cli/test/current-core.test.js",
+        "plugin-src/shared/resources/scripts/pr_lifecycle.py"
+      ],
+      "approach": "Repair the current invariant in verification/formal-pr84-remediation-2.md: F1: Tracked history bypasses bounded reviewer context and unnecessarily invalidates proof. Preserve historical failure, validate current bound evidence and require the next independent verdict; these assertions are implementation claims, not acceptance.",
+      "regressions": [
+        {
+          "scenario": "F1: Tracked history bypasses bounded reviewer context and unnecessarily invalidates proof. and its caller, publication and applicability interactions.",
+          "command": "Full CLI260 passing tests; focused history/target, failure-retention and interrupted-decision regressions; Python58 legacy merge API retirement tests",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:00c523b8ebdd2622c7b59b379cc99fbae73c1ce8bb7eb7475a8845b19ec765e6"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d:1"
+      ],
+      "invariant": "f2: runner reuse ignores inherited environment variables that affect check outcomes.",
+      "examinedPaths": [
+        "core.js",
+        "environment.js",
+        "execution.js",
+        "process.env",
+        "plugin-src/shared/resources/protocol/current",
+        "cli/test/current-core.test.js",
+        "plugin-src/shared/resources/scripts/pr_lifecycle.py"
+      ],
+      "approach": "Repair the current invariant in verification/formal-pr84-remediation-2.md: F2: Runner reuse ignores inherited environment variables that affect check outcomes. Preserve historical failure, validate current bound evidence and require the next independent verdict; these assertions are implementation claims, not acceptance.",
+      "regressions": [
+        {
+          "scenario": "F2: Runner reuse ignores inherited environment variables that affect check outcomes. and its caller, publication and applicability interactions.",
+          "command": "Full CLI260 passing tests; focused history/target, failure-retention and interrupted-decision regressions; Python58 legacy merge API retirement tests",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:8f3db2eb4c3f4980870b0977df4b326959feafd763b4558cbaa914f7411acf0c"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d:2"
+      ],
+      "invariant": "f3: failed deterministic validator evidence is discarded or orphaned.",
+      "examinedPaths": [
+        "core.js",
+        "error.artifacts/providerFailure",
+        "error.message",
+        "execution.js",
+        "result/event",
+        "plugin-src/shared/resources/protocol/current",
+        "cli/test/current-core.test.js",
+        "plugin-src/shared/resources/scripts/pr_lifecycle.py"
+      ],
+      "approach": "Repair the current invariant in verification/formal-pr84-remediation-2.md: F3: Failed deterministic validator evidence is discarded or orphaned. Preserve historical failure, validate current bound evidence and require the next independent verdict; these assertions are implementation claims, not acceptance.",
+      "regressions": [
+        {
+          "scenario": "F3: Failed deterministic validator evidence is discarded or orphaned. and its caller, publication and applicability interactions.",
+          "command": "Full CLI260 passing tests; focused history/target, failure-retention and interrupted-decision regressions; Python58 legacy merge API retirement tests",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:3778751f891722f7d21c9e223692491db43cf6c59de1bbe7a23e0ae10334aeeb"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d:3"
+      ],
+      "invariant": "f4: combined human decisions have no durable incomplete state before validation or continuation.",
+      "examinedPaths": [
+        "core.js",
+        "current-core.test.js",
+        "old/new",
+        "plugin-src/shared/resources/protocol/current",
+        "cli/test/current-core.test.js",
+        "plugin-src/shared/resources/scripts/pr_lifecycle.py"
+      ],
+      "approach": "Repair the current invariant in verification/formal-pr84-remediation-2.md: F4: Combined human decisions have no durable incomplete state before validation or continuation. Preserve historical failure, validate current bound evidence and require the next independent verdict; these assertions are implementation claims, not acceptance.",
+      "regressions": [
+        {
+          "scenario": "F4: Combined human decisions have no durable incomplete state before validation or continuation. and its caller, publication and applicability interactions.",
+          "command": "Full CLI260 passing tests; focused history/target, failure-retention and interrupted-decision regressions; Python58 legacy merge API retirement tests",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:8ae2997b7c439d928870367ed5bca37549c920149e2e8f6a8cbdd8014b13c3d6"
+      ]
+    },
+    {
+      "findingIds": [
+        "formal:evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d:4"
+      ],
+      "invariant": "f5: a shipped legacy merge api still executes outside the current core.",
+      "examinedPaths": [
+        "Git/PR",
+        "pr_lifecycle.py",
+        "provider.gh",
+        "test_pr_lifecycle.py",
+        "workflow-inventory.json",
+        "plugin-src/shared/resources/protocol/current",
+        "cli/test/current-core.test.js",
+        "plugin-src/shared/resources/scripts/pr_lifecycle.py"
+      ],
+      "approach": "Repair the current invariant in verification/formal-pr84-remediation-2.md: F5: A shipped legacy merge API still executes outside the current core. Preserve historical failure, validate current bound evidence and require the next independent verdict; these assertions are implementation claims, not acceptance.",
+      "regressions": [
+        {
+          "scenario": "F5: A shipped legacy merge API still executes outside the current core. and its caller, publication and applicability interactions.",
+          "command": "Full CLI260 passing tests; focused history/target, failure-retention and interrupted-decision regressions; Python58 legacy merge API retirement tests",
+          "outcome": "PASS",
+          "evidence": [
+            {
+              "path": "verification/repair-round-2/cli-tests.log",
+              "hash": "sha256:183acfb32a781765869190eba1b33531b6b1b93d1d4c945101d134c5422aea60"
+            },
+            {
+              "path": "verification/repair-round-2/focused-regressions.log",
+              "hash": "sha256:50ef7fcbe330d00275b9147018c7b0d2a677237d334270350699d250a7c212d1"
+            },
+            {
+              "path": "verification/repair-round-2/failure-regressions.log",
+              "hash": "sha256:3e50350a2388518e84026f766080b5d519a80b78e54e60592d7bebb84ae67f83"
+            },
+            {
+              "path": "verification/repair-round-2/continuation-regressions.log",
+              "hash": "sha256:3bf13aec56803d06340bd6cbc4067137407bf131f7a38490607470e07cf1df3c"
+            }
+          ]
+        }
+      ],
+      "underlyingKeys": [
+        "sha256:619f4aa833938df0e9420aaff30e3024d827fcd3cc23825e9fd167312baad314"
+      ]
+    }
+  ],
+  "priorFindings": [
+    {
+      "id": "advisory:model-led-formal-ready-1:0",
+      "underlyingKey": "sha256:a7cb70d45e81a4dde34fdbd4a157b68fe69af1992155ac4047f9660611d7b74d",
+      "source": {
+        "kind": "advisory",
+        "reference": {
+          "path": "advisory/model-led-formal-ready-1/review.json",
+          "hash": "sha256:8a0ef0b9cdfd2c11207b0f6f2af74057131754fd5bbd1019b2649b94456818c4"
+        }
+      },
+      "summary": "Completion can accept superseded requirements. After an authorized amendment, the old candidate, acceptance, and exceptions remain usable because completion disables live requirement checks. Reobserving integration permits completion without refreshed assessment of the amended commitments.",
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R7",
+        "R11",
+        "R16",
+        "R17"
+      ],
+      "invariant": "Completion proof, human acceptance, and exceptions must apply to the current approved commitments.",
+      "affectedPaths": [
+        "plugin-src/shared/resources/protocol/current/core.js",
+        "plugin-src/shared/resources/protocol/current/evidence.js",
+        "apps/desktop/resources/protocol/current/core.js",
+        "apps/desktop/resources/protocol/current/evidence.js"
+      ],
+      "evidence": [
+        "plugin-src/shared/resources/protocol/current/core.js:26 — amendment changes phase/spec validation without clearing the candidate or integrations.",
+        "plugin-src/shared/resources/protocol/current/core.js:276 — current implementation authority is checked separately from the candidate's authorization.",
+        "plugin-src/shared/resources/protocol/current/core.js:287 — completion calls checkCandidate with live:false.",
+        "plugin-src/shared/resources/protocol/current/evidence.js:117 — live:false checks retained requirement objects rather than current bytes.",
+        "plugin-src/shared/resources/protocol/current/core.js:305 — exceptions and acceptance remain keyed to the old candidate.",
+        "A read-only in-memory invocation of CurrentCore.check('completion') returned allowed:true with differing current and candidate spec hashes."
+      ]
+    },
+    {
+      "id": "advisory:model-led-formal-ready-1:1",
+      "underlyingKey": "sha256:39e7acc64d2109d4297ca941002429734b838623593a999e455502e0bb23c1de",
+      "source": {
+        "kind": "advisory",
+        "reference": {
+          "path": "advisory/model-led-formal-ready-1/review.json",
+          "hash": "sha256:8a0ef0b9cdfd2c11207b0f6f2af74057131754fd5bbd1019b2649b94456818c4"
+        }
+      },
+      "summary": "Existing-run operations accept an ancestor-symlink substitution of the feature home. Redirecting workspace/docs or workspace/docs/issues to an external directory containing the retained feature bypasses workspace containment and redirects evidence publication.",
+      "criterionIds": [
+        "R5"
+      ],
+      "invariant": "Every feature-home access must remain beneath the trusted workspace without symlink substitution in its internal path components.",
+      "affectedPaths": [
+        "plugin-src/shared/resources/protocol/current/store.js",
+        "plugin-src/shared/resources/protocol/current/adapter.js",
+        "apps/desktop/resources/protocol/current/store.js",
+        "apps/desktop/resources/protocol/current/adapter.js"
+      ],
+      "evidence": [
+        "plugin-src/shared/resources/protocol/current/adapter.js:17 — ensureHome validates components beneath the workspace.",
+        "plugin-src/shared/resources/protocol/current/adapter.js:90 — that validation runs only for start/resume.",
+        "plugin-src/shared/resources/protocol/current/store.js:89 — CurrentStore.at checks only the final directory before accepting its realpath.",
+        "plugin-src/shared/resources/protocol/current/store.js:99 — subsequent publication uses that redirected home."
+      ]
+    },
+    {
+      "id": "advisory:model-led-formal-ready-1:2",
+      "underlyingKey": "sha256:61057d1ff9133afd32511498ab984ef3b9c6f0d04be37683886767ff74766548",
+      "source": {
+        "kind": "advisory",
+        "reference": {
+          "path": "advisory/model-led-formal-ready-1/review.json",
+          "hash": "sha256:8a0ef0b9cdfd2c11207b0f6f2af74057131754fd5bbd1019b2649b94456818c4"
+        }
+      },
+      "summary": "FEATURE preparation ignores the configured original feature base. A caller can select only the latest slice, or base=head, while naming every rubric row; completion treats the FEATURE label as complete-feature coverage.",
+      "criterionIds": [
+        "R4",
+        "R11",
+        "R12"
+      ],
+      "invariant": "Complete-feature assessment must cover the feature's established source range, and changes to that range must invalidate affected applicability.",
+      "affectedPaths": [
+        "plugin-src/shared/resources/protocol/current/evidence.js",
+        "plugin-src/shared/resources/protocol/current/core.js",
+        "apps/desktop/resources/protocol/current/evidence.js",
+        "apps/desktop/resources/protocol/current/core.js"
+      ],
+      "evidence": [
+        "plugin-src/shared/resources/policy/WORKSPACE-CONTEXT.md:32 — original per-repository feature bases define complete-feature evaluation ranges.",
+        "plugin-src/shared/resources/protocol/context.js:194 — the resolver retains featureBaseSha.",
+        "plugin-src/shared/resources/protocol/current/evidence.js:68 — repository applicability identity omits featureBaseSha.",
+        "plugin-src/shared/resources/protocol/current/evidence.js:90 — preparation accepts the caller's base without comparing the original feature base.",
+        "plugin-src/shared/resources/protocol/current/evidence.js:103 — FEATURE validation checks rubric count only.",
+        "plugin-src/shared/resources/protocol/current/core.js:313 — completion checks the FEATURE label without validating its original range."
+      ]
+    },
+    {
+      "id": "advisory:model-led-formal-ready-1:3",
+      "underlyingKey": "sha256:e50ce4554d53b011241c7c616c4ea8079fd3c2c22a4ef127af40319eb01650d7",
+      "source": {
+        "kind": "advisory",
+        "reference": {
+          "path": "advisory/model-led-formal-ready-1/review.json",
+          "hash": "sha256:8a0ef0b9cdfd2c11207b0f6f2af74057131754fd5bbd1019b2649b94456818c4"
+        }
+      },
+      "summary": "Delta coverage ignores base-snapshot changes. Expanding the review range with an unchanged head produces an empty changed-path list, allowing PASS without explicit coverage of newly included changes; the reviewer export also omits the prior base snapshot.",
+      "criterionIds": [
+        "R11",
+        "R12"
+      ],
+      "invariant": "Delta admission must identify and cover changes to both source endpoints and the resulting review range.",
+      "affectedPaths": [
+        "plugin-src/shared/resources/protocol/current/execution.js",
+        "apps/desktop/resources/protocol/current/execution.js"
+      ],
+      "evidence": [
+        "plugin-src/shared/resources/protocol/current/execution.js:40 — changedPaths compares repository.files only, excluding baseFiles.",
+        "plugin-src/shared/resources/protocol/current/execution.js:76 — prior exports copy head files without prior base files.",
+        "plugin-src/shared/resources/protocol/current/execution.js:313 — delta preparation does not reject or separately account for changed bases.",
+        "plugin-src/shared/resources/protocol/current/execution.js:213 — required coverage is checked only against the incomplete changed-path list.",
+        "A read-only invocation of changedPaths with changed base/baseFiles and identical head files returned []."
+      ]
+    },
+    {
+      "id": "advisory:model-led-formal-ready-1:4",
+      "underlyingKey": "sha256:6ddc3c70b8a9a70f45fc71d9a16767f06e5498e4b4c4325de6b163823214efc0",
+      "source": {
+        "kind": "advisory",
+        "reference": {
+          "path": "advisory/model-led-formal-ready-1/review.json",
+          "hash": "sha256:8a0ef0b9cdfd2c11207b0f6f2af74057131754fd5bbd1019b2649b94456818c4"
+        }
+      },
+      "summary": "Ordinary CLI status hides accepted exceptions. A waived failed or unavailable gate can yield 'acceptance: ready' without displaying its original outcome, exception, or accepted consequences.",
+      "criterionIds": [
+        "R16",
+        "R18"
+      ],
+      "invariant": "Ordinary current-status reports must display accepted exceptions separately from preserved check verdicts.",
+      "affectedPaths": [
+        "cli/src/commands/current.js"
+      ],
+      "evidence": [
+        "cli/src/commands/current.js:20 — text status prints phase, milestone readiness, historical gaps, and blockers only.",
+        "plugin-src/shared/resources/protocol/current/core.js:308 — outcomes retain the original verdict and exception, but text status does not render them.",
+        "docs/issues/tb-multirepo-review-input/spec.md:182 — accepted exceptions must be displayed independently."
+      ]
+    },
+    {
+      "id": "advisory:model-led-formal-ready-1:5",
+      "underlyingKey": "sha256:0b3f46f7f5ae5713beda3fc30fcac87503d09a9977f3b84c8f709bd3aefa8a3a",
+      "source": {
+        "kind": "advisory",
+        "reference": {
+          "path": "advisory/model-led-formal-ready-1/review.json",
+          "hash": "sha256:8a0ef0b9cdfd2c11207b0f6f2af74057131754fd5bbd1019b2649b94456818c4"
+        }
+      },
+      "summary": "Shipped consumer documentation still advertises removed interfaces: CLI advisory declare-readiness/proceed/check operations and desktop module-task execution. These instructions contradict the current command tree and desktop boundary.",
+      "criterionIds": [
+        "R18"
+      ],
+      "invariant": "Distributed consumer instructions must describe the current operations and capabilities.",
+      "affectedPaths": [
+        "cli/README.md",
+        "apps/desktop/README.md"
+      ],
+      "evidence": [
+        "cli/README.md:181 — documents retired advisory commands and their execution behavior.",
+        "cli/src/index.js:16 — registers current commands and plugin commands only.",
+        "plugin-src/shared/resources/commands/advisory-review.md:5 — current readiness and explicit execution replace that interface.",
+        "apps/desktop/README.md:119 — still describes module-task sessions and consent-driven module execution.",
+        "apps/desktop/main/index.js:186 — desktop process management now uses terminalManager without the removed module-task manager."
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:0",
+      "underlyingKey": "sha256:07c054e03f39424b316c434bf4375bc419b55a3144e431d9400924bc0d9e0695",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F1 — Completion can certify superseded requirements.",
+      "evidence": [
+        "core.js:26 preserves the old candidate, acceptance decisions, and integration state during amendment.",
+        "After new commitments are authorized, integration.observe can re-establish INTEGRATED for the retained old candidate.",
+        "core.js:287 validates completion with live=false and never compares candidate.requirements or candidate.authorization.subject to current commitments.",
+        "The read-only completion predicate probe returned allowed=true with new authorized requirements, old candidate requirements, intact old proof, and zero live requirement reads."
+      ],
+      "invariant": "f1 — completion can certify superseded requirements.",
+      "affectedPaths": [
+        "candidate.authorization.subject",
+        "candidate.requirements",
+        "core.js",
+        "integration.observe"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:1",
+      "underlyingKey": "sha256:7c51b687954749e02cee73f9eb5e476b9219e11a456a06d227d02af005139fe8",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F2 — Missing retained planning evidence does not block beginning implementation.",
+      "evidence": [
+        "core.js:282 returns implementation eligibility before store.closure(state.decisions).",
+        "Current requirement fingerprints and the spec-validation proof do not validate retained interview or approval-document copies.",
+        "The read-only predicate probe returned allowed=true without invoking the decision-closure validator."
+      ],
+      "invariant": "f2 — missing retained planning evidence does not block beginning implementation.",
+      "affectedPaths": [
+        "core.js",
+        "store.closure"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:10",
+      "underlyingKey": "sha256:2117ab1f9b12c99e80cea14f5b94185bfffd2f5a8909087855b17065635df0d3",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F11 — Shipped CLI guidance still advertises the retired readiness workflow.",
+      "evidence": [
+        "cli/README.md:179 documents advisory declare-readiness, proceed, and check, including automatic discovery.",
+        "cli/src/index.js registers only currentCommands and pluginCommands.",
+        "The documented commands are unavailable and contradict readiness-without-launch behavior."
+      ],
+      "invariant": "f11 — shipped cli guidance still advertises the retired readiness workflow.",
+      "affectedPaths": [
+        "cli/README.md",
+        "cli/src/index.js"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:11",
+      "underlyingKey": "sha256:2d328b455699da398442034a5775487fa2855c8a952ab34ed70f45992f5b2595",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F12 — Available provider token and cost data is discarded.",
+      "evidence": [
+        "local-agent-adapters.js:156 strips usage and cost fields from provider envelopes.",
+        "The Codex parser similarly extracts only the context ID from process events.",
+        "execution.js:422 hard-codes token and cost metrics to null.",
+        "An injected provider response with 123 input tokens, 45 output tokens, and cost 0.12 retained none of those values."
+      ],
+      "invariant": "f12 — available provider token and cost data is discarded.",
+      "affectedPaths": [
+        "0.12",
+        "execution.js",
+        "local-agent-adapters.js"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:2",
+      "underlyingKey": "sha256:5691eab4795802dbb0c7b099dc0cdd1212b941865f4c7504605405674155f492",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F3 — Broad bookkeeping exclusions conceal potentially reachable source changes.",
+      "evidence": [
+        "evidence.js:12 exempts every docs/issues path, not an inventory derived from validated evidence references.",
+        "The same exclusion removes files from source capture at line 28 and permits dirty files at line 79.",
+        "An application importing docs/issues/other/runtime.js can therefore execute altered bytes omitted from its reviewed snapshot and cleanliness checks."
+      ],
+      "invariant": "f3 — broad bookkeeping exclusions conceal potentially reachable source changes.",
+      "affectedPaths": [
+        "docs/issues",
+        "docs/issues/other/runtime.js",
+        "evidence.js"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:3",
+      "underlyingKey": "sha256:a3b122c636ed8806cbc26e5cb3faaade728d07b7870d16f1f257c6e396a5799e",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F4 — Existing feature homes can be redirected through symlinked ancestors.",
+      "evidence": [
+        "store.js:89 validates only the final home component before realpath.",
+        "Replacing docs or issues with a symlink to an external directory containing the existing feature record leaves the final feature directory regular and accepted.",
+        "adapter.js validates ancestors only when starting or resuming, not when opening existing records for evaluation or milestone passage."
+      ],
+      "invariant": "f4 — existing feature homes can be redirected through symlinked ancestors.",
+      "affectedPaths": [
+        "adapter.js",
+        "store.js"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:4",
+      "underlyingKey": "sha256:4de4ba5a0889193f6ebdf73780edbf1e697c54474f8b8c5871ecc559827bb47e",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F5 — The required real local evaluator receipt is not supplied.",
+      "evidence": [
+        "R8 explicitly requires a retained local evaluator execution receipt.",
+        "current-core.test.js:251 makes that execution conditional.",
+        "The bound Verification says the live-provider test was skipped and refers to separate native evaluation without binding its receipt.",
+        "The only bound verification attachment is runtime.png."
+      ],
+      "invariant": "f5 — the required real local evaluator receipt is not supplied.",
+      "affectedPaths": [
+        "current-core.test.js",
+        "runtime.png"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:5",
+      "underlyingKey": "sha256:c661a6b3fff81d6e2f6b5c9d52d9bb1431aed5b1d92b908f971b00e3932820b1",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F6 — Default runner fingerprints miss nested installed dependencies.",
+      "evidence": [
+        "environment.js:48 automatically captures only root node_modules and .venv.",
+        "A check such as npm --prefix cli test consumes cli/node_modules, which remains outside the fingerprint unless manually declared.",
+        "With unchanged tracked source and root dependencies, altering those nested installed bytes leaves the environment identity unchanged and permits stale runner reuse."
+      ],
+      "invariant": "f6 — default runner fingerprints miss nested installed dependencies.",
+      "affectedPaths": [
+        "cli/node_modules",
+        "environment.js"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:6",
+      "underlyingKey": "sha256:0b8d1a0820a02faeaf587f40917facc9e56cc8b67c16bddbc1ba62ec6d6d1779",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F7 — Delta coverage omits review-base changes.",
+      "evidence": [
+        "execution.js:40 compares head file inventories only.",
+        "A baseFiles-only mutation produced changedPaths=[].",
+        "Delta PASS validation at line 213 consequently requires no changed-path coverage for that mutation.",
+        "reviewerView exports prior head files at line 76, without prior base files."
+      ],
+      "invariant": "f7 — delta coverage omits review-base changes.",
+      "affectedPaths": [
+        "execution.js"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:7",
+      "underlyingKey": "sha256:970ce100baabbab9eba1b3185a8bded0d345f8c04a741d577a4e967c6e4089ce",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F8 — Identical-content commits unnecessarily invalidate quality exceptions.",
+      "evidence": [
+        "Candidate hashes include repository base/head commit identifiers.",
+        "contracts.js:90 and core.js:303 apply waivers only to the exact candidate hash.",
+        "Preparing an identical-content candidate after an empty commit preserves proof applicability but drops its quality exception, contrary to the bookkeeping-equivalence requirement."
+      ],
+      "invariant": "f8 — identical-content commits unnecessarily invalidate quality exceptions.",
+      "affectedPaths": [
+        "base/head",
+        "contracts.js",
+        "core.js"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:8",
+      "underlyingKey": "sha256:0efbd364a0eadea9114d0d2d95cbcf73512ea364f50d375fa65e7b445db9d574",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F9 — Ordinary CLI status hides accepted exceptions.",
+      "evidence": [
+        "cli/src/commands/current.js:22 prints milestone readiness or missing obligations without inspecting outcomes.exception.",
+        "A milestone satisfied through waivers can appear simply ready.",
+        "Desktop current-view.js:63 displays exception reason and consequences, so ordinary consumer presentations differ."
+      ],
+      "invariant": "f9 — ordinary cli status hides accepted exceptions.",
+      "affectedPaths": [
+        "cli/src/commands/current.js",
+        "current-view.js",
+        "outcomes.exception"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9:9",
+      "underlyingKey": "sha256:c55278079cdd8c785e75c43eec997bb141f61ce5cf7c95a4e82f8c348742860f",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-51033368-ff45-4ce0-87fd-8c8a63a46ca9",
+        "reference": {
+          "hash": "sha256:81f4c55d64b23d4d964c0cba1bde1e468b6825f8bef52e5d4e93698f8f7d12a9",
+          "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-result.json",
+            "hash": "sha256:3fac8054a9b80b6dabee1bd7699772b11c38594592b728583b6f25eb1265f467"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge.md",
+            "hash": "sha256:a53fdd2eb7c1a398d4156221e34679ee928d7d9528193c1f01c9ff3c9da31d2a"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-receipt.json",
+            "hash": "sha256:371a2ee59c8db5f11de916433d030f79bea854f5fa76d6c6d02d6e1ff685eb73"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-1/attempts/formal-pr84-1/judge-view-audit.json",
+            "hash": "sha256:e22f6ecd3e6ad0312bafdcb88b52bb451eaf44c9608918f85b12df35c4e4580b"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R11",
+        "R12",
+        "R16",
+        "R17",
+        "R18",
+        "R21"
+      ],
+      "summary": "F10 — A PR can be retargeted after authorization validation and before merge execution.",
+      "evidence": [
+        "actions.js:64 validates the PR target before --required --watch.",
+        "After that wait, lines 71–73 recheck core eligibility and the originally named branch SHA, but not the PR's actual target.",
+        "The merge at line 75 is bound only to PR number and head commit.",
+        "Retargeting during the wait can therefore merge to an unauthorized branch before later observation detects a mismatch."
+      ],
+      "invariant": "f10 — a pr can be retargeted after authorization validation and before merge execution.",
+      "affectedPaths": [
+        "actions.js"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d:0",
+      "underlyingKey": "sha256:00c523b8ebdd2622c7b59b379cc99fbae73c1ce8bb7eb7475a8845b19ec765e6",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d",
+        "reference": {
+          "hash": "sha256:eda5bf9a3e18aa948b91db3a7eb0b62a0f6acaac0b1a9dba67b08c1c8fbcc483",
+          "path": "pr-84/attempts/formal-pr84-2/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-result.json",
+            "hash": "sha256:85f6beeab2104109b5d046504af075f90b30f12832786ac8a39e3b03d38b0bf0"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge.md",
+            "hash": "sha256:1f9903b480f5acdcf131120559b398fee88927be67d35c694565f563d82f124d"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-receipt.json",
+            "hash": "sha256:7f92ed7bb6eb32312be3882168ff6a83c03397a85a1ce0b47c99041582e0545e"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-view-audit.json",
+            "hash": "sha256:5fdd0345ed74717fc03e532248b314fac3163835bf64c067e912c0517fb40758"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R5",
+        "R6",
+        "R8",
+        "R10",
+        "R11",
+        "R13",
+        "R15",
+        "R17",
+        "R18",
+        "R19"
+      ],
+      "summary": "F1: Tracked history bypasses bounded reviewer context and unnecessarily invalidates proof.",
+      "evidence": [
+        "evidence.js:13-21 excludes a short list only beneath the active feature home. It admits that feature's code-review.md, pr-12/judge.json, advisory/round-1.md, and workflow-model.lock.json.",
+        "The same filter admits other features' events.jsonl and entire .gatereeve-current object areas.",
+        "evidence.js:28-34 captures those blobs; execution.js:63-66 exports every captured base/head file into the evaluator view without history selection or claim labeling.",
+        "Read-only calls to the pinned excluded() function confirmed each admitted path.",
+        "Those blobs also participate in contentIdentity, so unrelated report/journal changes invalidate otherwise equivalent proof."
+      ],
+      "invariant": "f1: tracked history bypasses bounded reviewer context and unnecessarily invalidates proof.",
+      "affectedPaths": [
+        "advisory/round-1.md",
+        "base/head",
+        "code-review.md",
+        "events.jsonl",
+        "evidence.js",
+        "execution.js",
+        "pr-12/judge.json",
+        "report/journal",
+        "workflow-model.lock.json"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d:1",
+      "underlyingKey": "sha256:8f3db2eb4c3f4980870b0977df4b326959feafd763b4558cbaa914f7411acf0c",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d",
+        "reference": {
+          "hash": "sha256:eda5bf9a3e18aa948b91db3a7eb0b62a0f6acaac0b1a9dba67b08c1c8fbcc483",
+          "path": "pr-84/attempts/formal-pr84-2/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-result.json",
+            "hash": "sha256:85f6beeab2104109b5d046504af075f90b30f12832786ac8a39e3b03d38b0bf0"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge.md",
+            "hash": "sha256:1f9903b480f5acdcf131120559b398fee88927be67d35c694565f563d82f124d"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-receipt.json",
+            "hash": "sha256:7f92ed7bb6eb32312be3882168ff6a83c03397a85a1ce0b47c99041582e0545e"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-view-audit.json",
+            "hash": "sha256:5fdd0345ed74717fc03e532248b314fac3163835bf64c067e912c0517fb40758"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R5",
+        "R6",
+        "R8",
+        "R10",
+        "R11",
+        "R13",
+        "R15",
+        "R17",
+        "R18",
+        "R19"
+      ],
+      "summary": "F2: Runner reuse ignores inherited environment variables that affect check outcomes.",
+      "evidence": [
+        "environment.js:53-55 hashes only explicitly selected environmentKeys, defaulting to none.",
+        "execution.js:151-152 launches checks without an explicit env, so they inherit process.env.",
+        "A read-only diagnostic ran the same Node command with GATEREEVE_CHECK_MODE=1 and =0. Its exit codes were respectively 0 and 1, while both execution fingerprints were sha256:f7c8ab196a7561f316bc1ee250f2e459bb92d6b37d052caf46cca75cc33a93c9.",
+        "core.js:253-255 accepts that unchanged fingerprint; execution.js:341-355 can consequently reuse the prior PASS."
+      ],
+      "invariant": "f2: runner reuse ignores inherited environment variables that affect check outcomes.",
+      "affectedPaths": [
+        "core.js",
+        "environment.js",
+        "execution.js",
+        "process.env"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d:2",
+      "underlyingKey": "sha256:3778751f891722f7d21c9e223692491db43cf6c59de1bbe7a23e0ae10334aeeb",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d",
+        "reference": {
+          "hash": "sha256:eda5bf9a3e18aa948b91db3a7eb0b62a0f6acaac0b1a9dba67b08c1c8fbcc483",
+          "path": "pr-84/attempts/formal-pr84-2/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-result.json",
+            "hash": "sha256:85f6beeab2104109b5d046504af075f90b30f12832786ac8a39e3b03d38b0bf0"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge.md",
+            "hash": "sha256:1f9903b480f5acdcf131120559b398fee88927be67d35c694565f563d82f124d"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-receipt.json",
+            "hash": "sha256:7f92ed7bb6eb32312be3882168ff6a83c03397a85a1ce0b47c99041582e0545e"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-view-audit.json",
+            "hash": "sha256:5fdd0345ed74717fc03e532248b314fac3163835bf64c067e912c0517fb40758"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R5",
+        "R6",
+        "R8",
+        "R10",
+        "R11",
+        "R13",
+        "R15",
+        "R17",
+        "R18",
+        "R19"
+      ],
+      "summary": "F3: Failed deterministic validator evidence is discarded or orphaned.",
+      "evidence": [
+        "core.js:171-174 rejects a failed spec validator before putJson(proof) or any result/event publication.",
+        "A read-only in-memory harness of validateSpec with unavailable Python observed zero retained proof objects and zero appended events; details existed only in the transient error.",
+        "execution.js:447-449 stores a reconciliation proof and then throws on failure without attaching that reference to the error.",
+        "execution.js:420-430 retains only error.artifacts/providerFailure and error.message, leaving reconciliation diagnostics unlinked and replacing the actual failed check with a generic UNAVAILABLE summary."
+      ],
+      "invariant": "f3: failed deterministic validator evidence is discarded or orphaned.",
+      "affectedPaths": [
+        "core.js",
+        "error.artifacts/providerFailure",
+        "error.message",
+        "execution.js",
+        "result/event"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d:3",
+      "underlyingKey": "sha256:8ae2997b7c439d928870367ed5bca37549c920149e2e8f6a8cbdd8014b13c3d6",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d",
+        "reference": {
+          "hash": "sha256:eda5bf9a3e18aa948b91db3a7eb0b62a0f6acaac0b1a9dba67b08c1c8fbcc483",
+          "path": "pr-84/attempts/formal-pr84-2/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-result.json",
+            "hash": "sha256:85f6beeab2104109b5d046504af075f90b30f12832786ac8a39e3b03d38b0bf0"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge.md",
+            "hash": "sha256:1f9903b480f5acdcf131120559b398fee88927be67d35c694565f563d82f124d"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-receipt.json",
+            "hash": "sha256:7f92ed7bb6eb32312be3882168ff6a83c03397a85a1ce0b47c99041582e0545e"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-view-audit.json",
+            "hash": "sha256:5fdd0345ed74717fc03e532248b314fac3163835bf64c067e912c0517fb40758"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R5",
+        "R6",
+        "R8",
+        "R10",
+        "R11",
+        "R13",
+        "R15",
+        "R17",
+        "R18",
+        "R19"
+      ],
+      "summary": "F4: Combined human decisions have no durable incomplete state before validation or continuation.",
+      "evidence": [
+        "core.js:134-148 constructs an amendment and runs specification validation before recording DECIDED at line 162.",
+        "Failure or interruption during that work leaves the observed instruction, old/new commitment association, and pending continuation unrecorded.",
+        "core.js:146 says 'retained authorization can be retried' although no decision has yet been retained.",
+        "Waiver-plus-acceptance also evaluates continuation at line 156 before recording the underlying instruction.",
+        "The successful-repeat amendment test at current-core.test.js:315-327 does not exercise this interruption window."
+      ],
+      "invariant": "f4: combined human decisions have no durable incomplete state before validation or continuation.",
+      "affectedPaths": [
+        "core.js",
+        "current-core.test.js",
+        "old/new"
+      ]
+    },
+    {
+      "id": "formal:evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d:4",
+      "underlyingKey": "sha256:619f4aa833938df0e9420aaff30e3024d827fcd3cc23825e9fd167312baad314",
+      "source": {
+        "kind": "formal",
+        "eventId": "evt-agent-workflow-519f0e37-fbb2-4490-a39d-a632cd93822d",
+        "reference": {
+          "hash": "sha256:eda5bf9a3e18aa948b91db3a7eb0b62a0f6acaac0b1a9dba67b08c1c8fbcc483",
+          "path": "pr-84/attempts/formal-pr84-2/judge.json"
+        },
+        "pathBasis": "reported",
+        "bindings": [
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-result.json",
+            "hash": "sha256:85f6beeab2104109b5d046504af075f90b30f12832786ac8a39e3b03d38b0bf0"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge.md",
+            "hash": "sha256:1f9903b480f5acdcf131120559b398fee88927be67d35c694565f563d82f124d"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-receipt.json",
+            "hash": "sha256:7f92ed7bb6eb32312be3882168ff6a83c03397a85a1ce0b47c99041582e0545e"
+          },
+          {
+            "path": "pr-84/attempts/formal-pr84-2/judge-view-audit.json",
+            "hash": "sha256:5fdd0345ed74717fc03e532248b314fac3163835bf64c067e912c0517fb40758"
+          }
+        ]
+      },
+      "criterionIds": [
+        "R1",
+        "R5",
+        "R6",
+        "R8",
+        "R10",
+        "R11",
+        "R13",
+        "R15",
+        "R17",
+        "R18",
+        "R19"
+      ],
+      "summary": "F5: A shipped legacy merge API still executes outside the current core.",
+      "evidence": [
+        "pr_lifecycle.py:80-117 retains merge_pull_request, which accepts a nonempty authorization string, performs Git/PR checks, and calls provider.gh('pr', 'merge', ...) without current milestone admission.",
+        "workflow-inventory.json:219 continues to distribute pr_lifecycle.py.",
+        "test_pr_lifecycle.py:159-171 imports and successfully invokes this API without establishing a current run or current gate evidence.",
+        "The feature diff retires only main()'s merge dispatch at pr_lifecycle.py:159; the importable merge implementation remains callable.",
+        "No hosted merge was performed during this review."
+      ],
+      "invariant": "f5: a shipped legacy merge api still executes outside the current core.",
+      "affectedPaths": [
+        "Git/PR",
+        "pr_lifecycle.py",
+        "provider.gh",
+        "test_pr_lifecycle.py",
+        "workflow-inventory.json"
+      ]
+    }
+  ],
+  "execution": {
+    "provider": "codex",
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "high",
+    "executable": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+  },
+  "declaredBy": {
+    "kind": "agent",
+    "label": "implementation ready for user-authorized formal PR review"
+  }
+}
