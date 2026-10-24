@@ -1,0 +1,3 @@
+# Bounded advisory readiness representation
+
+The generated readiness24 record exceeded the installed128KiB compact-record bound as prior findings accumulated. Original request and rejection are retained as .txt. The revised request deduplicates remediation IDs/paths and consolidates summaries, preserving every finding ID and examined path, one concrete bound regression artifact for each prior/current repair group, and the unchanged fast/focused checks. Full prior narratives remain in readiness23 and original request. No size guard, coordinator validation, gate outcome or retained failed finding is weakened.
