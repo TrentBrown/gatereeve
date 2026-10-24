@@ -117,14 +117,14 @@ export class CurrentCore {
     const docs = await requirements(this.store, ['design.md', 'spec.md', 'plan.md', 'issues.md'], { capture });
     return { docs, subject: identity({ contract: CONTRACT, featureId: this.context.featureId, design: docs['design.md'], spec: docs['spec.md'] }) };
   }
-  async pendingDecision(value, operation) {
-    const { state } = await this.state();
+  async pendingDecision(value, operation, expectedState = null) {
+    const state = expectedState ?? (await this.state()).state;
     const prior = state.pendingDecisions.find(item => item.operation.id === operation.id);
     if (prior) {
       requireThat(prior.operation.hash === operation.hash && identity(prior.decision) === identity(value), 'Pending instruction changed; observe a new instruction for changed commitments');
-      return;
+      return state;
     }
-    await this.append(state, 'DECISION_PENDING', { decision: value, operation }, { id: `pending_${operation.id}`, hash: operation.hash });
+    return (await this.append(state, 'DECISION_PENDING', { decision: value, operation }, { id: `pending_${operation.id}`, hash: operation.hash })).state;
   }
   async specProof(documents, operation) {
     const proof = await runTrustedPythonGuard('spec.validation.current', [this.store.home]);
@@ -141,7 +141,7 @@ export class CurrentCore {
   }
   async decide(input, operation) {
     const value = decision(input);
-    const { state } = await this.state();
+    let { state } = await this.state();
     if (value.kind === 'approve-design') {
       requireThat(['DESIGNING', 'SPECIFYING', 'PLANNING'].includes(state.phase), 'Use an amendment to change approved delivery requirements');
       const doc = await this.store.capture('design.md');
@@ -167,7 +167,7 @@ export class CurrentCore {
       // The instruction approves the named design delta; spec proof still needs refresh.
       value.approvedDesign = current.docs['design.md'];
       if (decisionHas(value, 'authorize-implementation')) {
-        await this.pendingDecision(value, operation);
+        state = await this.pendingDecision(value, operation, state);
         const proof = await this.specProof(current.docs, operation);
         for (const ref of Object.values(current.docs)) await this.store.currentBytes(ref);
         value.specValidation = { spec: current.docs['spec.md'], design: current.docs['design.md'], proof };
@@ -177,7 +177,7 @@ export class CurrentCore {
       const candidate = await checkCandidate(this.store, this.context, state.candidate);
       if (decisionHas(value, 'waive')) { value.candidate = state.candidate; value.applicability = contentIdentity(candidate); }
       if (value.kind === 'waive') for (const id of value.gates) requireThat(gate(id).waivable || state.decisions.some(item => item.kind === 'policy-amend' && item.subject === value.subject && item.gates.includes(id)), `${id} requires a policy amendment, not a waiver`);
-      await this.pendingDecision(value, operation);
+      state = await this.pendingDecision(value, operation, state);
       const proposed = { ...state, decisions: [...state.decisions, value] };
       if (decisionHas(value, 'accept')) requireThat((await this.check('acceptance', proposed)).allowed, 'Required review proof is missing');
       if (decisionHas(value, 'authorize-merge')) {
@@ -185,7 +185,7 @@ export class CurrentCore {
         requireThat(value.action && identity(value.action) === identity(await prepareMerge(this, value.action)), 'Merge authorization must bind the prepared action');
       }
     }
-    return this.append((await this.state()).state, 'DECIDED', { ...value, requestId: operation.id }, operation);
+    return this.append(state, 'DECIDED', { ...value, requestId: operation.id }, operation);
   }
   async validateSpec(operation) {
     const { state } = await this.state();
@@ -235,7 +235,10 @@ export class CurrentCore {
       try { result = await this.store.json(ref); if (result.gate !== 'verification') continue; inputs = await this.store.json(result.input); prior = await this.store.json(inputs.candidate); }
       catch { continue; } // Lost historical inputs are reported, never treated as proof.
       if (prior.authorization.subject !== candidate.authorization.subject || !prior.criteria.some(id => candidate.criteria.includes(id))) continue;
-      const checks = (inputs.configuration.checks ?? []).filter(check => candidate.repositories.some(repo => repo.alias === check.repository));
+      // Only executed checks establish durable coverage obligations. Malformed or
+      // unstarted declarations retain diagnostics but cannot poison future coverage.
+      let execution; try { execution = result.runner ? await this.store.json(result.runner) : null; } catch { continue; }
+      const checks = (execution?.receipts ?? []).filter(check => candidate.repositories.some(repo => repo.alias === check.repository));
       const ids = checks.map(({ repository, command, args }) => identity({ repository, command, args }));
       // Completed checks establish coverage obligations, not mere job launches.
       for (const id of ids) required.add(id);
@@ -306,7 +309,7 @@ export class CurrentCore {
       if (state.specValidation) await this.store.get(state.specValidation.proof);
     } catch (error) { missing.push(error.message); }
     try { await this.store.closure(state.decisions); } catch (error) { missing.push(`Retained decision closure: ${error.message}`); }
-    if (name === 'implementation') return { name, allowed: missing.length === 0, missing, subject: current?.subject ?? null };
+    if (name === 'implementation') return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, subject: current?.subject ?? null };
     let candidate;
     try {
       requireThat(state.candidate, 'current candidate');
@@ -344,13 +347,14 @@ export class CurrentCore {
         else try { await this.store.get(integration.receipt); } catch (error) { missing.push(error.message); }
       }
     }
-    return { name, allowed: missing.length === 0, missing, candidate: state.candidate, outcomes };
+    return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, candidate: state.candidate, outcomes };
   }
   async pass(name, operation) {
     requireThat(name !== 'merge', 'Merge must execute through a protected action adapter');
     const check = await this.check(name);
     requireThat(check.allowed, 'Milestone is blocked', check);
     const { state } = await this.state();
+    requireThat(state.runId === check.runId && state.eventCount === check.eventCount, 'Feature state changed during milestone check; retry current state');
     requireThat(name !== 'acceptance' || ['IMPLEMENTING', 'ACCEPTING'].includes(state.phase), 'Acceptance passage is outside its phase');
     requireThat(name !== 'completion' || ['INTEGRATED', 'COMPLETE'].includes(state.phase), 'Completion requires observed integration');
     requireThat(name !== 'implementation' || state.phase === 'IMPLEMENTING', 'Implementation phase is not authorized');
@@ -380,7 +384,8 @@ export class CurrentCore {
     const active = await this.store.active();
     requireThat(active.runId === state.runId, 'Active run changed');
     const event = await this.store.append(state.runId, state.eventCount, type, payload, operation);
-    return { event, state: project(await this.store.events(state.runId)) };
+    // Return the state produced by this event, never a later concurrent mutation.
+    return { event, state: project((await this.store.events(state.runId)).slice(0, event.sequence)) };
   }
   async execute(request) {
     const input = request.input ?? {};

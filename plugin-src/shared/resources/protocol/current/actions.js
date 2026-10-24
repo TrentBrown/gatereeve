@@ -43,10 +43,15 @@ export async function prepareMerge(core, input) {
     ownerRepo: name, url: pr.url, headBranch: head, baseBranch: pr.baseRefName, head: pin.head, base,
     keepClosed: Boolean(repository.keepPullRequestsClosed), method: input.method ?? 'merge' };
 }
-export async function merge(core, input, operation) {
-  const initial = await core.check('merge');
-  requireThat(initial.allowed, 'Merge is blocked', initial);
+async function requireCurrentState(core, expected) {
   const { state } = await core.state();
+  requireThat(state.runId === expected.runId && state.eventCount === expected.eventCount
+    && state.candidate?.hash === expected.candidate?.hash, 'Feature state or authority changed during merge; prepare the current action again');
+}
+export async function merge(core, input, operation) {
+  const { state } = await core.state();
+  const initial = await core.check('merge', state);
+  requireThat(initial.allowed, 'Merge is blocked', initial);
   const runGit = core.runtime.git ?? git;
   const action = await prepareMerge(core, input);
   requireThat(['merge', 'squash', 'rebase'].includes(action.method), 'Unsupported merge method');
@@ -56,6 +61,7 @@ export async function merge(core, input, operation) {
   const repository = core.context.repositories.find(item => item.alias === action.repository);
   const run = core.runtime.gh ?? gh;
   let opened = false;
+  await requireCurrentState(core, state);
   try {
     if (action.keepClosed) {
       opened = true;
@@ -68,7 +74,8 @@ export async function merge(core, input, operation) {
     'PR identity changed inside the merge window');
     if (current.isDraft) await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo]);
     await run(repository.path, ['pr', 'checks', String(action.number), '--repo', action.ownerRepo, '--required', '--watch', '--fail-fast']);
-    requireThat((await core.check('merge')).allowed, 'Gate proof changed while waiting for hosted checks');
+    await requireCurrentState(core, state);
+    requireThat((await core.check('merge', state)).allowed, 'Gate proof changed while waiting for hosted checks');
     const latestBase = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${action.baseBranch}`])).split(/\s/u)[0];
     requireThat(latestBase === action.base, 'PR base changed while waiting for hosted checks; refresh review');
     const refreshed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
@@ -78,13 +85,14 @@ export async function merge(core, input, operation) {
     'PR identity changed while waiting for hosted checks');
     // Match-head binds source at the write. GitHub exposes no target compare-and-swap;
     // reread the target after the potentially long checks wait, immediately before merging.
+    await requireCurrentState(core, state);
     await run(repository.path, ['pr', 'merge', String(action.number), '--repo', action.ownerRepo,
       `--${action.method}`, '--match-head-commit', action.head]);
     const observed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
       '--json', 'number,state,mergeCommit,url']));
     requireThat(observed.number === action.number && observed.state === 'MERGED' && observed.mergeCommit?.oid, 'Hosted merge outcome is not verified');
     await runGit(repository.path, ['fetch', repository.remote ?? 'origin', action.baseBranch]);
-    return observeIntegration(core, { repository: action.repository, branch: action.baseBranch, hosted: observed }, operation);
+    return observeIntegration(core, { repository: action.repository, branch: action.baseBranch, hosted: observed }, operation, state);
   } finally {
     if (opened) {
       const observed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo, '--json', 'state']));
@@ -96,8 +104,9 @@ export async function merge(core, input, operation) {
     }
   }
 }
-export async function observeIntegration(core, input, operation) {
-  const { state } = await core.state();
+export async function observeIntegration(core, input, operation, expectedState = null) {
+  const state = expectedState ?? (await core.state()).state;
+  if (expectedState) await requireCurrentState(core, expectedState);
   const runGit = core.runtime.git ?? git;
   requireThat(state.candidate, 'Integration observation requires a pinned candidate');
   const candidate = await checkCandidate(core.store, core.context, state.candidate, { live: false });

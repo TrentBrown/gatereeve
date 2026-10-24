@@ -99,12 +99,19 @@ SHAs alone do not require reruns. Changed requirements, configuration, dependenc
 content, environment assumptions or consumed proof require refresh. Unknown
 relevance means wider proof. Qualified deltas retain earlier proof and explicitly
 cover changed paths/interactions. Provider retries reconcile recorded jobs;
-uncertain in-flight jobs do not automatically relaunch.
+uncertain in-flight jobs do not automatically relaunch. Repository selections and
+compatible gate sets have canonical identity independent of caller ordering.
+The latest qualified review may reuse its own finding closures when explicit
+claims, selected history, consumed proof and other inputs remain equivalent;
+a later failure cannot be skipped to resurrect an older pass.
 
 ## Enforcement coverage
 
 Protected merge and milestone adapters consult the core and deny unavailable
-checks. SessionStart is guidance in both native packages. Arbitrary shell writes
+checks. Milestone checks bind the checked run and journal revision; a concurrent
+state change requires a fresh check. Protected merge keeps the same candidate
+and authority state through hosted waiting and the write, and its integration
+observation cannot be attributed to a replacement candidate. SessionStart is guidance in both native packages. Arbitrary shell writes
 and GitHub actions outside these adapters are not claimed to be intercepted.
 Both packages configure PreToolUse for recognized direct `gh pr merge` commands.
 The hook consults the core and routes these through the exact protected action;
@@ -124,9 +131,11 @@ bytes that were presented. Reconciliation rechecks the current plan, issue and
 tracker mappings before acceptance.
 
 Runner assumptions hash the entire inherited environment and may declare repository-relative
-`runtimeInputs`. Incidental CLI/Desktop environment variables do not invalidate
-proof; executable and installed dependency bytes remain bound. Completed
-verification establishes required check coverage for the authorized scope; a
+`runtimeInputs`. Changes to any inherited CLI/Desktop environment variable
+conservatively invalidate runner proof; executable and installed dependency bytes
+remain bound. Isolated source-only reviews do not inherit those runner assumptions. Completed
+verification receipts establish required check coverage for the authorized scope;
+unexecuted malformed declarations retain diagnostics without creating check obligations; a
 narrower check cannot hide an unresolved failure. Use a scoped exception when
 needed. Starting an interrupted diagnostic job does not revoke existing proof.
 

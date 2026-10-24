@@ -138,7 +138,7 @@ export async function sourceCandidate(store, context, input, authorization) {
   requireThat(Array.isArray(input.repositories) && input.repositories.length > 0, 'Select at least one repository');
   requireThat(new Set(input.repositories.map(repo => repo.alias)).size === input.repositories.length, 'Duplicate repository selection');
   const repos = [];
-  for (const pin of input.repositories) {
+  for (const pin of [...input.repositories].sort((a, b) => a.alias.localeCompare(b.alias))) {
     const repository = context.repositories.find(item => item.alias === pin.alias);
     requireThat(repository, `Repository is not configured: ${pin.alias}`);
     if (input.scope === 'FEATURE') requireThat(repository.featureBaseSha && pin.base === repository.featureBaseSha, `Feature review must use configured original featureBaseSha: ${pin.alias}`);
@@ -165,7 +165,7 @@ export async function sourceCandidate(store, context, input, authorization) {
 export function contentIdentity(candidate) {
   return identity({ contract: candidate.contract, featureId: candidate.featureId, scope: candidate.scope, criteria: candidate.criteria,
     requirements: candidate.requirements,
-    repositories: candidate.repositories.map(repo => ({ identity: repo.identity, alias: repo.alias, baseFiles: repo.baseFiles, files: repo.files, targetFiles: repo.targetFiles })) });
+    repositories: [...candidate.repositories].sort((a, b) => a.alias.localeCompare(b.alias)).map(repo => ({ identity: repo.identity, alias: repo.alias, baseFiles: repo.baseFiles, files: repo.files, targetFiles: repo.targetFiles })) });
 }
 export async function checkCandidate(store, context, ref, { live = true } = {}) {
   const candidate = await store.json(ref);

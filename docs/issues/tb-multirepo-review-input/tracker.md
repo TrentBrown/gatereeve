@@ -59,3 +59,7 @@ partial command receipts and reopened findings. See
 [third remediation claims](verification/formal-pr84-remediation-3.md).
 Current rubric passage awaits a fresh formal assessment; prior local PASS does
 not supersede these failures.
+
+### Formal PR84 attempt 4
+
+Code/spec and native Judge returned FAIL on `856e2ee`. Original results are retained in `pr-84/attempts/formal-pr84-4/`. The core returned the slice to implementation. Repairs address delta history ordering, malformed check obligations, state races, equivalent review reuse, order-independent selections and contradictory environment guidance. See [fourth remediation claims](verification/formal-pr84-remediation-4.md). Formal rubric rows await reassessment.

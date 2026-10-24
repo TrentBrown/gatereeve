@@ -56,7 +56,7 @@ For delta review, explicitly cover all changed paths and their interactions and 
 Every snapshot has metadata/<alias>.json with the original Git modes and kinds at base, head and target; prior snapshots have the same metadata under prior/<result-hash>/. Files in this read-only view are materialized without executable permissions, so use the retained mode metadata when assessing permission changes. Git symlinks are regular text files containing their target, never followed. Gitlinks are JSON metadata with the pinned commit; contents require a separately selected repository or an explicit coverage limitation. Do not treat metadata as reviewed implementation.
 Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, target/<alias>/ is the independently pinned proposed merge target; assess its interactions with the complete feature change. Prior targets are under prior/<result-hash>/target/<alias>/. Read requirements/ and the explicit evidence paths in the input. Do not access network or modify files.`;
 
-export const reviewContract = ids => identity({ schema, instructions, rules: ids.map(id => ({ id, rule: gate(id).rule ?? null })) });
+export const reviewContract = ids => identity({ schema, instructions, rules: [...ids].sort().map(id => ({ id, rule: gate(id).rule ?? null })) });
 
 async function sourceMetadata(root, candidate) {
   await mkdir(join(root, 'metadata'), { recursive: true });
@@ -173,7 +173,8 @@ async function commands(core, state, candidate, configuration, completion, envir
     }
   } catch (error) {
     // Preflight and postflight failures must retain every check already executed.
-    error.artifacts = [...(error.artifacts ?? []), await core.store.putJson({ receipts }), ...receipts.flatMap(item => [item.stdout, item.stderr])];
+    error.runner = await core.store.putJson({ receipts });
+    error.artifacts = [...(error.artifacts ?? []), error.runner, ...receipts.flatMap(item => [item.stdout, item.stderr])];
     throw error;
   }
   return { receipts, outcome: receipts.some(item => item.outcome === 'UNAVAILABLE') ? 'UNAVAILABLE'
@@ -310,6 +311,11 @@ export async function executeGates(core, input, operation) {
       }
     }
   }
+  for (const claim of input.claims ?? []) for (const finding of findingStates.values()) if (finding.id === claim.findingId) {
+    selectedHistory.set(finding.ref.hash, finding.ref);
+    if (finding.closure) selectedHistory.set(finding.closure.hash, finding.closure);
+    if (finding.reopened) selectedHistory.set(finding.reopened.hash, finding.reopened);
+  }
   // Automatic history has no record-count cutoff. Provider byte capacity is
   // bounded separately; resolved findings must never create a review-round cap.
   const history = [];
@@ -342,8 +348,11 @@ export async function executeGates(core, input, operation) {
     requireThat((await core.currentResult(input.prior, before, state, new Set(), applicabilityMemo)).outcome === 'PASS' && prior.gate === input.gates[0], 'Prior proof cannot support this delta');
     requireThat(before.repositories.every(repo => candidate.repositories.some(selected => identity(selected.identity) === identity(repo.identity))), 'Delta prior includes unselected repositories');
     changes = changedPaths(before, candidate);
-    history.push({ reference: input.prior, reviewerResult: prior });
+    if (!history.some(item => item.reference.hash === input.prior.hash)) history.push({ reference: input.prior, reviewerResult: prior });
   }
+  // Delta support is historical evidence too: its closure cannot supersede a later reopening.
+  const historyPosition = item => state.results.findIndex(ref => ref.hash === (item.reviewerResult.originalResultHash ?? item.reference.hash));
+  history.sort((a, b) => historyPosition(a) - historyPosition(b));
   const support = [];
   if (input.gates.includes('triage')) support.push(await core.store.capture('scratchpad.md'));
   if (input.gates.includes('reconcile')) {
@@ -354,7 +363,7 @@ export async function executeGates(core, input, operation) {
     environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment),
     pattern: input.gates.includes('pattern') ? await patternInputs(core.store, core.context, candidate) : null,
     integrations: definitions[0].at === 'completion' ? state.integrations : null,
-    reviewContract: reviewContract(input.gates), claims: input.claims ?? [],
+    reviewContract: reviewContract(input.gates), claims: input.claims ?? [], requestedHistory: [...(input.history ?? [])].sort((a, b) => a.hash.localeCompare(b.hash)),
     history: history.map(item => item.reference), historyGaps: missingHistory, reconsiderClosures: reconsiderClosures.filter(item => history.some(entry => entry.reviewerResult.findings?.some(finding => finding.id === item.id && entry.reviewerResult.gate === item.gate))), prior: input.prior ?? null,
     validUntil: configuration.validUntil ?? null };
   if (value.validUntil) requireThat(Number.isFinite(Date.parse(value.validUntil)) && Date.parse(value.validUntil) > Date.now(), 'Invalid external validity window');
@@ -368,12 +377,14 @@ export async function executeGates(core, input, operation) {
       let result, previous;
       try { result = await core.store.json(ref); previous = await core.store.json(result.input); } catch { continue; }
       if (!input.gates.includes(result.gate) || examined.has(result.gate)) continue;
+      // Only the latest verdict may be reused. Its own qualified closures change
+      // derived history, but are not new review inputs. A later result always wins.
+      examined.add(result.gate);
       if (identity(previous.configuration) !== identity(configuration) || identity(previous.consumed) !== identity(consumed)
         || previous.reviewContract !== value.reviewContract || identity(previous.claims) !== identity(value.claims)
-        || identity(previous.history) !== identity(value.history) || identity(previous.historyGaps ?? []) !== identity(missingHistory) || identity(previous.reconsiderClosures ?? []) !== identity(reconsiderClosures)) continue;
+        || identity(previous.requestedHistory ?? []) !== identity(value.requestedHistory) || identity(previous.historyGaps ?? []) !== identity(missingHistory)) continue;
       try {
         const applicable = await core.currentResult(ref, candidate, state, new Set(), applicabilityMemo);
-        examined.add(result.gate);
         if (applicable.outcome === 'PASS') reusable.set(result.gate, ref);
       } catch { /* Changed or unavailable proof needs a fresh execution. */ }
     }
@@ -395,7 +406,7 @@ export async function executeGates(core, input, operation) {
   if (!await core.store.claimJob(jobId)) return { status: 'UNAVAILABLE', jobId, reason: 'Execution is already claimed. Reconcile its retained outcome before retrying.' };
   const startedAt = new Date().toISOString();
   const artifacts = [];
-  let evaluator = null, verdicts = [], metrics = { tokens: null, cost: null };
+  let evaluator = null, runner = null, verdicts = [], metrics = { tokens: null, cost: null };
   try {
     if (role === 'independent' || role === 'assessment') {
       const packet = { contract: CONTRACT, rules: input.gates.map(id => ({ id, rule: gate(id).rule })), pattern: value.pattern, gates: input.gates, criteria: candidate.criteria, scope: candidate.scope,
@@ -416,7 +427,8 @@ export async function executeGates(core, input, operation) {
       });
     } else if (role === 'runner') {
       const ran = await commands(core, state, candidate, configuration, definitions[0].at === 'completion', runnerEnvironment);
-      artifacts.push(await core.store.putJson(ran));
+      runner = await core.store.putJson(ran);
+      artifacts.push(runner);
       for (const receipt of ran.receipts) artifacts.push(receipt.stdout, receipt.stderr);
       requireThat(identity(value.environment) === identity(await executionEnvironment(core.context, candidate, configuration, true)), 'Execution environment changed during checks');
       verdicts = [{ gate: input.gates[0], outcome: ran.outcome, summary: 'Actual runner receipts retained', findings: [], dispositions: [] }];
@@ -441,6 +453,7 @@ export async function executeGates(core, input, operation) {
       verdicts = [await coreEvidence(core, state, candidate, input.gates[0], consumed)];
     }
   } catch (error) {
+    runner = error.runner ?? runner;
     artifacts.push(...(error.artifacts ?? []));
     if (error.providerFailure) artifacts.push(await core.store.putJson(error.providerFailure));
     verdicts = input.gates.map(id => ({ gate: id, outcome: error.outcome ?? 'UNAVAILABLE', summary: error.message, findings: [], dispositions: [] }));
@@ -449,7 +462,7 @@ export async function executeGates(core, input, operation) {
     input: prepared.hash, jobId, gates: input.gates, role, evaluator, startedAt, completedAt: new Date().toISOString(), metrics });
   const refs = [];
   for (const verdict of verdicts) refs.push(await core.store.putJson({ contract: CONTRACT, kind: 'result', featureId: state.featureId,
-    runId: state.runId, ...verdict, input: prepared, receipt, artifacts,
+    runId: state.runId, ...verdict, input: prepared, receipt, artifacts, ...(runner ? { runner } : {}),
     mode: input.prior ? 'delta' : 'full', prior: input.prior ?? null, priorCandidate }));
   await core.store.saveJob(jobId, { runId: state.runId, operation, results: refs });
   const current = (await core.state()).state;

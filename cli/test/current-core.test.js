@@ -382,7 +382,7 @@ test('pattern rules are retained and policy changes invalidate earlier assessmen
   await assert.rejects(f.core.currentResult(result.event.payload.results[0], current, state), /Pattern policy/);
 });
 
-for (const drift of [false, true, 'target-after-checks', 'advanced-target']) test(`protected merge ${drift === 'advanced-target' ? 'merges a reviewed cumulative feature onto its separately assessed advanced target' : drift ? `recloses a drifted PR (${drift}) without merging` : 'revalidates the exact action and observes integration'}`, async t => {
+for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'candidate-before-write', 'candidate-after-write']) test(`protected merge ${drift === 'candidate-after-write' ? 'does not attribute an observed merge to a replacement candidate' : drift === 'advanced-target' ? 'merges a reviewed cumulative feature onto its separately assessed advanced target' : drift ? `recloses a drifted PR (${drift}) without merging` : 'revalidates the exact action and observes integration'}`, async t => {
   const f = await fixture(t);
   const bare = join(f.root, 'host.git');
   await git(f.root, ['init', '--bare', bare]);
@@ -406,6 +406,10 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target']) tes
   const writes = [];
   f.core.runtime.gh = async (root, args) => {
     const action = args[1];
+    if (action === 'view' && drift === 'candidate-before-write' && writes.includes('checks') && !writes.includes('replaced')) {
+      writes.push('replaced');
+      await f.request('candidate.prepare', { repositories: [{ alias: 'app', base, head, target }], scope: 'SLICE', criteria: ['R1'] }, 'replacement-before-merge');
+    }
     if (action === 'view') return JSON.stringify({ number: 12, url: 'https://github.com/fixture/project/pull/12', state,
       headRefName: 'topic', baseRefName: drift === 'target-after-checks' && writes.includes('checks') ? 'production' : 'main', headRefOid: drift === true && state === 'OPEN' ? '0'.repeat(40) : head,
       baseRefOid: target, isDraft: true, mergeCommit: state === 'MERGED' ? { oid: head } : null });
@@ -415,6 +419,7 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target']) tes
     if (action === 'merge') {
       assert.equal(args[args.indexOf('--match-head-commit') + 1], head);
       await git(root, ['push', 'origin', 'HEAD:refs/heads/main']); state = 'MERGED';
+      if (drift === 'candidate-after-write') await f.request('candidate.prepare', { repositories: [{ alias: 'app', base, head, target }], scope: 'SLICE', criteria: ['R1'] }, 'replacement-after-merge');
     }
     return '';
   };
@@ -426,7 +431,12 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target']) tes
   const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
   const subject = (await f.request('status')).candidate.hash;
   await f.request('human.decide', { kind: 'authorize-merge', subject, action, authority: { ...human, instruction: 'Merge this exact reviewed PR to main.' }, reason: 'Exact action approved', consequences: 'Integrate reviewed change' }, 'merge-authority');
-  if (drift && drift !== 'advanced-target') {
+  if (['candidate-before-write', 'candidate-after-write'].includes(drift)) {
+    await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), /state or authority changed/);
+    assert.equal(writes.includes('merge'), drift === 'candidate-after-write');
+    assert.equal(state, drift === 'candidate-after-write' ? 'MERGED' : 'CLOSED');
+    assert.deepEqual((await f.request('status')).integrations, {});
+  } else if (drift && drift !== 'advanced-target') {
     await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), /identity changed/);
     assert.equal(state, 'CLOSED'); assert.deepEqual(writes, drift === true ? ['reopen', 'close'] : ['reopen', 'ready', 'checks', 'close']);
   } else {
@@ -1172,4 +1182,121 @@ for (const changed of [false, true]) test(`reopened blocking findings remain req
   fakeEvaluator(f, { dispositions: [{ id: 'finding-1', status: 'resolved', evidence: 'Fresh independent inspection confirms correction after reopening' }] });
   const corrected = await f.request('gate.execute', input, 'reclosed-defect');
   assert.equal((await f.core.store.json(corrected.event.payload.results[0])).outcome, 'PASS');
+});
+
+
+for (const malformed of [undefined, '--version', [4]]) test(`corrected runner configuration recovers after invalid arguments ${JSON.stringify(malformed)}`, async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const check = { repository: 'app', command: process.execPath, purpose: 'Run Node version' };
+  if (malformed !== undefined) check.args = malformed;
+  const failed = await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [check] } }, 'malformed-check');
+  assert.equal((await f.core.store.json(failed.event.payload.results[0])).outcome, 'UNAVAILABLE');
+  const corrected = await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [{ ...check, args: ['--version'] }] } }, 'corrected-check');
+  assert.equal((await f.core.store.json(corrected.event.payload.results[0])).outcome, 'PASS');
+  const acceptance = await f.request('milestone.check', { name: 'acceptance' });
+  assert.equal(acceptance.outcomes.find(item => item.id === 'verification').satisfied, true);
+});
+
+for (const changed of [false, true]) test(`delta prior cannot reorder an older closure after a reopened blocking finding with changed source ${changed}`, async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const input = { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } };
+  fakeEvaluator(f, { blocking: true }); const initial = await f.request('gate.execute', input, 'delta-initial-finding');
+  fakeEvaluator(f, { dispositions: [{ id: 'finding-1', status: 'resolved', evidence: 'Original independent closure' }] });
+  const closure = await f.request('gate.execute', input, 'delta-old-closure');
+  fakeEvaluator(f, { outcome: 'FAIL', dispositions: [{ id: 'finding-1', status: 'present', evidence: 'Later inspection reopens the finding' }] });
+  const reopened = await f.request('gate.execute', { ...input, configuration: { ...input.configuration, reviewRevision: 2 }, history: initial.event.payload.results }, 'delta-reopened');
+  assert.equal((await f.core.store.json(reopened.event.payload.results[0])).outcome, 'FAIL');
+  if (changed) {
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 43;\n'); await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'delta after reopened finding']);
+  const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head }], scope: 'FEATURE', criteria: ['R1'] }, 'delta-reopened-candidate');
+  }
+  const delta = { ...input, prior: closure.event.payload.results[0] };
+  for (const status of [null, 'unaffected', 'present']) {
+    fakeEvaluator(f, { dispositions: status ? [{ id: 'finding-1', status, evidence: 'No supported new closure' }] : [] });
+    const reviewed = await f.request('gate.execute', delta, `delta-unsupported-${status}`);
+    const result = await f.core.store.json(reviewed.event.payload.results[0]);
+    assert.equal(result.outcome, 'UNAVAILABLE');
+    assert.equal((await f.request('milestone.check', { name: 'acceptance' })).outcomes.find(item => item.id === 'code').satisfied, false);
+  }
+  fakeEvaluator(f, { dispositions: [{ id: 'finding-1', status: 'resolved', evidence: 'Current delta and interactions independently verified corrected' }] });
+  const fixed = await f.request('gate.execute', delta, 'delta-supported-closure');
+  assert.equal((await f.core.store.json(fixed.event.payload.results[0])).outcome, 'PASS');
+});
+
+
+test('milestone passage rejects candidate replacement during an otherwise passing check', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); await reviewAll(f);
+  const check = f.core.check.bind(f.core);
+  f.core.check = async (...args) => {
+    const result = await check(...args);
+    if (args[0] === 'acceptance') {
+      assert.equal(result.allowed, true);
+      await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head: f.head }], scope: 'SLICE', criteria: ['R1'] }, 'concurrent-candidate');
+    }
+    return result;
+  };
+  await assert.rejects(f.request('milestone.pass', { name: 'acceptance' }, 'raced-passage'), /state changed/);
+  const state = (await f.core.state()).state;
+  assert.equal(state.phase, 'IMPLEMENTING'); assert.equal(state.ready, false);
+});
+
+for (const claims of [[], [{ findingId: 'finding-1', claim: 'Corrected the retained defect' }]]) test(`qualified closure reuses equivalent review with claims ${claims.length}`, async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const input = { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } };
+  fakeEvaluator(f, { blocking: true }); await f.request('gate.execute', input, 'reuse-open-finding');
+  const count = fakeEvaluator(f, { dispositions: [{ id: 'finding-1', status: 'resolved', evidence: 'Verified current correction' }] });
+  const closed = await f.request('gate.execute', { ...input, claims }, 'reuse-close-finding');
+  assert.equal((await f.core.store.json(closed.event.payload.results[0])).outcome, 'PASS');
+  const repeated = await f.request('gate.execute', { ...input, claims }, 'reuse-closed-finding');
+  assert.equal(repeated.reused, true); assert.equal(count(), 1);
+  fakeEvaluator(f, { blocking: true });
+  await f.request('gate.execute', { ...input, configuration: { ...input.configuration, reviewRevision: 2 } }, 'newer-failure');
+  const newCount = fakeEvaluator(f);
+  const retry = await f.request('gate.execute', { ...input, claims }, 'no-old-pass-resurrection');
+  assert.notEqual(retry.reused, true); assert.equal(newCount(), 1);
+  assert.equal((await f.core.store.json(retry.event.payload.results[0])).outcome, 'UNAVAILABLE');
+});
+
+test('repository order and grouped gate order preserve equivalent review identity', async t => {
+  const f = await fixture(t); const other = join(f.root, 'service'); await mkdir(other);
+  await git(other, ['init', '-b', 'topic']); await git(other, ['config', 'user.email', 'fixture@example.test']); await git(other, ['config', 'user.name', 'Fixture']); await git(other, ['config', 'commit.gpgsign', 'false']);
+  await writeFile(join(other, 'service.js'), 'export const service = true;'); await git(other, ['add', '.']); await git(other, ['commit', '-m', 'service']);
+  const head = (await git(other, ['rev-parse', 'HEAD'])).trim(); f.context.repositories.push({ alias: 'service', path: other, featureBaseSha: head });
+  await authorize(f);
+  const repositories = [{ alias: 'app', base: f.head, head: f.head }, { alias: 'service', base: head, head }];
+  await f.request('candidate.prepare', { repositories, scope: 'FEATURE', criteria: ['R1'] }, 'ordered-candidate');
+  const verified = await runVerification(f); const count = fakeEvaluator(f);
+  const input = { gates: ['code', 'spec'], consumed: verified.event.payload.results, configuration: { provider: 'codex', model: 'fixture' } };
+  const initial = await f.request('gate.execute', input, 'ordered-review');
+  const before = (await f.core.state()).state.candidate;
+  await f.request('candidate.prepare', { repositories: [...repositories].reverse(), scope: 'FEATURE', criteria: ['R1'] }, 'reversed-candidate');
+  assert.equal((await f.core.state()).state.candidate.hash, before.hash);
+  const reversed = await f.request('gate.execute', { ...input, gates: ['spec', 'code'] }, 'reversed-review');
+  assert.equal(reversed.reused, true); assert.equal(count(), 1);
+  assert.deepEqual(reversed.results.map(ref => ref.hash), [...initial.event.payload.results].reverse().map(ref => ref.hash));
+});
+
+
+for (const race of ['after-pending', 'after-validation']) test(`decision passage cannot adopt state changes ${race}`, async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const current = await f.core.commitments();
+  await writeFile(join(f.home, 'spec.md'), (await readFile(join(f.home, 'spec.md'), 'utf8'))+'\nApproved clarification.\n');
+  const next = await f.core.commitments(); const original = f.core.specProof.bind(f.core);
+  f.core.specProof = async (...args) => {
+    const proof = await original(...args);
+    if (race === 'after-validation') await f.request('run.pause', { authority: human }, 'pause-during-instruction');
+    return proof;
+  };
+  const append = f.core.store.append.bind(f.core.store);
+  f.core.store.append = async (...args) => {
+    const event = await append(...args);
+    if (race === 'after-pending' && args[2] === 'DECISION_PENDING') await f.request('run.pause', { authority: human }, 'pause-before-pending-projection');
+    return event;
+  };
+  await assert.rejects(f.request('human.decide', { kind: 'amend', actions: ['authorize-implementation'],
+    previousSubject: current.subject, subject: next.subject, authority: human, reason: 'Approve clarification', consequences: 'Refresh proof' }, 'raced-instruction'), /concurrent|changed|sequence/i);
+  const state = (await f.core.state()).state;
+  assert.equal(state.paused, true); assert.equal(state.pendingDecisions.length, 1);
+  assert.ok(!state.decisions.some(item => item.subject === next.subject));
 });
