@@ -580,9 +580,11 @@ async function coreEvidence(core, state, candidate, id, consumed) {
       for (const ref of [...state.results].reverse()) {
         try { const report = await core.currentResult(ref, candidate, state, new Set(), applicabilityMemo); if (['finalization', 'release'].includes(report.gate) && !completion.some(item => item.gate === report.gate)) completion.push({ gate: report.gate, reference: ref }); } catch { /* Nonqualifying history remains visible. */ }
       }
-      await core.store.closure([state.candidate, state.decisions, state.integrations, state.validationFailures, inventory.map(item => item.reference).filter(Boolean), completion.map(item => item.reference)]);
+      const retained = { candidate: state.candidate, decisions: state.decisions,
+        integrations: state.integrations, validationFailures: state.validationFailures };
+      await core.store.closure([retained, inventory.map(item => item.reference).filter(Boolean), completion.map(item => item.reference)]);
       await core.store.events(state.runId);
-      return { gate: id, outcome: 'PASS', summary: 'Current required evidence retained; historical losses remain visible; Git tracking optional; backup not asserted', findings: [], dispositions: [], inventory, completion, historyGaps: await core.historyGaps(state) };
+      return { gate: id, outcome: 'PASS', summary: 'Current required evidence retained; historical losses remain visible; Git tracking optional; backup not asserted', findings: [], dispositions: [], inventory, completion, retained, historyGaps: await core.historyGaps(state) };
     }
     default: throw new Error(`No deterministic evaluator for ${id}`);
   }

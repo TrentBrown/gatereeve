@@ -1,0 +1,95 @@
+✖ public resume preserves unsupported matching activation records with renamed-field (531.957166ms)
+✖ root session history is absent from current, base, target and prior grouped reviewer views (2386.916334ms)
+✖ root session history with Git mode 100755 cannot hide application source (698.092417ms)
+✖ root session history with Git mode 120000 cannot hide application source (709.167375ms)
+✖ root session history with Git mode 160000 cannot hide application source (719.20575ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5095.769125
+
+✖ failing tests:
+
+test at cli/test/current-core.test.js:1939:154
+✖ public resume preserves unsupported matching activation records with renamed-field (531.957166ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Unsupported|Conflicting/. Input:
+  
+  'ContractError: Invalid active run'
+  
+      at async TestContext.<anonymous> (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/current-core.test.js:1947:3)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ContractError: Invalid active run
+        at requireThat (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/contracts.js:11:25)
+        at identifier (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/contracts.js:22:3)
+        at CurrentStore.activationHead (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/store.js:165:7)
+        at async CurrentStore.active (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/store.js:185:18)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async TestContext.<anonymous> (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/current-core.test.js:1947:3)
+        at async Test.run (node:internal/test_runner/test:1208:7)
+        at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3),
+    expected: /Unsupported|Conflicting/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at cli/test/current-core.test.js:2030:1
+✖ root session history is absent from current, base, target and prior grouped reviewer views (2386.916334ms)
+  Error [ContractError]: Prior proof cannot support this delta
+      at requireThat (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/contracts.js:11:25)
+      at executeGates (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/execution.js:380:5)
+      at async TestContext.<anonymous> (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/current-core.test.js:2054:18)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    code: 'CONTRACT_INVALID',
+    details: null
+  }
+
+test at cli/test/current-core.test.js:2061:52
+✖ root session history with Git mode 100755 cannot hide application source (698.092417ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/current-core.test.js:2071:3)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /Lifecycle records/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at cli/test/current-core.test.js:2061:52
+✖ root session history with Git mode 120000 cannot hide application source (709.167375ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/current-core.test.js:2071:3)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /Lifecycle records/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at cli/test/current-core.test.js:2061:52
+✖ root session history with Git mode 160000 cannot hide application source (719.20575ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/current-core.test.js:2071:3)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /Lifecycle records/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

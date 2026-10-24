@@ -111,7 +111,7 @@ contradictory output is UNAVAILABLE, never PASS.
 Frozen requirements, source, inputs, results and receipts live beneath canonical
 `docs/issues/<featureId>/.gatereeve-current/`. Git is optional for these records.
 Exact source remains independently pinned and clean. Retain all referenced bytes,
-including failed specification-validation documents and diagnostics. Lost failed-validation proof stays visible after later success and blocks retention until restored. Missing/corrupt references block proof. Do not prune or claim
+including failed specification-validation documents and diagnostics. Lost failed-validation proof stays visible after later success and blocks retention until restored. Retention binds that validation inventory and its referenced bytes: loss or corruption invalidates an earlier PASS, and a later failed validation requires a fresh deterministic retention check even after the approved specification is restored. Missing/corrupt references block proof. Do not prune or claim
 backup. Deleting the workspace requires a scoped retain/archive/discard decision;
 claim archival only after verifying a copy outside the deletion scope.
 

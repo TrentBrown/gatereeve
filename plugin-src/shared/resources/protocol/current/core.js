@@ -413,6 +413,14 @@ export class CurrentCore {
         'Passing runner proof requires every declared check and actual successful receipts');
     }
     if (result.gate === 'verification' && result.outcome === 'PASS' && requireCoverage) await this.verificationCoverage(candidate, state, memo);
+    if (result.gate === 'retention') {
+      // Retention is live integrity proof, not a permanent fact about an earlier
+      // successful read. Later failed validations add obligations even when the
+      // approved specification is subsequently restored byte-for-byte.
+      requireThat(identity(result.retained?.validationFailures ?? null) === identity(state.validationFailures),
+        'Failed specification evidence inventory changed; refresh retention proof');
+      await this.store.closure([state.candidate, state.decisions, state.integrations, state.validationFailures]);
+    }
     if (result.gate === 'packet') requireThat(identity(result.inventory) === identity(await this.inventory(state, candidate, memo)), 'Review packet inventory changed');
     return result;
   }

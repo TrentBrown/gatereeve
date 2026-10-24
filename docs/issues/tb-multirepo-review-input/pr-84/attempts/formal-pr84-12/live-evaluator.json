@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "result": {
+      "artifacts": [
+        {
+          "bytes": 1301,
+          "format": "json",
+          "hash": "sha256:973f3c03f0cef860a09ec4ee859f05fa89e0a08167a296ac654d0f95c54f7a78"
+        },
+        {
+          "bytes": 652,
+          "format": "json",
+          "hash": "sha256:62bc95065e846302a82150a4f1300d6faef2a86f4e45387e7327e4f8182f6956"
+        }
+      ],
+      "contract": "gatereeve/current/3",
+      "coverage": {
+        "complete": true,
+        "interactions": [
+          "Compared the complete base, head and target source: app/app.js:1 exports const answer = 42 in each snapshot.",
+          "Verified retained metadata shows unchanged regular-file kind and mode 100644. The source has no imports or cross-repository interactions."
+        ],
+        "limitations": [],
+        "paths": [
+          "app/app.js"
+        ]
+      },
+      "criteria": [],
+      "dispositions": [],
+      "featureId": "feature",
+      "findings": [],
+      "gate": "code",
+      "historyAssessment": null,
+      "input": {
+        "bytes": 598,
+        "format": "json",
+        "hash": "sha256:013165000785176963aa008ea770c919adfc9d349e0f49755f0eacadb65fcb79"
+      },
+      "kind": "result",
+      "mode": "full",
+      "outcome": "PASS",
+      "prior": null,
+      "priorCandidate": null,
+      "receipt": {
+        "bytes": 693,
+        "format": "json",
+        "hash": "sha256:ba03092159241ea6a966c590810ca87d8eee8574507263a34bbd044b4fc5b562"
+      },
+      "runId": "run-one",
+      "summary": "No supported defects found. Base, head and target are identical; the sole source file exports answer as 42, consistent with AC1/R1. Assessment is static; no test evidence was supplied."
+    },
+    "receipt": {
+      "completedAt": "2026-10-24T05:25:28.121Z",
+      "contract": "gatereeve/current/3",
+      "evaluator": {
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "contextId": "01a16c5e-a740-7853-835b-b12d3d34b41c",
+        "freshContext": true,
+        "inheritedTurns": 0,
+        "model": "gpt-6.1-sol",
+        "provider": "codex",
+        "reasoningEffort": "high"
+      },
+      "gates": [
+        "code"
+      ],
+      "input": "sha256:013165000785176963aa008ea770c919adfc9d349e0f49755f0eacadb65fcb79",
+      "jobId": "d01f21c80fbc71aefdf99cfdf07d24d075cc67fe72548332a4fb1f5ea7d97cf8",
+      "kind": "execution",
+      "metrics": {
+        "cost": null,
+        "tokens": {
+          "cacheCreation": null,
+          "cachedInput": 70656,
+          "input": 89883,
+          "output": 508
+        }
+      },
+      "role": "independent",
+      "runId": "run-one",
+      "startedAt": "2026-10-24T05:25:04.768Z"
+    },
+    "providerReceipts": [
+      {
+        "attemptId": "sha256:013165000785176963aa008ea770c919adfc9d349e0f49755f0eacadb65fcb79",
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "completedAt": "2026-10-24T05:25:27.995Z",
+        "digests": {
+          "input": "sha256:34bb4b8bcec799a120ac9db63870101ed7d09782de9d9615a4a16440b857356b",
+          "instructions": "sha256:1d434ff3d787394cb37b9fbb5362aa3978730a73d598972af42a5e82a5c240bf",
+          "output": "sha256:585b1978ba6b2eea20c4fb24c55b1ab68978ca7f26fb05fb4ad52a208f3628cf",
+          "snapshot": "sha256:6f13b6be0d35f6ee6915aa0225279a2a317a56f981ba39e5761c917f1ef064a0"
+        },
+        "isolation": {
+          "freshContext": true,
+          "inheritedTurns": 0,
+          "method": "codex-ephemeral-exec"
+        },
+        "kind": "gatereeve-agent-workflow-receipt",
+        "metrics": {
+          "cost": null,
+          "tokens": {
+            "cacheCreation": null,
+            "cachedInput": 70656,
+            "input": 89883,
+            "output": 508
+          }
+        },
+        "module": {
+          "digest": "sha256:32b8b34fd4596ec54196f45ae537e29e81982f56a6079d8ecd4d08c57cdb1abd",
+          "id": "gatereeve/current-review",
+          "version": "2.0.0"
+        },
+        "policy": {
+          "networkAccess": "deny",
+          "repositoryAccess": "read-only",
+          "scratch": "isolated"
+        },
+        "protocolVersion": "2.1.0",
+        "provider": {
+          "adapterVersion": "1.0.0",
+          "contextId": "01a16c5e-a740-7853-835b-b12d3d34b41c",
+          "id": "codex",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "high"
+        },
+        "runId": "run-one",
+        "schemaVersion": 1,
+        "stage": "review",
+        "startedAt": "2026-10-24T05:25:04.800Z",
+        "status": "completed"
+      },
+      {
+        "verdicts": [
+          {
+            "coverage": {
+              "complete": true,
+              "interactions": [
+                "Compared the complete base, head and target source: app/app.js:1 exports const answer = 42 in each snapshot.",
+                "Verified retained metadata shows unchanged regular-file kind and mode 100644. The source has no imports or cross-repository interactions."
+              ],
+              "limitations": [],
+              "paths": [
+                "app/app.js"
+              ]
+            },
+            "criteria": [],
+            "dispositions": [],
+            "findings": [],
+            "gate": "code",
+            "historyAssessment": null,
+            "outcome": "PASS",
+            "summary": "No supported defects found. Base, head and target are identical; the sole source file exports answer as 42, consistent with AC1/R1. Assessment is static; no test evidence was supplied."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -290,7 +290,14 @@ test('all gates, actual external integration and completion work without evidenc
   await git(f.repo, ['remote', 'add', 'origin', bare]);
   await git(f.repo, ['push', 'origin', 'HEAD:refs/heads/main']);
   Object.assign(f.context.repositories[0], { integrationBranch: 'main', remote: 'origin' });
-  await authorize(f); await candidate(f); await reviewAll(f);
+  const initialDesign = await f.core.store.capture('design.md');
+  await f.request('human.decide', { kind: 'approve-design', subject: initialDesign.hash, authority: human, reason: 'Approved design', consequences: 'Proceed to spec' }, 'design-one');
+  const validSpec = await readFile(join(f.home, 'spec.md'));
+  await writeFile(join(f.home, 'spec.md'), '# Failed input retained for completion\n');
+  await assert.rejects(f.request('spec.validate', {}, 'failed-before-retention'), /validation failed/);
+  await writeFile(join(f.home, 'spec.md'), validSpec);
+  await authorize(f);
+  await candidate(f); await reviewAll(f);
   assert.equal((await f.request('milestone.check', { name: 'merge' })).allowed, false);
   await f.request('integration.observe', { repository: 'app' }, 'observe');
   await f.request('gate.execute', { gates: ['finalization'], configuration: { checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Fixture post-integration verification' }] } }, 'finalize');
@@ -306,6 +313,38 @@ test('all gates, actual external integration and completion work without evidenc
   for (const entry of retainedProof.completion) assert.equal((await f.core.store.json(entry.reference)).gate, entry.gate);
   const check = await f.request('milestone.check', { name: 'completion' });
   assert.equal(check.allowed, true, check.missing.join('; '));
+  const failure = (await f.core.state()).state.validationFailures[0];
+  const failedRefs = [failure.proof, failure.documents['spec.md']];
+  for (const ref of failedRefs) for (const corrupt of [false, true]) {
+    const path = join(f.home, '.gatereeve-current/objects', ref.hash.slice(7));
+    const bytes = await f.core.store.get(ref);
+    if (corrupt) await writeFile(path, 'corrupt failed-validation evidence'); else await rm(path);
+    const blocked = await f.request('milestone.check', { name: 'completion' });
+    assert.equal(blocked.allowed, false, 'Existing retention PASS cannot survive lost failed validation bytes');
+    assert.equal(blocked.outcomes.find(item => item.id === 'retention').satisfied, false);
+    await assert.rejects(f.request('milestone.pass', { name: 'completion' }), /blocked/);
+    assert.equal((await f.core.store.json(retained.event.payload.results[0])).outcome, 'PASS', 'Historical verdict stays unchanged');
+    await writeFile(path, bytes);
+    assert.equal((await f.request('milestone.check', { name: 'completion' })).allowed, true, 'Restoration recovers the original bound proof');
+  }
+  // Later failed validations must also become part of the required closure.
+  const priorCommitments = await f.core.commitments();
+  await writeFile(join(f.home, 'spec.md'), '# Later failed input after retention\n');
+  const nextCommitments = await f.core.commitments();
+  await assert.rejects(f.request('human.decide', { kind: 'amend', actions: ['authorize-implementation'],
+    subject: nextCommitments.subject, previousSubject: priorCommitments.subject, authority: human,
+    reason: 'Proposed new scope', consequences: 'Requires valid specification' }, 'failed-after-retention'), /validation failed/);
+  await writeFile(join(f.home, 'spec.md'), validSpec);
+  await f.request('spec.validate', {}, 'corrected-after-retention');
+  const later = (await f.core.state()).state.validationFailures.at(-1);
+  const laterPath = join(f.home, '.gatereeve-current/objects', later.proof.hash.slice(7));
+  const laterBytes = await f.core.store.get(later.proof); await rm(laterPath);
+  assert.equal((await f.request('milestone.check', { name: 'completion' })).outcomes.find(item => item.id === 'retention').satisfied, false);
+  await writeFile(laterPath, laterBytes);
+  // The changed validation inventory needs a fresh deterministic retention proof.
+  assert.equal((await f.request('milestone.check', { name: 'completion' })).outcomes.find(item => item.id === 'retention').satisfied, false);
+  await f.request('gate.execute', { gates: ['retention'] }, 'retain-later-validation');
+  assert.equal((await f.request('milestone.check', { name: 'completion' })).allowed, true);
   await f.request('milestone.pass', { name: 'completion' }, 'complete');
   assert.equal((await f.request('status')).phase, 'COMPLETE');
   await assert.rejects(f.request('milestone.pass', { name: 'acceptance' }), /blocked|phase/);

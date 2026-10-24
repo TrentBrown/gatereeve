@@ -96,3 +96,8 @@ Independent code/spec passed; the separate native OpenAI Judge returned FAIL (12
 ### Formal PR84 attempt 11
 
 Independent code/spec passed all21 rubric rows; native OpenAI Judge returned FAIL (16 PASS/5 FAIL) on9fa285e. Original reports remain underpr-84/attempts/formal-pr84-11. Independent probes reproduced root session-context export, unsupported root/successor schema rejection and the nonblocking desktop Markdown regression. The installed core returned the slice to implementation. [Eleventh repair claims](verification/formal-pr84-remediation-11.md) describe source/history isolation, opaque resume and shared artifact metadata repairs. Formal passage remains pending.
+
+
+### Formal PR84 attempt 12
+
+Independent code/spec passed; native OpenAI Judge returned FAIL (17 PASS/4 FAIL) on85f8b36. Its original report is retained underpr-84/attempts/formal-pr84-12. Actual completion probes confirmed missing failed-validation evidence did not revoke earlier retention eligibility. The installed core returned the slice to implementation. [Twelfth repair claims](verification/formal-pr84-remediation-12.md) describe live closure admission and binding later failed-validation obligations. Formal passage remains pending.

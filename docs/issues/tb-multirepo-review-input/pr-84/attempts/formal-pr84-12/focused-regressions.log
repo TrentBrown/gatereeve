@@ -1,0 +1,27 @@
+✔ public resume preserves unsupported primary activation records with current-field (587.603042ms)
+✔ public resume preserves unsupported witness activation records with current-field (565.558917ms)
+✔ public resume preserves unsupported matching activation records with current-field (562.902292ms)
+✔ public resume preserves unsupported conflicting activation records with current-field (447.778958ms)
+✔ public resume preserves unsupported primary activation records with renamed-field (572.640167ms)
+✔ public resume preserves unsupported witness activation records with renamed-field (592.31025ms)
+✔ public resume preserves unsupported matching activation records with renamed-field (568.634292ms)
+✔ public resume preserves unsupported conflicting activation records with renamed-field (450.965125ms)
+✔ public resume preserves unsupported primary activation records with invalid-current-field (557.88925ms)
+✔ public resume preserves unsupported witness activation records with invalid-current-field (559.720417ms)
+✔ public resume preserves unsupported matching activation records with invalid-current-field (562.184583ms)
+✔ public resume preserves unsupported conflicting activation records with invalid-current-field (449.344083ms)
+✔ root session history is absent from current, base, target and prior grouped reviewer views (2282.752459ms)
+✔ root session history with Git mode 100755 cannot hide application source (616.623875ms)
+✔ root session history with Git mode 120000 cannot hide application source (615.215625ms)
+✔ root session history with Git mode 160000 cannot hide application source (603.055959ms)
+✔ retained session-contaminated proof becomes context only and never exports prior source (1364.946875ms)
+✔ activation successor schema validation applies only to current contract false (540.02075ms)
+✔ activation successor schema validation applies only to current contract true (452.524417ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13006.391083
