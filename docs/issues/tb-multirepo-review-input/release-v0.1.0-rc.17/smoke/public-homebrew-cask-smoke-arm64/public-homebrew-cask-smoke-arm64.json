@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "kind": "gatereeve-public-homebrew-cask-smoke",
+  "caskReleaseId": "gatereeve-cask-v0.1.0-rc.17",
+  "source": {
+    "repository": "https://github.com/TrentBrown/gatereeve",
+    "commit": "d125d5e5c76d02a5c068a1dde2da10ef8fa54d2a",
+    "tag": "v0.1.0-rc.17"
+  },
+  "desktop": {
+    "filename": "GateReeve-0.1.0-rc.17-macos-universal.dmg",
+    "bytes": 258421953,
+    "sha256": "0380963494e88189e3e73e3603d2f577b7d86735d5651e48f25b93291040a788",
+    "url": "https://github.com/TrentBrown/gatereeve/releases/download/v0.1.0-rc.17/GateReeve-0.1.0-rc.17-macos-universal.dmg",
+    "trust": {
+      "status": "developer-id-notarized",
+      "identity": "Developer ID Application: Trent Brown (PMWYD5A82A)",
+      "teamId": "PMWYD5A82A",
+      "hardenedRuntime": true,
+      "secureTimestamp": true,
+      "notarizationId": "5ebd2516-c82d-44d7-8b23-e0971c8a7f60",
+      "notarizationStatus": "Accepted",
+      "stapled": true,
+      "gatekeeperAccepted": true,
+      "evidence": [
+        "codesign:Developer ID Application: Trent Brown (PMWYD5A82A)",
+        "notarytool:5ebd2516-c82d-44d7-8b23-e0971c8a7f60",
+        "stapler:validated",
+        "spctl:accepted"
+      ]
+    }
+  },
+  "publicTap": {
+    "repository": "TrentBrown/homebrew-gatereeve",
+    "tap": "TrentBrown/gatereeve",
+    "token": "gatereeve",
+    "caskSha256": "aacdfc0189720ea9f260e423bb7c42937b861a735f48b1325ea230746c5ca06d"
+  },
+  "runner": {
+    "operatingSystem": "darwin",
+    "architecture": "arm64"
+  },
+  "checks": {
+    "literalPublicCommandInstalled": true,
+    "exactPublishedCask": true,
+    "exactCaskInstalled": true,
+    "applicationIdentity": true,
+    "developerIdValid": true,
+    "gatekeeperAccepted": true,
+    "universalBinaries": true,
+    "pluginLifecycleUntouched": true,
+    "cliLifecycleUntouched": true
+  },
+  "installProof": {
+    "bundleIdentifier": "com.trentbrown.gatereeve.desktop",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "dmgSha256": "0380963494e88189e3e73e3603d2f577b7d86735d5651e48f25b93291040a788"
+  },
+  "verifiedAt": "2026-10-24T21:01:18.803Z"
+}

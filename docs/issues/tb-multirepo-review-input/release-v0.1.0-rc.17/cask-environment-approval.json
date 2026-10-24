@@ -1,0 +1,1 @@
+{"environment_ids": [20741161933], "state": "approved", "comment": "Authorized rc.17 release continuation: exact public signed DMG installed and launched locally, native packages verified, and linked Cask rehearsal passed. Publish the sealed Cask plan; all four final native install/upgrade checks remain mandatory."}

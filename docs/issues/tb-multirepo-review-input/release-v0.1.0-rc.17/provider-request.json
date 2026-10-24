@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "requestId": "rc17-release-1792875852474",
+  "operation": "observe",
+  "provider": {
+    "id": "gatereeve/release-conductor",
+    "version": "1.0.0"
+  },
+  "module": {
+    "id": "gatereeve/release",
+    "version": "1.0.0",
+    "digest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978"
+  },
+  "input": {
+    "featureId": "tb-multirepo-review-input",
+    "attemptId": "release-rc17-finalization",
+    "scope": "FEATURE",
+    "inputFingerprint": "sha256:c714ae9a06e90c0cf133fb955c155bb2eeda99d138c207c35d045b52b8aa544b",
+    "dependencyEventIds": {},
+    "evidence": {
+      "repositoryRoot": "/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input",
+      "mergeInputSha": "d125d5e5c76d02a5c068a1dde2da10ef8fa54d2a"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "pluginId": "agentic-development-workflow@quality-code",
+    "name": "agentic-development-workflow",
+    "marketplaceName": "quality-code",
+    "version": "0.1.0-rc.17",
+    "installed": true,
+    "enabled": true,
+    "source": {
+      "source": "local",
+      "path": "/Users/trent.brown/.codex/.tmp/marketplaces/quality-code/plugins/codex/agentic-development-workflow"
+    },
+    "marketplaceSource": {
+      "sourceType": "git",
+      "source": "https://github.com/TrentBrown/gatereeve.git"
+    },
+    "installPolicy": "AVAILABLE",
+    "authPolicy": "ON_INSTALL"
+  },
+  {
+    "pluginId": "whiteboard-test@quality-code",
+    "name": "whiteboard-test",
+    "marketplaceName": "quality-code",
+    "version": "0.1.0-rc.17",
+    "installed": true,
+    "enabled": true,
+    "source": {
+      "source": "local",
+      "path": "/Users/trent.brown/.codex/.tmp/marketplaces/quality-code/plugins/codex/whiteboard-test"
+    },
+    "marketplaceSource": {
+      "sourceType": "git",
+      "source": "https://github.com/TrentBrown/gatereeve.git"
+    },
+    "installPolicy": "AVAILABLE",
+    "authPolicy": "ON_INSTALL"
+  }
+]

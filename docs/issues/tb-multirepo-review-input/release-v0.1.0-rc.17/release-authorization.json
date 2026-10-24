@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "featureId": "tb-multirepo-review-input",
+  "pullRequest": "https://github.com/TrentBrown/gatereeve/pull/84",
+  "mergeCommit": "d125d5e5c76d02a5c068a1dde2da10ef8fa54d2a",
+  "tag": "v0.1.0-rc.17",
+  "authority": {
+    "source": "human user in this conversation",
+    "merge": "Approved please merge and continue",
+    "installAndRelease": "When you\u2019re done, please make sure this is installed locally and then proceed to deploying a bumped version",
+    "continue": "Approve and proceed. Have you already installed the new version of gate wave locally? Do you see any problem with resuming another thread that began with the older version and is now proceeding with the new?"
+  },
+  "exception": {
+    "scope": "Four unchanged Cask PR rehearsal failures caused by missing obsolete rc.8 linked-publication artifact, conditional on passing Plugin CI",
+    "evidence": "../pr-84/attempts/formal-pr84-24/merge-window/cask-exception.md",
+    "doesNotWaiveCurrentReleaseAcceptance": true
+  },
+  "directPublicDmgInstallConfirmed": false
+}

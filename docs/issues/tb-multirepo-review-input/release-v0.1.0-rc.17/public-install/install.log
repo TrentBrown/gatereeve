@@ -1,0 +1,46 @@
+hdiutil: verify: checksum of "/Users/trent.brown/.local/share/gatereeve/rc17-public-release/GateReeve-0.1.0-rc.17-macos-universal.dmg" is VALID
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (GPU).app
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (GPU).app
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (Renderer).app
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (Renderer).app
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper.app
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper.app
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (Plugin).app
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (Plugin).app
+/Volumes/GateReeve/GateReeve.app: valid on disk
+/Volumes/GateReeve/GateReeve.app: satisfies its Designated Requirement
+/Volumes/GateReeve/GateReeve.app: accepted
+source=Notarized Developer ID
+--prepared:/Applications/GateReeve.app/Contents/Frameworks/GateReeve Helper (Renderer).app
+--validated:/Applications/GateReeve.app/Contents/Frameworks/GateReeve Helper (Renderer).app
+--prepared:/Applications/GateReeve.app/Contents/Frameworks/GateReeve Helper (GPU).app
+--prepared:/Applications/GateReeve.app/Contents/Frameworks/GateReeve Helper (Plugin).app
+--validated:/Applications/GateReeve.app/Contents/Frameworks/GateReeve Helper (GPU).app
+--validated:/Applications/GateReeve.app/Contents/Frameworks/GateReeve Helper (Plugin).app
+--prepared:/Applications/GateReeve.app/Contents/Frameworks/GateReeve Helper.app
+--validated:/Applications/GateReeve.app/Contents/Frameworks/GateReeve Helper.app
+--prepared:/Applications/GateReeve.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--prepared:/Applications/GateReeve.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--prepared:/Applications/GateReeve.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--validated:/Applications/GateReeve.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--validated:/Applications/GateReeve.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--validated:/Applications/GateReeve.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--prepared:/Applications/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+--prepared:/Applications/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/Applications/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/Applications/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+/Applications/GateReeve.app: valid on disk
+/Applications/GateReeve.app: satisfies its Designated Requirement
+/Applications/GateReeve.app: accepted
+source=Notarized Developer ID
+{"installed":true,"version":"0.1.0-rc.17","dmgSha256":"0380963494e88189e3e73e3603d2f577b7d86735d5651e48f25b93291040a788","evidence":"/tmp/gr-rc17-public-installed.json"}

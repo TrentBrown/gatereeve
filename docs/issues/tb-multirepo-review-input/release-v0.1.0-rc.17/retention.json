@@ -1,0 +1,14 @@
+{
+  "status": "tracked",
+  "gitRoot": "/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input",
+  "trackedFileCount": 1814,
+  "untrackedFileCount": 0,
+  "untrackedFiles": [],
+  "ignoredFileCount": 0,
+  "ignoredFiles": [],
+  "retentionDecisionRequired": false,
+  "reason": "Every current feature-record file is tracked by Git",
+  "observedAt": "2026-10-24T21:07:14.012291+00:00",
+  "observationScope": "All current feature files are Git indexed before the closeout commit; only feature evidence and closeout documents changed.",
+  "checkoutHead": "d125d5e5c76d02a5c068a1dde2da10ef8fa54d2a"
+}

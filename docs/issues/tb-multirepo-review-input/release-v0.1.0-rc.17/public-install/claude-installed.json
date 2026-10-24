@@ -1,0 +1,22 @@
+[
+  {
+    "id": "agentic-development-workflow@quality-code",
+    "version": "0.1.0-rc.17",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/Users/trent.brown/.claude/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.17",
+    "installedAt": "2026-10-24T20:56:33.872Z",
+    "lastUpdated": "2026-10-24T20:56:33.872Z",
+    "projectEnabled": false
+  },
+  {
+    "id": "whiteboard-test@quality-code",
+    "version": "0.1.0-rc.17",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/Users/trent.brown/.claude/plugins/cache/quality-code/whiteboard-test/0.1.0-rc.17",
+    "installedAt": "2026-10-24T20:56:34.463Z",
+    "lastUpdated": "2026-10-24T20:56:34.463Z",
+    "projectEnabled": false
+  }
+]

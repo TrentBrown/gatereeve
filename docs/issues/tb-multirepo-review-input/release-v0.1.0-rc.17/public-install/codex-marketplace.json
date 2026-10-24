@@ -1,0 +1,10 @@
+[
+  {
+    "name": "quality-code",
+    "root": "/Users/trent.brown/.codex/.tmp/marketplaces/quality-code",
+    "marketplaceSource": {
+      "sourceType": "git",
+      "source": "https://github.com/TrentBrown/gatereeve.git"
+    }
+  }
+]

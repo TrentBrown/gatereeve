@@ -1,0 +1,9 @@
+[
+  {
+    "name": "quality-code",
+    "source": "github",
+    "repo": "TrentBrown/gatereeve",
+    "ref": "marketplace",
+    "installLocation": "/Users/trent.brown/.claude/plugins/marketplaces/quality-code"
+  }
+]

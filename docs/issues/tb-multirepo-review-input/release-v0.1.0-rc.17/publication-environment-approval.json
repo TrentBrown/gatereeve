@@ -1,0 +1,1 @@
+{"environment_ids": [20741161933], "state": "approved", "comment": "Trent explicitly authorized the bumped public rc.17 release. Acceptance, notarization, Intel/Apple Silicon trusted runtime checks and the exact sealed-plan rehearsal passed for source d125d5e5c76d02a5c068a1dde2da10ef8fa54d2a."}

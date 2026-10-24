@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 2,
+  "kind": "gatereeve-homebrew-cask",
+  "caskReleaseId": "gatereeve-cask-v0.1.0-rc.17",
+  "version": "0.1.0-rc.17",
+  "channel": "rc",
+  "source": {
+    "repository": "https://github.com/TrentBrown/gatereeve",
+    "commit": "d125d5e5c76d02a5c068a1dde2da10ef8fa54d2a",
+    "tag": "v0.1.0-rc.17"
+  },
+  "primary": {
+    "releaseId": "gatereeve-v0.1.0-rc.17",
+    "recordSha256": "f8f8ebe4949caa14235d6b6e91bc4b00bb0c0e76c46164ec31d33e588f88bd1e",
+    "publishedStageSha256": "46d850faac9603f87688830c707c63357ab7a76fd9f96e6dd06bda205e5fbcc1",
+    "planSha256": "62eb20853429ca87480f7ea95cfa60eb53fb59060df212c00a7aa03a12533f6a",
+    "receiptsSha256": "813567016b7cf110632a5265502e935bcee8ed60b367d0fb063f6b14e478e792"
+  },
+  "desktop": {
+    "filename": "GateReeve-0.1.0-rc.17-macos-universal.dmg",
+    "bytes": 258421953,
+    "sha256": "0380963494e88189e3e73e3603d2f577b7d86735d5651e48f25b93291040a788",
+    "url": "https://github.com/TrentBrown/gatereeve/releases/download/v0.1.0-rc.17/GateReeve-0.1.0-rc.17-macos-universal.dmg",
+    "trust": {
+      "status": "developer-id-notarized",
+      "identity": "Developer ID Application: Trent Brown (PMWYD5A82A)",
+      "teamId": "PMWYD5A82A",
+      "hardenedRuntime": true,
+      "secureTimestamp": true,
+      "notarizationId": "5ebd2516-c82d-44d7-8b23-e0971c8a7f60",
+      "notarizationStatus": "Accepted",
+      "stapled": true,
+      "gatekeeperAccepted": true,
+      "evidence": [
+        "codesign:Developer ID Application: Trent Brown (PMWYD5A82A)",
+        "notarytool:5ebd2516-c82d-44d7-8b23-e0971c8a7f60",
+        "stapler:validated",
+        "spctl:accepted"
+      ]
+    }
+  },
+  "directInstallation": {
+    "schemaVersion": 2,
+    "kind": "gatereeve-direct-public-dmg-installation",
+    "status": "passed",
+    "source": {
+      "repository": "https://github.com/TrentBrown/gatereeve",
+      "commit": "d125d5e5c76d02a5c068a1dde2da10ef8fa54d2a",
+      "tag": "v0.1.0-rc.17"
+    },
+    "artifact": {
+      "filename": "GateReeve-0.1.0-rc.17-macos-universal.dmg",
+      "bytes": 258421953,
+      "sha256": "0380963494e88189e3e73e3603d2f577b7d86735d5651e48f25b93291040a788"
+    },
+    "confirmedBy": "TrentBrown",
+    "confirmedAt": "2026-10-24T20:57:38.795Z",
+    "checks": {
+      "installedFromPublicDmg": true,
+      "applicationLaunched": true,
+      "bundleIdentifier": "com.trentbrown.gatereeve.desktop"
+    },
+    "evidenceSha256": "2b9491483e59680d834dbd465b0ae8f42daa58f44554d377999ed3d179d45d0f"
+  },
+  "cask": {
+    "repository": "TrentBrown/homebrew-gatereeve",
+    "tap": "TrentBrown/gatereeve",
+    "token": "gatereeve",
+    "path": "Casks/gatereeve.rb",
+    "outputPath": "Casks/gatereeve.rb",
+    "sha256": "aacdfc0189720ea9f260e423bb7c42937b861a735f48b1325ea230746c5ca06d",
+    "createRepositoryIfAbsent": true
+  },
+  "state": "published",
+  "publication": {
+    "approval": {
+      "state": "approved",
+      "approvedBy": "TrentBrown",
+      "approvedAt": "2026-10-24T20:59:55.887Z",
+      "planSha256": "51fb054b3ce0cabfb460c9a992e311e59ba83bab7bfc38d681ee51df3bc298da",
+      "environment": "release-publication"
+    },
+    "surface": {
+      "state": "complete",
+      "receipt": {
+        "repository": "TrentBrown/homebrew-gatereeve",
+        "path": "Casks/gatereeve.rb",
+        "pullRequestUrl": "https://github.com/TrentBrown/homebrew-gatereeve/pull/11",
+        "mergeCommit": "7fee774a71c24beefe83c5310659a2e3cb1f80d2",
+        "fileSha256": "aacdfc0189720ea9f260e423bb7c42937b861a735f48b1325ea230746c5ca06d",
+        "publishedAt": "2026-10-24T21:00:08.473Z"
+      }
+    }
+  },
+  "createdAt": "2026-10-24T20:58:13.767Z",
+  "updatedAt": "2026-10-24T21:00:08.473Z"
+}

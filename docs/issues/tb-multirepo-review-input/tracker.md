@@ -149,3 +149,11 @@ Scoped acceptance-only and explicit slice/final merge authority are supported; d
 Formal24 corrects only packet/evidence coordination, retaining the declared verification.md path and all11 original PR-context fields. Required gate recording and the final clean packet check use the installed core; earlier verdicts remain unchanged.
 
 The installed core recorded all ten formal24 gates PASS/current and entered HUMAN_REVIEW after clean synchronized packet validation. This is review readiness; human acceptance and merge remain separate.
+
+### Integration and rc.17 release in progress
+
+2026-10-24: PR84 merged as `d125d5e5c76d02a5c068a1dde2da10ef8fa54d2a` after human acceptance and the explicit narrow obsolete-Cask-rehearsal exception. Plugin CI40118890306 passed. Core state FINALIZING, attempt `release-rc17-finalization`, required release module pending. Desktop development candidate and Codex/Claude workflow+whiteboard rc.17 installed with runtime/integrity/readiness checks passing. Signed public release run40127131443 is underway; exact public-DMG installation and final Cask checks remain required. See [release status](release-v0.1.0-rc.17/status.md).
+
+### Final closeout
+
+2026-10-24: Published and installed rc.17 from PR84 merge `d125d5e5c76d02a5c068a1dde2da10ef8fa54d2a`. Post-merge CI passed. Release Conductor start 40127131443 and resume 40132059788 passed; all 12 stages are complete with no release failure, including all 4 final Cask checks. Public signed Desktop runtime, signature/notarization, native plugin integrity and both readiness checks pass. Actual pinned release provider PASS recorded at sequence 225; governing core FEATURE_FINALIZED/COMPLETE at sequence 226. All 10 issues closed, all 23 rubric rows PASS, no release waiver or pending user action. [Completion receipt](release-v0.1.0-rc.17/feature-completion-receipt.json), [release record](release-v0.1.0-rc.17/status.md) and [completion report](completion-report.md).

@@ -1,0 +1,66 @@
+{
+  "event": {
+    "actor": {
+      "kind": "agent",
+      "label": "Observed pinned release provider PASS after complete rc.17 hosted chain and exact public installation"
+    },
+    "eventId": "evt-pr84-rc17-release-passed",
+    "featureId": "tb-multirepo-review-input",
+    "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "payload": {
+      "attemptId": "release-rc17-finalization",
+      "dependencyEventIds": {},
+      "evidence": {
+        "hash": "sha256:8d10e061551ff8c0d3dab4fcac97754d1f9e089c241d4c6753aab76d760938e8",
+        "path": "release-v0.1.0-rc.17/provider-response.json"
+      },
+      "inputFingerprint": "sha256:c714ae9a06e90c0cf133fb955c155bb2eeda99d138c207c35d045b52b8aa544b",
+      "moduleId": "gatereeve/release",
+      "outcome": "PASS",
+      "reason": null
+    },
+    "recordedAt": "2026-10-24T21:05:14.395Z",
+    "schemaVersion": 1,
+    "sequence": 225,
+    "type": "FEATURE_FINALIZATION_OUTCOME_RECORDED"
+  },
+  "inputFingerprint": "sha256:c714ae9a06e90c0cf133fb955c155bb2eeda99d138c207c35d045b52b8aa544b",
+  "finalization": {
+    "id": "release-rc17-finalization",
+    "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "mergeInputSha": "d125d5e5c76d02a5c068a1dde2da10ef8fa54d2a",
+    "startedBy": "evt-pr84-24-start-finalization",
+    "startedSequence": 224,
+    "state": "ACTIVE",
+    "modules": [
+      {
+        "id": "gatereeve/release",
+        "moduleId": "gatereeve/release",
+        "moduleVersion": "1.0.0",
+        "moduleDigest": "sha256:304709991fd87dc2c8cf69ffcbbd5457ac03ec8e6f7da327fe1f9ef473ade978",
+        "dependsOn": [],
+        "dependencyEdges": [],
+        "dependencyStage": 1,
+        "dependencyBranch": null,
+        "orderLabel": "1",
+        "optional": false,
+        "locked": false,
+        "waiverAllowed": true,
+        "outcome": "PASS",
+        "evidence": {
+          "hash": "sha256:8d10e061551ff8c0d3dab4fcac97754d1f9e089c241d4c6753aab76d760938e8",
+          "path": "release-v0.1.0-rc.17/provider-response.json"
+        },
+        "inputFingerprint": "sha256:c714ae9a06e90c0cf133fb955c155bb2eeda99d138c207c35d045b52b8aa544b",
+        "recordedEventId": "evt-pr84-rc17-release-passed",
+        "recordedSequence": 225,
+        "invalidatedSequence": null,
+        "reason": null,
+        "freshness": "CURRENT",
+        "eligible": true,
+        "blockers": []
+      }
+    ],
+    "requiredCurrentAndNonblocking": true
+  }
+}

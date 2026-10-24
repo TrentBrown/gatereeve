@@ -1,0 +1,49 @@
+hdiutil: verify: checksum of "/Users/trent.brown/.local/share/gatereeve/rc17-public-release/GateReeve-0.1.0-rc.17-macos-universal.dmg" is VALID
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (GPU).app
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (GPU).app
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (Renderer).app
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (Renderer).app
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper.app
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper.app
+--prepared:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (Plugin).app
+--validated:/Volumes/GateReeve/GateReeve.app/Contents/Frameworks/GateReeve Helper (Plugin).app
+/Volumes/GateReeve/GateReeve.app: valid on disk
+/Volumes/GateReeve/GateReeve.app: satisfies its Designated Requirement
+/Volumes/GateReeve/GateReeve.app: accepted
+source=Notarized Developer ID
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: /usr/bin/xcrun stapler validate /Volumes/GateReeve/GateReeve.app
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:925:11)
+    at execFileSync (node:child_process:961:15)
+    at run (file:///private/tmp/gr-install-public-rc17.mjs:10:23)
+    at file:///private/tmp/gr-install-public-rc17.mjs:20:17 {
+  status: 65,
+  signal: null,
+  output: [
+    null,
+    'Processing: /Volumes/GateReeve/GateReeve.app\n' +
+      'GateReeve.app does not have a ticket stapled to it.\n',
+    ''
+  ],
+  pid: 46991,
+  stdout: 'Processing: /Volumes/GateReeve/GateReeve.app\n' +
+    'GateReeve.app does not have a ticket stapled to it.\n',
+  stderr: ''
+}
+
+Node.js v24.15.0

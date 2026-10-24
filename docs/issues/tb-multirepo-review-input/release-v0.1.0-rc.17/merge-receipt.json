@@ -1,0 +1,16 @@
+{
+  "status": "merged",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 84,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/84",
+    "state": "MERGED",
+    "isDraft": false,
+    "baseRefName": "main",
+    "baseRefOid": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headRefName": "tb-multirepo-review-input",
+    "headRefOid": "db58eb619a84d9298581795a58ee75cdf2cdfe08"
+  },
+  "reviewedHeadSha": "db58eb619a84d9298581795a58ee75cdf2cdfe08",
+  "authorization": "Trent explicitly approved PR84 merge and the four historical Cask artifact failures; local installation and bumped release also authorized separately"
+}
