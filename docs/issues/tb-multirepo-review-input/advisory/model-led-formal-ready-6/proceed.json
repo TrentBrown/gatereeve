@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-6",
+  "checkedSource": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "e0221667e25481000d0694a8af7ecc14555e0718",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:8d9bb673f061a0f8f638f602b8b1b611d999813bbf469c0d278e081f93861577",
+  "readiness": {
+    "path": "advisory/model-led-formal-ready-6/readiness.json",
+    "hash": "sha256:11c76389d1a1e7b7ceded0c6043e0cfb2c2a55831d788cb856c05d024d7451df"
+  },
+  "reason": "Proceed with user-authorized formal review while noncertifying advisory discovery runs. All 37 prior findings have retained repair claims and operation-level regressions. Current full CLI, desktop172, Python58, actual fresh OpenAI execution and rebuilt universal package/runtime pass. A fresh installed native Judge and separate independent code/spec verdicts remain mandatory; no formal gate is waived. Inspect and retain eventual advisory result before human review.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "implementation coordinator for user-authorized formal review"
+  }
+}
