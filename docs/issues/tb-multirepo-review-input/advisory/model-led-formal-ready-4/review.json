@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-4",
+  "source": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "b94a792ed6e27daa249e1ab06e6a9af8fd778d3c",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:d4362c56c2f38f0526188b784f35258fef26d6483902938646cc53a93e4cc706",
+  "requestIdentity": "sha256:fd934364f16f71f963255efb4c25393e16ccfdce96463bf38c3423b60e9e2d3d",
+  "readiness": {
+    "path": "advisory/model-led-formal-ready-4/readiness.json",
+    "hash": "sha256:feb35329f9162d2a9461ff177d744e19d1cab71f4d30bf1ca6878dc21b90347b"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "UNAVAILABLE",
+  "result": null,
+  "receipts": [],
+  "operationalErrors": [
+    {
+      "code": "CONTRACT_INVALID",
+      "category": "PERSISTENT",
+      "message": "Advisory configuration, isolation, input schema or publication could not be established."
+    }
+  ]
+}

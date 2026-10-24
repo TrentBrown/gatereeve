@@ -1,0 +1,344 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "passed": true,
+    "sourceCommit": "af3fad7c8ce4520366cd23adc8d4b879135ae6bc",
+    "packageSha256": "3316891dafcca5c6d26298d5770ca171caccca03bc186e028ca650fb2199582b",
+    "archive": "/tmp/gr-repair11-package.WRUDfT/application/GateReeve-darwin-universal/GateReeve.app/Contents/Resources/app.asar",
+    "comparison": "All retained protocol JavaScript bytes in built Codex/Claude plugins and actual packaged application match final committed source. Build sourceCommit metadata and this explicit byte comparison bind the final committed source.",
+    "fileCount": 22,
+    "comparisons": [
+      {
+        "path": "plugin-src/shared/resources/protocol/agent-workflow.js",
+        "kind": "desktopAsar",
+        "sha256": "20bf1aa7363cf82153b4c245e29cd2c784f1570c39fe6c0cd78507d7ead15271"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/agent-workflow.js",
+        "kind": "codex",
+        "sha256": "20bf1aa7363cf82153b4c245e29cd2c784f1570c39fe6c0cd78507d7ead15271"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/agent-workflow.js",
+        "kind": "claude",
+        "sha256": "20bf1aa7363cf82153b4c245e29cd2c784f1570c39fe6c0cd78507d7ead15271"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/constants.js",
+        "kind": "desktopAsar",
+        "sha256": "b2d0e32bfa5a1deebae3b1ac53cec8310c1e500429dcac8e844bed0b4add1846"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/constants.js",
+        "kind": "codex",
+        "sha256": "b2d0e32bfa5a1deebae3b1ac53cec8310c1e500429dcac8e844bed0b4add1846"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/constants.js",
+        "kind": "claude",
+        "sha256": "b2d0e32bfa5a1deebae3b1ac53cec8310c1e500429dcac8e844bed0b4add1846"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/context.js",
+        "kind": "desktopAsar",
+        "sha256": "2cea98175760133ac3bfe5f2f9cb8a4d9ef47882e276537938ebedbdcba3cec7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/context.js",
+        "kind": "codex",
+        "sha256": "2cea98175760133ac3bfe5f2f9cb8a4d9ef47882e276537938ebedbdcba3cec7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/context.js",
+        "kind": "claude",
+        "sha256": "2cea98175760133ac3bfe5f2f9cb8a4d9ef47882e276537938ebedbdcba3cec7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/actions.js",
+        "kind": "desktopAsar",
+        "sha256": "87900fc56010784d19ac40e6beeb14cf9545d5bc926a8d28147d5c676409041d"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/actions.js",
+        "kind": "codex",
+        "sha256": "87900fc56010784d19ac40e6beeb14cf9545d5bc926a8d28147d5c676409041d"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/actions.js",
+        "kind": "claude",
+        "sha256": "87900fc56010784d19ac40e6beeb14cf9545d5bc926a8d28147d5c676409041d"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/adapter.js",
+        "kind": "desktopAsar",
+        "sha256": "507263e8ca0938e0a78454095a26543a69039ac6812190ce236af6f0e99f7278"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/adapter.js",
+        "kind": "codex",
+        "sha256": "507263e8ca0938e0a78454095a26543a69039ac6812190ce236af6f0e99f7278"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/adapter.js",
+        "kind": "claude",
+        "sha256": "507263e8ca0938e0a78454095a26543a69039ac6812190ce236af6f0e99f7278"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/contracts.js",
+        "kind": "desktopAsar",
+        "sha256": "0c8e3e32c769fb2cd7ccd778bfc72238b02b93f42684412d1ef7f30fa8804c04"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/contracts.js",
+        "kind": "codex",
+        "sha256": "0c8e3e32c769fb2cd7ccd778bfc72238b02b93f42684412d1ef7f30fa8804c04"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/contracts.js",
+        "kind": "claude",
+        "sha256": "0c8e3e32c769fb2cd7ccd778bfc72238b02b93f42684412d1ef7f30fa8804c04"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/core.js",
+        "kind": "desktopAsar",
+        "sha256": "175385800d797860d3efbcd426e89e68a95b8738262bd7286a55977917702c00"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/core.js",
+        "kind": "codex",
+        "sha256": "175385800d797860d3efbcd426e89e68a95b8738262bd7286a55977917702c00"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/core.js",
+        "kind": "claude",
+        "sha256": "175385800d797860d3efbcd426e89e68a95b8738262bd7286a55977917702c00"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/environment.js",
+        "kind": "desktopAsar",
+        "sha256": "5b2d23b96370411b1d495d8126f649a42cedfdb5383152aa18d65083de76023a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/environment.js",
+        "kind": "codex",
+        "sha256": "5b2d23b96370411b1d495d8126f649a42cedfdb5383152aa18d65083de76023a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/environment.js",
+        "kind": "claude",
+        "sha256": "5b2d23b96370411b1d495d8126f649a42cedfdb5383152aa18d65083de76023a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/evidence.js",
+        "kind": "desktopAsar",
+        "sha256": "c673d2b58e9757586b490f673f3c27bcc2bc92c28375d1b12a7330c8d1da3162"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/evidence.js",
+        "kind": "codex",
+        "sha256": "c673d2b58e9757586b490f673f3c27bcc2bc92c28375d1b12a7330c8d1da3162"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/evidence.js",
+        "kind": "claude",
+        "sha256": "c673d2b58e9757586b490f673f3c27bcc2bc92c28375d1b12a7330c8d1da3162"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/execution.js",
+        "kind": "desktopAsar",
+        "sha256": "5ad3441ce7514cf593f7c558bc86b5acbeb37081df72daf98a5c684b84f51124"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/execution.js",
+        "kind": "codex",
+        "sha256": "5ad3441ce7514cf593f7c558bc86b5acbeb37081df72daf98a5c684b84f51124"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/execution.js",
+        "kind": "claude",
+        "sha256": "5ad3441ce7514cf593f7c558bc86b5acbeb37081df72daf98a5c684b84f51124"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/observation.js",
+        "kind": "desktopAsar",
+        "sha256": "a4858ffe4eb93754e4280ff1c4b50ab55503a47f6c2885daacc84af1602aa68a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/observation.js",
+        "kind": "codex",
+        "sha256": "a4858ffe4eb93754e4280ff1c4b50ab55503a47f6c2885daacc84af1602aa68a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/observation.js",
+        "kind": "claude",
+        "sha256": "a4858ffe4eb93754e4280ff1c4b50ab55503a47f6c2885daacc84af1602aa68a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pattern-inputs.js",
+        "kind": "desktopAsar",
+        "sha256": "babcdfd08d8f88afde96bc06b1d37c272f3cc6f87d0b35815260863ff3623f78"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pattern-inputs.js",
+        "kind": "codex",
+        "sha256": "babcdfd08d8f88afde96bc06b1d37c272f3cc6f87d0b35815260863ff3623f78"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pattern-inputs.js",
+        "kind": "claude",
+        "sha256": "babcdfd08d8f88afde96bc06b1d37c272f3cc6f87d0b35815260863ff3623f78"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pre-tool-use.js",
+        "kind": "desktopAsar",
+        "sha256": "68c605c45c00358c20adb9d764f579539d934b081e78396b748626dcf466bed7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pre-tool-use.js",
+        "kind": "codex",
+        "sha256": "68c605c45c00358c20adb9d764f579539d934b081e78396b748626dcf466bed7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pre-tool-use.js",
+        "kind": "claude",
+        "sha256": "68c605c45c00358c20adb9d764f579539d934b081e78396b748626dcf466bed7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/store.js",
+        "kind": "desktopAsar",
+        "sha256": "86876d8462cbabfbc53784a9bff03836ed2795cc0a1d2f184f24cc6008bc077a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/store.js",
+        "kind": "codex",
+        "sha256": "86876d8462cbabfbc53784a9bff03836ed2795cc0a1d2f184f24cc6008bc077a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/store.js",
+        "kind": "claude",
+        "sha256": "86876d8462cbabfbc53784a9bff03836ed2795cc0a1d2f184f24cc6008bc077a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/errors.js",
+        "kind": "desktopAsar",
+        "sha256": "adec91e206d3af2387bb2c85820bee4ea4fd490ed881ce5626deece230afcda5"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/errors.js",
+        "kind": "codex",
+        "sha256": "adec91e206d3af2387bb2c85820bee4ea4fd490ed881ce5626deece230afcda5"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/errors.js",
+        "kind": "claude",
+        "sha256": "adec91e206d3af2387bb2c85820bee4ea4fd490ed881ce5626deece230afcda5"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/index.js",
+        "kind": "desktopAsar",
+        "sha256": "a1aba69b9cdb037e655a1bbf2527ceba73c32074bf7409ec3a70f92e08b34e29"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/index.js",
+        "kind": "codex",
+        "sha256": "a1aba69b9cdb037e655a1bbf2527ceba73c32074bf7409ec3a70f92e08b34e29"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/index.js",
+        "kind": "claude",
+        "sha256": "a1aba69b9cdb037e655a1bbf2527ceba73c32074bf7409ec3a70f92e08b34e29"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/json-schema.js",
+        "kind": "desktopAsar",
+        "sha256": "f8ecf7ea29682db2fded10730222d961270273af86ce335024cf217b5e7cd243"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/json-schema.js",
+        "kind": "codex",
+        "sha256": "f8ecf7ea29682db2fded10730222d961270273af86ce335024cf217b5e7cd243"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/json-schema.js",
+        "kind": "claude",
+        "sha256": "f8ecf7ea29682db2fded10730222d961270273af86ce335024cf217b5e7cd243"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/local-agent-adapters.js",
+        "kind": "desktopAsar",
+        "sha256": "9dae43567b6b5e57501712d96f8a0c09216a8f10a38a72717d30cd2d862046b8"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/local-agent-adapters.js",
+        "kind": "codex",
+        "sha256": "9dae43567b6b5e57501712d96f8a0c09216a8f10a38a72717d30cd2d862046b8"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/local-agent-adapters.js",
+        "kind": "claude",
+        "sha256": "9dae43567b6b5e57501712d96f8a0c09216a8f10a38a72717d30cd2d862046b8"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/module-runtime.js",
+        "kind": "desktopAsar",
+        "sha256": "c4c4432d31b42e4b25e12ecd9942d3a15eb605be7b954864909bdd829c814226"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/module-runtime.js",
+        "kind": "codex",
+        "sha256": "c4c4432d31b42e4b25e12ecd9942d3a15eb605be7b954864909bdd829c814226"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/module-runtime.js",
+        "kind": "claude",
+        "sha256": "c4c4432d31b42e4b25e12ecd9942d3a15eb605be7b954864909bdd829c814226"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/plugin-adapter.js",
+        "kind": "desktopAsar",
+        "sha256": "8d43d187f41faa8c918c8c3bd5f070ba8bc7a86d25fdd4240a432895d08c3205"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/plugin-adapter.js",
+        "kind": "codex",
+        "sha256": "8d43d187f41faa8c918c8c3bd5f070ba8bc7a86d25fdd4240a432895d08c3205"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/plugin-adapter.js",
+        "kind": "claude",
+        "sha256": "8d43d187f41faa8c918c8c3bd5f070ba8bc7a86d25fdd4240a432895d08c3205"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/python-guards.js",
+        "kind": "desktopAsar",
+        "sha256": "8a77746e15d3466d4ca144beccf7001fa8ceb5e70c720b82fe1e54c87ad6e705"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/python-guards.js",
+        "kind": "codex",
+        "sha256": "8a77746e15d3466d4ca144beccf7001fa8ceb5e70c720b82fe1e54c87ad6e705"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/python-guards.js",
+        "kind": "claude",
+        "sha256": "8a77746e15d3466d4ca144beccf7001fa8ceb5e70c720b82fe1e54c87ad6e705"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/result.js",
+        "kind": "desktopAsar",
+        "sha256": "e1530a683d25bd7250c14d5e5c849ac7862cfecedc35d8c81080360ed0f75ce5"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/result.js",
+        "kind": "codex",
+        "sha256": "e1530a683d25bd7250c14d5e5c849ac7862cfecedc35d8c81080360ed0f75ce5"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/result.js",
+        "kind": "claude",
+        "sha256": "e1530a683d25bd7250c14d5e5c849ac7862cfecedc35d8c81080360ed0f75ce5"
+      }
+    ]
+  }
+}

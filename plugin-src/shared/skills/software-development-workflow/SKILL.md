@@ -29,7 +29,7 @@ For workflow-state observation, preflight, or passage, also load:
 
 New features are governed by default. State-affecting skills must use the
 plugin-local protocol adapter for governed features; the optional PATH CLI is
-not a prerequisite. Legacy features may finish without adoption. Never claim a
+not a prerequisite. Existing work resumes through the current entry without interpreting old events. Never claim a
 gate passed merely from prose when the protocol rejects or has not recorded the
 passage.
 
@@ -61,28 +61,19 @@ workflow. Use `<plugin-root>/resources/commands/pattern-learn.md` or
 `<plugin-root>/resources/commands/pattern-audit.md` only
 when the user explicitly asks for those later maintenance workflows.
 
-## Scripts
+## Mechanics
 
-Use scripts from `<plugin-root>/resources/scripts/`
-for deterministic mechanics:
-
-- `bootstrap_branch_docs.py`
-- `pr_context.py`
-- `boundary_context.py`
-- `boundary_gate.py`
-- `boundary_packet.py`
-- `pr_lifecycle.py`
-- `feature_final.py`
-- `decision_record.py`
-- `decision_triage.py`
-- `validate_branch_docs.py`
+Use current protocol operations for execution, decisions, retained evidence and
+passage. Portable scripts remain useful for specification/issues/tracker lint,
+trusted workspace/PR resolution, pattern rules and document authoring. Do not use
+retired boundary/journal helpers to create current passage. Individual commits
+remain model-led work inside the authorized phase.
 
 Use templates from `<plugin-root>/resources/templates/`
 when creating branch docs.
 
-For revised ready slices, read `<plugin-root>/resources/commands/boundary-retry.md`
-and use the shared `boundary.retry` adapter operation. The implementer owns
-fixes/readiness; the coordinator owns fresh context/attempt identities, gate
-recording and recoverable packet bookkeeping. Keep code review/spec assessment
-early and presentation after current nonblocking substantive checks. Preserve
-native independent Judge execution, formal guards/freshness and human authority.
+For revised ready candidates, use the current protocol operations in
+`resources/PROTOCOL.md`. The model chooses execution order within the authorized
+phase. Readiness never automatically launches review; required evidence and
+human authority remain enforced at milestones. Old runtime records are retained,
+not replayed; resume unchanged planning with observed approvals.

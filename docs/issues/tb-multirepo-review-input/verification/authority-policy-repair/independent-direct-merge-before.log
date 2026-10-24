@@ -1,0 +1,10 @@
+{"case":"F1","amendment":"sha256:468aee84313a7d20b86825522f887485595c6551261f6d2ca6b5f058dda631fe","restored":"sha256:d349bbf01cc6ad82523bb41ba7ee8419e87240ef352e924540f776056d14f5b6","implementation":{"name":"implementation","runId":"run-one","eventCount":43,"allowed":true,"missing":[],"subject":"sha256:d349bbf01cc6ad82523bb41ba7ee8419e87240ef352e924540f776056d14f5b6"},"candidateIdentical":true,"latestCommitmentDecision":"amend","phase":"IMPLEMENTING","oldAcceptanceQualified":true,"mergeMissing":[]}
+✔ actual direct authority revives after amendment without continuation and byte rollback (16892.992125ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16941.760916

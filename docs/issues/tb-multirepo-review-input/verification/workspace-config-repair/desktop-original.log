@@ -1,0 +1,516 @@
+
+> @quality-code/gatereeve-desktop@0.1.0 pretest
+> npm run stage:protocol && npm run build:renderer
+
+
+> @quality-code/gatereeve-desktop@0.1.0 stage:protocol
+> node scripts/stage-protocol.mjs
+
+
+> @quality-code/gatereeve-desktop@0.1.0 build:renderer
+> node scripts/build-renderer.mjs
+
+Built renderer Markdown bundle (421335 bytes).
+
+> @quality-code/gatereeve-desktop@0.1.0 test
+> node --test
+
+✔ principal controls use keyboard-native elements with visible accessible names (11.688166ms)
+✔ status regions and principal views expose semantic text independent of color (19.346042ms)
+✔ styles preserve visible focus, docked regions, and reduced-motion behavior (23.229708ms)
+✔ terminal panel exposes the project shell without retired task controls (3.721583ms)
+✔ Apple signing configuration requires a team-scoped Developer ID identity (0.852291ms)
+✔ codesign facts require Developer ID, hardened runtime, and a secure timestamp (1.097208ms)
+✔ notarization emits complete non-secret evidence for the exact disk image (38.052125ms)
+✔ trust finalization preserves submitted bytes and makes final evidence create-once (37.416958ms)
+✔ notarization timeout is durable and recovery polls the same request without resubmitting (137.354708ms)
+✔ submission interruption persists uncertainty and refuses an automatic second submit (5.538042ms)
+▶ malformed submission output and Apple rejection become durable fail-closed states
+  ✔ malformed submission output (6.20375ms)
+  ✔ Apple rejection (11.381417ms)
+  ✔ status response without the recorded request ID (9.383084ms)
+✔ malformed submission output and Apple rejection become durable fail-closed states (27.670667ms)
+✔ Apple trust evidence rejects an altered or incomplete candidate (0.243458ms)
+✔ GitHub artifact URLs require a tracked path, GitHub origin, and exact HEAD (0.639ms)
+✔ Downloads choose a non-overwriting filename (0.103333ms)
+✔ editor preference store persists only a bounded editor selection document (8.993083ms)
+✔ artifact actions detect bounded editors, remember explicit choices, and preserve source files (9.762667ms)
+✔ desktop state requires the exact bounded application envelope (0.679667ms)
+✔ Setup state and selected agents are exact, bounded read-only contracts (0.971583ms)
+✔ update state exposes notification-only discovery without a download contract (0.288417ms)
+✔ named read and artifact requests reject broad or malformed access (0.594417ms)
+✔ terminal contracts are exact, bounded, and expose no spawn configuration (0.337792ms)
+✔ IPC allow-list contains only bounded named desktop operations (0.122791ms)
+✔ selection publishes local state before enrichment and polls GitHub only while needed (7.227208ms)
+✔ unavailable GitHub enrichment preserves a readable local snapshot (2.604333ms)
+✔ notifications are opt-in, baseline current state, deduplicate refreshes, and stop with the coordinator (4.876458ms)
+✔ selected-agent Setup persists explicit choice and rechecks without requiring a worktree (0.549292ms)
+✔ changing agent selection clears stale detection cards before rechecking (0.547084ms)
+✔ failed project admission remains unsaved and leaves the active project intact (3.251292ms)
+✔ startup validates every saved project and observes only the restored active project (2.8885ms)
+✔ active project summary follows the enriched canonical workflow state (1.0515ms)
+✔ removing the active project preserves disk and activates the nearest saved project (6.326ms)
+✔ current view shows milestone blockers, preserved verdicts, exceptions and no ordering controls (423.217292ms)
+✔ Markdown renders safe emphasis while preserving code, identifiers, and images (17.300875ms)
+✔ Markdown links are semantic only when an explicit resolver accepts their target (2.618125ms)
+✔ Markdown covers representative CommonMark block and inline structures (29.387208ms)
+✔ Markdown renders GFM tables, task lists, autolinks, strikethrough, and footnotes (2.616875ms)
+✔ Markdown keeps HTML, images, and rejected destinations visible without resource DOM (1.779834ms)
+✔ Markdown heading anchors are deterministic, prefixed, formatted, and duplicate-aware (0.718458ms)
+✔ Markdown keeps malformed input and Mermaid fences literal (0.593459ms)
+✔ compatible Python discovery skips an older Apple candidate (0.622125ms)
+✔ Finder-compatible discovery checks fixed macOS and explicit PATH locations (0.324333ms)
+✔ Finder-compatible discovery checks only the bounded NVM version root after fixed paths (5.983875ms)
+✔ explicit executable overrides are narrow and fail closed (0.210292ms)
+✔ multi-candidate discovery retains bounded deterministic order (0.168583ms)
+✔ multi-candidate discovery treats an explicit override as the entire search (0.074875ms)
+✔ Homebrew smoke rejects a claimed architecture that is not the native process (0.56325ms)
+✔ public Homebrew smoke rejects a claimed architecture that is not native (0.186291ms)
+✔ IPC authenticates the exact top-level application frame (0.79275ms)
+✔ IPC exposes only validated named reads, Session context, clipboard, selection, refresh, and artifact OS actions (3.556917ms)
+✔ Rolling Vale is the pinned, square production icon source (7.695417ms)
+✔ macOS identity and universal packager options are permanent (1.957ms)
+✔ runtime package allowlist admits scoped parents but rejects unstaged siblings (0.119292ms)
+✔ Python runtime allowlist admits the current validation closure and excludes development code (9.529333ms)
+✔ ASAR packaging unpacks native PTY files and installed observation providers (77.605625ms)
+✔ icon generation creates every standard macOS iconset size (6.720083ms)
+✔ Desktop staging contains only self-contained runtime resources (2218.239708ms)
+✔ package results can use a dedicated machine-readable file (1.225958ms)
+✔ DMG composition adds a conventional Applications shortcut (1.392459ms)
+✔ DMG verification retries only bounded transient hdiutil contention (0.359209ms)
+✔ DMG creation retries only bounded transient hdiutil contention (0.143583ms)
+✔ DMG verification stops after the configured transient retry bound (0.086375ms)
+✔ native package evidence binds the exact source and DMG bytes (2.265958ms)
+✔ native authority detects and rejects Rosetta substitution evidence (0.25525ms)
+✔ installed provider discovery admits only exact allowlisted regular manifests (18.638666ms)
+✔ duplicate allowlisted provider IDs make every duplicate unavailable (8.365292ms)
+✔ provider discovery treats missing or linked installed executables as unavailable (4.188791ms)
+✔ provider discovery rejects executable bytes that differ from the exact manifest (4.646ms)
+✔ electron-node providers use the trusted app runtime without requiring system Node (3.243333ms)
+✔ provider supervisor validates one exact response and rejects stale, duplicate, and crashed peers (2.262ms)
+✔ provider supervisor times out and kills an unresponsive peer (0.219041ms)
+✔ closing provider supervision kills and rejects every in-flight observation (0.217208ms)
+✔ provider supervisor rejects entrypoint drift immediately before launch (0.106ms)
+✔ attempt records request identity before bounded polling and acceptance (3.588167ms)
+✔ each polling session times out after exactly 60 polls and recovery reuses the request (22.257583ms)
+✔ uncertain submission fails closed until Apple history proves found or absent (0.655791ms)
+✔ attempt validation rejects candidate identity drift and Apple rejection is terminal (0.349834ms)
+✔ supersession preserves the old attempt and requires a fresh candidate version (0.454959ms)
+✔ notification candidates cover every specified attention class (1.052375ms)
+✔ observer establishes a quiet baseline and emits only newly entered transitions (0.27425ms)
+✔ repeated hosted observations deduplicate the same pull-request merge (0.098583ms)
+✔ Git facts distinguish source activity from governed record dirtiness (1.330708ms)
+✔ Git observer degrades independently when Git is unavailable (0.977791ms)
+✔ missing Finder executables do not execute bare commands or erase local state (0.204833ms)
+✔ GitHub polling is conditional on open PRs or pending checks (0.090792ms)
+✔ GitHub observer reports unavailable without invalidating Git data (0.084209ms)
+✔ preferences persist only saved project references and ordinary application settings (12.915291ms)
+✔ schema v1 recent worktrees migrate in place to ordered project references (6.592667ms)
+✔ project references append, activate, reorder, and remove without touching paths (0.473166ms)
+✔ preferences discard invalid fields and require the last path to be saved (0.084708ms)
+✔ agent selection is explicit, canonical, and rejects unsupported agents (0.075416ms)
+✔ terminal height is device-local, clamped, and migrated from older schemas (0.070958ms)
+✔ concurrent preference saves are serialized in call order (4.967875ms)
+✔ current presentation uses current phases and contract identity (0.422042ms)
+✔ project inspection admits only a canonical governed directory (4.419583ms)
+✔ project inspection preserves protocol diagnostic details without admission (3.942708ms)
+✔ project inspection turns filesystem and malformed-record failures into diagnostics (0.369875ms)
+✔ desktop resolves the parent record, observes current core and does not mutate (427.552875ms)
+✔ desktop shows current-entry for old records and confines artifact reads to resolved inventory (212.099541ms)
+✔ desktop requalifies actual native validators and pattern inputs with GUI Python discovery (4114.370166ms)
+✔ Apple history reconciliation recovers exactly one request without resubmission (3.120375ms)
+✔ Apple history ambiguity and absence fail closed (1.148334ms)
+✔ terminal conductor evidence passes every feature whose final merge is contained (78.034333ms)
+✔ terminal conductor evidence does not satisfy a distinct divergent feature merge (22.649042ms)
+✔ nonterminal, wrong-source, and expired conductor evidence never passes (56.974ms)
+✔ valid conductor failure checkpoints remain visible and nonterminal (22.926459ms)
+✔ renderer consumes a canonical current feature without mutating either journal (521.656084ms)
+✔ renderer protocols confine application files and serve only named trusted HTML artifacts (21.370125ms)
+✔ renderer presents selection first and then canonical observation status (48.438834ms)
+✔ renderer reloads optional Session context when a refresh begins (29.775083ms)
+✔ selected artifact rereads automatically when its canonical fingerprint changes (62.643459ms)
+✔ artifact Markdown confines external, relative, fragment, and unsafe links (33.113333ms)
+✔ Session observer exposes only named checkpoint and handoff files beneath the worktree (20.844583ms)
+✔ Session observer refuses allow-listed directories that are themselves symlinks (2.129041ms)
+✔ compatibility follows exact project-controlled pairs for all three states (0.514625ms)
+✔ metadata rejects duplicate, inferred, or contradictory compatibility (0.212041ms)
+✔ shipped compatibility metadata is synchronized with Desktop identity (2.263375ms)
+✔ observer checks only selected agents and accepts only an explicit compatible pair (19.730042ms)
+✔ Python prerequisite continues past Apple Python to the first compatible candidate (0.650125ms)
+✔ Python prerequisite retains bounded failure evidence when no candidate is compatible (0.357125ms)
+✔ explicit Python candidate remains authoritative when it is incompatible (0.186292ms)
+✔ unknown Plugin versions fail readiness while historical reading remains a UI concern (9.788791ms)
+✔ a failed native Plugin listing is unavailable, not evidence of absence (5.840042ms)
+✔ an enabled Plugin without an exact manager-reported version is incompatible (4.939625ms)
+✔ unselected agents are not probed when a selected agent is missing (3.941416ms)
+✔ one ready selected agent is enough for operational readiness (4.400084ms)
+✔ shared prerequisite remediation follows the host-native package owner (30.414042ms)
+✔ visual fixture remaps the confined production brand route to the source asset (4.306042ms)
+✔ every supported renderer entry path builds the self-contained Markdown module (5.0905ms)
+✔ first launch presents persistent non-mutating Setup and preserves historical access (54.785917ms)
+✔ Setup names the ready path without hiding an incomplete selected agent (44.604625ms)
+✖ Desktop stages the exact protocol and trusted waiver guard without a CLI runtime dependency (40.319125ms)
+✔ terminal warnings expose exactly cancel and terminate-and-continue choices (0.788333ms)
+✔ last-window close remains cancellable while a terminal is live (2.86225ms)
+✔ quit guard cancels first and closes all PTYs only after explicit confirmation (0.955667ms)
+✔ descendant process discovery returns deepest children before parents (1.443375ms)
+✔ account shell resolution is platform-bound and does not silently substitute (0.257583ms)
+✔ first ensure creates one trusted login shell and subsequent ensure reuses it (0.3535ms)
+✔ sessions are isolated by project and reject cross-project authority (0.235875ms)
+✔ output is bounded and exit retains the final buffer until restart (0.352917ms)
+✔ resize validates dimensions and terminate targets the exact process group (0.165833ms)
+✔ failed spawn remains visible and can be restarted (0.110292ms)
+✔ missing configured account shell is retained as a restartable failure without substitution (0.132708ms)
+✔ discard and close terminate only live project groups and reject later use (0.140125ms)
+✔ default output bound is finite (0.085917ms)
+✔ real PTY supports cwd, input, resize, exit, restart, and cleanup (163.086292ms)
+✔ real PTY cleanup terminates a descendant sentinel process (67.772125ms)
+✔ renderer lazily preserves one terminal view per project and presents exit/restart state (36.705042ms)
+✔ update cache is separate, private user data and malformed input resets safely (3.057083ms)
+✔ fetches only the fixed identifier-free endpoint with bounded request options (13.3465ms)
+✔ rejects HTTP, parse, schema, and response-size failures (0.617875ms)
+✔ aborts a manifest request at the fixed timeout boundary (8.323084ms)
+✔ starts a stale automatic check without blocking initialization and caches its result (5.396667ms)
+✔ a fresh cache suppresses automatic network access while manual checks are always fresh (0.340959ms)
+✔ failures become quiet unavailable state and never reject the caller (0.151917ms)
+✔ native update notification is opt-in and deduplicated across persisted checks (0.209084ms)
+✔ strictly validates an empty or fully trusted URL-free manifest (0.996416ms)
+✔ RC installations see later RC and eventual stable only on their version line (1.419416ms)
+✔ stable installations ignore RCs and see only later stable versions (0.135166ms)
+✔ release navigation is derived only from a validated version (0.082416ms)
+✔ filesystem bursts coalesce into one full refresh request (2.085791ms)
+✔ real watcher observes a current event created in a new nested run directory (28.327917ms)
+✔ representative Whiteboard Defense works in a sandboxed narrow Electron viewport (848.57075ms)
+✔ Electron window uses process isolation and denies embedded web content (0.376417ms)
+✔ layout commands use the approved platform shortcuts (0.468416ms)
+✔ window navigation is confined to the application URL (0.122875ms)
+✔ workspace state is isolated per canonical project and remains serializable (0.841667ms)
+✔ document tabs deduplicate by canonical path and close to the nearest tab (0.102291ms)
+✔ hiding panels preserves tabs and width while reconciliation marks stale content unavailable (0.076084ms)
+✔ virtual gate tabs retain scoped attempt and gate identity (0.445708ms)
+✔ virtual module tabs retain module identity and deduplicate across refreshes (0.154167ms)
+ℹ tests 173
+ℹ suites 0
+ℹ pass 172
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4912.451458
+
+✖ failing tests:
+
+test at test/stage-protocol.test.js:10:1
+✖ Desktop stages the exact protocol and trusted waiver guard without a CLI runtime dependency (40.319125ms)
+  AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /python|workflow_context\.py/iu. Input:
+  
+  "import { execFile } from 'node:child_process';\n" +
+    "import { readFile, realpath, stat } from 'node:fs/promises';\n" +
+    "import { homedir } from 'node:os';\n" +
+    'import {\n' +
+    '  dirname,\n' +
+    '  isAbsolute,\n' +
+    '  relative,\n' +
+    '  resolve,\n' +
+    '  sep,\n' +
+    "} from 'node:path';\n" +
+    "import { promisify } from 'node:util';\n" +
+    '\n' +
+    "import { ProtocolError } from './errors.js';\n" +
+    '\n' +
+    'const executeFile = promisify(execFile);\n' +
+    "const CONFIG_NAME = '.agentic-workflow.json';\n" +
+    'const SCHEMA_VERSION = 1;\n' +
+    'const IDENTIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/u;\n' +
+    'const resolutions = new WeakMap();\n' +
+    'const OBJECT_ID = /^[0-9a-fA-F]{40,64}$/u;\n' +
+    '\n' +
+    'function expandUser(path, environment) {\n' +
+    "  if (path === '~') return environment.HOME ?? homedir();\n" +
+    '  if (path.startsWith(`~${sep}`)) {\n' +
+    '    return resolve(environment.HOME ?? homedir(), path.slice(2));\n' +
+    '  }\n' +
+    '  return path;\n' +
+    '}\n' +
+    '\n' +
+    'async function info(path) {\n' +
+    '  try {\n' +
+    '    return await stat(path);\n' +
+    '  } catch (error) {\n' +
+    "    if (error?.code === 'ENOENT') return null;\n" +
+    '    throw error;\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'async function canonicalStart(path, environment) {\n' +
+    '  const absolute = resolve(expandUser(path, environment));\n' +
+    '  const pathInfo = await info(absolute);\n' +
+    '  const directory = pathInfo?.isFile() ? dirname(await realpath(absolute)) : absolute;\n' +
+    '  return (await info(directory)) === null ? directory : realpath(directory);\n' +
+    '}\n' +
+    '\n' +
+    'function isWithin(path, parent) {\n' +
+    '  const local = relative(parent, path);\n' +
+    "  return local === '' || (!local.startsWith(`..${sep}`) && local !== '..' && !isAbsolute(local));\n" +
+    '}\n' +
+    '\n' +
+    'function validateIdentifier(value, label) {\n' +
+    "  if (typeof value !== 'string' || !IDENTIFIER.test(value)) {\n" +
+    '    throw new Error(\n' +
+    '      `${label} must be a nonempty portable slug containing only letters, ` +\n' +
+    "      'numbers, dots, underscores, and hyphens'\n" +
+    '    );\n' +
+    '  }\n' +
+    "  if (value === '.' || value === '..' || value.includes('..') || value.endsWith('.lock')) {\n" +
+    '    throw new Error(`${label} is not a safe Git-compatible slug: ${value}`);\n' +
+    '  }\n' +
+    '  return value;\n' +
+    '}\n' +
+    '\n' +
+    'export function validateFeatureId(value) {\n' +
+    "  if (typeof value !== 'string' || value.length === 0) {\n" +
+    "    throw new Error('featureId must be a nonempty Git-compatible name');\n" +
+    '  }\n' +
+    '  if (/\\s|[\\u0000-\\u001f\\u007f]/u.test(value)) {\n' +
+    "    throw new Error('featureId must not contain whitespace or control characters');\n" +
+    '  }\n' +
+    "  const invalidFragments = ['..', '//', '@{', '\\\\', '~', '^', ':', '?', '*', '['];\n" +
+    '  if (\n' +
+    "    value === '@'\n" +
+    "    || value.startsWith('/')\n" +
+    "    || value.startsWith('.')\n" +
+    "    || value.startsWith('-')\n" +
+    "    || value.endsWith('/')\n" +
+    "    || value.endsWith('.')\n" +
+    '    || invalidFragments.some((fragment) => value.includes(fragment))\n' +
+    "    || value.split('/').some((part) => part.startsWith('.') || part.endsWith('.lock'))\n" +
+    '  ) {\n' +
+    '    throw new Error(`featureId is not a safe Git-compatible name: ${value}`);\n' +
+    '  }\n' +
+    '  return value;\n' +
+    '}\n' +
+    '\n' +
+    'function validateBranchName(value, label) {\n' +
+    '  try {\n' +
+    '    return validateFeatureId(value);\n' +
+    '  } catch (error) {\n' +
+    '    throw new Error(`${label} is invalid: ${error.message}`, { cause: error });\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function requiredString(mapping, key, label) {\n' +
+    '  const value = mapping[key];\n' +
+    "  if (typeof value !== 'string' || value.trim().length === 0) {\n" +
+    '    throw new Error(`${label}.${key} must be a nonempty string`);\n' +
+    '  }\n' +
+    '  return value.trim();\n' +
+    '}\n' +
+    '\n' +
+    'function parseExternalTask(value) {\n' +
+    '  if (value === undefined || value === null) return null;\n' +
+    "  if (typeof value !== 'object' || Array.isArray(value)) {\n" +
+    "    throw new Error('externalTask must be an object');\n" +
+    '  }\n' +
+    '  const taskId = value.id;\n' +
+    '  const url = value.url;\n' +
+    '  if (taskId !== undefined && taskId !== null && (\n' +
+    "    typeof taskId !== 'string' || taskId.trim().length === 0\n" +
+    '  )) {\n' +
+    "    throw new Error('externalTask.id must be a nonempty string');\n" +
+    '  }\n' +
+    '  if (url !== undefined && url !== null && (\n' +
+    "    typeof url !== 'string' || url.trim().length === 0\n" +
+    '  )) {\n' +
+    "    throw new Error('externalTask.url must be a nonempty string');\n" +
+    '  }\n' +
+    '  if ((taskId === undefined || taskId === null) && (url === undefined || url === null)) {\n' +
+    "    throw new Error('externalTask must define id or url');\n" +
+    '  }\n' +
+    '  return {\n' +
+    "    id: typeof taskId === 'string' ? taskId.trim() : null,\n" +
+    "    url: typeof url === 'string' ? url.trim() : null,\n" +
+    '  };\n' +
+    '}\n' +
+    '\n' +
+    'async function parseRepositories(value, workspaceRoot, environment) {\n' +
+    '  if (\n' +
+    '    value === null\n' +
+    "    || typeof value !== 'object'\n" +
+    '    || Array.isArray(value)\n' +
+    '    || Object.keys(value).length === 0\n' +
+    '  ) {\n' +
+    "    throw new Error('repositories must be a nonempty object');\n" +
+    '  }\n' +
+    '\n' +
+    '  const repositories = [];\n' +
+    '  const paths = new Map();\n' +
+    '  for (const [rawAlias, rawRepository] of Object.entries(value)) {\n' +
+    "    const alias = validateIdentifier(rawAlias, 'repository alias');\n" +
+    '    if (\n' +
+    '      rawRepository === null\n' +
+    "      || typeof rawRepository !== 'object'\n" +
+    '      || Array.isArray(rawRepository)\n' +
+    '    ) {\n' +
+    '      throw new Error(`repositories.${alias} must be an object`);\n' +
+    '    }\n' +
+    "    const rawPath = requiredString(rawRepository, 'path', `repositories.${alias}`);\n" +
+    '    const expandedPath = expandUser(rawPath, environment);\n' +
+    '    if (isAbsolute(expandedPath)) {\n' +
+    '      throw new Error(`repositories.${alias}.path must be workspace-relative`);\n' +
+    '    }\n' +
+    '    const unresolvedPath = resolve(workspaceRoot, expandedPath);\n' +
+    '    if (!isWithin(unresolvedPath, workspaceRoot)) {\n' +
+    '      throw new Error(`repositories.${alias}.path escapes the workspace root`);\n' +
+    '    }\n' +
+    '    const pathInfo = await info(unresolvedPath);\n' +
+    '    if (!pathInfo?.isDirectory()) {\n' +
+    '      throw new Error(\n' +
+    '        `repositories.${alias}.path does not identify an existing directory: ${unresolvedPath}`\n' +
+    '      );\n' +
+    '    }\n' +
+    '    const path = await realpath(unresolvedPath);\n' +
+    '    if (!isWithin(path, workspaceRoot)) {\n' +
+    '      throw new Error(`repositories.${alias}.path escapes the workspace root`);\n' +
+    '    }\n' +
+    '    if (paths.has(path)) {\n' +
+    '      throw new Error(\n' +
+    '        `repositories.${alias} and repositories.${paths.get(path)} resolve to the same path`\n' +
+    '      );\n' +
+    '    }\n' +
+    '    paths.set(path, alias);\n' +
+    '    const remote = validateIdentifier(\n' +
+    "      rawRepository.remote ?? 'origin',\n" +
+    '      `repositories.${alias}.remote`\n' +
+    '    );\n' +
+    '    const integrationBranch = validateBranchName(\n' +
+    "      requiredString(rawRepository, 'integrationBranch', `repositories.${alias}`),\n" +
+    '      `repositories.${alias}.integrationBranch`\n' +
+    '    );\n' +
+    "    if (Object.hasOwn(rawRepository, 'sliceBoundaryMode')) {\n" +
+    '      throw new Error(`repositories.${alias}.sliceBoundaryMode is retired; remove it and use keepPullRequestsClosed: true to keep PRs closed until merge`);\n' +
+    '    }\n' +
+    '    const keepPullRequestsClosed = rawRepository.keepPullRequestsClosed ?? false;\n' +
+    "    if (Object.hasOwn(rawRepository, 'keepPullRequestsClosed')\n" +
+    "      && typeof rawRepository.keepPullRequestsClosed !== 'boolean') {\n" +
+    '      throw new Error(`repositories.${alias}.keepPullRequestsClosed must be boolean`);\n' +
+    '    }\n' +
+    '    const releaseBranch = validateBranchName(\n' +
+    '      rawRepository.releaseBranch ?? integrationBranch,\n' +
+    '      `repositories.${alias}.releaseBranch`\n' +
+    '    );\n' +
+    '    const rawFeatureBase = rawRepository.featureBaseSha;\n' +
+    '    let featureBaseSha = null;\n' +
+    '    if (rawFeatureBase !== undefined && rawFeatureBase !== null) {\n' +
+    "      if (typeof rawFeatureBase !== 'string' || !OBJECT_ID.test(rawFeatureBase)) {\n" +
+    '        throw new Error(\n' +
+    '          `repositories.${alias}.featureBaseSha must be a full hexadecimal object ID`\n' +
+    '        );\n' +
+    '      }\n' +
+    '      featureBaseSha = rawFeatureBase.toLowerCase();\n' +
+    '    }\n' +
+    '    repositories.push({\n' +
+    '      alias,\n' +
+    '      path,\n' +
+    '      remote,\n' +
+    '      integrationBranch,\n' +
+    '      releaseBranch,\n' +
+    '      keepPullRequestsClosed,\n' +
+    '      featureBaseSha,\n' +
+    '    });\n' +
+    '  }\n' +
+    '  return repositories;\n' +
+    '}\n' +
+    '\n' +
+    'function selectRepository(repositories, start, repositoryAlias) {\n' +
+    '  if (repositoryAlias !== null) {\n' +
+    '    const repository = repositories.find((item) => item.alias === repositoryAlias);\n' +
+    '    if (repository) return repository;\n' +
+    "    const known = repositories.map((item) => item.alias).join(', ');\n" +
+    '    throw new Error(\n' +
+    '      `Unknown repository alias ${JSON.stringify(repositoryAlias)}; configured aliases: ${known}`\n' +
+    '    );\n' +
+    '  }\n' +
+    '  if (repositories.length === 1) return repositories[0];\n' +
+    '\n' +
+    '  const matches = repositories\n' +
+    '    .filter((item) => isWithin(start, item.path))\n' +
+    '    .sort((left, right) => right.path.split(sep).length - left.path.split(sep).length);\n' +
+    '  if (matches.length === 0) {\n' +
+    '    throw new Error(\n' +
+    "      'Current path does not identify a configured repository; pass a repository alias'\n" +
+    '    );\n' +
+    '  }\n' +
+    '  return matches[0];\n' +
+    '}\n' +
+    '\n' +
+    'async function findWorkspaceConfig(start) {\n' +
+    '  let current = start;\n' +
+    '  while (true) {\n' +
+    '    const candidate = resolve(current, CONFIG_NAME);\n' +
+    '    if ((await info(candidate))?.isFile()) return candidate;\n' +
+    '    const parent = dirname(current);\n' +
+    '    if (parent === current) return null;\n' +
+    '    current = parent;\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'async function runGit(args, cwd, { gitExecutable, environment, exec }) {\n' +
+    "  if (typeof gitExecutable !== 'string' || gitExecutable.length === 0) {\n" +
+    "    throw new Error('Git executable is unavailable for legacy workflow-context resolution');\n" +
+    '  }\n' +
+    '  try {\n' +
+    "    const result = await exec(gitExecutable, ['-C', cwd, ...args], {\n" +
+    "      encoding: 'utf8',\n" +
+    '      env: { ...environment },\n' +
+    '      maxBuffer: 10 * 1024 * 1024,\n' +
+    '      timeout: 20_000,\n' +
+    '    });\n' +
+    '    return result.stdout.trim();\n' +
+    '  } catch (error) {\n' +
+    '    throw new Error(\n' +
+    "      error?.stderr?.trim() || error?.stdout?.trim() || error?.message || 'Git command failed',\n" +
+    '      { cause: error }\n' +
+    '    );\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'async function legacyContext(start, options) {\n' +
+    '  const root = await realpath(await runGit(\n' +
+    "    ['rev-parse', '--show-toplevel'],\n" +
+    '    start,\n' +
+    '    options\n' +
+    '  ));\n' +
+    "  const branch = await runGit(['branch', '--show-current'], root, options);\n" +
+    '  if (branch.length === 0) {\n' +
+    '    throw new Error(`Cannot derive legacy feature identity from detached HEAD in ${root}`);\n' +
+    '  }\n' +
+    '  const repository = {\n' +
+    "    alias: 'repository',\n" +
+    '    path: root,\n' +
+    "    remote: 'origin',\n" +
+    "    integrationBranch: '',\n" +
+    "    releaseBranch: '',\n" +
+    '    keepPullRequestsClosed: false,\n' +
+    '    featureBaseSha: null,\n' +
+    '  };\n' +
+    '  return {\n' +
+    '    schemaVersion: SCHEMA_VERSION,\n' +
+    "    mode: 'legacy',\n" +
+    '    workspaceRoot: root,\n' +
+    '    configPath: null,\n' +
+    '    featureId: branch,\n' +
+    "    featureHome: resolve(root, 'docs', 'issues', branch),\n" +
+    '    externalTask: null,\n' +
+    '    multiRepository: false,\n' +
+    '    reposito'... 4162 more characters
+  
+      at TestContext.<anonymous> (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/apps/desktop/test/stage-protocol.test.js:49:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "import { execFile } from 'node:child_process';\nimport { readFile, realpath, stat } from 'node:fs/promises';\nimport { homedir } from 'node:os';\nimport {\n  dirname,\n  isAbsolute,\n  relative,\n  resolve,\n  sep,\n} from 'node:path';\nimport { promisify } from 'node:util';\n\nimport { ProtocolError } from './errors.js';\n\nconst executeFile = promisify(execFile);\nconst CONFIG_NAME = '.agentic-workflow.json';\nconst SCHEMA_VERSION = 1;\nconst IDENTIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/u;\nconst resolutions = new WeakMap();\nconst OBJECT_ID = /^[0-9a-fA-F]{40,64}$/u;\n\nfunction expandUser(path, environment) {\n  if (path === '~') return environment.HOME ?? homedir();\n  if (path.startsWith(`~${sep}`)) {\n    return resolve(environment.HOME ?? homedir(), path.slice(2));\n  }\n  return path;\n}\n\nasync function info(path) {\n  try {\n    return await stat(path);\n  } catch (error) {\n    if (error?.code === 'ENOENT') return null;\n    throw error;\n  }\n}\n\nasync function canonicalStart(path, environment) {\n  const absolute = resolve(expandUser(path, environment));\n  const pathInfo = await info(absolute);\n  const directory = pathInfo?.isFile() ? dirname(await realpath(absolute)) : absolute;\n  return (await info(directory)) === null ? directory : realpath(directory);\n}\n\nfunction isWithin(path, parent) {\n  const local = relative(parent, path);\n  return local === '' || (!local.startsWith(`..${sep}`) && local !== '..' && !isAbsolute(local));\n}\n\nfunction validateIdentifier(value, label) {\n  if (typeof value !== 'string' || !IDENTIFIER.test(value)) {\n    throw new Error(\n      `${label} must be a nonempty portable slug containing only letters, ` +\n      'numbers, dots, underscores, and hyphens'\n    );\n  }\n  if (value === '.' || value === '..' || value.includes('..') || value.endsWith('.lock')) {\n    throw new Error(`${label} is not a safe Git-compatible slug: ${value}`);\n  }\n  return value;\n}\n\nexport function validateFeatureId(value) {\n  if (typeof value !== 'string' || value.length === 0) {\n    throw new Error('featureId must be a nonempty Git-compatible name');\n  }\n  if (/\\s|[\\u0000-\\u001f\\u007f]/u.test(value)) {\n    throw new Error('featureId must not contain whitespace or control characters');\n  }\n  const invalidFragments = ['..', '//', '@{', '\\\\', '~', '^', ':', '?', '*', '['];\n  if (\n    value === '@'\n    || value.startsWith('/')\n    || value.startsWith('.')\n    || value.startsWith('-')\n    || value.endsWith('/')\n    || value.endsWith('.')\n    || invalidFragments.some((fragment) => value.includes(fragment))\n    || value.split('/').some((part) => part.startsWith('.') || part.endsWith('.lock'))\n  ) {\n    throw new Error(`featureId is not a safe Git-compatible name: ${value}`);\n  }\n  return value;\n}\n\nfunction validateBranchName(value, label) {\n  try {\n    return validateFeatureId(value);\n  } catch (error) {\n    throw new Error(`${label} is invalid: ${error.message}`, { cause: error });\n  }\n}\n\nfunction requiredString(mapping, key, label) {\n  const value = mapping[key];\n  if (typeof value !== 'string' || value.trim().length === 0) {\n    throw new Error(`${label}.${key} must be a nonempty string`);\n  }\n  return value.trim();\n}\n\nfunction parseExternalTask(value) {\n  if (value === undefined || value === null) return null;\n  if (typeof value !== 'object' || Array.isArray(value)) {\n    throw new Error('externalTask must be an object');\n  }\n  const taskId = value.id;\n  const url = value.url;\n  if (taskId !== undefined && taskId !== null && (\n    typeof taskId !== 'string' || taskId.trim().length === 0\n  )) {\n    throw new Error('externalTask.id must be a nonempty string');\n  }\n  if (url !== undefined && url !== null && (\n    typeof url !== 'string' || url.trim().length === 0\n  )) {\n    throw new Error('externalTask.url must be a nonempty string');\n  }\n  if ((taskId === undefined || taskId === null) && (url === undefined || url === null)) {\n    throw new Error('externalTask must define id or url');\n  }\n  return {\n    id: typeof taskId === 'string' ? taskId.trim() : null,\n    url: typeof url === 'string' ? url.trim() : null,\n  };\n}\n\nasync function parseRepositories(value, workspaceRoot, environment) {\n  if (\n    value === null\n    || typeof value !== 'object'\n    || Array.isArray(value)\n    || Object.keys(value).length === 0\n  ) {\n    throw new Error('repositories must be a nonempty object');\n  }\n\n  const repositories = [];\n  const paths = new Map();\n  for (const [rawAlias, rawRepository] of Object.entries(value)) {\n    const alias = validateIdentifier(rawAlias, 'repository alias');\n    if (\n      rawRepository === null\n      || typeof rawRepository !== 'object'\n      || Array.isArray(rawRepository)\n    ) {\n      throw new Error(`repositories.${alias} must be an object`);\n    }\n    const rawPath = requiredString(rawRepository, 'path', `repositories.${alias}`);\n    const expandedPath = expandUser(rawPath, environment);\n    if (isAbsolute(expandedPath)) {\n      throw new Error(`repositories.${alias}.path must be workspace-relative`);\n    }\n    const unresolvedPath = resolve(workspaceRoot, expandedPath);\n    if (!isWithin(unresolvedPath, workspaceRoot)) {\n      throw new Error(`repositories.${alias}.path escapes the workspace root`);\n    }\n    const pathInfo = await info(unresolvedPath);\n    if (!pathInfo?.isDirectory()) {\n      throw new Error(\n        `repositories.${alias}.path does not identify an existing directory: ${unresolvedPath}`\n      );\n    }\n    const path = await realpath(unresolvedPath);\n    if (!isWithin(path, workspaceRoot)) {\n      throw new Error(`repositories.${alias}.path escapes the workspace root`);\n    }\n    if (paths.has(path)) {\n      throw new Error(\n        `repositories.${alias} and repositories.${paths.get(path)} resolve to the same path`\n      );\n    }\n    paths.set(path, alias);\n    const remote = validateIdentifier(\n      rawRepository.remote ?? 'origin',\n      `repositories.${alias}.remote`\n    );\n    const integrationBranch = validateBranchName(\n      requiredString(rawRepository, 'integrationBranch', `repositories.${alias}`),\n      `repositories.${alias}.integrationBranch`\n    );\n    if (Object.hasOwn(rawRepository, 'sliceBoundaryMode')) {\n      throw new Error(`repositories.${alias}.sliceBoundaryMode is retired; remove it and use keepPullRequestsClosed: true to keep PRs closed until merge`);\n    }\n    const keepPullRequestsClosed = rawRepository.keepPullRequestsClosed ?? false;\n    if (Object.hasOwn(rawRepository, 'keepPullRequestsClosed')\n      && typeof rawRepository.keepPullRequestsClosed !== 'boolean') {\n      throw new Error(`repositories.${alias}.keepPullRequestsClosed must be boolean`);\n    }\n    const releaseBranch = validateBranchName(\n      rawRepository.releaseBranch ?? integrationBranch,\n      `repositories.${alias}.releaseBranch`\n    );\n    const rawFeatureBase = rawRepository.featureBaseSha;\n    let featureBaseSha = null;\n    if (rawFeatureBase !== undefined && rawFeatureBase !== null) {\n      if (typeof rawFeatureBase !== 'string' || !OBJECT_ID.test(rawFeatureBase)) {\n        throw new Error(\n          `repositories.${alias}.featureBaseSha must be a full hexadecimal object ID`\n        );\n      }\n      featureBaseSha = rawFeatureBase.toLowerCase();\n    }\n    repositories.push({\n      alias,\n      path,\n      remote,\n      integrationBranch,\n      releaseBranch,\n      keepPullRequestsClosed,\n      featureBaseSha,\n    });\n  }\n  return repositories;\n}\n\nfunction selectRepository(repositories, start, repositoryAlias) {\n  if (repositoryAlias !== null) {\n    const repository = repositories.find((item) => item.alias === repositoryAlias);\n    if (repository) return repository;\n    const known = repositories.map((item) => item.alias).join(', ');\n    throw new Error(\n      `Unknown repository alias ${JSON.stringify(repositoryAlias)}; configured aliases: ${known}`\n    );\n  }\n  if (repositories.length === 1) return repositories[0];\n\n  const matches = repositories\n    .filter((item) => isWithin(start, item.path))\n    .sort((left, right) => right.path.split(sep).length - left.path.split(sep).length);\n  if (matches.length === 0) {\n    throw new Error(\n      'Current path does not identify a configured repository; pass a repository alias'\n    );\n  }\n  return matches[0];\n}\n\nasync function findWorkspaceConfig(start) {\n  let current = start;\n  while (true) {\n    const candidate = resolve(current, CONFIG_NAME);\n    if ((await info(candidate))?.isFile()) return candidate;\n    const parent = dirname(current);\n    if (parent === current) return null;\n    current = parent;\n  }\n}\n\nasync function runGit(args, cwd, { gitExecutable, environment, exec }) {\n  if (typeof gitExecutable !== 'string' || gitExecutable.length === 0) {\n    throw new Error('Git executable is unavailable for legacy workflow-context resolution');\n  }\n  try {\n    const result = await exec(gitExecutable, ['-C', cwd, ...args], {\n      encoding: 'utf8',\n      env: { ...environment },\n      maxBuffer: 10 * 1024 * 1024,\n      timeout: 20_000,\n    });\n    return result.stdout.trim();\n  } catch (error) {\n    throw new Error(\n      error?.stderr?.trim() || error?.stdout?.trim() || error?.message || 'Git command failed',\n      { cause: error }\n    );\n  }\n}\n\nasync function legacyContext(start, options) {\n  const root = await realpath(await runGit(\n    ['rev-parse', '--show-toplevel'],\n    start,\n    options\n  ));\n  const branch = await runGit(['branch', '--show-current'], root, options);\n  if (branch.length === 0) {\n    throw new Error(`Cannot derive legacy feature identity from detached HEAD in ${root}`);\n  }\n  const repository = {\n    alias: 'repository',\n    path: root,\n    remote: 'origin',\n    integrationBranch: '',\n    releaseBranch: '',\n    keepPullRequestsClosed: false,\n    featureBaseSha: null,\n  };\n  return {\n    schemaVersion: SCHEMA_VERSION,\n    mode: 'legacy',\n    workspaceRoot: root,\n    configPath: null,\n    featureId: branch,\n    featureHome: resolve(root, 'docs', 'issues', branch),\n    externalTask: null,\n    multiRepository: false,\n    reposito"... 4162 more characters,
+    expected: /python|workflow_context\.py/iu,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }

@@ -1,0 +1,7 @@
+# Formal19 status and CLI repair
+
+Final product source78327bd5b3f58e52712446fbaf8beadc77f0e3d0 changes shared status and CLI documentation only. Current status resolves and validates retained candidate inputs when grants exist, reports missing/invalid evidence safely, and checks scope/repository/source-prefix/target applicability. Same-candidate verified integration remains usable for completion. Pre-candidate grants remain visible; grant scope applicability does not substitute for required PASS proof or authorize actions.
+
+The CLI quick start no longer supplies runner configuration to --consume. It uses the implemented automatic current Verification selection, with explicit guidance that --consume requires a list of retained result references.
+
+Frozen focused status8PASS; automatic Verification/grouped verdict controls2PASS; Desktop173PASS; CLI/docs7PASS; actual unpackedCLI2PASS. Earlier focused10PASS is retained; its final source-independent branch optimization is covered by frozen8 and Desktop tests. Final frozen integration rerun2PASS (slice/final merge plus status after integration), retained in integration-final.log. Native lint/buildPASS. New universal ad-hoc package and actual ARM64 runtime smokePASS;49files/147 byte comparisons bind packaged/native consumer bytes to final source. No new broad all-green claim; original broad failures and all earlier formal FAILs remain retained. Actual local evaluator receipt/outputs embedded in formal19 Verification continue to apply to unchanged execution/public-validation code.

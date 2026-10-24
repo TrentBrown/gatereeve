@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "advisory.declare-readiness",
+  "data": null,
+  "error": {
+    "code": "CONTRACT_INVALID",
+    "message": "Advisory: changed ambiguous record-space data requires classification: docs/issues/tb-multirepo-review-input/verification/workspace-config-repair/package-result.json",
+    "details": null
+  },
+  "warnings": []
+}

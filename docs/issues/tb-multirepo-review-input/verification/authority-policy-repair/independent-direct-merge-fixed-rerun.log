@@ -1,0 +1,10 @@
+{"rollbackBlocked":true,"oldAcceptAndMergeRejected":true,"explicitAmendmentFromB":true,"newCandidateIdentity":true,"newAcceptAndMergeAllowed":true,"ghWrites":0}
+✔ actual direct authority revives after amendment without continuation and byte rollback (42085.286667ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 42156.201166

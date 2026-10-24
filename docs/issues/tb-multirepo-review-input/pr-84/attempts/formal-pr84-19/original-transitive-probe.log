@@ -1,0 +1,10 @@
+{"kind":"transitive-spec-waiver","actualExitAfterChange":7,"sameRisk":true,"satisfied":true}
+✔ consumed verification external drift also preserves a spec waiver (2042.970459ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2091.203166

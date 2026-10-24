@@ -16,6 +16,7 @@ const executeFile = promisify(execFile);
 const CONFIG_NAME = '.agentic-workflow.json';
 const SCHEMA_VERSION = 1;
 const IDENTIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/u;
+const resolutions = new WeakMap();
 const OBJECT_ID = /^[0-9a-fA-F]{40,64}$/u;
 
 function expandUser(path, environment) {
@@ -308,6 +309,39 @@ async function readJson(path) {
   }
 }
 
+// Keep discovery inputs private so the public context JSON contract stays identical.
+// Capture the parsed meaning at resolution time, not a later read of mutable data.
+function authorityContext(context) {
+  return JSON.stringify({
+    mode: context.mode, workspaceRoot: context.workspaceRoot, configPath: context.configPath,
+    featureId: context.featureId, featureHome: context.featureHome,
+    selected: context.repository?.alias,
+    repositories: [...context.repositories].sort((a, b) => a.alias.localeCompare(b.alias)).map(item => ({
+      alias: item.alias, path: item.path, remote: item.remote ?? 'origin',
+      integrationBranch: item.integrationBranch ?? null,
+      releaseBranch: item.releaseBranch ?? item.integrationBranch ?? null,
+      keepPullRequestsClosed: Boolean(item.keepPullRequestsClosed), featureBaseSha: item.featureBaseSha ?? null,
+    })),
+  });
+}
+
+export function workflowContextGuard(context) {
+  const resolution = resolutions.get(context);
+  // Direct embedders may supply an explicit in-memory context. Resolved contexts
+  // must preserve their discovery provenance; cloning one is not a live resolver.
+  if (!resolution) return async () => {
+    if (context.mode || context.configPath) throw new ProtocolError('WORKFLOW_CONTEXT_ERROR',
+      'Workflow context discovery is unavailable; resolve the original request again');
+  };
+  return async (gitExecutable = resolution.options.gitExecutable) => {
+    const current = await resolveWorkflowContext({ ...resolution.options, gitExecutable });
+    if (authorityContext(context) !== resolution.identity || authorityContext(current) !== resolution.identity) {
+      throw new ProtocolError('WORKFLOW_CONTEXT_ERROR',
+        'Workspace configuration changed; resolve the original request and review current authority again');
+    }
+  };
+}
+
 export async function resolveWorkflowContext({
   cwd = process.cwd(),
   repository = null,
@@ -316,11 +350,16 @@ export async function resolveWorkflowContext({
   exec = executeFile,
 } = {}) {
   const requestedPath = resolve(expandUser(cwd, environment));
+  const retain = context => {
+    resolutions.set(context, { identity: authorityContext(context),
+      options: { cwd: requestedPath, repository, gitExecutable, environment, exec } });
+    return context;
+  };
   try {
     const start = await canonicalStart(requestedPath, environment);
     const configPath = await findWorkspaceConfig(start);
     if (configPath === null) {
-      return await legacyContext(start, { gitExecutable, environment, exec });
+      return retain(await legacyContext(start, { gitExecutable, environment, exec }));
     }
 
     const raw = await readJson(configPath);
@@ -339,7 +378,7 @@ export async function resolveWorkflowContext({
       environment
     );
     const selectedRepository = selectRepository(repositories, start, repository);
-    return {
+    return retain({
       schemaVersion: SCHEMA_VERSION,
       mode: 'configured',
       workspaceRoot,
@@ -350,7 +389,7 @@ export async function resolveWorkflowContext({
       multiRepository: repositories.length > 1,
       repository: selectedRepository,
       repositories,
-    };
+    });
   } catch (error) {
     if (error instanceof ProtocolError) throw error;
     throw new ProtocolError(

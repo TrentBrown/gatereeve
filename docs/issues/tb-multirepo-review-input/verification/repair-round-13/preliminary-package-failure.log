@@ -1,0 +1,49 @@
+Packaging app for platform darwin universal using electron v43.2.0 - Building x64 and arm64 slices now
+Packaging app for platform darwin arm64 using electron v43.2.0
+Packaging app for platform darwin x64 using electron v43.2.0
+WARNING: Could not find icon "/tmp/gr-repair13-package.Bli0Vw/branding/GateReeve.icns" with extension ".icon", skipping this app icon format
+WARNING: Could not find icon "/tmp/gr-repair13-package.Bli0Vw/branding/GateReeve.icns" with extension ".icon", skipping this app icon format
+Stitching universal app for platform darwin
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: /opt/homebrew/bin/python3 /Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/scripts/pattern_tool.py review-inputs --cwd /private/tmp/gr-repair13-fixture.YIMUjU --base 9cde4aac8d44089437430d8e748f80929e80ac09 --head 9cde4aac8d44089437430d8e748f80929e80ac09
+No applicable .pattern-review directory found for /private/tmp/gr-repair13-fixture.YIMUjU.
+Run: /pattern-init /private/tmp/gr-repair13-fixture.YIMUjU
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at ChildProcess.exithandler (node:child_process:417:12)
+    at ChildProcess.emit (node:events:509:28)
+    at maybeClose (node:internal/child_process:1124:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:306:5) {
+  code: 2,
+  killed: false,
+  signal: null,
+  cmd: '/opt/homebrew/bin/python3 /Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/scripts/pattern_tool.py review-inputs --cwd /private/tmp/gr-repair13-fixture.YIMUjU --base 9cde4aac8d44089437430d8e748f80929e80ac09 --head 9cde4aac8d44089437430d8e748f80929e80ac09',
+  stdout: '',
+  stderr: 'No applicable .pattern-review directory found for /private/tmp/gr-repair13-fixture.YIMUjU.\n' +
+    'Run: /pattern-init /private/tmp/gr-repair13-fixture.YIMUjU\n'
+}
+
+Node.js v24.15.0
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: /Users/trent.brown/.nvm/versions/node/v24.15.0/bin/node /Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/apps/desktop/scripts/create-smoke-fixture.mjs /tmp/gr-repair13-fixture.YIMUjU
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:925:11)
+    at execFileSync (node:child_process:961:15)
+    at file:///private/tmp/gr-package13.mjs:10:1 {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 96195,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v24.15.0

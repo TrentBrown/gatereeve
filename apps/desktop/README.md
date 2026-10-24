@@ -11,79 +11,23 @@ an optional native observation surface over the durable records that Plugin
 governance creates; installing Desktop without the Plugin does not create a
 useful workflow on its own.
 
-The application presents the pinned feature-state rail, subordinate
-milestones, delivery slices, PR-boundary gate dependencies, blockers,
-readiness-aware action guidance, complete artifact inventory, event and
-attempt history, the full pinned model, and non-authoritative Session context.
-Its persistent Setup surface remembers an explicit Codex, Claude Code, or both
-selection, checks only those agents, and reports the selected native Plugin plus
-shared workflow prerequisites. Compatibility comes only from exact
-project-controlled tested pairs; Setup never infers it from nearby version
-numbers and never invokes an installer or the optional GateReeve CLI.
+The application displays the current seven-phase planning and delivery backbone,
+milestone blockers, required validation obligations, exact retained evidence,
+accepted exceptions, event history, and optional Session context. It opens old
+feature folders into current-resume guidance; it does not replay historical
+journals. The model chooses execution order. Desktop has no ordering editor,
+module scheduler, automatic evaluator launcher, or manual PASS attestation.
 
-Incomplete Setup blocks only the claim that new or active work is operationally
-ready. The application still opens explicitly selected durable feature records
-and labels that use as historical or offline observation.
-Native notifications are off by default. A user can opt in to receive
-transition-deduplicated attention, failed or stale gate, suspension,
-inconsistency, pull-request merge, and feature-completion notices while the
-app is running. Quitting Desktop stops its watchers, polling, and notices.
+Setup detects the selected native agents and prerequisites without installing
+anything. Evidence reads remain available offline. The project terminal starts
+only when opened and remains user-controlled; its transcript is not gate proof.
+Local artifact previews retain their isolated renderer and sandboxed HTML policy.
+Notifications remain opt-in. Model guidance and protected adapter enforcement
+are shown separately; arbitrary terminal actions are not intercepted.
 
-The bottom terminal panel starts no process until the user opens it or explicitly
-runs a command-backed workflow module. Each saved project can own one in-memory
-login-shell session plus dedicated named module-task sessions for the current
-application lifetime. The project shell remains user-controlled: GateReeve does
-not inject agent commands into it, retain its transcript, or treat its input or
-output as workflow evidence. Module tasks use a separately disclosed executable,
-argument vector, repository working directory, timeout, and bounded attributable
-transcript.
-
-Command modules require `Run once` consent or a device-local `Always allow this
-command version` grant. A durable grant is bound to the Git common repository,
-module version and manifest, argument template, working directory, and verified
-declared entrypoint/support-file digests, so linked worktrees may share the exact
-grant while a separate clone cannot. This is informed consent, not a sandbox or
-complete provenance check: an authorized command has the user's filesystem,
-process, credential-file, and network authority and may invoke changed PATH
-tools, dependencies, files, or downloaded code.
-
-Observation providers are installed and allowlisted by GateReeve rather than
-loaded from project manifests. They run out of process using one bounded,
-versioned JSON request and response. Provider status is observational; a
-terminal result can record an authoritative outcome only after the protocol core
-freshly validates the pinned module, dependencies, boundary context,
-fingerprint, and evidence.
-
-Enabled `agent-workflow` modules do not use the command-consent dialog. When an
-active boundary makes one eligible, Desktop automatically invokes the same
-headless GateReeve scheduler with the first selected ready agent. Judge gets one
-fresh read-only context. Whiteboard gets two distinct fresh contexts in order:
-Challenger, then Defender/Publisher. Neither receives the implementation
-conversation. A provider or isolation failure is shown as unavailable and
-leaves the gate `UNSET`; Desktop does not retry the same module input without a
-changed attempt/input or an application restart.
-
-Interactive Whiteboard HTML is served only through its validated artifact ID.
-The iframe and response impose a scripts-only sandbox with no origin, network,
-filesystem, forms, child frames, parent-window access, external resources,
-referrer, or navigation authority. Inline HTML, CSS, JavaScript, SVG, and
-animation remain available for expressive diagrams and progressive reveal.
-The bound JSON manifest—not renderer state—remains the evidence root.
-
-Selecting Finalizing on the unchanged six-state rail shows the enabled
-feature-finalization module graph. GateReeve can start an attempt bound to the
-recorded feature-final merge, refresh an observation provider, record a
-reasoned feature-scoped waiver when permitted, inspect exact retained attempt
-data, and offer Complete only when required outcomes are current and
-nonblocking. Projects with no enabled finalization modules show no release card
-and can complete directly from the ordinary closeout surface.
-
-The built-in GateReeve Release module observes the existing protected Release
-Conductor workflow. Its packaged provider is a self-contained, byte-digest-bound
-JavaScript bundle run with the application runtime in Node mode; GateReeve does
-not require a system Node installation. Intermediate or failed conductor states
-remain live status. Only retained terminal `COMPLETE` evidence whose release
-source contains the feature merge can record `PASS`.
+Release publication stays in the separately protected Release Conductor workflow.
+Its provider mechanics remain available for actual release observations; this
+cutover does not grant publication authority.
 
 ## Development
 
@@ -103,11 +47,13 @@ npm start
 ```
 
 `npm start` stages the canonical protocol before launching the app. The Desktop
-observation runtime itself does not require Python, a separate Node.js runtime,
-or the optional GateReeve CLI. Desktop persists only the explicit selected-agent
+observation runtime requires compatible Python to requalify document validation
+and pattern evidence, using the executable discovered by Setup. It does not need
+a separate Node.js runtime or the optional GateReeve CLI. Packaged helpers are
+unpacked for external Python; they match the canonical helper bytes. Isolated
+document validators share an explicit minimal environment across CLI and Desktop. Desktop persists only the explicit selected-agent
 preference, recent and last worktree paths, window geometry, terminal panel
-height, native notification preference, and exact command-version grants in a
-separate device-local file. It does not persist terminal visibility or content,
+height, native notification preference, in a separate device-local file. It does not persist terminal visibility or content,
 detection results, or cache
 snapshots, workflow artifacts, GitHub responses, or governance state.
 
@@ -174,12 +120,11 @@ artifact sandbox. Checkpoints and handoffs use a
 separate exact-ID Session reader and never become workflow evidence. The
 renderer cannot supply an arbitrary terminal executable, arguments, cwd,
 environment, or process ID. It can send keystrokes only to an opaque project
-shell or module-task session owned by the selected saved project. The trusted
-main process creates the shell from the account login shell and creates module
-tasks only from the exact pinned declarative module after explicit consent.
-This intentionally lets the user invoke the CLI, launch agents, and run arbitrary
-shell commands, but no shell activity grants passage; module-task passage uses
-the fresh protocol-core evidence path described above.
+shell session owned by the selected saved project. The trusted main process
+creates that shell from the account login shell. Users can invoke the CLI, launch
+agents, and run commands there. The model orchestrates work within the authorized
+phase; passage requires the current protocol core to validate the retained
+evidence and human decisions at the milestone boundary.
 Setup checks remain separate, run only in the trusted main process, invoke
 version/status/list operations for explicitly selected agents, and expose
 native remediation as copyable text rather than executing it.

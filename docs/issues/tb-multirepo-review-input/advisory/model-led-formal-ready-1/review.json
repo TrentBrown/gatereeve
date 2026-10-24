@@ -1,0 +1,435 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-review",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-1",
+  "source": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "007ec2081bfc2859cb8f866962bc3d58e47c12fd",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:7b664977c0833adb7af27c1379f0187d531868b55b1918a9395b13140ec05d27",
+  "requestIdentity": "sha256:8d259464df6cdd78980b2444f377d8518f87ea01f3a5507eb741b62c34108cb8",
+  "readiness": {
+    "path": "advisory/model-led-formal-ready-1/readiness.json",
+    "hash": "sha256:0a6f47f7db8277ba934e90fab89ed84a25f42d11e3dab507e0844dbedec58621"
+  },
+  "fullVerification": "PENDING",
+  "outcome": "FINDINGS",
+  "result": {
+    "schemaVersion": 1,
+    "outcome": "FINDINGS",
+    "fullVerification": "PENDING",
+    "summary": "Six supported findings affect completion validity, containment, review coverage, and consumer consistency. Full Verification and independent formal Judge remain required. No prior findings were supplied.",
+    "criteria": [
+      {
+        "id": "R1",
+        "result": "FINDING",
+        "explanation": "Completion can admit a retained candidate after its approved requirements have changed.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/core.js:276",
+          "plugin-src/shared/resources/protocol/current/core.js:287"
+        ]
+      },
+      {
+        "id": "R2",
+        "result": "SATISFIED",
+        "explanation": "Readiness records intent without execution; genuine consumed-proof requirements remain, with no remediation-round limit.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/core.js:183",
+          "plugin-src/shared/resources/protocol/current/execution.js:236",
+          "cli/test/current-core.test.js:753"
+        ]
+      },
+      {
+        "id": "R3",
+        "result": "SATISFIED",
+        "explanation": "Canonical local storage supports repository-local and parent records independently of evidence commits.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/store.js:87",
+          "cli/test/current-core.test.js:71",
+          "cli/test/current-core.test.js:532"
+        ]
+      },
+      {
+        "id": "R4",
+        "result": "FINDING",
+        "explanation": "Completion does not bind its candidate to current commitments, and FEATURE preparation ignores the configured original feature base.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/evidence.js:83",
+          "plugin-src/shared/resources/protocol/current/evidence.js:117",
+          "plugin-src/shared/resources/protocol/current/core.js:287"
+        ]
+      },
+      {
+        "id": "R5",
+        "result": "FINDING",
+        "explanation": "An ancestor symlink can redirect an existing feature home outside its trusted workspace.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/store.js:89",
+          "plugin-src/shared/resources/protocol/current/adapter.js:90"
+        ]
+      },
+      {
+        "id": "R6",
+        "result": "SATISFIED",
+        "explanation": "Exclusive publication, integrity checks, operation reconciliation, and visible historical losses address incomplete or conflicting proof.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/store.js:67",
+          "plugin-src/shared/resources/protocol/current/store.js:104",
+          "plugin-src/shared/resources/protocol/current/core.js:332",
+          ".gatereeve-agent-evidence/fast-checks/1-0-retention-recheck.log:1"
+        ]
+      },
+      {
+        "id": "R7",
+        "result": "FINDING",
+        "explanation": "Retained closure can remain valid while completion evaluates superseded requirement bytes.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/core.js:283",
+          "plugin-src/shared/resources/protocol/current/core.js:287",
+          "plugin-src/shared/resources/protocol/current/evidence.js:117"
+        ]
+      },
+      {
+        "id": "R8",
+        "result": "SATISFIED",
+        "explanation": "Execution qualifies a fresh evaluator and validates code/spec verdicts separately; missing verdicts remain unavailable.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/execution.js:116",
+          "plugin-src/shared/resources/protocol/current/execution.js:381",
+          "cli/test/current-core.test.js:180"
+        ]
+      },
+      {
+        "id": "R9",
+        "result": "SATISFIED",
+        "explanation": "Required obligations remain individually represented, with actual runner execution and a separate Judge.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/contracts.js:40",
+          "plugin-src/shared/resources/protocol/current/execution.js:135"
+        ]
+      },
+      {
+        "id": "R10",
+        "result": "SATISFIED",
+        "explanation": "Equivalent captured content can reuse qualifying results without rewriting original execution provenance.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/evidence.js:108",
+          "plugin-src/shared/resources/protocol/current/execution.js:335",
+          "cli/test/current-core.test.js:520"
+        ]
+      },
+      {
+        "id": "R11",
+        "result": "FINDING",
+        "explanation": "Changed commitments can leave completion proof eligible; configured feature-base changes are absent from repository applicability identity.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/core.js:287",
+          "plugin-src/shared/resources/protocol/current/evidence.js:68",
+          "plugin-src/shared/resources/protocol/current/evidence.js:121"
+        ]
+      },
+      {
+        "id": "R12",
+        "result": "FINDING",
+        "explanation": "Complete-feature ranges are caller-controlled, and delta coverage omits changes to base snapshots.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/evidence.js:90",
+          "plugin-src/shared/resources/protocol/current/execution.js:40",
+          "plugin-src/shared/resources/protocol/current/execution.js:313"
+        ]
+      },
+      {
+        "id": "R13",
+        "result": "SATISFIED",
+        "explanation": "History selection distinguishes claims, open findings, affected closures, and justified carry-forward.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/execution.js:185",
+          "plugin-src/shared/resources/protocol/current/execution.js:258",
+          "cli/test/current-core.test.js:660"
+        ]
+      },
+      {
+        "id": "R14",
+        "result": "SATISFIED",
+        "explanation": "New findings remain reportable; blocking findings require an approved criterion or gate rule and source in scope.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/execution.js:45",
+          "plugin-src/shared/resources/protocol/current/execution.js:169"
+        ]
+      },
+      {
+        "id": "R15",
+        "result": "SATISFIED",
+        "explanation": "Decisions retain observed provenance, named continuations, and old/new commitments with repeat-safe operations.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/contracts.js:65",
+          "plugin-src/shared/resources/protocol/current/core.js:134",
+          "plugin-src/shared/resources/protocol/current/core.js:362"
+        ]
+      },
+      {
+        "id": "R16",
+        "result": "FINDING",
+        "explanation": "Completion can retain acceptance and exceptions for superseded commitments; ordinary CLI status omits exception details.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/core.js:305",
+          "plugin-src/shared/resources/protocol/current/core.js:310",
+          "cli/src/commands/current.js:20"
+        ]
+      },
+      {
+        "id": "R17",
+        "result": "FINDING",
+        "explanation": "Protected operations consult the shared core, but its completion predicate permits invalid passage after requirement amendment.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/core.js:287",
+          "plugin-src/shared/resources/protocol/current/core.js:324"
+        ]
+      },
+      {
+        "id": "R18",
+        "result": "FINDING",
+        "explanation": "Default CLI output conceals exceptions, and shipped consumer documentation still describes removed operations.",
+        "evidence": [
+          "cli/src/commands/current.js:20",
+          "cli/README.md:181",
+          "apps/desktop/README.md:119"
+        ]
+      },
+      {
+        "id": "R19",
+        "result": "SATISFIED",
+        "explanation": "Active entrypoints use the current protocol and reject retired mutations without replaying historical state.",
+        "evidence": [
+          "cli/src/index.js:16",
+          "plugin-src/shared/resources/protocol/plugin-adapter.js:5",
+          "cli/test/plugin-adapter.test.js:20"
+        ]
+      },
+      {
+        "id": "R20",
+        "result": "SATISFIED",
+        "explanation": "Resume establishes durable current activation, preserves historical files, and requires observed current authority.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/core.js:87",
+          "plugin-src/shared/resources/protocol/current/store.js:161",
+          "cli/test/current-core.test.js:563"
+        ]
+      },
+      {
+        "id": "R21",
+        "result": "SATISFIED",
+        "explanation": "Receipts preserve execution timing and outcomes, represent unavailable metrics as null, and introduce no benchmark gate.",
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/execution.js:421",
+          "plugin-src/shared/resources/policy/WORKFLOW.md:74"
+        ]
+      }
+    ],
+    "scopeCheck": {
+      "result": "SATISFIED",
+      "explanation": "Changes stay within the authorized core, helper, schema, CLI/plugin, documentation, and desktop consumer scope. All 46 patch chunks verified; all 144 surviving changed files matched inventory blob identities. The inventory declares no binaries.",
+      "evidence": [
+        ".gatereeve-agent-evidence/inventory.json",
+        ".gatereeve-agent-evidence/patches/feature.json",
+        "docs/issues/tb-multirepo-review-input/spec.md:269"
+      ]
+    },
+    "gapCheck": {
+      "result": "FINDING",
+      "explanation": "Completion applicability, canonical-root containment, complete-feature range validation, and base-change delta coverage have supported gaps.",
+      "evidence": [
+        "plugin-src/shared/resources/protocol/current/core.js:287",
+        "plugin-src/shared/resources/protocol/current/store.js:89",
+        "plugin-src/shared/resources/protocol/current/evidence.js:83",
+        "plugin-src/shared/resources/protocol/current/execution.js:40"
+      ]
+    },
+    "contradictionCheck": {
+      "result": "FINDING",
+      "explanation": "Consumer documentation advertises removed operations, ordinary CLI status omits required exception visibility, and original feature-base policy is not enforced by current preparation.",
+      "evidence": [
+        "cli/README.md:181",
+        "apps/desktop/README.md:119",
+        "cli/src/commands/current.js:20",
+        "plugin-src/shared/resources/policy/WORKSPACE-CONTEXT.md:32",
+        "plugin-src/shared/resources/protocol/current/evidence.js:98"
+      ]
+    },
+    "findings": [
+      {
+        "summary": "Completion can accept superseded requirements. After an authorized amendment, the old candidate, acceptance, and exceptions remain usable because completion disables live requirement checks. Reobserving integration permits completion without refreshed assessment of the amended commitments.",
+        "criterionIds": [
+          "R1",
+          "R4",
+          "R7",
+          "R11",
+          "R16",
+          "R17"
+        ],
+        "invariant": "Completion proof, human acceptance, and exceptions must apply to the current approved commitments.",
+        "affectedPaths": [
+          "plugin-src/shared/resources/protocol/current/core.js",
+          "plugin-src/shared/resources/protocol/current/evidence.js",
+          "apps/desktop/resources/protocol/current/core.js",
+          "apps/desktop/resources/protocol/current/evidence.js"
+        ],
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/core.js:26 — amendment changes phase/spec validation without clearing the candidate or integrations.",
+          "plugin-src/shared/resources/protocol/current/core.js:276 — current implementation authority is checked separately from the candidate's authorization.",
+          "plugin-src/shared/resources/protocol/current/core.js:287 — completion calls checkCandidate with live:false.",
+          "plugin-src/shared/resources/protocol/current/evidence.js:117 — live:false checks retained requirement objects rather than current bytes.",
+          "plugin-src/shared/resources/protocol/current/core.js:305 — exceptions and acceptance remain keyed to the old candidate.",
+          "A read-only in-memory invocation of CurrentCore.check('completion') returned allowed:true with differing current and candidate spec hashes."
+        ]
+      },
+      {
+        "summary": "Existing-run operations accept an ancestor-symlink substitution of the feature home. Redirecting workspace/docs or workspace/docs/issues to an external directory containing the retained feature bypasses workspace containment and redirects evidence publication.",
+        "criterionIds": [
+          "R5"
+        ],
+        "invariant": "Every feature-home access must remain beneath the trusted workspace without symlink substitution in its internal path components.",
+        "affectedPaths": [
+          "plugin-src/shared/resources/protocol/current/store.js",
+          "plugin-src/shared/resources/protocol/current/adapter.js",
+          "apps/desktop/resources/protocol/current/store.js",
+          "apps/desktop/resources/protocol/current/adapter.js"
+        ],
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/adapter.js:17 — ensureHome validates components beneath the workspace.",
+          "plugin-src/shared/resources/protocol/current/adapter.js:90 — that validation runs only for start/resume.",
+          "plugin-src/shared/resources/protocol/current/store.js:89 — CurrentStore.at checks only the final directory before accepting its realpath.",
+          "plugin-src/shared/resources/protocol/current/store.js:99 — subsequent publication uses that redirected home."
+        ]
+      },
+      {
+        "summary": "FEATURE preparation ignores the configured original feature base. A caller can select only the latest slice, or base=head, while naming every rubric row; completion treats the FEATURE label as complete-feature coverage.",
+        "criterionIds": [
+          "R4",
+          "R11",
+          "R12"
+        ],
+        "invariant": "Complete-feature assessment must cover the feature's established source range, and changes to that range must invalidate affected applicability.",
+        "affectedPaths": [
+          "plugin-src/shared/resources/protocol/current/evidence.js",
+          "plugin-src/shared/resources/protocol/current/core.js",
+          "apps/desktop/resources/protocol/current/evidence.js",
+          "apps/desktop/resources/protocol/current/core.js"
+        ],
+        "evidence": [
+          "plugin-src/shared/resources/policy/WORKSPACE-CONTEXT.md:32 — original per-repository feature bases define complete-feature evaluation ranges.",
+          "plugin-src/shared/resources/protocol/context.js:194 — the resolver retains featureBaseSha.",
+          "plugin-src/shared/resources/protocol/current/evidence.js:68 — repository applicability identity omits featureBaseSha.",
+          "plugin-src/shared/resources/protocol/current/evidence.js:90 — preparation accepts the caller's base without comparing the original feature base.",
+          "plugin-src/shared/resources/protocol/current/evidence.js:103 — FEATURE validation checks rubric count only.",
+          "plugin-src/shared/resources/protocol/current/core.js:313 — completion checks the FEATURE label without validating its original range."
+        ]
+      },
+      {
+        "summary": "Delta coverage ignores base-snapshot changes. Expanding the review range with an unchanged head produces an empty changed-path list, allowing PASS without explicit coverage of newly included changes; the reviewer export also omits the prior base snapshot.",
+        "criterionIds": [
+          "R11",
+          "R12"
+        ],
+        "invariant": "Delta admission must identify and cover changes to both source endpoints and the resulting review range.",
+        "affectedPaths": [
+          "plugin-src/shared/resources/protocol/current/execution.js",
+          "apps/desktop/resources/protocol/current/execution.js"
+        ],
+        "evidence": [
+          "plugin-src/shared/resources/protocol/current/execution.js:40 — changedPaths compares repository.files only, excluding baseFiles.",
+          "plugin-src/shared/resources/protocol/current/execution.js:76 — prior exports copy head files without prior base files.",
+          "plugin-src/shared/resources/protocol/current/execution.js:313 — delta preparation does not reject or separately account for changed bases.",
+          "plugin-src/shared/resources/protocol/current/execution.js:213 — required coverage is checked only against the incomplete changed-path list.",
+          "A read-only invocation of changedPaths with changed base/baseFiles and identical head files returned []."
+        ]
+      },
+      {
+        "summary": "Ordinary CLI status hides accepted exceptions. A waived failed or unavailable gate can yield 'acceptance: ready' without displaying its original outcome, exception, or accepted consequences.",
+        "criterionIds": [
+          "R16",
+          "R18"
+        ],
+        "invariant": "Ordinary current-status reports must display accepted exceptions separately from preserved check verdicts.",
+        "affectedPaths": [
+          "cli/src/commands/current.js"
+        ],
+        "evidence": [
+          "cli/src/commands/current.js:20 — text status prints phase, milestone readiness, historical gaps, and blockers only.",
+          "plugin-src/shared/resources/protocol/current/core.js:308 — outcomes retain the original verdict and exception, but text status does not render them.",
+          "docs/issues/tb-multirepo-review-input/spec.md:182 — accepted exceptions must be displayed independently."
+        ]
+      },
+      {
+        "summary": "Shipped consumer documentation still advertises removed interfaces: CLI advisory declare-readiness/proceed/check operations and desktop module-task execution. These instructions contradict the current command tree and desktop boundary.",
+        "criterionIds": [
+          "R18"
+        ],
+        "invariant": "Distributed consumer instructions must describe the current operations and capabilities.",
+        "affectedPaths": [
+          "cli/README.md",
+          "apps/desktop/README.md"
+        ],
+        "evidence": [
+          "cli/README.md:181 — documents retired advisory commands and their execution behavior.",
+          "cli/src/index.js:16 — registers current commands and plugin commands only.",
+          "plugin-src/shared/resources/commands/advisory-review.md:5 — current readiness and explicit execution replace that interface.",
+          "apps/desktop/README.md:119 — still describes module-task sessions and consent-driven module execution.",
+          "apps/desktop/main/index.js:186 — desktop process management now uses terminalManager without the removed module-task manager."
+        ]
+      }
+    ],
+    "checklist": []
+  },
+  "receipts": [
+    {
+      "schemaVersion": 1,
+      "kind": "gatereeve-agent-workflow-receipt",
+      "protocolVersion": 1,
+      "runId": "advisory-model-led-formal-ready-1-1",
+      "attemptId": "advisory-model-led-formal-ready-1",
+      "module": {
+        "id": "gatereeve/advisory-review",
+        "version": "1.0.0",
+        "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+      },
+      "stage": "advisory",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "provider": {
+        "id": "codex",
+        "adapterVersion": "1.0.0",
+        "model": "gpt-6.1-sol",
+        "reasoningEffort": "high",
+        "contextId": "01a16b45-34d3-7950-a36c-6b940140baed"
+      },
+      "isolation": {
+        "method": "codex-ephemeral-exec",
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "policy": {
+        "repositoryAccess": "read-only-pinned",
+        "networkAccess": "denied",
+        "scratch": "disposable"
+      },
+      "startedAt": "2026-10-24T00:17:39.910Z",
+      "completedAt": "2026-10-24T00:26:00.324Z",
+      "status": "completed",
+      "digests": {
+        "instructions": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+        "input": "sha256:b9d5920819a7e3aaedc35ed2eaadb808e84013798a2ae05c748f0c5e8c98fbee",
+        "output": "sha256:993d05cb2dea135051cd41a5f6d782427627320b3c31c554f98247395529b0ae",
+        "snapshot": "sha256:e3cf949add6bf892fd75b4fa889aee317639ca50947d2e1f2b74068ad2828ee0"
+      }
+    }
+  ],
+  "operationalErrors": []
+}

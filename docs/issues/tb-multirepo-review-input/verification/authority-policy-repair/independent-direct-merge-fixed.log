@@ -1,0 +1,19 @@
+✖ actual direct authority revives after amendment without continuation and byte rollback (24938.9125ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 24993.648208
+
+✖ failing tests:
+
+test at ../../../../../../private/tmp/gr-judge20-direct-merge-fixed.mjs:109:1
+✖ actual direct authority revives after amendment without continuation and byte rollback (24938.9125ms)
+  TypeError: Cannot read properties of undefined (reading 'payload')
+      at reviewAll (file:///private/tmp/gr-judge20-direct-merge-fixed.mjs:80:39)
+      at async TestContext.<anonymous> (file:///private/tmp/gr-judge20-direct-merge-fixed.mjs:130:104)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3)

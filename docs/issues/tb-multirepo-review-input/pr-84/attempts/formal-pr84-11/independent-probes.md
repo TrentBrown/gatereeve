@@ -1,0 +1,7 @@
+# Independent tenth-repair probes
+
+Fresh formal10 native Judge reported F1 partial repository capture, F2 incomplete reviewer history and F3 unsupported activation-copy resume rejection. The independent code/spec reviewer subsequently reproduced all three against the immutable formal10 pin. Adjacent actual-operation probes showed cross-gate negative review could reuse old PASS and a coverage-only code FAIL could leave old PASS consumable. No hosted merge was attempted; evaluators in these behavioral probes were deterministic fixtures.
+
+After the repair, independent before/after probes confirmed source-root rejection, public matching-copy resumption with original bytes retained, criterion/coverage/cross-gate history inclusion, fresh review after a Judge blocker, and rejection of old proof after empty-criteria coverage failure. Nine new operation tests independently passed. Additional controls confirm a later transport UNAVAILABLE preserves the preceding criterion failure, and unrelated R2 failure leaves equivalent R1 code proof reusable with zero new evaluator launches. These are preliminary repair observations, not formal passage.
+
+Scripts retained outside application source: /tmp/gr-formal10-judge-probes.mjs, /tmp/gr-formal10-coverage-barrier-probe.mjs (original pin); /tmp/gr-repair10-judge-probes.mjs, /tmp/gr-repair10-context-controls.mjs, /tmp/gr-repair10-coverage-barrier-probe.mjs (repaired source).

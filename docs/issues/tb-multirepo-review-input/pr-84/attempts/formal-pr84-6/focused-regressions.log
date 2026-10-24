@@ -1,0 +1,17 @@
+✔ quality exceptions retain facts and never authorize merge or waive integrity (643.721ms)
+✔ quality exception survives bookkeeping-equivalent commits but not changed source (927.94175ms)
+✔ waiver with acceptance retains pending human instruction before failed continuation (9807.185833ms)
+✔ unrecorded copied PASS cannot supply verification or delta ancestry (827.378042ms)
+✔ reserved history with Git mode 100755 fails capture without leaking or hiding source (467.475459ms)
+✔ reserved history with Git mode 120000 fails capture without leaking or hiding source (452.7365ms)
+✔ finding-scoped exceptions cannot absorb other findings and runner exceptions expire on changed risk (1684.15125ms)
+✔ lost failed-spec evidence stays visible after correction and blocks retention until restored (963.17275ms)
+✔ independent-gate exception binds consumed runner risk transitively (1096.9935ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16951.191083

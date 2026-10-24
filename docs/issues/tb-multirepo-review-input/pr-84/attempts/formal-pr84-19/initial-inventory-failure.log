@@ -1,0 +1,25 @@
+✖ lints the canonical repository plugin sources (31.522833ms)
+✔ rejects personal paths before inventory validation (1.805625ms)
+✔ rejects root escapes and native platform markers in shared source (1.083917ms)
+✔ rejects symlinks in canonical package sources (0.951792ms)
+✔ rejects a JavaScript import escaping the shared package (1.030875ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 4
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 69.686041
+
+✖ failing tests:
+
+test at cli/test/portability.test.js:11:1
+✖ lints the canonical repository plugin sources (31.522833ms)
+  Error: protocol resources differ from inventory: expected agent-workflow.js, constants.js, context.js, current/actions.js, current/adapter.js, current/contracts.js, current/core.js, current/environment.js, current/evidence.js, current/execution.js, current/observation.js, current/pattern-inputs.js, current/pre-tool-use.js, current/store.js, errors.js, index.js, json-schema.js, local-agent-adapters.js, module-runtime.js, package.json, plugin-adapter.js, python-guards.js, result.js; found agent-workflow.js, constants.js, context.js, current/actions.js, current/adapter.js, current/authorization.js, current/contracts.js, current/core.js, current/environment.js, current/evidence.js, current/execution.js, current/observation.js, current/pattern-inputs.js, current/pre-tool-use.js, current/store.js, errors.js, index.js, json-schema.js, local-agent-adapters.js, module-runtime.js, package.json, plugin-adapter.js, python-guards.js, result.js
+      at assert (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/src/plugin/portability.js:33:11)
+      at validateDeclaredInventory (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/src/plugin/portability.js:118:5)
+      at async lintPortability (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/src/plugin/portability.js:157:21)
+      at async TestContext.<anonymous> (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/portability.test.js:12:18)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3)

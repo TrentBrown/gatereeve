@@ -3,19 +3,11 @@ name: workflow-spec-validate
 description: "Validate a software spec before implementation planning. Use when checking spec.md, acceptance criteria, rubric pass/fail/evidence fields, AC-to-rubric consistency, or deciding whether a spec is ready for planning."
 ---
 
-# Workflow Spec Validate
+# Spec Validate
 
-## Portable Resource Root
-
-Resolve `<plugin-root>` from the real path of this `SKILL.md`: it is the parent
-directory of `skills/`. Replace the placeholder before opening files or running
-commands, and quote the resolved path.
-
-Read:
-
-- `<plugin-root>/resources/policy/WORKFLOW.md`
-- `<plugin-root>/resources/commands/spec-validate.md`
-- `<plugin-root>/resources/PROTOCOL.md`
-
-Report concrete blocking issues. Offer direct fixes for minor structural gaps.
-Do not approve planning from vague or subjective criteria.
+Resolve `<plugin-root>` as the parent of `skills/` from this file's real path.
+Read `<plugin-root>/resources/PROTOCOL.md` and follow
+`<plugin-root>/resources/commands/spec-validate.md`.
+Use the current core for status, execution and milestone passage. The model
+chooses work order within the authorized phase; no per-commit gate or automatic
+readiness review applies. Preserve actual evidence and observed human authority.

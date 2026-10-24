@@ -1,0 +1,11 @@
+✔ runner CLI requires an explicit scope and executes the documented configuration (3293.393375ms)
+✔ CLI records and revokes standing authority through the native core and fails closed without proof (5415.875459ms)
+✔ CLI preserves constrained Whiteboard waiver basis and explanation policy amendment (2732.453834ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11491.274041

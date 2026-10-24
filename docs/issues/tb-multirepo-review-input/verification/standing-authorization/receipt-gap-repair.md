@@ -1,0 +1,5 @@
+# Formal18 R8 evidence delivery repair
+
+No product or test change. The required actual local execution receipt was already retained as pr-84/attempts/formal-pr84-18/live-evaluator.json, containing current-contract result/receipt, public2.1.0 provider receipt and output. The prior formal Judge snapshot exported only verification.md and runtime.png. Formal18 correctly failed R8 on an inspectability gap and passed the other22 criteria; preserve its original verdict/artifacts unchanged.
+
+The new Verification evidence attachment list explicitly supplies the actual local receipt/output, successful execution log, current public-validator recheck and current mechanical logs. This is fixture transport evidence, not a prior PR quality verdict. No prior Judge report is injected into the fresh Judge input. The already-retained receipt is revalidated with current public code; no unrelated tests need repeating. The complete final feature source and all23 criteria remain required for the fresh Judge.

@@ -15,7 +15,7 @@ test('workspace state is isolated per canonical project and remains serializable
   store.toggleTerminal('/project/a', true);
   store.setInspectorWidth('/project/a', 530);
   store.setHierarchy('/project/a', {
-    selectedFeatureState: 'DELIVERING_SLICES',
+    selectedFeatureState: 'IMPLEMENTING',
     selectedSliceId: 'slice-2',
     selectedAttemptId: 'attempt-2',
     selectedGateId: 'verification',
@@ -30,7 +30,7 @@ test('workspace state is isolated per canonical project and remains serializable
     selectedAttemptId: store.get('/project/a').selectedAttemptId,
     selectedGateId: store.get('/project/a').selectedGateId,
   }, {
-    selectedFeatureState: 'DELIVERING_SLICES',
+    selectedFeatureState: 'IMPLEMENTING',
     selectedSliceId: 'slice-2',
     selectedAttemptId: 'attempt-2',
     selectedGateId: 'verification',

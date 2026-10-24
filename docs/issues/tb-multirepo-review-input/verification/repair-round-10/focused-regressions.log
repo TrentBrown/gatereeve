@@ -1,0 +1,19 @@
+✔ source admission rejects configured subdirectories and accepts linked worktree roots (1273.812041ms)
+✔ public resume preserves unsupported primary activation records (656.385ms)
+✔ public resume preserves unsupported witness activation records (650.156583ms)
+✔ public resume preserves unsupported matching activation records (756.041041ms)
+✔ public resume preserves unsupported conflicting activation records (540.86025ms)
+✔ default reviewer context and proof admission preserve criterion-only failures (3419.338417ms)
+✔ default reviewer context and proof admission preserve coverage-only failures (2404.265458ms)
+✔ default reviewer context and proof admission preserve cross-gate failures (2525.695667ms)
+✔ cross-gate same finding IDs retain separate closure authority (2886.473583ms)
+✔ transport unavailability alone preserves applicable independent proof (1255.743417ms)
+✔ review context keeps an R1 failure after an unrelated R2 assessment (3460.592583ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19891.158125

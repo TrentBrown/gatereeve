@@ -1,0 +1,11 @@
+{"checksExit":1,"message":"Runner requires explicit externalRuntimeInputs for each checked repository (an empty list declares no additional external inputs)"}
+{"fullConfigurationSuccess":true}
+✔ documented checks CLI cannot express mandatory external declaration (2396.25725ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2439.843291

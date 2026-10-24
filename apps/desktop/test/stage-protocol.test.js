@@ -31,18 +31,16 @@ test('Desktop stages the exact protocol and trusted waiver guard without a CLI r
     'node-pty': '1.2.0-beta.15',
   });
   assert.equal(Object.keys(packageJson.dependencies).some((name) => /cli|commander/iu.test(name)), false);
-  const trustedScripts = [
-    'pr_context.py',
-    'workflow_common.py',
-    'workflow_context.py',
-  ];
-  assert.deepEqual(await readdir(resolve(desktopRoot, 'resources/scripts')), trustedScripts);
+  const canonicalScripts = resolve(repositoryRoot, 'plugin-src/shared/resources/scripts');
+  const stagedScripts = resolve(desktopRoot, 'resources/scripts');
+  const runtimeFiles = async root => (await readdir(root, { recursive: true, withFileTypes: true }))
+    .filter(entry => entry.isFile())
+    .map(entry => resolve(entry.parentPath, entry.name).slice(root.length + 1))
+    .filter(path => !path.split('/').some(part => ['tests', '__pycache__'].includes(part))).sort();
+  const trustedScripts = await runtimeFiles(canonicalScripts);
+  assert.deepEqual(await runtimeFiles(stagedScripts), trustedScripts);
   for (const script of trustedScripts) {
-    assert.deepEqual(
-      await readFile(resolve(desktopRoot, 'resources/scripts', script)),
-      await readFile(resolve(repositoryRoot, 'plugin-src/shared/resources/scripts', script)),
-      script,
-    );
+    assert.deepEqual(await readFile(resolve(stagedScripts, script)), await readFile(resolve(canonicalScripts, script)), script);
   }
   const contextSource = await readFile(
     resolve(desktopRoot, 'resources/protocol/context.js'),

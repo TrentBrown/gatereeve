@@ -1,0 +1,10 @@
+{"kind":"environment","passed":true,"event":"MILESTONE","unjournaledMutation":true}
+✔ actual source HEAD and requirement drift during proof validation can pass acceptance (14937.424ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14985.16175

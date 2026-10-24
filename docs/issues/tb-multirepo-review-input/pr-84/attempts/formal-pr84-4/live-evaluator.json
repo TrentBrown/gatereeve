@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "result": {
+      "artifacts": [
+        {
+          "bytes": 1301,
+          "format": "json",
+          "hash": "sha256:f7491fef52cb931880f893b5faa9634b337df56b18ce69fd7c48dd784dae9c26"
+        },
+        {
+          "bytes": 675,
+          "format": "json",
+          "hash": "sha256:f43d81f1cc17e0290f10bee034d3a35cc683947674acc7bdb01fafacd1d44f5d"
+        }
+      ],
+      "contract": "gatereeve/current/2",
+      "coverage": {
+        "complete": true,
+        "interactions": [
+          "Compared the complete base, head and target module: app/app.js:1 is `export const answer = 42;` in all three snapshots.",
+          "Confirmed retained mode 100644 and kind file across all snapshots. The module has no imports, calls or cross-repository interactions."
+        ],
+        "limitations": [],
+        "paths": [
+          "app/app.js"
+        ]
+      },
+      "criteria": [],
+      "dispositions": [],
+      "featureId": "feature",
+      "findings": [],
+      "gate": "code",
+      "historyAssessment": null,
+      "input": {
+        "bytes": 576,
+        "format": "json",
+        "hash": "sha256:4ba1af30e7bf60f40067b70dffda5c015f2cddff19adf8dd55fc8026ec2d9a46"
+      },
+      "kind": "result",
+      "mode": "full",
+      "outcome": "PASS",
+      "prior": null,
+      "priorCandidate": null,
+      "receipt": {
+        "bytes": 594,
+        "format": "json",
+        "hash": "sha256:59bd7f5085e336ae13e1300eab14697dc183a11c1fb3abf92a7a6cd8c32d7a65"
+      },
+      "runId": "run-one",
+      "summary": "Base, head and target contain identical source and retained file modes. The sole module exports answer as 42, consistent with AC1/R1. No supported defects found; no runtime test evidence was supplied."
+    },
+    "receipt": {
+      "completedAt": "2026-10-24T01:33:04.720Z",
+      "contract": "gatereeve/current/2",
+      "evaluator": {
+        "contextId": "01a16b89-fa92-7681-85dd-ea36c8179d05",
+        "freshContext": true,
+        "inheritedTurns": 0,
+        "model": "gpt-6.1-sol",
+        "provider": "codex"
+      },
+      "gates": [
+        "code"
+      ],
+      "input": "sha256:4ba1af30e7bf60f40067b70dffda5c015f2cddff19adf8dd55fc8026ec2d9a46",
+      "jobId": "d01f21c80fbc71aefdf99cfdf07d24d075cc67fe72548332a4fb1f5ea7d97cf8",
+      "kind": "execution",
+      "metrics": {
+        "cost": null,
+        "tokens": {
+          "cacheCreation": null,
+          "cachedInput": 61184,
+          "input": 83411,
+          "output": 448
+        }
+      },
+      "role": "independent",
+      "runId": "run-one",
+      "startedAt": "2026-10-24T01:32:46.878Z"
+    },
+    "providerReceipts": [
+      {
+        "attemptId": "sha256:4ba1af30e7bf60f40067b70dffda5c015f2cddff19adf8dd55fc8026ec2d9a46",
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "completedAt": "2026-10-24T01:33:04.672Z",
+        "digests": {
+          "input": "sha256:5b7cec94ab6b34fbc8056e966c2eb02253652b890d923bda6bb59a1bf9d78c44",
+          "instructions": "sha256:7a40ac53bc9304c001ac034fe748826666a3cb674c0eea55200bb2e26af3c20d",
+          "output": "sha256:1a093b4779676c90a8876f3cd3570707433bdb20f1c5a9fd09c2466253fd8f6b",
+          "snapshot": "sha256:ac9019a3eee7f13c015356bdf04a6119403160d188d8c1c1e29f6455630ababa"
+        },
+        "isolation": {
+          "freshContext": true,
+          "inheritedTurns": 0,
+          "method": "codex-ephemeral-exec"
+        },
+        "kind": "gatereeve-agent-workflow-receipt",
+        "metrics": {
+          "cost": null,
+          "tokens": {
+            "cacheCreation": null,
+            "cachedInput": 61184,
+            "input": 83411,
+            "output": 448
+          }
+        },
+        "module": {
+          "digest": "sha256:32b8b34fd4596ec54196f45ae537e29e81982f56a6079d8ecd4d08c57cdb1abd",
+          "id": "gatereeve/current-review",
+          "version": "2.0.0"
+        },
+        "policy": {
+          "networkAccess": "deny",
+          "repositoryAccess": "read-only",
+          "scratch": "isolated"
+        },
+        "protocolVersion": "2.0.0",
+        "provider": {
+          "adapterVersion": "1.0.0",
+          "contextId": "01a16b89-fa92-7681-85dd-ea36c8179d05",
+          "id": "codex",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "high"
+        },
+        "runId": "run-one",
+        "schemaVersion": 1,
+        "stage": "review",
+        "startedAt": "2026-10-24T01:32:46.921Z",
+        "status": "completed"
+      },
+      {
+        "verdicts": [
+          {
+            "coverage": {
+              "complete": true,
+              "interactions": [
+                "Compared the complete base, head and target module: app/app.js:1 is `export const answer = 42;` in all three snapshots.",
+                "Confirmed retained mode 100644 and kind file across all snapshots. The module has no imports, calls or cross-repository interactions."
+              ],
+              "limitations": [],
+              "paths": [
+                "app/app.js"
+              ]
+            },
+            "criteria": [],
+            "dispositions": [],
+            "findings": [],
+            "gate": "code",
+            "historyAssessment": null,
+            "outcome": "PASS",
+            "summary": "Base, head and target contain identical source and retained file modes. The sole module exports answer as 42, consistent with AC1/R1. No supported defects found; no runtime test evidence was supplied."
+          }
+        ]
+      }
+    ]
+  }
+}

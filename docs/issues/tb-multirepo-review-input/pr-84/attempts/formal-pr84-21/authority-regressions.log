@@ -1,0 +1,37 @@
+✔ quality exceptions retain facts and never authorize merge or waive integrity (1056.103666ms)
+✔ amendment can authorize implementation once while retaining old and new requirements (776.721916ms)
+✔ policy amendment is explicit and cannot waive integrity or authority (970.481333ms)
+✔ one instruction can waive failed quality proof and accept without rewriting its verdict (24214.549208ms)
+✔ combined amendment records a pending instruction before interruption and reconciles retry once (897.352959ms)
+✔ waiver with acceptance retains pending human instruction before failed continuation (16632.363625ms)
+✔ consumed verification external drift also invalidates a spec waiver (2125.172792ms)
+✔ standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof (1987.520875ms)
+✔ standing status reports current candidate mismatch: scope (1231.380791ms)
+✔ standing status reports current candidate mismatch: branch (1203.74975ms)
+✔ standing status reports current candidate mismatch: target (1257.508083ms)
+✔ standing status reports current candidate mismatch: repository (1180.591209ms)
+✔ standing status reports current candidate mismatch: missing-root (1102.639625ms)
+✔ standing status reports current candidate mismatch: missing-source (1132.121625ms)
+✔ standing scope rejects implicit deployment, unknown fields, missing expiry and changed commitments/remotes/branches (1303.629333ms)
+✔ standing authority protected merge: slice (28216.957917ms)
+✔ standing authority protected merge: final (29427.140417ms)
+✔ standing authority protected merge: acceptance-only (18431.471833ms)
+✔ standing authority protected merge: revoke-during-checks (24341.98125ms)
+✔ standing authority protected merge: expire-during-checks (25365.615042ms)
+✔ standing authority protected merge: revoke-during-final-qualification (24183.647292ms)
+✔ standing authority protected merge: expire-during-final-qualification (23142.326333ms)
+✔ standing acceptance rejects a different assessed target and subsequent target drift (18422.560417ms)
+✔ standing status uses the host-discovered Git when GUI PATH cannot resolve git (716.299833ms)
+✔ amendment rollback cannot revive direct planning or candidate authority (17946.125125ms)
+✔ superseded direct merge decisions and exceptions do not revive with equivalent content (0.497ms)
+✔ explanation requires an explicit policy amendment instead of an ordinary waiver (833.535625ms)
+✔ Whiteboard waiver requires retained non-behavioral basis or explicit policy amendment (886.86175ms)
+✔ behavioral Whiteboard exception requires a named policy amendment (844.622459ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 269890.378917

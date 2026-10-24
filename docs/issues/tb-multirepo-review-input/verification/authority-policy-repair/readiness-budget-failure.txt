@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "advisory.declare-readiness",
+  "data": null,
+  "error": {
+    "code": "CONTRACT_INVALID",
+    "message": "Advisory: compact record budget exceeded",
+    "details": null
+  },
+  "warnings": []
+}

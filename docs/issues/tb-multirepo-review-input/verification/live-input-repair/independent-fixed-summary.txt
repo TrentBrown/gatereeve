@@ -1,0 +1,36 @@
+Independent live-input/effective-remote repair assessment
+
+Continuing independent nonimplementer reviewer /root/formal_code_spec. This is bounded repair evidence, not a formal gate passage or native Judge outcome. Earlier formal21 failure and independent-before-summary.txt remain unchanged. Product, canonical tests and real feature events were not edited by this reviewer.
+
+Result: original eight scenarios now block correctly; adjacent combined-decision, journal-race and external-expiry controls pass. No concrete persistent overblock or further supported blocker was found in the inspected repair. Final pinned verification remains separate.
+
+Actual independent current controls:11 tests PASS.
+
+1. independent-eight-fixed.log:5 tests PASS,52.637s, covering eight scenarios. Actual dirty source/new HEAD/design/spec mutation, runtime-environment mutation and retained Verification-object loss after actual proof validation now reject milestone.pass and append no milestone. Restoring the changed input recovers acceptance eligibility without another provider execution. Git insteadOf fetch redirection and explicit pushurl redirection between real local bare repositories now make status inactive and reject authorization.apply. These are the adapted original probes, not mocked eligibility results. The inherited test titles still describe the original defect; assertions require repaired blocking.
+
+2. independent-combined-race-fixed.log:4 existing current tests PASS,107.799s. One instruction can waive failed proof and accept; interrupted combined amendment retries; pending waiver/acceptance instruction retries; standing revocation during final qualification blocks the protected write. These exercise the proposed decision view and original-state checks introduced around the final guard.
+
+3. independent-exploratory-expiry-fixed.log:1 PASS,27.346s. An actual older finite Verification and a newer valid Verification cover the same check. Controlled Date.now advances after packet qualification so the exploratory older proof expires inside final admission. First passage rejects; a new attempt passes using current proof with zero reviewer launches. This supports the intended one-retry conservative behavior and does not establish a persistent need to rerun providers.
+
+4. independent-final-expiry-fixed.log:1 PASS,25.638s. Actual prepared/direct merge authority and local Git are exercised with fixture gh transport. Controlled clock crosses an external proof deadline during the final journal-state read after the input guard. The synchronous deadline check rejects and fixture gh merge writer is not reached. No hosted mutation or integration occurred. The preliminary counterexample probe expected a write but instead observed the newly added guard's External evidence validity expired rejection; that assertion-failure log and script remain retained as independent-final-expiry-probe.*. The corrected fixed-expectation rerun passes.
+
+Source reviewed at end (SHA256):
+- plugin-src/shared/resources/protocol/current/core.js:83f4d094da355b1c556d32c135a07507b4cdcc4771868d2575ea6ee59bd37671
+- plugin-src/shared/resources/protocol/current/authorization.js:4e4f5861a7a26695bed40df4aab1b7f210a525950e8ece75add10a0fa7607b10
+- plugin-src/shared/resources/protocol/current/actions.js:928303e34304be91300b233575bcbee87664db6ac7be89c0f49f4d59f910c596
+
+This was a working-repair assessment: the eight original cases ran while final proposed-decision/deadline ordering refinements were being incorporated. Those refinements were subsequently inspected and covered by the four adjacent controls and final deadline probe. Do not label the collection an exact-frozen broad suite; qualify it against the final pin and supplement changed domains as needed.
+
+Approach assessment:
+
+The guard collects qualified immutable result references with the candidate used in qualification, then freshly verifies retained closure, recorded service-cache provenance, support bytes, execution environments, pattern inputs, trusted spec/reconcile validator binding, current history availability and selected waiver risk. It uses a fresh per-guard cache; old qualification caches are not treated as fresh observations. It does not relaunch a provider or rerun semantic review. Final current candidate/commitment checks and original journal-state/CAS checks complement this input check. Completion preserves live:false historical source semantics after integration while still qualifying current commitments and required proof.
+
+Two intermediate interactions identified during inspection are corrected: combined waive/policy-amend+accept uses the proposed decision view for final waiver qualification while publication uses original-state CAS; merge compares original journal state after the asynchronous final guard. External validity deadlines are then checked synchronously again after that final await, closing the ordering gap verified above. Basis evidence, pending-outcome provenance and history-loss interpretation remain fail-closed.
+
+Conservative registration can include a successfully examined result that ultimately contributes no necessary coverage. Its input drift may reject the current attempt. The controlled expiry test proves at least this concrete case recovers on retry because the now-inapplicable older result is no longer registered; no provider work is required. No general performance benchmark or claim that every historical scenario was rerun is made.
+
+Standing bindings retain raw remote identity plus all effective fetch and push URLs obtained through configured Git. This observes insteadOf, pushInsteadOf and explicit pushurl semantics rather than guessing transport from raw configuration. Independent actual probes cover fetch insteadOf and explicit pushurl; other configured-Git/multiple-URL variants are source-reviewed or parent-test scope, not independently executed here. Old bindings lacking effective identities fail closed rather than silently acquiring broader scope.
+
+Affected requirements: R1/R6/R11/R16/R17/R22/R23, with combined decision R15 and consumer/status interactions. This is current-input qualification at admission, not an invented backup, provider rerun or whole-machine snapshot requirement. The guard does not claim atomicity across arbitrary external filesystem/remote actors; existing honest limits remain.
+
+Reproduction: copy retained .txt scripts to .mjs and run node --test. Fixed probes import the working tree, so source fingerprints and disclosed sequencing matter. Original before probes import /tmp/gr-judge21-before-jsawbtwa. Logs are exact local outputs. Fixtures use actual Git/files/environment/trusted validators/core calls with synthetic evaluator/gh responses; expiry probes explicitly use a controlled clock. No network, real hosted merge, installation, release, package rebuild or desktop runtime was performed by this review. Parent's tests and future native Judge are separate evidence.

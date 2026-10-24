@@ -1,0 +1,14 @@
+✔ amendment can authorize implementation once while retaining old and new requirements (532.464833ms)
+✔ simultaneous identical requests claim one execution and reconcile its result (610.0525ms)
+✔ one instruction can waive failed quality proof and accept without rewriting its verdict (12132.415417ms)
+✔ combined amendment records a pending instruction before interruption and reconciles retry once (544.744542ms)
+✔ decision passage cannot adopt state changes after-pending (643.393833ms)
+✔ decision passage cannot adopt state changes after-validation (651.766958ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15194.5545

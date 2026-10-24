@@ -1,0 +1,10 @@
+{"case":"F2","base":"c5b727ba72181df2762942f171ba3726757057ab","head":"ad04fb8d47f5b7a8ac0b04166ab0530e8ec70974","policyAmendment":false,"outcomes":[{"id":"explanation","outcome":"UNAVAILABLE","satisfied":true,"exceptionKind":"waive"},{"id":"whiteboard","outcome":"UNAVAILABLE","satisfied":true,"exceptionKind":"waive"}]}
+✔ ordinary waivers bypass preserved explanation and behavioral whiteboard policy (1099.406875ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1147.966583

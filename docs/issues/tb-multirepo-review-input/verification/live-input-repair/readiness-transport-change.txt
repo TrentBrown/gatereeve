@@ -1,0 +1,14 @@
+from pathlib import Path
+r=Path('/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gr-advisory-compact-be5vndx1/agentic-development-workflow/resources/protocol')
+for n in ['advisory-storage.js','advisory-inputs.js']:
+ p=r/n;Path('/tmp/gr-before-bound-'+n).write_bytes(p.read_bytes())
+p=r/'advisory-storage.js';s=p.read_text();s=s.replace("export const advisoryHash =", "const readinessPath = path => /^advisory\\/[A-Za-z0-9._-]+\\/readiness\\.json$/u.test(path);\nconst recordBound = path => readinessPath(path) ? 256 * 1024 : MAX_ADVISORY_BYTES;\nfunction validateExtended(path, bytes) {\n  if (bytes.length > MAX_ADVISORY_BYTES) {\n    advisoryAssert(readinessPath(path) && bytes.length <= recordBound(path), 'invalid extended readiness record');\n    validateAdvisoryReadiness(JSON.parse(bytes.toString('utf8')));\n  }\n}\n\nexport const advisoryHash =",1)
+s=s.replace("  advisoryReference(ref);\n  const root", "  advisoryReference(ref);\n  if (maxBytes === MAX_ADVISORY_BYTES && readinessPath(ref.path)) maxBytes = recordBound(ref.path);\n  const root",1)
+s=s.replace("  return json ? JSON.parse(content) : content.toString('utf8');", "  if (readinessPath(ref.path)) validateExtended(ref.path, content);\n  return json ? JSON.parse(content) : content.toString('utf8');",1)
+s=s.replace('Buffer.byteLength(bytes) <= MAX_ADVISORY_BYTES','Buffer.byteLength(bytes) <= recordBound(path)',1)
+s=s.replace('  let target = await realpath(home);', '  validateExtended(path, Buffer.from(bytes));\n  let target = await realpath(home);',1)
+s=s.replace('info.size <= MAX_ADVISORY_BYTES','info.size <= recordBound(path)',1);p.write_text(s)
+p=r/'advisory-inputs.js';s=p.read_text().replace("import { advisoryAssert }", "import { advisoryAssert, validateAdvisoryReadiness }")
+s=s.replace("    if (path.endsWith('.json') && (size <= 128 * 1024 || formalAudit)) {", "    const extendedReady = /\\/advisory\\/[A-Za-z0-9._-]+\\/readiness\\.json$/u.test(path) && size <= 256 * 1024;\n    if (path.endsWith('.json') && (size <= 128 * 1024 || formalAudit || extendedReady)) {")
+s=s.replace("        recognized = (size <= 128 * 1024 || value?.kind", "        if (extendedReady && size > 128 * 1024) validateAdvisoryReadiness(value);\n        recognized = (size <= 128 * 1024 || extendedReady && value.kind === 'slice-advisory-readiness' || value?.kind")
+p.write_text(s)

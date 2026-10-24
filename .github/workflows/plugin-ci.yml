@@ -67,16 +67,7 @@ jobs:
             python3 plugin-src/shared/resources/scripts/lint_tracker.py "$feature_home"
             python3 plugin-src/shared/resources/scripts/gate_triage.py "$feature_home"
             python3 plugin-src/shared/resources/scripts/validate_branch_docs.py "$feature_home"
-            FEATURE_HOME="$feature_home" node --input-type=module -e '
-              import { executePluginRequest } from "./plugin-src/shared/resources/protocol/plugin-adapter.js";
-              const result = await executePluginRequest({
-                operation: "status",
-                featureHome: process.env.FEATURE_HOME,
-              });
-              if (!result.ok || result.data.mode !== "governed") {
-                throw new Error(`Invalid governed feature record: ${JSON.stringify(result)}`);
-              }
-            '
+            node ci/validate-local-record.mjs "$feature_home"
           done < "$feature_homes"
 
   portable-acceptance:

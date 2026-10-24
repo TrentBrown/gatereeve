@@ -1,0 +1,13 @@
+✔ evaluator qualification blocks low efforts and mismatched receipt profiles across review roles (3192.046417ms)
+✔ trusted validator drift invalidates spec and reconciliation while refresh preserves authority (3219.431833ms)
+✔ validator postflight drift retains executed diagnostics and rejects unbound imports (227.468833ms)
+✔ both providers reject insufficient or unknown reasoning before starting a process (0.791833ms)
+✔ Codex usage totals remain unknown for incomplete fields across completed turns (8.055375ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6691.695791

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "mode": "replacement",
+    "expected": "fixed",
+    "runId": "replacement",
+    "beforeEventCount": 4,
+    "afterEventCount": 4,
+    "proofPreserved": true,
+    "validationFailures": 0,
+    "lastEvent": "DECIDED",
+    "implementationAllowed": true,
+    "completion": {
+      "error": "Specification validation failed; instruction and diagnostics remain retained; original validation state changed: Active run changed",
+      "artifacts": [
+        {
+          "hash": "sha256:e2dacb85f4f0602854542fc329bc464af7c702ed3c140de68e10c4743db96ad8",
+          "bytes": 28438,
+          "format": "json"
+        }
+      ]
+    }
+  }
+}

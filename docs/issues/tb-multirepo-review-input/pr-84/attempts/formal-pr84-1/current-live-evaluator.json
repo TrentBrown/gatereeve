@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "result": {
+      "artifacts": [
+        {
+          "bytes": 1198,
+          "format": "json",
+          "hash": "sha256:9aaf564fbad9e331d8d52d5a7c4d883f0b23b61322df16201bdfda90e5d14332"
+        },
+        {
+          "bytes": 559,
+          "format": "json",
+          "hash": "sha256:dd8bf699910f456a9c2708abe05ea998f47e7f8928c832f9df684ed172aa24a1"
+        }
+      ],
+      "contract": "gatereeve/current/2",
+      "coverage": {
+        "complete": true,
+        "interactions": [
+          "Compared the complete supplied base/head implementation; app/app.js:1 contains only the constant export, with no imports or cross-repository interactions."
+        ],
+        "limitations": [],
+        "paths": [
+          "app/app.js"
+        ]
+      },
+      "criteria": [],
+      "dispositions": [],
+      "featureId": "feature",
+      "findings": [],
+      "gate": "code",
+      "historyAssessment": null,
+      "input": {
+        "bytes": 576,
+        "format": "json",
+        "hash": "sha256:04024f8207fa1e818b8049e050ffe1a2259c52d4268a33234e58af0c8ca5f1bd"
+      },
+      "kind": "result",
+      "mode": "full",
+      "outcome": "PASS",
+      "prior": null,
+      "priorCandidate": null,
+      "receipt": {
+        "bytes": 529,
+        "format": "json",
+        "hash": "sha256:00b7fc24b32d9a870af6adf6bd1be1cffc5b0015b1bff153f60fd4d47eb962c1"
+      },
+      "runId": "run-one",
+      "summary": "Base and head are identical. The supplied implementation exports answer as 42, consistent with R1/AC1. No supported defects were found. No runtime test evidence was supplied or claimed."
+    },
+    "receipt": {
+      "completedAt": "2026-10-24T00:27:40.195Z",
+      "contract": "gatereeve/current/2",
+      "evaluator": {
+        "contextId": "01a16b4e-1938-7020-b92a-0dc6a1226759",
+        "freshContext": true,
+        "inheritedTurns": 0,
+        "model": "gpt-6.1-sol",
+        "provider": "codex"
+      },
+      "gates": [
+        "code"
+      ],
+      "input": "sha256:04024f8207fa1e818b8049e050ffe1a2259c52d4268a33234e58af0c8ca5f1bd",
+      "jobId": "d01f21c80fbc71aefdf99cfdf07d24d075cc67fe72548332a4fb1f5ea7d97cf8",
+      "kind": "execution",
+      "metrics": {
+        "cost": null,
+        "tokens": null
+      },
+      "role": "independent",
+      "runId": "run-one",
+      "startedAt": "2026-10-24T00:27:22.672Z"
+    },
+    "providerReceipts": [
+      {
+        "attemptId": "sha256:04024f8207fa1e818b8049e050ffe1a2259c52d4268a33234e58af0c8ca5f1bd",
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "completedAt": "2026-10-24T00:27:40.170Z",
+        "digests": {
+          "input": "sha256:ecda2a8ae17b42924e4fedb7cf26e2226c8128e26862bd867fb660122c259d48",
+          "instructions": "sha256:ec374ce7cf0a698b8d6b6fb410162379d0197a8186f2f79b181df7b44165c9f6",
+          "output": "sha256:751b633aa7626b678b6022a0f84504dd23e281a8d660e9a9e3e5940724058d87",
+          "snapshot": "sha256:08c1b50b510f6e3fecfbcb5725a9df76cc0bb179a539b0a9797525a31af7c3e0"
+        },
+        "isolation": {
+          "freshContext": true,
+          "inheritedTurns": 0,
+          "method": "codex-ephemeral-exec"
+        },
+        "kind": "gatereeve-agent-workflow-receipt",
+        "module": {
+          "digest": "sha256:32b8b34fd4596ec54196f45ae537e29e81982f56a6079d8ecd4d08c57cdb1abd",
+          "id": "gatereeve/current-review",
+          "version": "2.0.0"
+        },
+        "policy": {
+          "networkAccess": "deny",
+          "repositoryAccess": "read-only",
+          "scratch": "isolated"
+        },
+        "protocolVersion": "2.0.0",
+        "provider": {
+          "adapterVersion": "1.0.0",
+          "contextId": "01a16b4e-1938-7020-b92a-0dc6a1226759",
+          "id": "codex",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "high"
+        },
+        "runId": "run-one",
+        "schemaVersion": 1,
+        "stage": "review",
+        "startedAt": "2026-10-24T00:27:22.676Z",
+        "status": "completed"
+      },
+      {
+        "verdicts": [
+          {
+            "coverage": {
+              "complete": true,
+              "interactions": [
+                "Compared the complete supplied base/head implementation; app/app.js:1 contains only the constant export, with no imports or cross-repository interactions."
+              ],
+              "limitations": [],
+              "paths": [
+                "app/app.js"
+              ]
+            },
+            "criteria": [],
+            "dispositions": [],
+            "findings": [],
+            "gate": "code",
+            "historyAssessment": null,
+            "outcome": "PASS",
+            "summary": "Base and head are identical. The supplied implementation exports answer as 42, consistent with R1/AC1. No supported defects were found. No runtime test evidence was supplied or claimed."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+✔ all gates, actual external integration and completion work without evidence commits (67211.444959ms)
+✔ lost failed-spec evidence stays visible after correction and blocks retention until restored (1546.532334ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 68811.570792

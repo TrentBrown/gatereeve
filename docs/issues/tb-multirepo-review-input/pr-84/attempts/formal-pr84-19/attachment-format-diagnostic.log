@@ -1,0 +1,16 @@
+file:///Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/agent-workflow-service.js:138
+          throw new ContractError('Verification attachment must be an image or PDF, not review narrative');
+                ^
+
+ContractError: Verification attachment must be an image or PDF, not review narrative
+    at externalizeDependencyEvidence (file:///Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/agent-workflow-service.js:138:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async executeAgentWorkflowGateInternal (file:///Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/agent-workflow-service.js:218:30)
+    at async executeAgentWorkflowGate (file:///Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/agent-workflow-service.js:313:12)
+    at async runEligibleAgentWorkflowGates (file:///Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/agent-workflow-scheduler.js:97:20)
+    at async file:///private/tmp/gr-native-judge19.mjs:6:28 {
+  code: 'CONTRACT_INVALID',
+  details: null
+}
+
+Node.js v24.15.0

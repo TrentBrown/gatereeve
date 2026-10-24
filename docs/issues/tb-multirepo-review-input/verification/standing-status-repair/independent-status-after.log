@@ -1,0 +1,22 @@
+{"variant":"scope","allowed":false,"reason":"Candidate is outside standing scope"}
+✔ actual standing status scope (1142.3405ms)
+{"variant":"repository","allowed":false,"reason":"Candidate repository is outside standing scope"}
+✔ actual standing status repository (1253.992083ms)
+{"variant":"branch","allowed":false,"reason":"Source branch is outside standing scope"}
+✔ actual standing status branch (1196.660042ms)
+{"variant":"target","allowed":false,"reason":"Assessed target differs from the standing target branch; refresh target and interaction evidence"}
+✔ actual standing status target (1299.579125ms)
+{"variant":"missing-candidate","allowed":false,"reason":"Current candidate evidence is unavailable or invalid"}
+✔ actual standing status missing-candidate (1091.704458ms)
+{"variant":"corrupt-candidate","allowed":false,"reason":"Current candidate evidence is unavailable or invalid"}
+✔ actual standing status corrupt-candidate (1073.678917ms)
+{"variant":"missing-input","allowed":false,"reason":"Current candidate evidence is unavailable or invalid"}
+✔ actual standing status missing-input (1306.73825ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8410.498875

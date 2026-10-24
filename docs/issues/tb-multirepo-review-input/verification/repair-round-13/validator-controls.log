@@ -1,0 +1,11 @@
+✔ runner reuse binds the entire actual inherited environment without retaining plaintext values (3401.771875ms)
+✔ trusted validator drift invalidates spec and reconciliation while refresh preserves authority (3405.67ms)
+✔ validator postflight drift retains executed diagnostics and rejects unbound imports (228.99ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7091.827417

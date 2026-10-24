@@ -1,0 +1,11 @@
+✔ foreign active feature identity and damaged journal cannot be used (168.358333ms)
+✔ current adapter resolves canonical parent records and gives actionable old-record guidance (171.203584ms)
+✔ CI validates a retained current journal and accepts optional untracked evidence without replay (157.318167ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 583.951958

@@ -1,0 +1,23 @@
+✖ interrupted startup reconciles durable run before activating it (188.334042ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 239.182709
+
+✖ failing tests:
+
+test at cli/test/current-core.test.js:93:1
+✖ interrupted startup reconciles durable run before activating it (188.334042ms)
+  Error [ContractError]: Operation identity reused for different input
+      at requireThat (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/contracts.js:11:25)
+      at CurrentCore.execute (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/core.js:734:9)
+      at async TestContext.<anonymous> (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/current-core.test.js:98:3)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    code: 'CONTRACT_INVALID',
+    details: null
+  }

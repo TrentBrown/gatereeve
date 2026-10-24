@@ -1,0 +1,12 @@
+✔ amendment can authorize implementation once while retaining old and new requirements (901.509959ms)
+✔ combined amendment records a pending instruction before interruption and reconciles retry once (1048.573041ms)
+✔ standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof (2163.509875ms)
+✔ standing scope rejects implicit deployment, unknown fields, missing expiry and changed commitments/remotes/branches (1389.910458ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5558.233458

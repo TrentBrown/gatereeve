@@ -1,0 +1,13 @@
+✔ late READY invalidates checked milestone and restores exact failed outcome (22441.285917ms)
+✔ review started before newer failure cannot confer current authority (2361.087292ms)
+✔ READY crash restores exact cache once without rerunning evaluator (1594.252833ms)
+✔ READY/cache conflict remains intact and blocks reconciliation (1262.756625ms)
+✔ READY retries journal contention without rerunning provider or erasing pause (1385.490333ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29133.697625

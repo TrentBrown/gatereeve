@@ -19,12 +19,6 @@ import {
 } from 'electron';
 
 import { createDesktopCoordinator } from './coordinator.js';
-import { createModulePolicyManager } from './module-policy.js';
-import { createCommandAuthorizationStore } from './command-authorization.js';
-import { createModuleExecutionManager } from './module-execution.js';
-import { createDesktopAgentWorkflowRunner } from './agent-workflow-runner.js';
-import { createModuleTaskManager } from './module-task-manager.js';
-import { createProviderSupervisor, discoverInstalledProviders } from './module-providers.js';
 import { createArtifactActions, createEditorPreferenceStore } from './artifact-actions.js';
 import { IPC_CHANNELS } from '../shared/contracts.js';
 import {
@@ -36,7 +30,6 @@ import { observeGitHub } from './github-observer.js';
 import { registerDesktopIpc } from './ipc.js';
 import { createPreferenceStore } from './preferences.js';
 import { createProtocolAdapter } from './protocol-adapter.js';
-import { loadDefaultModel } from '../resources/protocol/model.js';
 import { registerRendererProtocol } from './renderer-protocol.js';
 import { createSetupObserver, createUnconfiguredSetup } from './setup-observer.js';
 import { createTerminalManager } from './terminal-manager.js';
@@ -104,43 +97,7 @@ async function startDesktop() {
     'utf8',
   ));
   const unconfiguredSetup = createUnconfiguredSetup(setupCompatibility);
-  const bundledModel = await loadDefaultModel();
-  const providerAllowlist = JSON.parse(await readFile(
-    resolve(desktopRoot, 'main', 'provider-allowlist.json'),
-    'utf8',
-  ));
-  if (providerAllowlist.schemaVersion !== 1 || !Array.isArray(providerAllowlist.providers)) {
-    throw new Error('The installed provider allowlist is invalid.');
-  }
-  const installedProviderResult = await discoverInstalledProviders(
-    app.isPackaged
-      ? resolve(process.resourcesPath, 'app.asar.unpacked', 'main', 'providers')
-      : resolve(desktopRoot, 'main', 'providers'),
-    providerAllowlist.providers,
-    { electronExecutable: process.execPath },
-  );
-  const installedProviders = installedProviderResult.providers.map((provider) => Object.freeze({
-    ...provider,
-    environment: {
-      ...provider.environment,
-      GATEREEVE_GIT_EXECUTABLE: executables.git,
-      GATEREEVE_GH_EXECUTABLE: executables.gh,
-    },
-  }));
-  const bundledSkillIds = bundledModel.moduleGraph.modules
-    .filter((module) => module.run?.kind === 'skill')
-    .map((module) => module.run.skillId);
   let coordinator;
-  let agentWorkflowRunner = null;
-  const modulePolicyManager = createModulePolicyManager({
-    getAvailability: async () => ({
-      skills: coordinator?.current().setup.operationalReady ? bundledSkillIds : [],
-      providers: installedProviders.map(({ id, version }) => ({ id, version })),
-      agentWorkflowProfiles: coordinator?.current().setup.operationalReady
-        ? ['high-capability-v1']
-        : [],
-    }),
-  });
   const protocolAdapter = createProtocolAdapter({
     gitExecutable: executables.git,
     ghExecutable: executables.gh,
@@ -148,7 +105,6 @@ async function startDesktop() {
   });
   coordinator = createDesktopCoordinator({
     protocol: protocolAdapter,
-    modulePolicyManager,
     preferenceStore,
     initialPreferences,
     initialSetup: initialPreferences.selectedAgents.length === 0
@@ -166,9 +122,6 @@ async function startDesktop() {
         python: pythonExecutable,
       },
     }),
-    automaticAgentWorkflows(request) {
-      agentWorkflowRunner?.schedule(request);
-    },
     gitObserver: (worktreePath, featureHome) => observeGit(
       worktreePath,
       featureHome,
@@ -182,25 +135,6 @@ async function startDesktop() {
     notify({ title, body }) {
       if (!Notification.isSupported()) return;
       new Notification({ title, body }).show();
-    },
-  });
-  agentWorkflowRunner = createDesktopAgentWorkflowRunner({
-    protocol: protocolAdapter,
-    desktopRoot,
-    async onChanged({ repositoryRoot, moduleId, live, result, error }) {
-      if (live) {
-        await coordinator.setModuleLive(repositoryRoot, moduleId, live);
-        return;
-      }
-      if (error) {
-        const failure = { code: error.code ?? 'AGENT_WORKFLOW_UNAVAILABLE', message: error.message ?? String(error) };
-        await coordinator.setModuleLive(repositoryRoot, moduleId ?? 'gatereeve/judge', {
-          status: 'unavailable', detail: failure.message, updatedAt: new Date().toISOString(),
-          stages: [], actions: [], attempts: [], evidence: [], links: [], failure,
-        });
-        return;
-      }
-      if (result) await coordinator.refresh('agent-workflow');
     },
   });
   const updateCoordinator = createUpdateCoordinator({
@@ -249,59 +183,7 @@ async function startDesktop() {
     userInfo: accountUserInfo,
     killProcessGroup: killPtyProcessGroup,
   });
-  const moduleTaskManager = createModuleTaskManager({
-    spawn: spawnPty,
-    killProcessGroup: killPtyProcessGroup,
-  });
-  const moduleExecutionManager = createModuleExecutionManager({
-    protocol: protocolAdapter,
-    authorizationStore: createCommandAuthorizationStore(app.getPath('userData'), {
-      gitExecutable: executables.git,
-    }),
-    taskManager: moduleTaskManager,
-    providerSupervisor: createProviderSupervisor(),
-    providers: installedProviders,
-    async onChanged({ task, projectPath, live, provider, providerError, error }) {
-      if (live) await coordinator.setModuleLive(projectPath, task.moduleId, live);
-      else if (provider) await coordinator.setModuleLive(projectPath, task.moduleId, provider.live);
-      else if (providerError) {
-        await coordinator.setModuleLive(projectPath, task.moduleId, {
-          status: 'unavailable',
-          detail: providerError.message,
-          updatedAt: new Date().toISOString(),
-          stages: [], actions: [], attempts: [], evidence: [], links: [],
-          failure: providerError,
-        });
-      } else if (error && projectPath) {
-        const failure = {
-          code: error.code ?? 'MODULE_COMPLETION_FAILED',
-          message: error.message ?? String(error),
-        };
-        await coordinator.setModuleLive(projectPath, task.moduleId, {
-          status: 'unavailable',
-          detail: failure.message,
-          updatedAt: new Date().toISOString(),
-          stages: [], actions: [], attempts: [], evidence: [], links: [], failure,
-        });
-      } else await coordinator.refresh('module-runtime');
-    },
-  });
-  const processManager = Object.freeze({
-    hasLive(path) {
-      return terminalManager.hasLive(path) || moduleTaskManager.liveProjects().includes(path);
-    },
-    liveProjects() {
-      return [...new Set([...terminalManager.liveProjects(), ...moduleTaskManager.liveProjects()])];
-    },
-    discardProject(path) {
-      terminalManager.discardProject(path);
-      moduleTaskManager.discardProject(path);
-    },
-    close() {
-      terminalManager.close();
-      moduleTaskManager.close();
-    },
-  });
+  const processManager = terminalManager;
   registerRendererProtocol(protocol, resolve(desktopRoot, 'renderer'), {
     brandingAsset: resolve(
       desktopRoot,
@@ -333,8 +215,6 @@ async function startDesktop() {
     coordinator,
     artifactActions,
     terminalManager,
-    moduleTaskManager,
-    moduleExecutionManager,
     processManager,
     updateCoordinator,
     async pickProject() {
@@ -363,7 +243,6 @@ async function startDesktop() {
     confirmQuit: (projectCount) => confirmQuitTerminalTermination(dialog, window, projectCount),
     cleanup() {
       disposeDesktopIpc();
-      moduleExecutionManager.close();
       processManager.close();
       coordinator.close();
       updateCoordinator.close();
@@ -382,7 +261,10 @@ async function startDesktop() {
     window.setSize(940, 560);
     const smokeWorktree = process.env.GATEREEVE_DESKTOP_SMOKE_WORKTREE;
     let expectedFeatureId = null;
+    let protocolEvidence = null;
     if (smokeWorktree) {
+      const smokeContext = await protocolAdapter.resolve(smokeWorktree);
+      const before = await protocolAdapter.read(smokeContext.featureHome, 'events');
       const state = await coordinator.open(smokeWorktree);
       if (
         state.phase !== 'ready'
@@ -393,6 +275,18 @@ async function startDesktop() {
           `Governed fixture smoke failed: ${state.error?.message ?? 'no governed snapshot'}`
         );
       }
+      const implementation = state.snapshot.milestones.find(item => item.name === 'implementation');
+      const acceptance = state.snapshot.milestones.find(item => item.name === 'acceptance');
+      const established = ['reconcile', 'pattern'].map(id => acceptance?.outcomes.find(item => item.id === id));
+      const after = await protocolAdapter.read(smokeContext.featureHome, 'events');
+      if (state.snapshot.current.phase !== 'IMPLEMENTING' || !implementation?.allowed
+        || established.some(item => item?.outcome !== 'PASS')
+        || JSON.stringify(before.data.events) !== JSON.stringify(after.data.events)) {
+        throw new Error(`Established fixture proof smoke failed: ${JSON.stringify(state.snapshot.milestones)}`);
+      }
+      protocolEvidence = { phase: state.snapshot.current.phase, implementationAllowed: implementation.allowed,
+        gates: established, eventCount: after.data.events.length, observationReadOnly: true,
+        limitation: 'Synthetic pattern evaluator tests receipt transport only; empty rules provide no substantive coverage.' };
       expectedFeatureId = state.snapshot.featureId;
     }
     const smoke = await window.webContents.executeJavaScript(
@@ -538,7 +432,7 @@ async function startDesktop() {
               && maximumWidthScroll <= viewportWidth
               && restoredWidth === resizedWidth
               && mainTabs.length === 6
-              && tabLabels === 'Overview|Modules|Artifacts|History|Model|Session'
+              && tabLabels === 'Overview|Obligations|Artifacts|History|Model|Session'
               && versionText === ${JSON.stringify(`v${app.getVersion()}`)}
               && scrollWidth <= viewportWidth
               && viewportWidth <= 940
@@ -604,6 +498,8 @@ async function startDesktop() {
         inspect();
       })`,
     );
+    smoke.evidence.protocolEvidence = protocolEvidence;
+    if (process.env.GATEREEVE_DESKTOP_SMOKE_REPORT) await writeFile(resolve(process.env.GATEREEVE_DESKTOP_SMOKE_REPORT), JSON.stringify(smoke, null, 2));
     if (!smoke.passed) {
       throw new Error(`Renderer and Setup smoke contract failed: ${JSON.stringify(smoke.evidence)}`);
     }

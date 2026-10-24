@@ -1,0 +1,28 @@
+✖ all gates, actual external integration and completion work without evidence commits (25813.366ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 25868.612708
+
+✖ failing tests:
+
+test at cli/test/current-core.test.js:286:1
+✖ all gates, actual external integration and completion work without evidence commits (25813.366ms)
+  AssertionError [ERR_ASSERTION]: Existing retention PASS cannot survive lost failed validation bytes
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/current-core.test.js:323:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -9,22 +9,6 @@ import {
   requireDesktopState,
   requireDetailRequest,
   requireExternalLink,
-  requireBoundaryModuleWaiverRequest,
-  requireFinalizationCompleteRequest,
-  requireModulePolicyApplyRequest,
-  requireModulePolicyPreview,
-  requireModulePolicyRequest,
-  requireModuleSettings,
-  requireModuleAttestationRequest,
-  requireModuleRunPreview,
-  requireModuleTargetRequest,
-  requireModuleTaskEvent,
-  requireModuleTaskInputRequest,
-  requireModuleTaskList,
-  requireModuleTaskResizeRequest,
-  requireModuleTaskSession,
-  requireModuleTaskSessionRequest,
-  requireModuleTaskStartRequest,
   requireNotificationsEnabled,
   requireProjectOrder,
   requireProjectPath,
@@ -42,7 +26,7 @@ import {
   requireTerminalSessionRequest,
   requireUpdateState,
 } from '../shared/contracts.js';
-import { validateDetail, validateSnapshot } from '../resources/protocol/snapshot.js';
+import { validateDetail, validateSnapshot } from '../resources/protocol/current/observation.js';
 import { RENDERER_URL } from './window.js';
 
 function validatedState(value) {
@@ -66,17 +50,6 @@ export function registerDesktopIpc({
   copyText,
   openExternal,
   terminalManager,
-  moduleTaskManager = {
-    subscribe: () => () => {},
-    list: () => [],
-  },
-  moduleExecutionManager = {
-    preview: async () => { throw new Error('Module execution is unavailable.'); },
-    startCommand: async () => { throw new Error('Module execution is unavailable.'); },
-    attest: async () => { throw new Error('Module execution is unavailable.'); },
-    observe: async () => { throw new Error('Module observation is unavailable.'); },
-    listTasks: () => [],
-  },
   processManager = terminalManager,
   confirmProjectTermination,
   windows,
@@ -97,17 +70,6 @@ export function registerDesktopIpc({
     }
     return { path: project.path, name: project.name };
   }
-  function selectedExecutionContext() {
-    const state = validatedState(coordinator.current());
-    const project = selectedProject();
-    if (!state.selection?.featureHome) throw new Error('A governed project must be selected.');
-    return {
-      repositoryRoot: project.path,
-      featureHome: state.selection.featureHome,
-      project,
-    };
-  }
-
   ipcMain.handle(IPC_CHANNELS.getState, async (event, ...values) => {
     noArguments(event, values);
     return validatedState(coordinator.current());
@@ -115,118 +77,6 @@ export function registerDesktopIpc({
   ipcMain.handle(IPC_CHANNELS.getUpdateState, async (event, ...values) => {
     noArguments(event, values);
     return requireUpdateState(updateCoordinator.current());
-  });
-  ipcMain.handle(IPC_CHANNELS.getModuleSettings, async (event, ...values) => {
-    noArguments(event, values);
-    return requireModuleSettings(await coordinator.moduleSettings());
-  });
-  ipcMain.handle(IPC_CHANNELS.previewModulePolicy, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Module policy preview requires one request.');
-    const request = requireModulePolicyRequest(values[0]);
-    return requireModulePolicyPreview(
-      await coordinator.previewModulePolicy(request.enabledModuleIds, request.ordering),
-    );
-  });
-  ipcMain.handle(IPC_CHANNELS.applyModulePolicy, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Module policy apply requires one request.');
-    const request = requireModulePolicyApplyRequest(values[0]);
-    return requireModuleSettings(await coordinator.applyModulePolicy(
-      request.enabledModuleIds,
-      {
-        confirmedMigration: request.confirmedMigration,
-        confirmationLabel: request.confirmationLabel,
-        ...(request.ordering === undefined ? {} : { ordering: request.ordering }),
-        ...(request.expectedPolicyDigest === undefined ? {} : { expectedPolicyDigest: request.expectedPolicyDigest }),
-        ...(request.expectedPreviewFingerprint === undefined ? {} : { expectedPreviewFingerprint: request.expectedPreviewFingerprint }),
-      },
-    ));
-  });
-  ipcMain.handle(IPC_CHANNELS.waiveBoundaryModule, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Boundary module waiver requires one request.');
-    return validatedState(await coordinator.waiveBoundaryModule(
-      requireBoundaryModuleWaiverRequest(values[0]),
-    ));
-  });
-  ipcMain.handle(IPC_CHANNELS.startFinalization, async (event, ...values) => {
-    noArguments(event, values);
-    return validatedState(await coordinator.startFinalization());
-  });
-  ipcMain.handle(IPC_CHANNELS.waiveFinalizationModule, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Finalization module waiver requires one request.');
-    return validatedState(await coordinator.waiveFinalizationModule(
-      requireBoundaryModuleWaiverRequest(values[0]),
-    ));
-  });
-  ipcMain.handle(IPC_CHANNELS.completeFinalization, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Finalization completion requires one request.');
-    return validatedState(await coordinator.completeFinalization(
-      requireFinalizationCompleteRequest(values[0]),
-    ));
-  });
-  ipcMain.handle(IPC_CHANNELS.getModuleRunPreview, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Module run preview requires one request.');
-    return requireModuleRunPreview(await moduleExecutionManager.preview({
-      ...selectedExecutionContext(),
-      ...requireModuleTargetRequest(values[0]),
-    }));
-  });
-  ipcMain.handle(IPC_CHANNELS.moduleTaskStart, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Module task start requires one request.');
-    const request = requireModuleTaskStartRequest(values[0]);
-    return requireModuleTaskSession(await moduleExecutionManager.startCommand({
-      ...selectedExecutionContext(),
-      ...request,
-      dimensions: { cols: request.cols, rows: request.rows },
-    }));
-  });
-  ipcMain.handle(IPC_CHANNELS.attestModule, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Module attestation requires one request.');
-    await moduleExecutionManager.attest({
-      ...selectedExecutionContext(),
-      ...requireModuleAttestationRequest(values[0]),
-    });
-    return validatedState(await coordinator.refresh('module-attestation'));
-  });
-  ipcMain.handle(IPC_CHANNELS.observeModule, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Module observation requires one request.');
-    await moduleExecutionManager.observe({
-      ...selectedExecutionContext(),
-      ...requireModuleTargetRequest(values[0]),
-    });
-    return validatedState(await coordinator.refresh('module-observation'));
-  });
-  ipcMain.handle(IPC_CHANNELS.listModuleTasks, async (event, ...values) => {
-    noArguments(event, values);
-    return requireModuleTaskList(moduleExecutionManager.listTasks(selectedProject().path));
-  });
-  ipcMain.handle(IPC_CHANNELS.moduleTaskWrite, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Module task input requires one request.');
-    const request = requireModuleTaskInputRequest(values[0]);
-    return moduleTaskManager.write(selectedProject().path, request.sessionId, request.data);
-  });
-  ipcMain.handle(IPC_CHANNELS.moduleTaskResize, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Module task resize requires one request.');
-    const request = requireModuleTaskResizeRequest(values[0]);
-    return requireModuleTaskSession(moduleTaskManager.resize(
-      selectedProject().path, request.sessionId, request,
-    ));
-  });
-  ipcMain.handle(IPC_CHANNELS.moduleTaskCancel, async (event, ...values) => {
-    trusted(event);
-    if (values.length !== 1) throw new Error('Module task cancellation requires one request.');
-    const request = requireModuleTaskSessionRequest(values[0]);
-    return requireModuleTaskSession(moduleTaskManager.cancel(selectedProject().path, request.sessionId));
   });
   ipcMain.handle(IPC_CHANNELS.checkForUpdates, async (event, ...values) => {
     noArguments(event, values);
@@ -432,16 +282,9 @@ export function registerDesktopIpc({
       if (!window.isDestroyed()) window.webContents.send(IPC_CHANNELS.terminalChanged, value);
     }
   });
-  const unsubscribeModuleTasks = moduleTaskManager.subscribe((event) => {
-    const value = requireModuleTaskEvent(event);
-    for (const window of windows()) {
-      if (!window.isDestroyed()) window.webContents.send(IPC_CHANNELS.moduleTaskChanged, value);
-    }
-  });
   return () => {
     unsubscribeState();
     unsubscribeUpdates();
     unsubscribeTerminals();
-    unsubscribeModuleTasks();
   };
 }

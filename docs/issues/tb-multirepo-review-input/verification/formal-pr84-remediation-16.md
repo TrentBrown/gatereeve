@@ -1,0 +1,5 @@
+# Formal16 CLI consumer repair
+
+Independent reviewer reproduced CR16-1/R18: documented --checks could not supply required externalRuntimeInputs. Formal16 retains code-review FAIL and Verification FAIL based on actual smoke; the old governing graph makes codeReview recording ineligible until Verification passes, so its independent report is retained without a false codeReview event. No Judge ran for16. The installed core returned the slice to IMPLEMENTING before edits.
+
+The shortcut is retired with an unconditional parser error directing users to --configuration and explicit scope, including both option orderings when combined. Full configuration is the only runner path; the README includes a complete example and explicit empty-scope responsibility. Actual CLI9 and unpacked npm-package2 controls PASS, covering successful execution, missing declaration, old shortcut and help. No core, native plugin or Desktop product bytes changed; previous actual package/runtime144 bindings remain applicable. The broad suite begun during repair15 is still running; final verification will disclose composite applicability rather than claim an exact-final-source full rerun.

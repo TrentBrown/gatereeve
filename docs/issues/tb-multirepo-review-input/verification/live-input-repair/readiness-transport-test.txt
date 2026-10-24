@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {mkdtemp,readFile,writeFile,mkdir,rm,symlink} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import {immutableAdvisoryJSON,existingAdvisoryJSON,advisoryFile,advisoryHash} from '/Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/advisory-storage.js';
+import {validateAdvisoryReadiness} from '/Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/advisory-contract.js';
+import {opaqueAdvisoryInputIdentity} from '/Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/advisory-inputs.js';
+import {fingerprint} from '/Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/fingerprint.js';
+const home=await mkdtemp('/tmp/gr-readiness-bound-');const root='/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input';
+try {
+const old=JSON.parse(await readFile(root+'/docs/issues/tb-multirepo-review-input/advisory/model-led-formal-ready-24/readiness.json','utf8'));
+const small=await immutableAdvisoryJSON(home,'advisory/small/readiness.json',old);assert.deepEqual((await existingAdvisoryJSON(home,small.path)).value,old);console.log('PASS existing128KiB record');
+const large=structuredClone(old);large.priorFindings[0].summary+=' additional preserved detail'.repeat(2400);large.inputManifest.priorFindingsIdentity=fingerprint(large.priorFindings);large.inputIdentity=fingerprint(large.inputManifest);large.requestIdentity=fingerprint({readinessId:large.readinessId,sliceId:large.sliceId,inputIdentity:large.inputIdentity,remediation:large.remediation});validateAdvisoryReadiness(large);
+const ref=await immutableAdvisoryJSON(home,'advisory/large/readiness.json',large);assert.deepEqual((await existingAdvisoryJSON(home,ref.path)).value,large);console.log('PASS extended typed readiness exact roundtrip',JSON.stringify(large).length);
+await assert.rejects(immutableAdvisoryJSON(home,'advisory/wrong/readiness.json',{...large,kind:'slice-advisory-review'}));console.log('PASS wrong kind rejected');
+await assert.rejects(immutableAdvisoryJSON(home,'advisory/wrong/review.json',large));console.log('PASS other record128KiB bound preserved');
+await assert.rejects(immutableAdvisoryJSON(home,'advisory/huge/readiness.json',{...large,declaredBy:{...large.declaredBy,label:'x'.repeat(270000)}}));console.log('PASS over256KiB rejected');
+await assert.rejects(advisoryFile(home,{...ref,hash:'sha256:'+'a'.repeat(64)},{json:true}));console.log('PASS byte hash checked');
+const malformed=Buffer.from(JSON.stringify({...large,inputIdentity:'sha256:'+'a'.repeat(64)}));await mkdir(home+'/advisory/corrupt');await writeFile(home+'/advisory/corrupt/readiness.json',malformed);await assert.rejects(advisoryFile(home,{path:'advisory/corrupt/readiness.json',hash:advisoryHash(malformed)},{json:true}));console.log('PASS extended semantic binding checked');
+await mkdir(home+'/advisory/link');await symlink(home+'/advisory/large/readiness.json',home+'/advisory/link/readiness.json');await assert.rejects(existingAdvisoryJSON(home,'advisory/link/readiness.json'));console.log('PASS symlink rejected');
+const repo=home+'/repo';await mkdir(repo);const git=args=>execFileSync('git',args,{cwd:repo,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();git(['init','-b','topic']);git(['config','user.email','fixture@example.test']);git(['config','user.name','Fixture']);git(['config','commit.gpgsign','false']);await writeFile(repo+'/app.js','ok');git(['add','app.js']);git(['commit','-m','base']);const base=git(['rev-parse','HEAD']);const path='docs/issues/feature/advisory/large/readiness.json';await mkdir(repo+'/docs/issues/feature/advisory/large',{recursive:true});await writeFile(repo+'/'+path,JSON.stringify(large));git(['add',path]);git(['commit','-m','typed history']);const head=git(['rev-parse','HEAD']);assert.equal(await opaqueAdvisoryInputIdentity(repo,{excludedPaths:[path],change:{source:{baseSha:base,headSha:head}}}),fingerprint([]));console.log('PASS typed larger readiness remains audit history');
+await writeFile(repo+'/'+path,malformed);git(['add',path]);git(['commit','-m','bad binding']);await assert.rejects(opaqueAdvisoryInputIdentity(repo,{excludedPaths:[path],change:{source:{baseSha:base,headSha:git(['rev-parse','HEAD'])}}}));console.log('PASS opaque malformed larger record rejected');
+console.log('10 controls PASS; transport only; no gate/schema/hash/authority changes');
+} finally {await rm(home,{recursive:true,force:true});}

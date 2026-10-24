@@ -7,14 +7,13 @@ from pathlib import Path
 
 import test_pr_context as fixtures
 from boundary_context import BoundaryContext, synthetic_review_identity
-from boundary_gate import resolve_gate_context, BoundaryGateError
 from pr_context import (
     PullRequestContext, PullRequestContextError, PullRequestSnapshot,
     GitHubPullRequestProvider,
     resolve_pull_request_context, verify_context_is_current,
     verify_boundary_context_is_current, finalize_pull_request_context,
 )
-from pr_lifecycle import prepare_pull_request, merge_pull_request, require_merge_direction
+from pr_lifecycle import prepare_pull_request, require_merge_direction
 from workflow_context import resolve_workflow_context, WorkflowContextError
 
 
@@ -134,22 +133,6 @@ class ClosedPullRequestTests(fixtures.PullRequestContextTests):
             with self.assertRaisesRegex(PullRequestContextError, "Multiple"):
                 prepare_pull_request(repository, provider, title="Feature", body_file=body.name)
 
-    def test_closed_ready_pr_can_start_another_review_after_failed_merge(self):
-        repository = self.closed_repository()
-        provider = Provider(self.payload(state="CLOSED"), fail="merge")
-        context = resolve_pull_request_context(repository, provider)
-        with self.assertRaisesRegex(PullRequestContextError, "merge failed"):
-            merge_pull_request(context, provider, reviewed_head=self.head_sha, authorization="Approved")
-        self.assertEqual(provider.payload["state"], "CLOSED")
-        self.assertFalse(provider.payload["isDraft"])
-        provider.calls.clear()
-        with fixtures.tempfile.NamedTemporaryFile() as body:
-            replacement = prepare_pull_request(repository, provider, title="Retry", body_file=body.name)
-        self.assertEqual(replacement.pull_request.state, "CLOSED")
-        self.assertFalse(replacement.pull_request.is_draft)
-        self.assertNotIn("reopen", [call[1] for call in provider.calls])
-        self.assertEqual(verify_context_is_current(replacement, provider)["status"], "current")
-
     def test_default_preparation_keeps_pr_open(self):
         provider = Provider(self.payload(), listed=False)
         with fixtures.tempfile.NamedTemporaryFile() as body:
@@ -157,57 +140,13 @@ class ClosedPullRequestTests(fixtures.PullRequestContextTests):
         self.assertEqual(context.pull_request.state, "OPEN")
         self.assertNotIn("close", [call[1] for call in provider.calls])
 
-    def test_authorized_merge_pins_head_and_preserves_protections(self):
-        repository = self.closed_repository()
-        provider = Provider(self.payload(state="CLOSED"), checks=[{"state": "PENDING"}])
-        context = resolve_pull_request_context(repository, provider)
-        result = merge_pull_request(context, provider, reviewed_head=self.head_sha, authorization="Trent approved exact head")
-        self.assertEqual(result["status"], "merged")
-        commands = [call[1] for call in provider.calls]
-        self.assertLess(commands.index("reopen"), commands.index("checks"))
-        self.assertLess(commands.index("checks"), commands.index("merge"))
-        merge = next(call for call in provider.calls if call[1] == "merge")
-        self.assertIn("--match-head-commit", merge)
-        self.assertNotIn("--admin", merge)
-        self.assertNotIn("--auto", merge)
-
-    def test_failed_checks_merge_or_reopen_reclose_unmerged_pr(self):
-        repository = self.closed_repository()
-        for failure in ["checks", "merge", "reopen"]:
-            provider = Provider(self.payload(state="CLOSED"), fail=failure, checks=[{}])
-            context = resolve_pull_request_context(repository, provider)
-            with self.assertRaisesRegex(PullRequestContextError, "failed"):
-                merge_pull_request(context, provider, reviewed_head=self.head_sha, authorization="Approved")
-            self.assertEqual(provider.payload["state"], "CLOSED")
-
-    def test_missing_authorization_wrong_head_and_forbidden_direction_do_not_reopen(self):
-        repository = self.closed_repository()
-        provider = Provider(self.payload(state="CLOSED"))
-        context = resolve_pull_request_context(repository, provider)
-        for authorization, head in [("", self.head_sha), ("Approved", self.base_sha)]:
-            with self.assertRaises(PullRequestContextError):
-                merge_pull_request(context, provider, reviewed_head=head, authorization=authorization)
-        self.assertNotIn("reopen", [call[1] for call in provider.calls])
+    def test_legacy_merge_api_is_not_distributed(self):
+        import pr_lifecycle
+        self.assertFalse(hasattr(pr_lifecycle, "merge_pull_request"))
         for source in ["development", "development-client"]:
             with self.assertRaisesRegex(PullRequestContextError, "Forbidden"):
                 require_merge_direction(source, "main")
         require_merge_direction("tb-feature", "development-client")
-
-    def test_source_identity_drift_after_reopening_recloses_and_does_not_merge(self):
-        repository = self.closed_repository()
-        provider = Provider(self.payload(state="CLOSED"))
-        context = resolve_pull_request_context(repository, provider)
-        original = provider.gh
-        def gh(*args):
-            result = original(*args)
-            if args[1] == "reopen":
-                provider.payload["headRefOid"] = self.base_sha
-            return result
-        provider.gh = gh
-        with self.assertRaisesRegex(PullRequestContextError, "authorized head"):
-            merge_pull_request(context, provider, reviewed_head=self.head_sha, authorization="Approved")
-        self.assertEqual(provider.payload["state"], "CLOSED")
-        self.assertNotIn("merge", [call[1] for call in provider.calls])
 
     def test_archived_synthetic_context_remains_readable_but_cannot_be_used(self):
         review_id, review_ref = synthetic_review_identity("tb-feature", "product", self.head_sha)
@@ -225,8 +164,6 @@ class ClosedPullRequestTests(fixtures.PullRequestContextTests):
         self.assertEqual(decoded.to_dict(), historical.to_dict())
         with self.assertRaisesRegex(PullRequestContextError, "retired"):
             verify_boundary_context_is_current(decoded.to_dict(), self.repository, self.provider())
-        with self.assertRaisesRegex(BoundaryGateError, "retired"):
-            resolve_gate_context(resolve_workflow_context(self.root), decoded, "verification")
 
     def test_boolean_validation_and_retired_configuration(self):
         self.closed_repository()

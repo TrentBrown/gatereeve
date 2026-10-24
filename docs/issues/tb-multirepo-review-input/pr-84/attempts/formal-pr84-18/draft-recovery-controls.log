@@ -1,0 +1,15 @@
+✔ standing authority protected merge: slice (30388.840334ms)
+✔ standing authority protected merge: final (29443.762208ms)
+✔ standing authority protected merge: acceptance-only (20504.566667ms)
+✔ standing authority protected merge: revoke-during-checks (24927.31025ms)
+✔ standing authority protected merge: expire-during-checks (25806.054458ms)
+✔ standing authority protected merge: revoke-during-final-qualification (28152.51575ms)
+✔ standing authority protected merge: expire-during-final-qualification (25377.707125ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 184672.775583

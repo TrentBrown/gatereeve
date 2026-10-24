@@ -1,0 +1,6 @@
+{
+  "context.js": "6a591d342d4d9ed53cbe4b4ad1c6d87a0958fd0a9a65f729f36499a652cd8d2f",
+  "current/core.js": "ca653ece1f3d86e7eafc140280426aa72de9d6345c97f7be5ac5b2b606e8d3c3",
+  "current/authorization.js": "84ba2f89bee57e3b58f94b37ddc2191b379d926cc7165d49f0caabba33c25bb7",
+  "current/actions.js": "56f5c37db689eda2928ac8d3fea8a872ddab384ae9669d7a576de4991625ff79"
+}

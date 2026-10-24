@@ -1,0 +1,11 @@
+✔ fresh PASS after failed-receipt loss must recover current authority (1051.847583ms)
+✔ late old-run outcome must not contaminate replacement run (864.156916ms)
+✔ run replacement after READY cannot receive old JOB_FINISHED (1002.616334ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2969.083584

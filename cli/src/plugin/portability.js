@@ -1,8 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
-import { relative, resolve, sep } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 
 const RESOURCE_ROOTS = {
-  agentWorkflows: 'resources/agent-workflows',
   commands: 'resources/commands',
   scripts: 'resources/scripts',
   protocol: 'resources/protocol',
@@ -134,8 +133,18 @@ export async function lintPortability(sourceRoot) {
 
   for (const file of files) {
     const content = await readFile(file.absolutePath, 'utf8');
+    let pathChecked = content;
+    if (file.path.endsWith('.js')) {
+      // Parent-relative module/resource references are portable when their exact
+      // destination belongs to this symlink-free package inventory.
+      const inventory = new Set(files.map(item => item.absolutePath));
+      for (const pattern of [/\bfrom\s+(['"])(\.\.\/[^'"]+)\1/gu, /new URL\(\s*(['"])(\.\.\/[^'"]+)\1\s*,\s*import\.meta\.url\)/gu]) {
+        pathChecked = pathChecked.replace(pattern, (match, quote, path) =>
+          inventory.has(resolve(dirname(file.absolutePath), path)) ? match.replace(path, 'package-local-reference') : match);
+      }
+    }
     for (const rule of FORBIDDEN_TEXT) {
-      if (rule.pattern.test(content)) {
+      if (rule.pattern.test(rule.label === 'plugin-root escape' ? pathChecked : content)) {
         findings.push(`${file.path}: ${rule.label}`);
       }
     }

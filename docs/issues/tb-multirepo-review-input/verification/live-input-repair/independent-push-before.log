@@ -1,0 +1,10 @@
+{"before":"/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-current-8oAPwn/host-a.git","after":"/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-current-8oAPwn/host-b.git","raw":"https://github.com/fixture/project.git","statusAllowed":true,"applied":true}
+✔ actual insteadOf rewrite leaves standing status and acceptance applicable (15722.000292ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15773.048125

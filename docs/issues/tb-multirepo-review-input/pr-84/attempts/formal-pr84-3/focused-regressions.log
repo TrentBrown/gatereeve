@@ -1,0 +1,15 @@
+✔ protected merge revalidates the exact action and observes integration (14638.420459ms)
+✔ protected merge recloses a drifted PR (true) without merging (11768.312417ms)
+✔ protected merge recloses a drifted PR (target-after-checks) without merging (12988.26375ms)
+✔ protected merge recloses a drifted PR (advanced-target) without merging (15623.762958ms)
+✔ retained workflow history stays outside source at every endpoint and supports untracked continuation (1074.413292ms)
+✔ configuration and executable files remain source inside report directories (766.600625ms)
+✔ target-only changes invalidate proof and appear in delta review with prior target bytes (1093.601208ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 58044.089

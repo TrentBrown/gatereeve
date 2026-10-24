@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "mode": "same-run",
+    "expected": "fixed",
+    "runId": "run-one",
+    "beforeEventCount": 5,
+    "afterEventCount": 5,
+    "proofPreserved": true,
+    "validationFailures": 0,
+    "lastEvent": "SPEC_VALIDATED",
+    "implementationAllowed": true,
+    "completion": {
+      "error": "Specification validation failed; instruction and diagnostics remain retained; original validation state changed: Concurrent update; inspect current state and retry the same operation",
+      "artifacts": [
+        {
+          "hash": "sha256:34bd75a85abdc0ee691054cb5f6664ec57217582b08aac8388802692653b4a51",
+          "bytes": 28438,
+          "format": "json"
+        }
+      ]
+    }
+  }
+}

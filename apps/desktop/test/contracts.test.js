@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import {
   IPC_CHANNELS,
-  requireBoundaryModuleWaiverRequest,
   requireArtifactActions,
   requireArtifactOpenRequest,
   requireArtifactRequest,
@@ -11,11 +10,6 @@ import {
   requireDesktopState,
   requireDetailRequest,
   requireExternalLink,
-  requireFinalizationCompleteRequest,
-  requireModulePolicyApplyRequest,
-  requireModulePolicyPreview,
-  requireModulePolicyRequest,
-  requireModuleSettings,
   requireProjectOrder,
   requireSessionDetail,
   requireSessionId,
@@ -173,76 +167,23 @@ test('terminal contracts are exact, bounded, and expose no spawn configuration',
   }), /invalid|inconsistent/);
 });
 
-test('module policy contracts expose only complete selections, previews, and scoped waivers', () => {
-  const module = {
-    id: 'gatereeve/judge', version: '1.0.0', digest: 'sha256:judge', label: 'Judge',
-    description: 'Independent evaluation.', slot: 'boundary.evaluation', enabled: true,
-    locked: false, disposition: 'required', waiverAllowed: true,
-    dependsOn: ['gatereeve/verification'], after: [],
-    readiness: { status: 'available', missing: [] }, runKind: 'skill', observeProvider: null,
-  };
-  const settings = {
-    schemaVersion: 1, policyPath: '/repo/.gatereeve/workflow.json', policyExists: true,
-    policyDigest: 'sha256:policy', featureModelHash: 'sha256:feature',
-    projectModelHash: 'sha256:project', migrationRequired: false, modules: [module],
-  };
-  assert.equal(requireModuleSettings(settings).modules[0].id, 'gatereeve/judge');
-  assert.deepEqual(requireModulePolicyRequest({ enabledModuleIds: ['gatereeve/judge'] }), {
-    enabledModuleIds: ['gatereeve/judge'],
-  });
-  assert.equal(requireModulePolicyApplyRequest({
-    enabledModuleIds: [], confirmedMigration: true, confirmationLabel: 'Trent',
-  }).confirmedMigration, true);
-  assert.equal(requireModulePolicyPreview({
-    schemaVersion: 1, valid: true, error: null, autoEnabled: [], blockingDependents: [],
-    enabledModuleIds: [], suggestedEnabledModuleIds: [],
-    diff: [{ id: 'gatereeve/judge', before: true, after: false }],
-    migrationImpact: null,
-  }).diff.length, 1);
-  assert.deepEqual(requireBoundaryModuleWaiverRequest({
-    attemptId: 'attempt-1', gateId: 'judge', reason: 'Small change', confirmationLabel: 'Trent',
-  }), {
-    attemptId: 'attempt-1', gateId: 'judge', reason: 'Small change', confirmationLabel: 'Trent',
-  });
-  assert.deepEqual(requireFinalizationCompleteRequest({
-    attemptId: null, confirmationLabel: 'Trent',
-  }), { attemptId: null, confirmationLabel: 'Trent' });
-  assert.throws(() => requireModulePolicyRequest({ enabledModuleIds: ['judge', 'judge'] }), /invalid/);
-  assert.throws(() => requireBoundaryModuleWaiverRequest({
-    attemptId: 'attempt-1', gateId: 'judge', reason: '', confirmationLabel: 'Trent',
-  }), /invalid/);
-});
-
 test('IPC allow-list contains only bounded named desktop operations', () => {
   const channels = Object.values(IPC_CHANNELS).sort();
   assert.deepEqual(channels, [
     'gatereeve:desktop:activate-project',
     'gatereeve:desktop:add-project',
-    'gatereeve:desktop:apply-module-policy',
-    'gatereeve:desktop:attest-module',
     'gatereeve:desktop:check-for-updates',
     'gatereeve:desktop:choose-artifact-application',
-    'gatereeve:desktop:complete-finalization',
     'gatereeve:desktop:copy-text',
     'gatereeve:desktop:get-artifact-actions',
-    'gatereeve:desktop:get-module-run-preview',
-    'gatereeve:desktop:get-module-settings',
     'gatereeve:desktop:get-state',
     'gatereeve:desktop:get-update-state',
     'gatereeve:desktop:layout-command',
-    'gatereeve:desktop:list-module-tasks',
     'gatereeve:desktop:list-session',
-    'gatereeve:desktop:module-task-cancel',
-    'gatereeve:desktop:module-task-changed',
-    'gatereeve:desktop:module-task-resize',
-    'gatereeve:desktop:module-task-start',
-    'gatereeve:desktop:module-task-write',
-    'gatereeve:desktop:observe-module',
     'gatereeve:desktop:open-artifact',
     'gatereeve:desktop:open-artifact-github',
     'gatereeve:desktop:open-external-link',
     'gatereeve:desktop:open-update-release',
-    'gatereeve:desktop:preview-module-policy',
     'gatereeve:desktop:read-detail',
     'gatereeve:desktop:read-session',
     'gatereeve:desktop:recheck-setup',
@@ -255,7 +196,6 @@ test('IPC allow-list contains only bounded named desktop operations', () => {
     'gatereeve:desktop:set-notifications-enabled',
     'gatereeve:desktop:set-selected-agents',
     'gatereeve:desktop:set-terminal-height',
-    'gatereeve:desktop:start-finalization',
     'gatereeve:desktop:state-changed',
     'gatereeve:desktop:terminal-changed',
     'gatereeve:desktop:terminal-ensure',
@@ -264,8 +204,6 @@ test('IPC allow-list contains only bounded named desktop operations', () => {
     'gatereeve:desktop:terminal-terminate',
     'gatereeve:desktop:terminal-write',
     'gatereeve:desktop:update-changed',
-    'gatereeve:desktop:waive-boundary-module',
-    'gatereeve:desktop:waive-finalization-module',
   ]);
   assert.equal(channels.some((channel) => /execute|spawn|transition|advance|install|upgrade|plugin/.test(channel)), false);
 });

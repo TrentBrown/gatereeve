@@ -1,0 +1,18 @@
+✔ CLI starts from a clean checkout without staged protocol resources (100.339083ms)
+✔ plugin build and clean commands work through the Commander entrypoint (180.9405ms)
+✔ uses the selected source root when resolving the default version (95.945792ms)
+✔ prepares a release through the grouped command path (641.98675ms)
+✔ legacy local publication entrypoints are removed (214.502333ms)
+✔ hosted mutation commands require a dispatched Release Conductor context (142.896334ms)
+✔ renders hierarchical help through the local command-tree helper (78.1825ms)
+✔ CLI and native adapter share current parent-workspace status and preserve old files (304.870625ms)
+✔ current queries are read-only and blocked milestone passage fails without appending (372.341667ms)
+✔ retired mutation commands are unavailable and help explains explicit execution (241.326291ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1522.995417

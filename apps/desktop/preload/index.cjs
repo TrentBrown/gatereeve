@@ -5,17 +5,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 const channels = Object.freeze({
   checkForUpdates: 'gatereeve:desktop:check-for-updates',
   addProject: 'gatereeve:desktop:add-project',
-  applyModulePolicy: 'gatereeve:desktop:apply-module-policy',
   copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
   getArtifactActions: 'gatereeve:desktop:get-artifact-actions',
-  getModuleSettings: 'gatereeve:desktop:get-module-settings',
-  getModuleRunPreview: 'gatereeve:desktop:get-module-run-preview',
   getUpdateState: 'gatereeve:desktop:get-update-state',
-  startFinalization: 'gatereeve:desktop:start-finalization',
-  completeFinalization: 'gatereeve:desktop:complete-finalization',
   listSession: 'gatereeve:desktop:list-session',
-  listModuleTasks: 'gatereeve:desktop:list-module-tasks',
   layoutCommand: 'gatereeve:desktop:layout-command',
   openArtifact: 'gatereeve:desktop:open-artifact',
   chooseArtifactApplication: 'gatereeve:desktop:choose-artifact-application',
@@ -24,7 +18,6 @@ const channels = Object.freeze({
   openArtifactGithub: 'gatereeve:desktop:open-artifact-github',
   openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
-  previewModulePolicy: 'gatereeve:desktop:preview-module-policy',
   activateProject: 'gatereeve:desktop:activate-project',
   readDetail: 'gatereeve:desktop:read-detail',
   readSession: 'gatereeve:desktop:read-session',
@@ -37,13 +30,6 @@ const channels = Object.freeze({
   setSelectedAgents: 'gatereeve:desktop:set-selected-agents',
   setTerminalHeight: 'gatereeve:desktop:set-terminal-height',
   stateChanged: 'gatereeve:desktop:state-changed',
-  attestModule: 'gatereeve:desktop:attest-module',
-  moduleTaskCancel: 'gatereeve:desktop:module-task-cancel',
-  moduleTaskChanged: 'gatereeve:desktop:module-task-changed',
-  moduleTaskResize: 'gatereeve:desktop:module-task-resize',
-  moduleTaskStart: 'gatereeve:desktop:module-task-start',
-  observeModule: 'gatereeve:desktop:observe-module',
-  moduleTaskWrite: 'gatereeve:desktop:module-task-write',
   terminalChanged: 'gatereeve:desktop:terminal-changed',
   terminalEnsure: 'gatereeve:desktop:terminal-ensure',
   terminalResize: 'gatereeve:desktop:terminal-resize',
@@ -51,8 +37,6 @@ const channels = Object.freeze({
   terminalTerminate: 'gatereeve:desktop:terminal-terminate',
   terminalWrite: 'gatereeve:desktop:terminal-write',
   updateChanged: 'gatereeve:desktop:update-changed',
-  waiveBoundaryModule: 'gatereeve:desktop:waive-boundary-module',
-  waiveFinalizationModule: 'gatereeve:desktop:waive-finalization-module',
 });
 
 function requireState(value) {
@@ -261,10 +245,10 @@ function requireSessionDetail(value) {
 }
 
 function requireDetail(kind, id) {
-  if (!['artifact', 'events', 'attempt', 'model'].includes(kind)) {
+  if (!['artifact', 'events', 'result', 'model'].includes(kind)) {
     throw new TypeError('Detail kind is invalid.');
   }
-  if ((kind === 'artifact' || kind === 'attempt') && requireArtifactId(id) !== id) {
+  if ((kind === 'artifact' || kind === 'result') && requireArtifactId(id) !== id) {
     throw new TypeError('Detail ID is invalid.');
   }
   if ((kind === 'events' || kind === 'model') && id !== null) {
@@ -278,114 +262,6 @@ function exactObject(value, keys) {
     && value !== null
     && !Array.isArray(value)
     && Object.keys(value).sort().join(',') === [...keys].sort().join(',');
-}
-
-function requireModuleIds(value) {
-  if (
-    !Array.isArray(value)
-    || value.some((id) => typeof id !== 'string' || id.length === 0 || id.length > 512)
-    || new Set(value).size !== value.length
-  ) {
-    throw new TypeError('Enabled module IDs are invalid.');
-  }
-  return [...value];
-}
-
-function requireOrdering(value) {
-  const idValid = id => typeof id === 'string' && id.length <= 512 && /^[a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)+$/.test(id);
-  if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.entries(value).every(([id, rule]) => idValid(id)
-    && rule && typeof rule === 'object' && exactObject(rule, ['after']) && Array.isArray(rule.after)
-    && rule.after.every(from => idValid(from) && from !== id) && new Set(rule.after).size === rule.after.length)) {
-    throw new TypeError('Module ordering must contain named Run after relationships.');
-  }
-  return structuredClone(value);
-}
-
-function requireDependencyEdges(value) {
-  if (!Array.isArray(value) || !value.every(edge => exactObject(edge, ['from', 'to', 'kind'])
-    && typeof edge.from === 'string' && typeof edge.to === 'string'
-    && ['required', 'conditional', 'owner'].includes(edge.kind))) throw new Error('Invalid dependency edges');
-}
-
-function requireModuleSettings(value) {
-  if (
-    !exactObject(value, [
-      'schemaVersion', 'policyPath', 'policyExists', 'policyDigest',
-      'featureModelHash', 'projectModelHash', 'migrationRequired', 'modules',
-      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.edges === undefined ? [] : ['edges']),
-    ])
-    || value.schemaVersion !== 1
-    || typeof value.policyPath !== 'string'
-    || typeof value.policyExists !== 'boolean'
-    || typeof value.policyDigest !== 'string'
-    || typeof value.featureModelHash !== 'string'
-    || typeof value.projectModelHash !== 'string'
-    || typeof value.migrationRequired !== 'boolean'
-    || !Array.isArray(value.modules)
-    || value.modules.some((module) => (
-      typeof module !== 'object'
-      || module === null
-      || typeof module.id !== 'string'
-      || typeof module.label !== 'string'
-      || typeof module.description !== 'string'
-      || !['boundary.evaluation', 'feature.finalization'].includes(module.slot)
-      || typeof module.enabled !== 'boolean'
-      || typeof module.locked !== 'boolean'
-      || typeof module.waiverAllowed !== 'boolean'
-      || !['required', 'optional'].includes(module.disposition)
-      || !Array.isArray(module.dependsOn)
-      || typeof module.readiness !== 'object'
-      || !['unchecked', 'available', 'unavailable'].includes(module.readiness?.status)
-    ))
-  ) {
-    throw new Error('The main process returned invalid module settings.');
-  }
-  if (value.ordering !== undefined) requireOrdering(value.ordering);
-  if (value.edges !== undefined) requireDependencyEdges(value.edges);
-  return value;
-}
-
-function requireModulePolicyPreview(value) {
-  if (
-    !exactObject(value, [
-      'schemaVersion', 'valid', 'error', 'autoEnabled', 'blockingDependents',
-      'enabledModuleIds', 'suggestedEnabledModuleIds', 'diff', 'migrationImpact',
-      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.orderingChanged === undefined ? [] : ['orderingChanged']), ...(value.edges === undefined ? [] : ['edges']), ...(value.previewFingerprint === undefined ? [] : ['previewFingerprint']),
-    ])
-    || value.schemaVersion !== 1
-    || typeof value.valid !== 'boolean'
-    || (value.error !== null && typeof value.error !== 'string')
-    || !Array.isArray(value.autoEnabled)
-    || !Array.isArray(value.blockingDependents)
-    || !Array.isArray(value.enabledModuleIds)
-    || !Array.isArray(value.suggestedEnabledModuleIds)
-    || !Array.isArray(value.diff)
-    || (value.migrationImpact !== null && typeof value.migrationImpact !== 'object')
-  ) {
-    throw new Error('The main process returned an invalid module policy preview.');
-  }
-  if (value.ordering !== undefined) requireOrdering(value.ordering);
-  if (value.edges !== undefined) requireDependencyEdges(value.edges);
-  if (value.orderingChanged !== undefined && typeof value.orderingChanged !== 'boolean') throw new Error('Invalid ordering change flag');
-  if (value.previewFingerprint !== undefined && value.previewFingerprint !== null && typeof value.previewFingerprint !== 'string') throw new Error('Invalid preview fingerprint');
-  return value;
-}
-
-function requireConfirmationLabel(value) {
-  if (value !== null && (typeof value !== 'string' || value.trim().length === 0 || value.length > 1_024)) {
-    throw new TypeError('Confirmation label is invalid.');
-  }
-  return value === null ? null : value.trim();
-}
-
-function boundaryWaiverRequest(attemptId, gateId, reason, confirmationLabel) {
-  const values = { attemptId, gateId, reason, confirmationLabel };
-  if (Object.values(values).some((value) => (
-    typeof value !== 'string' || value.trim().length === 0 || value.length > 2_048
-  ))) {
-    throw new TypeError('Boundary module waiver is invalid.');
-  }
-  return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()]));
 }
 
 function requireTerminalId(value) {
@@ -479,52 +355,6 @@ function terminalResizeRequest(sessionId, cols, rows) {
   return { sessionId: requireTerminalId(sessionId), ...requireTerminalDimensions(cols, rows) };
 }
 
-function requireModuleTarget(moduleId, attemptId, gateId) {
-  for (const value of [moduleId, attemptId, gateId]) {
-    if (typeof value !== 'string' || value.length === 0 || value.length > 512) {
-      throw new TypeError('Module target is invalid.');
-    }
-  }
-  return { moduleId, attemptId, gateId };
-}
-
-function requireModuleRunPreview(value) {
-  if (!value || typeof value !== 'object' || value.schemaVersion !== 1 || typeof value.moduleId !== 'string' || !['skill', 'manual', 'command', 'observe'].includes(value.kind)) {
-    throw new Error('The main process returned an invalid module run preview.');
-  }
-  return value;
-}
-
-function requireModuleTaskId(value) {
-  if (typeof value !== 'string' || !/^module_task_[A-Za-z0-9_-]{1,128}$/u.test(value)) {
-    throw new TypeError('Module task ID is invalid.');
-  }
-  return value;
-}
-
-function requireModuleTaskSession(value) {
-  if (!value || typeof value !== 'object' || value.schemaVersion !== 1 || value.kind !== 'module-task' || requireModuleTaskId(value.id) !== value.id || typeof value.projectPath !== 'string' || value.projectPath.length === 0 || typeof value.output !== 'string' || !['running', 'terminating', 'passed', 'failed', 'awaiting-provider', 'timed-out', 'cancelled'].includes(value.status)) {
-    throw new Error('The main process returned an invalid module task session.');
-  }
-  return value;
-}
-
-function requireModuleTaskEvent(value) {
-  if (!value || typeof value !== 'object' || value.schemaVersion !== 1) {
-    throw new Error('The main process returned an invalid module task event.');
-  }
-  if (value.type === 'data') {
-    requireModuleTaskId(value.sessionId);
-    if (typeof value.data !== 'string') throw new Error('The main process returned invalid module task data.');
-    return value;
-  }
-  if (['started', 'terminating', 'finished'].includes(value.type)) {
-    requireModuleTaskSession(value.session);
-    return value;
-  }
-  throw new Error('The main process returned an invalid module task event.');
-}
-
 contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
   checkForUpdates: async () => requireUpdateState(await ipcRenderer.invoke(channels.checkForUpdates)),
   addProject: async () => requireState(await ipcRenderer.invoke(channels.addProject)),
@@ -534,22 +364,8 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     channels.getArtifactActions,
     { artifactId: requireArtifactId(artifactId) },
   )),
-  getModuleSettings: async () => requireModuleSettings(
-    await ipcRenderer.invoke(channels.getModuleSettings),
-  ),
-  getModuleRunPreview: async (moduleId, attemptId, gateId) => requireModuleRunPreview(
-    await ipcRenderer.invoke(
-      channels.getModuleRunPreview,
-      requireModuleTarget(moduleId, attemptId, gateId),
-    ),
-  ),
   getUpdateState: async () => requireUpdateState(await ipcRenderer.invoke(channels.getUpdateState)),
   listSession: async () => requireSessionInventory(await ipcRenderer.invoke(channels.listSession)),
-  listModuleTasks: async () => {
-    const value = await ipcRenderer.invoke(channels.listModuleTasks);
-    if (!Array.isArray(value)) throw new Error('The main process returned an invalid module task list.');
-    return value.map(requireModuleTaskSession);
-  },
   openArtifact: async (artifactId, editorId = null, remember = false) => {
     if (typeof remember !== 'boolean') throw new TypeError('Remember editor must be boolean.');
     return ipcRenderer.invoke(
@@ -586,34 +402,6 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     requirePath(path),
   )),
   openUpdateRelease: async () => ipcRenderer.invoke(channels.openUpdateRelease),
-  previewModulePolicy: async (enabledModuleIds, ordering) => requireModulePolicyPreview(
-    await ipcRenderer.invoke(channels.previewModulePolicy, {
-      enabledModuleIds: requireModuleIds(enabledModuleIds),
-      ...(ordering === undefined ? {} : { ordering: requireOrdering(ordering) }),
-    }),
-  ),
-  applyModulePolicy: async (
-    enabledModuleIds,
-    confirmedMigration = false,
-    confirmationLabel = null,
-    ordering,
-    expectedPolicyDigest,
-    expectedPreviewFingerprint,
-  ) => {
-    if (typeof confirmedMigration !== 'boolean') {
-      throw new TypeError('Migration confirmation must be boolean.');
-    }
-    if (expectedPolicyDigest !== undefined && (typeof expectedPolicyDigest !== 'string' || expectedPolicyDigest.length > 512)) throw new TypeError('Policy digest is invalid.');
-    if (expectedPreviewFingerprint !== undefined && (typeof expectedPreviewFingerprint !== 'string' || expectedPreviewFingerprint.length > 512)) throw new TypeError('Preview fingerprint is invalid.');
-    return requireModuleSettings(await ipcRenderer.invoke(channels.applyModulePolicy, {
-      enabledModuleIds: requireModuleIds(enabledModuleIds),
-      confirmedMigration,
-      confirmationLabel: requireConfirmationLabel(confirmationLabel),
-      ...(ordering === undefined ? {} : { ordering: requireOrdering(ordering) }),
-      ...(expectedPolicyDigest === undefined ? {} : { expectedPolicyDigest }),
-      ...(expectedPreviewFingerprint === undefined ? {} : { expectedPreviewFingerprint }),
-    }));
-  },
   readDetail: async (kind, id = null) => ipcRenderer.invoke(
     channels.readDetail,
     requireDetail(kind, id),
@@ -671,67 +459,10 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     channels.terminalRestart,
     terminalResizeRequest(sessionId, cols, rows),
   )),
-  startModuleTask: async (moduleId, attemptId, gateId, consent, cols, rows) => {
-    if (!['once', 'always'].includes(consent)) throw new TypeError('Module task consent is invalid.');
-    return requireModuleTaskSession(await ipcRenderer.invoke(channels.moduleTaskStart, {
-      ...requireModuleTarget(moduleId, attemptId, gateId),
-      consent,
-      ...requireTerminalDimensions(cols, rows),
-    }));
-  },
-  writeModuleTask: async (sessionId, data) => {
-    if (typeof data !== 'string' || data.length === 0 || data.length > 65_536) throw new TypeError('Module task input is invalid.');
-    return ipcRenderer.invoke(channels.moduleTaskWrite, { sessionId: requireModuleTaskId(sessionId), data });
-  },
-  resizeModuleTask: async (sessionId, cols, rows) => requireModuleTaskSession(await ipcRenderer.invoke(
-    channels.moduleTaskResize,
-    { sessionId: requireModuleTaskId(sessionId), ...requireTerminalDimensions(cols, rows) },
-  )),
-  cancelModuleTask: async (sessionId) => requireModuleTaskSession(await ipcRenderer.invoke(
-    channels.moduleTaskCancel,
-    { sessionId: requireModuleTaskId(sessionId) },
-  )),
-  attestModule: async (moduleId, attemptId, gateId, outcome, summary, confirmationLabel) => {
-    if (!['PASS', 'FAIL', 'NOT_APPLICABLE'].includes(outcome)) throw new TypeError('Module attestation outcome is invalid.');
-    return requireState(await ipcRenderer.invoke(channels.attestModule, {
-      ...requireModuleTarget(moduleId, attemptId, gateId), outcome, summary, confirmationLabel,
-    }));
-  },
-  observeModule: async (moduleId, attemptId, gateId) => requireState(
-    await ipcRenderer.invoke(channels.observeModule, requireModuleTarget(moduleId, attemptId, gateId)),
-  ),
   revealArtifact: async (artifactId) => ipcRenderer.invoke(
     channels.revealArtifact,
     { artifactId: requireArtifactId(artifactId) },
   ),
-  waiveBoundaryModule: async (attemptId, gateId, reason, confirmationLabel) => requireState(
-    await ipcRenderer.invoke(
-      channels.waiveBoundaryModule,
-      boundaryWaiverRequest(attemptId, gateId, reason, confirmationLabel),
-    ),
-  ),
-  startFinalization: async () => requireState(await ipcRenderer.invoke(channels.startFinalization)),
-  waiveFinalizationModule: async (attemptId, moduleId, reason, confirmationLabel) => requireState(
-    await ipcRenderer.invoke(
-      channels.waiveFinalizationModule,
-      boundaryWaiverRequest(attemptId, moduleId, reason, confirmationLabel),
-    ),
-  ),
-  completeFinalization: async (attemptId, confirmationLabel) => {
-    const values = { attemptId, confirmationLabel };
-    if (
-      !(attemptId === null || (
-        typeof attemptId === 'string' && attemptId.trim().length > 0 && attemptId.length <= 2_048
-      ))
-      || typeof confirmationLabel !== 'string'
-      || confirmationLabel.trim().length === 0
-      || confirmationLabel.length > 2_048
-    ) throw new TypeError('Finalization completion is invalid.');
-    return requireState(await ipcRenderer.invoke(channels.completeFinalization, {
-      attemptId: attemptId === null ? null : attemptId.trim(),
-      confirmationLabel: confirmationLabel.trim(),
-    }));
-  },
   subscribe(callback) {
     if (typeof callback !== 'function') throw new TypeError('State subscriber must be a function.');
     const listener = (_event, value) => callback(requireState(value));
@@ -760,11 +491,5 @@ contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
     const listener = (_event, value) => callback(requireTerminalEvent(value));
     ipcRenderer.on(channels.terminalChanged, listener);
     return () => ipcRenderer.removeListener(channels.terminalChanged, listener);
-  },
-  subscribeModuleTasks(callback) {
-    if (typeof callback !== 'function') throw new TypeError('Module task subscriber must be a function.');
-    const listener = (_event, value) => callback(requireModuleTaskEvent(value));
-    ipcRenderer.on(channels.moduleTaskChanged, listener);
-    return () => ipcRenderer.removeListener(channels.moduleTaskChanged, listener);
   },
 }));

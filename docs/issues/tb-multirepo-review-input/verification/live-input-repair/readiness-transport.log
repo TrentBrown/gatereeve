@@ -1,0 +1,11 @@
+PASS existing128KiB record
+PASS extended typed readiness exact roundtrip 196858
+PASS wrong kind rejected
+PASS other record128KiB bound preserved
+PASS over256KiB rejected
+PASS byte hash checked
+PASS extended semantic binding checked
+PASS symlink rejected
+PASS typed larger readiness remains audit history
+PASS opaque malformed larger record rejected
+10 controls PASS; transport only; no gate/schema/hash/authority changes

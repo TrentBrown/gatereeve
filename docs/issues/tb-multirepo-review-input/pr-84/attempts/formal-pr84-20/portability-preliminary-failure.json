@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "command": [
+      "node",
+      "cli/bin/workflow.js",
+      "plugin",
+      "lint",
+      "--json"
+    ],
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": "Error: Portability violations:\n- resources/protocol/current/environment.js: plugin-root escape\n"
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "result": {
+      "artifacts": [
+        {
+          "bytes": 1302,
+          "format": "json",
+          "hash": "sha256:dde569bd5ae36f387685dbeca77a38b8c8d832957838ef885ededffcbc77c49d"
+        },
+        {
+          "bytes": 631,
+          "format": "json",
+          "hash": "sha256:3dbf8f99519267f52a8d6ae4dc229c55a70180b5d3350c4bd46e21373b1b46c1"
+        }
+      ],
+      "contract": "gatereeve/current/2",
+      "coverage": {
+        "complete": true,
+        "interactions": [
+          "Reviewed the complete source and compared base/head and target/head: both diffs are empty. app/app.js:1 exports the constant answer with value 42 and has no imports or other reachable interactions."
+        ],
+        "limitations": [],
+        "paths": [
+          "app/app.js"
+        ]
+      },
+      "criteria": [],
+      "dispositions": [],
+      "featureId": "feature",
+      "findings": [],
+      "gate": "code",
+      "historyAssessment": null,
+      "input": {
+        "bytes": 598,
+        "format": "json",
+        "hash": "sha256:28c9609029a010ea98634f9a41b497ef17b3a594d72bdd7a68b728536119aa62"
+      },
+      "kind": "result",
+      "mode": "full",
+      "outcome": "PASS",
+      "prior": null,
+      "priorCandidate": null,
+      "receipt": {
+        "bytes": 595,
+        "format": "json",
+        "hash": "sha256:e6978c6113e66ccf58478479b4d0ad8f39ad3fd1ae748b903b616a7b129b995e"
+      },
+      "runId": "run-one",
+      "summary": "Base, head and target are identical, including retained file modes. The sole source file exports answer = 42, consistent with AC1/R1. No supported defects found. Assessment is static; no test evidence was supplied."
+    },
+    "receipt": {
+      "completedAt": "2026-10-24T02:40:48.798Z",
+      "contract": "gatereeve/current/2",
+      "evaluator": {
+        "contextId": "01a16bc7-fd28-7212-9fe9-8c1c2282b370",
+        "freshContext": true,
+        "inheritedTurns": 0,
+        "model": "gpt-6.1-sol",
+        "provider": "codex"
+      },
+      "gates": [
+        "code"
+      ],
+      "input": "sha256:28c9609029a010ea98634f9a41b497ef17b3a594d72bdd7a68b728536119aa62",
+      "jobId": "d01f21c80fbc71aefdf99cfdf07d24d075cc67fe72548332a4fb1f5ea7d97cf8",
+      "kind": "execution",
+      "metrics": {
+        "cost": null,
+        "tokens": {
+          "cacheCreation": null,
+          "cachedInput": 82432,
+          "input": 104720,
+          "output": 548
+        }
+      },
+      "role": "independent",
+      "runId": "run-one",
+      "startedAt": "2026-10-24T02:40:30.842Z"
+    },
+    "providerReceipts": [
+      {
+        "attemptId": "sha256:28c9609029a010ea98634f9a41b497ef17b3a594d72bdd7a68b728536119aa62",
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "completedAt": "2026-10-24T02:40:48.773Z",
+        "digests": {
+          "input": "sha256:bcde86a521e33c40990f202e4a33b150b7cae17ee4d3b613cdb8559836b13614",
+          "instructions": "sha256:7a40ac53bc9304c001ac034fe748826666a3cb674c0eea55200bb2e26af3c20d",
+          "output": "sha256:e7a68456774df74c65f7b2faaf5079c239f4db40fabcef86cb67254e7dced7a9",
+          "snapshot": "sha256:5cf6b16e1e384c2d633e9deadaa0f4665694d8e8950b3d836dcc649ef15563e8"
+        },
+        "isolation": {
+          "freshContext": true,
+          "inheritedTurns": 0,
+          "method": "codex-ephemeral-exec"
+        },
+        "kind": "gatereeve-agent-workflow-receipt",
+        "metrics": {
+          "cost": null,
+          "tokens": {
+            "cacheCreation": null,
+            "cachedInput": 82432,
+            "input": 104720,
+            "output": 548
+          }
+        },
+        "module": {
+          "digest": "sha256:32b8b34fd4596ec54196f45ae537e29e81982f56a6079d8ecd4d08c57cdb1abd",
+          "id": "gatereeve/current-review",
+          "version": "2.0.0"
+        },
+        "policy": {
+          "networkAccess": "deny",
+          "repositoryAccess": "read-only",
+          "scratch": "isolated"
+        },
+        "protocolVersion": "2.0.0",
+        "provider": {
+          "adapterVersion": "1.0.0",
+          "contextId": "01a16bc7-fd28-7212-9fe9-8c1c2282b370",
+          "id": "codex",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "high"
+        },
+        "runId": "run-one",
+        "schemaVersion": 1,
+        "stage": "review",
+        "startedAt": "2026-10-24T02:40:30.847Z",
+        "status": "completed"
+      },
+      {
+        "verdicts": [
+          {
+            "coverage": {
+              "complete": true,
+              "interactions": [
+                "Reviewed the complete source and compared base/head and target/head: both diffs are empty. app/app.js:1 exports the constant answer with value 42 and has no imports or other reachable interactions."
+              ],
+              "limitations": [],
+              "paths": [
+                "app/app.js"
+              ]
+            },
+            "criteria": [],
+            "dispositions": [],
+            "findings": [],
+            "gate": "code",
+            "historyAssessment": null,
+            "outcome": "PASS",
+            "summary": "Base, head and target are identical, including retained file modes. The sole source file exports answer = 42, consistent with AC1/R1. No supported defects found. Assessment is static; no test evidence was supplied."
+          }
+        ]
+      }
+    ]
+  }
+}

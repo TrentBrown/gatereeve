@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-13",
+  "checkedSource": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "26122e3cb959790e6a57e0905ff1bea04412546f",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:410e9e6e6f4dca848fe7c0c0f02e9e12904a93a1b09916f10f7c849e2bb18c2d",
+  "readiness": {
+    "path": "advisory/model-led-formal-ready-13/readiness.json",
+    "hash": "sha256:8f6365dd7fae5cbcb4c78be0010051bc3429f7b0a3383350871da5bb31be0b61"
+  },
+  "reason": "Proceed with user-authorized formal assessment after retention admission repair and actual local completion regressions. All prior findings remain retained with class coverage. Full CLI Verification is required before independent formal passage. The optional advisory outcome will remain visible; no formal gate is waived.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "implementation coordinator for user-authorized formal review"
+  }
+}

@@ -36,3 +36,7 @@ Output:
 
 - **Final step:** Run full rubric evaluation and produce the completion report.
 ```
+
+After the user approves implementation, record `human.decide` kind
+`authorize-implementation` against current commitment identity. Do not ask again
+if the same concrete approval is already observable. See `<plugin-root>/resources/PROTOCOL.md`.

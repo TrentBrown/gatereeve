@@ -1,0 +1,22 @@
+Original defect reproduction observations, transcribed from actual tool-returned stdout.
+These executions ran the then-current working implementation before the corresponding fixes.
+They are not fresh executions against the final repaired files. Scripts remain unmodified.
+
+node --test /tmp/gr-d11-scope-probe.mjs
+{"grantTarget":"main","main":"138b02b564bc91b2c2862cc7fdec4821cc3acd74","assessedTarget":"ae1662ab9996bace43ad5ab3c452c46956ca6243","derived":"accept","standingGrant":"sha256:9e071a2bbd508be2736102ccd35636bd40a3b00a42304e83143b9da6148934d0"}
+PASS: acceptance-only target scope actual operation (15366.364334ms)
+1 test, 1 pass, 0 fail. PASS here means the defect was reproduced.
+
+node --test /tmp/gr-d11-revoke-race-probe.mjs
+{"revoked":true,"views":6,"writes":["ready","checks","merge"],"remoteState":"MERGED","error":"Feature state or authority changed during merge; prepare the current action again"}
+PASS: standing authority protected merge: slice (29688.53ms)
+1 test, 1 pass, 0 fail. Revocation preceded the actual simulated-host merge write;
+the post-merge integration state check then rejected recording the integration.
+
+node --test /tmp/gr-d11-expiry-race-probe.mjs
+{"revoked":true,"views":6,"writes":["ready","checks","merge"],"remoteState":"MERGED","error":null}
+PASS: standing authority protected merge: slice (32219.96275ms)
+1 test, 1 pass, 0 fail. This copied probe's variable "revoked" marks expiry injection,
+not a revocation event. Date.now advanced past the grant deadline at the final awaited
+branch lookup. The merge and integration record succeeded after expiry.
+

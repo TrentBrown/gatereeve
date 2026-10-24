@@ -1,0 +1,5 @@
+# Source and verification attribution
+
+Substantive source is 7a945ecd (full SHA in final-build-binding.json). Desktop173, Python58+pattern29, live OpenAI1 and public receipt roundtrip, plugin/docs validation, actual universal package and ARM64 established-run GUI smoke passed. The full CLI suite is still running at this readiness declaration; the final formal Verification will retain its completed result. Preliminary interrupted/failing runs are retained and are not claimed as PASS. Final48 protocol/helper files match all three built consumers in144 byte comparisons.
+
+The packaged smoke uses actual native document/reconciliation validation and a synthetic pattern evaluator solely to test receipt transport with empty rules. It does not claim substantive pattern coverage or independent product evaluation. GUI screenshot was inspected and shows IMPLEMENTING. Intel runtime, native host hook activation, installation, notarization, hosted-current CI and release are not claimed. Mandatory formal gates remain required.

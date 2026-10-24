@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "passed": true,
+    "checks": 6,
+    "originalRejectsValidAudit": true,
+    "exactAuditAccepted": true,
+    "wrongKindWrongVersionOversizeAndOrdinaryLargeJSONReject": true,
+    "temporaryModule": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gr-advisory-compact-be5vndx1/agentic-development-workflow/resources/protocol/advisory-inputs.js",
+    "installedCoreMethodsUnmodified": true
+  }
+}

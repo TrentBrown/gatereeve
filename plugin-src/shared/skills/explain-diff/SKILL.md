@@ -18,8 +18,8 @@ It should have these sections:
 Format:
 
 - Output a single self-contained HTML file which includes CSS and JavaScript. Make the whole thing one long page with section headers and a table of contents. Don't use tabs for the top-level structure. Basic responsive styling so you can view it on a phone is nice too.
-- At a formal PR boundary, consume the `explainDiff` result from `boundary_gate.py`, explain exactly its pinned `diffBaseSha..diffHeadSha`, and write the artifact only to its packet `outputPath`. Do not infer another branch, upstream, diff, feature folder, or filename.
-- For standalone agentic-development workflow work outside a formal boundary, write the artifact to the resolved cumulative feature folder as `docs/issues/<featureId>/explain-diff.html`. Legacy branch-derived resolution remains available when no workspace configuration exists.
+- At a governed milestone, use the current candidate base/head and exact retained requirements. The current `explanation` gate retains the source-bound review explanation; this standalone skill can additionally produce the richer interactive HTML described here. Do not infer another branch, upstream or feature home.
+- For standalone agentic-development workflow work outside a formal boundary, write the artifact to the resolved cumulative feature folder as `docs/issues/<featureId>/explain-diff.html`. Branch-derived resolution is used when no workspace configuration exists.
 - If there is no workflow branch folder and no clear repository context, fall back to a global temporary location outside the repo, using the same date-prefixed filename convention, for example: `/tmp/2026-01-12-explanation-<slug>.html`.
 - Please write with the clarity and flow of Martin Kleppmann, making it engaging and written in classic style. Transitions between sections should be smooth.
 - Some tips on diagrams. Ideally, you should pick a small number of diagram families that can be reused throughout the explanation to explain various cases. Some useful kinds of diagrams:

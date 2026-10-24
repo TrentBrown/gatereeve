@@ -1,0 +1,12 @@
+✔ host environment invalidates runner proof while isolated source review remains applicable (1265.840084ms)
+✔ retained workflow history stays outside source at every endpoint and supports untracked continuation (1167.79175ms)
+✔ configuration and executable files remain source inside report directories (833.383167ms)
+✔ failed specification and reconciliation checks retain exact diagnostics without passage (940.751417ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4290.483875

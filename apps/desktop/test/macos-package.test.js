@@ -58,7 +58,7 @@ test('macOS identity and universal packager options are permanent', () => {
   assert.equal(options.name, 'GateReeve');
   assert.equal(options.appBundleId, 'com.trentbrown.gatereeve.desktop');
   assert.equal(options.arch, 'universal');
-  assert.deepEqual(options.asar, { unpack: '{**/node_modules/node-pty/prebuilds/**/*,**/main/providers/**/*}' });
+  assert.deepEqual(options.asar, { unpack: '{**/node_modules/node-pty/prebuilds/**/*,**/main/providers/**/*,**/resources/scripts/**/*}' });
   assert.deepEqual(options.osxUniversal, {
     mergeASARs: true,
     singleArchFiles: 'node_modules/node-pty/prebuilds/darwin-*/**/*',
@@ -99,12 +99,11 @@ test('runtime package allowlist admits scoped parents but rejects unstaged sibli
   assert.equal(isApprovedRuntimePackagePath('/node_modules/electron'), false);
 });
 
-test('Python runtime allowlist admits only the trusted context-check closure', () => {
-  assert.deepEqual(STAGED_PYTHON_RUNTIME_PATHS, [
-    '/resources/scripts/pr_context.py',
-    '/resources/scripts/workflow_common.py',
-    '/resources/scripts/workflow_context.py',
-  ]);
+test('Python runtime allowlist admits the current validation closure and excludes development code', async () => {
+  const { readdir } = await import('node:fs/promises');
+  const scripts = resolve(import.meta.dirname, '../resources/scripts');
+  const paths = (await readdir(scripts, { recursive: true })).filter(path => path.endsWith('.py')).map(path => `/resources/scripts/${path}`).sort();
+  assert.deepEqual(paths, [...STAGED_PYTHON_RUNTIME_PATHS].sort());
   for (const path of STAGED_PYTHON_RUNTIME_PATHS) {
     assert.equal(isApprovedPythonRuntimePath(path), true);
     assert.equal(REQUIRED_ASAR_PATHS.includes(path), true);
@@ -112,6 +111,7 @@ test('Python runtime allowlist admits only the trusted context-check closure', (
   assert.equal(isApprovedPythonRuntimePath('/resources/scripts/boundary_gate.py'), false);
   assert.equal(isApprovedPythonRuntimePath('/resources/scripts/nested/pr_context.py'), false);
   assert.equal(isApprovedPythonRuntimePath('/pr_context.py'), false);
+  assert.equal(isApprovedPythonRuntimePath('/resources/scripts/pattern/tests/test_pattern_helpers.py'), false);
 });
 
 test('ASAR packaging unpacks native PTY files and installed observation providers', async () => {
@@ -131,7 +131,12 @@ test('ASAR packaging unpacks native PTY files and installed observation provider
       iconPath: '/GateReeve.icns',
       version: '0.1.0',
     });
+    await mkdir(resolve(sourceRoot, 'resources/scripts/pattern'), { recursive: true });
+    await writeFile(resolve(sourceRoot, 'resources/scripts/pattern_tool.py'), 'print(42)');
+    await writeFile(resolve(sourceRoot, 'resources/scripts/pattern/rules.py'), 'rules = []');
     await createPackageWithOptions(sourceRoot, asarPath, options.asar);
+    await access(resolve(`${asarPath}.unpacked`, 'resources/scripts/pattern_tool.py'));
+    await access(resolve(`${asarPath}.unpacked`, 'resources/scripts/pattern/rules.py'));
     await access(resolve(`${asarPath}.unpacked`, 'node_modules/node-pty/prebuilds/darwin-arm64/pty.node'));
     await access(resolve(`${asarPath}.unpacked`, 'node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper'));
     await access(resolve(`${asarPath}.unpacked`, 'main/providers/provider.json'));
@@ -213,7 +218,7 @@ test('Desktop staging contains only self-contained runtime resources', async () 
       'await import(process.argv[1]);',
       pathToFileURL(resolve(
         stageRoot,
-        'resources/protocol/generated-artifact-validation.js',
+        'resources/protocol/current/observation.js',
       )).href,
     ]);
     assert.equal(validatorImport.stderr, '');

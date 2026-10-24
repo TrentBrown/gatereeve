@@ -1,0 +1,3 @@
+# Mechanical record normalization
+
+The installed advisory classifier could not classify formal19 pattern-inputs.json because its pretty-printed131187bytes exceeded its128KiB bound. Original exact bytes are retained as pr-84/attempts/formal-pr84-19/pattern-inputs-original.txt, SHA256 ba1418e873d65627d9a2bde00e4f9397d72034db62ccc26fedc07001277bef34, and in Git history. The JSON record is now whitespace-compacted with identical parsed value; no outcome, source identity or data was removed. No gate evidence reference targets this auxiliary input JSON. The coordinator itself is unchanged. Future pattern input records use compact JSON.

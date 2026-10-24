@@ -1,0 +1,8 @@
+COMMAND: python3 /Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/scripts/validate_branch_docs.py /Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/docs/issues/tb-multirepo-review-input
+PASS
+COMMAND: python3 /Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/scripts/lint_issues.py /Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/docs/issues/tb-multirepo-review-input
+PASS
+COMMAND: python3 /Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/scripts/lint_tracker.py /Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/docs/issues/tb-multirepo-review-input --final
+PASS
+COMMAND: python3 /Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/scripts/gate_triage.py /Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/docs/issues/tb-multirepo-review-input
+PASS

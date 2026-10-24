@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-2",
+  "checkedSource": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "91f39e6529a4c9614723baa9c37665e60e321ce0",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:08194bcb74ffb404693a8812be141b9e7a550eae201aaf394f9339198e17e031",
+  "readiness": {
+    "path": "advisory/model-led-formal-ready-2/readiness.json",
+    "hash": "sha256:6a75d390160fd5c8d407551694a8243ebcbc4f99e206700631a8e06da779b6b9"
+  },
+  "reason": "Proceed to the next formal attempt while the revised advisory runs. All 18 prior advisory/native Judge checklist findings have retained remediation claims and actual regressions. Current CLI252, desktop172, Python62, the real OpenAI evaluator receipt and universal packaged runtime verification pass. Independent code/spec and a new history-blind native Judge must assess the repaired candidate; no formal quality gate is waived. Preserve and inspect the advisory result before requesting human review.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "implementation coordinator for user-authorized formal review"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "applicationPath": "/tmp/gr-repair15-package.AP7NlS/application/GateReeve-darwin-universal/GateReeve.app",
+  "dmgPath": "/tmp/gr-repair15-package.AP7NlS/GateReeve-0.1.0-rc.16-macos-universal.dmg",
+  "dmgBytes": 253641009,
+  "dmgSha256": "ae677dffb57fde208fa61984d524547a88523647a2ef370d470a628132481b89",
+  "version": "0.1.0-rc.16"
+}

@@ -250,7 +250,7 @@ test('PR automation reduces only chained review-artifact updates and cancels onl
   }
   assert.match(pluginCi, /Review artifact validation/);
   assert.match(pluginCi, /gate_triage\.py/);
-  assert.match(pluginCi, /executePluginRequest/);
+  assert.match(pluginCi, /validate-local-record\.mjs/);
   assert.match(pluginCi, /docker\/setup-buildx-action@v4/);
   assert.match(pluginCi, /docker\/build-push-action@v7/);
   assert.match(pluginCi, /cache-to: type=gha,mode=max/);

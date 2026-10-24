@@ -1,0 +1,16 @@
+✔ simultaneous identical requests claim one execution and reconcile its result (871.286208ms)
+✔ stale newer finding cannot resurrect older PASS through environment (23749.337375ms)
+✔ stale newer finding cannot resurrect older PASS through expiry (24458.363792ms)
+✔ historical delta ancestry cannot grant current authority to superseded consumed proof (2215.357042ms)
+✔ current admission preserves substantive unavailable-finding after expiry (1231.854291ms)
+✔ current admission preserves substantive failed-criterion after expiry (1846.395208ms)
+✔ saved completed failure reconciles before changed-source preflight and remains in fresh reviewer history (2439.63625ms)
+✔ unknown interrupted execution blocks older proof but a fresh complete review recovers (1582.29775ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 58483.793875

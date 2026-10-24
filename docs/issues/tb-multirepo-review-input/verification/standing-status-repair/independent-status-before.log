@@ -1,0 +1,22 @@
+{"variant":"scope","allowed":true,"reason":null}
+✔ actual standing status scope (1079.958166ms)
+{"variant":"repository","allowed":true,"reason":null}
+✔ actual standing status repository (1055.296291ms)
+{"variant":"branch","allowed":true,"reason":null}
+✔ actual standing status branch (1019.650833ms)
+{"variant":"target","allowed":true,"reason":null}
+✔ actual standing status target (1159.579875ms)
+{"variant":"missing-candidate","allowed":true,"reason":null}
+✔ actual standing status missing-candidate (1007.949708ms)
+{"variant":"corrupt-candidate","allowed":true,"reason":null}
+✔ actual standing status corrupt-candidate (1037.336083ms)
+{"variant":"missing-input","allowed":true,"reason":null}
+✔ actual standing status missing-input (1038.910041ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7451.377542

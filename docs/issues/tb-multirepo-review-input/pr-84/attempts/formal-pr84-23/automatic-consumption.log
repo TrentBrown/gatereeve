@@ -1,0 +1,10 @@
+✔ one fresh evaluator supplies two separate verdicts; missing verdicts and inherited contexts remain unavailable (3068.659416ms)
+✔ spec execution automatically binds current Verification without hand-authored transport (2197.252084ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5326.369666

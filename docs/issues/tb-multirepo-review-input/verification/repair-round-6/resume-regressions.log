@@ -1,0 +1,13 @@
+✔ interrupted startup reconciles durable run before activating it (243.091833ms)
+✔ current adapter resolves canonical parent records and gives actionable old-record guidance (205.88675ms)
+✔ resume uses observed approvals, preserves old files and reconciles repeated entry (611.873125ms)
+✔ current resume preserves unsupported and damaged runs and starts with no inherited authority (1157.352917ms)
+✔ public resume restores terminal pause and activation loss without selecting a new run (259.527709ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2560.190959

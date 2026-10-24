@@ -98,12 +98,13 @@ export async function stageProtocolResources({
   const stagedProtocol = resolve(destination, 'protocol');
   const files = await protocolFiles(stagedProtocol);
   const protocolHash = createHash('sha256').update(stableJson(files)).digest('hex');
-  const model = await readFile(resolve(stagedProtocol, 'model/workflow-model.json'));
+  const model = await readFile(resolve(stagedProtocol, 'current/contracts.js'));
   const manifest = {
     schemaVersion: 1,
     canonicalSource: 'plugin-src/shared/resources/protocol',
     protocolHash: `sha256:${protocolHash}`,
-    modelSha256: createHash('sha256').update(model).digest('hex'),
+    contract: 'gatereeve/current/3',
+    contractSha256: createHash('sha256').update(model).digest('hex'),
     files,
   };
   await writeFile(resolve(destination, manifestName), stableJson(manifest));

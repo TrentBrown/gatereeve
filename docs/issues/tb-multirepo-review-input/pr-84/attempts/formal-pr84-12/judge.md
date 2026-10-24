@@ -1,0 +1,50 @@
+**Verdict: FAIL.** One supported defect affects R1, R6, R7 and R11. The other 17 criteria pass. Scope passes; gap and contradiction checks fail.
+
+Evaluated the whole feature from `643e3ea2b03f19b66595219c4f8df934596aa436` through `85f8b36f3fbeeff9b5e39941b1508e6c8d7ee9ca`, using the bound approved specification and design, inventory, patch chunks, assembled source, full Verification record and `runtime.png`. All referenced document/attachment hashes and all 50 patch chunk hashes, lengths and offsets matched. The inventory contains 307 text-file entries: 100 modifications, 157 deletions and 50 additions, with no renames or binary entries.
+
+**F1 — Retention PASS survives loss of required failed-specification evidence.**
+
+A reachable sequence is:
+
+1. Retain a failed specification-validation record, then correct and validate the specification.
+2. Satisfy the other obligations and obtain a retention PASS.
+3. Lose or corrupt the failed validation's retained diagnostics or uniquely retained input documents.
+4. Check completion while the other completion conditions remain satisfied.
+
+Retention execution checks `state.validationFailures` through `store.closure` at `plugin-src/shared/resources/protocol/current/execution.js:583`, but its result at line 585 does not bind those references into the retained result closure. Later admission checks the result's own closure. `historyGaps` notices the lost failed-validation evidence and labels it `spec-validation` at `current/core.js:547`; the admission barrier at line 330 does not invalidate retention for that gap. The old retention PASS remains admissible, and the milestone logic at lines 493–506 marks it satisfied.
+
+A read-only, filesystem-free in-memory probe exercised the actual `currentResult`, `historyGaps` and closure implementations. Before deleting the failed proof, retention returned PASS. After deletion, the core reported a missing `spec-validation` history gap and still returned retention PASS. The completion consequence follows from the milestone admission path; a full completion fixture was not executed during this review.
+
+The same omission covers corruption and missing failed-input references, as well as a later failed-validation record outside an earlier retention run's closure. The existing test at `cli/test/current-core.test.js:1372` deletes the proof **before generating retention evidence**. It does not cover admission of an existing retention PASS after evidence loss.
+
+This contradicts `plugin-src/shared/resources/PROTOCOL.md:114`, which says lost failed-validation proof blocks retention until restored, and the core's own restoration-required gap message. Original historical PASS outcomes should remain recorded, but they cannot establish current retention eligibility when required bytes are unavailable.
+
+| Criterion | Result | Assessment and evidence |
+|---|---|---|
+| R1 — Planning and milestone authority | FAIL | Completion can accept the stale retention result despite missing required bytes. `current/core.js:330`, `:493`, `:504`. Planning and explicit action authority otherwise remain enforced. |
+| R2 — Model-led execution | PASS | READY launches no evaluator; evaluations are explicit; real Verification inputs remain required; no remediation count controls passage. `current/core.js` readiness; `current/execution.js:250`, `:279`; `cli/test/current-core.test.js:61`, `:777`. |
+| R3 — Canonical layouts | PASS | One resolver/store supports repository-local and parent records with optional Git tracking. Local finalization requires no evidence commit. `protocol/context.js`; `current/store.js:87`; `cli/test/current-core.test.js:71`, `:286`, `:552`. |
+| R4 — Exact source and requirements | PASS | Candidates bind raw requirement bytes, authority, repository identities, base/head/target content and rubric scope. `current/evidence.js:150`, `:173`, `:194`; original-base rejection test at `cli/test/current-core.test.js:851`. |
+| R5 — Containment and isolation | PASS | Safe capture rejects traversal and symlink substitution. Declared reviewer exports exclude reserved history and request fresh read-only/network-denied evaluation. `current/store.js:10`, `:33`; `current/execution.js:70`, `:131`; history isolation tests at `cli/test/current-core.test.js:2030`, `:2076`. |
+| R6 — Publication and retention | FAIL | Failed-validation closure is checked during retention execution but omitted from its bound result and not rechecked during admission. `current/execution.js:583`, `:585`; `current/core.js:314`, `:330`, `:547`. |
+| R7 — Local finalization | FAIL | Local completion can accept an incomplete required reference closure through F1. Application cleanliness and protected PR checks remain present. `current/execution.js:577`; `current/core.js:416`, `:485`; `current/actions.js:51`. |
+| R8 — Independent grouped verdicts | PASS | Code/spec retain separate validated verdicts; missing verdicts and inherited contexts remain unavailable. `current/execution.js:139`, `:260`; `cli/test/current-core.test.js:179`; bound Verification line 17 reports an actual live fresh evaluator run. |
+| R9 — Complete obligation inventory | PASS | Required gates remain explicit with proper roles; runner PASS requires actual matching successful receipts. `current/contracts.js` GATES; `current/execution.js:157`; `current/core.js:406`; copied-proof negative at `cli/test/current-core.test.js:1311`. |
+| R10 — Equivalent-input reuse | PASS | Equivalent content can reuse original proof across new commit identities and bookkeeping changes without rewriting provenance. `current/evidence.js:178`; reuse selection in `current/execution.js`; `cli/test/current-core.test.js:540`, `:1267`. |
+| R11 — Relevant change and uncertainty | FAIL | General source/environment/dependency invalidation exists, but absent failed-specification bytes do not invalidate current retention eligibility. `current/environment.js`; `current/core.js:394`, `:405`, `:330`; F1 probe. |
+| R12 — Targeted delta coverage | PASS | Qualified prior proof, compatible scope and requirements, changed-path coverage and interaction evidence are required. `current/execution.js:40`, `:243`; delta/base/target scenarios at `cli/test/current-core.test.js:201`, `:867`, `:1014`. |
+| R13 — Bounded history and dispositions | PASS | Claims and limitations are labeled; affected closures require independent assessment; unaffected closures can be carried with justification. `current/execution.js:50`, `:211`, `:283`; `cli/test/current-core.test.js:684`, `:2012`. |
+| R14 — New discovery and blocking criteria | PASS | New supported defects, including resolved-class instances, remain reportable; blocking findings require approved criteria or gate rules and current source. `current/execution.js:53`, `:54`, `:200`; `cli/test/current-core.test.js:201`, `:1504`. |
+| R15 — One scoped human decision | PASS | Explicit instructions, scoped continuations, amendment history and pending operations support repeat-safe application without fabricated provenance. `current/contracts.js` decision contract; `current/core.js` pendingDecision/decide; `cli/test/current-core.test.js:1084`, `:1107`. |
+| R16 — Honest exceptions and integration | PASS | Exceptions preserve outcomes, bind risk and grant no implicit merge authority. Actual integration is observed separately. `current/contracts.js` waiverFor; `current/core.js:419`, `:506`; `current/actions.js:107`; `cli/test/current-core.test.js:485`, `:1341`. |
+| R17 — Enforcement coverage | PASS | Protected adapters revalidate core eligibility and exact actions. Hook subprocess coverage is tested and actual native-host interception remains explicitly unverified. `current/actions.js:51`, `:77`; `current/pre-tool-use.js`; `cli/test/current-hook.test.js:8`; bound Verification line 32. |
+| R18 — Coherent consumers and low ceremony | PASS | CLI/native/desktop consume the current core; obsolete ordering and automatic evaluator controls are removed. All 23 canonical protocol files matched the desktop projection. Consumer suites, plugin build and built runtime smoke are reported passing; `runtime.png` was inspected. |
+| R19 — Direct cutover | PASS | Retired orchestration modules are deleted; current entry points reject unsupported operations with resume guidance. No converter, staged pilot or benchmark gate was identified. Inventory; `protocol/index.js`; `current/core.js:624`; `current/store.js:188`. |
+| R20 — Resume without false history | PASS | Durable current-run activation precedes authority; old journals are preserved without replay. Observed approvals and interrupted activation have explicit recovery paths. `current/core.js` start/resume; `current/store.js:157`, `:192`; resume tests in `cli/test/current-core.test.js`. |
+| R21 — Practical observations | PASS | Receipts retain available timing and usage data, with missing metrics null rather than zero. Real-project observation introduces no benchmark gate. `protocol/local-agent-adapters.js`; `cli/test/local-agent-adapters.test.js:208`; `policy/WORKFLOW.md:75`. |
+
+**Explicit checks:** Scope PASS: changed work fits the approved protocol and consumer scope. Gaps FAIL: admission of existing retention proof after failed-evidence loss is uncovered. Contradictions FAIL: current eligibility conflicts with the shipped restoration-required contract.
+
+The full bound Verification record reports 350 CLI passes plus one intentional skip, 172 desktop passes, 58 Python passes, a separate live evaluator pass, plugin validation, packaging and built runtime smoke. Those results do not cover F1's admission path. Its stated limits—unverified installed-host interception, ARM64-only runtime exercise, empty substantive pattern scope, unavailable exact-current hosted CI and local redundancy without backup—are explicit and do not independently violate this approved pre-merge boundary.
+
+No code was edited, no network tools were used, and mutating fixture/build suites were not rerun. These findings are supported by the supplied pinned evidence and the read-only admission probe; no exhaustive-discovery claim is made.

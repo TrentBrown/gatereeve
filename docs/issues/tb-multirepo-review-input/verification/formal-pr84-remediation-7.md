@@ -1,0 +1,9 @@
+# Seventh formal-review remediation claims
+
+Native OpenAI Judge7 returned FAIL. Its original report, output, receipt and audit are retained; independent code/spec7 PASS does not override it. Installed rc.16 recorded `evt-pr84-remediate-7` before repairs. This document describes implementer claims, not gate passage.
+
+- F1: Enforce the high-capability-v1 minimum at both public provider launches and receipt validation. Current gate execution binds descriptor/request/receipt effort and profile, retains qualification, and rechecks it for ordinary reuse, consumed evidence and historical support. Unknown or lower effort cannot qualify. Every evaluator role shares the admission path; grouped code/spec still returns separate verdicts.
+- F2: Bind spec/issues/tracker helper closure, resolved and actual Python interpreter bytes/version, loaded standard-library origin/cache bytes, fixed bootstrap and frozen environment. Isolated/no-site/source execution rejects additional unbound imports. Pre/post binding detects execution drift and retains executed diagnostics. Current spec eligibility and reconciliation applicability check the live binding; recursive waiver risk includes it too. Unchanged approved commitments can refresh spec proof in their authorized phase; failed refresh blocks and is retained without inventing a new human instruction.
+- F3: Aggregate each provider metric only if every contribution is known and valid. Missing fields/turn usage remain null; genuine zero remains numeric zero. Public receipt roundtrip continues to validate actual retained output.
+
+Focused regressions and independent read-only probes cover lower/unknown effort, descriptor/receipt qualification, partial metrics, helper/environment drift, refresh recovery and postflight diagnostics. Broad CLI/desktop/Python tests, a real OpenAI evaluation and current package/runtime verification will be retained for the next formal boundary. No current formal PASS is asserted here.

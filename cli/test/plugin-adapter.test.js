@@ -1,91 +1,30 @@
 import assert from 'node:assert/strict';
-import { execFile, execFileSync } from 'node:child_process';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { promisify } from 'node:util';
 import test from 'node:test';
-
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { resolve } from 'node:path';
 import { executePluginRequest } from '../../plugin-src/shared/resources/protocol/plugin-adapter.js';
+import { currentFixture } from './helpers/current-fixture.js';
+const exec = promisify(execFile);
 
-const execFileAsync = promisify(execFile);
-const adapterPath = resolve(
-  import.meta.dirname,
-  '../../plugin-src/shared/resources/protocol/plugin-adapter.js'
-);
-
-async function git(repository, ...args) {
-  const result = await execFileAsync('git', ['-C', repository, ...args]);
-  return result.stdout.trim();
-}
-
-async function createRepository() {
-  const root = await mkdtemp(join(tmpdir(), 'gatereeve plugin adapter '));
-  await git(root, 'init', '-b', 'adapter-feature');
-  await git(root, 'config', 'user.name', 'Plugin Adapter');
-  await git(root, 'config', 'user.email', 'adapter@example.test');
-  await git(root, 'config', 'commit.gpgsign', 'false');
-  await writeFile(resolve(root, 'README.md'), '# fixture\n');
-  await git(root, 'add', 'README.md');
-  await git(root, 'commit', '-m', 'base');
-  return root;
-}
-
-test('plugin adapter initializes and governs a feature without a PATH CLI', async () => {
-  const repository = await createRepository();
-  const initialized = await executePluginRequest({
-    operation: 'feature.init',
-    cwd: repository,
-    actor: { kind: 'agent', label: 'plugin skill' },
-    eventId: 'evt-init',
-    recordedAt: '2026-08-25T00:00:00Z',
-  });
-  assert.equal(initialized.ok, true);
-  assert.equal(initialized.data.featureState, 'DESIGNING');
-
-  const status = await executePluginRequest({ operation: 'status', cwd: repository });
-  assert.equal(status.ok, true);
-  assert.equal(status.data.mode, 'governed');
-  assert.equal(status.data.projection.feature.state, 'DESIGNING');
-
-  const approved = await executePluginRequest({
-    operation: 'feature.transition',
-    cwd: repository,
-    transitionId: 'approve-design',
-    input: {
-      actor: { kind: 'human-confirmed', label: 'user in conversation' },
-      eventId: 'evt-design',
-    },
-  });
-  assert.equal(approved.ok, true);
-  assert.equal(approved.data.projection.feature.state, 'SPECIFYING');
-  assert.match(
-    await readFile(resolve(repository, 'docs/issues/adapter-feature/events.jsonl'), 'utf8'),
-    /DESIGN_APPROVED/
-  );
+test('native current adapter starts without a PATH CLI and status process agrees', async t => {
+  const f = await currentFixture(t);
+  assert.equal((await f.request('run.start', { implementers: ['fixture'] }, 'start')).ok, true);
+  const status = await f.request('status');
+  assert.equal(status.data.current.phase, 'DESIGNING');
+  const { stdout } = await exec(process.execPath, [resolve(import.meta.dirname, '../../plugin-src/shared/resources/protocol/plugin-adapter.js'), 'status', '--cwd', f.repo]);
+  assert.deepEqual(JSON.parse(stdout), status);
 });
 
-test('plugin adapter process emits the same stable JSON envelope', async () => {
-  const repository = await createRepository();
-  await executePluginRequest({
-    operation: 'feature.init',
-    cwd: repository,
-    actor: { kind: 'agent', label: 'plugin skill' },
-    eventId: 'evt-init',
-  });
-  const stdout = execFileSync(process.execPath, [adapterPath], {
-    cwd: repository,
-    input: `${JSON.stringify({ operation: 'status', cwd: repository })}\n`,
-    encoding: 'utf8',
-  });
-  const envelope = JSON.parse(stdout);
-  assert.equal(envelope.ok, true);
-  assert.equal(envelope.command, 'status');
-  assert.equal(envelope.data.projection.featureId, 'adapter-feature');
-});
-
-test('model graph remains available when no repository context exists', async () => {
-  const result = await executePluginRequest({ operation: 'graph.model' });
-  assert.equal(result.ok, true);
-  assert.equal(result.data.graph.kind, 'model');
+test('unsupported old mutations and arbitrary feature homes cannot append passage', async t => {
+  const f = await currentFixture(t);
+  await f.request('run.start', { implementers: ['fixture'] }, 'start');
+  const before = (await f.core.state()).events;
+  for (const operation of ['feature.transition', 'gate.record', 'boundary.retry', 'feature.migrate-model']) {
+    const result = await f.request(operation, { outcome: 'PASS' });
+    assert.equal(result.ok, false); assert.match(result.error.message, /Unsupported/);
+  }
+  const wrong = await executePluginRequest({ operation: 'status', cwd: f.repo, featureHome: f.root });
+  assert.equal(wrong.ok, false);
+  assert.deepEqual((await f.core.state()).events, before);
 });

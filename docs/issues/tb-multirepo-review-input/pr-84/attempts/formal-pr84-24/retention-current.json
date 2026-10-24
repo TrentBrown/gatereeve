@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "command": "feature_final.py --context /tmp/gr-retention-context24.json --json",
+    "observedHead": "fa872bacf51bfdb3a86e1a1dc8523ff9c41a36a1",
+    "retention": {
+      "status": "tracked",
+      "gitRoot": "/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input",
+      "trackedFileCount": 1756,
+      "untrackedFileCount": 0,
+      "untrackedFiles": [],
+      "ignoredFileCount": 0,
+      "ignoredFiles": [],
+      "retentionDecisionRequired": false,
+      "reason": "Every current feature-record file is tracked by Git"
+    },
+    "qualification": "Read-only retention observation at final evidence head. Original formal24 evaluation pin remains f1cf438597fc8eeb06fc3123395cbb179c70f9d7; pr_context finalize separately validates only declared evidence changed."
+  }
+}

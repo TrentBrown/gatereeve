@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": "\u2714 runner CLI requires an explicit scope and executes the documented configuration (2517.050708ms)\n\u2714 routes users, developers, and release maintainers from the root README (3.069042ms)\n\u2714 developer guide covers the complete canonical-to-PR lifecycle (0.864958ms)\n\u2714 release runbook documents only the conductor production interface (0.762916ms)\n\u2714 Apple release setup is actionable, protected, and team-key only (1.13175ms)\n\u2714 keeps developer and release bash examples syntactically valid (97.953333ms)\n\u2714 CLI and native adapter share current parent-workspace status and preserve old files (268.755875ms)\n\u2714 current queries are read-only and blocked milestone passage fails without appending (330.007333ms)\n\u2714 retired mutation commands are unavailable and help explains explicit execution (165.74575ms)\n\u2139 tests 9\n\u2139 suites 0\n\u2139 pass 9\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 2561.918334\n"
+}

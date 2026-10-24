@@ -1,0 +1,10 @@
+✔ failed specification and reconciliation checks retain exact diagnostics without passage (949.202792ms)
+✔ waiver with acceptance retains pending human instruction before failed continuation (10306.635583ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11339.174292

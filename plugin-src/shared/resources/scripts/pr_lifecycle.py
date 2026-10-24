@@ -77,59 +77,6 @@ def require_authorized_identity(context, current, reviewed_head):
         raise PullRequestContextError("PR is not open at the authorized head")
 
 
-def merge_pull_request(context: PullRequestContext, provider, *, reviewed_head: str,
-                       authorization: str, method: str = "merge",
-                       evidence_paths: Sequence[str] = ()) -> dict:
-    if not authorization.strip():
-        raise PullRequestContextError("Explicit human merge authorization is required")
-    if method not in {"merge", "squash", "rebase"}:
-        raise PullRequestContextError("Unsupported merge method")
-    require_merge_direction(context.pull_request.head_branch, context.pull_request.base_branch)
-    require_current_policy(context)
-    synchronized = finalize_pull_request_context(context, provider, evidence_paths=evidence_paths)
-    if synchronized["finalHeadSha"] != reviewed_head:
-        raise PullRequestContextError("Current PR head differs from the explicitly accepted reviewed head")
-    number = str(context.pull_request.number)
-    name = context.pull_request.repository
-    opened = False
-    try:
-        if context.keep_pull_requests_closed:
-            # Set cleanup obligation before the call: a network failure may follow a successful reopen.
-            opened = True
-            provider.gh("pr", "reopen", number, "--repo", name)
-        current = provider.snapshot(number)
-        require_authorized_identity(context, current, reviewed_head)
-        if current.is_draft:
-            provider.gh("pr", "ready", number, "--repo", name)
-        status = json.loads(provider.gh("pr", "view", number, "--repo", name,
-                                       "--json", "statusCheckRollup"))
-        if status["statusCheckRollup"]:
-            provider.gh("pr", "checks", number, "--repo", name, "--watch")
-        require_current_policy(context)
-        require_authorized_identity(context, provider.snapshot(number), reviewed_head)
-        # GitHub enforces required checks/reviews. Do not use --admin, --auto, or bypass rules.
-        provider.gh("pr", "merge", number, "--repo", name, f"--{method}",
-                    "--match-head-commit", reviewed_head)
-        final = provider.snapshot(number)
-        if final.state != "MERGED":
-            raise PullRequestContextError("Merge did not complete; no protocol passage may be recorded")
-        return {"status": "merged", "pullRequest": final.to_dict(),
-                "reviewedHeadSha": reviewed_head, "authorization": authorization}
-    except BaseException as error:
-        if context.keep_pull_requests_closed and opened:
-            try:
-                final = provider.snapshot(number)
-                if final.state == "OPEN":
-                    provider.gh("pr", "close", number, "--repo", name)
-                if provider.snapshot(number).state not in {"CLOSED", "MERGED"}:
-                    raise PullRequestContextError("PR remains open")
-            except Exception as cleanup_error:
-                raise PullRequestContextError(
-                    f"Merge failed ({error}); could not verify re-closure ({cleanup_error}). Check PR #{number} immediately"
-                ) from error
-        raise
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -156,11 +103,7 @@ def main() -> int:
             result = prepare_pull_request(workflow.repository, provider, title=args.title,
                                           body_file=args.body_file, scope=args.scope).to_dict()
         else:
-            context = load_context(args.context)
-            provider = GitHubPullRequestProvider(context.repository_root)
-            result = merge_pull_request(context, provider, reviewed_head=args.reviewed_head,
-                                        authorization=args.authorization, method=args.method,
-                                        evidence_paths=args.evidence_path)
+            raise ValueError("Legacy merge entry is retired. Use the current plugin adapter merge.prepare, scoped human.decide, and merge.execute so current milestone proof is enforced.")
         _print_result(result, args.output)
         return 0
     except (PullRequestContextError, WorkflowContextError, ValueError, OSError) as error:

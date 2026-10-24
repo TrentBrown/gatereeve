@@ -1,0 +1,58 @@
+[
+  {
+    "mode": "target",
+    "actualFileEdit": true,
+    "publicMergeWriterReached": true,
+    "unchangedEventCount": true,
+    "cachedStandingAllowed": true,
+    "isDraft": true
+  },
+  {
+    "mode": "keepclosed",
+    "actualFileEdit": true,
+    "publicMergeWriterReached": true,
+    "unchangedEventCount": true,
+    "cachedStandingAllowed": true,
+    "isDraft": true
+  },
+  {
+    "mode": "repository-path",
+    "actualFileEdit": true,
+    "publicMergeWriterReached": true,
+    "unchangedEventCount": true,
+    "cachedStandingAllowed": true,
+    "isDraft": true
+  },
+  {
+    "mode": "repository-removal",
+    "actualFileEdit": true,
+    "publicMergeWriterReached": true,
+    "unchangedEventCount": true,
+    "cachedStandingAllowed": true,
+    "isDraft": true
+  },
+  {
+    "mode": "config-deletion",
+    "actualFileEdit": true,
+    "publicMergeWriterReached": true,
+    "unchangedEventCount": true,
+    "cachedStandingAllowed": true,
+    "isDraft": true
+  },
+  {
+    "mode": "malformed",
+    "actualFileEdit": true,
+    "publicMergeWriterReached": true,
+    "unchangedEventCount": true,
+    "cachedStandingAllowed": true,
+    "isDraft": true
+  },
+  {
+    "mode": "closer-insertion",
+    "actualFileEdit": true,
+    "publicMergeWriterReached": true,
+    "unchangedEventCount": true,
+    "cachedStandingAllowed": true,
+    "isDraft": true
+  }
+]

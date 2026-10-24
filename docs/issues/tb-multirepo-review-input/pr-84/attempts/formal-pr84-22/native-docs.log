@@ -1,0 +1,16 @@
+✔ routes users, developers, and release maintainers from the root README (2.6295ms)
+✔ developer guide covers the complete canonical-to-PR lifecycle (0.891ms)
+✔ release runbook documents only the conductor production interface (0.811958ms)
+✔ Apple release setup is actionable, protected, and team-key only (1.032584ms)
+✔ keeps developer and release bash examples syntactically valid (95.2565ms)
+✔ documents the verified native plugin lifecycle for both managers (3.304375ms)
+✔ keeps every documented bash block syntactically valid (67.495792ms)
+✔ connects installation, operational guidance, and visual orientation (1.190042ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 138.199208

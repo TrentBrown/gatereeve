@@ -1,0 +1,14 @@
+✔ actual argument change invalidates retained PASS and reruns the check (1716.813083ms)
+✔ actual library change invalidates retained PASS and reruns the check (1831.109375ms)
+✔ actual shebang change invalidates retained PASS and reruns the check (1656.341958ms)
+✔ actual failed runner exception expires after changed external script (1641.341166ms)
+✔ actual acceptance passage rejects old PASS after external script turns failing (9504.426292ms)
+✔ consumed verification external drift also invalidates a spec waiver (2122.024375ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18526.714834

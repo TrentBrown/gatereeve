@@ -21,10 +21,11 @@ Deterministic helper:
 python3 "<plugin-root>/resources/scripts/pattern_tool.py" review-inputs --cwd <repo>
 ```
 
-At a formal PR boundary, first load the persisted PR context through
-`boundary_gate.py --gate patternReview`. Pass its `diffBaseSha` and
-`diffHeadSha` as `--base` and `--head` to the helper, and write only to the
-returned packet `outputPath`. Formal gates never infer their own Git context.
+At a governed milestone use the current `pattern` gate, as described in
+`<plugin-root>/resources/commands/pattern-review.md`. It owns pinned input
+capture, actual execution, retained outcome and currentness. The standalone
+procedure below remains useful for rule inspection; its prose does not record
+current milestone passage.
 
 Workflow:
 

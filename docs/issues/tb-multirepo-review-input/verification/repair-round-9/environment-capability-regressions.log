@@ -1,0 +1,16 @@
+✔ host environment invalidates runner proof while isolated source review remains applicable (2490.087791ms)
+✔ runner reuse binds the entire actual inherited environment without retaining plaintext values (2173.712833ms)
+✔ stale newer finding cannot resurrect older PASS through environment (25935.477666ms)
+✔ evaluator qualification blocks low efforts and mismatched receipt profiles across review roles (4675.451417ms)
+✔ trusted validator drift invalidates spec and reconciliation while refresh preserves authority (4100.974ms)
+✔ validator postflight drift retains executed diagnostics and rejects unbound imports (242.900792ms)
+✔ both providers reject insufficient or unknown reasoning before starting a process (1.140167ms)
+✔ Codex usage totals remain unknown for incomplete fields across completed turns (9.849417ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 39682.982708

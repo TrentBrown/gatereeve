@@ -1,0 +1,26 @@
+✔ routes users, developers, and release maintainers from the root README (3.225209ms)
+✔ developer guide covers the complete canonical-to-PR lifecycle (1.279333ms)
+✔ release runbook documents only the conductor production interface (1.05125ms)
+✔ Apple release setup is actionable, protected, and team-key only (1.50675ms)
+✔ keeps developer and release bash examples syntactically valid (139.990084ms)
+✔ CLI and native adapter share current parent-workspace status and preserve old files (285.110666ms)
+✔ current queries are read-only and blocked milestone passage fails without appending (511.781291ms)
+✔ retired mutation commands are unavailable and help explains explicit execution (223.17725ms)
+✔ validates matching native manifests, catalogs, and hooks (6.287625ms)
+✔ rejects native identity and hook drift (2.293541ms)
+✔ enforces contract-declared manifest and catalog fields (3.732167ms)
+✔ native current adapter starts without a PATH CLI and status process agrees (221.321458ms)
+✔ unsupported old mutations and arbitrary feature homes cannot append passage (160.115125ms)
+✔ lints the canonical repository plugin sources (45.601792ms)
+✔ rejects personal paths before inventory validation (1.465208ms)
+✔ rejects root escapes and native platform markers in shared source (1.091666ms)
+✔ rejects symlinks in canonical package sources (1.076166ms)
+✔ rejects a JavaScript import escaping the shared package (1.032209ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1079.446792

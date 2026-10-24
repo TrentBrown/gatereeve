@@ -1,0 +1,14 @@
+✔ host environment invalidates runner proof while isolated source review remains applicable (2309.1855ms)
+✔ evaluator qualification blocks low efforts and mismatched receipt profiles across review roles (3016.678542ms)
+✔ trusted validator drift invalidates spec and reconciliation while refresh preserves authority (3119.296542ms)
+✔ validator postflight drift retains executed diagnostics and rejects unbound imports (224.038291ms)
+✔ both providers reject insufficient or unknown reasoning before starting a process (0.815333ms)
+✔ Codex usage totals remain unknown for incomplete fields across completed turns (8.900292ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8720.39825

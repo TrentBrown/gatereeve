@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { sha256Digest } from './agent-workflow.js';
+import { sha256Digest, AGENT_WORKFLOW_PROTOCOL_VERSION, validateEvaluatorCapability } from './agent-workflow.js';
 import { ContractError } from './errors.js';
 
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
@@ -57,14 +57,16 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
         completedAt,
       };
       if (code !== 0 || signal !== null) {
-        const diagnostic = [
-          result.stderr.trim() ? `stderr:\n${result.stderr.trim()}` : null,
-          result.stdout.trim() ? `stdout:\n${result.stdout.trim()}` : null,
-        ].filter(Boolean).join('\n');
-        const transient = /rate.?limit|\b429\b|\b50[234]\b|temporar(?:y|ily)|connection reset|timed out/iu.test(result.stderr);
-        return reject(Object.assign(new Error(
-          `${executable} failed (${signal ?? code}): ${diagnostic}`
-        ), {code:transient?'AGENT_PROVIDER_TRANSIENT':'AGENT_PROVIDER_CONFIGURATION'}));
+        const diagnostic = `${result.stderr}\n${result.stdout}`;
+        const transient = /rate.?limit|\b429\b|\b50[234]\b|temporar(?:y|ily)|connection reset|timed out/iu.test(diagnostic);
+        const category = /credit balance|insufficient credit/iu.test(diagnostic) ? 'credit-unavailable'
+          : /model.*not supported|unsupported.*model/iu.test(diagnostic) ? 'unsupported-model'
+          : /unauthorized|authentication|auth required|invalid.api.key/iu.test(diagnostic) ? 'authentication'
+          : transient ? 'transient-service-failure' : 'configuration-or-execution';
+        return reject(Object.assign(new Error(`Evaluator unavailable: ${category}; check the provider configuration before retrying.`), {
+          code: transient ? 'AGENT_PROVIDER_TRANSIENT' : 'AGENT_PROVIDER_CONFIGURATION',
+          providerFailure: { category, exitCode: code, signal, startedAt: iso(startedAt), completedAt: iso(completedAt) },
+        }));
       }
       resolve(result);
     });
@@ -79,6 +81,10 @@ function promptFor(request) {
     'Operate only on the supplied pinned evidence and the read-only repository view.',
     'Do not use network tools. Return only an object satisfying the supplied JSON Schema.',
     '',
+    '<gatereeve-output-schema>',
+    JSON.stringify(request.outputSchema),
+    '</gatereeve-output-schema>',
+    '',
     '<gatereeve-input>',
     JSON.stringify(request.input),
     '</gatereeve-input>',
@@ -91,7 +97,18 @@ function promptFor(request) {
   return prompt;
 }
 
-function receiptFor(request, descriptor, output, contextId, method, processResult) {
+function providerMetrics(usages, costs = []) {
+  const number = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+  const sum = values => values.length && values.every(number) ? values.reduce((a, b) => a + b, 0) : null;
+  const tokens = {
+    input: sum(usages.map(value => value?.input_tokens)),
+    output: sum(usages.map(value => value?.output_tokens)),
+    cachedInput: sum(usages.map(value => value?.cached_input_tokens ?? value?.cache_read_input_tokens)),
+    cacheCreation: sum(usages.map(value => value?.cache_creation_input_tokens)),
+  };
+  return { tokens: Object.values(tokens).some(value => value !== null) ? tokens : null, cost: sum(costs) };
+}
+function receiptFor(request, descriptor, output, contextId, method, processResult, metrics) {
   return {
     schemaVersion: 1,
     kind: 'gatereeve-agent-workflow-receipt',
@@ -117,6 +134,7 @@ function receiptFor(request, descriptor, output, contextId, method, processResul
     startedAt: iso(processResult.startedAt),
     completedAt: iso(processResult.completedAt),
     status: 'completed',
+    metrics,
     digests: {
       instructions: sha256Digest(request.instructions),
       input: sha256Digest(request.input),
@@ -133,7 +151,14 @@ function jsonLines(value) {
 }
 
 function parseObject(value, label) {
-  const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+  // Some CLI versions put the schema result inside a single fenced JSON string.
+  // Accept only an entire fenced object; callers still validate its full schema.
+  const fenced = typeof value === 'string' ? /^\s*```(?:json)?\s*\n([\s\S]*?)\n```\s*$/u.exec(value) : null;
+  let parsed;
+  try { parsed = typeof value === 'string' ? JSON.parse(fenced ? fenced[1] : value) : value; }
+  catch { throw Object.assign(new ContractError(`${label} returned malformed JSON; request a fresh structured response.`), {
+    providerFailure: { category: 'malformed-output' },
+  }); }
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new ContractError(`${label} did not return a JSON object`);
   }
@@ -146,6 +171,7 @@ export function parseClaudeStructuredOutput(stdout) {
   return {
     output: parseObject(output, 'Claude Code structured output'),
     contextId: envelope.session_id ?? envelope.sessionId,
+    metrics: providerMetrics([envelope.usage], [envelope.total_cost_usd]),
   };
 }
 
@@ -187,6 +213,11 @@ export function createCodexAgentAdapter({
   return Object.freeze({
     async describe() { return structuredClone(details); },
     async runStage(request) {
+      validateEvaluatorCapability(request.capabilityProfile, reasoningEffort);
+      if (request.protocolVersion !== AGENT_WORKFLOW_PROTOCOL_VERSION || request.policy?.repositoryAccess !== 'read-only'
+          || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
+        throw new ContractError('Evaluator request must use the current receipt and isolation contract');
+      }
       const scratch = await mkdtemp(join(tmpdir(), 'gatereeve-codex-stage-'));
       try {
         const schemaPath = join(scratch, 'output.schema.json');
@@ -210,8 +241,10 @@ export function createCodexAgentAdapter({
         const output = parseObject(await readFile(outputPath, 'utf8'), 'Codex structured output');
         const contextId = parseCodexContextId(processResult.stdout);
         return {
+          schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed',
           output,
-          receipt: receiptFor(request, details, output, contextId, 'codex-ephemeral-exec', processResult),
+          receipt: receiptFor(request, details, output, contextId, 'codex-ephemeral-exec', processResult,
+            providerMetrics(jsonLines(processResult.stdout).filter(event => event.type === 'turn.completed').map(event => event.usage))),
         };
       } finally {
         await rm(scratch, { recursive: true, force: true });
@@ -235,6 +268,11 @@ export function createClaudeCodeAgentAdapter({
   return Object.freeze({
     async describe() { return structuredClone(details); },
     async runStage(request) {
+      validateEvaluatorCapability(request.capabilityProfile, reasoningEffort);
+      if (request.protocolVersion !== AGENT_WORKFLOW_PROTOCOL_VERSION || request.policy?.repositoryAccess !== 'read-only'
+          || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
+        throw new ContractError('Evaluator request must use the current receipt and isolation contract');
+      }
       const agentName = 'gatereeve-stage';
       const agents = {
         [agentName]: {
@@ -263,9 +301,10 @@ export function createClaudeCodeAgentAdapter({
         throw new ContractError('Claude Code did not report a fresh context ID');
       }
       return {
+        schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed',
         output: parsed.output,
         receipt: receiptFor(
-          request, details, parsed.output, parsed.contextId, 'claude-custom-agent', processResult
+          request, details, parsed.output, parsed.contextId, 'claude-custom-agent', processResult, parsed.metrics
         ),
       };
     },

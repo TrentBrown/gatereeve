@@ -1,0 +1,13 @@
+✔ lints the canonical repository plugin sources (33.087958ms)
+✔ rejects personal paths before inventory validation (2.081417ms)
+✔ rejects root escapes and native platform markers in shared source (0.899708ms)
+✔ rejects symlinks in canonical package sources (1.152625ms)
+✔ rejects a JavaScript import escaping the shared package (0.960875ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 71.706042

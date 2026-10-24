@@ -9,6 +9,7 @@ import {
   parseCodexContextId,
   runAgentProcess,
   validateAgentWorkflowReceipt,
+  validateAgentWorkflowStageResult,
 } from '../../plugin-src/shared/resources/protocol/index.js';
 
 const digest = (character) => `sha256:${character.repeat(64)}`;
@@ -16,7 +17,7 @@ const digest = (character) => `sha256:${character.repeat(64)}`;
 function request() {
   return {
     schemaVersion: 1,
-    protocolVersion: 1,
+    protocolVersion: '2.1.0',
     runId: 'run-1',
     attemptId: 'attempt-1',
     module: { id: 'example/review', version: '1.0.0', digest: digest('a') },
@@ -27,7 +28,7 @@ function request() {
     repositoryPath: '/repository',
     outputSchema: { type: 'object', required: ['verdict'] },
     policy: {
-      repositoryAccess: 'read-only-pinned', networkAccess: 'denied', scratch: 'disposable',
+      repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated',
       isolation: { freshContext: true, inheritedTurns: 0 },
     },
     capabilityProfile: { id: 'high-capability-v1', minimumReasoning: 'high' },
@@ -45,7 +46,7 @@ test('Codex adapter launches a fresh ephemeral read-only structured run', async 
       await writeFile(outputPath, '{"verdict":"PASS"}\n');
       return {
         code: 0, signal: null,
-        stdout: '{"type":"thread.started","thread_id":"codex-context-1"}\n', stderr: '',
+        stdout: '{"type":"thread.started","thread_id":"codex-context-1"}\n{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":5,"output_tokens":7}}\n', stderr: '',
         startedAt: new Date('2026-09-24T12:00:00Z'),
         completedAt: new Date('2026-09-24T12:01:00Z'),
       };
@@ -54,7 +55,9 @@ test('Codex adapter launches a fresh ephemeral read-only structured run', async 
   const result = await adapter.runStage(request());
   assert.equal(result.output.verdict, 'PASS');
   assert.equal(validateAgentWorkflowReceipt(result.receipt), result.receipt);
+  assert.equal(validateAgentWorkflowStageResult(result), result);
   assert.equal(result.receipt.provider.contextId, 'codex-context-1');
+  assert.deepEqual(result.receipt.metrics, { tokens: { input: 12, output: 7, cachedInput: 5, cacheCreation: null }, cost: null });
   assert(calls[0].args.includes('--ephemeral'));
   assert(calls[0].args.includes('--skip-git-repo-check'));
   assert(calls[0].args.includes('read-only'));
@@ -74,6 +77,7 @@ test('Claude Code adapter launches a non-persistent restricted custom agent', as
         stdout: JSON.stringify({
           session_id: 'claude-context-1',
           structured_output: { verdict: 'PASS' },
+          usage: { input_tokens: 20, output_tokens: 9, cache_read_input_tokens: 3, cache_creation_input_tokens: 4 }, total_cost_usd: 0.03,
         }),
         stderr: '',
         startedAt: new Date('2026-09-24T12:00:00Z'),
@@ -84,7 +88,9 @@ test('Claude Code adapter launches a non-persistent restricted custom agent', as
   const result = await adapter.runStage(request());
   assert.equal(result.output.verdict, 'PASS');
   assert.equal(validateAgentWorkflowReceipt(result.receipt), result.receipt);
+  assert.equal(validateAgentWorkflowStageResult(result), result);
   assert.equal(result.receipt.provider.contextId, 'claude-context-1');
+  assert.deepEqual(result.receipt.metrics, { tokens: { input: 20, output: 9, cachedInput: 3, cacheCreation: 4 }, cost: 0.03 });
   assert(calls[0].args.includes('--agents'));
   assert(calls[0].args.includes('--agent'));
   assert(calls[0].args.includes('--restricted'));
@@ -97,7 +103,7 @@ test('Claude Code adapter launches a non-persistent restricted custom agent', as
 test('adapter parsers require structured output and opaque context IDs', () => {
   assert.deepEqual(parseClaudeStructuredOutput(JSON.stringify({
     session_id: 'session-1', result: '{"ok":true}',
-  })), { contextId: 'session-1', output: { ok: true } });
+  })), { contextId: 'session-1', output: { ok: true }, metrics: { tokens: null, cost: null } });
   assert.equal(
     parseCodexContextId('{"type":"thread.started","thread_id":"thread-1"}\n'),
     'thread-1'
@@ -118,15 +124,16 @@ test('provider adapters reject oversized prompts before launching a process', as
   assert.equal(launched, false);
 });
 
-test('failed provider processes retain stdout errors alongside stderr warnings', async () => {
+test('failed provider processes expose structured categories without raw output', async () => {
   await assert.rejects(
     runAgentProcess(process.execPath, [
       '-e',
       'process.stderr.write("warning\\n"); process.stdout.write("structured failure\\n"); process.exit(1);',
     ], { cwd: process.cwd(), input: '', timeoutSeconds: 5 }),
     (error) => {
-      assert.match(error.message, /stderr:\nwarning/u);
-      assert.match(error.message, /stdout:\nstructured failure/u);
+      assert.doesNotMatch(error.message, /warning|structured failure/u);
+      assert.equal(error.providerFailure.category, 'configuration-or-execution');
+      assert.equal(error.providerFailure.exitCode, 1);
       return true;
     }
   );
@@ -134,7 +141,6 @@ test('failed provider processes retain stdout errors alongside stderr warnings',
 
 test('bundled provider output schemas type every constant', async () => {
   const paths = [
-    'plugin-src/shared/resources/agent-workflows/judge/result.schema.json',
     'plugin-src/plugins/whiteboard-test/shared/resources/whiteboard-test/schemas/challenges.schema.json',
     'plugin-src/plugins/whiteboard-test/shared/resources/whiteboard-test/schemas/defense.schema.json',
   ];
@@ -148,5 +154,71 @@ test('bundled provider output schemas type every constant', async () => {
       for (const child of Object.values(value)) visit(child);
     };
     visit(schema);
+  }
+});
+
+
+test('Claude structured output accepts an entire JSON fence but rejects prose or broken JSON', () => {
+  const parse = result => parseClaudeStructuredOutput(JSON.stringify({ session_id: 'fresh', result }));
+  assert.deepEqual(parse('```json\n{"ok":true}\n```').output, { ok: true });
+  assert.throws(() => parse('Explanation\n```json\n{"ok":true}\n```'));
+  assert.throws(() => parse('```json\n{"ok":true}\n```\nMore text'));
+  assert.throws(() => parse('```json\n{"ok":}\n```'));
+});
+
+
+test('successful providers with malformed JSON expose no raw response fragments', async () => {
+  const sentinel = 'PRIVATE_PROVIDER_CONTEXT_SENTINEL';
+  for (const stdout of [sentinel, JSON.stringify({ session_id: 'fresh', result: sentinel })]) {
+    assert.throws(() => parseClaudeStructuredOutput(stdout), error => {
+      assert.doesNotMatch(error.stack, /PRIVATE_PROVIDER_CONTEXT/);
+      assert.equal(error.providerFailure.category, 'malformed-output');
+      return true;
+    });
+  }
+  const adapter = createCodexAgentAdapter({ model: 'test', runner: async (_, args) => {
+    await writeFile(args[args.indexOf('--output-last-message') + 1], sentinel);
+    return { stdout: '{"type":"thread.started","thread_id":"fresh"}\n' };
+  } });
+  await assert.rejects(adapter.runStage(request()), error => {
+    assert.doesNotMatch(error.stack, /PRIVATE_PROVIDER_CONTEXT/);
+    assert.equal(error.providerFailure.category, 'malformed-output');
+    return true;
+  });
+});
+
+test('both public adapters reject old receipt requests before launching a provider', async () => {
+  for (const create of [createCodexAgentAdapter, createClaudeCodeAgentAdapter]) {
+    const adapter = create({ model: 'fixture', runner: () => assert.fail('old request launched') });
+    await assert.rejects(adapter.runStage({ ...request(), protocolVersion: 1 }), /current receipt and isolation contract/);
+  }
+});
+
+test('both providers reject insufficient or unknown reasoning before starting a process', async () => {
+  for (const factory of [createCodexAgentAdapter, createClaudeCodeAgentAdapter]) {
+    for (const reasoningEffort of ['low', 'medium', 'unknown']) {
+      let launched = false;
+      const adapter = factory({ model: 'fixture', reasoningEffort, runner: async () => { launched = true; } });
+      await assert.rejects(adapter.runStage(request()), /capability profile/);
+      assert.equal(launched, false);
+    }
+  }
+});
+
+test('Codex usage totals remain unknown for incomplete fields across completed turns', async () => {
+  for (const [usages, expected] of [
+    [[{ input_tokens: 12, output_tokens: 7 }, undefined], null],
+    [[{ input_tokens: 12, output_tokens: 7 }, { input_tokens: 0 }], { input: 12, output: null, cachedInput: null, cacheCreation: null }],
+    [[{ input_tokens: 0, output_tokens: 0 }, { input_tokens: 0, output_tokens: 0 }], { input: 0, output: 0, cachedInput: null, cacheCreation: null }],
+    [[undefined, undefined], null],
+  ]) {
+    const adapter = createCodexAgentAdapter({ model: 'fixture', runner: async (_, args) => {
+      await writeFile(args[args.indexOf('--output-last-message') + 1], '{"verdict":"PASS"}');
+      return { stdout: [{ type: 'thread.started', thread_id: 'fresh' }, ...usages.map(usage => ({ type: 'turn.completed', usage }))].map(JSON.stringify).join('\n'),
+        stderr: '', startedAt: new Date(), completedAt: new Date() };
+    } });
+    const result = await adapter.runStage(request());
+    assert.deepEqual(result.receipt.metrics, { tokens: expected, cost: null });
+    validateAgentWorkflowStageResult(result);
   }
 });

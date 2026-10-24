@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-3",
+  "checkedSource": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "87896ab28fda2beb686e7084a61ab984d5e3858d",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:2031a01a41bcdc28ccc6362f12d5d8ecaa4e7c864a7c98f5d6a29a137474e686",
+  "readiness": {
+    "path": "advisory/model-led-formal-ready-3/readiness.json",
+    "hash": "sha256:9b6f4cf40e8d718da1c61c5d501ae803b655885ec9cd70381ee4f56892f46fb1"
+  },
+  "reason": "Proceed with the user-authorized formal review while the revised advisory runs. All 23 prior advisory/native-Judge findings have retained repair claims and actual regressions. CLI260, desktop172, Python58, a fresh real OpenAI evaluator receipt and rebuilt universal package/ARM64 runtime pass. The second code-review target interaction also has regression coverage. Code/spec and a new history-blind native Judge must assess this candidate; no formal gate is waived. Inspect and preserve the eventual advisory outcome before requesting human review.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "implementation coordinator for user-authorized formal review"
+  }
+}

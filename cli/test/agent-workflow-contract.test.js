@@ -13,7 +13,7 @@ function receipt(output, overrides = {}) {
   return {
     schemaVersion: 1,
     kind: 'gatereeve-agent-workflow-receipt',
-    protocolVersion: 1,
+    protocolVersion: '2.1.0',
     runId: 'run-1',
     attemptId: 'attempt-1',
     module: { id: 'example/review', version: '1.0.0', digest: digest('a') },
@@ -28,9 +28,9 @@ function receipt(output, overrides = {}) {
     },
     isolation: { method: 'fresh-subagent', freshContext: true, inheritedTurns: 0 },
     policy: {
-      repositoryAccess: 'read-only-pinned',
-      networkAccess: 'denied',
-      scratch: 'disposable',
+      repositoryAccess: 'read-only',
+      networkAccess: 'deny',
+      scratch: 'isolated',
     },
     startedAt: '2026-09-24T12:00:00.000Z',
     completedAt: '2026-09-24T12:01:00.000Z',
@@ -51,7 +51,7 @@ test('agent workflow receipts bind provider configuration, isolation policy, and
   assert.equal(validateAgentWorkflowReceipt(value), value);
   assert.equal(validateAgentWorkflowStageResult({
     schemaVersion: 1,
-    protocolVersion: 1,
+    protocolVersion: '2.1.0',
     stageId: 'review',
     status: 'completed',
     output,
@@ -69,10 +69,16 @@ test('agent workflow receipts reject inherited context and output substitution',
   const value = receipt(output);
   assert.throws(() => validateAgentWorkflowStageResult({
     schemaVersion: 1,
-    protocolVersion: 1,
+    protocolVersion: '2.1.0',
     stageId: 'review',
     status: 'completed',
     output: { verdict: 'FAIL' },
     receipt: value,
   }), /output digest differs/);
+});
+
+test('the public provider receipt contract rejects the retired workflow version and policy', () => {
+  assert.throws(() => validateAgentWorkflowReceipt(receipt({}, { protocolVersion: 1 })), /version or kind/);
+  assert.throws(() => validateAgentWorkflowReceipt(receipt({}, { protocolVersion: '2.0.0' })), /version or kind/);
+  assert.throws(() => validateAgentWorkflowReceipt(receipt({}, { policy: { repositoryAccess: 'read-only-pinned', networkAccess: 'denied', scratch: 'disposable' } })), /isolation requirements/);
 });

@@ -1,0 +1,15 @@
+Captured stdout from independent read-only execution; command identified in independent-review.md.
+{"revoked":true,"views":5,"writes":["ready","checks"],"remoteState":"OPEN","error":"Merge authorization expired or changed while waiting for hosted checks"}
+✔ standing authority protected merge: slice (33724.768708ms)
+{"revoked":true,"views":5,"writes":["ready","checks"],"remoteState":"OPEN","error":"Feature state or authority changed during merge; prepare the current action again"}
+✔ standing authority protected merge: slice (34459.423792ms)
+✔ acceptance-only target scope actual operation (18499.463708ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 34512.624084
+

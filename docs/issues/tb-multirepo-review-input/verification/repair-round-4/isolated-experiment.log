@@ -1,0 +1,19 @@
+✔ a narrower passing check cannot hide earlier failed verification and packets refresh their inventory (1433.512792ms)
+✔ target-only changes invalidate proof and appear in delta review with prior target bytes (1024.859791ms)
+✔ later runner preflight failure retains completed check output with exit 0 (656.168708ms)
+✔ later runner preflight failure retains completed check output with exit 7 (643.642625ms)
+✔ reopened blocking findings remain required in automatic history with changed source false (1766.862542ms)
+✔ reopened blocking findings remain required in automatic history with changed source true (2042.854333ms)
+✔ corrected runner configuration recovers after invalid arguments undefined (799.677209ms)
+✔ corrected runner configuration recovers after invalid arguments "--version" (808.337042ms)
+✔ corrected runner configuration recovers after invalid arguments [4] (809.743458ms)
+✔ delta prior cannot reorder an older closure after a reopened blocking finding with changed source false (2263.872292ms)
+✔ delta prior cannot reorder an older closure after a reopened blocking finding with changed source true (2639.584708ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14970.252583

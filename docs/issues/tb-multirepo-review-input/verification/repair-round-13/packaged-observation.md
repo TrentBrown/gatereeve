@@ -1,0 +1,10 @@
+# Independent repair probe
+
+Disposable read-only evaluation, separate from formal verdicts.
+
+```javascript
+import assert from 'node:assert/strict';import {readFile,mkdir,writeFile} from 'node:fs/promises';import {join} from 'node:path';
+const source='/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input';const root=await readFile('/tmp/gr-repair13-asar-path.txt','utf8');const {currentFixture}=await import(source+'/cli/test/helpers/current-fixture.js');const {establishCurrentRun}=await import(source+'/cli/test/helpers/established-current-run.js');const f=await currentFixture({after(){}});f.core.runtime.pythonGuardOptions={pythonExecutable:'/opt/homebrew/bin/python3'};await establishCurrentRun(f.core);const before=(await f.core.state()).events;await mkdir(join(root,'empty-path'));process.env.PATH=join(root,'empty-path');process.env.GATEREEVE_OBSERVER_WINDOW_ID='electron-asar-probe';
+const {CurrentCore}=await import(root+'/app.asar/resources/protocol/current/core.js');const {pythonScriptsRoot}=await import(root+'/app.asar/resources/protocol/python-guards.js');assert.match(pythonScriptsRoot,/app.asar.unpacked/);const core=await CurrentCore.at(f.context,{gitExecutable:'/usr/bin/git',pythonGuardOptions:{pythonExecutable:'/opt/homebrew/bin/python3'}});const state=await core.inspect();assert.equal(state.phase,'IMPLEMENTING');assert.equal(state.milestones.find(x=>x.name==='implementation').allowed,true);const acceptance=state.milestones.find(x=>x.name==='acceptance');for(const id of ['reconcile','pattern'])assert.equal(acceptance.outcomes.find(x=>x.id===id).outcome,'PASS');assert.deepEqual((await core.state()).events,before);console.log(JSON.stringify({case:'actual-Electron-ASAR-established-observation',electron:process.versions.electron,phase:state.phase,implementationAllowed:true,reconcile:'PASS',pattern:'PASS',helperRoot:pythonScriptsRoot,readonly:true,limit:'Disposable ASAR built from committed source; separate product DMG/GUI smoke still required'}));
+
+```

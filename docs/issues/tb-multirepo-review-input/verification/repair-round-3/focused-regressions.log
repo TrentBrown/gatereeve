@@ -1,0 +1,15 @@
+✔ retained workflow history stays outside source at every endpoint and supports untracked continuation (1053.912ms)
+✔ configuration and executable files remain source inside report directories (703.449042ms)
+✔ review views expose regular Git modes at every current and prior endpoint (961.33525ms)
+✔ later runner preflight failure retains completed check output with exit 0 (659.052959ms)
+✔ later runner preflight failure retains completed check output with exit 7 (674.043875ms)
+✔ reopened blocking findings remain required in automatic history with changed source false (1779.370916ms)
+✔ reopened blocking findings remain required in automatic history with changed source true (2015.506834ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7928.318792

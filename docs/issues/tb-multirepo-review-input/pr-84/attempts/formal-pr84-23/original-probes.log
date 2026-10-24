@@ -1,0 +1,18 @@
+{"kind":"argument","actualExitAfterChange":7,"oldProof":"PASS","reused":true}
+✔ actual argument change retains stale PASS (1393.9705ms)
+{"kind":"library","actualExitAfterChange":7,"oldProof":"PASS","reused":true}
+✔ actual library change retains stale PASS (1245.779959ms)
+{"kind":"shebang","actualExitAfterChange":2,"oldProof":"PASS","reused":true}
+✔ actual shebang change retains stale PASS (1277.971875ms)
+{"kind":"waiver","oldExit":1,"newExit":7,"sameRisk":true,"satisfied":true}
+✔ actual failed runner exception survives changed external script (1523.358292ms)
+{"kind":"milestone","actualExitAfterChange":7,"allowed":true,"phase":"ACCEPTING","reviewer":"synthetic test adapter; actual commands and core passage"}
+✔ actual acceptance passage admits old PASS after external script turns failing (10928.928917ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16421.2505

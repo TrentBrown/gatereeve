@@ -1,0 +1,12 @@
+Captured stdout from independent read-only execution; command identified in independent-review.md.
+✔ standing authority protected merge: slice (31682.947917ms)
+✔ standing authority protected merge: final (31604.282625ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 63347.735125
+

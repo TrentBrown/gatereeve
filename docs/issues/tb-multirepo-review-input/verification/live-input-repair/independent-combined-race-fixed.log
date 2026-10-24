@@ -1,0 +1,12 @@
+✔ one instruction can waive failed quality proof and accept without rewriting its verdict (47451.156625ms)
+✔ combined amendment records a pending instruction before interruption and reconciles retry once (1132.731792ms)
+✔ waiver with acceptance retains pending human instruction before failed continuation (25093.1635ms)
+✔ standing authority protected merge: revoke-during-final-qualification (34049.511375ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 107798.589709

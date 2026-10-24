@@ -1,0 +1,24 @@
+PASS existing128KiB record
+PASS extended typed readiness exact roundtrip 196858
+PASS wrong kind rejected
+PASS other record128KiB bound preserved
+PASS over256KiB rejected
+PASS byte hash checked
+PASS extended semantic binding checked
+PASS symlink rejected
+PASS typed larger readiness remains audit history
+PASS opaque malformed larger record rejected
+file:///Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/advisory-contract.js:46
+  if (!condition) throw new ContractError('Advisory: ' + message);
+                        ^
+
+ContractError: Advisory: changed ambiguous record-space data requires classification: docs/issues/feature/pr-84/attempts/formal-pr84-21/pattern-inputs.json
+    at advisoryAssert (file:///Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/advisory-contract.js:46:25)
+    at opaqueAdvisoryInputIdentity (file:///Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/advisory-inputs.js:245:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///private/tmp/gr-readiness-bound-test.mjs:22:461 {
+  code: 'CONTRACT_INVALID',
+  details: null
+}
+
+Node.js v24.15.0

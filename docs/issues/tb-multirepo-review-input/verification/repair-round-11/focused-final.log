@@ -1,0 +1,30 @@
+✔ public resume preserves unsupported primary activation records with current-field (580.798583ms)
+✔ public resume preserves unsupported witness activation records with current-field (555.980208ms)
+✔ public resume preserves unsupported matching activation records with current-field (560.561542ms)
+✔ public resume preserves unsupported conflicting activation records with current-field (462.125083ms)
+✔ public resume preserves unsupported primary activation records with renamed-field (563.245209ms)
+✔ public resume preserves unsupported witness activation records with renamed-field (554.959292ms)
+✔ public resume preserves unsupported matching activation records with renamed-field (557.777709ms)
+✔ public resume preserves unsupported conflicting activation records with renamed-field (450.320041ms)
+✔ public resume preserves unsupported primary activation records with invalid-current-field (569.201083ms)
+✔ public resume preserves unsupported witness activation records with invalid-current-field (551.208375ms)
+✔ public resume preserves unsupported matching activation records with invalid-current-field (563.466667ms)
+✔ public resume preserves unsupported conflicting activation records with invalid-current-field (449.35425ms)
+✔ root session history is absent from current, base, target and prior grouped reviewer views (2353.216209ms)
+✔ root session history with Git mode 100755 cannot hide application source (589.108667ms)
+✔ root session history with Git mode 120000 cannot hide application source (603.572584ms)
+✔ root session history with Git mode 160000 cannot hide application source (609.821084ms)
+✔ retained session-contaminated proof becomes context only and never exports prior source (1399.9025ms)
+✔ activation successor schema validation applies only to current contract false (534.819334ms)
+✔ activation successor schema validation applies only to current contract true (451.717125ms)
+✔ session record case alias stays isolated: checkpoint.md (876.093166ms)
+✔ session record case alias stays isolated: .CHECKPOINTS/checkpoint-2026-10-23.md (1016.120958ms)
+✔ session record case alias stays isolated: .HANDOFFS/handoff-reviewer-2026-10-23.MD (931.2625ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15837.530042

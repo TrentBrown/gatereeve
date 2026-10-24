@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "passed": true,
+    "provider": {
+      "adapterVersion": "1.0.0",
+      "contextId": "01a16bf4-0348-71a0-806c-b7b6c4552709",
+      "id": "codex",
+      "model": "gpt-6.1-sol",
+      "reasoningEffort": "high"
+    },
+    "protocolVersion": "2.1.0",
+    "outputDigest": "sha256:571a2709ba4308e45d35834045c94ab6b9cae539c5031738a7c40d9801ff22ec"
+  }
+}

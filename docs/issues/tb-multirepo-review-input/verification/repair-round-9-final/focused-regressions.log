@@ -1,0 +1,19 @@
+✔ amendment can authorize implementation once while retaining old and new requirements (904.718792ms)
+✔ failed specification and reconciliation checks retain exact diagnostics without passage (1118.780167ms)
+✔ combined amendment records a pending instruction before interruption and reconciles retry once (898.381042ms)
+✔ lost failed-spec evidence stays visible after correction and blocks retention until restored (1522.513292ms)
+✔ trusted validator drift invalidates spec and reconciliation while refresh preserves authority (3086.552625ms)
+✔ late failed spec validation preserves newer authority in replacement through core (1191.553791ms)
+✔ late failed spec validation preserves newer authority in replacement through public (1254.662541ms)
+✔ late failed spec validation preserves newer authority in same-run through core (957.062959ms)
+✔ late failed spec validation preserves newer authority in same-run through public (939.947625ms)
+✔ late failed spec validation preserves newer authority in pause through core (1063.952333ms)
+✔ late failed spec validation preserves newer authority in pause through public (1047.219ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14033.499625

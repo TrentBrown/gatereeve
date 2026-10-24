@@ -30,76 +30,61 @@ expected `EBADENGINE` advisory.
 ## Workflow commands
 
 ```bash
-# Concise current position, blockers, and next actions.
-gatereeve status
-
-# Read the complete compact, versioned observational contract.
-gatereeve snapshot
-
-# Focus on ready, available-in-principle, and blocked semantic actions.
-gatereeve next
-
-# Lazily read an allow-listed artifact or complete protocol detail.
-gatereeve read artifact design
-gatereeve read events
-gatereeve read attempt attempt-1
-gatereeve read model
-
-# Explain a slice, gate, change, or current feature state.
-gatereeve explain verification
-
-# Read the append-only event history.
-gatereeve history
-
-# Render the current or complete state model as Mermaid.
-gatereeve graph
-gatereeve graph --model
-
-# Assert an invariant for hooks or CI.
-gatereeve check boundary-ready
-
-# Run every currently eligible isolated staged-agent gate in graph order.
-gatereeve agent-workflow run-eligible \
-  --provider codex \
-  --model gpt-5.5
+gatereeve status --json
+gatereeve run resume-current --implementer <context> --planning approvals.json
+gatereeve validate-spec
+gatereeve candidate --pin app=<base-sha>..<head-sha> --criterion R1 --scope SLICE
+gatereeve ready
+gatereeve evaluate verification --configuration verification.json
+gatereeve evaluate code spec --provider claude-code --model opus
+gatereeve evaluate judge --provider claude-code --model opus
+gatereeve milestone check acceptance --json
+gatereeve decide --help
+gatereeve merge prepare --help
 ```
 
-All workflow commands accept `--json`. Queries exit zero whenever a projection
-can be produced, including a blocked or stale projection. `check` exits nonzero
-when its named assertion fails. Current boundary fingerprints and external
-facts can be supplied to observer commands with `--fingerprints-file` and
-`--facts-file`. Independent local, Git, and GitHub availability can be supplied
-with `--sources-file` without making enrichment durable workflow state.
+The planning backbone remains interview, approved design, validated spec,
+plan/issues, and explicit implementation authority. The model chooses work order
+inside that phase. Ready declares intent; evaluation runs only when requested.
+Required proof, accepted exceptions and authority govern milestone passage.
+No fixed remediation limit or per-commit gate exists.
 
-`snapshot` is the canonical read model shared with native plugins and Desktop.
-Its actions distinguish `ready`, `available`, and `blocked`: structural
-availability alone never claims that current artifacts, facts, freshness, and
-guards permit passage. `read` returns larger details by an ID advertised in the
-snapshot; it is not an arbitrary filesystem reader.
+Use `gatereeve help --recurse` for exact options. Native plugins call the same
+current core directly; the CLI is optional. Historical journals remain untouched.
+Resume records observed approvals without replaying an old state machine.
+Parent-folder requirements and retained evidence need not be Git tracked.
 
-The agent-workflow scheduler needs an explicit provider and model, supplied by
-flags, `--agent-config`, or `GATEREEVE_AGENT_PROVIDER` and
-`GATEREEVE_AGENT_MODEL`. Once configured, one scheduler call automatically runs
-every eligible agent-workflow module; no per-gate consent action exists.
-Execution uses a fresh provider context per stage, a read-only archive of the
-pinned commit, denied network authority, typed output, bounded time/output, and
-plugin-declared bundle validation. Unavailable execution exits `2` and leaves
-the gate `UNSET`; a completed blocking `FAIL` exits `1` after the protocol core
-records it.
+For example, `verification.json` for a repository aliased `app` can contain:
 
-Mutation families are semantic: `feature`, `slice`, `boundary`, `gate`, and
-`change`. Use recursive help for their exact evidence and guard-input options:
-
-```bash
-gatereeve help feature --recurse 2
-gatereeve help slice --recurse 2
-gatereeve help gate --recurse 2
+```json
+{
+  "checks": [{ "repository": "app", "command": "npm", "args": ["test"], "purpose": "Project tests" }],
+  "externalRuntimeInputs": { "app": [] }
+}
 ```
 
-`--human-confirmed <label>` records an explicit human confirmation observed in
-conversation or at the terminal. It is an audit statement for cooperative
-agents, not identity authentication. There is no generic `advance` or workflow
-force switch.
+Use an empty list only after establishing that the checks have no additional
+external dependencies beyond the inputs captured automatically. Otherwise list
+the absolute dependency files or roots. The old `--checks` shortcut is retired;
+it cannot express this scope commitment. Use `--configuration` for runner checks.
+
+The review commands above automatically select applicable retained Verification
+evidence. `verification.json` configures the runner; it is not evidence. Use
+`--consume` only with a JSON array of retained result references when explicitly
+selecting evidence.
+
+Runner checks contain command, args, repository and purpose. The native operation
+requires `configuration.externalRuntimeInputs` for each checked repository, listing absolute external dependency roots/files (an explicit empty array declares no additional external inputs). Executable/shebang chains, known package trees and resolvable argument files are bound automatically; opaque dependencies must be declared conservatively. The runner
+also accepts configuration.runtimeInputs (repository alias to relative paths) for
+additional runtime dependencies/configuration, and explicit external validUntil
+conditions. All inherited environment values are hashed and the runner receives that frozen environment; values are not logged. Environment differences conservatively invalidate runner proof. Installed
+node_modules and .venv bytes and executable identity are included automatically.
+Unknown external state requires fresh evidence or an explicit scoped exception.
+
+A human decision records the actual instruction and scope. It does not authenticate
+the speaker. Merge preparation produces an exact action for authorization; the
+protected adapter rechecks evidence, branch direction, PR identity and hosted
+checks. SessionStart guides the model; arbitrary shell actions are not intercepted.
 
 ## Maintainer commands
 
@@ -211,15 +196,68 @@ The build rejects symlinks and overlay collisions, removes stale package output,
 sets the native manifest version, and records source provenance plus the shared
 file inventory under `.workflow-build/` in each generated package.
 
-### Advisory readiness
+### Candidate readiness and explicit evaluation
 
-For an explicitly adopted advisory-capable model, `gatereeve advisory
-declare-readiness --input-file request.json` runs isolated noncertifying
-discovery after the implementer declares readiness with completed fast/focused
-evidence. `advisory proceed` retains a nonempty source-bound reason;
-`advisory check` only verifies current inputs. Each accepts normal `--cwd`,
-repository/feature selection and `--json` options. READY_FOR_FORMAL_REVIEW
-leaves full Verification pending. FINDINGS/check-ineligible exits 1;
-UNAVAILABLE/IN_PROGRESS exits 2. The installed plugin exposes the same API
-without requiring this optional CLI. See the packaged
-`resources/commands/advisory-review.md` for exact request and remediation fields.
+`gatereeve candidate --pin <alias=base..head> --criterion <id> --scope FEATURE`
+retains the selected source and approved local requirements. FEATURE scope uses
+each repository's configured original `featureBaseSha`. `gatereeve ready`
+records readiness without launching a reviewer. The model requests evaluations
+explicitly with `gatereeve evaluate <gates...>` and chooses their order within
+the authorized phase. Code and spec may share one fresh independent evaluator;
+each retains its own verdict. Judge remains independently required.
+
+`gatereeve status` shows milestone blockers and any accepted exceptions with
+their original outcomes and consequences. `--json` retains full structured
+detail. The installed plugin exposes the same current protocol without requiring
+this optional CLI. See `resources/commands/advisory-review.md` for readiness and
+`resources/commands/pr-boundary.md` for the required milestone obligations.
+
+When the merge target has advanced since the original feature base, fetch its full
+commit and include `--target app=<target-sha>` with `gatereeve candidate`. Keep
+`--pin app=<original-feature-base>..<head>` for a FEATURE assessment. GateReeve exports
+the target snapshot for interaction review, invalidates affected proof when it changes,
+and requires the protected merge action to match that assessed target.
+
+### Unattended acceptance and explicitly authorized merges
+
+An agent may record a user's scoped standing instruction once, then apply it to
+fully passing candidates. Acceptance-only grants do not authorize merging.
+For example, `standing-scope.json` may contain:
+
+```json
+{
+  "actions": ["accept", "authorize-merge"],
+  "candidateScopes": ["SLICE", "FEATURE"],
+  "repositories": [{"alias": "product", "headPrefix": "tb-example-feature", "baseBranch": "main", "methods": ["merge"]}],
+  "expiresAt": null
+}
+```
+
+Record `decide authorize-standing --subject <current-commitment-hash> --scope
+standing-scope.json` with the usual `--instruction`, `--context`, `--reason` and
+`--consequences` from the actual user decision. Use `apply-authorization --grant
+<grant-event-hash>` after all required gates PASS. For a permitted merge, supply
+`--action <prepared-action.json>` containing the action returned by `merge prepare`
+(the CLI JSON response's `data`, not its envelope), then use `merge execute`.
+The exact action is retained and rechecked at execution. To revoke, use `decide
+revoke-standing --subject <grant-event-hash>` with the observed instruction.
+
+For acceptance only, remove `authorize-merge` and `methods`. A null expiry lasts
+only for the current approved feature run; a UTC timestamp limits it further.
+Changed requirements/approval, repository configuration, expiry or revocation
+block subsequent use. Feature completion still requires actual integration and
+all completion obligations. This grant never authorizes deployment or publishing.
+Open drafts remain default; clients can explicitly select closed drafts through
+`keepPullRequestsClosed: true` in repository configuration.
+
+### Preserved exception policy
+
+An explanation exception requires an explicit `policy-amend` decision naming
+`explanation`; an ordinary waiver cannot bypass it. Enabled Whiteboard ordinarily
+allows only an observed human `NON_BEHAVIORAL` classification with retained evidence.
+Supply `--waiver-basis basis.json` with `{"classification":"NON_BEHAVIORAL",
+"evidence":<retained-artifact-reference>}` on the Whiteboard waiver. Missing or altered
+basis bytes block its use. A behavioral Whiteboard exception requires an explicit
+`policy-amend` naming `whiteboard`. Neither policy amendment can waive integrity,
+factual truth or action authority. Requirement amendments supersede old direct
+approvals and candidate authority even if earlier document bytes are restored.

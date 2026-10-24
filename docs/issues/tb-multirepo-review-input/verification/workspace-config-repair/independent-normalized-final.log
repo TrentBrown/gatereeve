@@ -1,0 +1,16 @@
+{"mode":"formatting","guard":true,"coreImplementation":true,"cachedDesktopImplementation":true}
+{"mode":"external-task","guard":true,"coreImplementation":true,"cachedDesktopImplementation":true}
+{"mode":"repository-order","guard":true,"coreImplementation":true,"cachedDesktopImplementation":true}
+{"mode":"equivalent-defaults","guard":true,"coreImplementation":true,"cachedDesktopImplementation":true}
+{"cachedDesktopBlocksChangedFeature":true,"mutatingCoreBlocks":true,"restoration":true,"clonedResolvedContextRejected":true,"mutatedOriginalContextRejected":true}
+✔ normalized harmless config edits preserve current core and cached desktop eligibility (2101.490334ms)
+{"configDeletionRejected":true,"legacyToConfiguredRejected":true,"closerDeletionRejected":true,"absoluteGitEmptyPathPassed":true}
+✔ resolver guards detect new closer config and configured-to-legacy transitions with selected Git (169.416667ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2331.380291

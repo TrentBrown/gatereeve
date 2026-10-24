@@ -257,13 +257,10 @@ test('renders hierarchical help through the local command-tree helper', async ()
     result.stdout,
     /^gatereeve Observe and enforce the GateReeve workflow protocol/m
   );
-  assert.match(result.stdout, /status Show authoritative workflow state and blockers/);
-  assert.match(result.stdout, /snapshot Show the versioned canonical observational snapshot/);
-  assert.match(result.stdout, /read Read one canonical snapshot detail/);
-  assert.match(result.stdout, /feature Govern the feature lifecycle/);
-  assert.match(result.stdout, /slice Govern sequential delivery slices/);
-  assert.match(result.stdout, /gate Record and invalidate review-boundary evidence/);
-  assert.match(result.stdout, /change Govern discoveries that alter approved work/);
+  assert.match(result.stdout, /status Inspect current commitments/);
+  assert.match(result.stdout, /milestone Check or record a protected milestone/);
+  assert.match(result.stdout, /evaluate Execute requested gates/);
+  assert.doesNotMatch(result.stdout, /run-eligible|migrate-model|Record and invalidate review-boundary/);
   assert.match(result.stdout, /plugin Build and maintain native workflow plugin packages/);
   assert.match(result.stdout, /build Compose native packages/);
   assert.match(result.stdout, /release Publish, observe, and verify native plugin releases/);

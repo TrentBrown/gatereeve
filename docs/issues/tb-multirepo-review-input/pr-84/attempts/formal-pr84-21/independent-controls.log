@@ -1,0 +1,23 @@
+{"kind":"argument","actualExitAfterChange":7,"oldProofRejected":true}
+✔ repaired argument declared closure detects real drift (1246.309ms)
+{"kind":"library","actualExitAfterChange":7,"oldProofRejected":true}
+✔ repaired library declared closure detects real drift (1401.850583ms)
+{"kind":"shebang","actualExitAfterChange":2,"oldProofRejected":true}
+✔ repaired shebang declared closure detects real drift (1498.426458ms)
+✔ missing mandatory external declaration rejects before execution (802.692834ms)
+{"kind":"bare-relative-symlink","actualExitAfterChange":7,"oldProofRejected":true}
+✔ repaired bare-relative-symlink live path closure (1417.962625ms)
+{"kind":"ignored-local-argument","actualExitAfterChange":7,"oldProofRejected":true}
+✔ repaired ignored-local-argument live path closure (1264.171375ms)
+{"kind":"shebang-option","actualExitAfterChange":7,"oldProofRejected":true}
+✔ repaired shebang-option live path closure (1569.347875ms)
+✔ declared root drift invalidates verification waiver (2056.2825ms)
+✔ declared root drift invalidates spec waiver (2550.726667ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13857.825875

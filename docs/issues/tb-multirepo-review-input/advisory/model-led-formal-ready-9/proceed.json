@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-9",
+  "checkedSource": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "012c56512057ebe77b50e7ac24c360862b571bc5",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:23b32499cf3a41f00bba42682aef7ae89542ba99b618403316632a278a3b704b",
+  "readiness": {
+    "path": "advisory/model-led-formal-ready-9/readiness.json",
+    "hash": "sha256:5b73308aeddd407fe7b41ce4788a0b8f7ce82d1230a71f032fc6eafc68f4edd8"
+  },
+  "reason": "Proceed with authorized formal review preparation while optional noncertifying discovery runs. All prior findings retain repair claims and focused regressions. The old host-environment test now exercises authorized spec refresh; six focused checks pass. Corrected full CLI Verification remains pending and mandatory before native Judge or formal completion. No formal gate is waived. Inspect and retain advisory outcomes.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "implementation coordinator for user-authorized formal review"
+  }
+}

@@ -187,6 +187,7 @@ def review_inputs(
                 "ruleSources": [str(path) for path in pattern_dirs],
                 "overrides": overrides,
                 "triggeredRules": triggered,
+                "activeRules": rules,
             },
             indent=2,
         )
