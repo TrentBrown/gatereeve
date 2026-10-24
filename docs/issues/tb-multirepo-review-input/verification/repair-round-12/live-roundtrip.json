@@ -1,12 +1,20 @@
 {
-  "passed": true,
-  "actualVerdict": "PASS",
-  "protocolVersion": "2.1.0",
-  "contextId": "01a16c79-ff59-70e1-a89d-a4f38a391133",
-  "reasoningEffort": "high",
-  "profile": {
-    "id": "high-capability-v1",
-    "minimumReasoning": "high"
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "passed": true,
+    "actualVerdict": "PASS",
+    "protocolVersion": "2.1.0",
+    "contextId": "01a16c79-ff59-70e1-a89d-a4f38a391133",
+    "reasoningEffort": "high",
+    "profile": {
+      "id": "high-capability-v1",
+      "minimumReasoning": "high"
+    },
+    "outputDigest": "sha256:fa6a7fc763b99e8d1545fa4cd06223502e99790bf991b56bb192159690fb2b27"
   },
-  "outputDigest": "sha256:fa6a7fc763b99e8d1545fa4cd06223502e99790bf991b56bb192159690fb2b27"
+  "raw": {
+    "path": "raw/live-roundtrip.log",
+    "hash": "sha256:51b708d42d89c8e89cf2f88e6f9f4f9ce4dd0320cbfc5a97e0ff91a3dac6dd68"
+  }
 }

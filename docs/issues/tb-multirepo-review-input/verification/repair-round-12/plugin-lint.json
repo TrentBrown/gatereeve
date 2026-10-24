@@ -1,5 +1,13 @@
 {
   "schemaVersion": 1,
-  "fileCount": 159,
-  "existingSkillCount": 28
+  "kind": "feature-verification",
+  "payload": {
+    "schemaVersion": 1,
+    "fileCount": 159,
+    "existingSkillCount": 28
+  },
+  "raw": {
+    "path": "raw/plugin-lint.log",
+    "hash": "sha256:063c66b5c51e230e6ebc56b43e0d0a80addebc74a2fe05cc609bf2e6907819db"
+  }
 }

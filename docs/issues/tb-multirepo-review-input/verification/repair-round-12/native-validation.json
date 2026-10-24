@@ -1,14 +1,22 @@
 {
   "schemaVersion": 1,
-  "plugin": "agentic-development-workflow",
-  "plugins": [
-    "agentic-development-workflow",
-    "whiteboard-test"
-  ],
-  "version": "0.1.0",
-  "marketplace": "quality-code",
-  "platforms": [
-    "codex",
-    "claude"
-  ]
+  "kind": "feature-verification",
+  "payload": {
+    "schemaVersion": 1,
+    "plugin": "agentic-development-workflow",
+    "plugins": [
+      "agentic-development-workflow",
+      "whiteboard-test"
+    ],
+    "version": "0.1.0",
+    "marketplace": "quality-code",
+    "platforms": [
+      "codex",
+      "claude"
+    ]
+  },
+  "raw": {
+    "path": "raw/native-validation.log",
+    "hash": "sha256:37cddc30de50196968eec6712a60b06675a0699f9a01c63d0d06c3fe519dd603"
+  }
 }
