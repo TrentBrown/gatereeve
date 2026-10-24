@@ -9,6 +9,7 @@ import {
   parseCodexContextId,
   runAgentProcess,
   validateAgentWorkflowReceipt,
+  validateAgentWorkflowStageResult,
 } from '../../plugin-src/shared/resources/protocol/index.js';
 
 const digest = (character) => `sha256:${character.repeat(64)}`;
@@ -16,7 +17,7 @@ const digest = (character) => `sha256:${character.repeat(64)}`;
 function request() {
   return {
     schemaVersion: 1,
-    protocolVersion: 1,
+    protocolVersion: '2.0.0',
     runId: 'run-1',
     attemptId: 'attempt-1',
     module: { id: 'example/review', version: '1.0.0', digest: digest('a') },
@@ -27,7 +28,7 @@ function request() {
     repositoryPath: '/repository',
     outputSchema: { type: 'object', required: ['verdict'] },
     policy: {
-      repositoryAccess: 'read-only-pinned', networkAccess: 'denied', scratch: 'disposable',
+      repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated',
       isolation: { freshContext: true, inheritedTurns: 0 },
     },
     capabilityProfile: { id: 'high-capability-v1', minimumReasoning: 'high' },
@@ -54,6 +55,7 @@ test('Codex adapter launches a fresh ephemeral read-only structured run', async 
   const result = await adapter.runStage(request());
   assert.equal(result.output.verdict, 'PASS');
   assert.equal(validateAgentWorkflowReceipt(result.receipt), result.receipt);
+  assert.equal(validateAgentWorkflowStageResult(result), result);
   assert.equal(result.receipt.provider.contextId, 'codex-context-1');
   assert.deepEqual(result.receipt.metrics, { tokens: { input: 12, output: 7, cachedInput: 5, cacheCreation: null }, cost: null });
   assert(calls[0].args.includes('--ephemeral'));
@@ -86,6 +88,7 @@ test('Claude Code adapter launches a non-persistent restricted custom agent', as
   const result = await adapter.runStage(request());
   assert.equal(result.output.verdict, 'PASS');
   assert.equal(validateAgentWorkflowReceipt(result.receipt), result.receipt);
+  assert.equal(validateAgentWorkflowStageResult(result), result);
   assert.equal(result.receipt.provider.contextId, 'claude-context-1');
   assert.deepEqual(result.receipt.metrics, { tokens: { input: 20, output: 9, cachedInput: 3, cacheCreation: 4 }, cost: 0.03 });
   assert(calls[0].args.includes('--agents'));
@@ -182,4 +185,11 @@ test('successful providers with malformed JSON expose no raw response fragments'
     assert.equal(error.providerFailure.category, 'malformed-output');
     return true;
   });
+});
+
+test('both public adapters reject old receipt requests before launching a provider', async () => {
+  for (const create of [createCodexAgentAdapter, createClaudeCodeAgentAdapter]) {
+    const adapter = create({ model: 'fixture', runner: () => assert.fail('old request launched') });
+    await assert.rejects(adapter.runStage({ ...request(), protocolVersion: 1 }), /current receipt and isolation contract/);
+  }
 });

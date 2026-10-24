@@ -57,6 +57,12 @@ not authentication. Kinds: `approve-design`, `authorize-implementation`, `accept
 `waive`, `amend`, `policy-amend`, `authorize-merge`.
 
 Waivers name `gates` and preserve FAIL/UNAVAILABLE. They default to this candidate.
+Optional `findings` narrows an exception to named current blocking findings; it
+cannot satisfy another finding. The core binds command/configuration, evaluator
+rules, blocking findings and live runtime assumptions, including consumed proof
+transitively, external expiry, current pattern policy, support documents and integration state. Changed risk needs a new scoped decision. An interrupted decision
+retains its original risk scope; repeating it never expands that authority.
+Unknown decision fields are rejected rather than silently ignored.
 An amendment names `previousSubject`; old/new documents remain retained. If the
 same instruction expressly authorizes implementation, use
 `actions: ["authorize-implementation"]`; the core revalidates the amended spec.
@@ -75,7 +81,13 @@ participating repository. Whiteboard remains optional policy.
 
 Runner configuration is `checks: [{repository,command,args,purpose}]`. Request
 real project build/lint/test/runtime checks; do not substitute `true` or a fabricated
-receipt. Finalization checks bind the observed integration SHA. Publishing or
+receipt. Only results in a completed recorded job and its retained service
+outcome can qualify. Passing runner results require successful receipts for all
+declared checks; copied result objects cannot become consumed or delta proof.
+The public provider receipt contract is `2.0.0` with `read-only/deny/isolated`
+policy; old provider receipt requests are rejected. Release-observer messages
+use their separate observation contract, not an old workflow interpreter.
+Finalization checks bind the observed integration SHA. Publishing or
 deploying needs separate explicit authority; a generic check request is not that
 authority. The model chooses substantive checks appropriate to approved scope.
 
@@ -90,7 +102,7 @@ contradictory output is UNAVAILABLE, never PASS.
 Frozen requirements, source, inputs, results and receipts live beneath canonical
 `docs/issues/<featureId>/.gatereeve-current/`. Git is optional for these records.
 Exact source remains independently pinned and clean. Retain all referenced bytes,
-including failures. Missing/corrupt references block proof. Do not prune or claim
+including failed specification-validation documents and diagnostics. Lost failed-validation proof stays visible after later success and blocks retention until restored. Missing/corrupt references block proof. Do not prune or claim
 backup. Deleting the workspace requires a scoped retain/archive/discard decision;
 claim archival only after verifying a copy outside the deletion scope.
 
@@ -114,8 +126,10 @@ and authority state through hosted waiting and the write, and its integration
 observation cannot be attributed to a replacement candidate. SessionStart is guidance in both native packages. Arbitrary shell writes
 and GitHub actions outside these adapters are not claimed to be intercepted.
 Both packages configure PreToolUse for recognized direct `gh pr merge` commands.
-The hook consults the core and routes these through the exact protected action;
-indirect scripts and alternate external clients are not intercepted. Do not add
+Manifest and handler-subprocess tests verify a deny response and routing to the
+protected action. Actual native-host plugin activation, matcher dispatch and
+interception remain unverified; the coverage matrix labels this explicitly.
+Indirect scripts and alternate external clients are outside this handler coverage. Do not add
 per-commit gates. Desktop observes current proof and
 provides commands; refreshing it never launches evaluators.
 
@@ -145,7 +159,9 @@ dispositions for open/claimed findings. The CLI accepts `--claims`,
 `--message-id` and `--conversation-id` for these optional inputs.
 
 Git symlinks are captured as target text and gitlinks as pinned-commit metadata;
-neither is followed during capture or exposed as a live symlink. Reviewers see
+neither is followed during capture or exposed as a live symlink. Recognized
+lifecycle records must use regular non-executable files; executable, symlink or
+Gitlink lifecycle records fail capture instead of leaking history or hiding code. Reviewers see
 the entry kinds and must assess separately selected submodule contents or state
 coverage limits. Canonical requirement/store symlinks remain rejected.
 

@@ -5,7 +5,7 @@ import { readFile, rm } from 'node:fs/promises';
 import { currentFixture } from './helpers/current-fixture.js';
 import { preToolUse } from '../../plugin-src/shared/resources/protocol/current/pre-tool-use.js';
 
-test('both native hook manifests run a supported deny response through the shared core', async t => {
+test('native manifests select the shared handler; subprocess payloads produce deny without claiming host interception', async t => {
   const f = await currentFixture(t);
   await f.request('run.start', { implementers: ['implementer'], runId: 'hook-test' }, 'hook-start');
   for (const host of ['codex', 'claude']) {

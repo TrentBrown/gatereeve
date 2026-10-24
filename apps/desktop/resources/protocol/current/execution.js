@@ -7,11 +7,11 @@ import { promisify } from 'node:util';
 import { mkdtemp, mkdir, writeFile, rm, chmod } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
-import { CONTRACT, canonical, identity, requireThat, gate, text, waiverFor } from './contracts.js';
+import { CONTRACT, canonical, identity, requireThat, gate, text } from './contracts.js';
 import { localPath } from './store.js';
 import { checkCandidate, contentIdentity, git, assertClean } from './evidence.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
-import { sha256Digest } from '../agent-workflow.js';
+import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
 
 const exec = promisify(execFile);
@@ -56,7 +56,7 @@ For delta review, explicitly cover all changed paths and their interactions and 
 Every snapshot has metadata/<alias>.json with the original Git modes and kinds at base, head and target; prior snapshots have the same metadata under prior/<result-hash>/. Files in this read-only view are materialized without executable permissions, so use the retained mode metadata when assessing permission changes. Git symlinks are regular text files containing their target, never followed. Gitlinks are JSON metadata with the pinned commit; contents require a separately selected repository or an explicit coverage limitation. Do not treat metadata as reviewed implementation.
 Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, target/<alias>/ is the independently pinned proposed merge target; assess its interactions with the complete feature change. Prior targets are under prior/<result-hash>/target/<alias>/. Read requirements/ and the explicit evidence paths in the input. Do not access network or modify files.`;
 
-export const reviewContract = ids => identity({ schema, instructions, rules: [...ids].sort().map(id => ({ id, rule: gate(id).rule ?? null })) });
+export const reviewContract = ids => identity({ providerContract: AGENT_WORKFLOW_PROTOCOL_VERSION, schema, instructions, rules: [...ids].sort().map(id => ({ id, rule: gate(id).rule ?? null })) });
 
 async function sourceMetadata(root, candidate) {
   await mkdir(join(root, 'metadata'), { recursive: true });
@@ -129,6 +129,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
     retained = [await core.store.putJson(result.receipt), await core.store.putJson(result.output)];
     try { requireThat(result.output && Array.isArray(result.output.verdicts) && Object.keys(result.output).length === 1, 'Invalid verdict envelope'); }
     catch (error) { error.artifacts = retained; throw error; }
+    validateAgentWorkflowStageResult(result);
     const receipt = result.receipt;
     requireThat(receipt?.status === 'completed' && receipt.runId === state.runId && receipt.attemptId === prepared.hash
       && receipt.isolation?.freshContext === true && receipt.isolation.inheritedTurns === 0
@@ -528,7 +529,7 @@ async function coreEvidence(core, state, candidate, id, consumed) {
       for (const ref of [...state.results].reverse()) {
         try { const report = await core.currentResult(ref, candidate, state, new Set(), applicabilityMemo); if (['finalization', 'release'].includes(report.gate) && !completion.some(item => item.gate === report.gate)) completion.push({ gate: report.gate, reference: ref }); } catch { /* Nonqualifying history remains visible. */ }
       }
-      await core.store.closure([state.candidate, state.decisions, state.integrations, inventory.map(item => item.reference).filter(Boolean), completion.map(item => item.reference)]);
+      await core.store.closure([state.candidate, state.decisions, state.integrations, state.validationFailures, inventory.map(item => item.reference).filter(Boolean), completion.map(item => item.reference)]);
       await core.store.events(state.runId);
       return { gate: id, outcome: 'PASS', summary: 'Current required evidence retained; historical losses remain visible; Git tracking optional; backup not asserted', findings: [], dispositions: [], inventory, completion, historyGaps: await core.historyGaps(state) };
     }

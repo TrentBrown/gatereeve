@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { ContractError } from './errors.js';
 
-export const AGENT_WORKFLOW_PROTOCOL_VERSION = 1;
+export const AGENT_WORKFLOW_PROTOCOL_VERSION = '2.0.0';
 export const AGENT_WORKFLOW_RECEIPT_KIND = 'gatereeve-agent-workflow-receipt';
 
 const SHA256 = /^sha256:[0-9a-f]{64}$/u;
@@ -108,9 +108,9 @@ export function validateAgentWorkflowReceipt(value) {
     'Agent workflow receipt policy'
   );
   if (
-    value.policy.repositoryAccess !== 'read-only-pinned'
-    || value.policy.networkAccess !== 'denied'
-    || value.policy.scratch !== 'disposable'
+    value.policy.repositoryAccess !== 'read-only'
+    || value.policy.networkAccess !== 'deny'
+    || value.policy.scratch !== 'isolated'
   ) throw new ContractError('Agent workflow receipt policy does not satisfy isolation requirements');
 
   timestamp(value.startedAt, 'Agent workflow receipt startedAt');

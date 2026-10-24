@@ -1,0 +1,15 @@
+✔ quality exceptions retain facts and never authorize merge or waive integrity (745.128792ms)
+✔ policy amendment is explicit and cannot waive integrity or authority (674.905375ms)
+✔ quality exception survives bookkeeping-equivalent commits but not changed source (1015.063333ms)
+✔ waiver with acceptance retains pending human instruction before failed continuation (11411.978708ms)
+✔ finding-scoped exceptions cannot absorb other findings and runner exceptions expire on changed risk (2178.160042ms)
+✔ independent-gate exception binds consumed runner risk transitively (1357.385375ms)
+✔ exception risk detects expired consumed proof and changed pattern or triage inputs (4602.332291ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22066.6055

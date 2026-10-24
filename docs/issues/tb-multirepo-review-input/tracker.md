@@ -63,3 +63,7 @@ not supersede these failures.
 ### Formal PR84 attempt 4
 
 Code/spec and native Judge returned FAIL on `856e2ee`. Original results are retained in `pr-84/attempts/formal-pr84-4/`. The core returned the slice to implementation. Repairs address delta history ordering, malformed check obligations, state races, equivalent review reuse, order-independent selections and contradictory environment guidance. See [fourth remediation claims](verification/formal-pr84-remediation-4.md). Formal rubric rows await reassessment.
+
+### Formal PR84 attempt 5
+
+Independent code/spec returned PASS; the later native OpenAI Judge returned FAIL (11 PASS / 10 FAIL) on `b1bade8`. Original reports and receipts remain under `pr-84/attempts/formal-pr84-5/`. Installed core returned the slice to implementation before repairs. Repairs bind actual execution provenance, exclude unsafe lifecycle history, narrow human exceptions across live dependencies, align provider contracts and retain failed specification proof. Native-host enforcement remains explicitly unverified. See [fifth remediation claims](verification/formal-pr84-remediation-5.md). Formal rubric passage awaits the next pinned independent assessment.

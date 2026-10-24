@@ -65,6 +65,7 @@ async function tree(store, repository, revision) {
   const links = entries.filter(entry => entry.mode === '160000');
   const blobs = entries.filter(entry => entry.type === 'blob');
   const files = [];
+  for (const entry of links) requireThat(!excluded(entry.path, featureRelative), 'Lifecycle records cannot be Git links');
   for (const entry of links) files.push({ path: entry.path, mode: entry.mode, entryKind: 'gitlink', ...await store.put(JSON.stringify({ kind: 'gitlink', commit: entry.oid, coverage: 'Contents are not in this repository snapshot; assess the separately selected repository or report a coverage limitation.' })) });
   if (!blobs.length) return files;
   // One Git process for all blobs. Parse byte lengths, never split binary contents.
@@ -89,7 +90,9 @@ async function tree(store, repository, revision) {
     requireThat(oid === entry.oid && type === 'blob' && Number.isSafeInteger(count) && count >= 0
       && end + 1 + count < bytes.length && bytes[end + 1 + count] === 10, 'Invalid Git blob response');
     const blob = bytes.subarray(end + 1, end + 1 + count);
-    if (entry.mode !== '100644' || !excluded(entry.path, featureRelative, blob)) files.push({ path: entry.path, mode: entry.mode, ...(entry.mode === '120000' ? { entryKind: 'symlink' } : {}), ...await store.put(blob) });
+    const history = excluded(entry.path, featureRelative, blob);
+    requireThat(!history || entry.mode === '100644', 'Lifecycle records must be regular non-executable files');
+    if (!history) files.push({ path: entry.path, mode: entry.mode, ...(entry.mode === '120000' ? { entryKind: 'symlink' } : {}), ...await store.put(blob) });
     offset = end + count + 2;
   }
   requireThat(offset === bytes.length, 'Unexpected Git blob data');

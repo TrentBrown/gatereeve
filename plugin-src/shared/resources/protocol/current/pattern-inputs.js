@@ -7,11 +7,21 @@ import { digest, requireThat } from './contracts.js';
 const exec = promisify(execFile);
 const script = fileURLToPath(new URL('../../scripts/pattern_tool.py', import.meta.url));
 
-export async function patternInputs(store, context, candidate, { capture = true } = {}) {
+export async function patternInputs(store, context, candidate, { capture = true, allowMissing = false } = {}) {
   const repositories = [];
   for (const pin of candidate.repositories) {
     const repository = context.repositories.find(item => item.alias === pin.alias);
-    const { stdout } = await exec('python3', [script, 'review-inputs', '--cwd', repository.path, '--base', pin.base, '--head', pin.head], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } });
+    let stdout;
+    try {
+      ({ stdout } = await exec('python3', [script, 'review-inputs', '--cwd', repository.path, '--base', pin.base, '--head', pin.head], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } }));
+    } catch (error) {
+      // Only the helper's explicit absent-scope result can define an exception.
+      // Parse, path, integrity and process failures must remain unavailable.
+      if (!allowMissing || error.code !== 2 || error.stdout !== ''
+        || !/^No applicable \.pattern-review directory found for [^\n]+\.\nRun: \/pattern-init [^\n]+\n$/u.test(error.stderr ?? '')) throw error;
+      repositories.push({ alias: pin.alias, unavailable: 'missing-pattern-scope' });
+      continue;
+    }
     const result = JSON.parse(stdout);
     requireThat(Array.isArray(result.ruleSources) && result.ruleSources.length > 0 && Array.isArray(result.activeRules), 'Pattern scope or active rule inventory is unavailable');
     const sources = [];

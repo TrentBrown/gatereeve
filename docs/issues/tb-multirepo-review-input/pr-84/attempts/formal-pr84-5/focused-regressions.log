@@ -1,0 +1,24 @@
+✔ protected merge recloses a drifted PR (candidate-before-write) without merging (13563.09475ms)
+✔ protected merge recloses a drifted PR (candidate-after-write) without merging (13478.915167ms)
+✔ a narrower passing check cannot hide earlier failed verification and packets refresh their inventory (1377.09ms)
+✔ later runner preflight failure retains completed check output with exit 0 (671.636041ms)
+✔ later runner preflight failure retains completed check output with exit 7 (678.450833ms)
+✔ reopened blocking findings remain required in automatic history with changed source false (1838.903ms)
+✔ reopened blocking findings remain required in automatic history with changed source true (2026.880875ms)
+✔ corrected runner configuration recovers after invalid arguments undefined (828.001292ms)
+✔ corrected runner configuration recovers after invalid arguments "--version" (831.493125ms)
+✔ corrected runner configuration recovers after invalid arguments [4] (822.900917ms)
+✔ delta prior cannot reorder an older closure after a reopened blocking finding with changed source false (2245.582875ms)
+✔ delta prior cannot reorder an older closure after a reopened blocking finding with changed source true (2580.855042ms)
+✔ milestone passage rejects candidate replacement during an otherwise passing check (9718.496209ms)
+✔ qualified closure reuses equivalent review with claims 0 (1102.17975ms)
+✔ qualified closure reuses equivalent review with claims 1 (1120.092625ms)
+✔ repository order and grouped gate order preserve equivalent review identity (1442.727834ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 54409.0395

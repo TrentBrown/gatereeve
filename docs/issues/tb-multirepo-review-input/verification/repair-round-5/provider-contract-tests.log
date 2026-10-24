@@ -1,0 +1,20 @@
+✔ agent workflow receipts bind provider configuration, isolation policy, and stage output (1.085209ms)
+✔ agent workflow receipts reject inherited context and output substitution (0.253333ms)
+✔ the public provider receipt contract rejects the retired workflow version and policy (0.091917ms)
+✔ Codex adapter launches a fresh ephemeral read-only structured run (7.65975ms)
+✔ Claude Code adapter launches a non-persistent restricted custom agent (0.353333ms)
+✔ adapter parsers require structured output and opaque context IDs (0.229792ms)
+✔ provider adapters reject oversized prompts before launching a process (1.587042ms)
+✔ failed provider processes expose structured categories without raw output (48.077292ms)
+✔ bundled provider output schemas type every constant (0.68275ms)
+✔ Claude structured output accepts an entire JSON fence but rejects prose or broken JSON (0.164458ms)
+✔ successful providers with malformed JSON expose no raw response fragments (1.494958ms)
+✔ both public adapters reject old receipt requests before launching a provider (0.194166ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 138.683958

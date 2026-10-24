@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "applicationPath": "/tmp/gr-repair5-package.LQXtMA/application/GateReeve-darwin-universal/GateReeve.app",
+    "dmgPath": "/tmp/gr-repair5-package.LQXtMA/GateReeve-0.1.0-rc.16-macos-universal.dmg",
+    "dmgBytes": 254506244,
+    "dmgSha256": "9d016170bc104087cf5b307bd3d4ba1c9e59b08495811108c4087812bc3e0b06",
+    "version": "0.1.0-rc.16"
+  }
+}

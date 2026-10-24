@@ -141,7 +141,7 @@ async function runVerification(f, fail = false, operationId = 'verify-one') {
     checks: [{ repository: 'app', command: process.execPath, args: ['-e', `process.exit(${fail ? 1 : 0})`], purpose: 'Fixture verification' }],
   } }, operationId);
 }
-function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, outcome = blocking ? 'FAIL' : 'PASS', dispositions = [], historyAssessment = null } = {}) {
+function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, findingId = 'finding-1', outcome = blocking ? 'FAIL' : 'PASS', dispositions = [], historyAssessment = null } = {}) {
   let launches = 0;
   f.core.runtime.evaluator = {
     async describe() { return { provider: 'codex', model: 'fixture' }; },
@@ -149,14 +149,14 @@ function fakeEvaluator(f, { malformed = false, inherited = false, blocking = fal
       launches++;
       const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome,
         summary: 'Fixture assessment', criteria: request.input.criteria.map(id => ({ id, outcome, evidence: 'Fixture source and command receipt' })), coverage: { complete: true, paths: request.input.changedPaths ?? ['app/app.js'], interactions: ['app/app.js'], limitations: [] },
-        findings: blocking ? [{ id: 'finding-1', classId: 'class-1', criterion: 'R1', path: 'app/app.js', evidence: 'Current defect', blocking: true }] : [], dispositions, historyAssessment })) };
+        findings: blocking ? [{ id: findingId, classId: 'class-1', criterion: 'R1', path: 'app/app.js', evidence: 'Current defect', blocking: true }] : [], dispositions, historyAssessment })) };
       if (malformed) output.verdicts.pop();
       const { sha256Digest } = await import('../../plugin-src/shared/resources/protocol/agent-workflow.js');
-      return { output, receipt: { status: 'completed', runId: request.runId, attemptId: request.attemptId,
-        isolation: { freshContext: true, inheritedTurns: inherited ? 1 : 0 },
-        provider: { id: 'codex', model: 'fixture', contextId: 'reviewer-fresh' },
+      return { schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed', output, receipt: { schemaVersion: 1, kind: 'gatereeve-agent-workflow-receipt', protocolVersion: request.protocolVersion, module: request.module, stage: request.stage.id, capabilityProfile: request.capabilityProfile, startedAt: '2026-10-23T00:00:00Z', completedAt: '2026-10-23T00:00:01Z', status: 'completed', runId: request.runId, attemptId: request.attemptId,
+        isolation: { method: 'test-isolated', freshContext: true, inheritedTurns: inherited ? 1 : 0 },
+        provider: { id: 'codex', adapterVersion: '1.0.0', reasoningEffort: 'high', model: 'fixture', contextId: 'reviewer-fresh' },
         digests: { input: sha256Digest(request.input), instructions: sha256Digest(request.instructions), output: sha256Digest(output), snapshot: request.snapshotDigest },
-        policy: { repositoryAccess: 'read-only', networkAccess: 'deny' } } };
+        policy: { repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated' } } };
     },
   };
   return () => launches;
@@ -772,16 +772,12 @@ test('resolved history above 64 records does not halt fresh review', async t => 
   const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
   const input = { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } };
   const seed = await f.request('gate.execute', input, 'history-seed');
-  const template = await f.core.store.json(seed.event.payload.results[0]);
   for (let i = 0; i < 33; i++) {
     const id = `finding-${i}`;
-    for (const report of [
-      { ...template, outcome: 'FAIL', findings: [{ id, classId: id, criterion: 'R1', path: 'app/app.js', evidence: 'Prior defect', blocking: true }], dispositions: [] },
-      { ...template, findings: [], dispositions: [{ id, status: 'resolved', evidence: 'Independent closure' }] },
-    ]) {
-      const ref = await f.core.store.putJson(report);
-      await f.core.append((await f.core.state()).state, 'RESULT', ref, { id: `seed-${i}-${report.outcome}`, hash: identity(ref) });
-    }
+    fakeEvaluator(f, { blocking: true, findingId: id });
+    await f.request('gate.execute', { ...input, configuration: { ...input.configuration, round: i } }, `failure-${i}`);
+    fakeEvaluator(f, { dispositions: [{ id, status: 'resolved', evidence: 'Independent closure' }] });
+    await f.request('gate.execute', input, `closure-${i}`);
   }
   await writeFile(join(f.repo, 'app.js'), 'export const answer = 43;\n');
   await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'later source']);
@@ -1299,4 +1295,143 @@ for (const race of ['after-pending', 'after-validation']) test(`decision passage
   const state = (await f.core.state()).state;
   assert.equal(state.paused, true); assert.equal(state.pendingDecisions.length, 1);
   assert.ok(!state.decisions.some(item => item.subject === next.subject));
+});
+
+// These requests cross the same public gate boundary as normal orchestration.
+test('unrecorded copied PASS cannot supply verification or delta ancestry', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); const launches = fakeEvaluator(f);
+  const unavailable = await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [] } }, 'empty-runner');
+  const raw = await f.core.store.json(unavailable.event.payload.results[0]);
+  const invented = await f.core.store.putJson({ ...raw, outcome: 'PASS', summary: 'Invented', runner: null });
+  await assert.rejects(f.request('gate.execute', { gates: ['spec'], consumed: [invented], configuration: { provider: 'codex', model: 'fixture' } }, 'forged-consumed'), /not recorded/);
+  const actual = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } }, 'actual-code');
+  const code = await f.core.store.json(actual.event.payload.results[0]);
+  const inventedPrior = await f.core.store.putJson({ ...code, summary: 'Invented prior' });
+  await assert.rejects(f.request('gate.execute', { gates: ['code'], prior: inventedPrior, configuration: { provider: 'codex', model: 'fixture' } }, 'forged-delta'), /not recorded/);
+  assert.equal(launches(), 1);
+  const state = (await f.core.state()).state; const source = await f.core.store.json(state.candidate);
+  const receipt = await f.core.store.json(code.receipt);
+  const job = await f.core.store.job(receipt.jobId);
+  assert.ok(job.results.some(ref => ref.hash === actual.event.payload.results[0].hash));
+  assert.equal((await f.core.currentResult(actual.event.payload.results[0], source, state)).outcome, 'PASS');
+});
+
+for (const mode of ['100755', '120000']) test(`reserved history with Git mode ${mode} fails capture without leaking or hiding source`, async t => {
+  const f = await fixture(t, { nested: false }); await authorize(f);
+  await mkdir(join(f.repo, 'docs/issues/other'), { recursive: true });
+  const path = join(f.repo, 'docs/issues/other/events.jsonl');
+  if (mode === '120000') await symlink('../../../app.js', path);
+  else { await writeFile(path, 'RAW IMPLEMENTATION HISTORY\n'); await chmod(path, 0o755); }
+  await git(f.repo, ['add', 'docs/issues/other/events.jsonl']); await git(f.repo, ['commit', '-m', 'unsafe history mode']);
+  const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await assert.rejects(f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head }], scope: 'FEATURE', criteria: ['R1'] }, 'unsafe-mode'), /Lifecycle records must be regular non-executable/);
+  assert.equal((await f.core.state()).state.candidate, null);
+});
+
+test('finding-scoped exceptions cannot absorb other findings and runner exceptions expire on changed risk', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f, { blocking: true });
+  const configuration = { provider: 'codex', model: 'fixture' };
+  await f.request('gate.execute', { gates: ['code'], configuration }, 'finding-one');
+  const subject = (await f.core.state()).state.candidate.hash;
+  const input = { kind: 'waive', subject, gates: ['code'], findings: ['wrong-finding'], authority: human, reason: 'Only the named finding', consequences: 'Other defects remain required' };
+  await assert.rejects(f.request('human.decide', input, 'unknown-finding'), /current blocking findings/);
+  await f.request('human.decide', { ...input, findings: ['finding-1'] }, 'named-finding');
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').satisfied, true);
+  fakeEvaluator(f, { blocking: true });
+  const adapter = f.core.runtime.evaluator, run = adapter.runStage;
+  adapter.runStage = async request => {
+    const result = await run(request);
+    result.output.verdicts[0].findings.push({ ...result.output.verdicts[0].findings[0], id: 'finding-2' });
+    const { sha256Digest } = await import('../../plugin-src/shared/resources/protocol/agent-workflow.js');
+    result.receipt.digests.output = sha256Digest(result.output); return result;
+  };
+  await f.request('gate.execute', { gates: ['code'], configuration }, 'additional-finding');
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').satisfied, false);
+  await runVerification(f, true, 'failed-runner');
+  await f.request('human.decide', { kind: 'waive', subject, gates: ['verification'], authority: human, reason: 'Known command failure', consequences: 'This command on these runtime assumptions' }, 'runner-exception');
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'verification').satisfied, true);
+  const key = 'GATEREEVE_WAIVER_TEST_RISK', prior = process.env[key];
+  try {
+    process.env[key] = 'different';
+    assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'verification').satisfied, false);
+  } finally { if (prior === undefined) delete process.env[key]; else process.env[key] = prior; }
+  await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(2)'], purpose: 'Different risk' }] } }, 'changed-runner');
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'verification').satisfied, false);
+});
+
+test('lost failed-spec evidence stays visible after correction and blocks retention until restored', async t => {
+  const f = await fixture(t);
+  const design = await f.core.store.capture('design.md');
+  await f.request('human.decide', { kind: 'approve-design', subject: design.hash, authority: human, reason: 'Approve', consequences: 'Validate' }, 'approved');
+  const spec = await readFile(join(f.home, 'spec.md')); await writeFile(join(f.home, 'spec.md'), '# Invalid\n');
+  await assert.rejects(f.request('spec.validate', {}, 'bad-spec'), /validation failed/);
+  const failure = (await f.core.state()).state.validationFailures[0]; const bytes = await f.core.store.get(failure.proof);
+  await rm(join(f.home, '.gatereeve-current/objects', failure.proof.hash.slice(7)));
+  await writeFile(join(f.home, 'spec.md'), spec); await f.request('spec.validate', {}, 'good-spec');
+  const commitments = await f.core.commitments(); await f.request('human.decide', { kind: 'authorize-implementation', subject: commitments.subject, authority: human, reason: 'Implement', consequences: 'Current scope' }, 'implement');
+  await candidate(f);
+  assert.ok((await f.request('status')).historyGaps.some(x => x.gate === 'spec-validation' && x.resultHash === failure.proof.hash));
+  const missing = await f.request('gate.execute', { gates: ['retention'] }, 'retention-missing');
+  assert.equal((await f.core.store.json(missing.event.payload.results[0])).outcome, 'UNAVAILABLE');
+  await f.core.store.put(bytes);
+  assert.ok(!(await f.request('status')).historyGaps.some(x => x.gate === 'spec-validation'));
+  const restored = await f.request('gate.execute', { gates: ['retention'] }, 'retention-restored');
+  assert.equal((await f.core.store.json(restored.event.payload.results[0])).outcome, 'PASS');
+});
+
+test('independent-gate exception binds consumed runner risk transitively', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); await runVerification(f);
+  fakeEvaluator(f, { blocking: true });
+  await f.request('gate.execute', { gates: ['spec'], configuration: { provider: 'codex', model: 'fixture' } }, 'failed-spec-review');
+  const subject = (await f.core.state()).state.candidate.hash;
+  await f.request('human.decide', { kind: 'waive', subject, gates: ['spec'], authority: human, reason: 'Known spec issue', consequences: 'This candidate and bound verification' }, 'spec-exception');
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'spec').satisfied, true);
+  const key = 'GATEREEVE_TRANSITIVE_RISK', prior = process.env[key];
+  try {
+    process.env[key] = 'changed';
+    const result = (await f.core.check('acceptance')).outcomes.find(x => x.id === 'spec');
+    assert.equal(result.outcome, 'UNAVAILABLE'); assert.equal(result.satisfied, false); assert.equal(result.exception, null);
+  } finally { if (prior === undefined) delete process.env[key]; else process.env[key] = prior; }
+  await assert.rejects(f.request('human.decide', { kind: 'waive', subject, gates: ['spec'], scope: 'unsupported narrowing', authority: human, reason: 'Named risk', consequences: 'Known' }), /Unsupported decision field/);
+});
+
+test('exception risk detects expired consumed proof and changed pattern or triage inputs', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const realNow = Date.now, deadline = realNow() + 60000;
+  await f.request('gate.execute', { gates: ['verification'], configuration: { validUntil: new Date(deadline).toISOString(), checks: [{ repository: 'app', command: process.execPath, args: ['--version'], purpose: 'Timed observation' }] } }, 'timed-check');
+  fakeEvaluator(f, { blocking: true });
+  await f.request('gate.execute', { gates: ['spec'], configuration: { provider: 'codex', model: 'fixture' } }, 'timed-spec');
+  const subject = (await f.core.state()).state.candidate.hash;
+  const waive = (gates, extra = {}) => f.request('human.decide', { kind: 'waive', gates, subject, authority: human, reason: 'Specific known risk', consequences: 'Current assumptions only', ...extra });
+  await waive(['spec']);
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'spec').satisfied, true);
+  try { Date.now = () => deadline + 1; assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'spec').satisfied, false); }
+  finally { Date.now = realNow; }
+  fakeEvaluator(f, { blocking: true });
+  await f.request('gate.execute', { gates: ['pattern'], configuration: { provider: 'codex', model: 'fixture' } }, 'pattern-risk');
+  await waive(['pattern']);
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'pattern').satisfied, true);
+  await writeFile(join(f.root, '.pattern-review/rules.yaml'), '[]\n# Changed policy bytes\n');
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'pattern').satisfied, false);
+  await writeFile(join(f.home, 'scratchpad.md'), '# Decisions\n[ ] **Promote**\n');
+  await f.request('gate.execute', { gates: ['triage'] }, 'triage-risk');
+  await waive(['triage'], { kind: 'policy-amend', actions: ['waive'] });
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'triage').satisfied, true);
+  await writeFile(join(f.home, 'scratchpad.md'), '# Decisions\n[ ] **Promote**\nAnother material decision\n');
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'triage').satisfied, false);
+});
+
+test('explicit missing-pattern exception expires when policy appears and cannot waive unsafe policy', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  await rm(join(f.root, '.pattern-review'), { recursive: true });
+  const subject = (await f.core.state()).state.candidate.hash;
+  const decision = { kind: 'waive', subject, gates: ['pattern'], authority: human, reason: 'No applicable pattern policy exists', consequences: 'Accept the unavailable assessment for this absence only' };
+  await f.request('human.decide', decision, 'missing-pattern');
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'pattern').satisfied, true);
+  await mkdir(join(f.root, '.pattern-review')); await writeFile(join(f.root, '.pattern-review/rules.yaml'), '[]\n');
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'pattern').satisfied, false);
+  await rm(join(f.root, '.pattern-review/rules.yaml'));
+  await writeFile(join(f.root, 'outside-rules.yaml'), '[]\n');
+  await symlink('../outside-rules.yaml', join(f.root, '.pattern-review/rules.yaml'));
+  await assert.rejects(f.request('human.decide', decision, 'unsafe-pattern'));
 });

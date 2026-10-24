@@ -14,7 +14,7 @@ export function project(events) {
   const first = events[0].payload;
   const state = { contract: CONTRACT, runId: events[0].runId, featureId: first.featureId,
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
-    decisions: [], pendingDecisions: [], validationFailures: [], results: [], expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
+    decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
     ready: false, paused: false, eventCount: events.length };
   for (const event of events.slice(1)) {
     const value = event.payload;
@@ -33,9 +33,8 @@ export function project(events) {
       case 'SPEC_VALIDATED': state.specValidation = value; state.phase = 'PLANNING'; break;
       case 'CANDIDATE': state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.phase = 'IMPLEMENTING'; break;
       case 'READY': state.ready = true; break;
-      case 'RESULT': state.results.push(value); break;
-      case 'JOB_STARTED': break;
-      case 'JOB_FINISHED': state.results.push(...value.results); break;
+      case 'JOB_STARTED': state.jobs[value.jobId] = { ...value, finished: false }; break;
+      case 'JOB_FINISHED': state.jobs[value.jobId] = { ...state.jobs[value.jobId], ...value, finished: true }; state.results.push(...value.results); break;
       case 'MILESTONE':
         if (value.name === 'acceptance') state.phase = 'ACCEPTING';
         if (value.name === 'completion') state.phase = 'COMPLETE';
@@ -175,7 +174,20 @@ export class CurrentCore {
     } else {
       requireThat(state.candidate && value.subject === state.candidate.hash, 'Decision must bind the current candidate');
       const candidate = await checkCandidate(this.store, this.context, state.candidate);
-      if (decisionHas(value, 'waive')) { value.candidate = state.candidate; value.applicability = contentIdentity(candidate); }
+      if (decisionHas(value, 'waive')) {
+        value.candidate = state.candidate; value.applicability = contentIdentity(candidate); value.risks = {};
+        const pending = state.pendingDecisions.find(item => item.operation.id === operation.id);
+        const known = new Set();
+        for (const id of value.gates) {
+          value.risks[id] = pending ? pending.decision.risks[id] : await this.waiverRisk(state, candidate, id);
+          for (const ref of [...state.results].reverse()) {
+            const report = await this.store.json(ref); if (report.gate !== id) continue;
+            for (const finding of report.findings ?? []) if (finding.blocking) known.add(finding.id);
+            break;
+          }
+        }
+        requireThat(pending || !value.findings || value.findings.every(id => known.has(id)), 'Finding exception must identify current blocking findings');
+      }
       if (value.kind === 'waive') for (const id of value.gates) requireThat(gate(id).waivable || state.decisions.some(item => item.kind === 'policy-amend' && item.subject === value.subject && item.gates.includes(id)), `${id} requires a policy amendment, not a waiver`);
       state = await this.pendingDecision(value, operation, state);
       const proposed = { ...state, decisions: [...state.decisions, value] };
@@ -249,11 +261,23 @@ export class CurrentCore {
     }
     requireThat([...required].every(id => covered.get(id) === true), 'Verification has uncovered previously declared checks; run them on current inputs or obtain a scoped exception');
   }
+  async recordedResult(ref, state) {
+    requireThat(state.results.some(item => item.hash === ref.hash), 'Result is not recorded in this run');
+    const result = await this.store.json(ref), receipt = await this.store.json(result.receipt);
+    const job = state.jobs[receipt.jobId], retained = job ? await this.store.job(receipt.jobId) : null;
+    requireThat(job?.finished && job.input?.hash === result.input?.hash
+      && job.results.some(item => item.hash === ref.hash)
+      && retained?.runId === state.runId && retained.results.some(item => item.hash === ref.hash),
+      'Result lacks its recorded execution and retained service outcome');
+    requireThat(receipt.kind === 'execution' && receipt.role === gate(result.gate).role,
+      'Execution receipt role differs from the gate');
+    return { result, receipt };
+  }
   async currentResult(ref, candidate, state, seen = new Set(), memo = new Map(), requireCoverage = true) {
     requireThat(!seen.has(ref.hash), 'Cyclic evidence references');
     seen.add(ref.hash);
     await this.store.closure(ref);
-    const result = await this.store.json(ref);
+    const { result, receipt } = await this.recordedResult(ref, state);
     requireThat(result.contract === CONTRACT && result.kind === 'result', 'Invalid current result');
     const definition = gate(result.gate);
     // Evidence loss is a barrier, not permission to fall back to an older PASS.
@@ -265,7 +289,6 @@ export class CurrentCore {
       gap.gate !== null && gap.gate !== result.gate || position > gap.position,
       'Historical evidence loss requires fresh proof for this gate');
     requireThat(result.runId === state.runId && result.featureId === state.featureId, 'Result belongs to another run');
-    const receipt = await this.store.json(result.receipt);
     requireThat(receipt.contract === CONTRACT && receipt.runId === state.runId && receipt.input === result.input.hash
       && receipt.gates.includes(result.gate), 'Execution receipt binding mismatch');
     if (definition.role === 'independent' && result.outcome !== 'UNAVAILABLE') requireThat(receipt.evaluator?.freshContext === true
@@ -290,9 +313,51 @@ export class CurrentCore {
     }
     requireThat(contentIdentity(evaluated) === contentIdentity(candidate), 'Result is not applicable to current inputs');
     for (const dependency of inputs.consumed ?? []) await this.currentResult(dependency, candidate, state, new Set(seen), memo, requireCoverage);
+    if (definition.role === 'runner' && result.outcome === 'PASS') {
+      const runner = result.runner ? await this.store.json(result.runner) : null;
+      requireThat(Array.isArray(inputs.configuration.checks) && inputs.configuration.checks.length > 0
+        && runner?.receipts?.length === inputs.configuration.checks.length
+        && runner.receipts.every((item, index) => item.outcome === 'PASS' && item.exitCode === 0
+          && identity({ repository: item.repository, command: item.command, args: item.args })
+            === identity({ repository: inputs.configuration.checks[index].repository, command: inputs.configuration.checks[index].command, args: inputs.configuration.checks[index].args })),
+        'Passing runner proof requires every declared check and actual successful receipts');
+    }
     if (result.gate === 'verification' && result.outcome === 'PASS' && requireCoverage) await this.verificationCoverage(candidate, state, memo);
     if (result.gate === 'packet') requireThat(identity(result.inventory) === identity(await this.inventory(state, candidate, memo)), 'Review packet inventory changed');
     return result;
+  }
+  async waiverRisk(state, candidate, id) {
+    let inputs = { configuration: null, consumed: [], support: [] }, findings = [];
+    for (const ref of [...state.results].reverse()) {
+      const report = await this.store.json(ref); if (report.gate !== id) continue;
+      await this.store.closure(ref); await this.recordedResult(ref, state);
+      inputs = await this.store.json(report.input);
+      findings = (report.findings ?? []).filter(item => item.blocking).map(item => identity(item)).sort(); break;
+    }
+    const gaps = await this.historyGaps(state);
+    const scope = async (gateId, input, seen = new Set()) => {
+      const dependencies = [];
+      for (const ref of input.consumed ?? []) {
+        requireThat(!seen.has(ref.hash), 'Cyclic exception evidence');
+        await this.store.closure(ref);
+        const { result } = await this.recordedResult(ref, state);
+        dependencies.push({ reference: ref.hash, risk: await scope(result.gate, await this.store.json(result.input), new Set(seen).add(ref.hash)) });
+      }
+      const paths = new Set((input.support ?? []).map(ref => ref.path));
+      for (const path of gateId === 'triage' ? ['scratchpad.md'] : gateId === 'reconcile' ? ['plan.md', 'issues.md', 'tracker.md'] : []) paths.add(path);
+      const support = [];
+      for (const path of [...paths].sort()) {
+        try { support.push(await this.store.fingerprint(path)); }
+        catch (error) { if (error.code !== 'ENOENT') throw error; support.push({ path, missing: true }); }
+      }
+      return identity({ configuration: input.configuration, dependencies, support, rule: reviewContract([gateId]),
+        pattern: gateId === 'pattern' ? await patternInputs(this.store, this.context, candidate, { capture: false, allowMissing: true }) : null,
+        externalValidity: !input.validUntil || Date.now() <= Date.parse(input.validUntil),
+        integrations: gate(gateId).at === 'completion' ? state.integrations : null,
+        historyGaps: gaps.filter(gap => gap.gate === null || gap.gate === gateId),
+        environment: await executionEnvironment(this.context, candidate, input.configuration ?? {}, gate(gateId).role === 'runner') });
+    };
+    return identity({ findings, execution: await scope(id, inputs) });
   }
   async check(name, proposedState = null, memo = new Map()) {
     requireThat(MILESTONES.includes(name), 'Unknown milestone');
@@ -332,7 +397,12 @@ export class CurrentCore {
           break;
         } catch (failure) { error = failure.message; }
       }
-      const waiver = waiverFor(state, definition.id, state.candidate?.hash, candidate ? contentIdentity(candidate) : null);
+      let waiver = null;
+      if (candidate && state.decisions.some(item => decisionHas(item, 'waive') && item.gates.includes(definition.id))) {
+        try { waiver = waiverFor(state, definition.id, state.candidate?.hash, contentIdentity(candidate),
+          await this.waiverRisk(state, candidate, definition.id), accepted); }
+        catch (failure) { error = `Exception scope is unavailable: ${failure.message}`; }
+      }
       const satisfied = accepted?.outcome === 'PASS' || waiver;
       if (!satisfied) missing.push(`${definition.id}: ${accepted?.outcome ?? error ?? 'missing evidence'}`);
       outcomes.push({ id: definition.id, result: acceptedRef, reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied) });
@@ -363,12 +433,17 @@ export class CurrentCore {
   async historyGaps(state) {
     const gaps = [];
     for (const [position, ref] of state.results.entries()) {
-      try { await this.store.closure(ref); }
+      try { await this.store.closure(ref); await this.recordedResult(ref, state); }
       catch {
         let gate = null;
         try { gate = (await this.store.json(ref)).gate ?? null; } catch { /* Unknown gate affects all prior proof. */ }
         gaps.push({ resultHash: ref.hash, gate, position, reason: 'Historical evidence is unavailable or corrupt; fresh proof after this loss is required.' });
       }
+    }
+    for (const failure of state.validationFailures) {
+      try { await this.store.closure(failure); }
+      catch { gaps.push({ resultHash: failure.proof.hash, gate: 'spec-validation', position: -1,
+        reason: 'Historical failed specification evidence is unavailable or corrupt; restore retained bytes before final retention.' }); }
     }
     return gaps;
   }

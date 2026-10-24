@@ -70,6 +70,7 @@ export function authority(value) {
 }
 export function decision(value) {
   object(value, 'Decision');
+  requireThat(Object.keys(value).every(key => ['kind', 'subject', 'authority', 'reason', 'consequences', 'actions', 'gates', 'findings', 'action', 'previousSubject'].includes(key)), 'Unsupported decision field; scope must be explicit in the supported contract');
   requireThat(['approve-design', 'authorize-implementation', 'accept', 'waive', 'amend', 'policy-amend', 'authorize-merge'].includes(value.kind), 'Unknown decision kind');
   authority(value.authority);
   text(value.reason, 'Decision reason');
@@ -84,21 +85,30 @@ export function decision(value) {
     value.gates.forEach(gate);
     if (value.kind === 'policy-amend') requireThat(value.gates.every(id => ['reconcile', 'triage'].includes(id)), 'Policy amendment cannot waive integrity, factual truth or authority');
   }
+  if (value.findings !== undefined) {
+    requireThat((value.kind === 'waive' || value.kind === 'policy-amend') && Array.isArray(value.findings)
+      && value.findings.length > 0 && new Set(value.findings).size === value.findings.length,
+      'Finding exceptions require distinct named findings');
+    value.findings.forEach(id => text(id, 'Finding identity'));
+  }
   return structuredClone(value);
 }
 export const decisionHas = (value, kind) => value.kind === kind || (value.actions ?? []).includes(kind);
-export function waiverFor(state, id, subject, applicability = null) {
+export function waiverFor(state, id, subject, applicability = null, risk = null, result = null) {
   const applies = item => item.subject === subject || (applicability && item.applicability === applicability);
   const amendment = state.decisions.some(item => item.kind === 'policy-amend' && applies(item) && item.gates.includes(id));
   if (!gate(id).waivable && !amendment) return null;
-  return state.decisions.findLast(item => decisionHas(item, 'waive') && applies(item) && item.gates.includes(id)) ?? null;
+  return state.decisions.findLast(item => decisionHas(item, 'waive') && applies(item) && item.gates.includes(id)
+    && risk !== null && item.risks?.[id] === risk
+    && (!item.findings || result?.outcome === 'FAIL' && result.findings?.some(finding => finding.blocking)
+      && result.findings.filter(finding => finding.blocking).every(finding => item.findings.includes(finding.id)))) ?? null;
 }
 const actions = Object.freeze({
   implementation: { mode: 'adapter-only', entry: 'human.decide / milestone.pass', checkedBy: 'current-core.test.js: implementation authorization and changed commitments' },
   acceptance: { mode: 'adapter-only', entry: 'milestone.pass', checkedBy: 'current-core.test.js: missing proof and scoped exceptions' },
   merge: { mode: 'adapter-only', entry: 'merge.execute', checkedBy: 'current-core.test.js: exact action, branch direction, drift and reclose' },
   completion: { mode: 'adapter-only', entry: 'milestone.pass', checkedBy: 'current-core.test.js: integration, release and retention' },
-  directPullRequestMerge: { mode: 'hook-deny-and-route', entry: 'PreToolUse direct gh pr merge', checkedBy: 'current-hook.test.js', limit: 'Recognized direct shell forms only; use the protected merge adapter for actual execution' },
+  directPullRequestMerge: { mode: 'configured-hook-unverified-host', handlerBehavior: 'deny-and-route', entry: 'PreToolUse direct gh pr merge', checkedBy: 'current-hook.test.js', limit: 'Handler and manifest subprocess tests only; native-host activation and actual interception are unverified. Recognized direct shell forms only; use the protected merge adapter for actual execution' },
   arbitraryShell: { mode: 'cooperative', interception: 'not-configured', reason: 'Indirect scripts, alternate clients and external commands are outside this hook coverage.' },
 });
 export const ENFORCEMENT = Object.freeze({

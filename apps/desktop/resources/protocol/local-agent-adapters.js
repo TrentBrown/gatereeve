@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { sha256Digest } from './agent-workflow.js';
+import { sha256Digest, AGENT_WORKFLOW_PROTOCOL_VERSION } from './agent-workflow.js';
 import { ContractError } from './errors.js';
 
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
@@ -213,6 +213,10 @@ export function createCodexAgentAdapter({
   return Object.freeze({
     async describe() { return structuredClone(details); },
     async runStage(request) {
+      if (request.protocolVersion !== AGENT_WORKFLOW_PROTOCOL_VERSION || request.policy?.repositoryAccess !== 'read-only'
+          || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
+        throw new ContractError('Evaluator request must use the current receipt and isolation contract');
+      }
       const scratch = await mkdtemp(join(tmpdir(), 'gatereeve-codex-stage-'));
       try {
         const schemaPath = join(scratch, 'output.schema.json');
@@ -236,6 +240,7 @@ export function createCodexAgentAdapter({
         const output = parseObject(await readFile(outputPath, 'utf8'), 'Codex structured output');
         const contextId = parseCodexContextId(processResult.stdout);
         return {
+          schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed',
           output,
           receipt: receiptFor(request, details, output, contextId, 'codex-ephemeral-exec', processResult,
             providerMetrics(jsonLines(processResult.stdout).filter(event => event.type === 'turn.completed').map(event => event.usage))),
@@ -262,6 +267,10 @@ export function createClaudeCodeAgentAdapter({
   return Object.freeze({
     async describe() { return structuredClone(details); },
     async runStage(request) {
+      if (request.protocolVersion !== AGENT_WORKFLOW_PROTOCOL_VERSION || request.policy?.repositoryAccess !== 'read-only'
+          || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
+        throw new ContractError('Evaluator request must use the current receipt and isolation contract');
+      }
       const agentName = 'gatereeve-stage';
       const agents = {
         [agentName]: {
@@ -290,6 +299,7 @@ export function createClaudeCodeAgentAdapter({
         throw new ContractError('Claude Code did not report a fresh context ID');
       }
       return {
+        schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed',
         output: parsed.output,
         receipt: receiptFor(
           request, details, parsed.output, parsed.contextId, 'claude-custom-agent', processResult, parsed.metrics

@@ -1,0 +1,31 @@
+✔ quality exceptions retain facts and never authorize merge or waive integrity (653.067083ms)
+✔ quality exception survives bookkeeping-equivalent commits but not changed source (938.842625ms)
+✖ waiver with acceptance retains pending human instruction before failed continuation (8739.3555ms)
+✔ unrecorded copied PASS cannot supply verification or delta ancestry (810.84275ms)
+✔ reserved history with Git mode 100755 fails capture without leaking or hiding source (462.743875ms)
+✔ reserved history with Git mode 120000 fails capture without leaking or hiding source (487.555375ms)
+✔ finding-scoped exceptions cannot absorb other findings and runner exceptions expire on changed risk (1754.354708ms)
+✔ lost failed-spec evidence stays visible after correction and blocks retention until restored (953.733ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 7
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14879.66325
+
+✖ failing tests:
+
+test at cli/test/current-core.test.js:1101:1
+✖ waiver with acceptance retains pending human instruction before failed continuation (8739.3555ms)
+  Error [ContractError]: Pending instruction changed; observe a new instruction for changed commitments
+      at requireThat (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/contracts.js:11:25)
+      at CurrentCore.pendingDecision (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/core.js:124:7)
+      at CurrentCore.decide (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/core.js:192:26)
+      at async TestContext.<anonymous> (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/current-core.test.js:1111:18)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    code: 'CONTRACT_INVALID',
+    details: null
+  }
