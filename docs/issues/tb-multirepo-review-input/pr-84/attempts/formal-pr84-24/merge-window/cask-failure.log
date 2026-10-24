@@ -1,0 +1,76 @@
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	﻿2026-10-24T18:03:12.2873160Z ##[group]Run actions/download-artifact@v8
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2873840Z with:
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2878840Z   github-token: ***
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2879320Z   repository: TrentBrown/gatereeve
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2879840Z   run-id: 33541222023
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2880410Z   name: gatereeve-v0.1.0-rc.8-linked-homebrew-cask-result
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2881150Z   path: /Users/runner/work/_temp/homebrew-cask
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2881760Z   merge-multiple: false
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2882230Z   skip-decompress: false
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2882740Z   digest-mismatch: error
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2883180Z env:
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2883580Z   CASK_PUBLICATION_RUN_ID: 33541222023
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2884640Z   RELEASE_TAG: v0.1.0-rc.8
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2889400Z   GH_TOKEN: ***
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.2889800Z ##[endgroup]
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.6378370Z Downloading single artifact
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:12.9207700Z ##[error]Unable to download artifact(s): Artifact not found for name: gatereeve-v0.1.0-rc.8-linked-homebrew-cask-result
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	        Please ensure that your artifact is not expired and the artifact was uploaded using a compatible version of toolkit/upload-artifact.
+Cask install and upgrade (x64)	Download the exact published linked Cask packet	        For more information, visit the GitHub Artifacts FAQ: https://github.com/actions/toolkit/blob/main/packages/artifact/docs/faq.md
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	﻿2026-10-24T18:03:11.4467740Z ##[group]Run actions/download-artifact@v8
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4468060Z with:
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4470290Z   github-token: ***
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4470500Z   repository: TrentBrown/gatereeve
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4470730Z   run-id: 33541222023
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4470960Z   name: gatereeve-v0.1.0-rc.8-linked-homebrew-cask-result
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4471270Z   path: /Users/runner/work/_temp/homebrew-cask
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4471510Z   merge-multiple: false
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4471710Z   skip-decompress: false
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4471900Z   digest-mismatch: error
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4472070Z env:
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4472230Z   CASK_PUBLICATION_RUN_ID: 33541222023
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4472450Z   RELEASE_TAG: v0.1.0-rc.8
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4474460Z   GH_TOKEN: ***
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.4474630Z ##[endgroup]
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.5676400Z Downloading single artifact
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:11.8537750Z ##[error]Unable to download artifact(s): Artifact not found for name: gatereeve-v0.1.0-rc.8-linked-homebrew-cask-result
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	        Please ensure that your artifact is not expired and the artifact was uploaded using a compatible version of toolkit/upload-artifact.
+Cask install and upgrade (arm64)	Download the exact published linked Cask packet	        For more information, visit the GitHub Artifacts FAQ: https://github.com/actions/toolkit/blob/main/packages/artifact/docs/faq.md
+Public Cask install (arm64)	Download the exact published linked Cask packet	﻿2026-10-24T18:03:13.3589180Z ##[group]Run actions/download-artifact@v8
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3589610Z with:
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3591880Z   github-token: ***
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3592140Z   repository: TrentBrown/gatereeve
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3592370Z   run-id: 33541222023
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3592620Z   name: gatereeve-v0.1.0-rc.8-linked-homebrew-cask-result
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3592990Z   path: /Users/runner/work/_temp/homebrew-cask
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3593290Z   merge-multiple: false
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3593500Z   skip-decompress: false
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3593700Z   digest-mismatch: error
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3593870Z env:
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3594040Z   CASK_PUBLICATION_RUN_ID: 33541222023
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3594250Z   RELEASE_TAG: v0.1.0-rc.8
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3596100Z   GH_TOKEN: ***
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3596280Z ##[endgroup]
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.5229630Z Downloading single artifact
+Public Cask install (arm64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.8666390Z ##[error]Unable to download artifact(s): Artifact not found for name: gatereeve-v0.1.0-rc.8-linked-homebrew-cask-result
+Public Cask install (arm64)	Download the exact published linked Cask packet	        Please ensure that your artifact is not expired and the artifact was uploaded using a compatible version of toolkit/upload-artifact.
+Public Cask install (arm64)	Download the exact published linked Cask packet	        For more information, visit the GitHub Artifacts FAQ: https://github.com/actions/toolkit/blob/main/packages/artifact/docs/faq.md
+Public Cask install (x64)	Download the exact published linked Cask packet	﻿2026-10-24T18:03:13.3834770Z ##[group]Run actions/download-artifact@v8
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3835430Z with:
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3840610Z   github-token: ***
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3841050Z   repository: TrentBrown/gatereeve
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3841540Z   run-id: 33541222023
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3842090Z   name: gatereeve-v0.1.0-rc.8-linked-homebrew-cask-result
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3842820Z   path: /Users/runner/work/_temp/homebrew-cask
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3843390Z   merge-multiple: false
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3843840Z   skip-decompress: false
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3844280Z   digest-mismatch: error
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3844710Z env:
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3845080Z   CASK_PUBLICATION_RUN_ID: 33541222023
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3845610Z   RELEASE_TAG: v0.1.0-rc.8
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3850730Z   GH_TOKEN: ***
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.3851110Z ##[endgroup]
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.5756700Z Downloading single artifact
+Public Cask install (x64)	Download the exact published linked Cask packet	2026-10-24T18:03:13.8157850Z ##[error]Unable to download artifact(s): Artifact not found for name: gatereeve-v0.1.0-rc.8-linked-homebrew-cask-result
+Public Cask install (x64)	Download the exact published linked Cask packet	        Please ensure that your artifact is not expired and the artifact was uploaded using a compatible version of toolkit/upload-artifact.
+Public Cask install (x64)	Download the exact published linked Cask packet	        For more information, visit the GitHub Artifacts FAQ: https://github.com/actions/toolkit/blob/main/packages/artifact/docs/faq.md

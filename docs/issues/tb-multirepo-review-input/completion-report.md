@@ -66,3 +66,7 @@ These checks do not establish hosted CI on this exact pin, an actual hosted merg
 The [review packet](pr-84/boundary.json) and [interactive explanation](pr-84/attempts/formal-pr84-24/explain-diff.html) support human review. Implementing scoped merge authorization does not itself grant permission to merge PR84. Actual integration, finalization and completion observations remain required after authorized merge. No installed update or release was performed. This feature retains its evidence in Git as a local choice; parent-folder Git remains optional for users.
 
 Deterministic feature_final retention status: **tracked**; no retention decision required. The [retention observation](pr-84/attempts/formal-pr84-24/retention-current.json) records its exact evidence head.
+
+## Authorized merge attempt
+
+Human approval is recorded. The [merge window](pr-84/attempts/formal-pr84-24/merge-window/status.md) was reclosed without merging: four unchanged Cask checks reference a missing historical publication artifact. A narrow exception is pending; current Linux acceptance checks continue. No CI failure was waived or relabeled.
