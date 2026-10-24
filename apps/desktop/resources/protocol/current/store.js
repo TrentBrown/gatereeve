@@ -162,14 +162,14 @@ export class CurrentStore {
     while (true) {
       const bytes = copy.bytes, hash = digest(bytes), value = JSON.parse(bytes.toString());
       requireThat(!seen.has(hash), 'Cyclic active reference'); seen.add(hash);
-      identifier(value.runId, 'active run');
-      if (previous) {
-        requireThat(value.previous?.hash === previous.hash, 'Invalid activation successor');
-        await this.get(value.previous);
-      }
       // Unsupported activation records remain opaque provenance for explicit
       // resume. Only the current contract can confer active-run authority.
       if (value.contract === CONTRACT) {
+        identifier(value.runId, 'active run');
+        if (previous) {
+          requireThat(value.previous?.hash === previous.hash, 'Invalid activation successor');
+          await this.get(value.previous);
+        }
         requireThat(repair || copy.primary && copy.witness, 'Missing activation copy; retry a mutating operation to restore retained exact bytes');
         if (!copy.primary || !copy.witness) repairs.push(copy);
       }

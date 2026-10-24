@@ -9,7 +9,7 @@ import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { CONTRACT, canonical, identity, requireThat, gate, text } from './contracts.js';
 import { localPath } from './store.js';
-import { checkCandidate, contentIdentity, git, assertClean } from './evidence.js';
+import { assertSourceIsolation, checkCandidate, contentIdentity, git, assertClean } from './evidence.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
 import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
@@ -70,6 +70,7 @@ async function sourceMetadata(root, candidate) {
 async function reviewerView(store, candidate, references, packet) {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-current-review-'));
   try {
+    assertSourceIsolation(candidate, store.home);
     await sourceMetadata(root, candidate);
     for (const repo of candidate.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) for (const file of files) {
       const path = join(root, kind, repo.alias, localPath(file.path));
@@ -87,6 +88,7 @@ async function reviewerView(store, candidate, references, packet) {
       const report = await store.json(ref);
       if (report.input) {
         const previous = await store.json((await store.json(report.input)).candidate);
+        assertSourceIsolation(previous, store.home);
         requireThat(previous.repositories.every(repo => candidate.repositories.some(selected => identity(selected.identity) === identity(repo.identity))), 'Referenced evidence includes unselected repositories');
         await sourceMetadata(join(root, 'prior', ref.hash.slice(7)), previous);
         for (const repo of previous.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) for (const file of files) {

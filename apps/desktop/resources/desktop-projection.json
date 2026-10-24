@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:1cdb8c20b7ae31a0e61e08fe18f219a22a39895b4af466ecd6b513393b42e083",
+  "protocolHash": "sha256:8b5964cfeeec77b3601d02c53b40d1a2adca61e0408500ec6a3693fb7798143f",
   "contract": "gatereeve/current/3",
   "contractSha256": "0c8e3e32c769fb2cd7ccd778bfc72238b02b93f42684412d1ef7f30fa8804c04",
   "files": [
@@ -27,8 +27,8 @@
     },
     {
       "path": "current/adapter.js",
-      "size": 6816,
-      "sha256": "7930dfac84908caccdd2308e1c0a04713308f75a085b1128649e5d9aa921ff1b"
+      "size": 6836,
+      "sha256": "507263e8ca0938e0a78454095a26543a69039ac6812190ce236af6f0e99f7278"
     },
     {
       "path": "current/contracts.js",
@@ -37,8 +37,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 44346,
-      "sha256": "10f01fdd897d805dbef63a9d31f401b131076cff4bdfb29806c242ca05c89256"
+      "size": 44549,
+      "sha256": "175385800d797860d3efbcd426e89e68a95b8738262bd7286a55977917702c00"
     },
     {
       "path": "current/environment.js",
@@ -47,13 +47,13 @@
     },
     {
       "path": "current/evidence.js",
-      "size": 14145,
-      "sha256": "cdf8207e5c849618eb5f93ecfed68a11e394680691989b7cac9946aa6f885495"
+      "size": 15041,
+      "sha256": "c673d2b58e9757586b490f673f3c27bcc2bc92c28375d1b12a7330c8d1da3162"
     },
     {
       "path": "current/execution.js",
-      "size": 49608,
-      "sha256": "916ee5da8ab999a99d237679b73d2d123308b1e06d258ccde5b7d9011bfefe2e"
+      "size": 49734,
+      "sha256": "5ad3441ce7514cf593f7c558bc86b5acbeb37081df72daf98a5c684b84f51124"
     },
     {
       "path": "current/observation.js",
@@ -72,8 +72,8 @@
     },
     {
       "path": "current/store.js",
-      "size": 15395,
-      "sha256": "cf66248a29e53ce01c89eb00e53fb8edbefea69b0ba8f8124819a50d5f269e18"
+      "size": 15405,
+      "sha256": "86876d8462cbabfbc53784a9bff03836ed2795cc0a1d2f184f24cc6008bc077a"
     },
     {
       "path": "errors.js",

@@ -1936,11 +1936,11 @@ test('source admission rejects configured subdirectories and accepts linked work
   assert.deepEqual(changedPaths(pin, next), ['app/app.js']);
 });
 
-for (const copies of ['primary', 'witness', 'matching', 'conflicting']) test(`public resume preserves unsupported ${copies} activation records`, async t => {
+for (const shape of ['current-field', 'renamed-field', 'invalid-current-field']) for (const copies of ['primary', 'witness', 'matching', 'conflicting']) test(`public resume preserves unsupported ${copies} activation records with ${shape}`, async t => {
   const f = await fixture(t); await authorize(f);
   await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app', integrationBranch: 'main', featureBaseSha: f.head } } }));
   const primary = join(f.home, '.gatereeve-current/active.json'), witness = join(f.home, '.gatereeve-current/active-witness.json');
-  const bytes = JSON.stringify({ contract: 'unsupported/v0', runId: 'run-one' });
+  const bytes = JSON.stringify({ contract: 'unsupported/v0', ...(shape === 'current-field' ? { runId: 'run-one' } : shape === 'renamed-field' ? { activeRun: 'legacy-run' } : { runId: { legacy: 'different schema' } }) });
   await writeFile(primary, bytes); await writeFile(witness, copies === 'conflicting' ? bytes+' ' : bytes);
   if (copies === 'primary') await rm(witness);
   if (copies === 'witness') await rm(primary);
@@ -2024,4 +2024,131 @@ test('review context keeps an R1 failure after an unrelated R2 assessment', asyn
   const packet = await f.core.store.json((await f.core.store.json(review.event.payload.results[0])).input);
   assert.ok(packet.history.some(ref => ref.hash === failure.event.payload.results[0].hash));
   assert.ok(!packet.history.some(ref => ref.hash === other.event.payload.results[0].hash));
+});
+
+
+test('root session history is absent from current, base, target and prior grouped reviewer views', async t => {
+  const f = await fixture(t); await authorize(f);
+  const history = ['CHECKPOINT.md', '.checkpoints/CHECKPOINT-2026-10-23T1200.md', '.handoffs/HANDOFF-reviewer-2026-10-23T1200.md'];
+  await mkdir(join(f.repo, '.checkpoints')); await mkdir(join(f.repo, '.handoffs'));
+  for (const path of history) await writeFile(join(f.repo, path), 'RAW IMPLEMENTATION CONVERSATION');
+  // Untracked known session records neither block ordinary work nor enter source.
+  await candidate(f);
+  await git(f.repo, ['add', '-f', ...history]); await git(f.repo, ['commit', '-m', 'retained session context']);
+  const retained = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  const prepare = (head, id) => f.request('candidate.prepare', { repositories: [{ alias: 'app', base: retained, head, target: retained }], scope: 'SLICE', criteria: ['R1'] }, id);
+  await prepare(retained, 'session-source'); await runVerification(f); fakeEvaluator(f);
+  const original = f.core.runtime.evaluator.runStage;
+  f.core.runtime.evaluator.runStage = async request => {
+    const paths = await readdir(request.repositoryPath, { recursive: true });
+    assert.ok(!paths.some(path => /CHECKPOINT|HANDOFF/u.test(path)), paths.join('\n'));
+    assert.ok(paths.includes('repositories/app/app.js'));
+    return original(request);
+  };
+  const first = await f.request('gate.execute', { gates: ['code', 'spec'], configuration: { provider: 'codex', model: 'fixture' } }, 'grouped-no-session-history');
+  const prior = first.event.payload.results[0];
+  for (const path of history) await rm(join(f.repo, path));
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 42; // changed interaction\n');
+  await git(f.repo, ['add', '-A']); await git(f.repo, ['commit', '-m', 'remove session records and revise source']);
+  await prepare((await git(f.repo, ['rev-parse', 'HEAD'])).trim(), 'removed-session-source');
+  const result = await f.request('gate.execute', { gates: ['code'], prior, configuration: { provider: 'codex', model: 'fixture' } }, 'prior-without-session-history');
+  assert.equal((await f.core.store.json(result.event.payload.results[0])).outcome, 'PASS');
+  // Directory names alone must not hide configuration/application source.
+  await writeFile(join(f.repo, '.handoffs/config.json'), '{"enabled":true}');
+  await git(f.repo, ['add', '-f', '.handoffs/config.json']);
+  await assert.rejects(f.request('candidate.ready'), /dirty/);
+});
+
+for (const mode of ['100755', '120000', '160000']) test(`root session history with Git mode ${mode} cannot hide application source`, async t => {
+  const f = await fixture(t); await authorize(f);
+  if (mode === '160000') { await mkdir(join(f.repo, 'CHECKPOINT.md')); await git(f.repo, ['update-index', '--add', '--cacheinfo', `160000,${f.head},CHECKPOINT.md`]); }
+  else {
+    if (mode === '120000') await symlink('app.js', join(f.repo, 'CHECKPOINT.md'));
+    else { await writeFile(join(f.repo, 'CHECKPOINT.md'), 'executable source'); await chmod(join(f.repo, 'CHECKPOINT.md'), 0o755); }
+    await git(f.repo, ['add', '-f', 'CHECKPOINT.md']);
+  }
+  await git(f.repo, ['commit', '-m', 'unsafe session record']);
+  const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await assert.rejects(f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head }], scope: 'FEATURE', criteria: ['R1'] }), /Lifecycle records/);
+});
+
+
+test('retained session-contaminated proof becomes context only and never exports prior source', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
+  const configuration = { provider: 'codex', model: 'fixture' };
+  const first = await f.request('gate.execute', { gates: ['code'], configuration }, 'clean-seed');
+  const report = await f.core.store.json(first.event.payload.results[0]);
+  const input = await f.core.store.json(report.input), original = await f.core.store.json(input.candidate);
+  const unsafe = structuredClone(original);
+  const secret = await f.core.store.put('RAW IMPLEMENTATION CONVERSATION');
+  unsafe.repositories[0].baseFiles.push({ path: 'CHECKPOINT.md', mode: '100644', ...secret });
+  const oldCandidate = await f.core.store.putJson(unsafe);
+  // Retain a structurally complete historical service record to represent source
+  // captured before session-path isolation. It is fixture history, never current proof.
+  const oldInput = await f.core.store.putJson({ ...input, candidate: oldCandidate });
+  const jobId = 'prior-isolation-policy', operation = { id: jobId, hash: identity({ jobId }) };
+  const receipt = await f.core.store.putJson({ ...await f.core.store.json(report.receipt), jobId, input: oldInput.hash });
+  const oldResult = await f.core.store.putJson({ ...report, input: oldInput, receipt });
+  let state = (await f.core.state()).state;
+  await f.core.append(state, 'JOB_STARTED', { jobId, input: oldInput, gates: ['code'], role: 'independent', operation }, { id: 'start-old-policy', hash: identity({ jobId }) });
+  await f.core.store.saveJob(jobId, { runId: state.runId, operation, results: [oldResult] });
+  state = (await f.core.state()).state;
+  await f.core.append(state, 'JOB_FINISHED', { jobId, results: [oldResult] }, operation);
+  state = (await f.core.state()).state;
+  const { checkCandidate } = await import('../../plugin-src/shared/resources/protocol/current/evidence.js');
+  await assert.rejects(checkCandidate(f.core.store, f.context, oldCandidate, { live: false }), /reserved workflow history/);
+  assert.ok((await f.core.historyGaps(state)).some(gap => gap.resultHash === oldResult.hash));
+  await assert.rejects(f.request('gate.execute', { gates: ['code'], prior: oldResult, configuration }, 'unsafe-prior'), /reserved workflow history/);
+  const originalRun = f.core.runtime.evaluator.runStage;
+  f.core.runtime.evaluator.runStage = async request => {
+    const paths = await readdir(request.repositoryPath, { recursive: true });
+    assert.ok(!paths.some(path => /CHECKPOINT/u.test(path)));
+    for (const path of paths.filter(path => path.startsWith('evidence/'))) {
+      const bytes = await readFile(join(request.repositoryPath, path), 'utf8');
+      assert.ok(!bytes.includes('RAW IMPLEMENTATION CONVERSATION'));
+    }
+    return originalRun(request);
+  };
+  const fresh = await f.request('gate.execute', { gates: ['code'], configuration }, 'fresh-isolated-review');
+  const result = await f.core.store.json(fresh.event.payload.results[0]); assert.equal(result.outcome, 'PASS');
+  const packet = await f.core.store.json(result.input);
+  assert.ok(packet.historyGaps.some(gap => gap.resultHash === oldResult.hash));
+  assert.ok((await Promise.all(packet.history.map(ref => f.core.store.json(ref)))).some(item => item.originalResultHash === oldResult.hash && item.evidenceUnavailable));
+  assert.equal((await f.core.currentResult(fresh.event.payload.results[0], original, (await f.core.state()).state)).outcome, 'PASS');
+  assert.equal((await f.core.store.get(secret)).toString(), 'RAW IMPLEMENTATION CONVERSATION');
+});
+
+for (const current of [false, true]) test(`activation successor schema validation applies only to current contract ${current}`, async t => {
+  const f = await fixture(t); await authorize(f);
+  const previous = await f.core.store.activationHead();
+  const bytes = JSON.stringify({ contract: current ? 'gatereeve/current/3' : 'unsupported/v9', runId: 'unknown-shape', ancestor: 'opaque' });
+  for (const dir of ['activations', 'activation-witnesses']) {
+    await mkdir(join(f.home, '.gatereeve-current', dir), { recursive: true });
+    await writeFile(join(f.home, '.gatereeve-current', dir, previous.hash.slice(7)+'.json'), bytes);
+  }
+  if (current) await assert.rejects(f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'successor-resume'), /Invalid activation successor/);
+  else {
+    await f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'successor-resume');
+    assert.equal((await f.request('status')).phase, 'DESIGNING');
+    assert.equal(await readFile(join(f.home, '.gatereeve-current/activations', previous.hash.slice(7)+'.json'), 'utf8'), bytes);
+    assert.equal((await f.core.check('implementation')).allowed, false);
+  }
+});
+
+
+for (const path of ['checkpoint.md', '.CHECKPOINTS/checkpoint-2026-10-23.md', '.HANDOFFS/handoff-reviewer-2026-10-23.MD']) test(`session record case alias stays isolated: ${path}`, async t => {
+  const f = await fixture(t); await authorize(f);
+  const { dirname } = await import('node:path');
+  await mkdir(dirname(join(f.repo, path)), { recursive: true });
+  await writeFile(join(f.repo, path), 'SESSION CONTEXT FROM CASE ALIAS');
+  await git(f.repo, ['add', '-f', path]); await git(f.repo, ['commit', '-m', 'tracked case alias']);
+  const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: head, head, target: head }], scope: 'SLICE', criteria: ['R1'] }, 'case-alias');
+  fakeEvaluator(f); const original = f.core.runtime.evaluator.runStage;
+  f.core.runtime.evaluator.runStage = async request => {
+    for (const prefix of ['repositories', 'base', 'target']) assert.deepEqual(await readdir(join(request.repositoryPath, prefix, 'app'), { recursive: true }), ['app.js']);
+    return original(request);
+  };
+  const completed = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } }, 'case-alias-review');
+  assert.equal((await f.core.store.json(completed.event.payload.results[0])).outcome, 'PASS');
 });

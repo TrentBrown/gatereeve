@@ -263,3 +263,16 @@ failure alone cannot. Another gate's finding remains that gate's obligation.
 Relevant history that spans unselected repositories requires a matching declared
 scope before export. Matching unsupported activation copies, or either surviving
 copy, remain opaque resume provenance; differing copies remain a conflict.
+
+Root CHECKPOINT.md and the documented direct-child .checkpoints/CHECKPOINT-*.md
+and .handoffs/HANDOFF-*.md session records (including case aliases) are excluded at every source endpoint.
+Arbitrary files in those directories remain source; reserved nonregular or executable
+entries reject. Retained candidates are rechecked against this isolation policy.
+Prior reports with incompatible source become labeled context only, without exporting
+that source or qualifying as delta/current proof. Fresh full review can replace their
+current role; original bytes stay retained locally.
+
+Unsupported activation records use their exact bytes as opaque provenance, including
+root/successor records with different fields. Current runId and previous-reference
+schema checks apply only to current-contract records. Conflicting mirrors still block;
+explicit resume preserves historical bytes and grants no inherited approval.

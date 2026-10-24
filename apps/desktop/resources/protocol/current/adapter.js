@@ -34,7 +34,7 @@ async function documents(context) {
       const bytes = await readSafe(context.featureHome, name);
       ref = { bytes: bytes.length, hash: digest(bytes) };
     } catch (error) { if (error.code !== 'ENOENT') unsafe = true; }
-    artifacts.push({ id: name, kind: 'document', label: name.replace('.md', ''), path: name,
+    artifacts.push({ id: name, kind: 'document', format: 'markdown', label: name.replace('.md', ''), path: name,
       absolutePath: join(context.featureHome, name), exists: Boolean(ref), unsafe,
       status: unsafe ? 'unavailable' : ref ? 'available' : 'missing', fingerprint: ref?.hash ?? null });
   }

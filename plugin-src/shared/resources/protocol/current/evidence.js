@@ -23,6 +23,8 @@ function artifactArea(local) {
 }
 export function excluded(path, featureRelative, bytes) {
   if (path === '.agentic-workflow.json') return true;
+  if (/^CHECKPOINT\.md$/iu.test(path) || /^\.checkpoints\/CHECKPOINT-[^/]+\.md$/iu.test(path)
+      || /^\.handoffs\/HANDOFF-[^/]+\.md$/iu.test(path)) return true;
   const local = recordLocal(path, featureRelative);
   if (!local) return false;
   // Reserved records are separate from application inputs. A directory label
@@ -178,9 +180,21 @@ export function contentIdentity(candidate) {
     requirements: candidate.requirements,
     repositories: [...candidate.repositories].sort((a, b) => a.alias.localeCompare(b.alias)).map(repo => ({ identity: repo.identity, alias: repo.alias, baseFiles: repo.baseFiles, files: repo.files, targetFiles: repo.targetFiles })) });
 }
+// Retained candidates must satisfy today's source-isolation policy too. This
+// path-only guard also protects history export without reinterpreting its proof.
+export function assertSourceIsolation(candidate, featureHome) {
+  for (const repo of candidate.repositories) {
+    const local = relative(repo.identity.path, featureHome).split(sep).join('/');
+    const featureRelative = local.split('/')[0] !== '..' && !isAbsolute(local) ? local : null;
+    for (const file of [...repo.baseFiles, ...repo.files, ...repo.targetFiles]) {
+      requireThat(!excluded(file.path, featureRelative), 'Retained source includes reserved workflow history; prepare fresh isolated proof');
+    }
+  }
+}
 export async function checkCandidate(store, context, ref, { live = true } = {}) {
   const candidate = await store.json(ref);
   requireThat(candidate.contract === CONTRACT && candidate.kind === 'candidate' && candidate.featureId === context.featureId, 'Candidate belongs to another contract or feature');
+  assertSourceIsolation(candidate, store.home);
   for (const doc of Object.values(candidate.requirements)) {
     if (live) await store.currentBytes(doc); else await store.get(doc);
   }

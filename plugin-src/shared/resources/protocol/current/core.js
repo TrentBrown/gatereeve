@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, requireThat, identity,
   identifier, text, decision, gate, authority, decisionHas, waiverFor } from './contracts.js';
 import { CurrentStore } from './store.js';
-import { requirements, sourceCandidate, checkCandidate, contentIdentity } from './evidence.js';
+import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, contentIdentity } from './evidence.js';
 import { runTrustedPythonGuard, assertTrustedPythonProof, trustedPythonBinding } from '../python-guards.js';
 import { executeGates, reviewContract } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
@@ -531,11 +531,15 @@ export class CurrentCore {
   async historyGaps(state) {
     const gaps = [];
     for (const [position, ref] of state.results.entries()) {
-      try { await this.store.closure(ref); await this.recordedResult(ref, state); }
+      try {
+        await this.store.closure(ref);
+        const { result } = await this.recordedResult(ref, state);
+        assertSourceIsolation(await this.store.json((await this.store.json(result.input)).candidate), this.store.home);
+      }
       catch {
         let gate = null;
         try { gate = (await this.store.json(ref)).gate ?? null; } catch { /* Unknown gate affects all prior proof. */ }
-        gaps.push({ resultHash: ref.hash, gate, position, reason: 'Historical evidence is unavailable or corrupt; fresh proof after this loss is required.' });
+        gaps.push({ resultHash: ref.hash, gate, position, reason: 'Historical evidence is unavailable, corrupt or no longer isolated; fresh proof after this gap is required.' });
       }
     }
     for (const failure of state.validationFailures) {

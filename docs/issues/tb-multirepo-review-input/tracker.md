@@ -91,3 +91,8 @@ Source inspection found late failed spec validation could revoke replacement-run
 ### Formal PR84 attempt 10
 
 Independent code/spec passed; the separate native OpenAI Judge returned FAIL (12 PASS / 9 FAIL) on 257b22e. Original reports remain under pr-84/attempts/formal-pr84-10. Independent follow-up reproduced incomplete repository-root capture, omitted criterion/coverage/cross-gate history, and unsupported matching-copy resume rejection, plus adjacent stale-proof reuse paths. The governing core returned the slice to implementation. [Tenth repair claims](verification/formal-pr84-remediation-10.md) and independent probes describe the repairs; final formal passage remains pending.
+
+
+### Formal PR84 attempt 11
+
+Independent code/spec passed all21 rubric rows; native OpenAI Judge returned FAIL (16 PASS/5 FAIL) on9fa285e. Original reports remain underpr-84/attempts/formal-pr84-11. Independent probes reproduced root session-context export, unsupported root/successor schema rejection and the nonblocking desktop Markdown regression. The installed core returned the slice to implementation. [Eleventh repair claims](verification/formal-pr84-remediation-11.md) describe source/history isolation, opaque resume and shared artifact metadata repairs. Formal passage remains pending.

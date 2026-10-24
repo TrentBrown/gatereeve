@@ -1,6 +1,6 @@
 import { currentFixture } from '../../../cli/test/helpers/current-fixture.js';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
@@ -26,6 +26,7 @@ test('renderer consumes a canonical current feature without mutating either jour
   const fixture = await currentFixture(t);
   const repositoryRoot = fixture.repo;
   const featureHome = fixture.home;
+  await writeFile(resolve(featureHome, 'design.md'), '# Design\n\n[Read specification](spec.md)\n');
   await fixture.request('run.start', { implementers: ['fixture'] }, 'start');
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const journalPath = resolve(featureHome, 'events.jsonl');
@@ -120,6 +121,14 @@ test('renderer consumes a canonical current feature without mutating either jour
   assert.equal(window.document.querySelector('#slices-surface').hidden, true);
   assert.match(window.document.querySelector('#module-settings-list').textContent, /Independent compliance judgment/);
   assert.equal(window.document.querySelectorAll('[data-artifact-id]').length, snapshot.artifacts.length);
+
+  window.document.querySelector('[data-artifact-id="design.md"]').click();
+  await waitFor(() => window.document.querySelector('#artifact-viewer h1')?.textContent === 'Design', 'rendered current Markdown');
+  assert.ok(window.document.querySelector('[title="Show Markdown source"]'));
+  const specLink = [...window.document.querySelectorAll('#artifact-viewer a')].find(link => link.textContent === 'Read specification');
+  assert.ok(specLink, 'Canonical Markdown retains navigable artifact links');
+  specLink.click();
+  await waitFor(() => window.document.querySelector('#artifact-viewer h1')?.textContent === 'Spec', 'linked current specification');
 
   window.document.querySelector('[data-view="history"]').click();
   await waitFor(
