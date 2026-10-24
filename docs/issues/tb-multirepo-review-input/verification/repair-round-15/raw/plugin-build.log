@@ -4,7 +4,7 @@
   "sourceRoot": "/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src",
   "distRoot": "/tmp/gr-repair15-plugins",
   "version": "0.1.0",
-  "sourceCommit": "a334b15f4e288c5df1b52d3f17168ae20ce35ee0",
+  "sourceCommit": "6187bc6b8d73388dfab69da56c9ea7521e1deaf6",
   "sourceTag": null,
   "plugins": [
     {

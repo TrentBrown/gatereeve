@@ -101,7 +101,7 @@
             "result": {
               "bytes": 853,
               "format": "json",
-              "hash": "sha256:332b5cb617bc3d82f8affdef2a3bca9add50e26efe94f83be887dfe178631f1f"
+              "hash": "sha256:f7f94af8fcaa9e1862d3b45fab175a7d68b5ffe8cd8d3d745320cf3651b3aa48"
             },
             "reason": "Issue/tracker lint and approved rubric/plan mappings reconciled; semantic completion remains independently assessed",
             "outcome": "PASS",
@@ -113,7 +113,7 @@
             "result": {
               "bytes": 953,
               "format": "json",
-              "hash": "sha256:e54b687bc19b43d4bd6eba8de50fe9e6b06f92f21716e8f7e9975facf68cacf0"
+              "hash": "sha256:d8368fbc1e14477e5d92743e2caef45dc581f330fc661024672fe365756d3515"
             },
             "reason": "Fixture assessment",
             "outcome": "PASS",

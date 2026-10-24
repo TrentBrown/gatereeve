@@ -3,9 +3,9 @@
   "kind": "feature-verification",
   "payload": {
     "passed": true,
-    "sourceCommit": "0ca123a2532f7f61956938f47158ced674c5ae32",
-    "packageSha256": "08c4836583aa6a477565cc0345044c52d05811cf2b3d0f794f85ffa00a772860",
-    "archive": "/tmp/gr-repair15-package.44mPGa/application/GateReeve-darwin-universal/GateReeve.app/Contents/Resources/app.asar",
+    "sourceCommit": "6187bc6b8d73388dfab69da56c9ea7521e1deaf6",
+    "packageSha256": "ae677dffb57fde208fa61984d524547a88523647a2ef370d470a628132481b89",
+    "archive": "/tmp/gr-repair15-package.AP7NlS/application/GateReeve-darwin-universal/GateReeve.app/Contents/Resources/app.asar",
     "comparison": "All retained protocol JavaScript and trusted Python helper bytes in built Codex/Claude plugins and actual packaged application match final committed source. Build sourceCommit metadata and this explicit byte comparison bind the final committed source.",
     "fileCount": 48,
     "comparisons": [
@@ -117,17 +117,17 @@
       {
         "path": "plugin-src/shared/resources/protocol/current/environment.js",
         "kind": "desktopAsar",
-        "sha256": "99bca8647bed71ceaacede25bc3336ea76170c3341e83a38b7e64a51c615ba09"
+        "sha256": "3d0f651e95a2682d418d12a0626cc3b8edbcdc6e8cf36723b58fc6e4667ac53f"
       },
       {
         "path": "plugin-src/shared/resources/protocol/current/environment.js",
         "kind": "codex",
-        "sha256": "99bca8647bed71ceaacede25bc3336ea76170c3341e83a38b7e64a51c615ba09"
+        "sha256": "3d0f651e95a2682d418d12a0626cc3b8edbcdc6e8cf36723b58fc6e4667ac53f"
       },
       {
         "path": "plugin-src/shared/resources/protocol/current/environment.js",
         "kind": "claude",
-        "sha256": "99bca8647bed71ceaacede25bc3336ea76170c3341e83a38b7e64a51c615ba09"
+        "sha256": "3d0f651e95a2682d418d12a0626cc3b8edbcdc6e8cf36723b58fc6e4667ac53f"
       },
       {
         "path": "plugin-src/shared/resources/protocol/current/evidence.js",
