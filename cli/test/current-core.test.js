@@ -264,7 +264,7 @@ test('real local fresh evaluator produces a bound code-review receipt', { skip: 
 });
 
 
-async function reviewAll(f) {
+async function reviewAll(f, { accept = true } = {}) {
   await writeFile(join(f.home, 'scratchpad.md'), '# No pending decisions\n');
   await f.request('candidate.ready', {}, 'ready');
   const verification = await runVerification(f);
@@ -279,7 +279,7 @@ async function reviewAll(f) {
   assert.equal((await f.request('milestone.check', { name: 'acceptance' })).allowed, true);
   await f.request('milestone.pass', { name: 'acceptance' }, 'acceptance');
   const subject = (await f.request('status')).candidate.hash;
-  await f.request('human.decide', { kind: 'accept', subject, authority: human, reason: 'Reviewed exact candidate', consequences: 'Accepted for the next authorized action' }, 'accept');
+  if (accept) await f.request('human.decide', { kind: 'accept', subject, authority: human, reason: 'Reviewed exact candidate', consequences: 'Accepted for the next authorized action' }, 'accept');
   return refs;
 }
 
@@ -2304,4 +2304,182 @@ test('directory checks exclude only their trusted current evidence store', async
   assert.equal((await f.core.currentResult(ran.event.payload.results[0], selected, state)).outcome, 'PASS');
   const unrelated = join(f.repo, '.gatereeve-current'); await mkdir(unrelated); await writeFile(join(unrelated, 'input'), 'relevant external directory');
   await assert.rejects(f.core.currentResult(ran.event.payload.results[0], selected, state), /environment changed/);
+});
+
+async function standingGrant(f, { merge = false, expiresAt = null, candidateScopes = ['SLICE', 'FEATURE'] } = {}) {
+  const scope = { actions: merge ? ['accept', 'authorize-merge'] : ['accept'], candidateScopes,
+    repositories: [{ alias: 'app', headPrefix: 'topic', baseBranch: 'main', ...(merge ? { methods: ['merge'] } : {}) }], expiresAt };
+  const value = { kind: 'authorize-standing', subject: (await f.core.commitments()).subject, scope,
+    authority: { ...human, instruction: merge ? 'Finish this approved feature including merging its slice and final PRs to main.' : 'Accept this approved feature when all gates pass; do not merge.' },
+    reason: 'Unattended approved scope', consequences: merge ? 'Integrate all approved slices including the final PR; no deployment' : 'Acceptance only; no merge or deployment' };
+  return f.request('human.decide', value, 'standing-grant');
+}
+async function standingRepository(f) {
+  const bare = join(f.root, 'host.git');
+  await git(f.root, ['init', '--bare', bare]);
+  await git(f.repo, ['remote', 'add', 'origin', 'https://github.com/fixture/project.git']);
+  await git(f.repo, ['config', `url.${bare}.insteadOf`, 'https://github.com/fixture/project.git']);
+  await git(f.repo, ['push', 'origin', 'HEAD:refs/heads/main']);
+  Object.assign(f.context.repositories[0], { integrationBranch: 'main', remote: 'origin' });
+}
+
+test('standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof', async t => {
+  const f = await fixture(t); await standingRepository(f); await authorize(f);
+  const grant = await standingGrant(f);
+  const event = grant.event.hash;
+  await candidate(f);
+  await assert.rejects(f.request('authorization.apply', { grant: event }), /current PASS/);
+  await f.request('human.decide', { kind: 'waive', subject: (await f.core.state()).state.candidate.hash,
+    authority: human, reason: 'Known fixture omission', consequences: 'Unverified', gates: ['verification'] });
+  await assert.rejects(f.request('authorization.apply', { grant: event }), /current PASS/);
+  let status = await f.request('status');
+  assert.equal(status.standingAuthorizations[0].allowed, true);
+  assert.equal(status.standingAuthorizations[0].scope.expiresAt, null);
+  await f.request('run.pause', { authority: human });
+  assert.match((await f.request('status')).standingAuthorizations[0].reason, /paused/);
+  await f.request('run.continue', { authority: human });
+  assert.equal((await f.request('status')).standingAuthorizations[0].allowed, true);
+  await f.request('human.decide', { kind: 'revoke-standing', subject: event, authority: human, reason: 'Stop unattended operation', consequences: 'New authority required' }, 'revoke');
+  status = await f.request('status');
+  assert.match(status.standingAuthorizations[0].reason, /revoked/);
+  await assert.rejects(f.request('authorization.apply', { grant: event }), /revoked/);
+});
+
+test('standing scope rejects implicit deployment, unknown fields, missing expiry and changed commitments/remotes/branches', async t => {
+  const f = await fixture(t); await standingRepository(f); await authorize(f);
+  const grant = await standingGrant(f); await candidate(f);
+  const { standingScope, standingValidity } = await import('../../plugin-src/shared/resources/protocol/current/authorization.js');
+  const scope = grant.event.payload.scope;
+  for (const invalid of [{ ...scope, actions: ['accept', 'deploy'] }, { ...scope, actions: ['authorize-merge'] },
+    { ...scope, expiresAt: undefined }, { ...scope, candidateScopes: ['ALL'] }, { ...scope, unrestricted: true },
+    { ...scope, repositories: [{ ...scope.repositories[0], headPrefix: '*' }] }]) assert.throws(() => standingScope(invalid));
+  const check = async () => {
+    const { state } = await f.core.state();
+    return standingValidity(f.core, state, state.decisions.find(item => item.event === grant.event.hash), await f.core.store.json(state.candidate));
+  };
+  assert.equal((await check()).allowed, true);
+  await git(f.repo, ['checkout', '-b', 'topic-unattended-slice']);
+  assert.equal((await check()).allowed, true);
+  await git(f.repo, ['checkout', '-b', 'topicother']);
+  assert.match((await check()).reason, /branch/);
+  await git(f.repo, ['checkout', 'topic']);
+  await git(f.repo, ['remote', 'set-url', 'origin', 'https://github.com/other/project.git']);
+  assert.match((await check()).reason, /remote identity/);
+  await git(f.repo, ['remote', 'set-url', 'origin', 'https://github.com/fixture/project.git']);
+  f.context.repositories[0].keepPullRequestsClosed = true;
+  assert.match((await check()).reason, /configuration/);
+  f.context.repositories[0].keepPullRequestsClosed = false;
+  const spec = await readFile(join(f.home, 'spec.md'), 'utf8');
+  await writeFile(join(f.home, 'spec.md'), spec+'\nAmended requirement.\n');
+  assert.match((await check()).reason, /commitments/);
+  await f.request('human.decide', { kind: 'amend', subject: (await f.core.commitments()).subject,
+    previousSubject: grant.event.payload.subject, actions: ['authorize-implementation'], authority: human, reason: 'Amend', consequences: 'New scope' });
+  await writeFile(join(f.home, 'spec.md'), spec);
+  assert.match((await check()).reason, /implementation authorization/);
+});
+
+for (const mode of ['slice', 'final', 'acceptance-only', 'revoke-during-checks', 'expire-during-checks', 'revoke-during-final-qualification', 'expire-during-final-qualification']) test(`standing authority protected merge: ${mode}`, async t => {
+  const f = await fixture(t); await standingRepository(f);
+  const base = f.head;
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 42; // standing candidate\n');
+  await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'standing candidate']);
+  f.head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await git(f.repo, ['push', 'origin', 'HEAD:refs/heads/topic']);
+  await authorize(f);
+  const expiresAt = mode.startsWith('expire-') ? new Date(Date.now()+600000).toISOString() : null;
+  const grant = await standingGrant(f, { merge: mode !== 'acceptance-only', expiresAt });
+  const scope = mode === 'slice' ? 'SLICE' : 'FEATURE';
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base, head: f.head, target: base }], scope, criteria: ['R1'] });
+  let remoteState = 'OPEN'; let isDraft = true; const writes = []; let finalRead = false; let revoked = false;
+  f.core.runtime.git = async (root, args) => {
+    const result = await git(root, args);
+    if (mode === 'revoke-during-final-qualification' && finalRead && args[0] === 'ls-remote' && !revoked) {
+      revoked = true;
+      await f.request('human.decide', { kind: 'revoke-standing', subject: grant.event.hash,
+        authority: human, reason: 'Stop during final qualification', consequences: 'Wait' });
+    }
+    if (mode === 'expire-during-final-qualification' && finalRead && args[0] === 'ls-remote') {
+      const original = Date.now; Date.now = () => Date.parse(expiresAt)+1; t.after(() => { Date.now = original; });
+    }
+    return result;
+  };
+  // Actual local git remote and integration verification; only GitHub transport is simulated.
+  f.core.runtime.gh = async (root, args) => {
+    const command = args[1];
+    if (command === 'view' && writes.includes('checks')) finalRead = true;
+    if (command === 'view') return JSON.stringify({ number: 12, url: 'https://github.com/fixture/project/pull/12', state: remoteState,
+      headRefName: 'topic', baseRefName: 'main', headRefOid: f.head, baseRefOid: base, isDraft,
+      mergeCommit: remoteState === 'MERGED' ? { oid: f.head } : null });
+    writes.push(command);
+    if (command === 'ready') isDraft = args.includes('--undo');
+    if (command === 'checks' && mode === 'revoke-during-checks') await f.request('human.decide', { kind: 'revoke-standing', subject: grant.event.hash,
+      authority: human, reason: 'Stop before merge', consequences: 'Wait' });
+    if (command === 'checks' && mode === 'expire-during-checks') {
+      const original = Date.now; Date.now = () => Date.parse(expiresAt)+1; t.after(() => { Date.now = original; });
+    }
+    if (command === 'merge') { await git(root, ['push', 'origin', 'HEAD:refs/heads/main']); remoteState = 'MERGED'; }
+    return '';
+  };
+  await reviewAll(f, { accept: false });
+  const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
+  assert.equal(action.keepClosed, false); // absent config preserves default open drafts
+  const acceptance = await f.request('authorization.apply', { grant: grant.event.hash }, 'apply-acceptance');
+  assert.equal(acceptance.event.payload.standingGrant, grant.event.hash);
+  const repeat = await f.request('authorization.apply', { grant: grant.event.hash }, 'apply-acceptance');
+  assert.equal(repeat.event.hash, acceptance.event.hash);
+  assert.equal((await f.request('milestone.check', { name: 'merge' })).allowed, false);
+  if (mode === 'acceptance-only') {
+    await assert.rejects(f.request('authorization.apply', { grant: grant.event.hash, action }), /outside standing scope/);
+    await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }), /blocked/);
+    assert.deepEqual(writes, []); return;
+  }
+  await assert.rejects(f.request('authorization.apply', { grant: grant.event.hash, action: { ...action, method: 'squash' } }), /outside standing scope/);
+  await f.request('authorization.apply', { grant: grant.event.hash, action }, 'apply-merge');
+  assert.equal((await f.request('milestone.check', { name: 'merge' })).allowed, true);
+  if (mode.includes('during-')) {
+    await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }), /state or authority changed|Gate proof changed|expired/);
+    assert.equal(writes.includes('merge'), false);
+    assert.equal(isDraft, true);
+    assert.equal((await f.request('merge.prepare', { repository: 'app', number: 12 })).keepClosed, false);
+    return;
+  }
+  await f.request('merge.execute', { repository: 'app', number: 12 });
+  assert.deepEqual(writes, ['ready', 'checks', 'merge']);
+  assert.equal(remoteState, 'MERGED');
+  assert.equal((await f.core.state()).state.integrations.app.integrationSha, f.head);
+  const completion = await f.request('milestone.check', { name: 'completion' });
+  assert.equal(completion.allowed, false); // no finalization/release proof
+  assert.equal(completion.missing.includes('current human acceptance'), false); // target advanced through verified integration
+});
+
+test('standing acceptance rejects a different assessed target and subsequent target drift', async t => {
+  const f = await fixture(t); await standingRepository(f); await authorize(f);
+  const grant = await standingGrant(f); const base = f.head;
+  await writeFile(join(f.repo, 'target.js'), 'export const interaction = true;\n');
+  await git(f.repo, ['add', 'target.js']); await git(f.repo, ['commit', '-m', 'different target']);
+  const target = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base, head: target, target }], scope: 'FEATURE', criteria: ['R1'] });
+  await reviewAll(f, { accept: false });
+  await assert.rejects(f.request('authorization.apply', { grant: grant.event.hash }), /Assessed target differs/);
+  await git(f.repo, ['push', 'origin', 'HEAD:refs/heads/main']);
+  await f.request('authorization.apply', { grant: grant.event.hash }, 'in-scope-target');
+  assert.equal((await f.request('milestone.check', { name: 'merge' })).missing.includes('current human acceptance'), false);
+  // The same source and proof no longer authorize the moved target's interactions.
+  await git(f.repo, ['push', '--force', 'origin', `${base}:refs/heads/main`]);
+  assert.equal((await f.request('milestone.check', { name: 'merge' })).missing.includes('current human acceptance'), true);
+  await assert.rejects(f.request('authorization.apply', { grant: grant.event.hash }), /Assessed target differs/);
+});
+
+test('standing status uses the host-discovered Git when GUI PATH cannot resolve git', async t => {
+  const f = await fixture(t); await standingRepository(f); await authorize(f); await standingGrant(f);
+  const { execFile } = await import('node:child_process');
+  const { promisify } = await import('node:util');
+  const executable = (await promisify(execFile)('/usr/bin/which', ['git'])).stdout.trim();
+  f.core.runtime.gitExecutable = executable;
+  const before = process.env.PATH;
+  try {
+    process.env.PATH = join(f.root, 'no-executables');
+    const status = await f.request('status');
+    assert.equal(status.standingAuthorizations[0].allowed, true, status.standingAuthorizations[0].reason);
+  } finally { process.env.PATH = before; }
 });

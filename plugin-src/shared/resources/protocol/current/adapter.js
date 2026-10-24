@@ -62,6 +62,7 @@ export async function currentSnapshot(context, options = {}, runtime = {}) {
       { id: 'work', command: 'gatereeve --help', label: 'Choose work within the authorized phase' },
       { id: 'evaluate', command: 'gatereeve evaluate --help', label: 'Request checks explicitly; readiness launches none' },
       { id: 'decide', command: 'gatereeve decide --help', label: 'Record observed human decisions and scoped exceptions' },
+      { id: 'apply-authorization', command: 'gatereeve apply-authorization --help', label: 'Apply recorded standing permission after all required gates pass' },
     ],
   };
 }

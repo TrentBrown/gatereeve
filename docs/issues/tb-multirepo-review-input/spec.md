@@ -42,7 +42,7 @@ This specification's validation is not evidence that its product criteria pass.
 | --- | --- |
 | Begin implementation | Current approved design, validated spec, plan/issues and applicable human implementation authorization |
 | Enter human acceptance | All applicable required validations and review evidence current, or explicitly accepted exceptions under gate policy; current review packet |
-| Merge | Applicable acceptance, explicit action/candidate authorization, source/PR synchronization and protected merge checks |
+| Merge | Applicable acceptance, explicit action/candidate authorization (direct or derived from an applicable standing grant), source/PR synchronization and protected merge checks |
 | Declare completion | Actual integration evidence, complete-feature coverage, required finalization and local-retention status; visible accepted exceptions where policy permits |
 
 These boundaries do not gate each edit or commit. A failed validation cannot
@@ -263,6 +263,8 @@ PASS requires the entire stated condition. Implementation status starts NOT YET.
 | R19 | AC8: direct cutover | Current distribution has no legacy execution/replay, converter, staged pilot or benchmark admission requirement; unsupported versions have resume guidance | Parallel old orchestration survives or adoption requires rejected ceremony | Source/packaging inspection and current/unsupported-version entry tests |
 | R20 | AC8: resume without false history | Older work enters a durable current run using preserved documents/authority, keeps old files, refreshes unqualified proof and recovers interruption | Old events become new passes, old files overwritten or unchanged planning forcibly repeated | Resume fixtures for untouched/changed/missing requirements, missing authority and interrupted activation |
 | R21 | AC8: practical observations | Current receipts/views expose available execution data and outcomes honestly without new metrics gate or fixed target | Missing data shown as zero, exceptions as passes or mandatory benchmark/audit added | Receipt/view tests and a documented real-project observation recipe |
+| R22 | AC6: scoped standing acceptance and merge | An observed grant applies repeat-safely to current SLICE/FEATURE candidates only after every required gate passes; acceptance-only grants cannot merge; explicit merge grants derive exact action authority; expiry/revocation/scope and commitment drift block further use | Missing/failed/waived evidence qualifies automatically, merge is inferred, stale or out-of-scope authority executes, deployment is implicitly authorized | Positive slice/final protected-merge fixtures plus grant, revocation, drift, interruption and waiting-check negatives |
+| R23 | AC7: standing authority surfaces and PR default | Native/CLI/Desktop expose recorded scope, application provenance and inactive reasons; open drafts remain default and explicit closed policy remains enforced | Authority is hidden, a consumer bypasses the core, or closed drafts become default | Consumer/CLI tests and default-open/explicit-closed merge fixtures |
 
 ## Scope and verification boundaries
 
@@ -286,3 +288,17 @@ the current contract rather than obsolete orchestration assertions.
 - **2026-10-23:** Initial specification from approved design and D1-D10. Eight
   acceptance criteria and 21 binary rubric rows. Defines current-run resume,
   source/evidence contracts, consumer integration and pre-merge evidence scope.
+
+- **2026-10-24 (D11, authorized by Trent):** Add R22/R23 under existing AC6/AC7.
+  Standing grants bind active run, current implementation authorization and
+  design/spec, selected repository paths/remotes/configuration, explicit source
+  branch prefixes, configured target branches, SLICE/FEATURE scopes, merge
+  methods and timestamp expiry (or null through this feature run). Each use
+  requires current PASS for all required gates without substituting waivers,
+  records exact candidate/action with grant provenance, and rechecks grant
+  validity at merge execution including after hosted-check waits. Revocation,
+  expiry, amendment, run replacement and delivery scope drift deny subsequent
+  use. Acceptance-only grants cannot merge; deployment is excluded. Completion
+  still requires actual integration and complete-feature/finalization proof.
+  Existing exact candidate decisions/exception policy remain supported.
+  Open drafts are the default; explicit closed drafts remain supported.

@@ -25,8 +25,10 @@ test('current view shows milestone blockers, preserved verdicts, exceptions and 
     const outcome = milestone.outcomes?.find(item => item.id === 'verification');
     if (outcome) outcome.exception = { reason: 'Known fixture risk', consequences: 'Runtime remains unverified' };
   }
+  snapshot.current.standingAuthorizations = [{ grant: 'sha256:fixture-grant', allowed: false, reason: 'Standing grant was revoked', scope: { actions: ['accept'], candidateScopes: ['SLICE', 'FEATURE'] }, applications: [{ subject: 'sha256:fixture-candidate', actions: ['accept'] }] }];
   snapshot.current.historyGaps = [{ resultHash: 'sha256:lost-historical-proof' }];
   renderCurrentOverview(snapshot, elements);
+  assert.match(elements['global-alerts'].textContent, /Standing grant was revoked.*SLICE.*fixture-candidate.*Deployment requires separate authorization/);
   assert.match(elements['global-alerts'].textContent, /Historical evidence unavailable.*lost-historical-proof/);
   assert.match(elements['module-settings-list'].textContent, /UNAVAILABLE.*Accepted exception: Known fixture risk/s);
   assert.deepEqual((await f.core.state()).events, before);

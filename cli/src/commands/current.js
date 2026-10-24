@@ -26,6 +26,7 @@ async function run(options, operation, input = {}, detail = {}) {
       }
     }
     for (const pending of result.data.pendingDecisions ?? result.data.current?.pendingDecisions ?? []) console.log(`Pending human instruction (${pending.operation.id}): ${pending.decision.reason}; requested continuation has not been authorized.`);
+    for (const grant of result.data.standingAuthorizations ?? result.data.current?.standingAuthorizations ?? []) console.log(`Standing authorization ${grant.grant}: ${grant.allowed ? 'active' : grant.reason}; scope: ${JSON.stringify(grant.scope)}`);
     for (const gap of result.data.current?.historyGaps ?? result.data.historyGaps ?? []) console.log(`Historical evidence unavailable: ${gap.resultHash}; fresh proof must replace any required role.`);
     for (const blocker of result.data.blockers ?? []) console.log(blocker.message);
   } else console.log(JSON.stringify(result.data, null, 2));
@@ -92,7 +93,7 @@ export function currentCommands() {
     history: options.history ? await readJsonFile(options.history) : [],
     ...(options.prior ? { prior: await readJsonFile(options.prior) } : {}) }));
   const decide = command('decide', 'Record one concrete observed human instruction')
-    .argument('<kind>', 'approve-design, authorize-implementation, accept, waive, amend, authorize-merge')
+    .argument('<kind>', 'approve-design, authorize-implementation, accept, waive, amend, authorize-merge, authorize-standing, revoke-standing')
     .requiredOption('--subject <hash>', 'Exact document, commitment or candidate identity')
     .requiredOption('--instruction <quote>', 'Observed human instruction')
     .requiredOption('--context <text>', 'Proposal/conversation context')
@@ -103,12 +104,14 @@ export function currentCommands() {
     .option('--continue-with <action>', 'Action expressly included in this same instruction', collect, [])
     .option('--gate <id>', 'Named gate waived', collect, [])
     .option('--action <file>', 'Prepared merge action')
+    .option('--scope <file>', 'Explicit standing authorization scope (authorize-standing only)')
     .option('--previous-subject <hash>', 'Prior commitments for an amendment');
   decide.action(async (kind, options) => run(options, 'human.decide', { kind, subject: options.subject,
     authority: { kind: 'human-confirmed', instruction: options.instruction, context: options.context, ...(options.messageId ? { messageId: options.messageId } : {}), ...(options.conversationId ? { conversationId: options.conversationId } : {}) },
     reason: options.reason, consequences: options.consequences, actions: options.continueWith,
     ...(['waive', 'policy-amend'].includes(kind) ? { gates: options.gate } : {}),
     ...(options.action ? { action: await readJsonFile(options.action) } : {}),
+    ...(options.scope ? { scope: await readJsonFile(options.scope) } : {}),
     ...(options.previousSubject ? { previousSubject: options.previousSubject } : {}) }));
   const milestone = new Command('milestone').description('Check or record a protected milestone');
   for (const action of ['check', 'pass']) milestone.addCommand(command(action, `${action} a milestone`)
@@ -123,5 +126,10 @@ export function currentCommands() {
   const observe = command('observe-integration', 'Verify reviewed content on configured integration without asserting quality')
     .requiredOption('--source-repository <alias>', 'Pinned repository alias')
     .action(options => run(options, 'integration.observe', { repository: options.sourceRepository }));
-  return [status, read, runCommand, spec, candidate, ready, gate, decide, milestone, merge, observe];
+  const apply = command('apply-authorization', 'Apply an existing standing grant to a fully passing candidate')
+    .requiredOption('--grant <hash>', 'Recorded standing grant event identity')
+    .option('--action <file>', 'Exact prepared merge action when merge permission is included')
+    .action(async options => run(options, 'authorization.apply', { grant: options.grant,
+      ...(options.action ? { action: await readJsonFile(options.action) } : {}) }));
+  return [status, read, runCommand, spec, candidate, ready, gate, decide, apply, milestone, merge, observe];
 }

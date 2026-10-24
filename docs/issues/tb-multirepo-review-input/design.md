@@ -43,8 +43,8 @@ flowchart TD
   A --> W[Model-led implementation, checks and remediation]
   W --> G{Required current validation evidence}
   G -->|missing or failed| W
-  G -->|satisfied or explicitly waived| H[Human acceptance]
-  H --> M{Merge authorization and current candidate}
+  G -->|satisfied or explicitly waived| H[Acceptance: direct or scoped standing permission]
+  H --> M{Explicit merge permission and current candidate}
   M --> V[Verify actual integration and final obligations]
   V --> C{Declare completion}
 ```
@@ -321,3 +321,34 @@ project gates; real-world use does not waive them.
   DESIGN_APPROVED; the feature entered SPECIFYING. Historical statements about
   pending approval above describe the draft before this event. No substantive
   design changes accompanied approval.
+
+
+## Amendment D11 — Scoped standing authorization (2026-10-24, approved)
+
+An observed human instruction may grant acceptance alone or acceptance plus
+explicit merge permission for the approved feature. Bind the grant to the active
+run and implementation authorization, approved design/spec identities, selected
+repository identities, explicit delivery branch prefixes and target branches,
+candidate scopes (SLICE and/or FEATURE), allowed merge methods and an explicit
+expiry (timestamp or null for this feature run). A prefix matches itself or its
+hyphen-delimited delivery branches. No wildcard repositories or target branches.
+
+The model applies the grant to each current candidate after every required gate
+has actual current PASS evidence. The core records a derived acceptance and,
+when expressly permitted, the exact prepared PR/source/target/method merge action,
+referencing the original instruction. Applying authority never runs checks,
+waives failures or merges by itself. Existing protected merge execution and
+whole-feature integration/completion checks remain mandatory. Ordinary explicit
+candidate decisions and exceptions remain available independently.
+
+Revocation, expiry, changed approved commitments or implementation authorization,
+repository configuration/remote drift, and out-of-scope branches block further
+use, including already derived but unexecuted merges. Pausing blocks execution;
+continuing the same run restores only still-applicable grants. A new run needs
+new authority. Retain grants, revocations and each application for inspection.
+Deployment is not a supported standing action. Open drafts remain the default;
+Quality Process can opt into closed drafts per repository. Existing PR #84's
+closed policy remains in effect.
+
+**Changelog:** D11 adds explicit scoped unattended acceptance/merge authority;
+planning approvals, gate requirements and deployment authority are unchanged.

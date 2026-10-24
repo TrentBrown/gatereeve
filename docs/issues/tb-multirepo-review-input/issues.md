@@ -142,3 +142,15 @@ Deliver the behavior, source integration and verification described in
 
 Independent local assessment: [PASS, all21 rows](verification/openai-judge-recheck.md).
 I-9 remains in-review for the separate formal boundary and human review.
+
+
+## I-10 - Scoped standing acceptance and merge authority
+
+**Status:** in-progress
+**Plan steps:** P10
+**Rubric criteria:** R15, R16, R17, R18, R22, R23
+**Depends on:** I-6, I-7
+**PR:** #84
+
+Implement D11 with current proof, exact protected merges and explicit deployment
+separation. Refresh review; existing formal17 evidence remains historical.

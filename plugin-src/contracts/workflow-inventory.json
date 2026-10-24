@@ -247,6 +247,7 @@
       "context.js",
       "current/actions.js",
       "current/adapter.js",
+      "current/authorization.js",
       "current/contracts.js",
       "current/core.js",
       "current/environment.js",

@@ -307,3 +307,57 @@ Unsupported activation records use their exact bytes as opaque provenance, inclu
 root/successor records with different fields. Current runId and previous-reference
 schema checks apply only to current-contract records. Conflicting mirrors still block;
 explicit resume preserves historical bytes and grants no inherited approval.
+
+## Scoped standing authorization
+
+An explicit human instruction may authorize unattended acceptance alone, or
+acceptance plus merging the feature's slice and final PRs. “Work overnight” alone
+does not imply merge or deployment permission. Record the actual instruction
+once with `human.decide`, kind `authorize-standing`, subject the current
+commitment hash, and an explicit `scope` such as:
+
+```json
+{
+  "actions": ["accept", "authorize-merge"],
+  "candidateScopes": ["SLICE", "FEATURE"],
+  "repositories": [{
+    "alias": "product", "headPrefix": "tb-example-feature", "baseBranch": "main",
+    "methods": ["merge"]
+  }],
+  "expiresAt": null
+}
+```
+
+For acceptance only, use `actions: ["accept"]` and omit `methods`. Prefixes match
+the exact branch or hyphen-delimited subsequent delivery branches. Each target
+must already be configured. `expiresAt` is a UTC timestamp or explicit `null`
+meaning this feature run, not indefinite authority across runs. The core binds
+current implementation approval, approved requirements and repository
+configuration/remote identities. Scope is never inferred from an agent's label.
+
+Once all required gates have current PASS evidence, use `authorization.apply`
+with `{ "grant": "sha256:<recorded grant event hash>" }`. For a permitted merge,
+include `action` from `merge.prepare`. Application records exact candidate
+acceptance and, if requested, exact PR/head/target/method authorization with the
+original grant reference. It performs no merge. Then use `merge.execute`; its
+existing live source/target, hosted checks, direction and integration safeguards
+remain mandatory. This supports both intermediate slices and the final PR.
+Completion still requires whole-feature evidence, actual integration, required
+finalization/release observations and retention. Deployment/publishing permission
+is separate and cannot be added to this grant's supported actions.
+
+No standing application can substitute a waiver for a required PASS. Explicit
+human candidate exceptions remain separate. Revoke with `human.decide`, kind
+`revoke-standing`, subject the grant event hash and the actual instruction.
+Expiry, revocation, changed approval/requirements, repository/remote drift and
+out-of-scope delivery block further use, including already prepared merges.
+Pause blocks use; continuing preserves only still-valid authority. Repeat the
+same operation ID and input after interruption; the journal retains the original
+application. Status exposes grants, scope and inactive reasons. Open drafts
+remain the default; `keepPullRequestsClosed: true` is a per-repository opt-in.
+
+If a default-open merge aborts after this invocation made its draft ready, the
+adapter restores draft status for the unchanged, unmerged PR and verifies it,
+allowing a later authorized retry. Host-discovered Git is honored by grant and
+protected action reads. Acceptance scope includes the assessed target branch;
+verified integration on that same branch preserves prior acceptance for completion.

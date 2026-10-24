@@ -10,6 +10,7 @@ import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, c
 import { runTrustedPythonGuard, assertTrustedPythonProof, trustedPythonBinding } from '../python-guards.js';
 import { executeGates, reviewContract } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
+import { captureStanding, applyStanding, standingValidity, qualifyingDecisions } from './authorization.js';
 
 export function project(events) {
   requireThat(events[0]?.type === 'STARTED', 'Current run is not initialized');
@@ -177,7 +178,7 @@ export class CurrentCore {
     return reference;
   }
   async decide(input, operation) {
-    const value = decision(input);
+    let value = decision(input);
     let { state } = await this.state();
     if (value.kind === 'approve-design') {
       requireThat(['DESIGNING', 'SPECIFYING', 'PLANNING'].includes(state.phase), 'Use an amendment to change approved delivery requirements');
@@ -210,6 +211,10 @@ export class CurrentCore {
         for (const ref of Object.values(current.docs)) await this.store.currentBytes(ref);
         value.specValidation = { spec: current.docs['spec.md'], design: current.docs['design.md'], proof };
       }
+    } else if (value.kind === 'authorize-standing') {
+      value = await captureStanding(this, state, value);
+    } else if (value.kind === 'revoke-standing') {
+      requireThat(state.decisions.some(item => item.kind === 'authorize-standing' && item.event === value.subject), 'Revocation must name a recorded standing grant');
     } else {
       requireThat(state.candidate && value.subject === state.candidate.hash, 'Decision must bind the current candidate');
       const candidate = await checkCandidate(this.store, this.context, state.candidate);
@@ -518,8 +523,18 @@ export class CurrentCore {
       if (!satisfied) missing.push(`${definition.id}: ${accepted?.outcome ?? error ?? 'missing evidence'}`);
       outcomes.push({ id: definition.id, result: acceptedRef, reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied) });
     }
-    if (['merge', 'completion'].includes(name) && !findDecision(state, 'accept', state.candidate?.hash)) missing.push('current human acceptance');
-    if (name === 'merge' && !findDecision(state, 'authorize-merge', state.candidate?.hash)) missing.push('explicit merge authorization');
+    if (['merge', 'completion'].includes(name)) {
+      const acceptances = await qualifyingDecisions(this, state, 'accept', state.candidate?.hash, candidate);
+      if (!acceptances.length) missing.push('current human acceptance');
+      if (acceptances.length && acceptances.every(item => item.standingGrant)
+        && outcomes.some(item => item.outcome !== 'PASS')) missing.push('standing acceptance requires every required gate to PASS');
+    }
+    if (name === 'merge') {
+      const authorizations = await qualifyingDecisions(this, state, 'authorize-merge', state.candidate?.hash, candidate);
+      if (!authorizations.length) missing.push('explicit merge authorization');
+      if (authorizations.length && authorizations.every(item => item.standingGrant)
+        && outcomes.some(item => item.outcome !== 'PASS')) missing.push('standing merge requires every required gate to PASS');
+    }
     if (name === 'completion') {
       if (candidate?.scope !== 'FEATURE') missing.push('complete-feature review scope');
       for (const repository of candidate?.repositories ?? []) {
@@ -567,7 +582,14 @@ export class CurrentCore {
     let commitments = null;
     try { commitments = await this.commitments({ capture: false }); } catch { /* Missing docs are reported by milestone checks. */ }
     const memo = new Map();
-    return { ...state, commitments, historyGaps: await this.historyGaps(state), obligations: GATES.filter(item => !item.optional || state.optionalGates.includes(item.id)),
+    const standingAuthorizations = await Promise.all(state.decisions.filter(item => item.kind === 'authorize-standing').map(async grant => ({
+      grant: grant.event, scope: grant.scope, subject: grant.subject, authority: grant.authority,
+      applications: state.decisions.filter(item => item.standingGrant === grant.event).map(item => ({
+        event: item.event, subject: item.subject, actions: ['accept', ...(item.actions ?? [])], action: item.action ?? null,
+      })),
+      ...(state.phase === 'COMPLETE' ? { allowed: false, reason: 'Feature run is complete' } : await standingValidity(this, state, grant)),
+    })));
+    return { ...state, commitments, standingAuthorizations, historyGaps: await this.historyGaps(state), obligations: GATES.filter(item => !item.optional || state.optionalGates.includes(item.id)),
       enforcement: ENFORCEMENT, milestones: await Promise.all(MILESTONES.map(name => this.check(name, null, memo))) };
   }
   async append(state, type, payload, operation) {
@@ -620,6 +642,7 @@ export class CurrentCore {
       case 'run.start': return this.start(input, operation);
       case 'status': case 'snapshot': return this.inspect();
       case 'human.decide': return this.decide(input, operation);
+      case 'authorization.apply': return applyStanding(this, input, operation);
       case 'spec.validate': return this.validateSpec(operation);
       case 'candidate.prepare': return this.prepare(input, operation);
       case 'candidate.ready': return this.readiness(operation);

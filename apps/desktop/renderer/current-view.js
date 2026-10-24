@@ -9,6 +9,7 @@ export function renderCurrentOverview(snapshot, elements, { openArtifact, copy, 
   clear(elements['global-alerts']);
   for (const blocker of snapshot?.blockers ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: blocker.message }));
   for (const pending of snapshot?.current?.pendingDecisions ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Pending human instruction: ${pending.decision.reason}. Requested continuation has not been authorized.` }));
+  for (const grant of snapshot?.current?.standingAuthorizations ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Standing authorization ${grant.grant}: ${grant.allowed ? 'active' : grant.reason}. Scope: ${JSON.stringify(grant.scope)}. Applications: ${JSON.stringify(grant.applications ?? [])}. Deployment requires separate authorization.` }));
   for (const gap of snapshot?.current?.historyGaps ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Historical evidence unavailable: ${gap.resultHash}. Fresh proof can replace its current role; the lost record is not reconstructed.` }));
   clear(elements['state-rail']);
   for (const id of snapshot?.phases ?? []) {

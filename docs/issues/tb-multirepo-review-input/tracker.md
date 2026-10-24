@@ -30,6 +30,8 @@
 | R19 | direct cutover | PASS | PR #84 | AC8; P1, P2, P7, P8; final P9 |
 | R20 | resume without false history | PASS | PR #84 | AC8; P2, P7, P8; final P9 |
 | R21 | practical observations | PASS | PR #84 | AC8; P5, P7; final P9 |
+| R22 | scoped standing acceptance and merge | NOT YET | D11 | AC6; P10; refresh pending |
+| R23 | standing authority surfaces and PR default | NOT YET | D11 | AC7; P10; refresh pending |
 
 ## Review Log
 
@@ -120,3 +122,7 @@ The independent code reviewer found CR16-1/R18 in the documented CLI shortcut; a
 [Verification](pr-84/attempts/formal-pr84-17/verification.md) records composite coverage: broad366PASS/1resolved portabilityFAIL/1intentionalSKIP, supplemented by complete final portability5 and affected closure7/core18/CLI9/packed2. Desktop173, actual ARM64 packaged runtime and144 source/build byte matches PASS. The original broad run is not labeled failure-free or exact-final. Empty pattern scope gives no substantive rule coverage. [Interactive explanation](pr-84/attempts/formal-pr84-17/explain-diff.html) has browser-checked desktop/mobile layouts and working interactions. See [completion/readiness report](completion-report.md) for scope and limits.
 
 Required formal evidence is ready for packet validation and human review. PR remains CLOSED; issues remain in-review. Neither human acceptance, merge, installation, release nor feature COMPLETE is asserted. Installed rc.16 continues to govern this record until authorized cutover.
+
+## D11 amendment — 2026-10-24
+
+Prior formal17 PASS applies to the prior specification/source. R22 and R23 are NOT YET; affected authority/consumer rows require refreshed assessment. I-10 is in progress.

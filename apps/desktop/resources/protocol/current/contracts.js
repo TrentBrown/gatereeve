@@ -70,8 +70,9 @@ export function authority(value) {
 }
 export function decision(value) {
   object(value, 'Decision');
-  requireThat(Object.keys(value).every(key => ['kind', 'subject', 'authority', 'reason', 'consequences', 'actions', 'gates', 'findings', 'action', 'previousSubject'].includes(key)), 'Unsupported decision field; scope must be explicit in the supported contract');
-  requireThat(['approve-design', 'authorize-implementation', 'accept', 'waive', 'amend', 'policy-amend', 'authorize-merge'].includes(value.kind), 'Unknown decision kind');
+  requireThat(Object.keys(value).every(key => ['kind', 'subject', 'authority', 'reason', 'consequences', 'actions', 'gates', 'findings', 'action', 'previousSubject', 'scope'].includes(key)), 'Unsupported decision field; scope must be explicit in the supported contract');
+  requireThat(['approve-design', 'authorize-implementation', 'accept', 'waive', 'amend', 'policy-amend', 'authorize-merge', 'authorize-standing', 'revoke-standing'].includes(value.kind), 'Unknown decision kind');
+  requireThat(value.scope === undefined || value.kind === 'authorize-standing', 'Scope is only supported on a standing grant');
   authority(value.authority);
   text(value.reason, 'Decision reason');
   text(value.consequences, 'Known consequences');

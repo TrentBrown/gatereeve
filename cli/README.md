@@ -212,3 +212,35 @@ commit and include `--target app=<target-sha>` with `gatereeve candidate`. Keep
 `--pin app=<original-feature-base>..<head>` for a FEATURE assessment. GateReeve exports
 the target snapshot for interaction review, invalidates affected proof when it changes,
 and requires the protected merge action to match that assessed target.
+
+### Unattended acceptance and explicitly authorized merges
+
+An agent may record a user's scoped standing instruction once, then apply it to
+fully passing candidates. Acceptance-only grants do not authorize merging.
+For example, `standing-scope.json` may contain:
+
+```json
+{
+  "actions": ["accept", "authorize-merge"],
+  "candidateScopes": ["SLICE", "FEATURE"],
+  "repositories": [{"alias": "product", "headPrefix": "tb-example-feature", "baseBranch": "main", "methods": ["merge"]}],
+  "expiresAt": null
+}
+```
+
+Record `decide authorize-standing --subject <current-commitment-hash> --scope
+standing-scope.json` with the usual `--instruction`, `--context`, `--reason` and
+`--consequences` from the actual user decision. Use `apply-authorization --grant
+<grant-event-hash>` after all required gates PASS. For a permitted merge, supply
+`--action <prepared-action.json>` containing the action returned by `merge prepare`
+(the CLI JSON response's `data`, not its envelope), then use `merge execute`.
+The exact action is retained and rechecked at execution. To revoke, use `decide
+revoke-standing --subject <grant-event-hash>` with the observed instruction.
+
+For acceptance only, remove `authorize-merge` and `methods`. A null expiry lasts
+only for the current approved feature run; a UTC timestamp limits it further.
+Changed requirements/approval, repository configuration, expiry or revocation
+block subsequent use. Feature completion still requires actual integration and
+all completion obligations. This grant never authorizes deployment or publishing.
+Open drafts remain default; clients can explicitly select closed drafts through
+`keepPullRequestsClosed: true` in repository configuration.

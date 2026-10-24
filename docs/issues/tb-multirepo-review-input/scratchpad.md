@@ -54,3 +54,27 @@ Hash the full inherited environment and pass that frozen environment to checks. 
 
 **Alternatives considered:**
 None recorded.
+
+
+## [4] Materialize standing permission into exact candidate decisions
+
+[x] **Promote**
+
+**Confidence:** HIGH
+
+**Blast Radius:** Human authority, protected merge, CLI/native/Desktop consumers.
+
+D11 authorizes acceptance-only grants and explicitly scoped merge grants. Keep
+future permission separate from exact candidate/action decisions: the model
+requests application and the core requires all required gates to PASS, then
+records its derivation from the original instruction. Revalidate grant scope,
+expiry and revocation at action time. No grant waives evidence or authorizes
+deployment. Bind the implementation authorization event so amending and later
+reverting requirements cannot revive an old grant. No wall-clock expiry is
+invented: null explicitly means the current feature run.
+
+**Triggered by:** Trent's 2026-10-24 approval and explicit merge clarification.
+
+**Alternatives considered:** Automatically treating an overnight request as all
+permissions would conflate acceptance, merge and deployment. Requiring a human
+for every exact head would defeat the approved unattended workflow.

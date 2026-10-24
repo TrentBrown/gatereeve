@@ -261,3 +261,16 @@ activation, overbroad evidence reuse, history leakage and inaccurate hook claims
 P1 identifies those interfaces; P2-P7 implement the contracts; P8/P9 verify the
 assembled behavior. No external tracker posting, production action, public
 release, remote activation or old-record cleanup is part of this planning turn.
+
+
+### P10. Scoped standing authorization (R15–R18, R22–R23)
+
+Implement validated grant/revoke decisions and repeat-safe per-candidate
+application. Bind grants to current implementation authority and repository
+configuration/remote identities; check expiry, revocation and delivery scope on
+application and protected action. Preserve exact merge checks and completion
+proof. Expose scope/provenance/inactive reasons through native status, CLI and
+Desktop; document acceptance-only and explicit slice/final merge usage. Verify
+positive slice/final flows and stale/failed/waived/out-of-scope/expired/revoked
+negatives, including revocation while hosted checks wait. Retain open default
+and explicit closed policy. Refresh independent review for the amended source.

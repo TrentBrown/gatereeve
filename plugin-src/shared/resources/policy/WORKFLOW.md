@@ -47,7 +47,8 @@ scope needs fresh/wider evidence. Generate mechanical records through operations
   implementation authority.
 - Enter human acceptance: all required current gate proof or authorized scoped
   exceptions, plus validated retained review packet.
-- Merge: current acceptance and expressly authorized exact source/target action.
+- Merge: current acceptance and expressly authorized exact source/target action,
+  either directly approved or derived from a valid scoped standing merge grant.
   Respect PR closure and branch-direction policy; never reopen to help a reviewer.
 - Completion: whole-feature acceptance, actual integration, required finalization
   proof and verified local evidence retention.
@@ -76,3 +77,13 @@ Use real-project experience to improve the workflow. Report available elapsed
 execution time, token/cost data, friction, escaped defects and rework honestly;
 unknown metrics are unknown. No benchmark threshold, pilot or extra audit gate is
 required before adopting the current protocol.
+
+## Standing permission for unattended delivery
+
+Record explicit acceptance-only or acceptance-plus-merge permission through
+`human.decide` (`authorize-standing`) with the scope in PROTOCOL.md. Apply it
+per candidate through `authorization.apply` only after all required gates PASS.
+This can cover slice and final PRs without repeating the same human question.
+Keep merge permission explicit and deployment separately authorized. Revocation,
+expiry and changed scope invalidate further use. Open drafts remain the default;
+client-specific closed drafts are an explicit repository setting.

@@ -1,8 +1,9 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { CONTRACT, requireThat, identity, text, decisionHas } from './contracts.js';
-import { checkCandidate, git } from './evidence.js';
+import { CONTRACT, requireThat, identity, text } from './contracts.js';
+import { checkCandidate } from './evidence.js';
 import { runTrustedPythonGuard } from '../python-guards.js';
+import { qualifyingDecisions, requireUnexpired, configuredGit } from './authorization.js';
 
 const exec = promisify(execFile);
 async function gh(root, args) {
@@ -20,7 +21,7 @@ export function mergeDirection(head, base) {
 }
 export async function prepareMerge(core, input) {
   const { state } = await core.state();
-  const runGit = core.runtime.git ?? git;
+  const runGit = configuredGit(core);
   const candidate = await checkCandidate(core.store, core.context, state.candidate);
   const pin = candidate.repositories.find(item => item.alias === input.repository);
   const repository = core.context.repositories.find(item => item.alias === input.repository);
@@ -52,15 +53,18 @@ export async function merge(core, input, operation) {
   const { state } = await core.state();
   const initial = await core.check('merge', state);
   requireThat(initial.allowed, 'Merge is blocked', initial);
-  const runGit = core.runtime.git ?? git;
+  const runGit = configuredGit(core);
   const action = await prepareMerge(core, input);
   requireThat(['merge', 'squash', 'rebase'].includes(action.method), 'Unsupported merge method');
-  const authorization = state.decisions.findLast(item => decisionHas(item, 'authorize-merge')
-    && item.subject === state.candidate.hash && identity(item.action) === identity(action));
+  const candidate = await core.store.json(state.candidate);
+  const authorization = (await qualifyingDecisions(core, state, 'authorize-merge', state.candidate.hash, candidate))
+    .findLast(item => identity(item.action) === identity(action));
   requireThat(authorization, 'Human authorization must name this exact PR, source, target and method');
+  if (authorization.standingGrant) requireThat(initial.outcomes.every(item => item.outcome === 'PASS'), 'Standing merge requires every required gate to PASS');
   const repository = core.context.repositories.find(item => item.alias === action.repository);
   const run = core.runtime.gh ?? gh;
   let opened = false;
+  let madeReady = false;
   await requireCurrentState(core, state);
   try {
     if (action.keepClosed) {
@@ -72,10 +76,14 @@ export async function merge(core, input, operation) {
     requireThat(current.number === action.number && current.state === 'OPEN' && current.headRefOid === action.head
       && current.headRefName === action.headBranch && current.baseRefName === action.baseBranch && current.baseRefOid === action.base,
     'PR identity changed inside the merge window');
-    if (current.isDraft) await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo]);
+    if (current.isDraft) {
+      madeReady = true;
+      await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo]);
+    }
     await run(repository.path, ['pr', 'checks', String(action.number), '--repo', action.ownerRepo, '--required', '--watch', '--fail-fast']);
     await requireCurrentState(core, state);
-    requireThat((await core.check('merge', state)).allowed, 'Gate proof changed while waiting for hosted checks');
+    const currentProof = await core.check('merge', state);
+    requireThat(currentProof.allowed && (!authorization.standingGrant || currentProof.outcomes.every(item => item.outcome === 'PASS')), 'Gate proof changed while waiting for hosted checks');
     const latestBase = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${action.baseBranch}`])).split(/\s/u)[0];
     requireThat(latestBase === action.base, 'PR base changed while waiting for hosted checks; refresh review');
     const refreshed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
@@ -86,6 +94,10 @@ export async function merge(core, input, operation) {
     // Match-head binds source at the write. GitHub exposes no target compare-and-swap;
     // reread the target after the potentially long checks wait, immediately before merging.
     await requireCurrentState(core, state);
+    requireThat((await qualifyingDecisions(core, state, 'authorize-merge', state.candidate.hash, candidate))
+      .some(item => item.event === authorization.event), 'Merge authorization expired or changed while waiting for hosted checks');
+    await requireCurrentState(core, state);
+    if (authorization.standingGrant) requireUnexpired(state.decisions.find(item => item.event === authorization.standingGrant));
     await run(repository.path, ['pr', 'merge', String(action.number), '--repo', action.ownerRepo,
       `--${action.method}`, '--match-head-commit', action.head]);
     const observed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
@@ -101,13 +113,24 @@ export async function merge(core, input, operation) {
         const closed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo, '--json', 'state']));
         requireThat(closed.state === 'CLOSED', 'Merge cleanup could not verify PR closure');
       }
+    } else if (madeReady) {
+      // Restore only the open draft this invocation promoted. Otherwise an
+      // expired/revoked attempt would leave merge.prepare unable to retry.
+      const observed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
+        '--json', 'number,state,isDraft,headRefName,headRefOid,baseRefName']));
+      if (observed.number === action.number && observed.state === 'OPEN' && !observed.isDraft
+        && observed.headRefName === action.headBranch && observed.headRefOid === action.head && observed.baseRefName === action.baseBranch) {
+        await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo, '--undo']);
+        const restored = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo, '--json', 'state,isDraft']));
+        requireThat(restored.state === 'MERGED' || restored.state === 'OPEN' && restored.isDraft, 'Merge cleanup could not verify draft restoration');
+      }
     }
   }
 }
 export async function observeIntegration(core, input, operation, expectedState = null) {
   const state = expectedState ?? (await core.state()).state;
   if (expectedState) await requireCurrentState(core, expectedState);
-  const runGit = core.runtime.git ?? git;
+  const runGit = configuredGit(core);
   requireThat(state.candidate, 'Integration observation requires a pinned candidate');
   const candidate = await checkCandidate(core.store, core.context, state.candidate, { live: false });
   const repository = core.context.repositories.find(item => item.alias === input.repository);

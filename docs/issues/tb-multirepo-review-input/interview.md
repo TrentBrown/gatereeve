@@ -449,3 +449,14 @@ limits visible. The implementation should remove incidental scheduler ordering
 while preserving genuine evidence requirements. No remediation-round cap is
 introduced. The revised design is ready to synthesize for human review; no
 approval or native passage is inferred from concluding this interview.
+
+
+## D11 — Scoped standing authority (2026-10-24)
+
+Trent requested unattended acceptance after all required gates pass, with open
+drafts remaining the default. He clarified that agents must be able to merge
+slice PRs and the final PR before declaring completion, then confirmed:
+“Yes—explicit scoped merge authorization.” Acceptance-only permission remains
+available. Merge permission must be expressly included in the recorded scope;
+deployment remains separately authorized. This authorizes implementing the
+capability, not merging PR #84 or deploying GateReeve.
