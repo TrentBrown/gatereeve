@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "architecture": "arm64",
+  "trust": {
+    "status": "development-ad-hoc",
+    "evidence": []
+  },
+  "appleTrust": null,
+  "appleTrustEvidenceSha256": null
+}

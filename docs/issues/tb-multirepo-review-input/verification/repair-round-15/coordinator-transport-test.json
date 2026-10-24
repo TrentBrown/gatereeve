@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "passed": true,
+    "checks": 12,
+    "originalReaderRejects": true,
+    "exactAuditDeepEqual": true,
+    "formalBundleValidation": true,
+    "formalFindingsRetained": 44,
+    "formalAuditBytes": 133059,
+    "ordinaryLimit": 131072,
+    "formalAuditLimit": 12582912,
+    "oversizeAndTamperingRejected": true
+  }
+}

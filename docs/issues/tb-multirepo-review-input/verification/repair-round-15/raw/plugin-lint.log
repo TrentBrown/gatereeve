@@ -1,0 +1,12 @@
+{
+  "command": [
+    "node",
+    "cli/bin/workflow.js",
+    "plugin",
+    "lint",
+    "--json"
+  ],
+  "exitCode": 0,
+  "stdout": "{\n  \"schemaVersion\": 1,\n  \"fileCount\": 159,\n  \"existingSkillCount\": 28\n}\n",
+  "stderr": ""
+}

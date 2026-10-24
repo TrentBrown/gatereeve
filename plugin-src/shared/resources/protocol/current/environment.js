@@ -97,7 +97,7 @@ async function externalClosure(root, checks, declared, environment, managedStore
       catch (error) {
         if (!['ENOENT', 'ENOTDIR', 'ENAMETOOLONG'].includes(error.code)) throw error;
         requireThat(!requiresFile, 'Module preload must name a resolvable file; resolve its dependency scope explicitly');
-        if (isAbsolute(value) || value.startsWith('./') || value.startsWith('../')) arguments_.push({ selectedPath, missing: true, privateInput });
+        if (isAbsolute(value) || /^\.{1,2}[\\/]/u.test(value)) arguments_.push({ selectedPath, missing: true, privateInput });
         continue;
       }
       if (!within(root, actual)) await requireScriptScope(actual, privateInput);

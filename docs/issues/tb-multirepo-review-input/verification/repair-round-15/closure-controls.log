@@ -1,14 +1,15 @@
-✔ opaque runners require an explicit external scope and unknown scripts fail closed (138.083333ms)
-✔ inferred launcher packages bind imported libraries and env interpreter selection (124.231125ms)
-✔ external scope binds missing files, file modes and root retargeting (300.319958ms)
-✔ escaping dependencies require declared targets and unsupported shebangs fail closed (125.981625ms)
-✔ bare relative symlinks and ignored local argument files bind actual bytes (300.104958ms)
-✔ shebang preload arguments and flag-equals paths bind dependency content (318.568875ms)
-ℹ tests 6
+✔ opaque runners require an explicit external scope and unknown scripts fail closed (154.395792ms)
+✔ inferred launcher packages bind imported libraries and env interpreter selection (135.688083ms)
+✔ external scope binds missing files, file modes and root retargeting (321.186792ms)
+✔ escaping dependencies require declared targets and unsupported shebangs fail closed (135.974583ms)
+✔ bare relative symlinks and ignored local argument files bind actual bytes (313.968625ms)
+✔ shebang preload arguments and flag-equals paths bind dependency content (312.279917ms)
+✔ known loader environment inputs bind bytes without retaining their values (200.426917ms)
+ℹ tests 7
 ℹ suites 0
-ℹ pass 6
+ℹ pass 7
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1349.019208
+ℹ duration_ms 1615.863875
