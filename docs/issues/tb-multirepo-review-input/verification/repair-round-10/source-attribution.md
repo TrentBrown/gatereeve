@@ -1,0 +1,3 @@
+# Verification source attribution
+
+Product source f2a2041059272c0b0ba648c2e1bdc92899ed4370. Eleven focused repository-root, public unsupported-copy resume, criterion/coverage/cross-gate history and proof-admission controls PASS. Desktop172, live OpenAI1 plus public receipt roundtrip, plugin lint/build/native, four document checks, universal package verification and ARM64 runtime smoke PASS. All66 built protocol comparisons match final committed source. The full CLI suite is still running and is required before formal Verification. Python58 is reused because Python helper source is unchanged. No earlier failed formal verdict is superseded by these mechanical checks.
