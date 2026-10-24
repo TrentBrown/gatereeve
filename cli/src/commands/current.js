@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { executeProtocolRequest, readJsonFile } from '../protocol/client.js';
@@ -77,15 +77,16 @@ export function currentCommands() {
     .option('--provider <name>', 'codex or claude-code')
     .option('--model <name>', 'Explicit reviewer model')
     .option('--reasoning <effort>', 'Reviewer reasoning effort', 'high')
-    .option('--configuration <file>', 'Full check configuration, including runtimeInputs and external validity')
-    .option('--checks <file>', 'Project verification checks (command, args, repository, purpose)')
+    .option('--configuration <file>', 'Full check configuration, including checks, externalRuntimeInputs, runtimeInputs and external validity')
+    .addOption(new Option('--checks <file>').hideHelp().argParser(() => {
+      throw new Error('--checks has been retired. Use --configuration with checks and explicit externalRuntimeInputs for each checked repository.');
+    }))
     .option('--consume <file>', 'JSON list of retained evidence references')
     .option('--claims <file>', 'JSON list of findingId and implementer claim pairs')
     .option('--history <file>', 'JSON list of prior review references')
     .option('--prior <file>', 'Retained earlier result for a delta assessment');
   gate.action(async (gates, options) => run(options, 'gate.execute', { gates,
-    configuration: options.configuration ? await readJsonFile(options.configuration) : options.checks ? { checks: await readJsonFile(options.checks) }
-      : options.provider ? { provider: options.provider, model: options.model, reasoningEffort: options.reasoning } : {},
+    configuration: options.configuration ? await readJsonFile(options.configuration) : options.provider ? { provider: options.provider, model: options.model, reasoningEffort: options.reasoning } : {},
     ...(options.consume ? { consumed: await readJsonFile(options.consume) } : {}),
     claims: options.claims ? await readJsonFile(options.claims) : [],
     history: options.history ? await readJsonFile(options.history) : [],

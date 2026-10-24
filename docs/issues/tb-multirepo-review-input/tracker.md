@@ -106,3 +106,8 @@ Independent code/spec passed; native OpenAI Judge returned FAIL (17 PASS/4 FAIL)
 ### Formal PR84 attempts 13–15
 
 Formal13 native Judge found native/Desktop helper and interpreter parity failures; repair13 rebuilt and exercised an established packaged workflow. Formal14 Verification retained an obsolete test-assertion failure and returned to remediation; the corrected complete test plus related controls passed, with the original broad run retained separately. Formal15 independent code/spec passed; the separate native OpenAI Judge returned FAIL (18 PASS/3 FAIL) for external runner dependency identity and exception-risk omissions. All original reports remain immutable. The installed core returned the slice to implementation before [fifteenth repair](verification/formal-pr84-remediation-15.md). Fresh broad verification and formal assessment remain pending; PR84 stays closed.
+
+
+### Formal PR84 attempt16
+
+The independent code reviewer found CR16-1/R18 in the documented CLI shortcut; actual smoke failed although full configuration works. VerificationFAIL and the bounded independent code-reviewFAIL are retained underpr-84/attempts/formal-pr84-16. No codeReview gate passage or nativeJudge verdict was issued. [Sixteenth repair](verification/formal-pr84-remediation-16.md) retires the shortcut with explicit scope guidance; actual CLI and packed CLI controls pass. Formal reassessment remains pending.

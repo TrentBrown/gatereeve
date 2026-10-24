@@ -35,7 +35,7 @@ gatereeve run resume-current --implementer <context> --planning approvals.json
 gatereeve validate-spec
 gatereeve candidate --pin app=<base-sha>..<head-sha> --criterion R1 --scope SLICE
 gatereeve ready
-gatereeve evaluate verification --checks checks.json
+gatereeve evaluate verification --configuration verification.json
 gatereeve evaluate code spec --provider claude-code --model opus --consume verification.json
 gatereeve evaluate judge --provider claude-code --model opus --consume verification.json
 gatereeve milestone check acceptance --json
@@ -53,6 +53,20 @@ Use `gatereeve help --recurse` for exact options. Native plugins call the same
 current core directly; the CLI is optional. Historical journals remain untouched.
 Resume records observed approvals without replaying an old state machine.
 Parent-folder requirements and retained evidence need not be Git tracked.
+
+For example, `verification.json` for a repository aliased `app` can contain:
+
+```json
+{
+  "checks": [{ "repository": "app", "command": "npm", "args": ["test"], "purpose": "Project tests" }],
+  "externalRuntimeInputs": { "app": [] }
+}
+```
+
+Use an empty list only after establishing that the checks have no additional
+external dependencies beyond the inputs captured automatically. Otherwise list
+the absolute dependency files or roots. The old `--checks` shortcut is retired;
+it cannot express this scope commitment. Use `--configuration` for runner checks.
 
 Runner checks contain command, args, repository and purpose. The native operation
 requires `configuration.externalRuntimeInputs` for each checked repository, listing absolute external dependency roots/files (an explicit empty array declares no additional external inputs). Executable/shebang chains, known package trees and resolvable argument files are bound automatically; opaque dependencies must be declared conservatively. The runner
