@@ -55,6 +55,7 @@ Resume records observed approvals without replaying an old state machine.
 Parent-folder requirements and retained evidence need not be Git tracked.
 
 Runner checks contain command, args, repository and purpose. The native operation
+requires `configuration.externalRuntimeInputs` for each checked repository, listing absolute external dependency roots/files (an explicit empty array declares no additional external inputs). Executable/shebang chains, known package trees and resolvable argument files are bound automatically; opaque dependencies must be declared conservatively. The runner
 also accepts configuration.runtimeInputs (repository alias to relative paths) for
 additional runtime dependencies/configuration, and explicit external validUntil
 conditions. All inherited environment values are hashed and the runner receives that frozen environment; values are not logged. Environment differences conservatively invalidate runner proof. Installed

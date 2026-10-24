@@ -1,0 +1,14 @@
+✔ opaque runners require an explicit external scope and unknown scripts fail closed (138.083333ms)
+✔ inferred launcher packages bind imported libraries and env interpreter selection (124.231125ms)
+✔ external scope binds missing files, file modes and root retargeting (300.319958ms)
+✔ escaping dependencies require declared targets and unsupported shebangs fail closed (125.981625ms)
+✔ bare relative symlinks and ignored local argument files bind actual bytes (300.104958ms)
+✔ shebang preload arguments and flag-equals paths bind dependency content (318.568875ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1349.019208

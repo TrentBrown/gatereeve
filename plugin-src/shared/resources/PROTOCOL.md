@@ -94,7 +94,32 @@ pattern, judge, code, triage, explanation, packet. Completion also requires
 finalization, release observation, retention, whole-feature coverage and actual integration for every
 participating repository. Whiteboard remains optional policy.
 
-Runner configuration is `checks: [{repository,command,args,purpose}]`. Request
+Runner configuration is `checks: [{repository,command,args,purpose}]` plus
+`externalRuntimeInputs: {"repositoryAlias": ["/absolute/tool-or-input-root"]}`
+for every checked repository. This is a required, conservative scope declaration:
+`[]` explicitly declares no additional external inputs. The model must account
+for opaque shell/eval bodies, child tools, dynamically loaded libraries, runtime
+configuration and any dependencies outside inferred package roots. Use wider
+roots or an immutable toolchain when dependency scope is uncertain; never assert
+an empty scope merely because dependencies cannot be inferred. Independent
+Verification assessment evaluates that scope against the actual commands.
+
+The core hashes declared files/directories (including missing state), executable
+selection/realpath/mode/bytes, supported shebang interpreter chains, explicit path
+arguments and inferred package trees. Supported NODE_OPTIONS preloads and the
+allowlisted Node/Python/library-loader search paths are also byte-bound; their
+values remain hashed in retained manifests. Ambiguous option quoting rejects.
+Directory traversal excludes only the trusted current feature evidence store,
+so proof publication cannot invalidate itself; direct dependence on that store rejects. External scripts without a package or
+declared dependency root are rejected. Escaping dependency symlinks require an
+explicit target scope. Unsupported shebang syntax fails closed. Platform/OS
+release/version are bound; this is an execution-input contract, not an automatic
+whole-machine or remote-service snapshot. External observations still require
+explicit validity conditions. All fingerprints are checked before and after
+execution and at live proof/exception qualification. Only hashes of external
+bytes are retained; external source is not exported to reviewers.
+
+Request
 real project build/lint/test/runtime checks; do not substitute `true` or a fabricated
 receipt. Only results in a completed recorded job and its retained service
 outcome can qualify. Passing runner results require successful receipts for all

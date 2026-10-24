@@ -137,7 +137,7 @@ test('foreign active feature identity and damaged journal cannot be used', async
 
 async function runVerification(f, fail = false, operationId = 'verify-one') {
   return f.request('gate.execute', { gates: ['verification'], configuration: {
-    checks: [{ repository: 'app', command: process.execPath, args: ['-e', `process.exit(${fail ? 1 : 0})`], purpose: 'Fixture verification' }],
+    externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', `process.exit(${fail ? 1 : 0})`], purpose: 'Fixture verification' }],
   } }, operationId);
 }
 function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, findingId = 'finding-1', outcome = blocking ? 'FAIL' : 'PASS', dispositions = [], historyAssessment = null, criterionRows = null, coverage = null } = {}) {
@@ -300,7 +300,7 @@ test('all gates, actual external integration and completion work without evidenc
   await candidate(f); await reviewAll(f);
   assert.equal((await f.request('milestone.check', { name: 'merge' })).allowed, false);
   await f.request('integration.observe', { repository: 'app' }, 'observe');
-  await f.request('gate.execute', { gates: ['finalization'], configuration: { checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Fixture post-integration verification' }] } }, 'finalize');
+  await f.request('gate.execute', { gates: ['finalization'], configuration: { externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Fixture post-integration verification' }] } }, 'finalize');
   // Provider transport is fixture-injected; the retained conductor observer has
   // separate origin/chain/ancestry tests against its real validation mechanics.
   f.core.runtime.observeRelease = async request => ({ observedInputFingerprint: request.input.inputFingerprint,
@@ -396,7 +396,7 @@ test('policy amendment is explicit and cannot waive integrity or authority', asy
 
 test('runner source mutation remains unavailable and never produces reusable passing proof', async t => {
   const f = await fixture(t); await authorize(f); await candidate(f);
-  const result = await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [{ repository: 'app', command: process.execPath, args: ['-e', "require('fs').writeFileSync('app.js', 'changed')"], purpose: 'Mutation regression' }] } }, 'mutating-runner');
+  const result = await f.request('gate.execute', { gates: ['verification'], configuration: { externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', "require('fs').writeFileSync('app.js', 'changed')"], purpose: 'Mutation regression' }] } }, 'mutating-runner');
   assert.equal((await f.core.store.json(result.event.payload.results[0])).outcome, 'UNAVAILABLE');
   assert.equal((await f.request('milestone.check', { name: 'acceptance' })).allowed, false);
 });
@@ -651,7 +651,7 @@ test('host environment invalidates runner proof while isolated source review rem
   assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
   await f.request('spec.validate', {}, 'refresh-host-spec');
   assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
-  const declared = await f.request('gate.execute', { gates: ['verification'], configuration: { environmentKeys: [key], checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Declared environment' }] } }, 'declared-env');
+  const declared = await f.request('gate.execute', { gates: ['verification'], configuration: { environmentKeys: [key], externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Declared environment' }] } }, 'declared-env');
   process.env[key] = 'changed';
   await assert.rejects(f.core.currentResult(declared.event.payload.results[0], selected, (await f.core.state()).state), /environment changed/);
 });
@@ -744,7 +744,7 @@ test('changed closed findings need an independent relevance decision and affecte
 
 test('fresh proof recovers historical artifact loss without fabricating lost bytes', async t => {
   const f = await fixture(t); await authorize(f); await candidate(f);
-  const input = { gates: ['verification'], configuration: { checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'console.log(Date.now())'], purpose: 'Actual nonconstant runtime observation' }] } };
+  const input = { gates: ['verification'], configuration: { externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'console.log(Date.now())'], purpose: 'Actual nonconstant runtime observation' }] } };
   const first = await f.request('gate.execute', input, 'first-observation');
   const old = await f.core.store.json(first.event.payload.results[0]);
   const receipt = await f.core.store.json(old.artifacts[0]);
@@ -1078,7 +1078,7 @@ test('runner reuse binds the entire actual inherited environment without retaini
   t.after(() => { if (original === undefined) delete process.env[key]; else process.env[key] = original; });
   process.env[key] = 'pass-private-fixture-value';
   await f.request('spec.validate', {}, 'refresh-before-environment-pass');
-  const input = { gates: ['verification'], configuration: { checks: [{ repository: 'app', command: process.execPath,
+  const input = { gates: ['verification'], configuration: { externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath,
     args: ['-e', `process.exit(process.env.${key}.startsWith('pass') ? 0 : 1)`], purpose: 'Inherited environment affects outcome' }] } };
   const first = await f.request('gate.execute', input, 'environment-pass');
   const reference = first.event.payload.results[0];
@@ -1186,7 +1186,7 @@ test('review views expose regular Git modes at every current and prior endpoint'
 
 for (const exitCode of [0, 7]) test(`later runner preflight failure retains completed check output with exit ${exitCode}`, async t => {
   const f = await fixture(t); await authorize(f); await candidate(f);
-  const executed = await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [
+  const executed = await f.request('gate.execute', { gates: ['verification'], configuration: { externalRuntimeInputs: { app: [] }, checks: [
     { repository: 'app', command: process.execPath, args: ['-e', `console.log('retained-output'); console.error('retained-error'); process.exit(${exitCode})`], purpose: 'Check before later preflight failure' },
     { repository: 'unselected', command: process.execPath, args: [], purpose: 'Invalid later repository' },
   ] } }, 'partial-run');
@@ -1235,9 +1235,9 @@ for (const malformed of [undefined, '--version', [4]]) test(`corrected runner co
   const f = await fixture(t); await authorize(f); await candidate(f);
   const check = { repository: 'app', command: process.execPath, purpose: 'Run Node version' };
   if (malformed !== undefined) check.args = malformed;
-  const failed = await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [check] } }, 'malformed-check');
+  const failed = await f.request('gate.execute', { gates: ['verification'], configuration: { externalRuntimeInputs: { app: [] }, checks: [check] } }, 'malformed-check');
   assert.equal((await f.core.store.json(failed.event.payload.results[0])).outcome, 'UNAVAILABLE');
-  const corrected = await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [{ ...check, args: ['--version'] }] } }, 'corrected-check');
+  const corrected = await f.request('gate.execute', { gates: ['verification'], configuration: { externalRuntimeInputs: { app: [] }, checks: [{ ...check, args: ['--version'] }] } }, 'corrected-check');
   assert.equal((await f.core.store.json(corrected.event.payload.results[0])).outcome, 'PASS');
   const acceptance = await f.request('milestone.check', { name: 'acceptance' });
   assert.equal(acceptance.outcomes.find(item => item.id === 'verification').satisfied, true);
@@ -1350,7 +1350,7 @@ for (const race of ['after-pending', 'after-validation']) test(`decision passage
 // These requests cross the same public gate boundary as normal orchestration.
 test('unrecorded copied PASS cannot supply verification or delta ancestry', async t => {
   const f = await fixture(t); await authorize(f); await candidate(f); const launches = fakeEvaluator(f);
-  const unavailable = await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [] } }, 'empty-runner');
+  const unavailable = await f.request('gate.execute', { gates: ['verification'], configuration: { externalRuntimeInputs: { app: [] }, checks: [] } }, 'empty-runner');
   const raw = await f.core.store.json(unavailable.event.payload.results[0]);
   const invented = await f.core.store.putJson({ ...raw, outcome: 'PASS', summary: 'Invented', runner: null });
   await assert.rejects(f.request('gate.execute', { gates: ['spec'], consumed: [invented], configuration: { provider: 'codex', model: 'fixture' } }, 'forged-consumed'), /not recorded/);
@@ -1405,7 +1405,7 @@ test('finding-scoped exceptions cannot absorb other findings and runner exceptio
     process.env[key] = 'different';
     assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'verification').satisfied, false);
   } finally { if (prior === undefined) delete process.env[key]; else process.env[key] = prior; }
-  await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(2)'], purpose: 'Different risk' }] } }, 'changed-runner');
+  await f.request('gate.execute', { gates: ['verification'], configuration: { externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(2)'], purpose: 'Different risk' }] } }, 'changed-runner');
   assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'verification').satisfied, false);
 });
 
@@ -1448,7 +1448,7 @@ test('independent-gate exception binds consumed runner risk transitively', async
 test('exception risk detects expired consumed proof and changed pattern or triage inputs', async t => {
   const f = await fixture(t); await authorize(f); await candidate(f);
   const realNow = Date.now, deadline = realNow() + 60000;
-  await f.request('gate.execute', { gates: ['verification'], configuration: { validUntil: new Date(deadline).toISOString(), checks: [{ repository: 'app', command: process.execPath, args: ['--version'], purpose: 'Timed observation' }] } }, 'timed-check');
+  await f.request('gate.execute', { gates: ['verification'], configuration: { validUntil: new Date(deadline).toISOString(), externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['--version'], purpose: 'Timed observation' }] } }, 'timed-check');
   fakeEvaluator(f, { blocking: true });
   await f.request('gate.execute', { gates: ['spec'], configuration: { provider: 'codex', model: 'fixture' } }, 'timed-spec');
   const subject = (await f.core.state()).state.candidate.hash;
@@ -1492,7 +1492,7 @@ for (const drift of ['environment', 'expiry']) test(`stale newer finding cannot 
   const state = (await f.core.state()).state;
   const original = (await f.core.inventory(state, await f.core.store.json(state.candidate))).find(x => x.gate === 'code').reference;
   const realNow = Date.now, deadline = realNow() + 60000;
-  const configuration = { validUntil: new Date(deadline).toISOString(), checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Bound observation' }] };
+  const configuration = { validUntil: new Date(deadline).toISOString(), externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Bound observation' }] };
   const verification = await f.request('gate.execute', { gates: ['verification'], configuration }, 'newer-verification');
   fakeEvaluator(f, { blocking: true });
   await f.request('gate.execute', { gates: ['code'], consumed: verification.event.payload.results, configuration: { provider: 'codex', model: 'fixture' } }, 'newer-code-failure');
@@ -2193,4 +2193,115 @@ for (const path of ['checkpoint.md', '.CHECKPOINTS/checkpoint-2026-10-23.md', '.
   };
   const completed = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } }, 'case-alias-review');
   assert.equal((await f.core.store.json(completed.event.payload.results[0])).outcome, 'PASS');
+});
+
+
+// Real subprocess regressions for external runner input and exception scope.
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+const execute=promisify(execFile);
+const actualExit=async(command,args,cwd)=>{try{await execute(command,args,{cwd});return 0;}catch(e){return e.code;}};
+async function externalRunnerFixture(t,kind,fail=false){
+ const f=await fixture(t);await authorize(f);await candidate(f);
+ const outside=join(f.root,'external-tools');await mkdir(outside);
+ let command=process.execPath,args=[],mutation;
+ const script=join(outside,'check.cjs');
+ if(kind==='argument'){
+  await writeFile(script,`process.exit(${fail?1:0});\n`);args=[script];
+  mutation=()=>writeFile(script,'process.exit(7);\n');
+ }else if(kind==='library'){
+  command=join(outside,'launcher');await writeFile(command,`#!${process.execPath}\nrequire('./lib.cjs');\n`);await chmod(command,0o755);
+  const lib=join(outside,'lib.cjs');await writeFile(lib,'process.exit(0);\n');mutation=()=>writeFile(lib,'process.exit(7);\n');
+ }else{
+  const interpreter=join(outside,'interpreter');await symlink(process.execPath,interpreter);
+  command=join(outside,'launcher');await writeFile(command,`#!${interpreter}\nprocess.exit(0);\n`);await chmod(command,0o755);
+  mutation=async()=>{await rm(interpreter);await symlink('/bin/sh',interpreter);};
+ }
+ const configuration={externalRuntimeInputs:{app:[outside]},checks:[{repository:'app',command,args,purpose:`External ${kind} actual probe`}]};
+ const ran=await f.request('gate.execute',{gates:['verification'],configuration},'external-run');
+ return {...f,command,args,configuration,mutation,ran};
+}
+for(const kind of ['argument','library','shebang'])test(`actual ${kind} change invalidates retained PASS and reruns the check`,async t=>{
+ const f=await externalRunnerFixture(t,kind),ref=f.ran.event.payload.results[0];
+ assert.equal((await f.core.store.json(ref)).outcome,'PASS');
+ await f.mutation();const actual=await actualExit(f.command,f.args,f.repo);assert.notEqual(actual,0);
+ const state=(await f.core.state()).state,candidate=await f.core.store.json(state.candidate);
+ await assert.rejects(f.core.currentResult(ref,candidate,state), /environment changed/);
+ const reused=await f.request('gate.execute',{gates:['verification'],configuration:f.configuration},'external-repeat');assert.notEqual(reused.reused,true);assert.equal((await f.core.store.json(reused.event.payload.results[0])).outcome,'FAIL');
+});
+test('actual failed runner exception expires after changed external script',async t=>{
+ const f=await externalRunnerFixture(t,'argument',true);let state=(await f.core.state()).state;const candidate=await f.core.store.json(state.candidate);
+ assert.equal((await f.core.store.json(f.ran.event.payload.results[0])).outcome,'FAIL');
+ await f.request('human.decide',{kind:'waive',subject:state.candidate.hash,gates:['verification'],authority:human,reason:'Known failed external command',consequences:'Accept only this external script behavior'},'waive-external');
+ state=(await f.core.state()).state;const risk=await f.core.waiverRisk(state,candidate,'verification');
+ await f.mutation();assert.equal(await actualExit(f.command,f.args,f.repo),7);
+ assert.notEqual(await f.core.waiverRisk(state,candidate,'verification'),risk);
+ const row=(await f.core.check('acceptance')).outcomes.find(x=>x.id==='verification');assert.equal(row.satisfied,false);assert.equal(row.exception,null);
+});
+test('actual acceptance passage rejects old PASS after external script turns failing',async t=>{
+ const f=await externalRunnerFixture(t,'argument');await writeFile(join(f.home,'scratchpad.md'),'# No pending decisions\n');await f.request('candidate.ready',{},'ready');fakeEvaluator(f);
+ const verification=f.ran.event.payload.results,refs=[...verification];
+ for(const gate of ['context','reconcile','triage','code','spec','judge','pattern','explanation']){
+  const result=await f.request('gate.execute',{gates:[gate],consumed:['spec','judge'].includes(gate)?verification:[],configuration:['code','spec','judge','pattern','explanation'].includes(gate)?{provider:'codex',model:'fixture'}:{}},`g-${gate}`);refs.push(...result.event.payload.results);
+ }
+ await f.request('gate.execute',{gates:['packet'],consumed:refs},'packet');
+ const initial=await f.core.check('acceptance');assert.equal(initial.allowed,true,JSON.stringify(initial));await f.mutation();assert.equal(await actualExit(f.command,f.args,f.repo),7);
+ assert.equal((await f.core.check('acceptance')).allowed,false);
+ await assert.rejects(f.request('milestone.pass',{name:'acceptance'},'pass-after-external-drift'),/blocked/);
+ assert.equal((await f.core.state()).state.phase,'IMPLEMENTING');
+});
+test('consumed verification external drift also invalidates a spec waiver',async t=>{
+ const f=await externalRunnerFixture(t,'argument');fakeEvaluator(f,{outcome:'FAIL'});
+ await f.request('gate.execute',{gates:['spec'],consumed:f.ran.event.payload.results,configuration:{provider:'codex',model:'fixture'}},'failed-spec');
+ let state=(await f.core.state()).state;const candidate=await f.core.store.json(state.candidate);
+ await f.request('human.decide',{kind:'waive',subject:state.candidate.hash,gates:['spec'],authority:human,reason:'Known spec result with retained verification',consequences:'This verification runtime scope'},'waive-spec');
+ state=(await f.core.state()).state;const risk=await f.core.waiverRisk(state,candidate,'spec');
+ await f.mutation();assert.equal(await actualExit(f.command,f.args,f.repo),7);
+ assert.notEqual(await f.core.waiverRisk(state,candidate,'spec'),risk);
+ const row=(await f.core.check('acceptance')).outcomes.find(x=>x.id==='spec');assert.equal(row.satisfied,false);assert.equal(row.exception,null);
+});
+
+test('external input mutation during execution retains diagnostics but never current PASS', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const tools = join(f.root, 'external'); await mkdir(tools);
+  const marker = join(tools, 'input'); await writeFile(marker, 'before');
+  const ran = await f.request('gate.execute', { gates: ['verification'], configuration: {
+    externalRuntimeInputs: { app: [tools] }, checks: [{ repository: 'app', command: process.execPath,
+      args: ['-e', `require('fs').writeFileSync(${JSON.stringify(marker)}, 'after'); console.log('executed');`], purpose: 'Postflight external drift' }],
+  } }, 'external-mutating-check');
+  const report = await f.core.store.json(ran.event.payload.results[0]);
+  assert.equal(report.outcome, 'UNAVAILABLE');
+  assert.match(report.summary, /environment changed during checks/);
+  const receipt = await f.core.store.json(report.runner);
+  assert.equal(receipt.receipts.length, 1);
+  assert.match((await f.core.store.get(receipt.receipts[0].stdout)).toString(), /executed/);
+});
+
+test('loader environment preload drift invalidates actual runner proof', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const tools = join(f.root, 'loader'); await mkdir(tools); await writeFile(join(tools, 'package.json'), '{}');
+  const preload = join(tools, 'preload.cjs'); await writeFile(preload, 'process.exit(0)');
+  const previous = process.env.NODE_OPTIONS;
+  t.after(() => { if (previous === undefined) delete process.env.NODE_OPTIONS; else process.env.NODE_OPTIONS = previous; });
+  process.env.NODE_OPTIONS = `--require ${preload}`;
+  const ran = await runVerification(f);
+  assert.equal((await f.core.store.json(ran.event.payload.results[0])).outcome, 'PASS');
+  await writeFile(preload, 'process.exit(7)');
+  const state = (await f.core.state()).state, selected = await f.core.store.json(state.candidate);
+  await assert.rejects(f.core.currentResult(ran.event.payload.results[0], selected, state), /environment changed/);
+  const fresh = await runVerification(f, false, 'changed-preload');
+  assert.notEqual(fresh.reused, true);
+  assert.equal((await f.core.store.json(fresh.event.payload.results[0])).outcome, 'FAIL');
+});
+
+test('directory checks exclude only their trusted current evidence store', async t => {
+  const f = await fixture(t, { nested: false }); await authorize(f); await candidate(f);
+  const configuration = { externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath,
+    args: ['-e', 'process.exit(0)', '.'], purpose: 'Directory-scoped runner' }] };
+  const ran = await f.request('gate.execute', { gates: ['verification'], configuration }, 'directory-check');
+  assert.equal((await f.core.store.json(ran.event.payload.results[0])).outcome, 'PASS');
+  const state = (await f.core.state()).state, selected = await f.core.store.json(state.candidate);
+  assert.equal((await f.core.currentResult(ran.event.payload.results[0], selected, state)).outcome, 'PASS');
+  const unrelated = join(f.repo, '.gatereeve-current'); await mkdir(unrelated); await writeFile(join(unrelated, 'input'), 'relevant external directory');
+  await assert.rejects(f.core.currentResult(ran.event.payload.results[0], selected, state), /environment changed/);
 });

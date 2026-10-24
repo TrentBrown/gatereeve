@@ -101,3 +101,8 @@ Independent code/spec passed all21 rubric rows; native OpenAI Judge returned FAI
 ### Formal PR84 attempt 12
 
 Independent code/spec passed; native OpenAI Judge returned FAIL (17 PASS/4 FAIL) on85f8b36. Its original report is retained underpr-84/attempts/formal-pr84-12. Actual completion probes confirmed missing failed-validation evidence did not revoke earlier retention eligibility. The installed core returned the slice to implementation. [Twelfth repair claims](verification/formal-pr84-remediation-12.md) describe live closure admission and binding later failed-validation obligations. Formal passage remains pending.
+
+
+### Formal PR84 attempts 13–15
+
+Formal13 native Judge found native/Desktop helper and interpreter parity failures; repair13 rebuilt and exercised an established packaged workflow. Formal14 Verification retained an obsolete test-assertion failure and returned to remediation; the corrected complete test plus related controls passed, with the original broad run retained separately. Formal15 independent code/spec passed; the separate native OpenAI Judge returned FAIL (18 PASS/3 FAIL) for external runner dependency identity and exception-risk omissions. All original reports remain immutable. The installed core returned the slice to implementation before [fifteenth repair](verification/formal-pr84-remediation-15.md). Fresh broad verification and formal assessment remain pending; PR84 stays closed.
