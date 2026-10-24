@@ -1442,7 +1442,7 @@ test('independent-gate exception binds consumed runner risk transitively', async
     const result = (await f.core.check('acceptance')).outcomes.find(x => x.id === 'spec');
     assert.equal(result.outcome, 'UNAVAILABLE'); assert.equal(result.satisfied, false); assert.equal(result.exception, null);
   } finally { if (prior === undefined) delete process.env[key]; else process.env[key] = prior; }
-  await assert.rejects(f.request('human.decide', { kind: 'waive', subject, gates: ['spec'], scope: 'unsupported narrowing', authority: human, reason: 'Named risk', consequences: 'Known' }), /Unsupported decision field/);
+  await assert.rejects(f.request('human.decide', { kind: 'waive', subject, gates: ['spec'], scope: 'unsupported narrowing', authority: human, reason: 'Named risk', consequences: 'Known' }), /Scope is only supported on a standing grant/);
 });
 
 test('exception risk detects expired consumed proof and changed pattern or triage inputs', async t => {
