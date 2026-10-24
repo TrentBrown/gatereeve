@@ -249,3 +249,15 @@ block subsequent use. Feature completion still requires actual integration and
 all completion obligations. This grant never authorizes deployment or publishing.
 Open drafts remain default; clients can explicitly select closed drafts through
 `keepPullRequestsClosed: true` in repository configuration.
+
+### Preserved exception policy
+
+An explanation exception requires an explicit `policy-amend` decision naming
+`explanation`; an ordinary waiver cannot bypass it. Enabled Whiteboard ordinarily
+allows only an observed human `NON_BEHAVIORAL` classification with retained evidence.
+Supply `--waiver-basis basis.json` with `{"classification":"NON_BEHAVIORAL",
+"evidence":<retained-artifact-reference>}` on the Whiteboard waiver. Missing or altered
+basis bytes block its use. A behavioral Whiteboard exception requires an explicit
+`policy-amend` naming `whiteboard`. Neither policy amendment can waive integrity,
+factual truth or action authority. Requirement amendments supersede old direct
+approvals and candidate authority even if earlier document bytes are restored.

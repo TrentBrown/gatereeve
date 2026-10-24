@@ -93,7 +93,7 @@ export function currentCommands() {
     history: options.history ? await readJsonFile(options.history) : [],
     ...(options.prior ? { prior: await readJsonFile(options.prior) } : {}) }));
   const decide = command('decide', 'Record one concrete observed human instruction')
-    .argument('<kind>', 'approve-design, authorize-implementation, accept, waive, amend, authorize-merge, authorize-standing, revoke-standing')
+    .argument('<kind>', 'approve-design, authorize-implementation, accept, waive, amend, policy-amend, authorize-merge, authorize-standing, revoke-standing')
     .requiredOption('--subject <hash>', 'Exact document, commitment or candidate identity')
     .requiredOption('--instruction <quote>', 'Observed human instruction')
     .requiredOption('--context <text>', 'Proposal/conversation context')
@@ -105,6 +105,7 @@ export function currentCommands() {
     .option('--gate <id>', 'Named gate waived', collect, [])
     .option('--action <file>', 'Prepared merge action')
     .option('--scope <file>', 'Explicit standing authorization scope (authorize-standing only)')
+    .option('--waiver-basis <file>', 'Whiteboard NON_BEHAVIORAL classification and retained evidence reference')
     .option('--previous-subject <hash>', 'Prior commitments for an amendment');
   decide.action(async (kind, options) => run(options, 'human.decide', { kind, subject: options.subject,
     authority: { kind: 'human-confirmed', instruction: options.instruction, context: options.context, ...(options.messageId ? { messageId: options.messageId } : {}), ...(options.conversationId ? { conversationId: options.conversationId } : {}) },
@@ -112,6 +113,7 @@ export function currentCommands() {
     ...(['waive', 'policy-amend'].includes(kind) ? { gates: options.gate } : {}),
     ...(options.action ? { action: await readJsonFile(options.action) } : {}),
     ...(options.scope ? { scope: await readJsonFile(options.scope) } : {}),
+    ...(options.waiverBasis ? { waiverBasis: await readJsonFile(options.waiverBasis) } : {}),
     ...(options.previousSubject ? { previousSubject: options.previousSubject } : {}) }));
   const milestone = new Command('milestone').description('Check or record a protected milestone');
   for (const action of ['check', 'pass']) milestone.addCommand(command(action, `${action} a milestone`)

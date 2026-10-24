@@ -1,10 +1,9 @@
 import { realpath } from 'node:fs/promises';
-import { identity, requireThat, object, text, decisionHas } from './contracts.js';
+import { identity, requireThat, object, text, decisionHas, latestImplementation, currentAuthorityDecisions } from './contracts.js';
 import { git, checkCandidate } from './evidence.js';
 
 // Even a later amendment without implementation continuation invalidates a
 // grant. Reverting document bytes cannot revive authority from before it.
-const latestImplementation = state => state.decisions.findLast(item => decisionHas(item, 'authorize-implementation') || item.kind === 'amend');
 const branchMatches = (branch, prefix) => branch === prefix || branch.startsWith(`${prefix}-`);
 export function requireUnexpired(grant) {
   requireThat(grant.scope.expiresAt === null || Date.parse(grant.scope.expiresAt) > Date.now(), 'Standing grant has expired');
@@ -137,7 +136,7 @@ export async function applyStanding(core, input, operation) {
 }
 export async function qualifyingDecisions(core, state, kind, subject, candidate) {
   const decisions = [];
-  for (const item of state.decisions) {
+  for (const item of currentAuthorityDecisions(state)) {
     if (!decisionHas(item, kind) || item.subject !== subject) continue;
     if (item.standingGrant) {
       const grant = state.decisions.find(entry => entry.event === item.standingGrant);

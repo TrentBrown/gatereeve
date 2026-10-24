@@ -57,7 +57,7 @@ Record one concrete human decision with its actual quote/context and available
 provenance. It may cover multiple expressly named actions. Do not ask again for
 the same unchanged authorization. Waivers retain FAIL/UNAVAILABLE and accepted
 risk separately. Amendments retain old/new requirements and refresh affected
-proof. Integrity, truth and authority cannot be waived. Merge/deploy/release
+proof. The latest amendment supersedes old direct approvals even after a byte rollback. Explanation exceptions require an explicit policy amendment; enabled Whiteboard ordinarily requires an explicit non-behavioral classification with retained evidence. Integrity, truth and authority cannot be waived. Merge/deploy/release
 permission must be explicit; implementation approval does not imply them.
 
 ## Current resumption and reporting

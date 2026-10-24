@@ -4,7 +4,7 @@ import { executionEnvironment } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
 import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, requireThat, identity,
-  identifier, text, decision, gate, authority, decisionHas, waiverFor } from './contracts.js';
+  identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, contentIdentity } from './evidence.js';
 import { runTrustedPythonGuard, assertTrustedPythonProof, trustedPythonBinding } from '../python-guards.js';
@@ -56,7 +56,11 @@ function enabled(state, at) {
   return GATES.filter(item => item.at === at && (!item.optional || state.optionalGates.includes(item.id)));
 }
 function findDecision(state, kind, subject) {
-  return state.decisions.findLast(item => decisionHas(item, kind) && item.subject === subject);
+  if (kind === 'authorize-implementation') {
+    const latest = latestImplementation(state);
+    return latest && decisionHas(latest, kind) && latest.subject === subject ? latest : null;
+  }
+  return currentAuthorityDecisions(state).findLast(item => decisionHas(item, kind) && item.subject === subject);
 }
 export class CurrentCore {
   constructor(context, store, runtime = {}) {
@@ -189,7 +193,7 @@ export class CurrentCore {
     } else if (value.kind === 'authorize-implementation') {
       const current = await this.commitments();
       requireThat(state.phase === 'PLANNING' && state.specValidation, 'Validate specification before implementation authorization');
-      requireThat(findDecision(state, 'approve-design', current.docs['design.md'].hash) || state.decisions.findLast(item => item.kind === 'amend' && item.approvedDesign?.hash === current.docs['design.md'].hash), 'Design approval is not current');
+      requireThat(currentDesignApproval(state, current.docs['design.md'].hash), 'Design approval is not current');
       requireThat(state.specValidation.spec.hash === current.docs['spec.md'].hash && state.specValidation.design.hash === current.docs['design.md'].hash,
         'Specification validation is not current');
       await assertTrustedPythonProof(await this.store.json(state.specValidation.proof), this.runtime.pythonGuardOptions);
@@ -198,7 +202,7 @@ export class CurrentCore {
     } else if (value.kind === 'amend') {
       const current = await this.commitments();
       requireThat(value.subject === current.subject, 'Amendment must bind the new commitments');
-      const previous = state.decisions.findLast(item => item.documents && decisionHas(item, 'authorize-implementation'));
+      const previous = latestImplementation(state);
       requireThat(previous && input.previousSubject === previous.subject, 'Amendment must identify the prior authorized commitments');
       value.previousSubject = previous.subject;
       value.previousDocuments = previous.documents;
@@ -232,7 +236,10 @@ export class CurrentCore {
         }
         requireThat(pending || !value.findings || value.findings.every(id => known.has(id)), 'Finding exception must identify current blocking findings');
       }
-      if (value.kind === 'waive') for (const id of value.gates) requireThat(gate(id).waivable || state.decisions.some(item => item.kind === 'policy-amend' && item.subject === value.subject && item.gates.includes(id)), `${id} requires a policy amendment, not a waiver`);
+      if (value.waiverBasis) await this.store.get(value.waiverBasis.evidence);
+      if (value.kind === 'waive') for (const id of value.gates) requireThat(
+        waiverPolicyAllows(state, id, value.subject, value.applicability, value.waiverBasis),
+        `${id} requires a policy amendment or its permitted waiver basis`);
       state = await this.pendingDecision(value, operation, state);
       const proposed = { ...state, decisions: [...state.decisions, value] };
       if (decisionHas(value, 'accept')) requireThat((await this.check('acceptance', proposed)).allowed, 'Required review proof is missing');
@@ -248,8 +255,7 @@ export class CurrentCore {
     const current = await this.commitments();
     requireThat(['SPECIFYING', 'PLANNING'].includes(state.phase) || (state.phase !== 'COMPLETE' && findDecision(state, 'authorize-implementation', current.subject)), 'Specification validation is not available without current planning or implementation authority');
     const docs = await requirements(this.store);
-    const approval = findDecision(state, 'approve-design', docs['design.md'].hash)
-      ?? state.decisions.findLast(item => item.kind === 'amend' && item.approvedDesign?.hash === docs['design.md'].hash);
+    const approval = currentDesignApproval(state, docs['design.md'].hash);
     requireThat(approval, 'Current design approval is required');
     const proof = await this.specProof(docs, operation, state);
     for (const ref of Object.values(docs)) await this.store.currentBytes(ref);
@@ -496,6 +502,8 @@ export class CurrentCore {
       requireThat(state.candidate, 'current candidate');
       candidate = await checkCandidate(this.store, this.context, state.candidate, { live: name !== 'completion' });
       requireThat(candidate.authorization.subject === current?.subject, 'Candidate commitments differ from current authorized requirements');
+      requireThat(candidate.authorization.event === findDecision(state, 'authorize-implementation', current?.subject)?.event,
+        'Candidate implementation authorization was superseded');
     } catch (error) { missing.push(error.message); }
     if (name !== 'completion' && !state.ready) missing.push('candidate readiness declaration');
     const outcomes = [];
@@ -516,8 +524,9 @@ export class CurrentCore {
       let waiver = null;
       if (candidate && state.decisions.some(item => decisionHas(item, 'waive') && item.gates.includes(definition.id))) {
         try { waiver = waiverFor(state, definition.id, state.candidate?.hash, contentIdentity(candidate),
-          await this.waiverRisk(state, candidate, definition.id), accepted); }
-        catch (failure) { error = `Exception scope is unavailable: ${failure.message}`; }
+          await this.waiverRisk(state, candidate, definition.id), accepted);
+          if (waiver?.waiverBasis) await this.store.get(waiver.waiverBasis.evidence); }
+        catch (failure) { waiver = null; error = `Exception scope is unavailable: ${failure.message}`; }
       }
       const satisfied = accepted?.outcome === 'PASS' || waiver;
       if (!satisfied) missing.push(`${definition.id}: ${accepted?.outcome ?? error ?? 'missing evidence'}`);

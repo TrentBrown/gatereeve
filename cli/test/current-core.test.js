@@ -9,7 +9,7 @@ import { identity } from '../../plugin-src/shared/resources/protocol/current/con
 import { git } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
 
 const human = { kind: 'human-confirmed', instruction: 'Approve the named scope.', context: 'test user conversation' };
-async function fixture(t, { nested = true } = {}) {
+async function fixture(t, { nested = true, optionalGates = [] } = {}) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'gatereeve-current-')));
   t.after(() => rm(root, { recursive: true, force: true }));
   const repo = nested ? join(root, 'app') : root;
@@ -33,7 +33,7 @@ async function fixture(t, { nested = true } = {}) {
   const context = { featureId: 'feature', featureHome: home, workspaceRoot: root, repositories: [{ alias: 'app', path: repo, featureBaseSha: head }] };
   const core = await CurrentCore.at(context);
   const request = (operation, input = {}, operationId) => core.execute({ operation, input, operationId });
-  await request('run.start', { runId: 'run-one', implementers: ['implementer-one'] }, 'start-one');
+  await request('run.start', { runId: 'run-one', implementers: ['implementer-one'], optionalGates }, 'start-one');
   return { root, repo, home, head, context, core, request };
 }
 async function authorize(f) {
@@ -2524,4 +2524,87 @@ test('integration observation uses discovered Python and Git with an empty GUI P
     const observed = await f.request('integration.observe', { repository: 'app' });
     assert.equal(observed.state.integrations.app.integrationSha, f.head);
   } finally { process.env.PATH = before; }
+});
+
+test('amendment rollback cannot revive direct planning or candidate authority', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); await reviewAll(f);
+  const original = (await f.core.state()).state;
+  const design = await readFile(join(f.home, 'design.md'));
+  const prior = (await f.core.commitments()).subject;
+  await writeFile(join(f.home, 'design.md'), Buffer.concat([design, Buffer.from('\nApproved change B.\n')]));
+  const next = (await f.core.commitments()).subject;
+  await f.request('human.decide', { kind: 'amend', subject: next, previousSubject: prior, authority: human,
+    reason: 'Approve B only', consequences: 'No implementation continuation' }, 'amend-B');
+  await writeFile(join(f.home, 'design.md'), design);
+  await assert.rejects(f.request('spec.validate', {}, 'restore-A'), /Current design approval/);
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, false);
+  await assert.rejects(f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head: f.head }], scope: 'FEATURE', criteria: ['R1'] }), /implementation authority/);
+  const amended = (await f.core.state()).state;
+  const { qualifyingDecisions } = await import('../../plugin-src/shared/resources/protocol/current/authorization.js');
+  const oldCandidate = await f.core.store.json(original.candidate);
+  assert.deepEqual(await qualifyingDecisions(f.core, amended, 'accept', original.candidate.hash, oldCandidate), []);
+  // An explicit rollback is a new commitment decision, not historical revival.
+  await f.request('human.decide', { kind: 'amend', actions: ['authorize-implementation'], subject: prior,
+    previousSubject: next, authority: human, reason: 'Explicitly restore A', consequences: 'Renew candidate authority' }, 'explicit-A');
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
+  assert.match((await f.request('milestone.check', { name: 'acceptance' })).missing.join('; '), /superseded/);
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head: f.head }], scope: 'FEATURE', criteria: ['R1'] }, 'new-A');
+  const restored = (await f.core.state()).state;
+  assert.notEqual(restored.candidate.hash, original.candidate.hash);
+  assert.ok((await f.request('milestone.check', { name: 'merge' })).missing.includes('current human acceptance'));
+});
+
+test('superseded direct merge decisions and exceptions do not revive with equivalent content', async () => {
+  const { qualifyingDecisions } = await import('../../plugin-src/shared/resources/protocol/current/authorization.js');
+  const { waiverFor } = await import('../../plugin-src/shared/resources/protocol/current/contracts.js');
+  const subject = identity('candidate'), applicability = identity('same bytes'), risk = identity('same risk');
+  const state = { decisions: [
+    { kind: 'authorize-implementation', event: 'approval-A' },
+    { kind: 'accept', subject, actions: ['authorize-merge'], event: 'direct' },
+    { kind: 'waive', subject, applicability, gates: ['verification'], risks: { verification: risk } },
+    { kind: 'amend', event: 'B' },
+    { kind: 'amend', actions: ['authorize-implementation'], event: 'explicit-A' },
+  ] };
+  assert.deepEqual(await qualifyingDecisions({}, state, 'authorize-merge', subject, {}), []);
+  assert.equal(waiverFor(state, 'verification', subject, applicability, risk), null);
+  state.decisions.push({ kind: 'accept', subject, actions: ['authorize-merge'], event: 'fresh-direct' });
+  assert.equal((await qualifyingDecisions({}, state, 'authorize-merge', subject, {}))[0].event, 'fresh-direct');
+});
+
+test('explanation requires an explicit policy amendment instead of an ordinary waiver', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const subject = (await f.core.state()).state.candidate.hash;
+  const input = { kind: 'waive', subject, gates: ['explanation'], authority: human, reason: 'Named exception', consequences: 'Explanation remains unavailable' };
+  await assert.rejects(f.request('human.decide', input), /policy amendment/);
+  await f.request('human.decide', { ...input, kind: 'policy-amend', actions: ['waive'] }, 'explicit-explanation-policy');
+  const outcome = (await f.request('milestone.check', { name: 'acceptance' })).outcomes.find(row => row.id === 'explanation');
+  assert.equal(outcome.outcome, 'UNAVAILABLE'); assert.equal(outcome.satisfied, true);
+  await assert.rejects(f.request('human.decide', { ...input, kind: 'policy-amend', actions: ['waive'], gates: ['context'] }), /cannot waive/);
+});
+
+test('Whiteboard waiver requires retained non-behavioral basis or explicit policy amendment', async t => {
+  const f = await fixture(t, { optionalGates: ['whiteboard'] }); await authorize(f); await candidate(f);
+  const subject = (await f.core.state()).state.candidate.hash;
+  const input = { kind: 'waive', subject, gates: ['whiteboard'], authority: human, reason: 'Non-behavioral change only', consequences: 'Whiteboard not performed' };
+  await assert.rejects(f.request('human.decide', input), /waiver basis/);
+  const evidence = await f.core.store.put(Buffer.from('Human classifies this exact candidate as non-behavioral; source unchanged.'));
+  await assert.rejects(f.request('human.decide', { ...input, waiverBasis: { classification: 'BEHAVIORAL', evidence } }), /non-behavioral/);
+  await f.request('human.decide', { ...input, waiverBasis: { classification: 'NON_BEHAVIORAL', evidence } }, 'whiteboard-basis');
+  let outcome = (await f.request('milestone.check', { name: 'acceptance' })).outcomes.find(row => row.id === 'whiteboard');
+  assert.equal(outcome.outcome, 'UNAVAILABLE'); assert.equal(outcome.satisfied, true);
+  await rm(join(f.home, '.gatereeve-current/objects', evidence.hash.slice(7)));
+  const missingBasis = await f.request('milestone.check', { name: 'acceptance' });
+  assert.equal(missingBasis.allowed, false);
+  assert.equal(missingBasis.outcomes.find(row => row.id === 'whiteboard').satisfied, false);
+});
+
+test('behavioral Whiteboard exception requires a named policy amendment', async t => {
+  const f = await fixture(t, { optionalGates: ['whiteboard'] }); await authorize(f);
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 43;\n'); await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'behavioral']); f.head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await candidate(f); const subject = (await f.core.state()).state.candidate.hash;
+  const input = { kind: 'waive', subject, gates: ['whiteboard'], authority: human, reason: 'Explicit behavioral exception', consequences: 'Required Whiteboard unavailable' };
+  await assert.rejects(f.request('human.decide', input), /waiver basis/);
+  await f.request('human.decide', { ...input, kind: 'policy-amend', actions: ['waive'] }, 'whiteboard-policy');
+  const outcome = (await f.request('milestone.check', { name: 'acceptance' })).outcomes.find(row => row.id === 'whiteboard');
+  assert.equal(outcome.satisfied, true); assert.equal(outcome.exception.kind, 'policy-amend');
 });

@@ -63,14 +63,13 @@ rules, blocking findings and live runtime assumptions, including consumed proof
 transitively, external expiry, current pattern policy, support documents and integration state. Changed risk needs a new scoped decision. An interrupted decision
 retains its original risk scope; repeating it never expands that authority.
 Unknown decision fields are rejected rather than silently ignored.
-An amendment names `previousSubject`; old/new documents remain retained. If the
+An amendment names the latest commitment decision in `previousSubject`; old/new documents remain retained. It supersedes earlier direct planning, candidate acceptance, merge authority and exceptions even when old bytes return. If the
 same instruction expressly authorizes implementation, use
 `actions: ["authorize-implementation"]`; the core revalidates the amended spec.
 A waiver can include `actions: ["accept","authorize-merge"]` only when the quote
 expressly includes those actions and `action` is the exact prepared merge object.
 No action is inferred from a risk acceptance. Explicit policy amendments can
-change reconciliation/triage exception policy for this candidate; integrity,
-factual truth and actual authority cannot be waived.
+change named reconciliation, triage, explanation or Whiteboard exception policy for this candidate; integrity, factual truth and actual authority cannot be waived. Explanation requires such a policy amendment. An ordinary enabled-Whiteboard waiver requires `waiverBasis: { classification: "NON_BEHAVIORAL", evidence: <retained reference> }` from the observed human decision. The basis bytes must remain intact. Behavioral or unknown changes require an explicit Whiteboard policy amendment instead.
 
 Trusted spec, issue and tracker validation binds the shipped helper files, the
 isolated Python interpreter and loaded standard-library source/cache bytes,

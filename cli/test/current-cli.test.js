@@ -62,3 +62,18 @@ test('CLI records and revokes standing authority through the native core and fai
   assert.equal(revoked.ok, true);
   assert.match(JSON.parse((await invoke('status')).stdout).data.current.standingAuthorizations[0].reason, /revoked/);
 });
+
+test('CLI preserves constrained Whiteboard waiver basis and explanation policy amendment', async t => {
+  const f = await currentFixture(t); await establishCurrentRun(f.core);
+  const subject = (await f.core.state()).state.candidate.hash;
+  const evidence = await f.core.store.put(Buffer.from('Observed human non-behavioral classification for this exact candidate.'));
+  const basis = join(f.root, 'basis.json');
+  await writeFile(basis, JSON.stringify({ classification: 'NON_BEHAVIORAL', evidence }));
+  const common = ['--subject', subject, '--instruction', 'Apply this named policy exception.', '--context', 'Fixture user decision', '--reason', 'Explicit exception', '--consequences', 'Gate remains unavailable', '--cwd', f.repo, '--json'];
+  const invoke = (...args) => exec(process.execPath, [cli, 'decide', ...args, ...common]);
+  await assert.rejects(invoke('waive', '--gate', 'whiteboard'), error => { assert.match(JSON.parse(error.stdout).error.message, /waiver basis/); return true; });
+  const result = JSON.parse((await invoke('waive', '--gate', 'whiteboard', '--waiver-basis', basis)).stdout);
+  assert.equal(result.ok, true); assert.deepEqual(result.data.event.payload.waiverBasis.evidence, evidence);
+  await assert.rejects(invoke('waive', '--gate', 'explanation'), error => { assert.match(JSON.parse(error.stdout).error.message, /policy amendment/); return true; });
+  assert.equal(JSON.parse((await invoke('policy-amend', '--gate', 'explanation', '--continue-with', 'waive')).stdout).ok, true);
+});
