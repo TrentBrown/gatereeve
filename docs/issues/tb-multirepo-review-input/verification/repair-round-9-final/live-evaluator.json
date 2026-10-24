@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "result": {
+      "artifacts": [
+        {
+          "bytes": 1301,
+          "format": "json",
+          "hash": "sha256:d26a5de9673f8d17244c0f79d8ab3445a7c24e689bcc7dbbc8adc708c0c97580"
+        },
+        {
+          "bytes": 709,
+          "format": "json",
+          "hash": "sha256:9f39dbd641e5ac8799dd262c8bd6ef438bd246e1d624240546166e4914862245"
+        }
+      ],
+      "contract": "gatereeve/current/3",
+      "coverage": {
+        "complete": true,
+        "interactions": [
+          "Compared complete base/head/target source: app/app.js:1 exports const answer = 42, consistent with approved R1/AC1. No imports, consumers or cross-repository interactions exist in the supplied scope.",
+          "Verified retained metadata records app.js as a regular file with mode 100644 at base, head and target."
+        ],
+        "limitations": [],
+        "paths": [
+          "app/app.js"
+        ]
+      },
+      "criteria": [],
+      "dispositions": [],
+      "featureId": "feature",
+      "findings": [],
+      "gate": "code",
+      "historyAssessment": null,
+      "input": {
+        "bytes": 598,
+        "format": "json",
+        "hash": "sha256:5b3b4dd2a74d991db7547d5b3b81ced8e1058f1ae64f784c7256143a9db69ce3"
+      },
+      "kind": "result",
+      "mode": "full",
+      "outcome": "PASS",
+      "prior": null,
+      "priorCandidate": null,
+      "receipt": {
+        "bytes": 693,
+        "format": "json",
+        "hash": "sha256:68b8b98f82c58153a447c7aeb620643818f82a46e10b510893ae527b043dc512"
+      },
+      "runId": "run-one",
+      "summary": "Base, head and target contain identical source and retained file modes. No supported correctness, security or regression defects were found. Runtime tests were not supplied or executed."
+    },
+    "receipt": {
+      "completedAt": "2026-10-24T04:14:35.656Z",
+      "contract": "gatereeve/current/3",
+      "evaluator": {
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "contextId": "01a16c1d-cb27-7103-b23c-86330705e164",
+        "freshContext": true,
+        "inheritedTurns": 0,
+        "model": "gpt-6.1-sol",
+        "provider": "codex",
+        "reasoningEffort": "high"
+      },
+      "gates": [
+        "code"
+      ],
+      "input": "sha256:5b3b4dd2a74d991db7547d5b3b81ced8e1058f1ae64f784c7256143a9db69ce3",
+      "jobId": "d01f21c80fbc71aefdf99cfdf07d24d075cc67fe72548332a4fb1f5ea7d97cf8",
+      "kind": "execution",
+      "metrics": {
+        "cost": null,
+        "tokens": {
+          "cacheCreation": null,
+          "cachedInput": 73728,
+          "input": 83365,
+          "output": 448
+        }
+      },
+      "role": "independent",
+      "runId": "run-one",
+      "startedAt": "2026-10-24T04:14:14.171Z"
+    },
+    "providerReceipts": [
+      {
+        "attemptId": "sha256:5b3b4dd2a74d991db7547d5b3b81ced8e1058f1ae64f784c7256143a9db69ce3",
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "completedAt": "2026-10-24T04:14:35.625Z",
+        "digests": {
+          "input": "sha256:37a29da0653e4b3734d839fb6e9b64de7c8a8c031a91d4441d011b3d35b1f81d",
+          "instructions": "sha256:7a40ac53bc9304c001ac034fe748826666a3cb674c0eea55200bb2e26af3c20d",
+          "output": "sha256:d4b38c1e4503b55a8ec852f35d883c276d190c98c98768ae1241f33204e136b8",
+          "snapshot": "sha256:92969e96d1166aa11a1b9fc12a6d6db78fe0ae976102530363a4eeeac2f9b9da"
+        },
+        "isolation": {
+          "freshContext": true,
+          "inheritedTurns": 0,
+          "method": "codex-ephemeral-exec"
+        },
+        "kind": "gatereeve-agent-workflow-receipt",
+        "metrics": {
+          "cost": null,
+          "tokens": {
+            "cacheCreation": null,
+            "cachedInput": 73728,
+            "input": 83365,
+            "output": 448
+          }
+        },
+        "module": {
+          "digest": "sha256:32b8b34fd4596ec54196f45ae537e29e81982f56a6079d8ecd4d08c57cdb1abd",
+          "id": "gatereeve/current-review",
+          "version": "2.0.0"
+        },
+        "policy": {
+          "networkAccess": "deny",
+          "repositoryAccess": "read-only",
+          "scratch": "isolated"
+        },
+        "protocolVersion": "2.1.0",
+        "provider": {
+          "adapterVersion": "1.0.0",
+          "contextId": "01a16c1d-cb27-7103-b23c-86330705e164",
+          "id": "codex",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "high"
+        },
+        "runId": "run-one",
+        "schemaVersion": 1,
+        "stage": "review",
+        "startedAt": "2026-10-24T04:14:14.175Z",
+        "status": "completed"
+      },
+      {
+        "verdicts": [
+          {
+            "coverage": {
+              "complete": true,
+              "interactions": [
+                "Compared complete base/head/target source: app/app.js:1 exports const answer = 42, consistent with approved R1/AC1. No imports, consumers or cross-repository interactions exist in the supplied scope.",
+                "Verified retained metadata records app.js as a regular file with mode 100644 at base, head and target."
+              ],
+              "limitations": [],
+              "paths": [
+                "app/app.js"
+              ]
+            },
+            "criteria": [],
+            "dispositions": [],
+            "findings": [],
+            "gate": "code",
+            "historyAssessment": null,
+            "outcome": "PASS",
+            "summary": "Base, head and target contain identical source and retained file modes. No supported correctness, security or regression defects were found. Runtime tests were not supplied or executed."
+          }
+        ]
+      }
+    ]
+  }
+}

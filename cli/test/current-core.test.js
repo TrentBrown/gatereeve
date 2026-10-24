@@ -1852,13 +1852,23 @@ test('validator postflight drift retains executed diagnostics and rejects unboun
   assert.match(unbound.stderr, /unbound runtime dependency/);
 });
 
-for (const mode of ['replacement', 'same-run']) test(`late failed spec validation preserves newer authority in ${mode}`, async t => {
+for (const mode of ['replacement', 'same-run', 'pause']) for (const transport of ['core', 'public']) test(`late failed spec validation preserves newer authority in ${mode} through ${transport}`, async t => {
   const f = await fixture(t); await authorize(f);
+  await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app', integrationBranch: 'main' } } }));
+  const { executeCurrentRequest } = await import('../../plugin-src/shared/resources/protocol/current/adapter.js');
   const helperRoot = join(f.root, 'slow-helper'); await mkdir(helperRoot);
   const release = join(f.home, 'release-validator'), started = join(f.home, 'validator-started');
   await writeFile(join(helperRoot, 'lint_spec.py'), "from pathlib import Path\nimport sys, time\nhome=Path(sys.argv[1])\n(home/'validator-started').write_text('started')\nwhile not (home/'release-validator').exists():\n    time.sleep(0.02)\nprint('ORIGINAL-VALIDATOR-FAILED')\nraise SystemExit(1)\n");
   f.core.runtime.pythonGuardOptions = { helperRoot };
-  const running = f.request('spec.validate', {}, 'slow-old-validation').catch(error => ({ error: error.message, artifacts: error.artifacts ?? [] }));
+  const running = transport === 'core'
+    ? f.request('spec.validate', {}, 'slow-old-validation').catch(error => ({ error: error.message, artifacts: error.artifacts ?? [] }))
+    : executeCurrentRequest({ cwd: f.repo, operation: 'spec.validate', operationId: 'slow-old-validation' }, f.core.runtime).then(response => {
+      assert.equal(response.ok, false); assert.equal(response.error.code, 'CONTRACT_INVALID');
+      assert.equal(response.error.details.runId, 'run-one');
+      assert.equal(response.error.details.operationId, 'slow-old-validation');
+      assert.ok(!JSON.stringify(response).includes('ORIGINAL-VALIDATOR-FAILED'));
+      return { error: response.error.message, artifacts: response.error.details.retainedArtifacts };
+    });
   try {
     for (let i = 0; i < 250; i++) {
       try { await stat(started); break; }
@@ -1869,16 +1879,25 @@ for (const mode of ['replacement', 'same-run']) test(`late failed spec validatio
       for (const area of ['events', 'event-witnesses']) await writeFile(join(f.home, '.gatereeve-current/runs/run-one', area, '00000001.json'), '{}');
       await f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'replacement-start');
       await authorize(f);
-    } else await f.request('spec.validate', {}, 'newer-successful-validation');
+    } else if (mode === 'pause') await f.request('run.pause', { authority: human }, 'pause-during-validation');
+    else await f.request('spec.validate', {}, 'newer-successful-validation');
     const before = (await f.core.state()).state;
-    assert.equal((await f.core.check('implementation')).allowed, true);
+    assert.equal((await f.core.check('implementation')).allowed, mode !== 'pause');
     await writeFile(release, 'release');
     const completion = await running, { state } = await f.core.state();
-    assert.equal(state.specValidation.proof.hash, before.specValidation.proof.hash);
-    assert.equal(state.validationFailures.length, 0);
-    assert.equal(state.eventCount, before.eventCount);
-    assert.equal((await f.core.check('implementation')).allowed, true);
-    assert.match(completion.error, /original validation state changed/);
+    if (mode === 'pause') {
+      assert.equal(state.paused, true); assert.equal(state.specValidation, null);
+      assert.equal(state.validationFailures.length, 1); assert.equal(state.eventCount, before.eventCount + 1);
+      await f.request('run.continue', { authority: human }, 'continue-after-validation');
+      assert.equal((await f.core.check('implementation')).allowed, false);
+      await f.request('spec.validate', {}, 'refresh-after-failure');
+      assert.equal((await f.core.check('implementation')).allowed, true);
+    } else {
+      assert.equal(state.specValidation.proof.hash, before.specValidation.proof.hash);
+      assert.equal(state.validationFailures.length, 0); assert.equal(state.eventCount, before.eventCount);
+      assert.equal((await f.core.check('implementation')).allowed, true);
+      assert.match(completion.error, /original validation state changed/);
+    }
     assert.equal(completion.artifacts.length, 1);
     const retained = await f.core.store.json(completion.artifacts[0]);
     assert.equal(retained.runId, 'run-one');

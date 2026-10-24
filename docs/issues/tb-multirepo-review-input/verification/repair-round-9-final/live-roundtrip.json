@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "passed": true,
+    "actualVerdict": "PASS",
+    "protocolVersion": "2.1.0",
+    "contextId": "01a16c1d-cb27-7103-b23c-86330705e164",
+    "reasoningEffort": "high",
+    "profile": {
+      "id": "high-capability-v1",
+      "minimumReasoning": "high"
+    },
+    "outputDigest": "sha256:d4b38c1e4503b55a8ec852f35d883c276d190c98c98768ae1241f33204e136b8"
+  }
+}

@@ -1,3 +1,4 @@
+import { ContractError } from '../errors.js';
 import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { executionEnvironment } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
@@ -133,15 +134,38 @@ export class CurrentCore {
     const reference = await this.store.putJson({ ...proof, runId: origin.runId, operation });
     if (!proof.passed) {
       const payload = { documents, proof: reference, outcome: Number.isInteger(proof.exitCode) ? 'FAIL' : 'UNAVAILABLE', operation };
-      const error = new Error('Specification validation failed; instruction and diagnostics remain retained');
+      const error = new ContractError('Specification validation failed; instruction and diagnostics remain retained', {
+        runId: origin.runId, operationId: operation.id, retainedArtifacts: [reference],
+      });
       error.artifacts = [reference];
-      try {
-        // A late failure cannot revoke a newer validation or enter a replacement
-        // run. Publish only against the same checked state as successful proof.
-        await this.append(origin, 'VALIDATION_FAILED', payload, { id: `failed_${identity(payload).slice(7)}`, hash: identity(payload) });
-      } catch (cause) {
-        error.cause = cause;
-        error.message += `; original validation state changed: ${cause.message}`;
+      let checked = origin;
+      for (;;) {
+        try {
+          await this.append(checked, 'VALIDATION_FAILED', payload, { id: `failed_${identity(payload).slice(7)}`, hash: identity(payload) });
+          break;
+        } catch (cause) {
+          // Only unrelated journal contention (for example a pause) may be
+          // retried. New validation or replacement never loses its authority.
+          let retry = false;
+          if (cause.message === 'Concurrent update; inspect current state and retry the same operation') {
+            try {
+              const current = await this.state();
+              const later = current.events.slice(origin.eventCount);
+              const freshValidation = later.some(event => event.type === 'SPEC_VALIDATED'
+                || event.type === 'DECIDED' && event.payload.specValidation);
+              const commitments = await this.commitments({ capture: false });
+              retry = current.state.runId === origin.runId && !freshValidation
+                && identity(current.state.specValidation) === identity(origin.specValidation)
+                && ['spec.md', 'design.md'].every(name => commitments.docs[name].hash === documents[name].hash)
+                && current.state.eventCount > checked.eventCount;
+              if (retry) checked = current.state;
+            } catch { /* Retain the original failure without adopting unknown state. */ }
+          }
+          if (retry) continue;
+          error.cause = cause;
+          error.message += `; original validation state changed: ${cause.message}`;
+          break;
+        }
       }
       throw error;
     }
