@@ -1,0 +1,126 @@
+{
+  "passed": true,
+  "evidence": {
+    "setupObserved": true,
+    "shellObserved": true,
+    "shellChecked": true,
+    "shellEvidence": {
+      "sidebarHidden": true,
+      "sidebarRestored": true,
+      "inspectorBaselineHidden": true,
+      "inspectorShown": true,
+      "inspectorHidden": true,
+      "inspectorRestored": true,
+      "initialWidth": 420,
+      "resizedWidth": 400,
+      "maximumRequestedWidth": 720,
+      "maximumRenderedWidth": 415,
+      "maximumWidthScroll": 940,
+      "restoredWidth": 400,
+      "tabLabels": "Overview|Obligations|Artifacts|History|Model|Session",
+      "versionText": "v0.1.0-rc.16",
+      "scrollWidth": 940,
+      "viewportWidth": 940,
+      "documentScrollLeft": 0,
+      "inspectorWidthProperty": "400px",
+      "inspectorWidthInline": "400px",
+      "workspaceGridColumns": "205px 335px 400px",
+      "workspaceChildren": [
+        {
+          "element": "#project-sidebar",
+          "hidden": false,
+          "left": 0,
+          "right": 205,
+          "width": 205,
+          "scrollWidth": 204,
+          "minWidth": "0px"
+        },
+        {
+          "element": "section",
+          "hidden": false,
+          "left": 205,
+          "right": 540,
+          "width": 335,
+          "scrollWidth": 335,
+          "minWidth": "0px"
+        },
+        {
+          "element": "#inspector-panel",
+          "hidden": false,
+          "left": 540,
+          "right": 940,
+          "width": 400,
+          "scrollWidth": 399,
+          "minWidth": "0px"
+        },
+        {
+          "element": "#terminal-panel",
+          "hidden": true,
+          "left": 0,
+          "right": 0,
+          "width": 0,
+          "scrollWidth": 0,
+          "minWidth": "0px"
+        }
+      ],
+      "overflowers": [
+        {
+          "element": "li.state-node",
+          "left": 923,
+          "right": 1028,
+          "width": 105,
+          "scrollWidth": 103,
+          "clientWidth": 103
+        },
+        {
+          "element": "button.state-select",
+          "left": 924,
+          "right": 1027,
+          "width": 103,
+          "scrollWidth": 103,
+          "clientWidth": 103
+        }
+      ],
+      "activeElement": "artifact-viewer"
+    },
+    "terminalRequested": true,
+    "terminalRunningObserved": true,
+    "terminalTerminateRequested": true,
+    "terminalObserved": true,
+    "heading": "GateReeve",
+    "projectContext": "desktop-runtime-smoke",
+    "protocolEvidence": {
+      "phase": "IMPLEMENTING",
+      "implementationAllowed": true,
+      "gates": [
+        {
+          "id": "reconcile",
+          "result": {
+            "bytes": 853,
+            "format": "json",
+            "hash": "sha256:87a5086b4a8bcceeb78abef8bf4d679364f0c0fc43295d6d09f7c99bcc7165cc"
+          },
+          "reason": "Issue/tracker lint and approved rubric/plan mappings reconciled; semantic completion remains independently assessed",
+          "outcome": "PASS",
+          "exception": null,
+          "satisfied": true
+        },
+        {
+          "id": "pattern",
+          "result": {
+            "bytes": 953,
+            "format": "json",
+            "hash": "sha256:bb5841954f38ad4b82ede5dbe14dec92206e9dfb946900b51d5dc63a8803d566"
+          },
+          "reason": "Fixture assessment",
+          "outcome": "PASS",
+          "exception": null,
+          "satisfied": true
+        }
+      ],
+      "eventCount": 11,
+      "observationReadOnly": true,
+      "limitation": "Synthetic pattern evaluator tests receipt transport only; empty rules provide no substantive coverage."
+    }
+  }
+}

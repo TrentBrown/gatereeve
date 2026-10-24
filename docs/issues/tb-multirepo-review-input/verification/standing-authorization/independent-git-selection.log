@@ -1,0 +1,12 @@
+Captured stdout from node --test /tmp/gr-d11-git-selection-probe.mjs
+{"before":true,"after":false,"reason":"spawn git ENOENT","control":true}
+✔ standing status honors discovered Git (986.83875ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1050.923166
+

@@ -1,0 +1,11 @@
+Captured stdout from independent read-only execution; command identified in independent-review.md.
+✔ CLI records and revokes standing authority through the native core and fails closed without proof (3815.1575ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3861.053875
+

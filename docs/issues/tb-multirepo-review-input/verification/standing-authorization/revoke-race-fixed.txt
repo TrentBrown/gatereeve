@@ -1,0 +1,169 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, readdir, realpath, chmod, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { CurrentStore } from '/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/store.js';
+import { CurrentCore } from '/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/core.js';
+import { identity } from '/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/contracts.js';
+import { git } from '/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/current/evidence.js';
+
+const human = { kind: 'human-confirmed', instruction: 'Approve the named scope.', context: 'test user conversation' };
+async function fixture(t, { nested = true } = {}) {
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'gatereeve-current-')));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const repo = nested ? join(root, 'app') : root;
+  const home = join(root, 'docs/issues/feature');
+  await mkdir(repo, { recursive: true }); await mkdir(home, { recursive: true });
+  if (nested) { await mkdir(join(root, '.pattern-review')); await writeFile(join(root, '.pattern-review/rules.yaml'), '[]\n'); }
+  await git(repo, ['init', '-b', 'topic']);
+  await git(repo, ['config', 'user.email', 'fixture@example.test']);
+  await git(repo, ['config', 'user.name', 'Fixture']);
+  await git(repo, ['config', 'commit.gpgsign', 'false']);
+  await writeFile(join(repo, 'app.js'), 'export const answer = 42;\n');
+  await git(repo, ['add', 'app.js']); await git(repo, ['commit', '-m', 'fixture']);
+  const head = (await git(repo, ['rev-parse', 'HEAD'])).trim();
+  await writeFile(join(home, 'interview.md'), '# Interview\nSettled decisions.\n');
+  await writeFile(join(home, 'design.md'), '# Design\n\n**Status:** approved\n');
+  await writeFile(join(home, 'spec.md'), '# Spec\n\n## Acceptance Criteria\n\n- **AC1.** Export the constant answer with value 42.\n\n## Rubric\n\n| # | Criterion | Pass | Fail | Evidence |\n|---|---|---|---|---|\n| R1 | AC1 | 42 | other | test |\n\n## Changes\n');
+  await writeFile(join(home, 'plan.md'), '# Plan\n## P1 - Implement R1\n');
+  await writeFile(join(home, 'issues.md'), '# Issues\n## I-1 - Implement\n**Status:** in-review\n**Plan steps:** P1\n**Rubric criteria:** R1\n');
+  await writeFile(join(home, 'tracker.md'), '# Tracker\n## Rubric Status\n| R1 | AC1 | NOT YET | pending |\n## Review Log\n');
+  await writeFile(join(home, 'events.jsonl'), 'old journal preserved verbatim\n');
+  const context = { featureId: 'feature', featureHome: home, workspaceRoot: root, repositories: [{ alias: 'app', path: repo, featureBaseSha: head }] };
+  const core = await CurrentCore.at(context);
+  const request = (operation, input = {}, operationId) => core.execute({ operation, input, operationId });
+  await request('run.start', { runId: 'run-one', implementers: ['implementer-one'] }, 'start-one');
+  return { root, repo, home, head, context, core, request };
+}
+async function authorize(f) {
+  const design = await f.core.store.capture('design.md');
+  await f.request('human.decide', { kind: 'approve-design', subject: design.hash, authority: human, reason: 'Approved design', consequences: 'Proceed to spec' }, 'design-one');
+  await f.request('spec.validate', {}, 'spec-one');
+  const commitments = await f.core.commitments();
+  await f.request('human.decide', { kind: 'authorize-implementation', subject: commitments.subject, authority: human, reason: 'Approved scope', consequences: 'May implement' }, 'plan-one');
+}
+async function candidate(f) {
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.context.repositories[0].featureBaseSha, head: f.head }], scope: 'FEATURE', criteria: ['R1'] }, 'candidate-one');
+}
+
+async function runVerification(f, fail = false, operationId = 'verify-one') {
+  return f.request('gate.execute', { gates: ['verification'], configuration: {
+    externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', `process.exit(${fail ? 1 : 0})`], purpose: 'Fixture verification' }],
+  } }, operationId);
+}
+function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, findingId = 'finding-1', outcome = blocking ? 'FAIL' : 'PASS', dispositions = [], historyAssessment = null, criterionRows = null, coverage = null } = {}) {
+  let launches = 0;
+  f.core.runtime.evaluator = {
+    async describe() { return { provider: 'codex', model: 'fixture', reasoningEffort: 'high' }; },
+    async runStage(request) {
+      launches++;
+      const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome,
+        summary: 'Fixture assessment', criteria: criterionRows ?? request.input.criteria.map(id => ({ id, outcome, evidence: 'Fixture source and command receipt' })), coverage: coverage ?? { complete: true, paths: request.input.changedPaths ?? ['app/app.js'], interactions: ['app/app.js'], limitations: [] },
+        findings: blocking ? [{ id: findingId, classId: 'class-1', criterion: 'R1', path: 'app/app.js', evidence: 'Current defect', blocking: true }] : [], dispositions, historyAssessment })) };
+      if (malformed) output.verdicts.pop();
+      const { sha256Digest } = await import('/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src/shared/resources/protocol/agent-workflow.js');
+      return { schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed', output, receipt: { schemaVersion: 1, kind: 'gatereeve-agent-workflow-receipt', protocolVersion: request.protocolVersion, module: request.module, stage: request.stage.id, capabilityProfile: request.capabilityProfile, startedAt: '2026-10-23T00:00:00Z', completedAt: '2026-10-23T00:00:01Z', status: 'completed', runId: request.runId, attemptId: request.attemptId,
+        isolation: { method: 'test-isolated', freshContext: true, inheritedTurns: inherited ? 1 : 0 },
+        provider: { id: 'codex', adapterVersion: '1.0.0', reasoningEffort: 'high', model: 'fixture', contextId: 'reviewer-fresh' },
+        digests: { input: sha256Digest(request.input), instructions: sha256Digest(request.instructions), output: sha256Digest(output), snapshot: request.snapshotDigest },
+        policy: { repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated' } } };
+    },
+  };
+  return () => launches;
+}
+async function reviewAll(f, { accept = true } = {}) {
+  await writeFile(join(f.home, 'scratchpad.md'), '# No pending decisions\n');
+  await f.request('candidate.ready', {}, 'ready');
+  const verification = await runVerification(f);
+  fakeEvaluator(f);
+  const refs = [...verification.event.payload.results];
+  for (const gate of ['context', 'reconcile', 'triage', 'code', 'spec', 'judge', 'pattern', 'explanation']) {
+    const result = await f.request('gate.execute', { gates: [gate], consumed: ['spec', 'judge'].includes(gate) ? verification.event.payload.results : [],
+      configuration: ['code', 'spec', 'judge', 'pattern', 'explanation'].includes(gate) ? { provider: 'codex', model: 'fixture' } : {} }, `gate-${gate}`);
+    refs.push(...result.event.payload.results);
+  }
+  await f.request('gate.execute', { gates: ['packet'], consumed: refs }, 'packet');
+  assert.equal((await f.request('milestone.check', { name: 'acceptance' })).allowed, true);
+  await f.request('milestone.pass', { name: 'acceptance' }, 'acceptance');
+  const subject = (await f.request('status')).candidate.hash;
+  if (accept) await f.request('human.decide', { kind: 'accept', subject, authority: human, reason: 'Reviewed exact candidate', consequences: 'Accepted for the next authorized action' }, 'accept');
+  return refs;
+}
+async function standingGrant(f, { merge = false, expiresAt = null, candidateScopes = ['SLICE', 'FEATURE'] } = {}) {
+  const scope = { actions: merge ? ['accept', 'authorize-merge'] : ['accept'], candidateScopes,
+    repositories: [{ alias: 'app', headPrefix: 'topic', baseBranch: 'main', ...(merge ? { methods: ['merge'] } : {}) }], expiresAt };
+  const value = { kind: 'authorize-standing', subject: (await f.core.commitments()).subject, scope,
+    authority: { ...human, instruction: merge ? 'Finish this approved feature including merging its slice and final PRs to main.' : 'Accept this approved feature when all gates pass; do not merge.' },
+    reason: 'Unattended approved scope', consequences: merge ? 'Integrate all approved slices including the final PR; no deployment' : 'Acceptance only; no merge or deployment' };
+  return f.request('human.decide', value, 'standing-grant');
+}
+async function standingRepository(f) {
+  await git(f.repo, ['remote', 'add', 'origin', 'https://github.com/fixture/project.git']);
+  Object.assign(f.context.repositories[0], { integrationBranch: 'main', remote: 'origin' });
+}
+
+for (const mode of ['slice']) test(`standing authority protected merge: ${mode}`, async t => {
+  const f = await fixture(t); await standingRepository(f);
+  const bare = join(f.root, 'host.git');
+  await git(f.root, ['init', '--bare', bare]);
+  await git(f.repo, ['config', `url.${bare}.insteadOf`, 'https://github.com/fixture/project.git']);
+  await git(f.repo, ['push', 'origin', 'HEAD:refs/heads/main']);
+  await git(f.repo, ['push', 'origin', 'HEAD:refs/heads/topic']);
+  await authorize(f);
+  const expiresAt = mode === 'expire-during-checks' ? new Date(Date.now()+600000).toISOString() : null;
+  const grant = await standingGrant(f, { merge: mode !== 'acceptance-only', expiresAt });
+  const scope = mode === 'slice' ? 'SLICE' : 'FEATURE';
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head: f.head }], scope, criteria: ['R1'] });
+  let remoteState = 'OPEN'; const writes = []; let views = 0, armed = false, revoked = false;
+ f.core.runtime.git = async (root,args,options) => {
+   if(armed && !revoked && args[0]==='branch') {
+     revoked=true;
+     await f.request('human.decide',{kind:'revoke-standing',subject:grant.event.hash,authority:human,reason:'Stop now',consequences:'No further merge'},'late-revoke');
+   }
+   return git(root,args,options);
+ };
+  // Actual local git remote and integration verification; only GitHub transport is simulated.
+  f.core.runtime.gh = async (root, args) => {
+    const command = args[1];
+    if (command === 'view') { if(++views === 5) armed=true; return JSON.stringify({ number: 12, url: 'https://github.com/fixture/project/pull/12', state: remoteState,
+      headRefName: 'topic', baseRefName: 'main', headRefOid: f.head, baseRefOid: f.head, isDraft: true,
+      mergeCommit: remoteState === 'MERGED' ? { oid: f.head } : null }); }
+    writes.push(command);
+    if (command === 'checks' && mode === 'revoke-during-checks') await f.request('human.decide', { kind: 'revoke-standing', subject: grant.event.hash,
+      authority: human, reason: 'Stop before merge', consequences: 'Wait' });
+    if (command === 'checks' && mode === 'expire-during-checks') {
+      const original = Date.now; Date.now = () => Date.parse(expiresAt)+1; t.after(() => { Date.now = original; });
+    }
+    if (command === 'merge') { await git(root, ['push', 'origin', 'HEAD:refs/heads/main']); remoteState = 'MERGED'; }
+    return '';
+  };
+  await reviewAll(f, { accept: false });
+  const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
+  assert.equal(action.keepClosed, false); // absent config preserves default open drafts
+  const acceptance = await f.request('authorization.apply', { grant: grant.event.hash }, 'apply-acceptance');
+  assert.equal(acceptance.event.payload.standingGrant, grant.event.hash);
+  const repeat = await f.request('authorization.apply', { grant: grant.event.hash }, 'apply-acceptance');
+  assert.equal(repeat.event.hash, acceptance.event.hash);
+  assert.equal((await f.request('milestone.check', { name: 'merge' })).allowed, false);
+  if (mode === 'acceptance-only') {
+    await assert.rejects(f.request('authorization.apply', { grant: grant.event.hash, action }), /outside standing scope/);
+    await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }), /blocked/);
+    assert.deepEqual(writes, []); return;
+  }
+  await assert.rejects(f.request('authorization.apply', { grant: grant.event.hash, action: { ...action, method: 'squash' } }), /outside standing scope/);
+  await f.request('authorization.apply', { grant: grant.event.hash, action }, 'apply-merge');
+  assert.equal((await f.request('milestone.check', { name: 'merge' })).allowed, true);
+  if (mode.endsWith('during-checks')) {
+    await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }), /state or authority changed|Gate proof changed|expired/);
+    assert.equal(writes.includes('merge'), false);
+    return;
+  }
+  let error=null;
+  try { await f.request('merge.execute', { repository: 'app', number: 12 }); } catch(e) { error=e.message; }
+  console.log(JSON.stringify({revoked,views,writes,remoteState,error}));
+  assert.equal(revoked,true); assert.equal(writes.includes('merge'), false); assert.ok(error);
+  assert.equal(remoteState, 'OPEN');
+  assert.equal((await f.core.state()).state.integrations.app, undefined);
+  assert.equal((await f.request('milestone.check', { name: 'completion' })).allowed, false); // no finalization/release proof
+});

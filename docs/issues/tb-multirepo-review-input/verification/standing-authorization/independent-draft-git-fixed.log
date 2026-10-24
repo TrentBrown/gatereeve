@@ -1,0 +1,14 @@
+{"revoked":true,"views":7,"writes":["ready","checks","ready"],"remoteState":"OPEN","error":"Feature state or authority changed during merge; prepare the current action again"}
+{"draft":true,"remoteState":"OPEN","retryError":null}
+✔ standing authority protected merge: slice (30066.008292ms)
+{"before":true,"after":true,"reason":null,"control":true}
+✔ standing status honors discovered Git (978.751167ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 30119.38925
+

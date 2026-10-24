@@ -1,0 +1,11 @@
+Captured stdout: node --test apps/desktop/test/current-view.test.js
+✔ current view shows milestone blockers, preserved verdicts, exceptions and no ordering controls (193.794167ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 285.356375
+

@@ -1,0 +1,12 @@
+{"revoked":true,"views":5,"writes":["ready","checks"],"remoteState":"OPEN","error":"Feature state or authority changed during merge; prepare the current action again"}
+{"draft":false,"remoteState":"OPEN","retryError":"PR must be an open draft during preparation"}
+✔ standing authority protected merge: slice (30726.106583ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 30785.668667
+
