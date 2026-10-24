@@ -142,7 +142,11 @@ export async function observeIntegration(core, input, operation, expectedState =
   await runGit(repository.path, ['fetch', repository.remote ?? 'origin', `refs/heads/${branch}:refs/remotes/${repository.remote ?? 'origin'}/${branch}`]);
   const ref = `refs/remotes/${repository.remote ?? 'origin'}/${branch}`;
   const proof = await runTrustedPythonGuard('merge.reviewedContent.verified', ['--repository', repository.path,
-    '--reviewed-base', pin.base, '--reviewed-head', pin.head, '--integration-ref', ref, '--json']);
+    '--reviewed-base', pin.base, '--reviewed-head', pin.head, '--integration-ref', ref, '--json'], {
+    ...core.runtime.pythonGuardOptions,
+    environment: { ...(core.runtime.pythonGuardOptions?.environment ?? process.env),
+      GATEREEVE_GIT_EXECUTABLE: repository.gitExecutable },
+  });
   requireThat(proof.passed && proof.data?.status === 'verified', 'Reviewed content is not verified on integration', proof.stderr);
   if (input.hosted) requireThat(proof.data.integrationSha === input.hosted.mergeCommit.oid, 'Observed hosted merge differs from integration source');
   const receipt = await core.store.putJson({ contract: CONTRACT, candidate: state.candidate, repository: input.repository,

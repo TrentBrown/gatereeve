@@ -2483,3 +2483,18 @@ test('standing status uses the host-discovered Git when GUI PATH cannot resolve 
     assert.equal(status.standingAuthorizations[0].allowed, true, status.standingAuthorizations[0].reason);
   } finally { process.env.PATH = before; }
 });
+
+test('integration observation uses discovered Python and Git with an empty GUI PATH', async t => {
+  const f = await fixture(t); await standingRepository(f); await authorize(f); await candidate(f);
+  const { execFile } = await import('node:child_process');
+  const { promisify } = await import('node:util');
+  const which = async name => (await promisify(execFile)('/usr/bin/which', [name])).stdout.trim();
+  f.core.runtime.gitExecutable = await which('git');
+  f.core.runtime.pythonGuardOptions = { pythonExecutable: await which('python3') };
+  const before = process.env.PATH;
+  try {
+    process.env.PATH = join(f.root, 'no-executables');
+    const observed = await f.request('integration.observe', { repository: 'app' });
+    assert.equal(observed.state.integrations.app.integrationSha, f.head);
+  } finally { process.env.PATH = before; }
+});

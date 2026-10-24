@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -26,7 +27,7 @@ def _git(
     binary: bool = False,
 ) -> str | bytes:
     result = subprocess.run(
-        ["git", "-C", str(repository), *args],
+        [os.environ.get("GATEREEVE_GIT_EXECUTABLE", "git"), "-C", str(repository), *args],
         check=False,
         capture_output=True,
         text=not binary,
@@ -49,7 +50,7 @@ def _commit(repository: Path, revision: str) -> str:
 
 def _is_ancestor(repository: Path, ancestor: str, descendant: str) -> bool:
     result = subprocess.run(
-        ["git", "-C", str(repository), "merge-base", "--is-ancestor", ancestor, descendant],
+        [os.environ.get("GATEREEVE_GIT_EXECUTABLE", "git"), "-C", str(repository), "merge-base", "--is-ancestor", ancestor, descendant],
         check=False,
         capture_output=True,
         text=True,
