@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "passed": true,
+    "desktop": {
+      "title": "GateReeve PR84 \u2014 Model-led work, required milestone gates",
+      "viewport": 1200,
+      "scrollWidth": 1185,
+      "sections": [
+        "background",
+        "intuition",
+        "code",
+        "evidence",
+        "quiz"
+      ],
+      "quizzes": 5,
+      "external": 0
+    },
+    "mobile": {
+      "viewport": 390,
+      "scrollWidth": 375
+    },
+    "quiz": [
+      {
+        "id": "question-1",
+        "correct": "false",
+        "feedback": "Not quite. Readiness declares intent; an explicit execution request launches an evaluator."
+      },
+      {
+        "id": "question-1",
+        "correct": "true",
+        "feedback": "Correct. Readiness and execution are separate operations."
+      },
+      {
+        "id": "question-1",
+        "correct": "false",
+        "feedback": "Not quite. Clean source alone does not satisfy required proof and human authority."
+      },
+      {
+        "id": "question-2",
+        "correct": "true",
+        "feedback": "Correct. Content applicability, not a new commit identifier alone, decides reuse."
+      },
+      {
+        "id": "question-2",
+        "correct": "false",
+        "feedback": "Not quite. Reuse retains the original result and its provenance."
+      },
+      {
+        "id": "question-2",
+        "correct": "false",
+        "feedback": "Not quite. Equivalent relevant inputs can preserve applicability across different SHAs."
+      },
+      {
+        "id": "question-3",
+        "correct": "false",
+        "feedback": "Not quite. Runner input drift invalidates affected runner proof regardless of whether application source changed."
+      },
+      {
+        "id": "question-3",
+        "correct": "false",
+        "feedback": "Not quite. Command text does not identify the actual dependency bytes."
+      },
+      {
+        "id": "question-3",
+        "correct": "true",
+        "feedback": "Correct. Runtime identity participates in both proof applicability and inherited exception risk."
+      },
+      {
+        "id": "question-4",
+        "correct": "false",
+        "feedback": "Not quite. Each obligation keeps its own validated verdict."
+      },
+      {
+        "id": "question-4",
+        "correct": "true",
+        "feedback": "Correct. Grouping reduces session count without deleting gate obligations."
+      },
+      {
+        "id": "question-4",
+        "correct": "false",
+        "feedback": "Not quite. An absent spec verdict cannot be inferred from another gate."
+      },
+      {
+        "id": "question-5",
+        "correct": "true",
+        "feedback": "Correct. Each prepared merge is checked against current scope, source, target, methods, evidence and grant validity."
+      },
+      {
+        "id": "question-5",
+        "correct": "false",
+        "feedback": "Not quite. Acceptance-only grants do not authorize merges."
+      },
+      {
+        "id": "question-5",
+        "correct": "false",
+        "feedback": "Not quite. Merge must be explicit and deployment remains separately authorized."
+      }
+    ],
+    "scenarios": [
+      "Reuse may be validA bookkeeping-only commit does not force re-execution. The required inputs must still be equivalent, retained bytes intact and the evaluator qualified.",
+      "The runner proof becomes staleChanging an external script, interpreter or declared tool dependency invalidates affected proof and exceptions whose risk depends on it. Preserve the old result; obtain current evidence.",
+      "A qualified delta can supplement earlier proofAn independent assessment must cover changed scope and interactions, refer to valid earlier proof and resolve affected findings. A new SHA alone does not force a full repeat.",
+      "Missing bytes cannot support passageAn old PASS event is insufficient when its referenced evidence is gone. Restore exact bytes and revalidate, or obtain fresh qualifying proof. Do not reconstruct history from current files."
+    ],
+    "codeWhitespacePreserved": true,
+    "consoleErrors": []
+  }
+}

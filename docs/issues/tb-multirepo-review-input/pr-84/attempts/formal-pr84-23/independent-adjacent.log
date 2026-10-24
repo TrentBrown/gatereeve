@@ -1,0 +1,11 @@
+✔ NODE_OPTIONS explicit preload bytes now invalidate proof (1486.363125ms)
+{"kind":"dot","outcome":"PASS","summary":"Actual runner receipts retained"}
+✔ repository-local feature journal no longer invalidates dot input (1323.553875ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2859.077375

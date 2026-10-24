@@ -1,0 +1,15 @@
+✔ JavaScript and Python resolve the same configured multi-repository context (100.316333ms)
+✔ JavaScript and Python preserve the same legacy branch-derived context (116.277291ms)
+✔ JavaScript preserves Python workspace semantics for a symlinked config file (43.932ms)
+✔ JavaScript rejects the same unsafe configured contexts as Python (559.363458ms)
+✔ live context guard follows original discovery and rejects actual policy edits (27.279ms)
+✔ live context guard normalizes irrelevant edits and retains immutable initial meaning (2.719583ms)
+✔ cached core blocks mutations and reports milestone drift without switching feature stores (135.48875ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 855.505666

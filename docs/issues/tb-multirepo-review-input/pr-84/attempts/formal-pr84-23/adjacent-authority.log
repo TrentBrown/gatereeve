@@ -1,0 +1,11 @@
+✔ resume uses observed approvals, preserves old files and reconciles repeated entry (869.253666ms)
+✔ an explicit pause stops passage and its recorded continuation restores permitted repair (895.638292ms)
+✔ milestone passage rejects candidate replacement during an otherwise passing check (16770.0915ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18600.279958

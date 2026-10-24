@@ -125,4 +125,13 @@ Required formal evidence is ready for packet validation and human review. PR rem
 
 ## D11 amendment — 2026-10-24
 
-Prior formal17 PASS applies to the prior specification/source. R22 and R23 are NOT YET; affected authority/consumer rows require refreshed assessment. I-10 is in progress.
+At amendment entry, formal17 applied to the prior specification/source. R22 and R23 were NOT YET and affected rows required refreshed assessment. The current formal23 disposition below supersedes that entry; I-10 remains in-review until integration.
+
+
+### D11 current formal review — formal-pr84-23
+
+[Verification](pr-84/attempts/formal-pr84-23/verification-with-receipt.md), [code review](pr-84/attempts/formal-pr84-23/code-review.md), [spec assessment](pr-84/attempts/formal-pr84-23/spec-evaluation.md) and the [fresh native OpenAI Judge](pr-84/attempts/formal-pr84-23/judge.md) pass for the amended specification: 23 rubric rows and eight acceptance criteria. Evaluated source: `5ffc3ae642817ed11b4f96332dc3ec96cfbce08b`; product: `4cc0fab1dab6833e66a36a4e427168a2967052e5`. No gate was waived.
+
+Current checks include context/parity 7, authority 39, Desktop 173, CLI/docs 11 and freshly packed CLI 3 passing tests, independent actual configuration-change controls, an actual ARM64 package smoke test, and 147 source/build byte comparisons. The bound Verification report and supplement distinguish current checks from historical evidence and disclose failures/reruns. A supplemental broad initial-source run was stopped after required reviews and final-source checks passed; its partial results and known corrected fixture failure are retained in the supplement.
+
+Scoped acceptance-only and explicit slice/final merge authority are supported; deployment remains separate. Open drafts are the default. PR84 retains this repository's closed-draft policy. [Interactive explanation](pr-84/attempts/formal-pr84-23/explain-diff.html). Issues remain in-review; merge, installation, publishing, deployment and feature completion have not occurred.
