@@ -1,3 +1,4 @@
+import { workflowContextGuard } from '../context.js';
 import { ContractError } from '../errors.js';
 import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { executionEnvironment } from './environment.js';
@@ -10,7 +11,7 @@ import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, c
 import { runTrustedPythonGuard, assertTrustedPythonProof, trustedPythonBinding } from '../python-guards.js';
 import { executeGates, reviewContract } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
-import { captureStanding, applyStanding, standingValidity, qualifyingDecisions } from './authorization.js';
+import { captureStanding, applyStanding, standingValidity, qualifyingDecisions, requireUnexpired } from './authorization.js';
 
 const LIVE_PROOFS = Symbol('qualified live proof inputs');
 const admissions = new WeakMap();
@@ -68,6 +69,7 @@ function findDecision(state, kind, subject) {
 export class CurrentCore {
   constructor(context, store, runtime = {}) {
     this.sourceContext = context;
+    this.contextGuard = workflowContextGuard(context);
     this.store = store;
     this.runtime = runtime;
   }
@@ -76,6 +78,7 @@ export class CurrentCore {
       ...repository, gitExecutable: this.runtime.gitExecutable ?? repository.gitExecutable ?? 'git',
     })) };
   }
+  async assertContext() { await this.contextGuard(this.runtime.gitExecutable); }
   static async at(context, runtime = {}) {
     return new CurrentCore(context, await CurrentStore.at(context.featureHome, context.workspaceRoot), runtime);
   }
@@ -255,9 +258,11 @@ export class CurrentCore {
         requireThat(value.action && identity(value.action) === identity(await prepareMerge(this, value.action)), 'Merge authorization must bind the prepared action');
       }
     }
-    if (admission) await this.assertLiveInputs({ ...state, decisions: [...state.decisions, value] }, 'acceptance', admission.liveInputs);
     if (decisionHas(value, 'authorize-merge')) await checkCandidate(this.store, this.context, state.candidate);
     for (const ref of Object.values(value.documents ?? {})) await this.store.currentBytes(ref);
+    if (admission) await this.assertLiveInputs({ ...state, decisions: [...state.decisions, value] }, 'acceptance', admission.liveInputs);
+    else await this.assertContext();
+    if (value.kind === 'authorize-standing') requireUnexpired(value);
     return this.append(state, 'DECIDED', { ...value, requestId: operation.id }, operation);
   }
   async validateSpec(operation) {
@@ -531,6 +536,7 @@ export class CurrentCore {
     requireThat(identity((await this.commitments({ capture: false })).docs) === liveInputs.commitments,
       'Commitment inputs changed during milestone validation');
     if (name !== 'implementation') await checkCandidate(this.store, this.context, state.candidate, { live: name !== 'completion' });
+    await this.assertContext();
     admission.deadlines = deadlines;
     this.assertLiveDeadlines(liveInputs);
   }
@@ -549,6 +555,7 @@ export class CurrentCore {
     if (state.phase === 'COMPLETE' && name !== 'completion') missing.push('feature is complete');
     let current;
     try {
+      await this.assertContext();
       current = await this.commitments({ capture: false });
       if (!findDecision(state, 'authorize-implementation', current.subject)) missing.push('current implementation authorization');
       if (!state.specValidation || state.specValidation.spec.hash !== current.docs['spec.md'].hash
@@ -684,6 +691,7 @@ export class CurrentCore {
       enforcement: ENFORCEMENT, milestones: await Promise.all(MILESTONES.map(name => this.check(name, null, memo))) };
   }
   async append(state, type, payload, operation) {
+    if (['CANDIDATE', 'READY'].includes(type)) await this.assertContext();
     const active = await this.store.active();
     requireThat(active.runId === state.runId, 'Active run changed');
     const event = await this.store.append(state.runId, state.eventCount, type, payload, operation);
@@ -716,7 +724,7 @@ export class CurrentCore {
     const input = request.input ?? {};
     const operation = { id: request.operationId ?? randomUUID(), hash: identity({ operation: request.operation, input }) };
     const mutating = !['status', 'snapshot', 'milestone.check'].includes(request.operation);
-    if (mutating) await this.store.activationHead({ repair: true });
+    if (mutating) { await this.assertContext(); await this.store.activationHead({ repair: true }); }
     if (request.operation === 'run.resume-current') return this.resume(input, operation);
     // Restore exact retained copies and record completed original jobs before
     // current candidate/phase preflight; neither action invents a passed check.

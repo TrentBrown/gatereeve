@@ -20,6 +20,7 @@ export function mergeDirection(head, base) {
   requireThat(head !== 'development' && !head.startsWith('development-'), `Forbidden merge direction: ${head} -> ${base}`);
 }
 export async function prepareMerge(core, input) {
+  await core.assertContext();
   const { state } = await core.state();
   const runGit = configuredGit(core);
   const candidate = await checkCandidate(core.store, core.context, state.candidate);
@@ -40,6 +41,7 @@ export async function prepareMerge(core, input) {
   requireThat(base === pin.target, 'PR target differs from the assessed target; refresh candidate target and interaction review before merge');
   if (repository.keepPullRequestsClosed) requireThat(pr.state === 'CLOSED', 'PR must remain closed until the authorized merge window');
   else requireThat(pr.state === 'OPEN' && pr.isDraft, 'PR must be an open draft during preparation');
+  await core.assertContext();
   return { contract: CONTRACT, kind: 'github-pr', repository: input.repository, number: input.number,
     ownerRepo: name, url: pr.url, headBranch: head, baseBranch: pr.baseRefName, head: pin.head, base,
     keepClosed: Boolean(repository.keepPullRequestsClosed), method: input.method ?? 'merge' };

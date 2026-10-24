@@ -72,6 +72,7 @@ export async function captureStanding(core, state, value) {
 }
 export async function standingValidity(core, state, grant, candidate = null, action = null, { allowIntegratedTargets = false } = {}) {
   try {
+    await core.assertContext();
     requireThat(grant?.kind === 'authorize-standing', 'Unknown standing grant');
     requireThat(grant.runId === state.runId, 'Standing grant belongs to another run');
     requireThat(!state.paused, 'Feature is explicitly paused');
@@ -108,6 +109,7 @@ export async function standingValidity(core, state, grant, candidate = null, act
         && action.baseBranch === selected.baseBranch && branchMatches(action.headBranch, selected.headPrefix)
         && selected.methods.includes(action.method), 'Merge action is outside standing scope');
     }
+    await core.assertContext();
     requireUnexpired(grant);
     return { allowed: true, reason: null };
   } catch (error) { return { allowed: false, reason: error.message }; }

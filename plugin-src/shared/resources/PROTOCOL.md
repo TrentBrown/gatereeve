@@ -333,6 +333,11 @@ must already be configured. `expiresAt` is a UTC timestamp or explicit `null`
 meaning this feature run, not indefinite authority across runs. The core binds
 current implementation approval, approved requirements and repository
 configuration/remote identities. Scope is never inferred from an agent's label.
+Resolved requests retain their original discovery location and repository selection.
+Before passage, the core resolves them again and rejects changed configuration,
+including a removed, malformed or newly nearer workspace file. Harmless JSON
+formatting, repository map ordering and external task labels do not invalidate
+authority. A running operation never silently switches to the new workspace.
 
 Once all required gates have current PASS evidence, use `authorization.apply`
 with `{ "grant": "sha256:<recorded grant event hash>" }`. For a permitted merge,

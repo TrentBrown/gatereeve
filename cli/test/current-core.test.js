@@ -95,7 +95,7 @@ test('interrupted startup reconciles durable run before activating it', async t 
   await rm(join(f.home, '.gatereeve-current/active.json'));
   await assert.rejects(f.request('status'), /Missing activation copy/);
   await f.request('run.resume-current', { runId: 'run-one', implementers: ['implementer-one'] }, 'resume-one');
-  await f.request('run.start', { runId: 'run-one', implementers: ['implementer-one'] }, 'start-one');
+  await f.request('run.start', { runId: 'run-one', implementers: ['implementer-one'], optionalGates: [] }, 'start-one');
   assert.equal((await f.request('status')).runId, 'run-one');
   assert.equal((await f.core.store.events('run-one')).length, 1);
 });
