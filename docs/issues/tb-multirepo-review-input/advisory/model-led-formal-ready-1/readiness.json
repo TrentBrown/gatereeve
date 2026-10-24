@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-readiness",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-1",
+  "declaredAt": "2026-10-24T00:17:38.754Z",
+  "scope": "FEATURE_FINAL",
+  "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+  "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+  "criteria": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8",
+    "R9",
+    "R10",
+    "R11",
+    "R12",
+    "R13",
+    "R14",
+    "R15",
+    "R16",
+    "R17",
+    "R18",
+    "R19",
+    "R20",
+    "R21"
+  ],
+  "source": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "007ec2081bfc2859cb8f866962bc3d58e47c12fd",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:7b664977c0833adb7af27c1379f0187d531868b55b1918a9395b13140ec05d27",
+  "requestIdentity": "sha256:8d259464df6cdd78980b2444f377d8518f87ea01f3a5507eb741b62c34108cb8",
+  "inputManifest": {
+    "schemaVersion": 1,
+    "kind": "slice-advisory-inputs",
+    "modelHash": "sha256:39d77d973b78583cbeff891958242ee5bdb882ebb1f331104be9db16b9b9debd",
+    "opaqueHistoryIdentity": "sha256:815d45592381247660926b3dc9837973c61b41ec27b0ec38c60cdccd12655b0f",
+    "reviewInputIdentity": "sha256:f9f7f13bec92261d16a218f9870f7b6a98e91ff07fe13e555f19a564b6620b66",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL",
+    "criteria": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7",
+      "R8",
+      "R9",
+      "R10",
+      "R11",
+      "R12",
+      "R13",
+      "R14",
+      "R15",
+      "R16",
+      "R17",
+      "R18",
+      "R19",
+      "R20",
+      "R21"
+    ],
+    "formalJudge": {
+      "id": "gatereeve/judge",
+      "version": "3.0.0",
+      "digest": "sha256:a3cabc1a01f0b885c3b7333c6f9d1cf92d21e1f18cc322d14ce1cf01fbd5fa07",
+      "scope": "FEATURE",
+      "capabilityProfile": {
+        "id": "high-capability-v1",
+        "minimumReasoning": "high"
+      },
+      "isolation": {
+        "freshContext": true,
+        "inheritedTurns": 0
+      },
+      "repositoryAccess": "read-only-pinned",
+      "networkAccess": "denied"
+    },
+    "advisoryModule": {
+      "id": "gatereeve/advisory-review",
+      "version": "1.0.0",
+      "digest": "sha256:fb65ec94f80ed99aaee0b07a2e672cd03886caac71c71196b46521de18b853a9"
+    },
+    "applicable": true,
+    "resources": {
+      "resources/agent-workflows/advisory/agent.md": "sha256:299bc37fdb22097abaa3d239995b7a0e1c58326ec4e67a14b671849e3aac920f",
+      "resources/agent-workflows/advisory/stage-input.schema.json": "sha256:b7c5b74d8d3b6a1ca1cb355df540d5ff0e2e5255ad34a72b903838f8f68bf38f",
+      "resources/agent-workflows/advisory/result.schema.json": "sha256:f863eb92f594143c402328bff6016a9b0205106f0735922a23145d182724a532",
+      "resources/agent-workflows/advisory/validator.js": "sha256:629dc6ac07eed04ac477130aee91a031de6ecadeb345f24dc7a068925412e88e"
+    },
+    "adapter": {
+      "id": "codex/fresh-exec",
+      "version": "1.0.0",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "reasoningEffort": "high",
+      "capabilityProfiles": [
+        "high-capability-v1"
+      ],
+      "isolationMethods": [
+        "codex-ephemeral-exec"
+      ]
+    },
+    "checks": [
+      {
+        "kind": "fast",
+        "command": "node cli/bin/workflow.js plugin lint --json",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "verification/plugin-lint-retention.json",
+            "hash": "sha256:6fcc4016e1605265acc6086086ea5dc42f1f76c535c423acf9ed8b4a8fdd6b91"
+          }
+        ]
+      },
+      {
+        "kind": "focused",
+        "command": "node --test --test-name-pattern='all gates, actual' cli/test/current-core.test.js",
+        "outcome": "PASS",
+        "evidence": [
+          {
+            "path": "verification/retention-recheck.log",
+            "hash": "sha256:8ba5d88e580a453617cb2399c66e921a6b6e5e5761565df67390b405fb822050"
+          }
+        ]
+      }
+    ],
+    "priorFindingsIdentity": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "governance": {
+      "featureId": "tb-multirepo-review-input",
+      "repositoryAlias": "product",
+      "remote": "origin",
+      "integrationBranch": "main",
+      "releaseBranch": "main",
+      "featureBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+      "keepPullRequestsClosed": true
+    }
+  },
+  "checks": [
+    {
+      "kind": "fast",
+      "command": "node cli/bin/workflow.js plugin lint --json",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "verification/plugin-lint-retention.json",
+          "hash": "sha256:6fcc4016e1605265acc6086086ea5dc42f1f76c535c423acf9ed8b4a8fdd6b91"
+        }
+      ]
+    },
+    {
+      "kind": "focused",
+      "command": "node --test --test-name-pattern='all gates, actual' cli/test/current-core.test.js",
+      "outcome": "PASS",
+      "evidence": [
+        {
+          "path": "verification/retention-recheck.log",
+          "hash": "sha256:8ba5d88e580a453617cb2399c66e921a6b6e5e5761565df67390b405fb822050"
+        }
+      ]
+    }
+  ],
+  "remediation": null,
+  "priorFindings": [],
+  "execution": {
+    "provider": "codex",
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "high",
+    "executable": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+  },
+  "declaredBy": {
+    "kind": "agent",
+    "label": "implementation ready for user-authorized formal PR review"
+  }
+}
