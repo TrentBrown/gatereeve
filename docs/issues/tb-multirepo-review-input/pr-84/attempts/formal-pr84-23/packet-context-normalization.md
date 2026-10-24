@@ -1,5 +1,5 @@
-# Packet context normalization
+# Packet context correction
 
-The original provider context is retained in context.json. For this closed PR, it includes githubReportedHeadSha/githubReportedBaseSha diagnostic metadata in addition to the authoritative remote source/base fields. The installed protocol core pins the nine authoritative pullRequest fields and its modular packet validator requires exactly that object. The Python validator also compares the supplied context object literally.
+The initial packet writer incorrectly removed githubReportedHeadSha and githubReportedBaseSha from the provider context. Validation correctly rejected that mismatch. Inspection of the actual core-pinned formal23 attempt confirms that it retains all eleven pullRequest fields, including those two diagnostics; the earlier nine-field assumption was incorrect.
 
-The first validation rejected an eleven-field provider context paired with the nine-field core packet. The validation context is now derived from the actual core-pinned attempt, with a mechanical assertion that only those two provider-report diagnostics differ. All repository, number, URL, state, draft, branch and authoritative SHA fields match. Original provider diagnostics remain retained; source synchronization uses the original provider context. No core guard, hash, gate, source pin or authority requirement was changed.
+The packet now retains the exact original eleven-field pullRequest object. The original provider context in context.json and the protocol-pinned attempt remain unchanged. Closed-PR provider metadata remains visible alongside the authoritative remote source/base fields. No validator, source pin, hash, gate or authority requirement was relaxed.
