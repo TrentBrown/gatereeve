@@ -25,6 +25,7 @@ async function run(options, operation, input = {}, detail = {}) {
         console.log(`  ${outcome.id}: ${outcome.outcome}; accepted exception: ${outcome.exception.reason}; consequences: ${outcome.exception.consequences}`);
       }
     }
+    for (const pending of result.data.pendingDecisions ?? result.data.current?.pendingDecisions ?? []) console.log(`Pending human instruction (${pending.operation.id}): ${pending.decision.reason}; requested continuation has not been authorized.`);
     for (const gap of result.data.current?.historyGaps ?? result.data.historyGaps ?? []) console.log(`Historical evidence unavailable: ${gap.resultHash}; fresh proof must replace any required role.`);
     for (const blocker of result.data.blockers ?? []) console.log(blocker.message);
   } else console.log(JSON.stringify(result.data, null, 2));
@@ -53,6 +54,7 @@ export function currentCommands() {
   ready.action(options => run(options, 'candidate.ready'));
   const candidate = command('candidate', 'Pin source repositories and approved local requirements')
     .requiredOption('--pin <alias=base..head>', 'Repository and exact source revisions', collect, [])
+    .option('--target <alias=sha>', 'Assessed merge target commit (defaults to review base)', collect, [])
     .requiredOption('--criterion <id>', 'Covered rubric criterion', collect, [])
     .option('--scope <scope>', 'SLICE or FEATURE', 'SLICE');
   candidate.action(async options => {
@@ -61,6 +63,13 @@ export function currentCommands() {
       if (!match) throw new Error('Pin must be alias=fullBaseSha..fullHeadSha');
       return { alias: match[1], base: match[2], head: match[3] };
     });
+    const targets = new Set();
+    for (const target of options.target) {
+      const match = /^([^=]+)=([a-f0-9]{40,64})$/u.exec(target);
+      const repository = match && repositories.find(item => item.alias === match[1]);
+      if (!repository || targets.has(match[1])) throw new Error('Target must name one selected alias exactly once with a full SHA');
+      targets.add(match[1]); repository.target = match[2];
+    }
     return run(options, 'candidate.prepare', { repositories, criteria: options.criterion, scope: options.scope });
   });
   const gate = command('evaluate', 'Execute requested gates with current inputs and actual receipts')

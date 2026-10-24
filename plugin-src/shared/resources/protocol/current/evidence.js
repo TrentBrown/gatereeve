@@ -1,24 +1,52 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { relative, sep, isAbsolute } from 'node:path';
-import { realpath } from 'node:fs/promises';
+import { relative, sep, isAbsolute, join } from 'node:path';
+import { realpath, lstat } from 'node:fs/promises';
 import { CONTRACT, identity, requireThat, text } from './contracts.js';
-import { localPath } from './store.js';
+import { localPath, readSafe } from './store.js';
 
 const exec = promisify(execFile);
 export async function git(root, args, options = {}) {
   const { stdout } = await exec('git', ['-C', root, ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...options });
   return stdout;
 }
-export function excluded(path, featureRelative) {
+const DOCUMENTS = new Set(['interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md',
+  'scratchpad.md', 'decisions.md', 'completion-report.md', 'events.jsonl', 'model-lock.json', 'workflow-model.lock.json', 'feature.json']);
+const REPORTS = new Set(['code-review.md', 'spec-evaluation.md', 'judge.md', 'pattern-review.md', 'verification.md',
+  'spec-validation.md', 'planning-verification.md', 'explain-diff.html', 'decision-triage.md']);
+function recordLocal(path, featureRelative) {
+  if (featureRelative && path.startsWith(`${featureRelative}/`)) return path.slice(featureRelative.length + 1);
+  return /^docs\/issues\/[^/]+\/(.+)$/u.exec(path)?.[1] ?? null;
+}
+function artifactArea(local) {
+  return /^(?:pr-\d+|review-[^/]+|advisory|verification|evidence|runtime|learning-events)(?:\/|$)/u.test(local);
+}
+export function excluded(path, featureRelative, bytes) {
   if (path === '.agentic-workflow.json') return true;
-  if (!featureRelative || !path.startsWith(`${featureRelative}/`)) return false;
-  const local = path.slice(featureRelative.length + 1);
-  // Only named lifecycle documents and the core-owned retained-object area are
-  // reserved bookkeeping. Arbitrary code beneath docs/issues is review source.
-  return ['interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md',
-    'scratchpad.md', 'decisions.md', 'completion-report.md', 'events.jsonl', 'model-lock.json', 'feature.json'].includes(local)
-    || local.startsWith('.gatereeve-current/');
+  const local = recordLocal(path, featureRelative);
+  if (!local) return false;
+  // Reserved records are separate from application inputs. A directory label
+  // never exempts executable code or arbitrary configuration from source checks.
+  if (local.endsWith('.md') || DOCUMENTS.has(local) || REPORTS.has(local) || local.startsWith('.gatereeve-current/')) return true;
+  if (!artifactArea(local)) return false;
+  if (/\.(?:md|txt|log|jsonl|png|jpg|jpeg|webp|svg|pdf)$/iu.test(local)) return true;
+  if (!local.endsWith('.json') || !bytes) return false;
+  let value;
+  try { value = JSON.parse(bytes.toString('utf8')); } catch { return false; }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const leaf = local.split('/').at(-1);
+  if (value.schemaVersion === 1 && value.kind === 'feature-verification'
+      && Object.keys(value).sort().join(',') === 'kind,payload,schemaVersion') return true;
+  if (['readiness.json', 'claim.json', 'proceed.json', 'review.json', 'discovery.json'].includes(leaf)
+      && /^slice-advisory-(?:readiness|claim|proceed|review)$/u.test(value.kind ?? '') && value.schemaVersion === 1) return true;
+  if (leaf === 'judge.json' && value.kind === 'workflow-judge') return true;
+  if (leaf === 'judge-view-audit.json' && value.kind === 'review-view-audit') return true;
+  if (leaf === 'judge-receipt.json' && value.kind === 'gatereeve-agent-workflow-receipt') return true;
+  if (leaf === 'judge-result.json' && ['PASS', 'FAIL'].includes(value.verdict) && Array.isArray(value.criteria)) return true;
+  if (['context.json', 'boundary.json'].includes(leaf) && Number.isInteger(value.schemaVersion)
+      && value.pullRequest && /^[a-f0-9]{40,64}$/u.test(value.evaluatedSourceSha ?? '')
+      && /^[a-f0-9]{40,64}$/u.test(value.mergeBaseSha ?? '')) return true;
+  return false;
 }
 async function tree(store, repository, revision) {
   requireThat(/^[a-f0-9]{40,64}$/u.test(revision), 'Source must use a full Git object identity');
@@ -31,7 +59,7 @@ async function tree(store, repository, revision) {
     const path = line.slice(tab + 1);
     localPath(path);
     return { mode, type, oid, path };
-  }).filter(entry => !excluded(entry.path, featureRelative));
+  });
   for (const entry of entries) requireThat(entry.type === 'blob' && ['100644', '100755', '120000'].includes(entry.mode) || entry.type === 'commit' && entry.mode === '160000', 'Review source contains an unsupported Git entry');
   const links = entries.filter(entry => entry.mode === '160000');
   const blobs = entries.filter(entry => entry.type === 'blob');
@@ -60,7 +88,7 @@ async function tree(store, repository, revision) {
     requireThat(oid === entry.oid && type === 'blob' && Number.isSafeInteger(count) && count >= 0
       && end + 1 + count < bytes.length && bytes[end + 1 + count] === 10, 'Invalid Git blob response');
     const blob = bytes.subarray(end + 1, end + 1 + count);
-    files.push({ path: entry.path, mode: entry.mode, ...(entry.mode === '120000' ? { entryKind: 'symlink' } : {}), ...await store.put(blob) });
+    if (entry.mode !== '100644' || !excluded(entry.path, featureRelative, blob)) files.push({ path: entry.path, mode: entry.mode, ...(entry.mode === '120000' ? { entryKind: 'symlink' } : {}), ...await store.put(blob) });
     offset = end + count + 2;
   }
   requireThat(offset === bytes.length, 'Unexpected Git blob data');
@@ -80,10 +108,29 @@ export async function assertClean(repository, store) {
   const local = relative(await realpath(repository.path), store.home).split(sep).join('/');
   const home = local.split('/')[0] !== '..' && !isAbsolute(local) ? local : null;
   const entries = (await git(repository.path, ['status', '--porcelain=v1', '-z', '--untracked-files=all'])).split('\0');
+  const bookkeeping = async path => {
+    if (!excluded(path, home) && (!artifactArea(recordLocal(path, home) ?? '') || !path.endsWith('.json'))) return false;
+    // Deleted records are classified from HEAD, existing ones through the same
+    // no-symlink reader used for retained inputs. Neither path follows links.
+    let bytes;
+    try {
+      bytes = await readSafe(await realpath(repository.path), path);
+      if ((await lstat(join(repository.path, path))).mode & 0o111) return false;
+    }
+    catch (error) {
+      if (error.code !== 'ENOENT') return false;
+      try {
+        const mode = (await git(repository.path, ['ls-tree', 'HEAD', '--', path])).split(' ')[0];
+        if (mode !== '100644') return false;
+        bytes = Buffer.from(await git(repository.path, ['show', `HEAD:${path}`]));
+      } catch { return false; }
+    }
+    return excluded(path, home, bytes);
+  };
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i]; if (!entry) continue;
-    requireThat(excluded(entry.slice(3), home), `Application source is dirty: ${repository.alias}`);
-    if (/[RC]/u.test(entry.slice(0, 2))) requireThat(excluded(entries[++i], home), 'Renamed application source is dirty');
+    requireThat(await bookkeeping(entry.slice(3)), `Application source is dirty: ${repository.alias}`);
+    if (/[RC]/u.test(entry.slice(0, 2))) requireThat(await bookkeeping(entries[++i]), 'Renamed application source is dirty');
   }
 }
 export async function sourceCandidate(store, context, input, authorization) {
@@ -96,10 +143,12 @@ export async function sourceCandidate(store, context, input, authorization) {
     if (input.scope === 'FEATURE') requireThat(repository.featureBaseSha && pin.base === repository.featureBaseSha, `Feature review must use configured original featureBaseSha: ${pin.alias}`);
     const base = await tree(store, repository, pin.base);
     const head = await tree(store, repository, pin.head);
+    const target = pin.target ?? pin.base;
+    const targetFiles = target === pin.base ? base : await tree(store, repository, target);
     // Clean source is required, but local feature evidence is intentionally optional in Git.
     await assertClean(repository, store);
     requireThat((await git(repository.path, ['rev-parse', 'HEAD'])).trim() === pin.head, 'Working repository differs from selected source');
-    repos.push({ identity: repositoryIdentity(repository), alias: pin.alias, base: pin.base, head: pin.head, baseFiles: base, files: head });
+    repos.push({ identity: repositoryIdentity(repository), alias: pin.alias, base: pin.base, head: pin.head, baseFiles: base, files: head, target, targetFiles });
   }
   const docs = await requirements(store);
   requireThat(['SLICE', 'FEATURE'].includes(input.scope), 'Explicit review scope is required');
@@ -115,7 +164,7 @@ export async function sourceCandidate(store, context, input, authorization) {
 export function contentIdentity(candidate) {
   return identity({ contract: candidate.contract, featureId: candidate.featureId, scope: candidate.scope, criteria: candidate.criteria,
     requirements: candidate.requirements,
-    repositories: candidate.repositories.map(repo => ({ identity: repo.identity, alias: repo.alias, baseFiles: repo.baseFiles, files: repo.files })) });
+    repositories: candidate.repositories.map(repo => ({ identity: repo.identity, alias: repo.alias, baseFiles: repo.baseFiles, files: repo.files, targetFiles: repo.targetFiles })) });
 }
 export async function checkCandidate(store, context, ref, { live = true } = {}) {
   const candidate = await store.json(ref);
@@ -127,7 +176,7 @@ export async function checkCandidate(store, context, ref, { live = true } = {}) 
     const configured = context.repositories.find(item => item.alias === repo.alias);
     requireThat(configured && identity(repositoryIdentity(configured)) === identity(repo.identity), 'Candidate repository or policy changed');
     if (candidate.scope === 'FEATURE') requireThat(configured.featureBaseSha && repo.base === configured.featureBaseSha, `Feature review must use configured original featureBaseSha: ${repo.alias}`);
-    for (const file of [...repo.baseFiles, ...repo.files]) await store.get(file);
+    for (const file of [...repo.baseFiles, ...repo.files, ...repo.targetFiles]) await store.get(file);
     if (live) {
       const root = context.repositories.find(item => item.alias === repo.alias).path;
       requireThat((await git(root, ['rev-parse', 'HEAD'])).trim() === repo.head, `Source changed: ${repo.alias}`);

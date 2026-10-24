@@ -21,9 +21,9 @@ async function tree(path, root, seen = new Set()) {
   for (const name of names) entries.push([name, await tree(join(actual, name), root, next)]);
   return identity(entries);
 }
-async function executable(command, cwd) {
+async function executable(command, cwd, environment) {
   const choices = isAbsolute(command) || command.includes('/') ? [resolve(cwd, command)]
-    : (process.env.PATH ?? '').split(delimiter).map(part => resolve(part || cwd, command));
+    : (environment.PATH ?? '').split(delimiter).map(part => resolve(part || cwd, command));
   for (const path of choices) {
     try {
       await access(path, constants.X_OK);
@@ -48,11 +48,9 @@ async function dependencyInputs(root, directory = '', seen = new Set()) {
   }
   return result;
 }
-export async function executionEnvironment(context, candidate, configuration, runner) {
+export async function executionEnvironment(context, candidate, configuration, runner, inherited = process.env) {
   if (!runner) return { kind: 'pinned-review-inputs' };
-  const names = configuration.environmentKeys ?? [];
-  requireThat(Array.isArray(names) && names.every(key => typeof key === 'string' && /^[A-Za-z_][A-Za-z0-9_]*$/u.test(key)), 'Environment keys must be explicit variable names');
-  const environment = Object.fromEntries([...new Set(names)].sort().map(key => [key, process.env[key] ?? null]));
+  const environment = Object.fromEntries(Object.keys(inherited).sort().map(key => [key, inherited[key]]));
   const base = { platform: process.platform, arch: process.arch };
   const inputs = [], executables = [];
   for (const pin of candidate.repositories) {
@@ -64,7 +62,7 @@ export async function executionEnvironment(context, candidate, configuration, ru
       requireThat(!isAbsolute(path) && !path.split(/[\\/]/u).includes('..'), 'Unsafe runtime input path');
       inputs.push({ repository: pin.alias, path, value: await tree(join(root, path), root) });
     }
-    for (const check of configuration.checks ?? []) if (check.repository === pin.alias) executables.push(await executable(check.command, root));
+    for (const check of configuration.checks ?? []) if (check.repository === pin.alias) executables.push(await executable(check.command, root, environment));
   }
   return { ...base, inheritedEnvironment: identity(environment), inputs, executables };
 }

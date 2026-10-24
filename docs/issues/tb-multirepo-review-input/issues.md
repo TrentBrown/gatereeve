@@ -10,7 +10,7 @@ Estimates remain unknown until implementation reconnaissance.
 
 ## I-1 - Define current contracts and inventory every retained obligation
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P1
 - **Rubric criteria:** R1, R2, R9, R17, R18, R19
@@ -25,7 +25,7 @@ Implementation and local checks are recorded in [verification](verification/impl
 
 ## I-2 - Implement milestone core and repeat-safe current-run entry
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P2
 - **Rubric criteria:** R1, R2, R19, R20
@@ -40,7 +40,7 @@ Implementation and local checks are recorded in [verification](verification/impl
 
 ## I-3 - Implement canonical local inputs, results and packet closure
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P3
 - **Rubric criteria:** R3, R4, R5, R6, R7
@@ -55,7 +55,7 @@ Implementation and local checks are recorded in [verification](verification/impl
 
 ## I-4 - Implement evidence applicability and targeted delta admission
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P4
 - **Rubric criteria:** R10, R11, R12
@@ -70,7 +70,7 @@ Implementation and local checks are recorded in [verification](verification/impl
 
 ## I-5 - Simplify execution and provide independent review packets
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P5
 - **Rubric criteria:** R2, R8, R9, R13, R14, R21
@@ -85,7 +85,7 @@ Implementation and local checks are recorded in [verification](verification/impl
 
 ## I-6 - Implement scoped decisions and milestone action protection
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P6
 - **Rubric criteria:** R1, R15, R16, R17
@@ -100,7 +100,7 @@ Implementation and local checks are recorded in [verification](verification/impl
 
 ## I-7 - Cut over CLI, native instructions and desktop consumers together
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P7
 - **Rubric criteria:** R9, R18, R19, R20, R21
@@ -115,7 +115,7 @@ Implementation and local checks are recorded in [verification](verification/impl
 
 ## I-8 - Build the coherent candidate and run end-to-end regression checks
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P8
 - **Rubric criteria:** R1, R3, R5, R6, R7, R8, R9, R12, R16, R17, R18, R19, R20
@@ -130,7 +130,7 @@ Implementation and local checks are recorded in [verification](verification/impl
 
 ## I-9 - Evaluate the complete rubric and prepare the review boundary
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P9
 - **Rubric criteria:** R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18, R19, R20, R21

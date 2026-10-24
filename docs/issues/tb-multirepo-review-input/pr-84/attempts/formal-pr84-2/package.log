@@ -1,0 +1,7 @@
+Packaging app for platform darwin universal using electron v43.2.0 - Building x64 and arm64 slices now
+Packaging app for platform darwin arm64 using electron v43.2.0
+Packaging app for platform darwin x64 using electron v43.2.0
+WARNING: Could not find icon "/tmp/gr-repair-package.4yGx4c/branding/GateReeve.icns" with extension ".icon", skipping this app icon format
+WARNING: Could not find icon "/tmp/gr-repair-package.4yGx4c/branding/GateReeve.icns" with extension ".icon", skipping this app icon format
+Stitching universal app for platform darwin
+{"applicationPath":"/tmp/gr-repair-package.4yGx4c/application/GateReeve-darwin-universal/GateReeve.app","dmgPath":"/tmp/gr-repair-package.4yGx4c/GateReeve-0.1.0-rc.16-macos-universal.dmg","dmgBytes":253927059,"dmgSha256":"cefc972aece925087e9c800644e187de5f89755f5640d93fa4df6827095fabe2","version":"0.1.0-rc.16"}

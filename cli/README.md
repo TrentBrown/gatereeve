@@ -57,7 +57,7 @@ Parent-folder requirements and retained evidence need not be Git tracked.
 Runner checks contain command, args, repository and purpose. The native operation
 also accepts configuration.runtimeInputs (repository alias to relative paths) for
 additional runtime dependencies/configuration, and explicit external validUntil
-conditions. Only explicitly declared environmentKeys are hashed; values are not logged. GUI/session environment differences do not invalidate proof. Installed
+conditions. All inherited environment values are hashed and the runner receives that frozen environment; values are not logged. Environment differences conservatively invalidate runner proof. Installed
 node_modules and .venv bytes and executable identity are included automatically.
 Unknown external state requires fresh evidence or an explicit scoped exception.
 
@@ -191,3 +191,9 @@ their original outcomes and consequences. `--json` retains full structured
 detail. The installed plugin exposes the same current protocol without requiring
 this optional CLI. See `resources/commands/advisory-review.md` for readiness and
 `resources/commands/pr-boundary.md` for the required milestone obligations.
+
+When the merge target has advanced since the original feature base, fetch its full
+commit and include `--target app=<target-sha>` with `gatereeve candidate`. Keep
+`--pin app=<original-feature-base>..<head>` for a FEATURE assessment. GateReeve exports
+the target snapshot for interaction review, invalidates affected proof when it changes,
+and requires the protected merge action to match that assessed target.

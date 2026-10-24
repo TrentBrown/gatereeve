@@ -14,12 +14,15 @@ export function project(events) {
   const first = events[0].payload;
   const state = { contract: CONTRACT, runId: events[0].runId, featureId: first.featureId,
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
-    decisions: [], results: [], expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
+    decisions: [], pendingDecisions: [], validationFailures: [], results: [], expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
     ready: false, paused: false, eventCount: events.length };
   for (const event of events.slice(1)) {
     const value = event.payload;
     switch (event.type) {
+      case 'DECISION_PENDING': state.pendingDecisions.push({ ...value, event: event.hash }); break;
+      case 'VALIDATION_FAILED': state.validationFailures.push(value); state.specValidation = null; break;
       case 'DECIDED':
+        state.pendingDecisions = state.pendingDecisions.filter(item => item.operation.id !== value.requestId);
         state.decisions.push({ ...value, event: event.hash });
         if (value.kind === 'approve-design') state.phase = 'SPECIFYING';
         if (value.kind === 'authorize-implementation') state.phase = 'IMPLEMENTING';
@@ -114,6 +117,28 @@ export class CurrentCore {
     const docs = await requirements(this.store, ['design.md', 'spec.md', 'plan.md', 'issues.md'], { capture });
     return { docs, subject: identity({ contract: CONTRACT, featureId: this.context.featureId, design: docs['design.md'], spec: docs['spec.md'] }) };
   }
+  async pendingDecision(value, operation) {
+    const { state } = await this.state();
+    const prior = state.pendingDecisions.find(item => item.operation.id === operation.id);
+    if (prior) {
+      requireThat(prior.operation.hash === operation.hash && identity(prior.decision) === identity(value), 'Pending instruction changed; observe a new instruction for changed commitments');
+      return;
+    }
+    await this.append(state, 'DECISION_PENDING', { decision: value, operation }, { id: `pending_${operation.id}`, hash: operation.hash });
+  }
+  async specProof(documents, operation) {
+    const proof = await runTrustedPythonGuard('spec.validation.current', [this.store.home]);
+    const reference = await this.store.putJson(proof);
+    if (!proof.passed) {
+      const payload = { documents, proof: reference, outcome: Number.isInteger(proof.exitCode) ? 'FAIL' : 'UNAVAILABLE', operation };
+      const { state } = await this.state();
+      await this.append(state, 'VALIDATION_FAILED', payload, { id: `failed_${identity(payload).slice(7)}`, hash: identity(payload) });
+      const error = new Error('Specification validation failed; instruction and diagnostics remain retained');
+      error.artifacts = [reference];
+      throw error;
+    }
+    return reference;
+  }
   async decide(input, operation) {
     const value = decision(input);
     const { state } = await this.state();
@@ -142,16 +167,17 @@ export class CurrentCore {
       // The instruction approves the named design delta; spec proof still needs refresh.
       value.approvedDesign = current.docs['design.md'];
       if (decisionHas(value, 'authorize-implementation')) {
-        const proof = await runTrustedPythonGuard('spec.validation.current', [this.store.home]);
-        requireThat(proof.passed, 'Amended specification validation failed; retained authorization can be retried after correction', proof.stderr);
+        await this.pendingDecision(value, operation);
+        const proof = await this.specProof(current.docs, operation);
         for (const ref of Object.values(current.docs)) await this.store.currentBytes(ref);
-        value.specValidation = { spec: current.docs['spec.md'], design: current.docs['design.md'], proof: await this.store.putJson(proof) };
+        value.specValidation = { spec: current.docs['spec.md'], design: current.docs['design.md'], proof };
       }
     } else {
       requireThat(state.candidate && value.subject === state.candidate.hash, 'Decision must bind the current candidate');
       const candidate = await checkCandidate(this.store, this.context, state.candidate);
       if (decisionHas(value, 'waive')) { value.candidate = state.candidate; value.applicability = contentIdentity(candidate); }
       if (value.kind === 'waive') for (const id of value.gates) requireThat(gate(id).waivable || state.decisions.some(item => item.kind === 'policy-amend' && item.subject === value.subject && item.gates.includes(id)), `${id} requires a policy amendment, not a waiver`);
+      await this.pendingDecision(value, operation);
       const proposed = { ...state, decisions: [...state.decisions, value] };
       if (decisionHas(value, 'accept')) requireThat((await this.check('acceptance', proposed)).allowed, 'Required review proof is missing');
       if (decisionHas(value, 'authorize-merge')) {
@@ -159,7 +185,7 @@ export class CurrentCore {
         requireThat(value.action && identity(value.action) === identity(await prepareMerge(this, value.action)), 'Merge authorization must bind the prepared action');
       }
     }
-    return this.append(state, 'DECIDED', value, operation);
+    return this.append((await this.state()).state, 'DECIDED', { ...value, requestId: operation.id }, operation);
   }
   async validateSpec(operation) {
     const { state } = await this.state();
@@ -168,10 +194,9 @@ export class CurrentCore {
     const approval = findDecision(state, 'approve-design', docs['design.md'].hash)
       ?? state.decisions.findLast(item => item.kind === 'amend' && item.approvedDesign?.hash === docs['design.md'].hash);
     requireThat(approval, 'Current design approval is required');
-    const proof = await runTrustedPythonGuard('spec.validation.current', [this.store.home]);
-    requireThat(proof.passed, 'Specification validation failed', { stdout: proof.stdout, stderr: proof.stderr });
+    const proof = await this.specProof(docs, operation);
     for (const ref of Object.values(docs)) await this.store.currentBytes(ref);
-    return this.append(state, 'SPEC_VALIDATED', { spec: docs['spec.md'], design: docs['design.md'], proof: await this.store.putJson(proof) }, operation);
+    return this.append(state, 'SPEC_VALIDATED', { spec: docs['spec.md'], design: docs['design.md'], proof }, operation);
   }
   async prepare(input, operation) {
     const { state } = await this.state();

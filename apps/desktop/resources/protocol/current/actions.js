@@ -36,7 +36,7 @@ export async function prepareMerge(core, input) {
   const remoteHead = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${head}`])).split(/\s/u)[0];
   requireThat(remoteHead === pin.head, 'Remote PR source differs from reviewed source');
   const base = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${pr.baseRefName}`])).split(/\s/u)[0];
-  requireThat(base === pin.base, 'PR base changed; refresh review before merge');
+  requireThat(base === pin.target, 'PR target differs from the assessed target; refresh candidate target and interaction review before merge');
   if (repository.keepPullRequestsClosed) requireThat(pr.state === 'CLOSED', 'PR must remain closed until the authorized merge window');
   else requireThat(pr.state === 'OPEN' && pr.isDraft, 'PR must be an open draft during preparation');
   return { contract: CONTRACT, kind: 'github-pr', repository: input.repository, number: input.number,

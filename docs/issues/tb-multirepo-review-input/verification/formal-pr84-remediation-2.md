@@ -1,0 +1,14 @@
+# Formal PR84 second remediation
+
+The actual installed-core native OpenAI Judge failed attempt formal-pr84-2 on b1d83440b4c44b77793895ef3297be2e9462d46a, context 01a16b64-4947-7361-bf71-1b353b8bddd7. The independent code/spec evaluator also failed with CR2-1 and CR2-2. Both verdicts are preserved in the attempt and journal; no waiver was requested or granted. The asynchronous advisory returned UNAVAILABLE with CONTRACT_INVALID, not a passing review.
+
+These are implementation claims for the next independent assessment:
+
+- CR2-1 / Judge F1: explicit lifecycle/history classification across feature homes excludes retained Markdown, journals and recognized typed artifacts from base, head and target exports. Executable/configuration files remain source; unknown JSON is conservative. Tracked and untracked historical records have regression coverage and report-only commits preserve source identity.
+- CR2-2: original feature base remains the cumulative review anchor. A separate target commit and retained target files enter input identity, reviewer export and delta coverage. CLI --target selects it; the protected merge action requires the exact assessed current target, then binds human authorization and post-check drift protection. Tests cover an advanced target, target-only invalidation and prior/current target inspection.
+- Judge F2: runner applicability now hashes all inherited environment values; the command receives that frozen environment. Values are not stored in clear text in the fingerprint. Environment-changing checks reproduce PASS then FAIL with no reuse. The old test expecting incidental inherited variables to preserve runner proof was corrected; isolated source-only review can still reuse.
+- Judge F3: failed specification validation retains its exact documents, proof, diagnostics and FAIL/UNAVAILABLE event without passage. Reconciliation attaches captured inputs and guard proofs to failed results, including later semantic mapping failures.
+- Judge F4: combined instructions retain a durable pending decision before validation/continuation. Pending instructions grant no requested authority, appear in status and reconcile on identical retry. Interruption and waiver-plus-acceptance failure tests inspect pending state and one completed decision.
+- Judge F5: removed the importable legacy Python merge implementation. Preparation remains available; protected writes use current merge.prepare/human.decide/merge.execute. Tests assert the legacy merge function is absent; actual protected adapter tests cover drift, closure and integration.
+
+Focused regressions pass. Full CLI, Desktop, Python, packaging and native validation evidence is retained separately after completion. Hosted exact-current CI, external installation, native Intel runtime and release remain outside these local verification claims.

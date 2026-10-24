@@ -41,7 +41,8 @@ export function changedPaths(before, after) {
   const paths = value => new Map(value.repositories.flatMap(repo => {
     const base = new Map(repo.baseFiles.map(file => [file.path, file]));
     const head = new Map(repo.files.map(file => [file.path, file]));
-    return [...new Set([...base.keys(), ...head.keys()])].map(path => [`${repo.alias}/${path}`, identity({ base: base.get(path) ?? null, head: head.get(path) ?? null })]);
+    const target = new Map(repo.targetFiles.map(file => [file.path, file]));
+    return [...new Set([...base.keys(), ...head.keys(), ...target.keys()])].map(path => [`${repo.alias}/${path}`, identity({ base: base.get(path) ?? null, head: head.get(path) ?? null, target: target.get(path) ?? null })]);
   }));
   const a = paths(before); const b = paths(after);
   return [...new Set([...a.keys(), ...b.keys()])].filter(path => a.get(path) !== b.get(path)).sort();
@@ -53,14 +54,14 @@ Prior results are inputs, not authority. Verify open findings, claimed fixes and
 Blocking findings must cite an approved criterion or the named gate rule plus current source evidence. Advice, unsupported speculation and unrelated pre-existing issues are nonblocking follow-ups. Do not invent scope.
 For delta review, explicitly cover all changed paths and their interactions and state any uncovered scope. PASS requires complete required coverage, no blocking findings and no unresolved required limitations. Missing verification is UNAVAILABLE, never an invented successful test.
 Git symlinks are regular text files containing their target, never followed. Gitlinks are JSON metadata with the pinned commit; contents require a separately selected repository or an explicit coverage limitation. Do not treat metadata as reviewed implementation.
-Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, requirements/ and the explicit evidence paths in the input. Do not access network or modify files.`;
+Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, target/<alias>/ is the independently pinned proposed merge target; assess its interactions with the complete feature change. Prior targets are under prior/<result-hash>/target/<alias>/. Read requirements/ and the explicit evidence paths in the input. Do not access network or modify files.`;
 
 export const reviewContract = ids => identity({ schema, instructions, rules: ids.map(id => ({ id, rule: gate(id).rule ?? null })) });
 
 async function reviewerView(store, candidate, references, packet) {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-current-review-'));
   try {
-    for (const repo of candidate.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles]]) for (const file of files) {
+    for (const repo of candidate.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) for (const file of files) {
       const path = join(root, kind, repo.alias, localPath(file.path));
       await mkdir(dirname(path), { recursive: true });
       await writeFile(path, await store.get(file), { mode: 0o400, flag: 'wx' });
@@ -77,7 +78,7 @@ async function reviewerView(store, candidate, references, packet) {
       if (report.input) {
         const previous = await store.json((await store.json(report.input)).candidate);
         requireThat(previous.repositories.every(repo => candidate.repositories.some(selected => identity(selected.identity) === identity(repo.identity))), 'Referenced evidence includes unselected repositories');
-        for (const repo of previous.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles]]) for (const file of files) {
+        for (const repo of previous.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) for (const file of files) {
           const path = join(root, 'prior', ref.hash.slice(7), kind, repo.alias, localPath(file.path));
           await mkdir(dirname(path), { recursive: true });
           await writeFile(path, await store.get(file), { mode: 0o400 });
@@ -133,7 +134,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
   } catch (error) { error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])]; throw error; }
   finally { await rm(root, { recursive: true, force: true }); }
 }
-async function commands(core, state, candidate, configuration, completion) {
+async function commands(core, state, candidate, configuration, completion, environment) {
   requireThat(Array.isArray(configuration.checks) && configuration.checks.length > 0, 'Runner requires explicit checks');
   const receipts = [];
   for (const check of configuration.checks) {
@@ -148,7 +149,7 @@ async function commands(core, state, candidate, configuration, completion) {
     const startedAt = new Date().toISOString();
     let outcome = 'PASS', result;
     try {
-      result = await exec(check.command, check.args, { cwd: repository.path, encoding: 'utf8',
+      result = await exec(check.command, check.args, { cwd: repository.path, env: environment, encoding: 'utf8',
         timeout: configuration.timeoutMs ?? 600000, maxBuffer: 16 * 1024 * 1024 });
     } catch (error) { outcome = typeof error.code === 'number' ? 'FAIL' : 'UNAVAILABLE'; result = error; }
     receipts.push({ evaluatedSource: expectedHead, command: check.command, args: check.args, repository: check.repository,
@@ -173,7 +174,7 @@ function validateVerdict(verdict, ids, candidate, changes, history, claims, reco
     && ['paths', 'interactions', 'limitations'].every(key => Array.isArray(verdict.coverage[key]) && verdict.coverage[key].every(value => typeof value === 'string')),
   'Review must state coverage and limitations');
   requireThat(Array.isArray(verdict.findings) && Array.isArray(verdict.dispositions), 'Review must include findings and dispositions');
-  const paths = new Set(candidate.repositories.flatMap(repo => [...repo.files, ...repo.baseFiles].map(file => `${repo.alias}/${file.path}`)));
+  const paths = new Set(candidate.repositories.flatMap(repo => [...repo.files, ...repo.baseFiles, ...repo.targetFiles].map(file => `${repo.alias}/${file.path}`)));
   for (const finding of verdict.findings) {
     ['id', 'classId', 'criterion', 'path', 'evidence'].forEach(key => text(finding[key], `Finding ${key}`));
     requireThat(paths.has(finding.path) && typeof finding.blocking === 'boolean', 'Finding must name source in scope');
@@ -327,8 +328,9 @@ export async function executeGates(core, input, operation) {
   if (input.gates.includes('reconcile')) {
     support.push(await core.store.capture('plan.md'), await core.store.capture('issues.md'), await core.store.capture('tracker.md'));
   }
+  const runnerEnvironment = Object.freeze({ ...process.env });
   const value = { contract: CONTRACT, gates: input.gates, candidate: state.candidate, configuration, consumed, support,
-    environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner'),
+    environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment),
     pattern: input.gates.includes('pattern') ? await patternInputs(core.store, core.context, candidate) : null,
     integrations: definitions[0].at === 'completion' ? state.integrations : null,
     reviewContract: reviewContract(input.gates), claims: input.claims ?? [],
@@ -376,7 +378,7 @@ export async function executeGates(core, input, operation) {
   try {
     if (role === 'independent' || role === 'assessment') {
       const packet = { contract: CONTRACT, rules: input.gates.map(id => ({ id, rule: gate(id).rule })), pattern: value.pattern, gates: input.gates, criteria: candidate.criteria, scope: candidate.scope,
-        source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, entries: [...repo.baseFiles, ...repo.files].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
+        source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, target: repo.target, entries: [...repo.baseFiles, ...repo.files, ...repo.targetFiles].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
         history, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
       const reviewed = await independent(core, state, candidate, prepared, configuration, packet);
       evaluator = reviewed.evaluator; metrics = reviewed.metrics; artifacts.push(...reviewed.artifacts);
@@ -389,10 +391,10 @@ export async function executeGates(core, input, operation) {
           validateJsonSchema(schema.properties.verdicts.items, selected[0], { label: id });
           validateVerdict(selected[0], input.gates, candidate, changes, history, input.claims ?? [], value.reconsiderClosures);
           return selected[0];
-        } catch (error) { return { gate: id, outcome: 'UNAVAILABLE', summary: error.message, findings: [], dispositions: [] }; }
+        } catch (error) { return { gate: id, outcome: error.outcome ?? 'UNAVAILABLE', summary: error.message, findings: [], dispositions: [] }; }
       });
     } else if (role === 'runner') {
-      const ran = await commands(core, state, candidate, configuration, definitions[0].at === 'completion');
+      const ran = await commands(core, state, candidate, configuration, definitions[0].at === 'completion', runnerEnvironment);
       artifacts.push(await core.store.putJson(ran));
       for (const receipt of ran.receipts) artifacts.push(receipt.stdout, receipt.stderr);
       requireThat(identity(value.environment) === identity(await executionEnvironment(core.context, candidate, configuration, true)), 'Execution environment changed during checks');
@@ -420,7 +422,7 @@ export async function executeGates(core, input, operation) {
   } catch (error) {
     artifacts.push(...(error.artifacts ?? []));
     if (error.providerFailure) artifacts.push(await core.store.putJson(error.providerFailure));
-    verdicts = input.gates.map(id => ({ gate: id, outcome: 'UNAVAILABLE', summary: error.message, findings: [], dispositions: [] }));
+    verdicts = input.gates.map(id => ({ gate: id, outcome: error.outcome ?? 'UNAVAILABLE', summary: error.message, findings: [], dispositions: [] }));
   }
   const receipt = await core.store.putJson({ contract: CONTRACT, kind: 'execution', runId: state.runId,
     input: prepared.hash, jobId, gates: input.gates, role, evaluator, startedAt, completedAt: new Date().toISOString(), metrics });
@@ -441,12 +443,18 @@ async function coreEvidence(core, state, candidate, id, consumed) {
     case 'context': await checkCandidate(core.store, core.context, state.candidate); summary = 'Pinned source and requirements verified'; break;
     case 'reconcile': {
       const documents = {};
-      for (const name of ['plan.md', 'issues.md', 'tracker.md']) documents[name] = await core.store.capture(name);
       const proofs = [];
+      try {
+      for (const name of ['plan.md', 'issues.md', 'tracker.md']) documents[name] = await core.store.capture(name);
       for (const guard of ['issues.validation.current', 'tracker.validation.current']) {
         const proof = await runTrustedPythonGuard(guard, [core.store.home]);
         proofs.push(await core.store.putJson(proof));
-        requireThat(proof.passed, 'Record reconciliation validation failed', proof.stdout);
+        if (!proof.passed) {
+          const error = new Error('Record reconciliation validation failed');
+          error.artifacts = [...Object.values(documents), ...proofs];
+          error.outcome = Number.isInteger(proof.exitCode) ? 'FAIL' : 'UNAVAILABLE';
+          throw error;
+        }
       }
       for (const ref of Object.values(documents)) await core.store.currentBytes(ref);
       const issues = (await core.store.get(documents['issues.md'])).toString();
@@ -460,6 +468,11 @@ async function coreEvidence(core, state, candidate, id, consumed) {
       for (const line of issues.split('\n').filter(line => line.includes('**Plan steps:**'))) for (const id of line.match(/\bP\d+\b/gu) ?? []) requireThat(new RegExp(`\\b${id}\\b`, 'u').test(plan), 'Issue refers to an unknown plan step');
       requireThat(candidate.criteria.every(id => new RegExp(`\\b${id}\\b`, 'u').test(issues)), 'Selected criteria lack issue coverage');
       return { gate: id, outcome: 'PASS', summary: 'Issue/tracker lint and approved rubric/plan mappings reconciled; semantic completion remains independently assessed', findings: [], dispositions: [], proofs };
+      } catch (error) {
+        error.artifacts = [...Object.values(documents), ...proofs];
+        error.outcome ??= error.code ? 'UNAVAILABLE' : 'FAIL';
+        throw error;
+      }
     }
     case 'triage': {
       const ref = await core.store.capture('scratchpad.md');

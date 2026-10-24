@@ -27,7 +27,7 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals |
 | `human.decide` | See decisions below |
 | `spec.validate` | Run trusted spec lint after the model's semantic review of AC, rubric and boundary feasibility |
-| `candidate.prepare` | `repositories: [{alias,base,head}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row |
+| `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row |
 | `candidate.ready` | Declare the pinned candidate ready; launches nothing |
 | `gate.execute` | `gates: [id]` or `["code","spec"]`, explicit `configuration`, typed `consumed`, bounded `history`, labeled `claims`, optional `prior` for a delta |
 | `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
@@ -123,7 +123,7 @@ breakdown edits remain ordinary work; each approval still retains the plan/issue
 bytes that were presented. Reconciliation rechecks the current plan, issue and
 tracker mappings before acceptance.
 
-Runner assumptions may declare `environmentKeys` and repository-relative
+Runner assumptions hash the entire inherited environment and may declare repository-relative
 `runtimeInputs`. Incidental CLI/Desktop environment variables do not invalidate
 proof; executable and installed dependency bytes remain bound. Completed
 verification establishes required check coverage for the authorized scope; a
@@ -160,3 +160,29 @@ context only, with lost provenance visible. A fresh execution records the gaps
 it observed in its immutable input. Current qualified references still require
 complete integrity. Provider failures expose structured causes and remedies,
 not raw provider stdout/stderr.
+
+## Source and retained-record classification
+
+The canonical feature home and `docs/issues/<feature>/` reserve lifecycle Markdown,
+journals, current retained objects and recognized report artifacts as record data.
+Review/advisory/verification directories can retain narrative logs and captures; JSON
+requires a recognized typed workflow envelope. This classification keeps history
+out of base/head/target exports and permits untracked record continuation. It grants
+no passage or evidence validity: current proof still needs validated retained references.
+Arbitrary executable files, configuration and unknown/malformed JSON remain application
+source, including beneath record-looking directories. Executable file modes and Git
+symlinks are never silently classified as narrative evidence.
+
+For a merge candidate, `base` preserves the original cumulative feature review range.
+`target` separately pins the proposed integration/release tip (default: `base`). Its
+retained bytes enter the review input, applicability identity and delta changed-path
+coverage. A target change needs refreshed interaction proof. Merge preparation rejects
+a live target different from this assessed pin; human authorization and execution bind
+the exact current target commit as well as the reviewed source and method.
+
+Combined decisions retain a pending instruction before validation/continuation work.
+Pending records grant no requested action; status exposes them and an identical retry
+reconciles one completed decision. Failed spec and reconciliation checks retain exact
+inputs and diagnostics with FAIL or UNAVAILABLE without granting passage. Runner
+applicability hashes the entire inherited environment; execution receives that frozen
+environment. Values are never stored in clear text in the environment fingerprint.
