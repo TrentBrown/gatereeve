@@ -59,9 +59,14 @@ function findDecision(state, kind, subject) {
 }
 export class CurrentCore {
   constructor(context, store, runtime = {}) {
-    this.context = { ...context, repositories: context.repositories.map(repository => ({ ...repository, gitExecutable: runtime.gitExecutable ?? repository.gitExecutable ?? 'git' })) };
+    this.sourceContext = context;
     this.store = store;
     this.runtime = runtime;
+  }
+  get context() {
+    return { ...this.sourceContext, repositories: this.sourceContext.repositories.map(repository => ({
+      ...repository, gitExecutable: this.runtime.gitExecutable ?? repository.gitExecutable ?? 'git',
+    })) };
   }
   static async at(context, runtime = {}) {
     return new CurrentCore(context, await CurrentStore.at(context.featureHome, context.workspaceRoot), runtime);

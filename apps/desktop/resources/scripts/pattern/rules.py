@@ -34,7 +34,7 @@ def discover_pattern_dirs(changed_files: list[str], repo_root: str | Path, home:
     found: dict[Path, None] = {}
     for rel in changed_files or ["."]:
         current = (root / rel).resolve()
-        if current.is_file() or current.suffix:
+        if current.is_file() or (not current.is_dir() and current.suffix):
             current = current.parent
         while True:
             pattern_dir = current / PATTERN_DIR

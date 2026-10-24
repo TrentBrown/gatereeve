@@ -10,3 +10,7 @@ Native OpenAI Judge formal-pr84-13 failed R18 (F1–F3); its original verdict an
 - Replace DESIGNING-only smoke with an IMPLEMENTING fixture carrying actual document validators and reconciliation, plus explicitly synthetic pattern evaluator transport. Packaged observation must retain those current outcomes and leave the journal unchanged. Synthetic pattern responses are test data, not independent quality review; empty rules provide no substantive coverage.
 
 The older tests missed consumer helper parity, discovered executable propagation and the established packaged proof path. New regressions exercise those interactions with both Git and Python absent from GUI PATH and incidental GUI environment drift. No gate is waived; formal reviews must run on the repaired pin.
+
+## Follow-up checks during repair
+
+Broader tests exposed a context-copy regression in the Git wiring; runtime decoration now reads the live resolved context, preserving configuration-drift checks. The first strengthened package fixture also exposed pattern discovery treating an existing dotted directory as a file. Discovery now respects existing directories, with an empty-diff and deleted-file regression. The interrupted preliminary suite and first package failure are superseded by the subsequent full runs; no preliminary run is claimed as PASS.

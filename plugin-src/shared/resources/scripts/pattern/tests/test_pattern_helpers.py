@@ -24,6 +24,14 @@ TOOL = SCRIPT_ROOT / "pattern_tool.py"
 
 
 class PatternHelperTests(unittest.TestCase):
+    def test_dotted_repository_directory_keeps_its_local_rules(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "fixture.with-suffix"
+            rules = repo / ".pattern-review"
+            rules.mkdir(parents=True)
+            self.assertEqual(discover_pattern_dirs([], repo), [rules.resolve()])
+            self.assertEqual(discover_pattern_dirs(["deleted.js"], repo), [rules.resolve()])
+
     def test_canonical_yaml_is_independent_of_optional_pyyaml(self) -> None:
         class UnexpectedYaml:
             @staticmethod
