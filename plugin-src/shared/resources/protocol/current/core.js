@@ -59,7 +59,7 @@ export class CurrentCore {
     this.runtime = runtime;
   }
   static async at(context, runtime = {}) {
-    return new CurrentCore(context, await CurrentStore.at(context.featureHome), runtime);
+    return new CurrentCore(context, await CurrentStore.at(context.featureHome, context.workspaceRoot), runtime);
   }
   async state() {
     const active = await this.store.active();
@@ -149,7 +149,8 @@ export class CurrentCore {
       }
     } else {
       requireThat(state.candidate && value.subject === state.candidate.hash, 'Decision must bind the current candidate');
-      await checkCandidate(this.store, this.context, state.candidate);
+      const candidate = await checkCandidate(this.store, this.context, state.candidate);
+      if (decisionHas(value, 'waive')) { value.candidate = state.candidate; value.applicability = contentIdentity(candidate); }
       if (value.kind === 'waive') for (const id of value.gates) requireThat(gate(id).waivable || state.decisions.some(item => item.kind === 'policy-amend' && item.subject === value.subject && item.gates.includes(id)), `${id} requires a policy amendment, not a waiver`);
       const proposed = { ...state, decisions: [...state.decisions, value] };
       if (decisionHas(value, 'accept')) requireThat((await this.check('acceptance', proposed)).allowed, 'Required review proof is missing');
@@ -279,12 +280,13 @@ export class CurrentCore {
         || state.specValidation.design.hash !== current.docs['design.md'].hash) missing.push('current specification validation');
       if (state.specValidation) await this.store.get(state.specValidation.proof);
     } catch (error) { missing.push(error.message); }
-    if (name === 'implementation') return { name, allowed: missing.length === 0, missing, subject: current?.subject ?? null };
     try { await this.store.closure(state.decisions); } catch (error) { missing.push(`Retained decision closure: ${error.message}`); }
+    if (name === 'implementation') return { name, allowed: missing.length === 0, missing, subject: current?.subject ?? null };
     let candidate;
     try {
       requireThat(state.candidate, 'current candidate');
       candidate = await checkCandidate(this.store, this.context, state.candidate, { live: name !== 'completion' });
+      requireThat(candidate.authorization.subject === current?.subject, 'Candidate commitments differ from current authorized requirements');
     } catch (error) { missing.push(error.message); }
     if (name !== 'completion' && !state.ready) missing.push('candidate readiness declaration');
     const outcomes = [];
@@ -302,7 +304,7 @@ export class CurrentCore {
           break;
         } catch (failure) { error = failure.message; }
       }
-      const waiver = waiverFor(state, definition.id, state.candidate?.hash);
+      const waiver = waiverFor(state, definition.id, state.candidate?.hash, candidate ? contentIdentity(candidate) : null);
       const satisfied = accepted?.outcome === 'PASS' || waiver;
       if (!satisfied) missing.push(`${definition.id}: ${accepted?.outcome ?? error ?? 'missing evidence'}`);
       outcomes.push({ id: definition.id, result: acceptedRef, reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied) });

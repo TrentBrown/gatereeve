@@ -26,6 +26,8 @@ async function ensureHome(context) {
 }
 async function documents(context) {
   const artifacts = [];
+  try { await CurrentStore.at(context.featureHome, context.workspaceRoot); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
   for (const name of DOCUMENTS) {
     let ref = null, unsafe = false;
     try {

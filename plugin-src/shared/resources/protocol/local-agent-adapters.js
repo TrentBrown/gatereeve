@@ -97,7 +97,18 @@ function promptFor(request) {
   return prompt;
 }
 
-function receiptFor(request, descriptor, output, contextId, method, processResult) {
+function providerMetrics(usages, costs = []) {
+  const number = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+  const sum = values => { const known = values.filter(number); return known.length ? known.reduce((a, b) => a + b, 0) : null; };
+  const tokens = {
+    input: sum(usages.map(value => value?.input_tokens)),
+    output: sum(usages.map(value => value?.output_tokens)),
+    cachedInput: sum(usages.map(value => value?.cached_input_tokens ?? value?.cache_read_input_tokens)),
+    cacheCreation: sum(usages.map(value => value?.cache_creation_input_tokens)),
+  };
+  return { tokens: Object.values(tokens).some(value => value !== null) ? tokens : null, cost: sum(costs) };
+}
+function receiptFor(request, descriptor, output, contextId, method, processResult, metrics) {
   return {
     schemaVersion: 1,
     kind: 'gatereeve-agent-workflow-receipt',
@@ -123,6 +134,7 @@ function receiptFor(request, descriptor, output, contextId, method, processResul
     startedAt: iso(processResult.startedAt),
     completedAt: iso(processResult.completedAt),
     status: 'completed',
+    metrics,
     digests: {
       instructions: sha256Digest(request.instructions),
       input: sha256Digest(request.input),
@@ -159,6 +171,7 @@ export function parseClaudeStructuredOutput(stdout) {
   return {
     output: parseObject(output, 'Claude Code structured output'),
     contextId: envelope.session_id ?? envelope.sessionId,
+    metrics: providerMetrics([envelope.usage], [envelope.total_cost_usd]),
   };
 }
 
@@ -224,7 +237,8 @@ export function createCodexAgentAdapter({
         const contextId = parseCodexContextId(processResult.stdout);
         return {
           output,
-          receipt: receiptFor(request, details, output, contextId, 'codex-ephemeral-exec', processResult),
+          receipt: receiptFor(request, details, output, contextId, 'codex-ephemeral-exec', processResult,
+            providerMetrics(jsonLines(processResult.stdout).filter(event => event.type === 'turn.completed').map(event => event.usage))),
         };
       } finally {
         await rm(scratch, { recursive: true, force: true });
@@ -278,7 +292,7 @@ export function createClaudeCodeAgentAdapter({
       return {
         output: parsed.output,
         receipt: receiptFor(
-          request, details, parsed.output, parsed.contextId, 'claude-custom-agent', processResult
+          request, details, parsed.output, parsed.contextId, 'claude-custom-agent', processResult, parsed.metrics
         ),
       };
     },

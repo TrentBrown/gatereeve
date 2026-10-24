@@ -19,7 +19,12 @@ async function run(options, operation, input = {}, detail = {}) {
   else if (!result.ok) console.error(`${result.error.code}: ${result.error.message}`);
   else if (result.data?.contract && result.data?.featureId && result.data?.milestones) {
     console.log(`${result.data.featureId}: ${result.data.current?.phase ?? result.data.phase ?? 'current run needed'}`);
-    for (const milestone of result.data.milestones) console.log(`${milestone.name}: ${milestone.allowed ? 'ready' : milestone.missing.join('; ')}`);
+    for (const milestone of result.data.milestones) {
+      console.log(`${milestone.name}: ${milestone.allowed ? 'ready' : milestone.missing.join('; ')}`);
+      for (const outcome of milestone.outcomes ?? []) if (outcome.exception) {
+        console.log(`  ${outcome.id}: ${outcome.outcome}; accepted exception: ${outcome.exception.reason}; consequences: ${outcome.exception.consequences}`);
+      }
+    }
     for (const gap of result.data.current?.historyGaps ?? result.data.historyGaps ?? []) console.log(`Historical evidence unavailable: ${gap.resultHash}; fresh proof must replace any required role.`);
     for (const blocker of result.data.blockers ?? []) console.log(blocker.message);
   } else console.log(JSON.stringify(result.data, null, 2));

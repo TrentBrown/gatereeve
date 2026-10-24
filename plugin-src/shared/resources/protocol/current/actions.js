@@ -71,7 +71,13 @@ export async function merge(core, input, operation) {
     requireThat((await core.check('merge')).allowed, 'Gate proof changed while waiting for hosted checks');
     const latestBase = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${action.baseBranch}`])).split(/\s/u)[0];
     requireThat(latestBase === action.base, 'PR base changed while waiting for hosted checks; refresh review');
-    // Match-head binds the remote write even if source changes after this check.
+    const refreshed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
+      '--json', 'number,state,headRefName,headRefOid,baseRefName,baseRefOid,isDraft']));
+    requireThat(refreshed.number === action.number && refreshed.state === 'OPEN' && refreshed.headRefOid === action.head
+      && refreshed.headRefName === action.headBranch && refreshed.baseRefName === action.baseBranch && refreshed.baseRefOid === action.base,
+    'PR identity changed while waiting for hosted checks');
+    // Match-head binds source at the write. GitHub exposes no target compare-and-swap;
+    // reread the target after the potentially long checks wait, immediately before merging.
     await run(repository.path, ['pr', 'merge', String(action.number), '--repo', action.ownerRepo,
       `--${action.method}`, '--match-head-commit', action.head]);
     const observed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,

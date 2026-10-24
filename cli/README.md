@@ -176,15 +176,18 @@ The build rejects symlinks and overlay collisions, removes stale package output,
 sets the native manifest version, and records source provenance plus the shared
 file inventory under `.workflow-build/` in each generated package.
 
-### Advisory readiness
+### Candidate readiness and explicit evaluation
 
-For an explicitly adopted advisory-capable model, `gatereeve advisory
-declare-readiness --input-file request.json` runs isolated noncertifying
-discovery after the implementer declares readiness with completed fast/focused
-evidence. `advisory proceed` retains a nonempty source-bound reason;
-`advisory check` only verifies current inputs. Each accepts normal `--cwd`,
-repository/feature selection and `--json` options. READY_FOR_FORMAL_REVIEW
-leaves full Verification pending. FINDINGS/check-ineligible exits 1;
-UNAVAILABLE/IN_PROGRESS exits 2. The installed plugin exposes the same API
-without requiring this optional CLI. See the packaged
-`resources/commands/advisory-review.md` for exact request and remediation fields.
+`gatereeve candidate --pin <alias=base..head> --criterion <id> --scope FEATURE`
+retains the selected source and approved local requirements. FEATURE scope uses
+each repository's configured original `featureBaseSha`. `gatereeve ready`
+records readiness without launching a reviewer. The model requests evaluations
+explicitly with `gatereeve evaluate <gates...>` and chooses their order within
+the authorized phase. Code and spec may share one fresh independent evaluator;
+each retains its own verdict. Judge remains independently required.
+
+`gatereeve status` shows milestone blockers and any accepted exceptions with
+their original outcomes and consequences. `--json` retains full structured
+detail. The installed plugin exposes the same current protocol without requiring
+this optional CLI. See `resources/commands/advisory-review.md` for readiness and
+`resources/commands/pr-boundary.md` for the required milestone obligations.

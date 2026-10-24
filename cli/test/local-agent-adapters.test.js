@@ -45,7 +45,7 @@ test('Codex adapter launches a fresh ephemeral read-only structured run', async 
       await writeFile(outputPath, '{"verdict":"PASS"}\n');
       return {
         code: 0, signal: null,
-        stdout: '{"type":"thread.started","thread_id":"codex-context-1"}\n', stderr: '',
+        stdout: '{"type":"thread.started","thread_id":"codex-context-1"}\n{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":5,"output_tokens":7}}\n', stderr: '',
         startedAt: new Date('2026-09-24T12:00:00Z'),
         completedAt: new Date('2026-09-24T12:01:00Z'),
       };
@@ -55,6 +55,7 @@ test('Codex adapter launches a fresh ephemeral read-only structured run', async 
   assert.equal(result.output.verdict, 'PASS');
   assert.equal(validateAgentWorkflowReceipt(result.receipt), result.receipt);
   assert.equal(result.receipt.provider.contextId, 'codex-context-1');
+  assert.deepEqual(result.receipt.metrics, { tokens: { input: 12, output: 7, cachedInput: 5, cacheCreation: null }, cost: null });
   assert(calls[0].args.includes('--ephemeral'));
   assert(calls[0].args.includes('--skip-git-repo-check'));
   assert(calls[0].args.includes('read-only'));
@@ -74,6 +75,7 @@ test('Claude Code adapter launches a non-persistent restricted custom agent', as
         stdout: JSON.stringify({
           session_id: 'claude-context-1',
           structured_output: { verdict: 'PASS' },
+          usage: { input_tokens: 20, output_tokens: 9, cache_read_input_tokens: 3, cache_creation_input_tokens: 4 }, total_cost_usd: 0.03,
         }),
         stderr: '',
         startedAt: new Date('2026-09-24T12:00:00Z'),
@@ -85,6 +87,7 @@ test('Claude Code adapter launches a non-persistent restricted custom agent', as
   assert.equal(result.output.verdict, 'PASS');
   assert.equal(validateAgentWorkflowReceipt(result.receipt), result.receipt);
   assert.equal(result.receipt.provider.contextId, 'claude-context-1');
+  assert.deepEqual(result.receipt.metrics, { tokens: { input: 20, output: 9, cachedInput: 3, cacheCreation: 4 }, cost: 0.03 });
   assert(calls[0].args.includes('--agents'));
   assert(calls[0].args.includes('--agent'));
   assert(calls[0].args.includes('--restricted'));
@@ -97,7 +100,7 @@ test('Claude Code adapter launches a non-persistent restricted custom agent', as
 test('adapter parsers require structured output and opaque context IDs', () => {
   assert.deepEqual(parseClaudeStructuredOutput(JSON.stringify({
     session_id: 'session-1', result: '{"ok":true}',
-  })), { contextId: 'session-1', output: { ok: true } });
+  })), { contextId: 'session-1', output: { ok: true }, metrics: { tokens: null, cost: null } });
   assert.equal(
     parseCodexContextId('{"type":"thread.started","thread_id":"thread-1"}\n'),
     'thread-1'

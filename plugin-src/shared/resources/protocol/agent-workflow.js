@@ -45,10 +45,19 @@ export function validateAgentWorkflowReceipt(value) {
     [
       'schemaVersion', 'kind', 'protocolVersion', 'runId', 'attemptId', 'module',
       'stage', 'capabilityProfile', 'provider', 'isolation', 'policy', 'startedAt', 'completedAt',
-      'status', 'digests',
+      'status', 'digests', ...(value?.metrics === undefined ? [] : ['metrics']),
     ],
     'Agent workflow receipt'
   );
+  if (value.metrics !== undefined) {
+    exactKeys(value.metrics, ['tokens', 'cost'], 'Provider metrics');
+    const count = number => number === null || (typeof number === 'number' && Number.isFinite(number) && number >= 0);
+    if (!count(value.metrics.cost)) throw new ContractError('Provider cost is invalid');
+    if (value.metrics.tokens !== null) {
+      exactKeys(value.metrics.tokens, ['input', 'output', 'cachedInput', 'cacheCreation'], 'Provider token metrics');
+      if (!Object.values(value.metrics.tokens).every(count)) throw new ContractError('Provider token metrics are invalid');
+    }
+  }
   if (
     value.schemaVersion !== 1
     || value.kind !== AGENT_WORKFLOW_RECEIPT_KIND

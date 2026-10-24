@@ -86,8 +86,19 @@ async function publish(root, path, bytes) {
 
 export class CurrentStore {
   constructor(home) { this.home = home; }
-  static async at(home) {
+  static async at(home, workspaceRoot) {
     const absolute = resolve(home);
+    if (workspaceRoot) {
+      const root = resolve(workspaceRoot);
+      const local = relative(root, absolute);
+      requireThat(local && local !== '..' && !local.startsWith(`..${sep}`) && !isAbsolute(local), 'Feature home escaped workspace');
+      let current = root;
+      for (const part of local.split(sep)) {
+        current = join(current, part);
+        const info = await lstat(current);
+        requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Unsafe feature home ancestor');
+      }
+    }
     const info = await lstat(absolute);
     requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Feature home must be a real directory');
     return new CurrentStore(await realpath(absolute));

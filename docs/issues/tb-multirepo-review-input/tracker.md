@@ -41,3 +41,9 @@ supported corrections remain unchanged in the evidence record. Formal rubric
 rows above remain NOT YET pending the installed protocol's PR boundary; the local
 standalone verdict is not recorded gate passage. See
 [completion report](verification/completion-report.md) for tested scope and limits.
+
+2026-10-23: Closed PR[#84](https://github.com/TrentBrown/gatereeve/pull/84) now exists. Formal FEATURE_FINAL attempt formal-pr84-1 is ACTIVE through the installed protocol. Readiness uses its recorded reasoned proceed policy while discovery runs; formal gates are not waived.
+
+### Formal PR84 attempt 1
+
+Code review, spec evaluation and native OpenAI Judge returned FAIL on source `5724e5507b007c8c0558ece6bda4c95915016ad1`. Findings and receipts are retained under `pr-84/attempts/formal-pr84-1/`. The core returned the slice to implementation; fixes and fresh assessment are pending. See `verification/formal-pr84-remediation-1.md`.

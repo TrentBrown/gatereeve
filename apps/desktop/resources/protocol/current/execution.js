@@ -38,7 +38,11 @@ const schema = {
   },
 };
 export function changedPaths(before, after) {
-  const paths = value => new Map(value.repositories.flatMap(repo => repo.files.map(file => [`${repo.alias}/${file.path}`, identity(file)])));
+  const paths = value => new Map(value.repositories.flatMap(repo => {
+    const base = new Map(repo.baseFiles.map(file => [file.path, file]));
+    const head = new Map(repo.files.map(file => [file.path, file]));
+    return [...new Set([...base.keys(), ...head.keys()])].map(path => [`${repo.alias}/${path}`, identity({ base: base.get(path) ?? null, head: head.get(path) ?? null })]);
+  }));
   const a = paths(before); const b = paths(after);
   return [...new Set([...a.keys(), ...b.keys()])].filter(path => a.get(path) !== b.get(path)).sort();
 }
@@ -49,7 +53,7 @@ Prior results are inputs, not authority. Verify open findings, claimed fixes and
 Blocking findings must cite an approved criterion or the named gate rule plus current source evidence. Advice, unsupported speculation and unrelated pre-existing issues are nonblocking follow-ups. Do not invent scope.
 For delta review, explicitly cover all changed paths and their interactions and state any uncovered scope. PASS requires complete required coverage, no blocking findings and no unresolved required limitations. Missing verification is UNAVAILABLE, never an invented successful test.
 Git symlinks are regular text files containing their target, never followed. Gitlinks are JSON metadata with the pinned commit; contents require a separately selected repository or an explicit coverage limitation. Do not treat metadata as reviewed implementation.
-Read current files under repositories/<alias>/, base files under base/<alias>/, prior review source under prior/<result-hash>/<alias>/, requirements/ and the explicit evidence paths in the input. Do not access network or modify files.`;
+Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, requirements/ and the explicit evidence paths in the input. Do not access network or modify files.`;
 
 export const reviewContract = ids => identity({ schema, instructions, rules: ids.map(id => ({ id, rule: gate(id).rule ?? null })) });
 
@@ -73,8 +77,8 @@ async function reviewerView(store, candidate, references, packet) {
       if (report.input) {
         const previous = await store.json((await store.json(report.input)).candidate);
         requireThat(previous.repositories.every(repo => candidate.repositories.some(selected => identity(selected.identity) === identity(repo.identity))), 'Referenced evidence includes unselected repositories');
-        for (const repo of previous.repositories) for (const file of repo.files) {
-          const path = join(root, 'prior', ref.hash.slice(7), repo.alias, localPath(file.path));
+        for (const repo of previous.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles]]) for (const file of files) {
+          const path = join(root, 'prior', ref.hash.slice(7), kind, repo.alias, localPath(file.path));
           await mkdir(dirname(path), { recursive: true });
           await writeFile(path, await store.get(file), { mode: 0o400 });
         }
@@ -122,7 +126,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
       && receipt.policy?.repositoryAccess === 'read-only' && receipt.policy.networkAccess === 'deny', 'Independent execution receipt does not match the requested proof');
     requireThat(typeof receipt.provider.contextId === 'string' && receipt.provider.contextId
       && !state.implementers.includes(receipt.provider.contextId), 'Evaluator inherited an implementing context');
-    return { output: result.output, artifacts: retained, evaluator: {
+    return { output: result.output, artifacts: retained, metrics: receipt.metrics ?? { tokens: null, cost: null }, evaluator: {
       contextId: receipt.provider.contextId, freshContext: true, inheritedTurns: 0,
       provider: descriptor.provider, model: descriptor.model,
     } };
@@ -368,14 +372,14 @@ export async function executeGates(core, input, operation) {
   if (!await core.store.claimJob(jobId)) return { status: 'UNAVAILABLE', jobId, reason: 'Execution is already claimed. Reconcile its retained outcome before retrying.' };
   const startedAt = new Date().toISOString();
   const artifacts = [];
-  let evaluator = null, verdicts = [];
+  let evaluator = null, verdicts = [], metrics = { tokens: null, cost: null };
   try {
     if (role === 'independent' || role === 'assessment') {
       const packet = { contract: CONTRACT, rules: input.gates.map(id => ({ id, rule: gate(id).rule })), pattern: value.pattern, gates: input.gates, criteria: candidate.criteria, scope: candidate.scope,
         source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, entries: [...repo.baseFiles, ...repo.files].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
         history, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
       const reviewed = await independent(core, state, candidate, prepared, configuration, packet);
-      evaluator = reviewed.evaluator; artifacts.push(...reviewed.artifacts);
+      evaluator = reviewed.evaluator; metrics = reviewed.metrics; artifacts.push(...reviewed.artifacts);
       const returned = reviewed.output.verdicts;
       requireThat(returned.every(item => input.gates.includes(item?.gate)), 'Unrequested independent verdict');
       verdicts = input.gates.map(id => {
@@ -419,7 +423,7 @@ export async function executeGates(core, input, operation) {
     verdicts = input.gates.map(id => ({ gate: id, outcome: 'UNAVAILABLE', summary: error.message, findings: [], dispositions: [] }));
   }
   const receipt = await core.store.putJson({ contract: CONTRACT, kind: 'execution', runId: state.runId,
-    input: prepared.hash, jobId, gates: input.gates, role, evaluator, startedAt, completedAt: new Date().toISOString(), metrics: { tokens: null, cost: null } });
+    input: prepared.hash, jobId, gates: input.gates, role, evaluator, startedAt, completedAt: new Date().toISOString(), metrics });
   const refs = [];
   for (const verdict of verdicts) refs.push(await core.store.putJson({ contract: CONTRACT, kind: 'result', featureId: state.featureId,
     runId: state.runId, ...verdict, input: prepared, receipt, artifacts,

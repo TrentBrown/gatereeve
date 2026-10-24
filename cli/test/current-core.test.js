@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, readdir } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, readdir, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CurrentStore } from '../../plugin-src/shared/resources/protocol/current/store.js';
@@ -10,7 +10,7 @@ import { git } from '../../plugin-src/shared/resources/protocol/current/evidence
 
 const human = { kind: 'human-confirmed', instruction: 'Approve the named scope.', context: 'test user conversation' };
 async function fixture(t, { nested = true } = {}) {
-  const root = await mkdtemp(join(tmpdir(), 'gatereeve-current-'));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'gatereeve-current-')));
   t.after(() => rm(root, { recursive: true, force: true }));
   const repo = nested ? join(root, 'app') : root;
   const home = join(root, 'docs/issues/feature');
@@ -30,7 +30,7 @@ async function fixture(t, { nested = true } = {}) {
   await writeFile(join(home, 'issues.md'), '# Issues\n## I-1 - Implement\n**Status:** in-review\n**Plan steps:** P1\n**Rubric criteria:** R1\n');
   await writeFile(join(home, 'tracker.md'), '# Tracker\n## Rubric Status\n| R1 | AC1 | NOT YET | pending |\n## Review Log\n');
   await writeFile(join(home, 'events.jsonl'), 'old journal preserved verbatim\n');
-  const context = { featureId: 'feature', featureHome: home, repositories: [{ alias: 'app', path: repo }] };
+  const context = { featureId: 'feature', featureHome: home, workspaceRoot: root, repositories: [{ alias: 'app', path: repo, featureBaseSha: head }] };
   const core = await CurrentCore.at(context);
   const request = (operation, input = {}, operationId) => core.execute({ operation, input, operationId });
   await request('run.start', { runId: 'run-one', implementers: ['implementer-one'] }, 'start-one');
@@ -44,7 +44,7 @@ async function authorize(f) {
   await f.request('human.decide', { kind: 'authorize-implementation', subject: commitments.subject, authority: human, reason: 'Approved scope', consequences: 'May implement' }, 'plan-one');
 }
 async function candidate(f) {
-  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head: f.head }], scope: 'FEATURE', criteria: ['R1'] }, 'candidate-one');
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.context.repositories[0].featureBaseSha, head: f.head }], scope: 'FEATURE', criteria: ['R1'] }, 'candidate-one');
 }
 
 test('current run preserves old record and blocks implementation until actual decisions and spec check', async t => {
@@ -382,7 +382,7 @@ test('pattern rules are retained and policy changes invalidate earlier assessmen
   await assert.rejects(f.core.currentResult(result.event.payload.results[0], current, state), /Pattern policy/);
 });
 
-for (const drift of [false, true]) test(`protected merge ${drift ? 'recloses a drifted PR without merging' : 'revalidates the exact action and observes integration'}`, async t => {
+for (const drift of [false, true, 'target-after-checks']) test(`protected merge ${drift ? `recloses a drifted PR (${drift}) without merging` : 'revalidates the exact action and observes integration'}`, async t => {
   const f = await fixture(t);
   const bare = join(f.root, 'host.git');
   await git(f.root, ['init', '--bare', bare]);
@@ -400,7 +400,7 @@ for (const drift of [false, true]) test(`protected merge ${drift ? 'recloses a d
   f.core.runtime.gh = async (root, args) => {
     const action = args[1];
     if (action === 'view') return JSON.stringify({ number: 12, url: 'https://github.com/fixture/project/pull/12', state,
-      headRefName: 'topic', baseRefName: 'main', headRefOid: drift && state === 'OPEN' ? '0'.repeat(40) : head,
+      headRefName: 'topic', baseRefName: drift === 'target-after-checks' && writes.includes('checks') ? 'production' : 'main', headRefOid: drift === true && state === 'OPEN' ? '0'.repeat(40) : head,
       baseRefOid: base, isDraft: true, mergeCommit: state === 'MERGED' ? { oid: head } : null });
     writes.push(action);
     if (action === 'reopen') state = 'OPEN';
@@ -421,7 +421,7 @@ for (const drift of [false, true]) test(`protected merge ${drift ? 'recloses a d
   await f.request('human.decide', { kind: 'authorize-merge', subject, action, authority: { ...human, instruction: 'Merge this exact reviewed PR to main.' }, reason: 'Exact action approved', consequences: 'Integrate reviewed change' }, 'merge-authority');
   if (drift) {
     await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), /identity changed/);
-    assert.equal(state, 'CLOSED'); assert.deepEqual(writes, ['reopen', 'close']);
+    assert.equal(state, 'CLOSED'); assert.deepEqual(writes, drift === true ? ['reopen', 'close'] : ['reopen', 'ready', 'checks', 'close']);
   } else {
     await f.request('merge.execute', { repository: 'app', number: 12 }, 'merge');
     assert.equal(state, 'MERGED'); assert.deepEqual(writes, ['reopen', 'ready', 'checks', 'merge']);
@@ -446,16 +446,16 @@ test('status remains read-only and task-breakdown edits preserve implementation 
   assert.deepEqual((await readdir(objects)).sort(), before);
 });
 
-test('changed installed dependency bytes invalidate runner and consumed assessment proof', async t => {
+for (const dependencyDirectory of ['node_modules', 'cli/node_modules', 'services/python/.venv']) test(`changed ${dependencyDirectory} bytes invalidate runner and consumed assessment proof`, async t => {
   const f = await fixture(t); await authorize(f);
-  await writeFile(join(f.repo, '.git/info/exclude'), 'node_modules/\n');
-  await mkdir(join(f.repo, 'node_modules'));
-  await writeFile(join(f.repo, 'node_modules/dependency.js'), 'one');
+  await writeFile(join(f.repo, '.git/info/exclude'), 'node_modules/\n.venv/\n');
+  await mkdir(join(f.repo, dependencyDirectory), { recursive: true });
+  await writeFile(join(f.repo, dependencyDirectory, 'dependency.js'), 'one');
   await candidate(f);
   const proof = await runVerification(f);
   fakeEvaluator(f);
   const review = await f.request('gate.execute', { gates: ['spec'], consumed: proof.event.payload.results, configuration: { provider: 'codex', model: 'fixture' } }, 'spec-review');
-  await writeFile(join(f.repo, 'node_modules/dependency.js'), 'two');
+  await writeFile(join(f.repo, dependencyDirectory, 'dependency.js'), 'two');
   const { state } = await f.core.state(); const current = await f.core.store.json(state.candidate);
   await assert.rejects(f.core.currentResult(proof.event.payload.results[0], current, state), /environment changed/);
   await assert.rejects(f.core.currentResult(review.event.payload.results[0], current, state), /environment changed/);
@@ -486,7 +486,7 @@ test('two repositories share exact parent requirements and either source invalid
   await writeFile(join(other, 'service.js'), 'export const service = 1;');
   await git(other, ['add', 'service.js']); await git(other, ['commit', '-m', 'service']);
   const head = (await git(other, ['rev-parse', 'HEAD'])).trim();
-  f.context.repositories.push({ alias: 'service', path: other });
+  f.context.repositories.push({ alias: 'service', path: other, featureBaseSha: head });
   await authorize(f);
   await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head: f.head }, { alias: 'service', base: head, head }], scope: 'FEATURE', criteria: ['R1'] }, 'multi-candidate');
   fakeEvaluator(f);
@@ -646,7 +646,7 @@ test('narrowed repository scope rejects broader prior history before launching a
   const f = await fixture(t); const other = join(f.root, 'service'); await mkdir(other);
   await git(other, ['init', '-b', 'topic']); await git(other, ['config', 'user.email', 'fixture@example.test']); await git(other, ['config', 'user.name', 'Fixture']); await git(other, ['config', 'commit.gpgsign', 'false']);
   await writeFile(join(other, 'private-service.js'), 'private service source'); await git(other, ['add', '.']); await git(other, ['commit', '-m', 'service']);
-  const head = (await git(other, ['rev-parse', 'HEAD'])).trim(); f.context.repositories.push({ alias: 'service', path: other });
+  const head = (await git(other, ['rev-parse', 'HEAD'])).trim(); f.context.repositories.push({ alias: 'service', path: other, featureBaseSha: head });
   await authorize(f);
   await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head: f.head }, { alias: 'service', base: head, head }], scope: 'FEATURE', criteria: ['R1'] }, 'broad-selection');
   const count = fakeEvaluator(f);
@@ -786,4 +786,151 @@ test('malformed successful provider text never reaches gate summaries or artifac
   const result = await f.core.store.json(checked.event.payload.results[0]);
   assert.equal(result.outcome, 'UNAVAILABLE'); assert.doesNotMatch(result.summary, /PRIVATE_PROVIDER_CONTEXT/);
   for (const artifact of result.artifacts) assert.doesNotMatch((await f.core.store.get(artifact)).toString(), /PRIVATE_PROVIDER_CONTEXT/);
+});
+
+test('implementation rejects lost retained human decision documents', async t => {
+  const f = await fixture(t); await authorize(f);
+  const interview = await f.core.store.capture('interview.md');
+  assert.equal((await f.core.check('implementation')).allowed, true);
+  await rm(join(f.home, '.gatereeve-current/objects', interview.hash.slice(7)));
+  const check = await f.core.check('implementation');
+  assert.equal(check.allowed, false);
+  assert.match(check.missing.join(';'), /Retained decision closure/);
+});
+
+test('completion cannot combine a superseded candidate with newly authorized commitments', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const prior = await f.core.commitments();
+  const originalCandidate = (await f.core.state()).state.candidate;
+  await writeFile(join(f.home, 'design.md'), '# Design amended with approved scope\n');
+  const next = await f.core.commitments();
+  await f.request('human.decide', { kind: 'amend', actions: ['authorize-implementation'], subject: next.subject, previousSubject: prior.subject,
+    authority: human, reason: 'Changed requirement', consequences: 'Refresh affected proof' }, 'amend-after-candidate');
+  assert.equal((await f.core.check('implementation')).allowed, true);
+  const check = await f.core.check('completion');
+  assert.equal(check.allowed, false);
+  assert.match(check.missing.join(';'), /Candidate commitments differ/);
+  assert.deepEqual((await f.core.state()).state.candidate, originalCandidate, 'historical candidate is retained, not rewritten');
+});
+
+test('existing canonical home cannot escape through an ancestor symlink on status or read', async t => {
+  const f = await fixture(t);
+  const { rename } = await import('node:fs/promises');
+  const { executeCurrentRequest } = await import('../../plugin-src/shared/resources/protocol/current/adapter.js');
+  await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app', integrationBranch: 'main' } } }));
+  await rename(join(f.root, 'docs'), join(f.root, 'redirected'));
+  await symlink(join(f.root, 'redirected'), join(f.root, 'docs'));
+  await assert.rejects(CurrentCore.at(f.context), /Unsafe feature home ancestor/);
+  for (const operation of ['status', 'read']) {
+    const result = await executeCurrentRequest({ operation, cwd: f.repo, kind: 'artifact', id: 'design.md' });
+    assert.equal(result.ok, false);
+    assert.match(result.error.message, /Unsafe feature home ancestor/);
+  }
+});
+
+test('FEATURE scope enforces its configured original base and invalidates changed range policy', async t => {
+  const f = await fixture(t); await authorize(f);
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 43;\n');
+  await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'later slice']);
+  const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  const input = { repositories: [{ alias: 'app', base: head, head }], scope: 'FEATURE', criteria: ['R1'] };
+  await assert.rejects(f.request('candidate.prepare', input), /configured original featureBaseSha/);
+  input.repositories[0].base = f.head;
+  await f.request('candidate.prepare', input, 'full-feature-range');
+  assert.ok((await f.request('candidate.ready', {}, 'full-feature-ready')).event);
+  f.context.repositories[0].featureBaseSha = head;
+  await assert.rejects(f.request('candidate.ready', {}, 'changed-range'), /policy changed/);
+  delete f.context.repositories[0].featureBaseSha;
+  await assert.rejects(f.request('candidate.prepare', input), /configured original featureBaseSha/);
+});
+
+test('base-only delta changes require path coverage and export both prior source endpoints', async t => {
+  const f = await fixture(t); await authorize(f);
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 43;\n');
+  await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'second base']);
+  const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: head, head }], scope: 'SLICE', criteria: ['R1'] }, 'slice-first');
+  fakeEvaluator(f);
+  const first = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } }, 'first-slice-review');
+  const prior = first.event.payload.results[0];
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head }], scope: 'SLICE', criteria: ['R1'] }, 'expanded-slice');
+  const original = f.core.runtime.evaluator.runStage;
+  let examined = false;
+  f.core.runtime.evaluator.runStage = async request => {
+    assert.deepEqual(request.input.changedPaths, ['app/app.js']);
+    const root = request.repositoryPath;
+    const priorDirectory = join(root, 'prior', prior.hash.slice(7));
+    assert.match(await readFile(join(priorDirectory, 'base/app/app.js'), 'utf8'), /43/);
+    assert.match(await readFile(join(priorDirectory, 'repositories/app/app.js'), 'utf8'), /43/);
+    examined = true;
+    return original(request);
+  };
+  const result = await f.request('gate.execute', { gates: ['code'], prior, configuration: { provider: 'codex', model: 'fixture' } }, 'expanded-review');
+  assert.equal(examined, true);
+  assert.equal((await f.core.store.json(result.event.payload.results[0])).outcome, 'PASS');
+});
+
+test('ordinary CLI status exposes original failed outcomes and accepted consequences', async t => {
+  const f = await fixture(t);
+  f.context.repositories[0].integrationBranch = 'main';
+  await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app', integrationBranch: 'main', featureBaseSha: f.head } } }));
+  await authorize(f); await candidate(f); await reviewAll(f);
+  await runVerification(f, true, 'later-failure-for-cli');
+  const subject = (await f.core.state()).state.candidate.hash;
+  await f.request('human.decide', { kind: 'waive', gates: ['verification'], subject, authority: human, reason: 'Explicit test exception', consequences: 'Known failed verification remains' }, 'cli-exception');
+  const { currentCommands } = await import('../src/commands/current.js');
+  const lines = [];
+  const log = console.log;
+  try {
+    console.log = line => lines.push(line);
+    await currentCommands().find(command => command.name() === 'status').parseAsync(['node', 'gatereeve', '--cwd', f.repo]);
+  } finally { console.log = log; }
+  assert.match(lines.join('\n'), /verification: FAIL; accepted exception: Explicit test exception; consequences: Known failed verification remains/);
+});
+
+test('executable files under bookkeeping-looking directories stay in source and cleanliness checks', async t => {
+  const f = await fixture(t, { nested: false }); await authorize(f);
+  await mkdir(join(f.repo, 'docs/issues/unrelated'), { recursive: true });
+  await writeFile(join(f.repo, 'docs/issues/unrelated/helper.js'), 'export const answer = 42;');
+  await writeFile(join(f.home, 'helper.js'), 'export const other = 42;');
+  await git(f.repo, ['add', 'docs/issues/unrelated/helper.js', 'docs/issues/feature/helper.js']);
+  await git(f.repo, ['commit', '-m', 'reachable source in docs']);
+  const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head }], scope: 'FEATURE', criteria: ['R1'] }, 'source-in-docs');
+  const pinned = await f.core.store.json((await f.core.state()).state.candidate);
+  assert.ok(pinned.repositories[0].files.some(file => file.path === 'docs/issues/unrelated/helper.js'));
+  assert.ok(pinned.repositories[0].files.some(file => file.path === 'docs/issues/feature/helper.js'));
+  await writeFile(join(f.repo, 'docs/issues/unrelated/helper.js'), 'export const answer = 0;');
+  await assert.rejects(f.request('candidate.ready'), /dirty/);
+});
+
+test('quality exception survives bookkeeping-equivalent commits but not changed source', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const oldCandidate = (await f.core.state()).state.candidate;
+  await f.request('human.decide', { kind: 'waive', gates: ['verification'], subject: oldCandidate.hash, authority: human, reason: 'Scoped quality exception', consequences: 'Missing verification' }, 'waiver-before-bookkeeping');
+  await git(f.repo, ['commit', '--allow-empty', '-m', 'bookkeeping']);
+  let head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head }], scope: 'FEATURE', criteria: ['R1'] }, 'equivalent-candidate');
+  let outcome = (await f.core.check('acceptance')).outcomes.find(item => item.id === 'verification');
+  assert.equal(outcome.exception.subject, oldCandidate.hash);
+  assert.equal(outcome.satisfied, true);
+  assert.equal(outcome.outcome, 'UNAVAILABLE');
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 43;');
+  await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'source change']);
+  head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head }], scope: 'FEATURE', criteria: ['R1'] }, 'changed-candidate');
+  outcome = (await f.core.check('acceptance')).outcomes.find(item => item.id === 'verification');
+  assert.equal(outcome.exception, null);
+  assert.equal(outcome.satisfied, false);
+});
+
+test('CI validates a retained current journal and accepts optional untracked evidence without replay', async t => {
+  const f = await fixture(t);
+  const { validateLocalRecord } = await import('../../ci/validate-local-record.mjs');
+  const before = await readFile(join(f.home, 'events.jsonl'));
+  assert.equal((await validateLocalRecord(f.home, f.root)).mode, 'current-journal');
+  await rm(join(f.home, '.gatereeve-current/active.json'));
+  assert.equal((await validateLocalRecord(f.home, f.root)).mode, 'documents-only');
+  assert.deepEqual(await readFile(join(f.home, 'events.jsonl')), before);
+  await assert.rejects(validateLocalRecord(f.repo, f.root), /canonical feature home/);
 });

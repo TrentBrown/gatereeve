@@ -99,12 +99,11 @@ test('runtime package allowlist admits scoped parents but rejects unstaged sibli
   assert.equal(isApprovedRuntimePackagePath('/node_modules/electron'), false);
 });
 
-test('Python runtime allowlist admits only the trusted context-check closure', () => {
-  assert.deepEqual(STAGED_PYTHON_RUNTIME_PATHS, [
-    '/resources/scripts/pr_context.py',
-    '/resources/scripts/workflow_common.py',
-    '/resources/scripts/workflow_context.py',
-  ]);
+test('Python runtime allowlist admits the current validation closure and excludes development code', async () => {
+  const { readdir } = await import('node:fs/promises');
+  const scripts = resolve(import.meta.dirname, '../resources/scripts');
+  const paths = (await readdir(scripts, { recursive: true })).filter(path => path.endsWith('.py')).map(path => `/resources/scripts/${path}`).sort();
+  assert.deepEqual(paths, [...STAGED_PYTHON_RUNTIME_PATHS].sort());
   for (const path of STAGED_PYTHON_RUNTIME_PATHS) {
     assert.equal(isApprovedPythonRuntimePath(path), true);
     assert.equal(REQUIRED_ASAR_PATHS.includes(path), true);
@@ -112,6 +111,7 @@ test('Python runtime allowlist admits only the trusted context-check closure', (
   assert.equal(isApprovedPythonRuntimePath('/resources/scripts/boundary_gate.py'), false);
   assert.equal(isApprovedPythonRuntimePath('/resources/scripts/nested/pr_context.py'), false);
   assert.equal(isApprovedPythonRuntimePath('/pr_context.py'), false);
+  assert.equal(isApprovedPythonRuntimePath('/resources/scripts/pattern/tests/test_pattern_helpers.py'), false);
 });
 
 test('ASAR packaging unpacks native PTY files and installed observation providers', async () => {

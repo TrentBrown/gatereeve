@@ -33,6 +33,21 @@ async function executable(command, cwd) {
   }
   return { unavailable: command };
 }
+async function dependencyInputs(root, directory = '', seen = new Set()) {
+  const current = join(root, directory);
+  const actual = await realpath(current);
+  if (seen.has(actual)) return [];
+  seen.add(actual);
+  const result = [];
+  for (const entry of await readdir(current, { withFileTypes: true })) {
+    const path = directory ? `${directory}/${entry.name}` : entry.name;
+    if (['node_modules', '.venv'].includes(entry.name)) result.push(path);
+    else if (entry.isDirectory() && !['.git', '.gatereeve-current', '.checkpoints', '.handoffs'].includes(entry.name)) {
+      result.push(...await dependencyInputs(root, path, seen));
+    }
+  }
+  return result;
+}
 export async function executionEnvironment(context, candidate, configuration, runner) {
   if (!runner) return { kind: 'pinned-review-inputs' };
   const names = configuration.environmentKeys ?? [];
@@ -45,7 +60,7 @@ export async function executionEnvironment(context, candidate, configuration, ru
     const root = await realpath(repo.path);
     const declared = configuration.runtimeInputs?.[pin.alias] ?? [];
     requireThat(Array.isArray(declared) && declared.every(path => typeof path === 'string'), 'Runtime inputs must be repository-relative paths');
-    for (const path of [...new Set(['node_modules', '.venv', ...declared])].sort()) {
+    for (const path of [...new Set(['node_modules', '.venv', ...await dependencyInputs(root), ...declared])].sort()) {
       requireThat(!isAbsolute(path) && !path.split(/[\\/]/u).includes('..'), 'Unsafe runtime input path');
       inputs.push({ repository: pin.alias, path, value: await tree(join(root, path), root) });
     }

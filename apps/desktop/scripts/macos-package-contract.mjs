@@ -62,8 +62,21 @@ export const STAGED_RUNTIME_PACKAGES = Object.freeze([
 
 export const STAGED_PYTHON_RUNTIME_PATHS = Object.freeze([
   '/resources/scripts/pr_context.py',
+  '/resources/scripts/lint_spec.py',
+  '/resources/scripts/lint_issues.py',
+  '/resources/scripts/lint_tracker.py',
+  '/resources/scripts/pattern_tool.py',
+  '/resources/scripts/merge_verified.py',
   '/resources/scripts/workflow_common.py',
   '/resources/scripts/workflow_context.py',
+  '/resources/scripts/pattern/__init__.py',
+  '/resources/scripts/pattern/buckets.py',
+  '/resources/scripts/pattern/git_context.py',
+  '/resources/scripts/pattern/harvest.py',
+  '/resources/scripts/pattern/learning_events.py',
+  '/resources/scripts/pattern/rules.py',
+  '/resources/scripts/pattern/simple_yaml.py',
+  '/resources/scripts/pattern/status.py',
 ]);
 
 export const STAGED_PROVIDER_PATHS = Object.freeze([

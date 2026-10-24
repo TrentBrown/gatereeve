@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { relative, sep, isAbsolute } from 'node:path';
+import { realpath } from 'node:fs/promises';
 import { CONTRACT, identity, requireThat, text } from './contracts.js';
 import { localPath } from './store.js';
 
@@ -10,14 +11,19 @@ export async function git(root, args, options = {}) {
   return stdout;
 }
 export function excluded(path, featureRelative) {
-  return path === '.agentic-workflow.json' || path.startsWith('docs/issues/')
-    || path.split('/').some(part => ['.gatereeve-current', '.git', '.handoffs', '.checkpoints'].includes(part))
-    || path === 'CHECKPOINT.md' || (featureRelative && (path === featureRelative || path.startsWith(`${featureRelative}/`)));
+  if (path === '.agentic-workflow.json') return true;
+  if (!featureRelative || !path.startsWith(`${featureRelative}/`)) return false;
+  const local = path.slice(featureRelative.length + 1);
+  // Only named lifecycle documents and the core-owned retained-object area are
+  // reserved bookkeeping. Arbitrary code beneath docs/issues is review source.
+  return ['interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md',
+    'scratchpad.md', 'decisions.md', 'completion-report.md', 'events.jsonl', 'model-lock.json', 'feature.json'].includes(local)
+    || local.startsWith('.gatereeve-current/');
 }
 async function tree(store, repository, revision) {
   requireThat(/^[a-f0-9]{40,64}$/u.test(revision), 'Source must use a full Git object identity');
   requireThat((await git(repository.path, ['rev-parse', `${revision}^{commit}`])).trim() === revision, 'Pinned source is not a commit');
-  const local = relative(repository.path, store.home).split(sep).join('/');
+  const local = relative(await realpath(repository.path), store.home).split(sep).join('/');
   const featureRelative = local.split('/')[0] !== '..' && !isAbsolute(local) ? local : null;
   const entries = (await git(repository.path, ['ls-tree', '-r', '-z', revision])).split('\0').filter(Boolean).map(line => {
     const tab = line.indexOf('\t');
@@ -68,10 +74,10 @@ export async function requirements(store, names = ['design.md', 'spec.md'], { ca
 export function repositoryIdentity(repository) {
   return { alias: repository.alias, path: repository.path, remote: repository.remote ?? 'origin',
     integrationBranch: repository.integrationBranch ?? null, releaseBranch: repository.releaseBranch ?? repository.integrationBranch ?? null,
-    keepPullRequestsClosed: repository.keepPullRequestsClosed ?? false };
+    keepPullRequestsClosed: repository.keepPullRequestsClosed ?? false, featureBaseSha: repository.featureBaseSha ?? null };
 }
 export async function assertClean(repository, store) {
-  const local = relative(repository.path, store.home).split(sep).join('/');
+  const local = relative(await realpath(repository.path), store.home).split(sep).join('/');
   const home = local.split('/')[0] !== '..' && !isAbsolute(local) ? local : null;
   const entries = (await git(repository.path, ['status', '--porcelain=v1', '-z', '--untracked-files=all'])).split('\0');
   for (let i = 0; i < entries.length; i++) {
@@ -87,6 +93,7 @@ export async function sourceCandidate(store, context, input, authorization) {
   for (const pin of input.repositories) {
     const repository = context.repositories.find(item => item.alias === pin.alias);
     requireThat(repository, `Repository is not configured: ${pin.alias}`);
+    if (input.scope === 'FEATURE') requireThat(repository.featureBaseSha && pin.base === repository.featureBaseSha, `Feature review must use configured original featureBaseSha: ${pin.alias}`);
     const base = await tree(store, repository, pin.base);
     const head = await tree(store, repository, pin.head);
     // Clean source is required, but local feature evidence is intentionally optional in Git.
@@ -119,6 +126,7 @@ export async function checkCandidate(store, context, ref, { live = true } = {}) 
   for (const repo of candidate.repositories) {
     const configured = context.repositories.find(item => item.alias === repo.alias);
     requireThat(configured && identity(repositoryIdentity(configured)) === identity(repo.identity), 'Candidate repository or policy changed');
+    if (candidate.scope === 'FEATURE') requireThat(configured.featureBaseSha && repo.base === configured.featureBaseSha, `Feature review must use configured original featureBaseSha: ${repo.alias}`);
     for (const file of [...repo.baseFiles, ...repo.files]) await store.get(file);
     if (live) {
       const root = context.repositories.find(item => item.alias === repo.alias).path;

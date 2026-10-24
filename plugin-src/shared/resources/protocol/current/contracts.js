@@ -87,10 +87,11 @@ export function decision(value) {
   return structuredClone(value);
 }
 export const decisionHas = (value, kind) => value.kind === kind || (value.actions ?? []).includes(kind);
-export function waiverFor(state, id, subject) {
-  const amendment = state.decisions.some(item => item.kind === 'policy-amend' && item.subject === subject && item.gates.includes(id));
+export function waiverFor(state, id, subject, applicability = null) {
+  const applies = item => item.subject === subject || (applicability && item.applicability === applicability);
+  const amendment = state.decisions.some(item => item.kind === 'policy-amend' && applies(item) && item.gates.includes(id));
   if (!gate(id).waivable && !amendment) return null;
-  return state.decisions.findLast(item => decisionHas(item, 'waive') && item.subject === subject && item.gates.includes(id)) ?? null;
+  return state.decisions.findLast(item => decisionHas(item, 'waive') && applies(item) && item.gates.includes(id)) ?? null;
 }
 const actions = Object.freeze({
   implementation: { mode: 'adapter-only', entry: 'human.decide / milestone.pass', checkedBy: 'current-core.test.js: implementation authorization and changed commitments' },

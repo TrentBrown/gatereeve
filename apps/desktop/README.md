@@ -117,12 +117,11 @@ artifact sandbox. Checkpoints and handoffs use a
 separate exact-ID Session reader and never become workflow evidence. The
 renderer cannot supply an arbitrary terminal executable, arguments, cwd,
 environment, or process ID. It can send keystrokes only to an opaque project
-shell or module-task session owned by the selected saved project. The trusted
-main process creates the shell from the account login shell and creates module
-tasks only from the exact pinned declarative module after explicit consent.
-This intentionally lets the user invoke the CLI, launch agents, and run arbitrary
-shell commands, but no shell activity grants passage; module-task passage uses
-the fresh protocol-core evidence path described above.
+shell session owned by the selected saved project. The trusted main process
+creates that shell from the account login shell. Users can invoke the CLI, launch
+agents, and run commands there. The model orchestrates work within the authorized
+phase; passage requires the current protocol core to validate the retained
+evidence and human decisions at the milestone boundary.
 Setup checks remain separate, run only in the trusted main process, invoke
 version/status/list operations for explicitly selected agents, and expose
 native remediation as copyable text rather than executing it.
