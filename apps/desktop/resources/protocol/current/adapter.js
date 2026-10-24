@@ -8,8 +8,8 @@ import { CurrentStore, readSafe } from './store.js';
 import { CONTRACT, PHASES, GATES, ENFORCEMENT, identity, digest, requireThat } from './contracts.js';
 
 const DOCUMENTS = ['interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md', 'scratchpad.md', 'decisions.md'];
-export async function contextFor(request) {
-  const context = await resolveWorkflowContext({ cwd: request.cwd ?? process.cwd(), repository: request.repository ?? null });
+export async function contextFor(request, runtime = {}) {
+  const context = await resolveWorkflowContext({ cwd: request.cwd ?? process.cwd(), repository: request.repository ?? null, gitExecutable: runtime.gitExecutable ?? 'git' });
   if (request.featureHome) requireThat(resolve(request.featureHome) === resolve(context.featureHome), 'Explicit feature home differs from the canonical resolver');
   return context;
 }
@@ -40,10 +40,10 @@ async function documents(context) {
   }
   return artifacts;
 }
-export async function currentSnapshot(context, options = {}) {
+export async function currentSnapshot(context, options = {}, runtime = {}) {
   let core, data = null, reason = null;
   try {
-    core = await CurrentCore.at(context);
+    core = await CurrentCore.at(context, runtime);
     if (await core.store.active()) data = await core.inspect();
     else reason = 'Resume with the current protocol. Existing documents and old journals remain intact; old events are not replayed.';
   } catch (error) { reason = error.message; }
@@ -65,7 +65,7 @@ export async function currentSnapshot(context, options = {}) {
     ],
   };
 }
-export async function readCurrent(context, kind, id) {
+export async function readCurrent(context, kind, id, runtime = {}) {
   if (kind === 'artifact') {
     const artifact = (await documents(context)).find(item => item.id === id);
     requireThat(artifact && artifact.exists && !artifact.unsafe, 'Requested artifact is not safely available');
@@ -74,7 +74,7 @@ export async function readCurrent(context, kind, id) {
   }
   if (kind === 'model') return { schemaVersion: 1, kind, id: CONTRACT, data: {
     phases: PHASES, obligations: GATES, graph: { mermaid: 'flowchart LR\n  Planning --> Authorization --> Implementation --> Acceptance --> Merge --> Completion' } } };
-  const core = await CurrentCore.at(context);
+  const core = await CurrentCore.at(context, runtime);
   const { state, events } = await core.state();
   if (kind === 'events') return { schemaVersion: 1, kind, id: state.runId, data: { events } };
   if (kind === 'result') {
@@ -88,10 +88,10 @@ export async function readCurrent(context, kind, id) {
 export async function executeCurrentRequest(request, runtime = {}) {
   const operation = request?.operation ?? 'unknown';
   try {
-    const context = await contextFor(request);
+    const context = await contextFor(request, runtime);
     if (['run.start', 'run.resume-current'].includes(operation)) await ensureHome(context);
-    if (['status', 'snapshot', 'next'].includes(operation)) return successResult(operation, await currentSnapshot(context, request.options));
-    if (operation === 'read') return successResult(operation, await readCurrent(context, request.kind, request.id));
+    if (['status', 'snapshot', 'next'].includes(operation)) return successResult(operation, await currentSnapshot(context, request.options, runtime));
+    if (operation === 'read') return successResult(operation, await readCurrent(context, request.kind, request.id, runtime));
     const core = await CurrentCore.at(context, runtime);
     let input = request.input ?? {};
     if (['run.start', 'run.resume-current'].includes(operation)) {

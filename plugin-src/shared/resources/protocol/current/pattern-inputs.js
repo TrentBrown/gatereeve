@@ -1,19 +1,19 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { dirname, basename, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { pythonScriptsRoot } from '../python-guards.js';
 import { readSafe } from './store.js';
 import { digest, requireThat } from './contracts.js';
 const exec = promisify(execFile);
-const script = fileURLToPath(new URL('../../scripts/pattern_tool.py', import.meta.url));
 
-export async function patternInputs(store, context, candidate, { capture = true, allowMissing = false } = {}) {
+
+export async function patternInputs(store, context, candidate, { capture = true, allowMissing = false, pythonExecutable = 'python3', environment = process.env, helperRoot = pythonScriptsRoot } = {}) {
   const repositories = [];
   for (const pin of candidate.repositories) {
     const repository = context.repositories.find(item => item.alias === pin.alias);
     let stdout;
     try {
-      ({ stdout } = await exec('python3', [script, 'review-inputs', '--cwd', repository.path, '--base', pin.base, '--head', pin.head], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } }));
+      ({ stdout } = await exec(pythonExecutable, [join(helperRoot, 'pattern_tool.py'), 'review-inputs', '--cwd', repository.path, '--base', pin.base, '--head', pin.head], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, env: { ...environment, PYTHONDONTWRITEBYTECODE: '1', GATEREEVE_GIT_EXECUTABLE: repository.gitExecutable ?? 'git' } }));
     } catch (error) {
       // Only the helper's explicit absent-scope result can define an exception.
       // Parse, path, integrity and process failures must remain unavailable.

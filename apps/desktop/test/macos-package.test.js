@@ -58,7 +58,7 @@ test('macOS identity and universal packager options are permanent', () => {
   assert.equal(options.name, 'GateReeve');
   assert.equal(options.appBundleId, 'com.trentbrown.gatereeve.desktop');
   assert.equal(options.arch, 'universal');
-  assert.deepEqual(options.asar, { unpack: '{**/node_modules/node-pty/prebuilds/**/*,**/main/providers/**/*}' });
+  assert.deepEqual(options.asar, { unpack: '{**/node_modules/node-pty/prebuilds/**/*,**/main/providers/**/*,**/resources/scripts/**/*}' });
   assert.deepEqual(options.osxUniversal, {
     mergeASARs: true,
     singleArchFiles: 'node_modules/node-pty/prebuilds/darwin-*/**/*',
@@ -131,7 +131,12 @@ test('ASAR packaging unpacks native PTY files and installed observation provider
       iconPath: '/GateReeve.icns',
       version: '0.1.0',
     });
+    await mkdir(resolve(sourceRoot, 'resources/scripts/pattern'), { recursive: true });
+    await writeFile(resolve(sourceRoot, 'resources/scripts/pattern_tool.py'), 'print(42)');
+    await writeFile(resolve(sourceRoot, 'resources/scripts/pattern/rules.py'), 'rules = []');
     await createPackageWithOptions(sourceRoot, asarPath, options.asar);
+    await access(resolve(`${asarPath}.unpacked`, 'resources/scripts/pattern_tool.py'));
+    await access(resolve(`${asarPath}.unpacked`, 'resources/scripts/pattern/rules.py'));
     await access(resolve(`${asarPath}.unpacked`, 'node_modules/node-pty/prebuilds/darwin-arm64/pty.node'));
     await access(resolve(`${asarPath}.unpacked`, 'node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper'));
     await access(resolve(`${asarPath}.unpacked`, 'main/providers/provider.json'));

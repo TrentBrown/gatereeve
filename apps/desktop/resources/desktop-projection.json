@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:122c2e196b8b51ab57aa22fe7897b92bd3b3eb6f519f26767fbe117d1f4cdd1c",
+  "protocolHash": "sha256:831410c24814d729bee4f7c372804b7bc7a1d8b1b61d7313df2cadd0359ae331",
   "contract": "gatereeve/current/3",
   "contractSha256": "0c8e3e32c769fb2cd7ccd778bfc72238b02b93f42684412d1ef7f30fa8804c04",
   "files": [
@@ -27,8 +27,8 @@
     },
     {
       "path": "current/adapter.js",
-      "size": 6836,
-      "sha256": "507263e8ca0938e0a78454095a26543a69039ac6812190ce236af6f0e99f7278"
+      "size": 6970,
+      "sha256": "41a3a692df6d3c3cd0b301c6c25318f6e07d84a549d364abeb9962e10a7ce52a"
     },
     {
       "path": "current/contracts.js",
@@ -37,8 +37,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 45140,
-      "sha256": "81b37288a4c7ea19693ccfa726170cab38c91370fdf8d8910ed95e0ed35d9eeb"
+      "size": 45369,
+      "sha256": "65bf3978ed8c961f6729c45d162f69fd15192e3344a64e03171022fd71acbe7a"
     },
     {
       "path": "current/environment.js",
@@ -47,13 +47,13 @@
     },
     {
       "path": "current/evidence.js",
-      "size": 15041,
-      "sha256": "c673d2b58e9757586b490f673f3c27bcc2bc92c28375d1b12a7330c8d1da3162"
+      "size": 15512,
+      "sha256": "9677f07604ffdae4d5dcb704f11abf68fa95558e54f5c3cecbf3b8471d761401"
     },
     {
       "path": "current/execution.js",
-      "size": 49845,
-      "sha256": "3ff76f8e0e09c3ecf317e2bc68f3916281f1e63343dadc94221f7ef026c248dc"
+      "size": 49968,
+      "sha256": "dbab44c8ec09a26d7dcde1f4c9e7edb63d54c50f5088ccabdb662d62570e143e"
     },
     {
       "path": "current/observation.js",
@@ -62,8 +62,8 @@
     },
     {
       "path": "current/pattern-inputs.js",
-      "size": 2204,
-      "sha256": "babcdfd08d8f88afde96bc06b1d37c272f3cc6f87d0b35815260863ff3623f78"
+      "size": 2317,
+      "sha256": "7b94faf89a89b13b5f2653859d9f339ce9c12a293663fc9be5b1f9edb7e0ba68"
     },
     {
       "path": "current/pre-tool-use.js",
@@ -112,8 +112,8 @@
     },
     {
       "path": "python-guards.js",
-      "size": 7744,
-      "sha256": "8a77746e15d3466d4ca144beccf7001fa8ceb5e70c720b82fe1e54c87ad6e705"
+      "size": 8519,
+      "sha256": "9b44f3a4cb15abfdf744c578cf563b120c99b26ab1f6e76d7d46142af3fe3627"
     },
     {
       "path": "result.js",

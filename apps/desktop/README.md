@@ -47,8 +47,11 @@ npm start
 ```
 
 `npm start` stages the canonical protocol before launching the app. The Desktop
-observation runtime itself does not require Python, a separate Node.js runtime,
-or the optional GateReeve CLI. Desktop persists only the explicit selected-agent
+observation runtime requires compatible Python to requalify document validation
+and pattern evidence, using the executable discovered by Setup. It does not need
+a separate Node.js runtime or the optional GateReeve CLI. Packaged helpers are
+unpacked for external Python; they match the canonical helper bytes. Isolated
+document validators share an explicit minimal environment across CLI and Desktop. Desktop persists only the explicit selected-agent
 preference, recent and last worktree paths, window geometry, terminal panel
 height, native notification preference, in a separate device-local file. It does not persist terminal visibility or content,
 detection results, or cache

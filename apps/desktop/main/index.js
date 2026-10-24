@@ -261,7 +261,10 @@ async function startDesktop() {
     window.setSize(940, 560);
     const smokeWorktree = process.env.GATEREEVE_DESKTOP_SMOKE_WORKTREE;
     let expectedFeatureId = null;
+    let protocolEvidence = null;
     if (smokeWorktree) {
+      const smokeContext = await protocolAdapter.resolve(smokeWorktree);
+      const before = await protocolAdapter.read(smokeContext.featureHome, 'events');
       const state = await coordinator.open(smokeWorktree);
       if (
         state.phase !== 'ready'
@@ -272,6 +275,18 @@ async function startDesktop() {
           `Governed fixture smoke failed: ${state.error?.message ?? 'no governed snapshot'}`
         );
       }
+      const implementation = state.snapshot.milestones.find(item => item.name === 'implementation');
+      const acceptance = state.snapshot.milestones.find(item => item.name === 'acceptance');
+      const established = ['reconcile', 'pattern'].map(id => acceptance?.outcomes.find(item => item.id === id));
+      const after = await protocolAdapter.read(smokeContext.featureHome, 'events');
+      if (state.snapshot.current.phase !== 'IMPLEMENTING' || !implementation?.allowed
+        || established.some(item => item?.outcome !== 'PASS')
+        || JSON.stringify(before.data.events) !== JSON.stringify(after.data.events)) {
+        throw new Error(`Established fixture proof smoke failed: ${JSON.stringify(state.snapshot.milestones)}`);
+      }
+      protocolEvidence = { phase: state.snapshot.current.phase, implementationAllowed: implementation.allowed,
+        gates: established, eventCount: after.data.events.length, observationReadOnly: true,
+        limitation: 'Synthetic pattern evaluator tests receipt transport only; empty rules provide no substantive coverage.' };
       expectedFeatureId = state.snapshot.featureId;
     }
     const smoke = await window.webContents.executeJavaScript(
@@ -483,6 +498,7 @@ async function startDesktop() {
         inspect();
       })`,
     );
+    smoke.evidence.protocolEvidence = protocolEvidence;
     if (process.env.GATEREEVE_DESKTOP_SMOKE_REPORT) await writeFile(resolve(process.env.GATEREEVE_DESKTOP_SMOKE_REPORT), JSON.stringify(smoke, null, 2));
     if (!smoke.passed) {
       throw new Error(`Renderer and Setup smoke contract failed: ${JSON.stringify(smoke.evidence)}`);

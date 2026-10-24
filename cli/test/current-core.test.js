@@ -1861,7 +1861,9 @@ test('trusted validator drift invalidates spec and reconciliation while refresh 
   assert.notEqual(refreshed.reused, true);
   assert.equal((await f.core.store.json(refreshed.event.payload.results[0])).outcome, 'PASS');
   f.core.runtime.pythonGuardOptions.environment.GATEREEVE_TEST_VALIDATOR = 'changed';
-  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, false);
+  // Caller-only variables never enter the isolated validator process.
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
+  await f.core.currentResult(refreshed.event.payload.results[0], source, (await f.core.state()).state);
   await f.request('spec.validate', {}, 'refresh-environment');
   const original = await readFile(join(helperRoot, 'lint_spec.py'));
   await writeFile(join(helperRoot, 'lint_spec.py'), 'raise SystemExit(1)\n');

@@ -165,7 +165,7 @@ async function commands(core, state, candidate, configuration, completion, envir
       requireThat(Array.isArray(check.args) && check.args.every(value => typeof value === 'string'), 'Check arguments must be strings');
       const pin = candidate.repositories.find(item => item.alias === check.repository);
       const expectedHead = completion ? state.integrations[check.repository]?.integrationSha : pin.head;
-      requireThat(expectedHead && (await git(repository.path, ['rev-parse', 'HEAD'])).trim() === expectedHead, 'Runner checkout does not match its evaluated source');
+      requireThat(expectedHead && (await git(repository.path, ['rev-parse', 'HEAD'], { gitExecutable: repository.gitExecutable })).trim() === expectedHead, 'Runner checkout does not match its evaluated source');
       await assertClean(repository, core.store);
       const startedAt = new Date().toISOString();
       let outcome = 'PASS', result;
@@ -177,7 +177,7 @@ async function commands(core, state, candidate, configuration, completion, envir
         purpose: check.purpose, startedAt, completedAt: new Date().toISOString(), outcome,
         exitCode: outcome === 'PASS' ? 0 : (typeof result.code === 'number' ? result.code : null),
         stdout: await core.store.put(result.stdout ?? ''), stderr: await core.store.put(result.stderr ?? '') });
-      requireThat((await git(repository.path, ['rev-parse', 'HEAD'])).trim() === expectedHead, 'Runner source changed during execution');
+      requireThat((await git(repository.path, ['rev-parse', 'HEAD'], { gitExecutable: repository.gitExecutable })).trim() === expectedHead, 'Runner source changed during execution');
       await assertClean(repository, core.store);
     }
   } catch (error) {
@@ -395,7 +395,7 @@ export async function executeGates(core, input, operation) {
   const runnerEnvironment = Object.freeze({ ...process.env });
   const value = { contract: CONTRACT, gates: input.gates, candidate: state.candidate, configuration, consumed, support,
     environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment),
-    pattern: input.gates.includes('pattern') ? await patternInputs(core.store, core.context, candidate) : null,
+    pattern: input.gates.includes('pattern') ? await patternInputs(core.store, core.context, candidate, core.runtime.pythonGuardOptions) : null,
     integrations: definitions[0].at === 'completion' ? state.integrations : null,
     reviewContract: reviewContract(input.gates), claims: input.claims ?? [], requestedHistory: [...(input.history ?? [])].sort((a, b) => a.hash.localeCompare(b.hash)),
     history: history.map(item => item.reference), historyGaps: missingHistory, reconsiderClosures: reconsiderClosures.filter(item => history.some(entry => entry.reviewerResult.findings?.some(finding => finding.id === item.id && entry.reviewerResult.gate === item.gate))), prior: input.prior ?? null,

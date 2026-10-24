@@ -61,6 +61,16 @@ export const STAGED_RUNTIME_PACKAGES = Object.freeze([
 ]);
 
 export const STAGED_PYTHON_RUNTIME_PATHS = Object.freeze([
+  '/resources/scripts/bootstrap_branch_docs.py',
+  '/resources/scripts/boundary_context.py',
+  '/resources/scripts/decision_record.py',
+  '/resources/scripts/decision_triage.py',
+  '/resources/scripts/gate_triage.py',
+  '/resources/scripts/pr_lifecycle.py',
+  '/resources/scripts/session_start.py',
+  '/resources/scripts/validate_branch_docs.py',
+  '/resources/scripts/workflow_doctor.py',
+  '/resources/scripts/workflow_setup.py',
   '/resources/scripts/pr_context.py',
   '/resources/scripts/lint_spec.py',
   '/resources/scripts/lint_issues.py',
@@ -152,7 +162,7 @@ export function electronPackagerOptions(options) {
     appCategoryType: MACOS_PRODUCT.category,
     icon: options.iconPath,
     asar: {
-      unpack: '{**/node_modules/node-pty/prebuilds/**/*,**/main/providers/**/*}',
+      unpack: '{**/node_modules/node-pty/prebuilds/**/*,**/main/providers/**/*,**/resources/scripts/**/*}',
     },
     osxUniversal: {
       mergeASARs: true,

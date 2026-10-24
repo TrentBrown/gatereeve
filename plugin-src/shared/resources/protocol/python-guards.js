@@ -10,7 +10,10 @@ import { digest, identity as fingerprint } from './current/contracts.js';
 
 const execFileAsync = promisify(execFile);
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
-const scriptsRoot = resolve(moduleDirectory, '..', 'scripts');
+// External Python cannot read Electron's virtual ASAR filesystem. These exact
+// helpers are unpacked beside the archive; their bytes remain proof-bound.
+export const pythonScriptsRoot = resolve(moduleDirectory, '..', 'scripts').replace(/([\\/])app\.asar([\\/])/u, '$1app.asar.unpacked$2');
+const scriptsRoot = pythonScriptsRoot;
 
 export const PYTHON_GUARD_PROVIDERS = Object.freeze({
   'issues.validation.current': { script: 'lint_issues.py', output: 'exit-code' },
@@ -53,7 +56,7 @@ finally:
     if module_files() != expected:
         raise RuntimeError('Trusted validator imported an unbound runtime dependency: ' + str(sorted(set(module_files()) - set(expected))))
 `;
-async function helperTree(root, directory = '') {
+export async function helperTree(root, directory = '') {
   const entries = [];
   for (const entry of (await readdir(join(root, directory), { withFileTypes: true })).sort((a,b) => a.name.localeCompare(b.name))) {
     if (['__pycache__', 'tests'].includes(entry.name)) continue;
@@ -64,10 +67,17 @@ async function helperTree(root, directory = '') {
   }
   return entries;
 }
+// These isolated validators need no caller environment or loader hooks. Use the
+// same explicit environment for execution and qualification on every surface.
+// Interpreter selection still uses the caller PATH and binds the selected bytes.
+function isolatedEnvironment(environment) {
+  return Object.freeze({ LANG: 'C', LC_ALL: 'C', PYTHONDONTWRITEBYTECODE: '1',
+    ...(process.platform === 'win32' && environment.SystemRoot ? { SystemRoot: environment.SystemRoot } : {}) });
+}
 export async function trustedPythonBinding(guardId, { cwd = process.cwd(), pythonExecutable = 'python3', environment = process.env, helperRoot = scriptsRoot } = {}) {
   if (!isolatedGuards.has(guardId)) throw new ContractError('No isolated current validator binding for this guard');
-  environment = Object.freeze({ ...environment, PYTHONDONTWRITEBYTECODE: '1' });
   const selected = await executable(pythonExecutable, cwd, environment);
+  environment = isolatedEnvironment(environment);
   if (selected.unavailable) throw new ContractError('Trusted Python interpreter is unavailable');
   const probe = await execFileAsync(selected.path, ['-I', '-S', '-B', '-c', runtimeProbe], { cwd, env: environment, encoding: 'utf8', timeout: 30000, maxBuffer: 10 * 1024 * 1024 });
   const runtime = JSON.parse(probe.stdout);
@@ -101,8 +111,9 @@ export async function runTrustedPythonGuard(
     throw new ContractError('Trusted Python guard arguments must be an array of strings');
   }
   const script = resolve(helperRoot, provider.script);
-  const frozenEnvironment = Object.freeze({ ...environment, PYTHONDONTWRITEBYTECODE: '1' });
-  const options = { cwd, pythonExecutable, environment: frozenEnvironment, helperRoot };
+  const frozenEnvironment = isolatedGuards.has(guardId) ? isolatedEnvironment(environment)
+    : Object.freeze({ ...environment, PYTHONDONTWRITEBYTECODE: '1' });
+  const options = { cwd, pythonExecutable, environment, helperRoot };
   let binding = null, executed = null;
   try {
     binding = isolatedGuards.has(guardId) ? await trustedPythonBinding(guardId, options) : null;

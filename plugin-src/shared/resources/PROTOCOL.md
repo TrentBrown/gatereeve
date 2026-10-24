@@ -74,12 +74,18 @@ factual truth and actual authority cannot be waived.
 
 Trusted spec, issue and tracker validation binds the shipped helper files, the
 isolated Python interpreter and loaded standard-library source/cache bytes,
-bootstrap and frozen environment. Changed or missing inputs invalidate proof.
+bootstrap and an explicit minimal execution environment shared by all consumers.
+Interpreter selection still resolves the caller-selected executable and binds its
+bytes; incidental observer variables never enter the isolated validator process.
+Changed or missing effective inputs invalidate proof.
 `spec.validate` can refresh unchanged authorized commitments during delivery,
 without changing the phase or asking for a new implementation approval. Failed
 refreshes retain diagnostics and remain blocking. Python runs without user-site
 or environment-injected imports; a new helper import must be included in the
-bound runtime closure before it can qualify.
+bound runtime closure before it can qualify. Desktop stages every canonical
+non-test helper byte, forwards discovered Python and Git to current observation,
+and executes packaged helpers from `app.asar.unpacked`. Observation stays read-only;
+missing interpreters or helpers keep dependent evidence unavailable.
 
 ## Execution and evidence
 

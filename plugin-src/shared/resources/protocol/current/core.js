@@ -59,7 +59,7 @@ function findDecision(state, kind, subject) {
 }
 export class CurrentCore {
   constructor(context, store, runtime = {}) {
-    this.context = context;
+    this.context = { ...context, repositories: context.repositories.map(repository => ({ ...repository, gitExecutable: runtime.gitExecutable ?? repository.gitExecutable ?? 'git' })) };
     this.store = store;
     this.runtime = runtime;
   }
@@ -381,7 +381,7 @@ export class CurrentCore {
       'Retained evaluator qualification differs from the requested proof');
     }
     requireThat(inputs.reviewContract === reviewContract(inputs.gates), 'Evaluator rules or output contract changed');
-    if (inputs.pattern) requireThat(identity(inputs.pattern) === identity(await patternInputs(this.store, this.context, candidate, { capture: false })), 'Pattern policy or trigger inputs changed');
+    if (inputs.pattern) requireThat(identity(inputs.pattern) === identity(await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false })), 'Pattern policy or trigger inputs changed');
     const evaluated = await checkCandidate(this.store, this.context, inputs.candidate, { live: false });
     for (const artifact of result.artifacts ?? []) await this.store.get(artifact);
     if (result.gate === 'reconcile' && result.outcome === 'PASS') {
@@ -454,7 +454,7 @@ export class CurrentCore {
         catch (error) { validators.push({ guardId, unavailable: error.message }); }
       }
       return identity({ validators, configuration: input.configuration, dependencies, support, rule: reviewContract([gateId]),
-        pattern: gateId === 'pattern' ? await patternInputs(this.store, this.context, candidate, { capture: false, allowMissing: true }) : null,
+        pattern: gateId === 'pattern' ? await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false, allowMissing: true }) : null,
         externalValidity: !input.validUntil || Date.now() <= Date.parse(input.validUntil),
         integrations: gate(gateId).at === 'completion' ? state.integrations : null,
         historyGaps: gaps.filter(gap => gap.gate === null || gap.gate === gateId),

@@ -207,7 +207,7 @@ export async function verifyApplication(applicationPath, version, appleTrust) {
     assert.notEqual((await stat(helperPath)).mode & 0o111, 0, `${directory} spawn-helper is not executable`);
   }
   const unpackedRoot = resolve(contents, 'Resources', 'app.asar.unpacked');
-  for (const path of STAGED_PROVIDER_PATHS) {
+  for (const path of [...STAGED_PROVIDER_PATHS, ...STAGED_PYTHON_RUNTIME_PATHS]) {
     const providerPath = resolve(unpackedRoot, path.slice(1));
     assert.equal((await stat(providerPath)).isFile(), true, `Packaged provider is missing ${path}`);
   }

@@ -2,6 +2,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cp, mkdir } from 'node:fs/promises';
 
+import { helperTree } from '../../../plugin-src/shared/resources/protocol/python-guards.js';
+
 import { stageProtocolResources } from '../../../cli/src/protocol/stage.js';
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -13,22 +15,7 @@ await stageProtocolResources({
   includePaths: [
     'protocol',
     'release',
-    'scripts/pr_context.py',
-    'scripts/lint_spec.py',
-    'scripts/lint_issues.py',
-    'scripts/lint_tracker.py',
-    'scripts/pattern_tool.py',
-    'scripts/pattern/__init__.py',
-    'scripts/pattern/buckets.py',
-    'scripts/pattern/git_context.py',
-    'scripts/pattern/harvest.py',
-    'scripts/pattern/learning_events.py',
-    'scripts/pattern/rules.py',
-    'scripts/pattern/simple_yaml.py',
-    'scripts/pattern/status.py',
-    'scripts/merge_verified.py',
-    'scripts/workflow_common.py',
-    'scripts/workflow_context.py',
+    ...(await helperTree(resolve(desktopRoot, '../../plugin-src/shared/resources/scripts'))).map(([path]) => `scripts/${path}`),
   ],
 });
 

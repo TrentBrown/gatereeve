@@ -4,8 +4,9 @@ import { currentSnapshot, readCurrent } from '../resources/protocol/current/adap
 
 // Desktop observes the same current core as native skills and CLI. It does not
 // launch evaluators on refresh or accept caller-authored gate outcomes.
-export function createProtocolAdapter({ gitExecutable = 'git' } = {}) {
+export function createProtocolAdapter({ gitExecutable = 'git', pythonExecutable = 'python3' } = {}) {
   const contexts = new Map();
+  const runtime = { gitExecutable, pythonGuardOptions: { pythonExecutable } };
   function context(featureHome) {
     const value = contexts.get(featureHome);
     if (!value) throw new Error('Resolve the selected workspace before reading its feature record.');
@@ -18,10 +19,10 @@ export function createProtocolAdapter({ gitExecutable = 'git' } = {}) {
       return value;
     },
     async snapshot(featureHome, options = {}) {
-      return currentSnapshot(context(featureHome), options);
+      return currentSnapshot(context(featureHome), options, runtime);
     },
     async read(featureHome, kind, id = null) {
-      return readCurrent(context(featureHome), kind, id);
+      return readCurrent(context(featureHome), kind, id, runtime);
     },
   });
 }

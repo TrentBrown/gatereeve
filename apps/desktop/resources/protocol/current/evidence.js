@@ -7,7 +7,8 @@ import { localPath, readSafe } from './store.js';
 
 const exec = promisify(execFile);
 export async function git(root, args, options = {}) {
-  const { stdout } = await exec('git', ['-C', root, ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...options });
+  const { gitExecutable = 'git', ...executionOptions } = options;
+  const { stdout } = await exec(gitExecutable, ['-C', root, ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...executionOptions });
   return stdout;
 }
 const DOCUMENTS = new Set(['interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md',
@@ -53,17 +54,17 @@ export function excluded(path, featureRelative, bytes) {
 }
 export async function assertRepositoryRoot(repository) {
   const root = await realpath(repository.path);
-  const top = await realpath((await git(root, ['rev-parse', '--show-toplevel'])).trim());
+  const top = await realpath((await git(root, ['rev-parse', '--show-toplevel'], { gitExecutable: repository.gitExecutable })).trim());
   requireThat(root === top, `Configured repository must identify its Git working-tree root: ${repository.alias}`);
   return root;
 }
 async function tree(store, repository, revision) {
   await assertRepositoryRoot(repository);
   requireThat(/^[a-f0-9]{40,64}$/u.test(revision), 'Source must use a full Git object identity');
-  requireThat((await git(repository.path, ['rev-parse', `${revision}^{commit}`])).trim() === revision, 'Pinned source is not a commit');
+  requireThat((await git(repository.path, ['rev-parse', `${revision}^{commit}`], { gitExecutable: repository.gitExecutable })).trim() === revision, 'Pinned source is not a commit');
   const local = relative(await realpath(repository.path), store.home).split(sep).join('/');
   const featureRelative = local.split('/')[0] !== '..' && !isAbsolute(local) ? local : null;
-  const entries = (await git(repository.path, ['ls-tree', '--full-tree', '-r', '-z', revision])).split('\0').filter(Boolean).map(line => {
+  const entries = (await git(repository.path, ['ls-tree', '--full-tree', '-r', '-z', revision], { gitExecutable: repository.gitExecutable })).split('\0').filter(Boolean).map(line => {
     const tab = line.indexOf('\t');
     const [mode, type, oid] = line.slice(0, tab).split(' ');
     const path = line.slice(tab + 1);
@@ -80,7 +81,7 @@ async function tree(store, repository, revision) {
   // One Git process for all blobs. Parse byte lengths, never split binary contents.
   const { spawn } = await import('node:child_process');
   const bytes = await new Promise((resolve, reject) => {
-    const child = spawn('git', ['-C', repository.path, 'cat-file', '--batch'], { stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn(repository.gitExecutable ?? 'git', ['-C', repository.path, 'cat-file', '--batch'], { stdio: ['pipe', 'pipe', 'pipe'] });
     const chunks = []; let size = 0; let errorText = '';
     child.on('error', reject);
     child.stdout.on('data', chunk => { size += chunk.length; if (size > 64 * 1024 * 1024) child.kill(); else chunks.push(chunk); });
@@ -121,7 +122,7 @@ export async function assertClean(repository, store) {
   await assertRepositoryRoot(repository);
   const local = relative(await realpath(repository.path), store.home).split(sep).join('/');
   const home = local.split('/')[0] !== '..' && !isAbsolute(local) ? local : null;
-  const entries = (await git(repository.path, ['status', '--porcelain=v1', '-z', '--untracked-files=all'])).split('\0');
+  const entries = (await git(repository.path, ['status', '--porcelain=v1', '-z', '--untracked-files=all'], { gitExecutable: repository.gitExecutable })).split('\0');
   const bookkeeping = async path => {
     if (!excluded(path, home) && (!artifactArea(recordLocal(path, home) ?? '') || !path.endsWith('.json'))) return false;
     // Deleted records are classified from HEAD, existing ones through the same
@@ -134,9 +135,9 @@ export async function assertClean(repository, store) {
     catch (error) {
       if (error.code !== 'ENOENT') return false;
       try {
-        const mode = (await git(repository.path, ['ls-tree', 'HEAD', '--', path])).split(' ')[0];
+        const mode = (await git(repository.path, ['ls-tree', 'HEAD', '--', path], { gitExecutable: repository.gitExecutable })).split(' ')[0];
         if (mode !== '100644') return false;
-        bytes = Buffer.from(await git(repository.path, ['show', `HEAD:${path}`]));
+        bytes = Buffer.from(await git(repository.path, ['show', `HEAD:${path}`], { gitExecutable: repository.gitExecutable }));
       } catch { return false; }
     }
     return excluded(path, home, bytes);
@@ -161,7 +162,7 @@ export async function sourceCandidate(store, context, input, authorization) {
     const targetFiles = target === pin.base ? base : await tree(store, repository, target);
     // Clean source is required, but local feature evidence is intentionally optional in Git.
     await assertClean(repository, store);
-    requireThat((await git(repository.path, ['rev-parse', 'HEAD'])).trim() === pin.head, 'Working repository differs from selected source');
+    requireThat((await git(repository.path, ['rev-parse', 'HEAD'], { gitExecutable: repository.gitExecutable })).trim() === pin.head, 'Working repository differs from selected source');
     repos.push({ identity: repositoryIdentity(repository), alias: pin.alias, base: pin.base, head: pin.head, baseFiles: base, files: head, target, targetFiles });
   }
   const docs = await requirements(store);
@@ -206,7 +207,7 @@ export async function checkCandidate(store, context, ref, { live = true } = {}) 
     for (const file of [...repo.baseFiles, ...repo.files, ...repo.targetFiles]) await store.get(file);
     if (live) {
       const root = context.repositories.find(item => item.alias === repo.alias).path;
-      requireThat((await git(root, ['rev-parse', 'HEAD'])).trim() === repo.head, `Source changed: ${repo.alias}`);
+      requireThat((await git(root, ['rev-parse', 'HEAD'], { gitExecutable: configured.gitExecutable })).trim() === repo.head, `Source changed: ${repo.alias}`);
       await assertClean(configured, store);
     }
   }

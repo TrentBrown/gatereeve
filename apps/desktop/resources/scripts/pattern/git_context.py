@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,7 +20,7 @@ class GitContext:
 
 def run_git(args: list[str], cwd: str | Path) -> str:
     result = subprocess.run(
-        ["git", *args],
+        [os.environ.get("GATEREEVE_GIT_EXECUTABLE", "git"), *args],
         cwd=str(cwd),
         check=True,
         text=True,
