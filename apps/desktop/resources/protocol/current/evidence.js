@@ -49,12 +49,19 @@ export function excluded(path, featureRelative, bytes) {
       && /^[a-f0-9]{40,64}$/u.test(value.mergeBaseSha ?? '')) return true;
   return false;
 }
+export async function assertRepositoryRoot(repository) {
+  const root = await realpath(repository.path);
+  const top = await realpath((await git(root, ['rev-parse', '--show-toplevel'])).trim());
+  requireThat(root === top, `Configured repository must identify its Git working-tree root: ${repository.alias}`);
+  return root;
+}
 async function tree(store, repository, revision) {
+  await assertRepositoryRoot(repository);
   requireThat(/^[a-f0-9]{40,64}$/u.test(revision), 'Source must use a full Git object identity');
   requireThat((await git(repository.path, ['rev-parse', `${revision}^{commit}`])).trim() === revision, 'Pinned source is not a commit');
   const local = relative(await realpath(repository.path), store.home).split(sep).join('/');
   const featureRelative = local.split('/')[0] !== '..' && !isAbsolute(local) ? local : null;
-  const entries = (await git(repository.path, ['ls-tree', '-r', '-z', revision])).split('\0').filter(Boolean).map(line => {
+  const entries = (await git(repository.path, ['ls-tree', '--full-tree', '-r', '-z', revision])).split('\0').filter(Boolean).map(line => {
     const tab = line.indexOf('\t');
     const [mode, type, oid] = line.slice(0, tab).split(' ');
     const path = line.slice(tab + 1);
@@ -109,6 +116,7 @@ export function repositoryIdentity(repository) {
     keepPullRequestsClosed: repository.keepPullRequestsClosed ?? false, featureBaseSha: repository.featureBaseSha ?? null };
 }
 export async function assertClean(repository, store) {
+  await assertRepositoryRoot(repository);
   const local = relative(await realpath(repository.path), store.home).split(sep).join('/');
   const home = local.split('/')[0] !== '..' && !isAbsolute(local) ? local : null;
   const entries = (await git(repository.path, ['status', '--porcelain=v1', '-z', '--untracked-files=all'])).split('\0');
@@ -179,6 +187,7 @@ export async function checkCandidate(store, context, ref, { live = true } = {}) 
   for (const repo of candidate.repositories) {
     const configured = context.repositories.find(item => item.alias === repo.alias);
     requireThat(configured && identity(repositoryIdentity(configured)) === identity(repo.identity), 'Candidate repository or policy changed');
+    await assertRepositoryRoot(configured);
     if (candidate.scope === 'FEATURE') requireThat(configured.featureBaseSha && repo.base === configured.featureBaseSha, `Feature review must use configured original featureBaseSha: ${repo.alias}`);
     for (const file of [...repo.baseFiles, ...repo.files, ...repo.targetFiles]) await store.get(file);
     if (live) {

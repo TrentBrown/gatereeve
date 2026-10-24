@@ -250,3 +250,16 @@ checked again when reusing retained evidence, including consumed and historical
 support. Effort ordering is a protocol contract, not a claim about model-family
 quality. Provider usage totals remain null for any metric missing a contribution;
 known zero is retained as zero.
+
+Configured repository paths must identify actual Git working-tree roots when
+source or retained candidate proof is admitted. Subdirectories are rejected,
+not silently widened; linked worktree roots remain valid. Full-tree capture
+prevents review scope from omitting enclosing source.
+
+Default reviewer context includes relevant criterion-only failures and required
+coverage limits across review gates, selected per repository scope and criterion.
+A new substantive cross-gate failure can invalidate older proof; a transport
+failure alone cannot. Another gate's finding remains that gate's obligation.
+Relevant history that spans unselected repositories requires a matching declared
+scope before export. Matching unsupported activation copies, or either surviving
+copy, remain opaque resume provenance; differing copies remain a conflict.

@@ -1,0 +1,7 @@
+Packaging app for platform darwin universal using electron v43.2.0 - Building x64 and arm64 slices now
+Packaging app for platform darwin x64 using electron v43.2.0
+Packaging app for platform darwin arm64 using electron v43.2.0
+WARNING: Could not find icon "/tmp/gr-repair9-final-package.jNRxeL/branding/GateReeve.icns" with extension ".icon", skipping this app icon format
+WARNING: Could not find icon "/tmp/gr-repair9-final-package.jNRxeL/branding/GateReeve.icns" with extension ".icon", skipping this app icon format
+Stitching universal app for platform darwin
+/tmp/gr-repair9-final-fixture.Pwevt1

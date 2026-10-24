@@ -172,7 +172,10 @@ export class CurrentStore {
       if (value.contract === CONTRACT) {
         requireThat(repair || copy.primary && copy.witness, 'Missing activation copy; retry a mutating operation to restore retained exact bytes');
         if (!copy.primary || !copy.witness) repairs.push(copy);
-      } else requireThat(copy.primary && !copy.witness, 'Conflicting unsupported activation record');
+      }
+      // Unsupported records may have one or two retained copies. mirrored()
+      // already rejects unequal bytes; matching copies are opaque provenance,
+      // never authority, and explicit resume retains them without interpretation.
       const next = await this.mirrored(`${AREA}/activations/${hash.slice(7)}.json`, `${AREA}/activation-witnesses/${hash.slice(7)}.json`);
       if (!next.bytes) { if (repair) await this.restoreCopies(repairs); return { bytes, hash }; }
       previous = { hash }; copy = next;

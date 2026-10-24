@@ -140,14 +140,14 @@ async function runVerification(f, fail = false, operationId = 'verify-one') {
     checks: [{ repository: 'app', command: process.execPath, args: ['-e', `process.exit(${fail ? 1 : 0})`], purpose: 'Fixture verification' }],
   } }, operationId);
 }
-function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, findingId = 'finding-1', outcome = blocking ? 'FAIL' : 'PASS', dispositions = [], historyAssessment = null } = {}) {
+function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, findingId = 'finding-1', outcome = blocking ? 'FAIL' : 'PASS', dispositions = [], historyAssessment = null, criterionRows = null, coverage = null } = {}) {
   let launches = 0;
   f.core.runtime.evaluator = {
     async describe() { return { provider: 'codex', model: 'fixture', reasoningEffort: 'high' }; },
     async runStage(request) {
       launches++;
       const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome,
-        summary: 'Fixture assessment', criteria: request.input.criteria.map(id => ({ id, outcome, evidence: 'Fixture source and command receipt' })), coverage: { complete: true, paths: request.input.changedPaths ?? ['app/app.js'], interactions: ['app/app.js'], limitations: [] },
+        summary: 'Fixture assessment', criteria: criterionRows ?? request.input.criteria.map(id => ({ id, outcome, evidence: 'Fixture source and command receipt' })), coverage: coverage ?? { complete: true, paths: request.input.changedPaths ?? ['app/app.js'], interactions: ['app/app.js'], limitations: [] },
         findings: blocking ? [{ id: findingId, classId: 'class-1', criterion: 'R1', path: 'app/app.js', evidence: 'Current defect', blocking: true }] : [], dispositions, historyAssessment })) };
       if (malformed) output.verdicts.pop();
       const { sha256Digest } = await import('../../plugin-src/shared/resources/protocol/agent-workflow.js');
@@ -1903,4 +1903,125 @@ for (const mode of ['replacement', 'same-run', 'pause']) for (const transport of
     assert.equal(retained.runId, 'run-one');
     assert.match(retained.stdout, /ORIGINAL-VALIDATOR-FAILED/);
   } finally { await writeFile(release, 'release'); await running; }
+});
+
+
+test('source admission rejects configured subdirectories and accepts linked worktree roots', async t => {
+  const f = await fixture(t); await authorize(f);
+  const nested = join(f.repo, 'subdir'); await mkdir(nested); await writeFile(join(nested, 'selected.js'), 'export const selected = true;\n');
+  await git(f.repo, ['add', '.']); await git(f.repo, ['commit', '-m', 'nested source']); f.head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app/subdir', integrationBranch: 'main', featureBaseSha: f.context.repositories[0].featureBaseSha } } }));
+  const { executeCurrentRequest } = await import('../../plugin-src/shared/resources/protocol/current/adapter.js');
+  const publicResult = await executeCurrentRequest({ cwd: f.root, operation: 'candidate.prepare', input: { repositories: [{ alias: 'app', base: f.context.repositories[0].featureBaseSha, head: f.head }], scope: 'FEATURE', criteria: ['R1'] } });
+  assert.equal(publicResult.ok, false); assert.match(publicResult.error.message, /Git working-tree root/);
+  f.context.repositories[0].path = nested;
+  await assert.rejects(candidate(f), /Git working-tree root/);
+  assert.equal((await f.core.state()).state.candidate, null);
+  const linked = join(f.root, 'linked'); await git(f.repo, ['worktree', 'add', '-b', 'linked', linked, f.head]);
+  f.context.repositories[0].path = linked;
+  await candidate(f);
+  const pin = await f.core.store.json((await f.core.state()).state.candidate);
+  assert.deepEqual(pin.repositories[0].files.map(file => file.path), ['app.js', 'subdir/selected.js']);
+  const { checkCandidate, contentIdentity } = await import('../../plugin-src/shared/resources/protocol/current/evidence.js');
+  const malformed = structuredClone(pin); malformed.repositories[0].identity.path = join(linked, 'subdir');
+  f.context.repositories[0].path = join(linked, 'subdir');
+  await assert.rejects(checkCandidate(f.core.store, f.context, await f.core.store.putJson(malformed), { live: false }), /Git working-tree root/);
+  f.context.repositories[0].path = linked;
+  await writeFile(join(linked, 'app.js'), 'export const answer = 43;\n'); await git(linked, ['add', '.']); await git(linked, ['commit', '-m', 'enclosing source']);
+  const head = (await git(linked, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.context.repositories[0].featureBaseSha, head }], scope: 'FEATURE', criteria: ['R1'] }, 'new-root-source');
+  const next = await f.core.store.json((await f.core.state()).state.candidate);
+  assert.notEqual(contentIdentity(pin), contentIdentity(next));
+  const { changedPaths } = await import('../../plugin-src/shared/resources/protocol/current/execution.js');
+  assert.deepEqual(changedPaths(pin, next), ['app/app.js']);
+});
+
+for (const copies of ['primary', 'witness', 'matching', 'conflicting']) test(`public resume preserves unsupported ${copies} activation records`, async t => {
+  const f = await fixture(t); await authorize(f);
+  await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app', integrationBranch: 'main', featureBaseSha: f.head } } }));
+  const primary = join(f.home, '.gatereeve-current/active.json'), witness = join(f.home, '.gatereeve-current/active-witness.json');
+  const bytes = JSON.stringify({ contract: 'unsupported/v0', runId: 'run-one' });
+  await writeFile(primary, bytes); await writeFile(witness, copies === 'conflicting' ? bytes+' ' : bytes);
+  if (copies === 'primary') await rm(witness);
+  if (copies === 'witness') await rm(primary);
+  await assert.rejects(f.core.store.active(), /Unsupported|Conflicting/);
+  const { executeCurrentRequest } = await import('../../plugin-src/shared/resources/protocol/current/adapter.js');
+  const input = { operation: 'run.resume-current', cwd: f.root, operationId: 'unsupported-resume', input: { runId: 'replacement', implementers: ['implementer-one'] } };
+  const resumed = await executeCurrentRequest(input);
+  if (copies === 'conflicting') { assert.equal(resumed.ok, false); assert.match(resumed.error.message, /Conflicting/); }
+  else {
+    assert.equal(resumed.ok, true, JSON.stringify(resumed));
+    assert.equal((await f.request('status')).runId, 'replacement');
+    assert.equal((await f.request('status')).phase, 'DESIGNING');
+    assert.equal((await f.core.check('implementation')).allowed, false);
+    assert.equal((await executeCurrentRequest(input)).ok, true);
+  }
+  if (copies !== 'witness') assert.equal(await readFile(primary, 'utf8'), bytes);
+  if (copies !== 'primary') assert.equal(await readFile(witness, 'utf8'), copies === 'conflicting' ? bytes+' ' : bytes);
+});
+
+for (const kind of ['criterion-only', 'coverage-only', 'cross-gate']) test(`default reviewer context and proof admission preserve ${kind} failures`, async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); await runVerification(f); fakeEvaluator(f);
+  const configuration = { provider: 'codex', model: 'fixture' };
+  const first = await f.request('gate.execute', { gates: ['code'], configuration }, 'first-pass'); const old = first.event.payload.results[0];
+  const id = kind === 'criterion-only' ? 'spec' : kind === 'cross-gate' ? 'judge' : 'code';
+  fakeEvaluator(f, { outcome: 'FAIL', blocking: kind === 'cross-gate', ...(kind === 'coverage-only' ? { criterionRows: [], coverage: { complete: false, paths: [], interactions: [], limitations: ['Required integration coverage remains missing'] } } : {}) });
+  const failed = await f.request('gate.execute', { gates: [id], configuration: { ...configuration, validUntil: new Date(Date.now()+60000).toISOString() } }, 'negative');
+  const negative = failed.event.payload.results[0]; assert.equal((await f.core.store.json(negative)).outcome, 'FAIL');
+  if (kind === 'criterion-only') {
+    f.core.runtime.evaluator.runStage = async () => { throw new Error('Fixture provider unavailable'); };
+    const unavailable = await f.request('gate.execute', { gates: [id], configuration }, 'transport-after-failure');
+    assert.equal((await f.core.store.json(unavailable.event.payload.results[0])).outcome, 'UNAVAILABLE');
+  }
+  const state = (await f.core.state()).state;
+  await assert.rejects(f.core.currentResult(old, await f.core.store.json(state.candidate), state), /blocking review/);
+  await assert.rejects(f.request('gate.execute', { gates: ['explanation'], configuration, consumed: [old] }, 'consume-old'), /blocking review/);
+  const launches = fakeEvaluator(f);
+  const fresh = await f.request('gate.execute', { gates: ['code'], configuration }, 'fresh');
+  assert.equal(launches(), 1); assert.ok(fresh.event);
+  const report = await f.core.store.json(fresh.event.payload.results[0]); assert.equal(report.outcome, 'PASS');
+  const packet = await f.core.store.json(report.input); assert.ok(packet.history.some(ref => ref.hash === negative.hash));
+  const again = await f.request('gate.execute', { gates: ['code'], configuration }, 'equivalent');
+  assert.equal(again.reused, true); assert.equal(launches(), 1);
+});
+
+test('cross-gate same finding IDs retain separate closure authority', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); await runVerification(f);
+  const configuration = { provider: 'codex', model: 'fixture' };
+  fakeEvaluator(f, { blocking: true }); await f.request('gate.execute', { gates: ['code'] , configuration }, 'code-fail');
+  await f.request('gate.execute', { gates: ['judge'], configuration }, 'judge-fail');
+  fakeEvaluator(f, { dispositions: [{ id: 'finding-1', status: 'resolved', evidence: 'Code assessment established its own closure.' }] });
+  const code = await f.request('gate.execute', { gates: ['code'], configuration }, 'code-fixed'); assert.equal((await f.core.store.json(code.event.payload.results[0])).outcome, 'PASS');
+  fakeEvaluator(f); const judge = await f.request('gate.execute', { gates: ['judge'], configuration }, 'judge-not-closed');
+  assert.equal((await f.core.store.json(judge.event.payload.results[0])).outcome, 'UNAVAILABLE');
+});
+
+
+test('transport unavailability alone preserves applicable independent proof', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
+  const configuration = { provider: 'codex', model: 'fixture' };
+  const first = await f.request('gate.execute', { gates: ['code'], configuration }, 'transport-seed');
+  f.core.runtime.evaluator.runStage = async () => { throw new Error('Fixture provider unavailable'); };
+  const unavailable = await f.request('gate.execute', { gates: ['code'], configuration: { ...configuration, validUntil: new Date(Date.now()+60000).toISOString() } }, 'transport-only');
+  assert.equal((await f.core.store.json(unavailable.event.payload.results[0])).outcome, 'UNAVAILABLE');
+  const state = (await f.core.state()).state;
+  assert.equal((await f.core.currentResult(first.event.payload.results[0], await f.core.store.json(state.candidate), state)).outcome, 'PASS');
+});
+
+
+test('review context keeps an R1 failure after an unrelated R2 assessment', async t => {
+  const f = await fixture(t);
+  await writeFile(join(f.home, 'spec.md'), (await readFile(join(f.home, 'spec.md'), 'utf8')).replace('## Changes', '| R2 | AC1 | source inspected | source omitted | source |\n\n## Changes'));
+  await authorize(f);
+  const prepare = (criteria, id) => f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head: f.head }], scope: 'SLICE', criteria }, id);
+  const configuration = { provider: 'codex', model: 'fixture' };
+  await prepare(['R1'], 'r1'); await runVerification(f); fakeEvaluator(f, { outcome: 'FAIL' });
+  const failure = await f.request('gate.execute', { gates: ['spec'], configuration }, 'r1-failure');
+  await prepare(['R2'], 'r2'); await runVerification(f, false, 'r2-verify'); fakeEvaluator(f);
+  const other = await f.request('gate.execute', { gates: ['spec'], configuration }, 'r2-pass');
+  await prepare(['R1'], 'r1-return'); fakeEvaluator(f);
+  const review = await f.request('gate.execute', { gates: ['code'], configuration }, 'r1-fresh');
+  const packet = await f.core.store.json((await f.core.store.json(review.event.payload.results[0])).input);
+  assert.ok(packet.history.some(ref => ref.hash === failure.event.payload.results[0].hash));
+  assert.ok(!packet.history.some(ref => ref.hash === other.event.payload.results[0].hash));
 });

@@ -337,17 +337,26 @@ export class CurrentCore {
         const findings = new Map(); let barrier = -1;
         for (const [index, laterRef] of state.results.entries()) {
           let report; try { report = await this.store.json(laterRef); } catch { continue; }
-          if (report.gate !== result.gate) continue;
-          for (const finding of report.findings ?? []) if (finding.blocking) findings.set(finding.id, finding);
+          let reportRole; try { reportRole = gate(report.gate).role; } catch { continue; }
+          if (!['independent', 'assessment'].includes(reportRole)) continue;
+          let reportCandidate;
+          try { reportCandidate = await this.store.json((await this.store.json(report.input)).candidate); } catch { /* Available finding facts still inform the barrier. */ }
+          const scopeOverlaps = reportCandidate?.criteria.some(id => candidate.criteria.includes(id))
+            && reportCandidate.repositories.some(repo => candidate.repositories.some(selected => identity(selected.identity) === identity(repo.identity)));
+          for (const finding of report.findings ?? []) if (finding.blocking) findings.set(`${report.gate}:${finding.id}`, finding);
           const raised = [...(report.findings ?? []).filter(finding => finding.blocking),
-            ...(report.dispositions ?? []).filter(item => item.status === 'present').map(item => findings.get(item.id)).filter(Boolean)];
+            ...(report.dispositions ?? []).filter(item => item.status === 'present').map(item => findings.get(`${report.gate}:${item.id}`)).filter(Boolean)];
           const failedCriteria = (report.criteria ?? []).filter(row => row.outcome === 'FAIL');
           const supportedBlocker = raised.some(finding =>
-            (candidate.criteria.includes(finding.criterion) || finding.criterion === `gate:${result.gate}`)
+            (candidate.criteria.includes(finding.criterion) || finding.criterion === `gate:${report.gate}`)
             && candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`)));
-          const failedScope = failedCriteria.some(row => candidate.criteria.includes(row.id));
-          const unscoredFailure = report.outcome === 'FAIL' && failedCriteria.length === 0 && raised.length === 0
-            && (report.criteria ?? []).some(row => candidate.criteria.includes(row.id));
+          const failedScope = scopeOverlaps && failedCriteria.some(row => candidate.criteria.includes(row.id));
+          // Code review may legitimately omit criterion rows. Its bound candidate
+          // still scopes required coverage failures; transport UNAVAILABLE alone
+          // does not revoke otherwise applicable independent proof.
+          const unscoredFailure = report.outcome === 'FAIL' && scopeOverlaps
+            && (!report.coverage?.complete || report.coverage.limitations?.length
+              || failedCriteria.length === 0 && raised.length === 0);
           if (supportedBlocker || failedScope || unscoredFailure) {
             const recorded = Object.values(state.jobs).find(job => job.finished && job.results?.some(ref => ref.hash === laterRef.hash));
             barrier = Math.max(barrier, recorded?.finishedSequence ?? Number.MAX_SAFE_INTEGER);

@@ -86,3 +86,8 @@ Broad verification exposed an outdated host-environment test after the eighth bo
 ### Formal PR84 attempt 9 preparation
 
 Source inspection found late failed spec validation could revoke replacement-run or newer same-run authority. Original reproductions are retained and the repair now binds failure publication to original run/state while preserving diagnostic references. No formal9 verdict was issued. Two additional environment-mutating fixtures were updated as part of the complete audit. [Ninth repair claims](verification/formal-pr84-remediation-9.md). The next boundary waits for complete fresh verification.
+
+
+### Formal PR84 attempt 10
+
+Independent code/spec passed; the separate native OpenAI Judge returned FAIL (12 PASS / 9 FAIL) on 257b22e. Original reports remain under pr-84/attempts/formal-pr84-10. Independent follow-up reproduced incomplete repository-root capture, omitted criterion/coverage/cross-gate history, and unsupported matching-copy resume rejection, plus adjacent stale-proof reuse paths. The governing core returned the slice to implementation. [Tenth repair claims](verification/formal-pr84-remediation-10.md) and independent probes describe the repairs; final formal passage remains pending.
