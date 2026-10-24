@@ -49,7 +49,10 @@ async function bindings(core, scope) {
     const remote = repository.remote ?? 'origin';
     const remoteUrl = (await runGit(repository.path, ['config', '--get', `remote.${remote}.url`])).trim();
     requireThat(remoteUrl, 'Standing scope requires a repository remote identity');
-    result.push({ alias: repository.alias, path: await realpath(repository.path), remote, remoteUrl,
+    const urls = async args => (await runGit(repository.path, ['remote', 'get-url', ...args, '--all', remote])).trim().split(/\r?\n/u);
+    const fetchUrls = await urls([]), pushUrls = await urls(['--push']);
+    requireThat([...fetchUrls, ...pushUrls].every(Boolean), 'Standing scope requires effective fetch and push remote identities');
+    result.push({ alias: repository.alias, path: await realpath(repository.path), remote, remoteUrl, fetchUrls, pushUrls,
       featureBaseSha: repository.featureBaseSha ?? null, integrationBranch: repository.integrationBranch ?? null,
       releaseBranch: repository.releaseBranch ?? null, keepPullRequestsClosed: Boolean(repository.keepPullRequestsClosed) });
   }
@@ -127,7 +130,7 @@ export async function applyStanding(core, input, operation) {
   // original event count, so a concurrent revoke/pause/candidate cannot win a race.
   const final = await standingValidity(core, state, grant, candidate, input.action);
   requireThat(final.allowed, final.reason);
-  await checkCandidate(core.store, core.context, state.candidate);
+  await core.assertLiveInputs(state, 'acceptance', check.liveInputs);
   requireUnexpired(grant);
   return core.append(state, 'DECIDED', { kind: 'accept', subject: state.candidate.hash,
     authority: grant.authority, reason: grant.reason, consequences: grant.consequences,

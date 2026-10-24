@@ -97,6 +97,9 @@ export async function merge(core, input, operation) {
     requireThat((await qualifyingDecisions(core, state, 'authorize-merge', state.candidate.hash, candidate))
       .some(item => item.event === authorization.event), 'Merge authorization expired or changed while waiting for hosted checks');
     await requireCurrentState(core, state);
+    await core.assertLiveInputs(state, 'merge', currentProof.liveInputs);
+    await requireCurrentState(core, state);
+    core.assertLiveDeadlines(currentProof.liveInputs);
     if (authorization.standingGrant) requireUnexpired(state.decisions.find(item => item.event === authorization.standingGrant));
     await run(repository.path, ['pr', 'merge', String(action.number), '--repo', action.ownerRepo,
       `--${action.method}`, '--match-head-commit', action.head]);

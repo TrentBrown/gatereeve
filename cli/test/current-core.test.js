@@ -2404,7 +2404,7 @@ test('standing scope rejects implicit deployment, unknown fields, missing expiry
   assert.match((await check()).reason, /implementation authorization/);
 });
 
-for (const mode of ['slice', 'final', 'acceptance-only', 'revoke-during-checks', 'expire-during-checks', 'revoke-during-final-qualification', 'expire-during-final-qualification']) test(`standing authority protected merge: ${mode}`, async t => {
+for (const mode of ['slice', 'final', 'acceptance-only', 'revoke-during-checks', 'expire-during-checks', 'revoke-during-final-qualification', 'expire-during-final-qualification', 'revoke-during-input-guard']) test(`standing authority protected merge: ${mode}`, async t => {
   const f = await fixture(t); await standingRepository(f);
   const base = f.head;
   await writeFile(join(f.repo, 'app.js'), 'export const answer = 42; // standing candidate\n');
@@ -2428,6 +2428,15 @@ for (const mode of ['slice', 'final', 'acceptance-only', 'revoke-during-checks',
       const original = Date.now; Date.now = () => Date.parse(expiresAt)+1; t.after(() => { Date.now = original; });
     }
     return result;
+  };
+  const finalGuard = f.core.assertLiveInputs.bind(f.core);
+  f.core.assertLiveInputs = async (...args) => {
+    await finalGuard(...args);
+    if (mode === 'revoke-during-input-guard' && finalRead && args[1] === 'merge' && !revoked) {
+      revoked = true;
+      await f.request('human.decide', { kind: 'revoke-standing', subject: grant.event.hash,
+        authority: human, reason: 'Stop during final input guard', consequences: 'Wait' });
+    }
   };
   // Actual local git remote and integration verification; only GitHub transport is simulated.
   f.core.runtime.gh = async (root, args) => {
@@ -2607,4 +2616,76 @@ test('behavioral Whiteboard exception requires a named policy amendment', async 
   await f.request('human.decide', { ...input, kind: 'policy-amend', actions: ['waive'] }, 'whiteboard-policy');
   const outcome = (await f.request('milestone.check', { name: 'acceptance' })).outcomes.find(row => row.id === 'whiteboard');
   assert.equal(outcome.satisfied, true); assert.equal(outcome.exception.kind, 'policy-amend');
+});
+
+test('milestone admission rejects unjournaled drift during qualification and before passage', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); await reviewAll(f);
+  const qualify = f.core.currentResult.bind(f.core), check = f.core.check.bind(f.core);
+  let during = null, after = null;
+  f.core.currentResult = async (...args) => {
+    const result = await qualify(...args);
+    if (result.gate === 'packet' && during) { const change = during; during = null; await change(); }
+    return result;
+  };
+  f.core.check = async (...args) => {
+    const result = await check(...args);
+    if (after) { const change = after; after = null; await change(); }
+    return result;
+  };
+  for (const timing of ['during', 'after']) for (const kind of ['source', 'head', 'design', 'spec', 'environment', 'retained-proof', 'retained-job']) {
+    const state = (await f.core.state()).state, ref = state.results[0];
+    const result = await f.core.store.json(ref), receipt = await f.core.store.json(result.receipt);
+    const file = kind === 'retained-proof' ? join(f.home, '.gatereeve-current/objects', ref.hash.slice(7))
+      : kind === 'retained-job' ? join(f.home, '.gatereeve-current/jobs', `${receipt.jobId}.json`)
+      : ['design', 'spec'].includes(kind) ? join(f.home, `${kind}.md`) : join(f.repo, 'app.js');
+    const bytes = await readFile(file), previous = process.env.GATEREEVE_TEST_HOST_MODE;
+    const change = async () => {
+      if (kind === 'environment') process.env.GATEREEVE_TEST_HOST_MODE = 'changed-after-proof';
+      else if (kind.startsWith('retained-')) await rm(file);
+      else {
+        await writeFile(file, Buffer.concat([bytes, Buffer.from('\n// changed during admission\n')]));
+        if (kind === 'head') { await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'racing source']); }
+      }
+    };
+    if (timing === 'during') during = change; else after = change;
+    try {
+      await assert.rejects(f.request('milestone.pass', { name: 'acceptance' }, `late-${timing}-${kind}`));
+      assert.equal(during ?? after, null, `${timing} ${kind} mutation ran`);
+      assert.equal((await f.core.state()).state.eventCount, state.eventCount, `${timing} ${kind} cannot record passage`);
+    } finally {
+      if (kind === 'head') await git(f.repo, ['reset', '--hard', f.head]); else await writeFile(file, bytes);
+      if (previous === undefined) delete process.env.GATEREEVE_TEST_HOST_MODE; else process.env.GATEREEVE_TEST_HOST_MODE = previous;
+      during = null; after = null;
+    }
+  }
+  assert.equal((await f.request('milestone.pass', { name: 'acceptance' }, 'restored-admission')).event.type, 'MILESTONE');
+});
+
+test('standing grants bind effective fetch and push URLs even with unchanged raw URL and target commit', async t => {
+  const f = await fixture(t); await standingRepository(f); await authorize(f);
+  const grant = await standingGrant(f); await candidate(f); await reviewAll(f, { accept: false });
+  const original = join(f.root, 'host.git'), redirected = join(f.root, 'other.git');
+  await git(f.root, ['clone', '--bare', original, redirected]);
+  const raw = (await git(f.repo, ['config', '--get', 'remote.origin.url'])).trim();
+  const edits = [
+    { key: `url.${redirected}.insteadOf`, value: raw, remove: `url.${original}.insteadOf` },
+    { key: 'remote.origin.pushurl', value: redirected },
+    { key: `url.${redirected}.pushInsteadOf`, value: raw },
+  ];
+  for (const [index, edit] of edits.entries()) {
+    if (edit.remove) await git(f.repo, ['config', '--unset-all', edit.remove]);
+    await git(f.repo, ['config', edit.key, edit.value]);
+    try {
+      assert.equal((await git(f.repo, ['config', '--get', 'remote.origin.url'])).trim(), raw);
+      assert.equal((await git(f.repo, ['ls-remote', 'origin', 'refs/heads/main'])).split(/\s/u)[0], f.head);
+      const status = await f.request('status');
+      assert.equal(status.standingAuthorizations[0].allowed, false);
+      assert.match(status.standingAuthorizations[0].reason, /remote identity changed/);
+      await assert.rejects(f.request('authorization.apply', { grant: grant.event.hash }, `redirect-${index}`), /remote identity changed/);
+    } finally {
+      await git(f.repo, ['config', '--unset-all', edit.key]);
+      if (edit.remove) await git(f.repo, ['config', edit.remove, raw]);
+    }
+  }
+  assert.equal((await f.request('authorization.apply', { grant: grant.event.hash }, 'restored-remote')).event.type, 'DECIDED');
 });

@@ -12,6 +12,9 @@ import { executeGates, reviewContract } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
 import { captureStanding, applyStanding, standingValidity, qualifyingDecisions } from './authorization.js';
 
+const LIVE_PROOFS = Symbol('qualified live proof inputs');
+const admissions = new WeakMap();
+
 export function project(events) {
   requireThat(events[0]?.type === 'STARTED', 'Current run is not initialized');
   const first = events[0].payload;
@@ -184,6 +187,7 @@ export class CurrentCore {
   async decide(input, operation) {
     let value = decision(input);
     let { state } = await this.state();
+    let admission = null;
     if (value.kind === 'approve-design') {
       requireThat(['DESIGNING', 'SPECIFYING', 'PLANNING'].includes(state.phase), 'Use an amendment to change approved delivery requirements');
       const doc = await this.store.capture('design.md');
@@ -242,12 +246,18 @@ export class CurrentCore {
         `${id} requires a policy amendment or its permitted waiver basis`);
       state = await this.pendingDecision(value, operation, state);
       const proposed = { ...state, decisions: [...state.decisions, value] };
-      if (decisionHas(value, 'accept')) requireThat((await this.check('acceptance', proposed)).allowed, 'Required review proof is missing');
+      if (decisionHas(value, 'accept')) {
+        admission = await this.check('acceptance', proposed);
+        requireThat(admission.allowed, 'Required review proof is missing');
+      }
       if (decisionHas(value, 'authorize-merge')) {
         requireThat(findDecision(proposed, 'accept', value.subject), 'Human acceptance is required before merge authorization');
         requireThat(value.action && identity(value.action) === identity(await prepareMerge(this, value.action)), 'Merge authorization must bind the prepared action');
       }
     }
+    if (admission) await this.assertLiveInputs({ ...state, decisions: [...state.decisions, value] }, 'acceptance', admission.liveInputs);
+    if (decisionHas(value, 'authorize-merge')) await checkCandidate(this.store, this.context, state.candidate);
+    for (const ref of Object.values(value.documents ?? {})) await this.store.currentBytes(ref);
     return this.append(state, 'DECIDED', { ...value, requestId: operation.id }, operation);
   }
   async validateSpec(operation) {
@@ -438,6 +448,7 @@ export class CurrentCore {
       await this.store.closure([state.candidate, state.decisions, state.integrations, state.validationFailures]);
     }
     if (result.gate === 'packet') requireThat(identity(result.inventory) === identity(await this.inventory(state, candidate, memo)), 'Review packet inventory changed');
+    memo.get(LIVE_PROOFS)?.set(identity({ ref, source: contentIdentity(candidate) }), { ref, candidate });
     return result;
   }
   async waiverRisk(state, candidate, id) {
@@ -478,9 +489,61 @@ export class CurrentCore {
     };
     return identity({ findings, execution: await scope(id, inputs) });
   }
+  async assertLiveInputs(state, name, liveInputs) {
+    const admission = admissions.get(liveInputs);
+    requireThat(admission, 'Missing in-process milestone input qualification');
+    // Recheck the inputs of proofs already qualified above. Do not rerun gates
+    // or the recursive history/coverage assessment. Each environment/closure is
+    // freshly read once per final guard, never reused from earlier qualification.
+    const environments = new Map(), retained = new Set(), patterns = new Map(), deadlines = [];
+    await this.store.closure([state.decisions, state.specValidation], retained);
+    if (state.specValidation) await assertTrustedPythonProof(await this.store.json(state.specValidation.proof), this.runtime.pythonGuardOptions);
+    for (const { ref, candidate } of admission.proofs.values()) {
+      await this.store.closure(ref, retained);
+      const { result } = await this.recordedResult(ref, state);
+      const inputs = await this.store.json(result.input), definition = gate(result.gate);
+      for (const support of inputs.support ?? []) await this.store.currentBytes(support);
+      const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
+      if (!environments.has(environmentKey)) environments.set(environmentKey,
+        await executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner'));
+      requireThat(identity(inputs.environment) === identity(environments.get(environmentKey)), 'Execution environment changed during milestone validation');
+      if (inputs.pattern) {
+        const key = contentIdentity(candidate);
+        if (!patterns.has(key)) patterns.set(key, await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false }));
+        requireThat(identity(inputs.pattern) === identity(patterns.get(key)), 'Pattern policy or trigger inputs changed during milestone validation');
+      }
+      if (result.gate === 'reconcile' && result.outcome === 'PASS') for (const proof of result.proofs) {
+        await assertTrustedPythonProof(await this.store.json(proof), this.runtime.pythonGuardOptions);
+      }
+      if (inputs.validUntil) deadlines.push(Date.parse(inputs.validUntil));
+    }
+    if (admission.historyGaps) requireThat(identity(await this.historyGaps(state)) === admission.historyGaps,
+      'Retained evidence availability changed during milestone validation');
+    if (admission.exceptions.length) {
+      const candidate = await this.store.json(state.candidate);
+      for (const outcome of admission.exceptions) {
+        const waiver = waiverFor(state, outcome.id, state.candidate.hash, contentIdentity(candidate),
+          await this.waiverRisk(state, candidate, outcome.id), outcome.result ? await this.store.json(outcome.result) : null);
+        requireThat(waiver && identity(waiver) === identity(outcome.exception), 'Exception applicability changed during milestone validation');
+        if (waiver.waiverBasis) await this.store.get(waiver.waiverBasis.evidence);
+      }
+    }
+    requireThat(identity((await this.commitments({ capture: false })).docs) === liveInputs.commitments,
+      'Commitment inputs changed during milestone validation');
+    if (name !== 'implementation') await checkCandidate(this.store, this.context, state.candidate, { live: name !== 'completion' });
+    admission.deadlines = deadlines;
+    this.assertLiveDeadlines(liveInputs);
+  }
+  assertLiveDeadlines(liveInputs) {
+    const admission = admissions.get(liveInputs);
+    requireThat(admission?.deadlines?.every(deadline => Date.now() <= deadline), 'External evidence validity expired');
+  }
   async check(name, proposedState = null, memo = new Map()) {
     requireThat(MILESTONES.includes(name), 'Unknown milestone');
     const state = proposedState ?? (await this.state()).state;
+    memo = new Map(memo);
+    const admission = { proofs: new Map(), exceptions: [], historyGaps: null };
+    memo.set(LIVE_PROOFS, admission.proofs);
     const missing = [];
     if (state.paused) missing.push('feature is explicitly paused');
     if (state.phase === 'COMPLETE' && name !== 'completion') missing.push('feature is complete');
@@ -496,7 +559,12 @@ export class CurrentCore {
       }
     } catch (error) { missing.push(error.message); }
     try { await this.store.closure(state.decisions); } catch (error) { missing.push(`Retained decision closure: ${error.message}`); }
-    if (name === 'implementation') return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, subject: current?.subject ?? null };
+    const liveInputs = { commitments: current ? identity(current.docs) : null };
+    admissions.set(liveInputs, admission);
+    if (name === 'implementation') {
+      if (current) try { await this.assertLiveInputs(state, name, liveInputs); } catch (error) { missing.push(error.message); }
+      return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, subject: current?.subject ?? null, liveInputs };
+    }
     let candidate;
     try {
       requireThat(state.candidate, 'current candidate');
@@ -552,7 +620,13 @@ export class CurrentCore {
         else try { await this.store.get(integration.receipt); } catch (error) { missing.push(error.message); }
       }
     }
-    return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, candidate: state.candidate, outcomes };
+    admission.exceptions = outcomes.filter(outcome => outcome.exception);
+    const gaps = memo.get(`losses:${state.runId}:${state.eventCount}`);
+    admission.historyGaps = gaps ? identity(await gaps) : null;
+    // Proof/remote qualification may take time without changing the journal.
+    // Re-read mutable inputs after it, and again at the actual passage write.
+    if (current && candidate) try { await this.assertLiveInputs(state, name, liveInputs); } catch (error) { missing.push(error.message); }
+    return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, candidate: state.candidate, outcomes, liveInputs };
   }
   async pass(name, operation) {
     requireThat(name !== 'merge', 'Merge must execute through a protected action adapter');
@@ -563,6 +637,7 @@ export class CurrentCore {
     requireThat(name !== 'acceptance' || ['IMPLEMENTING', 'ACCEPTING'].includes(state.phase), 'Acceptance passage is outside its phase');
     requireThat(name !== 'completion' || ['INTEGRATED', 'COMPLETE'].includes(state.phase), 'Completion requires observed integration');
     requireThat(name !== 'implementation' || state.phase === 'IMPLEMENTING', 'Implementation phase is not authorized');
+    await this.assertLiveInputs(state, name, check.liveInputs);
     return this.append(state, 'MILESTONE', { name, candidate: state.candidate }, operation);
   }
   async historyGaps(state) {
