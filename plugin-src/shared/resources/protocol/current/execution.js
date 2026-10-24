@@ -53,14 +53,24 @@ Return a separate verdict for every requested gate. In spec and judge verdicts s
 Prior results are inputs, not authority. Verify open findings, claimed fixes and affected resolutions. For reconsiderClosures, independently identify affected IDs in historyAssessment.affected, provide supported dispositions for them, and justify carrying the remaining closures together in historyAssessment.carryForwardReason; do not resubmit every unaffected ID. Exact unchanged closures are carried by qualified applicability. If historyGaps is nonempty, perform a fresh full assessment without assuming missing history was passing. Independently discover new defects, including another instance of a previously resolved class. Label implementer assertions as claims.
 Blocking findings must cite an approved criterion or the named gate rule plus current source evidence. Advice, unsupported speculation and unrelated pre-existing issues are nonblocking follow-ups. Do not invent scope.
 For delta review, explicitly cover all changed paths and their interactions and state any uncovered scope. PASS requires complete required coverage, no blocking findings and no unresolved required limitations. Missing verification is UNAVAILABLE, never an invented successful test.
-Git symlinks are regular text files containing their target, never followed. Gitlinks are JSON metadata with the pinned commit; contents require a separately selected repository or an explicit coverage limitation. Do not treat metadata as reviewed implementation.
+Every snapshot has metadata/<alias>.json with the original Git modes and kinds at base, head and target; prior snapshots have the same metadata under prior/<result-hash>/. Files in this read-only view are materialized without executable permissions, so use the retained mode metadata when assessing permission changes. Git symlinks are regular text files containing their target, never followed. Gitlinks are JSON metadata with the pinned commit; contents require a separately selected repository or an explicit coverage limitation. Do not treat metadata as reviewed implementation.
 Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, target/<alias>/ is the independently pinned proposed merge target; assess its interactions with the complete feature change. Prior targets are under prior/<result-hash>/target/<alias>/. Read requirements/ and the explicit evidence paths in the input. Do not access network or modify files.`;
 
 export const reviewContract = ids => identity({ schema, instructions, rules: ids.map(id => ({ id, rule: gate(id).rule ?? null })) });
 
+async function sourceMetadata(root, candidate) {
+  await mkdir(join(root, 'metadata'), { recursive: true });
+  for (const repo of candidate.repositories) {
+    const entries = files => files.map(({ path, mode, entryKind }) => ({ path, mode, kind: entryKind ?? 'file' }));
+    const value = { alias: repo.alias, base: { commit: repo.base, entries: entries(repo.baseFiles) },
+      head: { commit: repo.head, entries: entries(repo.files) }, target: { commit: repo.target, entries: entries(repo.targetFiles) } };
+    await writeFile(join(root, 'metadata', `${repo.alias}.json`), JSON.stringify(value, null, 2), { mode: 0o400, flag: 'wx' });
+  }
+}
 async function reviewerView(store, candidate, references, packet) {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-current-review-'));
   try {
+    await sourceMetadata(root, candidate);
     for (const repo of candidate.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) for (const file of files) {
       const path = join(root, kind, repo.alias, localPath(file.path));
       await mkdir(dirname(path), { recursive: true });
@@ -73,11 +83,12 @@ async function reviewerView(store, candidate, references, packet) {
     await mkdir(join(root, 'evidence'));
     const copied = new Set();
     packet.evidence = [];
-    for (const ref of references) {
+    for (const ref of new Map(references.map(ref => [ref.hash, ref])).values()) {
       const report = await store.json(ref);
       if (report.input) {
         const previous = await store.json((await store.json(report.input)).candidate);
         requireThat(previous.repositories.every(repo => candidate.repositories.some(selected => identity(selected.identity) === identity(repo.identity))), 'Referenced evidence includes unselected repositories');
+        await sourceMetadata(join(root, 'prior', ref.hash.slice(7)), previous);
         for (const repo of previous.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) for (const file of files) {
           const path = join(root, 'prior', ref.hash.slice(7), kind, repo.alias, localPath(file.path));
           await mkdir(dirname(path), { recursive: true });
@@ -137,32 +148,33 @@ async function independent(core, state, candidate, prepared, configuration, pack
 async function commands(core, state, candidate, configuration, completion, environment) {
   requireThat(Array.isArray(configuration.checks) && configuration.checks.length > 0, 'Runner requires explicit checks');
   const receipts = [];
-  for (const check of configuration.checks) {
-    const repository = core.context.repositories.find(item => item.alias === check.repository);
-    requireThat(repository && candidate.repositories.some(item => item.alias === check.repository), 'Check repository is not in review scope');
-    text(check.command, 'Check executable'); text(check.purpose, 'Check coverage purpose');
-    requireThat(Array.isArray(check.args) && check.args.every(value => typeof value === 'string'), 'Check arguments must be strings');
-    const pin = candidate.repositories.find(item => item.alias === check.repository);
-    const expectedHead = completion ? state.integrations[check.repository]?.integrationSha : pin.head;
-    requireThat(expectedHead && (await git(repository.path, ['rev-parse', 'HEAD'])).trim() === expectedHead, 'Runner checkout does not match its evaluated source');
-    await assertClean(repository, core.store);
-    const startedAt = new Date().toISOString();
-    let outcome = 'PASS', result;
-    try {
-      result = await exec(check.command, check.args, { cwd: repository.path, env: environment, encoding: 'utf8',
-        timeout: configuration.timeoutMs ?? 600000, maxBuffer: 16 * 1024 * 1024 });
-    } catch (error) { outcome = typeof error.code === 'number' ? 'FAIL' : 'UNAVAILABLE'; result = error; }
-    receipts.push({ evaluatedSource: expectedHead, command: check.command, args: check.args, repository: check.repository,
-      purpose: check.purpose, startedAt, completedAt: new Date().toISOString(), outcome,
-      exitCode: outcome === 'PASS' ? 0 : (typeof result.code === 'number' ? result.code : null),
-      stdout: await core.store.put(result.stdout ?? ''), stderr: await core.store.put(result.stderr ?? '') });
-    try {
+  try {
+    for (const check of configuration.checks) {
+      const repository = core.context.repositories.find(item => item.alias === check.repository);
+      requireThat(repository && candidate.repositories.some(item => item.alias === check.repository), 'Check repository is not in review scope');
+      text(check.command, 'Check executable'); text(check.purpose, 'Check coverage purpose');
+      requireThat(Array.isArray(check.args) && check.args.every(value => typeof value === 'string'), 'Check arguments must be strings');
+      const pin = candidate.repositories.find(item => item.alias === check.repository);
+      const expectedHead = completion ? state.integrations[check.repository]?.integrationSha : pin.head;
+      requireThat(expectedHead && (await git(repository.path, ['rev-parse', 'HEAD'])).trim() === expectedHead, 'Runner checkout does not match its evaluated source');
+      await assertClean(repository, core.store);
+      const startedAt = new Date().toISOString();
+      let outcome = 'PASS', result;
+      try {
+        result = await exec(check.command, check.args, { cwd: repository.path, env: environment, encoding: 'utf8',
+          timeout: configuration.timeoutMs ?? 600000, maxBuffer: 16 * 1024 * 1024 });
+      } catch (error) { outcome = typeof error.code === 'number' ? 'FAIL' : 'UNAVAILABLE'; result = error; }
+      receipts.push({ evaluatedSource: expectedHead, command: check.command, args: check.args, repository: check.repository,
+        purpose: check.purpose, startedAt, completedAt: new Date().toISOString(), outcome,
+        exitCode: outcome === 'PASS' ? 0 : (typeof result.code === 'number' ? result.code : null),
+        stdout: await core.store.put(result.stdout ?? ''), stderr: await core.store.put(result.stderr ?? '') });
       requireThat((await git(repository.path, ['rev-parse', 'HEAD'])).trim() === expectedHead, 'Runner source changed during execution');
       await assertClean(repository, core.store);
-    } catch (error) {
-      error.artifacts = [await core.store.putJson({ receipts }), ...receipts.flatMap(item => [item.stdout, item.stderr])];
-      throw error;
     }
+  } catch (error) {
+    // Preflight and postflight failures must retain every check already executed.
+    error.artifacts = [...(error.artifacts ?? []), await core.store.putJson({ receipts }), ...receipts.flatMap(item => [item.stdout, item.stderr])];
+    throw error;
   }
   return { receipts, outcome: receipts.some(item => item.outcome === 'UNAVAILABLE') ? 'UNAVAILABLE'
     : receipts.every(item => item.outcome === 'PASS') ? 'PASS' : 'FAIL' };
@@ -189,9 +201,13 @@ function validateVerdict(verdict, ids, candidate, changes, history, claims, reco
   const prior = new Map();
   for (const entry of history) if (entry.reviewerResult.gate === verdict.gate) {
     for (const item of entry.reviewerResult.findings ?? []) prior.set(item.id, { ...item, open: item.blocking });
-    for (const item of entry.reviewerResult.dispositions ?? []) if (prior.has(item.id)) prior.get(item.id).open = item.status === 'present';
+    for (const item of entry.reviewerResult.dispositions ?? []) if (prior.has(item.id)) {
+      if (item.status === 'present') prior.get(item.id).open = prior.get(item.id).blocking;
+      if (['resolved', 'unsupported'].includes(item.status)) prior.get(item.id).open = false;
+    }
   }
   if (verdict.outcome === 'PASS') {
+    requireThat(!verdict.dispositions.some(item => item.status === 'present' && prior.get(item.id)?.blocking), 'PASS contradicts a present blocking finding');
     const required = new Set([...prior.values()].filter(item => item.open).map(item => item.id));
     for (const claim of claims) if (prior.has(claim.findingId)) required.add(claim.findingId);
     const reconsider = reconsiderClosures.filter(item => item.gate === verdict.gate).map(item => item.id);
@@ -273,18 +289,23 @@ export async function executeGates(core, input, operation) {
     for (const disposition of report.dispositions ?? []) {
       const finding = findingStates.get(`${report.gate}:${disposition.id}`);
       if (finding && ['resolved', 'unsupported'].includes(disposition.status)) { finding.open = false; finding.closure = ref; }
+      if (finding && disposition.status === 'present') { finding.open = true; finding.closure = null; finding.reopened = ref; }
     }
   }
   const selectedHistory = new Map((input.history ?? []).map(ref => [ref.hash, ref]));
   const reconsiderClosures = [];
   for (const finding of findingStates.values()) {
-    if (finding.open) selectedHistory.set(finding.ref.hash, finding.ref);
+    if (finding.open) {
+      selectedHistory.set(finding.ref.hash, finding.ref);
+      if (finding.reopened) selectedHistory.set(finding.reopened.hash, finding.reopened);
+    }
     else {
       let equivalent = false;
       try { await core.currentResult(finding.closure, candidate, state, new Set(), applicabilityMemo); equivalent = true; } catch { /* Ask the independent evaluator about changed/unknown relevance. */ }
       if (!equivalent) {
         selectedHistory.set(finding.ref.hash, finding.ref);
         selectedHistory.set(finding.closure.hash, finding.closure);
+        if (finding.reopened) selectedHistory.set(finding.reopened.hash, finding.reopened);
         reconsiderClosures.push({ gate: finding.gate, id: finding.id });
       }
     }
@@ -378,7 +399,7 @@ export async function executeGates(core, input, operation) {
   try {
     if (role === 'independent' || role === 'assessment') {
       const packet = { contract: CONTRACT, rules: input.gates.map(id => ({ id, rule: gate(id).rule })), pattern: value.pattern, gates: input.gates, criteria: candidate.criteria, scope: candidate.scope,
-        source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, target: repo.target, entries: [...repo.baseFiles, ...repo.files, ...repo.targetFiles].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
+        source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, target: repo.target, metadata: `metadata/${repo.alias}.json`, entries: [...repo.baseFiles, ...repo.files, ...repo.targetFiles].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
         history, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
       const reviewed = await independent(core, state, candidate, prepared, configuration, packet);
       evaluator = reviewed.evaluator; metrics = reviewed.metrics; artifacts.push(...reviewed.artifacts);

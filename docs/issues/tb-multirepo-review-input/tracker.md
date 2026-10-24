@@ -47,3 +47,15 @@ standalone verdict is not recorded gate passage. See
 ### Formal PR84 attempt 1
 
 Code review, spec evaluation and native OpenAI Judge returned FAIL on source `5724e5507b007c8c0558ece6bda4c95915016ad1`. Findings and receipts are retained under `pr-84/attempts/formal-pr84-1/`. The core returned the slice to implementation; fixes and fresh assessment are pending. See `verification/formal-pr84-remediation-1.md`.
+
+### Formal PR84 attempts 2 and 3
+
+The second and third code/spec reviews and native OpenAI Judges returned FAIL.
+Their original findings and receipts remain under the corresponding
+`pr-84/attempts/formal-pr84-2/` and `formal-pr84-3/` directories. The installed
+core returned the slice to implementation before each repair. The third repair
+covers nested explanation history, original Git modes in reviewer snapshots,
+partial command receipts and reopened findings. See
+[third remediation claims](verification/formal-pr84-remediation-3.md).
+Current rubric passage awaits a fresh formal assessment; prior local PASS does
+not supersede these failures.

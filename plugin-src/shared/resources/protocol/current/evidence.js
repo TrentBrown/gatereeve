@@ -29,6 +29,7 @@ export function excluded(path, featureRelative, bytes) {
   // never exempts executable code or arbitrary configuration from source checks.
   if (local.endsWith('.md') || DOCUMENTS.has(local) || REPORTS.has(local) || local.startsWith('.gatereeve-current/')) return true;
   if (!artifactArea(local)) return false;
+  if (REPORTS.has(local.split('/').at(-1))) return true;
   if (/\.(?:md|txt|log|jsonl|png|jpg|jpeg|webp|svg|pdf)$/iu.test(local)) return true;
   if (!local.endsWith('.json') || !bytes) return false;
   let value;

@@ -36,3 +36,37 @@ implementation record until an authorized local cutover.
 - Ship a version selector: rejected by D10; no old runtime fallback will be exposed.
 
 **Promoted:** 2026-10-23. PR: #84.
+
+---
+
+## Separate cumulative feature range from assessed merge target
+
+**Confidence:** HIGH
+
+**Blast Radius:** Candidate identity, source export, delta coverage and protected merge authorization
+
+Keep original featureBaseSha as the cumulative review anchor. Retain a distinct target commit and source snapshot in the candidate, export it to the evaluator, include it in applicability and delta coverage, and require the live merge action to match it. Target movement needs refreshed interaction proof. Alternatives: replacing the feature base loses cumulative coverage; merely allowing an arbitrary live target would leave interactions unassessed. The concrete repair and regressions are in verification/formal-pr84-remediation-2.md.
+
+**Triggered by:** Independent formal review CR2-2 exposed original-base and live-target conflation
+
+**Alternatives considered:**
+None recorded.
+
+**Promoted:** 2026-10-23. PR: https://github.com/TrentBrown/gatereeve/pull/84.
+
+---
+
+## Bind every inherited runner variable conservatively
+
+**Confidence:** HIGH
+
+**Blast Radius:** Verification execution and applicability across CLI and Desktop hosts
+
+Hash the full inherited environment and pass that frozen environment to checks. Retain no cleartext environment values in the fingerprint. This may rerun checks across GUI and shell environments, but unknown relevance cannot qualify old proof. Isolated source-only assessments can still reuse results. Alternatives: retaining a caller-selected subset misses undeclared influences; a new minimal environment would change existing project command behavior. Future narrowing needs an explicit execution contract and evidence.
+
+**Triggered by:** Fresh native Judge F2 reproduced changed command outcome with unchanged declared-variable fingerprint
+
+**Alternatives considered:**
+None recorded.
+
+**Promoted:** 2026-10-23. PR: https://github.com/TrentBrown/gatereeve/pull/84.

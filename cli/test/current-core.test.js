@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, readdir, realpath } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, readdir, realpath, chmod, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CurrentStore } from '../../plugin-src/shared/resources/protocol/current/store.js';
@@ -141,14 +141,14 @@ async function runVerification(f, fail = false, operationId = 'verify-one') {
     checks: [{ repository: 'app', command: process.execPath, args: ['-e', `process.exit(${fail ? 1 : 0})`], purpose: 'Fixture verification' }],
   } }, operationId);
 }
-function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, dispositions = [], historyAssessment = null } = {}) {
+function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, outcome = blocking ? 'FAIL' : 'PASS', dispositions = [], historyAssessment = null } = {}) {
   let launches = 0;
   f.core.runtime.evaluator = {
     async describe() { return { provider: 'codex', model: 'fixture' }; },
     async runStage(request) {
       launches++;
-      const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome: blocking ? 'FAIL' : 'PASS',
-        summary: 'Fixture assessment', criteria: request.input.criteria.map(id => ({ id, outcome: blocking ? 'FAIL' : 'PASS', evidence: 'Fixture source and command receipt' })), coverage: { complete: true, paths: request.input.changedPaths ?? ['app/app.js'], interactions: ['app/app.js'], limitations: [] },
+      const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome,
+        summary: 'Fixture assessment', criteria: request.input.criteria.map(id => ({ id, outcome, evidence: 'Fixture source and command receipt' })), coverage: { complete: true, paths: request.input.changedPaths ?? ['app/app.js'], interactions: ['app/app.js'], limitations: [] },
         findings: blocking ? [{ id: 'finding-1', classId: 'class-1', criterion: 'R1', path: 'app/app.js', evidence: 'Current defect', blocking: true }] : [], dispositions, historyAssessment })) };
       if (malformed) output.verdicts.pop();
       const { sha256Digest } = await import('../../plugin-src/shared/resources/protocol/agent-workflow.js');
@@ -946,6 +946,8 @@ test('CI validates a retained current journal and accepts optional untracked evi
 test('retained workflow history stays outside source at every endpoint and supports untracked continuation', async t => {
   const f = await fixture(t, { nested: false });
   const records = {
+    'docs/issues/other/pr-12/explain-diff.html': '<html>Old implementation rationale and review explanation</html>',
+    'docs/issues/feature/pr-12/attempts/old/explain-diff.html': '<html>Older attempted explanation</html>',
     'docs/issues/feature/pr-12/attempts/old/code-review.md': '# FAIL\nPrior finding and verdict',
     'docs/issues/feature/advisory/old/discovery.json': JSON.stringify({ schemaVersion: 1, kind: 'slice-advisory-review', outcome: 'FAIL' }),
     'docs/issues/other/events.jsonl': 'raw previous events',
@@ -983,7 +985,7 @@ test('retained workflow history stays outside source at every endpoint and suppo
 test('configuration and executable files remain source inside report directories', async t => {
   const f = await fixture(t, { nested: false }); await authorize(f);
   const dir = join(f.home, 'verification'); await mkdir(dir);
-  const data = { 'helper.js': 'export const answer = 42;', 'config.json': '{"command":"run"}', 'unknown.json': '{}', 'invalid.json': '{', 'app.yaml': 'enabled: true' };
+  const data = { 'app.html': '<script>window.answer = 42;</script>', 'helper.js': 'export const answer = 42;', 'config.json': '{"command":"run"}', 'unknown.json': '{}', 'invalid.json': '{', 'app.yaml': 'enabled: true' };
   for (const [name, bytes] of Object.entries(data)) await writeFile(join(dir, name), bytes);
   await assert.rejects(candidate(f), /dirty/);
   await git(f.repo, ['add', 'docs/issues/feature/verification']); await git(f.repo, ['commit', '-m', 'configuration in record-looking directory']);
@@ -1100,4 +1102,74 @@ test('waiver with acceptance retains pending human instruction before failed con
   state = (await f.core.state()).state;
   assert.equal(state.pendingDecisions.length, 0);
   assert.equal(result.event.payload.authority.instruction, human.instruction);
+});
+
+
+test('review views expose regular Git modes at every current and prior endpoint', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
+  const first = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } }, 'mode-baseline');
+  const prior = first.event.payload.results[0];
+  await chmod(join(f.repo, 'app.js'), 0o755); await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'executable mode only']);
+  const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head, target: head }], scope: 'FEATURE', criteria: ['R1'] }, 'mode-candidate');
+  const original = f.core.runtime.evaluator.runStage;
+  f.core.runtime.evaluator.runStage = async request => {
+    assert.deepEqual(request.input.changedPaths, ['app/app.js']);
+    const metadata = JSON.parse(await readFile(join(request.repositoryPath, 'metadata/app.json'), 'utf8'));
+    assert.equal(metadata.base.entries[0].mode, '100644');
+    assert.equal(metadata.head.entries[0].mode, '100755');
+    assert.equal(metadata.target.entries[0].mode, '100755');
+    const previous = JSON.parse(await readFile(join(request.repositoryPath, 'prior', prior.hash.slice(7), 'metadata/app.json'), 'utf8'));
+    for (const endpoint of ['base', 'head', 'target']) assert.equal(previous[endpoint].entries[0].mode, '100644');
+    assert.equal((await stat(join(request.repositoryPath, 'repositories/app/app.js'))).mode & 0o777, 0o400);
+    return original(request);
+  };
+  const reviewed = await f.request('gate.execute', { gates: ['code'], prior, configuration: { provider: 'codex', model: 'fixture' } }, 'mode-delta');
+  assert.equal((await f.core.store.json(reviewed.event.payload.results[0])).outcome, 'PASS');
+});
+
+for (const exitCode of [0, 7]) test(`later runner preflight failure retains completed check output with exit ${exitCode}`, async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const executed = await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [
+    { repository: 'app', command: process.execPath, args: ['-e', `console.log('retained-output'); console.error('retained-error'); process.exit(${exitCode})`], purpose: 'Check before later preflight failure' },
+    { repository: 'unselected', command: process.execPath, args: [], purpose: 'Invalid later repository' },
+  ] } }, 'partial-run');
+  const result = await f.core.store.json(executed.event.payload.results[0]);
+  assert.equal(result.outcome, 'UNAVAILABLE');
+  const artifacts = await Promise.all(result.artifacts.map(ref => f.core.store.get(ref)));
+  const aggregate = artifacts.map(bytes => { try { return JSON.parse(bytes); } catch { return null; } }).find(value => value?.receipts);
+  assert.equal(aggregate.receipts.length, 1);
+  assert.equal(aggregate.receipts[0].exitCode, exitCode);
+  assert.equal(aggregate.receipts[0].outcome, exitCode ? 'FAIL' : 'PASS');
+  assert.match((await f.core.store.get(aggregate.receipts[0].stdout)).toString(), /retained-output/);
+  assert.match((await f.core.store.get(aggregate.receipts[0].stderr)).toString(), /retained-error/);
+  await f.core.store.closure(executed.event.payload.results[0]);
+});
+
+for (const changed of [false, true]) test(`reopened blocking findings remain required in automatic history with changed source ${changed}`, async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const input = { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } };
+  fakeEvaluator(f, { blocking: true }); const original = await f.request('gate.execute', input, 'initial-defect');
+  fakeEvaluator(f, { dispositions: [{ id: 'finding-1', status: 'resolved', evidence: 'Independent original closure' }] });
+  await f.request('gate.execute', input, 'closed-defect');
+  fakeEvaluator(f, { outcome: 'FAIL', dispositions: [{ id: 'finding-1', status: 'present', evidence: 'Fresh inspection finds original defect present again' }] });
+  const reopened = await f.request('gate.execute', { ...input, configuration: { ...input.configuration, reviewRevision: 2 }, history: original.event.payload.results }, 'reopened-defect');
+  input.configuration.reviewRevision = 3;
+  assert.equal((await f.core.store.json(reopened.event.payload.results[0])).outcome, 'FAIL');
+  if (changed) {
+    await writeFile(join(f.repo, 'app.js'), 'export const answer = 43;\n'); await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'change after reopening']);
+    const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+    await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head }], scope: 'FEATURE', criteria: ['R1'] }, 'reopened-source');
+  }
+  for (const status of [null, 'unaffected', 'present']) {
+    fakeEvaluator(f, { dispositions: status ? [{ id: 'finding-1', status, evidence: 'Unsupported attempt to pass an open finding' }] : [] });
+    const reviewed = await f.request('gate.execute', input, `missing-closure-${status}`);
+    const result = await f.core.store.json(reviewed.event.payload.results[0]);
+    assert.equal(result.outcome, 'UNAVAILABLE');
+    const packet = await f.core.store.json(result.input);
+    assert.ok(packet.history.some(ref => ref.hash === reopened.event.payload.results[0].hash));
+  }
+  fakeEvaluator(f, { dispositions: [{ id: 'finding-1', status: 'resolved', evidence: 'Fresh independent inspection confirms correction after reopening' }] });
+  const corrected = await f.request('gate.execute', input, 'reclosed-defect');
+  assert.equal((await f.core.store.json(corrected.event.payload.results[0])).outcome, 'PASS');
 });
