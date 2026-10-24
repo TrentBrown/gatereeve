@@ -1,0 +1,13 @@
+✔ amendment rollback cannot revive direct planning or candidate authority (17790.291292ms)
+✔ superseded direct merge decisions and exceptions do not revive with equivalent content (0.444959ms)
+✔ explanation requires an explicit policy amendment instead of an ordinary waiver (848.566334ms)
+✔ Whiteboard waiver requires retained non-behavioral basis or explicit policy amendment (925.34ms)
+✔ behavioral Whiteboard exception requires a named policy amendment (853.202792ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20478.45425

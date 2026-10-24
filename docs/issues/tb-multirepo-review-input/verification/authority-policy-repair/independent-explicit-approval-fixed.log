@@ -1,0 +1,10 @@
+{"freshDesignAndImplementationAllowed":true,"designAloneInsufficient":true,"newCandidateIdentity":true,"oldPolicyAndWaiverExpired":true}
+✔ new explicit design and implementation approvals recover without old exception revival (1941.436667ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1996.990208

@@ -1,0 +1,23 @@
+✔ CLI records and revokes standing authority through the native core and fails closed without proof (4063.722667ms)
+✔ protected merge revalidates the exact action and observes integration (27853.671875ms)
+✔ protected merge recloses a drifted PR (true) without merging (22588.487417ms)
+✔ standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof (2184.225333ms)
+✔ standing scope rejects implicit deployment, unknown fields, missing expiry and changed commitments/remotes/branches (1358.8255ms)
+✔ standing authority protected merge: slice (32730.720375ms)
+✔ standing authority protected merge: final (30309.628042ms)
+✔ standing authority protected merge: acceptance-only (21217.060792ms)
+✔ standing authority protected merge: revoke-during-checks (26127.419708ms)
+✔ standing authority protected merge: expire-during-checks (27135.117583ms)
+✔ standing authority protected merge: revoke-during-final-qualification (27528.366375ms)
+✔ standing authority protected merge: expire-during-final-qualification (27884.769625ms)
+✔ standing acceptance rejects a different assessed target and subsequent target drift (21259.860958ms)
+✔ standing status uses the host-discovered Git when GUI PATH cannot resolve git (845.897375ms)
+✔ integration observation uses discovered Python and Git with an empty GUI PATH (1050.187334ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 270136.577334

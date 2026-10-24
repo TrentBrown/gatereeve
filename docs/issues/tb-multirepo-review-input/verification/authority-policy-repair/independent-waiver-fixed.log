@@ -1,0 +1,10 @@
+{"ordinaryWaiversBlocked":true,"invalidBasisBlocked":true,"validBasisAllowed":true,"missingAndCorruptBasisRejected":true,"restorationRecovers":true,"separatePolicyThenWaive":true,"combinedPolicyWaive":true,"integrityOverridesRejected":true}
+✔ retained constrained basis and explicit override preserve exception policy (1965.733958ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2009.338083
