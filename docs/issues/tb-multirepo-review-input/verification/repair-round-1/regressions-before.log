@@ -1,0 +1,94 @@
+✖ implementation rejects lost retained human decision documents (289.096875ms)
+✖ completion cannot combine a superseded candidate with newly authorized commitments (504.413375ms)
+✖ existing canonical home cannot escape through an ancestor symlink on status or read (90.228833ms)
+✖ FEATURE scope enforces its configured original base and invalidates changed range policy (409.157459ms)
+✖ base-only delta changes require path coverage and export both prior source endpoints (742.578708ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2079.202542
+
+✖ failing tests:
+
+test at ../../../../../private/tmp/gr-regressions-before.mjs:791:1
+✖ implementation rejects lost retained human decision documents (289.096875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///private/tmp/gr-regressions-before.mjs:797:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../private/tmp/gr-regressions-before.mjs:801:1
+✖ completion cannot combine a superseded candidate with newly authorized commitments (504.413375ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Candidate commitments differ/. Input:
+  
+  'context: missing evidence;reconcile: missing evidence;verification: missing evidence;spec: missing evidence;pattern: missing evidence;judge: missing evidence;code: missing evidence;triage: missing evidence;explanation: missing evidence;packet: missing evidence;finalization: missing evidence;release: missing evidence;retention: missing evidence;current human acceptance;observed integration: app'
+  
+      at TestContext.<anonymous> (file:///private/tmp/gr-regressions-before.mjs:812:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'context: missing evidence;reconcile: missing evidence;verification: missing evidence;spec: missing evidence;pattern: missing evidence;judge: missing evidence;code: missing evidence;triage: missing evidence;explanation: missing evidence;packet: missing evidence;finalization: missing evidence;release: missing evidence;retention: missing evidence;current human acceptance;observed integration: app',
+    expected: /Candidate commitments differ/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at ../../../../../private/tmp/gr-regressions-before.mjs:816:1
+✖ existing canonical home cannot escape through an ancestor symlink on status or read (90.228833ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///private/tmp/gr-regressions-before.mjs:823:3)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /Unsafe feature home ancestor/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at ../../../../../private/tmp/gr-regressions-before.mjs:831:1
+✖ FEATURE scope enforces its configured original base and invalidates changed range policy (409.157459ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///private/tmp/gr-regressions-before.mjs:837:3)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /configured original featureBaseSha/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at ../../../../../private/tmp/gr-regressions-before.mjs:847:1
+✖ base-only delta changes require path coverage and export both prior source endpoints (742.578708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///private/tmp/gr-regressions-before.mjs:869:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
