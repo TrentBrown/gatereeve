@@ -1,0 +1,9 @@
+# Ninth boundary preparation remediation
+
+Formal9 source inspection found a supported validation race before any formal verdict. A failed spec validator reread active state after execution and could append VALIDATION_FAILED to a replacement run, or erase a newer successful validation in the same run. The independent reviewer reproduced both with actual Python children and disposable run fixtures; original reproduction evidence is retained in repair-round-9/validation-run-isolation.md. The governing feature was already in remediation before this product repair.
+
+specProof now receives the original checked state from spec.validate or an authorized amendment. Its retained diagnostic proof includes the original run and operation. Failure publication uses that original run/event-count guard, matching successful publication. A replacement or intervening passage rejects the stale append while the error exposes the original retained proof. Newer proof, event count and implementation authority remain intact. Five targeted checks pass, including both real-child races, failed proof retention, amendment retry and spec refresh.
+
+The complete audit of environment-mutating tests also corrected two remaining old fixtures to refresh trusted spec proof before new execution; eight capability/validator/environment/usage controls pass. Original full seventh-repair verification ended with exactly three outdated fixture failures; superseded partial reruns are not claimed as passing. A complete fresh CLI run, desktop tests, real OpenAI evaluator and rebuilt universal package/runtime will verify the final source before the next formal boundary.
+
+This is an implementation claim, not formal gate passage. Required independent code/spec and native Judge remain outstanding. PR84 stays closed; no merge, installation or release is authorized here.

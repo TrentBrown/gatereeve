@@ -1,0 +1,13 @@
+✔ failed specification and reconciliation checks retain exact diagnostics without passage (1185.967458ms)
+✔ combined amendment records a pending instruction before interruption and reconciles retry once (923.842541ms)
+✔ trusted validator drift invalidates spec and reconciliation while refresh preserves authority (2855.269375ms)
+✔ late failed spec validation preserves newer authority in replacement (1139.176333ms)
+✔ late failed spec validation preserves newer authority in same-run (904.438833ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7055.148292

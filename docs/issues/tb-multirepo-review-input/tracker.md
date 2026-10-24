@@ -81,3 +81,8 @@ Independent code/spec returned PASS; native OpenAI Judge returned FAIL (15 PASS 
 ### Formal PR84 attempt 8 preparation
 
 Broad verification exposed an outdated host-environment test after the eighth boundary was opened. The core returned the slice to implementation before the test correction; no formal independent verdict was issued for this attempt. Six focused checks now pass and full verification is rerunning. [Correction details](verification/formal-pr84-remediation-8.md). Product source remains the seventh repair; no requirement or authority changed.
+
+
+### Formal PR84 attempt 9 preparation
+
+Source inspection found late failed spec validation could revoke replacement-run or newer same-run authority. Original reproductions are retained and the repair now binds failure publication to original run/state while preserving diagnostic references. No formal9 verdict was issued. Two additional environment-mutating fixtures were updated as part of the complete audit. [Ninth repair claims](verification/formal-pr84-remediation-9.md). The next boundary waits for complete fresh verification.

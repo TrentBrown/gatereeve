@@ -1037,6 +1037,7 @@ test('runner reuse binds the entire actual inherited environment without retaini
   const key = 'GATEREEVE_TEST_REUSE_MODE'; const original = process.env[key];
   t.after(() => { if (original === undefined) delete process.env[key]; else process.env[key] = original; });
   process.env[key] = 'pass-private-fixture-value';
+  await f.request('spec.validate', {}, 'refresh-before-environment-pass');
   const input = { gates: ['verification'], configuration: { checks: [{ repository: 'app', command: process.execPath,
     args: ['-e', `process.exit(process.env.${key}.startsWith('pass') ? 0 : 1)`], purpose: 'Inherited environment affects outcome' }] } };
   const first = await f.request('gate.execute', input, 'environment-pass');
@@ -1047,6 +1048,7 @@ test('runner reuse binds the entire actual inherited environment without retaini
   process.env[key] = 'fail-private-fixture-value';
   const { state } = await f.core.state(); const current = await f.core.store.json(state.candidate);
   await assert.rejects(f.core.currentResult(reference, current, state), /environment changed/);
+  await f.request('spec.validate', {}, 'refresh-before-environment-fail');
   const second = await f.request('gate.execute', input, 'environment-fail');
   assert.notEqual(second.reused, true);
   assert.equal((await f.core.store.json(second.event.payload.results[0])).outcome, 'FAIL');
@@ -1456,7 +1458,8 @@ for (const drift of ['environment', 'expiry']) test(`stale newer finding cannot 
   await f.request('gate.execute', { gates: ['code'], consumed: verification.event.payload.results, configuration: { provider: 'codex', model: 'fixture' } }, 'newer-code-failure');
   const key = 'GATEREEVE_SUPERSESSION_RISK', previous = process.env[key];
   try {
-    if (drift === 'environment') process.env[key] = 'changed'; else Date.now = () => deadline + 1;
+    if (drift === 'environment') { process.env[key] = 'changed'; await f.request('spec.validate', {}, 'refresh-drifted-validator'); }
+    else Date.now = () => deadline + 1;
     await runVerification(f, false, 'refreshed-verification'); fakeEvaluator(f);
     for (const gate of ['spec', 'judge']) await f.request('gate.execute', { gates: [gate], configuration: { provider: 'codex', model: 'fixture' } }, `refresh-${gate}`);
     await assert.rejects(f.request('gate.execute', { gates: ['explanation'], consumed: [original], configuration: { provider: 'codex', model: 'fixture' } }, 'consume-old-pass'), /Newer blocking review/);
@@ -1847,4 +1850,38 @@ test('validator postflight drift retains executed diagnostics and rejects unboun
   assert.equal(unbound.passed, false);
   assert.match(unbound.stdout, /UNBOUND-IMPORT/);
   assert.match(unbound.stderr, /unbound runtime dependency/);
+});
+
+for (const mode of ['replacement', 'same-run']) test(`late failed spec validation preserves newer authority in ${mode}`, async t => {
+  const f = await fixture(t); await authorize(f);
+  const helperRoot = join(f.root, 'slow-helper'); await mkdir(helperRoot);
+  const release = join(f.home, 'release-validator'), started = join(f.home, 'validator-started');
+  await writeFile(join(helperRoot, 'lint_spec.py'), "from pathlib import Path\nimport sys, time\nhome=Path(sys.argv[1])\n(home/'validator-started').write_text('started')\nwhile not (home/'release-validator').exists():\n    time.sleep(0.02)\nprint('ORIGINAL-VALIDATOR-FAILED')\nraise SystemExit(1)\n");
+  f.core.runtime.pythonGuardOptions = { helperRoot };
+  const running = f.request('spec.validate', {}, 'slow-old-validation').catch(error => ({ error: error.message, artifacts: error.artifacts ?? [] }));
+  try {
+    for (let i = 0; i < 250; i++) {
+      try { await stat(started); break; }
+      catch { if (i === 249) throw Error('validator did not start'); await new Promise(resolve => setTimeout(resolve, 20)); }
+    }
+    delete f.core.runtime.pythonGuardOptions;
+    if (mode === 'replacement') {
+      for (const area of ['events', 'event-witnesses']) await writeFile(join(f.home, '.gatereeve-current/runs/run-one', area, '00000001.json'), '{}');
+      await f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'replacement-start');
+      await authorize(f);
+    } else await f.request('spec.validate', {}, 'newer-successful-validation');
+    const before = (await f.core.state()).state;
+    assert.equal((await f.core.check('implementation')).allowed, true);
+    await writeFile(release, 'release');
+    const completion = await running, { state } = await f.core.state();
+    assert.equal(state.specValidation.proof.hash, before.specValidation.proof.hash);
+    assert.equal(state.validationFailures.length, 0);
+    assert.equal(state.eventCount, before.eventCount);
+    assert.equal((await f.core.check('implementation')).allowed, true);
+    assert.match(completion.error, /original validation state changed/);
+    assert.equal(completion.artifacts.length, 1);
+    const retained = await f.core.store.json(completion.artifacts[0]);
+    assert.equal(retained.runId, 'run-one');
+    assert.match(retained.stdout, /ORIGINAL-VALIDATOR-FAILED/);
+  } finally { await writeFile(release, 'release'); await running; }
 });

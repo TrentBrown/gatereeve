@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "result": {
+      "artifacts": [
+        {
+          "bytes": 1301,
+          "format": "json",
+          "hash": "sha256:752adb2b0896cd181fc3d8cd5e49ab0959971c00ad3cf7fd5a6ec8050a600cc3"
+        },
+        {
+          "bytes": 603,
+          "format": "json",
+          "hash": "sha256:42e447e796e2a08d085cbbf8e5ecb36f2dd0c0543f69854b13cf7c772e9755b9"
+        }
+      ],
+      "contract": "gatereeve/current/3",
+      "coverage": {
+        "complete": true,
+        "interactions": [
+          "Reviewed the exported constant across base, head and proposed target; all contain identical code and retain mode 100644. No additional implementation files or cross-repository interactions are supplied."
+        ],
+        "limitations": [],
+        "paths": [
+          "app/app.js"
+        ]
+      },
+      "criteria": [],
+      "dispositions": [],
+      "featureId": "feature",
+      "findings": [],
+      "gate": "code",
+      "historyAssessment": null,
+      "input": {
+        "bytes": 598,
+        "format": "json",
+        "hash": "sha256:93e52bb22228b85dc783f2c184ed87423a9cfc4f12d4c911096dd935f44160d5"
+      },
+      "kind": "result",
+      "mode": "full",
+      "outcome": "PASS",
+      "prior": null,
+      "priorCandidate": null,
+      "receipt": {
+        "bytes": 693,
+        "format": "json",
+        "hash": "sha256:dd6a7d525ff891762f90286f0a0e4076bd08ec9a7c99cdd72568aa04139748b5"
+      },
+      "runId": "run-one",
+      "summary": "The complete supplied feature satisfies AC1/R1: answer is exported with value 42. Base, head and target are identical; no supported defects were found. No test execution is claimed."
+    },
+    "receipt": {
+      "completedAt": "2026-10-24T04:04:04.730Z",
+      "contract": "gatereeve/current/3",
+      "evaluator": {
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "contextId": "01a16c14-4485-7971-8178-76151e09b2c0",
+        "freshContext": true,
+        "inheritedTurns": 0,
+        "model": "gpt-6.1-sol",
+        "provider": "codex",
+        "reasoningEffort": "high"
+      },
+      "gates": [
+        "code"
+      ],
+      "input": "sha256:93e52bb22228b85dc783f2c184ed87423a9cfc4f12d4c911096dd935f44160d5",
+      "jobId": "d01f21c80fbc71aefdf99cfdf07d24d075cc67fe72548332a4fb1f5ea7d97cf8",
+      "kind": "execution",
+      "metrics": {
+        "cost": null,
+        "tokens": {
+          "cacheCreation": null,
+          "cachedInput": 34688,
+          "input": 71205,
+          "output": 419
+        }
+      },
+      "role": "independent",
+      "runId": "run-one",
+      "startedAt": "2026-10-24T04:03:49.692Z"
+    },
+    "providerReceipts": [
+      {
+        "attemptId": "sha256:93e52bb22228b85dc783f2c184ed87423a9cfc4f12d4c911096dd935f44160d5",
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "completedAt": "2026-10-24T04:04:04.689Z",
+        "digests": {
+          "input": "sha256:f330077b5394ee3662ed8cf99ff4bf85ac62da4376d53f72aa886c6bd519d44f",
+          "instructions": "sha256:7a40ac53bc9304c001ac034fe748826666a3cb674c0eea55200bb2e26af3c20d",
+          "output": "sha256:4ba40e029e43cce47aab6b82956fe8fea2febac782c0097609b96d1021d59ac3",
+          "snapshot": "sha256:ba0a03e9ebdfa07ce389d311f87a7abe015a74a363b461b10a4edfd730f40956"
+        },
+        "isolation": {
+          "freshContext": true,
+          "inheritedTurns": 0,
+          "method": "codex-ephemeral-exec"
+        },
+        "kind": "gatereeve-agent-workflow-receipt",
+        "metrics": {
+          "cost": null,
+          "tokens": {
+            "cacheCreation": null,
+            "cachedInput": 34688,
+            "input": 71205,
+            "output": 419
+          }
+        },
+        "module": {
+          "digest": "sha256:32b8b34fd4596ec54196f45ae537e29e81982f56a6079d8ecd4d08c57cdb1abd",
+          "id": "gatereeve/current-review",
+          "version": "2.0.0"
+        },
+        "policy": {
+          "networkAccess": "deny",
+          "repositoryAccess": "read-only",
+          "scratch": "isolated"
+        },
+        "protocolVersion": "2.1.0",
+        "provider": {
+          "adapterVersion": "1.0.0",
+          "contextId": "01a16c14-4485-7971-8178-76151e09b2c0",
+          "id": "codex",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "high"
+        },
+        "runId": "run-one",
+        "schemaVersion": 1,
+        "stage": "review",
+        "startedAt": "2026-10-24T04:03:49.809Z",
+        "status": "completed"
+      },
+      {
+        "verdicts": [
+          {
+            "coverage": {
+              "complete": true,
+              "interactions": [
+                "Reviewed the exported constant across base, head and proposed target; all contain identical code and retain mode 100644. No additional implementation files or cross-repository interactions are supplied."
+              ],
+              "limitations": [],
+              "paths": [
+                "app/app.js"
+              ]
+            },
+            "criteria": [],
+            "dispositions": [],
+            "findings": [],
+            "gate": "code",
+            "historyAssessment": null,
+            "outcome": "PASS",
+            "summary": "The complete supplied feature satisfies AC1/R1: answer is exported with value 42. Base, head and target are identical; no supported defects were found. No test execution is claimed."
+          }
+        ]
+      }
+    ]
+  }
+}

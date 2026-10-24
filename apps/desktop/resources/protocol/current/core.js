@@ -128,15 +128,21 @@ export class CurrentCore {
     }
     return (await this.append(state, 'DECISION_PENDING', { decision: value, operation }, { id: `pending_${operation.id}`, hash: operation.hash })).state;
   }
-  async specProof(documents, operation) {
+  async specProof(documents, operation, origin) {
     const proof = await runTrustedPythonGuard('spec.validation.current', [this.store.home], this.runtime.pythonGuardOptions);
-    const reference = await this.store.putJson(proof);
+    const reference = await this.store.putJson({ ...proof, runId: origin.runId, operation });
     if (!proof.passed) {
       const payload = { documents, proof: reference, outcome: Number.isInteger(proof.exitCode) ? 'FAIL' : 'UNAVAILABLE', operation };
-      const { state } = await this.state();
-      await this.append(state, 'VALIDATION_FAILED', payload, { id: `failed_${identity(payload).slice(7)}`, hash: identity(payload) });
       const error = new Error('Specification validation failed; instruction and diagnostics remain retained');
       error.artifacts = [reference];
+      try {
+        // A late failure cannot revoke a newer validation or enter a replacement
+        // run. Publish only against the same checked state as successful proof.
+        await this.append(origin, 'VALIDATION_FAILED', payload, { id: `failed_${identity(payload).slice(7)}`, hash: identity(payload) });
+      } catch (cause) {
+        error.cause = cause;
+        error.message += `; original validation state changed: ${cause.message}`;
+      }
       throw error;
     }
     return reference;
@@ -171,7 +177,7 @@ export class CurrentCore {
       value.approvedDesign = current.docs['design.md'];
       if (decisionHas(value, 'authorize-implementation')) {
         state = await this.pendingDecision(value, operation, state);
-        const proof = await this.specProof(current.docs, operation);
+        const proof = await this.specProof(current.docs, operation, state);
         for (const ref of Object.values(current.docs)) await this.store.currentBytes(ref);
         value.specValidation = { spec: current.docs['spec.md'], design: current.docs['design.md'], proof };
       }
@@ -211,7 +217,7 @@ export class CurrentCore {
     const approval = findDecision(state, 'approve-design', docs['design.md'].hash)
       ?? state.decisions.findLast(item => item.kind === 'amend' && item.approvedDesign?.hash === docs['design.md'].hash);
     requireThat(approval, 'Current design approval is required');
-    const proof = await this.specProof(docs, operation);
+    const proof = await this.specProof(docs, operation, state);
     for (const ref of Object.values(docs)) await this.store.currentBytes(ref);
     return this.append(state, 'SPEC_VALIDATED', { spec: docs['spec.md'], design: docs['design.md'], proof }, operation);
   }
