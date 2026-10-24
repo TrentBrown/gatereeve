@@ -1,0 +1,12 @@
+✔ host environment invalidates runner proof while isolated source review remains applicable (2269.40375ms)
+✔ runner reuse binds the entire actual inherited environment without retaining plaintext values (2151.112958ms)
+✔ trusted validator drift invalidates spec and reconciliation while refresh preserves authority (3047.588333ms)
+✔ validator postflight drift retains executed diagnostics and rejects unbound imports (198.211542ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7720.2525

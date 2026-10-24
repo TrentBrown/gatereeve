@@ -1,0 +1,11 @@
+✔ desktop resolves the parent record, observes current core and does not mutate (139.999625ms)
+✔ desktop shows current-entry for old records and confines artifact reads to resolved inventory (66.911ms)
+✔ desktop requalifies actual native validators and pattern inputs with GUI Python discovery (2538.966417ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2792.699542

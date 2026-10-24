@@ -647,7 +647,8 @@ test('host environment invalidates runner proof while isolated source review rem
   const state = (await f.core.state()).state, selected = await f.core.store.json(state.candidate);
   await assert.rejects(f.core.currentResult(ran.event.payload.results[0], selected, state), /environment changed/);
   assert.equal((await f.core.currentResult(review.event.payload.results[0], selected, state)).outcome, 'PASS');
-  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, false);
+  // Observer-only variables do not change the isolated document-validator environment.
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
   await f.request('spec.validate', {}, 'refresh-host-spec');
   assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
   const declared = await f.request('gate.execute', { gates: ['verification'], configuration: { environmentKeys: [key], checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Declared environment' }] } }, 'declared-env');
