@@ -582,12 +582,19 @@ export class CurrentCore {
     let commitments = null;
     try { commitments = await this.commitments({ capture: false }); } catch { /* Missing docs are reported by milestone checks. */ }
     const memo = new Map();
+    let candidate = null, candidateUnavailable = false;
+    if (state.candidate && state.decisions.some(item => item.kind === 'authorize-standing')) {
+      try { candidate = await checkCandidate(this.store, this.context, state.candidate, { live: false }); }
+      catch { candidateUnavailable = true; }
+    }
     const standingAuthorizations = await Promise.all(state.decisions.filter(item => item.kind === 'authorize-standing').map(async grant => ({
       grant: grant.event, scope: grant.scope, subject: grant.subject, authority: grant.authority,
       applications: state.decisions.filter(item => item.standingGrant === grant.event).map(item => ({
         event: item.event, subject: item.subject, actions: ['accept', ...(item.actions ?? [])], action: item.action ?? null,
       })),
-      ...(state.phase === 'COMPLETE' ? { allowed: false, reason: 'Feature run is complete' } : await standingValidity(this, state, grant)),
+      ...(state.phase === 'COMPLETE' ? { allowed: false, reason: 'Feature run is complete' }
+        : candidateUnavailable ? { allowed: false, reason: 'Current candidate evidence is unavailable or invalid' }
+          : await standingValidity(this, state, grant, candidate, null, { allowIntegratedTargets: true })),
     })));
     return { ...state, commitments, standingAuthorizations, historyGaps: await this.historyGaps(state), obligations: GATES.filter(item => !item.optional || state.optionalGates.includes(item.id)),
       enforcement: ENFORCEMENT, milestones: await Promise.all(MILESTONES.map(name => this.check(name, null, memo))) };

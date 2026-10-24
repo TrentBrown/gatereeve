@@ -2345,6 +2345,32 @@ test('standing authority is explicit, run-scoped, visible, revocable and never s
   await assert.rejects(f.request('authorization.apply', { grant: event }), /revoked/);
 });
 
+for (const mismatch of ['scope', 'branch', 'target', 'repository', 'missing-root', 'missing-source']) test(`standing status reports current candidate mismatch: ${mismatch}`, async t => {
+  const f = await fixture(t); await standingRepository(f); await authorize(f);
+  await standingGrant(f, { candidateScopes: mismatch === 'scope' ? ['SLICE'] : ['SLICE', 'FEATURE'] });
+  assert.equal((await f.request('status')).standingAuthorizations[0].allowed, true); // no candidate yet
+  if (mismatch === 'repository') {
+    f.context.repositories.push({ ...f.context.repositories[0], alias: 'other' });
+    await f.request('candidate.prepare', { repositories: [{ alias: 'other', base: f.head, head: f.head }], scope: 'SLICE', criteria: ['R1'] });
+  } else await candidate(f);
+  if (mismatch === 'branch') await git(f.repo, ['checkout', '-b', 'unrelated']);
+  if (mismatch === 'target') {
+    await writeFile(join(f.repo, 'target.js'), 'export const moved = true;\n');
+    await git(f.repo, ['add', 'target.js']); await git(f.repo, ['commit', '-m', 'advance target']);
+    await git(f.repo, ['push', 'origin', 'HEAD:refs/heads/main']);
+  }
+  if (mismatch.startsWith('missing-')) {
+    const { state } = await f.core.state();
+    const selected = await f.core.store.json(state.candidate);
+    const ref = mismatch === 'missing-root' ? state.candidate : selected.repositories[0].files[0];
+    await rm(join(f.home, '.gatereeve-current/objects', ref.hash.slice(7)));
+  }
+  const status = (await f.request('status')).standingAuthorizations[0];
+  assert.equal(status.allowed, false);
+  const reasons = { scope: /outside standing scope/, branch: /branch/, target: /target/, repository: /repository/, 'missing-root': /candidate evidence/, 'missing-source': /candidate evidence/ };
+  assert.match(status.reason, reasons[mismatch]);
+});
+
 test('standing scope rejects implicit deployment, unknown fields, missing expiry and changed commitments/remotes/branches', async t => {
   const f = await fixture(t); await standingRepository(f); await authorize(f);
   const grant = await standingGrant(f); await candidate(f);
@@ -2450,6 +2476,7 @@ for (const mode of ['slice', 'final', 'acceptance-only', 'revoke-during-checks',
   const completion = await f.request('milestone.check', { name: 'completion' });
   assert.equal(completion.allowed, false); // no finalization/release proof
   assert.equal(completion.missing.includes('current human acceptance'), false); // target advanced through verified integration
+  assert.equal((await f.request('status')).standingAuthorizations[0].allowed, true); // retained integration keeps this candidate in scope
 });
 
 test('standing acceptance rejects a different assessed target and subsequent target drift', async t => {

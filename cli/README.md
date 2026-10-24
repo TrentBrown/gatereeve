@@ -36,8 +36,8 @@ gatereeve validate-spec
 gatereeve candidate --pin app=<base-sha>..<head-sha> --criterion R1 --scope SLICE
 gatereeve ready
 gatereeve evaluate verification --configuration verification.json
-gatereeve evaluate code spec --provider claude-code --model opus --consume verification.json
-gatereeve evaluate judge --provider claude-code --model opus --consume verification.json
+gatereeve evaluate code spec --provider claude-code --model opus
+gatereeve evaluate judge --provider claude-code --model opus
 gatereeve milestone check acceptance --json
 gatereeve decide --help
 gatereeve merge prepare --help
@@ -67,6 +67,11 @@ Use an empty list only after establishing that the checks have no additional
 external dependencies beyond the inputs captured automatically. Otherwise list
 the absolute dependency files or roots. The old `--checks` shortcut is retired;
 it cannot express this scope commitment. Use `--configuration` for runner checks.
+
+The review commands above automatically select applicable retained Verification
+evidence. `verification.json` configures the runner; it is not evidence. Use
+`--consume` only with a JSON array of retained result references when explicitly
+selecting evidence.
 
 Runner checks contain command, args, repository and purpose. The native operation
 requires `configuration.externalRuntimeInputs` for each checked repository, listing absolute external dependency roots/files (an explicit empty array declares no additional external inputs). Executable/shebang chains, known package trees and resolvable argument files are bound automatically; opaque dependencies must be declared conservatively. The runner
