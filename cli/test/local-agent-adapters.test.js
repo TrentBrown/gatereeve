@@ -17,7 +17,7 @@ const digest = (character) => `sha256:${character.repeat(64)}`;
 function request() {
   return {
     schemaVersion: 1,
-    protocolVersion: '2.0.0',
+    protocolVersion: '2.1.0',
     runId: 'run-1',
     attemptId: 'attempt-1',
     module: { id: 'example/review', version: '1.0.0', digest: digest('a') },

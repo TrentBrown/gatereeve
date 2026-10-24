@@ -118,7 +118,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
   try {
     const descriptor = await adapter.describe();
     requireThat(descriptor.provider === provider && descriptor.model === configuration.model, 'Evaluator descriptor differs from requested provider/model');
-    const request = { protocolVersion: '2.0.0', runId: state.runId, attemptId: prepared.hash,
+    const request = { protocolVersion: AGENT_WORKFLOW_PROTOCOL_VERSION, runId: state.runId, attemptId: prepared.hash,
       module: { id: 'gatereeve/current-review', version: '2.0.0', digest: identity(schema) },
       stage: { id: 'review', role: 'independent evaluator' },
       capabilityProfile: { id: 'high-capability-v1', minimumReasoning: 'high' },
@@ -303,7 +303,7 @@ export async function executeGates(core, input, operation) {
     }
     else {
       let equivalent = false;
-      try { await core.currentResult(finding.closure, candidate, state, new Set(), applicabilityMemo); equivalent = true; } catch { /* Ask the independent evaluator about changed/unknown relevance. */ }
+      try { await core.currentResult(finding.closure, candidate, state, new Set(), applicabilityMemo, true, true); equivalent = true; } catch { /* Ask the independent evaluator about changed/unknown relevance. */ }
       if (!equivalent) {
         selectedHistory.set(finding.ref.hash, finding.ref);
         selectedHistory.set(finding.closure.hash, finding.closure);
@@ -346,7 +346,7 @@ export async function executeGates(core, input, operation) {
     const before = await checkCandidate(core.store, core.context, priorCandidate, { live: false });
     requireThat(identity(before.requirements) === identity(candidate.requirements) && identity(before.criteria) === identity(candidate.criteria)
       && before.scope === candidate.scope, 'Changed requirements or criteria need a new assessment');
-    requireThat((await core.currentResult(input.prior, before, state, new Set(), applicabilityMemo)).outcome === 'PASS' && prior.gate === input.gates[0], 'Prior proof cannot support this delta');
+    requireThat((await core.currentResult(input.prior, before, state, new Set(), applicabilityMemo, true, true)).outcome === 'PASS' && prior.gate === input.gates[0], 'Prior proof cannot support this delta');
     requireThat(before.repositories.every(repo => candidate.repositories.some(selected => identity(selected.identity) === identity(repo.identity))), 'Delta prior includes unselected repositories');
     changes = changedPaths(before, candidate);
     if (!history.some(item => item.reference.hash === input.prior.hash)) history.push({ reference: input.prior, reviewerResult: prior });
@@ -465,9 +465,27 @@ export async function executeGates(core, input, operation) {
   for (const verdict of verdicts) refs.push(await core.store.putJson({ contract: CONTRACT, kind: 'result', featureId: state.featureId,
     runId: state.runId, ...verdict, input: prepared, receipt, artifacts, ...(runner ? { runner } : {}),
     mode: input.prior ? 'delta' : 'full', prior: input.prior ?? null, priorCandidate }));
+  // Announce outcome publication in the journal before the service cache.
+  // Milestone CAS then observes late completion even across a cache/event crash.
+  while (true) {
+    const publishing = (await core.state()).state;
+    if (publishing.runId !== state.runId) {
+      await core.store.saveJob(jobId, { runId: state.runId, operation, results: refs });
+      throw new Error('Active run changed during execution; original outcome retained without entering the replacement run');
+    }
+    try {
+      await core.append(publishing, 'JOB_OUTCOME_READY', { jobId, operation, results: refs },
+        { id: `outcome_${jobId}`, hash: identity({ jobId, operation, results: refs }) });
+      break;
+    } catch (error) {
+      if (!error.message.startsWith('Concurrent update;')) throw error;
+      // Retain this actual outcome against the next journal revision, never rerun it.
+    }
+  }
   await core.store.saveJob(jobId, { runId: state.runId, operation, results: refs });
   const current = (await core.state()).state;
   // Results retain their original candidate even if edits occurred during execution.
+  requireThat(current.runId === state.runId, 'Active run changed during execution; original outcome retained without entering the replacement run');
   return core.append(current, 'JOB_FINISHED', { jobId, results: refs }, operation);
 }
 

@@ -143,22 +143,39 @@ export class CurrentStore {
     await this.get(ref);
     return bytes;
   }
-  async activationHead() {
-    let bytes;
-    try { bytes = await readSafe(this.home, `${AREA}/active.json`); }
-    catch (error) { if (error.code === 'ENOENT') return null; throw error; }
-    const seen = new Set();
+  async mirrored(path, mirror) {
+    const read = async path => { try { return await readSafe(this.home, path); } catch (error) { if (error.code === 'ENOENT') return null; throw error; } };
+    const [primary, witness] = await Promise.all([read(path), read(mirror)]);
+    requireThat(!primary || !witness || primary.equals(witness), 'Conflicting retained journal copies; restore verified exact bytes');
+    return { path, mirror, primary, witness, bytes: primary ?? witness };
+  }
+  async restoreCopies(copies) {
+    for (const copy of copies) for (const path of [copy.path, copy.mirror]) {
+      if (!await publish(this.home, path, copy.bytes)) requireThat((await readSafe(this.home, path)).equals(copy.bytes), 'Conflicting retained journal copies');
+    }
+  }
+  async activationHead({ repair = false } = {}) {
+    let copy = await this.mirrored(`${AREA}/active.json`, `${AREA}/active-witness.json`);
+    if (!copy.bytes) return null;
+    const seen = new Set(), repairs = [];
+    let previous = null;
     while (true) {
-      const hash = digest(bytes);
+      const bytes = copy.bytes, hash = digest(bytes), value = JSON.parse(bytes.toString());
       requireThat(!seen.has(hash), 'Cyclic active reference'); seen.add(hash);
-      let next;
-      try { next = await readSafe(this.home, `${AREA}/activations/${hash.slice(7)}.json`); }
-      catch (error) { if (error.code === 'ENOENT') return { bytes, hash }; throw error; }
-      const value = JSON.parse(next.toString());
-      requireThat(value.contract === CONTRACT && value.previous.hash === hash, 'Invalid activation successor');
-      await this.get(value.previous);
-      identifier(value.runId, 'replacement run');
-      bytes = next;
+      identifier(value.runId, 'active run');
+      if (previous) {
+        requireThat(value.previous?.hash === previous.hash, 'Invalid activation successor');
+        await this.get(value.previous);
+      }
+      // Unsupported activation records remain opaque provenance for explicit
+      // resume. Only the current contract can confer active-run authority.
+      if (value.contract === CONTRACT) {
+        requireThat(repair || copy.primary && copy.witness, 'Missing activation copy; retry a mutating operation to restore retained exact bytes');
+        if (!copy.primary || !copy.witness) repairs.push(copy);
+      } else requireThat(copy.primary && !copy.witness, 'Conflicting unsupported activation record');
+      const next = await this.mirrored(`${AREA}/activations/${hash.slice(7)}.json`, `${AREA}/activation-witnesses/${hash.slice(7)}.json`);
+      if (!next.bytes) { if (repair) await this.restoreCopies(repairs); return { bytes, hash }; }
+      previous = { hash }; copy = next;
     }
   }
   async active() {
@@ -173,7 +190,7 @@ export class CurrentStore {
     identifier(runId, 'replacement run');
     const events = await this.events(runId);
     requireThat(events[0]?.type === 'STARTED', 'Replacement run is not durable');
-    const head = await this.activationHead();
+    const head = await this.activationHead({ repair: true });
     if (head.hash !== previous.hash) {
       requireThat((await this.active()).runId === runId, 'Concurrent activation selected another run');
       return;
@@ -181,6 +198,7 @@ export class CurrentStore {
     const retained = await this.put(head.bytes);
     const value = { contract: CONTRACT, runId, previous: retained };
     const path = `${AREA}/activations/${head.hash.slice(7)}.json`;
+    await this.restoreCopies([{ path: `${AREA}/activation-witnesses/${head.hash.slice(7)}.json`, mirror: path, bytes: Buffer.from(canonical(value)) }]);
     if (!await publish(this.home, path, Buffer.from(canonical(value)))) {
       requireThat((await this.active()).runId === runId, 'Concurrent activation selected another run');
     }
@@ -190,6 +208,7 @@ export class CurrentStore {
     const events = await this.events(runId);
     requireThat(events.length > 0 && events[0].type === 'STARTED', 'Cannot activate an incomplete run');
     const value = { contract: CONTRACT, runId };
+    await this.restoreCopies([{ path: `${AREA}/active-witness.json`, mirror: `${AREA}/active.json`, bytes: Buffer.from(canonical(value)) }]);
     if (!await publish(this.home, `${AREA}/active.json`, Buffer.from(canonical(value)))) {
       requireThat((await this.active()).runId === runId, 'Another current run is already active');
     }
@@ -211,30 +230,39 @@ export class CurrentStore {
     try { return JSON.parse((await readSafe(this.home, `${AREA}/jobs/${jobId}.json`)).toString()); }
     catch (error) { if (error.code === 'ENOENT') return null; throw error; }
   }
-  async events(runId) {
+  async events(runId, { repair = false } = {}) {
     identifier(runId, 'run');
-    const dir = `${AREA}/runs/${runId}/events`;
-    let names;
-    try {
-      const info = await lstat(join(this.home, dir));
-      requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Unsafe event directory');
-      names = (await readdir(join(this.home, dir))).filter(name => /^\d{8}\.json$/u.test(name)).sort();
-    } catch (error) { if (error.code === 'ENOENT') return []; throw error; }
-    const result = [];
+    const dir = `${AREA}/runs/${runId}/events`, witnesses = `${AREA}/runs/${runId}/event-witnesses`;
+    const namesAt = async path => {
+      try {
+        const info = await lstat(join(this.home, path));
+        requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Unsafe event directory');
+        return (await readdir(join(this.home, path))).filter(name => /^\d{8}\.json$/u.test(name));
+      } catch (error) { if (error.code === 'ENOENT') return []; throw error; }
+    };
+    const names = [...new Set([...(await namesAt(dir)), ...(await namesAt(witnesses))])].sort();
+    const result = [], repairs = [];
     for (const name of names) {
-      const record = JSON.parse((await readSafe(this.home, `${dir}/${name}`)).toString('utf8'));
-      const { hash, ...event } = record;
+      const copy = await this.mirrored(`${dir}/${name}`, `${witnesses}/${name}`);
+      requireThat(copy.bytes, 'Current journal disappeared during observation');
+      const record = JSON.parse(copy.bytes.toString('utf8')), { hash, ...event } = record;
       requireThat(event.contract === CONTRACT && event.runId === runId && event.sequence === result.length + 1
         && name === `${String(event.sequence).padStart(8, '0')}.json`
         && event.previous === (result.at(-1)?.hash ?? null) && hash === identity(event), 'Current journal integrity failure');
+      identifier(event.operation?.id, 'journal operation');
+      requireThat(HASH.test(event.operation?.hash), 'Invalid journal operation binding');
+      requireThat(repair || copy.primary && copy.witness, 'Missing journal copy; retry a mutating operation to restore retained exact bytes');
+      if (!copy.primary || !copy.witness) repairs.push(copy);
       result.push(record);
     }
+    // Validate the complete retained chain before restoring any missing copy.
+    if (repair) await this.restoreCopies(repairs);
     return result;
   }
   async append(runId, expected, type, payload, operation) {
     identifier(operation.id, 'operation');
     requireThat(HASH.test(operation.hash), 'Operation must bind its request');
-    const events = await this.events(runId);
+    const events = await this.events(runId, { repair: true });
     const existing = events.find(item => item.operation.id === operation.id);
     if (existing) {
       requireThat(existing.operation.hash === operation.hash, 'Operation identity reused for different input');
@@ -243,13 +271,17 @@ export class CurrentStore {
     requireThat(events.length === expected, 'Concurrent update; inspect current state and retry the same operation');
     const event = { contract: CONTRACT, runId, sequence: expected + 1,
       previous: events.at(-1)?.hash ?? null, type, payload, operation, recordedAt: new Date().toISOString() };
-    const record = { ...event, hash: identity(event) };
-    const path = `${AREA}/runs/${runId}/events/${String(event.sequence).padStart(8, '0')}.json`;
-    if (!await publish(this.home, path, Buffer.from(canonical(record)))) {
-      const winner = (await this.events(runId)).find(item => item.operation.id === operation.id);
-      requireThat(winner?.operation.hash === operation.hash, 'Concurrent update; inspect current state and retry the same operation');
-      return winner;
+    let record = { ...event, hash: identity(event) };
+    const name = `${String(event.sequence).padStart(8, '0')}.json`;
+    const path = `${AREA}/runs/${runId}/events/${name}`, mirror = `${AREA}/runs/${runId}/event-witnesses/${name}`;
+    if (!await publish(this.home, mirror, Buffer.from(canonical(record)))) {
+      const winner = JSON.parse((await readSafe(this.home, mirror)).toString());
+      const { hash, ...body } = winner;
+      requireThat(hash === identity(body) && winner.runId === runId && winner.sequence === event.sequence && winner.previous === event.previous
+        && winner.operation.id === operation.id && winner.operation.hash === operation.hash, 'Concurrent update; inspect current state and retry the same operation');
+      record = winner;
     }
+    if (!await publish(this.home, path, Buffer.from(canonical(record)))) requireThat((await readSafe(this.home, path)).equals(Buffer.from(canonical(record))), 'Conflicting retained journal copies');
     return record;
   }
 }

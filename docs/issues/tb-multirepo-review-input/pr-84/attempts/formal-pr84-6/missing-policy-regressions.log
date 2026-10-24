@@ -1,0 +1,10 @@
+✔ exception risk detects expired consumed proof and changed pattern or triage inputs (4628.937167ms)
+✔ explicit missing-pattern exception expires when policy appears and cannot waive unsafe policy (1458.437875ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6174.265125

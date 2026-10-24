@@ -37,7 +37,7 @@ test('CLI staging records an exact canonical protocol inventory and hash', async
   const observed = await executePluginRequest({ operation: 'snapshot', cwd: fixture.repo });
   assert.equal(observed.ok, true);
   assert.equal(observed.data.featureId, 'feature');
-  assert.equal(observed.data.contract, 'gatereeve/current/2');
+  assert.equal(observed.data.contract, 'gatereeve/current/3');
 
 });
 

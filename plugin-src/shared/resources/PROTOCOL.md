@@ -2,7 +2,7 @@
 
 `resources/protocol/plugin-adapter.js` is the authoritative native adapter.
 The optional `gatereeve` CLI and desktop read the same current contract,
-`gatereeve/current/2`. Send one JSON request on stdin or via `--request-file`:
+`gatereeve/current/3`. Send one JSON request on stdin or via `--request-file`:
 
 ```json
 {"operation":"status","cwd":"/absolute/workspace"}
@@ -84,7 +84,7 @@ real project build/lint/test/runtime checks; do not substitute `true` or a fabri
 receipt. Only results in a completed recorded job and its retained service
 outcome can qualify. Passing runner results require successful receipts for all
 declared checks; copied result objects cannot become consumed or delta proof.
-The public provider receipt contract is `2.0.0` with `read-only/deny/isolated`
+The public provider receipt contract is `2.1.0` with `read-only/deny/isolated`
 policy; old provider receipt requests are rejected. Release-observer messages
 use their separate observation contract, not an old workflow interpreter.
 Finalization checks bind the observed integration SHA. Publishing or
@@ -211,3 +211,25 @@ reconciles one completed decision. Failed spec and reconciliation checks retain 
 inputs and diagnostics with FAIL or UNAVAILABLE without granting passage. Runner
 applicability hashes the entire inherited environment; execution receives that frozen
 environment. Values are never stored in clear text in the environment fingerprint.
+
+Provider structured-value digests use canonical JSON key order with array order preserved. Raw strings and bytes retain their exact-byte digest. Retained provider output therefore validates against the original receipt after storage round-trips; older digest contracts require fresh evaluation.
+
+Current journals and activation references retain two exact local copies. Missing
+one copy blocks read-only admission; the next mutating request validates the full
+retained chain and restores the missing bytes before evaluating eligibility.
+Conflicting copies are never overwritten or chosen automatically. Completed jobs
+saved before their terminal event are reconciled with their original inputs and
+outcomes before current-input preflight. Unknown interrupted jobs block older
+proof until a fresh complete assessment recovers. This is local redundancy, not
+backup: loss of both copies of a terminal suffix cannot be detected from the
+remaining prefix alone. Prior unmirrored contracts require explicit current-run
+resume and fresh proof; surviving old prefixes are not upgraded into authority.
+
+Outcome publication first appends a durable journal marker, then the service
+cache and terminal event. A late concurrent completion therefore invalidates a
+milestone's checked journal revision even if the process stops between those
+steps. Retry restores the original cache/results from the marker. A passing
+assessment must have started after relevant negative evidence; finishing later
+cannot substitute for having reviewed the finding. Fresh proof after unknown
+work likewise means started afterward, and any later original outcome remains
+visible and subject to normal reconciliation.

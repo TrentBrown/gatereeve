@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "result": {
+      "artifacts": [
+        {
+          "bytes": 1301,
+          "format": "json",
+          "hash": "sha256:309befa7d6f5a37215ef8747ed4341ba57f5de33e4e4756a9b529cd918e20042"
+        },
+        {
+          "bytes": 638,
+          "format": "json",
+          "hash": "sha256:8e57fb5a7e952c0faa9a85556483e6b35abb828f91871110454d7aa3df2a4c2c"
+        }
+      ],
+      "contract": "gatereeve/current/2",
+      "dispositions": [],
+      "featureId": "feature",
+      "findings": [],
+      "gate": "code",
+      "input": {
+        "bytes": 598,
+        "format": "json",
+        "hash": "sha256:32c29d479a3deddafeadbfbea423f3e040ec8a48e525ec91da233e3780728384"
+      },
+      "kind": "result",
+      "mode": "full",
+      "outcome": "UNAVAILABLE",
+      "prior": null,
+      "priorCandidate": null,
+      "receipt": {
+        "bytes": 401,
+        "format": "json",
+        "hash": "sha256:fd9974d0c35d9303af6f28ccbdc2ae0e7d82b76126dc3e5ee87ee0ca662f38f3"
+      },
+      "runId": "run-one",
+      "summary": "Agent workflow stage result has an invalid shape"
+    },
+    "receipt": {
+      "completedAt": "2026-10-24T02:30:25.559Z",
+      "contract": "gatereeve/current/2",
+      "evaluator": null,
+      "gates": [
+        "code"
+      ],
+      "input": "sha256:32c29d479a3deddafeadbfbea423f3e040ec8a48e525ec91da233e3780728384",
+      "jobId": "d01f21c80fbc71aefdf99cfdf07d24d075cc67fe72548332a4fb1f5ea7d97cf8",
+      "kind": "execution",
+      "metrics": {
+        "cost": null,
+        "tokens": null
+      },
+      "role": "independent",
+      "runId": "run-one",
+      "startedAt": "2026-10-24T02:30:03.030Z"
+    },
+    "providerReceipts": [
+      {
+        "attemptId": "sha256:32c29d479a3deddafeadbfbea423f3e040ec8a48e525ec91da233e3780728384",
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "completedAt": "2026-10-24T02:30:25.539Z",
+        "digests": {
+          "input": "sha256:bbce7f1edd878d176b270ada58291a57aacdb9b4052e91cc9f95bccb79a79b7e",
+          "instructions": "sha256:7a40ac53bc9304c001ac034fe748826666a3cb674c0eea55200bb2e26af3c20d",
+          "output": "sha256:e38e39e8f65118bf69eddb6186275f5524435aa44ebfa87aa9eae8e631bf10e3",
+          "snapshot": "sha256:cd6404e82dd021dc47980dfafcc305e31f43defa9687463032704a48bf2cf2eb"
+        },
+        "isolation": {
+          "freshContext": true,
+          "inheritedTurns": 0,
+          "method": "codex-ephemeral-exec"
+        },
+        "kind": "gatereeve-agent-workflow-receipt",
+        "metrics": {
+          "cost": null,
+          "tokens": {
+            "cacheCreation": null,
+            "cachedInput": 61184,
+            "input": 82995,
+            "output": 487
+          }
+        },
+        "module": {
+          "digest": "sha256:32b8b34fd4596ec54196f45ae537e29e81982f56a6079d8ecd4d08c57cdb1abd",
+          "id": "gatereeve/current-review",
+          "version": "2.0.0"
+        },
+        "policy": {
+          "networkAccess": "deny",
+          "repositoryAccess": "read-only",
+          "scratch": "isolated"
+        },
+        "protocolVersion": "2.0.0",
+        "provider": {
+          "adapterVersion": "1.0.0",
+          "contextId": "01a16bbe-68c0-70c3-b9e1-0ca6f1bcd0c9",
+          "id": "codex",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "high"
+        },
+        "runId": "run-one",
+        "schemaVersion": 1,
+        "stage": "review",
+        "startedAt": "2026-10-24T02:30:03.043Z",
+        "status": "completed"
+      },
+      {
+        "verdicts": [
+          {
+            "coverage": {
+              "complete": true,
+              "interactions": [
+                "Reviewed the complete supplied source at base, head, and target: app/app.js:1 exports answer = 42, consistent with R1/AC1.",
+                "Retained metadata confirms unchanged file kind and mode 100644. No imports, callers, or cross-repository interactions are present in the supplied scope."
+              ],
+              "limitations": [],
+              "paths": [
+                "app/app.js"
+              ]
+            },
+            "criteria": [],
+            "dispositions": [],
+            "findings": [],
+            "gate": "code",
+            "historyAssessment": null,
+            "outcome": "PASS",
+            "summary": "Base, head, and target are identical. No supported defects were found. Assessment used static source evidence; no test results were supplied."
+          }
+        ]
+      }
+    ]
+  }
+}

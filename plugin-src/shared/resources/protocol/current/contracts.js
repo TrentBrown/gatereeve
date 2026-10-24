@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { ContractError } from '../errors.js';
 
-export const CONTRACT = 'gatereeve/current/2';
+export const CONTRACT = 'gatereeve/current/3';
 export const PHASES = ['DESIGNING', 'SPECIFYING', 'PLANNING', 'IMPLEMENTING', 'ACCEPTING', 'INTEGRATED', 'COMPLETE'];
 export const MILESTONES = ['implementation', 'acceptance', 'merge', 'completion'];
 export const HASH = /^sha256:[a-f0-9]{64}$/u;

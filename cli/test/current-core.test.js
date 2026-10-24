@@ -93,9 +93,8 @@ test('repeat operations return original passage; conflicting reuse and concurren
 test('interrupted startup reconciles durable run before activating it', async t => {
   const f = await fixture(t);
   await rm(join(f.home, '.gatereeve-current/active.json'));
-  await f.request('run.resume-current', { runId: 'run-one', implementers: ['implementer-one'] }, 'resume-one')
-    .then(() => assert.fail('different startup request cannot reuse run'))
-    .catch(error => assert.match(error.message, /Concurrent/));
+  await assert.rejects(f.request('status'), /Missing activation copy/);
+  await f.request('run.resume-current', { runId: 'run-one', implementers: ['implementer-one'] }, 'resume-one');
   await f.request('run.start', { runId: 'run-one', implementers: ['implementer-one'] }, 'start-one');
   assert.equal((await f.request('status')).runId, 'run-one');
   assert.equal((await f.core.store.events('run-one')).length, 1);
@@ -133,7 +132,7 @@ test('foreign active feature identity and damaged journal cannot be used', async
   const path = join(f.home, '.gatereeve-current/runs/run-one/events/00000001.json');
   const event = JSON.parse(await readFile(path, 'utf8')); event.payload.implementers = [];
   await writeFile(path, JSON.stringify(event));
-  await assert.rejects(f.request('status'), /integrity/);
+  await assert.rejects(f.request('status'), /integrity|Conflicting retained journal copies/);
 });
 
 async function runVerification(f, fail = false, operationId = 'verify-one') {
@@ -242,6 +241,10 @@ test('current adapter resolves canonical parent records and gives actionable old
   const wrong = await executeCurrentRequest({ operation: 'status', cwd: f.repo, featureHome: f.root });
   assert.equal(wrong.ok, false);
   await rm(join(f.home, '.gatereeve-current/active.json'));
+  const damaged = await executeCurrentRequest({ operation: 'status', cwd: f.repo });
+  assert.equal(damaged.ok, true); assert.equal(damaged.data.current, null);
+  assert.match(damaged.data.blockers[0].message, /Missing activation copy/);
+  await rm(join(f.home, '.gatereeve-current/active-witness.json'));
   const old = await executeCurrentRequest({ operation: 'status', cwd: f.repo });
   assert.equal(old.ok, true); assert.equal(old.data.mode, 'current-entry');
   assert.match(old.data.blockers[0].message, /not replayed/);
@@ -583,7 +586,7 @@ test('current resume preserves unsupported and damaged runs and starts with no i
     const pointer = join(f.home, '.gatereeve-current/active.json');
     const oldEvent = join(f.home, '.gatereeve-current/runs/run-one/events/00000001.json');
     if (damaged) await writeFile(oldEvent, 'damaged original bytes');
-    else await writeFile(pointer, JSON.stringify({ contract: 'unsupported/v0', runId: 'run-one' }));
+    else { await rm(join(f.home, '.gatereeve-current/active-witness.json')); await writeFile(pointer, JSON.stringify({ contract: 'unsupported/v0', runId: 'run-one' })); }
     const prior = await readFile(pointer), event = await readFile(oldEvent);
     await f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'resume-replacement');
     assert.deepEqual(await readFile(pointer), prior); assert.deepEqual(await readFile(oldEvent), event);
@@ -944,6 +947,8 @@ test('CI validates a retained current journal and accepts optional untracked evi
   const before = await readFile(join(f.home, 'events.jsonl'));
   assert.equal((await validateLocalRecord(f.home, f.root)).mode, 'current-journal');
   await rm(join(f.home, '.gatereeve-current/active.json'));
+  await assert.rejects(validateLocalRecord(f.home, f.root), /Missing activation copy/);
+  await rm(join(f.home, '.gatereeve-current/active-witness.json'));
   assert.equal((await validateLocalRecord(f.home, f.root)).mode, 'documents-only');
   assert.deepEqual(await readFile(join(f.home, 'events.jsonl')), before);
   await assert.rejects(validateLocalRecord(f.repo, f.root), /canonical feature home/);
@@ -1434,4 +1439,323 @@ test('explicit missing-pattern exception expires when policy appears and cannot 
   await writeFile(join(f.root, 'outside-rules.yaml'), '[]\n');
   await symlink('../outside-rules.yaml', join(f.root, '.pattern-review/rules.yaml'));
   await assert.rejects(f.request('human.decide', decision, 'unsafe-pattern'));
+});
+
+
+for (const drift of ['environment', 'expiry']) test(`stale newer finding cannot resurrect older PASS through ${drift}`, async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); await reviewAll(f);
+  const state = (await f.core.state()).state;
+  const original = (await f.core.inventory(state, await f.core.store.json(state.candidate))).find(x => x.gate === 'code').reference;
+  const realNow = Date.now, deadline = realNow() + 60000;
+  const configuration = { validUntil: new Date(deadline).toISOString(), checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Bound observation' }] };
+  const verification = await f.request('gate.execute', { gates: ['verification'], configuration }, 'newer-verification');
+  fakeEvaluator(f, { blocking: true });
+  await f.request('gate.execute', { gates: ['code'], consumed: verification.event.payload.results, configuration: { provider: 'codex', model: 'fixture' } }, 'newer-code-failure');
+  const key = 'GATEREEVE_SUPERSESSION_RISK', previous = process.env[key];
+  try {
+    if (drift === 'environment') process.env[key] = 'changed'; else Date.now = () => deadline + 1;
+    await runVerification(f, false, 'refreshed-verification'); fakeEvaluator(f);
+    for (const gate of ['spec', 'judge']) await f.request('gate.execute', { gates: [gate], configuration: { provider: 'codex', model: 'fixture' } }, `refresh-${gate}`);
+    await assert.rejects(f.request('gate.execute', { gates: ['explanation'], consumed: [original], configuration: { provider: 'codex', model: 'fixture' } }, 'consume-old-pass'), /Newer blocking review/);
+    await f.request('gate.execute', { gates: ['packet'] }, 'rebuild-packet');
+    const checked = await f.core.check('acceptance');
+    assert.equal(checked.outcomes.find(x => x.id === 'code').satisfied, false);
+    assert.equal(checked.allowed, false);
+    await assert.rejects(f.request('milestone.pass', { name: 'acceptance' }, 'invalid-acceptance'));
+    const current = (await f.core.state()).state;
+    assert.equal((await f.core.inventory(current, await f.core.store.json(current.candidate))).find(x => x.gate === 'code').outcome, 'UNAVAILABLE');
+    fakeEvaluator(f, { dispositions: [{ id: 'finding-1', status: 'resolved', evidence: 'Current source and interactions independently reassessed' }] });
+    const delta = await f.request('gate.execute', { gates: ['code'], prior: original, configuration: { provider: 'codex', model: 'fixture' } }, 'historical-support-delta');
+    assert.equal((await f.core.store.json(delta.event.payload.results[0])).outcome, 'PASS');
+    assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').satisfied, true);
+  } finally { Date.now = realNow; if (previous === undefined) delete process.env[key]; else process.env[key] = previous; }
+});
+
+test('retained provider output round-trips through public receipt validation', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
+  const completed = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } }, 'retained-provider');
+  const result = await f.core.store.json(completed.event.payload.results[0]); assert.equal(result.outcome, 'PASS');
+  const receipt = await f.core.store.json(result.artifacts[0]), output = await f.core.store.json(result.artifacts[1]);
+  const { validateAgentWorkflowStageResult, sha256Digest } = await import('../../plugin-src/shared/resources/protocol/agent-workflow.js');
+  validateAgentWorkflowStageResult({ schemaVersion: 1, protocolVersion: receipt.protocolVersion, stageId: receipt.stage, status: 'completed', output, receipt });
+  assert.equal(sha256Digest({ z: { b: 2, a: 1 }, a: [3, 2] }), sha256Digest({ a: [3, 2], z: { a: 1, b: 2 } }));
+  assert.notEqual(sha256Digest({ a: [3, 2] }), sha256Digest({ a: [2, 3] }));
+});
+
+test('generic provider unavailability does not erase otherwise qualifying review proof', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
+  const input = { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } };
+  await f.request('gate.execute', input, 'qualified-review');
+  const verification = await runVerification(f);
+  fakeEvaluator(f, { malformed: true });
+  const unavailable = await f.request('gate.execute', { ...input, consumed: verification.event.payload.results, configuration: { ...input.configuration, reviewRevision: 2 } }, 'provider-unavailable');
+  assert.equal((await f.core.store.json(unavailable.event.payload.results[0])).outcome, 'UNAVAILABLE');
+  const key = 'GATEREEVE_TRANSPORT_DRIFT', previous = process.env[key];
+  try { process.env[key] = 'changed'; assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').satisfied, true); }
+  finally { if (previous === undefined) delete process.env[key]; else process.env[key] = previous; }
+});
+
+test('later finding outside selected criteria does not supersede applicable review', async t => {
+  const f = await fixture(t);
+  const path = join(f.home, 'spec.md'); await writeFile(path, (await readFile(path, 'utf8')).replace('## Changes', '| R2 | AC1 | same constant | other | test |\n\n## Changes'));
+  await authorize(f);
+  const first = { repositories: [{ alias: 'app', base: f.head, head: f.head }], scope: 'SLICE', criteria: ['R1'] };
+  await f.request('candidate.prepare', first, 'first-r1'); fakeEvaluator(f);
+  const input = { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } };
+  await f.request('gate.execute', input, 'selected-r1');
+  const prepare = criteria => f.request('candidate.prepare', { ...first, criteria });
+  await prepare(['R1', 'R2']); fakeEvaluator(f, { blocking: true });
+  const run = f.core.runtime.evaluator.runStage;
+  f.core.runtime.evaluator.runStage = async request => {
+    const value = await run(request); value.output.verdicts[0].findings[0].criterion = 'R2'; value.output.verdicts[0].criteria[0].outcome = 'PASS';
+    const { sha256Digest } = await import('../../plugin-src/shared/resources/protocol/agent-workflow.js'); value.receipt.digests.output = sha256Digest(value.output); return value;
+  };
+  const failed = await f.request('gate.execute', input, 'outside-r1'); assert.equal((await f.core.store.json(failed.event.payload.results[0])).outcome, 'FAIL');
+  await prepare(['R1']);
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').satisfied, true);
+});
+
+test('historical delta ancestry cannot grant current authority to superseded consumed proof', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
+  const configuration = { provider: 'codex', model: 'fixture' };
+  const pattern = await f.request('gate.execute', { gates: ['pattern'], configuration }, 'old-pattern');
+  const code = await f.request('gate.execute', { gates: ['code'], configuration, consumed: pattern.event.payload.results }, 'old-code');
+  fakeEvaluator(f, { blocking: true });
+  const failed = await f.request('gate.execute', { gates: ['pattern'], configuration: { ...configuration, reviewRevision: 2 } }, 'new-pattern-failure');
+  assert.equal((await f.core.store.json(failed.event.payload.results[0])).outcome, 'FAIL');
+  fakeEvaluator(f);
+  await assert.rejects(f.request('gate.execute', { gates: ['code'], configuration, prior: code.event.payload.results[0] }, 'invalid-ancestry'), /Newer blocking review/);
+});
+
+for (const assessment of ['unavailable-finding', 'failed-criterion']) test(`current admission preserves substantive ${assessment} after expiry`, async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
+  const gate = assessment === 'failed-criterion' ? 'spec' : 'code';
+  if (gate === 'spec') await runVerification(f);
+  const configuration = { provider: 'codex', model: 'fixture' };
+  await f.request('gate.execute', { gates: [gate], configuration }, 'older-proof');
+  const now = Date.now, deadline = now() + 60000;
+  fakeEvaluator(f, assessment === 'unavailable-finding' ? { outcome: 'UNAVAILABLE', blocking: true } : { outcome: 'FAIL' });
+  const failed = await f.request('gate.execute', { gates: [gate], configuration: { ...configuration, validUntil: new Date(deadline).toISOString() } }, 'newer-assessment');
+  assert.equal((await f.core.store.json(failed.event.payload.results[0])).outcome, assessment === 'unavailable-finding' ? 'UNAVAILABLE' : 'FAIL');
+  try { Date.now = () => deadline + 1; assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === gate).satisfied, false); }
+  finally { Date.now = now; }
+});
+
+test('terminal journal loss cannot erase pause or a failed review and exact retry restores the retained event', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); await reviewAll(f);
+  const pause = await f.request('run.pause', { authority: human }, 'explicit-stop');
+  const pathFor = event => join(f.home, `.gatereeve-current/runs/run-one/events/${String(event.sequence).padStart(8, '0')}.json`);
+  const pausePath = pathFor(pause.event), pauseBytes = await readFile(pausePath); await rm(pausePath);
+  await assert.rejects(f.request('status'), /Missing journal copy/);
+  await assert.rejects(readFile(pausePath), { code: 'ENOENT' });
+  await assert.rejects(f.request('milestone.pass', { name: 'acceptance' }, 'paused-passage'));
+  assert.deepEqual(await readFile(pausePath), pauseBytes); assert.equal((await f.core.state()).state.paused, true);
+  await f.request('run.continue', { authority: human }, 'explicit-continue'); fakeEvaluator(f, { blocking: true });
+  const failure = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture', reviewRevision: 2 } }, 'new-failure');
+  const failurePath = pathFor(failure.event), failureBytes = await readFile(failurePath); await rm(failurePath);
+  await assert.rejects(f.core.check('acceptance'), /Missing journal copy/);
+  await assert.rejects(f.request('milestone.pass', { name: 'acceptance' }, 'failure-passage'));
+  assert.deepEqual(await readFile(failurePath), failureBytes);
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').outcome, 'FAIL');
+  const mirror = failurePath.replace('/events/', '/event-witnesses/'); await rm(mirror);
+  await assert.rejects(f.request('status'), /Missing journal copy/);
+  await f.request('candidate.ready', {}, 'restore-witness'); assert.deepEqual(await readFile(mirror), failureBytes);
+  await writeFile(mirror, '{}');
+  await assert.rejects(f.request('candidate.ready', {}, 'reject-conflict'), /Conflicting retained journal copies/);
+  assert.equal(await readFile(mirror, 'utf8'), '{}');
+});
+
+test('activation root and successor loss cannot roll back the current run', async t => {
+  const f = await fixture(t);
+  for (const name of ['active.json', 'active-witness.json']) {
+    const path = join(f.home, '.gatereeve-current', name), bytes = await readFile(path); await rm(path);
+    await assert.rejects(f.request('status'), /Missing activation copy/);
+    await f.request('run.pause', { authority: human }); assert.deepEqual(await readFile(path), bytes);
+  }
+  const initial = join(f.home, '.gatereeve-current/runs/run-one/events/00000001.json'); await writeFile(initial, 'damaged record retained');
+  await f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'new-current-run');
+  for (const dir of ['activations', 'activation-witnesses']) {
+    const parent = join(f.home, '.gatereeve-current', dir), path = join(parent, (await readdir(parent))[0]);
+    const bytes = await readFile(path); await rm(path);
+    await assert.rejects(f.request('status'), /Missing activation copy/);
+    await f.request('run.pause', { authority: human }); assert.deepEqual(await readFile(path), bytes);
+    assert.equal((await f.core.state()).state.runId, 'replacement');
+  }
+  assert.equal(await readFile(initial, 'utf8'), 'damaged record retained');
+});
+
+test('saved completed failure reconciles before changed-source preflight and remains in fresh reviewer history', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
+  const input = { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } };
+  await f.request('gate.execute', input, 'earlier-pass'); fakeEvaluator(f, { blocking: true });
+  const append = f.core.append.bind(f.core); f.core.append = async (...args) => { if (args[1] === 'JOB_FINISHED') throw new Error('interrupt after saved outcome'); return append(...args); };
+  await assert.rejects(f.request('gate.execute', { ...input, configuration: { ...input.configuration, reviewRevision: 2 } }, 'saved-failure'), /interrupt/);
+  f.core.append = append;
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').satisfied, false);
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 43;\n'); await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'changed candidate']);
+  const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head }], scope: 'FEATURE', criteria: ['R1'] }, 'changed-candidate');
+  const original = (await f.core.state()).events.find(x => x.operation.id === 'saved-failure');
+  assert.equal((await f.core.store.json(original.payload.results[0])).outcome, 'FAIL');
+  fakeEvaluator(f); const unsupported = await f.request('gate.execute', input, 'without-resolution');
+  assert.equal((await f.core.store.json(unsupported.event.payload.results[0])).outcome, 'UNAVAILABLE');
+  fakeEvaluator(f, { dispositions: [{ id: 'finding-1', status: 'resolved', evidence: 'Current source independently assessed' }] });
+  const fresh = await f.request('gate.execute', input, 'resolved-current'); assert.equal((await f.core.store.json(fresh.event.payload.results[0])).outcome, 'PASS');
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').satisfied, true);
+});
+
+test('unknown interrupted execution blocks older proof but a fresh complete review recovers', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
+  const input = { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } };
+  await f.request('gate.execute', input, 'prior-pass');
+  const append = f.core.append.bind(f.core); f.core.append = async (...args) => { if (args[1] === 'JOB_OUTCOME_READY') throw new Error('unknown outcome interruption'); return append(...args); };
+  await assert.rejects(f.request('gate.execute', { ...input, configuration: { ...input.configuration, reviewRevision: 2 } }, 'unknown-job'), /interruption/);
+  f.core.append = append;
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').satisfied, false);
+  const fresh = await f.request('gate.execute', input, 'fresh-after-unknown'); assert.equal((await f.core.store.json(fresh.event.payload.results[0])).outcome, 'PASS');
+  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').satisfied, true);
+});
+
+test('public resume restores terminal pause and activation loss without selecting a new run', async t => {
+  const f = await fixture(t);
+  const { executeCurrentRequest } = await import('../../plugin-src/shared/resources/protocol/current/adapter.js');
+  await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app', integrationBranch: 'main' } } }));
+  await f.request('run.pause', { authority: human }, 'pause-for-resume');
+  const events = await f.core.store.events('run-one');
+  const terminal = join(f.home, '.gatereeve-current/runs/run-one/events', `${String(events.length).padStart(8, '0')}.json`);
+  const exact = await readFile(terminal);
+  await rm(terminal); await rm(join(f.home, '.gatereeve-current/active.json'));
+  const response = await executeCurrentRequest({ operation: 'run.resume-current', cwd: f.repo, operationId: 'resume-public', input: { implementers: ['implementer-one'] } });
+  assert.equal(response.ok, true, JSON.stringify(response));
+  const { state } = await f.core.state();
+  assert.equal(state.runId, 'run-one'); assert.equal(state.paused, true);
+  assert.deepEqual(await readFile(terminal), exact);
+  assert.equal((await f.core.store.events('run-one')).length, events.length);
+});
+
+const raceReviewInput = revision => ({ gates: ['code'], configuration: { provider: 'codex', model: 'fixture', revision } });
+test('late READY invalidates checked milestone and restores exact failed outcome',async t=>{
+ const f = await fixture(t); await authorize(f); await candidate(f);
+ await reviewAll(f); fakeEvaluator(f,{blocking:true});
+ let signal,release;const arrived=new Promise(r=>signal=r),hold=new Promise(r=>release=r);
+ const evaluate=f.core.runtime.evaluator.runStage;let originalCalls=0;
+ f.core.runtime.evaluator.runStage=async request=>{originalCalls++;const response=await evaluate(request);signal();await hold;return response};
+ const save=f.core.store.saveJob.bind(f.core.store);let saved;
+ f.core.store.saveJob=async(id,value)=>{if(value.operation.id==='pending-failure'){saved={id,value};throw new Error('crash after READY')}return save(id,value)};
+ const running=f.request('gate.execute',raceReviewInput(2),'pending-failure').catch(e=>e.message);await arrived;
+ fakeEvaluator(f);await f.request('gate.execute',raceReviewInput(3),'fresh-review');await f.request('gate.execute',{gates:['packet']},'refresh-packet');
+ const check=f.core.check.bind(f.core);let injected=false;
+ f.core.check=async(...args)=>{const checked=await check(...args);if(args[0]==='acceptance'&&!injected){assert.equal(checked.allowed,true);injected=true;release();assert.match(await running,/crash after READY/)}return checked};
+ await assert.rejects(f.request('milestone.pass',{name:'acceptance'},'race-passage'),/state changed|Concurrent update/i);
+ f.core.check=check;f.core.store.saveJob=save;
+ assert.equal((await f.core.state()).events.some(e=>e.operation.id==='race-passage'),false);
+ assert.equal(await f.core.store.job(saved.id),null);
+ await f.request('candidate.ready',{},'reconcile-ready');
+ const {state}=await f.core.state();assert.equal(state.jobs[saved.id].finished,true);
+ assert.equal((await f.core.store.json(saved.value.results[0])).outcome,'FAIL');
+ assert.equal((await f.core.check('acceptance')).outcomes.find(x=>x.id==='code').satisfied,false);
+ assert.equal(originalCalls,1);
+});
+test('review started before newer failure cannot confer current authority',async t=>{
+ const f = await fixture(t); await authorize(f); await candidate(f);
+ fakeEvaluator(f);let signal,release;const arrived=new Promise(r=>signal=r),hold=new Promise(r=>release=r);
+ const evaluate=f.core.runtime.evaluator.runStage;f.core.runtime.evaluator.runStage=async request=>{const response=await evaluate(request);signal();await hold;return response};
+ const running=f.request('gate.execute',raceReviewInput(1),'started-earlier');await arrived;
+ fakeEvaluator(f,{blocking:true});const failed=await f.request('gate.execute',raceReviewInput(2),'new-failure');assert.equal((await f.core.store.json(failed.event.payload.results[0])).outcome,'FAIL');
+ release();const later=await running;assert.equal((await f.core.store.json(later.event.payload.results[0])).outcome,'PASS');
+ assert.equal((await f.core.check('acceptance')).outcomes.find(x=>x.id==='code').satisfied,false);
+ fakeEvaluator(f,{dispositions:[{id:'finding-1',status:'resolved',evidence:'Fresh assessment after finding publication'}]});
+ const repaired=await f.request('gate.execute',raceReviewInput(3),'started-after-failure');assert.equal((await f.core.store.json(repaired.event.payload.results[0])).outcome,'PASS');
+ assert.equal((await f.core.check('acceptance')).outcomes.find(x=>x.id==='code').satisfied,true);
+});
+test('READY crash restores exact cache once without rerunning evaluator',async t=>{
+ const f = await fixture(t); await authorize(f); await candidate(f);
+ const evaluator=fakeEvaluator(f,{blocking:true});const save=f.core.store.saveJob.bind(f.core.store);let saved;
+ f.core.store.saveJob=async(id,value)=>{saved={id,value};throw new Error('cache publication crash')};
+ await assert.rejects(f.request('gate.execute',raceReviewInput(1),'crashed-ready'),/cache publication crash/);f.core.store.saveJob=save;
+ let {state}=await f.core.state();assert.ok(state.jobs[saved.id].ready);assert.equal(state.jobs[saved.id].finished,false);assert.equal(await f.core.store.job(saved.id),null);
+ await f.request('status');assert.equal(await f.core.store.job(saved.id),null);
+ await f.request('candidate.ready',{},'repair-cache');assert.deepEqual(await f.core.store.job(saved.id),saved.value);
+ const retried=await f.request('gate.execute',raceReviewInput(1),'crashed-ready');assert.deepEqual(retried.event.payload.results,saved.value.results);
+ assert.equal((await f.core.store.json(saved.value.results[0])).outcome,'FAIL');
+});
+test('READY/cache conflict remains intact and blocks reconciliation',async t=>{
+ const f = await fixture(t); await authorize(f); await candidate(f);
+ fakeEvaluator(f,{blocking:true});const save=f.core.store.saveJob.bind(f.core.store);let saved;
+ f.core.store.saveJob=async(id,value)=>{saved={id,value};await save(id,value);throw new Error('after cache crash')};
+ await assert.rejects(f.request('gate.execute',raceReviewInput(1),'conflict-ready'),/after cache crash/);f.core.store.saveJob=save;
+ const path=join(f.home,'.gatereeve-current/jobs',saved.id+'.json');const corrupt=JSON.stringify({...saved.value,results:[]});await writeFile(path,corrupt);
+ await assert.rejects(f.request('candidate.ready',{},'reject-conflict'),/conflicts with its durable outcome/);assert.equal(await readFile(path,'utf8'),corrupt);
+ assert.equal((await f.core.state()).state.jobs[saved.id].finished,false);
+});
+test('READY retries journal contention without rerunning provider or erasing pause',async t=>{
+ const f = await fixture(t); await authorize(f); await candidate(f);
+ fakeEvaluator(f,{blocking:true});const evaluate=f.core.runtime.evaluator.runStage;let calls=0;f.core.runtime.evaluator.runStage=async request=>{calls++;return evaluate(request)};
+ const append=f.core.append.bind(f.core);let injected=false;
+ f.core.append=async(state,type,payload,operation)=>{if(type==='JOB_OUTCOME_READY'&&!injected){injected=true;await append(state,'PAUSED',{authority:human},{id:'concurrent-pause',hash:identity('concurrent-pause')})}return append(state,type,payload,operation)};
+ const result=await f.request('gate.execute',raceReviewInput(1),'contended-ready');assert.equal((await f.core.store.json(result.event.payload.results[0])).outcome,'FAIL');
+ assert.equal(calls,1);assert.equal((await f.core.state()).state.paused,true);
+});
+
+test('fresh PASS after failed-receipt loss must recover current authority',async t=>{
+ const f = await fixture(t); await authorize(f); await candidate(f);
+ fakeEvaluator(f,{blocking:true});const failed=await f.request('gate.execute',raceReviewInput(1),'prior-failure');
+ const report=await f.core.store.json(failed.event.payload.results[0]);
+ const {rm}=await import('node:fs/promises');await rm(join(f.home,'.gatereeve-current/objects',report.receipt.hash.slice(7)));
+ fakeEvaluator(f,{dispositions:[{id:'finding-1',status:'resolved',evidence:'Fresh full reassessment with historical evidence loss disclosed'}]});
+ const fresh=await f.request('gate.execute',raceReviewInput(2),'fresh-after-loss');
+ assert.equal((await f.core.store.json(fresh.event.payload.results[0])).outcome,'PASS');
+ const outcome=(await f.core.check('acceptance')).outcomes.find(x=>x.id==='code');
+ assert.equal(outcome.satisfied,true);
+});
+
+test('late old-run outcome must not contaminate replacement run',async t=>{
+ const f = await fixture(t); await authorize(f); await candidate(f);
+ fakeEvaluator(f,{blocking:true});let signal,release;const arrived=new Promise(r=>signal=r),hold=new Promise(r=>release=r);
+ const evaluate=f.core.runtime.evaluator.runStage;f.core.runtime.evaluator.runStage=async request=>{const response=await evaluate(request);signal();await hold;return response};
+ const running=f.request('gate.execute',raceReviewInput(1),'old-running').catch(e=>({error:e.message}));await arrived;
+ await writeFile(join(f.home,'.gatereeve-current/runs/run-one/events/00000001.json'),'damaged old journal');
+ await f.request('run.resume-current',{runId:'replacement',implementers:['implementer-one']},'replacement-start');
+ release();const result=await running;assert.match(result.error, /Active run changed/);
+ const {state}=await f.core.state();assert.equal(state.runId, 'replacement'); assert.deepEqual(state.results, []);
+ await f.request('run.pause',{authority:human},'pause-replacement');
+ assert.equal(Object.keys(state.jobs).length,0);
+});
+
+test('run replacement after READY cannot receive old JOB_FINISHED',async t=>{
+ const f = await fixture(t); await authorize(f); await candidate(f);
+ fakeEvaluator(f,{blocking:true});const save=f.core.store.saveJob.bind(f.core.store);let jobId;
+ f.core.store.saveJob=async(id,value)=>{if(value.operation.id==='switch-after-ready'){
+  jobId=id;await writeFile(join(f.home,'.gatereeve-current/runs/run-one/events/00000001.json'),'damaged old journal');
+  await f.request('run.resume-current',{runId:'replacement',implementers:['implementer-one']},'replacement-after-ready');
+ }return save(id,value)};
+ await assert.rejects(f.request('gate.execute',raceReviewInput(1),'switch-after-ready'),/Active run changed/);
+ const {state}=await f.core.state();assert.equal(state.runId,'replacement');assert.deepEqual(state.jobs,{});assert.deepEqual(state.results,[]);
+ assert.equal((await f.core.store.job(jobId)).runId,'run-one');
+ await f.request('run.pause',{authority:human},'pause-replacement');
+});
+
+test('unrelated later finding does not reopen prior closures', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
+  const input = { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } };
+  const seed = await f.request('gate.execute', input, 'history-seed');
+  for (let i = 0; i < 3; i++) {
+    const id = `finding-${i}`;
+    fakeEvaluator(f, { blocking: true, findingId: id });
+    await f.request('gate.execute', { ...input, configuration: { ...input.configuration, round: i } }, `failure-${i}`);
+    fakeEvaluator(f, { dispositions: [{ id, status: 'resolved', evidence: 'Independent closure' }] });
+    const closed = await f.request('gate.execute', input, `closure-${i}`);
+    const report = await f.core.store.json(closed.event.payload.results[0]);
+    assert.equal(report.outcome, 'PASS', report.summary);
+  }
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 43;\n');
+  await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'later source']);
+  const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head }], scope: 'FEATURE', criteria: ['R1'] }, 'history-source');
+  fakeEvaluator(f, { historyAssessment: { affected: [], carryForwardReason: 'Checked all prior closures against source changes and interactions; no prior defect is reintroduced.' } });
+  const reviewed = await f.request('gate.execute', input, 'large-history-review');
+  const result = await f.core.store.json(reviewed.event.payload.results[0]);
+  assert.equal(result.outcome, 'PASS');
+  const packet = await f.core.store.json(result.input);
+  assert.equal(packet.history.length, 6); assert.equal(packet.reconsiderClosures.length, 3);
 });

@@ -96,7 +96,14 @@ export async function executeCurrentRequest(request, runtime = {}) {
     let input = request.input ?? {};
     if (['run.start', 'run.resume-current'].includes(operation)) {
       let active = null;
-      try { active = await core.store.active(); if (active) await core.state(); }
+      try {
+        if (operation === 'run.resume-current') await core.store.activationHead({ repair: true });
+        active = await core.store.active();
+        if (active) {
+          if (operation === 'run.resume-current') await core.store.events(active.runId, { repair: true });
+          await core.state();
+        }
+      }
       catch (error) { if (operation !== 'run.resume-current') throw error; active = null; }
       if (active && operation === 'run.start') throw new Error('Current run already exists; use run.resume-current');
       input = { ...input, runId: input.runId ?? active?.runId ?? request.operationId ?? randomUUID() };

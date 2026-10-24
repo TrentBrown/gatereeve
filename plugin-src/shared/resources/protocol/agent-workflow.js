@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 
 import { ContractError } from './errors.js';
+import { canonical } from './current/contracts.js';
 
-export const AGENT_WORKFLOW_PROTOCOL_VERSION = '2.0.0';
+export const AGENT_WORKFLOW_PROTOCOL_VERSION = '2.1.0';
 export const AGENT_WORKFLOW_RECEIPT_KIND = 'gatereeve-agent-workflow-receipt';
 
 const SHA256 = /^sha256:[0-9a-f]{64}$/u;
@@ -35,7 +36,7 @@ function timestamp(value, label) {
 export function sha256Digest(value) {
   const bytes = typeof value === 'string' || Buffer.isBuffer(value)
     ? value
-    : `${JSON.stringify(value)}\n`;
+    : `${canonical(value)}\n`;
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }
 

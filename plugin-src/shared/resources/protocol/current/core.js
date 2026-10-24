@@ -33,8 +33,9 @@ export function project(events) {
       case 'SPEC_VALIDATED': state.specValidation = value; state.phase = 'PLANNING'; break;
       case 'CANDIDATE': state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.phase = 'IMPLEMENTING'; break;
       case 'READY': state.ready = true; break;
-      case 'JOB_STARTED': state.jobs[value.jobId] = { ...value, finished: false }; break;
-      case 'JOB_FINISHED': state.jobs[value.jobId] = { ...state.jobs[value.jobId], ...value, finished: true }; state.results.push(...value.results); break;
+      case 'JOB_STARTED': state.jobs[value.jobId] = { ...value, sequence: event.sequence, finished: false }; break;
+      case 'JOB_OUTCOME_READY': state.jobs[value.jobId] = { ...state.jobs[value.jobId], ready: value }; break;
+      case 'JOB_FINISHED': state.jobs[value.jobId] = { ...state.jobs[value.jobId], ...value, finishedSequence: event.sequence, finished: true }; state.results.push(...value.results); break;
       case 'MILESTONE':
         if (value.name === 'acceptance') state.phase = 'ACCEPTING';
         if (value.name === 'completion') state.phase = 'COMPLETE';
@@ -90,7 +91,7 @@ export class CurrentCore {
     let active = null, replacement = null;
     try {
       active = await this.store.active();
-      if (active) await this.state();
+      if (active) { await this.store.events(active.runId, { repair: true }); await this.state(); }
     } catch {
       replacement = await this.store.activationHead();
       requireThat(replacement, 'No retained activation can be recovered');
@@ -101,6 +102,7 @@ export class CurrentCore {
       const { state } = await this.state();
       requireThat(!input.runId || input.runId === state.runId, 'Another current run is already active');
       requireThat(identity(input.implementers) === identity(state.implementers), 'Resume must preserve the implementing contexts');
+      await this.reconcileCompletedJobs();
     }
     // Supplied approvals are observations of actual instructions, never inferred
     // from old journal semantics. Each durable step reconciles independently.
@@ -273,11 +275,18 @@ export class CurrentCore {
       'Execution receipt role differs from the gate');
     return { result, receipt };
   }
-  async currentResult(ref, candidate, state, seen = new Set(), memo = new Map(), requireCoverage = true) {
+  async currentResult(ref, candidate, state, seen = new Set(), memo = new Map(), requireCoverage = true, historicalAncestry = false) {
     requireThat(!seen.has(ref.hash), 'Cyclic evidence references');
     seen.add(ref.hash);
     await this.store.closure(ref);
     const { result, receipt } = await this.recordedResult(ref, state);
+    if (!historicalAncestry && result.outcome === 'PASS') {
+      const started = state.jobs[receipt.jobId].sequence;
+      for (const pending of Object.values(state.jobs)) if (!pending.finished && pending.gates?.includes(result.gate)) {
+        const known = await this.store.job(pending.jobId);
+        requireThat(!known && !pending.ready && pending.sequence < started, 'Pending execution requires retained-outcome reconciliation or fresh proof after unknown work');
+      }
+    }
     requireThat(result.contract === CONTRACT && result.kind === 'result', 'Invalid current result');
     const definition = gate(result.gate);
     // Evidence loss is a barrier, not permission to fall back to an older PASS.
@@ -289,6 +298,32 @@ export class CurrentCore {
       gap.gate !== null && gap.gate !== result.gate || position > gap.position,
       'Historical evidence loss requires fresh proof for this gate');
     requireThat(result.runId === state.runId && result.featureId === state.featureId, 'Result belongs to another run');
+    if (!historicalAncestry && result.outcome === 'PASS' && ['independent', 'assessment'].includes(definition.role)) {
+      const barrierKey = `blocking-review:${state.eventCount}:${result.gate}:${contentIdentity(candidate)}`;
+      if (!memo.has(barrierKey)) {
+        const findings = new Map(); let barrier = -1;
+        for (const [index, laterRef] of state.results.entries()) {
+          let report; try { report = await this.store.json(laterRef); } catch { continue; }
+          if (report.gate !== result.gate) continue;
+          for (const finding of report.findings ?? []) if (finding.blocking) findings.set(finding.id, finding);
+          const raised = [...(report.findings ?? []).filter(finding => finding.blocking),
+            ...(report.dispositions ?? []).filter(item => item.status === 'present').map(item => findings.get(item.id)).filter(Boolean)];
+          const failedCriteria = (report.criteria ?? []).filter(row => row.outcome === 'FAIL');
+          const supportedBlocker = raised.some(finding =>
+            (candidate.criteria.includes(finding.criterion) || finding.criterion === `gate:${result.gate}`)
+            && candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`)));
+          const failedScope = failedCriteria.some(row => candidate.criteria.includes(row.id));
+          const unscoredFailure = report.outcome === 'FAIL' && failedCriteria.length === 0 && raised.length === 0
+            && (report.criteria ?? []).some(row => candidate.criteria.includes(row.id));
+          if (supportedBlocker || failedScope || unscoredFailure) {
+            const recorded = Object.values(state.jobs).find(job => job.finished && job.results?.some(ref => ref.hash === laterRef.hash));
+            barrier = Math.max(barrier, recorded?.finishedSequence ?? Number.MAX_SAFE_INTEGER);
+          }
+        }
+        memo.set(barrierKey, barrier);
+      }
+      requireThat(state.jobs[receipt.jobId].sequence > memo.get(barrierKey), 'Newer blocking review requires fresh assessment started after its evidence; older PASS is historical support only');
+    }
     requireThat(receipt.contract === CONTRACT && receipt.runId === state.runId && receipt.input === result.input.hash
       && receipt.gates.includes(result.gate), 'Execution receipt binding mismatch');
     if (definition.role === 'independent' && result.outcome !== 'UNAVAILABLE') requireThat(receipt.evaluator?.freshContext === true
@@ -308,7 +343,7 @@ export class CurrentCore {
     if (inputs.validUntil) requireThat(Date.now() <= Date.parse(inputs.validUntil), 'External evidence validity expired');
     if (result.mode === 'delta') {
       requireThat(definition.role === 'independent' && result.prior && result.coverage?.complete === true, 'Delta requires independent coverage and prior proof');
-      const prior = await this.currentResult(result.prior, await this.store.json(result.priorCandidate), state, new Set(seen), memo);
+      const prior = await this.currentResult(result.prior, await this.store.json(result.priorCandidate), state, new Set(seen), memo, true, true);
       requireThat(prior.outcome === 'PASS' && prior.gate === result.gate, 'Delta prior proof is not passing evidence for this gate');
     }
     requireThat(contentIdentity(evaluated) === contentIdentity(candidate), 'Result is not applicable to current inputs');
@@ -462,13 +497,39 @@ export class CurrentCore {
     // Return the state produced by this event, never a later concurrent mutation.
     return { event, state: project((await this.store.events(state.runId)).slice(0, event.sequence)) };
   }
+  async reconcileCompletedJobs() {
+    let { state } = await this.state();
+    for (const pending of Object.values(state.jobs)) {
+      if (pending.finished) continue;
+      let saved = await this.store.job(pending.jobId);
+      if (pending.ready) {
+        const ready = { runId: state.runId, operation: pending.ready.operation, results: pending.ready.results };
+        requireThat(!saved || identity(saved) === identity(ready), 'Retained job conflicts with its durable outcome publication');
+        if (!saved) { await this.store.saveJob(pending.jobId, ready); saved = ready; }
+      }
+      if (!saved) continue;
+      requireThat(saved.runId === state.runId && saved.operation
+        && identity({ run: state.runId, operation: saved.operation }).slice(7) === pending.jobId
+        && Array.isArray(saved.results) && saved.results.length === pending.gates.length,
+        'Retained execution outcome does not match its original job');
+      for (const ref of saved.results) requireThat(ref?.format === 'json' && typeof ref.hash === 'string' && Number.isSafeInteger(ref.bytes), 'Invalid retained execution result reference');
+      // Publishing these original references preserves historical truth. Missing
+      // object bytes remain explicit gaps; they cannot become current PASS.
+      const recorded = await this.append(state, 'JOB_FINISHED', { jobId: pending.jobId, results: saved.results }, saved.operation);
+      state = recorded.state;
+    }
+  }
   async execute(request) {
     const input = request.input ?? {};
     const operation = { id: request.operationId ?? randomUUID(), hash: identity({ operation: request.operation, input }) };
+    const mutating = !['status', 'snapshot', 'milestone.check'].includes(request.operation);
+    if (mutating) await this.store.activationHead({ repair: true });
     if (request.operation === 'run.resume-current') return this.resume(input, operation);
-    // Reconcile an already committed request before checking changed phase guards.
+    // Restore exact retained copies and record completed original jobs before
+    // current candidate/phase preflight; neither action invents a passed check.
     const active = await this.store.active();
     if (active) {
+      if (mutating) { await this.store.events(active.runId, { repair: true }); await this.reconcileCompletedJobs(); }
       const existing = (await this.store.events(active.runId)).find(event => event.operation.id === operation.id);
       if (existing) {
         requireThat(existing.operation.hash === operation.hash, 'Operation identity reused for different input');

@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:07088596799048a16c46f8134f8a70ff2e922fd226bb514a4a0592ca69218433",
-  "contract": "gatereeve/current/2",
-  "contractSha256": "89165efa1c4116fec39187820edf2a42fbb2fe1759db943b58ee57246a238afa",
+  "protocolHash": "sha256:908e0b22511e1745b8b263c06e4ad156019301387d82450b63711e224557cbf3",
+  "contract": "gatereeve/current/3",
+  "contractSha256": "0c8e3e32c769fb2cd7ccd778bfc72238b02b93f42684412d1ef7f30fa8804c04",
   "files": [
     {
       "path": "agent-workflow.js",
-      "size": 6656,
-      "sha256": "df5305e332cf4e522b09859d431bc79e5c862727877e929cbf94e177feab9587"
+      "size": 6703,
+      "sha256": "d8d359151f13a8569e19d2fdaacdf167e8ac6c11e86e25ddde88556228ba9d27"
     },
     {
       "path": "constants.js",
@@ -27,18 +27,18 @@
     },
     {
       "path": "current/adapter.js",
-      "size": 6566,
-      "sha256": "2dc8a4d926e2f5454bb1c8b79297af4418056ec12894a9b57d4410cca58c7cd0"
+      "size": 6816,
+      "sha256": "7930dfac84908caccdd2308e1c0a04713308f75a085b1128649e5d9aa921ff1b"
     },
     {
       "path": "current/contracts.js",
       "size": 10296,
-      "sha256": "89165efa1c4116fec39187820edf2a42fbb2fe1759db943b58ee57246a238afa"
+      "sha256": "0c8e3e32c769fb2cd7ccd778bfc72238b02b93f42684412d1ef7f30fa8804c04"
     },
     {
       "path": "current/core.js",
-      "size": 34851,
-      "sha256": "13a74a37a43c50bd3f036e51454977a1422c383c8da85cf0d7fdf590c860821d"
+      "size": 39565,
+      "sha256": "f3bef0defe5933de634896533ea71beff134f8fc073331304213c73e50607233"
     },
     {
       "path": "current/environment.js",
@@ -52,8 +52,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 45197,
-      "sha256": "cca51a62740bcbcfe6144b72cc8ee5bdc41863ffde6bd896133f55f1968893ee"
+      "size": 46282,
+      "sha256": "7a1af05e3ae620eabdf3f10b79bd6bf1bcc35bf19c4bc61c6543a2448f128c83"
     },
     {
       "path": "current/observation.js",
@@ -72,8 +72,8 @@
     },
     {
       "path": "current/store.js",
-      "size": 12243,
-      "sha256": "24af160116ebd74e5cd9377b7df1b1e25ccfb5cd8ec95dd22602174a9e98e1ec"
+      "size": 15250,
+      "sha256": "a9149005f88a9cb426bd330bf07bb12f9fb2bc9ba13e7bb3fda717b5b1b43955"
     },
     {
       "path": "errors.js",
