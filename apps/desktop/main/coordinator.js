@@ -67,8 +67,6 @@ export function createDesktopCoordinator({
   initialPreferences = null,
   initialSetup = defaultSetup(),
   setupObserver = async () => defaultSetup(),
-  modulePolicyManager = null,
-  automaticAgentWorkflows = () => null,
   notify = () => {},
 } = {}) {
   let preferences = initialPreferences;
@@ -88,7 +86,6 @@ export function createDesktopCoordinator({
   let gitContext = { repositoryRoot: null, branch: null };
   let currentPullRequest = null;
   let setup = requireSetupState(initialSetup);
-  const moduleLiveByProject = new Map();
   const notificationObserver = createNotificationObserver({ notify });
   const subscribers = new Set();
 
@@ -113,21 +110,6 @@ export function createDesktopCoordinator({
     });
   }
 
-  function selectedContext() {
-    if (selection === null || selection.featureHome === null) {
-      throw new Error('Choose a governed project before managing modules.');
-    }
-    return {
-      repositoryRoot: selection.worktreePath,
-      featureHome: selection.featureHome,
-    };
-  }
-
-  function publicModulePreview(value) {
-    const { policy: _policy, nextModel: _nextModel, baseline: _baseline, ...preview } = value;
-    return preview;
-  }
-
   function publish() {
     const value = state();
     for (const subscriber of subscribers) subscriber(value);
@@ -148,7 +130,7 @@ export function createDesktopCoordinator({
       ...project,
       featureHome: selection.featureHome,
       featureId: snapshot.featureId ?? project.featureId,
-      workflowState: snapshot.projection?.feature?.state ?? project.workflowState,
+      workflowState: snapshot.current?.phase ?? project.workflowState,
     });
   }
 
@@ -190,11 +172,7 @@ export function createDesktopCoordinator({
   function applyInspection(inspection) {
     const project = inspection.project;
     updateProject(project);
-    currentFacts = {
-      ...(moduleLiveByProject.has(project.path)
-        ? { moduleLive: structuredClone(moduleLiveByProject.get(project.path)) }
-        : {}),
-    };
+    currentFacts = {};
     currentPullRequest = null;
     currentSources = localProjectSources();
     selection = { worktreePath: project.path, featureHome: project.featureHome };
@@ -225,15 +203,7 @@ export function createDesktopCoordinator({
     const git = await gitObserver(selection.worktreePath, selection.featureHome);
     if (token !== generation || selection === null) return;
     gitContext = { repositoryRoot: git.repositoryRoot, branch: git.branch };
-    const moduleAvailability = modulePolicyManager?.availability
-      ? await modulePolicyManager.availability()
-      : null;
-    if (token !== generation || selection === null) return;
-    currentFacts = {
-      ...currentFacts,
-      ...git.facts,
-      ...(moduleAvailability === null ? {} : { moduleAvailability }),
-    };
+    currentFacts = { ...currentFacts, ...git.facts };
     currentSources = { ...currentSources, git: git.source };
     snapshot = await protocol.snapshot(selection.featureHome, {
       facts: currentFacts,
@@ -254,12 +224,7 @@ export function createDesktopCoordinator({
     syncActiveProject();
     if (typeof github.needsPolling === 'boolean') updatePolling(github.needsPolling);
     publish();
-    automaticAgentWorkflows({
-      repositoryRoot: git.repositoryRoot,
-      featureHome: selection.featureHome,
-      snapshot,
-      setup,
-    });
+
   }
 
   async function refreshGitHub() {
@@ -430,7 +395,6 @@ export function createDesktopCoordinator({
 
   async function removeProject(path) {
     const wasActive = selection?.worktreePath === path;
-    moduleLiveByProject.delete(path);
     preferences = removeProjectReference(preferences, path);
     projects = projects.filter((project) => project.path !== path);
     await preferenceStore.save(preferences);
@@ -516,77 +480,6 @@ export function createDesktopCoordinator({
     async readSession(id) {
       if (selection === null) throw new Error('Choose a project before reading Session context.');
       return readSessionContext(selection.worktreePath, id);
-    },
-    async moduleSettings() {
-      if (modulePolicyManager === null) throw new Error('Module settings are unavailable.');
-      const selected = selectedContext();
-      return modulePolicyManager.inspect(selected.repositoryRoot, selected.featureHome);
-    },
-    async previewModulePolicy(enabledModuleIds, ordering) {
-      if (modulePolicyManager === null) throw new Error('Module settings are unavailable.');
-      const selected = selectedContext();
-      return publicModulePreview(await modulePolicyManager.preview(
-        selected.repositoryRoot,
-        selected.featureHome,
-        enabledModuleIds,
-        ordering,
-      ));
-    },
-    async applyModulePolicy(enabledModuleIds, options) {
-      if (modulePolicyManager === null) throw new Error('Module settings are unavailable.');
-      const selected = selectedContext();
-      await modulePolicyManager.apply(
-        selected.repositoryRoot,
-        selected.featureHome,
-        enabledModuleIds,
-        options,
-      );
-      await refresh('module-policy');
-      return modulePolicyManager.inspect(selected.repositoryRoot, selected.featureHome);
-    },
-    async waiveBoundaryModule(request) {
-      const selected = selectedContext();
-      await protocol.waiveBoundaryGate({
-        ...selected,
-        ...request,
-      });
-      return refresh('module-waiver');
-    },
-    async startFinalization() {
-      const selected = selectedContext();
-      await protocol.startFinalization(selected);
-      return refresh('finalization-start');
-    },
-    async waiveFinalizationModule(request) {
-      const selected = selectedContext();
-      await protocol.waiveFinalizationModule({ ...selected, ...request });
-      return refresh('finalization-waiver');
-    },
-    async completeFinalization(request) {
-      const selected = selectedContext();
-      await protocol.completeFinalization({ ...selected, ...request });
-      return refresh('finalization-complete');
-    },
-    async setModuleLive(projectPath, moduleId, live) {
-      if (typeof projectPath !== 'string' || projectPath.length === 0) {
-        throw new TypeError('Module live status requires a project path.');
-      }
-      if (typeof moduleId !== 'string' || moduleId.length === 0) {
-        throw new TypeError('Module live status requires a module ID.');
-      }
-      const projectLive = { ...(moduleLiveByProject.get(projectPath) ?? {}), [moduleId]: live };
-      moduleLiveByProject.set(projectPath, structuredClone(projectLive));
-      if (selection?.worktreePath !== projectPath) return state();
-      currentFacts = {
-        ...currentFacts,
-        moduleLive: projectLive,
-      };
-      snapshot = await protocol.snapshot(selection.featureHome, {
-        facts: currentFacts,
-        sources: currentSources,
-      });
-      syncActiveProject();
-      return publish();
     },
     artifact(artifactId) {
       const artifact = snapshot?.artifacts?.find((item) => item.id === artifactId);

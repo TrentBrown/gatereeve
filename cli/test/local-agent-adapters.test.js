@@ -118,15 +118,16 @@ test('provider adapters reject oversized prompts before launching a process', as
   assert.equal(launched, false);
 });
 
-test('failed provider processes retain stdout errors alongside stderr warnings', async () => {
+test('failed provider processes expose structured categories without raw output', async () => {
   await assert.rejects(
     runAgentProcess(process.execPath, [
       '-e',
       'process.stderr.write("warning\\n"); process.stdout.write("structured failure\\n"); process.exit(1);',
     ], { cwd: process.cwd(), input: '', timeoutSeconds: 5 }),
     (error) => {
-      assert.match(error.message, /stderr:\nwarning/u);
-      assert.match(error.message, /stdout:\nstructured failure/u);
+      assert.doesNotMatch(error.message, /warning|structured failure/u);
+      assert.equal(error.providerFailure.category, 'configuration-or-execution');
+      assert.equal(error.providerFailure.exitCode, 1);
       return true;
     }
   );
@@ -134,7 +135,6 @@ test('failed provider processes retain stdout errors alongside stderr warnings',
 
 test('bundled provider output schemas type every constant', async () => {
   const paths = [
-    'plugin-src/shared/resources/agent-workflows/judge/result.schema.json',
     'plugin-src/plugins/whiteboard-test/shared/resources/whiteboard-test/schemas/challenges.schema.json',
     'plugin-src/plugins/whiteboard-test/shared/resources/whiteboard-test/schemas/defense.schema.json',
   ];
@@ -149,4 +149,34 @@ test('bundled provider output schemas type every constant', async () => {
     };
     visit(schema);
   }
+});
+
+
+test('Claude structured output accepts an entire JSON fence but rejects prose or broken JSON', () => {
+  const parse = result => parseClaudeStructuredOutput(JSON.stringify({ session_id: 'fresh', result }));
+  assert.deepEqual(parse('```json\n{"ok":true}\n```').output, { ok: true });
+  assert.throws(() => parse('Explanation\n```json\n{"ok":true}\n```'));
+  assert.throws(() => parse('```json\n{"ok":true}\n```\nMore text'));
+  assert.throws(() => parse('```json\n{"ok":}\n```'));
+});
+
+
+test('successful providers with malformed JSON expose no raw response fragments', async () => {
+  const sentinel = 'PRIVATE_PROVIDER_CONTEXT_SENTINEL';
+  for (const stdout of [sentinel, JSON.stringify({ session_id: 'fresh', result: sentinel })]) {
+    assert.throws(() => parseClaudeStructuredOutput(stdout), error => {
+      assert.doesNotMatch(error.stack, /PRIVATE_PROVIDER_CONTEXT/);
+      assert.equal(error.providerFailure.category, 'malformed-output');
+      return true;
+    });
+  }
+  const adapter = createCodexAgentAdapter({ model: 'test', runner: async (_, args) => {
+    await writeFile(args[args.indexOf('--output-last-message') + 1], sentinel);
+    return { stdout: '{"type":"thread.started","thread_id":"fresh"}\n' };
+  } });
+  await assert.rejects(adapter.runStage(request()), error => {
+    assert.doesNotMatch(error.stack, /PRIVATE_PROVIDER_CONTEXT/);
+    assert.equal(error.providerFailure.category, 'malformed-output');
+    return true;
+  });
 });

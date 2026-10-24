@@ -213,7 +213,7 @@ test('Desktop staging contains only self-contained runtime resources', async () 
       'await import(process.argv[1]);',
       pathToFileURL(resolve(
         stageRoot,
-        'resources/protocol/generated-artifact-validation.js',
+        'resources/protocol/current/observation.js',
       )).href,
     ]);
     assert.equal(validatorImport.stderr, '');

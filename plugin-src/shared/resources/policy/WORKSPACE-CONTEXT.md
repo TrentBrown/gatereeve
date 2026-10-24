@@ -59,7 +59,7 @@ With one repository, commands infer it automatically. With multiple
 repositories, invocation from inside a configured repository selects the most
 specific matching path; otherwise pass `--repository <alias>`.
 
-If no configuration exists, commands preserve legacy behavior: the current Git
+If no configuration exists, the resolver uses the Git fallback: the current Git
 repository is the workspace, the current branch is the feature identity, and
 documents live under `docs/issues/<current-branch>/`.
 
@@ -86,119 +86,22 @@ repository `.gitignore`, global ignore file, or other Git policy to hide the
 configuration; exclusion through `.git/info/exclude` is an explicit local
 operator choice.
 
-## Authoritative pull-request context
+## Current source and review context
 
-Formal PR-boundary evidence begins from the pull request, not from a branch's
-configured upstream. Resolve and save one context after the intended source is
-committed, pushed, represented by a draft PR, and the target repository is
-clean:
+Use current `candidate.prepare` with explicitly selected repository aliases and
+full base/head SHAs. The resolver supplies repository paths and delivery policy;
+caller-supplied external paths are not authoritative. Requirements and evidence
+remain in the parent feature home with Git tracking optional. Candidate capture
+binds raw requirements, application source and repository policy separately.
 
-```bash
-python3 "<plugin-root>/resources/scripts/pr_context.py" resolve \
-  --cwd "$PWD" \
-  --output /tmp/pr-context.json
-```
+Keep application source clean and exact. Closed PRs may report frozen SHAs;
+protected merge resolves actual remote refs, checks the prepared source/target,
+requires explicit authority and verifies reopened identity before merging.
+Never reopen merely to help a review. Development branches are integration sinks
+unless the user's explicit policy says otherwise; never merge/rebase one into
+another branch under the default policy.
 
-The resolver uses `gh` by default. `--pr <number-or-url>` selects an explicit
-PR; otherwise `gh` resolves the PR for the current branch. For deterministic
-tests, offline preparation, and future host adapters, pass `--pr-data` with a
-JSON object containing `repository`, `number`, `url`, `state`, `isDraft`,
-`baseRefName`, `baseRefOid`, `headRefName`, and `headRefOid`.
-
-Resolution is a blocking synchronization preflight. It rejects a dirty target
-repository, detached or wrong local branch, a PR in the wrong policy-required state or a non-draft OPEN review PR, mismatched
-GitHub repository, and any local `HEAD` that differs from the pushed PR head.
-The resulting context pins the PR base, head, merge base, and
-`evaluatedSourceSha`; it also pins the configured `featureBaseSha` when one is
-present. All diff-driven gates consume these exact values.
-
-`keepPullRequestsClosed` is optional, strictly boolean, and defaults to false.
-When true, PRs must be CLOSED during review; otherwise they must be OPEN drafts. A closed PR that became ready during a failed merge window can be reused for another review without reopening it.
-The preference is pinned in PR context and checked against current configuration
-throughout the boundary. Old contexts without the field retain false behavior.
-`sliceBoundaryMode` is retired: remove it from configuration rather than
-silently switching an in-flight synthetic review. Archived synthetic records
-remain readable, but no new synthetic publication or promotion is supported.
-
-`releaseBranch` defaults to `integrationBranch`. When these differ, the final
-PR's head is integration and its base is release, subject to the user's branch
-direction policy. The closure preference applies to both slice and final PRs.
-
-## Prepare a PR with the configured closure preference
-
-Push the committed branch and prepare its draft PR from a clean checkout:
-
-```bash
-python3 "<plugin-root>/resources/scripts/pr_lifecycle.py" prepare \
-  --cwd "$PWD" --title "Describe the change" --body-file /tmp/pr-body.md \
-  --output /tmp/pr-context.json
-```
-
-Add `--scope feature-final` for the final PR. Preparation searches all PR
-states for the exact head/base, reuses a single unmerged match, and rejects
-ambiguity. When configured, it closes immediately and verifies closure before
-pinning context. GitHub freezes a closed PR's reported head and native diff after pushes.
-GateReeve therefore resolves live head/base branch refs and records the frozen
-refs as `githubReportedHeadSha`/`githubReportedBaseSha`. Review the exact pinned
-GateReeve packet or branch comparison while closed; do not treat the native
-Files changed tab as current after a push. Missing branch refs block review.
-Reopening must expose the exact accepted final head before merge.
-
-Closing clears the open queue; it does not make a PR private
-or suppress GitHub creation notifications.
-
-## Authorized merge window
-
-Keep preparation, gate checks, and human review on the closed PR. Only after
-explicit authorization of the exact final reviewed head, run:
-
-```bash
-python3 "<plugin-root>/resources/scripts/pr_lifecycle.py" merge \
-  --context /tmp/pr-context.json --reviewed-head "<accepted-final-head-sha>" \
-  --authorization "<observed-human-merge-authorization>" \
-  --evidence-path "docs/issues/<featureId>" --output /tmp/merge-receipt.json
-```
-
-The helper validates evidence-only deltas, policy, identity and branch direction
-before reopening. It waits for reported checks, uses native merge protection
-with the accepted head, and verifies MERGED state. Failed or interrupted
-attempts re-close unmerged PRs; failed cleanup is reported explicitly. The
-human authorization label is a cooperative record, not authentication. The
-protocol core separately verifies reviewed-content integration before recording
-merge passage. Never use reopening to work around a preparation/review helper.
-
-For the last sequential PR, resolve and inspect the complete-feature view:
-
-```bash
-python3 "<plugin-root>/resources/scripts/feature_final.py" \
-  --cwd "$PWD" \
-  --context /tmp/pr-context.json \
-  --json
-```
-
-This requires the original base to be ancestral to both the final slice base
-and evaluated source. It reports both changed-file ranges and whether every
-current, non-ignored file in the centralized feature record is tracked by Git.
-Ignored transient files are listed for transparency but do not force a
-retention decision. The helper never copies or archives an untracked record.
-
-Immediately before evidence finalization, fail if the PR source moved:
-
-```bash
-python3 "<plugin-root>/resources/scripts/pr_context.py" check-current \
-  --context /tmp/pr-context.json
-```
-
-After boundary artifacts are committed and pushed in the same repository,
-verify that every post-evaluation change belongs to a declared evidence path
-and that local and remote PR heads match:
-
-```bash
-python3 "<plugin-root>/resources/scripts/pr_context.py" finalize \
-  --context /tmp/pr-context.json \
-  --evidence-path docs/issues/tb-1234-my-important-feature/pr-42
-```
-
-Any other post-evaluation change requires the affected gates to rerun. The
-[`EVIDENCE-PACKETS.md`](EVIDENCE-PACKETS.md) contract supplies these declared
-paths in the next workflow layer; this helper deliberately does not infer them.
+No evidence commit/push is required. Local retained reference closure establishes
+proof. Read `<plugin-root>/resources/PROTOCOL.md` and `EVIDENCE-PACKETS.md` for current operations,
+resumption, accepted exceptions and completion. Old locks/events remain historical
+files, not another runtime mode.

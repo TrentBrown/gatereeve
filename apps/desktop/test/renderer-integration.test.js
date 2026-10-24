@@ -1,3 +1,4 @@
+import { currentFixture } from '../../../cli/test/helpers/current-fixture.js';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -21,7 +22,11 @@ async function waitFor(predicate, label) {
   assert.fail(`Timed out waiting for ${label}`);
 }
 
-test('renderer consumes the real canonical GateReeve feature without mutating its journal', async () => {
+test('renderer consumes a canonical current feature without mutating either journal', async t => {
+  const fixture = await currentFixture(t);
+  const repositoryRoot = fixture.repo;
+  const featureHome = fixture.home;
+  await fixture.request('run.start', { implementers: ['fixture'] }, 'start');
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const journalPath = resolve(featureHome, 'events.jsonl');
   const journalBefore = await readFile(journalPath, 'utf8');
@@ -31,6 +36,7 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
     git: { status: 'not-checked', detail: null, checkedAt: null },
     github: { status: 'not-checked', detail: null, checkedAt: null },
   };
+  await protocol.resolve(repositoryRoot);
   const snapshot = await protocol.snapshot(featureHome, { sources });
   const state = {
     schemaVersion: 1,
@@ -111,8 +117,8 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
     true,
     `${window.document.querySelector('#chooser-error').textContent} | ${window.document.querySelector('#model-graph').textContent}`,
   );
-  assert.equal(window.document.querySelectorAll('#slices .card').length, 4);
-  assert.equal(window.document.querySelectorAll('.gate-card').length, 10);
+  assert.equal(window.document.querySelector('#slices-surface').hidden, true);
+  assert.match(window.document.querySelector('#module-settings-list').textContent, /Independent compliance judgment/);
   assert.equal(window.document.querySelectorAll('[data-artifact-id]').length, snapshot.artifacts.length);
 
   window.document.querySelector('[data-view="history"]').click();
@@ -122,7 +128,7 @@ test('renderer consumes the real canonical GateReeve feature without mutating it
   );
   assert.equal(window.document.querySelectorAll('[data-event-id]').length, snapshot.events.count);
   window.document.querySelector('[data-view="model"]').click();
-  assert.equal(window.document.querySelectorAll('.model-group').length, 4);
+  await waitFor(() => window.document.querySelectorAll('#model-graph .model-state').length === 7, 'current phase model');
   assert.match(window.document.querySelector('#model-mermaid').textContent, /flowchart/);
   window.document.querySelector('[data-view="session"]').click();
   await waitFor(

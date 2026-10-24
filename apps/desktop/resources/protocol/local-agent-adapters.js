@@ -57,14 +57,16 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
         completedAt,
       };
       if (code !== 0 || signal !== null) {
-        const diagnostic = [
-          result.stderr.trim() ? `stderr:\n${result.stderr.trim()}` : null,
-          result.stdout.trim() ? `stdout:\n${result.stdout.trim()}` : null,
-        ].filter(Boolean).join('\n');
-        const transient = /rate.?limit|\b429\b|\b50[234]\b|temporar(?:y|ily)|connection reset|timed out/iu.test(result.stderr);
-        return reject(Object.assign(new Error(
-          `${executable} failed (${signal ?? code}): ${diagnostic}`
-        ), {code:transient?'AGENT_PROVIDER_TRANSIENT':'AGENT_PROVIDER_CONFIGURATION'}));
+        const diagnostic = `${result.stderr}\n${result.stdout}`;
+        const transient = /rate.?limit|\b429\b|\b50[234]\b|temporar(?:y|ily)|connection reset|timed out/iu.test(diagnostic);
+        const category = /credit balance|insufficient credit/iu.test(diagnostic) ? 'credit-unavailable'
+          : /model.*not supported|unsupported.*model/iu.test(diagnostic) ? 'unsupported-model'
+          : /unauthorized|authentication|auth required|invalid.api.key/iu.test(diagnostic) ? 'authentication'
+          : transient ? 'transient-service-failure' : 'configuration-or-execution';
+        return reject(Object.assign(new Error(`Evaluator unavailable: ${category}; check the provider configuration before retrying.`), {
+          code: transient ? 'AGENT_PROVIDER_TRANSIENT' : 'AGENT_PROVIDER_CONFIGURATION',
+          providerFailure: { category, exitCode: code, signal, startedAt: iso(startedAt), completedAt: iso(completedAt) },
+        }));
       }
       resolve(result);
     });
@@ -78,6 +80,10 @@ function promptFor(request) {
     '',
     'Operate only on the supplied pinned evidence and the read-only repository view.',
     'Do not use network tools. Return only an object satisfying the supplied JSON Schema.',
+    '',
+    '<gatereeve-output-schema>',
+    JSON.stringify(request.outputSchema),
+    '</gatereeve-output-schema>',
     '',
     '<gatereeve-input>',
     JSON.stringify(request.input),
@@ -133,7 +139,14 @@ function jsonLines(value) {
 }
 
 function parseObject(value, label) {
-  const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+  // Some CLI versions put the schema result inside a single fenced JSON string.
+  // Accept only an entire fenced object; callers still validate its full schema.
+  const fenced = typeof value === 'string' ? /^\s*```(?:json)?\s*\n([\s\S]*?)\n```\s*$/u.exec(value) : null;
+  let parsed;
+  try { parsed = typeof value === 'string' ? JSON.parse(fenced ? fenced[1] : value) : value; }
+  catch { throw Object.assign(new ContractError(`${label} returned malformed JSON; request a fresh structured response.`), {
+    providerFailure: { category: 'malformed-output' },
+  }); }
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new ContractError(`${label} did not return a JSON object`);
   }

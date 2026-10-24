@@ -30,76 +30,41 @@ expected `EBADENGINE` advisory.
 ## Workflow commands
 
 ```bash
-# Concise current position, blockers, and next actions.
-gatereeve status
-
-# Read the complete compact, versioned observational contract.
-gatereeve snapshot
-
-# Focus on ready, available-in-principle, and blocked semantic actions.
-gatereeve next
-
-# Lazily read an allow-listed artifact or complete protocol detail.
-gatereeve read artifact design
-gatereeve read events
-gatereeve read attempt attempt-1
-gatereeve read model
-
-# Explain a slice, gate, change, or current feature state.
-gatereeve explain verification
-
-# Read the append-only event history.
-gatereeve history
-
-# Render the current or complete state model as Mermaid.
-gatereeve graph
-gatereeve graph --model
-
-# Assert an invariant for hooks or CI.
-gatereeve check boundary-ready
-
-# Run every currently eligible isolated staged-agent gate in graph order.
-gatereeve agent-workflow run-eligible \
-  --provider codex \
-  --model gpt-5.5
+gatereeve status --json
+gatereeve run resume-current --implementer <context> --planning approvals.json
+gatereeve validate-spec
+gatereeve candidate --pin app=<base-sha>..<head-sha> --criterion R1 --scope SLICE
+gatereeve ready
+gatereeve evaluate verification --checks checks.json
+gatereeve evaluate code spec --provider claude-code --model opus --consume verification.json
+gatereeve evaluate judge --provider claude-code --model opus --consume verification.json
+gatereeve milestone check acceptance --json
+gatereeve decide --help
+gatereeve merge prepare --help
 ```
 
-All workflow commands accept `--json`. Queries exit zero whenever a projection
-can be produced, including a blocked or stale projection. `check` exits nonzero
-when its named assertion fails. Current boundary fingerprints and external
-facts can be supplied to observer commands with `--fingerprints-file` and
-`--facts-file`. Independent local, Git, and GitHub availability can be supplied
-with `--sources-file` without making enrichment durable workflow state.
+The planning backbone remains interview, approved design, validated spec,
+plan/issues, and explicit implementation authority. The model chooses work order
+inside that phase. Ready declares intent; evaluation runs only when requested.
+Required proof, accepted exceptions and authority govern milestone passage.
+No fixed remediation limit or per-commit gate exists.
 
-`snapshot` is the canonical read model shared with native plugins and Desktop.
-Its actions distinguish `ready`, `available`, and `blocked`: structural
-availability alone never claims that current artifacts, facts, freshness, and
-guards permit passage. `read` returns larger details by an ID advertised in the
-snapshot; it is not an arbitrary filesystem reader.
+Use `gatereeve help --recurse` for exact options. Native plugins call the same
+current core directly; the CLI is optional. Historical journals remain untouched.
+Resume records observed approvals without replaying an old state machine.
+Parent-folder requirements and retained evidence need not be Git tracked.
 
-The agent-workflow scheduler needs an explicit provider and model, supplied by
-flags, `--agent-config`, or `GATEREEVE_AGENT_PROVIDER` and
-`GATEREEVE_AGENT_MODEL`. Once configured, one scheduler call automatically runs
-every eligible agent-workflow module; no per-gate consent action exists.
-Execution uses a fresh provider context per stage, a read-only archive of the
-pinned commit, denied network authority, typed output, bounded time/output, and
-plugin-declared bundle validation. Unavailable execution exits `2` and leaves
-the gate `UNSET`; a completed blocking `FAIL` exits `1` after the protocol core
-records it.
+Runner checks contain command, args, repository and purpose. The native operation
+also accepts configuration.runtimeInputs (repository alias to relative paths) for
+additional runtime dependencies/configuration, and explicit external validUntil
+conditions. Only explicitly declared environmentKeys are hashed; values are not logged. GUI/session environment differences do not invalidate proof. Installed
+node_modules and .venv bytes and executable identity are included automatically.
+Unknown external state requires fresh evidence or an explicit scoped exception.
 
-Mutation families are semantic: `feature`, `slice`, `boundary`, `gate`, and
-`change`. Use recursive help for their exact evidence and guard-input options:
-
-```bash
-gatereeve help feature --recurse 2
-gatereeve help slice --recurse 2
-gatereeve help gate --recurse 2
-```
-
-`--human-confirmed <label>` records an explicit human confirmation observed in
-conversation or at the terminal. It is an audit statement for cooperative
-agents, not identity authentication. There is no generic `advance` or workflow
-force switch.
+A human decision records the actual instruction and scope. It does not authenticate
+the speaker. Merge preparation produces an exact action for authorization; the
+protected adapter rechecks evidence, branch direction, PR identity and hosted
+checks. SessionStart guides the model; arbitrary shell actions are not intercepted.
 
 ## Maintainer commands
 

@@ -1,20 +1,10 @@
 # Decision Triage
 
-Use at every PR boundary before opening or updating the PR for review.
+Read `<plugin-root>/resources/PROTOCOL.md` for the current operation/input contract.
 
-1. Read `scratchpad.md`.
-2. Ensure every entry is marked:
-   - `[x]` promote
-   - `[-]` dismiss
-   - `[ ]` blocks triage
-3. Append promoted entries to `decisions.md`.
-4. Leave dismissed entries in `scratchpad.md` as audit trail.
-5. Add PR number/URL to promoted entries when available.
-
-Useful script:
-
-```bash
-python3 "<plugin-root>/resources/scripts/decision_triage.py" \
-  --branch-dir docs/issues/$(git branch --show-current) \
-  --pr "#123"
-```
+Review untriaged scratchpad entries and promote durable decisions to decisions.md,
+marking each original entry with its disposition. Request `gate.execute` for
+`triage`; its result binds the supporting document bytes. A changed scratchpad
+refreshes this proof without invalidating unrelated source assessment. A scoped
+exception to required triage policy needs an explicit applicable policy amendment;
+do not erase a failed result or invent a human decision.

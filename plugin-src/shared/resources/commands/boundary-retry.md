@@ -1,93 +1,10 @@
-# Resume a review boundary
+# Boundary Retry
 
-After implementer-owned fixes, defect-class review and revised readiness, invoke
-`boundary.retry` through the portable protocol adapter. The optional CLI is
-`gatereeve boundary retry --input-file request.json --json`. Codex and Claude
-use the same coordinator; Desktop and a PATH CLI are optional. Read
-`PROTOCOL.md` and `pr-boundary.md` first.
+Read `<plugin-root>/resources/PROTOCOL.md` for the current operation/input contract.
 
-```json
-{
-  "operation": "boundary.retry",
-  "cwd": "/absolute/repository",
-  "input": {
-    "retryId": "slice-2-ready-3",
-    "sliceId": "slice-2",
-    "readinessId": "slice-2-ready-3",
-    "pullRequest": 42,
-    "scope": "SLICE",
-    "action": "advance",
-    "actor": {"kind": "agent", "label": "implementer after revised readiness"}
-  }
-}
-```
-
-The first `advance` requires an active authorized IMPLEMENTING slice and an
-exact existing unmerged PR. Commit/push reviewed inputs first. The coordinator
-reuses that PR through `pr_lifecycle.py`, persists a fresh context, starts a
-fresh formal attempt and records pin-context evidence through the core. It
-creates no PR, never reopens or merges, grants no waiver, fixes no code and
-copies no old formal PASS. Readiness admission remains the pinned model's
-contract, including explicit compatible adoption for older features.
-
-Repeat the same identity to resume. Checkpoints live in the worktree's Git
-metadata as recoverable execution cursors; journal events and trusted live
-PR/Git observations decide passage. A changed source/readiness/model or PR
-requires a fresh retry ID after reconciliation. Concurrent requests are locked;
-reconcile uncertain outcomes with recorded events before replay. Do not
-fabricate a checkpoint or reuse an attempt ID after losing its cursor.
-`action: status` observes progress without establishing live source currentness.
-
-`advance` returns `RUN_GATE` with exact module, protocol preparation, gate
-context and output directory. Execute that skill/command on those pinned
-inputs. Code review and spec assessment run as early eligible defect finders.
-Formal Judge retains Verification, configured native capability and independent
-history exclusions. Native agent-workflow modules publish/record through their
-shared independent runtime; return to `advance` to reconcile that actual result.
-This helper refuses manual native PASS recording.
-
-For skill/manual/command results, use `action: record`, `gateId`, `outcome`
-(`PASS`, `FAIL`, or permitted `NOT_APPLICABLE`), a feature-relative
-`evidencePath`, and any required `reason`. The helper validates current
-preparation, bytes and predecessor events, derives hashes/fingerprints and
-records through the core. Artifact existence never implies substantive PASS.
-Explicit human waivers still use the existing waiver operation and policy;
-`advance` reconciles them.
-
-`REMEDIATION_REQUIRED` returns failing/stale gates for implementer action.
-There is no default halt based on retry count. Repeated underlying findings
-require a changed remediation approach and passing focused regressions before
-revised readiness. Project stop/escalation requirements still apply. Enter
-remediation through the core before revised readiness; the helper does not
-declare your fixes ready.
-
-Final Explain Diff normally waits for substantive checks to be current and
-nonblocking, including applicable waivers. The configured DAG is authoritative:
-if an owner explicitly orders a check after Explain Diff or Packet Validation,
-run that prerequisite first and then the check. This adds no global stage barrier.
-Decision triage retains its configured prerequisites. Narrative and consolidated
-summaries require all enabled gates to be current before requesting human review. After `PREPARE_PACKET`, use `action: packet` to construct
-the digest-bound manifest from recorded enabled gates. Disabled standard checks
-produce no artifact requirement; modular schema-4 packets bind the exact attempt
-and validation checks their inventory against the actual protocol projection.
-After packet validation, `CONTINUE_GATES` means run remaining configured
-descendants using `advance`; `FINALIZE_PACKET` means resume `finalize`. Reconcile issues to in-review
-and the tracker packet link; both canonical documents are declared evidence.
-Commit/push only returned evidence paths, then `action: finalize`
-performs trusted clean-checkout synchronization, Git-derived packet validation
-and core passage. Each `COMMIT_AND_PUSH_EVIDENCE` requires committing/pushing
-that bookkeeping before resuming `finalize`, including packet-validation and
-human-review events. The final call makes no journal mutation and returns
-`AWAITING_HUMAN_REVIEW` with the exact final head. Request human approval for
-that head; authorized merge and protection remain the existing procedure.
-
-Use `FEATURE_FINAL` for the last slice. Verification, spec assessment and Judge
-cover the whole feature; code/pattern review and Explain Diff use the final
-slice range. Retention and post-merge finalization requirements govern Complete.
-`completion-recovery.md` remains the distinct sanctioned path for already
-merged slice-only final delivery with explicit applicable authority.
-
-Repository-specific draft CI suppression and check sharding are optional,
-never plugin-wide defaults. Applicable checks must run on later source changes
-and the exact reviewed head. Packaging/fixture success establishes neither
-installed activation nor live provider proof.
+After remediation, prepare the current candidate, choose affected checks and
+request fresh or delta evidence as needed. Readiness is a declaration only.
+Reuse equivalent retained proof. Reuse the same operation ID/input when reconciling
+an uncertain request; inspect a recorded uncertain job before launching again.
+There is no scheduler DAG, global retry counter or compulsory advisory pass.
+Return to the acceptance milestone once all required proof is current.

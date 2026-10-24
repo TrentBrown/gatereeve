@@ -34,7 +34,7 @@ class SessionStartTests(unittest.TestCase):
         self.assertIn("explicitly asks to bypass", context)
         self.assertEqual(set(payload), {"hookSpecificOutput"})
 
-    def test_discovers_missing_legacy_and_governed_feature_modes(self) -> None:
+    def test_discovers_current_entry_and_governed_run(self) -> None:
         node = shutil.which("node")
         git = shutil.which("git")
         if node is None or git is None:
@@ -48,19 +48,20 @@ class SessionStartTests(unittest.TestCase):
             subprocess.run([git, "-C", root, "add", "README.md"], check=True)
             subprocess.run([git, "-C", root, "commit", "-m", "fixture"], check=True, capture_output=True)
 
-            self.assertIn("no feature record", discover_status_context(root) or "")
+            self.assertIn("current run needed", discover_status_context(root) or "")
             feature_home = repository / "docs" / "issues" / "session-feature"
             feature_home.mkdir(parents=True)
             (feature_home / "interview.md").write_text("# legacy\n", encoding="utf-8")
-            self.assertIn("legacy feature", discover_status_context(root) or "")
+            self.assertIn("current run needed", discover_status_context(root) or "")
 
             shutil.rmtree(feature_home)
             adapter = SCRIPT.parent.parent / "protocol" / "plugin-adapter.js"
             request = {
-                "operation": "feature.init",
+                "operation": "run.start",
+                "input": {"implementers": ["session-test"]},
                 "cwd": root,
                 "actor": {"kind": "agent", "label": "session test"},
-                "eventId": "evt-session-init",
+                "operationId": "session-init",
             }
             initialized = subprocess.run(
                 [node, str(adapter)],
@@ -71,7 +72,7 @@ class SessionStartTests(unittest.TestCase):
             )
             self.assertTrue(json.loads(initialized.stdout)["ok"])
             governed = discover_status_context(root) or ""
-            self.assertIn("state: governed", governed)
+            self.assertIn("current run:", governed)
             self.assertIn("phase=DESIGNING", governed)
 
 

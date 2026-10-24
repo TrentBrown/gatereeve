@@ -5,9 +5,12 @@ description: Produce a rigorous, evidence-backed Whiteboard Defense for the exac
 
 # Whiteboard Test
 
-Use the GateReeve `whiteboard-test/defense` module. The module's governed
-agent-workflow runtime, not this prose, controls eligibility, isolation,
-artifacts, validation, and passage.
+Enable the optional `whiteboard` obligation when starting the current GateReeve
+run. Request `gate.execute` with that gate and an explicit native provider/model.
+The current core binds source/requirements, fresh evaluator qualification,
+retained report and verdict. Do not invoke an old module scheduler or record
+passage from prose. Produce concrete challenges, evidence-backed defenses,
+alternatives and limits for the exact selected candidate.
 
 The defense is explanatory rather than evaluative: disclose limitations,
 unknowns, risks, and evidence gaps without converting them into a verdict on

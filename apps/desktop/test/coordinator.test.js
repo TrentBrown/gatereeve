@@ -19,7 +19,7 @@ function snapshot(featureHome, sources) {
     mode: 'governed',
     featureHome,
     featureId: 'desktop-fixture',
-    projection: { feature: { state: 'DELIVERING_SLICES' } },
+    current: { phase: 'IMPLEMENTING' },
     active: { sliceId: 'shell' },
     artifacts: [],
     sources,
@@ -160,12 +160,9 @@ test('notifications are opt-in, baseline current state, deduplicate refreshes, a
       async snapshot(featureHome, options) {
         return {
           ...snapshot(featureHome, options.sources),
-          projection: {
-            feature: { state: 'DELIVERING_SLICES' },
-            suspension: { paused: false },
-            boundaryAttempts: gate === null ? [] : [{ id: 'attempt-1', gates: [gate] }],
-          },
-          events: { recent: [] },
+          current: { phase: 'IMPLEMENTING', paused: false },
+          milestones: [{ outcomes: gate === null ? [] : [gate] }],
+          recentEvents: [],
           actions: [],
         };
       },
@@ -189,7 +186,7 @@ test('notifications are opt-in, baseline current state, deduplicate refreshes, a
 
   await coordinator.initialize();
   await coordinator.open(worktree);
-  gate = { id: 'verification', outcome: 'FAIL', freshness: 'CURRENT', reason: null };
+  gate = { id: 'verification', outcome: 'FAIL', result: { hash: 'proof' }, reason: null };
   await coordinator.refresh();
   assert.deepEqual(emitted, []);
 
@@ -198,7 +195,7 @@ test('notifications are opt-in, baseline current state, deduplicate refreshes, a
   assert.deepEqual(emitted, []);
   gate = null;
   await coordinator.refresh();
-  gate = { id: 'verification', outcome: 'FAIL', freshness: 'CURRENT', reason: null };
+  gate = { id: 'verification', outcome: 'FAIL', result: { hash: 'proof' }, reason: null };
   await coordinator.refresh();
   assert.equal(emitted.length, 1);
   await coordinator.refresh();
@@ -407,7 +404,7 @@ test('active project summary follows the enriched canonical workflow state', asy
       async snapshot(featureHome, options) {
         calls += 1;
         const value = snapshot(featureHome, options.sources);
-        value.projection.feature.state = calls === 1 ? 'PLANNING' : 'DELIVERING_SLICES';
+        value.current.phase = calls === 1 ? 'PLANNING' : 'IMPLEMENTING';
         return value;
       },
       async read() { throw new Error('not used'); },
@@ -430,79 +427,8 @@ test('active project summary follows the enriched canonical workflow state', asy
   await coordinator.initialize();
   const current = await coordinator.open(worktree);
   assert.equal(current.refreshing, false);
-  assert.equal(current.snapshot.projection.feature.state, 'DELIVERING_SLICES');
-  assert.equal(current.projects[0].workflowState, 'DELIVERING_SLICES');
-  coordinator.close();
-});
-
-test('module mutations stay scoped to the selected project and refresh canonical state', async () => {
-  const worktree = await mkdtemp(join(tmpdir(), 'gatereeve-module-coordinator-'));
-  const canonicalWorktree = await realpath(worktree);
-  const featureHome = join(canonicalWorktree, 'docs/issues/fixture');
-  const calls = [];
-  const settings = { schemaVersion: 1, modules: [] };
-  const protocol = {
-    async resolve(path) { return { featureHome: join(path, 'docs/issues/fixture') }; },
-    async snapshot(home, options) { return snapshot(home, options.sources); },
-    async read() { throw new Error('not used'); },
-    async waiveBoundaryGate(request) { calls.push(['waive', request]); },
-    async startFinalization(request) { calls.push(['finalization-start', request]); },
-    async waiveFinalizationModule(request) { calls.push(['finalization-waive', request]); },
-    async completeFinalization(request) { calls.push(['finalization-complete', request]); },
-  };
-  const coordinator = createDesktopCoordinator({
-    protocol,
-    modulePolicyManager: {
-      async inspect(repositoryRoot, home) { calls.push(['inspect', repositoryRoot, home]); return settings; },
-      async preview(repositoryRoot, home, enabledModuleIds) {
-        calls.push(['preview', repositoryRoot, home, enabledModuleIds]);
-        return { schemaVersion: 1, enabledModuleIds, policy: { private: true }, nextModel: { private: true } };
-      },
-      async apply(repositoryRoot, home, enabledModuleIds, options) {
-        calls.push(['apply', repositoryRoot, home, enabledModuleIds, options]);
-      },
-    },
-    preferenceStore: {
-      async load() { return defaultPreferences(); },
-      async save(value) { return value; },
-    },
-    gitObserver: async () => ({
-      source: { status: 'current', detail: 'Git current', checkedAt: 'now' },
-      facts: {}, repositoryRoot: worktree, branch: 'topic',
-    }),
-    githubObserver: async () => ({
-      source: { status: 'not-checked', detail: null, checkedAt: null },
-      pullRequest: null, needsPolling: false,
-    }),
-    watcherFactory: async () => ({ close() {} }),
-  });
-  await coordinator.initialize();
-  await coordinator.open(worktree);
-  assert.equal(await coordinator.moduleSettings(), settings);
-  assert.deepEqual(await coordinator.previewModulePolicy(['gatereeve/judge']), {
-    schemaVersion: 1, enabledModuleIds: ['gatereeve/judge'],
-  });
-  assert.equal(await coordinator.applyModulePolicy([], {
-    confirmedMigration: true, confirmationLabel: 'Trent',
-  }), settings);
-  await coordinator.waiveBoundaryModule({
-    attemptId: 'attempt-1', gateId: 'judge', reason: 'Small', confirmationLabel: 'Trent',
-  });
-  await coordinator.startFinalization();
-  await coordinator.waiveFinalizationModule({
-    attemptId: 'finalization-1', gateId: 'gatereeve/release',
-    reason: 'Accepted risk', confirmationLabel: 'Trent',
-  });
-  await coordinator.completeFinalization({ attemptId: null, confirmationLabel: 'Trent' });
-  assert(calls.some((call) => call[0] === 'apply' && call[1] === canonicalWorktree && call[2] === featureHome));
-  assert(calls.some((call) => call[0] === 'waive'
-    && call[1].repositoryRoot === canonicalWorktree
-    && call[1].featureHome === featureHome));
-  for (const kind of ['finalization-start', 'finalization-waive', 'finalization-complete']) {
-    assert(calls.some((call) => call[0] === kind
-      && call[1].repositoryRoot === canonicalWorktree
-      && call[1].featureHome === featureHome));
-  }
+  assert.equal(current.snapshot.current.phase, 'IMPLEMENTING');
+  assert.equal(current.projects[0].workflowState, 'IMPLEMENTING');
   coordinator.close();
 });
 

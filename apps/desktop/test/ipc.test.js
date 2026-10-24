@@ -16,7 +16,7 @@ function state() {
     error: null,
     projects: [{
       path: '/repo', name: 'repo', status: 'ready', featureHome: '/repo/docs/issues/feature',
-      featureId: 'feature', workflowState: 'DELIVERING_SLICES', diagnostic: null,
+      featureId: 'feature', workflowState: 'IMPLEMENTING', diagnostic: null,
     }],
     candidateDiagnostic: null,
     setup: {
@@ -264,7 +264,8 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
     async confirmProjectTermination() { return removalConfirmed; },
     windows: () => [],
   });
-  assert.equal(handlers.size, Object.keys(IPC_CHANNELS).length - 5);
+  assert.equal(handlers.size, 30);
+  for (const key of ['applyModulePolicy', 'moduleTaskStart', 'attestModule', 'waiveBoundaryModule', 'startFinalization']) assert.equal(handlers.has(IPC_CHANNELS[key]), false, key);
   const event = trustedEvent();
   assert.equal((await handlers.get(IPC_CHANNELS.addProject)(event)).phase, 'ready');
   assert.equal((await handlers.get(IPC_CHANNELS.activateProject)(event, '/repo')).phase, 'ready');
@@ -325,58 +326,6 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
     320,
   );
   assert.equal((await handlers.get(IPC_CHANNELS.recheckSetup)(event)).setup.phase, 'unconfigured');
-  assert.equal((await handlers.get(IPC_CHANNELS.getModuleSettings)(event)).modules[0].label, 'Judge');
-  assert.equal((await handlers.get(IPC_CHANNELS.previewModulePolicy)(
-    event, { enabledModuleIds: [] },
-  )).diff[0].after, false);
-  assert.equal((await handlers.get(IPC_CHANNELS.applyModulePolicy)(event, {
-    enabledModuleIds: [], confirmedMigration: true, confirmationLabel: 'Trent',
-  })).policyExists, true);
-  assert.equal((await handlers.get(IPC_CHANNELS.waiveBoundaryModule)(event, {
-    attemptId: 'attempt-1', gateId: 'judge', reason: 'Small change', confirmationLabel: 'Trent',
-  })).phase, 'ready');
-  assert.equal((await handlers.get(IPC_CHANNELS.startFinalization)(event)).phase, 'ready');
-  assert.equal((await handlers.get(IPC_CHANNELS.waiveFinalizationModule)(event, {
-    attemptId: 'finalization-1', gateId: 'gatereeve/release',
-    reason: 'Accepted risk', confirmationLabel: 'Trent',
-  })).phase, 'ready');
-  assert.equal((await handlers.get(IPC_CHANNELS.completeFinalization)(event, {
-    attemptId: null, confirmationLabel: 'Trent',
-  })).phase, 'ready');
-  assert.deepEqual(moduleCalls, [
-    ['inspect'],
-    ['preview', []],
-    ['apply', [], { confirmedMigration: true, confirmationLabel: 'Trent' }],
-    ['waive', { attemptId: 'attempt-1', gateId: 'judge', reason: 'Small change', confirmationLabel: 'Trent' }],
-    ['finalization-start'],
-    ['finalization-waive', {
-      attemptId: 'finalization-1', gateId: 'gatereeve/release',
-      reason: 'Accepted risk', confirmationLabel: 'Trent',
-    }],
-    ['finalization-complete', { attemptId: null, confirmationLabel: 'Trent' }],
-  ]);
-  const target = { moduleId: 'gatereeve/judge', attemptId: 'attempt-1', gateId: 'judge' };
-  assert.equal((await handlers.get(IPC_CHANNELS.getModuleRunPreview)(event, target)).kind, 'command');
-  assert.equal((await handlers.get(IPC_CHANNELS.moduleTaskStart)(event, {
-    ...target, consent: 'once', cols: 90, rows: 30,
-  })).id, 'module_task_test');
-  assert.equal((await handlers.get(IPC_CHANNELS.listModuleTasks)(event)).length, 1);
-  assert.equal(await handlers.get(IPC_CHANNELS.moduleTaskWrite)(event, {
-    sessionId: 'module_task_test', data: 'yes\r',
-  }), true);
-  assert.equal((await handlers.get(IPC_CHANNELS.moduleTaskResize)(event, {
-    sessionId: 'module_task_test', cols: 100, rows: 40,
-  })).cols, 100);
-  assert.equal((await handlers.get(IPC_CHANNELS.moduleTaskCancel)(event, {
-    sessionId: 'module_task_test',
-  })).status, 'terminating');
-  assert.equal((await handlers.get(IPC_CHANNELS.attestModule)(event, {
-    ...target, outcome: 'PASS', summary: 'Reviewed.', confirmationLabel: 'Trent',
-  })).phase, 'ready');
-  assert.equal((await handlers.get(IPC_CHANNELS.observeModule)(event, target)).phase, 'ready');
-  await assert.rejects(handlers.get(IPC_CHANNELS.moduleTaskStart)(event, {
-    ...target, consent: 'once', cols: 90, rows: 30, executable: '/bin/sh',
-  }), /invalid/);
   assert.deepEqual(artifactOperations, [
     ['open', '/repo/design.md', 'vscode', true],
     ['capabilities', '/repo/design.md'],
@@ -427,12 +376,7 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
     handlers.get(IPC_CHANNELS.terminalEnsure)(event, { cols: 0, rows: 30 }),
     /invalid/,
   );
-  await assert.rejects(
-    handlers.get(IPC_CHANNELS.applyModulePolicy)(event, {
-      enabledModuleIds: ['judge'], confirmedMigration: 'yes', confirmationLabel: 'Trent',
-    }),
-    /invalid/,
-  );
+
   await assert.rejects(
     handlers.get(IPC_CHANNELS.getState)(
       { senderFrame: { url: 'https://example.com' }, sender: { mainFrame: {} } },

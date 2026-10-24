@@ -18,7 +18,7 @@ function governed(featureHome) {
     mode: 'governed',
     featureHome,
     featureId: 'feature-one',
-    projection: { feature: { state: 'PLANNING' } },
+    current: { phase: 'PLANNING' },
     blockers: [],
   };
 }

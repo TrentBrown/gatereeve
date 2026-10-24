@@ -156,11 +156,7 @@ def main() -> int:
             result = prepare_pull_request(workflow.repository, provider, title=args.title,
                                           body_file=args.body_file, scope=args.scope).to_dict()
         else:
-            context = load_context(args.context)
-            provider = GitHubPullRequestProvider(context.repository_root)
-            result = merge_pull_request(context, provider, reviewed_head=args.reviewed_head,
-                                        authorization=args.authorization, method=args.method,
-                                        evidence_paths=args.evidence_path)
+            raise ValueError("Legacy merge entry is retired. Use the current plugin adapter merge.prepare, scoped human.decide, and merge.execute so current milestone proof is enforced.")
         _print_result(result, args.output)
         return 0
     except (PullRequestContextError, WorkflowContextError, ValueError, OSError) as error:

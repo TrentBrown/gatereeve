@@ -1,0 +1,14 @@
+✔ a missing newer failure root cannot resurrect an older PASS, but fresh proof recovers (1193.201792ms)
+✔ a missing newer failure output cannot resurrect an older PASS, but fresh proof recovers (1818.697542ms)
+✔ resolved history above 64 records does not halt fresh review (7766.985166ms)
+✔ malformed successful provider text never reaches gate summaries or artifacts (742.53525ms)
+✔ configured missing feature records deny direct merging (105.16525ms)
+✔ successful providers with malformed JSON expose no raw response fragments (4.419291ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11606.705834

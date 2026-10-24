@@ -1,105 +1,162 @@
-# GateReeve Protocol Adapter
+# GateReeve current protocol
 
-The plugin packages its authoritative JavaScript protocol core under
-`resources/protocol/`. A separately installed `gatereeve` command is optional;
-skills use the plugin-local adapter directly.
-
-Before a state-affecting workflow activity, inspect the current mode:
-
-```bash
-node "<plugin-root>/resources/protocol/plugin-adapter.js" status --cwd "$PWD"
-```
-
-The result is the stable protocol JSON envelope. A governed feature must use
-the adapter for both preflight and passage. A feature reported as `legacy` may
-finish under the legacy instructions and must not be silently adopted. An
-`inconsistent` feature blocks ordinary passage.
-
-## Direct request contract
-
-The adapter accepts one JSON request on standard input or through
-`--request-file <path>`. Skills should use a private temporary request file when
-the operation contains structured evidence, then remove it after invocation.
-The request selects a semantic operation, never an arbitrary transition from a
-public user surface.
+`resources/protocol/plugin-adapter.js` is the authoritative native adapter.
+The optional `gatereeve` CLI and desktop read the same current contract,
+`gatereeve/current/2`. Send one JSON request on stdin or via `--request-file`:
 
 ```json
-{
-  "operation": "feature.transition",
-  "cwd": "/absolute/worktree",
-  "transitionId": "approve-design",
-  "input": {
-    "actor": {
-      "kind": "human-confirmed",
-      "label": "user approval in the active conversation"
-    },
-    "eventId": "evt-example"
-  }
-}
+{"operation":"status","cwd":"/absolute/workspace"}
 ```
 
-Supported internal operations are `status`, `snapshot`, `read`, `next`,
-`history`, `explain`, `check`, `graph`, `graph.model`, `feature.init`, `feature.transition`,
-`feature.abandon`, `feature.recovery-preflight`, `feature.recover-finalization`, `feature.pause`, `feature.resume`, `feature.migration-impact`, `feature.migrate-model`,
-`advisory.declare-readiness`, `advisory.proceed`, `advisory.check`,
-`boundary.retry`, `slice.propose`, `slice.transition`, `slice.abandon`, `slice.accept-review`, `boundary.request-review`,
-`gate.record`, `gate.waive`, `gate.invalidate`, `finalization.start`,
-`finalization.record`, `finalization.waive`, `finalization.invalidate`,
-`finalization.complete`, `change.propose`,
-`change.transition`, and `change.reauthorize`.
+Use `status` before a milestone; use `milestone.check` for eligibility and the
+protected operation for passage. Readiness is a declaration, not a review launch.
+The core does not constrain individual edits, commits or the model's chosen
+execution order. Missing/failed proof leaves repair available. There is no
+remediation-attempt cap. Respect explicit human pause/escalation instructions.
 
-The adapter does not authenticate actors. `human-confirmed` records that the
-cooperative agent observed a human confirmation; it is not an identity or
-security claim. Rejected mutations exit nonzero and append no event. Read-only
-status remains successful when the feature is blocked or evidence is stale;
-`check` exits nonzero when its assertion fails.
+## Operations
 
-`snapshot` is the versioned canonical observational contract. It contains the
-pinned projection, bundled-model provenance, readiness, milestones, artifact
-inventory, independent source statuses, warnings, and compact recent-event
-summaries. Its action readiness is `ready`, `available`, or `blocked`; the
-legacy `eligible` field is true only for `ready` actions.
+All mutations take `input` and an optional stable `operationId`. Reuse the same
+identity and exact input after an uncertain response. Conflicting reuse fails.
 
-`read` accepts `kind` as `artifact`, `events`, `attempt`, or `model` plus an
-optional `id`. Artifact IDs must come from the snapshot inventory, so the
-operation cannot be used as an arbitrary path reader. These operations are
-read-only and never append to the event journal. Artifact metadata includes an
-`unsafe` boolean; lexical escapes and symlinks resolving outside the feature
-record are unavailable, report `unsafe: true`, and cannot be read.
+| Operation | Input and purpose |
+| --- | --- |
+| `status`, `snapshot`, `next` | Current phase, commitment hashes, obligations, applicability, exceptions and milestone blockers |
+| `read` | Top-level `kind` = artifact/events/model/result; artifact/result `id` must come from status |
+| `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]` |
+| `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals |
+| `human.decide` | See decisions below |
+| `spec.validate` | Run trusted spec lint after the model's semantic review of AC, rubric and boundary feasibility |
+| `candidate.prepare` | `repositories: [{alias,base,head}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row |
+| `candidate.ready` | Declare the pinned candidate ready; launches nothing |
+| `gate.execute` | `gates: [id]` or `["code","spec"]`, explicit `configuration`, typed `consumed`, bounded `history`, labeled `claims`, optional `prior` for a delta |
+| `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
+| `milestone.pass` | Record an allowed milestone; merge must use its protected action |
+| `merge.prepare` | `repository`, PR `number`, `method`; derive exact source/target action to present for authorization |
+| `merge.execute` | Same action selector; requires current proof, human acceptance and authorization bound to prepared action |
+| `integration.observe` | `repository`, optional configured `branch`; fetch and verify actual reviewed-content integration, independent of acceptance |
+| `run.pause`, `run.continue` | Actual `authority` instruction; continuation never follows merely from elapsed time |
 
-## Post-merge completion recovery
+Unsupported old operations are rejected. Start a current run; do not replay,
+convert, overwrite or delete old locks/journals. A resume with missing approvals
+reports those obligations. Supply observed prior instructions for unchanged
+commitments; ask only for genuinely missing decisions. Do not restart an
+unchanged interview or invent provenance.
 
-Read `commands/completion-recovery.md` and `policy/COMPLETION-RECOVERY.md` before
-preparing recovery evidence. `feature.recovery-preflight` returns eligibility,
-actionable blockers, stable request identity and the validated receipt without
-writing. `feature.recover-finalization` revalidates and appends one dedicated
-repeat-safe event; unsupported pinned models require explicit adoption. All
-remaining finalization modules bind to its verified integrated source.
+## Decisions
 
-## Advisory readiness (compatible model adoption)
+A decision includes `kind`, exact `subject` hash from current status or the
+captured design, `reason`, `consequences` and:
 
-Model 1.7/core 1.3 adds noncertifying advisory discovery outside the formal
-module graph. Existing locks are unchanged until explicit model adoption.
-See `resources/commands/advisory-review.md` for readiness, remediation,
-operational retry, reuse and proceed contracts. The adapter owns the launch;
-`advisory.check` is read-only. Findings are an advisory checklist only.
+```json
+{"authority":{"kind":"human-confirmed","instruction":"Actual user quote","context":"Concrete proposal and conversation context"}}
+```
 
-The `begin-boundary` slice transition accepts `readinessId`. Its core checks
-current reviewed inputs, tracked compact records and referenced focused evidence,
-and records the resulting `advisoryDecision` proof. It does not trust a supplied
-`advisoryDispositionCurrent` fact. Clean, inapplicable or a retained nonempty
-reason admits formal entry; no advisory disposition records a formal PASS.
-Historical passages replay under their retained model contract. Formal gate
-fingerprints and the independent Judge's history exclusions remain unchanged.
+Available message/conversation IDs are optional. This is a cooperative record,
+not authentication. Kinds: `approve-design`, `authorize-implementation`, `accept`,
+`waive`, `amend`, `policy-amend`, `authorize-merge`.
 
-## Boundary retry orchestration
+Waivers name `gates` and preserve FAIL/UNAVAILABLE. They default to this candidate.
+An amendment names `previousSubject`; old/new documents remain retained. If the
+same instruction expressly authorizes implementation, use
+`actions: ["authorize-implementation"]`; the core revalidates the amended spec.
+A waiver can include `actions: ["accept","authorize-merge"]` only when the quote
+expressly includes those actions and `action` is the exact prepared merge object.
+No action is inferred from a risk acceptance. Explicit policy amendments can
+change reconciliation/triage exception policy for this candidate; integrity,
+factual truth and actual authority cannot be waived.
 
-Read `commands/boundary-retry.md` after implementer remediation/readiness.
-`boundary.retry` reuses an exact existing PR and recoverable local execution
-cursor, derives fresh attempt/gate identities, records through the core and
-reconciles uncertain outcomes before replay. It defers presentation until
-substantive checks are current and nonblocking, handles packet bookkeeping and
-reports exact final-head review readiness. Native Judge execution, project stop
-rules, PR closure/direction, formal freshness and human merge authority retain
-their existing contracts. The helper cannot supply fixes, waivers or native
-Judge verdicts. Cursor status alone is not current-source proof.
+## Execution and evidence
+
+Required acceptance obligations: context, reconcile, verification, spec,
+pattern, judge, code, triage, explanation, packet. Completion also requires
+finalization, release observation, retention, whole-feature coverage and actual integration for every
+participating repository. Whiteboard remains optional policy.
+
+Runner configuration is `checks: [{repository,command,args,purpose}]`. Request
+real project build/lint/test/runtime checks; do not substitute `true` or a fabricated
+receipt. Finalization checks bind the observed integration SHA. Publishing or
+deploying needs separate explicit authority; a generic check request is not that
+authority. The model chooses substantive checks appropriate to approved scope.
+
+Independent configuration names `provider: codex|claude-code` and explicit
+`model`, optionally `reasoningEffort`. Code/spec may share one fresh execution
+but return distinct verdicts. Judge remains separately required. Spec/Judge
+consume an applicable Verification result. Prior reports are context, not
+instructions; claimed dispositions are labeled. Reviewers must find new
+supported defects, verify affected fixes and cover interactions. Missing or
+contradictory output is UNAVAILABLE, never PASS.
+
+Frozen requirements, source, inputs, results and receipts live beneath canonical
+`docs/issues/<featureId>/.gatereeve-current/`. Git is optional for these records.
+Exact source remains independently pinned and clean. Retain all referenced bytes,
+including failures. Missing/corrupt references block proof. Do not prune or claim
+backup. Deleting the workspace requires a scoped retain/archive/discard decision;
+claim archival only after verifying a copy outside the deletion scope.
+
+Equivalent qualifying input content permits reuse; bookkeeping and identical-tree
+SHAs alone do not require reruns. Changed requirements, configuration, dependency
+content, environment assumptions or consumed proof require refresh. Unknown
+relevance means wider proof. Qualified deltas retain earlier proof and explicitly
+cover changed paths/interactions. Provider retries reconcile recorded jobs;
+uncertain in-flight jobs do not automatically relaunch.
+
+## Enforcement coverage
+
+Protected merge and milestone adapters consult the core and deny unavailable
+checks. SessionStart is guidance in both native packages. Arbitrary shell writes
+and GitHub actions outside these adapters are not claimed to be intercepted.
+Both packages configure PreToolUse for recognized direct `gh pr merge` commands.
+The hook consults the core and routes these through the exact protected action;
+indirect scripts and alternate external clients are not intercepted. Do not add
+per-commit gates. Desktop observes current proof and
+provides commands; refreshing it never launches evaluators.
+
+When spec or Judge execution omits consumed references, the core selects the latest
+applicable Verification result; a current FAIL still blocks. Explicit references
+remain available for deliberate evidence selection. The CLI `read` command inspects
+advertised result/artifact identities, and `evaluate --configuration` accepts full
+runner assumptions without hand-authoring a protocol envelope.
+
+Implementation authority pins approved design/spec commitments. Plan and issue
+breakdown edits remain ordinary work; each approval still retains the plan/issue
+bytes that were presented. Reconciliation rechecks the current plan, issue and
+tracker mappings before acceptance.
+
+Runner assumptions may declare `environmentKeys` and repository-relative
+`runtimeInputs`. Incidental CLI/Desktop environment variables do not invalidate
+proof; executable and installed dependency bytes remain bound. Completed
+verification establishes required check coverage for the authorized scope; a
+narrower check cannot hide an unresolved failure. Use a scoped exception when
+needed. Starting an interrupted diagnostic job does not revoke existing proof.
+
+Relevant open findings are included automatically. `history` can add affected
+closed findings and `claims` names asserted fixes; PASS requires supported
+dispositions for open/claimed findings. The CLI accepts `--claims`,
+`--message-id` and `--conversation-id` for these optional inputs.
+
+Git symlinks are captured as target text and gitlinks as pinned-commit metadata;
+neither is followed during capture or exposed as a live symlink. Reviewers see
+the entry kinds and must assess separately selected submodule contents or state
+coverage limits. Canonical requirement/store symlinks remain rejected.
+
+Resume of an unsupported active contract or damaged journal publishes an
+immutable successor activation pointing to a fresh run, retaining the original
+pointer and journal bytes. It grants no authority from unqualified historical
+state. Packet inventory is regenerated whenever applicable results change.
+
+Closed findings with changed or uncertain applicability are supplied automatically.
+The evaluator identifies affected closures and provides their dispositions;
+`historyAssessment.carryForwardReason` can justify carrying the remainder as a
+batch, without enumerating unaffected IDs again. No relevance assertion from the
+implementer substitutes for this independent assessment. Historical reports from
+unselected repositories are rejected before export; expand the explicitly declared
+scope when that prior proof is needed.
+
+Missing historical evidence is recorded in `historyGaps` and shown in status and
+desktop. It never qualifies proof. Fresh full evidence can replace its current
+role without recreating lost bytes; available old finding facts are labeled as
+context only, with lost provenance visible. A fresh execution records the gaps
+it observed in its immutable input. Current qualified references still require
+complete integrity. Provider failures expose structured causes and remedies,
+not raw provider stdout/stderr.

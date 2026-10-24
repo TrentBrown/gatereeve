@@ -4,13 +4,15 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 import { ContractError } from './errors.js';
-import { fingerprint } from './fingerprint.js';
+import { identity as fingerprint } from './current/contracts.js';
 
 const execFileAsync = promisify(execFile);
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 const scriptsRoot = resolve(moduleDirectory, '..', 'scripts');
 
 export const PYTHON_GUARD_PROVIDERS = Object.freeze({
+  'issues.validation.current': { script: 'lint_issues.py', output: 'exit-code' },
+  'tracker.validation.current': { script: 'lint_tracker.py', output: 'exit-code' },
   'spec.validation.current': {
     script: 'lint_spec.py',
     output: 'exit-code',

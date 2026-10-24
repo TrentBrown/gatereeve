@@ -5,17 +5,11 @@ export const DESKTOP_STATE_SCHEMA_VERSION = 1;
 export const IPC_CHANNELS = Object.freeze({
   checkForUpdates: 'gatereeve:desktop:check-for-updates',
   addProject: 'gatereeve:desktop:add-project',
-  applyModulePolicy: 'gatereeve:desktop:apply-module-policy',
   copyText: 'gatereeve:desktop:copy-text',
   getState: 'gatereeve:desktop:get-state',
   getArtifactActions: 'gatereeve:desktop:get-artifact-actions',
-  getModuleSettings: 'gatereeve:desktop:get-module-settings',
-  getModuleRunPreview: 'gatereeve:desktop:get-module-run-preview',
   getUpdateState: 'gatereeve:desktop:get-update-state',
-  startFinalization: 'gatereeve:desktop:start-finalization',
-  completeFinalization: 'gatereeve:desktop:complete-finalization',
   listSession: 'gatereeve:desktop:list-session',
-  listModuleTasks: 'gatereeve:desktop:list-module-tasks',
   layoutCommand: 'gatereeve:desktop:layout-command',
   openArtifact: 'gatereeve:desktop:open-artifact',
   chooseArtifactApplication: 'gatereeve:desktop:choose-artifact-application',
@@ -24,7 +18,6 @@ export const IPC_CHANNELS = Object.freeze({
   openArtifactGithub: 'gatereeve:desktop:open-artifact-github',
   openExternalLink: 'gatereeve:desktop:open-external-link',
   openUpdateRelease: 'gatereeve:desktop:open-update-release',
-  previewModulePolicy: 'gatereeve:desktop:preview-module-policy',
   activateProject: 'gatereeve:desktop:activate-project',
   readDetail: 'gatereeve:desktop:read-detail',
   readSession: 'gatereeve:desktop:read-session',
@@ -37,13 +30,6 @@ export const IPC_CHANNELS = Object.freeze({
   setSelectedAgents: 'gatereeve:desktop:set-selected-agents',
   setTerminalHeight: 'gatereeve:desktop:set-terminal-height',
   stateChanged: 'gatereeve:desktop:state-changed',
-  attestModule: 'gatereeve:desktop:attest-module',
-  moduleTaskCancel: 'gatereeve:desktop:module-task-cancel',
-  moduleTaskChanged: 'gatereeve:desktop:module-task-changed',
-  moduleTaskResize: 'gatereeve:desktop:module-task-resize',
-  moduleTaskStart: 'gatereeve:desktop:module-task-start',
-  observeModule: 'gatereeve:desktop:observe-module',
-  moduleTaskWrite: 'gatereeve:desktop:module-task-write',
   terminalChanged: 'gatereeve:desktop:terminal-changed',
   terminalEnsure: 'gatereeve:desktop:terminal-ensure',
   terminalResize: 'gatereeve:desktop:terminal-resize',
@@ -51,8 +37,6 @@ export const IPC_CHANNELS = Object.freeze({
   terminalTerminate: 'gatereeve:desktop:terminal-terminate',
   terminalWrite: 'gatereeve:desktop:terminal-write',
   updateChanged: 'gatereeve:desktop:update-changed',
-  waiveBoundaryModule: 'gatereeve:desktop:waive-boundary-module',
-  waiveFinalizationModule: 'gatereeve:desktop:waive-finalization-module',
 });
 
 const PHASES = new Set(['idle', 'loading', 'ready', 'error']);
@@ -315,228 +299,14 @@ export function requireTerminalHeight(value) {
   return value;
 }
 
-function validModuleReadiness(value) {
-  return isObject(value)
-    && exactKeys(value, ['status', 'missing'])
-    && ['unchecked', 'available', 'unavailable'].includes(value.status)
-    && Array.isArray(value.missing)
-    && value.missing.every((item) => (
-      isObject(item)
-      && exactKeys(item, ['kind', 'id'])
-      && ['skill', 'provider'].includes(item.kind)
-      && typeof item.id === 'string'
-    ));
-}
-
-function validModuleSetting(value) {
-  return isObject(value)
-    && exactKeys(value, [
-      'id', 'version', 'digest', 'label', 'description', 'slot', 'enabled',
-      'locked', 'disposition', 'waiverAllowed', 'dependsOn', 'after',
-      'readiness', 'runKind', 'observeProvider',
-    ])
-    && typeof value.id === 'string'
-    && typeof value.version === 'string'
-    && typeof value.digest === 'string'
-    && typeof value.label === 'string'
-    && typeof value.description === 'string'
-    && ['boundary.evaluation', 'feature.finalization'].includes(value.slot)
-    && typeof value.enabled === 'boolean'
-    && typeof value.locked === 'boolean'
-    && ['required', 'optional'].includes(value.disposition)
-    && typeof value.waiverAllowed === 'boolean'
-    && Array.isArray(value.dependsOn)
-    && value.dependsOn.every((id) => typeof id === 'string')
-    && Array.isArray(value.after)
-    && value.after.every((id) => typeof id === 'string')
-    && validModuleReadiness(value.readiness)
-    && nullableString(value.runKind)
-    && nullableString(value.observeProvider);
-}
-
-export function requireModuleSettings(value) {
-  if (
-    !isObject(value)
-    || !exactKeys(value, [
-      'schemaVersion', 'policyPath', 'policyExists', 'policyDigest',
-      'featureModelHash', 'projectModelHash', 'migrationRequired', 'modules',
-      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.edges === undefined ? [] : ['edges']),
-    ])
-    || value.schemaVersion !== 1
-    || typeof value.policyPath !== 'string'
-    || typeof value.policyExists !== 'boolean'
-    || typeof value.policyDigest !== 'string'
-    || typeof value.featureModelHash !== 'string'
-    || typeof value.projectModelHash !== 'string'
-    || typeof value.migrationRequired !== 'boolean'
-    || !Array.isArray(value.modules)
-    || !value.modules.every(validModuleSetting)
-    || (value.ordering !== undefined && !validOrdering(value.ordering))
-    || (value.edges !== undefined && !validDependencyEdges(value.edges))
-  ) {
-    throw new Error('Module settings are invalid.');
-  }
-  return value;
-}
-
-export function requireModulePolicyRequest(value) {
-  if (
-    !isObject(value)
-    || !exactKeys(value, ['enabledModuleIds', ...(value.ordering === undefined ? [] : ['ordering'])])
-    || (value.ordering !== undefined && !validOrdering(value.ordering))
-    || !Array.isArray(value.enabledModuleIds)
-    || value.enabledModuleIds.some((id) => typeof id !== 'string' || id.length === 0 || id.length > 512)
-    || new Set(value.enabledModuleIds).size !== value.enabledModuleIds.length
-  ) {
-    throw new Error('Module policy preview request is invalid.');
-  }
-  return { enabledModuleIds: [...value.enabledModuleIds], ...(value.ordering === undefined ? {} : { ordering: structuredClone(value.ordering) }) };
-}
-
-function validOrdering(value) {
-  const moduleId = id => typeof id === 'string' && id.length <= 512 && /^[a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)+$/.test(id);
-  return isObject(value) && Object.entries(value).every(([id, rule]) => moduleId(id)
-    && isObject(rule) && exactKeys(rule, ['after']) && Array.isArray(rule.after)
-    && rule.after.every(from => moduleId(from) && from !== id) && new Set(rule.after).size === rule.after.length);
-}
-
-function validDependencyEdges(edges) {
-  return Array.isArray(edges) && edges.every(edge => isObject(edge) && exactKeys(edge, ['from', 'to', 'kind'])
-    && typeof edge.from === 'string' && typeof edge.to === 'string'
-    && ['required', 'conditional', 'owner'].includes(edge.kind));
-}
-
-export function requireModulePolicyApplyRequest(value) {
-  if (
-    !isObject(value)
-    || !exactKeys(value, ['enabledModuleIds', 'confirmedMigration', 'confirmationLabel', ...(value.ordering === undefined ? [] : ['ordering']), ...(value.expectedPolicyDigest === undefined ? [] : ['expectedPolicyDigest']), ...(value.expectedPreviewFingerprint === undefined ? [] : ['expectedPreviewFingerprint'])])
-    || (value.expectedPolicyDigest !== undefined && (typeof value.expectedPolicyDigest !== 'string' || value.expectedPolicyDigest.length > 512))
-    || (value.expectedPreviewFingerprint !== undefined && (typeof value.expectedPreviewFingerprint !== 'string' || value.expectedPreviewFingerprint.length > 512))
-    || typeof value.confirmedMigration !== 'boolean'
-    || !nullableString(value.confirmationLabel)
-    || (value.confirmationLabel !== null && value.confirmationLabel.length > 1_024)
-  ) {
-    throw new Error('Module policy apply request is invalid.');
-  }
-  const policy = requireModulePolicyRequest({ enabledModuleIds: value.enabledModuleIds, ...(value.ordering === undefined ? {} : { ordering: value.ordering }) });
-  return {
-    ...policy,
-    confirmedMigration: value.confirmedMigration,
-    confirmationLabel: value.confirmationLabel,
-    ...(value.expectedPolicyDigest === undefined ? {} : { expectedPolicyDigest: value.expectedPolicyDigest }),
-    ...(value.expectedPreviewFingerprint === undefined ? {} : { expectedPreviewFingerprint: value.expectedPreviewFingerprint }),
-  };
-}
-
-function validMigrationImpact(value) {
-  const stringFields = ['fromModelVersion', 'toModelVersion', 'fromModelHash', 'toModelHash'];
-  const listFields = [
-    'guardsAdded', 'guardsRemoved', 'transitionsAdded', 'transitionsRemoved',
-    'modulesAdded', 'modulesRemoved', 'modulesChanged', 'boundaryGateIdsInvalidated',
-  ];
-  return isObject(value)
-    && exactKeys(value, [...stringFields, ...listFields])
-    && stringFields.every((field) => typeof value[field] === 'string')
-    && listFields.every((field) => (
-      Array.isArray(value[field]) && value[field].every((item) => typeof item === 'string')
-    ));
-}
-
-export function requireModulePolicyPreview(value) {
-  if (
-    !isObject(value)
-    || !exactKeys(value, [
-      'schemaVersion', 'valid', 'error', 'autoEnabled', 'blockingDependents',
-      'enabledModuleIds', 'suggestedEnabledModuleIds', 'diff', 'migrationImpact',
-      ...(value.ordering === undefined ? [] : ['ordering']), ...(value.orderingChanged === undefined ? [] : ['orderingChanged']), ...(value.edges === undefined ? [] : ['edges']), ...(value.previewFingerprint === undefined ? [] : ['previewFingerprint']),
-    ])
-    || value.schemaVersion !== 1
-    || typeof value.valid !== 'boolean'
-    || (value.ordering !== undefined && !validOrdering(value.ordering))
-    || (value.orderingChanged !== undefined && typeof value.orderingChanged !== 'boolean')
-    || (value.previewFingerprint !== undefined && !nullableString(value.previewFingerprint))
-    || (value.edges !== undefined && !validDependencyEdges(value.edges))
-    || !nullableString(value.error)
-    || !Array.isArray(value.autoEnabled)
-    || value.autoEnabled.some((id) => typeof id !== 'string')
-    || !Array.isArray(value.blockingDependents)
-    || !Array.isArray(value.enabledModuleIds)
-    || value.enabledModuleIds.some((id) => typeof id !== 'string')
-    || !Array.isArray(value.suggestedEnabledModuleIds)
-    || value.suggestedEnabledModuleIds.some((id) => typeof id !== 'string')
-    || !Array.isArray(value.diff)
-    || value.diff.some((item) => (
-      !isObject(item)
-      || !exactKeys(item, ['id', 'before', 'after'])
-      || typeof item.id !== 'string'
-      || typeof item.before !== 'boolean'
-      || typeof item.after !== 'boolean'
-    ))
-    || value.blockingDependents.some((item) => (
-      !isObject(item)
-      || !exactKeys(item, ['id', 'label', 'locked', 'missingDependencies'])
-      || typeof item.id !== 'string'
-      || typeof item.label !== 'string'
-      || typeof item.locked !== 'boolean'
-      || !Array.isArray(item.missingDependencies)
-      || item.missingDependencies.some((id) => typeof id !== 'string')
-    ))
-    || (value.migrationImpact !== null && !validMigrationImpact(value.migrationImpact))
-  ) {
-    throw new Error('Module policy preview is invalid.');
-  }
-  return value;
-}
-
-export function requireBoundaryModuleWaiverRequest(value) {
-  if (
-    !isObject(value)
-    || !exactKeys(value, ['attemptId', 'gateId', 'reason', 'confirmationLabel'])
-    || !['attemptId', 'gateId', 'reason', 'confirmationLabel'].every((field) => (
-      typeof value[field] === 'string'
-      && value[field].trim().length > 0
-      && value[field].length <= 2_048
-    ))
-  ) {
-    throw new Error('Boundary module waiver request is invalid.');
-  }
-  return {
-    attemptId: value.attemptId,
-    gateId: value.gateId,
-    reason: value.reason.trim(),
-    confirmationLabel: value.confirmationLabel.trim(),
-  };
-}
-
-export function requireFinalizationCompleteRequest(value) {
-  if (
-    !isObject(value)
-    || !exactKeys(value, ['attemptId', 'confirmationLabel'])
-    || !(value.attemptId === null || (
-      typeof value.attemptId === 'string'
-      && value.attemptId.trim().length > 0
-      && value.attemptId.length <= 2_048
-    ))
-    || typeof value.confirmationLabel !== 'string'
-    || value.confirmationLabel.trim().length === 0
-    || value.confirmationLabel.length > 2_048
-  ) {
-    throw new Error('Finalization completion request is invalid.');
-  }
-  return {
-    attemptId: value.attemptId === null ? null : value.attemptId.trim(),
-    confirmationLabel: value.confirmationLabel.trim(),
-  };
-}
-
 export function requireDetailRequest(value) {
   if (
     !isObject(value)
     || !exactKeys(value, ['kind', 'id'])
-    || !['artifact', 'events', 'attempt', 'model'].includes(value.kind)
+    || !['artifact', 'events', 'result', 'model'].includes(value.kind)
     || !nullableString(value.id)
     || (value.kind === 'artifact' && (!value.id || value.id.length > 512))
-    || (value.kind === 'attempt' && (!value.id || value.id.length > 512))
+    || (value.kind === 'result' && (!value.id || value.id.length > 512))
     || (value.kind === 'events' && value.id !== null)
     || (value.kind === 'model' && value.id !== null)
   ) {
@@ -815,213 +585,4 @@ export function requireTerminalEvent(value) {
     return value;
   }
   throw new Error('Terminal event is invalid.');
-}
-
-const MODULE_TASK_STATUSES = new Set([
-  'running', 'terminating', 'passed', 'failed', 'awaiting-provider', 'timed-out', 'cancelled',
-]);
-const MODULE_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
-
-function boundedString(value, maximum = 16_384) {
-  return typeof value === 'string' && value.length > 0 && value.length <= maximum;
-}
-
-export function requireModuleTargetRequest(value) {
-  if (
-    !isObject(value)
-    || !exactKeys(value, ['moduleId', 'attemptId', 'gateId'])
-    || [value.moduleId, value.attemptId, value.gateId].some((item) => (
-      typeof item !== 'string' || item.length === 0 || item.length > 512
-    ))
-  ) throw new Error('Module target request is invalid.');
-  return value;
-}
-
-export function requireModuleRunPreview(value) {
-  const skillValid = value?.skill === null || (
-    isObject(value.skill)
-    && exactKeys(value.skill, ['id', 'invocation'])
-    && boundedString(value.skill.id, 512)
-    && boundedString(value.skill.invocation)
-  );
-  const manualValid = value?.manual === null || (
-    isObject(value.manual)
-    && exactKeys(value.manual, ['instructions'])
-    && boundedString(value.manual.instructions, 65_536)
-  );
-  const command = value?.command;
-  const commandValid = command === null || (
-    isObject(command)
-    && exactKeys(command, ['digest', 'display', 'authorization'])
-    && MODULE_DIGEST_PATTERN.test(command.digest)
-    && isObject(command.display)
-    && exactKeys(command.display, [
-      'executable', 'args', 'workingDirectory', 'effects', 'timeoutSeconds', 'authority',
-    ])
-    && boundedString(command.display.executable)
-    && Array.isArray(command.display.args)
-    && command.display.args.every((item) => typeof item === 'string' && item.length <= 16_384)
-    && boundedString(command.display.workingDirectory)
-    && Array.isArray(command.display.effects)
-    && command.display.effects.every((item) => boundedString(item, 8_192))
-    && Number.isSafeInteger(command.display.timeoutSeconds)
-    && command.display.timeoutSeconds >= 1
-    && command.display.timeoutSeconds <= 3_600
-    && Array.isArray(command.display.authority)
-    && command.display.authority.every((item) => boundedString(item, 8_192))
-    && isObject(command.authorization)
-    && exactKeys(command.authorization, [
-      'authorized', 'authorizedAt', 'persistentEligible', 'changedInputs', 'supersededCount',
-    ])
-    && typeof command.authorization.authorized === 'boolean'
-    && nullableString(command.authorization.authorizedAt)
-    && typeof command.authorization.persistentEligible === 'boolean'
-    && Array.isArray(command.authorization.changedInputs)
-    && command.authorization.changedInputs.every((item) => boundedString(item, 16_384))
-    && Number.isSafeInteger(command.authorization.supersededCount)
-    && command.authorization.supersededCount >= 0
-  );
-  if (
-    !isObject(value)
-    || !exactKeys(value, ['schemaVersion', 'moduleId', 'kind', 'skill', 'manual', 'command'])
-    || value.schemaVersion !== 1
-    || typeof value.moduleId !== 'string'
-    || !['skill', 'manual', 'command', 'observe'].includes(value.kind)
-    || !skillValid
-    || !manualValid
-    || !commandValid
-    || (value.kind === 'skill') !== (value.skill !== null)
-    || (value.kind === 'manual') !== (value.manual !== null)
-    || (value.kind === 'command') !== (value.command !== null)
-  ) throw new Error('Module run preview is invalid.');
-  return value;
-}
-
-export function requireModuleTaskStartRequest(value) {
-  if (!isObject(value) || !exactKeys(value, [
-    'moduleId', 'attemptId', 'gateId', 'consent', 'cols', 'rows',
-  ])) throw new Error('Module task start request is invalid.');
-  if (
-    [value.moduleId, value.attemptId, value.gateId].some((item) => (
-      typeof item !== 'string' || item.length === 0 || item.length > 512
-    ))
-    || !['once', 'always'].includes(value.consent)
-    || !validTerminalDimensions(value.cols, value.rows)
-  ) {
-    throw new Error('Module task start request is invalid.');
-  }
-  return value;
-}
-
-export function requireModuleAttestationRequest(value) {
-  if (!isObject(value) || !exactKeys(value, [
-    'moduleId', 'attemptId', 'gateId', 'outcome', 'summary', 'confirmationLabel',
-  ])) throw new Error('Module attestation request is invalid.');
-  if (
-    [value.moduleId, value.attemptId, value.gateId].some((item) => (
-      typeof item !== 'string' || item.length === 0 || item.length > 512
-    ))
-    ||
-    !['PASS', 'FAIL', 'NOT_APPLICABLE'].includes(value.outcome)
-    || typeof value.summary !== 'string'
-    || value.summary.trim().length === 0
-    || value.summary.length > 8_192
-    || typeof value.confirmationLabel !== 'string'
-    || value.confirmationLabel.trim().length === 0
-    || value.confirmationLabel.length > 512
-  ) throw new Error('Module attestation request is invalid.');
-  return value;
-}
-
-export function requireModuleTaskId(value) {
-  if (typeof value !== 'string' || !/^module_task_[A-Za-z0-9_-]{1,128}$/u.test(value)) {
-    throw new Error('Module task ID is invalid.');
-  }
-  return value;
-}
-
-export function requireModuleTaskSession(value) {
-  if (
-    !isObject(value)
-    || !exactKeys(value, [
-      'schemaVersion', 'id', 'kind', 'name', 'moduleId', 'moduleVersion', 'moduleDigest',
-      'attemptId', 'gateId', 'projectPath', 'projectName', 'status', 'cols', 'rows', 'output', 'startedAt',
-      'finishedAt', 'exit', 'result', 'structuredOutput', 'error',
-    ])
-    || value.schemaVersion !== 1
-    || value.kind !== 'module-task'
-    || requireModuleTaskId(value.id) !== value.id
-    || ![value.name, value.moduleId, value.moduleVersion, value.projectName, value.startedAt]
-      .every((item) => boundedString(item, 512))
-    || !boundedString(value.projectPath)
-    || !MODULE_DIGEST_PATTERN.test(value.moduleDigest)
-    || ![value.attemptId, value.gateId, value.finishedAt, value.error]
-      .every((item) => item === null || typeof item === 'string')
-    || !MODULE_TASK_STATUSES.has(value.status)
-    || !validTerminalDimensions(value.cols, value.rows)
-    || typeof value.output !== 'string'
-    || value.output.length > 1_000_000
-    || (value.exit !== null && (
-      !isObject(value.exit)
-      || !exactKeys(value.exit, ['code', 'signal'])
-      || (value.exit.code !== null && !Number.isInteger(value.exit.code))
-      || (value.exit.signal !== null && !Number.isInteger(value.exit.signal))
-    ))
-    || (value.result !== null && (
-      !isObject(value.result)
-      || !exactKeys(value.result, ['attemptStatus', 'outcome', 'reason'])
-      || !MODULE_TASK_STATUSES.has(value.result.attemptStatus)
-      || !['UNSET', 'PASS', 'FAIL'].includes(value.result.outcome)
-      || !boundedString(value.result.reason, 8_192)
-    ))
-    || (value.structuredOutput !== null && (
-      !isObject(value.structuredOutput)
-      || value.structuredOutput.schemaVersion !== 1
-      || Object.keys(value.structuredOutput).some((key) => !['schemaVersion', 'detail', 'evidence'].includes(key))
-      || (value.structuredOutput.detail !== undefined && typeof value.structuredOutput.detail !== 'string')
-    ))
-  ) throw new Error('Module task session is invalid.');
-  return value;
-}
-
-export function requireModuleTaskList(value) {
-  if (!Array.isArray(value) || value.some((item) => requireModuleTaskSession(item) !== item)) {
-    throw new Error('Module task list is invalid.');
-  }
-  return value;
-}
-
-export function requireModuleTaskSessionRequest(value) {
-  if (!isObject(value) || !exactKeys(value, ['sessionId'])) throw new Error('Module task request is invalid.');
-  return { sessionId: requireModuleTaskId(value.sessionId) };
-}
-
-export function requireModuleTaskInputRequest(value) {
-  if (!isObject(value) || !exactKeys(value, ['sessionId', 'data']) || typeof value.data !== 'string' || value.data.length < 1 || value.data.length > 65_536) {
-    throw new Error('Module task input is invalid.');
-  }
-  return { sessionId: requireModuleTaskId(value.sessionId), data: value.data };
-}
-
-export function requireModuleTaskResizeRequest(value) {
-  if (!isObject(value) || !exactKeys(value, ['sessionId', 'cols', 'rows']) || !validTerminalDimensions(value.cols, value.rows)) {
-    throw new Error('Module task resize request is invalid.');
-  }
-  return { sessionId: requireModuleTaskId(value.sessionId), cols: value.cols, rows: value.rows };
-}
-
-export function requireModuleTaskEvent(value) {
-  if (!isObject(value) || value.schemaVersion !== 1 || typeof value.type !== 'string') {
-    throw new Error('Module task event is invalid.');
-  }
-  if (value.type === 'data' && exactKeys(value, ['schemaVersion', 'type', 'sessionId', 'data'])) {
-    requireModuleTaskId(value.sessionId);
-    if (typeof value.data !== 'string' || value.data.length > 1_000_000) throw new Error('Module task event is invalid.');
-    return value;
-  }
-  if (['started', 'terminating', 'finished'].includes(value.type) && exactKeys(value, ['schemaVersion', 'type', 'session'])) {
-    requireModuleTaskSession(value.session);
-    return value;
-  }
-  throw new Error('Module task event is invalid.');
 }

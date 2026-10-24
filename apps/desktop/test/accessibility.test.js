@@ -17,9 +17,6 @@ test('principal controls use keyboard-native elements with visible accessible na
     '#terminal-terminate', '#terminal-restart',
     '#open-setup', '#setup-open-worktree', '#setup-return', '#setup-recheck',
     '#candidate-diagnostic-choose-another', '#source-dialog-close',
-    '#module-discard', '#module-apply', '#module-confirm-close', '#module-confirm-cancel',
-    '#module-confirm-apply', '#module-waiver-close', '#module-waiver-reason',
-    '#module-waiver-cancel', '#module-waiver-confirm',
     '#agent-codex', '#agent-claude', '#save-agents',
     '[data-view="overview"]', '[data-view="modules"]', '[data-view="artifacts"]', '[data-view="history"]',
     '[data-view="model"]', '[data-view="session"]',
@@ -94,7 +91,7 @@ test('styles preserve visible focus, docked regions, and reduced-motion behavior
   assert.match(css, /\.terminal-panel\s*\{[^}]*grid-column:\s*1 \/ -1/);
 });
 
-test('terminal panel exposes shell and named task selection without transcript-management controls', async () => {
+test('terminal panel exposes the project shell without retired task controls', async () => {
   const html = await readFile(resolve(desktopRoot, 'renderer/index.html'), 'utf8');
   const { document } = parseHTML(html).window;
   const panel = document.querySelector('#terminal-panel');
@@ -104,7 +101,5 @@ test('terminal panel exposes shell and named task selection without transcript-m
   assert.equal(document.querySelectorAll('#terminal-terminate').length, 1);
   assert.equal(document.querySelectorAll('#terminal-restart').length, 1);
   assert.equal(document.querySelectorAll('#terminal-session-select').length, 1);
-  assert.equal(document.querySelector('#module-command-dialog').getAttribute('aria-labelledby'), 'module-command-title');
-  assert.equal(document.querySelector('#module-attestation-dialog').getAttribute('aria-labelledby'), 'module-attestation-title');
   assert.doesNotMatch(panel.textContent, /save output|transcript|new terminal|split|profile/i);
 });

@@ -1,0 +1,12 @@
+✔ status never captures changed unapproved documents (637.460834ms)
+✔ changed installed dependency bytes invalidate runner and consumed assessment proof (1253.769167ms)
+✔ one instruction can waive failed quality proof and accept without rewriting its verdict (9143.414833ms)
+✔ two repositories share exact parent requirements and either source invalidates the combined review (1330.847292ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12463.203292

@@ -1,0 +1,2104 @@
+{
+  "schemaVersion": 1,
+  "sourceDigest": "sha256:b0c15462ebf9c76a43eed525b915242ead5e2b1d340c5c0276526e72ca341229",
+  "sourceRoot": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER",
+  "manifest": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/verification/review-source-judge-final-manifest.json",
+  "verifiedManifestFiles": 367,
+  "evaluatorContext": "/root/openai_judge",
+  "inheritedTurns": 0,
+  "assessmentType": "standalone independent targeted delta with justified prior-proof carry-forward",
+  "formalProtocolPassage": false,
+  "verdict": "PASS",
+  "verdicts": {
+    "codeReview": {
+      "verdict": "PASS",
+      "rubric": [
+        {
+          "id": "R1",
+          "criterion": "Planning and milestone authority",
+          "result": "PASS",
+          "rationale": "Reassessed D1; other authority contracts carried forward. Missing newer evidence cannot make an older PASS current; all four boundaries still validate authority and applicable inputs.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 117
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 268
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 732
+            }
+          ]
+        },
+        {
+          "id": "R2",
+          "criterion": "Model-led execution",
+          "result": "PASS",
+          "rationale": "Reassessed D4. Readiness remains separate from explicit execution, typed dependencies remain, and automatic retained history no longer has a record-count halt. The 66-record/33-closure fixture passes; an explicit provider byte capacity is not a remediation-round cap.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 175
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 219
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 259
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 753
+            }
+          ]
+        },
+        {
+          "id": "R3",
+          "criterion": "Canonical layouts",
+          "result": "PASS",
+          "rationale": "Carried forward: resolver, capture and layout ownership contracts did not change. The fresh all-gates integration still completes without evidence commits.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/adapter.js",
+              "line": 11
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 71
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 283
+            }
+          ]
+        },
+        {
+          "id": "R4",
+          "criterion": "Exact source and requirements",
+          "result": "PASS",
+          "rationale": "Carried forward with inspected applicability interaction: pinned repository/source and raw approved requirement identity remain bound at capture, execution and admission. Loss handling does not replace missing bytes with current bytes.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+              "line": 17
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+              "line": 83
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 238
+            }
+          ]
+        },
+        {
+          "id": "R5",
+          "criterion": "Containment and isolation",
+          "result": "PASS",
+          "rationale": "Prior F1 resolution carried forward after checking changed history collection. Selection and export still restrict historical repositories to declared scope; path/symlink capture and isolated views are unchanged.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 10
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 91
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 289
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 645
+            }
+          ]
+        },
+        {
+          "id": "R6",
+          "criterion": "Publication and retention",
+          "result": "PASS",
+          "rationale": "Reassessed D1 and successor retention correction. Closure validation rejects missing/corrupt proof; loss barriers prevent fallback; fresh evidence may recover. Retention now records inventory and completion references and validates their closure. Repeat/publication/cleanup contracts are unchanged.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 65
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 332
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 474
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 300
+            }
+          ]
+        },
+        {
+          "id": "R7",
+          "criterion": "Local finalization",
+          "result": "PASS",
+          "rationale": "Rechecked the changed packet/retention interaction. Inventory is core-derived, closure-checked and retained; separate completion checks still require finalization and release. The updated all-gates integration passes with actual observed integration and no evidence commits.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 466
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 291
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 283
+            }
+          ]
+        },
+        {
+          "id": "R8",
+          "criterion": "Independent grouped verdicts",
+          "result": "PASS",
+          "rationale": "Prior F1 resolution and independent/grouped contracts carried forward. Fresh role qualification, separate per-gate validation and isolated review packet remain; sanitization changes failure handling only. Prior actual local evaluator receipt remains supporting evidence, not a new live run.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 91
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 165
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 374
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 242
+            }
+          ]
+        },
+        {
+          "id": "R9",
+          "criterion": "Complete obligation inventory",
+          "result": "PASS",
+          "rationale": "Carried forward: enabled gate definitions and evaluator roles are unchanged. Mechanical execution remains actual runner evidence. Updated completion integration exercises all gates and verifies finalization/release retention.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+              "line": 40
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 130
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 291
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 283
+            }
+          ]
+        },
+        {
+          "id": "R10",
+          "criterion": "Equivalent-input reuse",
+          "result": "PASS",
+          "rationale": "Carried forward with loss interaction rechecked: content identity remains separate from commit/attempt identity. Memoization is evaluation-local; intact equivalent proof can reuse, while missing historical proof triggers refresh.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+              "line": 108
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 335
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 520
+            }
+          ]
+        },
+        {
+          "id": "R11",
+          "criterion": "Relevant change and uncertainty",
+          "result": "PASS",
+          "rationale": "Reassessed D1. Gate-known closure loss blocks older proof for that gate; unknown root loss blocks all older proof. Existing environment, consumed-evidence, requirements and source checks remain; fresh proof after the recorded loss can qualify.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 230
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 247
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 332
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 732
+            }
+          ]
+        },
+        {
+          "id": "R12",
+          "criterion": "Targeted delta coverage",
+          "result": "PASS",
+          "rationale": "Carried forward with inspected barrier interaction: delta must retain qualifying prior evidence and cover changed paths/interactions. A loss that invalidates prior proof cannot be hidden by delta assurance; a fresh full assessment remains available.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 210
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 309
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 257
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 504
+            }
+          ]
+        },
+        {
+          "id": "R13",
+          "criterion": "Bounded history and dispositions",
+          "result": "PASS",
+          "rationale": "Prior F2 resolution retained and reassessed alongside D4/loss recovery. Changed closures receive independent relevance assessment; affected IDs need dispositions, unaffected closures can share justified carry-forward. Missing history is labeled rather than fabricated.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 45
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 192
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 259
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 664
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 713
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 753
+            }
+          ]
+        },
+        {
+          "id": "R14",
+          "criterion": "New discovery and blocking criteria",
+          "result": "PASS",
+          "rationale": "Carried forward: evaluator instructions and validation still permit new instances of old classes and demand approved criterion/current source evidence for blocking findings. This review independently found, and then verified correction of, the retention scope regression.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 45
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 165
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 210
+            }
+          ]
+        },
+        {
+          "id": "R15",
+          "criterion": "One scoped human decision",
+          "result": "PASS",
+          "rationale": "Carried forward: decision schema, authority application and repeat-safe operation code are unchanged. New evidence refreshes do not infer new human authority.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+              "line": 62
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 117
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 315
+            }
+          ]
+        },
+        {
+          "id": "R16",
+          "criterion": "Honest exceptions and integration",
+          "result": "PASS",
+          "rationale": "Carried forward with inspected milestone interaction: exceptions remain distinct from original outcomes, merge authorization remains explicit, and completion requires recorded actual integration. Loss does not rewrite historical outcomes.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+              "line": 89
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 305
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/actions.js",
+              "line": 93
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 465
+            }
+          ]
+        },
+        {
+          "id": "R17",
+          "criterion": "Enforcement coverage",
+          "result": "PASS",
+          "rationale": "Reassessed D3; prior E1 capability evidence retained within its stated limits. Missing configured records now deny recognized direct merges. Supported subprocess host-event contracts are tested; no claim of live installed/trusted-hook interception or arbitrary shell coverage.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/pre-tool-use.js",
+              "line": 16
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/actions.js",
+              "line": 46
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-hook.test.js",
+              "line": 29
+            }
+          ]
+        },
+        {
+          "id": "R18",
+          "criterion": "Coherent consumers and low ceremony",
+          "result": "PASS",
+          "rationale": "Reassessed D2. Shared parser converts malformed outer/nested/fenced provider JSON into fixed categorized errors; raw response fragments do not reach gate summaries/artifacts. CLI/native/desktop contracts are unchanged; broad desktop and native checks remain applicable.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/local-agent-adapters.js",
+              "line": 141
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/local-agent-adapters.test.js",
+              "line": 164
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 781
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/apps/desktop/renderer/current-view.js",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "id": "R19",
+          "criterion": "Direct cutover",
+          "result": "PASS",
+          "rationale": "Carried forward: current distribution entry points and retired execution guidance are unchanged. No replay/converter/pilot/benchmark prerequisite was added by remediation; native package checks pass.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/index.js",
+              "line": 1
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/scripts/pr_lifecycle.py",
+              "line": 159
+            }
+          ]
+        },
+        {
+          "id": "R20",
+          "criterion": "Resume without false history",
+          "result": "PASS",
+          "rationale": "Carried forward: current-run resume and durable activation code are unchanged. Evidence-loss recovery is fresh execution within current contracts; it neither rewrites old journals nor reconstructs missing artifacts.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 72
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 135
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 563
+            }
+          ]
+        },
+        {
+          "id": "R21",
+          "criterion": "Practical observations",
+          "result": "PASS",
+          "rationale": "Carried forward: receipt timing and unknown token/cost treatment remain unchanged, as does the real-project observation recipe. No extra metrics/adoption gate was introduced.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 419
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/observation.js",
+              "line": 1
+            }
+          ]
+        }
+      ]
+    },
+    "spec": {
+      "verdict": "PASS",
+      "rubric": [
+        {
+          "id": "R1",
+          "criterion": "Planning and milestone authority",
+          "result": "PASS",
+          "rationale": "Reassessed D1; other authority contracts carried forward. Missing newer evidence cannot make an older PASS current; all four boundaries still validate authority and applicable inputs.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 117
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 268
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 732
+            }
+          ]
+        },
+        {
+          "id": "R2",
+          "criterion": "Model-led execution",
+          "result": "PASS",
+          "rationale": "Reassessed D4. Readiness remains separate from explicit execution, typed dependencies remain, and automatic retained history no longer has a record-count halt. The 66-record/33-closure fixture passes; an explicit provider byte capacity is not a remediation-round cap.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 175
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 219
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 259
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 753
+            }
+          ]
+        },
+        {
+          "id": "R3",
+          "criterion": "Canonical layouts",
+          "result": "PASS",
+          "rationale": "Carried forward: resolver, capture and layout ownership contracts did not change. The fresh all-gates integration still completes without evidence commits.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/adapter.js",
+              "line": 11
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 71
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 283
+            }
+          ]
+        },
+        {
+          "id": "R4",
+          "criterion": "Exact source and requirements",
+          "result": "PASS",
+          "rationale": "Carried forward with inspected applicability interaction: pinned repository/source and raw approved requirement identity remain bound at capture, execution and admission. Loss handling does not replace missing bytes with current bytes.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+              "line": 17
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+              "line": 83
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 238
+            }
+          ]
+        },
+        {
+          "id": "R5",
+          "criterion": "Containment and isolation",
+          "result": "PASS",
+          "rationale": "Prior F1 resolution carried forward after checking changed history collection. Selection and export still restrict historical repositories to declared scope; path/symlink capture and isolated views are unchanged.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 10
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 91
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 289
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 645
+            }
+          ]
+        },
+        {
+          "id": "R6",
+          "criterion": "Publication and retention",
+          "result": "PASS",
+          "rationale": "Reassessed D1 and successor retention correction. Closure validation rejects missing/corrupt proof; loss barriers prevent fallback; fresh evidence may recover. Retention now records inventory and completion references and validates their closure. Repeat/publication/cleanup contracts are unchanged.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 65
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 332
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 474
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 300
+            }
+          ]
+        },
+        {
+          "id": "R7",
+          "criterion": "Local finalization",
+          "result": "PASS",
+          "rationale": "Rechecked the changed packet/retention interaction. Inventory is core-derived, closure-checked and retained; separate completion checks still require finalization and release. The updated all-gates integration passes with actual observed integration and no evidence commits.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 466
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 291
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 283
+            }
+          ]
+        },
+        {
+          "id": "R8",
+          "criterion": "Independent grouped verdicts",
+          "result": "PASS",
+          "rationale": "Prior F1 resolution and independent/grouped contracts carried forward. Fresh role qualification, separate per-gate validation and isolated review packet remain; sanitization changes failure handling only. Prior actual local evaluator receipt remains supporting evidence, not a new live run.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 91
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 165
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 374
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 242
+            }
+          ]
+        },
+        {
+          "id": "R9",
+          "criterion": "Complete obligation inventory",
+          "result": "PASS",
+          "rationale": "Carried forward: enabled gate definitions and evaluator roles are unchanged. Mechanical execution remains actual runner evidence. Updated completion integration exercises all gates and verifies finalization/release retention.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+              "line": 40
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 130
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 291
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 283
+            }
+          ]
+        },
+        {
+          "id": "R10",
+          "criterion": "Equivalent-input reuse",
+          "result": "PASS",
+          "rationale": "Carried forward with loss interaction rechecked: content identity remains separate from commit/attempt identity. Memoization is evaluation-local; intact equivalent proof can reuse, while missing historical proof triggers refresh.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+              "line": 108
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 335
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 520
+            }
+          ]
+        },
+        {
+          "id": "R11",
+          "criterion": "Relevant change and uncertainty",
+          "result": "PASS",
+          "rationale": "Reassessed D1. Gate-known closure loss blocks older proof for that gate; unknown root loss blocks all older proof. Existing environment, consumed-evidence, requirements and source checks remain; fresh proof after the recorded loss can qualify.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 230
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 247
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 332
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 732
+            }
+          ]
+        },
+        {
+          "id": "R12",
+          "criterion": "Targeted delta coverage",
+          "result": "PASS",
+          "rationale": "Carried forward with inspected barrier interaction: delta must retain qualifying prior evidence and cover changed paths/interactions. A loss that invalidates prior proof cannot be hidden by delta assurance; a fresh full assessment remains available.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 210
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 309
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 257
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 504
+            }
+          ]
+        },
+        {
+          "id": "R13",
+          "criterion": "Bounded history and dispositions",
+          "result": "PASS",
+          "rationale": "Prior F2 resolution retained and reassessed alongside D4/loss recovery. Changed closures receive independent relevance assessment; affected IDs need dispositions, unaffected closures can share justified carry-forward. Missing history is labeled rather than fabricated.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 45
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 192
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 259
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 664
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 713
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 753
+            }
+          ]
+        },
+        {
+          "id": "R14",
+          "criterion": "New discovery and blocking criteria",
+          "result": "PASS",
+          "rationale": "Carried forward: evaluator instructions and validation still permit new instances of old classes and demand approved criterion/current source evidence for blocking findings. This review independently found, and then verified correction of, the retention scope regression.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 45
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 165
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 210
+            }
+          ]
+        },
+        {
+          "id": "R15",
+          "criterion": "One scoped human decision",
+          "result": "PASS",
+          "rationale": "Carried forward: decision schema, authority application and repeat-safe operation code are unchanged. New evidence refreshes do not infer new human authority.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+              "line": 62
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 117
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 315
+            }
+          ]
+        },
+        {
+          "id": "R16",
+          "criterion": "Honest exceptions and integration",
+          "result": "PASS",
+          "rationale": "Carried forward with inspected milestone interaction: exceptions remain distinct from original outcomes, merge authorization remains explicit, and completion requires recorded actual integration. Loss does not rewrite historical outcomes.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+              "line": 89
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 305
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/actions.js",
+              "line": 93
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 465
+            }
+          ]
+        },
+        {
+          "id": "R17",
+          "criterion": "Enforcement coverage",
+          "result": "PASS",
+          "rationale": "Reassessed D3; prior E1 capability evidence retained within its stated limits. Missing configured records now deny recognized direct merges. Supported subprocess host-event contracts are tested; no claim of live installed/trusted-hook interception or arbitrary shell coverage.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/pre-tool-use.js",
+              "line": 16
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/actions.js",
+              "line": 46
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-hook.test.js",
+              "line": 29
+            }
+          ]
+        },
+        {
+          "id": "R18",
+          "criterion": "Coherent consumers and low ceremony",
+          "result": "PASS",
+          "rationale": "Reassessed D2. Shared parser converts malformed outer/nested/fenced provider JSON into fixed categorized errors; raw response fragments do not reach gate summaries/artifacts. CLI/native/desktop contracts are unchanged; broad desktop and native checks remain applicable.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/local-agent-adapters.js",
+              "line": 141
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/local-agent-adapters.test.js",
+              "line": 164
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 781
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/apps/desktop/renderer/current-view.js",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "id": "R19",
+          "criterion": "Direct cutover",
+          "result": "PASS",
+          "rationale": "Carried forward: current distribution entry points and retired execution guidance are unchanged. No replay/converter/pilot/benchmark prerequisite was added by remediation; native package checks pass.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/index.js",
+              "line": 1
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/scripts/pr_lifecycle.py",
+              "line": 159
+            }
+          ]
+        },
+        {
+          "id": "R20",
+          "criterion": "Resume without false history",
+          "result": "PASS",
+          "rationale": "Carried forward: current-run resume and durable activation code are unchanged. Evidence-loss recovery is fresh execution within current contracts; it neither rewrites old journals nor reconstructs missing artifacts.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 72
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 135
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 563
+            }
+          ]
+        },
+        {
+          "id": "R21",
+          "criterion": "Practical observations",
+          "result": "PASS",
+          "rationale": "Carried forward: receipt timing and unknown token/cost treatment remain unchanged, as does the real-project observation recipe. No extra metrics/adoption gate was introduced.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 419
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/observation.js",
+              "line": 1
+            }
+          ]
+        }
+      ]
+    },
+    "judge": {
+      "verdict": "PASS",
+      "rubric": [
+        {
+          "id": "R1",
+          "criterion": "Planning and milestone authority",
+          "result": "PASS",
+          "rationale": "Reassessed D1; other authority contracts carried forward. Missing newer evidence cannot make an older PASS current; all four boundaries still validate authority and applicable inputs.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 117
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 268
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 732
+            }
+          ]
+        },
+        {
+          "id": "R2",
+          "criterion": "Model-led execution",
+          "result": "PASS",
+          "rationale": "Reassessed D4. Readiness remains separate from explicit execution, typed dependencies remain, and automatic retained history no longer has a record-count halt. The 66-record/33-closure fixture passes; an explicit provider byte capacity is not a remediation-round cap.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 175
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 219
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 259
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 753
+            }
+          ]
+        },
+        {
+          "id": "R3",
+          "criterion": "Canonical layouts",
+          "result": "PASS",
+          "rationale": "Carried forward: resolver, capture and layout ownership contracts did not change. The fresh all-gates integration still completes without evidence commits.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/adapter.js",
+              "line": 11
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 71
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 283
+            }
+          ]
+        },
+        {
+          "id": "R4",
+          "criterion": "Exact source and requirements",
+          "result": "PASS",
+          "rationale": "Carried forward with inspected applicability interaction: pinned repository/source and raw approved requirement identity remain bound at capture, execution and admission. Loss handling does not replace missing bytes with current bytes.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+              "line": 17
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+              "line": 83
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 238
+            }
+          ]
+        },
+        {
+          "id": "R5",
+          "criterion": "Containment and isolation",
+          "result": "PASS",
+          "rationale": "Prior F1 resolution carried forward after checking changed history collection. Selection and export still restrict historical repositories to declared scope; path/symlink capture and isolated views are unchanged.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 10
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 91
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 289
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 645
+            }
+          ]
+        },
+        {
+          "id": "R6",
+          "criterion": "Publication and retention",
+          "result": "PASS",
+          "rationale": "Reassessed D1 and successor retention correction. Closure validation rejects missing/corrupt proof; loss barriers prevent fallback; fresh evidence may recover. Retention now records inventory and completion references and validates their closure. Repeat/publication/cleanup contracts are unchanged.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 65
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 332
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 474
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 300
+            }
+          ]
+        },
+        {
+          "id": "R7",
+          "criterion": "Local finalization",
+          "result": "PASS",
+          "rationale": "Rechecked the changed packet/retention interaction. Inventory is core-derived, closure-checked and retained; separate completion checks still require finalization and release. The updated all-gates integration passes with actual observed integration and no evidence commits.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 466
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 291
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 283
+            }
+          ]
+        },
+        {
+          "id": "R8",
+          "criterion": "Independent grouped verdicts",
+          "result": "PASS",
+          "rationale": "Prior F1 resolution and independent/grouped contracts carried forward. Fresh role qualification, separate per-gate validation and isolated review packet remain; sanitization changes failure handling only. Prior actual local evaluator receipt remains supporting evidence, not a new live run.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 91
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 165
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 374
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 242
+            }
+          ]
+        },
+        {
+          "id": "R9",
+          "criterion": "Complete obligation inventory",
+          "result": "PASS",
+          "rationale": "Carried forward: enabled gate definitions and evaluator roles are unchanged. Mechanical execution remains actual runner evidence. Updated completion integration exercises all gates and verifies finalization/release retention.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+              "line": 40
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 130
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 291
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 283
+            }
+          ]
+        },
+        {
+          "id": "R10",
+          "criterion": "Equivalent-input reuse",
+          "result": "PASS",
+          "rationale": "Carried forward with loss interaction rechecked: content identity remains separate from commit/attempt identity. Memoization is evaluation-local; intact equivalent proof can reuse, while missing historical proof triggers refresh.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+              "line": 108
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 335
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 223
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 520
+            }
+          ]
+        },
+        {
+          "id": "R11",
+          "criterion": "Relevant change and uncertainty",
+          "result": "PASS",
+          "rationale": "Reassessed D1. Gate-known closure loss blocks older proof for that gate; unknown root loss blocks all older proof. Existing environment, consumed-evidence, requirements and source checks remain; fresh proof after the recorded loss can qualify.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 230
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 247
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 332
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 732
+            }
+          ]
+        },
+        {
+          "id": "R12",
+          "criterion": "Targeted delta coverage",
+          "result": "PASS",
+          "rationale": "Carried forward with inspected barrier interaction: delta must retain qualifying prior evidence and cover changed paths/interactions. A loss that invalidates prior proof cannot be hidden by delta assurance; a fresh full assessment remains available.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 210
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 309
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 257
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 504
+            }
+          ]
+        },
+        {
+          "id": "R13",
+          "criterion": "Bounded history and dispositions",
+          "result": "PASS",
+          "rationale": "Prior F2 resolution retained and reassessed alongside D4/loss recovery. Changed closures receive independent relevance assessment; affected IDs need dispositions, unaffected closures can share justified carry-forward. Missing history is labeled rather than fabricated.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 45
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 192
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 259
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 664
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 713
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 753
+            }
+          ]
+        },
+        {
+          "id": "R14",
+          "criterion": "New discovery and blocking criteria",
+          "result": "PASS",
+          "rationale": "Carried forward: evaluator instructions and validation still permit new instances of old classes and demand approved criterion/current source evidence for blocking findings. This review independently found, and then verified correction of, the retention scope regression.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 45
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 165
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 210
+            }
+          ]
+        },
+        {
+          "id": "R15",
+          "criterion": "One scoped human decision",
+          "result": "PASS",
+          "rationale": "Carried forward: decision schema, authority application and repeat-safe operation code are unchanged. New evidence refreshes do not infer new human authority.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+              "line": 62
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 117
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 315
+            }
+          ]
+        },
+        {
+          "id": "R16",
+          "criterion": "Honest exceptions and integration",
+          "result": "PASS",
+          "rationale": "Carried forward with inspected milestone interaction: exceptions remain distinct from original outcomes, merge authorization remains explicit, and completion requires recorded actual integration. Loss does not rewrite historical outcomes.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+              "line": 89
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 305
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/actions.js",
+              "line": 93
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 465
+            }
+          ]
+        },
+        {
+          "id": "R17",
+          "criterion": "Enforcement coverage",
+          "result": "PASS",
+          "rationale": "Reassessed D3; prior E1 capability evidence retained within its stated limits. Missing configured records now deny recognized direct merges. Supported subprocess host-event contracts are tested; no claim of live installed/trusted-hook interception or arbitrary shell coverage.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/pre-tool-use.js",
+              "line": 16
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/actions.js",
+              "line": 46
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-hook.test.js",
+              "line": 29
+            }
+          ]
+        },
+        {
+          "id": "R18",
+          "criterion": "Coherent consumers and low ceremony",
+          "result": "PASS",
+          "rationale": "Reassessed D2. Shared parser converts malformed outer/nested/fenced provider JSON into fixed categorized errors; raw response fragments do not reach gate summaries/artifacts. CLI/native/desktop contracts are unchanged; broad desktop and native checks remain applicable.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/local-agent-adapters.js",
+              "line": 141
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/local-agent-adapters.test.js",
+              "line": 164
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 781
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/apps/desktop/renderer/current-view.js",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "id": "R19",
+          "criterion": "Direct cutover",
+          "result": "PASS",
+          "rationale": "Carried forward: current distribution entry points and retired execution guidance are unchanged. No replay/converter/pilot/benchmark prerequisite was added by remediation; native package checks pass.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/index.js",
+              "line": 1
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/scripts/pr_lifecycle.py",
+              "line": 159
+            }
+          ]
+        },
+        {
+          "id": "R20",
+          "criterion": "Resume without false history",
+          "result": "PASS",
+          "rationale": "Carried forward: current-run resume and durable activation code are unchanged. Evidence-loss recovery is fresh execution within current contracts; it neither rewrites old journals nor reconstructs missing artifacts.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+              "line": 72
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+              "line": 135
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+              "line": 563
+            }
+          ]
+        },
+        {
+          "id": "R21",
+          "criterion": "Practical observations",
+          "result": "PASS",
+          "rationale": "Carried forward: receipt timing and unknown token/cost treatment remain unchanged, as does the real-project observation recipe. No extra metrics/adoption gate was introduced.",
+          "evidence": [
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+              "line": 419
+            },
+            {
+              "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/observation.js",
+              "line": 1
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "previousSourceDigests": [
+    "sha256:6e73c3233d045ea869e9f46bf3c29fa1b3d7c372bbedaa430685e903e0c6f4b4",
+    "sha256:3d062f4137a64016aba3ca65ff3076dc3f0e37441a4faa2f48f103c0ea321f38",
+    "sha256:d5cb07eb9a17762841c90bb42530679a5fb617f1c78320cca0fd70d5359f28ed"
+  ],
+  "findings": [],
+  "dispositions": [
+    {
+      "id": "D1",
+      "priorSeverity": "P1",
+      "status": "RESOLVED",
+      "criterion": [
+        "R1",
+        "R6",
+        "R11"
+      ],
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 230
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 332
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 732
+        }
+      ],
+      "detail": "A historical evidence-loss barrier rejects old proof at or before a loss position. Known gate loss affects that gate; unknown root loss affects every older gate. Focused root/output regressions reject the old PASS and admit newly executed proof; missing bytes remain absent and visible."
+    },
+    {
+      "id": "D2",
+      "priorSeverity": "P2",
+      "status": "RESOLVED",
+      "criterion": [
+        "R18"
+      ],
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/local-agent-adapters.js",
+          "line": 141
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/local-agent-adapters.test.js",
+          "line": 164
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 781
+        }
+      ],
+      "detail": "JSON parsing exceptions are replaced with fixed malformed-output diagnostics. Outer and nested Claude, Codex, fenced input and execution-summary paths were inspected/tested; direct read-only parser probes exposed no sentinel text."
+    },
+    {
+      "id": "D3",
+      "priorSeverity": "P2",
+      "status": "RESOLVED",
+      "criterion": [
+        "R17"
+      ],
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/pre-tool-use.js",
+          "line": 16
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-hook.test.js",
+          "line": 29
+        }
+      ],
+      "detail": "Failure to access a configured feature home reaches the supported deny response. Both recognized native command payload forms are covered. Hook recognition and activation limitations remain explicit."
+    },
+    {
+      "id": "D4",
+      "priorSeverity": "P2",
+      "status": "RESOLVED",
+      "criterion": [
+        "R2"
+      ],
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 259
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 753
+        }
+      ],
+      "detail": "Automatic required history no longer has a 64-record cutoff. The focused fixture retains 66 original/closure records and reconsiders 33 closed findings. Explicit caller selection and actual transport byte bounds remain; neither imposes a fixed remediation-round halt."
+    },
+    {
+      "id": "RC1",
+      "priorSeverity": "P3",
+      "status": "RESOLVED_IN_SUCCESSOR",
+      "criterion": [
+        "R6",
+        "R7"
+      ],
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 434
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 475
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 300
+        }
+      ],
+      "detail": "Review of pt3T4x independently found retention referencing executeGates-local applicabilityMemo from a separate helper; its catch silently skipped every completion proof. Read-only probe showed PASS, zero currentResult calls and empty completion selection. The final successor creates a helper-local Map, uses it for inventory and completion scans, and persists both inventories. The updated actual all-gates integration verifies finalization/release references and passes. Separate milestone checks contained the prior issue; no completion bypass had been established."
+    },
+    {
+      "id": "F1",
+      "status": "RESOLVED_CARRIED_FORWARD",
+      "criterion": [
+        "R5",
+        "R8"
+      ],
+      "detail": "Prior broader-history export defect remains fixed. Repository-scope guards and export isolation are unchanged; interacting history collection was inspected."
+    },
+    {
+      "id": "F2",
+      "status": "RESOLVED_CARRIED_FORWARD",
+      "criterion": [
+        "R13"
+      ],
+      "detail": "Prior omission of affected closed findings remains fixed. Independent relevance assessment and justified group carry-forward remain enforced; D4 regression exercises the larger closure set."
+    },
+    {
+      "id": "F3",
+      "status": "RESOLVED",
+      "criterion": [
+        "R6"
+      ],
+      "detail": "Fresh self-contained proof can replace missing applicability while history gaps remain visible. D1 now prevents old PASS resurrection; original bytes are not fabricated."
+    },
+    {
+      "id": "F4",
+      "status": "RESOLVED",
+      "criterion": [
+        "R18"
+      ],
+      "detail": "Earlier nonzero provider error sanitization plus D2 shared parser sanitization closes the observed raw diagnostic paths."
+    },
+    {
+      "id": "E1",
+      "status": "RESOLVED_WITH_DECLARED_CAPABILITY_LIMITS",
+      "criterion": [
+        "R17"
+      ],
+      "detail": "Frozen host capability matrix, native manifests and subprocess event/deny evidence support the narrow implemented hook contract. They explicitly do not claim candidate installation/trust or a real intercepted model event."
+    }
+  ],
+  "rubric": [
+    {
+      "id": "R1",
+      "criterion": "Planning and milestone authority",
+      "result": "PASS",
+      "rationale": "Reassessed D1; other authority contracts carried forward. Missing newer evidence cannot make an older PASS current; all four boundaries still validate authority and applicable inputs.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 117
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 223
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 268
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 732
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "criterion": "Model-led execution",
+      "result": "PASS",
+      "rationale": "Reassessed D4. Readiness remains separate from explicit execution, typed dependencies remain, and automatic retained history no longer has a record-count halt. The 66-record/33-closure fixture passes; an explicit provider byte capacity is not a remediation-round cap.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 175
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 219
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 259
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 753
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "criterion": "Canonical layouts",
+      "result": "PASS",
+      "rationale": "Carried forward: resolver, capture and layout ownership contracts did not change. The fresh all-gates integration still completes without evidence commits.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/adapter.js",
+          "line": 11
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 71
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 283
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "criterion": "Exact source and requirements",
+      "result": "PASS",
+      "rationale": "Carried forward with inspected applicability interaction: pinned repository/source and raw approved requirement identity remain bound at capture, execution and admission. Loss handling does not replace missing bytes with current bytes.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+          "line": 17
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+          "line": 83
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 238
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "criterion": "Containment and isolation",
+      "result": "PASS",
+      "rationale": "Prior F1 resolution carried forward after checking changed history collection. Selection and export still restrict historical repositories to declared scope; path/symlink capture and isolated views are unchanged.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+          "line": 10
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 91
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 289
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 645
+        }
+      ]
+    },
+    {
+      "id": "R6",
+      "criterion": "Publication and retention",
+      "result": "PASS",
+      "rationale": "Reassessed D1 and successor retention correction. Closure validation rejects missing/corrupt proof; loss barriers prevent fallback; fresh evidence may recover. Retention now records inventory and completion references and validates their closure. Repeat/publication/cleanup contracts are unchanged.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+          "line": 65
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+          "line": 223
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 223
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 332
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 474
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 300
+        }
+      ]
+    },
+    {
+      "id": "R7",
+      "criterion": "Local finalization",
+      "result": "PASS",
+      "rationale": "Rechecked the changed packet/retention interaction. Inventory is core-derived, closure-checked and retained; separate completion checks still require finalization and release. The updated all-gates integration passes with actual observed integration and no evidence commits.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 466
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 291
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 283
+        }
+      ]
+    },
+    {
+      "id": "R8",
+      "criterion": "Independent grouped verdicts",
+      "result": "PASS",
+      "rationale": "Prior F1 resolution and independent/grouped contracts carried forward. Fresh role qualification, separate per-gate validation and isolated review packet remain; sanitization changes failure handling only. Prior actual local evaluator receipt remains supporting evidence, not a new live run.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 91
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 165
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 374
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 242
+        }
+      ]
+    },
+    {
+      "id": "R9",
+      "criterion": "Complete obligation inventory",
+      "result": "PASS",
+      "rationale": "Carried forward: enabled gate definitions and evaluator roles are unchanged. Mechanical execution remains actual runner evidence. Updated completion integration exercises all gates and verifies finalization/release retention.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+          "line": 40
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 130
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 291
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 283
+        }
+      ]
+    },
+    {
+      "id": "R10",
+      "criterion": "Equivalent-input reuse",
+      "result": "PASS",
+      "rationale": "Carried forward with loss interaction rechecked: content identity remains separate from commit/attempt identity. Memoization is evaluation-local; intact equivalent proof can reuse, while missing historical proof triggers refresh.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/evidence.js",
+          "line": 108
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 335
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 223
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 520
+        }
+      ]
+    },
+    {
+      "id": "R11",
+      "criterion": "Relevant change and uncertainty",
+      "result": "PASS",
+      "rationale": "Reassessed D1. Gate-known closure loss blocks older proof for that gate; unknown root loss blocks all older proof. Existing environment, consumed-evidence, requirements and source checks remain; fresh proof after the recorded loss can qualify.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 230
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 247
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 332
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 732
+        }
+      ]
+    },
+    {
+      "id": "R12",
+      "criterion": "Targeted delta coverage",
+      "result": "PASS",
+      "rationale": "Carried forward with inspected barrier interaction: delta must retain qualifying prior evidence and cover changed paths/interactions. A loss that invalidates prior proof cannot be hidden by delta assurance; a fresh full assessment remains available.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 210
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 309
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 257
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 504
+        }
+      ]
+    },
+    {
+      "id": "R13",
+      "criterion": "Bounded history and dispositions",
+      "result": "PASS",
+      "rationale": "Prior F2 resolution retained and reassessed alongside D4/loss recovery. Changed closures receive independent relevance assessment; affected IDs need dispositions, unaffected closures can share justified carry-forward. Missing history is labeled rather than fabricated.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 45
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 192
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 259
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 664
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 713
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 753
+        }
+      ]
+    },
+    {
+      "id": "R14",
+      "criterion": "New discovery and blocking criteria",
+      "result": "PASS",
+      "rationale": "Carried forward: evaluator instructions and validation still permit new instances of old classes and demand approved criterion/current source evidence for blocking findings. This review independently found, and then verified correction of, the retention scope regression.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 45
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 165
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 210
+        }
+      ]
+    },
+    {
+      "id": "R15",
+      "criterion": "One scoped human decision",
+      "result": "PASS",
+      "rationale": "Carried forward: decision schema, authority application and repeat-safe operation code are unchanged. New evidence refreshes do not infer new human authority.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+          "line": 62
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 117
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 315
+        }
+      ]
+    },
+    {
+      "id": "R16",
+      "criterion": "Honest exceptions and integration",
+      "result": "PASS",
+      "rationale": "Carried forward with inspected milestone interaction: exceptions remain distinct from original outcomes, merge authorization remains explicit, and completion requires recorded actual integration. Loss does not rewrite historical outcomes.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/contracts.js",
+          "line": 89
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 305
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/actions.js",
+          "line": 93
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 465
+        }
+      ]
+    },
+    {
+      "id": "R17",
+      "criterion": "Enforcement coverage",
+      "result": "PASS",
+      "rationale": "Reassessed D3; prior E1 capability evidence retained within its stated limits. Missing configured records now deny recognized direct merges. Supported subprocess host-event contracts are tested; no claim of live installed/trusted-hook interception or arbitrary shell coverage.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/pre-tool-use.js",
+          "line": 16
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/actions.js",
+          "line": 46
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-hook.test.js",
+          "line": 29
+        }
+      ]
+    },
+    {
+      "id": "R18",
+      "criterion": "Coherent consumers and low ceremony",
+      "result": "PASS",
+      "rationale": "Reassessed D2. Shared parser converts malformed outer/nested/fenced provider JSON into fixed categorized errors; raw response fragments do not reach gate summaries/artifacts. CLI/native/desktop contracts are unchanged; broad desktop and native checks remain applicable.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/local-agent-adapters.js",
+          "line": 141
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/local-agent-adapters.test.js",
+          "line": 164
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 781
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/apps/desktop/renderer/current-view.js",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "R19",
+      "criterion": "Direct cutover",
+      "result": "PASS",
+      "rationale": "Carried forward: current distribution entry points and retired execution guidance are unchanged. No replay/converter/pilot/benchmark prerequisite was added by remediation; native package checks pass.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/index.js",
+          "line": 1
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/scripts/pr_lifecycle.py",
+          "line": 159
+        }
+      ]
+    },
+    {
+      "id": "R20",
+      "criterion": "Resume without false history",
+      "result": "PASS",
+      "rationale": "Carried forward: current-run resume and durable activation code are unchanged. Evidence-loss recovery is fresh execution within current contracts; it neither rewrites old journals nor reconstructs missing artifacts.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/core.js",
+          "line": 72
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/store.js",
+          "line": 135
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/cli/test/current-core.test.js",
+          "line": 563
+        }
+      ]
+    },
+    {
+      "id": "R21",
+      "criterion": "Practical observations",
+      "result": "PASS",
+      "rationale": "Carried forward: receipt timing and unknown token/cost treatment remain unchanged, as does the real-project observation recipe. No extra metrics/adoption gate was introduced.",
+      "evidence": [
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/execution.js",
+          "line": 419
+        },
+        {
+          "path": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-implementation-review-RKD2ER/source/plugin-src/shared/resources/protocol/current/observation.js",
+          "line": 1
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "This is a standalone independent local assessment, not formal installed-protocol passage, release approval, host activation certification or production validation. The evaluator did not implement any assessed source. The original independent context was created with inheritedTurns 0; this recheck retains its own earlier review context and implementer claims, rather than claiming a new conversation for each delta.",
+    "Only supplied frozen snapshots, their requirements and retained evidence were read. No network, credentials, other workspace history or implementation edits were used. Official host documentation URLs are retained evidence, not freshly browsed verification.",
+    "Full CLI evidence reports 238 passes, one optional live-provider skip, zero failures; desktop reports 172 passes. Those broad runs predate the final helper-local memo/retention-reference correction. Their unchanged-path conclusions are carried forward after the exact two-file successor diff was inspected.",
+    "The six focused regressions include test-only additions made after the broad CLI run began (missing-output loss variant and summary sanitization). They all pass. Final successor coverage is the one expanded all-gates completion test, passing, plus repeated native lint/build validation; a complete CLI/desktop rerun on the successor was not supplied.",
+    "Earlier actual independent-provider and Electron runtime receipts support unchanged consumer/provider behavior; they are historical smoke, not new live executions of the final digest. The optional live-provider test remained skipped in the broad CLI run.",
+    "Native hook evidence is subprocess/host-contract smoke with documented supported capability, not a real model event under an installed and trusted candidate plugin. Direct recognized gh pr merge forms are covered; indirect scripts, alternate clients, disabled hooks and arbitrary external actions are outside that interception claim.",
+    "The manifest lists sourceDigest sha256:b0c15462ebf9c76a43eed525b915242ead5e2b1d340c5c0276526e72ca341229. All 367 listed source file hashes were independently checked and matched. Build sourceCommit metadata names starting HEAD for an uncommitted candidate, not its reviewed source identity or a released version.",
+    "Assessment covers the approved pre-merge requirements and changed-code interactions. Passing means no supported remaining material defect was established in this scope; it does not assert exhaustive absence of defects or newly execute every retained test."
+  ]
+}

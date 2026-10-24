@@ -18,5 +18,9 @@
 6. On approval: mark the status line approved with the date, freeze the
    document (further changes via `## Changes` entries only), write a
    checkpoint (`gate:design`), and proceed to spec drafting.
-7. On rejection: revise via further grilling, or delete the branch if the
-   feature is abandoned outright.
+7. On rejection: revise via further grilling, retain the record if the
+   feature is abandoned. Deletion requires separate explicit authorization.
+
+Record the actual design approval with `human.decide` kind `approve-design`
+against the captured design hash. Use the current adapter described in
+`<plugin-root>/resources/PROTOCOL.md`; prose approval status alone is not passage.

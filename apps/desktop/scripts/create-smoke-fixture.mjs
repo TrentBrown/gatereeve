@@ -1,7 +1,8 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { isAbsolute, resolve } from 'node:path';
 
-import { initializeFeature } from '../../../plugin-src/shared/resources/protocol/feature.js';
+import { executePluginRequest } from '../../../plugin-src/shared/resources/protocol/plugin-adapter.js';
+import { git } from '../../../plugin-src/shared/resources/protocol/current/evidence.js';
 
 const worktreePath = process.argv[2];
 if (typeof worktreePath !== 'string' || !isAbsolute(worktreePath)) {
@@ -26,11 +27,11 @@ await writeFile(
     },
   }, null, 2)}\n`
 );
-await initializeFeature({
-  featureHome,
-  featureId,
-  actor: { kind: 'agent', label: 'Desktop runtime smoke' },
-  eventId: 'evt-desktop-runtime-smoke-init',
-  recordedAt: '2026-08-27T00:00:00.000Z',
-});
+await git(worktree, ['init', '-b', 'smoke-topic']);
+await mkdir(featureHome, { recursive: true });
+await writeFile(resolve(featureHome, 'interview.md'), '# Runtime smoke interview\nNo product scope.\n');
+await writeFile(resolve(featureHome, 'design.md'), '# Runtime smoke design\nObserve the current desktop contract.\n');
+const initialized = await executePluginRequest({ operation: 'run.start', cwd: worktree,
+  operationId: 'desktop-runtime-smoke', input: { implementers: ['desktop-smoke-context'] } });
+if (!initialized.ok) throw new Error(initialized.error.message);
 process.stdout.write(`${worktree}\n`);

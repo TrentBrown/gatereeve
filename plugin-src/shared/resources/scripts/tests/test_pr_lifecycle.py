@@ -7,7 +7,6 @@ from pathlib import Path
 
 import test_pr_context as fixtures
 from boundary_context import BoundaryContext, synthetic_review_identity
-from boundary_gate import resolve_gate_context, BoundaryGateError
 from pr_context import (
     PullRequestContext, PullRequestContextError, PullRequestSnapshot,
     GitHubPullRequestProvider,
@@ -225,8 +224,6 @@ class ClosedPullRequestTests(fixtures.PullRequestContextTests):
         self.assertEqual(decoded.to_dict(), historical.to_dict())
         with self.assertRaisesRegex(PullRequestContextError, "retired"):
             verify_boundary_context_is_current(decoded.to_dict(), self.repository, self.provider())
-        with self.assertRaisesRegex(BoundaryGateError, "retired"):
-            resolve_gate_context(resolve_workflow_context(self.root), decoded, "verification")
 
     def test_boolean_validation_and_retired_configuration(self):
         self.closed_repository()

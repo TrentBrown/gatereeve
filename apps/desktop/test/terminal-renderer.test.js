@@ -32,7 +32,7 @@ function project(path, name) {
     status: 'ready',
     featureHome: `${path}/docs/issues/feature`,
     featureId: 'feature',
-    workflowState: 'DELIVERING_SLICES',
+    workflowState: 'IMPLEMENTING',
     diagnostic: null,
   };
 }
@@ -94,7 +94,7 @@ test('renderer lazily preserves one terminal view per project and presents exit/
   const rendererPath = resolve(desktopRoot, 'renderer/renderer.js');
   let source = await readFile(rendererPath, 'utf8');
   source = source.replace("'./dependency-diagram.js'", JSON.stringify(pathToFileURL(resolve(desktopRoot, 'renderer/dependency-diagram.js')).href));
-  for (const moduleName of ['dom.js', 'workspace-state.js', 'presentation.js']) {
+  for (const moduleName of ['current-view.js', 'dom.js', 'workspace-state.js', 'presentation.js']) {
     source = source.replace(
       `'./${moduleName}'`,
       JSON.stringify(pathToFileURL(resolve(desktopRoot, 'renderer', moduleName)).href),
@@ -273,22 +273,6 @@ test('renderer lazily preserves one terminal view per project and presents exit/
     assert.equal(calls.some(([name]) => name === 'restart'), true);
     assert.equal(window.document.querySelector('#terminal-status').textContent, 'running');
 
-    moduleTaskSubscriber({ schemaVersion: 1, type: 'started', session: taskSession() });
-    await new Promise((resolve) => setImmediate(resolve));
-    const selector = window.document.querySelector('#terminal-session-select');
-    selector.querySelector('[value="shell"]').removeAttribute('selected');
-    selector.querySelector('[value="module_task_check"]').setAttribute('selected', '');
-    selector.dispatchEvent(new window.Event('change', { bubbles: true }));
-    await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(window.document.querySelector('#terminal-title').textContent, 'Repository check');
-    assert.equal(window.document.querySelector('#terminal-terminate').textContent, 'Cancel task');
-    moduleTaskSubscriber({
-      schemaVersion: 1, type: 'data', sessionId: 'module_task_check', data: 'task output',
-    });
-    assert.equal(window.document.querySelector('[data-module-task="module_task_check"]').dataset.output, 'task output');
-    window.document.querySelector('#terminal-terminate').click();
-    await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(calls.some(([name]) => name === 'task-cancel'), true);
   } finally {
     delete globalThis.window;
     delete globalThis.document;

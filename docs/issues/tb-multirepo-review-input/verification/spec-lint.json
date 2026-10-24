@@ -1,0 +1,11 @@
+{
+  "specHash": "sha256:2b2f80e655e4a038ddfa77f88dd764a32a2ce8a41ae8678822a3d2f346e5446e",
+  "passed": true,
+  "guardId": "spec.validation.current",
+  "provider": "python",
+  "script": "lint_spec.py",
+  "data": null,
+  "stdout": "PASS\n",
+  "stderr": "",
+  "evidenceFingerprint": "sha256:ee7b76a283a17c8b664017976637cb93fea293c58758295d0a3af359c43736e3"
+}

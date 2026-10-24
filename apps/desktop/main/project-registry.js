@@ -62,7 +62,7 @@ function summary(path, featureHome, snapshot, diagnostic) {
     status: diagnostic === null ? 'ready' : 'needs-attention',
     featureHome,
     featureId: snapshot?.featureId ?? null,
-    workflowState: snapshot?.projection?.feature?.state ?? null,
+    workflowState: snapshot?.current?.phase ?? null,
     diagnostic,
   };
 }
@@ -75,7 +75,7 @@ export async function inspectProject(path, { protocol, sources }) {
     const context = await protocol.resolve(canonicalPath);
     featureHome = context.featureHome;
     const snapshot = await protocol.snapshot(featureHome, { facts: {}, sources });
-    const diagnostic = snapshot.mode === 'governed'
+    const diagnostic = ['governed', 'current-entry'].includes(snapshot.mode)
       ? null
       : diagnosticFromSnapshot(canonicalPath, featureHome, snapshot);
     return {

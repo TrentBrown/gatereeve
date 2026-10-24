@@ -1,0 +1,14 @@
+✔ current resume preserves unsupported and damaged runs and starts with no inherited authority (844.246709ms)
+✔ incidental host environment preserves proof while declared runtime inputs invalidate it (1061.308625ms)
+✔ a narrower passing check cannot hide earlier failed verification and packets refresh their inventory (1307.699542ms)
+✔ review PASS needs dispositions for supplied open findings and claimed fixes (870.628541ms)
+✔ Git symlinks and gitlinks are retained as typed metadata without following external targets (579.655916ms)
+✔ reconciliation rejects unknown rubric mappings even when documents are readable (818.505958ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5568.682666

@@ -10,7 +10,8 @@ Use when the user asks to commit or when a workflow boundary requires a commit.
    - `issues.md` status reflects the work.
    - `tracker.md` reflects criteria movement when at a boundary.
    - `scratchpad.md` has decision entries for triggered decisions.
-5. Run required verification or clearly report why verification is blocked.
+5. Run checks appropriate to the change; report actual verification. Individual
+   commits do not require milestone passage or a new independent review.
 6. Stage only intended files.
 7. Commit with a concise imperative message. Prefer conventional prefixes when
    the repo uses them.

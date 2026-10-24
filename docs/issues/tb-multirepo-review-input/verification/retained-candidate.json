@@ -1,0 +1,9 @@
+{
+  "sourceDigest": "sha256:b0c15462ebf9c76a43eed525b915242ead5e2b1d340c5c0276526e72ca341229",
+  "archive": "/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/.checkpoints/reviewed-candidate-b0c15462.tar.gz",
+  "archiveSha256": "0fbd4bcc87cc2463d94a7b632ee9d645a3e5de0381895f39de900bea39b91ff5",
+  "bytes": 1621833,
+  "retention": "Local worktree checkpoint archive; optional Git and not an off-device backup",
+  "manifest": "review-source-judge-final-manifest.json",
+  "verdict": "openai-judge-recheck.json"
+}

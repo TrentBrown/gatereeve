@@ -32,11 +32,16 @@ test('Desktop stages the exact protocol and trusted waiver guard without a CLI r
   });
   assert.equal(Object.keys(packageJson.dependencies).some((name) => /cli|commander/iu.test(name)), false);
   const trustedScripts = [
+    'lint_spec.py',
+    'lint_issues.py',
+    'lint_tracker.py',
+    'merge_verified.py',
+    'pattern_tool.py',
     'pr_context.py',
     'workflow_common.py',
     'workflow_context.py',
   ];
-  assert.deepEqual(await readdir(resolve(desktopRoot, 'resources/scripts')), trustedScripts);
+  assert.deepEqual((await readdir(resolve(desktopRoot, 'resources/scripts'))).sort(), [...trustedScripts, 'pattern'].sort());
   for (const script of trustedScripts) {
     assert.deepEqual(
       await readFile(resolve(desktopRoot, 'resources/scripts', script)),

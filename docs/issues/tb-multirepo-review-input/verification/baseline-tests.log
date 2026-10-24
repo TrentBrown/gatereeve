@@ -1,0 +1,28 @@
+✔ historical mechanical record pr-77/attempts/s1-pr77-a1/preparation-unavailable.json has a bounded recognized shape; configuration additions are not history (2.902459ms)
+✔ historical mechanical record pr-77/attempts/s1-pr77-a2/provider-unavailable.json has a bounded recognized shape; configuration additions are not history (0.555541ms)
+✔ historical mechanical record pr-77/attempts/s1-pr77-a2/validation-correction.json has a bounded recognized shape; configuration additions are not history (0.393833ms)
+✔ historical mechanical record runtime/s1-integration.json has a bounded recognized shape; configuration additions are not history (0.79925ms)
+✔ historical mechanical record runtime/s2-model-migration-impact.json has a bounded recognized shape; configuration additions are not history (0.636125ms)
+✔ historical mechanical record runtime/s3-integration.json has a bounded recognized shape; configuration additions are not history (0.419792ms)
+✔ historical mechanical record runtime/s4-cost-verification.json has a bounded recognized shape; configuration additions are not history (0.569416ms)
+✔ empty history needs actual invalidation and superseding journal proof; empty/config-shaped new files still block (805.406834ms)
+✔ history is absent from documents, patch chunks and repository view; allowed source remains (317.913167ms)
+✔ compact snapshots preserve exact source despite archive export attributes (262.426333ms)
+✔ declared criteria cannot omit whole-feature obligations or invent rubric IDs (306.11425ms)
+✔ history aliases, symlinks and cross-boundary renames reject rather than hide production paths (423.289083ms)
+✔ missing approval and unclassified production code in record locations fail closed (213.281917ms)
+✔ empty files shared with empty history do not contain leaked review information (235.762375ms)
+✔ historical capture scripts remain source while their old verification logs are removed (253.914917ms)
+✔ rename edits and binary old/new content retain exact identities and accessible bytes (298.072ms)
+✔ 905-file, 24 MiB review uses bounded chunks without changing mixed-feature scope (2227.816958ms)
+✔ filtered input identity survives history-only changes but not source or requirement changes (416.659625ms)
+✔ changed spooled evidence rejects before the snapshot is exposed (244.682459ms)
+✔ adopted formal Judge receives filtered source and full Verification, then publishes a bound host audit (411.142042ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5681.366667

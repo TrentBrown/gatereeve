@@ -1,0 +1,22 @@
+✔ selection publishes local state before enrichment and polls GitHub only while needed (6.388333ms)
+✔ unavailable GitHub enrichment preserves a readable local snapshot (0.680625ms)
+✔ notifications are opt-in, baseline current state, deduplicate refreshes, and stop with the coordinator (1.778375ms)
+✔ selected-agent Setup persists explicit choice and rechecks without requiring a worktree (0.331833ms)
+✔ changing agent selection clears stale detection cards before rechecking (0.258833ms)
+✔ failed project admission remains unsaved and leaves the active project intact (1.548625ms)
+✔ startup validates every saved project and observes only the restored active project (1.270417ms)
+✔ active project summary follows the enriched canonical workflow state (0.403625ms)
+✔ removing the active project preserves disk and activates the nearest saved project (2.099208ms)
+✔ notification candidates cover every specified attention class (1.446ms)
+✔ observer establishes a quiet baseline and emits only newly entered transitions (0.204875ms)
+✔ repeated hosted observations deduplicate the same pull-request merge (0.099292ms)
+✔ filesystem bursts coalesce into one full refresh request (2.080583ms)
+✔ real watcher observes a current event created in a new nested run directory (76.182792ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 148.94225

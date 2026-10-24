@@ -1,0 +1,12 @@
+✔ same source bytes at a new commit reuse the original qualified review (934.859084ms)
+✔ parent Git tracked records complete local review without evidence commits (7020.722458ms)
+✔ parent Git ignored records complete local review without evidence commits (6950.026292ms)
+✔ an explicit pause stops passage and its recorded continuation restores permitted repair (561.224542ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15551.755083

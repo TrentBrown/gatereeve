@@ -44,3 +44,10 @@ test('rejects symlinks in canonical package sources', async () => {
 
   await assert.rejects(lintPortability(root), /must not contain symlinks/);
 });
+
+test('rejects a JavaScript import escaping the shared package', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workflow portability '));
+  await mkdir(join(root, 'shared/resources/protocol'), { recursive: true });
+  await writeFile(join(root, 'shared/resources/protocol/escape.js'), "import { value } from '../../../outside.js';\n");
+  await assert.rejects(lintPortability(root), /plugin-root escape/);
+});

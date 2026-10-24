@@ -1,170 +1,44 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
-import { mkdtemp, readFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { promisify } from 'node:util';
 import test from 'node:test';
-
-import { executePluginRequest } from '../../plugin-src/shared/resources/protocol/plugin-adapter.js';
-
-const execFileAsync = promisify(execFile);
-const executable = resolve(import.meta.dirname, '../bin/workflow.js');
-const actor = { kind: 'agent', label: 'gatereeve CLI' };
-
-async function cli(arguments_, options = {}) {
-  try {
-    const result = await execFileAsync(process.execPath, [executable, ...arguments_], options);
-    return { status: 0, stdout: result.stdout, stderr: result.stderr };
-  } catch (error) {
-    return {
-      status: error.code,
-      stdout: error.stdout ?? '',
-      stderr: error.stderr ?? '',
-    };
-  }
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { readFile } from 'node:fs/promises';
+import { resolve, join } from 'node:path';
+import { currentFixture } from './helpers/current-fixture.js';
+const exec = promisify(execFile);
+const cli = resolve(import.meta.dirname, '../bin/workflow.js');
+async function run(repo, args) {
+  try { const result = await exec(process.execPath, [cli, ...args, '--cwd', repo, '--json']); return { ...result, code: 0 }; }
+  catch (error) { return error; }
 }
 
-test('optional CLI and plugin adapter produce the same governed projection', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'gatereeve cli parity '));
-  const pluginHome = resolve(root, 'plugin feature');
-  const cliHome = resolve(root, 'cli feature');
-  const recordedAt = '2026-08-25T00:00:00Z';
-
-  await executePluginRequest({
-    operation: 'feature.init',
-    featureHome: pluginHome,
-    featureId: 'parity-feature',
-    actor,
-    eventId: 'evt-init',
-    recordedAt,
-  });
-  const initialized = await cli([
-    'feature',
-    'init',
-    '--feature-home',
-    cliHome,
-    '--feature-id',
-    'parity-feature',
-    '--event-id',
-    'evt-init',
-    '--recorded-at',
-    recordedAt,
-    '--json',
-  ]);
-  assert.equal(initialized.status, 0, initialized.stderr);
-  assert.equal(JSON.parse(initialized.stdout).ok, true);
-
-  await executePluginRequest({
-    operation: 'feature.transition',
-    featureHome: pluginHome,
-    transitionId: 'approve-design',
-    input: {
-      actor: { kind: 'human-confirmed', label: 'user approval' },
-      eventId: 'evt-design',
-      recordedAt,
-    },
-  });
-  const approved = await cli([
-    'feature',
-    'approve-design',
-    '--feature-home',
-    cliHome,
-    '--human-confirmed',
-    'user approval',
-    '--event-id',
-    'evt-design',
-    '--recorded-at',
-    recordedAt,
-    '--json',
-  ]);
-  assert.equal(approved.status, 0, approved.stderr);
-
-  const pluginStatus = await executePluginRequest({ operation: 'status', featureHome: pluginHome });
-  const cliStatus = await cli(['status', '--feature-home', cliHome, '--json']);
-  const cliEnvelope = JSON.parse(cliStatus.stdout);
-  assert.equal(cliEnvelope.ok, true);
-  assert.deepEqual(cliEnvelope.data.projection, pluginStatus.data.projection);
+test('CLI and native adapter share current parent-workspace status and preserve old files', async t => {
+  const f = await currentFixture(t);
+  const started = await run(f.repo, ['run', 'resume-current', '--implementer', 'fixture-context', '--operation-id', 'resume']);
+  assert.equal(started.code, 0, started.stderr);
+  const cliStatus = JSON.parse((await run(f.repo, ['status'])).stdout);
+  const native = await f.request('status');
+  assert.deepEqual(cliStatus, native);
+  assert.equal(cliStatus.data.current.phase, 'DESIGNING');
+  assert.equal(await readFile(join(f.home, 'events.jsonl'), 'utf8'), 'historical bytes\n');
 });
 
-test('queries do not mutate and check alone uses binary failure exit semantics', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'gatereeve cli query '));
-  const featureHome = resolve(root, 'feature');
-  await executePluginRequest({
-    operation: 'feature.init',
-    featureHome,
-    featureId: 'query-feature',
-    actor,
-    eventId: 'evt-init',
-  });
-  await executePluginRequest({
-    operation: 'feature.pause',
-    featureHome,
-    input: { actor, reason: 'test blocker', eventId: 'evt-pause' },
-  });
-  const journal = resolve(featureHome, 'events.jsonl');
-  const before = await readFile(journal, 'utf8');
-
-  for (const arguments_ of [
-    ['status', '--feature-home', featureHome, '--json'],
-    ['next', '--feature-home', featureHome, '--json'],
-    ['history', '--feature-home', featureHome, '--json'],
-    ['graph', '--feature-home', featureHome, '--json'],
-  ]) {
-    const result = await cli(arguments_);
-    assert.equal(result.status, 0, result.stderr);
-    assert.equal(JSON.parse(result.stdout).ok, true);
-  }
-  assert.equal(await readFile(journal, 'utf8'), before);
-
-  const failed = await cli(['check', 'not-blocked', '--feature-home', featureHome, '--json']);
-  assert.equal(failed.status, 1);
-  const envelope = JSON.parse(failed.stdout);
-  assert.equal(envelope.ok, false);
-  assert.equal(envelope.error.code, 'CHECK_FAILED');
-  assert.equal(await readFile(journal, 'utf8'), before);
+test('current queries are read-only and blocked milestone passage fails without appending', async t => {
+  const f = await currentFixture(t);
+  await f.request('run.start', { implementers: ['fixture'] }, 'start');
+  const before = (await f.core.state()).events;
+  assert.equal((await run(f.repo, ['status'])).code, 0);
+  const check = JSON.parse((await run(f.repo, ['milestone', 'check', 'acceptance'])).stdout);
+  assert.equal(check.data.allowed, false);
+  const passage = await run(f.repo, ['milestone', 'pass', 'acceptance']);
+  assert.equal(passage.code, 1);
+  assert.deepEqual((await f.core.state()).events, before);
 });
 
-test('rejected mutations return the stable envelope and append no event', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'gatereeve cli rejection '));
-  const featureHome = resolve(root, 'feature');
-  await executePluginRequest({
-    operation: 'feature.init',
-    featureHome,
-    featureId: 'rejection-feature',
-    actor,
-    eventId: 'evt-init',
-  });
-  const journal = resolve(featureHome, 'events.jsonl');
-  const before = await readFile(journal, 'utf8');
-
-  const rejected = await cli([
-    'feature',
-    'approve-design',
-    '--feature-home',
-    featureHome,
-    '--json',
-  ]);
-  assert.equal(rejected.status, 1);
-  const envelope = JSON.parse(rejected.stdout);
-  assert.equal(envelope.ok, false);
-  assert.equal(envelope.command, 'feature.transition');
-  assert.equal(envelope.error.code, 'TRANSITION_REJECTED');
-  assert.equal(await readFile(journal, 'utf8'), before);
-});
-
-test('public command tree retains maintainer namespaces without force passage', async () => {
-  const result = await cli(['help', '--recurse', '3']);
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /^gatereeve Observe and enforce/m);
-  assert.match(result.stdout, /^\s+plugin Build and maintain/m);
-  assert.match(result.stdout, /^\s+release Publish, observe, and verify/m);
-  assert.doesNotMatch(result.stdout, /^\s+advance\b/m);
-
-  for (const family of ['feature', 'slice', 'boundary', 'gate', 'change']) {
-    const help = await cli([family, '--help']);
-    assert.equal(help.status, 0, help.stderr);
-    assert.doesNotMatch(help.stdout, /--force/);
-    assert.doesNotMatch(help.stdout, /^\s+advance\b/m);
-  }
+test('retired mutation commands are unavailable and help explains explicit execution', async t => {
+  const f = await currentFixture(t);
+  assert.notEqual((await run(f.repo, ['feature', 'migrate-model'])).code, 0);
+  const { stdout } = await exec(process.execPath, [cli, 'evaluate', '--help']);
+  assert.match(stdout, /actual receipts/);
+  assert.doesNotMatch(stdout, /run-eligible/);
 });

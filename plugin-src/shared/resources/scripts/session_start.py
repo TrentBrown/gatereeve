@@ -35,29 +35,19 @@ def discover_status_context(cwd: str | None = None) -> str | None:
         data = envelope.get("data", {})
         mode = data.get("mode")
         if mode == "governed":
-            projection = data["projection"]
-            feature = projection["feature"]["state"]
-            active_slice = projection.get("activeSliceId") or "none"
-            blockers = len(data.get("blockers", []))
+            current = data["current"]
+            blocked = [item["name"] for item in data.get("milestones", []) if not item["allowed"]]
             return (
-                f"GateReeve state: governed; feature={projection['featureId']}; "
-                f"phase={feature}; activeSlice={active_slice}; blockers={blockers}. "
-                "Treat the plugin protocol core as the reeve before recording passage."
+                f"GateReeve current run: feature={data['featureId']}; phase={current['phase']}; "
+                f"blocked milestones={','.join(blocked) or 'none'}. "
+                "Work freely within the authorized phase. Required milestone passage uses the core. "
+                "Readiness does not launch review. SessionStart is guidance, not action interception."
             )
-        if mode == "legacy":
+        if mode == "current-entry":
             return (
-                "GateReeve state: legacy feature; it may finish without governance. "
-                "Do not silently adopt or reconstruct its history."
-            )
-        if mode == "missing":
-            return (
-                "GateReeve state: no feature record. New non-trivial features initialize "
-                "governance before design work."
-            )
-        if mode == "inconsistent":
-            return (
-                f"GateReeve state: inconsistent ({data.get('reason', 'unknown reason')}); "
-                "ordinary workflow passage is blocked."
+                "GateReeve current run needed: preserve existing documents and old runtime files. "
+                "Use run.resume-current with observed approvals; do not replay old events or "
+                "restart unchanged planning. Ask only for missing authority."
             )
     except (OSError, subprocess.SubprocessError, json.JSONDecodeError, KeyError, TypeError):
         return None
