@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "result": {
+      "artifacts": [
+        {
+          "bytes": 1301,
+          "format": "json",
+          "hash": "sha256:0aad347b44454165937addfd04a7c5c57f38a6ac969aba36ddad699c2bbd8cdb"
+        },
+        {
+          "bytes": 628,
+          "format": "json",
+          "hash": "sha256:88f1d12f92656b3aafc0ce554b5d1f1128b2efa4ab48ed8d37b546d0ae24c19d"
+        }
+      ],
+      "contract": "gatereeve/current/2",
+      "coverage": {
+        "complete": true,
+        "interactions": [
+          "Compared complete base, head and target source: each contains only `export const answer = 42;` at line 1, consistent with requirements/spec.md AC1 and R1. No imports, callers or cross-repository interactions are present in the supplied scope."
+        ],
+        "limitations": [],
+        "paths": [
+          "app/app.js"
+        ]
+      },
+      "criteria": [],
+      "dispositions": [],
+      "featureId": "feature",
+      "findings": [],
+      "gate": "code",
+      "historyAssessment": null,
+      "input": {
+        "bytes": 576,
+        "format": "json",
+        "hash": "sha256:bc92c48fab08f75689d015434a5afa994e68b8c310a7d57e04133934932c3c99"
+      },
+      "kind": "result",
+      "mode": "full",
+      "outcome": "PASS",
+      "prior": null,
+      "priorCandidate": null,
+      "receipt": {
+        "bytes": 594,
+        "format": "json",
+        "hash": "sha256:13707ff9719be6e42b32e2290ea828eb41068bf198d692dfe8e1f976a431b88d"
+      },
+      "runId": "run-one",
+      "summary": "Base, head and target contain identical source. No supported change-related defects were found. Assessment is based on static evidence; no test results were supplied."
+    },
+    "receipt": {
+      "completedAt": "2026-10-24T01:09:50.887Z",
+      "contract": "gatereeve/current/2",
+      "evaluator": {
+        "contextId": "01a16b74-baab-7321-b1bf-d9e3f6cf3d68",
+        "freshContext": true,
+        "inheritedTurns": 0,
+        "model": "gpt-6.1-sol",
+        "provider": "codex"
+      },
+      "gates": [
+        "code"
+      ],
+      "input": "sha256:bc92c48fab08f75689d015434a5afa994e68b8c310a7d57e04133934932c3c99",
+      "jobId": "d01f21c80fbc71aefdf99cfdf07d24d075cc67fe72548332a4fb1f5ea7d97cf8",
+      "kind": "execution",
+      "metrics": {
+        "cost": null,
+        "tokens": {
+          "cacheCreation": null,
+          "cachedInput": 61568,
+          "input": 83266,
+          "output": 504
+        }
+      },
+      "role": "independent",
+      "runId": "run-one",
+      "startedAt": "2026-10-24T01:09:34.361Z"
+    },
+    "providerReceipts": [
+      {
+        "attemptId": "sha256:bc92c48fab08f75689d015434a5afa994e68b8c310a7d57e04133934932c3c99",
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "completedAt": "2026-10-24T01:09:50.850Z",
+        "digests": {
+          "input": "sha256:a7dea574a316dd80f38f5b1b844ad84fabf94a5529c1bc81428574bafe4754a6",
+          "instructions": "sha256:98a0c1107aad4f0edb8ce0c415706cdf0fd9aa26c73231ebb0b70eac98dca528",
+          "output": "sha256:ad0a05a270019f137e567945d0e369fa7206ced2c6257dbca2de4e41d1a8308b",
+          "snapshot": "sha256:a07dea381e0e36c249eb124b1398b7f05f6530b52c7cede2bcdccb59a5ff90a2"
+        },
+        "isolation": {
+          "freshContext": true,
+          "inheritedTurns": 0,
+          "method": "codex-ephemeral-exec"
+        },
+        "kind": "gatereeve-agent-workflow-receipt",
+        "metrics": {
+          "cost": null,
+          "tokens": {
+            "cacheCreation": null,
+            "cachedInput": 61568,
+            "input": 83266,
+            "output": 504
+          }
+        },
+        "module": {
+          "digest": "sha256:32b8b34fd4596ec54196f45ae537e29e81982f56a6079d8ecd4d08c57cdb1abd",
+          "id": "gatereeve/current-review",
+          "version": "2.0.0"
+        },
+        "policy": {
+          "networkAccess": "deny",
+          "repositoryAccess": "read-only",
+          "scratch": "isolated"
+        },
+        "protocolVersion": "2.0.0",
+        "provider": {
+          "adapterVersion": "1.0.0",
+          "contextId": "01a16b74-baab-7321-b1bf-d9e3f6cf3d68",
+          "id": "codex",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "high"
+        },
+        "runId": "run-one",
+        "schemaVersion": 1,
+        "stage": "review",
+        "startedAt": "2026-10-24T01:09:34.365Z",
+        "status": "completed"
+      },
+      {
+        "verdicts": [
+          {
+            "coverage": {
+              "complete": true,
+              "interactions": [
+                "Compared complete base, head and target source: each contains only `export const answer = 42;` at line 1, consistent with requirements/spec.md AC1 and R1. No imports, callers or cross-repository interactions are present in the supplied scope."
+              ],
+              "limitations": [],
+              "paths": [
+                "app/app.js"
+              ]
+            },
+            "criteria": [],
+            "dispositions": [],
+            "findings": [],
+            "gate": "code",
+            "historyAssessment": null,
+            "outcome": "PASS",
+            "summary": "Base, head and target contain identical source. No supported change-related defects were found. Assessment is based on static evidence; no test results were supplied."
+          }
+        ]
+      }
+    ]
+  }
+}
