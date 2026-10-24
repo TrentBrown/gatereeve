@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-claim",
+  "readinessId": "model-led-formal-ready-7",
+  "requestIdentity": "sha256:022c002e51df97fe90425dc735e180ef34a5d47517a6fa080ffa01b4be8f6832"
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-7",
+  "checkedSource": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "5a0083803c85578cb5e1a62ce229f0afe917967a",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:edda6b10fcb152138a0f24ef8c05ce574cef12d5957ec6fa46a47f106a1f82da",
+  "readiness": {
+    "path": "advisory/model-led-formal-ready-7/readiness.json",
+    "hash": "sha256:2ec8ed2041f5a4cb5830284fb1c4a33188b19f855a35b6ada52480b508888830"
+  },
+  "reason": "Proceed with user-authorized formal review preparation while noncertifying discovery runs. All prior finding IDs retain detailed remediation claims and focused evidence, including sixth-round independent concurrency and run-isolation probes. Full CLI Verification is still running and will be required before native Judge and formal completion. No formal gate is waived; retain and inspect eventual advisory result.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "implementation coordinator for user-authorized formal review"
+  }
+}
