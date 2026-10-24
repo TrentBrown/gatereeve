@@ -1,0 +1,41 @@
+{"controlledClock":true,"externalProofExpiredDuringFinalStateRead":true,"mergeWriteReached":false,"guards":3}
+✔ actual direct authority revives after amendment without continuation and byte rollback (28885.199333ms)
+{"mode":"target","actualFileEdit":true,"publicMergeWriterReached":false,"unchangedEventCount":true,"cachedStandingAllowed":false,"freshStatus":{"grant":"sha256:db5eb61afea0604511cbcea0e46fce5ba24eb49fa153f64381bc8c1b31d30585","scope":{"actions":["accept","authorize-merge"],"candidateScopes":["SLICE","FEATURE"],"expiresAt":null,"repositories":[{"alias":"app","baseBranch":"main","headPrefix":"topic","methods":["merge"]}]},"subject":"sha256:d349bbf01cc6ad82523bb41ba7ee8419e87240ef352e924540f776056d14f5b6","authority":{"context":"test user conversation","instruction":"Finish this approved feature including merging its slice and final PRs to main.","kind":"human-confirmed"},"applications":[{"event":"sha256:fc07861080380be06258d279fc74368ad6e5d6f335166776e0242a7cb684a3b0","subject":"sha256:08b91e122c7fc03ecbc7ed7dabe244d6edc269b66f051c2389d30c1402d23725","actions":["accept","authorize-merge"],"action":{"base":"6fe7924b9af1d0348036370d37012786d5de6e1f","baseBranch":"main","contract":"gatereeve/current/3","head":"6fe7924b9af1d0348036370d37012786d5de6e1f","headBranch":"topic","keepClosed":false,"kind":"github-pr","method":"merge","number":12,"ownerRepo":"fixture/project","repository":"app","url":"https://github.com/fixture/project/pull/12"}}],"allowed":false,"reason":"Current candidate evidence is unavailable or invalid"},"isDraft":true}
+{"mode":"keepclosed","actualFileEdit":true,"publicMergeWriterReached":false,"unchangedEventCount":true,"cachedStandingAllowed":false,"freshStatus":{"grant":"sha256:db5eb61afea0604511cbcea0e46fce5ba24eb49fa153f64381bc8c1b31d30585","scope":{"actions":["accept","authorize-merge"],"candidateScopes":["SLICE","FEATURE"],"expiresAt":null,"repositories":[{"alias":"app","baseBranch":"main","headPrefix":"topic","methods":["merge"]}]},"subject":"sha256:d349bbf01cc6ad82523bb41ba7ee8419e87240ef352e924540f776056d14f5b6","authority":{"context":"test user conversation","instruction":"Finish this approved feature including merging its slice and final PRs to main.","kind":"human-confirmed"},"applications":[{"event":"sha256:fc07861080380be06258d279fc74368ad6e5d6f335166776e0242a7cb684a3b0","subject":"sha256:08b91e122c7fc03ecbc7ed7dabe244d6edc269b66f051c2389d30c1402d23725","actions":["accept","authorize-merge"],"action":{"base":"6fe7924b9af1d0348036370d37012786d5de6e1f","baseBranch":"main","contract":"gatereeve/current/3","head":"6fe7924b9af1d0348036370d37012786d5de6e1f","headBranch":"topic","keepClosed":false,"kind":"github-pr","method":"merge","number":12,"ownerRepo":"fixture/project","repository":"app","url":"https://github.com/fixture/project/pull/12"}}],"allowed":false,"reason":"Current candidate evidence is unavailable or invalid"},"isDraft":true}
+{"mode":"repository-path","actualFileEdit":true,"publicMergeWriterReached":false,"unchangedEventCount":true,"cachedStandingAllowed":false,"freshStatus":{"grant":"sha256:db5eb61afea0604511cbcea0e46fce5ba24eb49fa153f64381bc8c1b31d30585","scope":{"actions":["accept","authorize-merge"],"candidateScopes":["SLICE","FEATURE"],"expiresAt":null,"repositories":[{"alias":"app","baseBranch":"main","headPrefix":"topic","methods":["merge"]}]},"subject":"sha256:d349bbf01cc6ad82523bb41ba7ee8419e87240ef352e924540f776056d14f5b6","authority":{"context":"test user conversation","instruction":"Finish this approved feature including merging its slice and final PRs to main.","kind":"human-confirmed"},"applications":[{"event":"sha256:fc07861080380be06258d279fc74368ad6e5d6f335166776e0242a7cb684a3b0","subject":"sha256:08b91e122c7fc03ecbc7ed7dabe244d6edc269b66f051c2389d30c1402d23725","actions":["accept","authorize-merge"],"action":{"base":"6fe7924b9af1d0348036370d37012786d5de6e1f","baseBranch":"main","contract":"gatereeve/current/3","head":"6fe7924b9af1d0348036370d37012786d5de6e1f","headBranch":"topic","keepClosed":false,"kind":"github-pr","method":"merge","number":12,"ownerRepo":"fixture/project","repository":"app","url":"https://github.com/fixture/project/pull/12"}}],"allowed":false,"reason":"Current candidate evidence is unavailable or invalid"},"isDraft":true}
+{"mode":"repository-removal","actualFileEdit":true,"publicMergeWriterReached":false,"unchangedEventCount":true,"cachedStandingAllowed":false,"freshStatus":{"code":"WORKFLOW_CONTEXT_ERROR","message":"Unknown repository alias \"app\"; configured aliases: other","details":{"cwd":"/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-current-L8lCng/app","repository":"app"}},"isDraft":true}
+{"mode":"config-deletion","actualFileEdit":true,"publicMergeWriterReached":false,"unchangedEventCount":true,"cachedStandingAllowed":false,"freshStatus":[{"type":"current-entry","message":"ENOENT: no such file or directory, lstat '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-current-L8lCng/app/docs'"}],"isDraft":true}
+{"mode":"malformed","actualFileEdit":true,"publicMergeWriterReached":false,"unchangedEventCount":true,"cachedStandingAllowed":false,"freshStatus":{"code":"WORKFLOW_CONTEXT_ERROR","message":"Cannot read JSON file /private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-current-L8lCng/.agentic-workflow.json: Expected property name or '}' in JSON at position 1 (line 1 column 2)","details":{"cwd":"/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-current-L8lCng/app","repository":"app"}},"isDraft":true}
+{"mode":"closer-insertion","actualFileEdit":true,"publicMergeWriterReached":false,"unchangedEventCount":true,"cachedStandingAllowed":false,"freshStatus":[{"type":"current-entry","message":"ENOENT: no such file or directory, lstat '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-current-L8lCng/app/docs'"}],"isDraft":true}
+✔ public protected merge blocks real workspace config changes during hosted checks (74141.177625ms)
+✖ normalized harmless config edits preserve current core and cached desktop eligibility (966.056917ms)
+{"configDeletionRejected":true,"legacyToConfiguredRejected":true,"closerDeletionRejected":true,"absoluteGitEmptyPathPassed":true}
+✔ resolver guards detect new closer config and configured-to-legacy transitions with selected Git (220.362458ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 74214.721083
+
+✖ failing tests:
+
+test at ../../../../../../private/tmp/gr-judge22-config-normalized.mjs:118:1
+✖ normalized harmless config edits preserve current core and cached desktop eligibility (966.056917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at check (file:///private/tmp/gr-judge22-config-normalized.mjs:126:70)
+      at async TestContext.<anonymous> (file:///private/tmp/gr-judge22-config-normalized.mjs:128:2)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

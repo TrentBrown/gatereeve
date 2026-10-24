@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "marketplace": "quality-code",
+  "sourceRoot": "/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/plugin-src",
+  "distRoot": "/tmp/gr-config-plugins-final",
+  "version": "0.1.0",
+  "sourceCommit": "4cc0fab1dab6833e66a36a4e427168a2967052e5",
+  "sourceTag": null,
+  "plugins": [
+    {
+      "id": "agentic-development-workflow",
+      "displayName": "Agentic Software Development Workflow",
+      "sourceRoot": "."
+    },
+    {
+      "id": "whiteboard-test",
+      "displayName": "Whiteboard Test",
+      "sourceRoot": "plugins/whiteboard-test"
+    }
+  ],
+  "packages": [
+    {
+      "platform": "codex",
+      "pluginName": "agentic-development-workflow",
+      "outputPath": "/tmp/gr-config-plugins-final/codex/agentic-development-workflow",
+      "fileCount": 165,
+      "sharedFileCount": 160,
+      "pluginId": "agentic-development-workflow"
+    },
+    {
+      "platform": "claude",
+      "pluginName": "agentic-development-workflow",
+      "outputPath": "/tmp/gr-config-plugins-final/claude/agentic-development-workflow",
+      "fileCount": 165,
+      "sharedFileCount": 160,
+      "pluginId": "agentic-development-workflow"
+    },
+    {
+      "platform": "codex",
+      "pluginName": "whiteboard-test",
+      "outputPath": "/tmp/gr-config-plugins-final/codex/whiteboard-test",
+      "fileCount": 12,
+      "sharedFileCount": 9,
+      "pluginId": "whiteboard-test"
+    },
+    {
+      "platform": "claude",
+      "pluginName": "whiteboard-test",
+      "outputPath": "/tmp/gr-config-plugins-final/claude/whiteboard-test",
+      "fileCount": 12,
+      "sharedFileCount": 9,
+      "pluginId": "whiteboard-test"
+    }
+  ]
+}
