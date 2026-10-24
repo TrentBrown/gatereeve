@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "passed": true,
+    "checks": 8,
+    "all47FindingsRetained": true,
+    "deepEqualRoundtrip": true,
+    "installedReaderAccepted": true,
+    "prettyBytes": 133081,
+    "compactBytes": 106288,
+    "unchangedLimit": 131072,
+    "installedWriterUnchanged": true
+  }
+}

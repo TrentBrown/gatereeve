@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "installedRoot": "/Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16",
+    "temporaryRoot": "/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gr-advisory-compact-be5vndx1/agentic-development-workflow",
+    "installedSha256": "a14850f03c0e4f344352a4d55b60947e786d53b096e3c45c19f2c5107c79bbfb",
+    "temporarySha256": "831545ee6215c73d06f9efed2fcb196a2e51c5f2ab78382379368ee6d9ed2615",
+    "change": "Whitespace-only JSON encoding for newly written advisory records. Original installed code, old records, size limit, field validation, source binding and formal gate rules unchanged."
+  }
+}
