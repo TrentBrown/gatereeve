@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-10",
+  "checkedSource": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "584537956322d74950cf093464769e083fb1486e",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:7eab04575f65817531440f33e79af8a1d87b98096450a2b8a4df6f43faac429c",
+  "readiness": {
+    "path": "advisory/model-led-formal-ready-10/readiness.json",
+    "hash": "sha256:b7990770f5daef05578f0823f653a6070ae9cfb1fd3994d3d4200abd7532e78a"
+  },
+  "reason": "Proceed with user-authorized formal review while optional noncertifying discovery runs. Broad CLI317 plus final delta11, desktop172, live evaluator and package/runtime checks pass with explicit source attribution. All prior findings retain repair claims. Mandatory independent code/spec and native Judge will assess current source and evidence applicability; no formal gate is waived. Inspect and retain advisory outcome.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "implementation coordinator for user-authorized formal review"
+  }
+}
