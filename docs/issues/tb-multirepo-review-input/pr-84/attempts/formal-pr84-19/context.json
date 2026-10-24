@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "source": "github",
+  "repositoryRoot": "/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input",
+  "repositoryAlias": "product",
+  "remote": "origin",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 84,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/84",
+    "state": "CLOSED",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headRefName": "tb-multirepo-review-input",
+    "headRefOid": "39c5fa3c657cb2caa2e7c343b4d80e0cab6130e8",
+    "githubReportedHeadSha": "5433a6066120c118a438dbd00faaf993b61f22fa",
+    "githubReportedBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436"
+  },
+  "mergeBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+  "evaluatedSourceSha": "39c5fa3c657cb2caa2e7c343b4d80e0cab6130e8",
+  "featureBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+  "keepPullRequestsClosed": true
+}

@@ -1,0 +1,13 @@
+✔ later runner preflight failure retains completed check output with exit 0 (1123.401667ms)
+✔ later runner preflight failure retains completed check output with exit 7 (1124.045709ms)
+✔ corrected runner configuration recovers after invalid arguments undefined (1701.270542ms)
+✔ corrected runner configuration recovers after invalid arguments "--version" (1749.217ms)
+✔ corrected runner configuration recovers after invalid arguments [4] (1691.601584ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7439.990084

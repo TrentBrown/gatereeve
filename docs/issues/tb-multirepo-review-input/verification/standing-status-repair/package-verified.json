@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "passed": true,
+    "architecture": "arm64",
+    "trust": {
+      "status": "development-ad-hoc",
+      "evidence": []
+    },
+    "appleTrust": null,
+    "appleTrustEvidenceSha256": null
+  }
+}

@@ -1,0 +1,10 @@
+✔ standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof (2212.2255ms)
+✔ standing authority protected merge: final (31920.841083ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 34188.59675

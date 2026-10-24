@@ -1,0 +1,18 @@
+✔ standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof (2172.932667ms)
+✔ standing status reports current candidate mismatch: scope (1124.496042ms)
+✔ standing status reports current candidate mismatch: branch (1135.190583ms)
+✔ standing status reports current candidate mismatch: target (1265.185334ms)
+✔ standing status reports current candidate mismatch: repository (1178.898416ms)
+✔ standing status reports current candidate mismatch: missing-root (1156.436083ms)
+✔ standing status reports current candidate mismatch: missing-source (1205.659208ms)
+✔ standing authority protected merge: slice (30442.516375ms)
+✔ standing authority protected merge: final (30537.938625ms)
+✔ standing status uses the host-discovered Git when GUI PATH cannot resolve git (870.321125ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 71150.475292

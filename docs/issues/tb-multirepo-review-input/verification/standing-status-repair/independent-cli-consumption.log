@@ -1,0 +1,13 @@
+{"gates":["code","spec"],"oldDocumentedError":"Consumed proof must be an array"}
+{"gates":["code","spec"],"omittedConsumed":"PASS","actualVerificationRef":"sha256:010b227f575e600e0f4dece5d86c49d1ae092b318479613b0a3de15e10364a87"}
+{"gates":["judge"],"oldDocumentedError":"Consumed proof must be an array"}
+{"gates":["judge"],"omittedConsumed":"PASS","actualVerificationRef":"sha256:010b227f575e600e0f4dece5d86c49d1ae092b318479613b0a3de15e10364a87"}
+✔ documented config is not consumed evidence; omitted refs select actual Verification (4026.428333ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4077.008792

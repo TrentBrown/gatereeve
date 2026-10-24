@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { currentFixture } from '/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/helpers/current-fixture.js';
+import { establishCurrentRun } from '/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/test/helpers/established-current-run.js';
+
+const exec = promisify(execFile);
+const cli = '/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/cli/bin/workflow.js';
+
+
+test('documented config is not consumed evidence; omitted refs select actual Verification',async t=>{
+ const f=await currentFixture(t);await establishCurrentRun(f.core);
+ const config={checks:[{repository:'app',command:process.execPath,args:['-e','process.exit(0)'],purpose:'Fixture check'}],externalRuntimeInputs:{app:[]}};
+ const path=join(f.root,'verification.json');await writeFile(path,JSON.stringify(config));
+ const invoke=(...args)=>exec(process.execPath,[cli,...args,'--cwd',f.repo,'--json']);
+ const result=JSON.parse((await invoke('evaluate','verification','--configuration',path)).stdout);
+ assert.equal(result.ok,true); const verify=result.data.event.payload.results[0];
+ for(const gates of [['code','spec'],['judge']]){
+  let message=null;try{await invoke('evaluate',...gates,'--provider','claude-code','--model','opus','--consume',path);}catch(e){message=JSON.parse(e.stdout).error.message;}
+  console.log(JSON.stringify({gates,oldDocumentedError:message}));assert.equal(message,'Consumed proof must be an array');
+  const good=await f.core.execute({operation:'gate.execute',input:{gates,configuration:{provider:'codex',model:'fixture'}}});
+  for(const ref of good.event.payload.results){const report=await f.core.store.json(ref);assert.equal(report.outcome,'PASS');const input=await f.core.store.json(report.input);assert.ok(input.consumed.some(x=>x.hash===verify.hash));}
+  console.log(JSON.stringify({gates,omittedConsumed:'PASS',actualVerificationRef:verify.hash}));
+ }
+});
