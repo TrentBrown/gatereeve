@@ -1,0 +1,27 @@
+{"kind":"environment","blocked":true,"noMilestoneWritten":true}
+{"kind":"environment","restorationRecoversWithoutProviderRun":true}
+✔ actual source HEAD and requirement drift during proof validation can pass acceptance (35912.521625ms)
+{"kind":"source","blocked":true,"noMilestoneWritten":true}
+{"kind":"source","restorationRecoversWithoutProviderRun":true}
+{"kind":"head","blocked":true,"noMilestoneWritten":true}
+{"kind":"head","restorationRecoversWithoutProviderRun":true}
+{"kind":"design","blocked":true,"noMilestoneWritten":true}
+{"kind":"design","restorationRecoversWithoutProviderRun":true}
+{"kind":"spec","blocked":true,"noMilestoneWritten":true}
+{"kind":"spec","restorationRecoversWithoutProviderRun":true}
+✔ actual source HEAD and requirement drift during proof validation can pass acceptance (52579.091625ms)
+{"before":"/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-current-SMZpgH/host-a.git","after":"/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-current-SMZpgH/host-b.git","raw":"https://github.com/fixture/project.git","statusAllowed":false,"applicationBlocked":true}
+✔ actual insteadOf rewrite leaves standing status and acceptance applicable (31119.07125ms)
+{"before":"/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-current-zbhrcQ/host-a.git","after":"/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve-current-zbhrcQ/host-b.git","raw":"https://github.com/fixture/project.git","statusAllowed":false,"applicationBlocked":true}
+✔ actual insteadOf rewrite leaves standing status and acceptance applicable (31019.469209ms)
+{"kind":"retained-proof","blocked":true,"noMilestoneWritten":true}
+{"kind":"retained-proof","restorationRecoversWithoutProviderRun":true}
+✔ actual source HEAD and requirement drift during proof validation can pass acceptance (36218.667ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 52636.66625

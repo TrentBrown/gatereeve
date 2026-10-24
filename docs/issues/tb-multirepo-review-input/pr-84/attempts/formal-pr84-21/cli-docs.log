@@ -1,0 +1,19 @@
+✔ runner CLI requires an explicit scope and executes the documented configuration (2574.589625ms)
+✔ CLI records and revokes standing authority through the native core and fails closed without proof (3345.621334ms)
+✔ CLI preserves constrained Whiteboard waiver basis and explanation policy amendment (2239.623375ms)
+✔ routes users, developers, and release maintainers from the root README (2.151083ms)
+✔ developer guide covers the complete canonical-to-PR lifecycle (0.810209ms)
+✔ release runbook documents only the conductor production interface (0.712458ms)
+✔ Apple release setup is actionable, protected, and team-key only (1.030042ms)
+✔ keeps developer and release bash examples syntactically valid (104.466167ms)
+✔ documents the verified native plugin lifecycle for both managers (3.061625ms)
+✔ keeps every documented bash block syntactically valid (74.769208ms)
+✔ connects installation, operational guidance, and visual orientation (1.12375ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8205.299417

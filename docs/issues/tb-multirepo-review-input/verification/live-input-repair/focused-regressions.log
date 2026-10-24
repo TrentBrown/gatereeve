@@ -1,0 +1,10 @@
+✔ milestone admission rejects unjournaled drift during qualification and before passage (69098.253209ms)
+✔ standing grants bind effective fetch and push URLs even with unchanged raw URL and target commit (32312.627458ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 101474.290792

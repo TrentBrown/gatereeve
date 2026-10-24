@@ -1,0 +1,31 @@
+Independent formal21 defect confirmation
+
+Reviewer: continuing nonimplementer /root/formal_code_spec. Original source is exact head85125e4edae84a805d5e0d6334c3fd418038a328, extracted before remediation to /tmp/gr-judge21-before-jsawbtwa. Product and canonical tests, prior reports and real feature journal were not modified. These are before-repair observations, not a formal verdict or assessment of later edits.
+
+F1: actual core milestone.pass acceptance can admit unjournaled drift.
+
+The live-input probe creates a disposable real Git repository/current run, executes actual trusted validators and runner verification, uses synthetic reviewer receipts for code/spec/etc., and completes the normal review packet. It wraps currentResult only to inject an actual mutation after the actual packet proof has finished validation; it does not fabricate proof eligibility or stub check/pass. Each variant then calls the actual milestone.pass entrypoint and verifies a MILESTONE event was appended while the external mutation remains:
+- dirty app.js modification;
+- committed app.js change/new HEAD;
+- design.md byte change;
+- spec.md byte change.
+All four variants reproduced (one test,22.118s), see independent-live-input-before.log and .txt.
+
+Two adjacent tests use the same point after actual packet validation:
+- environment: change actual process.env.GATEREEVE_TEST_HOST_MODE, which is in the ordinary runner's proof-bound environment. Passage still appends MILESTONE. One test14.985s, independent-environment-before.log/.txt.
+- retained-proof: delete the actual retained Verification result object. Passage still appends MILESTONE. One test14.922s, independent-retained-before.log/.txt.
+Each fixture restores its environment/bytes after observation and removes disposable repositories. Mutation scheduling is injected deterministically to model a concurrent edit; filesystem/Git/env operations, validation and milestone publication are real. This establishes the omission across real inputs without claiming an external attacker or a full machine snapshot requirement.
+
+Source: current/core.js503 validates live candidate before the proof loop; currentResult uses retained candidates; pass561–566 checks only run/event revision after check returns. File/env/object changes do not advance that revision. Requirement approval and changed-input/retained-proof obligations (R1/R6/R11/R17) apply even without journal mutation.
+
+Repair requirements: final fresh qualification after all proof/authority/integration reads must include current candidate and commitments plus applicable execution/validator inputs and retained proof closure. Reusing a memo populated before mutation is not a fresh check. Candidate+commitment-only reread would not cover the two demonstrated adjacent cases. Implementation's early return also needs final requirement/validator qualification. Preserve completion's intentional postintegration source semantics; do not blindly require old HEAD after integration. This does not demand atomicity across every external filesystem or hosted service; it closes stale observations during the operation's own validation window.
+
+F2: actual Git effective destinations are omitted from standing grant identity.
+
+The remote probe creates two local bare repositories with the same main commit. Raw origin remains https://github.com/fixture/project.git, with local url.insteadOf redirect to repositoryA at grant capture. After candidate preparation and passing synthetic review, redirect changes to repositoryB. Actual git remote get-url changes, actual shared status still reports allowed:true, and authorization.apply appends DECIDED. One test17.765s; independent-remote-before.log/.txt. All Git transport is local; no GitHub/network call occurs.
+
+The push variant leaves fetch/insteadOf pointing to A but adds explicit remote.origin.pushurl=B. Effective push URL changes while raw fetch URL remains identical. Actual status and authorization.apply again succeed. One test15.773s; independent-push-before.log/.txt. The inherited test title says insteadOf; this variant's script mutates explicit pushurl and queries --push.
+
+Source: current/authorization.js50–54 binds only remote.<name>.url, and standingValidity80 compares it; shared target SHA equality cannot distinguish these repositories. R16/R22/R23 require remote drift to invalidate standing authority and status. Bind raw identity plus all effective fetch and push URLs via configured Git remote get-url --all / --push --all. Preserve list order/selection semantics; include explicit pushurl and pushInsteadOf variants, multiple URLs and host-discovered Git controls. Old bindings missing the new identity fields should fail closed and require fresh scoped authority.
+
+Five before tests covering eight actual scenarios passed while asserting the defective behavior. No provider launch, hosted merge, publication, installation or release occurred. Parent remediation and future formal evaluation remain separate; original formal21 Judge FAIL remains unchanged.

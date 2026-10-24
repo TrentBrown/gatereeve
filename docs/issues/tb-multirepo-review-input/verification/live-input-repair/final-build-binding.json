@@ -1,0 +1,749 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "passed": true,
+    "sourceCommit": "7afb6feeadedb858091633f7a2c9e0463a94bc51",
+    "packageSha256": "d63933aabb4ddd94ecf26b79f9158eb0a0665a4dc9a0649bb56721899b11c45e",
+    "archive": "/tmp/gr-live-package.8PdQ5O/application/GateReeve-darwin-universal/GateReeve.app/Contents/Resources/app.asar",
+    "comparison": "All retained protocol JavaScript and trusted Python helper bytes in built Codex/Claude plugins and actual packaged application match final committed source. Build sourceCommit metadata and this explicit byte comparison bind the final committed source.",
+    "fileCount": 49,
+    "comparisons": [
+      {
+        "path": "plugin-src/shared/resources/protocol/agent-workflow.js",
+        "kind": "desktopAsar",
+        "sha256": "20bf1aa7363cf82153b4c245e29cd2c784f1570c39fe6c0cd78507d7ead15271"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/agent-workflow.js",
+        "kind": "codex",
+        "sha256": "20bf1aa7363cf82153b4c245e29cd2c784f1570c39fe6c0cd78507d7ead15271"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/agent-workflow.js",
+        "kind": "claude",
+        "sha256": "20bf1aa7363cf82153b4c245e29cd2c784f1570c39fe6c0cd78507d7ead15271"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/constants.js",
+        "kind": "desktopAsar",
+        "sha256": "b2d0e32bfa5a1deebae3b1ac53cec8310c1e500429dcac8e844bed0b4add1846"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/constants.js",
+        "kind": "codex",
+        "sha256": "b2d0e32bfa5a1deebae3b1ac53cec8310c1e500429dcac8e844bed0b4add1846"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/constants.js",
+        "kind": "claude",
+        "sha256": "b2d0e32bfa5a1deebae3b1ac53cec8310c1e500429dcac8e844bed0b4add1846"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/context.js",
+        "kind": "desktopAsar",
+        "sha256": "2cea98175760133ac3bfe5f2f9cb8a4d9ef47882e276537938ebedbdcba3cec7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/context.js",
+        "kind": "codex",
+        "sha256": "2cea98175760133ac3bfe5f2f9cb8a4d9ef47882e276537938ebedbdcba3cec7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/context.js",
+        "kind": "claude",
+        "sha256": "2cea98175760133ac3bfe5f2f9cb8a4d9ef47882e276537938ebedbdcba3cec7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/actions.js",
+        "kind": "desktopAsar",
+        "sha256": "928303e34304be91300b233575bcbee87664db6ac7be89c0f49f4d59f910c596"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/actions.js",
+        "kind": "codex",
+        "sha256": "928303e34304be91300b233575bcbee87664db6ac7be89c0f49f4d59f910c596"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/actions.js",
+        "kind": "claude",
+        "sha256": "928303e34304be91300b233575bcbee87664db6ac7be89c0f49f4d59f910c596"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/adapter.js",
+        "kind": "desktopAsar",
+        "sha256": "842f8c6c848c17167df7d31159f07cda6820c722fec1c0d28d65e54c943bc94d"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/adapter.js",
+        "kind": "codex",
+        "sha256": "842f8c6c848c17167df7d31159f07cda6820c722fec1c0d28d65e54c943bc94d"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/adapter.js",
+        "kind": "claude",
+        "sha256": "842f8c6c848c17167df7d31159f07cda6820c722fec1c0d28d65e54c943bc94d"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/authorization.js",
+        "kind": "desktopAsar",
+        "sha256": "4e4f5861a7a26695bed40df4aab1b7f210a525950e8ece75add10a0fa7607b10"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/authorization.js",
+        "kind": "codex",
+        "sha256": "4e4f5861a7a26695bed40df4aab1b7f210a525950e8ece75add10a0fa7607b10"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/authorization.js",
+        "kind": "claude",
+        "sha256": "4e4f5861a7a26695bed40df4aab1b7f210a525950e8ece75add10a0fa7607b10"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/contracts.js",
+        "kind": "desktopAsar",
+        "sha256": "9c63444cc79a4a818b31e9236bd0e2848d77d25a74022591edf8b100ed395fe0"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/contracts.js",
+        "kind": "codex",
+        "sha256": "9c63444cc79a4a818b31e9236bd0e2848d77d25a74022591edf8b100ed395fe0"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/contracts.js",
+        "kind": "claude",
+        "sha256": "9c63444cc79a4a818b31e9236bd0e2848d77d25a74022591edf8b100ed395fe0"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/core.js",
+        "kind": "desktopAsar",
+        "sha256": "83f4d094da355b1c556d32c135a07507b4cdcc4771868d2575ea6ee59bd37671"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/core.js",
+        "kind": "codex",
+        "sha256": "83f4d094da355b1c556d32c135a07507b4cdcc4771868d2575ea6ee59bd37671"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/core.js",
+        "kind": "claude",
+        "sha256": "83f4d094da355b1c556d32c135a07507b4cdcc4771868d2575ea6ee59bd37671"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/environment.js",
+        "kind": "desktopAsar",
+        "sha256": "3d0f651e95a2682d418d12a0626cc3b8edbcdc6e8cf36723b58fc6e4667ac53f"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/environment.js",
+        "kind": "codex",
+        "sha256": "3d0f651e95a2682d418d12a0626cc3b8edbcdc6e8cf36723b58fc6e4667ac53f"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/environment.js",
+        "kind": "claude",
+        "sha256": "3d0f651e95a2682d418d12a0626cc3b8edbcdc6e8cf36723b58fc6e4667ac53f"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/evidence.js",
+        "kind": "desktopAsar",
+        "sha256": "9677f07604ffdae4d5dcb704f11abf68fa95558e54f5c3cecbf3b8471d761401"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/evidence.js",
+        "kind": "codex",
+        "sha256": "9677f07604ffdae4d5dcb704f11abf68fa95558e54f5c3cecbf3b8471d761401"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/evidence.js",
+        "kind": "claude",
+        "sha256": "9677f07604ffdae4d5dcb704f11abf68fa95558e54f5c3cecbf3b8471d761401"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/execution.js",
+        "kind": "desktopAsar",
+        "sha256": "dbab44c8ec09a26d7dcde1f4c9e7edb63d54c50f5088ccabdb662d62570e143e"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/execution.js",
+        "kind": "codex",
+        "sha256": "dbab44c8ec09a26d7dcde1f4c9e7edb63d54c50f5088ccabdb662d62570e143e"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/execution.js",
+        "kind": "claude",
+        "sha256": "dbab44c8ec09a26d7dcde1f4c9e7edb63d54c50f5088ccabdb662d62570e143e"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/observation.js",
+        "kind": "desktopAsar",
+        "sha256": "a4858ffe4eb93754e4280ff1c4b50ab55503a47f6c2885daacc84af1602aa68a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/observation.js",
+        "kind": "codex",
+        "sha256": "a4858ffe4eb93754e4280ff1c4b50ab55503a47f6c2885daacc84af1602aa68a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/observation.js",
+        "kind": "claude",
+        "sha256": "a4858ffe4eb93754e4280ff1c4b50ab55503a47f6c2885daacc84af1602aa68a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pattern-inputs.js",
+        "kind": "desktopAsar",
+        "sha256": "7b94faf89a89b13b5f2653859d9f339ce9c12a293663fc9be5b1f9edb7e0ba68"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pattern-inputs.js",
+        "kind": "codex",
+        "sha256": "7b94faf89a89b13b5f2653859d9f339ce9c12a293663fc9be5b1f9edb7e0ba68"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pattern-inputs.js",
+        "kind": "claude",
+        "sha256": "7b94faf89a89b13b5f2653859d9f339ce9c12a293663fc9be5b1f9edb7e0ba68"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pre-tool-use.js",
+        "kind": "desktopAsar",
+        "sha256": "68c605c45c00358c20adb9d764f579539d934b081e78396b748626dcf466bed7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pre-tool-use.js",
+        "kind": "codex",
+        "sha256": "68c605c45c00358c20adb9d764f579539d934b081e78396b748626dcf466bed7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/pre-tool-use.js",
+        "kind": "claude",
+        "sha256": "68c605c45c00358c20adb9d764f579539d934b081e78396b748626dcf466bed7"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/store.js",
+        "kind": "desktopAsar",
+        "sha256": "86876d8462cbabfbc53784a9bff03836ed2795cc0a1d2f184f24cc6008bc077a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/store.js",
+        "kind": "codex",
+        "sha256": "86876d8462cbabfbc53784a9bff03836ed2795cc0a1d2f184f24cc6008bc077a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/current/store.js",
+        "kind": "claude",
+        "sha256": "86876d8462cbabfbc53784a9bff03836ed2795cc0a1d2f184f24cc6008bc077a"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/errors.js",
+        "kind": "desktopAsar",
+        "sha256": "adec91e206d3af2387bb2c85820bee4ea4fd490ed881ce5626deece230afcda5"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/errors.js",
+        "kind": "codex",
+        "sha256": "adec91e206d3af2387bb2c85820bee4ea4fd490ed881ce5626deece230afcda5"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/errors.js",
+        "kind": "claude",
+        "sha256": "adec91e206d3af2387bb2c85820bee4ea4fd490ed881ce5626deece230afcda5"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/index.js",
+        "kind": "desktopAsar",
+        "sha256": "a1aba69b9cdb037e655a1bbf2527ceba73c32074bf7409ec3a70f92e08b34e29"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/index.js",
+        "kind": "codex",
+        "sha256": "a1aba69b9cdb037e655a1bbf2527ceba73c32074bf7409ec3a70f92e08b34e29"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/index.js",
+        "kind": "claude",
+        "sha256": "a1aba69b9cdb037e655a1bbf2527ceba73c32074bf7409ec3a70f92e08b34e29"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/json-schema.js",
+        "kind": "desktopAsar",
+        "sha256": "f8ecf7ea29682db2fded10730222d961270273af86ce335024cf217b5e7cd243"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/json-schema.js",
+        "kind": "codex",
+        "sha256": "f8ecf7ea29682db2fded10730222d961270273af86ce335024cf217b5e7cd243"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/json-schema.js",
+        "kind": "claude",
+        "sha256": "f8ecf7ea29682db2fded10730222d961270273af86ce335024cf217b5e7cd243"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/local-agent-adapters.js",
+        "kind": "desktopAsar",
+        "sha256": "9dae43567b6b5e57501712d96f8a0c09216a8f10a38a72717d30cd2d862046b8"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/local-agent-adapters.js",
+        "kind": "codex",
+        "sha256": "9dae43567b6b5e57501712d96f8a0c09216a8f10a38a72717d30cd2d862046b8"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/local-agent-adapters.js",
+        "kind": "claude",
+        "sha256": "9dae43567b6b5e57501712d96f8a0c09216a8f10a38a72717d30cd2d862046b8"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/module-runtime.js",
+        "kind": "desktopAsar",
+        "sha256": "c4c4432d31b42e4b25e12ecd9942d3a15eb605be7b954864909bdd829c814226"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/module-runtime.js",
+        "kind": "codex",
+        "sha256": "c4c4432d31b42e4b25e12ecd9942d3a15eb605be7b954864909bdd829c814226"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/module-runtime.js",
+        "kind": "claude",
+        "sha256": "c4c4432d31b42e4b25e12ecd9942d3a15eb605be7b954864909bdd829c814226"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/plugin-adapter.js",
+        "kind": "desktopAsar",
+        "sha256": "8d43d187f41faa8c918c8c3bd5f070ba8bc7a86d25fdd4240a432895d08c3205"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/plugin-adapter.js",
+        "kind": "codex",
+        "sha256": "8d43d187f41faa8c918c8c3bd5f070ba8bc7a86d25fdd4240a432895d08c3205"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/plugin-adapter.js",
+        "kind": "claude",
+        "sha256": "8d43d187f41faa8c918c8c3bd5f070ba8bc7a86d25fdd4240a432895d08c3205"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/python-guards.js",
+        "kind": "desktopAsar",
+        "sha256": "9b44f3a4cb15abfdf744c578cf563b120c99b26ab1f6e76d7d46142af3fe3627"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/python-guards.js",
+        "kind": "codex",
+        "sha256": "9b44f3a4cb15abfdf744c578cf563b120c99b26ab1f6e76d7d46142af3fe3627"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/python-guards.js",
+        "kind": "claude",
+        "sha256": "9b44f3a4cb15abfdf744c578cf563b120c99b26ab1f6e76d7d46142af3fe3627"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/result.js",
+        "kind": "desktopAsar",
+        "sha256": "e1530a683d25bd7250c14d5e5c849ac7862cfecedc35d8c81080360ed0f75ce5"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/result.js",
+        "kind": "codex",
+        "sha256": "e1530a683d25bd7250c14d5e5c849ac7862cfecedc35d8c81080360ed0f75ce5"
+      },
+      {
+        "path": "plugin-src/shared/resources/protocol/result.js",
+        "kind": "claude",
+        "sha256": "e1530a683d25bd7250c14d5e5c849ac7862cfecedc35d8c81080360ed0f75ce5"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/bootstrap_branch_docs.py",
+        "kind": "desktopAsar",
+        "sha256": "c0bad19b455740efabeb2a3b1a4618d6451cb8ab41d3affb89862d8fbfe3a65a"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/bootstrap_branch_docs.py",
+        "kind": "codex",
+        "sha256": "c0bad19b455740efabeb2a3b1a4618d6451cb8ab41d3affb89862d8fbfe3a65a"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/bootstrap_branch_docs.py",
+        "kind": "claude",
+        "sha256": "c0bad19b455740efabeb2a3b1a4618d6451cb8ab41d3affb89862d8fbfe3a65a"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/boundary_context.py",
+        "kind": "desktopAsar",
+        "sha256": "d8d03298d473a094aa6b86ceb3dabb21aaf0795850ff705c1c92f7ce81bdabda"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/boundary_context.py",
+        "kind": "codex",
+        "sha256": "d8d03298d473a094aa6b86ceb3dabb21aaf0795850ff705c1c92f7ce81bdabda"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/boundary_context.py",
+        "kind": "claude",
+        "sha256": "d8d03298d473a094aa6b86ceb3dabb21aaf0795850ff705c1c92f7ce81bdabda"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/decision_record.py",
+        "kind": "desktopAsar",
+        "sha256": "fbfa353fbf7d8daa86553b37839a16c74fe6dcb101e34d5cc53ee462304bf1ea"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/decision_record.py",
+        "kind": "codex",
+        "sha256": "fbfa353fbf7d8daa86553b37839a16c74fe6dcb101e34d5cc53ee462304bf1ea"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/decision_record.py",
+        "kind": "claude",
+        "sha256": "fbfa353fbf7d8daa86553b37839a16c74fe6dcb101e34d5cc53ee462304bf1ea"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/decision_triage.py",
+        "kind": "desktopAsar",
+        "sha256": "fb4eec690c124320bd2ad25a6312eb6260a0a534ef256604cfb8f0545eb50525"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/decision_triage.py",
+        "kind": "codex",
+        "sha256": "fb4eec690c124320bd2ad25a6312eb6260a0a534ef256604cfb8f0545eb50525"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/decision_triage.py",
+        "kind": "claude",
+        "sha256": "fb4eec690c124320bd2ad25a6312eb6260a0a534ef256604cfb8f0545eb50525"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/gate_triage.py",
+        "kind": "desktopAsar",
+        "sha256": "efb4c7eb5c1a4638e4b4cc9769c830cd8950435ca3bf9c1464fe55adec0872ab"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/gate_triage.py",
+        "kind": "codex",
+        "sha256": "efb4c7eb5c1a4638e4b4cc9769c830cd8950435ca3bf9c1464fe55adec0872ab"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/gate_triage.py",
+        "kind": "claude",
+        "sha256": "efb4c7eb5c1a4638e4b4cc9769c830cd8950435ca3bf9c1464fe55adec0872ab"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/lint_issues.py",
+        "kind": "desktopAsar",
+        "sha256": "1d618b2a25f6ca8dedd4428e828812b2848555c8317cf27142263197e67b0334"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/lint_issues.py",
+        "kind": "codex",
+        "sha256": "1d618b2a25f6ca8dedd4428e828812b2848555c8317cf27142263197e67b0334"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/lint_issues.py",
+        "kind": "claude",
+        "sha256": "1d618b2a25f6ca8dedd4428e828812b2848555c8317cf27142263197e67b0334"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/lint_spec.py",
+        "kind": "desktopAsar",
+        "sha256": "66b3d9f5aadfda76f888a732d7d34600ca91d65d9f423fa4c0e7c9738228a6f6"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/lint_spec.py",
+        "kind": "codex",
+        "sha256": "66b3d9f5aadfda76f888a732d7d34600ca91d65d9f423fa4c0e7c9738228a6f6"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/lint_spec.py",
+        "kind": "claude",
+        "sha256": "66b3d9f5aadfda76f888a732d7d34600ca91d65d9f423fa4c0e7c9738228a6f6"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/lint_tracker.py",
+        "kind": "desktopAsar",
+        "sha256": "ee8728dc91223473ffc2a0439e701957cece0f3e560f9959e5e3a11679b2a255"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/lint_tracker.py",
+        "kind": "codex",
+        "sha256": "ee8728dc91223473ffc2a0439e701957cece0f3e560f9959e5e3a11679b2a255"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/lint_tracker.py",
+        "kind": "claude",
+        "sha256": "ee8728dc91223473ffc2a0439e701957cece0f3e560f9959e5e3a11679b2a255"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/merge_verified.py",
+        "kind": "desktopAsar",
+        "sha256": "13df273edc25cad6f60df25e49358cbb8f46f242a38a68c52ba7e3d2fb272426"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/merge_verified.py",
+        "kind": "codex",
+        "sha256": "13df273edc25cad6f60df25e49358cbb8f46f242a38a68c52ba7e3d2fb272426"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/merge_verified.py",
+        "kind": "claude",
+        "sha256": "13df273edc25cad6f60df25e49358cbb8f46f242a38a68c52ba7e3d2fb272426"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/__init__.py",
+        "kind": "desktopAsar",
+        "sha256": "449eaa9344754df3b61efc2a992d8d3a495f1aaa75e3594afbf50430de2c5c2b"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/__init__.py",
+        "kind": "codex",
+        "sha256": "449eaa9344754df3b61efc2a992d8d3a495f1aaa75e3594afbf50430de2c5c2b"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/__init__.py",
+        "kind": "claude",
+        "sha256": "449eaa9344754df3b61efc2a992d8d3a495f1aaa75e3594afbf50430de2c5c2b"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/buckets.py",
+        "kind": "desktopAsar",
+        "sha256": "c874ad298a3ca5f9c78ef20468b202ab930a874e800d5da544ef1485daa6df41"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/buckets.py",
+        "kind": "codex",
+        "sha256": "c874ad298a3ca5f9c78ef20468b202ab930a874e800d5da544ef1485daa6df41"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/buckets.py",
+        "kind": "claude",
+        "sha256": "c874ad298a3ca5f9c78ef20468b202ab930a874e800d5da544ef1485daa6df41"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/git_context.py",
+        "kind": "desktopAsar",
+        "sha256": "9735fb1c8fceb696150b31ad472895874e9772e15a5faccd59116b104803af55"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/git_context.py",
+        "kind": "codex",
+        "sha256": "9735fb1c8fceb696150b31ad472895874e9772e15a5faccd59116b104803af55"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/git_context.py",
+        "kind": "claude",
+        "sha256": "9735fb1c8fceb696150b31ad472895874e9772e15a5faccd59116b104803af55"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/harvest.py",
+        "kind": "desktopAsar",
+        "sha256": "357c1faa39a1d0826acd6412115f78d06d90d3bff4816f425b9d4c78318608df"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/harvest.py",
+        "kind": "codex",
+        "sha256": "357c1faa39a1d0826acd6412115f78d06d90d3bff4816f425b9d4c78318608df"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/harvest.py",
+        "kind": "claude",
+        "sha256": "357c1faa39a1d0826acd6412115f78d06d90d3bff4816f425b9d4c78318608df"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/learning_events.py",
+        "kind": "desktopAsar",
+        "sha256": "5be23a3de0758fc8e53357f0c4d162b69dd20eadbaf7d1b795b79a340537ae96"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/learning_events.py",
+        "kind": "codex",
+        "sha256": "5be23a3de0758fc8e53357f0c4d162b69dd20eadbaf7d1b795b79a340537ae96"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/learning_events.py",
+        "kind": "claude",
+        "sha256": "5be23a3de0758fc8e53357f0c4d162b69dd20eadbaf7d1b795b79a340537ae96"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/rules.py",
+        "kind": "desktopAsar",
+        "sha256": "7a2abbda4dc39ae1ba237fdcadb640bd1f0606b9152c9d6367f0fed31cd5590e"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/rules.py",
+        "kind": "codex",
+        "sha256": "7a2abbda4dc39ae1ba237fdcadb640bd1f0606b9152c9d6367f0fed31cd5590e"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/rules.py",
+        "kind": "claude",
+        "sha256": "7a2abbda4dc39ae1ba237fdcadb640bd1f0606b9152c9d6367f0fed31cd5590e"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/simple_yaml.py",
+        "kind": "desktopAsar",
+        "sha256": "9600e34daf079df59af0a12035486a77d57be3d3d3dcb841a75e1115ef62dbbb"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/simple_yaml.py",
+        "kind": "codex",
+        "sha256": "9600e34daf079df59af0a12035486a77d57be3d3d3dcb841a75e1115ef62dbbb"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/simple_yaml.py",
+        "kind": "claude",
+        "sha256": "9600e34daf079df59af0a12035486a77d57be3d3d3dcb841a75e1115ef62dbbb"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/status.py",
+        "kind": "desktopAsar",
+        "sha256": "5907a9cb560af54d0f8945cde1af0d2120b34e336edf4a2a9d21f12fafa15f6c"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/status.py",
+        "kind": "codex",
+        "sha256": "5907a9cb560af54d0f8945cde1af0d2120b34e336edf4a2a9d21f12fafa15f6c"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern/status.py",
+        "kind": "claude",
+        "sha256": "5907a9cb560af54d0f8945cde1af0d2120b34e336edf4a2a9d21f12fafa15f6c"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern_tool.py",
+        "kind": "desktopAsar",
+        "sha256": "a1a64daece6fe87a9cb2a77c2dd916887333dd8bd4ef9ee2b36710019be479b0"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern_tool.py",
+        "kind": "codex",
+        "sha256": "a1a64daece6fe87a9cb2a77c2dd916887333dd8bd4ef9ee2b36710019be479b0"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pattern_tool.py",
+        "kind": "claude",
+        "sha256": "a1a64daece6fe87a9cb2a77c2dd916887333dd8bd4ef9ee2b36710019be479b0"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pr_context.py",
+        "kind": "desktopAsar",
+        "sha256": "5fe9653f506c9b28291763d514d31a2ea5deb345007bafc200103052dd66d83b"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pr_context.py",
+        "kind": "codex",
+        "sha256": "5fe9653f506c9b28291763d514d31a2ea5deb345007bafc200103052dd66d83b"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pr_context.py",
+        "kind": "claude",
+        "sha256": "5fe9653f506c9b28291763d514d31a2ea5deb345007bafc200103052dd66d83b"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pr_lifecycle.py",
+        "kind": "desktopAsar",
+        "sha256": "3288163fca3bfbc307e75ae39760a6f4905140c86c61a343967cbafed2ee28c1"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pr_lifecycle.py",
+        "kind": "codex",
+        "sha256": "3288163fca3bfbc307e75ae39760a6f4905140c86c61a343967cbafed2ee28c1"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/pr_lifecycle.py",
+        "kind": "claude",
+        "sha256": "3288163fca3bfbc307e75ae39760a6f4905140c86c61a343967cbafed2ee28c1"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/session_start.py",
+        "kind": "desktopAsar",
+        "sha256": "eb75d7eadecbe4ca78dd8f38520fa53031d38df268c4cacb59a7d81ad897186d"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/session_start.py",
+        "kind": "codex",
+        "sha256": "eb75d7eadecbe4ca78dd8f38520fa53031d38df268c4cacb59a7d81ad897186d"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/session_start.py",
+        "kind": "claude",
+        "sha256": "eb75d7eadecbe4ca78dd8f38520fa53031d38df268c4cacb59a7d81ad897186d"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/validate_branch_docs.py",
+        "kind": "desktopAsar",
+        "sha256": "791772b1dd6a5cbf396517b759947bd0d7813723f8b63e7b51ab877f5f5b9fb9"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/validate_branch_docs.py",
+        "kind": "codex",
+        "sha256": "791772b1dd6a5cbf396517b759947bd0d7813723f8b63e7b51ab877f5f5b9fb9"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/validate_branch_docs.py",
+        "kind": "claude",
+        "sha256": "791772b1dd6a5cbf396517b759947bd0d7813723f8b63e7b51ab877f5f5b9fb9"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_common.py",
+        "kind": "desktopAsar",
+        "sha256": "695aade7e014563bf3912b753ce2311408e5b42b0659b523b86a46b8dbcb42bd"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_common.py",
+        "kind": "codex",
+        "sha256": "695aade7e014563bf3912b753ce2311408e5b42b0659b523b86a46b8dbcb42bd"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_common.py",
+        "kind": "claude",
+        "sha256": "695aade7e014563bf3912b753ce2311408e5b42b0659b523b86a46b8dbcb42bd"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_context.py",
+        "kind": "desktopAsar",
+        "sha256": "ca818835a71a3171549d0855d256a5009f7343aee4c9dd33f4808cff3ec6e1e5"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_context.py",
+        "kind": "codex",
+        "sha256": "ca818835a71a3171549d0855d256a5009f7343aee4c9dd33f4808cff3ec6e1e5"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_context.py",
+        "kind": "claude",
+        "sha256": "ca818835a71a3171549d0855d256a5009f7343aee4c9dd33f4808cff3ec6e1e5"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_doctor.py",
+        "kind": "desktopAsar",
+        "sha256": "1caa722e5fe06c7b3964ba502158678ec17a6f02f1ac1cdef6f09937c5b13d9c"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_doctor.py",
+        "kind": "codex",
+        "sha256": "1caa722e5fe06c7b3964ba502158678ec17a6f02f1ac1cdef6f09937c5b13d9c"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_doctor.py",
+        "kind": "claude",
+        "sha256": "1caa722e5fe06c7b3964ba502158678ec17a6f02f1ac1cdef6f09937c5b13d9c"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_setup.py",
+        "kind": "desktopAsar",
+        "sha256": "ad3811eb14d0c13ba5478023d08993e019da751228aa2b22f073a3cd2be6d066"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_setup.py",
+        "kind": "codex",
+        "sha256": "ad3811eb14d0c13ba5478023d08993e019da751228aa2b22f073a3cd2be6d066"
+      },
+      {
+        "path": "plugin-src/shared/resources/scripts/workflow_setup.py",
+        "kind": "claude",
+        "sha256": "ad3811eb14d0c13ba5478023d08993e019da751228aa2b22f073a3cd2be6d066"
+      }
+    ]
+  }
+}
