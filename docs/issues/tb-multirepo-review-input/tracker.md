@@ -30,8 +30,8 @@
 | R19 | direct cutover | PASS | PR #84 | AC8; P1, P2, P7, P8; final P9 |
 | R20 | resume without false history | PASS | PR #84 | AC8; P2, P7, P8; final P9 |
 | R21 | practical observations | PASS | PR #84 | AC8; P5, P7; final P9 |
-| R22 | scoped standing acceptance and merge | NOT YET | D11 | AC6; P10; refresh pending |
-| R23 | standing authority surfaces and PR default | NOT YET | D11 | AC7; P10; refresh pending |
+| R22 | scoped standing acceptance and merge | PASS | PR #84 | AC6; P10; formal23 |
+| R23 | standing authority surfaces and PR default | PASS | PR #84 | AC7; P10; formal23 |
 
 ## Review Log
 
