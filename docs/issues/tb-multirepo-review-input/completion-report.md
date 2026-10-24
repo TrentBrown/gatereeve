@@ -64,3 +64,5 @@ These checks do not establish hosted CI on this exact pin, an actual hosted merg
 ## Remaining authority
 
 The [review packet](pr-84/boundary.json) and [interactive explanation](pr-84/attempts/formal-pr84-24/explain-diff.html) support human review. Implementing scoped merge authorization does not itself grant permission to merge PR84. Actual integration, finalization and completion observations remain required after authorized merge. No installed update or release was performed. This feature retains its evidence in Git as a local choice; parent-folder Git remains optional for users.
+
+Deterministic feature_final retention status: **tracked**; no retention decision required. The [retention observation](pr-84/attempts/formal-pr84-24/retention-current.json) records its exact evidence head.
