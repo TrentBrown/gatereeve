@@ -9,27 +9,27 @@
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|---|---|---|---|
-| R1 | planning and milestone authority | NOT YET | - | AC1; P1, P2, P6, P8; final P9 |
-| R2 | model-led execution | NOT YET | - | AC1; P1, P2, P5; final P9 |
-| R3 | canonical layouts | NOT YET | - | AC2; P3, P8; final P9 |
-| R4 | exact source and requirements | NOT YET | - | AC2; P3; final P9 |
-| R5 | containment and isolation | NOT YET | - | AC2; P3, P8; final P9 |
-| R6 | publication and retention | NOT YET | - | AC2; P3, P8; final P9 |
-| R7 | local finalization | NOT YET | - | AC2; P3, P8; final P9 |
-| R8 | independent grouped verdicts | NOT YET | - | AC3; P5, P8; final P9 |
-| R9 | complete obligation inventory | NOT YET | - | AC3; P1, P5, P7, P8; final P9 |
-| R10 | equivalent-input reuse | NOT YET | - | AC4; P4; final P9 |
-| R11 | relevant change and uncertainty | NOT YET | - | AC4; P4; final P9 |
-| R12 | targeted delta coverage | NOT YET | - | AC4; P4, P8; final P9 |
-| R13 | bounded history and dispositions | NOT YET | - | AC5; P5; final P9 |
-| R14 | new discovery and blocking criteria | NOT YET | - | AC5; P5; final P9 |
-| R15 | one scoped human decision | NOT YET | - | AC6; P6; final P9 |
-| R16 | honest exceptions and integration | NOT YET | - | AC6; P6, P8; final P9 |
-| R17 | enforcement coverage | NOT YET | - | AC7; P1, P6, P8; final P9 |
-| R18 | coherent consumers and low ceremony | NOT YET | - | AC7; P1, P7, P8; final P9 |
-| R19 | direct cutover | NOT YET | - | AC8; P1, P2, P7, P8; final P9 |
-| R20 | resume without false history | NOT YET | - | AC8; P2, P7, P8; final P9 |
-| R21 | practical observations | NOT YET | - | AC8; P5, P7; final P9 |
+| R1 | planning and milestone authority | PASS | PR #84 | AC1; P1, P2, P6, P8; final P9 |
+| R2 | model-led execution | PASS | PR #84 | AC1; P1, P2, P5; final P9 |
+| R3 | canonical layouts | PASS | PR #84 | AC2; P3, P8; final P9 |
+| R4 | exact source and requirements | PASS | PR #84 | AC2; P3; final P9 |
+| R5 | containment and isolation | PASS | PR #84 | AC2; P3, P8; final P9 |
+| R6 | publication and retention | PASS | PR #84 | AC2; P3, P8; final P9 |
+| R7 | local finalization | PASS | PR #84 | AC2; P3, P8; final P9 |
+| R8 | independent grouped verdicts | PASS | PR #84 | AC3; P5, P8; final P9 |
+| R9 | complete obligation inventory | PASS | PR #84 | AC3; P1, P5, P7, P8; final P9 |
+| R10 | equivalent-input reuse | PASS | PR #84 | AC4; P4; final P9 |
+| R11 | relevant change and uncertainty | PASS | PR #84 | AC4; P4; final P9 |
+| R12 | targeted delta coverage | PASS | PR #84 | AC4; P4, P8; final P9 |
+| R13 | bounded history and dispositions | PASS | PR #84 | AC5; P5; final P9 |
+| R14 | new discovery and blocking criteria | PASS | PR #84 | AC5; P5; final P9 |
+| R15 | one scoped human decision | PASS | PR #84 | AC6; P6; final P9 |
+| R16 | honest exceptions and integration | PASS | PR #84 | AC6; P6, P8; final P9 |
+| R17 | enforcement coverage | PASS | PR #84 | AC7; P1, P6, P8; final P9 |
+| R18 | coherent consumers and low ceremony | PASS | PR #84 | AC7; P1, P7, P8; final P9 |
+| R19 | direct cutover | PASS | PR #84 | AC8; P1, P2, P7, P8; final P9 |
+| R20 | resume without false history | PASS | PR #84 | AC8; P2, P7, P8; final P9 |
+| R21 | practical observations | PASS | PR #84 | AC8; P5, P7; final P9 |
 
 ## Review Log
 
@@ -111,3 +111,12 @@ Formal13 native Judge found native/Desktop helper and interpreter parity failure
 ### Formal PR84 attempt16
 
 The independent code reviewer found CR16-1/R18 in the documented CLI shortcut; actual smoke failed although full configuration works. VerificationFAIL and the bounded independent code-reviewFAIL are retained underpr-84/attempts/formal-pr84-16. No codeReview gate passage or nativeJudge verdict was issued. [Sixteenth repair](verification/formal-pr84-remediation-16.md) retires the shortcut with explicit scope guidance; actual CLI and packed CLI controls pass. Formal reassessment remains pending.
+
+
+### PR #84
+
+[Validated feature-final packet](pr-84/boundary.json) — formal-pr84-17, evaluated pin `d8be5959c8d7bb3925ee5f8991d295ae07bdef9e`, final product `02bb2ec`. Independent [code review](pr-84/attempts/formal-pr84-17/code-review.md) PASS; [spec evaluation](pr-84/attempts/formal-pr84-17/spec-evaluation.md) PASS (21/21 rows,8/8 AC); separate fresh native OpenAI [Judge](pr-84/attempts/formal-pr84-17/judge.md) PASS (21/21 plus scope/gap/contradiction). No waivers. All original failures remain unchanged.
+
+[Verification](pr-84/attempts/formal-pr84-17/verification.md) records composite coverage: broad366PASS/1resolved portabilityFAIL/1intentionalSKIP, supplemented by complete final portability5 and affected closure7/core18/CLI9/packed2. Desktop173, actual ARM64 packaged runtime and144 source/build byte matches PASS. The original broad run is not labeled failure-free or exact-final. Empty pattern scope gives no substantive rule coverage. [Interactive explanation](pr-84/attempts/formal-pr84-17/explain-diff.html) has browser-checked desktop/mobile layouts and working interactions. See [completion/readiness report](completion-report.md) for scope and limits.
+
+Required formal evidence is ready for packet validation and human review. PR remains CLOSED; issues remain in-review. Neither human acceptance, merge, installation, release nor feature COMPLETE is asserted. Installed rc.16 continues to govern this record until authorized cutover.

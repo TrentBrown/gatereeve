@@ -1,0 +1,26 @@
+✔ host environment invalidates runner proof while isolated source review remains applicable (2517.990208ms)
+✔ runner reuse binds the entire actual inherited environment without retaining plaintext values (2247.493ms)
+✔ later runner preflight failure retains completed check output with exit 0 (1148.27875ms)
+✔ later runner preflight failure retains completed check output with exit 7 (1146.768333ms)
+✔ corrected runner configuration recovers after invalid arguments undefined (1815.689291ms)
+✔ corrected runner configuration recovers after invalid arguments "--version" (1781.677042ms)
+✔ corrected runner configuration recovers after invalid arguments [4] (1726.037208ms)
+✔ trusted validator drift invalidates spec and reconciliation while refresh preserves authority (3378.54675ms)
+✔ validator postflight drift retains executed diagnostics and rejects unbound imports (238.160666ms)
+✔ actual argument change invalidates retained PASS and reruns the check (1757.354166ms)
+✔ actual library change invalidates retained PASS and reruns the check (1913.515959ms)
+✔ actual shebang change invalidates retained PASS and reruns the check (1677.518458ms)
+✔ actual failed runner exception expires after changed external script (1694.906625ms)
+✔ actual acceptance passage rejects old PASS after external script turns failing (10562.356333ms)
+✔ consumed verification external drift also invalidates a spec waiver (2263.870833ms)
+✔ external input mutation during execution retains diagnostics but never current PASS (1103.854583ms)
+✔ loader environment preload drift invalidates actual runner proof (1697.957ms)
+✔ directory checks exclude only their trusted current evidence store (1383.782208ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 40112.546875
