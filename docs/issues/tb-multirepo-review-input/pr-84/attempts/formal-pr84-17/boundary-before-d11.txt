@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 4,
+  "scope": "feature-final",
+  "featureId": "tb-multirepo-review-input",
+  "repositoryAlias": "product",
+  "packetId": "pr-84",
+  "pullRequest": {
+    "repository": "TrentBrown/gatereeve",
+    "number": 84,
+    "url": "https://github.com/TrentBrown/gatereeve/pull/84",
+    "state": "CLOSED",
+    "isDraft": true,
+    "baseRefName": "main",
+    "baseRefOid": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headRefName": "tb-multirepo-review-input",
+    "headRefOid": "d8be5959c8d7bb3925ee5f8991d295ae07bdef9e",
+    "githubReportedHeadSha": "5433a6066120c118a438dbd00faaf993b61f22fa",
+    "githubReportedBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436"
+  },
+  "mergeBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+  "evaluatedSourceSha": "d8be5959c8d7bb3925ee5f8991d295ae07bdef9e",
+  "featureBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+  "applicability": {
+    "specEvaluation": true,
+    "judge": true,
+    "patternReview": true
+  },
+  "gates": {
+    "verification": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/formal-pr84-17/verification.md",
+        "sha256": "sha256:839bcf7edeee309fccf8da03e11471d9c70e27c1c463bd5606830fac29335c8b"
+      }
+    },
+    "specEvaluation": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/formal-pr84-17/spec-evaluation.md",
+        "sha256": "sha256:f024659b35f33b9603a56bc92ce9a76e9c4bba795bc0b4500f8433f80f9df736"
+      }
+    },
+    "judge": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/formal-pr84-17/judge.md",
+        "sha256": "sha256:1d989f664736bcfb4072aa007645974cc784733038d7b1c7bc56df4047168ae8"
+      }
+    },
+    "codeReview": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/formal-pr84-17/code-review.md",
+        "sha256": "sha256:8d67740367fe0ba8d2b8ccb1a71c53e661074bf638d35a1e5d0f14e21c22a6c7"
+      }
+    },
+    "patternReview": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/formal-pr84-17/pattern-review.md",
+        "sha256": "sha256:d4550f87bb7e76c2689738925b4c4a8f22b5eb8d8efa99d03e41359eba98df91"
+      }
+    },
+    "explainDiff": {
+      "disposition": "passed",
+      "reason": null,
+      "evidence": {
+        "path": "attempts/formal-pr84-17/explain-diff.html",
+        "sha256": "sha256:3277e1aebe1efdc07cc40924ee8688190ee4534235a16a3139040602be271b65"
+      }
+    }
+  },
+  "attemptId": "formal-pr84-17"
+}

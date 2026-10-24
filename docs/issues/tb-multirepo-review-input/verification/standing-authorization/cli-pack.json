@@ -1,776 +1,780 @@
-[
-  {
-    "id": "@quality-code/gatereeve@0.1.0",
-    "name": "@quality-code/gatereeve",
-    "version": "0.1.0",
-    "size": 250236,
-    "unpackedSize": 1025401,
-    "shasum": "6724efd4f71c521411e27d08a43b4448887f09f9",
-    "integrity": "sha512-Mmw7DhpWCPipDjMHXXcqICZnp0Q2iNs2uRi0Zak8RZTokwbjnKvM6O7onii7eTE65jAfJGULT4/XI5pui6YXfQ==",
-    "filename": "quality-code-gatereeve-0.1.0.tgz",
-    "files": [
-      {
-        "path": "README.md",
-        "size": 11677,
-        "mode": 420
-      },
-      {
-        "path": "bin/workflow.js",
-        "size": 88,
-        "mode": 420
-      },
-      {
-        "path": "package.json",
-        "size": 731,
-        "mode": 420
-      },
-      {
-        "path": "resources/cli-projection.json",
-        "size": 3948,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/advisory-review.md",
-        "size": 472,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/boundary-retry.md",
-        "size": 568,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/branch-bootstrap.md",
-        "size": 649,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/commit.md",
-        "size": 994,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/completion-recovery.md",
-        "size": 506,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/decision-record.md",
-        "size": 690,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/decision-triage.md",
-        "size": 564,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/design.md",
-        "size": 1471,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/judge.md",
-        "size": 706,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/pattern-audit.md",
-        "size": 1232,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/pattern-extract.md",
-        "size": 3079,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/pattern-harvest.md",
-        "size": 2573,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/pattern-help.md",
-        "size": 1576,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/pattern-init.md",
-        "size": 979,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/pattern-learn.md",
-        "size": 2450,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/pattern-promote.md",
-        "size": 3450,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/pattern-review.md",
-        "size": 1046,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/pattern-status.md",
-        "size": 2431,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/plan.md",
-        "size": 1586,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/pr-boundary.md",
-        "size": 1745,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/pr-review.md",
-        "size": 827,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/spec-draft.md",
-        "size": 1863,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/spec-evaluate.md",
-        "size": 597,
-        "mode": 420
-      },
-      {
-        "path": "resources/commands/spec-validate.md",
-        "size": 1391,
-        "mode": 420
-      },
-      {
-        "path": "resources/policy/COMPLETION-RECOVERY.md",
-        "size": 676,
-        "mode": 420
-      },
-      {
-        "path": "resources/policy/EVIDENCE-PACKETS.md",
-        "size": 1566,
-        "mode": 420
-      },
-      {
-        "path": "resources/policy/profiles/portable-core.md",
-        "size": 644,
-        "mode": 420
-      },
-      {
-        "path": "resources/policy/profiles/quality-code.md",
-        "size": 1615,
-        "mode": 420
-      },
-      {
-        "path": "resources/policy/STANDARDS.md",
-        "size": 5281,
-        "mode": 420
-      },
-      {
-        "path": "resources/policy/WORKFLOW.md",
-        "size": 5306,
-        "mode": 420
-      },
-      {
-        "path": "resources/policy/WORKFLOW.mermaid",
-        "size": 570,
-        "mode": 420
-      },
-      {
-        "path": "resources/policy/WORKSPACE-CONTEXT.md",
-        "size": 4245,
-        "mode": 420
-      },
-      {
-        "path": "resources/PROTOCOL.md",
-        "size": 24332,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/agent-workflow.js",
-        "size": 7587,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/constants.js",
-        "size": 40,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/context.js",
-        "size": 12080,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/actions.js",
-        "size": 12319,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/adapter.js",
-        "size": 7131,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/authorization.js",
-        "size": 10332,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/contracts.js",
-        "size": 10474,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/core.js",
-        "size": 47235,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/environment.js",
-        "size": 13104,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/evidence.js",
-        "size": 15512,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/execution.js",
-        "size": 49968,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/observation.js",
-        "size": 1950,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/pattern-inputs.js",
-        "size": 2317,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/pre-tool-use.js",
-        "size": 2078,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/current/store.js",
-        "size": 15405,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/errors.js",
-        "size": 897,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/index.js",
-        "size": 586,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/json-schema.js",
-        "size": 3984,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/local-agent-adapters.js",
-        "size": 12936,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/module-runtime.js",
-        "size": 8571,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/package.json",
-        "size": 173,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/plugin-adapter.js",
-        "size": 1279,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/python-guards.js",
-        "size": 8519,
-        "mode": 420
-      },
-      {
-        "path": "resources/protocol/result.js",
-        "size": 2502,
-        "mode": 420
-      },
-      {
-        "path": "resources/release/package.json",
-        "size": 33,
-        "mode": 420
-      },
-      {
-        "path": "resources/release/release-conductor-artifact.js",
-        "size": 3738,
-        "mode": 420
-      },
-      {
-        "path": "resources/release/release-conductor-discovery.js",
-        "size": 4252,
-        "mode": 420
-      },
-      {
-        "path": "resources/release/release-conductor-observer.js",
-        "size": 9342,
-        "mode": 420
-      },
-      {
-        "path": "resources/release/release-conductor-state.js",
-        "size": 13128,
-        "mode": 420
-      },
-      {
-        "path": "resources/RESOURCE-ROOT.md",
-        "size": 718,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/bootstrap_branch_docs.py",
-        "size": 4198,
-        "mode": 493
-      },
-      {
-        "path": "resources/scripts/boundary_context.py",
-        "size": 9835,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/decision_record.py",
-        "size": 1726,
-        "mode": 493
-      },
-      {
-        "path": "resources/scripts/decision_triage.py",
-        "size": 2405,
-        "mode": 493
-      },
-      {
-        "path": "resources/scripts/gate_triage.py",
-        "size": 1516,
-        "mode": 493
-      },
-      {
-        "path": "resources/scripts/lint_issues.py",
-        "size": 2801,
-        "mode": 493
-      },
-      {
-        "path": "resources/scripts/lint_spec.py",
-        "size": 2612,
-        "mode": 493
-      },
-      {
-        "path": "resources/scripts/lint_tracker.py",
-        "size": 2403,
-        "mode": 493
-      },
-      {
-        "path": "resources/scripts/merge_verified.py",
-        "size": 5471,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/pattern_tool.py",
-        "size": 29641,
-        "mode": 493
-      },
-      {
-        "path": "resources/scripts/pattern/__init__.py",
-        "size": 56,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/pattern/buckets.py",
-        "size": 1509,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/pattern/git_context.py",
-        "size": 2965,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/pattern/harvest.py",
-        "size": 27804,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/pattern/learning_events.py",
-        "size": 3293,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/pattern/rules.py",
-        "size": 6136,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/pattern/simple_yaml.py",
-        "size": 7878,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/pattern/status.py",
-        "size": 15600,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/pattern/tests/test_pattern_helpers.py",
-        "size": 45348,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/pr_context.py",
-        "size": 35008,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/pr_lifecycle.py",
-        "size": 6290,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/session_start.py",
-        "size": 2599,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/tests/test_bootstrap_branch_docs.py",
-        "size": 4877,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/tests/test_decision_triage.py",
-        "size": 1449,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/tests/test_merge_verified.py",
-        "size": 3919,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/tests/test_pr_context.py",
-        "size": 13468,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/tests/test_pr_lifecycle.py",
-        "size": 9802,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/tests/test_session_start.py",
-        "size": 3253,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/tests/test_workflow_context.py",
-        "size": 11596,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/tests/test_workflow_doctor.py",
-        "size": 6800,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/tests/test_workflow_setup.py",
-        "size": 4229,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/validate_branch_docs.py",
-        "size": 2627,
-        "mode": 493
-      },
-      {
-        "path": "resources/scripts/workflow_common.py",
-        "size": 3980,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/workflow_context.py",
-        "size": 16382,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/workflow_doctor.py",
-        "size": 16376,
-        "mode": 420
-      },
-      {
-        "path": "resources/scripts/workflow_setup.py",
-        "size": 3887,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/agentic-workflow.json",
-        "size": 428,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/decisions.md",
-        "size": 112,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/design.md",
-        "size": 186,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/interview.md",
-        "size": 590,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/issues.md",
-        "size": 326,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/plan.md",
-        "size": 620,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/plugin-smoke/acceptance-answers.md",
-        "size": 1054,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/plugin-smoke/greet.py",
-        "size": 633,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/plugin-smoke/test_greet.py",
-        "size": 725,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/scratchpad.md",
-        "size": 257,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/spec.md",
-        "size": 520,
-        "mode": 420
-      },
-      {
-        "path": "resources/templates/tracker.md",
-        "size": 384,
-        "mode": 420
-      },
-      {
-        "path": "scripts/aggregate-native-trust.js",
-        "size": 1083,
-        "mode": 420
-      },
-      {
-        "path": "scripts/benchmark-boundary-cost.mjs",
-        "size": 4350,
-        "mode": 420
-      },
-      {
-        "path": "scripts/build-trusted-release-lifecycle.js",
-        "size": 1709,
-        "mode": 420
-      },
-      {
-        "path": "scripts/provider-adapter-smoke.js",
-        "size": 1844,
-        "mode": 420
-      },
-      {
-        "path": "scripts/read-primary-publication-receipt.js",
-        "size": 1573,
-        "mode": 420
-      },
-      {
-        "path": "scripts/stage-protocol.js",
-        "size": 380,
-        "mode": 420
-      },
-      {
-        "path": "src/commands/current.js",
-        "size": 11005,
-        "mode": 420
-      },
-      {
-        "path": "src/commands/plugin.js",
-        "size": 8163,
-        "mode": 420
-      },
-      {
-        "path": "src/commands/release-conductor.js",
-        "size": 6303,
-        "mode": 420
-      },
-      {
-        "path": "src/commands/release.js",
-        "size": 29884,
-        "mode": 420
-      },
-      {
-        "path": "src/help-tree.js",
-        "size": 3165,
-        "mode": 420
-      },
-      {
-        "path": "src/index.js",
-        "size": 972,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/compose.js",
-        "size": 9874,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/contracts.js",
-        "size": 5772,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/coordinated-publication.js",
-        "size": 15539,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/coordinated-release.js",
-        "size": 31839,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/desktop-release-manifest.js",
-        "size": 4575,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/github-publication.js",
-        "size": 14484,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/homebrew-cask-v2.js",
-        "size": 18565,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/homebrew-cask.js",
-        "size": 23743,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/hosted-publication-v2.js",
-        "size": 18729,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/native-trust-evidence-v2.js",
-        "size": 7454,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/native.js",
-        "size": 8301,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/plugin-candidate-integrity.js",
-        "size": 12167,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/portability.js",
-        "size": 6176,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/registry.js",
-        "size": 1954,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/release-conductor-artifact.js",
-        "size": 640,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/release-conductor-discovery.js",
-        "size": 482,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/release-conductor-state.js",
-        "size": 1250,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/release-lifecycle-v2.js",
-        "size": 12134,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/release-operations.js",
-        "size": 28140,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/release-version.js",
-        "size": 6200,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/release.js",
-        "size": 6681,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/smoke.js",
-        "size": 11020,
-        "mode": 420
-      },
-      {
-        "path": "src/plugin/trusted-release-lifecycle-v2.js",
-        "size": 6227,
-        "mode": 420
-      },
-      {
-        "path": "src/protocol/client.js",
-        "size": 1258,
-        "mode": 420
-      },
-      {
-        "path": "src/protocol/stage.js",
-        "size": 3878,
-        "mode": 420
-      }
-    ],
-    "entryCount": 152,
-    "bundled": []
-  }
-]
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": [
+    {
+      "id": "@quality-code/gatereeve@0.1.0",
+      "name": "@quality-code/gatereeve",
+      "version": "0.1.0",
+      "size": 250236,
+      "unpackedSize": 1025401,
+      "shasum": "6724efd4f71c521411e27d08a43b4448887f09f9",
+      "integrity": "sha512-Mmw7DhpWCPipDjMHXXcqICZnp0Q2iNs2uRi0Zak8RZTokwbjnKvM6O7onii7eTE65jAfJGULT4/XI5pui6YXfQ==",
+      "filename": "quality-code-gatereeve-0.1.0.tgz",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 11677,
+          "mode": 420
+        },
+        {
+          "path": "bin/workflow.js",
+          "size": 88,
+          "mode": 420
+        },
+        {
+          "path": "package.json",
+          "size": 731,
+          "mode": 420
+        },
+        {
+          "path": "resources/cli-projection.json",
+          "size": 3948,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/advisory-review.md",
+          "size": 472,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/boundary-retry.md",
+          "size": 568,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/branch-bootstrap.md",
+          "size": 649,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/commit.md",
+          "size": 994,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/completion-recovery.md",
+          "size": 506,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/decision-record.md",
+          "size": 690,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/decision-triage.md",
+          "size": 564,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/design.md",
+          "size": 1471,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/judge.md",
+          "size": 706,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/pattern-audit.md",
+          "size": 1232,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/pattern-extract.md",
+          "size": 3079,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/pattern-harvest.md",
+          "size": 2573,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/pattern-help.md",
+          "size": 1576,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/pattern-init.md",
+          "size": 979,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/pattern-learn.md",
+          "size": 2450,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/pattern-promote.md",
+          "size": 3450,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/pattern-review.md",
+          "size": 1046,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/pattern-status.md",
+          "size": 2431,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/plan.md",
+          "size": 1586,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/pr-boundary.md",
+          "size": 1745,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/pr-review.md",
+          "size": 827,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/spec-draft.md",
+          "size": 1863,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/spec-evaluate.md",
+          "size": 597,
+          "mode": 420
+        },
+        {
+          "path": "resources/commands/spec-validate.md",
+          "size": 1391,
+          "mode": 420
+        },
+        {
+          "path": "resources/policy/COMPLETION-RECOVERY.md",
+          "size": 676,
+          "mode": 420
+        },
+        {
+          "path": "resources/policy/EVIDENCE-PACKETS.md",
+          "size": 1566,
+          "mode": 420
+        },
+        {
+          "path": "resources/policy/profiles/portable-core.md",
+          "size": 644,
+          "mode": 420
+        },
+        {
+          "path": "resources/policy/profiles/quality-code.md",
+          "size": 1615,
+          "mode": 420
+        },
+        {
+          "path": "resources/policy/STANDARDS.md",
+          "size": 5281,
+          "mode": 420
+        },
+        {
+          "path": "resources/policy/WORKFLOW.md",
+          "size": 5306,
+          "mode": 420
+        },
+        {
+          "path": "resources/policy/WORKFLOW.mermaid",
+          "size": 570,
+          "mode": 420
+        },
+        {
+          "path": "resources/policy/WORKSPACE-CONTEXT.md",
+          "size": 4245,
+          "mode": 420
+        },
+        {
+          "path": "resources/PROTOCOL.md",
+          "size": 24332,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/agent-workflow.js",
+          "size": 7587,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/constants.js",
+          "size": 40,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/context.js",
+          "size": 12080,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/actions.js",
+          "size": 12319,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/adapter.js",
+          "size": 7131,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/authorization.js",
+          "size": 10332,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/contracts.js",
+          "size": 10474,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/core.js",
+          "size": 47235,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/environment.js",
+          "size": 13104,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/evidence.js",
+          "size": 15512,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/execution.js",
+          "size": 49968,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/observation.js",
+          "size": 1950,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/pattern-inputs.js",
+          "size": 2317,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/pre-tool-use.js",
+          "size": 2078,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/current/store.js",
+          "size": 15405,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/errors.js",
+          "size": 897,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/index.js",
+          "size": 586,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/json-schema.js",
+          "size": 3984,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/local-agent-adapters.js",
+          "size": 12936,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/module-runtime.js",
+          "size": 8571,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/package.json",
+          "size": 173,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/plugin-adapter.js",
+          "size": 1279,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/python-guards.js",
+          "size": 8519,
+          "mode": 420
+        },
+        {
+          "path": "resources/protocol/result.js",
+          "size": 2502,
+          "mode": 420
+        },
+        {
+          "path": "resources/release/package.json",
+          "size": 33,
+          "mode": 420
+        },
+        {
+          "path": "resources/release/release-conductor-artifact.js",
+          "size": 3738,
+          "mode": 420
+        },
+        {
+          "path": "resources/release/release-conductor-discovery.js",
+          "size": 4252,
+          "mode": 420
+        },
+        {
+          "path": "resources/release/release-conductor-observer.js",
+          "size": 9342,
+          "mode": 420
+        },
+        {
+          "path": "resources/release/release-conductor-state.js",
+          "size": 13128,
+          "mode": 420
+        },
+        {
+          "path": "resources/RESOURCE-ROOT.md",
+          "size": 718,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/bootstrap_branch_docs.py",
+          "size": 4198,
+          "mode": 493
+        },
+        {
+          "path": "resources/scripts/boundary_context.py",
+          "size": 9835,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/decision_record.py",
+          "size": 1726,
+          "mode": 493
+        },
+        {
+          "path": "resources/scripts/decision_triage.py",
+          "size": 2405,
+          "mode": 493
+        },
+        {
+          "path": "resources/scripts/gate_triage.py",
+          "size": 1516,
+          "mode": 493
+        },
+        {
+          "path": "resources/scripts/lint_issues.py",
+          "size": 2801,
+          "mode": 493
+        },
+        {
+          "path": "resources/scripts/lint_spec.py",
+          "size": 2612,
+          "mode": 493
+        },
+        {
+          "path": "resources/scripts/lint_tracker.py",
+          "size": 2403,
+          "mode": 493
+        },
+        {
+          "path": "resources/scripts/merge_verified.py",
+          "size": 5471,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/pattern_tool.py",
+          "size": 29641,
+          "mode": 493
+        },
+        {
+          "path": "resources/scripts/pattern/__init__.py",
+          "size": 56,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/pattern/buckets.py",
+          "size": 1509,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/pattern/git_context.py",
+          "size": 2965,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/pattern/harvest.py",
+          "size": 27804,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/pattern/learning_events.py",
+          "size": 3293,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/pattern/rules.py",
+          "size": 6136,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/pattern/simple_yaml.py",
+          "size": 7878,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/pattern/status.py",
+          "size": 15600,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/pattern/tests/test_pattern_helpers.py",
+          "size": 45348,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/pr_context.py",
+          "size": 35008,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/pr_lifecycle.py",
+          "size": 6290,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/session_start.py",
+          "size": 2599,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/tests/test_bootstrap_branch_docs.py",
+          "size": 4877,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/tests/test_decision_triage.py",
+          "size": 1449,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/tests/test_merge_verified.py",
+          "size": 3919,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/tests/test_pr_context.py",
+          "size": 13468,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/tests/test_pr_lifecycle.py",
+          "size": 9802,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/tests/test_session_start.py",
+          "size": 3253,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/tests/test_workflow_context.py",
+          "size": 11596,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/tests/test_workflow_doctor.py",
+          "size": 6800,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/tests/test_workflow_setup.py",
+          "size": 4229,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/validate_branch_docs.py",
+          "size": 2627,
+          "mode": 493
+        },
+        {
+          "path": "resources/scripts/workflow_common.py",
+          "size": 3980,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/workflow_context.py",
+          "size": 16382,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/workflow_doctor.py",
+          "size": 16376,
+          "mode": 420
+        },
+        {
+          "path": "resources/scripts/workflow_setup.py",
+          "size": 3887,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/agentic-workflow.json",
+          "size": 428,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/decisions.md",
+          "size": 112,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/design.md",
+          "size": 186,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/interview.md",
+          "size": 590,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/issues.md",
+          "size": 326,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/plan.md",
+          "size": 620,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/plugin-smoke/acceptance-answers.md",
+          "size": 1054,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/plugin-smoke/greet.py",
+          "size": 633,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/plugin-smoke/test_greet.py",
+          "size": 725,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/scratchpad.md",
+          "size": 257,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/spec.md",
+          "size": 520,
+          "mode": 420
+        },
+        {
+          "path": "resources/templates/tracker.md",
+          "size": 384,
+          "mode": 420
+        },
+        {
+          "path": "scripts/aggregate-native-trust.js",
+          "size": 1083,
+          "mode": 420
+        },
+        {
+          "path": "scripts/benchmark-boundary-cost.mjs",
+          "size": 4350,
+          "mode": 420
+        },
+        {
+          "path": "scripts/build-trusted-release-lifecycle.js",
+          "size": 1709,
+          "mode": 420
+        },
+        {
+          "path": "scripts/provider-adapter-smoke.js",
+          "size": 1844,
+          "mode": 420
+        },
+        {
+          "path": "scripts/read-primary-publication-receipt.js",
+          "size": 1573,
+          "mode": 420
+        },
+        {
+          "path": "scripts/stage-protocol.js",
+          "size": 380,
+          "mode": 420
+        },
+        {
+          "path": "src/commands/current.js",
+          "size": 11005,
+          "mode": 420
+        },
+        {
+          "path": "src/commands/plugin.js",
+          "size": 8163,
+          "mode": 420
+        },
+        {
+          "path": "src/commands/release-conductor.js",
+          "size": 6303,
+          "mode": 420
+        },
+        {
+          "path": "src/commands/release.js",
+          "size": 29884,
+          "mode": 420
+        },
+        {
+          "path": "src/help-tree.js",
+          "size": 3165,
+          "mode": 420
+        },
+        {
+          "path": "src/index.js",
+          "size": 972,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/compose.js",
+          "size": 9874,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/contracts.js",
+          "size": 5772,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/coordinated-publication.js",
+          "size": 15539,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/coordinated-release.js",
+          "size": 31839,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/desktop-release-manifest.js",
+          "size": 4575,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/github-publication.js",
+          "size": 14484,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/homebrew-cask-v2.js",
+          "size": 18565,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/homebrew-cask.js",
+          "size": 23743,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/hosted-publication-v2.js",
+          "size": 18729,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/native-trust-evidence-v2.js",
+          "size": 7454,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/native.js",
+          "size": 8301,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/plugin-candidate-integrity.js",
+          "size": 12167,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/portability.js",
+          "size": 6176,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/registry.js",
+          "size": 1954,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/release-conductor-artifact.js",
+          "size": 640,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/release-conductor-discovery.js",
+          "size": 482,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/release-conductor-state.js",
+          "size": 1250,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/release-lifecycle-v2.js",
+          "size": 12134,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/release-operations.js",
+          "size": 28140,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/release-version.js",
+          "size": 6200,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/release.js",
+          "size": 6681,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/smoke.js",
+          "size": 11020,
+          "mode": 420
+        },
+        {
+          "path": "src/plugin/trusted-release-lifecycle-v2.js",
+          "size": 6227,
+          "mode": 420
+        },
+        {
+          "path": "src/protocol/client.js",
+          "size": 1258,
+          "mode": 420
+        },
+        {
+          "path": "src/protocol/stage.js",
+          "size": 3878,
+          "mode": 420
+        }
+      ],
+      "entryCount": 152,
+      "bundled": []
+    }
+  ]
+}

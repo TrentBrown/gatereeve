@@ -13,9 +13,7 @@
     "baseRefName": "main",
     "baseRefOid": "643e3ea2b03f19b66595219c4f8df934596aa436",
     "headRefName": "tb-multirepo-review-input",
-    "headRefOid": "d8be5959c8d7bb3925ee5f8991d295ae07bdef9e",
-    "githubReportedHeadSha": "5433a6066120c118a438dbd00faaf993b61f22fa",
-    "githubReportedBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436"
+    "headRefOid": "d8be5959c8d7bb3925ee5f8991d295ae07bdef9e"
   },
   "mergeBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
   "evaluatedSourceSha": "d8be5959c8d7bb3925ee5f8991d295ae07bdef9e",
