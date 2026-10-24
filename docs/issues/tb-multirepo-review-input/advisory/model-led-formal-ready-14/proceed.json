@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "slice-advisory-proceed",
+  "featureId": "tb-multirepo-review-input",
+  "sliceId": "model-led-cutover",
+  "readinessId": "model-led-formal-ready-14",
+  "checkedSource": {
+    "baseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "headSha": "525a5a6cdc8580b6cef9ac36af74d09a71b3eadf",
+    "sliceBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
+    "scope": "FEATURE",
+    "boundaryScope": "FEATURE_FINAL"
+  },
+  "inputIdentity": "sha256:01053b6db74ce54fdd8af6bb910ff4f4880d4575ee56716e53f5378e09460ae0",
+  "readiness": {
+    "path": "advisory/model-led-formal-ready-14/readiness.json",
+    "hash": "sha256:91eb27bab9617fa0c3bea64eb1eb79f4a0ad1098edf13e6017b0a8b9e2cb4a09"
+  },
+  "reason": "Proceed with authorized formal review. Full CLI350PASS/1intentionalskip, focused2, desktop172, actual OpenAI, package/runtime and independent retention probes passed on26122e3. Readiness13 transport classification is corrected with exact raw bytes retained. All47 prior findings remain and every formal gate remains required; retain and inspect advisory outcomes.",
+  "recordedBy": {
+    "kind": "agent",
+    "label": "implementation coordinator for user-authorized formal review"
+  }
+}
