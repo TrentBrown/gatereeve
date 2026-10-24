@@ -1,0 +1,5 @@
+# Final source and composite applicability
+
+Final CLI/source02bb2ec; core/desktop/native bytes remain6187bc6. Broad CLI began on0ca123a and completed368tests:366PASS,1FAIL,1intentional live-providerSKIP. SoleFAIL is canonical portability lint, which ran before the literal-to-regex fix retained in6187bc6. Fresh complete portability file5PASS and plugin lint exit0 resolve that failure. The broad log is retained unchanged; it is not a zero-failure exact-final-source run.
+
+Two scoped changes occurred during the broad run: the independently checked equivalent POSIX path predicate (closure7/core18/Desktop173 on final core), and the CLI shortcut/docs repair (actual CLI/docs9 and unpacked npm CLI2 on final CLI). No other source changes occurred. Independent assessment of applicability remains part of formal review. Actual packaged Desktop/144 native/core/helper byte bindings remain applicable because no included product bytes changed after6187bc6. The npm CLI was separately repacked and executed after its change.

@@ -1,0 +1,19 @@
+✔ CLI records and revokes standing authority through the native core and fails closed without proof (3963.449166ms)
+✔ standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof (2495.047167ms)
+✔ standing scope rejects implicit deployment, unknown fields, missing expiry and changed commitments/remotes/branches (1480.558208ms)
+✔ standing authority protected merge: slice (31871.770167ms)
+✔ standing authority protected merge: final (30965.423791ms)
+✔ standing authority protected merge: acceptance-only (21216.067792ms)
+✔ standing authority protected merge: revoke-during-checks (26555.685208ms)
+✔ standing authority protected merge: expire-during-checks (27806.923875ms)
+✔ standing authority protected merge: revoke-during-final-qualification (27772.776875ms)
+✔ standing authority protected merge: expire-during-final-qualification (27232.69875ms)
+✔ standing acceptance rejects a different assessed target and subsequent target drift (21360.0175ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 218823.312666

@@ -1,0 +1,7 @@
+# D11 regression reconciliation
+
+Product source is d924492cc4f1ec825eaebcd5897c08208532cc38. The subsequent test-only correction changes the expected scope-rejection message; it does not relax the rejected request or change product behavior.
+
+The original broad CLI/core/hook run completed with172 PASS,2 FAIL,1 SKIP. It began before the final product repairs, so it is not an exact-final suite. Both failures are retained unchanged in source-evolving-broad.log. The history test lost implementation authorization while source/requirements were evolving; its isolated rerun after the final product freeze passes all66 historical records and33 closures (history-final.log). The transitive exception test correctly rejected an unsupported scope but expected an obsolete generic message. exception-original.log preserves that failure; exception-fixed.log confirms the updated precise assertion passes.
+
+Final-runtime.log passes15 focused permission/runtime controls on the frozen product, including slice/final merge, acceptance-only, target drift, expiry/revocation races, draft recovery, configured Git/Python and existing direct authorization paths. Desktop173, unpacked CLI2, packaged runtime smoke and147 exact source/build comparisons are separately retained. Independent delta review reports12 passing repair/consumer checks and no unresolved supported blocker. This is disclosed composite coverage, not an all-green exact-final broad run.

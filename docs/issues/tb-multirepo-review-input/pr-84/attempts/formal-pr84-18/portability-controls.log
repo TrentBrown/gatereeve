@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": "\u2714 lints the canonical repository plugin sources (30.11975ms)\n\u2714 rejects personal paths before inventory validation (1.329792ms)\n\u2714 rejects root escapes and native platform markers in shared source (0.821583ms)\n\u2714 rejects symlinks in canonical package sources (0.818834ms)\n\u2714 rejects a JavaScript import escaping the shared package (0.814583ms)\n\u2139 tests 5\n\u2139 suites 0\n\u2139 pass 5\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 66.286084\n"
+}
