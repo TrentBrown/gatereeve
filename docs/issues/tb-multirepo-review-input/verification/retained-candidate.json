@@ -1,9 +1,1 @@
-{
-  "sourceDigest": "sha256:b0c15462ebf9c76a43eed525b915242ead5e2b1d340c5c0276526e72ca341229",
-  "archive": "/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/.checkpoints/reviewed-candidate-b0c15462.tar.gz",
-  "archiveSha256": "0fbd4bcc87cc2463d94a7b632ee9d645a3e5de0381895f39de900bea39b91ff5",
-  "bytes": 1621833,
-  "retention": "Local worktree checkpoint archive; optional Git and not an off-device backup",
-  "manifest": "review-source-judge-final-manifest.json",
-  "verdict": "openai-judge-recheck.json"
-}
+{"schemaVersion":1,"kind":"feature-verification","classification":"Retained local implementation verification or independent assessment; not production configuration or formal gate passage","original":{"commit":"5433a6066120c118a438dbd00faaf993b61f22fa","path":"docs/issues/tb-multirepo-review-input/verification/retained-candidate.json","sha256":"sha256:8ac794708d05152e960129a4553d1e09bd6f5392e5c837fade102b89654784e9"},"payload":{"sourceDigest":"sha256:b0c15462ebf9c76a43eed525b915242ead5e2b1d340c5c0276526e72ca341229","archive":"/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/.checkpoints/reviewed-candidate-b0c15462.tar.gz","archiveSha256":"0fbd4bcc87cc2463d94a7b632ee9d645a3e5de0381895f39de900bea39b91ff5","bytes":1621833,"retention":"Local worktree checkpoint archive; optional Git and not an off-device backup","manifest":"review-source-judge-final-manifest.json","verdict":"openai-judge-recheck.json"}}
