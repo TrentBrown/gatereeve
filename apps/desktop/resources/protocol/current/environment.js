@@ -21,7 +21,7 @@ async function tree(path, root, seen = new Set()) {
   for (const name of names) entries.push([name, await tree(join(actual, name), root, next)]);
   return identity(entries);
 }
-async function executable(command, cwd, environment) {
+export async function executable(command, cwd, environment) {
   const choices = isAbsolute(command) || command.includes('/') ? [resolve(cwd, command)]
     : (environment.PATH ?? '').split(delimiter).map(part => resolve(part || cwd, command));
   for (const path of choices) {

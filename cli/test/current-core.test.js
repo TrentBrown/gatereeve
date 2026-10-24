@@ -143,7 +143,7 @@ async function runVerification(f, fail = false, operationId = 'verify-one') {
 function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, findingId = 'finding-1', outcome = blocking ? 'FAIL' : 'PASS', dispositions = [], historyAssessment = null } = {}) {
   let launches = 0;
   f.core.runtime.evaluator = {
-    async describe() { return { provider: 'codex', model: 'fixture' }; },
+    async describe() { return { provider: 'codex', model: 'fixture', reasoningEffort: 'high' }; },
     async runStage(request) {
       launches++;
       const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome,
@@ -1758,4 +1758,90 @@ test('unrelated later finding does not reopen prior closures', async t => {
   assert.equal(result.outcome, 'PASS');
   const packet = await f.core.store.json(result.input);
   assert.equal(packet.history.length, 6); assert.equal(packet.reconsiderClosures.length, 3);
+});
+
+test('evaluator qualification blocks low efforts and mismatched receipt profiles across review roles', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f); await runVerification(f);
+  for (const gates of [['code', 'spec'], ['judge'], ['explanation']]) {
+    const launched = fakeEvaluator(f);
+    const result = await f.request('gate.execute', { gates, configuration: { provider: 'codex', model: 'fixture', reasoningEffort: 'low' } }, `low-${gates[0]}`);
+    assert.equal(launched(), 0);
+    for (const ref of result.event.payload.results) assert.equal((await f.core.store.json(ref)).outcome, 'UNAVAILABLE');
+  }
+  fakeEvaluator(f);
+  const original = f.core.runtime.evaluator.runStage;
+  f.core.runtime.evaluator.runStage = async request => {
+    const result = await original(request);
+    result.receipt.capabilityProfile = { id: 'high-capability-v1', minimumReasoning: 'medium' };
+    return result;
+  };
+  const mismatch = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } }, 'wrong-profile');
+  assert.equal((await f.core.store.json(mismatch.event.payload.results[0])).outcome, 'UNAVAILABLE');
+  fakeEvaluator(f);
+  const good = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } }, 'qualified');
+  const ref = good.event.payload.results[0];
+  const state = (await f.core.state()).state;
+  const source = await f.core.store.json(state.candidate);
+  assert.equal((await f.core.currentResult(ref, source, state)).outcome, 'PASS');
+  // Simulate an unqualified retained receipt through the internal read seam; reuse
+  // must reject even though launch admission already qualified the real receipt.
+  const read = f.core.recordedResult.bind(f.core);
+  f.core.recordedResult = async (...args) => {
+    const record = structuredClone(await read(...args)); record.receipt.evaluator.reasoningEffort = 'low'; return record;
+  };
+  await assert.rejects(f.core.currentResult(ref, source, state), /capability profile/);
+});
+
+test('trusted validator drift invalidates spec and reconciliation while refresh preserves authority', async t => {
+  const f = await fixture(t);
+  const helperRoot = join(f.root, 'trusted-helpers'); await mkdir(helperRoot);
+  for (const name of ['lint_spec.py', 'lint_issues.py', 'lint_tracker.py']) {
+    await writeFile(join(helperRoot, name), await readFile(new URL(`../../plugin-src/shared/resources/scripts/${name}`, import.meta.url)));
+  }
+  f.core.runtime.pythonGuardOptions = { helperRoot, environment: { ...process.env } };
+  await authorize(f); await candidate(f);
+  const phase = (await f.core.state()).state.phase;
+  const reconciled = await f.request('gate.execute', { gates: ['reconcile'] }, 'reconcile-before');
+  const ref = reconciled.event.payload.results[0];
+  assert.equal((await f.core.store.json(ref)).outcome, 'PASS');
+  const state = (await f.core.state()).state, source = await f.core.store.json(state.candidate);
+  await f.core.currentResult(ref, source, state);
+  await writeFile(join(helperRoot, 'dependency.py'), '# changed shipped helper closure\n');
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, false);
+  await assert.rejects(f.core.currentResult(ref, source, state), /validator proof/);
+  await f.request('spec.validate', {}, 'refresh-same-authority');
+  assert.equal((await f.core.state()).state.phase, phase);
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
+  const refreshed = await f.request('gate.execute', { gates: ['reconcile'] }, 'reconcile-after');
+  assert.notEqual(refreshed.reused, true);
+  assert.equal((await f.core.store.json(refreshed.event.payload.results[0])).outcome, 'PASS');
+  f.core.runtime.pythonGuardOptions.environment.GATEREEVE_TEST_VALIDATOR = 'changed';
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, false);
+  await f.request('spec.validate', {}, 'refresh-environment');
+  const original = await readFile(join(helperRoot, 'lint_spec.py'));
+  await writeFile(join(helperRoot, 'lint_spec.py'), 'raise SystemExit(1)\n');
+  await assert.rejects(f.request('spec.validate', {}, 'failed-refresh'), /validation failed/);
+  assert.equal((await f.core.state()).state.phase, phase);
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, false);
+  await writeFile(join(helperRoot, 'lint_spec.py'), original);
+  await f.request('spec.validate', {}, 'recovered-refresh');
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
+});
+
+test('validator postflight drift retains executed diagnostics and rejects unbound imports', async t => {
+  const { runTrustedPythonGuard } = await import('../../plugin-src/shared/resources/protocol/python-guards.js');
+  const root = await mkdtemp(join(tmpdir(), 'gr-validator-drift-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const script = join(root, 'lint_spec.py');
+  await writeFile(script, "from pathlib import Path\nprint('EXECUTED-VALIDATOR-DIAGNOSTIC')\np=Path(__file__)\np.write_text(p.read_text()+'\\n# drift')\n");
+  const drift = await runTrustedPythonGuard('spec.validation.current', [], { helperRoot: root });
+  assert.equal(drift.passed, false);
+  assert.match(drift.stdout, /EXECUTED-VALIDATOR-DIAGNOSTIC/);
+  assert.match(drift.stderr, /changed during execution/);
+  assert.ok(drift.binding.runtime.modules.some(([path]) => path.endsWith('.pyc')));
+  await writeFile(script, "import fractions\nprint('UNBOUND-IMPORT')\n");
+  const unbound = await runTrustedPythonGuard('spec.validation.current', [], { helperRoot: root });
+  assert.equal(unbound.passed, false);
+  assert.match(unbound.stdout, /UNBOUND-IMPORT/);
+  assert.match(unbound.stderr, /unbound runtime dependency/);
 });

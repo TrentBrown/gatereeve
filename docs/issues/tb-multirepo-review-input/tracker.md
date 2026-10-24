@@ -71,3 +71,8 @@ Independent code/spec returned PASS; the later native OpenAI Judge returned FAIL
 ### Formal PR84 attempt 6
 
 Code/spec and native OpenAI Judge returned FAIL on `dc9732c`. Original reports and receipts remain in `pr-84/attempts/formal-pr84-6/`. The installed core returned the slice to implementation before repairs. Repairs preserve substantive negative review barriers, canonical provider receipt digests and terminal journal/activation evidence through interrupted work. See [sixth remediation claims](verification/formal-pr84-remediation-6.md). Formal passage awaits fresh pinned assessment; PR #84 remains closed.
+
+
+### Formal PR84 attempt 7
+
+Independent code/spec returned PASS; native OpenAI Judge returned FAIL (15 PASS / 6 FAIL) on `b553992`. Original reports and receipts remain under `pr-84/attempts/formal-pr84-7/`. The installed core returned the slice to implementation before the seventh repair. Repairs enforce evaluator capability, bind trusted validator runtime/source to evidence and report incomplete provider usage as unknown. See [seventh remediation claims](verification/formal-pr84-remediation-7.md). Formal passage requires the next pinned independent assessment; PR #84 remains closed.

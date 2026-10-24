@@ -1,0 +1,17 @@
+✔ stale newer finding cannot resurrect older PASS through environment (20138.41725ms)
+✔ stale newer finding cannot resurrect older PASS through expiry (20222.021625ms)
+✔ historical delta ancestry cannot grant current authority to superseded consumed proof (1804.024583ms)
+✔ current admission preserves substantive unavailable-finding after expiry (953.193291ms)
+✔ current admission preserves substantive failed-criterion after expiry (1386.486583ms)
+✔ terminal journal loss cannot erase pause or a failed review and exact retry restores the retained event (13955.489792ms)
+✔ activation root and successor loss cannot roll back the current run (390.44975ms)
+✔ saved completed failure reconciles before changed-source preflight and remains in fresh reviewer history (1703.51175ms)
+✔ unknown interrupted execution blocks older proof but a fresh complete review recovers (1117.657041ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 61758.460791

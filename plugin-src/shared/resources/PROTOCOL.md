@@ -72,6 +72,15 @@ No action is inferred from a risk acceptance. Explicit policy amendments can
 change reconciliation/triage exception policy for this candidate; integrity,
 factual truth and actual authority cannot be waived.
 
+Trusted spec, issue and tracker validation binds the shipped helper files, the
+isolated Python interpreter and loaded standard-library source/cache bytes,
+bootstrap and frozen environment. Changed or missing inputs invalidate proof.
+`spec.validate` can refresh unchanged authorized commitments during delivery,
+without changing the phase or asking for a new implementation approval. Failed
+refreshes retain diagnostics and remain blocking. Python runs without user-site
+or environment-injected imports; a new helper import must be included in the
+bound runtime closure before it can qualify.
+
 ## Execution and evidence
 
 Required acceptance obligations: context, reconcile, verification, spec,
@@ -233,3 +242,11 @@ assessment must have started after relevant negative evidence; finishing later
 cannot substitute for having reviewed the finding. Fresh proof after unknown
 work likewise means started afterward, and any later original outcome remains
 visible and subject to normal reconciliation.
+
+Evaluator qualification uses the explicit `high-capability-v1` profile. Actual
+configured reasoning must meet at least `high`, and descriptor, request and
+receipt must agree. Unknown effort/profile values fail closed. Qualification is
+checked again when reusing retained evidence, including consumed and historical
+support. Effort ordering is a protocol contract, not a claim about model-family
+quality. Provider usage totals remain null for any metric missing a contribution;
+known zero is retained as zero.

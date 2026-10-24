@@ -40,6 +40,19 @@ export function sha256Digest(value) {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }
 
+export const HIGH_CAPABILITY_PROFILE = Object.freeze({ id: 'high-capability-v1', minimumReasoning: 'high' });
+// These are protocol effort levels, not guesses about model-family capability.
+const REASONING_LEVELS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
+export function validateEvaluatorCapability(profile, effort) {
+  exactKeys(profile, ['id', 'minimumReasoning'], 'Evaluator capability profile');
+  const required = REASONING_LEVELS.indexOf(profile.minimumReasoning);
+  const actual = REASONING_LEVELS.indexOf(effort);
+  if (profile.id !== HIGH_CAPABILITY_PROFILE.id || required < REASONING_LEVELS.indexOf('high') || actual < required) {
+    throw new ContractError('Evaluator reasoning does not satisfy the required capability profile');
+  }
+  return true;
+}
+
 export function validateAgentWorkflowReceipt(value) {
   exactKeys(
     value,
@@ -92,6 +105,8 @@ export function validateAgentWorkflowReceipt(value) {
   for (const field of ['id', 'adapterVersion', 'model', 'reasoningEffort', 'contextId']) {
     nonempty(value.provider[field], `Agent workflow receipt provider ${field}`);
   }
+
+  validateEvaluatorCapability(value.capabilityProfile, value.provider.reasoningEffort);
 
   exactKeys(
     value.isolation,

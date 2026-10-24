@@ -1,3 +1,4 @@
+import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { executionEnvironment } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
@@ -5,7 +6,7 @@ import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, requireThat, identity
   identifier, text, decision, gate, authority, decisionHas, waiverFor } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, checkCandidate, contentIdentity } from './evidence.js';
-import { runTrustedPythonGuard } from '../python-guards.js';
+import { runTrustedPythonGuard, assertTrustedPythonProof, trustedPythonBinding } from '../python-guards.js';
 import { executeGates, reviewContract } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
 
@@ -30,7 +31,7 @@ export function project(events) {
         if (value.specValidation) state.specValidation = value.specValidation;
         if (decisionHas(value, 'authorize-implementation')) state.phase = 'IMPLEMENTING';
         break;
-      case 'SPEC_VALIDATED': state.specValidation = value; state.phase = 'PLANNING'; break;
+      case 'SPEC_VALIDATED': state.specValidation = value; if (['SPECIFYING', 'PLANNING'].includes(state.phase)) state.phase = 'PLANNING'; break;
       case 'CANDIDATE': state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.phase = 'IMPLEMENTING'; break;
       case 'READY': state.ready = true; break;
       case 'JOB_STARTED': state.jobs[value.jobId] = { ...value, sequence: event.sequence, finished: false }; break;
@@ -128,7 +129,7 @@ export class CurrentCore {
     return (await this.append(state, 'DECISION_PENDING', { decision: value, operation }, { id: `pending_${operation.id}`, hash: operation.hash })).state;
   }
   async specProof(documents, operation) {
-    const proof = await runTrustedPythonGuard('spec.validation.current', [this.store.home]);
+    const proof = await runTrustedPythonGuard('spec.validation.current', [this.store.home], this.runtime.pythonGuardOptions);
     const reference = await this.store.putJson(proof);
     if (!proof.passed) {
       const payload = { documents, proof: reference, outcome: Number.isInteger(proof.exitCode) ? 'FAIL' : 'UNAVAILABLE', operation };
@@ -155,6 +156,7 @@ export class CurrentCore {
       requireThat(findDecision(state, 'approve-design', current.docs['design.md'].hash) || state.decisions.findLast(item => item.kind === 'amend' && item.approvedDesign?.hash === current.docs['design.md'].hash), 'Design approval is not current');
       requireThat(state.specValidation.spec.hash === current.docs['spec.md'].hash && state.specValidation.design.hash === current.docs['design.md'].hash,
         'Specification validation is not current');
+      await assertTrustedPythonProof(await this.store.json(state.specValidation.proof), this.runtime.pythonGuardOptions);
       requireThat(value.subject === current.subject, 'Implementation authorization does not match current commitments');
       value.documents = current.docs;
     } else if (value.kind === 'amend') {
@@ -203,7 +205,8 @@ export class CurrentCore {
   }
   async validateSpec(operation) {
     const { state } = await this.state();
-    requireThat(['SPECIFYING', 'PLANNING'].includes(state.phase), 'Specification validation is not available in this phase');
+    const current = await this.commitments();
+    requireThat(['SPECIFYING', 'PLANNING'].includes(state.phase) || (state.phase !== 'COMPLETE' && findDecision(state, 'authorize-implementation', current.subject)), 'Specification validation is not available without current planning or implementation authority');
     const docs = await requirements(this.store);
     const approval = findDecision(state, 'approve-design', docs['design.md'].hash)
       ?? state.decisions.findLast(item => item.kind === 'amend' && item.approvedDesign?.hash === docs['design.md'].hash);
@@ -331,10 +334,23 @@ export class CurrentCore {
       && !state.implementers.includes(receipt.evaluator.contextId), 'Independent evaluator is not qualified');
     const inputs = await this.store.json(result.input);
     requireThat(inputs.contract === CONTRACT && inputs.gates.includes(result.gate), 'Result input binding mismatch');
+    if (['independent', 'assessment'].includes(definition.role) && result.outcome !== 'UNAVAILABLE') {
+      validateEvaluatorCapability(receipt.evaluator?.capabilityProfile, receipt.evaluator?.reasoningEffort);
+      requireThat(identity(receipt.evaluator.capabilityProfile) === identity(HIGH_CAPABILITY_PROFILE)
+        && receipt.evaluator.reasoningEffort === (inputs.configuration.reasoningEffort ?? 'high')
+        && receipt.evaluator.provider === inputs.configuration.provider && receipt.evaluator.model === inputs.configuration.model,
+      'Retained evaluator qualification differs from the requested proof');
+    }
     requireThat(inputs.reviewContract === reviewContract(inputs.gates), 'Evaluator rules or output contract changed');
     if (inputs.pattern) requireThat(identity(inputs.pattern) === identity(await patternInputs(this.store, this.context, candidate, { capture: false })), 'Pattern policy or trigger inputs changed');
     const evaluated = await checkCandidate(this.store, this.context, inputs.candidate, { live: false });
     for (const artifact of result.artifacts ?? []) await this.store.get(artifact);
+    if (result.gate === 'reconcile' && result.outcome === 'PASS') {
+      requireThat(result.proofs?.length === 2, 'Reconciliation lacks trusted validator proofs');
+      const proofs = await Promise.all(result.proofs.map(ref => this.store.json(ref)));
+      requireThat(identity(proofs.map(proof => proof.guardId).sort()) === identity(['issues.validation.current', 'tracker.validation.current']), 'Reconciliation validator proof identity differs');
+      for (const proof of proofs) await assertTrustedPythonProof(proof, this.runtime.pythonGuardOptions);
+    }
     for (const ref of inputs.support ?? []) await this.store.currentBytes(ref);
     const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
     if (!memo.has(environmentKey)) memo.set(environmentKey, executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner'));
@@ -385,7 +401,12 @@ export class CurrentCore {
         try { support.push(await this.store.fingerprint(path)); }
         catch (error) { if (error.code !== 'ENOENT') throw error; support.push({ path, missing: true }); }
       }
-      return identity({ configuration: input.configuration, dependencies, support, rule: reviewContract([gateId]),
+      const validators = [];
+      if (gateId === 'reconcile') for (const guardId of ['issues.validation.current', 'tracker.validation.current']) {
+        try { validators.push(await trustedPythonBinding(guardId, this.runtime.pythonGuardOptions)); }
+        catch (error) { validators.push({ guardId, unavailable: error.message }); }
+      }
+      return identity({ validators, configuration: input.configuration, dependencies, support, rule: reviewContract([gateId]),
         pattern: gateId === 'pattern' ? await patternInputs(this.store, this.context, candidate, { capture: false, allowMissing: true }) : null,
         externalValidity: !input.validUntil || Date.now() <= Date.parse(input.validUntil),
         integrations: gate(gateId).at === 'completion' ? state.integrations : null,
@@ -406,7 +427,10 @@ export class CurrentCore {
       if (!findDecision(state, 'authorize-implementation', current.subject)) missing.push('current implementation authorization');
       if (!state.specValidation || state.specValidation.spec.hash !== current.docs['spec.md'].hash
         || state.specValidation.design.hash !== current.docs['design.md'].hash) missing.push('current specification validation');
-      if (state.specValidation) await this.store.get(state.specValidation.proof);
+      if (state.specValidation) {
+        try { await assertTrustedPythonProof(await this.store.json(state.specValidation.proof), this.runtime.pythonGuardOptions); }
+        catch { missing.push('current trusted specification validator proof'); }
+      }
     } catch (error) { missing.push(error.message); }
     try { await this.store.closure(state.decisions); } catch (error) { missing.push(`Retained decision closure: ${error.message}`); }
     if (name === 'implementation') return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, subject: current?.subject ?? null };

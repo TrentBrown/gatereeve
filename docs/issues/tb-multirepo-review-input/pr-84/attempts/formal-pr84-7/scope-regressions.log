@@ -1,0 +1,12 @@
+✔ retained provider output round-trips through public receipt validation (659.945542ms)
+✔ generic provider unavailability does not erase otherwise qualifying review proof (1180.192209ms)
+✔ later finding outside selected criteria does not supersede applicable review (1146.595542ms)
+✔ historical delta ancestry cannot grant current authority to superseded consumed proof (1631.765792ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4700.806791

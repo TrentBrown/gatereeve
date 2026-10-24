@@ -193,3 +193,32 @@ test('both public adapters reject old receipt requests before launching a provid
     await assert.rejects(adapter.runStage({ ...request(), protocolVersion: 1 }), /current receipt and isolation contract/);
   }
 });
+
+test('both providers reject insufficient or unknown reasoning before starting a process', async () => {
+  for (const factory of [createCodexAgentAdapter, createClaudeCodeAgentAdapter]) {
+    for (const reasoningEffort of ['low', 'medium', 'unknown']) {
+      let launched = false;
+      const adapter = factory({ model: 'fixture', reasoningEffort, runner: async () => { launched = true; } });
+      await assert.rejects(adapter.runStage(request()), /capability profile/);
+      assert.equal(launched, false);
+    }
+  }
+});
+
+test('Codex usage totals remain unknown for incomplete fields across completed turns', async () => {
+  for (const [usages, expected] of [
+    [[{ input_tokens: 12, output_tokens: 7 }, undefined], null],
+    [[{ input_tokens: 12, output_tokens: 7 }, { input_tokens: 0 }], { input: 12, output: null, cachedInput: null, cacheCreation: null }],
+    [[{ input_tokens: 0, output_tokens: 0 }, { input_tokens: 0, output_tokens: 0 }], { input: 0, output: 0, cachedInput: null, cacheCreation: null }],
+    [[undefined, undefined], null],
+  ]) {
+    const adapter = createCodexAgentAdapter({ model: 'fixture', runner: async (_, args) => {
+      await writeFile(args[args.indexOf('--output-last-message') + 1], '{"verdict":"PASS"}');
+      return { stdout: [{ type: 'thread.started', thread_id: 'fresh' }, ...usages.map(usage => ({ type: 'turn.completed', usage }))].map(JSON.stringify).join('\n'),
+        stderr: '', startedAt: new Date(), completedAt: new Date() };
+    } });
+    const result = await adapter.runStage(request());
+    assert.deepEqual(result.receipt.metrics, { tokens: expected, cost: null });
+    validateAgentWorkflowStageResult(result);
+  }
+});

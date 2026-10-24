@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { sha256Digest, AGENT_WORKFLOW_PROTOCOL_VERSION } from './agent-workflow.js';
+import { sha256Digest, AGENT_WORKFLOW_PROTOCOL_VERSION, validateEvaluatorCapability } from './agent-workflow.js';
 import { ContractError } from './errors.js';
 
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
@@ -99,7 +99,7 @@ function promptFor(request) {
 
 function providerMetrics(usages, costs = []) {
   const number = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;
-  const sum = values => { const known = values.filter(number); return known.length ? known.reduce((a, b) => a + b, 0) : null; };
+  const sum = values => values.length && values.every(number) ? values.reduce((a, b) => a + b, 0) : null;
   const tokens = {
     input: sum(usages.map(value => value?.input_tokens)),
     output: sum(usages.map(value => value?.output_tokens)),
@@ -213,6 +213,7 @@ export function createCodexAgentAdapter({
   return Object.freeze({
     async describe() { return structuredClone(details); },
     async runStage(request) {
+      validateEvaluatorCapability(request.capabilityProfile, reasoningEffort);
       if (request.protocolVersion !== AGENT_WORKFLOW_PROTOCOL_VERSION || request.policy?.repositoryAccess !== 'read-only'
           || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
         throw new ContractError('Evaluator request must use the current receipt and isolation contract');
@@ -267,6 +268,7 @@ export function createClaudeCodeAgentAdapter({
   return Object.freeze({
     async describe() { return structuredClone(details); },
     async runStage(request) {
+      validateEvaluatorCapability(request.capabilityProfile, reasoningEffort);
       if (request.protocolVersion !== AGENT_WORKFLOW_PROTOCOL_VERSION || request.policy?.repositoryAccess !== 'read-only'
           || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
         throw new ContractError('Evaluator request must use the current receipt and isolation contract');

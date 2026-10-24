@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:908e0b22511e1745b8b263c06e4ad156019301387d82450b63711e224557cbf3",
+  "protocolHash": "sha256:db86b7021f63b89a2e30d8e5fd3433477ab6c4ca3bfd9bf1791b3f72a48f1121",
   "contract": "gatereeve/current/3",
   "contractSha256": "0c8e3e32c769fb2cd7ccd778bfc72238b02b93f42684412d1ef7f30fa8804c04",
   "files": [
     {
       "path": "agent-workflow.js",
-      "size": 6703,
-      "sha256": "d8d359151f13a8569e19d2fdaacdf167e8ac6c11e86e25ddde88556228ba9d27"
+      "size": 7587,
+      "sha256": "20bf1aa7363cf82153b4c245e29cd2c784f1570c39fe6c0cd78507d7ead15271"
     },
     {
       "path": "constants.js",
@@ -37,13 +37,13 @@
     },
     {
       "path": "current/core.js",
-      "size": 39565,
-      "sha256": "f3bef0defe5933de634896533ea71beff134f8fc073331304213c73e50607233"
+      "size": 41815,
+      "sha256": "b6b766792f7f3167bd09cbc7b5ffa6747f6d6a5bf6f1bdd009f21bd62646d536"
     },
     {
       "path": "current/environment.js",
-      "size": 3946,
-      "sha256": "8a739b8b9d7d288aebeba367053e00d5bfe9ea09a4714704b186cde67d0bec19"
+      "size": 3953,
+      "sha256": "5b2d23b96370411b1d495d8126f649a42cedfdb5383152aa18d65083de76023a"
     },
     {
       "path": "current/evidence.js",
@@ -52,8 +52,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 46282,
-      "sha256": "7a1af05e3ae620eabdf3f10b79bd6bf1bcc35bf19c4bc61c6543a2448f128c83"
+      "size": 46938,
+      "sha256": "911fa93ef97b984375ce4a8fdb400124cd6cd8311631b055129670437ca49fce"
     },
     {
       "path": "current/observation.js",
@@ -92,8 +92,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 12772,
-      "sha256": "11993fdd26253138cf6f0b2e05b43040b57a47db1c5df8513e45aa12361a0ba5"
+      "size": 12936,
+      "sha256": "9dae43567b6b5e57501712d96f8a0c09216a8f10a38a72717d30cd2d862046b8"
     },
     {
       "path": "module-runtime.js",
@@ -112,8 +112,8 @@
     },
     {
       "path": "python-guards.js",
-      "size": 2999,
-      "sha256": "62a07f2eaf7213e510491269fc9975efda9c99be042d6b7a7c2998b610892c36"
+      "size": 7744,
+      "sha256": "8a77746e15d3466d4ca144beccf7001fa8ceb5e70c720b82fe1e54c87ad6e705"
     },
     {
       "path": "result.js",

@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature-verification",
+  "payload": {
+    "result": {
+      "artifacts": [
+        {
+          "bytes": 1301,
+          "format": "json",
+          "hash": "sha256:7145471da35ad01f6763f2beafacc7fc9d879667ba6b2a2d972dfce8ebb3b8be"
+        },
+        {
+          "bytes": 604,
+          "format": "json",
+          "hash": "sha256:51176228d39566d62f55bc6714f6d9f387d5bdfc0124d5f32aff89eb582812f3"
+        }
+      ],
+      "contract": "gatereeve/current/3",
+      "coverage": {
+        "complete": true,
+        "interactions": [
+          "Reviewed the complete supplied module and compared base, head and proposed target, including retained file modes. app/app.js:1 exports the constant answer with value 42, consistent with R1/AC1. No imports, callers or cross-repository interactions are present in the supplied scope."
+        ],
+        "limitations": [],
+        "paths": [
+          "app/app.js"
+        ]
+      },
+      "criteria": [],
+      "dispositions": [],
+      "featureId": "feature",
+      "findings": [],
+      "gate": "code",
+      "historyAssessment": null,
+      "input": {
+        "bytes": 598,
+        "format": "json",
+        "hash": "sha256:fe5523c853386d0bc5a810baae8bd0b314ab9d0488b88e275ec836e90ccbd4d7"
+      },
+      "kind": "result",
+      "mode": "full",
+      "outcome": "PASS",
+      "prior": null,
+      "priorCandidate": null,
+      "receipt": {
+        "bytes": 693,
+        "format": "json",
+        "hash": "sha256:5e50e17e4efd22cdadae9e70bea8d45c460361676d26baacd3b4ffc1c616c74b"
+      },
+      "runId": "run-one",
+      "summary": "No supported defects found. Base, head and target are identical; no runtime test evidence was supplied."
+    },
+    "receipt": {
+      "completedAt": "2026-10-24T03:53:45.854Z",
+      "contract": "gatereeve/current/3",
+      "evaluator": {
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "contextId": "01a16c0a-c1ab-7f93-92e5-0db1d2ae4c72",
+        "freshContext": true,
+        "inheritedTurns": 0,
+        "model": "gpt-6.1-sol",
+        "provider": "codex",
+        "reasoningEffort": "high"
+      },
+      "gates": [
+        "code"
+      ],
+      "input": "sha256:fe5523c853386d0bc5a810baae8bd0b314ab9d0488b88e275ec836e90ccbd4d7",
+      "jobId": "d01f21c80fbc71aefdf99cfdf07d24d075cc67fe72548332a4fb1f5ea7d97cf8",
+      "kind": "execution",
+      "metrics": {
+        "cost": null,
+        "tokens": {
+          "cacheCreation": null,
+          "cachedInput": 52352,
+          "input": 71241,
+          "output": 436
+        }
+      },
+      "role": "independent",
+      "runId": "run-one",
+      "startedAt": "2026-10-24T03:53:26.524Z"
+    },
+    "providerReceipts": [
+      {
+        "attemptId": "sha256:fe5523c853386d0bc5a810baae8bd0b314ab9d0488b88e275ec836e90ccbd4d7",
+        "capabilityProfile": {
+          "id": "high-capability-v1",
+          "minimumReasoning": "high"
+        },
+        "completedAt": "2026-10-24T03:53:45.827Z",
+        "digests": {
+          "input": "sha256:07f9a019684aad40a406e4d3ed1bd268ca896ca81d2e44b8726d0049443aef87",
+          "instructions": "sha256:7a40ac53bc9304c001ac034fe748826666a3cb674c0eea55200bb2e26af3c20d",
+          "output": "sha256:4021ce95b75004199a1b41c4aaad4638f86eea78f2b64cd7889a922e88c666b6",
+          "snapshot": "sha256:7c576a847f37ada6360208da2a48b95cc430ed1f1053f10716fdc9c52e197bdf"
+        },
+        "isolation": {
+          "freshContext": true,
+          "inheritedTurns": 0,
+          "method": "codex-ephemeral-exec"
+        },
+        "kind": "gatereeve-agent-workflow-receipt",
+        "metrics": {
+          "cost": null,
+          "tokens": {
+            "cacheCreation": null,
+            "cachedInput": 52352,
+            "input": 71241,
+            "output": 436
+          }
+        },
+        "module": {
+          "digest": "sha256:32b8b34fd4596ec54196f45ae537e29e81982f56a6079d8ecd4d08c57cdb1abd",
+          "id": "gatereeve/current-review",
+          "version": "2.0.0"
+        },
+        "policy": {
+          "networkAccess": "deny",
+          "repositoryAccess": "read-only",
+          "scratch": "isolated"
+        },
+        "protocolVersion": "2.1.0",
+        "provider": {
+          "adapterVersion": "1.0.0",
+          "contextId": "01a16c0a-c1ab-7f93-92e5-0db1d2ae4c72",
+          "id": "codex",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "high"
+        },
+        "runId": "run-one",
+        "schemaVersion": 1,
+        "stage": "review",
+        "startedAt": "2026-10-24T03:53:26.537Z",
+        "status": "completed"
+      },
+      {
+        "verdicts": [
+          {
+            "coverage": {
+              "complete": true,
+              "interactions": [
+                "Reviewed the complete supplied module and compared base, head and proposed target, including retained file modes. app/app.js:1 exports the constant answer with value 42, consistent with R1/AC1. No imports, callers or cross-repository interactions are present in the supplied scope."
+              ],
+              "limitations": [],
+              "paths": [
+                "app/app.js"
+              ]
+            },
+            "criteria": [],
+            "dispositions": [],
+            "findings": [],
+            "gate": "code",
+            "historyAssessment": null,
+            "outcome": "PASS",
+            "summary": "No supported defects found. Base, head and target are identical; no runtime test evidence was supplied."
+          }
+        ]
+      }
+    ]
+  }
+}

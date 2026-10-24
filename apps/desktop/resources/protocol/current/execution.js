@@ -11,7 +11,7 @@ import { CONTRACT, canonical, identity, requireThat, gate, text } from './contra
 import { localPath } from './store.js';
 import { checkCandidate, contentIdentity, git, assertClean } from './evidence.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
-import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION } from '../agent-workflow.js';
+import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
 
 const exec = promisify(execFile);
@@ -56,7 +56,7 @@ For delta review, explicitly cover all changed paths and their interactions and 
 Every snapshot has metadata/<alias>.json with the original Git modes and kinds at base, head and target; prior snapshots have the same metadata under prior/<result-hash>/. Files in this read-only view are materialized without executable permissions, so use the retained mode metadata when assessing permission changes. Git symlinks are regular text files containing their target, never followed. Gitlinks are JSON metadata with the pinned commit; contents require a separately selected repository or an explicit coverage limitation. Do not treat metadata as reviewed implementation.
 Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, target/<alias>/ is the independently pinned proposed merge target; assess its interactions with the complete feature change. Prior targets are under prior/<result-hash>/target/<alias>/. Read requirements/ and the explicit evidence paths in the input. Do not access network or modify files.`;
 
-export const reviewContract = ids => identity({ providerContract: AGENT_WORKFLOW_PROTOCOL_VERSION, schema, instructions, rules: [...ids].sort().map(id => ({ id, rule: gate(id).rule ?? null })) });
+export const reviewContract = ids => identity({ capabilityProfile: HIGH_CAPABILITY_PROFILE, providerContract: AGENT_WORKFLOW_PROTOCOL_VERSION, schema, instructions, rules: [...ids].sort().map(id => ({ id, rule: gate(id).rule ?? null })) });
 
 async function sourceMetadata(root, candidate) {
   await mkdir(join(root, 'metadata'), { recursive: true });
@@ -110,6 +110,8 @@ async function independent(core, state, candidate, prepared, configuration, pack
   const provider = configuration.provider;
   requireThat(['codex', 'claude-code'].includes(provider), 'Select codex or claude-code for independent execution');
   text(configuration.model, 'Evaluator model');
+  const reasoningEffort = configuration.reasoningEffort ?? 'high';
+  validateEvaluatorCapability(HIGH_CAPABILITY_PROFILE, reasoningEffort);
   const adapter = core.runtime.evaluator ?? (provider === 'codex'
     ? createCodexAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' })
     : createClaudeCodeAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' }));
@@ -118,10 +120,12 @@ async function independent(core, state, candidate, prepared, configuration, pack
   try {
     const descriptor = await adapter.describe();
     requireThat(descriptor.provider === provider && descriptor.model === configuration.model, 'Evaluator descriptor differs from requested provider/model');
+    requireThat(descriptor.reasoningEffort === reasoningEffort, 'Evaluator descriptor reasoning differs from request');
+    validateEvaluatorCapability(HIGH_CAPABILITY_PROFILE, descriptor.reasoningEffort);
     const request = { protocolVersion: AGENT_WORKFLOW_PROTOCOL_VERSION, runId: state.runId, attemptId: prepared.hash,
       module: { id: 'gatereeve/current-review', version: '2.0.0', digest: identity(schema) },
       stage: { id: 'review', role: 'independent evaluator' },
-      capabilityProfile: { id: 'high-capability-v1', minimumReasoning: 'high' },
+      capabilityProfile: HIGH_CAPABILITY_PROFILE,
       policy: { repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated' },
       repositoryPath: root, snapshotDigest: contentIdentity(candidate), instructions,
       input: packet, outputSchema: schema, timeoutSeconds: configuration.timeoutSeconds ?? 900 };
@@ -133,6 +137,8 @@ async function independent(core, state, candidate, prepared, configuration, pack
     const receipt = result.receipt;
     requireThat(receipt?.status === 'completed' && receipt.runId === state.runId && receipt.attemptId === prepared.hash
       && receipt.isolation?.freshContext === true && receipt.isolation.inheritedTurns === 0
+      && identity(receipt.capabilityProfile) === identity(request.capabilityProfile)
+      && receipt.provider.reasoningEffort === reasoningEffort
       && receipt.provider?.id === descriptor.provider && receipt.provider.model === descriptor.model
       && receipt.digests?.input === sha256Digest(packet) && receipt.digests.instructions === sha256Digest(instructions)
       && receipt.digests.output === sha256Digest(result.output) && receipt.digests.snapshot === request.snapshotDigest
@@ -141,7 +147,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
       && !state.implementers.includes(receipt.provider.contextId), 'Evaluator inherited an implementing context');
     return { output: result.output, artifacts: retained, metrics: receipt.metrics ?? { tokens: null, cost: null }, evaluator: {
       contextId: receipt.provider.contextId, freshContext: true, inheritedTurns: 0,
-      provider: descriptor.provider, model: descriptor.model,
+      provider: descriptor.provider, model: descriptor.model, reasoningEffort, capabilityProfile: receipt.capabilityProfile,
     } };
   } catch (error) { error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])]; throw error; }
   finally { await rm(root, { recursive: true, force: true }); }
@@ -500,7 +506,7 @@ async function coreEvidence(core, state, candidate, id, consumed) {
       try {
       for (const name of ['plan.md', 'issues.md', 'tracker.md']) documents[name] = await core.store.capture(name);
       for (const guard of ['issues.validation.current', 'tracker.validation.current']) {
-        const proof = await runTrustedPythonGuard(guard, [core.store.home]);
+        const proof = await runTrustedPythonGuard(guard, [core.store.home], core.runtime.pythonGuardOptions);
         proofs.push(await core.store.putJson(proof));
         if (!proof.passed) {
           const error = new Error('Record reconciliation validation failed');
