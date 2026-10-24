@@ -147,3 +147,5 @@ Current checks include context/parity 7, authority 39, Desktop 173, CLI/docs 11 
 Scoped acceptance-only and explicit slice/final merge authority are supported; deployment remains separate. Open drafts are the default. PR84 retains this repository's closed-draft policy. [Interactive explanation](pr-84/attempts/formal-pr84-24/explain-diff.html). Issues remain in-review; merge, installation, publishing, deployment and feature completion have not occurred.
 
 Formal24 corrects only packet/evidence coordination, retaining the declared verification.md path and all11 original PR-context fields. Required gate recording and the final clean packet check use the installed core; earlier verdicts remain unchanged.
+
+The installed core recorded all ten formal24 gates PASS/current and entered HUMAN_REVIEW after clean synchronized packet validation. This is review readiness; human acceptance and merge remain separate.
