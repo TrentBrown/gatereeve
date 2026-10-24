@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "advisory.declare-readiness",
+  "data": null,
+  "error": {
+    "code": "CONTRACT_INVALID",
+    "message": "Advisory: compact record budget exceeded: advisory/model-led-formal-ready-24/readiness.json, 132728 bytes; fields {\"schemaVersion\":1,\"kind\":26,\"featureId\":27,\"sliceId\":19,\"readinessId\":27,\"declaredAt\":26,\"scope\":15,\"baseSha\":42,\"sliceBaseSha\":42,\"criteria\":130,\"source\":215,\"inputIdentity\":73,\"requestIdentity\":73,\"inputManifest\":3460,\"checks\":1339,\"remediation\":12252,\"priorFindings\":114446,\"execution\":171,\"declaredBy\":84}",
+    "details": null
+  },
+  "warnings": []
+}
