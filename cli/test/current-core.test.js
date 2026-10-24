@@ -608,6 +608,9 @@ test('host environment invalidates runner proof while isolated source review rem
   const state = (await f.core.state()).state, selected = await f.core.store.json(state.candidate);
   await assert.rejects(f.core.currentResult(ran.event.payload.results[0], selected, state), /environment changed/);
   assert.equal((await f.core.currentResult(review.event.payload.results[0], selected, state)).outcome, 'PASS');
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, false);
+  await f.request('spec.validate', {}, 'refresh-host-spec');
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
   const declared = await f.request('gate.execute', { gates: ['verification'], configuration: { environmentKeys: [key], checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Declared environment' }] } }, 'declared-env');
   process.env[key] = 'changed';
   await assert.rejects(f.core.currentResult(declared.event.payload.results[0], selected, (await f.core.state()).state), /environment changed/);
@@ -1838,7 +1841,7 @@ test('validator postflight drift retains executed diagnostics and rejects unboun
   assert.equal(drift.passed, false);
   assert.match(drift.stdout, /EXECUTED-VALIDATOR-DIAGNOSTIC/);
   assert.match(drift.stderr, /changed during execution/);
-  assert.ok(drift.binding.runtime.modules.some(([path]) => path.endsWith('.pyc')));
+  assert.ok(drift.binding.runtime.modules.some(([path]) => path.endsWith('.py'))); // Caches are included when this runtime has them.
   await writeFile(script, "import fractions\nprint('UNBOUND-IMPORT')\n");
   const unbound = await runTrustedPythonGuard('spec.validation.current', [], { helperRoot: root });
   assert.equal(unbound.passed, false);
