@@ -30,8 +30,8 @@
 | R19 | direct cutover | PASS | PR #84 | AC8; P1, P2, P7, P8; final P9 |
 | R20 | resume without false history | PASS | PR #84 | AC8; P2, P7, P8; final P9 |
 | R21 | practical observations | PASS | PR #84 | AC8; P5, P7; final P9 |
-| R22 | scoped standing acceptance and merge | PASS | PR #84 | AC6; P10; formal23 |
-| R23 | standing authority surfaces and PR default | PASS | PR #84 | AC7; P10; formal23 |
+| R22 | scoped standing acceptance and merge | PASS | PR #84 | AC6; P10; formal24 |
+| R23 | standing authority surfaces and PR default | PASS | PR #84 | AC7; P10; formal24 |
 
 ## Review Log
 
@@ -125,13 +125,25 @@ Required formal evidence is ready for packet validation and human review. PR rem
 
 ## D11 amendment — 2026-10-24
 
-At amendment entry, formal17 applied to the prior specification/source. R22 and R23 were NOT YET and affected rows required refreshed assessment. The current formal23 disposition below supersedes that entry; I-10 remains in-review until integration.
+At amendment entry, formal17 applied to the prior specification/source. R22 and R23 were NOT YET and affected rows required refreshed assessment. The current formal24 disposition below supersedes that entry; I-10 remains in-review until integration.
 
 
-### D11 current formal review — formal-pr84-23
+### D11 substantive review — formal-pr84-23
 
 [Verification](pr-84/attempts/formal-pr84-23/verification-with-receipt.md), [code review](pr-84/attempts/formal-pr84-23/code-review.md), [spec assessment](pr-84/attempts/formal-pr84-23/spec-evaluation.md) and the [fresh native OpenAI Judge](pr-84/attempts/formal-pr84-23/judge.md) pass for the amended specification: 23 rubric rows and eight acceptance criteria. Evaluated source: `5ffc3ae642817ed11b4f96332dc3ec96cfbce08b`; product: `4cc0fab1dab6833e66a36a4e427168a2967052e5`. No gate was waived.
 
 Current checks include context/parity 7, authority 39, Desktop 173, CLI/docs 11 and freshly packed CLI 3 passing tests, independent actual configuration-change controls, an actual ARM64 package smoke test, and 147 source/build byte comparisons. The bound Verification report and supplement distinguish current checks from historical evidence and disclose failures/reruns. A supplemental broad initial-source run was stopped after required reviews and final-source checks passed; its partial results and known corrected fixture failure are retained in the supplement.
 
 Scoped acceptance-only and explicit slice/final merge authority are supported; deployment remains separate. Open drafts are the default. PR84 retains this repository's closed-draft policy. [Interactive explanation](pr-84/attempts/formal-pr84-23/explain-diff.html). Issues remain in-review; merge, installation, publishing, deployment and feature completion have not occurred.
+
+Formal23 substantive gates passed, but final packet validation rejected its Verification filename. This attempt was preserved and superseded by formal24; no product change was needed.
+
+### D11 current formal review — formal-pr84-24
+
+[Verification](pr-84/attempts/formal-pr84-24/verification.md), [code review](pr-84/attempts/formal-pr84-24/code-review.md), [spec assessment](pr-84/attempts/formal-pr84-24/spec-evaluation.md) and the [fresh native OpenAI Judge](pr-84/attempts/formal-pr84-24/judge.md) pass for the amended specification: 23 rubric rows and eight acceptance criteria. Evaluated source: `f1cf438597fc8eeb06fc3123395cbb179c70f9d7`; product: `4cc0fab1dab6833e66a36a4e427168a2967052e5`. No gate was waived.
+
+Current checks include context/parity 7, authority 39, Desktop 173, CLI/docs 11 and freshly packed CLI 3 passing tests, independent actual configuration-change controls, an actual ARM64 package smoke test, and 147 source/build byte comparisons. The bound Verification report and supplement distinguish current checks from historical evidence and disclose failures/reruns. A supplemental broad initial-source run was stopped after required reviews and final-source checks passed; its partial results and known corrected fixture failure are retained in the supplement.
+
+Scoped acceptance-only and explicit slice/final merge authority are supported; deployment remains separate. Open drafts are the default. PR84 retains this repository's closed-draft policy. [Interactive explanation](pr-84/attempts/formal-pr84-24/explain-diff.html). Issues remain in-review; merge, installation, publishing, deployment and feature completion have not occurred.
+
+Formal24 corrects only packet/evidence coordination, retaining the declared verification.md path and all11 original PR-context fields. Required gate recording and the final clean packet check use the installed core; earlier verdicts remain unchanged.

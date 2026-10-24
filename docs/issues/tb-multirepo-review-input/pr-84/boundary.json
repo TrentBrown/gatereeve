@@ -13,12 +13,12 @@
     "baseRefName": "main",
     "baseRefOid": "643e3ea2b03f19b66595219c4f8df934596aa436",
     "headRefName": "tb-multirepo-review-input",
-    "headRefOid": "5ffc3ae642817ed11b4f96332dc3ec96cfbce08b",
+    "headRefOid": "f1cf438597fc8eeb06fc3123395cbb179c70f9d7",
     "githubReportedHeadSha": "5433a6066120c118a438dbd00faaf993b61f22fa",
     "githubReportedBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436"
   },
   "mergeBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
-  "evaluatedSourceSha": "5ffc3ae642817ed11b4f96332dc3ec96cfbce08b",
+  "evaluatedSourceSha": "f1cf438597fc8eeb06fc3123395cbb179c70f9d7",
   "featureBaseSha": "643e3ea2b03f19b66595219c4f8df934596aa436",
   "applicability": {
     "specEvaluation": true,
@@ -30,50 +30,50 @@
       "disposition": "passed",
       "reason": null,
       "evidence": {
-        "path": "attempts/formal-pr84-23/verification-with-receipt.md",
-        "sha256": "sha256:cc23b641eb3dfa677877e37e0114f8edb4ef0e6b462a2c3440fb2477fe33daf5"
+        "path": "attempts/formal-pr84-24/verification.md",
+        "sha256": "sha256:a2bf5a47403b55f4a202c269d1e3c09dc5ba2101cd9e3c77c066490c193b28a7"
       }
     },
     "specEvaluation": {
       "disposition": "passed",
       "reason": null,
       "evidence": {
-        "path": "attempts/formal-pr84-23/spec-evaluation.md",
-        "sha256": "sha256:5dfccc6c0272987d9721d3252ca196c0f1857b3a73f9994e2fd9c4d6df2d419e"
+        "path": "attempts/formal-pr84-24/spec-evaluation.md",
+        "sha256": "sha256:203908c1d6acf2b12aec980c9cc59766f796e6abc27b5cd7ed6a520caed49984"
       }
     },
     "judge": {
       "disposition": "passed",
       "reason": null,
       "evidence": {
-        "path": "attempts/formal-pr84-23/judge.md",
-        "sha256": "sha256:488b046b4abdaca2fdbcc490ea9e51386dd65e8fa4135cb10bf235e597403ce2"
+        "path": "attempts/formal-pr84-24/judge.md",
+        "sha256": "sha256:ef792af7b1d1eaf58ae2db6fc7f7eac1f40b080f6fe431ff1f8569a31f5fb2a5"
       }
     },
     "codeReview": {
       "disposition": "passed",
       "reason": null,
       "evidence": {
-        "path": "attempts/formal-pr84-23/code-review.md",
-        "sha256": "sha256:cb913be50ea261c70115c713df1cb590877fafb9026cdb4eb34cf77c870559b5"
+        "path": "attempts/formal-pr84-24/code-review.md",
+        "sha256": "sha256:d732647c6cba0562510227deb0c6781be6586192a519a2fd429fc903c3471319"
       }
     },
     "patternReview": {
       "disposition": "passed",
       "reason": null,
       "evidence": {
-        "path": "attempts/formal-pr84-23/pattern-review.md",
-        "sha256": "sha256:9b38fa02322d4ddd9a619a31af9973675a17f436bfd5de9f57336e4f2470e9a9"
+        "path": "attempts/formal-pr84-24/pattern-review.md",
+        "sha256": "sha256:55976fa2e7fd4a24b3a8325d8945d3e7a1d8fd551cdf52593063e6a8b5e5e9e5"
       }
     },
     "explainDiff": {
       "disposition": "passed",
       "reason": null,
       "evidence": {
-        "path": "attempts/formal-pr84-23/explain-diff.html",
-        "sha256": "sha256:ae213267f7a1fc645730e312ddeba8a0632a28cd84242bd180e6330d0d16397d"
+        "path": "attempts/formal-pr84-24/explain-diff.html",
+        "sha256": "sha256:3dbf5e726e22a58461a9bc5fdd393f0c816c1d1c14cdaca59462c5406bf1819b"
       }
     }
   },
-  "attemptId": "formal-pr84-23"
+  "attemptId": "formal-pr84-24"
 }

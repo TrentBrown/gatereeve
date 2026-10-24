@@ -1,0 +1,5 @@
+# Packet-only correction
+
+Formal23 substantive code/spec/native Judge all PASS. Its final packet validator rejected the coordinator's verification-with-receipt.md path; this attempt uses the exact verification.md outputPath. Both authoritative and GitHub-reported PR metadata match the original context and actual core-pinned object. A former nine-field packet assumption was incorrect and is corrected without changing any original context.
+
+The bounded coordinator record classifier now recognizes the two optional reported SHA fields already accepted by the original core and Python context. Five targeted classifier tests cover valid nine/ten/eleven-field objects, malformed reported/authoritative SHAs and unknown fields. Existing bounded readiness harness also completes. Original installed files and validators are unchanged. This recognizes typed evidence; it neither asserts PASS nor changes a gate. Product4cc0fab and approved requirements remain unchanged. Mechanical tests are reused with exact byte attribution; native Judge runs afresh because its input receipt binds paths.

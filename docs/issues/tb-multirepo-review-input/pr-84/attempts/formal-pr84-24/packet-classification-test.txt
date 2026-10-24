@@ -1,0 +1,8 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+import {isAdvisoryWorkflowRecord} from '/Users/trent.brown/.codex/plugins/cache/quality-code/agentic-development-workflow/0.1.0-rc.16/resources/protocol/advisory-inputs.js';
+const original=JSON.parse(await readFile('/Users/trent.brown/Code/tb/.worktrees/gatereeve-multirepo-review-input/docs/issues/tb-multirepo-review-input/pr-84/boundary.json','utf8'));
+test('actual core-pinned eleven-field PR packet classifies as typed evidence',()=>assert.equal(isAdvisoryWorkflowRecord(original),true));
+test('nine-field and singly reported optional metadata remain typed',()=>{const a=structuredClone(original);delete a.pullRequest.githubReportedBaseSha;assert.equal(isAdvisoryWorkflowRecord(a),true);delete a.pullRequest.githubReportedHeadSha;assert.equal(isAdvisoryWorkflowRecord(a),true)});
+test('malformed optional object IDs stay opaque',()=>{for(const key of ['githubReportedHeadSha','githubReportedBaseSha']){const a=structuredClone(original);a.pullRequest[key]='not-an-object-id';assert.equal(isAdvisoryWorkflowRecord(a),false)}});
+test('unknown PR fields stay opaque',()=>{const a=structuredClone(original);a.pullRequest.runtimeCommand='execute';assert.equal(isAdvisoryWorkflowRecord(a),false)});
+test('malformed authoritative head remains opaque',()=>{const a=structuredClone(original);a.pullRequest.headRefOid='bad';assert.equal(isAdvisoryWorkflowRecord(a),false)});

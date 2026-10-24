@@ -1,0 +1,27 @@
+✔ actual core-pinned eleven-field PR packet classifies as typed evidence (0.644666ms)
+✔ nine-field and singly reported optional metadata remain typed (0.177916ms)
+✔ malformed optional object IDs stay opaque (0.212625ms)
+✔ unknown PR fields stay opaque (0.071958ms)
+✔ malformed authoritative head remains opaque (0.071542ms)
+PASS existing128KiB record
+PASS extended typed readiness exact roundtrip 196858
+PASS wrong kind rejected
+PASS other record128KiB bound preserved
+PASS over256KiB rejected
+PASS byte hash checked
+PASS extended semantic binding checked
+PASS symlink rejected
+PASS typed larger readiness remains audit history
+PASS opaque malformed larger record rejected
+PASS actual large empty-rule pattern context recognized
+PASS malformed large pattern context rejected
+12 controls PASS; transport only; no gate/schema/hash/authority changes
+✔ /tmp/gr-readiness-bound-test.mjs (331.92025ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 337.23675

@@ -1,0 +1,47 @@
+✔ interrupted startup reconciles durable run before activating it (176.369292ms)
+✔ two repositories share exact parent requirements and either source invalidates the combined review (2762.523875ms)
+✔ host environment invalidates runner proof while isolated source review remains applicable (2827.734917ms)
+✔ combined amendment records a pending instruction before interruption and reconciles retry once (1115.485958ms)
+✔ later runner preflight failure retains completed check output with exit 0 (1156.015042ms)
+✔ later runner preflight failure retains completed check output with exit 7 (1168.816083ms)
+✔ later finding outside selected criteria does not supersede applicable review (2026.827583ms)
+✔ late READY invalidates checked milestone and restores exact failed outcome (28076.59475ms)
+✔ late old-run outcome must not contaminate replacement run (1241.752958ms)
+✔ unrelated later finding does not reopen prior closures (5769.671917ms)
+✔ late failed spec validation preserves newer authority in replacement through core (1671.673875ms)
+✔ late failed spec validation preserves newer authority in replacement through public (1769.349875ms)
+✔ late failed spec validation preserves newer authority in same-run through core (1312.422916ms)
+✔ late failed spec validation preserves newer authority in same-run through public (1196.565958ms)
+✔ late failed spec validation preserves newer authority in pause through core (1449.423417ms)
+✔ late failed spec validation preserves newer authority in pause through public (1367.080292ms)
+✔ review context keeps an R1 failure after an unrelated R2 assessment (4558.910625ms)
+✔ session record case alias stays isolated: checkpoint.md (1497.412625ms)
+✔ session record case alias stays isolated: .CHECKPOINTS/checkpoint-2026-10-23.md (1406.354833ms)
+✔ session record case alias stays isolated: .HANDOFFS/handoff-reviewer-2026-10-23.MD (1414.648209ms)
+✔ standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof (2970.1745ms)
+✔ standing status reports current candidate mismatch: scope (1530.993083ms)
+✔ standing status reports current candidate mismatch: branch (1547.096084ms)
+✔ standing status reports current candidate mismatch: target (1560.194959ms)
+✔ standing status reports current candidate mismatch: repository (1424.294917ms)
+✔ standing status reports current candidate mismatch: missing-root (1321.429041ms)
+✔ standing status reports current candidate mismatch: missing-source (1503.197209ms)
+✔ standing scope rejects implicit deployment, unknown fields, missing expiry and changed commitments/remotes/branches (1631.760541ms)
+✔ standing authority protected merge: slice (41301.371584ms)
+✔ standing authority protected merge: final (38839.188459ms)
+✔ standing authority protected merge: acceptance-only (24427.048167ms)
+✔ standing authority protected merge: revoke-during-checks (30126.275042ms)
+✔ standing authority protected merge: expire-during-checks (32426.489833ms)
+✔ standing authority protected merge: revoke-during-final-qualification (33241.528167ms)
+✔ standing authority protected merge: expire-during-final-qualification (32613.895959ms)
+✔ standing authority protected merge: revoke-during-input-guard (32432.396416ms)
+✔ standing acceptance rejects a different assessed target and subsequent target drift (25287.711916ms)
+✔ standing status uses the host-discovered Git when GUI PATH cannot resolve git (795.547125ms)
+✔ standing grants bind effective fetch and push URLs even with unchanged raw URL and target commit (30118.767583ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 399136.585042
