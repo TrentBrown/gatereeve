@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { CurrentStore } from '../../plugin-src/shared/resources/protocol/current/store.js';
 import { CurrentCore } from '../../plugin-src/shared/resources/protocol/current/core.js';
 import { identity } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
-import { git } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
+import { git, contentIdentity } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
 
 const human = { kind: 'human-confirmed', instruction: 'Approve the named scope.', context: 'test user conversation' };
 async function fixture(t, { nested = true, optionalGates = [] } = {}) {
@@ -1317,7 +1317,10 @@ test('repository order and grouped gate order preserve equivalent review identit
   const initial = await f.request('gate.execute', input, 'ordered-review');
   const before = (await f.core.state()).state.candidate;
   await f.request('candidate.prepare', { repositories: [...repositories].reverse(), scope: 'FEATURE', criteria: ['R1'] }, 'reversed-candidate');
-  assert.equal((await f.core.state()).state.candidate.hash, before.hash);
+  const after = (await f.core.state()).state.candidate;
+  // Each preparation owns distinct retention refs; review equivalence is content-based.
+  assert.notEqual(after.hash, before.hash);
+  assert.equal(contentIdentity(await f.core.store.json(after)), contentIdentity(await f.core.store.json(before)));
   const reversed = await f.request('gate.execute', { ...input, gates: ['spec', 'code'] }, 'reversed-review');
   assert.equal(reversed.reused, true); assert.equal(count(), 1);
   assert.deepEqual(reversed.results.map(ref => ref.hash), [...initial.event.payload.results].reverse().map(ref => ref.hash));
