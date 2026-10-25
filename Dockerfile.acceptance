@@ -9,7 +9,7 @@ FROM ubuntu:${UBUNTU_VERSION}
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends ca-certificates software-properties-common \
+    && apt-get install --yes --no-install-recommends ca-certificates software-properties-common gpg-agent \
     && add-apt-repository --yes ppa:git-core/ppa \
     && apt-get update \
     && apt-get install --yes --no-install-recommends \
