@@ -1,9 +1,11 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { relative, sep, isAbsolute, join } from 'node:path';
+import { relative, sep, isAbsolute, join, dirname } from 'node:path';
 import { realpath, lstat } from 'node:fs/promises';
 import { CONTRACT, identity, requireThat, text } from './contracts.js';
-import { localPath, readSafe } from './store.js';
+import { readSafe } from './store.js';
+import { CLASSIFIER, CLASSIFICATION_LIMIT, sourceGit, treeEntries, withObjects, smallBlob } from './git-source.js';
+import { checkPins } from './source-retention.js';
 
 const exec = promisify(execFile);
 export async function git(root, args, options = {}) {
@@ -58,55 +60,70 @@ export async function assertRepositoryRoot(repository) {
   requireThat(root === top, `Configured repository must identify its Git working-tree root: ${repository.alias}`);
   return root;
 }
-async function tree(store, repository, revision) {
-  await assertRepositoryRoot(repository);
-  requireThat(/^[a-f0-9]{40,64}$/u.test(revision), 'Source must use a full Git object identity');
-  requireThat((await git(repository.path, ['rev-parse', `${revision}^{commit}`], { gitExecutable: repository.gitExecutable })).trim() === revision, 'Pinned source is not a commit');
-  const local = relative(await realpath(repository.path), store.home).split(sep).join('/');
-  const featureRelative = local.split('/')[0] !== '..' && !isAbsolute(local) ? local : null;
-  const entries = (await git(repository.path, ['ls-tree', '--full-tree', '-r', '-z', revision], { gitExecutable: repository.gitExecutable })).split('\0').filter(Boolean).map(line => {
-    const tab = line.indexOf('\t');
-    const [mode, type, oid] = line.slice(0, tab).split(' ');
-    const path = line.slice(tab + 1);
-    localPath(path);
-    return { mode, type, oid, path };
+function featureRelative(store, repository) {
+  const local = relative(repository.path, store.home).split(sep).join('/');
+  return local.split('/')[0] !== '..' && !isAbsolute(local) ? local : null;
+}
+async function manifest(store, repository, revision, format, retained = null) {
+  const home = featureRelative(store, repository);
+  const entries = await treeEntries(repository, revision, format);
+  const files = []; const classifications = [];
+  const classified = new Map();
+  await withObjects(repository, { metadata: true }, async reader => {
+    const available = new Map();
+    for (const entry of entries) {
+      if (excluded(entry.path, home)) {
+        requireThat(entry.mode === '100644', 'Lifecycle records must be regular non-executable files');
+        continue;
+      }
+      if (entry.entryKind === 'gitlink') { files.push(entry); continue; }
+      if (!available.has(entry.oid)) available.set(entry.oid, await reader.read(entry.oid));
+      const info = available.get(entry.oid);
+      requireThat(info.type === 'blob', `Source is not a blob: ${entry.path}`);
+      if (artifactArea(recordLocal(entry.path, home) ?? '') && entry.path.endsWith('.json')) {
+        requireThat(info.size <= CLASSIFICATION_LIMIT, `Ambiguous workflow JSON ${entry.path}: ${info.size} bytes exceeds ${CLASSIFICATION_LIMIT} byte classification limit`);
+        let decision;
+        if (retained) {
+          decision = retained.find(item => item.path === entry.path && item.oid === entry.oid);
+          requireThat(decision && decision.policy === CLASSIFIER && typeof decision.excluded === 'boolean', 'Source classification provenance changed');
+        } else {
+          if (!classified.has(entry.oid)) {
+            const bytes = await smallBlob(repository, entry.oid, info.size);
+            classified.set(entry.oid, new Map(entries.filter(item => item.oid === entry.oid).map(item => [item.path, excluded(item.path, home, bytes)])));
+          }
+          decision = { path: entry.path, oid: entry.oid, policy: CLASSIFIER, excluded: classified.get(entry.oid).get(entry.path) };
+        }
+        classifications.push(decision);
+        if (decision.excluded) { requireThat(entry.mode === '100644', 'Lifecycle records must be regular non-executable files'); continue; }
+      }
+      files.push(entry);
+    }
   });
-  for (const entry of entries) requireThat(entry.type === 'blob' && ['100644', '100755', '120000'].includes(entry.mode) || entry.type === 'commit' && entry.mode === '160000', 'Review source contains an unsupported Git entry');
-  const links = entries.filter(entry => entry.mode === '160000');
-  const blobs = entries.filter(entry => entry.type === 'blob');
-  const files = [];
-  for (const entry of links) requireThat(!excluded(entry.path, featureRelative), 'Lifecycle records cannot be Git links');
-  for (const entry of links) files.push({ path: entry.path, mode: entry.mode, entryKind: 'gitlink', ...await store.put(JSON.stringify({ kind: 'gitlink', commit: entry.oid, coverage: 'Contents are not in this repository snapshot; assess the separately selected repository or report a coverage limitation.' })) });
-  if (!blobs.length) return files;
-  // One Git process for all blobs. Parse byte lengths, never split binary contents.
-  const { spawn } = await import('node:child_process');
-  const bytes = await new Promise((resolve, reject) => {
-    const child = spawn(repository.gitExecutable ?? 'git', ['-C', repository.path, 'cat-file', '--batch'], { stdio: ['pipe', 'pipe', 'pipe'] });
-    const chunks = []; let size = 0; let errorText = '';
-    child.on('error', reject);
-    child.stdout.on('data', chunk => { size += chunk.length; if (size > 64 * 1024 * 1024) child.kill(); else chunks.push(chunk); });
-    child.stderr.on('data', chunk => { errorText += chunk.toString(); });
-    child.on('close', code => code === 0 && size <= 64 * 1024 * 1024
-      ? resolve(Buffer.concat(chunks)) : reject(new Error(errorText || 'Source capture exceeded its supported size or failed')));
-    child.stdin.on('error', reject);
-    child.stdin.end(blobs.map(entry => entry.oid).join('\n') + '\n');
-  });
-  let offset = 0;
-  for (const entry of blobs) {
-    const end = bytes.indexOf(10, offset);
-    requireThat(end >= offset, 'Incomplete Git blob response');
-    const [oid, type, length] = bytes.subarray(offset, end).toString().split(' ');
-    const count = Number(length);
-    requireThat(oid === entry.oid && type === 'blob' && Number.isSafeInteger(count) && count >= 0
-      && end + 1 + count < bytes.length && bytes[end + 1 + count] === 10, 'Invalid Git blob response');
-    const blob = bytes.subarray(end + 1, end + 1 + count);
-    const history = excluded(entry.path, featureRelative, blob);
-    requireThat(!history || entry.mode === '100644', 'Lifecycle records must be regular non-executable files');
-    if (!history) files.push({ path: entry.path, mode: entry.mode, ...(entry.mode === '120000' ? { entryKind: 'symlink' } : {}), ...await store.put(blob) });
-    offset = end + count + 2;
+  return { files, classifications };
+}
+export async function checkSource(store, context, candidate) {
+  requireThat(candidate.contract === CONTRACT && candidate.sourceStorage === 'git-manifest', 'Source proof requires the current Git manifest contract');
+  for (const repo of candidate.repositories) {
+    const configured = context.repositories.find(item => item.alias === repo.alias);
+    requireThat(configured, 'Source repository is not configured');
+    await assertRepositoryRoot(configured);
   }
-  requireThat(offset === bytes.length, 'Unexpected Git blob data');
-  return files.sort((a, b) => a.path.localeCompare(b.path));
+  await checkPins(context, candidate.sourceRetention);
+  for (const repo of candidate.repositories) {
+    const configured = context.repositories.find(item => item.alias === repo.alias);
+    requireThat(configured && identity(repositoryIdentity(configured)) === identity(repo.identity), 'Candidate repository or policy changed');
+    await assertRepositoryRoot(configured);
+    requireThat((await sourceGit(configured, ['rev-parse', '--show-object-format'])).trim() === repo.objectFormat, 'Git object format changed');
+    const checked = new Map();
+    for (const [endpoint, files] of [['base', repo.baseFiles], ['head', repo.files], ['target', repo.targetFiles]]) {
+      requireThat(candidate.sourceRetention.pins.some(pin => pin.alias === repo.alias && pin.endpoint === endpoint && pin.commit === repo[endpoint]), 'Source endpoint is not owned by this candidate');
+      const classifications = repo.classifications[endpoint];
+      const key = identity({ commit: repo[endpoint], classifications });
+      if (!checked.has(key)) checked.set(key, await manifest(store, configured, repo[endpoint], repo.objectFormat, classifications));
+      const actual = checked.get(key);
+      requireThat(identity(actual.files) === identity(files) && identity(actual.classifications) === identity(classifications), 'Pinned source manifest or classification changed');
+    }
+  }
 }
 export async function requirements(store, names = ['design.md', 'spec.md'], { capture = true } = {}) {
   const refs = {};
@@ -129,6 +146,17 @@ export async function assertClean(repository, store) {
     // no-symlink reader used for retained inputs. Neither path follows links.
     let bytes;
     try {
+      if (excluded(path, home)) {
+        let current = join(repository.path, path);
+        const file = await lstat(current);
+        if (!file.isFile() || file.isSymbolicLink() || file.mode & 0o111) return false;
+        for (current = dirname(current); current !== repository.path; current = dirname(current)) {
+          const directory = await lstat(current);
+          if (!directory.isDirectory() || directory.isSymbolicLink()) return false;
+        }
+        return true;
+      }
+      if ((await lstat(join(repository.path, path))).size > CLASSIFICATION_LIMIT) return false;
       bytes = await readSafe(await realpath(repository.path), path);
       if ((await lstat(join(repository.path, path))).mode & 0o111) return false;
     }
@@ -137,6 +165,7 @@ export async function assertClean(repository, store) {
       try {
         const mode = (await git(repository.path, ['ls-tree', 'HEAD', '--', path], { gitExecutable: repository.gitExecutable })).split(' ')[0];
         if (mode !== '100644') return false;
+        if (excluded(path, home)) return true;
         bytes = Buffer.from(await git(repository.path, ['show', `HEAD:${path}`], { gitExecutable: repository.gitExecutable }));
       } catch { return false; }
     }
@@ -148,7 +177,7 @@ export async function assertClean(repository, store) {
     if (/[RC]/u.test(entry.slice(0, 2))) requireThat(await bookkeeping(entries[++i]), 'Renamed application source is dirty');
   }
 }
-export async function sourceCandidate(store, context, input, authorization) {
+export async function sourceCandidate(store, context, input, authorization, sourceRetention) {
   requireThat(Array.isArray(input.repositories) && input.repositories.length > 0, 'Select at least one repository');
   requireThat(new Set(input.repositories.map(repo => repo.alias)).size === input.repositories.length, 'Duplicate repository selection');
   const repos = [];
@@ -156,14 +185,17 @@ export async function sourceCandidate(store, context, input, authorization) {
     const repository = context.repositories.find(item => item.alias === pin.alias);
     requireThat(repository, `Repository is not configured: ${pin.alias}`);
     if (input.scope === 'FEATURE') requireThat(repository.featureBaseSha && pin.base === repository.featureBaseSha, `Feature review must use configured original featureBaseSha: ${pin.alias}`);
-    const base = await tree(store, repository, pin.base);
-    const head = await tree(store, repository, pin.head);
+    const objectFormat = (await sourceGit(repository, ['rev-parse', '--show-object-format'])).trim();
+    const cache = new Map();
+    const capture = async commit => { if (!cache.has(commit)) cache.set(commit, await manifest(store, repository, commit, objectFormat)); return cache.get(commit); };
+    const base = await capture(pin.base);
+    const head = await capture(pin.head);
     const target = pin.target ?? pin.base;
-    const targetFiles = target === pin.base ? base : await tree(store, repository, target);
+    const targetView = await capture(target);
     // Clean source is required, but local feature evidence is intentionally optional in Git.
     await assertClean(repository, store);
     requireThat((await git(repository.path, ['rev-parse', 'HEAD'], { gitExecutable: repository.gitExecutable })).trim() === pin.head, 'Working repository differs from selected source');
-    repos.push({ identity: repositoryIdentity(repository), alias: pin.alias, base: pin.base, head: pin.head, baseFiles: base, files: head, target, targetFiles });
+    repos.push({ identity: repositoryIdentity(repository), alias: pin.alias, base: pin.base, head: pin.head, objectFormat, baseFiles: base.files, files: head.files, target, targetFiles: targetView.files, classifications: { base: base.classifications, head: head.classifications, target: targetView.classifications } });
   }
   const docs = await requirements(store);
   requireThat(['SLICE', 'FEATURE'].includes(input.scope), 'Explicit review scope is required');
@@ -172,14 +204,15 @@ export async function sourceCandidate(store, context, input, authorization) {
   const rubric = [...spec.matchAll(/^\|\s*(R\d+)\s*\|/gmu)].map(match => match[1]);
   requireThat(input.criteria.every(id => rubric.includes(id)), 'Review criterion is not in approved spec');
   requireThat(input.scope !== 'FEATURE' || input.criteria.length === rubric.length, 'Feature review must cover the entire rubric');
-  const value = { contract: CONTRACT, kind: 'candidate', featureId: context.featureId, repositories: repos,
+  const value = { contract: CONTRACT, kind: 'candidate', sourceStorage: 'git-manifest', sourceRetention, featureId: context.featureId, repositories: repos,
     requirements: docs, authorization, scope: input.scope, criteria: [...input.criteria].sort() };
+  await checkSource(store, context, value);
   return { value, ref: await store.putJson(value) };
 }
 export function contentIdentity(candidate) {
   return identity({ contract: candidate.contract, featureId: candidate.featureId, scope: candidate.scope, criteria: candidate.criteria,
     requirements: candidate.requirements,
-    repositories: [...candidate.repositories].sort((a, b) => a.alias.localeCompare(b.alias)).map(repo => ({ identity: repo.identity, alias: repo.alias, baseFiles: repo.baseFiles, files: repo.files, targetFiles: repo.targetFiles })) });
+    repositories: [...candidate.repositories].sort((a, b) => a.alias.localeCompare(b.alias)).map(repo => ({ identity: repo.identity, alias: repo.alias, objectFormat: repo.objectFormat, baseFiles: repo.baseFiles, files: repo.files, targetFiles: repo.targetFiles })) });
 }
 // Retained candidates must satisfy today's source-isolation policy too. This
 // path-only guard also protects history export without reinterpreting its proof.
@@ -192,10 +225,13 @@ export function assertSourceIsolation(candidate, featureHome) {
     }
   }
 }
-export async function checkCandidate(store, context, ref, { live = true } = {}) {
+export async function checkCandidate(store, context, ref, { live = true, memo = new Map() } = {}) {
   const candidate = await store.json(ref);
   requireThat(candidate.contract === CONTRACT && candidate.kind === 'candidate' && candidate.featureId === context.featureId, 'Candidate belongs to another contract or feature');
   assertSourceIsolation(candidate, store.home);
+  const sourceKey = `source:${ref.hash}`;
+  if (!memo.has(sourceKey)) memo.set(sourceKey, checkSource(store, context, candidate));
+  await memo.get(sourceKey);
   for (const doc of Object.values(candidate.requirements)) {
     if (live) await store.currentBytes(doc); else await store.get(doc);
   }
@@ -204,7 +240,7 @@ export async function checkCandidate(store, context, ref, { live = true } = {}) 
     requireThat(configured && identity(repositoryIdentity(configured)) === identity(repo.identity), 'Candidate repository or policy changed');
     await assertRepositoryRoot(configured);
     if (candidate.scope === 'FEATURE') requireThat(configured.featureBaseSha && repo.base === configured.featureBaseSha, `Feature review must use configured original featureBaseSha: ${repo.alias}`);
-    for (const file of [...repo.baseFiles, ...repo.files, ...repo.targetFiles]) await store.get(file);
+
     if (live) {
       const root = context.repositories.find(item => item.alias === repo.alias).path;
       requireThat((await git(root, ['rev-parse', 'HEAD'], { gitExecutable: configured.gitExecutable })).trim() === repo.head, `Source changed: ${repo.alias}`);

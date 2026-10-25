@@ -2,7 +2,7 @@
 
 `resources/protocol/plugin-adapter.js` is the authoritative native adapter.
 The optional `gatereeve` CLI and desktop read the same current contract,
-`gatereeve/current/3`. Send one JSON request on stdin or via `--request-file`:
+`gatereeve/current/4`. Send one JSON request on stdin or via `--request-file`:
 
 ```json
 {"operation":"status","cwd":"/absolute/workspace"}
@@ -138,12 +138,38 @@ instructions; claimed dispositions are labeled. Reviewers must find new
 supported defects, verify affected fixes and cover interactions. Missing or
 contradictory output is UNAVAILABLE, never PASS.
 
-Frozen requirements, source, inputs, results and receipts live beneath canonical
-`docs/issues/<featureId>/.gatereeve-current/`. Git is optional for these records.
-Exact source remains independently pinned and clean. Retain all referenced bytes,
-including failed specification-validation documents and diagnostics. Lost failed-validation proof stays visible after later success and blocks retention until restored. Retention binds that validation inventory and its referenced bytes: loss or corruption invalidates an earlier PASS, and a later failed validation requires a fresh deterministic retention check even after the approved specification is restored. Missing/corrupt references block proof. Do not prune or claim
-backup. Deleting the workspace requires a scoped retain/archive/discard decision;
-claim archival only after verifying a copy outside the deletion scope.
+Frozen requirements, source manifests, inputs, results and receipts live beneath
+canonical `docs/issues/<featureId>/.gatereeve-current/`. Git is optional for those
+records. Source itself remains in Git, protected by owner/run-specific refs under
+`refs/gatereeve/`; source files are not copied into the retained evidence store.
+Candidate publication requires complete owned base/head/target pins and filtered
+manifests. Exact commits establish provenance; equivalent filtered content can
+still reuse qualifying evidence. Routine qualification checks identities and
+object availability, trusting Git between substantive reads. Reviewer views verify
+raw blob contents while streaming, then expose complete isolated source trees.
+
+Path-recognized records are excluded before blob reads; ambiguous workflow JSON
+has an 8 MiB classification bound and rejects above it with a specific diagnostic.
+The retained metadata/evidence object's 64 MiB limit remains; there is no aggregate
+source byte limit. Symlinks and gitlinks retain the existing non-following view
+semantics. No checkout filters, archive substitutions or implicit source fetches
+are used. Missing source blocks affected proof and requires repair or fresh review.
+
+Retain non-source referenced evidence, including failed specification validation
+inputs and diagnostics. Lost failed-validation proof stays visible after later
+success and blocks retention until restored. This refactor does not prune old
+source-copy stores or change log retention. No automatic bundles or backups are
+created. Deleting workspace data still requires scoped authorization.
+
+Completion checks run with source pins intact. After durable completion, release
+only the completed run's refs not needed by active jobs; independent active runs
+own their own pins. Interrupted or conflicting cleanup stays pending and retries
+on a later mutation. Status is read-only. Historical completion survives expected
+pin release; missing retained non-source evidence is still reported. Later reuse
+requires available source and active ownership, never an assumption that the old
+refs survived. Current/4 does not qualify old source-copy proof: resume unchanged
+planning with observed approvals and obtain fresh validation. Historical files
+remain intact.
 
 Equivalent qualifying input content permits reuse; bookkeeping and identical-tree
 SHAs alone do not require reruns. Changed requirements, configuration, dependency

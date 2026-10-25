@@ -4,12 +4,12 @@ import { executionEnvironment } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, mkdir, writeFile, rm, chmod } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
-import { tmpdir } from 'node:os';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { CONTRACT, canonical, identity, requireThat, gate, text } from './contracts.js';
+import { newView } from './source-views.js';
 import { localPath } from './store.js';
-import { assertSourceIsolation, checkCandidate, contentIdentity, git, assertClean } from './evidence.js';
+import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean } from './evidence.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
 import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
@@ -67,15 +67,16 @@ async function sourceMetadata(root, candidate) {
     await writeFile(join(root, 'metadata', `${repo.alias}.json`), JSON.stringify(value, null, 2), { mode: 0o400, flag: 'wx' });
   }
 }
-async function reviewerView(store, candidate, references, packet) {
-  const root = await mkdtemp(join(tmpdir(), 'gatereeve-current-review-'));
+async function reviewerView(core, candidate, references, packet) {
+  const store = core.store;
+  const view = await newView(store);
+  const root = view.root;
   try {
     assertSourceIsolation(candidate, store.home);
     await sourceMetadata(root, candidate);
-    for (const repo of candidate.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) for (const file of files) {
-      const path = join(root, kind, repo.alias, localPath(file.path));
-      await mkdir(dirname(path), { recursive: true });
-      await writeFile(path, await store.get(file), { mode: 0o400, flag: 'wx' });
+    await checkSource(store, core.context, candidate);
+    for (const repo of candidate.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) {
+      await view.source(`${kind}/${repo.alias}`, core.context.repositories.find(item => item.alias === repo.alias), files, repo.objectFormat);
     }
     await mkdir(join(root, 'requirements'));
     for (const [name, ref] of Object.entries(candidate.requirements)) {
@@ -91,10 +92,9 @@ async function reviewerView(store, candidate, references, packet) {
         assertSourceIsolation(previous, store.home);
         requireThat(previous.repositories.every(repo => candidate.repositories.some(selected => identity(selected.identity) === identity(repo.identity))), 'Referenced evidence includes unselected repositories');
         await sourceMetadata(join(root, 'prior', ref.hash.slice(7)), previous);
-        for (const repo of previous.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) for (const file of files) {
-          const path = join(root, 'prior', ref.hash.slice(7), kind, repo.alias, localPath(file.path));
-          await mkdir(dirname(path), { recursive: true });
-          await writeFile(path, await store.get(file), { mode: 0o400 });
+        await checkSource(store, core.context, previous);
+        for (const repo of previous.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) {
+          await view.source(`prior/${ref.hash.slice(7)}/${kind}/${repo.alias}`, core.context.repositories.find(item => item.alias === repo.alias), files, repo.objectFormat);
         }
       }
       for (const artifact of [ref, report.input, report.receipt, ...(report.artifacts ?? [])]) {
@@ -105,8 +105,9 @@ async function reviewerView(store, candidate, references, packet) {
         packet.evidence.push({ reference: artifact, path: `evidence/${name}` });
       }
     }
-    return root;
-  } catch (error) { await rm(root, { recursive: true, force: true }); throw error; }
+    await view.seal();
+    return view;
+  } catch (error) { await view.close(); throw error; }
 }
 async function independent(core, state, candidate, prepared, configuration, packet) {
   const provider = configuration.provider;
@@ -117,9 +118,10 @@ async function independent(core, state, candidate, prepared, configuration, pack
   const adapter = core.runtime.evaluator ?? (provider === 'codex'
     ? createCodexAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' })
     : createClaudeCodeAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' }));
-  const root = await reviewerView(core.store, candidate, [...packet.history.map(item => item.reference), ...packet.consumedReferences], packet);
+  const view = await reviewerView(core, candidate, [...packet.history.map(item => item.reference), ...packet.consumedReferences], packet);
   let retained = [];
   try {
+    const root = view.root;
     const descriptor = await adapter.describe();
     requireThat(descriptor.provider === provider && descriptor.model === configuration.model, 'Evaluator descriptor differs from requested provider/model');
     requireThat(descriptor.reasoningEffort === reasoningEffort, 'Evaluator descriptor reasoning differs from request');
@@ -152,7 +154,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
       provider: descriptor.provider, model: descriptor.model, reasoningEffort, capabilityProfile: receipt.capabilityProfile,
     } };
   } catch (error) { error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])]; throw error; }
-  finally { await rm(root, { recursive: true, force: true }); }
+  finally { await view.close(); }
 }
 async function commands(core, state, candidate, configuration, completion, environment) {
   requireThat(Array.isArray(configuration.checks) && configuration.checks.length > 0, 'Runner requires explicit checks');

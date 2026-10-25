@@ -7,11 +7,14 @@ import { randomUUID } from 'node:crypto';
 import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, requireThat, identity,
   identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval } from './contracts.js';
 import { CurrentStore } from './store.js';
-import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, contentIdentity } from './evidence.js';
+import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity } from './evidence.js';
 import { runTrustedPythonGuard, assertTrustedPythonProof, trustedPythonBinding } from '../python-guards.js';
 import { executeGates, reviewContract } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
 import { captureStanding, applyStanding, standingValidity, qualifyingDecisions, requireUnexpired } from './authorization.js';
+
+import { sourcePreparation, ensurePins, releasePins } from './source-retention.js';
+import { cleanupViews, viewStatus } from './source-views.js';
 
 const LIVE_PROOFS = Symbol('qualified live proof inputs');
 const admissions = new WeakMap();
@@ -22,7 +25,7 @@ export function project(events) {
   const state = { contract: CONTRACT, runId: events[0].runId, featureId: first.featureId,
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
     decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
-    ready: false, paused: false, eventCount: events.length };
+    sourcePreparations: [], sourceCleanup: null, ready: false, paused: false, eventCount: events.length };
   for (const event of events.slice(1)) {
     const value = event.payload;
     switch (event.type) {
@@ -38,6 +41,8 @@ export function project(events) {
         if (decisionHas(value, 'authorize-implementation')) state.phase = 'IMPLEMENTING';
         break;
       case 'SPEC_VALIDATED': state.specValidation = value; if (['SPECIFYING', 'PLANNING'].includes(state.phase)) state.phase = 'PLANNING'; break;
+      case 'SOURCE_PREPARING': state.sourcePreparations.push(value); break;
+      case 'SOURCE_CLEANUP': state.sourceCleanup = value; break;
       case 'CANDIDATE': state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.phase = 'IMPLEMENTING'; break;
       case 'READY': state.ready = true; break;
       case 'JOB_STARTED': state.jobs[value.jobId] = { ...value, sequence: event.sequence, finished: false }; break;
@@ -281,8 +286,14 @@ export class CurrentCore {
     requireThat((await this.check('implementation')).allowed && state.phase !== 'COMPLETE', 'Current implementation authority is required');
     const current = await this.commitments();
     const authorization = findDecision(state, 'authorize-implementation', current.subject);
-    const candidate = await sourceCandidate(this.store, this.context, input, { event: authorization.event, subject: authorization.subject, documents: authorization.documents });
-    return this.append(state, 'CANDIDATE', candidate.ref, operation);
+    const preparation = await sourcePreparation(this.store, this.context, input, state.runId, operation);
+    const pendingId = `source_${preparation.id}`;
+    const pending = (await this.state()).events.find(event => event.operation.id === pendingId);
+    if (pending) requireThat(identity(pending.payload) === identity(preparation), 'Source preparation changed during retry');
+    else await this.append(state, 'SOURCE_PREPARING', preparation, { id: pendingId, hash: identity(preparation) });
+    await ensurePins(this.context, preparation);
+    const candidate = await sourceCandidate(this.store, this.context, input, { event: authorization.event, subject: authorization.subject, documents: authorization.documents }, preparation);
+    return this.append((await this.state()).state, 'CANDIDATE', candidate.ref, operation);
   }
   async readiness(operation) {
     const { state } = await this.state();
@@ -356,7 +367,7 @@ export class CurrentCore {
     // Evidence loss is a barrier, not permission to fall back to an older PASS.
     // A fresh result after the barrier can recover without reconstructing bytes.
     const lossKey = `losses:${state.runId}:${state.eventCount}`;
-    if (!memo.has(lossKey)) memo.set(lossKey, this.historyGaps(state));
+    if (!memo.has(lossKey)) memo.set(lossKey, this.historyGaps(state, memo));
     const position = state.results.findLastIndex(item => item.hash === ref.hash);
     for (const gap of await memo.get(lossKey)) requireThat(
       gap.gate !== null && gap.gate !== result.gate || position > gap.position,
@@ -413,7 +424,7 @@ export class CurrentCore {
     }
     requireThat(inputs.reviewContract === reviewContract(inputs.gates), 'Evaluator rules or output contract changed');
     if (inputs.pattern) requireThat(identity(inputs.pattern) === identity(await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false })), 'Pattern policy or trigger inputs changed');
-    const evaluated = await checkCandidate(this.store, this.context, inputs.candidate, { live: false });
+    const evaluated = await checkCandidate(this.store, this.context, inputs.candidate, { live: false, memo });
     for (const artifact of result.artifacts ?? []) await this.store.get(artifact);
     if (result.gate === 'reconcile' && result.outcome === 'PASS') {
       requireThat(result.proofs?.length === 2, 'Reconciliation lacks trusted validator proofs');
@@ -547,6 +558,12 @@ export class CurrentCore {
   async check(name, proposedState = null, memo = new Map()) {
     requireThat(MILESTONES.includes(name), 'Unknown milestone');
     const state = proposedState ?? (await this.state()).state;
+    if (state.phase === 'COMPLETE' && name === 'completion') {
+      const missing = [];
+      try { await this.store.closure([state.candidate, state.decisions, state.results, state.integrations, state.validationFailures]); }
+      catch (error) { missing.push(`Recorded completion evidence unavailable: ${error.message}`); }
+      return { name, runId: state.runId, eventCount: state.eventCount, allowed: !missing.length, historical: true, missing, sourceCleanup: state.sourceCleanup };
+    }
     memo = new Map(memo);
     const admission = { proofs: new Map(), exceptions: [], historyGaps: null };
     memo.set(LIVE_PROOFS, admission.proofs);
@@ -575,7 +592,7 @@ export class CurrentCore {
     let candidate;
     try {
       requireThat(state.candidate, 'current candidate');
-      candidate = await checkCandidate(this.store, this.context, state.candidate, { live: name !== 'completion' });
+      candidate = await checkCandidate(this.store, this.context, state.candidate, { live: name !== 'completion', memo });
       requireThat(candidate.authorization.subject === current?.subject, 'Candidate commitments differ from current authorized requirements');
       requireThat(candidate.authorization.event === findDecision(state, 'authorize-implementation', current?.subject)?.event,
         'Candidate implementation authorization was superseded');
@@ -636,6 +653,8 @@ export class CurrentCore {
     return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, candidate: state.candidate, outcomes, liveInputs };
   }
   async pass(name, operation) {
+    const prior = (await this.state()).state;
+    if (name === 'completion' && prior.phase === 'COMPLETE') { requireThat((await this.check(name)).allowed, 'Recorded completion evidence is unavailable'); await this.cleanupSource(); return { state: (await this.state()).state, historical: true }; }
     requireThat(name !== 'merge', 'Merge must execute through a protected action adapter');
     const check = await this.check(name);
     requireThat(check.allowed, 'Milestone is blocked', check);
@@ -645,15 +664,23 @@ export class CurrentCore {
     requireThat(name !== 'completion' || ['INTEGRATED', 'COMPLETE'].includes(state.phase), 'Completion requires observed integration');
     requireThat(name !== 'implementation' || state.phase === 'IMPLEMENTING', 'Implementation phase is not authorized');
     await this.assertLiveInputs(state, name, check.liveInputs);
-    return this.append(state, 'MILESTONE', { name, candidate: state.candidate }, operation);
+    const recorded = await this.append(state, 'MILESTONE', { name, candidate: state.candidate }, operation);
+    if (name === 'completion') await this.cleanupSource();
+    return recorded;
   }
-  async historyGaps(state) {
+  async historyGaps(state, memo = new Map()) {
     const gaps = [];
     for (const [position, ref] of state.results.entries()) {
       try {
         await this.store.closure(ref);
         const { result } = await this.recordedResult(ref, state);
-        assertSourceIsolation(await this.store.json((await this.store.json(result.input)).candidate), this.store.home);
+        const source = await this.store.json((await this.store.json(result.input)).candidate);
+        assertSourceIsolation(source, this.store.home);
+        if (state.phase !== 'COMPLETE') {
+          const key = `source:${(await this.store.json(result.input)).candidate.hash}`;
+          if (!memo.has(key)) memo.set(key, checkSource(this.store, this.context, source));
+          await memo.get(key);
+        }
       }
       catch {
         let gate = null;
@@ -687,7 +714,7 @@ export class CurrentCore {
         : candidateUnavailable ? { allowed: false, reason: 'Current candidate evidence is unavailable or invalid' }
           : await standingValidity(this, state, grant, candidate, null, { allowIntegratedTargets: true })),
     })));
-    return { ...state, commitments, standingAuthorizations, historyGaps: await this.historyGaps(state), obligations: GATES.filter(item => !item.optional || state.optionalGates.includes(item.id)),
+    return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.optional || state.optionalGates.includes(item.id)),
       enforcement: ENFORCEMENT, milestones: await Promise.all(MILESTONES.map(name => this.check(name, null, memo))) };
   }
   async append(state, type, payload, operation) {
@@ -720,6 +747,15 @@ export class CurrentCore {
       state = recorded.state;
     }
   }
+  async cleanupSource() {
+    const { state } = await this.state();
+    if (state.phase !== 'COMPLETE' || state.sourceCleanup?.status === 'released') return;
+    const pending = Object.values(state.jobs).some(job => !job.finished);
+    const result = pending ? { status: 'pending', errors: [{ reason: 'Active or unresolved jobs still own source references' }] }
+      : await releasePins(this.context, state.sourcePreparations);
+    if (identity(result) !== identity(state.sourceCleanup)) await this.append((await this.state()).state, 'SOURCE_CLEANUP', result,
+      { id: `cleanup_${randomUUID()}`, hash: identity(result) });
+  }
   async execute(request) {
     const input = request.input ?? {};
     const operation = { id: request.operationId ?? randomUUID(), hash: identity({ operation: request.operation, input }) };
@@ -730,7 +766,7 @@ export class CurrentCore {
     // current candidate/phase preflight; neither action invents a passed check.
     const active = await this.store.active();
     if (active) {
-      if (mutating) { await this.store.events(active.runId, { repair: true }); await this.reconcileCompletedJobs(); }
+      if (mutating) { await this.store.events(active.runId, { repair: true }); await this.reconcileCompletedJobs(); await cleanupViews(this.store); await this.cleanupSource(); }
       const existing = (await this.store.events(active.runId)).find(event => event.operation.id === operation.id);
       if (existing) {
         requireThat(existing.operation.hash === operation.hash, 'Operation identity reused for different input');

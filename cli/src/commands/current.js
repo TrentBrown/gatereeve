@@ -20,7 +20,7 @@ async function run(options, operation, input = {}, detail = {}) {
   else if (result.data?.contract && result.data?.featureId && result.data?.milestones) {
     console.log(`${result.data.featureId}: ${result.data.current?.phase ?? result.data.phase ?? 'current run needed'}`);
     for (const milestone of result.data.milestones) {
-      console.log(`${milestone.name}: ${milestone.allowed ? 'ready' : milestone.missing.join('; ')}`);
+      console.log(`${milestone.name}: ${milestone.historical ? (milestone.allowed ? 'recorded' : `recorded; ${milestone.missing.join('; ')}`) : milestone.allowed ? 'ready' : milestone.missing.join('; ')}`);
       for (const outcome of milestone.outcomes ?? []) if (outcome.exception) {
         console.log(`  ${outcome.id}: ${outcome.outcome}; accepted exception: ${outcome.exception.reason}; consequences: ${outcome.exception.consequences}`);
       }
@@ -28,6 +28,9 @@ async function run(options, operation, input = {}, detail = {}) {
     for (const pending of result.data.pendingDecisions ?? result.data.current?.pendingDecisions ?? []) console.log(`Pending human instruction (${pending.operation.id}): ${pending.decision.reason}; requested continuation has not been authorized.`);
     for (const grant of result.data.standingAuthorizations ?? result.data.current?.standingAuthorizations ?? []) console.log(`Standing authorization ${grant.grant}: ${grant.allowed ? 'active' : grant.reason}; scope: ${JSON.stringify(grant.scope)}`);
     for (const gap of result.data.current?.historyGaps ?? result.data.historyGaps ?? []) console.log(`Historical evidence unavailable: ${gap.resultHash}; fresh proof must replace any required role.`);
+    const cleanup = result.data.current?.sourceCleanup ?? result.data.sourceCleanup;
+    if (cleanup) console.log(`Source retention: ${cleanup.status}; ${cleanup.errors?.map(item => item.reason).join('; ') || 'completed-run pins released; later reuse checks availability'}`);
+    for (const view of result.data.current?.temporaryViews ?? result.data.temporaryViews ?? []) console.log(`Review view ${view.id}: ${view.status}`);
     for (const blocker of result.data.blockers ?? []) console.log(blocker.message);
   } else console.log(JSON.stringify(result.data, null, 2));
   if (!result.ok) { const error = new Error(result.error.message); error.reported = true; throw error; }

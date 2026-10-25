@@ -12,7 +12,7 @@ test('desktop resolves the parent record, observes current core and does not mut
   await adapter.resolve(f.repo);
   const before = (await f.core.state()).events;
   const snapshot = validateSnapshot(await adapter.snapshot(f.home));
-  assert.equal(snapshot.contract, 'gatereeve/current/3');
+  assert.equal(snapshot.contract, 'gatereeve/current/4');
   assert.equal(snapshot.current.phase, 'DESIGNING');
   assert.equal(snapshot.obligations.some(item => item.id === 'judge'), true);
   const detail = validateDetail(await adapter.read(f.home, 'artifact', 'design.md'));
