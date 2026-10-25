@@ -284,3 +284,19 @@ test('malformed Git object streams reject with a source diagnostic', async t => 
   await writeFile(fake, '#!/usr/bin/env node\nprocess.stdin.once("data",()=>{process.stdout.write("malformed source header\\n"); process.stdin.destroy();});\n', { mode: 0o700 });
   await assert.rejects(withObjects({ path: f.repo, gitExecutable: fake }, {}, reader => reader.read('1'.repeat(40))), /unavailable or invalid/);
 });
+
+test('promisor repositories do not invoke a remote helper for missing source', async t => {
+  const f = await currentFixture(t); const oid = await blob(f, 'app.js');
+  const marker = join(f.root, 'fetch-attempted'); const helper = join(f.root, 'git-remote-source-test');
+  await writeFile(helper, `#!/usr/bin/env node\nimport {writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(marker)},'fetch');process.exit(1);\n`, { mode: 0o700 });
+  await git(f.repo, ['config', 'extensions.partialClone', 'origin']);
+  await git(f.repo, ['config', 'remote.origin.promisor', 'true']);
+  await git(f.repo, ['config', 'remote.origin.url', 'source-test::fixture']);
+  await git(f.repo, ['config', 'protocol.source-test.allow', 'always']);
+  await rm(join(f.repo, '.git/objects', oid.slice(0, 2), oid.slice(2)));
+  const before = process.env.PATH; process.env.PATH = `${f.root}:${before}`;
+  try {
+    await assert.rejects(capture(f), /unavailable/);
+    await assert.rejects(stat(marker), /ENOENT/);
+  } finally { process.env.PATH = before; }
+});

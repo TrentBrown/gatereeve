@@ -12,7 +12,7 @@ export const CLASSIFIER = 'source-records/1';
 function options(repository) {
   const env = { ...process.env };
   for (const key of Object.keys(env)) if (/^GIT_(?:DIR|WORK_TREE|COMMON_DIR|INDEX_FILE|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|NAMESPACE|CONFIG.*|REPLACE_REF_BASE)$/u.test(key)) delete env[key];
-  return { executable: repository.gitExecutable ?? 'git', args: ['--no-replace-objects', '-C', repository.path],
+  return { executable: repository.gitExecutable ?? 'git', args: ['--no-replace-objects', '--no-lazy-fetch', '-C', repository.path],
     env: { ...env, GIT_NO_REPLACE_OBJECTS: '1', GIT_NO_LAZY_FETCH: '1', GIT_TERMINAL_PROMPT: '0' } };
 }
 export async function sourceGit(repository, args) {

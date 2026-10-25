@@ -153,7 +153,9 @@ has an 8 MiB classification bound and rejects above it with a specific diagnosti
 The retained metadata/evidence object's 64 MiB limit remains; there is no aggregate
 source byte limit. Symlinks and gitlinks retain the existing non-following view
 semantics. No checkout filters, archive substitutions or implicit source fetches
-are used. Missing source blocks affected proof and requires repair or fresh review.
+are used. Source Git must support `--no-lazy-fetch`; older unsupported Git fails
+closed rather than silently fetching missing objects. Missing source blocks
+affected proof and requires repair or fresh review.
 
 Retain non-source referenced evidence, including failed specification validation
 inputs and diagnostics. Lost failed-validation proof stays visible after later
