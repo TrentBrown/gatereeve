@@ -103,6 +103,26 @@ export class CurrentStore {
     requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Feature home must be a real directory');
     return new CurrentStore(await realpath(absolute));
   }
+  async saveView(id, value) {
+    identifier(id, 'view');
+    requireThat(await publish(this.home, `${AREA}/views/${id}.json`, Buffer.from(canonical(value))), 'Review session already exists');
+  }
+  async finishView(id) {
+    identifier(id, 'view');
+    await publish(this.home, `${AREA}/views/${id}.closed`, Buffer.from('closed'));
+  }
+  async openViews() {
+    let names;
+    try { const dir = join(this.home, AREA, 'views'); const info = await lstat(dir); requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Unsafe review session directory'); names = await readdir(dir); }
+    catch (error) { if (error.code === 'ENOENT') return []; throw error; }
+    const views = [];
+    for (const name of names.filter(name => name.endsWith('.json'))) {
+      const id = name.slice(0, -5); identifier(id, 'view');
+      if (names.includes(`${id}.closed`)) { await readSafe(this.home, `${AREA}/views/${id}.closed`); continue; }
+      views.push({ id, ...JSON.parse((await readSafe(this.home, `${AREA}/views/${name}`)).toString()) });
+    }
+    return views;
+  }
   async put(bytes) {
     const data = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
     requireThat(data.length <= MAX_BYTES, 'Evidence exceeds the supported size limit');
@@ -118,7 +138,11 @@ export class CurrentStore {
     requireThat(bytes.length === ref.bytes && digest(bytes) === ref.hash, 'Retained evidence integrity failure');
     return bytes;
   }
-  async putJson(value) { return { ...await this.put(canonical(value)), format: 'json' }; }
+  async putJson(value) {
+    const json = canonical(value);
+    requireThat(Buffer.byteLength(json) <= MAX_BYTES, 'JSON metadata exceeds the 64 MiB retained-object size limit');
+    return { ...await this.put(json), format: 'json' };
+  }
   async closure(value, seen = new Set()) {
     if (!value || typeof value !== 'object') return;
     if (HASH.test(value.hash) && Number.isSafeInteger(value.bytes)) {

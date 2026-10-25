@@ -11,6 +11,10 @@ export function renderCurrentOverview(snapshot, elements, { openArtifact, copy, 
   for (const pending of snapshot?.current?.pendingDecisions ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Pending human instruction: ${pending.decision.reason}. Requested continuation has not been authorized.` }));
   for (const grant of snapshot?.current?.standingAuthorizations ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Standing authorization ${grant.grant}: ${grant.allowed ? 'active' : grant.reason}. Scope: ${JSON.stringify(grant.scope)}. Applications: ${JSON.stringify(grant.applications ?? [])}. Deployment requires separate authorization.` }));
   for (const gap of snapshot?.current?.historyGaps ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Historical evidence unavailable: ${gap.resultHash}. Fresh proof can replace its current role; the lost record is not reconstructed.` }));
+  for (const [id, prep] of Object.entries(snapshot?.current?.sourcePreparationStatus ?? {})) if (prep.status !== 'published') elements['global-alerts'].append(node('p', { className: 'notice', text: `Source preparation ${id}: ${prep.status}. ${prep.reason}` }));
+  const cleanup = snapshot?.current?.sourceCleanup;
+  if (cleanup) elements['global-alerts'].append(node('p', { className: 'notice', text: `Source retention: ${cleanup.status}. ${cleanup.errors?.map(item => item.reason).join('; ') || 'Completed-run references released; later reuse checks source availability.'}` }));
+  for (const view of snapshot?.current?.temporaryViews ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Review view ${view.id}: ${view.status}.` }));
   clear(elements['state-rail']);
   for (const id of snapshot?.phases ?? []) {
     const button = node('button', { type: 'button', className: 'state-select', text: title(id), attributes: { 'aria-current': id === phase ? 'step' : 'false' } });
@@ -29,7 +33,7 @@ export function renderCurrentOverview(snapshot, elements, { openArtifact, copy, 
   clear(elements['phase-context-uses']); clear(elements['phase-context-produces']);
   const milestones = clear(elements.milestones); milestones.hidden = false;
   for (const milestone of snapshot?.milestones ?? []) {
-    const card = node('details', { className: 'action-card' }, [node('summary', { text: `${title(milestone.name)} · ${milestone.allowed ? 'Ready' : 'Blocked'}` })]);
+    const card = node('details', { className: 'action-card' }, [node('summary', { text: `${title(milestone.name)} · ${milestone.historical ? (milestone.allowed ? 'Recorded' : 'Recorded; evidence unavailable') : milestone.allowed ? 'Ready' : 'Blocked'}` })]);
     const missing = node('ul');
     for (const reason of milestone.missing) missing.append(node('li', { text: reason }));
     card.append(missing); milestones.append(card);

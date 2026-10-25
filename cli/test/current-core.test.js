@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { CurrentStore } from '../../plugin-src/shared/resources/protocol/current/store.js';
 import { CurrentCore } from '../../plugin-src/shared/resources/protocol/current/core.js';
 import { identity } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
-import { git } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
+import { git, contentIdentity } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
 
 const human = { kind: 'human-confirmed', instruction: 'Approve the named scope.', context: 'test user conversation' };
 async function fixture(t, { nested = true, optionalGates = [] } = {}) {
@@ -694,9 +694,9 @@ test('Git symlinks and gitlinks are retained as typed metadata without following
   await candidate(f);
   const selected = await f.core.store.json((await f.core.state()).state.candidate);
   const link = selected.repositories[0].files.find(item => item.path === 'link');
-  assert.equal(link.entryKind, 'symlink'); assert.equal((await f.core.store.get(link)).toString(), '../secret');
+  assert.equal(link.entryKind, 'symlink'); assert.equal((await git(f.repo, ['cat-file', 'blob', link.oid])).toString(), '../secret');
   const gitlink = selected.repositories[0].files.find(item => item.path === 'submodule');
-  assert.equal(gitlink.entryKind, 'gitlink'); assert.match((await f.core.store.get(gitlink)).toString(), /Contents are not/);
+  assert.equal(gitlink.entryKind, 'gitlink'); assert.equal(gitlink.oid.length, 40); assert.equal(gitlink.hash, undefined);
 });
 
 test('reconciliation rejects unknown rubric mappings even when documents are readable', async t => {
@@ -1317,7 +1317,10 @@ test('repository order and grouped gate order preserve equivalent review identit
   const initial = await f.request('gate.execute', input, 'ordered-review');
   const before = (await f.core.state()).state.candidate;
   await f.request('candidate.prepare', { repositories: [...repositories].reverse(), scope: 'FEATURE', criteria: ['R1'] }, 'reversed-candidate');
-  assert.equal((await f.core.state()).state.candidate.hash, before.hash);
+  const after = (await f.core.state()).state.candidate;
+  // Each preparation owns distinct retention refs; review equivalence is content-based.
+  assert.notEqual(after.hash, before.hash);
+  assert.equal(contentIdentity(await f.core.store.json(after)), contentIdentity(await f.core.store.json(before)));
   const reversed = await f.request('gate.execute', { ...input, gates: ['spec', 'code'] }, 'reversed-review');
   assert.equal(reversed.reused, true); assert.equal(count(), 1);
   assert.deepEqual(reversed.results.map(ref => ref.hash), [...initial.event.payload.results].reverse().map(ref => ref.hash));
@@ -2163,7 +2166,7 @@ test('retained session-contaminated proof becomes context only and never exports
 for (const current of [false, true]) test(`activation successor schema validation applies only to current contract ${current}`, async t => {
   const f = await fixture(t); await authorize(f);
   const previous = await f.core.store.activationHead();
-  const bytes = JSON.stringify({ contract: current ? 'gatereeve/current/3' : 'unsupported/v9', runId: 'unknown-shape', ancestor: 'opaque' });
+  const bytes = JSON.stringify({ contract: current ? 'gatereeve/current/4' : 'unsupported/v9', runId: 'unknown-shape', ancestor: 'opaque' });
   for (const dir of ['activations', 'activation-witnesses']) {
     await mkdir(join(f.home, '.gatereeve-current', dir), { recursive: true });
     await writeFile(join(f.home, '.gatereeve-current', dir, previous.hash.slice(7)+'.json'), bytes);
@@ -2362,8 +2365,8 @@ for (const mismatch of ['scope', 'branch', 'target', 'repository', 'missing-root
   if (mismatch.startsWith('missing-')) {
     const { state } = await f.core.state();
     const selected = await f.core.store.json(state.candidate);
-    const ref = mismatch === 'missing-root' ? state.candidate : selected.repositories[0].files[0];
-    await rm(join(f.home, '.gatereeve-current/objects', ref.hash.slice(7)));
+    if (mismatch === 'missing-root') await rm(join(f.home, '.gatereeve-current/objects', state.candidate.hash.slice(7)));
+    else { const oid = selected.repositories[0].files[0].oid; await rm(join(f.repo, '.git/objects', oid.slice(0, 2), oid.slice(2))); }
   }
   const status = (await f.request('status')).standingAuthorizations[0];
   assert.equal(status.allowed, false);

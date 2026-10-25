@@ -4,12 +4,12 @@ import { executionEnvironment } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, mkdir, writeFile, rm, chmod } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
-import { tmpdir } from 'node:os';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { CONTRACT, canonical, identity, requireThat, gate, text } from './contracts.js';
+import { newView } from './source-views.js';
 import { localPath } from './store.js';
-import { assertSourceIsolation, checkCandidate, contentIdentity, git, assertClean } from './evidence.js';
+import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean } from './evidence.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
 import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
@@ -67,15 +67,21 @@ async function sourceMetadata(root, candidate) {
     await writeFile(join(root, 'metadata', `${repo.alias}.json`), JSON.stringify(value, null, 2), { mode: 0o400, flag: 'wx' });
   }
 }
-async function reviewerView(store, candidate, references, packet) {
-  const root = await mkdtemp(join(tmpdir(), 'gatereeve-current-review-'));
+async function reviewerView(core, candidate, references, packet, runId, jobId) {
+  const store = core.store;
+  const view = await newView(store, { runId, jobId });
+  const root = view.root;
+  const verifiedSources = new Set();
+  const verifySource = async source => {
+    const key = identity(source);
+    if (!verifiedSources.has(key)) { await checkSource(store, core.context, source); verifiedSources.add(key); }
+  };
   try {
     assertSourceIsolation(candidate, store.home);
     await sourceMetadata(root, candidate);
-    for (const repo of candidate.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) for (const file of files) {
-      const path = join(root, kind, repo.alias, localPath(file.path));
-      await mkdir(dirname(path), { recursive: true });
-      await writeFile(path, await store.get(file), { mode: 0o400, flag: 'wx' });
+    await verifySource(candidate);
+    for (const repo of candidate.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) {
+      await view.source(`${kind}/${repo.alias}`, core.context.repositories.find(item => item.alias === repo.alias), files, repo.objectFormat);
     }
     await mkdir(join(root, 'requirements'));
     for (const [name, ref] of Object.entries(candidate.requirements)) {
@@ -91,10 +97,9 @@ async function reviewerView(store, candidate, references, packet) {
         assertSourceIsolation(previous, store.home);
         requireThat(previous.repositories.every(repo => candidate.repositories.some(selected => identity(selected.identity) === identity(repo.identity))), 'Referenced evidence includes unselected repositories');
         await sourceMetadata(join(root, 'prior', ref.hash.slice(7)), previous);
-        for (const repo of previous.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) for (const file of files) {
-          const path = join(root, 'prior', ref.hash.slice(7), kind, repo.alias, localPath(file.path));
-          await mkdir(dirname(path), { recursive: true });
-          await writeFile(path, await store.get(file), { mode: 0o400 });
+        await verifySource(previous);
+        for (const repo of previous.repositories) for (const [kind, files] of [['repositories', repo.files], ['base', repo.baseFiles], ['target', repo.targetFiles]]) {
+          await view.source(`prior/${ref.hash.slice(7)}/${kind}/${repo.alias}`, core.context.repositories.find(item => item.alias === repo.alias), files, repo.objectFormat);
         }
       }
       for (const artifact of [ref, report.input, report.receipt, ...(report.artifacts ?? [])]) {
@@ -105,10 +110,11 @@ async function reviewerView(store, candidate, references, packet) {
         packet.evidence.push({ reference: artifact, path: `evidence/${name}` });
       }
     }
-    return root;
-  } catch (error) { await rm(root, { recursive: true, force: true }); throw error; }
+    await view.seal();
+    return view;
+  } catch (error) { await view.close(); throw error; }
 }
-async function independent(core, state, candidate, prepared, configuration, packet) {
+async function independent(core, state, candidate, prepared, configuration, packet, jobId) {
   const provider = configuration.provider;
   requireThat(['codex', 'claude-code'].includes(provider), 'Select codex or claude-code for independent execution');
   text(configuration.model, 'Evaluator model');
@@ -117,9 +123,10 @@ async function independent(core, state, candidate, prepared, configuration, pack
   const adapter = core.runtime.evaluator ?? (provider === 'codex'
     ? createCodexAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' })
     : createClaudeCodeAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' }));
-  const root = await reviewerView(core.store, candidate, [...packet.history.map(item => item.reference), ...packet.consumedReferences], packet);
+  const view = await reviewerView(core, candidate, [...packet.history.map(item => item.reference), ...packet.consumedReferences], packet, state.runId, jobId);
   let retained = [];
   try {
+    const root = view.root;
     const descriptor = await adapter.describe();
     requireThat(descriptor.provider === provider && descriptor.model === configuration.model, 'Evaluator descriptor differs from requested provider/model');
     requireThat(descriptor.reasoningEffort === reasoningEffort, 'Evaluator descriptor reasoning differs from request');
@@ -152,7 +159,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
       provider: descriptor.provider, model: descriptor.model, reasoningEffort, capabilityProfile: receipt.capabilityProfile,
     } };
   } catch (error) { error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])]; throw error; }
-  finally { await rm(root, { recursive: true, force: true }); }
+  finally { await view.close(); }
 }
 async function commands(core, state, candidate, configuration, completion, environment) {
   requireThat(Array.isArray(configuration.checks) && configuration.checks.length > 0, 'Runner requires explicit checks');
@@ -260,7 +267,7 @@ export async function executeGates(core, input, operation) {
   requireThat(input.gates.length === 1 || input.gates.length === 2 && input.gates.includes('code') && input.gates.includes('spec'), 'Only code/spec sharing is currently permitted');
   const role = definitions[0].role;
   requireThat(state.candidate, 'Prepare a candidate first');
-  const candidate = await checkCandidate(core.store, core.context, state.candidate, { live: state.phase !== 'INTEGRATED' });
+  const candidate = await checkCandidate(core.store, core.context, state.candidate, { live: state.phase !== 'INTEGRATED', memo: applicabilityMemo });
   const configuration = input.configuration ?? {};
   requireThat(input.consumed === undefined || Array.isArray(input.consumed), 'Consumed proof must be an array');
   const consumed = [...(input.consumed ?? [])];
@@ -287,7 +294,7 @@ export async function executeGates(core, input, operation) {
     text(claim.findingId, 'Claim finding identity'); text(claim.claim, 'Disposition claim');
     requireThat(claim.claim.length <= 4096, 'Disposition claim is too long');
   }
-  const findingStates = new Map(), latestContext = new Map(), negativeContext = new Map(), missingHistory = await core.historyGaps(state);
+  const findingStates = new Map(), latestContext = new Map(), negativeContext = new Map(), missingHistory = await core.historyGaps(state, applicabilityMemo);
   for (const ref of state.results) {
     let report; try { report = await core.store.json(ref); } catch { continue; }
     let role; try { role = gate(report.gate).role; } catch { continue; }
@@ -446,7 +453,7 @@ export async function executeGates(core, input, operation) {
       const packet = { contract: CONTRACT, rules: input.gates.map(id => ({ id, rule: gate(id).rule })), pattern: value.pattern, gates: input.gates, criteria: candidate.criteria, scope: candidate.scope,
         source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, target: repo.target, metadata: `metadata/${repo.alias}.json`, entries: [...repo.baseFiles, ...repo.files, ...repo.targetFiles].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
         history, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
-      const reviewed = await independent(core, state, candidate, prepared, configuration, packet);
+      const reviewed = await independent(core, state, candidate, prepared, configuration, packet, jobId);
       evaluator = reviewed.evaluator; metrics = reviewed.metrics; artifacts.push(...reviewed.artifacts);
       const returned = reviewed.output.verdicts;
       requireThat(returned.every(item => input.gates.includes(item?.gate)), 'Unrequested independent verdict');

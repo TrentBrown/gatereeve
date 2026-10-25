@@ -53,6 +53,41 @@ function successfulExec(calls) {
   };
 }
 
+test('Setup rejects Git without the no-fetch capability', async () => {
+  const common = successfulExec([]);
+  const observer = createSetupObserver({
+    metadata,
+    exec: async (executable, args) => {
+      if (executable.endsWith('/git')) {
+        assert.deepEqual(args, ['--no-lazy-fetch', '--version']);
+        throw new Error('unknown option: --no-lazy-fetch');
+      }
+      return common(executable, args);
+    },
+    async discover(name) { return `/bin/${name}`; },
+  });
+  const setup = await observer(['codex']);
+  assert.equal(setup.operationalReady, false);
+  const git = setup.prerequisites.find((item) => item.id === 'git');
+  assert.equal(git.status, 'unavailable');
+  assert.match(git.remediation.summary, /--no-lazy-fetch/);
+});
+
+test('Setup preserves an explicitly unavailable executable from capability discovery', async () => {
+  const calls = [];
+  const observer = createSetupObserver({
+    metadata, executablePaths: { git: null }, exec: successfulExec(calls),
+    async discover(name) {
+      assert.notEqual(name, 'git');
+      return `/bin/${name}`;
+    },
+  });
+  const setup = await observer(['codex']);
+  assert.equal(setup.operationalReady, false);
+  assert.equal(setup.prerequisites.find((item) => item.id === 'git').status, 'missing');
+  assert.equal(calls.some(([path]) => path.endsWith('/git')), false);
+});
+
 test('observer checks only selected agents and accepts only an explicit compatible pair', async () => {
   const calls = [];
   const discovered = [];
@@ -278,7 +313,7 @@ test('one ready selected agent is enough for operational readiness', async () =>
 test('shared prerequisite remediation follows the host-native package owner', async () => {
   for (const [platform, expected] of [
     ['darwin', 'brew install git'],
-    ['linux', 'sudo apt install -y git'],
+    ['linux', null],
   ]) {
     const observer = createSetupObserver({
       metadata,

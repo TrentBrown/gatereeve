@@ -125,8 +125,26 @@ export async function discoverCompatiblePythonExecutable({
 
 export async function discoverDesktopExecutables(options = {}) {
   const [git, gh] = await Promise.all([
-    discoverExecutable('git', options),
+    discoverCompatibleGitExecutable(options),
     discoverExecutable('gh', options),
   ]);
   return Object.freeze({ git, gh });
+}
+
+export async function discoverCompatibleGitExecutable({
+  run = (file, args) => execFileAsync(file, args, {
+    encoding: 'utf8', maxBuffer: 1024 * 1024, timeout: 10_000,
+  }),
+  ...options
+} = {}) {
+  for await (const candidate of matchingExecutables('git', options)) {
+    try {
+      // Probe the source contract's capability without reading a repository or fetching.
+      await run(candidate, ['--no-lazy-fetch', '--version']);
+      return candidate;
+    } catch {
+      // Older Apple/distro Git can coexist with a supported installation.
+    }
+  }
+  return null;
 }

@@ -34,9 +34,9 @@ const AGENTS = Object.freeze({
 
 const PREREQUISITES = Object.freeze([
   Object.freeze({
-    id: 'git', label: 'Git', executable: 'git', arguments: ['--version'], minimum: null,
-    installCommand: { darwin: 'brew install git', linux: 'sudo apt install -y git' },
-    guideUrl: 'https://git-scm.com/downloads',
+    id: 'git', label: 'Git', executable: 'git', arguments: ['--no-lazy-fetch', '--version'], minimum: null,
+    installCommand: { darwin: 'brew install git', linux: null },
+    guideUrl: 'https://git-scm.com/install/linux',
   }),
   Object.freeze({
     id: 'python', label: 'Python', executable: 'python3', arguments: ['--version'], minimum: '3.10.0',
@@ -165,7 +165,7 @@ function missingPrerequisite(item, platform) {
     version: null,
     detail: `${item.label} was not found in Finder-compatible locations.`,
     remediation: remediation(
-      `Install ${item.label} with its native owner.`,
+      item.id === 'git' ? 'Install Git with --no-lazy-fetch support, then recheck Setup.' : `Install ${item.label} with its native owner.`,
       installCommand(item, platform),
       item.guideUrl,
     ),
@@ -180,7 +180,7 @@ async function inspectPrerequisite(item, executable, { exec, platform }) {
       id: item.id, label: item.label, status: 'unavailable', version,
       detail: result.stderr.trim() || `${item.label} could not be checked.`,
       remediation: remediation(
-        `Repair ${item.label}, then recheck Setup.`,
+        item.id === 'git' ? 'Install Git with --no-lazy-fetch support, then recheck Setup.' : `Repair ${item.label}, then recheck Setup.`,
         installCommand(item, platform),
         item.guideUrl,
       ),
@@ -252,7 +252,9 @@ async function observePrerequisite(item, {
     }
     return failedPythonCandidates(item, attempts, platform);
   }
-  const executable = executablePaths[item.id] ?? await discover(item.executable);
+  const executable = executablePaths[item.id] === undefined
+    ? await discover(item.executable)
+    : executablePaths[item.id];
   if (executable === null) return missingPrerequisite(item, platform);
   return inspectPrerequisite(item, executable, { exec, platform });
 }
