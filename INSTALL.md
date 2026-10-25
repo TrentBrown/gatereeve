@@ -68,7 +68,7 @@ Then complete one or both agent paths:
 
 ## 3. Install and verify shared prerequisites
 
-Installing and running the workflow requires Git, Python 3.10 or newer, and
+Installing and running the workflow requires Git with `--no-lazy-fetch` support, Python 3.10 or newer, and
 Node.js 22.12 or newer. The complete PR-boundary workflow also uses GitHub CLI
 and requires it to be authenticated for the product repositories where the
 workflow operates. Install a supported Node release with the version manager
@@ -93,15 +93,23 @@ brew install git python gh
 
 ```bash
 sudo apt update
+sudo apt install -y software-properties-common
+sudo add-apt-repository -y ppa:git-core/ppa
+sudo apt update
 sudo apt install -y git python3 curl gh unzip
+git --no-lazy-fetch --version
 ```
+
+The [Git project's Ubuntu installation instructions](https://git-scm.com/install/linux)
+recommend this PPA for current Git. The capability check must succeed: source
+validation cannot allow Git to fetch missing objects implicitly.
 
 ### Verify the shared commands
 
 ```bash
 python3 -c 'import sys; assert sys.version_info >= (3, 10), sys.version'
 node -e 'const [major,minor]=process.versions.node.split(".").map(Number); if (major < 22 || (major === 22 && minor < 12)) process.exit(1)'
-git --version
+git --no-lazy-fetch --version
 gh --version
 ```
 

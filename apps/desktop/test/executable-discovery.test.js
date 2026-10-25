@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  discoverCompatibleGitExecutable,
   discoverCompatiblePythonExecutable,
   discoverDesktopExecutables,
   discoverExecutables,
@@ -49,6 +50,7 @@ test('Finder-compatible discovery checks fixed macOS and explicit PATH locations
 test('Finder-compatible discovery checks only the bounded NVM version root after fixed paths', async () => {
   const probed = [];
   const result = await discoverDesktopExecutables({
+    async run() { return { stdout: 'git version 2.53.0' }; },
     environment: { PATH: '' },
     platform: 'darwin',
     homeDirectory: '/Users/tester',
@@ -72,6 +74,7 @@ test('Finder-compatible discovery checks only the bounded NVM version root after
 test('explicit executable overrides are narrow and fail closed', async () => {
   const probed = [];
   const result = await discoverDesktopExecutables({
+    async run() { return { stdout: 'git version 2.53.0' }; },
     environment: {
       GATEREEVE_GIT_PATH: '/managed/git',
       GATEREEVE_GH_PATH: '/managed/missing-gh',
@@ -85,6 +88,47 @@ test('explicit executable overrides are narrow and fail closed', async () => {
   });
   assert.deepEqual(result, { git: '/managed/git', gh: null });
   assert.deepEqual(probed, ['/managed/git', '/managed/missing-gh']);
+});
+
+test('Git discovery skips Apple Git without the no-fetch capability', async () => {
+  const calls = [];
+  const result = await discoverDesktopExecutables({
+    environment: { PATH: '/usr/bin:/opt/homebrew/bin' },
+    platform: 'darwin', homeDirectory: '/Users/tester',
+    async readDirectory() { return []; },
+    async probe(path) { return path === '/usr/bin/git' || path === '/opt/homebrew/bin/git'; },
+    async run(path, args) {
+      calls.push([path, ...args]);
+      if (path === '/usr/bin/git') throw new Error('unknown option: --no-lazy-fetch');
+      return { stdout: 'git version 2.53.0' };
+    },
+  });
+  assert.equal(result.git, '/opt/homebrew/bin/git');
+  assert.deepEqual(calls, [
+    ['/usr/bin/git', '--no-lazy-fetch', '--version'],
+    ['/opt/homebrew/bin/git', '--no-lazy-fetch', '--version'],
+  ]);
+});
+
+test('Git discovery fails closed when only unsupported candidates exist', async () => {
+  const result = await discoverCompatibleGitExecutable({
+    environment: { PATH: '/usr/bin' }, platform: 'linux',
+    async probe() { return true; },
+    async run() { throw new Error('unknown option: --no-lazy-fetch'); },
+  });
+  assert.equal(result, null);
+});
+
+test('an unsupported explicit Git override does not fall back to another installation', async () => {
+  const probed = [];
+  const result = await discoverCompatibleGitExecutable({
+    environment: { PATH: '/opt/homebrew/bin', GATEREEVE_GIT_PATH: '/managed/git' },
+    platform: 'darwin',
+    async probe(path) { probed.push(path); return true; },
+    async run() { throw new Error('unknown option: --no-lazy-fetch'); },
+  });
+  assert.equal(result, null);
+  assert.deepEqual(probed, ['/managed/git']);
 });
 
 test('multi-candidate discovery retains bounded deterministic order', async () => {

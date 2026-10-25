@@ -9,12 +9,16 @@ FROM ubuntu:${UBUNTU_VERSION}
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
+    && apt-get install --yes --no-install-recommends ca-certificates software-properties-common \
+    && add-apt-repository --yes ppa:git-core/ppa \
+    && apt-get update \
     && apt-get install --yes --no-install-recommends \
       ca-certificates \
       gh \
       git \
       python3 \
       unzip \
+    && git --no-lazy-fetch --version \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
