@@ -28,6 +28,7 @@ async function run(options, operation, input = {}, detail = {}) {
     for (const pending of result.data.pendingDecisions ?? result.data.current?.pendingDecisions ?? []) console.log(`Pending human instruction (${pending.operation.id}): ${pending.decision.reason}; requested continuation has not been authorized.`);
     for (const grant of result.data.standingAuthorizations ?? result.data.current?.standingAuthorizations ?? []) console.log(`Standing authorization ${grant.grant}: ${grant.allowed ? 'active' : grant.reason}; scope: ${JSON.stringify(grant.scope)}`);
     for (const gap of result.data.current?.historyGaps ?? result.data.historyGaps ?? []) console.log(`Historical evidence unavailable: ${gap.resultHash}; fresh proof must replace any required role.`);
+    for (const [id, prep] of Object.entries(result.data.current?.sourcePreparationStatus ?? result.data.sourcePreparationStatus ?? {})) if (prep.status !== 'published') console.log(`Source preparation ${id}: ${prep.status}; ${prep.reason}`);
     const cleanup = result.data.current?.sourceCleanup ?? result.data.sourceCleanup;
     if (cleanup) console.log(`Source retention: ${cleanup.status}; ${cleanup.errors?.map(item => item.reason).join('; ') || 'completed-run pins released; later reuse checks availability'}`);
     for (const view of result.data.current?.temporaryViews ?? result.data.temporaryViews ?? []) console.log(`Review view ${view.id}: ${view.status}`);

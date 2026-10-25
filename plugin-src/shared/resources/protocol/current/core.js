@@ -25,7 +25,7 @@ export function project(events) {
   const state = { contract: CONTRACT, runId: events[0].runId, featureId: first.featureId,
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
     decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
-    sourcePreparations: [], sourceCleanup: null, ready: false, paused: false, eventCount: events.length };
+    sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length };
   for (const event of events.slice(1)) {
     const value = event.payload;
     switch (event.type) {
@@ -41,16 +41,17 @@ export function project(events) {
         if (decisionHas(value, 'authorize-implementation')) state.phase = 'IMPLEMENTING';
         break;
       case 'SPEC_VALIDATED': state.specValidation = value; if (['SPECIFYING', 'PLANNING'].includes(state.phase)) state.phase = 'PLANNING'; break;
-      case 'SOURCE_PREPARING': state.sourcePreparations.push(value); break;
+      case 'SOURCE_PREPARING': state.sourcePreparations.push(value); state.sourcePreparationStatus[value.id] = { status: 'preparing', reason: 'Preparation has not published a candidate; owned references are retained for retry.' }; break;
+      case 'SOURCE_PREPARATION_FAILED': state.sourcePreparationStatus[value.id] = { status: 'retry-required', reason: value.reason }; break;
       case 'SOURCE_CLEANUP': state.sourceCleanup = value; break;
-      case 'CANDIDATE': state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.phase = 'IMPLEMENTING'; break;
+      case 'CANDIDATE': if (value.preparationId) state.sourcePreparationStatus[value.preparationId] = { status: 'published', reason: null }; state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.phase = 'IMPLEMENTING'; break;
       case 'READY': state.ready = true; break;
       case 'JOB_STARTED': state.jobs[value.jobId] = { ...value, sequence: event.sequence, finished: false }; break;
       case 'JOB_OUTCOME_READY': state.jobs[value.jobId] = { ...state.jobs[value.jobId], ready: value }; break;
       case 'JOB_FINISHED': state.jobs[value.jobId] = { ...state.jobs[value.jobId], ...value, finishedSequence: event.sequence, finished: true }; state.results.push(...value.results); break;
       case 'MILESTONE':
         if (value.name === 'acceptance') state.phase = 'ACCEPTING';
-        if (value.name === 'completion') state.phase = 'COMPLETE';
+        if (value.name === 'completion') { state.phase = 'COMPLETE'; state.sourceCleanup = { status: 'pending', errors: [{ reason: 'Completion recorded; owned source reference release has not been reconciled.' }] }; }
         break;
       case 'INTEGRATED': state.integrated = value; state.integrations[value.repository] = value; state.phase = 'INTEGRATED'; break;
       case 'PAUSED': state.paused = true; break;
@@ -289,11 +290,24 @@ export class CurrentCore {
     const preparation = await sourcePreparation(this.store, this.context, input, state.runId, operation);
     const pendingId = `source_${preparation.id}`;
     const pending = (await this.state()).events.find(event => event.operation.id === pendingId);
+    let preparedState = state;
     if (pending) requireThat(identity(pending.payload) === identity(preparation), 'Source preparation changed during retry');
-    else await this.append(state, 'SOURCE_PREPARING', preparation, { id: pendingId, hash: identity(preparation) });
-    await ensurePins(this.context, preparation);
-    const candidate = await sourceCandidate(this.store, this.context, input, { event: authorization.event, subject: authorization.subject, documents: authorization.documents }, preparation);
-    return this.append((await this.state()).state, 'CANDIDATE', candidate.ref, operation);
+    else preparedState = (await this.append(state, 'SOURCE_PREPARING', preparation, { id: pendingId, hash: identity(preparation) })).state;
+    try {
+      await ensurePins(this.context, preparation);
+      const candidate = await sourceCandidate(this.store, this.context, input, { event: authorization.event, subject: authorization.subject, documents: authorization.documents }, preparation);
+      return await this.append(preparedState, 'CANDIDATE', { ...candidate.ref, preparationId: preparation.id }, operation);
+    } catch (error) {
+      // Retain pins until this operation retries or the run completes. A second
+      // process may still be preparing the same operation; never delete its pins.
+      const currentState = (await this.state()).state;
+      if (currentState.runId === state.runId && currentState.sourcePreparationStatus[preparation.id]?.status !== 'published') {
+        const failure = { id: preparation.id, reason: `${error.message}; owned refs retained. Retry the same preparation operation and input to reconcile.` };
+        await this.append(currentState, 'SOURCE_PREPARATION_FAILED', failure,
+          { id: `source_failure_${randomUUID()}`, hash: identity(failure) });
+      }
+      throw error;
+    }
   }
   async readiness(operation) {
     const { state } = await this.state();
@@ -766,7 +780,7 @@ export class CurrentCore {
     // current candidate/phase preflight; neither action invents a passed check.
     const active = await this.store.active();
     if (active) {
-      if (mutating) { await this.store.events(active.runId, { repair: true }); await this.reconcileCompletedJobs(); await cleanupViews(this.store); await this.cleanupSource(); }
+      if (mutating) { await this.store.events(active.runId, { repair: true }); await this.reconcileCompletedJobs(); await cleanupViews(this.store, (await this.state()).state); await this.cleanupSource(); }
       const existing = (await this.store.events(active.runId)).find(event => event.operation.id === operation.id);
       if (existing) {
         requireThat(existing.operation.hash === operation.hash, 'Operation identity reused for different input');

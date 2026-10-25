@@ -31,5 +31,10 @@ test('current view shows milestone blockers, preserved verdicts, exceptions and 
   assert.match(elements['global-alerts'].textContent, /Standing grant was revoked.*SLICE.*fixture-candidate.*Deployment requires separate authorization/);
   assert.match(elements['global-alerts'].textContent, /Historical evidence unavailable.*lost-historical-proof/);
   assert.match(elements['module-settings-list'].textContent, /UNAVAILABLE.*Accepted exception: Known fixture risk/s);
+  snapshot.current.sourcePreparationStatus = { failed: { status: 'retry-required', reason: 'Owned refs retained; retry the original operation.' } };
+  snapshot.current.sourceCleanup = { status: 'pending', errors: [{ reason: 'Completion recorded; release pending.' }] };
+  renderCurrentOverview(snapshot, elements);
+  assert.match(elements['global-alerts'].textContent, /Source preparation failed: retry-required/);
+  assert.match(elements['global-alerts'].textContent, /Source retention: pending.*Completion recorded/);
   assert.deepEqual((await f.core.state()).events, before);
 });

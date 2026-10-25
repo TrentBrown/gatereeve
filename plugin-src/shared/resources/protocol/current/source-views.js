@@ -16,9 +16,11 @@ function inactive(view) {
 export async function viewStatus(store) {
   return (await store.openViews()).map(view => ({ id: view.id, status: inactive(view) ? 'cleanup-pending' : 'active-or-unknown' }));
 }
-export async function cleanupViews(store) {
+export async function cleanupViews(store, state = null) {
   for (const view of await store.openViews()) {
     if (!inactive(view) || view.root !== expected(store, view.id)) continue;
+    // A dead controller does not prove its evaluator subprocess has stopped.
+    if (view.jobId && (view.runId !== state?.runId || !state.jobs[view.jobId]?.finished)) continue;
     let exists = true;
     try { await lstat(view.root); } catch (error) { if (error.code !== 'ENOENT') continue; exists = false; }
     if (!exists) { await store.finishView(view.id); continue; }
@@ -41,13 +43,21 @@ async function removeView(root) {
   try { await writable(root); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   await rm(root, { recursive: true, force: true });
 }
-export async function newView(store) {
+export async function newView(store, { runId = null, jobId = null, linkFile = link, writeMarker = writeFile } = {}) {
   const id = randomUUID(); const root = expected(store, id);
-  await store.saveView(id, { root, pid: process.pid, host: hostname() });
-  await mkdir(root, { mode: 0o700 });
-  await writeFile(join(root, '.gatereeve-view-owner'), identity({ home: store.home, id }), { flag: 'wx', mode: 0o400 });
+  await store.saveView(id, { root, pid: process.pid, host: hostname(), runId, jobId });
+  let created = false;
   const readers = new Map(); const backing = new Map(); const paths = new Set();
-  const backingRoot = join(root, '.source-blobs'); await mkdir(backingRoot, { mode: 0o700 });
+  const backingRoot = join(root, '.source-blobs');
+  try {
+    await mkdir(root, { mode: 0o700 }); created = true;
+    await writeMarker(join(root, '.gatereeve-view-owner'), identity({ home: store.home, id }), { flag: 'wx', mode: 0o400 });
+    await mkdir(backingRoot, { mode: 0o700 });
+  } catch (error) {
+    if (created) await removeView(root);
+    await store.finishView(id);
+    throw error;
+  }
   return {
     root,
     async source(prefix, repository, files, format) {
@@ -73,7 +83,7 @@ export async function newView(store) {
           } finally { await handle.close(); }
           await chmod(path, 0o400); backing.set(key, path);
         }
-        try { await link(backing.get(key), destination); }
+        try { await linkFile(backing.get(key), destination); }
         catch (error) {
           if (!['EXDEV', 'EPERM', 'ENOTSUP', 'EMLINK', 'EOPNOTSUPP'].includes(error.code)) throw error;
           await pipeline(createReadStream(backing.get(key)), createWriteStream(destination, { flags: 'wx', mode: 0o400 }));
