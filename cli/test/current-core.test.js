@@ -193,11 +193,11 @@ for (const mode of ['bookkeeping', 'dependency', 'timeout', 'postflight-read-err
     : mode === 'postflight-read-error' ? `fs.symlinkSync(${JSON.stringify(outside)},'node_modules/escape.js');`
       : `fs.writeFileSync('node_modules/pkg/index.js','two');${mode === 'timeout' ? 'setInterval(()=>{},1000);' : 'process.exitCode=7;'}`;
   const executed = await f.request('gate.execute', { gates: ['verification'], configuration: { externalRuntimeInputs: { app: [] },
-    checks: [{ repository: 'app', command: process.execPath, args: ['-e', `const fs=require('fs');console.log('runner-output');${body}`],
+    checks: [{ repository: 'app', command: process.execPath, args: ['-e', `const fs=require('fs');console.log('7d9b35e2-0ef3-4bf2-a5f9-874b19ef0480');${body}`],
       timeoutMs: mode === 'timeout' ? 1000 : 10000, purpose: 'Bookkeeping and postflight diagnostics regression' }] } });
   const reference = executed.event.payload.results[0], result = await f.core.store.json(reference);
   const runner = await f.core.store.json(result.runner);
-  assert.match((await f.core.store.get(runner.receipts[0].stdout)).toString(), /runner-output/);
+  assert.match((await f.core.store.get(runner.receipts[0].stdout)).toString(), /7d9b35e2-0ef3-4bf2-a5f9-874b19ef0480/);
   await f.core.store.closure(reference);
   if (mode === 'bookkeeping') {
     assert.equal(result.outcome, 'PASS'); assert.equal(runner.environmentCheck, 'unchanged'); assert.deepEqual(runner.changedInputs, []);
