@@ -481,7 +481,7 @@ export async function executeGates(core, input, operation) {
   }
   const runnerEnvironment = role === 'runner' ? resolveRunnerEnvironment(configuration) : Object.freeze({});
   const value = { contract: CONTRACT, gates: input.gates, candidate: state.candidate, configuration, consumed, support,
-    environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment),
+    environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment, { retainDiagnostics: true }),
     pattern: input.gates.includes('pattern') ? await patternInputs(core.store, core.context, candidate, core.runtime.pythonGuardOptions) : null,
     integrations: definitions[0].at === 'completion' ? state.integrations : null,
     reviewContract: reviewContract(input.gates), coverageClaims: replacements, repair, claims: input.claims ?? [], requestedHistory: [...(input.history ?? [])].sort((a, b) => a.hash.localeCompare(b.hash)),
@@ -570,7 +570,7 @@ export async function executeGates(core, input, operation) {
       for (const receipt of ran.receipts) artifacts.push(receipt.stdout, receipt.stderr);
       const failures = ran.receipts.filter(item => item.termination).map(item => item.termination.reason);
       try {
-        const observed = await executionEnvironment(core.context, candidate, configuration, true);
+        const observed = await executionEnvironment(core.context, candidate, configuration, true, process.env, { retainDiagnostics: true });
         ran.changedInputs = environmentChanges(value.environment, observed);
         ran.environmentCheck = ran.changedInputs.length ? 'changed' : 'unchanged';
         runner = await core.store.putJson(ran); artifacts.push(runner);

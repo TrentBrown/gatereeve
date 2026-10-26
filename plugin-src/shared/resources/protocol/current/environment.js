@@ -313,7 +313,7 @@ async function dependencyInputs(root, directory = '', seen = new Set()) {
   }
   return result;
 }
-export async function executionEnvironment(context, candidate, configuration, runner, inherited = process.env, { retainDiagnostics = true } = {}) {
+export async function executionEnvironment(context, candidate, configuration, runner, inherited = process.env, { retainDiagnostics = false } = {}) {
   if (!runner) return { kind: 'pinned-review-inputs' };
   const environment = runnerEnvironment(configuration, inherited);
   const effectiveEnvironment = await environmentIdentity(context, environment);

@@ -15,7 +15,7 @@ async function fixture(t) {
   await mkdir(repo); await mkdir(tools);
   const configuration = { externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['--version'] }] };
   const context = { repositories: [{ alias: 'app', path: repo }] }, candidate = { repositories: [{ alias: 'app' }] };
-  return { root, repo, tools, context, candidate, configuration, bind: (environment = process.env) => executionEnvironment(context, candidate, configuration, true, environment) };
+  return { root, repo, tools, context, candidate, configuration, bind: (environment = process.env) => executionEnvironment(context, candidate, configuration, true, environment, { retainDiagnostics: true }) };
 }
 
 test('opaque runners require an explicit external scope and unknown scripts fail closed', async t => {

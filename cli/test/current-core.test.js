@@ -2308,6 +2308,17 @@ test('actual acceptance passage rejects old PASS after external script turns fai
  await assert.rejects(f.request('milestone.pass',{name:'acceptance'},'pass-after-external-drift'),/blocked/);
  assert.equal((await f.core.state()).state.phase,'IMPLEMENTING');
 });
+test('waiver risk observation cannot recreate released diagnostic indexes', async t => {
+ const f=await externalRunnerFixture(t,'argument',true);
+ const state=(await f.core.state()).state,candidate=await f.core.store.json(state.candidate);
+ const {releaseComparisonIndexes}=await import('../../plugin-src/shared/resources/protocol/current/environment.js');
+ const cache=join(f.home,'.gatereeve-current/diagnostic-indexes');
+ assert.ok((await readdir(cache)).length,'execution retained its baseline');
+ const before=await f.core.waiverRisk(state,candidate,'verification');
+ await releaseComparisonIndexes(f.context);
+ assert.equal(await f.core.waiverRisk(state,candidate,'verification'),before);
+ assert.deepEqual(await readdir(cache),[],'waiver observation is read-only');
+});
 test('consumed verification external drift also invalidates a spec waiver',async t=>{
  const f=await externalRunnerFixture(t,'argument');fakeEvaluator(f,{outcome:'FAIL'});
  await f.request('gate.execute',{gates:['spec'],consumed:f.ran.event.payload.results,configuration:{provider:'codex',model:'fixture'}},'failed-spec');
