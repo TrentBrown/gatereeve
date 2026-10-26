@@ -19,6 +19,18 @@ export function mergeDirection(head, base) {
   requireThat(typeof head === 'string' && typeof base === 'string' && head !== base, 'Merge needs distinct named branches');
   requireThat(head !== 'development' && !head.startsWith('development-'), `Forbidden merge direction: ${head} -> ${base}`);
 }
+export async function waitForHostedChecks(root, action, run = gh) {
+  const args = ['pr', 'checks', String(action.number), '--repo', action.ownerRepo];
+  try {
+    await run(root, [...args, '--required', '--watch', '--fail-fast']);
+  } catch (error) {
+    // gh reports an empty required-check set as an error, even when CI exists.
+    // Recognize only that diagnostic; failed checks and operational errors block.
+    if (error.code !== 1 || error.stdout !== '' || typeof error.stderr !== 'string'
+      || error.stderr.trim() !== `no required checks reported on the '${action.headBranch}' branch`) throw error;
+    await run(root, [...args, '--watch', '--fail-fast']);
+  }
+}
 export async function prepareMerge(core, input) {
   await core.assertContext();
   const { state } = await core.state();
@@ -82,7 +94,7 @@ export async function merge(core, input, operation) {
       madeReady = true;
       await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo]);
     }
-    await run(repository.path, ['pr', 'checks', String(action.number), '--repo', action.ownerRepo, '--required', '--watch', '--fail-fast']);
+    await waitForHostedChecks(repository.path, action, run);
     await requireCurrentState(core, state);
     const currentProof = await core.check('merge', state);
     requireThat(currentProof.allowed && (!authorization.standingGrant || currentProof.outcomes.every(item => item.outcome === 'PASS')), 'Gate proof changed while waiting for hosted checks');
