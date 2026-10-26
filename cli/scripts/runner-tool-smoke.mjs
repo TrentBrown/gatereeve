@@ -6,7 +6,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { executionEnvironment, assertEnvironmentCurrent } from '../../../plugin-src/shared/resources/protocol/current/environment.js';
+import { executionEnvironment, assertEnvironmentCurrent } from '../../plugin-src/shared/resources/protocol/current/environment.js';
 
 const [pnpm, vitest] = process.argv.slice(2);
 assert.ok(pnpm && vitest, 'Supply pinned pnpm executable and Vitest entrypoint');
