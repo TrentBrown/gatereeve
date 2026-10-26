@@ -164,9 +164,11 @@ test('Cask finalization and smoke bind conductor runs and exact public artifacts
   const smoke = await workflow('homebrew-cask-smoke.yml');
   assert.equal((smoke.match(/linked-homebrew-cask-result/g) ?? []).length, 2);
   assert.equal((smoke.match(/actions\/download-artifact@v8/g) ?? []).length, 2);
-  assert.equal((smoke.match(/release-conductor\\\.yml/g) ?? []).length, 2);
-  assert.equal((smoke.match(/homebrew-cask-publish\\\.yml/g) ?? []).length, 2);
-  assert.equal((smoke.match(/GITHUB_EVENT_NAME === "pull_request"/g) ?? []).length, 2);
+  assert.equal((smoke.match(/run.path === ".github\/workflows\/release-conductor.yml"/g) ?? []).length, 2);
+  assert.doesNotMatch(smoke, /33541222023|v0\.1\.0-rc\.8|homebrew-cask-publish/);
+  assert.match(smoke, /PR_BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/);
+  assert.match(smoke, /run: node ci\/cask-smoke-baseline\.mjs/);
+  assert.equal((smoke.match(/CASK_PUBLICATION_RUN_ID: \$\{\{ needs\.ci-scope\.outputs\.cask_run_id \}\}/g) ?? []).length, 2);
   assert.match(smoke, /runner: macos-15\n/);
   assert.match(smoke, /runner: macos-15-intel/);
   assert.match(smoke, /--public-tap/);

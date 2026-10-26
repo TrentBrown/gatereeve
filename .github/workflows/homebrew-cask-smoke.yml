@@ -6,6 +6,8 @@ on:
       - ".github/workflows/homebrew-cask-smoke.yml"
       - ".github/actions/pr-ci-scope/action.yml"
       - "ci/review-artifact-change.mjs"
+      - "ci/cask-smoke-baseline.mjs"
+      - "cli/test/cask-smoke-baseline.test.js"
       - "apps/desktop/scripts/smoke-homebrew-cask.mjs"
       - "apps/desktop/test/homebrew-cask-smoke.test.js"
       - "cli/src/plugin/homebrew-cask.js"
@@ -46,6 +48,8 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       scope: ${{ steps.scope.outputs.scope }}
+      cask_run_id: ${{ steps.baseline.outputs.cask_run_id }}
+      release_tag: ${{ steps.baseline.outputs.release_tag }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -57,6 +61,15 @@ jobs:
         uses: ./.github/actions/pr-ci-scope
         with:
           workflow-file: homebrew-cask-smoke.yml
+      - id: baseline
+        name: Resolve the exact released Cask rehearsal baseline
+        if: steps.scope.outputs.scope == 'full'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CASK_PUBLICATION_RUN_ID: ${{ inputs.cask_publication_run_id }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: node ci/cask-smoke-baseline.mjs
 
   cask-smoke:
     name: Cask install and upgrade (${{ matrix.native }})
@@ -73,8 +86,8 @@ jobs:
           - native: x64
             runner: macos-15-intel
     env:
-      CASK_PUBLICATION_RUN_ID: ${{ inputs.cask_publication_run_id || '33541222023' }}
-      RELEASE_TAG: ${{ inputs.release_tag || 'v0.1.0-rc.8' }}
+      CASK_PUBLICATION_RUN_ID: ${{ needs.ci-scope.outputs.cask_run_id }}
+      RELEASE_TAG: ${{ needs.ci-scope.outputs.release_tag }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
@@ -90,20 +103,15 @@ jobs:
           if [[ "$CASK_PUBLICATION_RUN_ID" != "$GITHUB_RUN_ID" ]]; then
             node -e '
               const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
-              const pullRequestRehearsal = process.env.GITHUB_EVENT_NAME === "pull_request";
-              const validConclusion = pullRequestRehearsal
-                ? run.conclusion === "success"
-                : ["success", "failure", "cancelled"].includes(run.conclusion);
-              const validWorkflow = pullRequestRehearsal
-                ? /homebrew-cask-publish\.yml$/u.test(run.path)
-                : /release-conductor\.yml$/u.test(run.path);
+              const validConclusion = run.status === "completed"
+                && ["success", "failure", "cancelled"].includes(run.conclusion);
+              const validWorkflow = run.path === ".github/workflows/release-conductor.yml"
+                && run.repository?.full_name === process.env.GITHUB_REPOSITORY;
               if (run.event !== "workflow_dispatch"
                 || !validConclusion
                 || run.head_branch !== "main"
                 || !validWorkflow) {
-                throw new Error(pullRequestRehearsal
-                  ? "PR Cask smoke requires the pinned successful legacy publication run"
-                  : "Cask smoke requires a completed Release Conductor run");
+                throw new Error("Cask smoke requires a completed protected Release Conductor producer");
               }
             ' "$RUNNER_TEMP/cask-publication-run.json"
           fi
@@ -150,8 +158,8 @@ jobs:
           - native: x64
             runner: macos-15-intel
     env:
-      CASK_PUBLICATION_RUN_ID: ${{ inputs.cask_publication_run_id || '33541222023' }}
-      RELEASE_TAG: ${{ inputs.release_tag || 'v0.1.0-rc.8' }}
+      CASK_PUBLICATION_RUN_ID: ${{ needs.ci-scope.outputs.cask_run_id }}
+      RELEASE_TAG: ${{ needs.ci-scope.outputs.release_tag }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
@@ -167,20 +175,15 @@ jobs:
           if [[ "$CASK_PUBLICATION_RUN_ID" != "$GITHUB_RUN_ID" ]]; then
             node -e '
               const run = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
-              const pullRequestRehearsal = process.env.GITHUB_EVENT_NAME === "pull_request";
-              const validConclusion = pullRequestRehearsal
-                ? run.conclusion === "success"
-                : ["success", "failure", "cancelled"].includes(run.conclusion);
-              const validWorkflow = pullRequestRehearsal
-                ? /homebrew-cask-publish\.yml$/u.test(run.path)
-                : /release-conductor\.yml$/u.test(run.path);
+              const validConclusion = run.status === "completed"
+                && ["success", "failure", "cancelled"].includes(run.conclusion);
+              const validWorkflow = run.path === ".github/workflows/release-conductor.yml"
+                && run.repository?.full_name === process.env.GITHUB_REPOSITORY;
               if (run.event !== "workflow_dispatch"
                 || !validConclusion
                 || run.head_branch !== "main"
                 || !validWorkflow) {
-                throw new Error(pullRequestRehearsal
-                  ? "PR Cask smoke requires the pinned successful legacy publication run"
-                  : "Cask smoke requires a completed Release Conductor run");
+                throw new Error("Cask smoke requires a completed protected Release Conductor producer");
               }
             ' "$RUNNER_TEMP/cask-publication-run.json"
           fi
