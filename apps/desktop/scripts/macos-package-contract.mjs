@@ -76,6 +76,7 @@ export const STAGED_PYTHON_RUNTIME_PATHS = Object.freeze([
   '/resources/scripts/lint_issues.py',
   '/resources/scripts/lint_tracker.py',
   '/resources/scripts/pattern_tool.py',
+  '/resources/scripts/planning_lint.py',
   '/resources/scripts/merge_verified.py',
   '/resources/scripts/workflow_common.py',
   '/resources/scripts/workflow_context.py',

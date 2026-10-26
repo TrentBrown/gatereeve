@@ -4,9 +4,12 @@ import { basename, dirname, delimiter, isAbsolute, join, relative, resolve, sep 
 import { fileURLToPath } from 'node:url';
 import { release, version } from 'node:os';
 import { digest, identity, requireThat } from './contracts.js';
+import { runnerEnvironment, environmentIdentity } from './runner-profile.js';
+import { workspaceSources } from './workspace-sources.js';
 
 export const RUNNER_FINGERPRINT_POLICY = Object.freeze({
-  id: 'runner-inputs/2',
+  id: 'runner-inputs/3',
+  workspaceLinks: 'verified candidate package identity; explicit inputs remain exact',
   bookkeeping: Object.freeze([
     'node_modules/.vite/vitest/<40 lowercase hex>/results.json',
     'node_modules/.pnpm-task-run-state-v1/latest.json',
@@ -16,6 +19,10 @@ export const RUNNER_FINGERPRINT_POLICY = Object.freeze({
   explicitFiles: 'exact',
 });
 const OMIT_BOOKKEEPING = Symbol('bookkeeping');
+// Ephemeral comparison indexes are never serialized into receipts.
+const comparisonIndexes = new WeakMap();
+const comparisonLimits = new WeakMap();
+const externalIndexes = new WeakMap();
 const portable = path => path.split(sep).join('/');
 const taskRoot = /\/node_modules\/\.pnpm-task-run-state-v1$/u;
 function bookkeepingContainer(path) {
@@ -43,27 +50,37 @@ async function fileValue(path, info, exact) {
 
 // Environment values are hashed together, never persisted in clear text.
 // Local and external dependency bytes are bound as assumptions, not copied into the review packet.
-async function tree(path, root, seen = new Set(), managedStore = null, exact = true) {
+async function tree(path, root, seen = new Set(), managedStore = null, exact = true, scope = {}) {
   let info;
   try { info = await lstat(path); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
   const actual = await realpath(path);
   const local = relative(root, actual);
   requireThat(local !== '..' && !local.startsWith(`..${sep}`) && !isAbsolute(local), 'Runtime input escapes its declared root');
   requireThat(!managedStore || !within(managedStore, actual), 'Runtime input cannot depend on its own evidence store');
-  if (seen.has(actual)) return { cycle: local };
+  requireThat(!seen.has(actual), 'Cyclic runtime input link');
   const next = new Set(seen).add(actual);
-  if (info.isSymbolicLink()) return { target: local, value: await tree(actual, root, seen, managedStore) };
-  if (info.isFile()) return fileValue(path, info, exact);
+  const remember = (value, selected = path) => {
+    if (value !== OMIT_BOOKKEEPING) scope.index?.set(portable(relative(root, selected)), { kind: info.isSymbolicLink() ? 'link' : info.isDirectory() ? 'directory' : 'file', value: identity(value) });
+    return value;
+  };
+  if (info.isSymbolicLink()) {
+    const source = scope.sources?.get(actual);
+    if (source && scope.allowSourceLinks) return remember({ workspaceLink: source });
+    remember({ target: portable(local) });
+    return { target: portable(local), value: await tree(actual, root, seen, managedStore, true, scope) };
+  }
+  if (info.isFile()) return remember(await fileValue(path, info, exact));
   requireThat(info.isDirectory(), 'Runtime input must be a regular file or directory');
   const names = (await readdir(actual)).sort();
   const entries = [];
   for (const name of names) {
     if (join(actual, name) === managedStore) continue;
-    const value = await tree(join(actual, name), root, next, managedStore, false);
+    const value = await tree(join(actual, name), root, next, managedStore, false, scope);
     if (value !== OMIT_BOOKKEEPING) entries.push([name, value]);
   }
   if (!exact && !entries.length && bookkeepingContainer(path)) return OMIT_BOOKKEEPING;
-  return identity(entries);
+  remember({ mode: info.mode & 0o777 });
+  return { mode: info.mode & 0o777, hash: identity(entries) };
 }
 export async function executable(command, cwd, environment) {
   const choices = isAbsolute(command) || command.includes('/') ? [resolve(cwd, command)]
@@ -186,32 +203,49 @@ async function externalClosure(root, checks, declared, environment, managedStore
     for (const path of paths) await addScope(resolve(root, path || '.'), true);
   }
   const allowed = [root, ...[...scopes.values()].filter(Boolean), ...exactExecutables];
-  const capture = async (path, seen = new Set(), exact = true) => {
+  const indexes = new Map();
+  const capture = async (path, seen = new Set(), exact = true, index = null) => {
     let info, actual;
     try { info = await lstat(path); actual = await realpath(path); }
     catch (error) { if (['ENOENT', 'ENOTDIR'].includes(error.code)) return { missing: true }; throw error; }
     requireThat(!managedStore || !within(managedStore, actual), 'Runtime input cannot depend on its own evidence store');
     requireThat(allowed.some(scope => within(scope, actual)), 'External runtime symlink escapes declared inputs; declare its target');
-    if (seen.has(actual)) return { cycle: actual };
-    if (info.isSymbolicLink()) return { target: actual, value: await capture(actual, seen) };
-    if (info.isFile()) return fileValue(path, info, exact);
+    requireThat(!seen.has(actual), 'Cyclic external runtime input link');
+    if (info.isSymbolicLink()) {
+      index?.set(path, identity({ target: actual }));
+      return { target: actual, value: await capture(actual, seen, true, index) };
+    }
+    if (info.isFile()) {
+      const value = await fileValue(path, info, exact);
+      if (value !== OMIT_BOOKKEEPING) index?.set(path, identity(value));
+      return value;
+    }
+    index?.set(path, identity({ mode: info.mode & 0o777 }));
     requireThat(info.isDirectory(), 'External runtime input must be a regular file or directory');
     const next = new Set(seen).add(actual), entries = [];
     for (const name of (await readdir(actual)).sort()) {
       if (join(actual, name) === managedStore) continue;
-      const value = await capture(join(actual, name), next, false);
+      const value = await capture(join(actual, name), next, false, index);
       if (value !== OMIT_BOOKKEEPING) entries.push([name, value]);
     }
     if (!exact && !entries.length && bookkeepingContainer(path)) return OMIT_BOOKKEEPING;
     return { mode: info.mode & 0o777, hash: identity(entries) };
   };
-  for (const argument of arguments_) if (argument.path) argument.value = await capture(argument.selectedPath);
+  for (const argument of arguments_) if (argument.path) {
+    const index = argument.privateInput ? null : new Map();
+    argument.value = await capture(argument.selectedPath, new Set(), true, index);
+    if (index) indexes.set(argument.selectedPath, index);
+  }
   const inputs = [];
   for (const [path, actual] of [...scopes].sort(([a], [b]) => a.localeCompare(b))) {
-    const input = { path, actual, value: await capture(path) };
+    const index = privateScopes.has(path) ? null : new Map();
+    const input = { path, actual, value: await capture(path, new Set(), true, index) };
+    if (index) indexes.set(path, index);
     inputs.push(privateScopes.has(path) ? { loaderInput: identity(input) } : input);
   }
-  return { launches, arguments: arguments_.map(({ privateInput, ...input }) => privateInput ? { loaderInput: identity(input) } : input), inputs };
+  const closure = { launches, arguments: arguments_.map(({ privateInput, ...input }) => privateInput ? { loaderInput: identity(input) } : input), inputs };
+  externalIndexes.set(closure, indexes);
+  return closure;
 }
 async function dependencyInputs(root, directory = '', seen = new Set()) {
   const current = join(root, directory);
@@ -230,18 +264,26 @@ async function dependencyInputs(root, directory = '', seen = new Set()) {
 }
 export async function executionEnvironment(context, candidate, configuration, runner, inherited = process.env) {
   if (!runner) return { kind: 'pinned-review-inputs' };
-  const environment = Object.fromEntries(Object.keys(inherited).sort().map(key => [key, inherited[key]]));
+  const environment = runnerEnvironment(configuration, inherited);
+  const effectiveEnvironment = await environmentIdentity(context, environment);
+  const indexes = new Map();
   const base = { platform: process.platform, arch: process.arch, osRelease: release(), osVersion: version() };
   const inputs = [], executables = [];
-  const managedStore = context.featureHome ? resolve(context.featureHome, '.gatereeve-current') : null;
+  const managedStore = resolve(context.featureHome ?? context.repositories[0].path, '.gatereeve-current');
   for (const pin of candidate.repositories) {
     const repo = context.repositories.find(item => item.alias === pin.alias);
     const root = await realpath(repo.path);
     const declared = configuration.runtimeInputs?.[pin.alias] ?? [];
+    const sources = await workspaceSources(root, pin, configuration.workspaceSources?.[pin.alias] ?? []);
     requireThat(Array.isArray(declared) && declared.every(path => typeof path === 'string'), 'Runtime inputs must be repository-relative paths');
     for (const path of [...new Set(['node_modules', '.venv', ...await dependencyInputs(root), ...declared])].sort()) {
       requireThat(!isAbsolute(path) && !path.split(/[\\/]/u).includes('..'), 'Unsafe runtime input path');
-      try { inputs.push({ repository: pin.alias, path, value: await tree(join(root, path), root, new Set(), managedStore) }); }
+      try {
+        const index = new Map();
+        inputs.push({ repository: pin.alias, path, value: await tree(join(root, path), root, new Set(), managedStore, true,
+          { sources, allowSourceLinks: !declared.includes(path), index }) });
+        indexes.set(`${pin.alias}:${path}`, index);
+      }
       catch (error) { error.message += ` (input ${pin.alias}:${path})`; throw error; }
     }
     const checks = (configuration.checks ?? []).filter(check => check.repository === pin.alias);
@@ -250,7 +292,12 @@ export async function executionEnvironment(context, candidate, configuration, ru
       catch (error) { error.message += ` (external inputs for ${pin.alias})`; throw error; }
     }
   }
-  return { fingerprintPolicy: RUNNER_FINGERPRINT_POLICY, ...base, inheritedEnvironment: identity(environment), inputs, executables };
+  const manifest = { fingerprintPolicy: RUNNER_FINGERPRINT_POLICY, ...base, effectiveEnvironment, inputs, executables };
+  const limit = configuration.diagnostics?.maxChangedPaths ?? 100;
+  requireThat(Number.isSafeInteger(limit) && limit >= 0, 'Diagnostic maxChangedPaths must be a nonnegative integer');
+  comparisonLimits.set(manifest, limit);
+  comparisonIndexes.set(manifest, indexes);
+  return manifest;
 }
 
 export function environmentChanges(before, after) {
@@ -258,7 +305,12 @@ export function environmentChanges(before, after) {
   const equal = (a, b) => identity(a ?? null) === identity(b ?? null);
   if (!equal(before.fingerprintPolicy, after.fingerprintPolicy)) changes.push({ kind: 'fingerprint-policy' });
   for (const key of ['platform', 'arch', 'osRelease', 'osVersion']) if (!equal(before[key], after[key])) changes.push({ kind: key });
-  if (!equal(before.inheritedEnvironment, after.inheritedEnvironment)) changes.push({ kind: 'inherited-environment' });
+  if (!equal(before.effectiveEnvironment?.policy, after.effectiveEnvironment?.policy)
+    || !equal(before.effectiveEnvironment?.keyId, after.effectiveEnvironment?.keyId)) changes.push({ kind: 'environment-policy-or-private-key' });
+  const beforeVariables = before.effectiveEnvironment?.variables ?? {}, afterVariables = after.effectiveEnvironment?.variables ?? {};
+  for (const name of new Set([...Object.keys(beforeVariables), ...Object.keys(afterVariables)])) {
+    if (beforeVariables[name] !== afterVariables[name]) changes.push({ kind: 'environment-setting', name });
+  }
   const compare = (a, b, key, describe) => {
     const left = new Map((a ?? []).map(item => [key(item), item]));
     const right = new Map((b ?? []).map(item => [key(item), item]));
@@ -267,13 +319,26 @@ export function environmentChanges(before, after) {
     }
   };
   compare(before.inputs, after.inputs, item => `${item.repository}:${item.path}`, (a, b) => {
-    const item = b ?? a; changes.push({ kind: 'runtime-input', repository: item.repository, path: item.path });
+    const item = b ?? a, key = `${item.repository}:${item.path}`;
+    const left = comparisonIndexes.get(before)?.get(key), right = comparisonIndexes.get(after)?.get(key);
+    const childChanges = [];
+    if (left && right) for (const path of [...new Set([...left.keys(), ...right.keys()])].sort()) {
+      if (!equal(left.get(path), right.get(path))) childChanges.push({ kind: 'runtime-input', repository: item.repository, path,
+        change: !left.has(path) ? 'added' : !right.has(path) ? 'removed' : right.get(path).kind === 'link' ? 'retargeted' : 'modified' });
+    }
+    changes.push(...(childChanges.length ? childChanges : [{ kind: 'runtime-input', repository: item.repository, path: item.path }]));
   });
   compare(before.executables, after.executables, item => item.repository, (a, b) => {
     const repository = (b ?? a).repository, start = changes.length;
+    const externalChanges = (path, kind) => {
+      const left = externalIndexes.get(a?.closure)?.get(path), right = externalIndexes.get(b?.closure)?.get(path);
+      const children = left && right ? [...new Set([...left.keys(), ...right.keys()])].sort().filter(child => left.get(child) !== right.get(child)) : [];
+      changes.push(...(children.length ? children : [path]).map(child => ({ kind, repository, path: child })));
+    };
     compare(a?.closure.inputs, b?.closure.inputs, item => item.path ?? 'private-loader-input', (left, right) => {
       const item = right ?? left;
-      changes.push(item.path ? { kind: 'external-input', repository, path: item.path } : { kind: 'loader-input', repository });
+      if (item.path) externalChanges(item.path, 'external-input');
+      else changes.push({ kind: 'loader-input', repository });
     });
     // Public arguments retain their selected root; private loader identities
     // expose only a category, never their environment value or resolved path.
@@ -281,7 +346,8 @@ export function environmentChanges(before, after) {
       const argumentStart = changes.length;
       compare(a?.closure.arguments, b?.closure.arguments, item => item.selectedPath ?? 'private-or-invalid-argument', (left, right) => {
         const item = right ?? left;
-        changes.push(item.selectedPath ? { kind: 'argument-input', repository, path: item.selectedPath } : { kind: 'argument-or-loader-input', repository });
+        if (item.selectedPath) externalChanges(item.selectedPath, 'argument-input');
+        else changes.push({ kind: 'argument-or-loader-input', repository });
       });
       if (changes.length === argumentStart) changes.push({ kind: 'argument-or-loader-input', repository });
     }
@@ -291,12 +357,14 @@ export function environmentChanges(before, after) {
     if (changes.length === start) changes.push({ kind: 'external-inputs', repository });
   });
   if (!changes.length && identity(before) !== identity(after)) changes.push({ kind: 'runner-manifest' });
-  return changes;
+  const unique = [...new Map(changes.map(item => [identity(item), item])).values()];
+  const limit = comparisonLimits.get(after) ?? comparisonLimits.get(before) ?? 100;
+  return unique.length > limit ? [...unique.slice(0, limit), { kind: 'truncated', omitted: unique.length - limit }] : unique;
 }
 export function assertEnvironmentCurrent(before, after, message = 'Execution environment changed') {
   if (identity(before) === identity(after)) return;
   const changedInputs = environmentChanges(before, after);
-  const labels = changedInputs.map(item => `${item.repository ? `${item.repository}:` : ''}${item.path ?? item.kind}`);
+  const labels = changedInputs.map(item => `${item.repository ? `${item.repository}:` : ''}${item.path ?? item.name ?? item.kind}`);
   const error = new Error(`${message}: ${labels.slice(0, 12).join(', ')}${labels.length > 12 ? ` (+${labels.length - 12} more)` : ''}`);
   error.changedInputs = changedInputs;
   throw error;

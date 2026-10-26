@@ -12,7 +12,7 @@ test('desktop resolves the parent record, observes current core and does not mut
   await adapter.resolve(f.repo);
   const before = (await f.core.state()).events;
   const snapshot = validateSnapshot(await adapter.snapshot(f.home));
-  assert.equal(snapshot.contract, 'gatereeve/current/4');
+  assert.equal(snapshot.contract, 'gatereeve/current/5');
   assert.equal(snapshot.current.phase, 'DESIGNING');
   assert.equal(snapshot.obligations.some(item => item.id === 'judge'), true);
   const detail = validateDetail(await adapter.read(f.home, 'artifact', 'design.md'));
@@ -65,5 +65,5 @@ test('desktop requalifies actual native validators and pattern inputs with GUI P
   assert.deepEqual((await f.core.state()).events, before);
   const missing = createProtocolAdapter({ gitExecutable: '/usr/bin/git', pythonExecutable: join(f.root, 'missing-python') });
   await missing.resolve(f.repo);
-  assert.equal((await missing.snapshot(f.home)).milestones.find(x => x.name === 'implementation').allowed, false);
+  assert.equal((await missing.snapshot(f.home)).milestones.find(x => x.name === 'implementation').allowed, true, 'native planning no longer depends on Python discovery');
 });

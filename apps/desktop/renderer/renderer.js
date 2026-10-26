@@ -284,6 +284,9 @@ function renderSetup(state) {
         agent.plugin.remediation,
       ),
     ]);
+    if (agent.plugin.activation) {
+      card.append(node('p', { className: 'muted', text: `Activation: ${agent.plugin.activation}. ${agent.plugin.activationDetail ?? ''}` }));
+    }
     if (agent.plugin.evidence) {
       card.append(node('p', { className: 'path', text: `Compatibility evidence: ${agent.plugin.evidence}` }));
     }

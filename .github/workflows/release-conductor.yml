@@ -16,6 +16,10 @@ on:
         description: Exact RC tag (for example v0.1.0-rc.9)
         required: true
         type: string
+      retry_assessment:
+        description: Model investigation supporting retry of unchanged inputs after a substantive failure
+        required: false
+        type: string
       direct_install_confirmed:
         description: I installed and launched the exact public DMG for this tag
         required: false
@@ -304,6 +308,7 @@ jobs:
       trust_artifact_run_id: ${{ needs.discover.outputs.run_id }}
       tag: ${{ inputs.tag }}
       source_commit: ${{ needs.discover.outputs.source_commit }}
+      retry_assessment: ${{ inputs.retry_assessment }}
     permissions:
       actions: read
       contents: read
@@ -786,6 +791,8 @@ jobs:
     with:
       cask_publication_run_id: ${{ needs.cask-published-state.outputs.run_id || fromJSON(needs.discover.outputs.evidence).caskPublicationRunId }}
       release_tag: ${{ inputs.tag }}
+      prior_smoke_run_id: ${{ needs.discover.outputs.run_id }}
+      retry_assessment: ${{ inputs.retry_assessment }}
     permissions:
       actions: read
       contents: read

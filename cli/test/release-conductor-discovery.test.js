@@ -84,7 +84,7 @@ test('discovers an unordered unique chain by tag and projects retry state', asyn
   });
   assert.deepEqual(discovered.chain, records);
   assert.equal(discovered.latest.condition, 'failed');
-  assert.equal(discovered.status.nextAction, 'RESUME');
+  assert.equal(discovered.status.nextAction, 'INVESTIGATE');
   assert.deepEqual(
     discovered.artifacts.map((entry) => entry.artifact.id),
     [300, 301, 302],

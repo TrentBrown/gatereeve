@@ -321,8 +321,8 @@ def run_doctor(
     if activation_observed:
         checks.append(check("activation-observed", "pass", "The current session contains the workflow activation policy"))
     else:
-        remedy = "Start a fresh session; in Codex, review and trust the plugin hook with /hooks"
-        checks.append(check("activation-observed", "fail", "The current session does not contain the workflow activation policy", remedy))
+        remedy = "Preserve active sessions. When explicitly requested, start a fresh session and observe its activation policy."
+        checks.append(check("activation-observed", "pending", "Activation has not been observed; installation does not establish active-session behavior", remedy))
 
     git_executable = executables.get("git")
     if git_executable:
@@ -380,6 +380,7 @@ def run_doctor(
         "plugin": PLUGIN_ID,
         "platform": platform,
         "ready": ready,
+        "activation": "observed" if activation_observed else "pending",
         "checks": checks,
     }
 

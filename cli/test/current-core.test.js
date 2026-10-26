@@ -29,6 +29,7 @@ async function fixture(t, { nested = true, optionalGates = [] } = {}) {
   await writeFile(join(home, 'plan.md'), '# Plan\n## P1 - Implement R1\n');
   await writeFile(join(home, 'issues.md'), '# Issues\n## I-1 - Implement\n**Status:** in-review\n**Plan steps:** P1\n**Rubric criteria:** R1\n');
   await writeFile(join(home, 'tracker.md'), '# Tracker\n## Rubric Status\n| R1 | AC1 | NOT YET | pending |\n## Review Log\n');
+  await writeFile(join(home, 'decisions.md'), '# Decisions\nNo changes.\n');
   await writeFile(join(home, 'events.jsonl'), 'old journal preserved verbatim\n');
   const context = { featureId: 'feature', featureHome: home, workspaceRoot: root, repositories: [{ alias: 'app', path: repo, featureBaseSha: head }] };
   const core = await CurrentCore.at(context);
@@ -97,7 +98,7 @@ test('interrupted startup reconciles durable run before activating it', async t 
   await f.request('run.resume-current', { runId: 'run-one', implementers: ['implementer-one'] }, 'resume-one');
   await f.request('run.start', { runId: 'run-one', implementers: ['implementer-one'], optionalGates: [] }, 'start-one');
   assert.equal((await f.request('status')).runId, 'run-one');
-  assert.equal((await f.core.store.events('run-one')).length, 1);
+  assert.deepEqual((await f.core.store.events('run-one')).map(event => event.type), ['STARTED', 'TRANSITION_RECORDED']);
 });
 
 test('traversal, symlinks, corrupted retained bytes and source injection fail', async t => {
@@ -137,6 +138,7 @@ test('foreign active feature identity and damaged journal cannot be used', async
 
 async function runVerification(f, fail = false, operationId = 'verify-one') {
   return f.request('gate.execute', { gates: ['verification'], configuration: {
+    environment: { inherit: ['GATEREEVE_WAIVER_TEST_RISK', 'GATEREEVE_TRANSITIVE_RISK'] },
     externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', `process.exit(${fail ? 1 : 0})`], purpose: 'Fixture verification' }],
   } }, operationId);
 }
@@ -211,7 +213,7 @@ for (const mode of ['bookkeeping', 'dependency', 'timeout', 'postflight-read-err
       assert.equal(runner.receipts[0].outcome, 'PASS');
     } else {
       assert.equal(runner.environmentCheck, 'changed');
-      assert.ok(runner.changedInputs.some(item => item.repository === 'app' && item.path === 'node_modules'));
+      assert.ok(runner.changedInputs.some(item => item.repository === 'app' && item.path === 'node_modules/pkg/index.js'));
       assert.equal(runner.receipts[0].termination.kind, mode === 'timeout' ? 'timeout' : 'exit');
       assert.match(result.summary, mode === 'timeout' ? /Timed out after 1000 ms/ : /exited with code 7/);
     }
@@ -261,10 +263,11 @@ test('delta assessment keeps prior provenance, covers changed paths and allows n
   assert.equal((await f.core.store.json(findings.event.payload.results[0])).outcome, 'FAIL');
 });
 
-test('deterministic triage proof becomes stale when its supporting document changes', async t => {
+test('independent triage proof becomes stale when its supporting document changes', async t => {
   const f = await fixture(t); await authorize(f); await candidate(f);
   await writeFile(join(f.home, 'scratchpad.md'), '# Decisions\n\n[-] **Promote**\n');
-  const ran = await f.request('gate.execute', { gates: ['triage'] }, 'triage-one');
+  fakeEvaluator(f);
+  const ran = await f.request('gate.execute', { gates: ['triage'], configuration: { provider: 'codex', model: 'fixture' } }, 'triage-one');
   const ref = ran.event.payload.results[0];
   const state = (await f.core.state()).state;
   const current = await f.core.store.json(state.candidate);
@@ -314,7 +317,7 @@ async function reviewAll(f, { accept = true } = {}) {
   const refs = [...verification.event.payload.results];
   for (const gate of ['context', 'reconcile', 'triage', 'code', 'spec', 'judge', 'pattern', 'explanation']) {
     const result = await f.request('gate.execute', { gates: [gate], consumed: ['spec', 'judge'].includes(gate) ? verification.event.payload.results : [],
-      configuration: ['code', 'spec', 'judge', 'pattern', 'explanation'].includes(gate) ? { provider: 'codex', model: 'fixture' } : {} }, `gate-${gate}`);
+      configuration: ['reconcile', 'triage', 'code', 'spec', 'judge', 'pattern', 'explanation'].includes(gate) ? { provider: 'codex', model: 'fixture' } : {} }, `gate-${gate}`);
     refs.push(...result.event.payload.results);
   }
   await f.request('gate.execute', { gates: ['packet'], consumed: refs }, 'packet');
@@ -347,7 +350,7 @@ test('all gates, actual external integration and completion work without evidenc
   // separate origin/chain/ancestry tests against its real validation mechanics.
   f.core.runtime.observeRelease = async request => ({ observedInputFingerprint: request.input.inputFingerprint,
     outcome: 'PASS', evidence: { featureMergeInputSha: request.input.evidence.mergeInputSha,
-      retainedDiscovery: { latest: { stage: 'COMPLETE' } } } });
+      sharedReceipt: { artifactId: 1, digest: 'sha256:fixture', stateSha256: 'fixture' }, retainedDiscovery: { latest: { stage: 'COMPLETE' } } } });
   await f.request('gate.execute', { gates: ['release'] }, 'release');
   const retained = await f.request('gate.execute', { gates: ['retention'] }, 'retain');
   const retainedProof = await f.core.store.json(retained.event.payload.results[0]);
@@ -383,8 +386,8 @@ test('all gates, actual external integration and completion work without evidenc
   const laterBytes = await f.core.store.get(later.proof); await rm(laterPath);
   assert.equal((await f.request('milestone.check', { name: 'completion' })).outcomes.find(item => item.id === 'retention').satisfied, false);
   await writeFile(laterPath, laterBytes);
-  // The changed validation inventory needs a fresh deterministic retention proof.
-  assert.equal((await f.request('milestone.check', { name: 'completion' })).outcomes.find(item => item.id === 'retention').satisfied, false);
+  // The boundary refreshes administrative retention automatically.
+  assert.equal((await f.request('milestone.check', { name: 'completion' })).outcomes.find(item => item.id === 'retention').satisfied, true);
   await f.request('gate.execute', { gates: ['retention'] }, 'retain-later-validation');
   assert.equal((await f.request('milestone.check', { name: 'completion' })).allowed, true);
   await f.request('milestone.pass', { name: 'completion' }, 'complete');
@@ -474,7 +477,7 @@ const fallbackScenarios = {
   'fallback-empty': 'integrates only after unfiltered confirmation of no CI',
   'fallback-empty-drift': 'rejects target identity drift after confirmation of no CI',
 };
-for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'candidate-before-write', 'candidate-after-write', ...Object.keys(fallbackScenarios)]) test(`protected merge ${fallbackScenarios[drift] ?? (drift === 'candidate-after-write' ? 'does not attribute an observed merge to a replacement candidate' : drift === 'advanced-target' ? 'merges a reviewed cumulative feature onto its separately assessed advanced target' : drift ? `recloses a drifted PR (${drift}) without merging` : 'revalidates the exact action and observes integration')}`, async t => {
+for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'candidate-before-write', 'candidate-after-write', 'lost-merge-response', 'concurrent-resume', ...Object.keys(fallbackScenarios)]) test(`protected merge ${({ 'lost-merge-response': 'recovers a lost merge response without repeating the merge', 'concurrent-resume': 'keeps concurrent resumptions from repeating external writes' })[drift] ?? fallbackScenarios[drift] ?? (drift === 'candidate-after-write' ? 'does not attribute an observed merge to a replacement candidate' : drift === 'advanced-target' ? 'merges a reviewed cumulative feature onto its separately assessed advanced target' : drift ? `recloses a drifted PR (${drift}) without merging` : 'revalidates the exact action and observes integration')}`, async t => {
   const f = await fixture(t);
   const bare = join(f.root, 'host.git');
   await git(f.root, ['init', '--bare', bare]);
@@ -523,9 +526,14 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'can
       });
       if (drift === 'fallback-fail-closed' || drift === 'fallback-fail-draft') throw ciFailure;
     }
+    if (action === 'checks' && drift === 'concurrent-resume') {
+      const contender = await f.request('merge.execute', { repository: 'app', number: 12 }, 'concurrent-merge');
+      assert.equal(contender.status, 'running');
+    }
     if (action === 'merge') {
       assert.equal(args[args.indexOf('--match-head-commit') + 1], head);
       await git(root, ['push', 'origin', 'HEAD:refs/heads/main']); state = 'MERGED';
+      if (drift === 'lost-merge-response') throw new Error('Lost merge response after provider effect');
       if (drift === 'candidate-after-write') await f.request('candidate.prepare', { repositories: [{ alias: 'app', base, head, target }], scope: 'SLICE', criteria: ['R1'] }, 'replacement-after-merge');
     }
     return '';
@@ -549,10 +557,14 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'can
     assert.equal(writes.includes('merge'), drift === 'candidate-after-write');
     assert.equal(state, drift === 'candidate-after-write' ? 'MERGED' : 'CLOSED');
     assert.deepEqual((await f.request('status')).integrations, {});
-  } else if (drift && !['advanced-target', 'fallback-pass', 'fallback-empty'].includes(drift)) {
+  } else if (drift && !['advanced-target', 'fallback-pass', 'fallback-empty', 'lost-merge-response', 'concurrent-resume'].includes(drift)) {
     await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), /identity changed/);
     assert.equal(state, 'CLOSED'); assert.deepEqual(writes, drift === true ? ['reopen', 'close'] : fallbackScenarios[drift] ? ['reopen', 'ready', 'checks', 'checks', 'close'] : ['reopen', 'ready', 'checks', 'close']);
   } else {
+    if (drift === 'lost-merge-response') {
+      await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), /Lost merge response/);
+      assert.deepEqual((await f.request('status')).integrations, {});
+    }
     await f.request('merge.execute', { repository: 'app', number: 12 }, 'merge');
     assert.equal(state, 'MERGED'); assert.deepEqual(writes, fallbackScenarios[drift] ? ['reopen', 'ready', 'checks', 'checks', 'merge'] : ['reopen', 'ready', 'checks', 'merge']);
     assert.equal((await f.request('status')).integrations.app.integrationSha, head);
@@ -712,7 +724,7 @@ test('current resume preserves unsupported and damaged runs and starts with no i
   }
 });
 
-test('host environment invalidates runner proof while isolated source review remains applicable', async t => {
+test('incidental host environment preserves proof while declared additions invalidate runner evidence', async t => {
   const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);
   const ran = await runVerification(f);
   const review = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } }, 'host-review');
@@ -720,13 +732,13 @@ test('host environment invalidates runner proof while isolated source review rem
   t.after(() => { if (previous === undefined) delete process.env[key]; else process.env[key] = previous; });
   process.env[key] = 'Electron-host';
   const state = (await f.core.state()).state, selected = await f.core.store.json(state.candidate);
-  await assert.rejects(f.core.currentResult(ran.event.payload.results[0], selected, state), /environment changed/);
+  assert.equal((await f.core.currentResult(ran.event.payload.results[0], selected, state)).outcome, 'PASS');
   assert.equal((await f.core.currentResult(review.event.payload.results[0], selected, state)).outcome, 'PASS');
   // Observer-only variables do not change the isolated document-validator environment.
   assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
   await f.request('spec.validate', {}, 'refresh-host-spec');
   assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
-  const declared = await f.request('gate.execute', { gates: ['verification'], configuration: { environmentKeys: [key], externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Declared environment' }] } }, 'declared-env');
+  const declared = await f.request('gate.execute', { gates: ['verification'], configuration: { environment: { inherit: [key] }, externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Declared environment' }] } }, 'declared-env');
   process.env[key] = 'changed';
   await assert.rejects(f.core.currentResult(declared.event.payload.results[0], selected, (await f.core.state()).state), /environment changed/);
 });
@@ -737,11 +749,13 @@ test('a narrower passing check cannot hide earlier failed verification and packe
   await runVerification(f, true, 'broad-failure');
   const narrow = await runVerification(f, false, 'narrow-success');
   const state = (await f.core.state()).state, selected = await f.core.store.json(state.candidate);
-  await assert.rejects(f.core.currentResult(narrow.event.payload.results[0], selected, state), /uncovered previously declared checks/);
+  assert.equal((await f.core.currentResult(narrow.event.payload.results[0], selected, state)).outcome, 'PASS');
+  await assert.rejects(f.core.verificationCoverage(selected, state, new Map()), /uncovered prior behavior/);
   await assert.rejects(f.core.currentResult(packet.event.payload.results[0], selected, state), /inventory changed/);
   const refresh = await f.request('gate.execute', { gates: ['packet'] }, 'packet-refresh');
   assert.notEqual(refresh.reused, true);
-  assert.equal((await f.core.store.json(refresh.event.payload.results[0])).inventory.find(item => item.gate === 'verification').outcome, 'FAIL');
+  assert.equal((await f.core.store.json(refresh.event.payload.results[0])).inventory.find(item => item.gate === 'verification').outcome, 'PASS');
+  assert.match((await f.core.check('acceptance')).missing.join(' '), /uncovered prior behavior/, 'a passing latest command is distinct from complete coverage');
 });
 
 test('review PASS needs dispositions for supplied open findings and claimed fixes', async t => {
@@ -777,7 +791,8 @@ test('Git symlinks and gitlinks are retained as typed metadata without following
 test('reconciliation rejects unknown rubric mappings even when documents are readable', async t => {
   const f = await fixture(t); await authorize(f); await candidate(f);
   await writeFile(join(f.home, 'tracker.md'), '# Tracker\n## Rubric Status\n| R999 | AC1 | NOT YET | pending |\n## Review Log\n');
-  const checked = await f.request('gate.execute', { gates: ['reconcile'] }, 'bad-tracker');
+  fakeEvaluator(f);
+  const checked = await f.request('gate.execute', { gates: ['reconcile'], configuration: { provider: 'codex', model: 'fixture' } }, 'bad-tracker');
   assert.equal((await f.core.store.json(checked.event.payload.results[0])).outcome, 'UNAVAILABLE');
 });
 
@@ -1147,13 +1162,13 @@ test('target-only changes invalidate proof and appear in delta review with prior
   assert.equal((await f.core.store.json(review.event.payload.results[0])).outcome, 'PASS');
 });
 
-test('runner reuse binds the entire actual inherited environment without retaining plaintext values', async t => {
+test('runner reuse binds declared inherited additions without retaining plaintext values', async t => {
   const f = await fixture(t); await authorize(f); await candidate(f);
   const key = 'GATEREEVE_TEST_REUSE_MODE'; const original = process.env[key];
   t.after(() => { if (original === undefined) delete process.env[key]; else process.env[key] = original; });
   process.env[key] = 'pass-private-fixture-value';
   await f.request('spec.validate', {}, 'refresh-before-environment-pass');
-  const input = { gates: ['verification'], configuration: { externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath,
+  const input = { gates: ['verification'], configuration: { environment: { inherit: [key] }, externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath,
     args: ['-e', `process.exit(process.env.${key}.startsWith('pass') ? 0 : 1)`], purpose: 'Inherited environment affects outcome' }] } };
   const first = await f.request('gate.execute', input, 'environment-pass');
   const reference = first.event.payload.results[0];
@@ -1181,18 +1196,20 @@ test('failed specification and reconciliation checks retain exact diagnostics wi
   const failure = state.validationFailures[0];
   assert.equal(failure.outcome, 'FAIL');
   const proof = await f.core.store.json(failure.proof);
-  assert.equal(proof.passed, false); assert.ok(proof.stdout.length + proof.stderr.length > 0);
+  assert.equal(proof.passed, false); assert.ok(proof.diagnostic.length > 0);
   await f.core.store.closure(failure);
   await writeFile(join(f.home, 'spec.md'), goodSpec); await f.request('spec.validate', {}, 'fixed-spec');
   const current = await f.core.commitments();
   await f.request('human.decide', { kind: 'authorize-implementation', subject: current.subject, authority: human, reason: 'Approved', consequences: 'Implement' }, 'implementation');
   await candidate(f);
   await writeFile(join(f.home, 'issues.md'), '# Broken issues\n');
-  const check = await f.request('gate.execute', { gates: ['reconcile'] }, 'failed-reconciliation');
+  fakeEvaluator(f, { blocking: true });
+  const check = await f.request('gate.execute', { gates: ['reconcile'], configuration: { provider: 'codex', model: 'fixture' } }, 'failed-reconciliation');
   const result = await f.core.store.json(check.event.payload.results[0]);
   assert.equal(result.outcome, 'FAIL');
   const artifacts = await Promise.all(result.artifacts.map(ref => f.core.store.get(ref)));
-  assert.ok(artifacts.some(bytes => { try { return JSON.parse(bytes.toString()).passed === false; } catch { return false; } }));
+  assert.equal(result.findings[0].blocking, true);
+  assert.ok(artifacts.length > 0, 'retain independent response and supporting packet');
   await f.core.store.closure(check.event.payload.results[0]);
 });
 
@@ -1542,7 +1559,8 @@ test('exception risk detects expired consumed proof and changed pattern or triag
   await writeFile(join(f.root, '.pattern-review/rules.yaml'), '[]\n# Changed policy bytes\n');
   assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'pattern').satisfied, false);
   await writeFile(join(f.home, 'scratchpad.md'), '# Decisions\n[ ] **Promote**\n');
-  await f.request('gate.execute', { gates: ['triage'] }, 'triage-risk');
+  fakeEvaluator(f);
+  await f.request('gate.execute', { gates: ['triage'], configuration: { provider: 'codex', model: 'fixture' } }, 'triage-risk');
   await waive(['triage'], { kind: 'policy-amend', actions: ['waive'] });
   assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'triage').satisfied, true);
   await writeFile(join(f.home, 'scratchpad.md'), '# Decisions\n[ ] **Promote**\nAnother material decision\n');
@@ -1570,7 +1588,7 @@ for (const drift of ['environment', 'expiry']) test(`stale newer finding cannot 
   const state = (await f.core.state()).state;
   const original = (await f.core.inventory(state, await f.core.store.json(state.candidate))).find(x => x.gate === 'code').reference;
   const realNow = Date.now, deadline = realNow() + 60000;
-  const configuration = { validUntil: new Date(deadline).toISOString(), externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Bound observation' }] };
+  const configuration = { environment: { inherit: ['GATEREEVE_SUPERSESSION_RISK'] }, validUntil: new Date(deadline).toISOString(), externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Bound observation' }] };
   const verification = await f.request('gate.execute', { gates: ['verification'], configuration }, 'newer-verification');
   fakeEvaluator(f, { blocking: true });
   await f.request('gate.execute', { gates: ['code'], consumed: verification.event.payload.results, configuration: { provider: 'codex', model: 'fixture' } }, 'newer-code-failure');
@@ -1916,70 +1934,35 @@ test('evaluator qualification blocks low efforts and mismatched receipt profiles
   await assert.rejects(f.core.currentResult(ref, source, state), /capability profile/);
 });
 
-test('trusted validator drift invalidates spec and reconciliation while refresh preserves authority', async t => {
-  const f = await fixture(t);
-  const helperRoot = join(f.root, 'trusted-helpers'); await mkdir(helperRoot);
-  for (const name of ['lint_spec.py', 'lint_issues.py', 'lint_tracker.py']) {
-    await writeFile(join(helperRoot, name), await readFile(new URL(`../../plugin-src/shared/resources/scripts/${name}`, import.meta.url)));
-  }
-  f.core.runtime.pythonGuardOptions = { helperRoot, environment: { ...process.env } };
-  await authorize(f); await candidate(f);
-  const phase = (await f.core.state()).state.phase;
-  const reconciled = await f.request('gate.execute', { gates: ['reconcile'] }, 'reconcile-before');
-  const ref = reconciled.event.payload.results[0];
-  assert.equal((await f.core.store.json(ref)).outcome, 'PASS');
-  const state = (await f.core.state()).state, source = await f.core.store.json(state.candidate);
-  await f.core.currentResult(ref, source, state);
-  await writeFile(join(helperRoot, 'dependency.py'), '# changed shipped helper closure\n');
-  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, false);
-  await assert.rejects(f.core.currentResult(ref, source, state), /validator proof/);
-  await f.request('spec.validate', {}, 'refresh-same-authority');
-  assert.equal((await f.core.state()).state.phase, phase);
-  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
-  const refreshed = await f.request('gate.execute', { gates: ['reconcile'] }, 'reconcile-after');
-  assert.notEqual(refreshed.reused, true);
-  assert.equal((await f.core.store.json(refreshed.event.payload.results[0])).outcome, 'PASS');
-  f.core.runtime.pythonGuardOptions.environment.GATEREEVE_TEST_VALIDATOR = 'changed';
-  // Caller-only variables never enter the isolated validator process.
-  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
-  await f.core.currentResult(refreshed.event.payload.results[0], source, (await f.core.state()).state);
-  await f.request('spec.validate', {}, 'refresh-environment');
-  const original = await readFile(join(helperRoot, 'lint_spec.py'));
-  await writeFile(join(helperRoot, 'lint_spec.py'), 'raise SystemExit(1)\n');
-  await assert.rejects(f.request('spec.validate', {}, 'failed-refresh'), /validation failed/);
-  assert.equal((await f.core.state()).state.phase, phase);
-  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, false);
-  await writeFile(join(helperRoot, 'lint_spec.py'), original);
-  await f.request('spec.validate', {}, 'recovered-refresh');
-  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
-});
-
-test('validator postflight drift retains executed diagnostics and rejects unbound imports', async t => {
-  const { runTrustedPythonGuard } = await import('../../plugin-src/shared/resources/protocol/python-guards.js');
-  const root = await mkdtemp(join(tmpdir(), 'gr-validator-drift-'));
-  t.after(() => rm(root, { recursive: true, force: true }));
-  const script = join(root, 'lint_spec.py');
-  await writeFile(script, "from pathlib import Path\nprint('EXECUTED-VALIDATOR-DIAGNOSTIC')\np=Path(__file__)\np.write_text(p.read_text()+'\\n# drift')\n");
-  const drift = await runTrustedPythonGuard('spec.validation.current', [], { helperRoot: root });
-  assert.equal(drift.passed, false);
-  assert.match(drift.stdout, /EXECUTED-VALIDATOR-DIAGNOSTIC/);
-  assert.match(drift.stderr, /changed during execution/);
-  assert.ok(drift.binding.runtime.modules.some(([path]) => path.endsWith('.py'))); // Caches are included when this runtime has them.
-  await writeFile(script, "import fractions\nprint('UNBOUND-IMPORT')\n");
-  const unbound = await runTrustedPythonGuard('spec.validation.current', [], { helperRoot: root });
-  assert.equal(unbound.passed, false);
-  assert.match(unbound.stdout, /UNBOUND-IMPORT/);
-  assert.match(unbound.stderr, /unbound runtime dependency/);
+test('current planning proof rejects changed parser bindings without changing implementation authority', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  const state = (await f.core.state()).state, read = f.core.store.json.bind(f.core.store);
+  f.core.store.json = async ref => {
+    const value = await read(ref);
+    return ref.hash === state.specValidation.proof.hash ? { ...value, binding: { ...value.binding, policy: 'obsolete' } } : value;
+  };
+  assert.equal((await f.core.check('implementation')).allowed, false);
+  f.core.store.json = read;
+  await f.request('spec.validate', {}, 'refresh-parser');
+  assert.equal((await f.core.check('implementation')).allowed, true);
+  assert.equal((await f.core.state()).state.phase, state.phase);
 });
 
 for (const mode of ['replacement', 'same-run', 'pause']) for (const transport of ['core', 'public']) test(`late failed spec validation preserves newer authority in ${mode} through ${transport}`, async t => {
   const f = await fixture(t); await authorize(f);
   await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app', integrationBranch: 'main' } } }));
   const { executeCurrentRequest } = await import('../../plugin-src/shared/resources/protocol/current/adapter.js');
-  const helperRoot = join(f.root, 'slow-helper'); await mkdir(helperRoot);
-  const release = join(f.home, 'release-validator'), started = join(f.home, 'validator-started');
-  await writeFile(join(helperRoot, 'lint_spec.py'), "from pathlib import Path\nimport sys, time\nhome=Path(sys.argv[1])\n(home/'validator-started').write_text('started')\nwhile not (home/'release-validator').exists():\n    time.sleep(0.02)\nprint('ORIGINAL-VALIDATOR-FAILED')\nraise SystemExit(1)\n");
-  f.core.runtime.pythonGuardOptions = { helperRoot };
+  const originalSpec = await readFile(join(f.home, 'spec.md'), 'utf8');
+  const invalid = await f.core.store.capture('spec.md');
+  const originalGet = CurrentStore.prototype.get;
+  let announce, unblock;
+  const started = new Promise(resolve => { announce = resolve; });
+  const released = new Promise(resolve => { unblock = resolve; });
+  let held = false;
+  CurrentStore.prototype.get = async function(ref) {
+    if (ref.hash === invalid.hash && !held) { held = true; announce(); await released; return Buffer.from('# Invalid delayed specification'); }
+    return originalGet.call(this, ref);
+  };
   const running = transport === 'core'
     ? f.request('spec.validate', {}, 'slow-old-validation').catch(error => ({ error: error.message, artifacts: error.artifacts ?? [] }))
     : executeCurrentRequest({ cwd: f.repo, operation: 'spec.validate', operationId: 'slow-old-validation' }, f.core.runtime).then(response => {
@@ -1990,11 +1973,8 @@ for (const mode of ['replacement', 'same-run', 'pause']) for (const transport of
       return { error: response.error.message, artifacts: response.error.details.retainedArtifacts };
     });
   try {
-    for (let i = 0; i < 250; i++) {
-      try { await stat(started); break; }
-      catch { if (i === 249) throw Error('validator did not start'); await new Promise(resolve => setTimeout(resolve, 20)); }
-    }
-    delete f.core.runtime.pythonGuardOptions;
+    await started;
+    await writeFile(join(f.home, 'spec.md'), originalSpec);
     if (mode === 'replacement') {
       for (const area of ['events', 'event-witnesses']) await writeFile(join(f.home, '.gatereeve-current/runs/run-one', area, '00000001.json'), '{}');
       await f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'replacement-start');
@@ -2003,7 +1983,7 @@ for (const mode of ['replacement', 'same-run', 'pause']) for (const transport of
     else await f.request('spec.validate', {}, 'newer-successful-validation');
     const before = (await f.core.state()).state;
     assert.equal((await f.core.check('implementation')).allowed, mode !== 'pause');
-    await writeFile(release, 'release');
+    unblock();
     const completion = await running, { state } = await f.core.state();
     if (mode === 'pause') {
       assert.equal(state.paused, true); assert.equal(state.specValidation, null);
@@ -2021,8 +2001,8 @@ for (const mode of ['replacement', 'same-run', 'pause']) for (const transport of
     assert.equal(completion.artifacts.length, 1);
     const retained = await f.core.store.json(completion.artifacts[0]);
     assert.equal(retained.runId, 'run-one');
-    assert.match(retained.stdout, /ORIGINAL-VALIDATOR-FAILED/);
-  } finally { await writeFile(release, 'release'); await running; }
+    assert.match(retained.diagnostic, /Specification needs/);
+  } finally { unblock(); await running; CurrentStore.prototype.get = originalGet; }
 });
 
 
@@ -2241,7 +2221,7 @@ test('retained session-contaminated proof becomes context only and never exports
 for (const current of [false, true]) test(`activation successor schema validation applies only to current contract ${current}`, async t => {
   const f = await fixture(t); await authorize(f);
   const previous = await f.core.store.activationHead();
-  const bytes = JSON.stringify({ contract: current ? 'gatereeve/current/4' : 'unsupported/v9', runId: 'unknown-shape', ancestor: 'opaque' });
+  const bytes = JSON.stringify({ contract: current ? 'gatereeve/current/5' : 'unsupported/v9', runId: 'unknown-shape', ancestor: 'opaque' });
   for (const dir of ['activations', 'activation-witnesses']) {
     await mkdir(join(f.home, '.gatereeve-current', dir), { recursive: true });
     await writeFile(join(f.home, '.gatereeve-current', dir, previous.hash.slice(7)+'.json'), bytes);
@@ -2362,12 +2342,13 @@ test('loader environment preload drift invalidates actual runner proof', async t
   const previous = process.env.NODE_OPTIONS;
   t.after(() => { if (previous === undefined) delete process.env.NODE_OPTIONS; else process.env.NODE_OPTIONS = previous; });
   process.env.NODE_OPTIONS = `--require ${preload}`;
-  const ran = await runVerification(f);
+  const check = id => f.request('gate.execute', { gates: ['verification'], configuration: { environment: { inherit: ['NODE_OPTIONS'] }, externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Declared loader inputs' }] } }, id);
+  const ran = await check('initial-preload');
   assert.equal((await f.core.store.json(ran.event.payload.results[0])).outcome, 'PASS');
   await writeFile(preload, 'process.exit(7)');
   const state = (await f.core.state()).state, selected = await f.core.store.json(state.candidate);
   await assert.rejects(f.core.currentResult(ran.event.payload.results[0], selected, state), /environment changed/);
-  const fresh = await runVerification(f, false, 'changed-preload');
+  const fresh = await check('changed-preload');
   assert.notEqual(fresh.reused, true);
   assert.equal((await f.core.store.json(fresh.event.payload.results[0])).outcome, 'FAIL');
 });
@@ -2381,7 +2362,7 @@ test('directory checks exclude only their trusted current evidence store', async
   const state = (await f.core.state()).state, selected = await f.core.store.json(state.candidate);
   assert.equal((await f.core.currentResult(ran.event.payload.results[0], selected, state)).outcome, 'PASS');
   const unrelated = join(f.repo, '.gatereeve-current'); await mkdir(unrelated); await writeFile(join(unrelated, 'input'), 'relevant external directory');
-  await assert.rejects(f.core.currentResult(ran.event.payload.results[0], selected, state), /environment changed/);
+  assert.equal((await f.core.currentResult(ran.event.payload.results[0], selected, state)).outcome, 'PASS');
 });
 
 async function standingGrant(f, { merge = false, expiresAt = null, candidateScopes = ['SLICE', 'FEATURE'] } = {}) {

@@ -6,7 +6,7 @@ import { runTrustedPythonGuard } from '../python-guards.js';
 import { qualifyingDecisions, requireUnexpired, configuredGit } from './authorization.js';
 
 const exec = promisify(execFile);
-async function gh(root, args) {
+export async function gh(root, args) {
   const { stdout } = await exec('gh', args, { cwd: root, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
   return stdout;
 }

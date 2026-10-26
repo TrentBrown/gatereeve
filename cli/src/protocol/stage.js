@@ -103,7 +103,7 @@ export async function stageProtocolResources({
     schemaVersion: 1,
     canonicalSource: 'plugin-src/shared/resources/protocol',
     protocolHash: `sha256:${protocolHash}`,
-    contract: 'gatereeve/current/4',
+    contract: /export const CONTRACT = '([^']+)'/u.exec(model.toString())?.[1],
     contractSha256: createHash('sha256').update(model).digest('hex'),
     files,
   };

@@ -11,6 +11,10 @@ on:
         description: Latest preparation or recovery run containing coordinated-desktop-trusted
         required: true
         type: string
+      retry_assessment:
+        description: Model investigation supporting retry of unchanged failed inputs
+        required: false
+        type: string
       tag:
         description: Exact candidate RC tag
         required: true
@@ -209,8 +213,17 @@ jobs:
           path: ${{ runner.temp }}/desktop
       - run: node apps/desktop/scripts/create-smoke-fixture.mjs "$RUNNER_TEMP/gatereeve-desktop-smoke"
       - name: Verify recovered trusted bytes natively
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIOR_MATRIX_RUN_ID: ${{ inputs.trust_artifact_run_id }}
+          RETRY_ASSESSMENT: ${{ inputs.retry_assessment }}
         run: >-
-          node apps/desktop/scripts/verify-macos-package.mjs
+          node ci/matrix-check.mjs
+          --artifact "coordinated-desktop-trusted-evidence-${{ matrix.architecture }}"
+          --evidence "$RUNNER_TEMP/desktop-${{ matrix.architecture }}.json"
+          --input "$RUNNER_TEMP/desktop/GateReeve-${{ needs.resolve-recovery.outputs.version }}-macos-universal.dmg"
+          --input "$RUNNER_TEMP/desktop/apple-trust.json"
+          -- node apps/desktop/scripts/verify-macos-package.mjs
           --dmg "$RUNNER_TEMP/desktop/GateReeve-${{ needs.resolve-recovery.outputs.version }}-macos-universal.dmg"
           --version "${{ needs.resolve-recovery.outputs.version }}"
           --fixture "$RUNNER_TEMP/gatereeve-desktop-smoke"
@@ -220,9 +233,10 @@ jobs:
           --trust-evidence "$RUNNER_TEMP/desktop/apple-trust.json"
           --evidence "$RUNNER_TEMP/desktop-${{ matrix.architecture }}.json"
       - uses: actions/upload-artifact@v7
+        if: always()
         with:
           name: coordinated-desktop-trusted-evidence-${{ matrix.architecture }}
-          path: ${{ runner.temp }}/desktop-${{ matrix.architecture }}.json
+          path: ${{ runner.temp }}/desktop-${{ matrix.architecture }}.json*
           if-no-files-found: error
           retention-days: 30
 

@@ -1,3 +1,6 @@
+import { checkIdentity } from './coverage.js';
+import { protectedMerge, resumeDelivery } from './delivery.js';
+import { observeReleaseConductor } from '../../release/release-conductor-observer.js';
 import { workflowContextGuard } from '../context.js';
 import { ContractError } from '../errors.js';
 import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
@@ -8,8 +11,8 @@ import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, requireThat, identity
   identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity } from './evidence.js';
-import { runTrustedPythonGuard, assertTrustedPythonProof, trustedPythonBinding } from '../python-guards.js';
-import { executeGates, reviewContract } from './execution.js';
+import { validatePlanning, assertPlanningProof, planningBinding } from './planning.js';
+import { executeGates, reviewContract, coreEvidence } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
 import { captureStanding, applyStanding, standingValidity, qualifyingDecisions, requireUnexpired } from './authorization.js';
 
@@ -17,6 +20,7 @@ import { sourcePreparation, ensurePins, releasePins } from './source-retention.j
 import { cleanupViews, viewStatus } from './source-views.js';
 
 const LIVE_PROOFS = Symbol('qualified live proof inputs');
+const RETAINED_CLOSURE = Symbol('retained bytes verified in this observation');
 const admissions = new WeakMap();
 
 export function project(events) {
@@ -24,7 +28,7 @@ export function project(events) {
   const first = events[0].payload;
   const state = { contract: CONTRACT, runId: events[0].runId, featureId: first.featureId,
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
-    decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
+    decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, actions: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
     sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length };
   for (const event of events.slice(1)) {
     const value = event.payload;
@@ -46,6 +50,9 @@ export function project(events) {
       case 'SOURCE_CLEANUP': state.sourceCleanup = value; break;
       case 'CANDIDATE': if (value.preparationId) state.sourcePreparationStatus[value.preparationId] = { status: 'published', reason: null }; state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.phase = 'IMPLEMENTING'; break;
       case 'READY': state.ready = true; break;
+      case 'TRANSITION_RECORDED': state.transition = value; break;
+      case 'ACTION_CLAIMED': state.actions[value.id] = { ...value, running: true }; break;
+      case 'ACTION_RELEASED': if (state.actions[value.id]?.owner === value.owner) state.actions[value.id].running = false; break;
       case 'JOB_STARTED': state.jobs[value.jobId] = { ...value, sequence: event.sequence, finished: false }; break;
       case 'JOB_OUTCOME_READY': state.jobs[value.jobId] = { ...state.jobs[value.jobId], ready: value }; break;
       case 'JOB_FINISHED': state.jobs[value.jobId] = { ...state.jobs[value.jobId], ...value, finishedSequence: event.sequence, finished: true }; state.results.push(...value.results); break;
@@ -135,6 +142,22 @@ export class CurrentCore {
     if (planning.design) await this.execute({ operation: 'human.decide', operationId: childId('design'), input: { ...planning.design, kind: 'approve-design' } });
     if (planning.design || planning.implementation) await this.execute({ operation: 'spec.validate', operationId: childId('spec') });
     if (planning.implementation) await this.execute({ operation: 'human.decide', operationId: childId('implementation'), input: { ...planning.implementation, kind: 'authorize-implementation' } });
+    const transitioned = (await this.state()).state;
+    if (!transitioned.transition) {
+      const documents = {};
+      for (const name of ['interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md', 'scratchpad.md', 'decisions.md']) {
+        try { documents[name] = await this.store.fingerprint(name); }
+        catch (error) { if (error.code !== 'ENOENT') throw error; }
+      }
+      await this.append(transitioned, 'TRANSITION_RECORDED', { contract: CONTRACT,
+        history: 'preserved without replay', documents,
+        authority: transitioned.decisions.map(item => ({ event: item.event, kind: item.kind, subject: item.subject, authority: item.authority })),
+        priorActivation: replacement ? { hash: replacement.hash } : null,
+        evidence: replacement || !active ? { reused: [], refreshRequired: GATES.filter(item => !item.optional || transitioned.optionalGates.includes(item.id)).map(item => item.id),
+          reason: 'Historical proof lacks the current checker/environment contract. No new execution is inferred.' }
+          : { retained: transitioned.results, reason: 'Same-contract evidence remains subject to normal applicability; resume does not rerun it.' } },
+      { id: childId('transition'), hash: identity({ run: transitioned.runId, contract: CONTRACT }) });
+    }
     return this.inspect();
   }
   obligations(state, at) { return enabled(state, at); }
@@ -152,7 +175,7 @@ export class CurrentCore {
     return (await this.append(state, 'DECISION_PENDING', { decision: value, operation }, { id: `pending_${operation.id}`, hash: operation.hash })).state;
   }
   async specProof(documents, operation, origin) {
-    const proof = await runTrustedPythonGuard('spec.validation.current', [this.store.home], this.runtime.pythonGuardOptions);
+    const proof = await validatePlanning((await this.store.get(documents['spec.md'])).toString());
     const reference = await this.store.putJson({ ...proof, runId: origin.runId, operation });
     if (!proof.passed) {
       const payload = { documents, proof: reference, outcome: Number.isInteger(proof.exitCode) ? 'FAIL' : 'UNAVAILABLE', operation };
@@ -209,7 +232,7 @@ export class CurrentCore {
       requireThat(currentDesignApproval(state, current.docs['design.md'].hash), 'Design approval is not current');
       requireThat(state.specValidation.spec.hash === current.docs['spec.md'].hash && state.specValidation.design.hash === current.docs['design.md'].hash,
         'Specification validation is not current');
-      await assertTrustedPythonProof(await this.store.json(state.specValidation.proof), this.runtime.pythonGuardOptions);
+      await assertPlanningProof(await this.store.json(state.specValidation.proof));
       requireThat(value.subject === current.subject, 'Implementation authorization does not match current commitments');
       value.documents = current.docs;
     } else if (value.kind === 'amend') {
@@ -273,7 +296,7 @@ export class CurrentCore {
   }
   async validateSpec(operation) {
     const { state } = await this.state();
-    const current = await this.commitments();
+    const current = ['SPECIFYING', 'PLANNING'].includes(state.phase) ? null : await this.commitments();
     requireThat(['SPECIFYING', 'PLANNING'].includes(state.phase) || (state.phase !== 'COMPLETE' && findDecision(state, 'authorize-implementation', current.subject)), 'Specification validation is not available without current planning or implementation authority');
     const docs = await requirements(this.store);
     const approval = currentDesignApproval(state, docs['design.md'].hash);
@@ -342,7 +365,7 @@ export class CurrentCore {
       // unstarted declarations retain diagnostics but cannot poison future coverage.
       let execution; try { execution = result.runner ? await this.store.json(result.runner) : null; } catch { continue; }
       const checks = (execution?.receipts ?? []).filter(check => candidate.repositories.some(repo => repo.alias === check.repository));
-      const ids = checks.map(({ repository, command, args }) => identity({ repository, command, args }));
+      const ids = checks.map(checkIdentity);
       // Completed checks establish coverage obligations, not mere job launches.
       for (const id of ids) required.add(id);
       try {
@@ -350,7 +373,32 @@ export class CurrentCore {
         for (const id of ids) covered.set(id, result.outcome === 'PASS');
       } catch { /* Historical success cannot fill current coverage. */ }
     }
-    requireThat([...required].every(id => covered.get(id) === true), 'Verification has uncovered previously declared checks; run them on current inputs or obtain a scoped exception');
+    // Semantic supersession is established by an existing independent spec or
+    // Judge result. A model-authored claim alone never satisfies coverage.
+    for (const ref of [...state.results].reverse()) {
+      let report, inputs;
+      try {
+        report = await this.store.json(ref);
+        if (!['spec', 'judge'].includes(report.gate) || report.outcome !== 'PASS') continue;
+        inputs = await this.store.json(report.input);
+        if (!(inputs.coverageClaims ?? []).length) continue;
+        await this.currentResult(ref, candidate, state, new Set(), memo, false);
+      } catch { continue; }
+      for (const claim of inputs.coverageClaims) {
+        if (!report.coverageDecisions?.some(item => item.id === claim.id && item.outcome === 'PASS')) continue;
+        let applicable = true;
+        for (const replacement of claim.replacements) {
+          try { if ((await this.currentResult(replacement, candidate, state, new Set(), memo, false)).outcome !== 'PASS') applicable = false; }
+          catch { applicable = false; }
+        }
+        if (!applicable) continue;
+        for (const prior of claim.supersedes) {
+          const original = await this.store.json(prior), runner = await this.store.json(original.runner);
+          for (const check of runner.receipts) covered.set(checkIdentity(check), true);
+        }
+      }
+    }
+    requireThat([...required].every(id => covered.get(id) === true), 'Verification has uncovered prior behavior; rerun checks or qualify replacement coverage in the existing independent review');
   }
   async recordedResult(ref, state) {
     requireThat(state.results.some(item => item.hash === ref.hash), 'Result is not recorded in this run');
@@ -364,10 +412,27 @@ export class CurrentCore {
       'Execution receipt role differs from the gate');
     return { result, receipt };
   }
+  async evidenceIdentity(ref, candidate, state, memo = new Map()) {
+    const result = await this.currentResult(ref, candidate, state, new Set(), memo, false);
+    if (gate(result.gate).role !== 'runner' || result.outcome !== 'PASS') return ref.hash;
+    const input = await this.store.json(result.input), runner = await this.store.json(result.runner);
+    // Preserve all substantive check facts, including output bytes. Only wrapper
+    // identity and execution timestamps are irrelevant to this exact equivalence.
+    return identity({ policy: 'runner-equivalence/1', gate: result.gate, source: contentIdentity(candidate),
+      configuration: input.configuration, environment: input.environment,
+      receipts: runner.receipts.map(({ startedAt, completedAt, ...check }) => check) });
+  }
   async currentResult(ref, candidate, state, seen = new Set(), memo = new Map(), requireCoverage = true, historicalAncestry = false) {
     requireThat(!seen.has(ref.hash), 'Cyclic evidence references');
+    const key = `qualified:${state.runId}:${state.eventCount}:${ref.hash}:${contentIdentity(candidate)}:${requireCoverage}:${historicalAncestry}`;
+    if (!memo.has(key)) memo.set(key, this.qualifyResult(ref, candidate, state, seen, memo, requireCoverage, historicalAncestry));
+    return memo.get(key);
+  }
+  async qualifyResult(ref, candidate, state, seen, memo, requireCoverage, historicalAncestry) {
+    requireThat(!seen.has(ref.hash), 'Cyclic evidence references');
     seen.add(ref.hash);
-    await this.store.closure(ref);
+    if (!memo.has(RETAINED_CLOSURE)) memo.set(RETAINED_CLOSURE, new Set());
+    await this.store.closure(ref, memo.get(RETAINED_CLOSURE));
     const { result, receipt } = await this.recordedResult(ref, state);
     if (!historicalAncestry && result.outcome === 'PASS') {
       const started = state.jobs[receipt.jobId].sequence;
@@ -405,7 +470,9 @@ export class CurrentCore {
           const failedCriteria = (report.criteria ?? []).filter(row => row.outcome === 'FAIL');
           const supportedBlocker = raised.some(finding =>
             (candidate.criteria.includes(finding.criterion) || finding.criterion === `gate:${report.gate}`)
-            && candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`)));
+            && (candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`))
+              || ['requirements/spec.md', 'requirements/design.md', 'planning/plan.md', 'planning/issues.md',
+                'planning/tracker.md', 'planning/scratchpad.md', 'planning/decisions.md'].includes(finding.path)));
           const failedScope = scopeOverlaps && failedCriteria.some(row => candidate.criteria.includes(row.id));
           // Code review may legitimately omit criterion rows. Its bound candidate
           // still scopes required coverage failures; transport UNAVAILABLE alone
@@ -440,18 +507,13 @@ export class CurrentCore {
     if (inputs.pattern) requireThat(identity(inputs.pattern) === identity(await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false })), 'Pattern policy or trigger inputs changed');
     const evaluated = await checkCandidate(this.store, this.context, inputs.candidate, { live: false, memo });
     for (const artifact of result.artifacts ?? []) await this.store.get(artifact);
-    if (result.gate === 'reconcile' && result.outcome === 'PASS') {
-      requireThat(result.proofs?.length === 2, 'Reconciliation lacks trusted validator proofs');
-      const proofs = await Promise.all(result.proofs.map(ref => this.store.json(ref)));
-      requireThat(identity(proofs.map(proof => proof.guardId).sort()) === identity(['issues.validation.current', 'tracker.validation.current']), 'Reconciliation validator proof identity differs');
-      for (const proof of proofs) await assertTrustedPythonProof(proof, this.runtime.pythonGuardOptions);
-    }
     for (const ref of inputs.support ?? []) await this.store.currentBytes(ref);
     const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
     if (!memo.has(environmentKey)) memo.set(environmentKey, executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner'));
     assertEnvironmentCurrent(inputs.environment, await memo.get(environmentKey));
     if (gate(result.gate).at === 'completion') requireThat(identity(inputs.integrations) === identity(state.integrations), 'Integration source changed');
     if (inputs.validUntil) requireThat(Date.now() <= Date.parse(inputs.validUntil), 'External evidence validity expired');
+    if (result.gate === 'release' && result.outcome === 'PASS') await this.refreshRelease(result, candidate, state);
     if (result.mode === 'delta') {
       requireThat(definition.role === 'independent' && result.prior && result.coverage?.complete === true, 'Delta requires independent coverage and prior proof');
       const prior = await this.currentResult(result.prior, await this.store.json(result.priorCandidate), state, new Set(seen), memo, true, true);
@@ -468,7 +530,8 @@ export class CurrentCore {
             === identity({ repository: inputs.configuration.checks[index].repository, command: inputs.configuration.checks[index].command, args: inputs.configuration.checks[index].args })),
         'Passing runner proof requires every declared check and actual successful receipts');
     }
-    if (result.gate === 'verification' && result.outcome === 'PASS' && requireCoverage) await this.verificationCoverage(candidate, state, memo);
+    // Historical command coverage is qualified at the milestone, after the
+    // independent review can assess replacements without a circular dependency.
     if (result.gate === 'retention') {
       // Retention is live integrity proof, not a permanent fact about an earlier
       // successful read. Later failed validations add obligations even when the
@@ -480,6 +543,24 @@ export class CurrentCore {
     if (result.gate === 'packet') requireThat(identity(result.inventory) === identity(await this.inventory(state, candidate, memo)), 'Review packet inventory changed');
     memo.get(LIVE_PROOFS)?.set(identity({ ref, source: contentIdentity(candidate) }), { ref, candidate });
     return result;
+  }
+  async refreshRelease(result, candidate, state) {
+    requireThat(result.observations?.length === candidate.repositories.length, 'Shared release observations are incomplete');
+    for (const pin of candidate.repositories) {
+      const previous = result.observations.find(item => item.repository === pin.alias)?.evidence?.sharedReceipt;
+      requireThat(previous?.artifactId && previous.digest, 'Release evidence needs a current shared receipt');
+      const repository = this.context.repositories.find(item => item.alias === pin.alias);
+      const source = state.integrations[pin.alias]?.integrationSha;
+      const refreshed = await (this.runtime.observeRelease ?? observeReleaseConductor)({ requestId: 'release-freshness',
+        module: { id: 'gatereeve/release' }, input: { scope: 'FEATURE', inputFingerprint: result.input.hash,
+          evidence: { repositoryRoot: repository.path, workspaceRoot: this.context.workspaceRoot,
+            releaseArtifactId: previous.artifactId, mergeInputSha: source } } });
+      requireThat(refreshed.outcome === 'PASS' && refreshed.observedInputFingerprint === result.input.hash
+        && refreshed.evidence?.featureMergeInputSha === source
+        && refreshed.evidence.sharedReceipt?.digest === previous.digest
+        && refreshed.evidence.sharedReceipt?.stateSha256 === previous.stateSha256,
+      'Shared release identity or mutable provider facts no longer qualify');
+    }
   }
   async waiverRisk(state, candidate, id) {
     let inputs = { configuration: null, consumed: [], support: [] }, findings = [];
@@ -505,11 +586,7 @@ export class CurrentCore {
         try { support.push(await this.store.fingerprint(path)); }
         catch (error) { if (error.code !== 'ENOENT') throw error; support.push({ path, missing: true }); }
       }
-      const validators = [];
-      if (gateId === 'reconcile') for (const guardId of ['issues.validation.current', 'tracker.validation.current']) {
-        try { validators.push(await trustedPythonBinding(guardId, this.runtime.pythonGuardOptions)); }
-        catch (error) { validators.push({ guardId, unavailable: error.message }); }
-      }
+      const validators = ['reconcile', 'triage'].includes(gateId) ? [await planningBinding()] : [];
       return identity({ validators, configuration: input.configuration, dependencies, support, rule: reviewContract([gateId]),
         pattern: gateId === 'pattern' ? await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false, allowMissing: true }) : null,
         externalValidity: !input.validUntil || Date.now() <= Date.parse(input.validUntil),
@@ -527,11 +604,12 @@ export class CurrentCore {
     // freshly read once per final guard, never reused from earlier qualification.
     const environments = new Map(), retained = new Set(), patterns = new Map(), deadlines = [];
     await this.store.closure([state.decisions, state.specValidation], retained);
-    if (state.specValidation) await assertTrustedPythonProof(await this.store.json(state.specValidation.proof), this.runtime.pythonGuardOptions);
+    if (state.specValidation) await assertPlanningProof(await this.store.json(state.specValidation.proof));
     for (const { ref, candidate } of admission.proofs.values()) {
       await this.store.closure(ref, retained);
       const { result } = await this.recordedResult(ref, state);
       const inputs = await this.store.json(result.input), definition = gate(result.gate);
+      if (result.gate === 'release') await this.refreshRelease(result, candidate, state);
       for (const support of inputs.support ?? []) await this.store.currentBytes(support);
       const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
       if (!environments.has(environmentKey)) environments.set(environmentKey,
@@ -542,10 +620,14 @@ export class CurrentCore {
         if (!patterns.has(key)) patterns.set(key, await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false }));
         requireThat(identity(inputs.pattern) === identity(patterns.get(key)), 'Pattern policy or trigger inputs changed during milestone validation');
       }
-      if (result.gate === 'reconcile' && result.outcome === 'PASS') for (const proof of result.proofs) {
-        await assertTrustedPythonProof(await this.store.json(proof), this.runtime.pythonGuardOptions);
-      }
       if (inputs.validUntil) deadlines.push(Date.parse(inputs.validUntil));
+    }
+    if (admission.administrative.size) {
+      const candidate = await this.store.json(state.candidate), memo = new Map();
+      for (const [id, previous] of admission.administrative) {
+        const current = await coreEvidence(this, state, candidate, id, [], memo);
+        requireThat(identity(previous) === identity(current), `Administrative ${id} inputs changed during milestone validation`);
+      }
     }
     if (admission.historyGaps) requireThat(identity(await this.historyGaps(state)) === admission.historyGaps,
       'Retained evidence availability changed during milestone validation');
@@ -579,7 +661,7 @@ export class CurrentCore {
       return { name, runId: state.runId, eventCount: state.eventCount, allowed: !missing.length, historical: true, missing, sourceCleanup: state.sourceCleanup };
     }
     memo = new Map(memo);
-    const admission = { proofs: new Map(), exceptions: [], historyGaps: null };
+    const admission = { proofs: new Map(), administrative: new Map(), exceptions: [], historyGaps: null };
     memo.set(LIVE_PROOFS, admission.proofs);
     const missing = [];
     if (state.paused) missing.push('feature is explicitly paused');
@@ -592,7 +674,7 @@ export class CurrentCore {
       if (!state.specValidation || state.specValidation.spec.hash !== current.docs['spec.md'].hash
         || state.specValidation.design.hash !== current.docs['design.md'].hash) missing.push('current specification validation');
       if (state.specValidation) {
-        try { await assertTrustedPythonProof(await this.store.json(state.specValidation.proof), this.runtime.pythonGuardOptions); }
+        try { await assertPlanningProof(await this.store.json(state.specValidation.proof)); }
         catch { missing.push('current trusted specification validator proof'); }
       }
     } catch (error) { missing.push(error.message); }
@@ -618,7 +700,13 @@ export class CurrentCore {
       let accepted = null;
       let acceptedRef = null;
       let error = null;
-      if (candidate) for (const ref of [...state.results].reverse()) {
+      if (candidate && definition.role === 'core') {
+        try {
+          accepted = await coreEvidence(this, state, candidate, definition.id, [], memo);
+          admission.administrative.set(definition.id, accepted);
+        } catch (failure) { error = failure.message; }
+      }
+      if (candidate && definition.role !== 'core') for (const ref of [...state.results].reverse()) {
         try {
           const raw = await this.store.json(ref);
           if (raw.gate !== definition.id) continue;
@@ -636,7 +724,10 @@ export class CurrentCore {
       }
       const satisfied = accepted?.outcome === 'PASS' || waiver;
       if (!satisfied) missing.push(`${definition.id}: ${accepted?.outcome ?? error ?? 'missing evidence'}`);
-      outcomes.push({ id: definition.id, result: acceptedRef, reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied) });
+      outcomes.push({ id: definition.id, result: acceptedRef, reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied), ...(definition.role === 'core' ? { administrative: accepted } : {}) });
+    }
+    if (candidate && outcomes.some(item => item.id === 'verification' && item.outcome === 'PASS')) {
+      try { await this.verificationCoverage(candidate, state, memo); } catch (error) { missing.push(error.message); }
     }
     if (['merge', 'completion'].includes(name)) {
       const acceptances = await qualifyingDecisions(this, state, 'accept', state.candidate?.hash, candidate);
@@ -678,15 +769,16 @@ export class CurrentCore {
     requireThat(name !== 'completion' || ['INTEGRATED', 'COMPLETE'].includes(state.phase), 'Completion requires observed integration');
     requireThat(name !== 'implementation' || state.phase === 'IMPLEMENTING', 'Implementation phase is not authorized');
     await this.assertLiveInputs(state, name, check.liveInputs);
-    const recorded = await this.append(state, 'MILESTONE', { name, candidate: state.candidate }, operation);
+    const recorded = await this.append(state, 'MILESTONE', { name, candidate: state.candidate, outcomes: check.outcomes ?? [] }, operation);
     if (name === 'completion') await this.cleanupSource();
     return recorded;
   }
   async historyGaps(state, memo = new Map()) {
     const gaps = [];
+    if (!memo.has(RETAINED_CLOSURE)) memo.set(RETAINED_CLOSURE, new Set());
     for (const [position, ref] of state.results.entries()) {
       try {
-        await this.store.closure(ref);
+        await this.store.closure(ref, memo.get(RETAINED_CLOSURE));
         const { result } = await this.recordedResult(ref, state);
         const source = await this.store.json((await this.store.json(result.input)).candidate);
         assertSourceIsolation(source, this.store.home);
@@ -703,7 +795,7 @@ export class CurrentCore {
       }
     }
     for (const failure of state.validationFailures) {
-      try { await this.store.closure(failure); }
+      try { await this.store.closure(failure, memo.get(RETAINED_CLOSURE)); }
       catch { gaps.push({ resultHash: failure.proof.hash, gate: 'spec-validation', position: -1,
         reason: 'Historical failed specification evidence is unavailable or corrupt; restore retained bytes before final retention.' }); }
     }
@@ -730,6 +822,26 @@ export class CurrentCore {
     })));
     return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.optional || state.optionalGates.includes(item.id)),
       enforcement: ENFORCEMENT, milestones: await Promise.all(MILESTONES.map(name => this.check(name, null, memo))) };
+  }
+  async coverageStatus() {
+    const { state } = await this.state();
+    if (!state.candidate) return { candidate: null, criteria: [], reason: 'No pinned candidate' };
+    let candidate;
+    try { candidate = await checkCandidate(this.store, this.context, state.candidate, { live: !['INTEGRATED', 'COMPLETE'].includes(state.phase) }); }
+    catch (error) { return { candidate: state.candidate, criteria: [], reason: error.message }; }
+    const assessments = new Map(), memo = new Map();
+    for (const ref of [...state.results].reverse()) {
+      const report = await this.store.json(ref);
+      if (!['spec', 'judge'].includes(report.gate) || assessments.has(report.gate)) continue;
+      try { assessments.set(report.gate, { reference: ref, result: await this.currentResult(ref, candidate, state, new Set(), memo) }); }
+      catch { /* Missing/stale assessment cannot assert coverage. */ }
+    }
+    return { candidate: state.candidate, criteria: candidate.criteria.map(id => {
+      const rows = [...assessments.values()].map(item => ({ reference: item.reference, row: item.result.criteria?.find(row => row.id === id) }));
+      const outcome = rows.some(item => item.row?.outcome === 'FAIL') ? 'FAIL'
+        : rows.length === 2 && rows.every(item => item.row?.outcome === 'PASS') ? 'PASS' : 'NOT YET';
+      return { id, outcome, evidence: rows.filter(item => item.row).map(item => ({ result: item.reference, evidence: item.row.evidence })) };
+    }), note: 'Derived from applicable independent assessments. This observation creates no gate proof or passage.' };
   }
   async append(state, type, payload, operation) {
     if (['CANDIDATE', 'READY'].includes(type)) await this.assertContext();
@@ -773,7 +885,7 @@ export class CurrentCore {
   async execute(request) {
     const input = request.input ?? {};
     const operation = { id: request.operationId ?? randomUUID(), hash: identity({ operation: request.operation, input }) };
-    const mutating = !['status', 'snapshot', 'milestone.check'].includes(request.operation);
+    const mutating = !['status', 'snapshot', 'milestone.check', 'coverage.status'].includes(request.operation);
     if (mutating) { await this.assertContext(); await this.store.activationHead({ repair: true }); }
     if (request.operation === 'run.resume-current') return this.resume(input, operation);
     // Restore exact retained copies and record completed original jobs before
@@ -790,6 +902,7 @@ export class CurrentCore {
     switch (request.operation) {
       case 'run.start': return this.start(input, operation);
       case 'status': case 'snapshot': return this.inspect();
+      case 'coverage.status': requireThat(!Object.keys(input).length, 'Coverage status accepts no asserted outcomes'); return this.coverageStatus();
       case 'human.decide': return this.decide(input, operation);
       case 'authorization.apply': return applyStanding(this, input, operation);
       case 'spec.validate': return this.validateSpec(operation);
@@ -799,7 +912,10 @@ export class CurrentCore {
       case 'milestone.check': return this.check(input.name);
       case 'milestone.pass': return this.pass(input.name, operation);
       case 'merge.prepare': return prepareMerge(this, input);
-      case 'merge.execute': return merge(this, input, operation);
+      case 'merge.execute': return protectedMerge(this, input, operation);
+      case 'delivery.resume':
+        try { return await resumeDelivery(this, input, operation); }
+        catch (error) { return { status: 'needs-attention', reason: error.message, nextAction: 'inspect-and-resume' }; }
       case 'integration.observe': return observeIntegration(this, input, operation);
       case 'run.pause': case 'run.continue': {
         authority(input.authority);

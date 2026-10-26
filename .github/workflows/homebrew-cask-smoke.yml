@@ -19,6 +19,14 @@ on:
         description: Successful linked Homebrew Cask publication run containing the exact published record
         required: true
         type: string
+      prior_smoke_run_id:
+        description: Latest completed smoke attempt for selective reuse
+        required: false
+        type: string
+      retry_assessment:
+        description: Model investigation of any retained substantive failure
+        required: false
+        type: string
       release_tag:
         description: Exact published RC tag
         required: true
@@ -108,15 +116,23 @@ jobs:
           name: gatereeve-${{ env.RELEASE_TAG }}-linked-homebrew-cask-result
           path: ${{ runner.temp }}/homebrew-cask
       - name: Install and upgrade through a disposable local tap
+        env:
+          PRIOR_MATRIX_RUN_ID: ${{ inputs.prior_smoke_run_id }}
+          RETRY_ASSESSMENT: ${{ inputs.retry_assessment }}
         run: >-
-          node apps/desktop/scripts/smoke-homebrew-cask.mjs
+          node ci/matrix-check.mjs
+          --artifact "homebrew-cask-smoke-${{ matrix.native }}"
+          --evidence "$RUNNER_TEMP/homebrew-cask-smoke-${{ matrix.native }}.json"
+          --input "$RUNNER_TEMP/homebrew-cask/cask-record.json"
+          -- node apps/desktop/scripts/smoke-homebrew-cask.mjs
           --record "$RUNNER_TEMP/homebrew-cask/cask-record.json"
           --evidence "$RUNNER_TEMP/homebrew-cask-smoke-${{ matrix.native }}.json"
           --architecture "${{ matrix.native }}"
       - uses: actions/upload-artifact@v7
+        if: always()
         with:
           name: homebrew-cask-smoke-${{ matrix.native }}
-          path: ${{ runner.temp }}/homebrew-cask-smoke-${{ matrix.native }}.json
+          path: ${{ runner.temp }}/homebrew-cask-smoke-${{ matrix.native }}.json*
           if-no-files-found: error
 
   public-cask-smoke:

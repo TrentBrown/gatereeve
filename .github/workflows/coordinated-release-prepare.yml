@@ -66,7 +66,10 @@ jobs:
           cache: npm
           cache-dependency-path: cli/package-lock.json
       - run: npm ci --prefix cli
-      - run: bash ci/portable-acceptance.sh
+      - name: Reuse qualified source acceptance for the exact release source
+        run: node ci/source-acceptance.mjs reuse "$RUNNER_TEMP/source-acceptance.json"
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Prepare the exact Plugin candidate
         run: >-
           node cli/bin/workflow.js plugin release prepare
@@ -75,6 +78,8 @@ jobs:
           --output-root "$RUNNER_TEMP/coordinated-plugin-candidate/marketplace"
           --integrity-manifest "$RUNNER_TEMP/coordinated-plugin-candidate/integrity.json"
           --json
+      - name: Retain source acceptance with the package candidate
+        run: cp "$RUNNER_TEMP/source-acceptance.json" "$RUNNER_TEMP/coordinated-plugin-candidate/source-acceptance.json"
       - uses: actions/upload-artifact@v7
         with:
           name: coordinated-plugin-candidate
@@ -323,8 +328,15 @@ jobs:
           RELEASE_TAG: ${{ inputs.tag }}
         run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
       - name: Verify the trusted DMG natively
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: >-
-          node apps/desktop/scripts/verify-macos-package.mjs
+          node ci/matrix-check.mjs
+          --artifact "coordinated-desktop-trusted-evidence-${{ matrix.architecture }}"
+          --evidence "$RUNNER_TEMP/desktop-${{ matrix.architecture }}.json"
+          --input "$RUNNER_TEMP/desktop/GateReeve-${{ steps.metadata.outputs.version }}-macos-universal.dmg"
+          --input "$RUNNER_TEMP/desktop/apple-trust.json"
+          -- node apps/desktop/scripts/verify-macos-package.mjs
           --dmg "$RUNNER_TEMP/desktop/GateReeve-${{ steps.metadata.outputs.version }}-macos-universal.dmg"
           --version "${{ steps.metadata.outputs.version }}"
           --fixture "$RUNNER_TEMP/gatereeve-desktop-smoke"
@@ -334,9 +346,10 @@ jobs:
           --trust-evidence "$RUNNER_TEMP/desktop/apple-trust.json"
           --evidence "$RUNNER_TEMP/desktop-${{ matrix.architecture }}.json"
       - uses: actions/upload-artifact@v7
+        if: always()
         with:
           name: coordinated-desktop-trusted-evidence-${{ matrix.architecture }}
-          path: ${{ runner.temp }}/desktop-${{ matrix.architecture }}.json
+          path: ${{ runner.temp }}/desktop-${{ matrix.architecture }}.json*
           if-no-files-found: error
           retention-days: 30
 

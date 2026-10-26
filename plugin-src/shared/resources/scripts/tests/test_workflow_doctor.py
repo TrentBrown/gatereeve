@@ -154,10 +154,12 @@ class WorkflowDoctorTests(unittest.TestCase):
         self.assertFalse(result["ready"])
         self.assertTrue({"profile", "branch-prefix"}.issubset(self._failed_ids(result)))
 
-    def test_unobserved_or_disabled_activation_fails(self) -> None:
+    def test_unobserved_activation_is_pending_but_disabled_hooks_fail(self) -> None:
         self._configure()
         unobserved = self._run(activation_observed=False)
-        self.assertIn("activation-observed", self._failed_ids(unobserved))
+        self.assertNotIn("activation-observed", self._failed_ids(unobserved))
+        self.assertEqual(unobserved["activation"], "pending")
+        self.assertTrue(unobserved["ready"])
 
         codex_home = self.home / ".codex"
         write(codex_home / "config.toml", "[features]\nhooks = false\n")

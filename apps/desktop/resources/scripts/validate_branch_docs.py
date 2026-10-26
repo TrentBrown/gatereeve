@@ -36,25 +36,6 @@ def main() -> int:
         elif not path.read_text().lstrip().startswith("# "):
             warnings.append(f"{path} does not start with an H1")
 
-    spec = branch_dir / "spec.md"
-    if spec.exists():
-        spec_text = spec.read_text()
-        for heading in ["Acceptance Criteria", "Rubric"]:
-            if heading not in spec_text:
-                failures.append(f"{spec} missing {heading}")
-
-    issues = branch_dir / "issues.md"
-    if issues.exists():
-        issues_text = issues.read_text()
-        for issue in re.finditer(r"^## (I-\d+) ", issues_text, flags=re.MULTILINE):
-            start = issue.start()
-            next_issue = issues_text.find("\n## I-", start + 1)
-            body = issues_text[start: next_issue if next_issue != -1 else len(issues_text)]
-            if "**Plan steps:**" not in body:
-                failures.append(f"{issue.group(1)} missing Plan steps")
-            if "**Rubric criteria:**" not in body:
-                failures.append(f"{issue.group(1)} missing Rubric criteria")
-
     scratchpad = branch_dir / "scratchpad.md"
     if scratchpad.exists() and "[ ] **Promote**" in scratchpad.read_text():
         warnings.append(f"{scratchpad} has unreviewed decisions")

@@ -214,6 +214,7 @@
       "lint_tracker.py",
       "merge_verified.py",
       "pattern_tool.py",
+      "planning_lint.py",
       "pr_context.py",
       "session_start.py",
       "pr_lifecycle.py",
@@ -250,6 +251,14 @@
       "current/authorization.js",
       "current/contracts.js",
       "current/core.js",
+      "current/coverage.js",
+      "current/delivery.js",
+      "current/diagnostics.js",
+      "current/generated-inputs.js",
+      "current/planning-lint.js",
+      "current/planning.js",
+      "current/runner-profile.js",
+      "current/workspace-sources.js",
       "current/environment.js",
       "current/evidence.js",
       "current/execution.js",
@@ -273,6 +282,9 @@
     "release": [
       "release-conductor-artifact.js",
       "release-conductor-discovery.js",
+      "release-conductor-observer.js",
+      "recovery.js",
+      "release-receipt.js",
       "release-conductor-state.js"
     ],
     "templates": [
@@ -301,6 +313,7 @@
     ],
     "resourceGuides": [
       "PROTOCOL.md",
+      "DELIVERY-EXECUTION.md",
       "RESOURCE-ROOT.md"
     ],
     "plannedDocumentation": [

@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { executionEnvironment, environmentChanges, assertEnvironmentCurrent, RUNNER_FINGERPRINT_POLICY } from '../../plugin-src/shared/resources/protocol/current/environment.js';
 import { identity } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
+import { runnerEnvironment } from '../../plugin-src/shared/resources/protocol/current/runner-profile.js';
+import { runCheckProcess } from '../../plugin-src/shared/resources/protocol/current/execution.js';
 
 async function fixture(t) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'runner-closure-')));
@@ -13,7 +15,7 @@ async function fixture(t) {
   await mkdir(repo); await mkdir(tools);
   const configuration = { externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['--version'] }] };
   const context = { repositories: [{ alias: 'app', path: repo }] }, candidate = { repositories: [{ alias: 'app' }] };
-  return { root, repo, tools, configuration, bind: (environment = process.env) => executionEnvironment(context, candidate, configuration, true, environment) };
+  return { root, repo, tools, context, candidate, configuration, bind: (environment = process.env) => executionEnvironment(context, candidate, configuration, true, environment) };
 }
 
 test('opaque runners require an explicit external scope and unknown scripts fail closed', async t => {
@@ -93,6 +95,7 @@ test('shebang preload arguments and flag-equals paths bind dependency content', 
 test('known loader environment inputs bind bytes without retaining their values', async t => {
   const f = await fixture(t), preload = join(f.tools, 'preload.cjs');
   await writeFile(join(f.tools, 'package.json'), '{}'); await writeFile(preload, 'process.exit(0)');
+  f.configuration.environment = { inherit: ['NODE_OPTIONS', 'NODE_PATH'] };
   const environment = { ...process.env, NODE_OPTIONS: `--require ${preload}`, NODE_PATH: f.tools };
   const before = await f.bind(environment);
   assert.ok(!JSON.stringify(before).includes(f.tools), 'Loader environment paths must stay hashed');
@@ -169,7 +172,11 @@ test('policy changes invalidate prior fingerprints and changes identify roots wi
   assert.throws(() => assertEnvironmentCurrent(before, after), /app:node_modules/);
   const secret = await f.bind({ ...process.env, TEST_PRIVATE_VALUE: 'never-print-me' });
   assert.equal(JSON.stringify(environmentChanges(after, secret)).includes('never-print-me'), false);
-  assert.ok(environmentChanges(after, secret).some(item => item.kind === 'inherited-environment'));
+  assert.deepEqual(environmentChanges(after, secret), [], 'Incidental variables are not execution inputs');
+  f.configuration.environment = { inherit: ['TEST_PRIVATE_VALUE'] };
+  const declared = await f.bind({ ...process.env, TEST_PRIVATE_VALUE: 'never-print-me' });
+  assert.ok(environmentChanges(after, declared).some(item => item.kind === 'environment-setting'));
+  assert.equal(JSON.stringify(declared).includes('never-print-me'), false);
 });
 
 test('changed public argument roots are named while private preload paths stay redacted', async t => {
@@ -180,10 +187,91 @@ test('changed public argument roots are named while private preload paths stay r
   assert.throws(() => assertEnvironmentCurrent(before, after), error => error.message.includes(file));
   f.configuration.checks[0].args = [];
   const privateFile = await put(f.repo, 'private-loader.cjs', 'one');
+  f.configuration.environment = { inherit: ['NODE_OPTIONS'] };
   const environment = { ...process.env, NODE_OPTIONS: `--require=${privateFile}` };
   const privateBefore = await f.bind(environment); await writeFile(privateFile, 'two');
   const privateAfter = await f.bind(environment), changes = environmentChanges(privateBefore, privateAfter);
   assert.ok(changes.some(item => item.kind === 'argument-or-loader-input'));
   assert.equal(JSON.stringify(changes).includes(privateFile), false);
   assert.throws(() => assertEnvironmentCurrent(privateBefore, privateAfter), error => !error.message.includes(privateFile));
+});
+
+for (const format of ['pnpm', 'npm', 'yarn']) test(`${format} workspace links bind source identity without following generated output`, async t => {
+  const f = await fixture(t);
+  const workspace = format === 'pnpm' ? {} : { workspaces: format === 'yarn' ? { packages: ['apps/*'] } : ['apps/*'] };
+  await put(f.repo, 'package.json', JSON.stringify(workspace));
+  if (format === 'pnpm') await put(f.repo, 'pnpm-workspace.yaml', "packages:\n  - 'apps/*'\n");
+  for (const name of ['web', 'other']) await put(f.repo, `apps/${name}/package.json`, JSON.stringify({ name: `@example/${name}` }));
+  f.candidate.repositories[0].files = ['package.json', 'pnpm-workspace.yaml', 'apps/web/package.json', 'apps/other/package.json']
+    .filter(path => format === 'pnpm' || path !== 'pnpm-workspace.yaml').map(path => ({ path }));
+  const links = join(f.repo, 'node_modules/.pnpm/node_modules/@example'); await mkdir(links, { recursive: true });
+  const link = join(links, 'web'); await symlink(join(f.repo, 'apps/web'), link);
+  const before = await f.bind();
+  await put(f.repo, 'apps/web/.nuxt/manifest/meta/random-uuid.json', '{"generated":true}');
+  assert.deepEqual(await f.bind(), before);
+  await rm(link); await symlink(join(f.repo, 'apps/other'), link);
+  const retargeted = await f.bind();
+  assert.notEqual(identity(retargeted), identity(before));
+  assert.ok(environmentChanges(before, retargeted).some(item => item.change === 'retargeted'));
+  // Explicit runtime declarations still bind files under source packages.
+  f.configuration.runtimeInputs = { app: ['apps/web/.nuxt'] };
+  const explicit = await f.bind(); await put(f.repo, 'apps/web/.nuxt/manifest/meta/random-uuid.json', 'changed');
+  assert.ok(environmentChanges(explicit, await f.bind()).some(item => item.path.endsWith('random-uuid.json')));
+});
+
+test('unrecognized and unpinned workspace declarations cannot exempt dependency content', async t => {
+  const f = await fixture(t);
+  await put(f.repo, 'vendor/package.json', '{"name":"local"}'); await put(f.repo, 'vendor/ignored.js', 'one');
+  await mkdir(join(f.repo, 'node_modules')); await symlink(join(f.repo, 'vendor'), join(f.repo, 'node_modules/local'));
+  const before = await f.bind(); await put(f.repo, 'vendor/ignored.js', 'two');
+  assert.notEqual(identity(await f.bind()), identity(before));
+  f.configuration.workspaceSources = { app: ['vendor'] };
+  await assert.rejects(f.bind(), /selected candidate/);
+  f.candidate.repositories[0].files = [{ path: 'vendor/package.json' }];
+  const declared = await f.bind(); await put(f.repo, 'vendor/ignored.js', 'three');
+  assert.deepEqual(await f.bind(), declared);
+});
+
+test('controlled profile executes additions and strips incidental host inputs', async () => {
+  const configuration = { environment: { inherit: ['PROJECT_SETTING'], required: ['PROJECT_SETTING'], values: { FIXED_SETTING: 'fixed' } } };
+  assert.throws(() => runnerEnvironment(configuration, {}), /PROJECT_SETTING/);
+  const env = runnerEnvironment(configuration, { PATH: process.env.PATH, PROJECT_SETTING: 'project', INCIDENTAL: 'agent-session' });
+  const result = await runCheckProcess({ command: process.execPath, args: ['-e', 'console.log(JSON.stringify([process.env.PROJECT_SETTING,process.env.FIXED_SETTING,process.env.INCIDENTAL]))'] }, configuration, process.cwd(), env);
+  assert.equal(result.outcome, 'PASS');
+  assert.deepEqual(JSON.parse(result.stdout), ['project', 'fixed', null]);
+});
+
+test('child diagnostics are bounded and key replacement cannot establish equivalence', async t => {
+  const f = await fixture(t);
+  for (let i = 0; i < 105; i++) await put(f.repo, `node_modules/pkg/${i}.js`, 'one');
+  const before = await f.bind();
+  for (let i = 0; i < 105; i++) await put(f.repo, `node_modules/pkg/${i}.js`, 'two');
+  const changes = environmentChanges(before, await f.bind());
+  assert.equal(changes.length, 101); assert.equal(changes.at(-1).kind, 'truncated');
+  assert.equal(changes.at(-1).omitted, 5);
+  const bound = await f.bind(); await rm(join(f.repo, '.gatereeve-current/runner-comparison.key'));
+  assert.ok(environmentChanges(bound, await f.bind()).some(item => item.kind === 'environment-policy-or-private-key'));
+});
+
+test('external-directory diagnostics name changed children without persisting comparison indexes', async t => {
+  const f = await fixture(t);
+  f.configuration.externalRuntimeInputs.app = [f.tools];
+  const input = join(f.tools, 'nested/value.txt');
+  await mkdir(join(f.tools, 'nested')); await writeFile(input, 'before');
+  const before = await f.bind();
+  await writeFile(input, 'after');
+  const after = await f.bind();
+  assert.ok(environmentChanges(before, after).some(change => change.path === input));
+  assert.ok(!JSON.stringify(after).includes('nested/value.txt'), 'temporary child indexes are not retained');
+});
+
+test('project diagnostic limits explicitly truncate changed-child display', async t => {
+  const f = await fixture(t);
+  f.configuration.diagnostics = { maxChangedPaths: 1 };
+  f.configuration.externalRuntimeInputs.app = [f.tools];
+  await writeFile(join(f.tools, 'a'), 'before'); await writeFile(join(f.tools, 'b'), 'before');
+  const before = await f.bind();
+  await writeFile(join(f.tools, 'a'), 'after'); await writeFile(join(f.tools, 'b'), 'after');
+  const changes = environmentChanges(before, await f.bind());
+  assert.equal(changes.length, 2); assert.deepEqual(changes[1], { kind: 'truncated', omitted: 1 });
 });

@@ -1,3 +1,4 @@
+import { planningFacts } from './planning.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { relative, sep, isAbsolute, join, dirname } from 'node:path';
@@ -201,7 +202,7 @@ export async function sourceCandidate(store, context, input, authorization, sour
   requireThat(['SLICE', 'FEATURE'].includes(input.scope), 'Explicit review scope is required');
   requireThat(Array.isArray(input.criteria) && input.criteria.length > 0 && new Set(input.criteria).size === input.criteria.length, 'Explicit distinct criteria are required');
   const spec = (await store.get(docs['spec.md'])).toString('utf8');
-  const rubric = [...spec.matchAll(/^\|\s*(R\d+)\s*\|/gmu)].map(match => match[1]);
+  const rubric = planningFacts(spec).criteria.map(item => item.id);
   requireThat(input.criteria.every(id => rubric.includes(id)), 'Review criterion is not in approved spec');
   requireThat(input.scope !== 'FEATURE' || input.criteria.length === rubric.length, 'Feature review must cover the entire rubric');
   const value = { contract: CONTRACT, kind: 'candidate', sourceStorage: 'git-manifest', sourceRetention, featureId: context.featureId, repositories: repos,

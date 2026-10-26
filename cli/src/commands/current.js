@@ -41,6 +41,8 @@ const collect = (value, values) => [...values, value];
 export function currentCommands() {
   const status = command('status', 'Inspect current commitments, proof and milestone blockers');
   status.action(options => run(options, 'status'));
+  const coverage = command('coverage', 'Derive criterion status from applicable independent evidence');
+  coverage.action(options => run(options, 'coverage.status'));
   const read = command('read', 'Inspect a named artifact, current result, event history or model')
     .argument('<kind>', 'artifact, result, events or model').argument('[id]', 'Advertised artifact ID or result hash')
     .action((kind, id, options) => run(options, 'read', {}, { kind, id: id ?? null }));
@@ -89,12 +91,16 @@ export function currentCommands() {
     .option('--consume <file>', 'JSON list of retained evidence references')
     .option('--claims <file>', 'JSON list of findingId and implementer claim pairs')
     .option('--history <file>', 'JSON list of prior review references')
-    .option('--prior <file>', 'Retained earlier result for a delta assessment');
+    .option('--prior <file>', 'Retained earlier result for a delta assessment')
+    .option('--coverage-claims <file>', 'Replacement coverage for assessment within this review')
+    .option('--repair <file>', 'Original unvalidated result for independent format correction');
   gate.action(async (gates, options) => run(options, 'gate.execute', { gates,
     configuration: options.configuration ? await readJsonFile(options.configuration) : options.provider ? { provider: options.provider, model: options.model, reasoningEffort: options.reasoning } : {},
     ...(options.consume ? { consumed: await readJsonFile(options.consume) } : {}),
     claims: options.claims ? await readJsonFile(options.claims) : [],
     history: options.history ? await readJsonFile(options.history) : [],
+    ...(options.coverageClaims ? { coverageClaims: await readJsonFile(options.coverageClaims) } : {}),
+    ...(options.repair ? { repair: await readJsonFile(options.repair) } : {}),
     ...(options.prior ? { prior: await readJsonFile(options.prior) } : {}) }));
   const decide = command('decide', 'Record one concrete observed human instruction')
     .argument('<kind>', 'approve-design, authorize-implementation, accept, waive, amend, policy-amend, authorize-merge, authorize-standing, revoke-standing')
@@ -137,5 +143,10 @@ export function currentCommands() {
     .option('--action <file>', 'Exact prepared merge action when merge permission is included')
     .action(async options => run(options, 'authorization.apply', { grant: options.grant,
       ...(options.action ? { action: await readJsonFile(options.action) } : {}) }));
-  return [status, read, runCommand, spec, candidate, ready, gate, decide, apply, milestone, merge, observe];
+  const delivery = command('resume-delivery', 'Reconnect work and advance eligible steps under existing scoped authority')
+    .option('--grant <hash>', 'Existing scoped standing grant')
+    .option('--merge <file>', 'Selected repository, PR number and merge method')
+    .action(async options => run(options, 'delivery.resume', {
+      ...(options.grant ? { grant: options.grant } : {}), ...(options.merge ? { merge: await readJsonFile(options.merge) } : {}) }));
+  return [status, coverage, read, runCommand, spec, candidate, ready, gate, decide, apply, milestone, merge, observe, delivery];
 }

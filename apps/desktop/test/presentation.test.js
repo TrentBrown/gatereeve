@@ -4,6 +4,6 @@ import { humanize, featureStateLabel, diagnosticCanShowGovernedViews } from '../
 test('current presentation uses current phases and contract identity', () => {
   assert.equal(humanize('authorize-implementation'), 'Authorize implementation');
   assert.equal(featureStateLabel('IMPLEMENTING'), 'IMPLEMENTING');
-  assert.equal(diagnosticCanShowGovernedViews({ contract: 'gatereeve/current/4' }), true);
+  assert.equal(diagnosticCanShowGovernedViews({ contract: 'gatereeve/current/5' }), true);
   assert.equal(diagnosticCanShowGovernedViews({ mode: 'governed' }), false);
 });

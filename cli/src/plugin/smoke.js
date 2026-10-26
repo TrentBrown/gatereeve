@@ -286,7 +286,6 @@ async function verifyInstalledPlatform({
       pluginRoot,
       '--home',
       doctorHome,
-      '--activation-observed',
       '--json',
     ],
     platformEnvironment,
@@ -306,10 +305,11 @@ async function verifyInstalledPlatform({
     pluginRoot,
     version,
     enabled: true,
+    activation: 'pending',
     skillCount: installedPlugins.reduce((total, plugin) => total + plugin.skillCount, 0),
     plugins: installedPlugins,
     setup,
-    doctor: { ready: true, checkCount: doctor.checks.length },
+    doctor: { ready: true, activation: 'pending', checkCount: doctor.checks.length },
   };
 }
 
