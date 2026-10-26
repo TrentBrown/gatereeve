@@ -139,7 +139,7 @@ test('foreign active feature identity and damaged journal cannot be used', async
 
 async function runVerification(f, fail = false, operationId = 'verify-one') {
   return f.request('gate.execute', { gates: ['verification'], configuration: {
-    environment: { inherit: ['GATEREEVE_WAIVER_TEST_RISK', 'GATEREEVE_TRANSITIVE_RISK', 'GATEREEVE_TRANSPORT_DRIFT', 'GATEREEVE_TEST_HOST_MODE'] },
+    environment: { inherit: ['GATEREEVE_WAIVER_TEST_RISK', 'GATEREEVE_TRANSITIVE_RISK', 'GATEREEVE_TRANSPORT_DRIFT', 'GATEREEVE_ADMISSION_HOST_MODE'] },
     externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', `process.exit(${fail ? 1 : 0})`], purpose: 'Fixture verification' }],
   } }, operationId);
 }
@@ -2712,9 +2712,9 @@ test('milestone admission rejects unjournaled drift during qualification and bef
     const file = kind === 'retained-proof' ? join(f.home, '.gatereeve-current/objects', ref.hash.slice(7))
       : kind === 'retained-job' ? join(f.home, '.gatereeve-current/jobs', `${receipt.jobId}.json`)
       : ['design', 'spec'].includes(kind) ? join(f.home, `${kind}.md`) : join(f.repo, 'app.js');
-    const bytes = await readFile(file), previous = process.env.GATEREEVE_TEST_HOST_MODE;
+    const bytes = await readFile(file), previous = process.env.GATEREEVE_ADMISSION_HOST_MODE;
     const change = async () => {
-      if (kind === 'environment') process.env.GATEREEVE_TEST_HOST_MODE = 'changed-after-proof';
+      if (kind === 'environment') process.env.GATEREEVE_ADMISSION_HOST_MODE = 'changed-after-proof';
       else if (kind.startsWith('retained-')) await rm(file);
       else {
         await writeFile(file, Buffer.concat([bytes, Buffer.from('\n// changed during admission\n')]));
@@ -2728,7 +2728,7 @@ test('milestone admission rejects unjournaled drift during qualification and bef
       assert.equal((await f.core.state()).state.eventCount, state.eventCount, `${timing} ${kind} cannot record passage`);
     } finally {
       if (kind === 'head') await git(f.repo, ['reset', '--hard', f.head]); else await writeFile(file, bytes);
-      if (previous === undefined) delete process.env.GATEREEVE_TEST_HOST_MODE; else process.env.GATEREEVE_TEST_HOST_MODE = previous;
+      if (previous === undefined) delete process.env.GATEREEVE_ADMISSION_HOST_MODE; else process.env.GATEREEVE_ADMISSION_HOST_MODE = previous;
       during = null; after = null;
     }
   }
