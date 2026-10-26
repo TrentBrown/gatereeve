@@ -41,9 +41,12 @@ export async function matrixCheck({ artifactName, evidence, inputs, priorRunId, 
     assert(run.repository?.full_name === repository && run.event === 'workflow_dispatch' && run.head_branch === 'main'
       && run.path === '.github/workflows/release-conductor.yml' && ['success', 'failure', 'cancelled'].includes(run.conclusion),
     'Prior matrix evidence is not from a completed protected Conductor run');
-    // Checker code is part of the source identity; never trust only a sidecar's assertion.
+    // Reusable jobs run under the Conductor caller SHA, which may advance past
+    // the pinned checkout. The sidecar binds the actual checker/source and inputs.
+    const originIncludesSource = run.head_sha === source || ['ahead', 'identical'].includes(
+      (await readProvider(['api', `repos/${repository}/compare/${source}...${run.head_sha}`])).status);
     const artifacts = await readProvider(['api', `repos/${repository}/actions/runs/${priorRunId}/artifacts?per_page=100`]);
-    const matching = artifacts.artifacts.filter(item => run.head_sha === source && item.name === artifactName && !item.expired);
+    const matching = artifacts.artifacts.filter(item => originIncludesSource && item.name === artifactName && !item.expired);
     assert(matching.length <= 1, 'Ambiguous prior matrix artifact');
     if (matching.length) {
       previousReference = { runId: priorRunId, artifactId: matching[0].id, digest: matching[0].digest ?? null };

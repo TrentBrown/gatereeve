@@ -91,10 +91,10 @@ test('native upgrade recovery observes installed bytes, preserves unrelated stat
 test('actual matrix wrapper reuses only qualified entries and preserves substantive failure lineage', async t => {
   const root = await temporary(t), evidence = join(root, 'check.json'), input = join(root, 'candidate.dmg');
   await writeFile(input, 'immutable-package');
-  let launches = 0, download = null, priorSource = source;
+  let launches = 0, download = null, priorSource = source, ancestry = 'ahead';
   const options = { artifactName: 'native-arm64', evidence, inputs: [input], repository, runId: '100', commandLine: ['verify-package', input],
     runtime: {
-      provider: async args => args[1].includes('/artifacts?') ? { artifacts: [{ id: 22, name: 'native-arm64', expired: false }] }
+      provider: async args => args[1].includes('/compare/') ? { status: ancestry } : args[1].includes('/artifacts?') ? { artifacts: [{ id: 22, name: 'native-arm64', expired: false }] }
         : { repository: { full_name: repository }, event: 'workflow_dispatch', head_branch: 'main', head_sha: priorSource,
           path: '.github/workflows/release-conductor.yml', conclusion: 'failure' },
       command: async (exe, args) => {
@@ -123,10 +123,18 @@ test('actual matrix wrapper reuses only qualified entries and preserves substant
   assert.equal(launches, 3);
   await writeFile(input, 'immutable-package'); priorSource = 'c'.repeat(40);
   await matrixCheck({ ...options, runId: '104', priorRunId: '100' });
-  assert.equal(launches, 4, 'producer checker source mismatch forces execution');
+  assert.equal(launches, 3, 'advanced caller head preserves matching actual checker evidence');
+  ancestry = 'diverged';
+  await matrixCheck({ ...options, runId: '105', priorRunId: '100' });
+  assert.equal(launches, 4, 'unrelated caller cannot establish reusable provenance');
+  ancestry = 'ahead';
+  download.receipt = { ...first, identity: { ...first.identity, source: priorSource } };
+  await matrixCheck({ ...options, runId: '106', priorRunId: '100' });
+  assert.equal(launches, 5, 'changed actual checker source forces execution');
+  download.receipt = first;
   priorSource = source; download.bytes = Buffer.from('corrupted');
-  await assert.rejects(matrixCheck({ ...options, runId: '105', priorRunId: '100' }), /corrupt/);
-  assert.equal(launches, 4);
+  await assert.rejects(matrixCheck({ ...options, runId: '107', priorRunId: '100' }), /corrupt/);
+  assert.equal(launches, 5);
 });
 
 test('Codex marketplace availability cannot masquerade as an installed package', async t => {

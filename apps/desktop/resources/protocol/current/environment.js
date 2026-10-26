@@ -34,10 +34,11 @@ async function safeIndexRoot(context) {
   requireThat((await lstat(directory)).isDirectory() && !(await lstat(directory)).isSymbolicLink(), 'Unsafe diagnostic cache');
   return directory;
 }
-async function retainIndexes(context, manifest, indexes) {
+async function retainIndexes(context, manifest, indexes, persist) {
   const data = { local: [...indexes].map(([key, entries]) => [key, [...entries]]),
     external: manifest.executables.map(item => [item.repository, [...(externalIndexes.get(item.closure) ?? [])].map(([key, entries]) => [key, [...entries]])]) };
   manifest.diagnosticIndex = { digest: identity(data) };
+  if (!persist) return;
   const bytes = gzipSync(Buffer.from(JSON.stringify(data))), name = `${manifest.diagnosticIndex.digest.slice(7)}.json.gz`;
   let pending;
   try {
@@ -67,7 +68,7 @@ export async function releaseComparisonIndexes(context) {
   const root = indexRoot(context);
   let info; try { info = await lstat(root); } catch (error) { if (error.code === 'ENOENT') return; throw error; }
   requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Unsafe diagnostic cache');
-  for (const name of await readdir(root)) if (/^[a-f0-9]{64}\.json\.gz$/u.test(name)) {
+  for (const name of await readdir(root)) if (/^(?:[a-f0-9]{64}\.json\.gz|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.pending)$/u.test(name)) {
     const path = join(root, name), entry = await lstat(path);
     requireThat(entry.isFile() && !entry.isSymbolicLink(), 'Unsafe diagnostic baseline');
     await rm(path);
@@ -312,7 +313,7 @@ async function dependencyInputs(root, directory = '', seen = new Set()) {
   }
   return result;
 }
-export async function executionEnvironment(context, candidate, configuration, runner, inherited = process.env) {
+export async function executionEnvironment(context, candidate, configuration, runner, inherited = process.env, { retainDiagnostics = true } = {}) {
   if (!runner) return { kind: 'pinned-review-inputs' };
   const environment = runnerEnvironment(configuration, inherited);
   const effectiveEnvironment = await environmentIdentity(context, environment);
@@ -347,7 +348,7 @@ export async function executionEnvironment(context, candidate, configuration, ru
   requireThat(Number.isSafeInteger(limit) && limit >= 0, 'Diagnostic maxChangedPaths must be a nonnegative integer');
   comparisonLimits.set(manifest, limit);
   comparisonIndexes.set(manifest, indexes);
-  await retainIndexes(context, manifest, indexes);
+  await retainIndexes(context, manifest, indexes, retainDiagnostics);
   return manifest;
 }
 

@@ -509,7 +509,7 @@ export class CurrentCore {
     for (const artifact of result.artifacts ?? []) await this.store.get(artifact);
     for (const ref of inputs.support ?? []) await this.store.currentBytes(ref);
     const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
-    if (!memo.has(environmentKey)) memo.set(environmentKey, executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner'));
+    if (!memo.has(environmentKey)) memo.set(environmentKey, executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner', process.env, { retainDiagnostics: false }));
     await restoreComparisonIndexes(this.context, inputs.environment);
     assertEnvironmentCurrent(inputs.environment, await memo.get(environmentKey));
     if (gate(result.gate).at === 'completion') requireThat(identity(inputs.integrations) === identity(state.integrations), 'Integration source changed');
@@ -614,7 +614,7 @@ export class CurrentCore {
       for (const support of inputs.support ?? []) await this.store.currentBytes(support);
       const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
       if (!environments.has(environmentKey)) environments.set(environmentKey,
-        await executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner'));
+        await executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner', process.env, { retainDiagnostics: false }));
       await restoreComparisonIndexes(this.context, inputs.environment);
       assertEnvironmentCurrent(inputs.environment, environments.get(environmentKey), 'Execution environment changed during milestone validation');
       if (inputs.pattern) {

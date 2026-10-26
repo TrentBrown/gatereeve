@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtemp, mkdir, writeFile, chmod, realpath, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, chmod, realpath, rm, symlink, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { executionEnvironment, environmentChanges, assertEnvironmentCurrent, restoreComparisonIndexes, releaseComparisonIndexes, RUNNER_FINGERPRINT_POLICY } from '../../plugin-src/shared/resources/protocol/current/environment.js';
@@ -286,7 +286,14 @@ test('retained child baselines survive serialization and completion releases onl
   assert.equal(await restoreComparisonIndexes(f.context, before), true);
   assert.ok(environmentChanges(before, after).some(item => item.path === 'node_modules/pkg/index.js'));
   const isolated = await fixture(t), other = JSON.parse(JSON.stringify(await isolated.bind()));
+  const cache = join(f.repo, '.gatereeve-current/diagnostic-indexes');
+  await writeFile(join(cache, 'e9417c26-11e5-4e93-b663-38e34c82e410.pending'), 'interrupted publication');
+  await writeFile(join(cache, 'unrelated.txt'), 'preserve');
   await releaseComparisonIndexes(f.context);
+  assert.deepEqual(await readdir(cache), ['unrelated.txt']);
+  const observed = await executionEnvironment(f.context, f.candidate, f.configuration, true, process.env, { retainDiagnostics: false });
+  assert.equal(identity(observed), identity(after), 'read-only observation computes the same identity');
+  assert.deepEqual(await readdir(cache), ['unrelated.txt'], 'observation does not recreate released caches');
   assert.equal(await restoreComparisonIndexes(f.context, JSON.parse(JSON.stringify(before))), false);
   assert.equal(await restoreComparisonIndexes(isolated.context, other), true);
 });
