@@ -5,9 +5,45 @@ import { fileURLToPath } from 'node:url';
 import { release, version } from 'node:os';
 import { digest, identity, requireThat } from './contracts.js';
 
+export const RUNNER_FINGERPRINT_POLICY = Object.freeze({
+  id: 'runner-inputs/2',
+  bookkeeping: Object.freeze([
+    'node_modules/.vite/vitest/<40 lowercase hex>/results.json',
+    'node_modules/.pnpm-task-run-state-v1/latest.json',
+    'node_modules/.pnpm-task-run-state-v1/<64 lowercase hex>.<hex>-<pid>-<ordinal>.{jsonl,published,finished}',
+    'node_modules/.pnpm-workspace-state-v1.json: normalize numeric lastValidatedTimestamp only',
+  ]),
+  explicitFiles: 'exact',
+});
+const OMIT_BOOKKEEPING = Symbol('bookkeeping');
+const portable = path => path.split(sep).join('/');
+const taskRoot = /\/node_modules\/\.pnpm-task-run-state-v1$/u;
+function bookkeepingContainer(path) {
+  const name = portable(path);
+  return taskRoot.test(name) || /\/node_modules\/\.vite(?:\/vitest(?:\/[a-f0-9]{40})?)?$/u.test(name);
+}
+async function fileValue(path, info, exact) {
+  const name = portable(path);
+  const eligible = !exact && info.isFile() && !(info.mode & 0o111);
+  if (eligible && (/\/node_modules\/\.vite\/vitest\/[a-f0-9]{40}\/results\.json$/u.test(name)
+    || /\/node_modules\/\.pnpm-task-run-state-v1\/(?:latest\.json|[a-f0-9]{64}\.[a-f0-9]+-\d+-\d+\.(?:jsonl|published|finished))$/u.test(name))) return OMIT_BOOKKEEPING;
+  const bytes = await readFile(path);
+  if (eligible && /\/node_modules\/\.pnpm-workspace-state-v1\.json$/u.test(name) && bytes.length <= 1024 * 1024) {
+    try {
+      const state = JSON.parse(bytes.toString('utf8'));
+      if (state && typeof state === 'object' && !Array.isArray(state)
+        && Number.isSafeInteger(state.lastValidatedTimestamp) && state.lastValidatedTimestamp >= 0) {
+        delete state.lastValidatedTimestamp;
+        return { mode: info.mode & 0o777, hash: identity(state), normalization: 'pnpm-workspace-timestamp-v1' };
+      }
+    } catch { /* Malformed or unfamiliar state remains an exact byte input. */ }
+  }
+  return { mode: info.mode & 0o777, hash: digest(bytes) };
+}
+
 // Environment values are hashed together, never persisted in clear text.
 // Local and external dependency bytes are bound as assumptions, not copied into the review packet.
-async function tree(path, root, seen = new Set(), managedStore = null) {
+async function tree(path, root, seen = new Set(), managedStore = null, exact = true) {
   let info;
   try { info = await lstat(path); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
   const actual = await realpath(path);
@@ -17,14 +53,16 @@ async function tree(path, root, seen = new Set(), managedStore = null) {
   if (seen.has(actual)) return { cycle: local };
   const next = new Set(seen).add(actual);
   if (info.isSymbolicLink()) return { target: local, value: await tree(actual, root, seen, managedStore) };
-  if (info.isFile()) return { mode: info.mode & 0o777, hash: digest(await readFile(actual)) };
+  if (info.isFile()) return fileValue(path, info, exact);
   requireThat(info.isDirectory(), 'Runtime input must be a regular file or directory');
   const names = (await readdir(actual)).sort();
   const entries = [];
   for (const name of names) {
     if (join(actual, name) === managedStore) continue;
-    entries.push([name, await tree(join(actual, name), root, next, managedStore)]);
+    const value = await tree(join(actual, name), root, next, managedStore, false);
+    if (value !== OMIT_BOOKKEEPING) entries.push([name, value]);
   }
+  if (!exact && !entries.length && bookkeepingContainer(path)) return OMIT_BOOKKEEPING;
   return identity(entries);
 }
 export async function executable(command, cwd, environment) {
@@ -148,7 +186,7 @@ async function externalClosure(root, checks, declared, environment, managedStore
     for (const path of paths) await addScope(resolve(root, path || '.'), true);
   }
   const allowed = [root, ...[...scopes.values()].filter(Boolean), ...exactExecutables];
-  const capture = async (path, seen = new Set()) => {
+  const capture = async (path, seen = new Set(), exact = true) => {
     let info, actual;
     try { info = await lstat(path); actual = await realpath(path); }
     catch (error) { if (['ENOENT', 'ENOTDIR'].includes(error.code)) return { missing: true }; throw error; }
@@ -156,13 +194,15 @@ async function externalClosure(root, checks, declared, environment, managedStore
     requireThat(allowed.some(scope => within(scope, actual)), 'External runtime symlink escapes declared inputs; declare its target');
     if (seen.has(actual)) return { cycle: actual };
     if (info.isSymbolicLink()) return { target: actual, value: await capture(actual, seen) };
-    if (info.isFile()) return { mode: info.mode & 0o777, hash: digest(await readFile(actual)) };
+    if (info.isFile()) return fileValue(path, info, exact);
     requireThat(info.isDirectory(), 'External runtime input must be a regular file or directory');
     const next = new Set(seen).add(actual), entries = [];
     for (const name of (await readdir(actual)).sort()) {
       if (join(actual, name) === managedStore) continue;
-      entries.push([name, await capture(join(actual, name), next)]);
+      const value = await capture(join(actual, name), next, false);
+      if (value !== OMIT_BOOKKEEPING) entries.push([name, value]);
     }
+    if (!exact && !entries.length && bookkeepingContainer(path)) return OMIT_BOOKKEEPING;
     return { mode: info.mode & 0o777, hash: identity(entries) };
   };
   for (const argument of arguments_) if (argument.path) argument.value = await capture(argument.selectedPath);
@@ -201,10 +241,63 @@ export async function executionEnvironment(context, candidate, configuration, ru
     requireThat(Array.isArray(declared) && declared.every(path => typeof path === 'string'), 'Runtime inputs must be repository-relative paths');
     for (const path of [...new Set(['node_modules', '.venv', ...await dependencyInputs(root), ...declared])].sort()) {
       requireThat(!isAbsolute(path) && !path.split(/[\\/]/u).includes('..'), 'Unsafe runtime input path');
-      inputs.push({ repository: pin.alias, path, value: await tree(join(root, path), root, new Set(), managedStore) });
+      try { inputs.push({ repository: pin.alias, path, value: await tree(join(root, path), root, new Set(), managedStore) }); }
+      catch (error) { error.message += ` (input ${pin.alias}:${path})`; throw error; }
     }
     const checks = (configuration.checks ?? []).filter(check => check.repository === pin.alias);
-    if (checks.length) executables.push({ repository: pin.alias, closure: await externalClosure(root, checks, configuration.externalRuntimeInputs?.[pin.alias], environment, managedStore) });
+    if (checks.length) {
+      try { executables.push({ repository: pin.alias, closure: await externalClosure(root, checks, configuration.externalRuntimeInputs?.[pin.alias], environment, managedStore) }); }
+      catch (error) { error.message += ` (external inputs for ${pin.alias})`; throw error; }
+    }
   }
-  return { ...base, inheritedEnvironment: identity(environment), inputs, executables };
+  return { fingerprintPolicy: RUNNER_FINGERPRINT_POLICY, ...base, inheritedEnvironment: identity(environment), inputs, executables };
+}
+
+export function environmentChanges(before, after) {
+  const changes = [];
+  const equal = (a, b) => identity(a ?? null) === identity(b ?? null);
+  if (!equal(before.fingerprintPolicy, after.fingerprintPolicy)) changes.push({ kind: 'fingerprint-policy' });
+  for (const key of ['platform', 'arch', 'osRelease', 'osVersion']) if (!equal(before[key], after[key])) changes.push({ kind: key });
+  if (!equal(before.inheritedEnvironment, after.inheritedEnvironment)) changes.push({ kind: 'inherited-environment' });
+  const compare = (a, b, key, describe) => {
+    const left = new Map((a ?? []).map(item => [key(item), item]));
+    const right = new Map((b ?? []).map(item => [key(item), item]));
+    for (const id of [...new Set([...left.keys(), ...right.keys()])].sort()) {
+      if (!equal(left.get(id), right.get(id))) describe(left.get(id), right.get(id));
+    }
+  };
+  compare(before.inputs, after.inputs, item => `${item.repository}:${item.path}`, (a, b) => {
+    const item = b ?? a; changes.push({ kind: 'runtime-input', repository: item.repository, path: item.path });
+  });
+  compare(before.executables, after.executables, item => item.repository, (a, b) => {
+    const repository = (b ?? a).repository, start = changes.length;
+    compare(a?.closure.inputs, b?.closure.inputs, item => item.path ?? 'private-loader-input', (left, right) => {
+      const item = right ?? left;
+      changes.push(item.path ? { kind: 'external-input', repository, path: item.path } : { kind: 'loader-input', repository });
+    });
+    // Public arguments retain their selected root; private loader identities
+    // expose only a category, never their environment value or resolved path.
+    if (!equal(a?.closure.arguments, b?.closure.arguments)) {
+      const argumentStart = changes.length;
+      compare(a?.closure.arguments, b?.closure.arguments, item => item.selectedPath ?? 'private-or-invalid-argument', (left, right) => {
+        const item = right ?? left;
+        changes.push(item.selectedPath ? { kind: 'argument-input', repository, path: item.selectedPath } : { kind: 'argument-or-loader-input', repository });
+      });
+      if (changes.length === argumentStart) changes.push({ kind: 'argument-or-loader-input', repository });
+    }
+    compare(a?.closure.launches, b?.closure.launches, item => item.selectedPath, (left, right) => {
+      changes.push({ kind: 'executable', repository, path: (right ?? left).selectedPath });
+    });
+    if (changes.length === start) changes.push({ kind: 'external-inputs', repository });
+  });
+  if (!changes.length && identity(before) !== identity(after)) changes.push({ kind: 'runner-manifest' });
+  return changes;
+}
+export function assertEnvironmentCurrent(before, after, message = 'Execution environment changed') {
+  if (identity(before) === identity(after)) return;
+  const changedInputs = environmentChanges(before, after);
+  const labels = changedInputs.map(item => `${item.repository ? `${item.repository}:` : ''}${item.path ?? item.kind}`);
+  const error = new Error(`${message}: ${labels.slice(0, 12).join(', ')}${labels.length > 12 ? ` (+${labels.length - 12} more)` : ''}`);
+  error.changedInputs = changedInputs;
+  throw error;
 }

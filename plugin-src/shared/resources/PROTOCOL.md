@@ -93,7 +93,7 @@ pattern, judge, code, triage, explanation, packet. Completion also requires
 finalization, release observation, retention, whole-feature coverage and actual integration for every
 participating repository. Whiteboard remains optional policy.
 
-Runner configuration is `checks: [{repository,command,args,purpose}]` plus
+Runner configuration is `checks: [{repository,command,args,purpose,timeoutMs?}]` plus
 `externalRuntimeInputs: {"repositoryAlias": ["/absolute/tool-or-input-root"]}`
 for every checked repository. This is a required, conservative scope declaration:
 `[]` explicitly declares no additional external inputs. The model must account
@@ -102,6 +102,38 @@ configuration and any dependencies outside inferred package roots. Use wider
 roots or an immutable toolchain when dependency scope is uncertain; never assert
 an empty scope merely because dependencies cannot be inferred. Independent
 Verification assessment evaluates that scope against the actual commands.
+
+The effective per-check limit is `check.timeoutMs ?? configuration.timeoutMs ??
+600000` milliseconds. For example, `configuration.timeoutMs: 5400000` allows a
+90-minute integration check. Limits must be integers from zero through
+2147483647; an explicit zero disables the timer. Receipts record the effective
+limit and distinguish an actual timeout from a nonzero exit or process/launch
+failure. A timeout remains UNAVAILABLE and does not count as a completed check.
+
+Runner manifests name fingerprint policy `runner-inputs/2` and its bookkeeping
+rules. Directory traversal omits only regular non-executable files at the known
+Vitest SHA-1 results location (`node_modules/.vite/vitest/<40 hex>/results.json`)
+and pnpm v1 task state (`latest.json` and observed run-ID
+`.jsonl`, `.published`, `.finished` files). Recognized cache-container directories
+that contain nothing else are omitted. In valid pnpm workspace-state-v1 JSON,
+only numeric `lastValidatedTimestamp` is normalized; projects, settings and other
+fields remain bound. Malformed/unfamiliar state, unknown versions/files, symlinks,
+executable files, compiled caches, `.pnpm`, `.bin`, install records and `.venv`
+remain inputs. No general `.cache` or `.vite` exclusion exists.
+
+This directory policy also applies to containing runtime/external directories.
+Direct file declarations, command file arguments and loader files stay exact,
+including known bookkeeping names. Checks that use metadata to select tests or
+resume tasks must declare those files as inputs. Initialize semantic install and
+workspace records before validation: creating or changing them still invalidates
+proof. Changing the fingerprint policy requires fresh Verification and dependent
+assessments, preserving planning and historical records.
+
+Mismatch diagnostics identify changed input roots/categories during execution
+and later qualification. Runner records retain structured changes and completed
+receipts, including timeouts, when postflight also fails. This does not retain
+dependency source or a full per-file dependency manifest. Inherited environment
+values and private loader paths are not included in these diagnostics.
 
 The core hashes declared files/directories (including missing state), executable
 selection/realpath/mode/bytes, supported shebang interpreter chains, explicit path

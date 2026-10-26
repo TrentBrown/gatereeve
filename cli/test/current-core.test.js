@@ -176,6 +176,48 @@ test('actual runner receipts preserve success/failure, reuse equivalent work, an
     configuration: { provider: 'codex', model: 'fixture' } }), /not passing/);
 });
 
+for (const mode of ['bookkeeping', 'dependency', 'timeout', 'postflight-read-error']) test(`runner bookkeeping contract retains current proof and diagnostics: ${mode}`, async t => {
+  const f = await fixture(t); await authorize(f);
+  await writeFile(join(f.repo, '.git/info/exclude'), 'node_modules/\n');
+  await mkdir(join(f.repo, 'node_modules/pkg'), { recursive: true });
+  await writeFile(join(f.repo, 'node_modules/pkg/index.js'), 'one');
+  const workspace = join(f.repo, 'node_modules/.pnpm-workspace-state-v1.json');
+  await writeFile(workspace, JSON.stringify({ lastValidatedTimestamp: 1, settings: { production: true } }));
+  const outside = join(f.root, 'outside.js'); await writeFile(outside, 'outside');
+  await candidate(f);
+  const cache = `node_modules/.vite/vitest/${'a'.repeat(40)}`;
+  const body = mode === 'bookkeeping' ? `fs.mkdirSync('${cache}',{recursive:true});fs.writeFileSync('${cache}/results.json','{}');fs.mkdirSync('node_modules/.pnpm-task-run-state-v1',{recursive:true});fs.writeFileSync('node_modules/.pnpm-task-run-state-v1/latest.json','{}');fs.writeFileSync('node_modules/.pnpm-workspace-state-v1.json',JSON.stringify({lastValidatedTimestamp:2,settings:{production:true}}));`
+    : mode === 'postflight-read-error' ? `fs.symlinkSync(${JSON.stringify(outside)},'node_modules/escape.js');`
+      : `fs.writeFileSync('node_modules/pkg/index.js','two');${mode === 'timeout' ? 'setInterval(()=>{},1000);' : 'process.exitCode=7;'}`;
+  const executed = await f.request('gate.execute', { gates: ['verification'], configuration: { externalRuntimeInputs: { app: [] },
+    checks: [{ repository: 'app', command: process.execPath, args: ['-e', `const fs=require('fs');console.log('runner-output');${body}`],
+      timeoutMs: mode === 'timeout' ? 1000 : 10000, purpose: 'Bookkeeping and postflight diagnostics regression' }] } });
+  const reference = executed.event.payload.results[0], result = await f.core.store.json(reference);
+  const runner = await f.core.store.json(result.runner);
+  assert.match((await f.core.store.get(runner.receipts[0].stdout)).toString(), /runner-output/);
+  await f.core.store.closure(reference);
+  if (mode === 'bookkeeping') {
+    assert.equal(result.outcome, 'PASS'); assert.equal(runner.environmentCheck, 'unchanged'); assert.deepEqual(runner.changedInputs, []);
+    await writeFile(join(f.repo, cache, 'results.json'), '{"duration":99}');
+    const { state } = await f.core.state(), selected = await f.core.store.json(state.candidate);
+    assert.equal((await f.core.currentResult(reference, selected, state)).outcome, 'PASS');
+    assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
+    await writeFile(join(f.repo, 'node_modules/pkg/index.js'), 'changed after verification');
+    await assert.rejects(f.core.currentResult(reference, selected, state), /app:node_modules/);
+  } else {
+    assert.equal(result.outcome, 'UNAVAILABLE'); assert.match(result.summary, /app:node_modules/);
+    if (mode === 'postflight-read-error') {
+      assert.equal(runner.environmentCheck, 'unavailable'); assert.equal(runner.changedInputs, null);
+      assert.equal(runner.receipts[0].outcome, 'PASS');
+    } else {
+      assert.equal(runner.environmentCheck, 'changed');
+      assert.ok(runner.changedInputs.some(item => item.repository === 'app' && item.path === 'node_modules'));
+      assert.equal(runner.receipts[0].termination.kind, mode === 'timeout' ? 'timeout' : 'exit');
+      assert.match(result.summary, mode === 'timeout' ? /Timed out after 1000 ms/ : /exited with code 7/);
+    }
+  }
+});
+
 test('one fresh evaluator supplies two separate verdicts; missing verdicts and inherited contexts remain unavailable', async t => {
   const f = await fixture(t); await authorize(f); await candidate(f);
   const verified = await runVerification(f);
