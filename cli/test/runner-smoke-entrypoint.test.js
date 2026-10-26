@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 const fixture = fileURLToPath(new URL('./fixtures/runner-tool-smoke.mjs', import.meta.url));
 
 test('automatic discovery explicitly skips smoke requiring external tools', () => {
-  const result = spawnSync(process.execPath, ['--test', '--test-reporter=tap', fixture], { encoding: 'utf8' });
+  const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
+  const result = spawnSync(process.execPath, ['--test', '--test-reporter=tap', fixture], { encoding: 'utf8', env });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /# skipped 1/);
   assert.match(result.stdout, /SKIP Run cli\/scripts\/runner-tool-smoke/);
