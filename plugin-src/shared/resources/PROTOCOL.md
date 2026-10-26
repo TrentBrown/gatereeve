@@ -200,6 +200,14 @@ Indirect scripts and alternate external clients are outside this handler coverag
 per-commit gates. Desktop observes current proof and
 provides commands; refreshing it never launches evaluators.
 
+Hosted merge checks watch required checks first. If GitHub CLI reports the exact
+empty-required-checks or no-checks diagnostic, the protected action queries and
+watches all reported checks instead. An exact no-checks response from this
+unfiltered query permits proceeding without hosted CI. Failed checks and
+operational errors still block. This observes the currently reported check set,
+not future checks, and does not bypass GitHub branch protection. The fallback
+retains final source/target, gate and authority revalidation and PR-state cleanup.
+
 When spec or Judge execution omits consumed references, the core selects the latest
 applicable Verification result; a current FAIL still blocks. Explicit references
 remain available for deliberate evidence selection. The CLI `read` command inspects
