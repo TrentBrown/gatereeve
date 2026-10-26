@@ -3,7 +3,7 @@ import test from 'node:test';
 import { mkdtemp, mkdir, writeFile, chmod, realpath, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { executionEnvironment } from '../../plugin-src/shared/resources/protocol/current/environment.js';
+import { executionEnvironment, environmentChanges, assertEnvironmentCurrent, RUNNER_FINGERPRINT_POLICY } from '../../plugin-src/shared/resources/protocol/current/environment.js';
 import { identity } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
 
 async function fixture(t) {
@@ -98,4 +98,76 @@ test('known loader environment inputs bind bytes without retaining their values'
   assert.ok(!JSON.stringify(before).includes(f.tools), 'Loader environment paths must stay hashed');
   await writeFile(preload, 'process.exit(7)'); assert.notEqual(identity(await f.bind(environment)), identity(before));
   await assert.rejects(f.bind({ ...environment, NODE_OPTIONS: '--require "ambiguous path"' }), /Unsupported NODE_OPTIONS quoting/);
+});
+
+const resultsPath = `node_modules/.vite/vitest/${'a'.repeat(40)}/results.json`;
+const runState = `node_modules/.pnpm-task-run-state-v1/${'b'.repeat(64)}.01a175bc183a-42200-1.finished`;
+async function put(root, path, body = '{}') {
+  const file = join(root, path); await mkdir(join(file, '..'), { recursive: true }); await writeFile(file, body); return file;
+}
+for (const scope of ['discovered', 'nested', 'overlapping', 'external']) test(`bookkeeping creation, updates and removal are stable through ${scope} directory scope`, async t => {
+  const f = await fixture(t), root = scope === 'external' ? f.tools : scope === 'nested' ? join(f.repo, 'apps/api') : f.repo;
+  await mkdir(join(root, 'node_modules'), { recursive: true });
+  if (scope === 'overlapping') f.configuration.runtimeInputs = { app: ['.'] };
+  if (scope === 'external') f.configuration.externalRuntimeInputs.app = [root];
+  const before = await f.bind();
+  for (const path of [resultsPath, runState, 'node_modules/.pnpm-task-run-state-v1/latest.json', runState.replace('.finished', '.jsonl'), runState.replace('.finished', '.published')]) await put(root, path);
+  assert.deepEqual(await f.bind(), before);
+  await put(root, resultsPath, '{"duration":22}'); await put(root, runState, 'new completion');
+  assert.deepEqual(await f.bind(), before);
+  await rm(join(root, 'node_modules/.vite'), { recursive: true });
+  await rm(join(root, 'node_modules/.pnpm-task-run-state-v1'), { recursive: true });
+  assert.deepEqual(await f.bind(), before);
+});
+
+for (const path of [
+  'node_modules/.pnpm/pkg/node_modules/pkg/index.js', 'node_modules/.bin/tool',
+  'node_modules/.modules.yaml', 'node_modules/.package-lock.json', 'node_modules/.yarn-state.yml',
+  'node_modules/.vite/deps/compiled.js', 'node_modules/.cache/compiled.js',
+  'node_modules/.pnpm-task-run-state-v2/latest.json', 'node_modules/.pnpm-task-run-state-v1/unknown.js',
+  resultsPath.replace('results.json', 'compiled.js'), '.venv/__pycache__/module.pyc',
+]) test(`actual input remains bound: ${path}`, async t => {
+  const f = await fixture(t); await put(f.repo, path, 'before'); const before = await f.bind();
+  await put(f.repo, path, 'after'); const after = await f.bind();
+  assert.notEqual(identity(after), identity(before));
+  assert.ok(environmentChanges(before, after).some(item => item.repository === 'app' && item.path));
+});
+
+test('workspace-state normalization preserves semantic fields and malformed state', async t => {
+  const f = await fixture(t), path = 'node_modules/.pnpm-workspace-state-v1.json';
+  await put(f.repo, path, JSON.stringify({ lastValidatedTimestamp: 1, settings: { production: true }, projects: { app: 'v1' } }));
+  const before = await f.bind();
+  await put(f.repo, path, JSON.stringify({ lastValidatedTimestamp: 2, settings: { production: true }, projects: { app: 'v1' } }));
+  assert.deepEqual(await f.bind(), before);
+  await put(f.repo, path, JSON.stringify({ lastValidatedTimestamp: 2, settings: { production: false }, projects: { app: 'v1' } }));
+  assert.notEqual(identity(await f.bind()), identity(before));
+  await put(f.repo, path, '{invalid:1'); const broken = await f.bind();
+  await put(f.repo, path, '{invalid:2'); assert.notEqual(identity(await f.bind()), identity(broken));
+});
+
+for (const kind of ['runtime-file', 'argument', 'external-file', 'executable', 'symlink']) test(`bookkeeping names do not hide ${kind} inputs`, async t => {
+  const f = await fixture(t), file = await put(f.repo, resultsPath, '{}');
+  if (kind === 'runtime-file') f.configuration.runtimeInputs = { app: [resultsPath] };
+  if (kind === 'argument') f.configuration.checks[0].args = [file];
+  if (kind === 'external-file') f.configuration.externalRuntimeInputs.app = [file];
+  if (kind === 'executable') await chmod(file, 0o755);
+  let target = file;
+  if (kind === 'symlink') {
+    target = await put(f.repo, 'payload.json', '{}'); await rm(file); await symlink(target, file);
+  }
+  const before = await f.bind(); await writeFile(target, '{"changed":true}');
+  assert.notEqual(identity(await f.bind()), identity(before));
+});
+
+test('policy changes invalidate prior fingerprints and changes identify roots without private values', async t => {
+  const f = await fixture(t); await put(f.repo, 'node_modules/pkg/index.js', 'one');
+  const before = await f.bind(); assert.deepEqual(before.fingerprintPolicy, RUNNER_FINGERPRINT_POLICY);
+  const old = structuredClone(before); delete old.fingerprintPolicy;
+  assert.throws(() => assertEnvironmentCurrent(old, before), error => error.changedInputs[0].kind === 'fingerprint-policy');
+  await put(f.repo, 'node_modules/pkg/index.js', 'two');
+  const after = await f.bind();
+  assert.throws(() => assertEnvironmentCurrent(before, after), /app:node_modules/);
+  const secret = await f.bind({ ...process.env, TEST_PRIVATE_VALUE: 'never-print-me' });
+  assert.equal(JSON.stringify(environmentChanges(after, secret)).includes('never-print-me'), false);
+  assert.ok(environmentChanges(after, secret).some(item => item.kind === 'inherited-environment'));
 });

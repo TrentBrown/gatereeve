@@ -1,6 +1,6 @@
 import { runTrustedPythonGuard } from '../python-guards.js';
 import { observeReleaseConductor } from '../../release/release-conductor-observer.js';
-import { executionEnvironment } from './environment.js';
+import { executionEnvironment, assertEnvironmentCurrent, environmentChanges } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -161,6 +161,26 @@ async function independent(core, state, candidate, prepared, configuration, pack
   } catch (error) { error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])]; throw error; }
   finally { await view.close(); }
 }
+export async function runCheckProcess(check, configuration, cwd, environment) {
+  const timeoutMs = check.timeoutMs ?? configuration.timeoutMs ?? 600000;
+  requireThat(Number.isSafeInteger(timeoutMs) && timeoutMs >= 0 && timeoutMs <= 2147483647,
+    'Check timeoutMs must be an integer from 0 through 2147483647; zero disables the timeout');
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = timeoutMs === 0 ? null : setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+  try {
+    const result = await exec(check.command, check.args, { cwd, env: environment, encoding: 'utf8',
+      signal: controller.signal, maxBuffer: 16 * 1024 * 1024 });
+    return { outcome: 'PASS', exitCode: 0, timeoutMs, termination: null, stdout: result.stdout, stderr: result.stderr };
+  } catch (error) {
+    const exitCode = typeof error.code === 'number' ? error.code : null;
+    const termination = timedOut ? { kind: 'timeout', reason: `Timed out after ${timeoutMs} ms`, timeoutMs }
+      : exitCode !== null ? { kind: 'exit', reason: `Process exited with code ${exitCode}` }
+        : { kind: 'process-error', reason: 'Process could not complete', code: error.code ?? null, signal: error.signal ?? null };
+    return { outcome: timedOut || exitCode === null ? 'UNAVAILABLE' : 'FAIL', exitCode,
+      timeoutMs, termination, stdout: error.stdout ?? '', stderr: error.stderr ?? '' };
+  } finally { if (timer !== null) clearTimeout(timer); }
+}
 async function commands(core, state, candidate, configuration, completion, environment) {
   requireThat(Array.isArray(configuration.checks) && configuration.checks.length > 0, 'Runner requires explicit checks');
   const receipts = [];
@@ -175,14 +195,10 @@ async function commands(core, state, candidate, configuration, completion, envir
       requireThat(expectedHead && (await git(repository.path, ['rev-parse', 'HEAD'], { gitExecutable: repository.gitExecutable })).trim() === expectedHead, 'Runner checkout does not match its evaluated source');
       await assertClean(repository, core.store);
       const startedAt = new Date().toISOString();
-      let outcome = 'PASS', result;
-      try {
-        result = await exec(check.command, check.args, { cwd: repository.path, env: environment, encoding: 'utf8',
-          timeout: configuration.timeoutMs ?? 600000, maxBuffer: 16 * 1024 * 1024 });
-      } catch (error) { outcome = typeof error.code === 'number' ? 'FAIL' : 'UNAVAILABLE'; result = error; }
+      const result = await runCheckProcess(check, configuration, repository.path, environment);
       receipts.push({ evaluatedSource: expectedHead, command: check.command, args: check.args, repository: check.repository,
-        purpose: check.purpose, startedAt, completedAt: new Date().toISOString(), outcome,
-        exitCode: outcome === 'PASS' ? 0 : (typeof result.code === 'number' ? result.code : null),
+        purpose: check.purpose, startedAt, completedAt: new Date().toISOString(), outcome: result.outcome,
+        exitCode: result.exitCode, timeoutMs: result.timeoutMs, termination: result.termination,
         stdout: await core.store.put(result.stdout ?? ''), stderr: await core.store.put(result.stderr ?? '') });
       requireThat((await git(repository.path, ['rev-parse', 'HEAD'], { gitExecutable: repository.gitExecutable })).trim() === expectedHead, 'Runner source changed during execution');
       await assertClean(repository, core.store);
@@ -468,11 +484,28 @@ export async function executeGates(core, input, operation) {
       });
     } else if (role === 'runner') {
       const ran = await commands(core, state, candidate, configuration, definitions[0].at === 'completion', runnerEnvironment);
+      // Persist completed checks before postflight fingerprinting can itself fail.
+      ran.changedInputs = null;
+      ran.environmentCheck = 'pending';
       runner = await core.store.putJson(ran);
       artifacts.push(runner);
       for (const receipt of ran.receipts) artifacts.push(receipt.stdout, receipt.stderr);
-      requireThat(identity(value.environment) === identity(await executionEnvironment(core.context, candidate, configuration, true)), 'Execution environment changed during checks');
-      verdicts = [{ gate: input.gates[0], outcome: ran.outcome, summary: 'Actual runner receipts retained', findings: [], dispositions: [] }];
+      const failures = ran.receipts.filter(item => item.termination).map(item => item.termination.reason);
+      try {
+        const observed = await executionEnvironment(core.context, candidate, configuration, true);
+        ran.changedInputs = environmentChanges(value.environment, observed);
+        ran.environmentCheck = ran.changedInputs.length ? 'changed' : 'unchanged';
+        runner = await core.store.putJson(ran); artifacts.push(runner);
+        assertEnvironmentCurrent(value.environment, observed, 'Execution environment changed during checks');
+      } catch (error) {
+        if (ran.environmentCheck === 'pending') {
+          ran.environmentCheck = 'unavailable'; runner = await core.store.putJson(ran); artifacts.push(runner);
+        }
+        if (failures.length) error.message += `; checks: ${failures.join('; ')}`;
+        throw error;
+      }
+      verdicts = [{ gate: input.gates[0], outcome: ran.outcome,
+        summary: failures.length ? `Actual runner receipts retained: ${failures.join('; ')}` : 'Actual runner receipts retained', findings: [], dispositions: [] }];
     } else if (role === 'observation') {
       requireThat(input.gates[0] === 'release' && candidate.scope === 'FEATURE', 'Release observation needs complete-feature scope');
       const observations = [];
