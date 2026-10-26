@@ -171,3 +171,19 @@ test('policy changes invalidate prior fingerprints and changes identify roots wi
   assert.equal(JSON.stringify(environmentChanges(after, secret)).includes('never-print-me'), false);
   assert.ok(environmentChanges(after, secret).some(item => item.kind === 'inherited-environment'));
 });
+
+test('changed public argument roots are named while private preload paths stay redacted', async t => {
+  const f = await fixture(t), file = await put(f.repo, 'check.cjs', 'one');
+  f.configuration.checks[0].args = [file];
+  const before = await f.bind(); await writeFile(file, 'two'); const after = await f.bind();
+  assert.ok(environmentChanges(before, after).some(item => item.kind === 'argument-input' && item.path === file));
+  assert.throws(() => assertEnvironmentCurrent(before, after), error => error.message.includes(file));
+  f.configuration.checks[0].args = [];
+  const privateFile = await put(f.repo, 'private-loader.cjs', 'one');
+  const environment = { ...process.env, NODE_OPTIONS: `--require=${privateFile}` };
+  const privateBefore = await f.bind(environment); await writeFile(privateFile, 'two');
+  const privateAfter = await f.bind(environment), changes = environmentChanges(privateBefore, privateAfter);
+  assert.ok(changes.some(item => item.kind === 'argument-or-loader-input'));
+  assert.equal(JSON.stringify(changes).includes(privateFile), false);
+  assert.throws(() => assertEnvironmentCurrent(privateBefore, privateAfter), error => !error.message.includes(privateFile));
+});

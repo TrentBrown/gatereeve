@@ -275,9 +275,16 @@ export function environmentChanges(before, after) {
       const item = right ?? left;
       changes.push(item.path ? { kind: 'external-input', repository, path: item.path } : { kind: 'loader-input', repository });
     });
-    // Arguments may contain private loader identities. Report their category,
-    // never the loader/environment value or its private resolved path.
-    if (!equal(a?.closure.arguments, b?.closure.arguments)) changes.push({ kind: 'argument-or-loader-input', repository });
+    // Public arguments retain their selected root; private loader identities
+    // expose only a category, never their environment value or resolved path.
+    if (!equal(a?.closure.arguments, b?.closure.arguments)) {
+      const argumentStart = changes.length;
+      compare(a?.closure.arguments, b?.closure.arguments, item => item.selectedPath ?? 'private-or-invalid-argument', (left, right) => {
+        const item = right ?? left;
+        changes.push(item.selectedPath ? { kind: 'argument-input', repository, path: item.selectedPath } : { kind: 'argument-or-loader-input', repository });
+      });
+      if (changes.length === argumentStart) changes.push({ kind: 'argument-or-loader-input', repository });
+    }
     compare(a?.closure.launches, b?.closure.launches, item => item.selectedPath, (left, right) => {
       changes.push({ kind: 'executable', repository, path: (right ?? left).selectedPath });
     });
