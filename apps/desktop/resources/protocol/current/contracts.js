@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { ContractError } from '../errors.js';
 
-export const CONTRACT = 'gatereeve/current/4';
+export const CONTRACT = 'gatereeve/current/5';
 export const PHASES = ['DESIGNING', 'SPECIFYING', 'PLANNING', 'IMPLEMENTING', 'ACCEPTING', 'INTEGRATED', 'COMPLETE'];
 export const MILESTONES = ['implementation', 'acceptance', 'merge', 'completion'];
 export const HASH = /^sha256:[a-f0-9]{64}$/u;
@@ -39,13 +39,13 @@ export const identity = value => digest(canonical(value));
 // still need verified evidence; optional assessments do not disable other gates.
 export const GATES = Object.freeze([
   { id: 'context', label: 'Pinned source and requirements', role: 'core', at: 'acceptance', waivable: false },
-  { id: 'reconcile', label: 'Record reconciliation', role: 'core', at: 'acceptance', waivable: false },
+  { id: 'reconcile', label: 'Record reconciliation', rule: 'Assess complete feature-level requirement-to-implementation-and-evidence coverage using the retained planning documents. Supporting tasks need not each map to a rubric row. Presentation-only differences are not defects. Missing or ambiguous requirements and uncovered selected criteria prevent PASS.', role: 'independent', at: 'acceptance', waivable: false },
   { id: 'verification', label: 'Build, test and runtime verification', role: 'runner', at: 'acceptance', waivable: true },
   { id: 'spec', label: 'Specification acceptance', rule: 'Score every selected approved rubric criterion against actual Verification and source evidence. PASS only when all required behavior and boundary-feasible evidence are satisfied.', role: 'independent', at: 'acceptance', waivable: true },
   { id: 'pattern', label: 'Pattern review', rule: 'Use the supplied resolved active rules and deterministic triggers. Evaluate every triggered rule, decide agentic triggers with rationale, and report rule IDs/source hashes. Unresolved manual reviews and blocker failures prevent PASS. An existing empty rule scope is a visible warning, never claimed as meaningful pattern coverage.', role: 'assessment', at: 'acceptance', waivable: true },
   { id: 'judge', label: 'Independent compliance judgment', rule: 'Independently assess every selected rubric row, scope creep, contradictions and gaps. Inspect bound Verification receipts; do not assume test success proves reachable behavior. Code/spec verdicts do not replace this judgment.', role: 'independent', at: 'acceptance', waivable: true },
   { id: 'code', label: 'Code review', rule: 'Inspect the actual base/head change, surrounding reachable behavior and cross-repository interactions for supported correctness, security and regression defects. Cite current source and approved requirements. Unrelated pre-existing issues and speculative advice are nonblocking.', role: 'independent', at: 'acceptance', waivable: true },
-  { id: 'triage', label: 'Decision triage', role: 'core', at: 'acceptance', waivable: false },
+  { id: 'triage', label: 'Decision triage', rule: 'Assess material decision dispositions in the retained scratchpad and decisions. Identify unresolved material choices and changes to approved scope without applicable actual authority. Checkbox formatting is irrelevant. Model claims and checked boxes cannot grant authority.', role: 'independent', at: 'acceptance', waivable: false },
   { id: 'explanation', label: 'Human review explanation', rule: 'Produce a self-contained human-readable explanation in summary of the concrete problem, resulting behavior, main implementation choices, actual verification and remaining limitations. Reviewers must be able to inspect the exact change from this retained artifact.', role: 'assessment', at: 'acceptance', waivable: false },
   { id: 'packet', label: 'Review packet integrity', role: 'core', at: 'acceptance', waivable: false },
   { id: 'finalization', label: 'Required release and finalization obligations', role: 'runner', at: 'completion', waivable: true },

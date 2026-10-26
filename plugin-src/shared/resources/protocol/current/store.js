@@ -147,10 +147,11 @@ export class CurrentStore {
     if (!value || typeof value !== 'object') return;
     if (HASH.test(value.hash) && Number.isSafeInteger(value.bytes)) {
       // Only typed generated JSON is traversed. Source and command output stay data.
+      const key = `${value.hash}:${value.bytes}:${value.format ?? 'bytes'}`;
+      if (seen.has(key)) return;
       const bytes = await this.get(value);
-      if (seen.has(value.hash)) return;
-      seen.add(value.hash);
       if (value.format === 'json') await this.closure(JSON.parse(bytes.toString('utf8')), seen);
+      seen.add(key);
       return;
     }
     for (const child of Object.values(value)) await this.closure(child, seen);

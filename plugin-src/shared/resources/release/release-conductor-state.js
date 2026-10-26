@@ -6,7 +6,7 @@ const RC_TAG = /^v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)-rc\.(?:0|[1-9]\
 const REPOSITORY = /^[^/\s]+\/[^/\s]+$/u;
 
 export const CONDUCTOR_STATE_KIND = 'gatereeve-release-conductor-state';
-export const CONDUCTOR_STATE_SCHEMA_VERSION = 1;
+export const CONDUCTOR_STATE_SCHEMA_VERSION = 2;
 export const CONDUCTOR_STAGES = Object.freeze([
   'INITIALIZED',
   'TRUST_PENDING',
@@ -108,7 +108,7 @@ function expectedCondition(stage, failure) {
 }
 
 function expectedNextAction(stage, failure) {
-  if (failure) return failure.retryable ? 'RESUME' : 'BURN_RC';
+  if (failure) return 'INVESTIGATE';
   return NEXT_ACTION[stage];
 }
 

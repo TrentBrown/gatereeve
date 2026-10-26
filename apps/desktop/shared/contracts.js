@@ -141,10 +141,14 @@ function validAgent(value) {
     && isObject(value.plugin)
     && exactKeys(value.plugin, [
       'status', 'version', 'compatibility', 'evidence', 'detail', 'recommendation', 'remediation',
+      ...(Object.hasOwn(value.plugin, 'activation') ? ['activation'] : []),
+      ...(Object.hasOwn(value.plugin, 'activationDetail') ? ['activationDetail'] : []),
     ])
     && ['enabled', 'disabled', 'missing', 'unavailable', 'not-checked'].includes(value.plugin.status)
     && nullableString(value.plugin.version)
     && ['matched', 'compatible', 'incompatible', 'not-checked'].includes(value.plugin.compatibility)
+    && (value.plugin.activation === undefined || ['pending', 'observed'].includes(value.plugin.activation))
+    && (value.plugin.activationDetail === undefined || typeof value.plugin.activationDetail === 'string')
     && nullableString(value.plugin.evidence)
     && typeof value.plugin.detail === 'string'
     && nullableString(value.plugin.recommendation)

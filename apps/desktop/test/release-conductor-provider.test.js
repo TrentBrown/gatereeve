@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 
 import { observeReleaseConductor } from '../main/providers/release-conductor-provider.mjs';
@@ -79,14 +81,17 @@ function request(mergeInputSha = MERGE, featureId = 'feature-one') {
 }
 
 function github(records, { contains = true, expired = false, divergedMerge = null } = {}) {
+  const bytes = Buffer.from(JSON.stringify(records));
+  const digest = 'sha256:' + createHash('sha256').update(bytes).digest('hex');
   const artifacts = records.map((state, index) => ({
     id: 2000 + index,
     name: conductorStateArtifactName(state),
-    expired,
+    expired, digest, size_in_bytes: bytes.length,
     workflow_run: { id: Number(state.run.id) },
   }));
   const byName = new Map(artifacts.map((artifact, index) => [artifact.name, records[index]]));
   return {
+    sharedRuntime: { root: join(tmpdir(), `gr-provider-${process.pid}`), download: async () => bytes, readChain: async path => JSON.parse(await readFile(path, 'utf8')) },
     async run(executable, args) {
       if (executable === 'git') return '';
       if (args[0] !== 'run' || args[1] !== 'download') throw new Error(`Unexpected command ${args.join(' ')}`);
@@ -98,16 +103,17 @@ function github(records, { contains = true, expired = false, divergedMerge = nul
     },
     async runJson(_executable, args) {
       if (args[0] === 'repo') return { nameWithOwner: 'TrentBrown/gatereeve' };
+      if (/actions\/artifacts\/\d+$/.test(args.at(-1))) return artifacts.find(item => item.id === Number(args.at(-1).split('/').at(-1)));
       if (args.at(-1)?.includes('/actions/artifacts')) return [{ artifacts }];
       if (args.at(-1)?.includes('/actions/runs/')) {
         const id = Number(args.at(-1).split('/').at(-1));
         return {
-          id, head_sha: '9'.repeat(40), head_branch: 'main', event: 'workflow_dispatch',
+          id, run_attempt: 1, repository: { full_name: 'TrentBrown/gatereeve' }, status: 'completed', head_sha: '9'.repeat(40), head_branch: 'main', event: 'workflow_dispatch',
           path: '.github/workflows/release-conductor.yml', conclusion: 'success',
         };
       }
       if (args.at(-1)?.includes('/compare/')) {
-        const comparison = args.at(-1);
+        const comparison = '/' + args.at(-1).replace(/^\//, '');
         if (comparison === `/repos/TrentBrown/gatereeve/compare/${SOURCE}...${'9'.repeat(40)}`) {
           return { status: 'ahead' };
         }
@@ -124,9 +130,10 @@ function github(records, { contains = true, expired = false, divergedMerge = nul
   };
 }
 
-test('terminal conductor evidence passes every feature whose final merge is contained', async () => {
+test('terminal conductor evidence passes every feature whose final merge is contained', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'gr-shared-provider-')); t.after(() => rm(root, { recursive: true, force: true }));
   const records = chain();
-  const adapters = github(records);
+  const adapters = github(records); adapters.sharedRuntime.root = root;
   const first = await observeReleaseConductor(request(MERGE, 'feature-one'), adapters);
   const second = await observeReleaseConductor(request(SECOND_MERGE, 'feature-two'), adapters);
   assert.equal(first.outcome, 'PASS');

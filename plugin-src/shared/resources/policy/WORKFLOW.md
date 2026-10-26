@@ -10,8 +10,10 @@ Interview the user on material design decisions, one question at a time where
 needed. Maintain `interview.md`; synthesize `design.md` when the interview ends.
 Obtain explicit design approval before drafting `spec.md`. Derive observable AC
 and a binary rubric. Review semantic consistency and feasible evidence boundaries,
-then validate the spec. Produce `plan.md` with stable steps mapped to rubric rows,
-and `issues.md` with work/status mapping. Record the user's implementation
+then validate its extracted identities and references. Produce useful `plan.md` steps
+and `issues.md` work/status records. Trace coverage at feature level; supporting
+tasks do not each need artificial rubric mappings. Existing independent reviews
+assess completeness, testability and material decision dispositions. Record the user's implementation
 approval against the exact current design/spec/plan/issues commitments.
 
 Use the trusted workspace resolver. A parent folder may own shared documents for
@@ -31,7 +33,8 @@ each commit. Ordinary commits do not require milestone passage.
 Preserve all required acceptance obligations: source/context, reconciliation,
 Verification, spec assessment, pattern review, independent Judge, code review,
 decision triage, explanation and packet integrity. One fresh evaluator independent
-of the implementer may assess code and spec with separate verdicts. Judge remains
+of the implementer may assess code, spec, reconciliation and triage together with
+separate verdicts. Boundary context, packet and retention checks run internally. Judge remains
 required. Optional whiteboard is selected by current run policy. Use actual runner
 receipts and native evaluator execution, never implementer-authored PASS records.
 
@@ -87,3 +90,6 @@ This can cover slice and final PRs without repeating the same human question.
 Keep merge permission explicit and deployment separately authorized. Revocation,
 expiry and changed scope invalidate further use. Open drafts remain the default;
 client-specific closed drafts are an explicit repository setting.
+
+Execution profiles, reuse, recovery, source/artifact acceptance and safe upgrades
+follow `resources/DELIVERY-EXECUTION.md`. Status observations cannot create proof.

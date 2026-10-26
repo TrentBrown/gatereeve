@@ -3,8 +3,9 @@
 Use before planning from a spec.
 
 1. Read the spec document.
-2. Run `scripts/lint_spec.py {branch_dir}`; it must exit 0 before the
-   judgment-based review below. Fix mechanical findings first.
+2. Extract factual identities and references with `spec.validate` through the
+   current adapter. The optional `scripts/lint_spec.py {branch_dir}` uses the same
+   parser for diagnostics. Resolve ambiguity; presentation alone is not a gate.
 3. Confirm acceptance criteria exist and are observable, unambiguous, and
    independently verifiable.
    Confirm each required evidence type can exist at the lifecycle boundary

@@ -26,6 +26,15 @@ function validateNode(schema, value, path) {
     problem(path, 'uses an unsupported JSON Schema node');
   }
   validateType(schema, value, path);
+  if (Array.isArray(schema.anyOf)) {
+    const failures = [];
+    let matched = false;
+    for (const alternative of schema.anyOf) {
+      try { validateNode(alternative, value, path); matched = true; break; }
+      catch (error) { failures.push(error.message); }
+    }
+    if (!matched) problem(path, `does not match an allowed shape: ${failures.join('; ')}`);
+  }
   if (Object.hasOwn(schema, 'const') && !Object.is(value, schema.const)) {
     problem(path, `must equal ${JSON.stringify(schema.const)}`);
   }

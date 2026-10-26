@@ -2,7 +2,7 @@
 
 `resources/protocol/plugin-adapter.js` is the authoritative native adapter.
 The optional `gatereeve` CLI and desktop read the same current contract,
-`gatereeve/current/4`. Send one JSON request on stdin or via `--request-file`:
+`gatereeve/current/5`. Send one JSON request on stdin or via `--request-file`:
 
 ```json
 {"operation":"status","cwd":"/absolute/workspace"}
@@ -71,20 +71,15 @@ expressly includes those actions and `action` is the exact prepared merge object
 No action is inferred from a risk acceptance. Explicit policy amendments can
 change named reconciliation, triage, explanation or Whiteboard exception policy for this candidate; integrity, factual truth and actual authority cannot be waived. Explanation requires such a policy amendment. An ordinary enabled-Whiteboard waiver requires `waiverBasis: { classification: "NON_BEHAVIORAL", evidence: <retained reference> }` from the observed human decision. The basis bytes must remain intact. Behavioral or unknown changes require an explicit Whiteboard policy amendment instead.
 
-Trusted spec, issue and tracker validation binds the shipped helper files, the
-isolated Python interpreter and loaded standard-library source/cache bytes,
-bootstrap and an explicit minimal execution environment shared by all consumers.
-Interpreter selection still resolves the caller-selected executable and binds its
-bytes; incidental observer variables never enter the isolated validator process.
-Changed or missing effective inputs invalidate proof.
-`spec.validate` can refresh unchanged authorized commitments during delivery,
-without changing the phase or asking for a new implementation approval. Failed
-refreshes retain diagnostics and remain blocking. Python runs without user-site
-or environment-injected imports; a new helper import must be included in the
-bound runtime closure before it can qualify. Desktop stages every canonical
-non-test helper byte, forwards discovered Python and Git to current observation,
-and executes packaged helpers from `app.asar.unpacked`. Observation stays read-only;
-missing interpreters or helpers keep dependent evidence unavailable.
+Specification validation uses the current factual Markdown extractor, bound to its
+parser, policy and Node runtime. Stable IDs and pass/fail/evidence fields are
+required; layout is flexible. Duplicate or ambiguous requirements fail extraction.
+Issue/tracker lint checks references; feature coverage and material-decision triage
+are independent judgments batched into existing reviews. No per-task rubric mapping
+or checkbox can grant passage. `spec.validate` refreshes unchanged commitments
+without new implementation authority. Failed validation remains retained.
+Python remains a leaf provider for Git integration/context checks; it does not
+control semantic planning acceptance.
 
 ## Execution and evidence
 
@@ -110,7 +105,7 @@ The effective per-check limit is `check.timeoutMs ?? configuration.timeoutMs ??
 limit and distinguish an actual timeout from a nonzero exit or process/launch
 failure. A timeout remains UNAVAILABLE and does not count as a completed check.
 
-Runner manifests name fingerprint policy `runner-inputs/2` and its bookkeeping
+Runner manifests name fingerprint policy `runner-inputs/3` and its bookkeeping
 rules. Directory traversal omits only regular non-executable files at the known
 Vitest SHA-1 results location (`node_modules/.vite/vitest/<40 hex>/results.json`)
 and pnpm v1 task state (`latest.json` and observed run-ID
@@ -129,11 +124,10 @@ workspace records before validation: creating or changing them still invalidates
 proof. Changing the fingerprint policy requires fresh Verification and dependent
 assessments, preserving planning and historical records.
 
-Mismatch diagnostics identify changed input roots/categories during execution
+Mismatch diagnostics identify changed child paths and input categories during execution
 and later qualification. Runner records retain structured changes and completed
 receipts, including timeouts, when postflight also fails. This does not retain
-dependency source or a full per-file dependency manifest. Inherited environment
-values and private loader paths are not included in these diagnostics.
+dependency source or a retained per-file dependency manifest. Temporary comparison indexes are discarded after comparison. Private environment values and loader paths are not included in diagnostics.
 
 The core hashes declared files/directories (including missing state), executable
 selection/realpath/mode/bytes, supported shebang interpreter chains, explicit path
@@ -249,16 +243,14 @@ runner assumptions without hand-authoring a protocol envelope.
 Implementation authority pins approved design/spec commitments. Plan and issue
 breakdown edits remain ordinary work; each approval still retains the plan/issue
 bytes that were presented. Reconciliation rechecks the current plan, issue and
-tracker mappings before acceptance.
+tracker coverage at the feature level before acceptance.
 
-Runner assumptions hash the entire inherited environment and may declare repository-relative
-`runtimeInputs`. Changes to any inherited CLI/Desktop environment variable
-conservatively invalidate runner proof; executable and installed dependency bytes
-remain bound. Isolated source-only reviews do not inherit those runner assumptions. Completed
-verification receipts establish required check coverage for the authorized scope;
-unexecuted malformed declarations retain diagnostics without creating check obligations; a
-narrower check cannot hide an unresolved failure. Use a scoped exception when
-needed. Starting an interrupted diagnostic job does not revoke existing proof.
+Runner execution uses the resolved controlled environment described in
+[Delivery execution contract](DELIVERY-EXECUTION.md). Only effective inputs affect
+applicability; incidental agent variables do not. Source-only reviews do not inherit
+runner assumptions. Completed checks establish coverage obligations. Replacement
+coverage is qualified by the existing independent spec/Judge review, preserving
+prior failures. A renamed or narrower check cannot hide uncovered behavior.
 
 Relevant open findings are included automatically. `history` can add affected
 closed findings and `claims` names asserted fixes; PASS requires supported
@@ -316,8 +308,7 @@ Combined decisions retain a pending instruction before validation/continuation w
 Pending records grant no requested action; status exposes them and an identical retry
 reconciles one completed decision. Failed spec and reconciliation checks retain exact
 inputs and diagnostics with FAIL or UNAVAILABLE without granting passage. Runner
-applicability hashes the entire inherited environment; execution receives that frozen
-environment. Values are never stored in clear text in the environment fingerprint.
+applicability binds the effective controlled environment; execution receives that frozen environment. Private comparisons use a local HMAC key, and retained logs redact named inherited additions.
 
 Provider structured-value digests use canonical JSON key order with array order preserved. Raw strings and bytes retain their exact-byte digest. Retained provider output therefore validates against the original receipt after storage round-trips; older digest contracts require fresh evaluation.
 

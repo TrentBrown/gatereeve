@@ -234,12 +234,15 @@ export async function smokeApplication(applicationPath, fixturePath, options = {
     };
     delete environment.ELECTRON_RUN_AS_NODE;
     delete environment.NODE_OPTIONS;
+    // The smoke polls renderer animation frames. Keep those advancing when the
+    // isolated test window is occluded by another app during unattended checks.
+    const smokeArgs = ['--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'];
     const child = options.rosettaTranslated
-      ? spawn('/usr/bin/arch', ['-x86_64', executable], {
+      ? spawn('/usr/bin/arch', ['-x86_64', executable, ...smokeArgs], {
         env: environment,
         stdio: ['ignore', 'pipe', 'pipe'],
       })
-      : spawn(executable, [], {
+      : spawn(executable, smokeArgs, {
         env: environment,
         stdio: ['ignore', 'pipe', 'pipe'],
       });

@@ -7,12 +7,15 @@ import { promisify } from 'node:util';
 
 import { validateModuleProviderRequest } from '../protocol/module-runtime.js';
 import { discoverConductorState } from './release-conductor-discovery.js';
+import { observeSharedRelease } from './release-receipt.js';
+import { retryTransient } from './recovery.js';
 
 const execFile = promisify(execFileCallback);
 const PROVIDER = Object.freeze({ id: 'gatereeve/release-conductor', version: '1.0.0' });
 const TAG_FROM_ARTIFACT = /^gatereeve-(v\d+\.\d+\.\d+-rc\.\d+)-release-conductor-/u;
 
 async function command(executable, args, options = {}) {
+  const attempted = await retryTransient(async () => {
   try {
     const result = await execFile(executable, args, {
       cwd: options.cwd,
@@ -23,8 +26,13 @@ async function command(executable, args, options = {}) {
     });
     return result.stdout;
   } catch (error) {
-    throw new Error((error.stderr || error.stdout || error.message || String(error)).trim());
+    const wrapped = new Error((error.stderr || error.stdout || error.message || String(error)).trim());
+    wrapped.code = typeof error.code === 'string' ? error.code : null;
+    wrapped.status = Number(/\bHTTP (429|502|503|504|401|403)\b/u.exec(error.stderr ?? '')?.[1]) || null;
+    throw wrapped;
   }
+  }, { budgetMs: options.retryBudgetMs ?? 120000, onAttempt: options.onAttempt });
+  return attempted.value;
 }
 
 async function jsonCommand(executable, args, options) {
@@ -118,7 +126,14 @@ function liveStatus(discovery, failure = null) {
 export async function observeReleaseConductor(request, {
   run = command,
   runJson = jsonCommand,
+  sharedRuntime = {},
 } = {}) {
+  const attempts = [];
+  const originalRun = run, originalJson = runJson;
+  const optionsFor = options => ({ ...options, retryBudgetMs: request.input.evidence?.retryBudgetMs,
+    onAttempt: attempt => attempts.push(attempt) });
+  run = (executable, args, options) => originalRun(executable, args, optionsFor(options));
+  runJson = (executable, args, options) => originalJson(executable, args, optionsFor(options));
   const evidence = request.input.evidence;
   const repositoryRoot = evidence?.repositoryRoot;
   const mergeInputSha = evidence?.mergeInputSha;
@@ -137,9 +152,29 @@ export async function observeReleaseConductor(request, {
     throw new Error(`GateReeve Release provider does not recognize repository ${repository}`);
   }
   await run(git, ['-C', repositoryRoot, 'cat-file', '-e', `${mergeInputSha}^{commit}`]);
+  const shared = async artifactId => {
+    const receipt = await observeSharedRelease({ root: evidence.workspaceRoot ?? repositoryRoot,
+      repository, artifactId, mergeInputSha, runJson: args => runJson(gh, args, { cwd: repositoryRoot }), ...sharedRuntime });
+    const live = liveStatus({ repository, status: { release: receipt.release, stage: 'COMPLETE', nextAction: 'NONE',
+      stateSha256: receipt.stateSha256, history: receipt.history }, artifacts: [{ artifact: { id: receipt.artifactId } }] });
+    live.attempts.push(...attempts.map((attempt, index) => ({ id: `transport-${index}`, ...attempt })));
+    return { schemaVersion: 1, requestId: request.requestId, provider: PROVIDER, module: request.module,
+      observedInputFingerprint: request.input.inputFingerprint, outcome: 'PASS', live,
+      evidence: { releaseTag: receipt.release.tag, releaseSourceCommit: receipt.release.sourceCommit,
+        featureMergeInputSha: mergeInputSha, sharedReceipt: receipt,
+        retainedDiscovery: { latest: { stage: 'COMPLETE', release: receipt.release } } } };
+  };
+  if (evidence.releaseArtifactId !== undefined) return shared(evidence.releaseArtifactId);
   const listed = pages(await runJson(gh, [
     'api', '--paginate', '--slurp', `/repos/${repository}/actions/artifacts?per_page=100`,
   ], { cwd: repositoryRoot }));
+  // A completed Conductor bundle includes its verified chain. Import it once,
+  // rather than downloading every historical stage for each included feature.
+  for (const artifact of listed.filter(item => /-release-conductor-\d+-complete$/u.test(item.name ?? ''))
+    .sort((a, b) => b.id - a.id)) {
+    try { return await shared(artifact.id); }
+    catch { /* Older releases may not contain the feature; retain normal live discovery. */ }
+  }
   const tags = [...new Set(listed.map(tagFor).filter(Boolean))].sort(compareTags);
   const runCache = new Map();
   const compare = async (ancestor, descendant) => {
@@ -209,7 +244,8 @@ export async function observeReleaseConductor(request, {
   }
   const complete = candidates.find((candidate) => candidate.latest.stage === 'COMPLETE');
   const selected = complete ?? candidates[0] ?? null;
-  const failure = selected === null && firstFailure ? firstFailure : null;
+  const failure = complete ? { code: 'SHARED_RECEIPT_REQUIRED', message: 'Completed release needs a verifiable shared artifact receipt; refresh its provider evidence.' }
+    : selected === null && firstFailure ? firstFailure : null;
   return {
     schemaVersion: 1,
     requestId: request.requestId,
@@ -217,14 +253,7 @@ export async function observeReleaseConductor(request, {
     module: request.module,
     observedInputFingerprint: request.input.inputFingerprint,
     live: liveStatus(selected, failure),
-    outcome: complete ? 'PASS' : null,
-    evidence: complete ? {
-      releaseTag: complete.latest.release.tag,
-      releaseSourceCommit: complete.latest.release.sourceCommit,
-      featureMergeInputSha: mergeInputSha,
-      stateSha256: complete.status.stateSha256,
-      artifactIds: complete.artifacts.map((entry) => entry.artifact.id),
-      retainedDiscovery: complete,
-    } : null,
+    outcome: null,
+    evidence: null,
   };
 }

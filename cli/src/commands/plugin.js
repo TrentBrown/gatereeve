@@ -12,6 +12,7 @@ import { lintPortability } from '../plugin/portability.js';
 import { loadAndValidateNativeSources } from '../plugin/native.js';
 import { loadMarketplacePluginRegistry } from '../plugin/registry.js';
 import { installedSkillNames, runNativeInstallSmoke } from '../plugin/smoke.js';
+import { upgradePlugin } from '../plugin/upgrade.js';
 import { releaseCommands } from './release.js';
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
@@ -50,6 +51,16 @@ export function pluginCommands() {
   const plugin = new Command('plugin').description(
     'Build and maintain native workflow plugin packages'
   );
+  plugin.command('upgrade').description('Recoverably install and verify an exact plugin; preserve active sessions')
+    .requiredOption('--platform <host>', 'codex or claude')
+    .requiredOption('--version <version>', 'Exact expected version')
+    .requiredOption('--expected-package <directory>', 'Verified distribution package for this host')
+    .requiredOption('--receipt <path>', 'Persistent upgrade/recovery receipt')
+    .option('--plugin-id <id>', 'Plugin identity', 'agentic-development-workflow')
+    .action(async options => {
+      const result = await upgradePlugin({ ...options, receiptPath: options.receipt });
+      console.log(JSON.stringify(result, null, 2));
+    });
 
   plugin
     .command('build')

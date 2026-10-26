@@ -134,7 +134,7 @@ test('records retryable failure without advancing and then resumes forward', () 
     failure: { code: 'APPLE_POLL_TIMEOUT', message: 'Polling reached its bound', retryable: true },
   });
   assert.equal(failed.condition, 'failed');
-  assert.equal(failed.nextAction, 'RESUME');
+  assert.equal(failed.nextAction, 'INVESTIGATE');
   const trusted = createConductorState({
     previous: failed,
     stage: 'TRUSTED',
@@ -147,7 +147,7 @@ test('records retryable failure without advancing and then resumes forward', () 
   assert.equal(validateConductorStateChain([initialized, trustPending, failed, trusted]).at(-1), trusted);
 });
 
-test('marks nonretryable conflicts as requiring a burned RC', () => {
+test('returns unexplained conflicts to model investigation', () => {
   const [initialized] = fullChain();
   const failed = createConductorState({
     previous: initialized,
@@ -157,7 +157,7 @@ test('marks nonretryable conflicts as requiring a burned RC', () => {
     recordedAt: time(2),
     failure: { code: 'TAG_CONFLICT', message: 'The tag already identifies other bytes', retryable: false },
   });
-  assert.equal(failed.nextAction, 'BURN_RC');
+  assert.equal(failed.nextAction, 'INVESTIGATE');
   assert.match(renderConductorSummary(projectConductorStatus([initialized, failed])), /TAG_CONFLICT/u);
 });
 

@@ -357,6 +357,8 @@ async function observeAgent(id, { exec, discover, metadata }) {
     cli,
     plugin: {
       status: pluginResult.status,
+      activation: 'pending',
+      activationDetail: 'Installation and enablement are observed separately from activation in a fresh session. Active sessions are preserved.',
       version: pluginResult.version,
       compatibility: compatibility.state,
       evidence: compatibility.evidence,

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:6a6fe772f2763eb7ccab5334c4246e9c86b6a213205bfc6ed4ba8ea900022186",
-  "contract": "gatereeve/current/4",
-  "contractSha256": "2363a1c6b98a788bce813a2f658b1d5064ac58b620abd3d18e52bbd7150e0761",
+  "protocolHash": "sha256:52de653f251bf7a0c7423284411ffd11a49732191210d6ded7812db3d29ffd33",
+  "contract": "gatereeve/current/5",
+  "contractSha256": "f9a65f102ae6bb83c83bc86c66fbcd07073df3253db9db79c7d924445b9984d1",
   "files": [
     {
       "path": "agent-workflow.js",
@@ -22,8 +22,8 @@
     },
     {
       "path": "current/actions.js",
-      "size": 13566,
-      "sha256": "515a740665715d18f1b91e34008509fdfa0021a2bfdff3803b53dc1248ce59ee"
+      "size": 13573,
+      "sha256": "c693d5c8f99fada50e83e31d4117638f05ed52fd7aacae90e7f2cf5dca63bc0f"
     },
     {
       "path": "current/adapter.js",
@@ -37,28 +37,48 @@
     },
     {
       "path": "current/contracts.js",
-      "size": 12376,
-      "sha256": "2363a1c6b98a788bce813a2f658b1d5064ac58b620abd3d18e52bbd7150e0761"
+      "size": 12982,
+      "sha256": "f9a65f102ae6bb83c83bc86c66fbcd07073df3253db9db79c7d924445b9984d1"
     },
     {
       "path": "current/core.js",
-      "size": 58175,
-      "sha256": "e5bc51f7cd2db60ec82bae2f433c05e23e34853fe4bf270bdb8c75582efb3565"
+      "size": 67242,
+      "sha256": "4d00fd975d5a010de6bd705f1eec642acb9afbf9a8d962cbdf758057b294af2f"
+    },
+    {
+      "path": "current/coverage.js",
+      "size": 2881,
+      "sha256": "29ec08cfb475154cb91495a48eaa9aa9629edc2b0d707e2fe1adef70a27d58c1"
+    },
+    {
+      "path": "current/delivery.js",
+      "size": 7050,
+      "sha256": "4a1f3bec2beef7b8ea803d4240677c674d7e9d0e318175ec8572623ecfd6efbd"
+    },
+    {
+      "path": "current/diagnostics.js",
+      "size": 1335,
+      "sha256": "af703a3545686bf1e3fde16c166e1487c9b73c54fe42a2b3d21837545b9e42e6"
     },
     {
       "path": "current/environment.js",
-      "size": 18734,
-      "sha256": "575d87c5bdc3b2106875bfe330ef2fce061090b36dac50fc1c8803f45a383ad1"
+      "size": 26640,
+      "sha256": "9c0b4cf0445d121a52b22b3bbefceb86590095ad7043716828fe129ddde58471"
     },
     {
       "path": "current/evidence.js",
-      "size": 17319,
-      "sha256": "516a1a966001c3a891e4ceef6b6153798785c2225a66c4fb6cb2a795779ee5e7"
+      "size": 17350,
+      "sha256": "1f0f5ed0b17665f2f1f9f23f6b8d9fbb2333a2787b53ee638f7a4bf108e0afe1"
     },
     {
       "path": "current/execution.js",
-      "size": 52401,
-      "sha256": "c4abe51f5da745570aee060a38bf3d290ab63ea6e61ca444338afea38b3360b5"
+      "size": 57724,
+      "sha256": "3cb02725a4b3becd1bbbc5a73cc9596fb1e4c4bdd1b06371432afa3328215082"
+    },
+    {
+      "path": "current/generated-inputs.js",
+      "size": 2681,
+      "sha256": "45a949ceaa60520fd0f4b9e4ff36a1a102c011bed45da8c3b5c0906cffcd646d"
     },
     {
       "path": "current/git-source.js",
@@ -76,9 +96,24 @@
       "sha256": "7b94faf89a89b13b5f2653859d9f339ce9c12a293663fc9be5b1f9edb7e0ba68"
     },
     {
+      "path": "current/planning-lint.js",
+      "size": 1248,
+      "sha256": "2007310382cb1b9fcd65c5c3883d76584604d56af0aac7023d72e2aaeb775126"
+    },
+    {
+      "path": "current/planning.js",
+      "size": 5041,
+      "sha256": "97d6893eb291808dc0f0cc19b90d6fdbe13cafd37c4319cc9e0c7a2bdafb7485"
+    },
+    {
       "path": "current/pre-tool-use.js",
       "size": 2078,
       "sha256": "68c605c45c00358c20adb9d764f579539d934b081e78396b748626dcf466bed7"
+    },
+    {
+      "path": "current/runner-profile.js",
+      "size": 3972,
+      "sha256": "dc6f109d0d4c17e373832955868be594cd316ca47a93f7a058811758a69687ec"
     },
     {
       "path": "current/source-retention.js",
@@ -92,8 +127,13 @@
     },
     {
       "path": "current/store.js",
-      "size": 16610,
-      "sha256": "64cb3582da01bf2af1f28e047f10780c17036be0d599718d7da11513470dec6c"
+      "size": 16673,
+      "sha256": "2362b25c90401222b8588cbc4e8025fbf48c67c6b011e8e78078315d06d43e46"
+    },
+    {
+      "path": "current/workspace-sources.js",
+      "size": 4035,
+      "sha256": "a5ba81c027679447397806c79f0add8d0c96e3139a06c2ff1c1497ddfbaa6f16"
     },
     {
       "path": "errors.js",
@@ -107,8 +147,8 @@
     },
     {
       "path": "json-schema.js",
-      "size": 3984,
-      "sha256": "f8ecf7ea29682db2fded10730222d961270273af86ce335024cf217b5e7cd243"
+      "size": 4350,
+      "sha256": "eac9ac1d40cac89fca3c28a162bcec65d922307ca4b4c9e37aeb804d7848da88"
     },
     {
       "path": "local-agent-adapters.js",
@@ -132,8 +172,8 @@
     },
     {
       "path": "python-guards.js",
-      "size": 8519,
-      "sha256": "9b44f3a4cb15abfdf744c578cf563b120c99b26ab1f6e76d7d46142af3fe3627"
+      "size": 3069,
+      "sha256": "cf83ce944280acd9adc4dd20cea18ac6ca93d06b36602ea8d55a82c9d2e4e180"
     },
     {
       "path": "result.js",
