@@ -53,7 +53,7 @@ export async function upgradePlugin({ platform, pluginId = 'agentic-development-
     const entry = platform === 'codex' ? listed.installed?.find(item => item.pluginId === qualified)
       : listed.find(item => item.id === qualified);
     const path = entry?.source?.path ?? entry?.installPath;
-    const present = entry?.version === version && path;
+    const present = (platform !== 'codex' || entry?.installed === true) && entry?.version === version && path;
     receipt.installed = present ? { version, path, digest: await inventory(path) } : null;
     receipt.enabled = entry?.enabled === true;
     return Boolean(present && receipt.installed.digest === expectedDigest);

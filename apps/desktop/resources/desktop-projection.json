@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:f1868b0499e6021d44866dd9f6c619e597df6eab8b3ea59e48f27caa641b3b96",
+  "protocolHash": "sha256:cc1e19d9d1d08ddfe12d2898678c0164601c54dbf45aa7dc42a696cde4800323",
   "contract": "gatereeve/current/5",
   "contractSha256": "f9a65f102ae6bb83c83bc86c66fbcd07073df3253db9db79c7d924445b9984d1",
   "files": [
@@ -42,8 +42,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 66697,
-      "sha256": "74845b52fef9c94156b21c3a40e9b14051d5b52a3b908c0d3c838b27e9fa4d3f"
+      "size": 67156,
+      "sha256": "8d62fe91dbd4c1717320a5c95c128127a35efbe7c17fec171d58ebf056ec0563"
     },
     {
       "path": "current/coverage.js",
@@ -62,8 +62,8 @@
     },
     {
       "path": "current/environment.js",
-      "size": 22853,
-      "sha256": "7ef4713beeb05e3ac9e17269c6f4422f69b7fe00cfcf76ba0c7309ce03016dae"
+      "size": 26478,
+      "sha256": "a5848abd3962bbf0a59ec84873262de5b22a482ce6430142f7e8d3af52c251e6"
     },
     {
       "path": "current/evidence.js",
@@ -72,13 +72,13 @@
     },
     {
       "path": "current/execution.js",
-      "size": 56766,
-      "sha256": "2fcbb9dd1ff7fc556d891cf6fad5a1ca56a7b7e9133cd20ca4aac8cda1a1d2dc"
+      "size": 57653,
+      "sha256": "502ff072c945d4f6c04149a7b3a9fcd60dd9795ec678f9b499c7aedf450751b6"
     },
     {
       "path": "current/generated-inputs.js",
-      "size": 2646,
-      "sha256": "76ce87fcefea28229df969a3093cdcc3dd9665848c041e00f235957ff8479603"
+      "size": 2681,
+      "sha256": "45a949ceaa60520fd0f4b9e4ff36a1a102c011bed45da8c3b5c0906cffcd646d"
     },
     {
       "path": "current/git-source.js",
@@ -112,8 +112,8 @@
     },
     {
       "path": "current/runner-profile.js",
-      "size": 3877,
-      "sha256": "e4007db4300c342eba5f8dec84967f2ac5644220ca60b68867e7e2fd51a4113c"
+      "size": 3972,
+      "sha256": "dc6f109d0d4c17e373832955868be594cd316ca47a93f7a058811758a69687ec"
     },
     {
       "path": "current/source-retention.js",

@@ -11,7 +11,7 @@ export const ENVIRONMENT_POLICY = 'controlled-environment/1';
 export function runnerEnvironment(configuration = {}, inherited = process.env) {
   const profile = configuration.environment ?? {};
   requireThat(profile && typeof profile === 'object' && !Array.isArray(profile), 'Environment profile must be an object');
-  requireThat(Object.keys(profile).every(key => ['inherit', 'values', 'required'].includes(key)), 'Unknown environment profile field');
+  requireThat(Object.keys(profile).every(key => ['inherit', 'publicValues', 'required'].includes(key)), 'Use inherit for private settings or publicValues for deliberately public literals; unknown environment profile field');
   const environment = { PATH: inherited.PATH ?? '/usr/bin:/bin', LANG: 'C', LC_ALL: 'C' };
   for (const name of ['HOME', 'USER', 'LOGNAME', 'SHELL', 'TMPDIR', 'TEMP', 'TMP', 'SystemRoot', 'COMSPEC', 'PATHEXT']) {
     if (inherited[name] !== undefined) environment[name] = inherited[name];
@@ -19,7 +19,7 @@ export function runnerEnvironment(configuration = {}, inherited = process.env) {
   for (const key of ['inherit', 'required']) requireThat(Array.isArray(profile[key] ?? [])
     && (profile[key] ?? []).every(name => typeof name === 'string' && NAME.test(name)), `Environment ${key} must name variables`);
   for (const name of profile.inherit ?? []) if (inherited[name] !== undefined) environment[name] = inherited[name];
-  const values = profile.values ?? {};
+  const values = profile.publicValues ?? {};
   requireThat(values && typeof values === 'object' && !Array.isArray(values), 'Environment values must be an object');
   for (const [name, value] of Object.entries(values)) {
     requireThat(NAME.test(name) && typeof value === 'string' && !value.includes('\0'), 'Invalid environment setting');

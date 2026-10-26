@@ -17,7 +17,7 @@ attempt; the same effective environment launches every declared check.
   "environment": {
     "inherit": ["PROJECT_TEST_TOKEN"],
     "required": ["PROJECT_TEST_TOKEN"],
-    "values": {"NODE_ENV": "test"}
+    "publicValues": {"NODE_ENV": "test"}
   },
   "externalRuntimeInputs": {"app": []},
   "workspaceSources": {"app": ["packages/unusual"]},
@@ -29,7 +29,7 @@ attempt; the same effective environment launches every declared check.
 }
 ```
 
-Keep secrets out of literal `values` and arguments; inherit named settings instead.
+Keep secrets out of literal `publicValues` and arguments; inherit named settings instead.
 Required missing values fail before launch. Environment identities use a private
 local comparison key; key loss requires refreshed proof. Logs redact named inherited
 additions before retention. Failed-check excerpts default to 64 KiB and changed-path lists to 100 entries, with truncation
@@ -93,3 +93,11 @@ flow and require separate switch/restart authorization for active sessions.
 approvals. Its transition report explains retained versus refresh-required evidence.
 It never fabricates execution under the new environment contract. The current
 contract replaces the old runtime; no compatibility execution mode is provided.
+
+Changed-child baselines retain only compressed path/identity hashes in the local
+feature diagnostic cache while work remains active. They are not reviewer source
+bundles or gate authority. Comparison restores and verifies the baseline after a
+process restart; completion releases it once jobs and source cleanup finish.
+Private settings must use named inheritance. `publicValues` explicitly declares
+nonsecret literals for public receipts; the ambiguous `values` field is rejected
+before input retention or launch. No per-setting human approval is required.

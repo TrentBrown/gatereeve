@@ -4,7 +4,7 @@ import { observeReleaseConductor } from '../../release/release-conductor-observe
 import { workflowContextGuard } from '../context.js';
 import { ContractError } from '../errors.js';
 import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
-import { executionEnvironment, assertEnvironmentCurrent } from './environment.js';
+import { executionEnvironment, assertEnvironmentCurrent, restoreComparisonIndexes, releaseComparisonIndexes } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
 import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, requireThat, identity,
@@ -510,6 +510,7 @@ export class CurrentCore {
     for (const ref of inputs.support ?? []) await this.store.currentBytes(ref);
     const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
     if (!memo.has(environmentKey)) memo.set(environmentKey, executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner'));
+    await restoreComparisonIndexes(this.context, inputs.environment);
     assertEnvironmentCurrent(inputs.environment, await memo.get(environmentKey));
     if (gate(result.gate).at === 'completion') requireThat(identity(inputs.integrations) === identity(state.integrations), 'Integration source changed');
     if (inputs.validUntil) requireThat(Date.now() <= Date.parse(inputs.validUntil), 'External evidence validity expired');
@@ -614,6 +615,7 @@ export class CurrentCore {
       const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
       if (!environments.has(environmentKey)) environments.set(environmentKey,
         await executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner'));
+      await restoreComparisonIndexes(this.context, inputs.environment);
       assertEnvironmentCurrent(inputs.environment, environments.get(environmentKey), 'Execution environment changed during milestone validation');
       if (inputs.pattern) {
         const key = contentIdentity(candidate);
@@ -879,6 +881,10 @@ export class CurrentCore {
     const pending = Object.values(state.jobs).some(job => !job.finished);
     const result = pending ? { status: 'pending', errors: [{ reason: 'Active or unresolved jobs still own source references' }] }
       : await releasePins(this.context, state.sourcePreparations);
+    if (!pending && result.status === 'released') {
+      try { await releaseComparisonIndexes(this.context); }
+      catch (error) { result.status = 'pending'; result.errors = [...(result.errors ?? []), { reason: `Diagnostic cleanup: ${error.message}` }]; }
+    }
     if (identity(result) !== identity(state.sourceCleanup)) await this.append((await this.state()).state, 'SOURCE_CLEANUP', result,
       { id: `cleanup_${randomUUID()}`, hash: identity(result) });
   }

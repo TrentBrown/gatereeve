@@ -17,7 +17,7 @@ export async function outputIdentity(root, path) {
     requireThat(info.isDirectory(), 'Unsupported generated output kind');
     const entries = [];
     for (const name of (await readdir(absolute)).sort()) entries.push([name, await visit(join(absolute, name))]);
-    return identity(entries);
+    return { mode: info.mode & 0o777, hash: identity(entries) };
   };
   return { path, hash: identity(await visit(join(root, path))) };
 }

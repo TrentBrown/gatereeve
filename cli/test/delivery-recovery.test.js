@@ -128,3 +128,17 @@ test('actual matrix wrapper reuses only qualified entries and preserves substant
   await assert.rejects(matrixCheck({ ...options, runId: '105', priorRunId: '100' }), /corrupt/);
   assert.equal(launches, 4);
 });
+
+test('Codex marketplace availability cannot masquerade as an installed package', async t => {
+  const root=await temporary(t), expected=join(root,'expected');
+  await mkdir(join(expected,'.codex-plugin'),{recursive:true});
+  await writeFile(join(expected,'.codex-plugin/plugin.json'),JSON.stringify({name:'agentic-development-workflow',version:'0.1.0-test'}));
+  let installed=false,adds=0;
+  const runner=async(_,args)=>{
+    if(args[1]==='list') return JSON.stringify({installed:[{pluginId:'agentic-development-workflow@quality-code',version:'0.1.0-test',installed,enabled:true,source:{path:expected}}]});
+    if(args[1]==='marketplace') return JSON.stringify({marketplaces:[{name:'quality-code',marketplaceSource:{sourceType:'local'}}]});
+    if(args[1]==='add'){adds++;installed=true;} return '{}';
+  };
+  const result=await upgradePlugin({platform:'codex',version:'0.1.0-test',expectedPackage:expected,receiptPath:join(root,'receipt.json'),runner});
+  assert.equal(adds,1);assert.equal(result.phase,'installed-activation-pending');
+});

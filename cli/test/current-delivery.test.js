@@ -165,3 +165,33 @@ test('native evaluator repairs a retained synthetic malformed response without e
   assert.equal(report.findings[0].criterion, 'gate:code');
   assert.notEqual((await f.core.store.json(report.receipt)).evaluator.contextId, 'test-implementer');
 });
+
+test('criterion repair preserves assessments while fixing only invalid identifiers', () => {
+  const original = {gate:'spec',outcome:'FAIL',findings:[],criteria:[{id:'rubric-one',outcome:'FAIL',evidence:'Original failure evidence'}]};
+  const corrected = {...original,criteria:[{...original.criteria[0],id:'R1'}]};
+  assert.doesNotThrow(()=>validateFormatRepair(original,corrected,['R1']));
+  assert.throws(()=>validateFormatRepair(original,{...corrected,criteria:[{...corrected.criteria[0],outcome:'PASS'}]},['R1']),/outcomes/);
+  assert.throws(()=>validateFormatRepair(corrected,{...corrected,criteria:[{...corrected.criteria[0],id:'R2'}]},['R1','R2']),/reassigned/);
+});
+
+test('independent spec correction can repair an invalid row ID without redoing its assessment', async t => {
+  const f=await ready(t); await verify(f);
+  evaluator(f,(output,request)=>{
+    if(request.input.repair) output.verdicts=[{...request.input.repair.original,criteria:request.input.repair.original.criteria.map(row=>({...row,id:'R1'}))}];
+    else output.verdicts[0].criteria[0].id='rubric-one';
+  });
+  const first=await f.request('gate.execute',{gates:['spec'],configuration:reviewConfig});
+  const original=first.event.payload.results[0]; assert.equal((await f.core.store.json(original)).outcome,'UNAVAILABLE');
+  const next=await f.request('gate.execute',{gates:['spec'],configuration:reviewConfig,repair:original});
+  const result=await f.core.store.json(next.event.payload.results[0]);
+  assert.equal(result.outcome,'PASS',result.summary); assert.equal(result.criteria[0].id,'R1');
+  assert.equal((await f.core.store.json(original)).unvalidatedVerdict.criteria[0].id,'rubric-one');
+});
+
+test('generated output identity includes directory permissions', async t => {
+  const f=await ready(t); const {chmod}=await import('node:fs/promises');
+  const {outputIdentity}=await import('../../plugin-src/shared/resources/protocol/current/generated-inputs.js');
+  await mkdir(join(f.repo,'dist')); await writeFile(join(f.repo,'dist/value'),'same');
+  await chmod(join(f.repo,'dist'),0o755); const before=await outputIdentity(f.repo,'dist');
+  await chmod(join(f.repo,'dist'),0o700); assert.notDeepEqual(await outputIdentity(f.repo,'dist'),before);
+});

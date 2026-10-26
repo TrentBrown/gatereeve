@@ -55,7 +55,8 @@ export function reviewSchema(gates, criteria) {
   return output;
 }
 
-export function validateFormatRepair(original, corrected) {
+export function validateFormatRepair(original, corrected, selectedCriteria = []) {
+  const permitted = new Set([...selectedCriteria, `gate:${original.gate}`]);
   requireThat(corrected.gate === original.gate && corrected.outcome === original.outcome, 'Verdict changes require substantive reassessment, not format repair');
   const oldFindings = original.findings ?? [];
   requireThat(Array.isArray(corrected.findings) && corrected.findings.length === oldFindings.length, 'Format repair must preserve all original findings');
@@ -63,8 +64,17 @@ export function validateFormatRepair(original, corrected) {
     const after = corrected.findings.find(item => item.id === before.id);
     requireThat(after && ['id', 'classId', 'path', 'evidence', 'blocking'].every(key => identity(after[key] ?? null) === identity(before[key] ?? null)),
       'Format repair must preserve finding identity, severity and evidence');
+    if (permitted.has(before.criterion)) requireThat(after.criterion === before.criterion, 'Valid finding criterion cannot be reassigned by format repair');
   }
-  for (const key of ['coverage', 'criteria', 'dispositions', 'historyAssessment', 'coverageDecisions']) {
+  if (original.criteria !== undefined) {
+    requireThat(Array.isArray(corrected.criteria) && corrected.criteria.length === original.criteria.length, 'Format repair must retain every criterion assessment');
+    for (const [index, before] of original.criteria.entries()) {
+      const after = corrected.criteria[index];
+      requireThat(after && after.outcome === before.outcome && after.evidence === before.evidence, 'Format repair must preserve criterion outcomes and evidence');
+      if (permitted.has(before.id)) requireThat(after.id === before.id, 'Valid criterion cannot be reassigned by format repair');
+    }
+  }
+  for (const key of ['coverage', 'dispositions', 'historyAssessment', 'coverageDecisions']) {
     if (original[key] !== undefined) requireThat(identity(original[key]) === identity(corrected[key]), 'Substantive assessment changes are not format repair');
   }
 }
@@ -542,7 +552,7 @@ export async function executeGates(core, input, operation) {
           validateJsonSchema(schema.properties.verdicts.items, selected[0], { label: id });
           validateVerdict(selected[0], input.gates, candidate, changes, history, input.claims ?? [], value.reconsiderClosures);
           validateCoverageDecisions(selected[0], replacements);
-          if (value.repair) validateFormatRepair(value.repair.original, selected[0]);
+          if (value.repair) validateFormatRepair(value.repair.original, selected[0], candidate.criteria);
           return selected[0];
         } catch (error) {
           const original = returned.find(item => item?.gate === id);

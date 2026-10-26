@@ -3,7 +3,7 @@ import test from 'node:test';
 import { mkdtemp, mkdir, writeFile, chmod, realpath, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { executionEnvironment, environmentChanges, assertEnvironmentCurrent, RUNNER_FINGERPRINT_POLICY } from '../../plugin-src/shared/resources/protocol/current/environment.js';
+import { executionEnvironment, environmentChanges, assertEnvironmentCurrent, restoreComparisonIndexes, releaseComparisonIndexes, RUNNER_FINGERPRINT_POLICY } from '../../plugin-src/shared/resources/protocol/current/environment.js';
 import { identity } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
 import { runnerEnvironment } from '../../plugin-src/shared/resources/protocol/current/runner-profile.js';
 import { runCheckProcess } from '../../plugin-src/shared/resources/protocol/current/execution.js';
@@ -233,7 +233,7 @@ test('unrecognized and unpinned workspace declarations cannot exempt dependency 
 });
 
 test('controlled profile executes additions and strips incidental host inputs', async () => {
-  const configuration = { environment: { inherit: ['PROJECT_SETTING'], required: ['PROJECT_SETTING'], values: { FIXED_SETTING: 'fixed' } } };
+  const configuration = { environment: { inherit: ['PROJECT_SETTING'], required: ['PROJECT_SETTING'], publicValues: { FIXED_SETTING: 'fixed' } } };
   assert.throws(() => runnerEnvironment(configuration, {}), /PROJECT_SETTING/);
   const env = runnerEnvironment(configuration, { PATH: process.env.PATH, PROJECT_SETTING: 'project', INCIDENTAL: 'agent-session' });
   const result = await runCheckProcess({ command: process.execPath, args: ['-e', 'console.log(JSON.stringify([process.env.PROJECT_SETTING,process.env.FIXED_SETTING,process.env.INCIDENTAL]))'] }, configuration, process.cwd(), env);
@@ -274,4 +274,24 @@ test('project diagnostic limits explicitly truncate changed-child display', asyn
   await writeFile(join(f.tools, 'a'), 'after'); await writeFile(join(f.tools, 'b'), 'after');
   const changes = environmentChanges(before, await f.bind());
   assert.equal(changes.length, 2); assert.deepEqual(changes[1], { kind: 'truncated', omitted: 1 });
+});
+
+test('retained child baselines survive serialization and completion releases only the owning feature cache', async t => {
+  const f = await fixture(t);
+  await mkdir(join(f.repo, 'node_modules/pkg'), { recursive: true });
+  await writeFile(join(f.repo, 'node_modules/pkg/index.js'), 'before');
+  const before = JSON.parse(JSON.stringify(await f.bind()));
+  await writeFile(join(f.repo, 'node_modules/pkg/index.js'), 'after');
+  const after = await f.bind();
+  assert.equal(await restoreComparisonIndexes(f.context, before), true);
+  assert.ok(environmentChanges(before, after).some(item => item.path === 'node_modules/pkg/index.js'));
+  const isolated = await fixture(t), other = JSON.parse(JSON.stringify(await isolated.bind()));
+  await releaseComparisonIndexes(f.context);
+  assert.equal(await restoreComparisonIndexes(f.context, JSON.parse(JSON.stringify(before))), false);
+  assert.equal(await restoreComparisonIndexes(isolated.context, other), true);
+});
+
+test('ambiguous private literal values are rejected before a profile can be retained', () => {
+  assert.throws(() => runnerEnvironment({environment:{values:{PASSWORD:'private'}}}), /inherit.*publicValues/);
+  assert.equal(runnerEnvironment({environment:{publicValues:{NODE_ENV:'test'}}}).NODE_ENV, 'test');
 });

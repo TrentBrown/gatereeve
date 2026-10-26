@@ -1,5 +1,7 @@
-import { access, lstat, readdir, readFile, realpath } from 'node:fs/promises';
+import { access, lstat, readdir, readFile, realpath, mkdir, writeFile, link, rm } from 'node:fs/promises';
 import { constants } from 'node:fs';
+import { gzipSync, gunzipSync } from 'node:zlib';
+import { randomUUID } from 'node:crypto';
 import { basename, dirname, delimiter, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { release, version } from 'node:os';
@@ -23,6 +25,54 @@ const OMIT_BOOKKEEPING = Symbol('bookkeeping');
 const comparisonIndexes = new WeakMap();
 const comparisonLimits = new WeakMap();
 const externalIndexes = new WeakMap();
+// Diagnostic baselines are compressed local hashes/identities, not source bodies
+// or gate proof. Retain them while the feature is active and release at completion.
+const indexRoot = context => join(context.featureHome ?? context.repositories[0].path, '.gatereeve-current', 'diagnostic-indexes');
+async function safeIndexRoot(context) {
+  const directory = indexRoot(context);
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  requireThat((await lstat(directory)).isDirectory() && !(await lstat(directory)).isSymbolicLink(), 'Unsafe diagnostic cache');
+  return directory;
+}
+async function retainIndexes(context, manifest, indexes) {
+  const data = { local: [...indexes].map(([key, entries]) => [key, [...entries]]),
+    external: manifest.executables.map(item => [item.repository, [...(externalIndexes.get(item.closure) ?? [])].map(([key, entries]) => [key, [...entries]])]) };
+  manifest.diagnosticIndex = { digest: identity(data) };
+  const bytes = gzipSync(Buffer.from(JSON.stringify(data))), name = `${manifest.diagnosticIndex.digest.slice(7)}.json.gz`;
+  let pending;
+  try {
+    const root = await safeIndexRoot(context); pending = join(root, `${randomUUID()}.pending`);
+    await writeFile(pending, bytes, { flag: 'wx', mode: 0o600 });
+    await link(pending, join(root, name)).catch(error => { if (error.code !== 'EEXIST') throw error; });
+  } catch { /* Optional diagnostic cache cannot grant or block evidence qualification. */ }
+  finally { if (pending) await rm(pending, { force: true }).catch(() => {}); }
+}
+export async function restoreComparisonIndexes(context, manifest) {
+  if (comparisonIndexes.has(manifest)) return true;
+  try {
+    requireThat(/^sha256:[a-f0-9]{64}$/u.test(manifest.diagnosticIndex?.digest ?? ''), 'No diagnostic baseline');
+    const root = indexRoot(context), path = join(root, `${manifest.diagnosticIndex.digest.slice(7)}.json.gz`);
+    requireThat((await lstat(root)).isDirectory() && !(await lstat(root)).isSymbolicLink(), 'Unsafe diagnostic cache');
+    const info = await lstat(path);
+    requireThat(info.isFile() && !info.isSymbolicLink() && info.size <= 16 * 1024 * 1024, 'Unavailable diagnostic baseline');
+    const data = JSON.parse(gunzipSync(await readFile(path), { maxOutputLength: 64 * 1024 * 1024 }));
+    requireThat(identity(data) === manifest.diagnosticIndex.digest, 'Diagnostic baseline changed');
+    comparisonIndexes.set(manifest, new Map(data.local.map(([key, entries]) => [key, new Map(entries)])));
+    const external = new Map(data.external);
+    for (const item of manifest.executables) externalIndexes.set(item.closure, new Map((external.get(item.repository) ?? []).map(([key, entries]) => [key, new Map(entries)])));
+    return true;
+  } catch { return false; }
+}
+export async function releaseComparisonIndexes(context) {
+  const root = indexRoot(context);
+  let info; try { info = await lstat(root); } catch (error) { if (error.code === 'ENOENT') return; throw error; }
+  requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Unsafe diagnostic cache');
+  for (const name of await readdir(root)) if (/^[a-f0-9]{64}\.json\.gz$/u.test(name)) {
+    const path = join(root, name), entry = await lstat(path);
+    requireThat(entry.isFile() && !entry.isSymbolicLink(), 'Unsafe diagnostic baseline');
+    await rm(path);
+  }
+}
 const portable = path => path.split(sep).join('/');
 const taskRoot = /\/node_modules\/\.pnpm-task-run-state-v1$/u;
 function bookkeepingContainer(path) {
@@ -228,7 +278,7 @@ async function externalClosure(root, checks, declared, environment, managedStore
       const value = await capture(join(actual, name), next, false, index);
       if (value !== OMIT_BOOKKEEPING) entries.push([name, value]);
     }
-    if (!exact && !entries.length && bookkeepingContainer(path)) return OMIT_BOOKKEEPING;
+    if (!exact && !entries.length && bookkeepingContainer(path)) { index?.delete(path); return OMIT_BOOKKEEPING; }
     return { mode: info.mode & 0o777, hash: identity(entries) };
   };
   for (const argument of arguments_) if (argument.path) {
@@ -297,6 +347,7 @@ export async function executionEnvironment(context, candidate, configuration, ru
   requireThat(Number.isSafeInteger(limit) && limit >= 0, 'Diagnostic maxChangedPaths must be a nonnegative integer');
   comparisonLimits.set(manifest, limit);
   comparisonIndexes.set(manifest, indexes);
+  await retainIndexes(context, manifest, indexes);
   return manifest;
 }
 
@@ -326,7 +377,7 @@ export function environmentChanges(before, after) {
       if (!equal(left.get(path), right.get(path))) childChanges.push({ kind: 'runtime-input', repository: item.repository, path,
         change: !left.has(path) ? 'added' : !right.has(path) ? 'removed' : right.get(path).kind === 'link' ? 'retargeted' : 'modified' });
     }
-    changes.push(...(childChanges.length ? childChanges : [{ kind: 'runtime-input', repository: item.repository, path: item.path }]));
+    changes.push(...(childChanges.length ? childChanges : [{ kind: 'runtime-input', repository: item.repository, path: item.path, ...(left && right ? {} : { detail: 'Child diagnostic baseline unavailable; relevant input change remains blocking' }) }]));
   });
   compare(before.executables, after.executables, item => item.repository, (a, b) => {
     const repository = (b ?? a).repository, start = changes.length;
