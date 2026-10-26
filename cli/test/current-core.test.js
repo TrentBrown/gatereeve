@@ -466,7 +466,15 @@ test('pattern rules are retained and policy changes invalidate earlier assessmen
   await assert.rejects(f.core.currentResult(result.event.payload.results[0], current, state), /Pattern policy/);
 });
 
-for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'candidate-before-write', 'candidate-after-write']) test(`protected merge ${drift === 'candidate-after-write' ? 'does not attribute an observed merge to a replacement candidate' : drift === 'advanced-target' ? 'merges a reviewed cumulative feature onto its separately assessed advanced target' : drift ? `recloses a drifted PR (${drift}) without merging` : 'revalidates the exact action and observes integration'}`, async t => {
+const fallbackScenarios = {
+  'fallback-pass': 'integrates after watching all reported CI when no required checks exist',
+  'fallback-fail-closed': 'recloses a PR after fallback CI fails',
+  'fallback-fail-draft': 'restores an open draft after fallback CI fails',
+  'fallback-drift': 'rejects target identity drift after fallback CI passes',
+  'fallback-empty': 'integrates only after unfiltered confirmation of no CI',
+  'fallback-empty-drift': 'rejects target identity drift after confirmation of no CI',
+};
+for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'candidate-before-write', 'candidate-after-write', ...Object.keys(fallbackScenarios)]) test(`protected merge ${fallbackScenarios[drift] ?? (drift === 'candidate-after-write' ? 'does not attribute an observed merge to a replacement candidate' : drift === 'advanced-target' ? 'merges a reviewed cumulative feature onto its separately assessed advanced target' : drift ? `recloses a drifted PR (${drift}) without merging` : 'revalidates the exact action and observes integration')}`, async t => {
   const f = await fixture(t);
   const bare = join(f.root, 'host.git');
   await git(f.root, ['init', '--bare', bare]);
@@ -485,8 +493,12 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'can
   await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'candidate']);
   const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
   await git(f.repo, ['push', 'origin', 'HEAD:refs/heads/topic']);
-  Object.assign(f.context.repositories[0], { integrationBranch: 'main', releaseBranch: 'main', remote: 'origin', keepPullRequestsClosed: true });
-  let state = 'CLOSED';
+  const keepClosed = drift !== 'fallback-fail-draft';
+  Object.assign(f.context.repositories[0], { integrationBranch: 'main', releaseBranch: 'main', remote: 'origin', keepPullRequestsClosed: keepClosed });
+  let state = keepClosed ? 'CLOSED' : 'OPEN';
+  let isDraft = true;
+  const checkCalls = [];
+  const ciFailure = Object.assign(new Error('Reported CI failed'), { code: 1, stdout: 'unit tests\tfail\n', stderr: '' });
   const writes = [];
   f.core.runtime.gh = async (root, args) => {
     const action = args[1];
@@ -495,11 +507,22 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'can
       await f.request('candidate.prepare', { repositories: [{ alias: 'app', base, head, target }], scope: 'SLICE', criteria: ['R1'] }, 'replacement-before-merge');
     }
     if (action === 'view') return JSON.stringify({ number: 12, url: 'https://github.com/fixture/project/pull/12', state,
-      headRefName: 'topic', baseRefName: drift === 'target-after-checks' && writes.includes('checks') ? 'production' : 'main', headRefOid: drift === true && state === 'OPEN' ? '0'.repeat(40) : head,
-      baseRefOid: target, isDraft: true, mergeCommit: state === 'MERGED' ? { oid: head } : null });
+      headRefName: 'topic', baseRefName: ['target-after-checks', 'fallback-drift', 'fallback-empty-drift'].includes(drift) && writes.includes('checks') ? 'production' : 'main', headRefOid: drift === true && state === 'OPEN' ? '0'.repeat(40) : head,
+      baseRefOid: target, isDraft, mergeCommit: state === 'MERGED' ? { oid: head } : null });
     writes.push(action);
     if (action === 'reopen') state = 'OPEN';
     if (action === 'close') state = 'CLOSED';
+    if (action === 'ready') isDraft = args.includes('--undo');
+    if (action === 'checks' && fallbackScenarios[drift]) {
+      checkCalls.push(args);
+      if (drift === 'fallback-empty' || drift === 'fallback-empty-drift') throw Object.assign(new Error('No checks'), {
+        code: 1, stdout: '', stderr: "no checks reported on the 'topic' branch\n",
+      });
+      if (args.includes('--required')) throw Object.assign(new Error('No required checks'), {
+        code: 1, stdout: '', stderr: "no required checks reported on the 'topic' branch\n",
+      });
+      if (drift === 'fallback-fail-closed' || drift === 'fallback-fail-draft') throw ciFailure;
+    }
     if (action === 'merge') {
       assert.equal(args[args.indexOf('--match-head-commit') + 1], head);
       await git(root, ['push', 'origin', 'HEAD:refs/heads/main']); state = 'MERGED';
@@ -515,19 +538,29 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'can
   const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
   const subject = (await f.request('status')).candidate.hash;
   await f.request('human.decide', { kind: 'authorize-merge', subject, action, authority: { ...human, instruction: 'Merge this exact reviewed PR to main.' }, reason: 'Exact action approved', consequences: 'Integrate reviewed change' }, 'merge-authority');
-  if (['candidate-before-write', 'candidate-after-write'].includes(drift)) {
+  if (drift === 'fallback-fail-closed' || drift === 'fallback-fail-draft') {
+    await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), error => error === ciFailure);
+    assert.equal(state, keepClosed ? 'CLOSED' : 'OPEN');
+    if (!keepClosed) assert.equal(isDraft, true);
+    assert.deepEqual(writes, keepClosed ? ['reopen', 'ready', 'checks', 'checks', 'close'] : ['ready', 'checks', 'checks', 'ready']);
+    assert.deepEqual((await f.request('status')).integrations, {});
+  } else if (['candidate-before-write', 'candidate-after-write'].includes(drift)) {
     await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), /state or authority changed/);
     assert.equal(writes.includes('merge'), drift === 'candidate-after-write');
     assert.equal(state, drift === 'candidate-after-write' ? 'MERGED' : 'CLOSED');
     assert.deepEqual((await f.request('status')).integrations, {});
-  } else if (drift && drift !== 'advanced-target') {
+  } else if (drift && !['advanced-target', 'fallback-pass', 'fallback-empty'].includes(drift)) {
     await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), /identity changed/);
-    assert.equal(state, 'CLOSED'); assert.deepEqual(writes, drift === true ? ['reopen', 'close'] : ['reopen', 'ready', 'checks', 'close']);
+    assert.equal(state, 'CLOSED'); assert.deepEqual(writes, drift === true ? ['reopen', 'close'] : fallbackScenarios[drift] ? ['reopen', 'ready', 'checks', 'checks', 'close'] : ['reopen', 'ready', 'checks', 'close']);
   } else {
     await f.request('merge.execute', { repository: 'app', number: 12 }, 'merge');
-    assert.equal(state, 'MERGED'); assert.deepEqual(writes, ['reopen', 'ready', 'checks', 'merge']);
+    assert.equal(state, 'MERGED'); assert.deepEqual(writes, fallbackScenarios[drift] ? ['reopen', 'ready', 'checks', 'checks', 'merge'] : ['reopen', 'ready', 'checks', 'merge']);
     assert.equal((await f.request('status')).integrations.app.integrationSha, head);
   }
+  if (fallbackScenarios[drift]) assert.deepEqual(checkCalls, [
+    ['pr', 'checks', '12', '--repo', 'fixture/project', '--required', '--watch', '--fail-fast'],
+    ['pr', 'checks', '12', '--repo', 'fixture/project', '--watch', '--fail-fast'],
+  ]);
 });
 
 test('development branch direction is rejected and cannot be waived', async () => {
