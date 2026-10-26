@@ -19,16 +19,26 @@ export function mergeDirection(head, base) {
   requireThat(typeof head === 'string' && typeof base === 'string' && head !== base, 'Merge needs distinct named branches');
   requireThat(head !== 'development' && !head.startsWith('development-'), `Forbidden merge direction: ${head} -> ${base}`);
 }
+function emptyCheckSet(error, action, required = false) {
+  return error?.code === 1 && error.stdout === '' && typeof error.stderr === 'string'
+    && error.stderr.trim() === `no ${required ? 'required ' : ''}checks reported on the '${action.headBranch}' branch`;
+}
 export async function waitForHostedChecks(root, action, run = gh) {
   const args = ['pr', 'checks', String(action.number), '--repo', action.ownerRepo];
   try {
     await run(root, [...args, '--required', '--watch', '--fail-fast']);
+    return;
   } catch (error) {
-    // gh reports an empty required-check set as an error, even when CI exists.
-    // Recognize only that diagnostic; failed checks and operational errors block.
-    if (error.code !== 1 || error.stdout !== '' || typeof error.stderr !== 'string'
-      || error.stderr.trim() !== `no required checks reported on the '${action.headBranch}' branch`) throw error;
+    // gh reports no checks before filtering for required checks. Confirm either
+    // empty-set diagnostic through an unfiltered query; all other errors block.
+    if (!emptyCheckSet(error, action, true) && !emptyCheckSet(error, action)) throw error;
+  }
+  try {
     await run(root, [...args, '--watch', '--fail-fast']);
+  } catch (error) {
+    // Explicitly reported absence is allowed; API/auth failures are not absence.
+    // The caller still revalidates gate proof, authority and exact PR identity.
+    if (!emptyCheckSet(error, action)) throw error;
   }
 }
 export async function prepareMerge(core, input) {

@@ -63,7 +63,11 @@ for (const [name, error] of [
   ['failed fallback CI', noRequired({ stdout: 'unit tests\tfail\n', stderr: '' })],
   ['pending fallback CI', noRequired({ code: 8, stderr: '' })],
   ['fallback API failure', noRequired({ stderr: 'HTTP 502: Bad Gateway\n' })],
-  ['no reported CI', noRequired({ stderr: "no checks reported on the 'topic' branch\n" })],
+  ['wrong-branch no-CI response', noRequired({ stderr: "no checks reported on the 'other' branch\n" })],
+  ['no-CI response with unexpected output', noRequired({ stdout: 'unexpected\n', stderr: "no checks reported on the 'topic' branch\n" })],
+  ['no-CI response with pending exit code', noRequired({ code: 8, stderr: "no checks reported on the 'topic' branch\n" })],
+  ['no-CI response with extra diagnostic', noRequired({ stderr: "no checks reported on the 'topic' branch\nHTTP 403\n" })],
+  ['required-only emptiness from unfiltered query', noRequired()],
 ]) test(`${name} remains blocking with the original diagnostic`, async () => {
   const calls = [];
   await assert.rejects(waitForHostedChecks('/repository', action, async (root, args) => {
@@ -71,5 +75,27 @@ for (const [name, error] of [
     if (args.includes('--required')) throw noRequired();
     throw error;
   }), actual => actual === error);
+  assert.deepEqual(calls, [required, all]);
+});
+
+for (const initial of ['no required checks', 'no checks']) test(`${initial} requires unfiltered confirmation before allowing no CI`, async () => {
+  const calls = [];
+  await waitForHostedChecks('/repository', action, async (root, args) => {
+    calls.push(args);
+    throw noRequired({ stderr: `${args.includes('--required') ? initial : 'no checks'} reported on the 'topic' branch\n` });
+  });
+  assert.deepEqual(calls, [required, all]);
+});
+
+for (const fails of [false, true]) test(`checks appearing after initial no-CI response are ${fails ? 'blocking when failed' : 'watched normally'}`, async () => {
+  const calls = [];
+  const failure = noRequired({ stdout: 'new check\tfail\n', stderr: '' });
+  const result = waitForHostedChecks('/repository', action, async (root, args) => {
+    calls.push(args);
+    if (args.includes('--required')) throw noRequired({ stderr: "no checks reported on the 'topic' branch\n" });
+    if (fails) throw failure;
+  });
+  if (fails) await assert.rejects(result, error => error === failure);
+  else await result;
   assert.deepEqual(calls, [required, all]);
 });

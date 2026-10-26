@@ -429,6 +429,8 @@ const fallbackScenarios = {
   'fallback-fail-closed': 'recloses a PR after fallback CI fails',
   'fallback-fail-draft': 'restores an open draft after fallback CI fails',
   'fallback-drift': 'rejects target identity drift after fallback CI passes',
+  'fallback-empty': 'integrates only after unfiltered confirmation of no CI',
+  'fallback-empty-drift': 'rejects target identity drift after confirmation of no CI',
 };
 for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'candidate-before-write', 'candidate-after-write', ...Object.keys(fallbackScenarios)]) test(`protected merge ${fallbackScenarios[drift] ?? (drift === 'candidate-after-write' ? 'does not attribute an observed merge to a replacement candidate' : drift === 'advanced-target' ? 'merges a reviewed cumulative feature onto its separately assessed advanced target' : drift ? `recloses a drifted PR (${drift}) without merging` : 'revalidates the exact action and observes integration')}`, async t => {
   const f = await fixture(t);
@@ -463,7 +465,7 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'can
       await f.request('candidate.prepare', { repositories: [{ alias: 'app', base, head, target }], scope: 'SLICE', criteria: ['R1'] }, 'replacement-before-merge');
     }
     if (action === 'view') return JSON.stringify({ number: 12, url: 'https://github.com/fixture/project/pull/12', state,
-      headRefName: 'topic', baseRefName: (drift === 'target-after-checks' || drift === 'fallback-drift') && writes.includes('checks') ? 'production' : 'main', headRefOid: drift === true && state === 'OPEN' ? '0'.repeat(40) : head,
+      headRefName: 'topic', baseRefName: ['target-after-checks', 'fallback-drift', 'fallback-empty-drift'].includes(drift) && writes.includes('checks') ? 'production' : 'main', headRefOid: drift === true && state === 'OPEN' ? '0'.repeat(40) : head,
       baseRefOid: target, isDraft, mergeCommit: state === 'MERGED' ? { oid: head } : null });
     writes.push(action);
     if (action === 'reopen') state = 'OPEN';
@@ -471,6 +473,9 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'can
     if (action === 'ready') isDraft = args.includes('--undo');
     if (action === 'checks' && fallbackScenarios[drift]) {
       checkCalls.push(args);
+      if (drift === 'fallback-empty' || drift === 'fallback-empty-drift') throw Object.assign(new Error('No checks'), {
+        code: 1, stdout: '', stderr: "no checks reported on the 'topic' branch\n",
+      });
       if (args.includes('--required')) throw Object.assign(new Error('No required checks'), {
         code: 1, stdout: '', stderr: "no required checks reported on the 'topic' branch\n",
       });
@@ -502,12 +507,12 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'can
     assert.equal(writes.includes('merge'), drift === 'candidate-after-write');
     assert.equal(state, drift === 'candidate-after-write' ? 'MERGED' : 'CLOSED');
     assert.deepEqual((await f.request('status')).integrations, {});
-  } else if (drift && drift !== 'advanced-target' && drift !== 'fallback-pass') {
+  } else if (drift && !['advanced-target', 'fallback-pass', 'fallback-empty'].includes(drift)) {
     await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), /identity changed/);
-    assert.equal(state, 'CLOSED'); assert.deepEqual(writes, drift === true ? ['reopen', 'close'] : drift === 'fallback-drift' ? ['reopen', 'ready', 'checks', 'checks', 'close'] : ['reopen', 'ready', 'checks', 'close']);
+    assert.equal(state, 'CLOSED'); assert.deepEqual(writes, drift === true ? ['reopen', 'close'] : fallbackScenarios[drift] ? ['reopen', 'ready', 'checks', 'checks', 'close'] : ['reopen', 'ready', 'checks', 'close']);
   } else {
     await f.request('merge.execute', { repository: 'app', number: 12 }, 'merge');
-    assert.equal(state, 'MERGED'); assert.deepEqual(writes, drift === 'fallback-pass' ? ['reopen', 'ready', 'checks', 'checks', 'merge'] : ['reopen', 'ready', 'checks', 'merge']);
+    assert.equal(state, 'MERGED'); assert.deepEqual(writes, fallbackScenarios[drift] ? ['reopen', 'ready', 'checks', 'checks', 'merge'] : ['reopen', 'ready', 'checks', 'merge']);
     assert.equal((await f.request('status')).integrations.app.integrationSha, head);
   }
   if (fallbackScenarios[drift]) assert.deepEqual(checkCalls, [
