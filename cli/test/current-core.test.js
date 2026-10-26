@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { isolatedTests } from './helpers/isolated-tests.js';
 import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, readdir, realpath, chmod, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,6 +8,7 @@ import { CurrentCore } from '../../plugin-src/shared/resources/protocol/current/
 import { identity } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
 import { git, contentIdentity } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
 
+const test = isolatedTests(import.meta.url);
 const human = { kind: 'human-confirmed', instruction: 'Approve the named scope.', context: 'test user conversation' };
 async function fixture(t, { nested = true, optionalGates = [] } = {}) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'gatereeve-current-')));
@@ -138,7 +139,7 @@ test('foreign active feature identity and damaged journal cannot be used', async
 
 async function runVerification(f, fail = false, operationId = 'verify-one') {
   return f.request('gate.execute', { gates: ['verification'], configuration: {
-    environment: { inherit: ['GATEREEVE_WAIVER_TEST_RISK', 'GATEREEVE_TRANSITIVE_RISK'] },
+    environment: { inherit: ['GATEREEVE_WAIVER_TEST_RISK', 'GATEREEVE_TRANSITIVE_RISK', 'GATEREEVE_TRANSPORT_DRIFT', 'GATEREEVE_TEST_HOST_MODE'] },
     externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', `process.exit(${fail ? 1 : 0})`], purpose: 'Fixture verification' }],
   } }, operationId);
 }
@@ -1772,7 +1773,10 @@ test('public resume restores terminal pause and activation loss without selectin
   const { state } = await f.core.state();
   assert.equal(state.runId, 'run-one'); assert.equal(state.paused, true);
   assert.deepEqual(await readFile(terminal), exact);
-  assert.equal((await f.core.store.events('run-one')).length, events.length);
+  const restored = await f.core.store.events('run-one');
+  assert.deepEqual(restored.slice(0, events.length), events);
+  assert.equal(restored.length, events.length + 1);
+  assert.equal(restored.at(-1).type, 'TRANSITION_RECORDED');
 });
 
 const raceReviewInput = revision => ({ gates: ['code'], configuration: { provider: 'codex', model: 'fixture', revision } });
@@ -2300,7 +2304,7 @@ test('actual acceptance passage rejects old PASS after external script turns fai
  const f=await externalRunnerFixture(t,'argument');await writeFile(join(f.home,'scratchpad.md'),'# No pending decisions\n');await f.request('candidate.ready',{},'ready');fakeEvaluator(f);
  const verification=f.ran.event.payload.results,refs=[...verification];
  for(const gate of ['context','reconcile','triage','code','spec','judge','pattern','explanation']){
-  const result=await f.request('gate.execute',{gates:[gate],consumed:['spec','judge'].includes(gate)?verification:[],configuration:['code','spec','judge','pattern','explanation'].includes(gate)?{provider:'codex',model:'fixture'}:{}},`g-${gate}`);refs.push(...result.event.payload.results);
+  const result=await f.request('gate.execute',{gates:[gate],consumed:['spec','judge'].includes(gate)?verification:[],configuration:['reconcile','triage','code','spec','judge','pattern','explanation'].includes(gate)?{provider:'codex',model:'fixture'}:{}},`g-${gate}`);refs.push(...result.event.payload.results);
  }
  await f.request('gate.execute',{gates:['packet'],consumed:refs},'packet');
  const initial=await f.core.check('acceptance');assert.equal(initial.allowed,true,JSON.stringify(initial));await f.mutation();assert.equal(await actualExit(f.command,f.args,f.repo),7);
@@ -2373,7 +2377,7 @@ test('directory checks exclude only their trusted current evidence store', async
   const state = (await f.core.state()).state, selected = await f.core.store.json(state.candidate);
   assert.equal((await f.core.currentResult(ran.event.payload.results[0], selected, state)).outcome, 'PASS');
   const unrelated = join(f.repo, '.gatereeve-current'); await mkdir(unrelated); await writeFile(join(unrelated, 'input'), 'relevant external directory');
-  assert.equal((await f.core.currentResult(ran.event.payload.results[0], selected, state)).outcome, 'PASS');
+  await assert.rejects(f.core.currentResult(ran.event.payload.results[0], selected, state), /Execution environment changed/);
 });
 
 async function standingGrant(f, { merge = false, expiresAt = null, candidateScopes = ['SLICE', 'FEATURE'] } = {}) {
@@ -2694,7 +2698,7 @@ test('milestone admission rejects unjournaled drift during qualification and bef
   let during = null, after = null;
   f.core.currentResult = async (...args) => {
     const result = await qualify(...args);
-    if (result.gate === 'packet' && during) { const change = during; during = null; await change(); }
+    if (result.gate === 'explanation' && during) { const change = during; during = null; await change(); }
     return result;
   };
   f.core.check = async (...args) => {
