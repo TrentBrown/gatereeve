@@ -54,9 +54,11 @@ export function planningFacts(body) {
   return { policy: PLANNING_POLICY, source: digest(body), acceptance, criteria, warnings };
 }
 
+// Parsing is deterministic text processing under the supported JavaScript contract.
+// Bind its implementation, not the incidental CLI or Electron Node version.
 export async function planningBinding() {
   return { policy: PLANNING_POLICY, parser: digest(await readFile(new URL('./planning.js', import.meta.url))),
-    contracts: digest(await readFile(new URL('./contracts.js', import.meta.url))), runtime: process.versions.node };
+    contracts: digest(await readFile(new URL('./contracts.js', import.meta.url))) };
 }
 export async function validatePlanning(body) {
   const binding = await planningBinding();
