@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readdir, rm, mkdir, writeFile, symlink, lstat, rename } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, mkdir, writeFile, symlink, lstat, rename, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { execFile, spawn } from 'node:child_process';
@@ -77,6 +77,18 @@ test('root substitution and ownership mismatch cannot redirect cleanup', async t
   await rm(root); await mkdir(root, { mode: 0o700 });
   await writeFile(join(root, 'owner.json'), '{}', { mode: 0o600 });
   assert.match((await cleanupScratch({ root, apply: true })).error, /ownership/u);
+});
+
+test('readable-by-others root, runs and owner records are rejected without chmod or deletion', async t => {
+  const { root } = await fixture(t), run = await createScratch({ root, purpose: 'private' });
+  await chmod(root, 0o755);
+  assert.match((await cleanupScratch({ root, apply: true, ...inactive })).error, /Unsafe scratch directory/u);
+  assert.equal((await lstat(root)).mode & 0o777, 0o755);
+  await chmod(root, 0o700); await chmod(run.path, 0o755);
+  assert.equal((await cleanupScratch({ root, apply: true, ...inactive })).entries[0].status, 'uncertain');
+  await chmod(run.path, 0o700); await chmod(join(run.path, 'owner.json'), 0o644);
+  const result = await cleanupScratch({ root, apply: true, ...inactive });
+  assert.equal(result.entries[0].status, 'uncertain'); assert.equal(result.removed.length, 0);
 });
 
 test('apply rechecks run identity and activity after preview', async t => {
@@ -182,4 +194,19 @@ test('CLI preview/Doctor are read-only and scratch wrapper records failed comman
   const reports = await readdir(join(parent, 'gatereeve', 'reports'));
   assert.equal(reports.length, 1);
   assert.match(await readFile(join(parent, 'gatereeve', 'reports', reports[0]), 'utf8'), /failure-marker/u);
+});
+
+test('a terminated owner can be reclaimed by real activity checks without trusting its PID alone', async t => {
+  const { root } = await fixture(t);
+  const moduleUrl = new URL('../../plugin-src/shared/resources/storage/scratch.js', import.meta.url).href;
+  const script = `import {createScratch} from ${JSON.stringify(moduleUrl)}; const run=await createScratch({root:process.env.SCRATCH_TEST_ROOT,purpose:'orphan'}); console.log(run.id);`;
+  const child = await execute(process.execPath, ['--input-type=module', '-e', script], { env: { ...process.env, SCRATCH_TEST_ROOT: root } });
+  const id = child.stdout.trim();
+  const result = await cleanupScratch({ root, run: id, apply: true });
+  if (result.entries[0].status === 'uncertain' && process.platform !== 'darwin') {
+    assert.match(result.entries[0].reason, /activity|inventory/u); // unsupported host remains conservative
+  } else {
+    assert.equal(result.entries[0].status, 'eligible');
+    assert.equal(result.removed[0].id, id);
+  }
 });

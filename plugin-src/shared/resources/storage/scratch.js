@@ -22,13 +22,13 @@ export function scratchRoot() { return join(tmpdir(), 'gatereeve'); }
 
 async function directory(path) {
   const stat = await lstat(path);
-  assert(stat.isDirectory() && !stat.isSymbolicLink() && stat.uid === uid() && !(stat.mode & 0o022), `Unsafe scratch directory: ${path}`);
+  assert(stat.isDirectory() && !stat.isSymbolicLink() && stat.uid === uid() && !(stat.mode & 0o077), `Unsafe scratch directory: ${path}`);
   return stat;
 }
 
 async function regularJson(path) {
   const stat = await lstat(path);
-  assert(stat.isFile() && !stat.isSymbolicLink() && stat.uid === uid() && !(stat.mode & 0o022) && stat.size < 32768, `Unsafe scratch record: ${path}`);
+  assert(stat.isFile() && !stat.isSymbolicLink() && stat.uid === uid() && !(stat.mode & 0o077) && stat.size < 32768, `Unsafe scratch record: ${path}`);
   return json(path);
 }
 
@@ -41,9 +41,11 @@ async function rootInfo(root, create = false) {
     try {
       await mkdir(root, { mode: 0o700 });
       const stat = await directory(root);
-      await writeFile(join(root, 'owner.json'), JSON.stringify({ kind: KIND, uid: uid(), ...identity(stat) }), { mode: 0o600, flag: 'wx' });
       await mkdir(join(root, 'runs'), { mode: 0o700 });
       await mkdir(join(root, 'reports'), { mode: 0o700 });
+      const pending = join(root, `.owner-${randomUUID()}.json`);
+      await writeFile(pending, JSON.stringify({ kind: KIND, uid: uid(), ...identity(stat) }), { mode: 0o600, flag: 'wx' });
+      await rename(pending, join(root, 'owner.json')); // Publish only a complete root.
     } catch (error) { if (error.code !== 'EEXIST') throw error; }
   }
   for (let attempt = 0; ; attempt++) {
@@ -65,7 +67,9 @@ async function rootInfo(root, create = false) {
 export async function processIdentity(pid) {
   assert(Number.isSafeInteger(pid) && pid > 0, 'Invalid process identity');
   try {
-    const { stdout } = await execute('ps', ['-p', String(pid), '-o', 'lstart='], { timeout: 5000 });
+    const { stdout } = await execute('ps', ['-p', String(pid), '-o', 'lstart='], {
+      timeout: 5000, env: { ...process.env, LC_ALL: 'C', TZ: 'UTC' },
+    });
     return stdout.trim() || null;
   } catch (error) {
     if (error.code === 1 && !error.stdout?.trim() && !error.stderr?.trim()) return null;
