@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
-import { publishScratch, createScratch, finishScratch, cleanupScratch, processIdentity } from '../../plugin-src/shared/resources/storage/scratch.js';
+import { publishScratch, createScratch, finishScratch, cleanupScratch, processIdentity, runScratchCommand } from '../../plugin-src/shared/resources/storage/scratch.js';
 
 const execute = promisify(execFile);
 const helper = fileURLToPath(new URL('../../plugin-src/shared/resources/storage/scratch.js', import.meta.url));
@@ -122,4 +122,17 @@ test('concurrent producers wait for a verified live maintainer beyond the interr
   const created = await second;
   assert.notEqual(created.id, first.id);
   await finishScratch(created); await finishScratch(first);
+});
+
+
+test('captured validation output stays out of scratch failure diagnostics', async t => {
+  const parent = await fixture(t), root = join(parent, 'gatereeve');
+  let failure;
+  try {
+    await runScratchCommand(process.execPath, ['-e', 'console.error("private-project-value");process.exit(2)'], { root, purpose: 'private-capture', capture: true });
+  } catch (error) { failure = error; }
+  assert.match(failure.scratchResult.stderr, /private-project-value/);
+  assert.doesNotMatch(failure.message, /private-project-value/);
+  const [report] = await readdir(join(root, 'reports'));
+  assert.doesNotMatch(await readFile(join(root, 'reports', report), 'utf8'), /private-project-value/);
 });

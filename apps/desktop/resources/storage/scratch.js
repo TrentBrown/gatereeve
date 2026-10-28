@@ -373,7 +373,7 @@ export async function runScratchCommand(command, args, options = {}) {
       const outcome = await completed;
       const result = { ...outcome, timedOut, outputLimited, stdout, stderr };
       if (outcome.code !== 0 || timedOut || outputLimited) {
-        const error = new Error(`Scratch command failed (${timedOut ? 'timeout' : outputLimited ? 'output limit' : outcome.signal ?? outcome.code}): ${tail}`);
+        const error = new Error(`Scratch command failed (${timedOut ? 'timeout' : outputLimited ? 'output limit' : outcome.signal ?? outcome.code})${options.capture ? '' : `: ${tail}`}`);
         error.scratchResult = result;
         throw error;
       }

@@ -27,7 +27,8 @@ signed release recovery material or canonical feature evidence in scratch.
 
 After success or failure a compact diagnostic receipt (bounded error/output,
 no environment or full command arguments) is written to `gatereeve/reports/`
-before bulk becomes eligible. These temporary diagnostics are not permanent gate
+before bulk becomes eligible. Governed checks keep raw captured output out of these
+reports and pass it to the existing redacted evidence pipeline instead. These temporary diagnostics are not permanent gate
 evidence or backups. They are outside automatic run cleanup. Export required
 evidence to the feature record. Consider sensitive tool output before retaining
 diagnostics. A failed receipt write protects bulk. Cleanup failures remain visible
@@ -75,7 +76,7 @@ Managed storage is the default for disposable work created by GateReeve:
 | Release observation and CI reuse | downloaded provider/source/matrix evidence working copies | qualified copied receipts and their provenance |
 | Independent review | sealed source views, provider output/schema staging, evaluator OS temporary files | canonical findings/verdicts and source pins |
 | Governed checks | command-specific temporary directories and supervised child groups | caller outputs and bounded execution receipts |
-| Repository tests / portable acceptance / marketplace publish script | inherited Node, Python and shell temporary files, including abandoned fixtures | exported reports, explicitly requested build outputs |
+| Repository tests / portable acceptance / developer smoke and benchmark / marketplace publish script | inherited Node, Python and shell temporary files, including abandoned fixtures | exported reports, explicitly requested build outputs |
 
 The standard npm test commands and portable acceptance script supervise their
 children automatically. For an ad hoc command, preserve the project cwd with:
@@ -108,3 +109,7 @@ cleanup establishes eligibility. Existing unregistered views remain visible for
 inspection; this migration never sweeps old temp prefixes. A changed controlled
 runner environment policy requires fresh affected verification; planning,
 approvals and historical evidence remain intact.
+
+The historical boundary-cost benchmark still targets its original review API;
+this storage migration does not restore that retired API. Website copies of
+unrelated plugin examples are not GateReeve execution entrypoints.
