@@ -109,6 +109,45 @@ test('governed check supervisor captures failure, bounds timeout and reaps the c
   assert.equal(missing.outcome, 'UNAVAILABLE'); assert.equal(missing.termination.kind, 'process-error');
 });
 
+test('governed checks retain command evidence when scratch report publication also fails', async t => {
+  for (const mode of ['failure', 'success', 'timeout']) {
+    const parent = await fixture(t);
+    const child = `
+      const fs = require('node:fs'), path = require('node:path');
+      fs.writeFileSync(path.join(process.env.TMPDIR, 'bulk'), 'retain');
+      fs.rmSync(path.join(process.env.GATEREEVE_SCRATCH_ROOT, 'reports'), { recursive:true });
+      console.log('primary-output private-project-value');
+      console.error('primary-error private-project-value');
+      ${mode === 'timeout' ? 'setInterval(()=>{},1000)' : `process.exit(${mode === 'failure' ? 7 : 0})`};
+    `;
+    // A distinct process and root isolate this intentional publication failure
+    // from concurrent checks and the test runner's own managed scratch.
+    const script = `
+      import { runCheckProcess } from ${JSON.stringify(new URL('../../plugin-src/shared/resources/protocol/current/execution.js', import.meta.url).href)};
+      import { runnerDiagnostics } from ${JSON.stringify(new URL('../../plugin-src/shared/resources/protocol/current/diagnostics.js', import.meta.url).href)};
+      const result = await runCheckProcess({ command:process.execPath, args:['-e',${JSON.stringify(child)}], timeoutMs:${mode === 'timeout' ? 1500 : 10000} }, {}, process.cwd(), process.env);
+      const logs = runnerDiagnostics(result, {environment:{inherit:['PROJECT_SECRET']}}, {...process.env,PROJECT_SECRET:'private-project-value'});
+      console.log(JSON.stringify({result,logs}));
+    `;
+    const { stdout } = await execute(process.execPath, ['--input-type=module', '-e', script], {
+      env: { ...process.env, GATEREEVE_SCRATCH_ROOT: '', TMPDIR: parent, TMP: parent, TEMP: parent },
+    });
+    const { result, logs } = JSON.parse(stdout);
+    assert.equal(result.outcome, mode === 'failure' ? 'FAIL' : 'UNAVAILABLE');
+    assert.equal(result.exitCode, mode === 'failure' ? 7 : mode === 'success' ? 0 : null);
+    assert.equal(result.termination.kind, mode === 'timeout' ? 'timeout' : mode === 'failure' ? 'exit' : 'process-error');
+    assert.match(result.termination.reason, /scratch finalization failed/);
+    assert.match(result.stdout, /primary-output/);
+    assert.match(result.stderr, /primary-error/);
+    assert.match(result.stderr, /ENOENT/);
+    assert.match(logs.stderr, /ENOENT/);
+    assert.doesNotMatch(JSON.stringify(logs), /private-project-value/);
+    const runs = await readdir(join(parent, 'gatereeve/runs'));
+    assert.equal(runs.length, 1);
+    assert.equal(await readFile(join(parent, 'gatereeve/runs', runs[0], 'tmp/bulk'), 'utf8'), 'retain');
+  }
+});
+
 
 test('concurrent producers wait for a verified live maintainer beyond the interrupted-lock grace period', async t => {
   const parent = await fixture(t), root = join(parent, 'gatereeve');

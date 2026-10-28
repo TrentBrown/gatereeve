@@ -213,12 +213,20 @@ export async function runCheckProcess(check, configuration, cwd, environment) {
   } catch (error) {
     const result = error.scratchResult ?? {};
     const exitCode = typeof result.code === 'number' ? result.code : null;
+    const finalizationFailed = error instanceof AggregateError || Boolean(error.scratchCleanup?.errors?.length) || exitCode === 0;
     const termination = result.timedOut ? { kind: 'timeout', reason: `Timed out after ${timeoutMs} ms`, timeoutMs }
       : result.outputLimited ? { kind: 'process-error', reason: 'Process output exceeded the capture limit' }
-        : exitCode !== null ? { kind: 'exit', reason: `Process exited with code ${exitCode}` }
+        : exitCode !== null && exitCode !== 0 ? { kind: 'exit', reason: `Process exited with code ${exitCode}` }
           : { kind: 'process-error', reason: 'Process could not complete', code: error.code ?? null, signal: result.signal ?? null };
-    return { outcome: result.timedOut || result.outputLimited || exitCode === null ? 'UNAVAILABLE' : 'FAIL', exitCode,
-      timeoutMs, termination, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
+    if (finalizationFailed) termination.reason += '; scratch finalization failed';
+    // Keep failure details in the output channel so runnerDiagnostics applies
+    // the same redaction and bounds as it does to the command's own output.
+    const finalizationDiagnostic = finalizationFailed ? [error.message,
+      ...(error.errors ?? []).map(item => item.message ?? String(item)),
+      ...(error.scratchCleanup?.errors ?? []).map(item => item.reason)].join('\n').slice(-4096) : '';
+    return { outcome: result.timedOut || result.outputLimited || exitCode === null || exitCode === 0 ? 'UNAVAILABLE' : 'FAIL', exitCode,
+      timeoutMs, termination, stdout: result.stdout ?? '',
+      stderr: `${result.stderr ?? ''}${finalizationDiagnostic ? `\n${finalizationDiagnostic}` : ''}` };
   }
 }
 async function commands(core, state, candidate, configuration, completion, environment) {

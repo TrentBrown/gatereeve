@@ -96,9 +96,13 @@ sudo apt update
 sudo apt install -y software-properties-common
 sudo add-apt-repository -y ppa:git-core/ppa
 sudo apt update
-sudo apt install -y git python3 curl gh unzip
+sudo apt install -y git python3 curl gh unzip lsof procps util-linux
 git --no-lazy-fetch --version
 ```
+
+Managed scratch cleanup uses `lsof`, `ps` and `mount` to protect active work.
+If these probes are unavailable or inconclusive, GateReeve retains the files
+and reports the reason instead of deleting them.
 
 The [Git project's Ubuntu installation instructions](https://git-scm.com/install/linux)
 recommend this PPA for current Git. The capability check must succeed: source

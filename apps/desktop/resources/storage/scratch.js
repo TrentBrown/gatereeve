@@ -333,6 +333,7 @@ export async function withScratch(options, callback) {
 }
 
 export async function runScratchCommand(command, args, options = {}) {
+  let commandResult;
   return withScratch({ ...options, purpose: options.purpose ?? basename(command) }, async scratch => {
     await lock(scratch.root, async () => {
       const { owner } = await loadRun(scratch.root, scratch.id);
@@ -371,7 +372,7 @@ export async function runScratchCommand(command, args, options = {}) {
         });
       }
       const outcome = await completed;
-      const result = { ...outcome, timedOut, outputLimited, stdout, stderr };
+      const result = commandResult = { ...outcome, timedOut, outputLimited, stdout, stderr };
       if (outcome.code !== 0 || timedOut || outputLimited) {
         const error = new Error(`Scratch command failed (${timedOut ? 'timeout' : outputLimited ? 'output limit' : outcome.signal ?? outcome.code})${options.capture ? '' : `: ${tail}`}`);
         error.scratchResult = result;
@@ -385,6 +386,11 @@ export async function runScratchCommand(command, args, options = {}) {
       if (timer) clearTimeout(timer);
       process.off('SIGINT', onInt); process.off('SIGTERM', onTerm);
     }
+  }).catch(error => {
+    // Finalization can wrap a failed command or fail after a successful one.
+    // Preserve its actual outcome and captured streams across either boundary.
+    if (commandResult) error.scratchResult = commandResult;
+    throw error;
   });
 }
 
