@@ -374,6 +374,26 @@ def run_doctor(
     message = "Present: " + ", ".join(optional_present) if optional_present else "No optional specialist integrations detected"
     checks.append(check("optional-integrations", "info", message))
 
+    # Storage is advisory, never a readiness gate. Quick inspection reads only
+    # owned metadata; it creates no root and performs no deletion or size walk.
+    storage = None
+    inspector = plugin_root / "resources" / "storage" / "scratch.js"
+    if node_executable and inspector.is_file():
+        try:
+            observed = subprocess.run(
+                [node_executable, str(inspector), "inspect", "--quick"],
+                capture_output=True, text=True, timeout=10, env=runtime_environment,
+                check=True,
+            )
+            storage = json.loads(observed.stdout)
+            if storage.get("error"):
+                message = "Temporary storage inventory unavailable: " + storage["error"]
+            else:
+                message = f"Managed temporary runs: {len(storage.get('entries', []))}; sizes and removal eligibility require cleanup inspection"
+            checks.append(check("temporary-storage", "info", message, "Run gatereeve cleanup to preview; --apply removes only eligible managed scratch"))
+        except (OSError, subprocess.SubprocessError, ValueError) as error:
+            checks.append(check("temporary-storage", "info", f"Temporary storage inventory unavailable: {error}", "Run gatereeve cleanup to inspect"))
+
     ready = not any(item["status"] == "fail" for item in checks)
     return {
         "schemaVersion": 1,
@@ -382,6 +402,7 @@ def run_doctor(
         "ready": ready,
         "activation": "observed" if activation_observed else "pending",
         "checks": checks,
+        "storage": storage,
     }
 
 

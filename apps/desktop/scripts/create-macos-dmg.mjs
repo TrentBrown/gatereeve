@@ -1,13 +1,13 @@
 // @ts-check
 
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { mkdir, rm, symlink } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 
 import { runHdiutilWithRetry, verifyDmgWithRetry } from './hdiutil-retry.mjs';
 import { MACOS_PRODUCT } from './macos-package-contract.mjs';
+import { withScratch } from '../../../plugin-src/shared/resources/storage/scratch.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -19,10 +19,9 @@ export async function createMacosDmg(options) {
     throw new Error('GateReeve DMG creation requires macOS.');
   }
   const run = options.run ?? ((file, args) => execFileAsync(file, args));
-  const sourceRoot = await mkdtemp(join(tmpdir(), 'gatereeve-dmg-source-'));
   const outputPath = resolve(options.outputPath);
   await mkdir(resolve(outputPath, '..'), { recursive: true });
-  try {
+  await withScratch({ purpose: 'dmg-staging' }, async ({ path: sourceRoot }) => {
     await run('/usr/bin/ditto', [
       resolve(options.applicationPath),
       resolve(sourceRoot, `${MACOS_PRODUCT.name}.app`),
@@ -42,8 +41,6 @@ export async function createMacosDmg(options) {
       beforeAttempt: () => rm(outputPath, { force: true }),
     });
     await verifyDmgWithRetry(outputPath, { run });
-  } finally {
-    await rm(sourceRoot, { recursive: true, force: true });
-  }
+  });
   return outputPath;
 }

@@ -7,6 +7,8 @@ import shutil
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 from pathlib import Path
 
 
@@ -148,6 +150,26 @@ class WorkflowDoctorTests(unittest.TestCase):
         result = self._run(node_version=(22, 11, "22.11.0"))
         self.assertFalse(result["ready"])
         self.assertIn("node-version", self._failed_ids(result))
+
+    def test_storage_is_read_only_and_never_blocks_readiness(self) -> None:
+        self._configure()
+        write(self.plugin_root / "resources/storage/scratch.js", "// fixture")
+        import subprocess
+        original = subprocess.run
+
+        def observe(arguments, **kwargs):
+            if "inspect" in arguments:
+                self.assertEqual(arguments[-2:], ["inspect", "--quick"])
+                self.assertNotIn("--apply", arguments)
+                return SimpleNamespace(stdout=json.dumps({"error": "unsafe scratch root", "entries": []}))
+            return original(arguments, **kwargs)
+
+        with patch("workflow_doctor.subprocess.run", side_effect=observe):
+            result = self._run()
+        self.assertTrue(result["ready"])
+        storage = next(item for item in result["checks"] if item["id"] == "temporary-storage")
+        self.assertEqual(storage["status"], "info")
+        self.assertIn("unsafe scratch root", storage["message"])
 
     def test_missing_configuration_fails_with_actionable_checks(self) -> None:
         result = self._run()
