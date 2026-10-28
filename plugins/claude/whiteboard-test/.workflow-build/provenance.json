@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "plugin": "whiteboard-test",
+  "platform": "claude",
+  "version": "0.1.0-rc.22",
+  "sourceCommit": "89a762470da0abf719f006ab471da71ca06bb5cd",
+  "sourceTag": "v0.1.0-rc.22"
+}
