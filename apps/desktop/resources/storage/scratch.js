@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
+import { StringDecoder } from 'node:string_decoder';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chmod, cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, rmdir, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -352,15 +353,20 @@ export async function runScratchCommand(command, args, options = {}) {
     process.on('SIGINT', onInt); process.on('SIGTERM', onTerm);
     let tail = '', stdout = '', stderr = '', outputBytes = 0, timedOut = false, outputLimited = false;
     const timer = options.timeoutMs ? setTimeout(() => { timedOut = true; forward('SIGKILL'); }, options.timeoutMs) : null;
-    const output = (bytes, stream) => {
-      tail = (tail + bytes).slice(-16384);
+    const decoders = { stdout: new StringDecoder('utf8'), stderr: new StringDecoder('utf8') };
+    const output = (bytes, stream, text = decoders[stream].write(bytes)) => {
+      tail = (tail + text).slice(-16384);
       if (!options.capture) { process[stream].write(bytes); return; }
       outputBytes += bytes.length;
       if (outputBytes > 16 * 1024 * 1024) { outputLimited = true; forward('SIGKILL'); return; }
-      if (stream === 'stdout') stdout += bytes; else stderr += bytes;
+      if (stream === 'stdout') stdout += text; else stderr += text;
     };
     child.stdout.on('data', bytes => output(bytes, 'stdout'));
     child.stderr.on('data', bytes => output(bytes, 'stderr'));
+    // Decode each stream across chunk boundaries, while forwarding/counting
+    // original bytes. Flush incomplete terminal sequences before child close.
+    child.stdout.on('end', () => output(Buffer.alloc(0), 'stdout', decoders.stdout.end()));
+    child.stderr.on('end', () => output(Buffer.alloc(0), 'stderr', decoders.stderr.end()));
     try {
       if (child.pid) {
         const started = await processIdentity(child.pid);

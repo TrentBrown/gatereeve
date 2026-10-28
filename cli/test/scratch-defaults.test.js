@@ -61,6 +61,42 @@ test('failed child exports bounded diagnostics before reclaiming tool leftovers'
   assert.equal(receipt.outcome, 'FAIL'); assert.match(receipt.error, /owned failure/);
 });
 
+test('split UTF-8 output is preserved in captured streams and failure diagnostics', async t => {
+  const child = `
+    const { setTimeout: delay } = require('node:timers/promises');
+    (async () => {
+      for (const [out, err] of [['e282','c3'], ['ac','a9'], ['f09f','f09f'], ['9880','9880']]) {
+        process.stdout.write(Buffer.from(out, 'hex'));
+        process.stderr.write(Buffer.from(err, 'hex'));
+        await delay(100);
+      }
+      process.exitCode = 7;
+    })();
+  `;
+  const parent = await fixture(t);
+  let failure;
+  try {
+    await runScratchCommand(process.execPath, ['-e', child], { root:join(parent, 'captured'), capture:true });
+  } catch (error) { failure = error; }
+  assert.equal(failure.scratchResult.code, 7);
+  assert.equal(failure.scratchResult.stdout, '€😀');
+  assert.equal(failure.scratchResult.stderr, 'é😀');
+  let forwarded;
+  try {
+    await execute(process.execPath, [helper, 'run', process.execPath, '-e', child], {
+      env:{...process.env, GATEREEVE_SCRATCH_ROOT:'', TMPDIR:parent, TMP:parent, TEMP:parent},
+    });
+  } catch (error) { forwarded = error; }
+  assert.equal(forwarded.stdout, '€😀');
+  assert.ok(forwarded.stderr.startsWith('é😀'));
+  const [name] = await readdir(join(parent, 'gatereeve/reports'));
+  const report = JSON.parse(await readFile(join(parent, 'gatereeve/reports', name)));
+  assert.match(report.error, /€/);
+  assert.match(report.error, /é/);
+  assert.match(report.error, /😀/);
+  assert.doesNotMatch(report.error, /�/);
+});
+
 test('inherited unmanaged root is rejected without adopting it', async t => {
   const parent = await fixture(t), unowned = join(parent, 'unowned'); await mkdir(unowned, { mode: 0o700 });
   await assert.rejects(execute(process.execPath, [helper, 'run', process.execPath, '-e', 'process.exit(0)'], {
