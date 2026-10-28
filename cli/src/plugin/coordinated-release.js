@@ -1,8 +1,8 @@
+import { withScratch, publishScratch } from '../storage.js';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   cp,
   mkdir,
-  mkdtemp,
   readFile,
   readdir,
   rename,
@@ -336,8 +336,9 @@ export async function prepareCoordinatedRelease({
   const output = resolve(outputRoot);
   await requireFreshOutput(output);
   await mkdir(dirname(output), { recursive: true });
-  const stagingRoot = await mkdtemp(resolve(dirname(output), '.gatereeve-release-'));
-  try {
+  return withScratch({ purpose: 'coordinated-release-assembly' }, async scratch => {
+    const stagingRoot = resolve(scratch.path, 'packet');
+    await mkdir(stagingRoot);
     const pluginOutput = resolve(stagingRoot, 'plugin', 'marketplace');
     const pluginIntegrityOutput = resolve(stagingRoot, 'plugin', 'integrity.json');
     const desktopOutput = resolve(stagingRoot, 'desktop', dmg.filename);
@@ -451,7 +452,7 @@ export async function prepareCoordinatedRelease({
     assertCoordinatedReleaseV1(record);
     await writeFile(resolve(stagingRoot, 'release-record.json'), stableJson(record));
     await writeFile(resolve(stagingRoot, 'publication-plan.md'), renderPublicationPlan(record));
-    await rename(stagingRoot, output);
+    await publishScratch(stagingRoot, output);
     return {
       schemaVersion: 1,
       outputRoot: output,
@@ -460,10 +461,7 @@ export async function prepareCoordinatedRelease({
       planSha256: publicationPlanSha256(record),
       record,
     };
-  } catch (error) {
-    await rm(stagingRoot, { recursive: true, force: true });
-    throw error;
-  }
+  });
 }
 
 export function assertCoordinatedReleaseV1(value) {

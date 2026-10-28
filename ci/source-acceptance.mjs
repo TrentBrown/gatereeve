@@ -1,7 +1,8 @@
+import { withScratch } from '../plugin-src/shared/resources/storage/scratch.js';
 import { execFileSync } from 'node:child_process';
-import { mkdir, readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+
 import { pathToFileURL } from 'node:url';
 
 export const SOURCE_POLICY = 'gatereeve-source-acceptance/1';
@@ -33,14 +34,13 @@ export async function reuseSourceAcceptance({ repository, source, output, runJso
   const artifacts = await runJson(['api', `repos/${repository}/actions/runs/${candidate.id}/artifacts?per_page=100`]);
   const found = artifacts.artifacts.filter(item => item.name === SOURCE_ARTIFACT && !item.expired);
   check(found.length === 1, 'Expected one retained source acceptance receipt');
-  const directory = await mkdtemp(join(tmpdir(), 'gatereeve-source-'));
-  try {
+  return withScratch({ purpose: 'source-acceptance-download' }, async ({ path: directory }) => {
     await run('gh', ['run', 'download', String(candidate.id), '--repo', repository, '--name', SOURCE_ARTIFACT, '--dir', directory]);
     const receipt = JSON.parse(await readFile(join(directory, 'source-acceptance.json'), 'utf8'));
     const verified = qualifySourceReceipt(receipt, { repository, source, tree, run: live, artifact: { ...found[0], workflow_run: { id: candidate.id } } });
     await writeFile(output, JSON.stringify(verified, null, 2));
     return verified;
-  } finally { await rm(directory, { recursive: true, force: true }); }
+  });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

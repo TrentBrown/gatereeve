@@ -1,10 +1,10 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { Command, Option } from 'commander';
+import { withScratch } from '../storage.js';
 
 import { composeMarketplacePackages } from '../plugin/compose.js';
 import { loadAndValidateContracts } from '../plugin/contracts.js';
@@ -154,7 +154,7 @@ export function pluginCommands() {
     .option('--source-root <path>', 'Plugin source root', resolve(repositoryRoot, 'plugin-src'))
     .option('--dist-root <path>', 'Generated package root', resolve(repositoryRoot, 'dist'))
     .option('--workspace <path>', 'Preserved smoke workspace')
-    .option('--keep', 'Keep an automatically created workspace')
+    .option('--keep', 'Hold an automatically created workspace for 24 hours; cleanup remains on demand')
     .option('--json', 'Print machine-readable smoke results')
     .action(async (options) => {
       const sourceRoot = resolve(options.sourceRoot);
@@ -168,13 +168,7 @@ export function pluginCommands() {
         id: entry.id,
         expectedSkills: await installedSkillNames(resolve(sourceRoot, entry.sourceRoot, 'shared')),
       })));
-      const workspace = options.workspace
-        ? resolve(options.workspace)
-        : await mkdtemp(resolve(tmpdir(), 'workflow-native-smoke-'));
-      const removeWorkspace = !options.workspace && !options.keep;
-      let succeeded = false;
-
-      try {
+      const exercise = async workspace => {
         await composeMarketplacePackages({
           sourceRoot,
           distRoot,
@@ -191,28 +185,22 @@ export function pluginCommands() {
           expectedSkills: inventory.skills.map((item) => item.name).sort(),
           plugins,
         });
-        result.workspaceRemoved = removeWorkspace;
-        if (options.json) {
-          console.log(JSON.stringify(result, null, 2));
-        } else {
-          for (const item of result.platforms) {
-            console.log(
-              `${item.platform}: installed ${item.version}, ` +
-                `${item.plugins.length} plugins and ${item.skillCount} skills, doctor ready`
-            );
-          }
-          console.log(result.note);
-        }
-        succeeded = true;
-      } catch (error) {
-        if (!options.workspace) {
-          console.error(`Smoke workspace retained for diagnosis: ${workspace}`);
-        }
-        throw error;
-      } finally {
-        if (removeWorkspace && succeeded) {
-          await rm(workspace, { recursive: true, force: true });
-        }
+        return result;
+      };
+      let cleanup = null;
+      const result = options.workspace
+        ? await exercise(resolve(options.workspace))
+        : await withScratch({ purpose: 'native-plugin-smoke',
+          keepUntil: options.keep ? new Date(Date.now() + 86400000).toISOString() : null,
+          onCleanup: value => { cleanup = value; },
+        }, ({ path }) => exercise(path));
+      result.workspaceRemoved = Boolean(cleanup?.removed.length);
+      result.scratchCleanup = cleanup;
+      if (options.json) console.log(JSON.stringify(result, null, 2));
+      else {
+        for (const item of result.platforms) console.log(`${item.platform}: installed ${item.version}, ${item.plugins.length} plugins and ${item.skillCount} skills, doctor ready`);
+        console.log(result.note);
+        if (cleanup) console.log(JSON.stringify({ scratchCleanup: cleanup }));
       }
     });
 

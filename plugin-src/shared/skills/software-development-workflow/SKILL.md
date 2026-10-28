@@ -63,6 +63,12 @@ when the user explicitly asks for those later maintenance workflows.
 
 ## Mechanics
 
+For large temporary builds or disposable verification profiles, follow
+`<plugin-root>/resources/STORAGE.md`. Prefer owned scratch helpers/commands over
+ad hoc temporary directories. Export required evidence before cleanup; preserve
+active sessions and release recovery outputs. Cleanup preview and Doctor storage
+findings are advisory, not new workflow gates.
+
 Use current protocol operations for execution, decisions, retained evidence and
 passage. Portable scripts remain useful for specification/issues/tracker lint,
 trusted workspace/PR resolution, pattern rules and document authoring. Do not use

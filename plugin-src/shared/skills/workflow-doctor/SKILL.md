@@ -37,3 +37,8 @@ not infer activation merely because this skill was invoked explicitly.
 The helper is read-only. Use `workflow-setup` to repair profile or branch-prefix
 configuration, the native plugin manager to repair installation or enablement,
 and the Codex `/hooks` surface to review and trust a skipped Codex hook.
+
+The temporary-storage finding is advisory. It reads managed-run metadata without
+walking large artifacts or deleting anything. Use `gatereeve cleanup` for a full
+preview, and `--apply` only for intended cleanup. See
+`<plugin-root>/resources/STORAGE.md`; unknown legacy folders remain excluded.

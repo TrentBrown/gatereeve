@@ -277,6 +277,8 @@ test('DMG composition adds a conventional Applications shortcut', async () => {
       async run(file, args) {
         if (file === '/usr/bin/hdiutil' && args[0] === 'create') {
           const sourceRoot = args[args.indexOf('-srcfolder') + 1];
+          await assert.rejects(access(resolve(sourceRoot, 'owner.json')), /ENOENT/u);
+          await assert.rejects(access(resolve(sourceRoot, '.active')), /ENOENT/u);
           const link = resolve(sourceRoot, 'Applications');
           assert.equal((await lstat(link)).isSymbolicLink(), true);
           assert.equal(await readlink(link), '/Applications');

@@ -1,15 +1,14 @@
+import { withScratch, publishScratch } from '../storage.js';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   lstat,
   mkdir,
-  mkdtemp,
   readFile,
-  rename,
   rm,
   writeFile,
 } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+
 import { basename, resolve, sep } from 'node:path';
 
 import { parseReleaseTag } from './release.js';
@@ -451,9 +450,8 @@ export async function verifyMarketplaceRelease({
     };
   }
 
-  const temporaryRoot = await mkdtemp(resolve(tmpdir(), 'workflow-marketplace-verify-'));
-  const checkout = resolve(temporaryRoot, 'marketplace');
-  try {
+  await withScratch({ purpose: 'marketplace-verification' }, async ({ path: temporaryRoot }) => {
+    const checkout = resolve(temporaryRoot, 'marketplace');
     const remoteUrl = commandText(
       runner,
       'git',
@@ -620,9 +618,7 @@ export async function verifyMarketplaceRelease({
         );
       }
     }
-  } finally {
-    await rm(temporaryRoot, { recursive: true, force: true });
-  }
+  });
 
   return {
     schemaVersion: 1,
@@ -707,12 +703,11 @@ export async function bundleMarketplaceRelease({
   }
 
   await mkdir(destination, { recursive: true });
-  const temporaryRoot = await mkdtemp(resolve(destination, '.workflow-bundle-'));
-  const temporaryArchive = resolve(temporaryRoot, archiveName);
-  const temporaryChecksum = resolve(temporaryRoot, checksumName);
-  const temporaryInstallationGuide = resolve(temporaryRoot, 'INSTALL.md');
-  const temporaryUserGuide = resolve(temporaryRoot, 'USER-GUIDE.md');
-  try {
+  return withScratch({ purpose: 'release-bundle' }, async ({ path: temporaryRoot }) => {
+    const temporaryArchive = resolve(temporaryRoot, archiveName);
+    const temporaryChecksum = resolve(temporaryRoot, checksumName);
+    const temporaryInstallationGuide = resolve(temporaryRoot, 'INSTALL.md');
+    const temporaryUserGuide = resolve(temporaryRoot, 'USER-GUIDE.md');
     const [installationGuide, userGuide] = await Promise.all([
       readFile(installationGuidePath, 'utf8'),
       readFile(userGuidePath, 'utf8'),
@@ -755,8 +750,8 @@ export async function bundleMarketplaceRelease({
         rm(checksumPath, { force: true }),
       ]);
     }
-    await rename(temporaryArchive, archivePath);
-    await rename(temporaryChecksum, checksumPath);
+    await publishScratch(temporaryArchive, archivePath);
+    await publishScratch(temporaryChecksum, checksumPath);
 
     return {
       schemaVersion: 1,
@@ -780,9 +775,7 @@ export async function bundleMarketplaceRelease({
         ],
       },
     };
-  } finally {
-    await rm(temporaryRoot, { recursive: true, force: true });
-  }
+  });
 }
 
 function localTagExists(runner, repositoryRoot, tag) {
@@ -806,7 +799,7 @@ async function validateSelectedCommit({
     return validate({ repositoryRoot, sourceCommit });
   }
 
-  const temporaryRoot = await mkdtemp(resolve(tmpdir(), 'workflow-release-source-'));
+  return withScratch({ purpose: 'release-source-checkout' }, async ({ path: temporaryRoot }) => {
   const checkout = resolve(temporaryRoot, 'checkout');
   let worktreeAdded = false;
   try {
@@ -824,8 +817,8 @@ async function validateSelectedCommit({
         allowFailure: true,
       });
     }
-    await rm(temporaryRoot, { recursive: true, force: true });
   }
+  });
 }
 
 export async function publishRelease({

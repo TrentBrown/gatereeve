@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Own temporary files created by this script and all tools it invokes.
+if [[ "${GATEREEVE_MANAGED_SCRIPT:-}" != "${BASH_SOURCE[0]}" ]]; then
+  scratch_helper="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/plugin-src/shared/resources/storage/scratch.js"
+  exec node "$scratch_helper" run env "GATEREEVE_MANAGED_SCRIPT=${BASH_SOURCE[0]}" bash "${BASH_SOURCE[0]}" "$@"
+fi
+
 if [[ $# -ne 3 ]]; then
   echo "Usage: publish-marketplace.sh <release-root> <remote-url> <source-tag>" >&2
   exit 2

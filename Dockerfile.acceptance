@@ -16,8 +16,11 @@ RUN apt-get update \
       ca-certificates \
       gh \
       git \
+      lsof \
+      procps \
       python3 \
       unzip \
+      util-linux \
     && git --no-lazy-fetch --version \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,6 +34,7 @@ WORKDIR /workspace
 COPY README.md DEVELOPMENT.md INSTALL.md RELEASING.md APPLE-RELEASE-SETUP.md USER-GUIDE.md ./
 COPY cli ./cli
 RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci --prefix cli
+COPY apps/desktop/scripts ./apps/desktop/scripts
 COPY .github/workflows/release-conductor.yml ./.github/workflows/release-conductor.yml
 COPY .github/actions/release-conductor-record/action.yml ./.github/actions/release-conductor-record/action.yml
 COPY .github/actions/pr-ci-scope/action.yml ./.github/actions/pr-ci-scope/action.yml

@@ -1,11 +1,12 @@
+import { withScratch, scratchEnvironment } from '../../../plugin-src/shared/resources/storage/scratch.js';
 // @ts-check
 
 import { extractFile, listPackage } from '@electron/asar';
 import assert from 'node:assert/strict';
 import { execFile, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { lstat, mkdtemp, readFile, readlink, rm, stat, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { lstat, mkdir, readFile, readlink, stat, writeFile } from 'node:fs/promises';
+
 import { basename, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -222,11 +223,11 @@ export async function verifyApplication(applicationPath, version, appleTrust) {
  * @param {{rosettaTranslated?: boolean}} [options]
  */
 export async function smokeApplication(applicationPath, fixturePath, options = {}) {
-  const userData = await mkdtemp(join(tmpdir(), 'gatereeve-smoke-user-data-'));
-  try {
+  return withScratch({ purpose: 'desktop-smoke-profile' }, async scratch => {
+    const userData = join(scratch.path, 'profile');
     const executable = resolve(applicationPath, 'Contents', 'MacOS', MACOS_PRODUCT.name);
     const environment = {
-      ...process.env,
+      ...await scratchEnvironment(scratch),
       PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
       GATEREEVE_DESKTOP_SMOKE: '1',
       GATEREEVE_DESKTOP_SMOKE_WORKTREE: resolve(fixturePath),
@@ -251,17 +252,19 @@ export async function smokeApplication(applicationPath, fixturePath, options = {
     child.stdout.on('data', (chunk) => { stdout += chunk; });
     child.stderr.on('data', (chunk) => { stderr += chunk; });
     const result = await new Promise((finish, reject) => {
+      let timedOut = false;
       const timeout = setTimeout(() => {
+        timedOut = true;
         child.kill('SIGKILL');
-        reject(new Error('Packaged GateReeve smoke timed out after 60 seconds.'));
       }, 60_000);
       child.once('error', (error) => {
         clearTimeout(timeout);
         reject(error);
       });
-      child.once('exit', (code, signal) => {
+      child.once('close', (code, signal) => {
         clearTimeout(timeout);
-        finish({ code, signal });
+        if (timedOut) reject(new Error('Packaged GateReeve smoke timed out after 60 seconds.'));
+        else finish({ code, signal });
       });
     });
     assert.deepEqual(
@@ -269,9 +272,7 @@ export async function smokeApplication(applicationPath, fixturePath, options = {
       { code: 0, signal: null },
       `Packaged GateReeve failed its governed-fixture smoke.\n${stderr || stdout}`,
     );
-  } finally {
-    await rm(userData, { recursive: true, force: true });
-  }
+  });
 }
 
 /**
@@ -321,33 +322,35 @@ export async function verifyDmg(options) {
     ]);
   }
   await verifyDmgWithRetry(dmgPath, { run });
-  const mountRoot = await mkdtemp(join(tmpdir(), 'gatereeve-dmg-mount-'));
-  let attached = false;
-  try {
-    await run('/usr/bin/hdiutil', [
-      'attach',
-      '-readonly',
-      '-nobrowse',
-      '-mountpoint',
-      mountRoot,
-      dmgPath,
-    ]);
-    attached = true;
-    const applicationsLink = resolve(mountRoot, 'Applications');
-    assert.equal((await lstat(applicationsLink)).isSymbolicLink(), true);
-    assert.equal(await readlink(applicationsLink), '/Applications');
-    const applicationPath = resolve(mountRoot, `${MACOS_PRODUCT.name}.app`);
-    const trust = await verifyApplication(applicationPath, options.version, appleTrust);
-    if (options.fixturePath) await smokeApplication(applicationPath, options.fixturePath, {
-      rosettaTranslated: options.rosettaTranslated,
-    });
-    return { trust, appleTrust, appleTrustEvidenceSha256 };
-  } finally {
-    if (attached) {
-      await run('/usr/bin/hdiutil', ['detach', mountRoot]);
+  return withScratch({ purpose: 'desktop-dmg-mount' }, async scratch => {
+    const mountRoot = join(scratch.path, 'volume');
+    await mkdir(mountRoot);
+    let attached = false;
+    try {
+      await run('/usr/bin/hdiutil', [
+        'attach',
+        '-readonly',
+        '-nobrowse',
+        '-mountpoint',
+        mountRoot,
+        dmgPath,
+      ]);
+      attached = true;
+      const applicationsLink = resolve(mountRoot, 'Applications');
+      assert.equal((await lstat(applicationsLink)).isSymbolicLink(), true);
+      assert.equal(await readlink(applicationsLink), '/Applications');
+      const applicationPath = resolve(mountRoot, `${MACOS_PRODUCT.name}.app`);
+      const trust = await verifyApplication(applicationPath, options.version, appleTrust);
+      if (options.fixturePath) await smokeApplication(applicationPath, options.fixturePath, {
+        rosettaTranslated: options.rosettaTranslated,
+      });
+      return { trust, appleTrust, appleTrustEvidenceSha256 };
+    } finally {
+      if (attached) {
+        await run('/usr/bin/hdiutil', ['detach', mountRoot]);
+      }
     }
-    await rm(mountRoot, { recursive: true, force: true });
-  }
+  });
 }
 
 function argument(name) {

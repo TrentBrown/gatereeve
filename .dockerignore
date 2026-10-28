@@ -2,6 +2,7 @@
 .checkpoints
 .handoffs
 cli/node_modules
+apps/desktop/node_modules
 dist
 workflow-site
 **/__pycache__

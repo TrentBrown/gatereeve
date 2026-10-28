@@ -27,6 +27,21 @@ The command tree uses pinned `commander` plus a repository-local recursive help
 renderer. It has no exact non-LTS engine dependency and installs without an
 expected `EBADENGINE` advisory.
 
+## Temporary storage
+
+`gatereeve cleanup` previews registered temporary runs under the host temporary
+directory's `gatereeve/runs/`. Add `--apply` to recheck and remove eligible runs,
+or `--run <id>` to limit scope. `gatereeve doctor` reports a quick read-only
+storage inventory; the installed workflow Doctor includes the same advisory.
+
+Use `gatereeve scratch run --purpose test -- /absolute/tool args` for disposable
+commands. The command starts inside a new scratch directory; use `--cwd /absolute/project`
+to keep a project working directory. Child `TMPDIR`, `TMP`, and `TEMP` are managed,
+including nested GateReeve operations. Export required results outside scratch. `--keep-hours 24` sets a diagnostic hold. Unknown activity,
+mounts, malformed records and unregistered legacy folders are protected.
+See [storage policy](../plugin-src/shared/resources/STORAGE.md) for lifecycle,
+diagnostic retention, interrupted-run limits and desktop package verification.
+
 ## Workflow commands
 
 ```bash

@@ -1,6 +1,7 @@
+import { withScratch, scratchEnvironment } from '../storage/scratch.js';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile, writeFile } from 'node:fs/promises';
+
 import { join } from 'node:path';
 
 import { sha256Digest, AGENT_WORKFLOW_PROTOCOL_VERSION, validateEvaluatorCapability } from './agent-workflow.js';
@@ -218,8 +219,8 @@ export function createCodexAgentAdapter({
           || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
         throw new ContractError('Evaluator request must use the current receipt and isolation contract');
       }
-      const scratch = await mkdtemp(join(tmpdir(), 'gatereeve-codex-stage-'));
-      try {
+      return withScratch({ purpose: 'codex-evaluator' }, async scratchRun => {
+        const scratch = scratchRun.path;
         const schemaPath = join(scratch, 'output.schema.json');
         const outputPath = join(scratch, 'output.json');
         await writeFile(schemaPath, `${JSON.stringify(request.outputSchema, null, 2)}\n`, { mode: 0o600 });
@@ -235,7 +236,7 @@ export function createCodexAgentAdapter({
         ], {
           cwd: request.repositoryPath,
           input: promptFor(request),
-          env: environment,
+          env: await scratchEnvironment(scratchRun, environment),
           timeoutSeconds: request.timeoutSeconds,
         });
         const output = parseObject(await readFile(outputPath, 'utf8'), 'Codex structured output');
@@ -246,9 +247,7 @@ export function createCodexAgentAdapter({
           receipt: receiptFor(request, details, output, contextId, 'codex-ephemeral-exec', processResult,
             providerMetrics(jsonLines(processResult.stdout).filter(event => event.type === 'turn.completed').map(event => event.usage))),
         };
-      } finally {
-        await rm(scratch, { recursive: true, force: true });
-      }
+  });
     },
   });
 }
@@ -273,6 +272,7 @@ export function createClaudeCodeAgentAdapter({
           || request.policy.networkAccess !== 'deny' || request.policy.scratch !== 'isolated') {
         throw new ContractError('Evaluator request must use the current receipt and isolation contract');
       }
+      return withScratch({ purpose: 'claude-evaluator' }, async scratchRun => {
       const agentName = 'gatereeve-stage';
       const agents = {
         [agentName]: {
@@ -293,7 +293,7 @@ export function createClaudeCodeAgentAdapter({
       ], {
         cwd: request.repositoryPath,
         input: '',
-        env: environment,
+        env: await scratchEnvironment(scratchRun, environment),
         timeoutSeconds: request.timeoutSeconds,
       });
       const parsed = parseClaudeStructuredOutput(processResult.stdout);
@@ -307,6 +307,7 @@ export function createClaudeCodeAgentAdapter({
           request, details, parsed.output, parsed.contextId, 'claude-custom-agent', processResult, parsed.metrics
         ),
       };
+      });
     },
   });
 }

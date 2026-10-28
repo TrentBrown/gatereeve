@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { requireThat } from './contracts.js';
 
 const NAME = /^[A-Za-z_][A-Za-z0-9_]*$/u;
-export const ENVIRONMENT_POLICY = 'controlled-environment/1';
+export const ENVIRONMENT_POLICY = 'controlled-environment/2-managed-scratch';
 
 // Resolve once for launch. Observations resolve the same declaration against
 // current host inputs; arbitrary agent/session variables never enter the child.

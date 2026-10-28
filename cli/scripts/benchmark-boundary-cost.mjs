@@ -2,12 +2,11 @@
 // Reproducible structural measurements. No provider launches or latency claims.
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { withScratch } from '../../plugin-src/shared/resources/storage/scratch.js';
 import { join, resolve } from 'node:path';
 import { buildCompactReviewInput } from '../../plugin-src/shared/resources/protocol/index.js';
 const exec=promisify(execFile);
-const scratch=await mkdtemp(join(tmpdir(),'gatereeve-cost-'));
 const git=async(root,...args)=>(await exec('git',['-c','core.hooksPath=/dev/null','-C',root,...args],{maxBuffer:1024*1024})).stdout.trim();
 async function measure(name,repositoryRoot,featureHome,baseSha,headSha,sliceBaseSha=baseSha){
  const compact=await buildCompactReviewInput({repositoryRoot,featureHome,baseSha,headSha,sliceBaseSha,scope:'FEATURE'});
@@ -17,7 +16,7 @@ async function measure(name,repositoryRoot,featureHome,baseSha,headSha,sliceBase
    retainedBinaryBlobsAndRepositorySnapshot:'excluded from text-byte metric'};
  }finally{await compact.cleanup();}
 }
-try {
+await withScratch({ purpose: 'boundary-cost-benchmark' }, async ({ path: scratch }) => {
  const repo=join(scratch,'fixture');await mkdir(repo);
  await git(repo,'init','-b','main');await git(repo,'config','user.name','Cost Fixture');await git(repo,'config','user.email','fixture@example.invalid');
  const home=join(repo,'docs/issues/cost');await mkdir(home,{recursive:true});
@@ -48,4 +47,4 @@ try {
   proof:'Synthetic input and provider-contract fixtures; optional actual read-only historical source rehearsal. No installed activation, publication or real-feature journal mutation.'};
  const output=process.argv[process.argv.indexOf('--output')+1];
  if(process.argv.includes('--output'))await writeFile(output,JSON.stringify(report,null,2)+'\n');else console.log(JSON.stringify(report,null,2));
-}finally{await rm(scratch,{recursive:true,force:true});}
+});
