@@ -1,9 +1,8 @@
+import { withScratch, publishScratch } from '../storage.js';
 import {
   mkdir,
-  mkdtemp,
   readFile,
   readdir,
-  rename,
   rm,
   writeFile,
 } from 'node:fs/promises';
@@ -143,11 +142,10 @@ export async function prepareRelease({
   const output = resolve(outputRoot);
   await requireAbsentOrEmpty(output);
   await mkdir(dirname(output), { recursive: true });
-  const stagingParent = await mkdtemp(resolve(dirname(output), '.workflow-release-'));
-  const distRoot = resolve(stagingParent, 'dist');
-  const releaseRoot = resolve(stagingParent, 'release');
+  return withScratch({ purpose: 'plugin-release-assembly' }, async ({ path: stagingParent }) => {
+    const distRoot = resolve(stagingParent, 'dist');
+    const releaseRoot = resolve(stagingParent, 'release');
 
-  try {
     const build = await composeMarketplacePackages({
       sourceRoot: resolve(sourceRoot),
       distRoot,
@@ -184,7 +182,7 @@ export async function prepareRelease({
         2
       )}\n`
     );
-    await rename(releaseRoot, output);
+    await publishScratch(releaseRoot, output);
     let integrity = null;
     try {
       integrity = integrityManifestPath
@@ -214,7 +212,5 @@ export async function prepareRelease({
         ? { path: integrity.path, bytes: integrity.bytes, sha256: integrity.sha256 }
         : null,
     };
-  } finally {
-    await rm(stagingParent, { recursive: true, force: true });
-  }
+  });
 }

@@ -1,5 +1,6 @@
 // @ts-check
 
+import { withScratch } from '../../../plugin-src/shared/resources/storage/scratch.js';
 import { packager } from '@electron/packager';
 import { createHash } from 'node:crypto';
 import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
@@ -95,47 +96,49 @@ export async function packageMacos(options = {}) {
   if (await sha256(sourceIcon) !== MACOS_PRODUCT.iconSha256) {
     throw new Error('Approved Rolling Vale icon digest does not match the packaging contract.');
   }
-  const stageRoot = resolve(outputRoot, 'stage');
-  const applicationOutput = resolve(outputRoot, 'application');
-  const brandingOutput = resolve(outputRoot, 'branding');
-  await rm(applicationOutput, { recursive: true, force: true });
-  await stageDesktopSource({ desktopRoot: sourceRoot, stageRoot, version });
-  const { icnsPath } = await generateMacosIcon({
-    sourcePath: sourceIcon,
-    outputRoot: brandingOutput,
-  });
-  const paths = await packager(electronPackagerOptions({
-    stageRoot,
-    outputRoot: applicationOutput,
-    iconPath: icnsPath,
-    version,
-    signingIdentity: options.signingIdentity,
-    keychain: options.keychain,
-  }));
-  if (paths.length !== 1 || paths[0] === undefined) {
-    throw new Error(`Desktop packager returned ${paths.length} output paths.`);
-  }
-  const applicationPath = resolve(paths[0], `${MACOS_PRODUCT.name}.app`);
-  const outputPath = resolve(outputRoot, dmgFilename(version));
-  await createMacosDmg({ applicationPath, outputPath });
-  if (options.signingIdentity) {
-    const run = options.run ?? ((file, arguments_) => execFileAsync(file, arguments_));
-    await run('/usr/bin/codesign', [
-      '--force',
-      '--timestamp',
-      '--sign',
-      options.signingIdentity,
-      ...(options.keychain ? ['--keychain', options.keychain] : []),
-      outputPath,
-    ]);
-    await run('/usr/bin/codesign', ['--verify', '--strict', '--verbose=4', outputPath]);
-  }
-  return Object.freeze({
-    applicationPath,
-    dmgPath: outputPath,
-    dmgBytes: (await stat(outputPath)).size,
-    dmgSha256: await sha256(outputPath),
-    version,
+  return withScratch({ purpose: 'desktop-package-build' }, async scratch => {
+    const stageRoot = resolve(scratch.path, 'stage');
+    const applicationOutput = resolve(outputRoot, 'application');
+    const brandingOutput = resolve(scratch.path, 'branding');
+    await rm(applicationOutput, { recursive: true, force: true });
+    await stageDesktopSource({ desktopRoot: sourceRoot, stageRoot, version });
+    const { icnsPath } = await generateMacosIcon({
+      sourcePath: sourceIcon,
+      outputRoot: brandingOutput,
+    });
+    const paths = await packager({ ...electronPackagerOptions({
+      stageRoot,
+      outputRoot: applicationOutput,
+      iconPath: icnsPath,
+      version,
+      signingIdentity: options.signingIdentity,
+      keychain: options.keychain,
+    }), tmpdir: resolve(scratch.path, 'packager') });
+    if (paths.length !== 1 || paths[0] === undefined) {
+      throw new Error(`Desktop packager returned ${paths.length} output paths.`);
+    }
+    const applicationPath = resolve(paths[0], `${MACOS_PRODUCT.name}.app`);
+    const outputPath = resolve(outputRoot, dmgFilename(version));
+    await createMacosDmg({ applicationPath, outputPath });
+    if (options.signingIdentity) {
+      const run = options.run ?? ((file, arguments_) => execFileAsync(file, arguments_));
+      await run('/usr/bin/codesign', [
+        '--force',
+        '--timestamp',
+        '--sign',
+        options.signingIdentity,
+        ...(options.keychain ? ['--keychain', options.keychain] : []),
+        outputPath,
+      ]);
+      await run('/usr/bin/codesign', ['--verify', '--strict', '--verbose=4', outputPath]);
+    }
+    return Object.freeze({
+      applicationPath,
+      dmgPath: outputPath,
+      dmgBytes: (await stat(outputPath)).size,
+      dmgSha256: await sha256(outputPath),
+      version,
+    });
   });
 }
 

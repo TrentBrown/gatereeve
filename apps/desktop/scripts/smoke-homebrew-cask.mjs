@@ -1,9 +1,10 @@
+import { withScratch, scratchEnvironment } from '../../../plugin-src/shared/resources/storage/scratch.js';
 // @ts-check
 
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -22,11 +23,11 @@ const PUBLIC_TAP = 'TrentBrown/gatereeve';
 const PUBLIC_CASK = `${PUBLIC_TAP}/${HOMEBREW_CASK_TOKEN}`;
 
 /** @param {string[]} command */
-async function runCommand(command) {
+async function runCommand(command, environment = process.env) {
   try {
     const result = await execFileAsync(command[0], command.slice(1), {
       env: {
-        ...process.env,
+        ...environment,
         HOMEBREW_NO_AUTO_UPDATE: '1',
         HOMEBREW_NO_ENV_HINTS: '1',
       },
@@ -121,97 +122,99 @@ export async function smokeHomebrewCask(options) {
   const platform = options.platform ?? process.platform;
   if (platform !== 'darwin') throw new Error('Homebrew Cask smoke requires macOS');
   const hostArchitecture = assertNativeArchitecture(options.architecture);
-  const run = options.run ?? runCommand;
   const record = await verifySmokeWorkspace(options.recordPath);
   const workspace = dirname(resolve(options.recordPath));
   const exactCask = await readFile(resolve(workspace, record.cask.outputPath), 'utf8');
-  const stagingRoot = await mkdtemp(resolve(tmpdir(), 'gatereeve-homebrew-smoke-'));
-  const appDirectory = resolve(stagingRoot, 'Applications');
-  let tapCreated = false;
-  let installed = false;
-  let primaryError = null;
-  const cleanupErrors = [];
-  let installProof;
-  let upgradeProof;
+  return withScratch({ purpose: 'homebrew-cask-smoke' }, async scratch => {
+    const stagingRoot = scratch.path;
+    const environment = { ...await scratchEnvironment(scratch), HOMEBREW_CACHE: resolve(stagingRoot, 'brew-cache') };
+    const run = options.run ?? (command => runCommand(command, environment));
+    const appDirectory = resolve(stagingRoot, 'Applications');
+    let tapCreated = false;
+    let installed = false;
+    let primaryError = null;
+    const cleanupErrors = [];
+    let installProof;
+    let upgradeProof;
 
-  try {
-    const existingCask = await run(['brew', 'list', '--cask', HOMEBREW_CASK_TOKEN]);
-    if (existingCask.code === 0) {
-      throw new Error(`Refusing to replace an installed ${HOMEBREW_CASK_TOKEN} Cask`);
-    }
-    const taps = await requireSuccess(run, ['brew', 'tap'], 'Homebrew tap inventory');
-    if (taps.stdout.split(/\r?\n/u).includes(SMOKE_TAP)) {
-      throw new Error(`Refusing to replace existing Homebrew tap ${SMOKE_TAP}`);
-    }
-    await mkdir(appDirectory, { recursive: true });
-    await requireSuccess(run, ['brew', 'tap-new', '--no-git', SMOKE_TAP], 'Smoke tap creation');
-    tapCreated = true;
-    const tap = await requireSuccess(run, ['brew', '--repository', SMOKE_TAP], 'Smoke tap lookup');
-    const caskDirectory = resolve(tap.stdout.trim(), 'Casks');
-    const caskPath = resolve(caskDirectory, `${HOMEBREW_CASK_TOKEN}.rb`);
-    await mkdir(caskDirectory, { recursive: true });
-    await writeFile(caskPath, renderPredecessorHomebrewCask(exactCask));
+    try {
+      const existingCask = await run(['brew', 'list', '--cask', HOMEBREW_CASK_TOKEN]);
+      if (existingCask.code === 0) {
+        throw new Error(`Refusing to replace an installed ${HOMEBREW_CASK_TOKEN} Cask`);
+      }
+      const taps = await requireSuccess(run, ['brew', 'tap'], 'Homebrew tap inventory');
+      if (taps.stdout.split(/\r?\n/u).includes(SMOKE_TAP)) {
+        throw new Error(`Refusing to replace existing Homebrew tap ${SMOKE_TAP}`);
+      }
+      await mkdir(appDirectory, { recursive: true });
+      await requireSuccess(run, ['brew', 'tap-new', '--no-git', SMOKE_TAP], 'Smoke tap creation');
+      tapCreated = true;
+      const tap = await requireSuccess(run, ['brew', '--repository', SMOKE_TAP], 'Smoke tap lookup');
+      const caskDirectory = resolve(tap.stdout.trim(), 'Casks');
+      const caskPath = resolve(caskDirectory, `${HOMEBREW_CASK_TOKEN}.rb`);
+      await mkdir(caskDirectory, { recursive: true });
+      await writeFile(caskPath, renderPredecessorHomebrewCask(exactCask));
 
-    await requireSuccess(run, [
-      'brew', 'install', '--cask', `--appdir=${appDirectory}`, SMOKE_CASK,
-    ], 'Homebrew Cask installation');
-    installed = true;
-    const applicationPath = resolve(appDirectory, 'GateReeve.app');
-    installProof = await verifyInstalledApplication(run, applicationPath, record);
+      await requireSuccess(run, [
+        'brew', 'install', '--cask', `--appdir=${appDirectory}`, SMOKE_CASK,
+      ], 'Homebrew Cask installation');
+      installed = true;
+      const applicationPath = resolve(appDirectory, 'GateReeve.app');
+      installProof = await verifyInstalledApplication(run, applicationPath, record);
 
-    await writeFile(caskPath, exactCask);
-    await requireSuccess(run, [
-      'brew', 'upgrade', '--cask', '--greedy', `--appdir=${appDirectory}`, SMOKE_CASK,
-    ], 'Homebrew Cask upgrade');
-    upgradeProof = await verifyInstalledApplication(run, applicationPath, record);
-  } catch (error) {
-    primaryError = error;
-  } finally {
-    if (installed) {
-      const result = await run(['brew', 'uninstall', '--cask', SMOKE_CASK]);
-      if (result.code !== 0) cleanupErrors.push(new Error(`Cask cleanup failed: ${result.stderr}`));
+      await writeFile(caskPath, exactCask);
+      await requireSuccess(run, [
+        'brew', 'upgrade', '--cask', '--greedy', `--appdir=${appDirectory}`, SMOKE_CASK,
+      ], 'Homebrew Cask upgrade');
+      upgradeProof = await verifyInstalledApplication(run, applicationPath, record);
+    } catch (error) {
+      primaryError = error;
+    } finally {
+      if (installed) {
+        const result = await run(['brew', 'uninstall', '--cask', SMOKE_CASK]);
+        if (result.code !== 0) cleanupErrors.push(new Error(`Cask cleanup failed: ${result.stderr}`));
+      }
+      if (tapCreated) {
+        const result = await run(['brew', 'untap', SMOKE_TAP]);
+        if (result.code !== 0) cleanupErrors.push(new Error(`Tap cleanup failed: ${result.stderr}`));
+      }
     }
-    if (tapCreated) {
-      const result = await run(['brew', 'untap', SMOKE_TAP]);
-      if (result.code !== 0) cleanupErrors.push(new Error(`Tap cleanup failed: ${result.stderr}`));
+    if (primaryError && cleanupErrors.length > 0) {
+      throw new AggregateError([primaryError, ...cleanupErrors], 'Cask smoke and cleanup failed');
     }
-    await rm(stagingRoot, { recursive: true, force: true });
-  }
-  if (primaryError && cleanupErrors.length > 0) {
-    throw new AggregateError([primaryError, ...cleanupErrors], 'Cask smoke and cleanup failed');
-  }
-  if (primaryError) throw primaryError;
-  if (cleanupErrors.length > 0) throw new AggregateError(cleanupErrors, 'Cask cleanup failed');
+    if (primaryError) throw primaryError;
+    if (cleanupErrors.length > 0) throw new AggregateError(cleanupErrors, 'Cask cleanup failed');
 
-  const evidence = {
-    schemaVersion: 1,
-    kind: 'gatereeve-homebrew-cask-smoke',
-    caskReleaseId: record.caskReleaseId,
-    source: structuredClone(record.source),
-    desktop: structuredClone(record.desktop),
-    runner: {
-      operatingSystem: 'darwin',
-      architecture: hostArchitecture,
-    },
-    checks: {
-      exactCaskInstalled: true,
-      upgradeCompleted: true,
-      applicationIdentity: true,
-      developerIdValid: true,
-      gatekeeperAccepted: true,
-      universalBinaries: true,
-      pluginLifecycleUntouched: true,
-      cliLifecycleUntouched: true,
-    },
-    installProof,
-    upgradeProof,
-    verifiedAt: (options.now ?? (() => new Date()))().toISOString(),
-  };
-  if (options.evidencePath) {
-    await mkdir(dirname(resolve(options.evidencePath)), { recursive: true });
-    await writeFile(resolve(options.evidencePath), `${JSON.stringify(evidence, null, 2)}\n`);
-  }
-  return evidence;
+    const evidence = {
+      schemaVersion: 1,
+      kind: 'gatereeve-homebrew-cask-smoke',
+      caskReleaseId: record.caskReleaseId,
+      source: structuredClone(record.source),
+      desktop: structuredClone(record.desktop),
+      runner: {
+        operatingSystem: 'darwin',
+        architecture: hostArchitecture,
+      },
+      checks: {
+        exactCaskInstalled: true,
+        upgradeCompleted: true,
+        applicationIdentity: true,
+        developerIdValid: true,
+        gatekeeperAccepted: true,
+        universalBinaries: true,
+        pluginLifecycleUntouched: true,
+        cliLifecycleUntouched: true,
+      },
+      installProof,
+      upgradeProof,
+      verifiedAt: (options.now ?? (() => new Date()))().toISOString(),
+    };
+    if (options.evidencePath) {
+      await mkdir(dirname(resolve(options.evidencePath)), { recursive: true });
+      await writeFile(resolve(options.evidencePath), `${JSON.stringify(evidence, null, 2)}\n`);
+    }
+    return evidence;
+  });
 }
 
 /**
@@ -224,104 +227,110 @@ export async function smokePublicHomebrewCask(options) {
   const platform = options.platform ?? process.platform;
   if (platform !== 'darwin') throw new Error('Public Homebrew Cask smoke requires macOS');
   const hostArchitecture = assertNativeArchitecture(options.architecture);
-  const run = options.run ?? runCommand;
   const record = await verifySmokeWorkspace(options.recordPath);
   const expectedCask = await readFile(
     resolve(dirname(resolve(options.recordPath)), record.cask.outputPath),
     'utf8',
   );
-  const stagingRoot = await mkdtemp(resolve(tmpdir(), 'gatereeve-public-cask-smoke-'));
-  const appDirectory = resolve(stagingRoot, 'Applications');
-  let primaryError = null;
-  const cleanupErrors = [];
-  let installProof;
-  let tapCaskSha256;
+  return withScratch({ purpose: 'public-homebrew-cask-smoke' }, async scratch => {
+    const stagingRoot = scratch.path;
+    const environment = { ...await scratchEnvironment(scratch), HOMEBREW_CACHE: resolve(stagingRoot, 'brew-cache') };
+    const run = options.run ?? (command => runCommand(command, environment));
+    const appDirectory = resolve(stagingRoot, 'Applications');
+    let installAttempted = false;
+    let tapAttempted = false;
+    let primaryError = null;
+    const cleanupErrors = [];
+    let installProof;
+    let tapCaskSha256;
 
-  try {
-    const existingCask = await run(['brew', 'list', '--cask', HOMEBREW_CASK_TOKEN]);
-    if (existingCask.code === 0) {
-      throw new Error(`Refusing to replace an installed ${HOMEBREW_CASK_TOKEN} Cask`);
+    try {
+      const existingCask = await run(['brew', 'list', '--cask', HOMEBREW_CASK_TOKEN]);
+      if (existingCask.code === 0) {
+        throw new Error(`Refusing to replace an installed ${HOMEBREW_CASK_TOKEN} Cask`);
+      }
+      const taps = await requireSuccess(run, ['brew', 'tap'], 'Homebrew tap inventory');
+      if (taps.stdout.split(/\r?\n/u).some((tap) => tap.toLowerCase() === PUBLIC_TAP.toLowerCase())) {
+        throw new Error(`Refusing to reuse existing Homebrew tap ${PUBLIC_TAP}`);
+      }
+      await mkdir(appDirectory, { recursive: true });
+      tapAttempted = true;
+      await requireSuccess(run, ['brew', 'tap', PUBLIC_TAP], 'Public tap installation');
+      const tap = await requireSuccess(run, ['brew', '--repository', PUBLIC_TAP], 'Public tap lookup');
+      const publicCask = await readFile(
+        resolve(tap.stdout.trim(), 'Casks', `${HOMEBREW_CASK_TOKEN}.rb`),
+        'utf8',
+      );
+      tapCaskSha256 = sha256(publicCask);
+      if (publicCask !== expectedCask || tapCaskSha256 !== record.cask.sha256) {
+        throw new Error(`Public Cask bytes do not match ${record.cask.sha256}`);
+      }
+      installAttempted = true;
+      await requireSuccess(run, [
+        'brew', 'install', '--cask', `--appdir=${appDirectory}`, PUBLIC_CASK,
+      ], 'Public Homebrew Cask installation');
+      installProof = await verifyInstalledApplication(
+        run,
+        resolve(appDirectory, 'GateReeve.app'),
+        record,
+      );
+    } catch (error) {
+      primaryError = error;
+    } finally {
+      const installed = await run(['brew', 'list', '--cask', HOMEBREW_CASK_TOKEN]);
+      if (installAttempted && installed.code === 0) {
+        const result = await run(['brew', 'uninstall', '--cask', HOMEBREW_CASK_TOKEN]);
+        if (result.code !== 0) cleanupErrors.push(new Error(`Cask cleanup failed: ${result.stderr}`));
+      }
+      const taps = await run(['brew', 'tap']);
+      if (tapAttempted && taps.code === 0 && taps.stdout.split(/\r?\n/u)
+        .some((tap) => tap.toLowerCase() === PUBLIC_TAP.toLowerCase())) {
+        const result = await run(['brew', 'untap', PUBLIC_TAP]);
+        if (result.code !== 0) cleanupErrors.push(new Error(`Tap cleanup failed: ${result.stderr}`));
+      }
     }
-    const taps = await requireSuccess(run, ['brew', 'tap'], 'Homebrew tap inventory');
-    if (taps.stdout.split(/\r?\n/u).some((tap) => tap.toLowerCase() === PUBLIC_TAP.toLowerCase())) {
-      throw new Error(`Refusing to reuse existing Homebrew tap ${PUBLIC_TAP}`);
+    if (primaryError && cleanupErrors.length > 0) {
+      throw new AggregateError([primaryError, ...cleanupErrors], 'Public Cask smoke and cleanup failed');
     }
-    await mkdir(appDirectory, { recursive: true });
-    await requireSuccess(run, ['brew', 'tap', PUBLIC_TAP], 'Public tap installation');
-    const tap = await requireSuccess(run, ['brew', '--repository', PUBLIC_TAP], 'Public tap lookup');
-    const publicCask = await readFile(
-      resolve(tap.stdout.trim(), 'Casks', `${HOMEBREW_CASK_TOKEN}.rb`),
-      'utf8',
-    );
-    tapCaskSha256 = sha256(publicCask);
-    if (publicCask !== expectedCask || tapCaskSha256 !== record.cask.sha256) {
-      throw new Error(`Public Cask bytes do not match ${record.cask.sha256}`);
-    }
-    await requireSuccess(run, [
-      'brew', 'install', '--cask', `--appdir=${appDirectory}`, PUBLIC_CASK,
-    ], 'Public Homebrew Cask installation');
-    installProof = await verifyInstalledApplication(
-      run,
-      resolve(appDirectory, 'GateReeve.app'),
-      record,
-    );
-  } catch (error) {
-    primaryError = error;
-  } finally {
-    const installed = await run(['brew', 'list', '--cask', HOMEBREW_CASK_TOKEN]);
-    if (installed.code === 0) {
-      const result = await run(['brew', 'uninstall', '--cask', HOMEBREW_CASK_TOKEN]);
-      if (result.code !== 0) cleanupErrors.push(new Error(`Cask cleanup failed: ${result.stderr}`));
-    }
-    const taps = await run(['brew', 'tap']);
-    if (taps.code === 0 && taps.stdout.split(/\r?\n/u)
-      .some((tap) => tap.toLowerCase() === PUBLIC_TAP.toLowerCase())) {
-      const result = await run(['brew', 'untap', PUBLIC_TAP]);
-      if (result.code !== 0) cleanupErrors.push(new Error(`Tap cleanup failed: ${result.stderr}`));
-    }
-    await rm(stagingRoot, { recursive: true, force: true });
-  }
-  if (primaryError && cleanupErrors.length > 0) {
-    throw new AggregateError([primaryError, ...cleanupErrors], 'Public Cask smoke and cleanup failed');
-  }
-  if (primaryError) throw primaryError;
-  if (cleanupErrors.length > 0) throw new AggregateError(cleanupErrors, 'Public Cask cleanup failed');
+    if (primaryError) throw primaryError;
+    if (cleanupErrors.length > 0) throw new AggregateError(cleanupErrors, 'Public Cask cleanup failed');
 
-  const evidence = {
-    schemaVersion: 1,
-    kind: 'gatereeve-public-homebrew-cask-smoke',
-    caskReleaseId: record.caskReleaseId,
-    source: structuredClone(record.source),
-    desktop: structuredClone(record.desktop),
-    publicTap: {
-      repository: record.cask.repository,
-      tap: record.cask.tap,
-      token: record.cask.token,
-      caskSha256: tapCaskSha256,
-    },
-    runner: {
-      operatingSystem: 'darwin',
-      architecture: hostArchitecture,
-    },
-    checks: {
-      literalPublicCommandInstalled: true,
-      exactPublishedCask: true,
-      exactCaskInstalled: true,
-      applicationIdentity: true,
-      developerIdValid: true,
-      gatekeeperAccepted: true,
-      universalBinaries: true,
-      pluginLifecycleUntouched: true,
-      cliLifecycleUntouched: true,
-    },
-    installProof,
-    verifiedAt: (options.now ?? (() => new Date()))().toISOString(),
-  };
-  if (options.evidencePath) {
-    await mkdir(dirname(resolve(options.evidencePath)), { recursive: true });
-    await writeFile(resolve(options.evidencePath), `${JSON.stringify(evidence, null, 2)}\n`);
-  }
-  return evidence;
+    const evidence = {
+      schemaVersion: 1,
+      kind: 'gatereeve-public-homebrew-cask-smoke',
+      caskReleaseId: record.caskReleaseId,
+      source: structuredClone(record.source),
+      desktop: structuredClone(record.desktop),
+      publicTap: {
+        repository: record.cask.repository,
+        tap: record.cask.tap,
+        token: record.cask.token,
+        caskSha256: tapCaskSha256,
+      },
+      runner: {
+        operatingSystem: 'darwin',
+        architecture: hostArchitecture,
+      },
+      checks: {
+        literalPublicCommandInstalled: true,
+        exactPublishedCask: true,
+        exactCaskInstalled: true,
+        applicationIdentity: true,
+        developerIdValid: true,
+        gatekeeperAccepted: true,
+        universalBinaries: true,
+        pluginLifecycleUntouched: true,
+        cliLifecycleUntouched: true,
+      },
+      installProof,
+      verifiedAt: (options.now ?? (() => new Date()))().toISOString(),
+    };
+    if (options.evidencePath) {
+      await mkdir(dirname(resolve(options.evidencePath)), { recursive: true });
+      await writeFile(resolve(options.evidencePath), `${JSON.stringify(evidence, null, 2)}\n`);
+    }
+    return evidence;
+  });
 }
 
 function argument(name) {

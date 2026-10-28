@@ -27,6 +27,7 @@ export function cleanupCommands() {
     .action(async options => print(await inspectScratch({ quick: true }), options.json));
   const scratch = new Command('scratch').description('Run a command inside owned disposable scratch').enablePositionalOptions();
   scratch.command('run').description('Run in a fresh directory; use absolute command/input paths and export required outputs')
+    .option('--cwd <path>', 'Keep a specified working directory while managing child temporary files')
     .option('--purpose <text>', 'Short description of this invocation')
     .option('--keep-hours <hours>', 'Retain bulk until this hold expires (cleanup remains on demand)', value => {
       const hours = Number(value);
@@ -35,7 +36,7 @@ export function cleanupCommands() {
     })
     .argument('<command>').argument('[args...]').passThroughOptions()
     .action(async (command, args, options) => runScratchCommand(command, args, {
-      purpose: options.purpose, keepUntil: options.keepHours ? new Date(Date.now() + options.keepHours * 3600000).toISOString() : null,
+      cwd: options.cwd, purpose: options.purpose, keepUntil: options.keepHours ? new Date(Date.now() + options.keepHours * 3600000).toISOString() : null,
       onCleanup: result => {
         const retained = result.entries.filter(item => !result.removed.some(removed => removed.id === item.id));
         console.error(JSON.stringify({ scratchCleanup: { removed: result.removed, retained, errors: result.errors ?? [] } }));

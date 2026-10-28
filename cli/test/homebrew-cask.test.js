@@ -1,3 +1,4 @@
+import { smokePublicHomebrewCask } from '../../apps/desktop/scripts/smoke-homebrew-cask.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
@@ -614,4 +615,20 @@ test('detects changed Cask bytes inside a prepared packet', async () => {
   await writeFile(join(fixture.root, HOMEBREW_CASK_PATH), 'changed\n');
   await assert.rejects(verifyHomebrewCaskWorkspace(fixture.recordPath), /Cask bytes changed/u);
   assert.equal((await readFile(fixture.recordPath, 'utf8')).includes('unapproved'), true);
+});
+
+
+test('public smoke refusal preserves a pre-existing installation and tap', async () => {
+  const fixture = await packetFixture();
+  for (const existing of ['cask', 'tap']) {
+    const calls = [];
+    const run = async command => {
+      calls.push(command);
+      if (command[1] === 'list') return { code: existing === 'cask' ? 0 : 1, stdout: '', stderr: '' };
+      if (command[1] === 'tap') return { code: 0, stdout: 'TrentBrown/gatereeve\n', stderr: '' };
+      throw new Error(`Unexpected mutation: ${command.join(' ')}`);
+    };
+    await assert.rejects(smokePublicHomebrewCask({ recordPath: fixture.recordPath, platform: 'darwin', run }), /Refusing/);
+    assert.equal(calls.some(command => ['uninstall', 'untap'].includes(command[1])), false);
+  }
 });

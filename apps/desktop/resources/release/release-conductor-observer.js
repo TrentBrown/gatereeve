@@ -1,6 +1,7 @@
+import { withScratch } from '../storage/scratch.js';
 import { execFile as execFileCallback } from 'node:child_process';
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile, readdir } from 'node:fs/promises';
+
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -187,8 +188,7 @@ export async function observeReleaseConductor(request, {
   };
   const candidates = [];
   let firstFailure = null;
-  const temporary = await mkdtemp(join(tmpdir(), 'gatereeve-release-provider-'));
-  try {
+  await withScratch({ purpose: 'release-provider-download' }, async ({ path: temporary }) => {
     for (const tag of tags) {
       const tagged = listed.filter((artifact) => tagFor(artifact) === tag);
       const normalized = [];
@@ -239,9 +239,7 @@ export async function observeReleaseConductor(request, {
         firstFailure ??= { code: 'CONDUCTOR_EVIDENCE_INVALID', message: error.message ?? String(error) };
       }
     }
-  } finally {
-    await rm(temporary, { recursive: true, force: true });
-  }
+  });
   const complete = candidates.find((candidate) => candidate.latest.stage === 'COMPLETE');
   const selected = complete ?? candidates[0] ?? null;
   const failure = complete ? { code: 'SHARED_RECEIPT_REQUIRED', message: 'Completed release needs a verifiable shared artifact receipt; refresh its provider evidence.' }

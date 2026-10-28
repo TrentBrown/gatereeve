@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
-import { lstat, mkdir, readFile, readdir, realpath, rename, rm, rmdir, unlink, writeFile } from 'node:fs/promises';
+import { chmod, cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, rmdir, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -18,7 +18,7 @@ const absent = error => error.code === 'ENOENT';
 const contains = (parent, child) => child === parent || child.startsWith(`${parent}${sep}`);
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
-export function scratchRoot() { return join(tmpdir(), 'gatereeve'); }
+export function scratchRoot() { return process.env.GATEREEVE_SCRATCH_ROOT || join(tmpdir(), 'gatereeve'); }
 
 async function directory(path) {
   const stat = await lstat(path);
@@ -83,14 +83,33 @@ async function alive(owner, probe = processIdentity) {
 
 async function lock(root, callback) {
   const path = join(root, '.maintenance-lock');
+  const started = Date.now();
+  let observed = null, observedAt = started;
   for (let attempt = 0; ; attempt++) {
     try { await mkdir(path, { mode: 0o700 }); break; }
     catch (error) {
       if (error.code !== 'EEXIST') throw error;
       // Do not steal a lock on PID/age alone. An interrupted maintenance lock
       // needs inspection; otherwise two recoverers could remove each other's lock.
-      assert(attempt < 40, 'Scratch maintenance is active or interrupted; inspect the maintenance lock before retrying');
-      await delay(50);
+      // Short waits suffice for an unknown/interrupted lock. A verified live
+      // maintainer may be removing a large tree; let concurrent producers wait
+      // without treating normal cleanup contention as a broken root.
+      let current;
+      try { current = await directory(path); }
+      catch (readError) { if (absent(readError)) continue; throw readError; }
+      if (!observed || !same(observed, current)) { observed = current; observedAt = Date.now(); }
+      if (Date.now() - observedAt >= 2000) {
+        let live = false;
+        try { live = await alive(await regularJson(join(path, 'owner.json'))); }
+        catch (readError) {
+          if (absent(readError)) {
+            const latest = await lstat(path).catch(() => null);
+            if (!latest || !same(latest, current)) continue;
+          }
+        }
+        assert(live && Date.now() - started < 90000, 'Scratch maintenance is active or interrupted; inspect the maintenance lock before retrying');
+      }
+      await delay(50 + Math.floor(Math.random() * 25));
     }
   }
   const stat = await directory(path);
@@ -111,7 +130,8 @@ async function saveOwner(path, owner) {
 export async function createScratch({ purpose, root = scratchRoot(), keepUntil = null } = {}) {
   assert(typeof purpose === 'string' && purpose.length > 0 && purpose.length <= 200, 'Scratch purpose is required (maximum 200 characters)');
   assert(keepUntil === null || Number.isFinite(Date.parse(keepUntil)), 'Invalid retention expiry');
-  const info = await rootInfo(root, true);
+  // Inherited roots must already be registered by the supervising invocation.
+  const info = await rootInfo(root, root !== process.env.GATEREEVE_SCRATCH_ROOT);
   return lock(info.root, async () => {
     const label = purpose.toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '').slice(0, 48) || 'run';
     const id = `${label}-${randomUUID()}`, path = join(info.root, 'runs', id);
@@ -236,6 +256,7 @@ export async function cleanupScratch({ root = scratchRoot(), run, apply = false,
         // and run identities immediately before removal. rm never follows links.
         assert(same(info, await rootInfo(root)), 'Scratch root changed');
         assert(same(current.identity, await directory(current.path)), 'Run directory changed');
+        await makeWritable(current.path);
         await rm(current.path, { recursive: true });
         removed.push({ id: item.id, bytes: current.bytes });
       } catch (error) { errors.push({ id: item.id, reason: error.message }); }
@@ -243,6 +264,38 @@ export async function cleanupScratch({ root = scratchRoot(), run, apply = false,
     for (const item of preview.entries.filter(entry => entry.status !== 'eligible')) skipped.push({ id: item.id, status: item.status });
     return { ...preview, applied: true, removed, skipped, errors, reclaimedBytes: removed.reduce((sum, item) => sum + item.bytes, 0) };
   });
+}
+
+// Reviewer views deliberately seal directories read-only. Restore owner access
+// only after activity/mount checks and under the same cleanup lock. Never follow links.
+async function makeWritable(path) {
+  const info = await lstat(path);
+  if (!info.isDirectory() || info.isSymbolicLink()) return;
+  await chmod(path, info.mode | 0o700);
+  for (const name of await readdir(path)) await makeWritable(join(path, name));
+}
+
+// External tools use standard temporary APIs; put those allocations under the
+// supervised run without changing this process or nesting GateReeve roots.
+export async function scratchEnvironment(scratch, environment = process.env) {
+  const temporary = join(scratch.path, 'tmp');
+  await mkdir(temporary, { mode: 0o700, recursive: true });
+  return { ...environment, GATEREEVE_SCRATCH_ROOT: scratch.root, GATEREEVE_SCRATCH: scratch.path,
+    TMPDIR: temporary, TMP: temporary, TEMP: temporary };
+}
+
+// Keep final output publication atomic even when TMPDIR and the output are on
+// different volumes. The destination-side copy is a short output transaction,
+// not a managed scratch root or a directory eligible for global cleanup.
+export async function publishScratch(source, destination, { move = rename } = {}) {
+  try { await move(source, destination); return; }
+  catch (error) { if (error.code !== 'EXDEV') throw error; }
+  const staging = await mkdtemp(join(dirname(destination), '.gatereeve-publish-'));
+  try {
+    const staged = join(staging, 'output');
+    await cp(source, staged, { recursive: true, verbatimSymlinks: true });
+    await rename(staged, destination);
+  } finally { await rm(staging, { recursive: true, force: true }); }
 }
 
 export async function finishScratch(scratch, { error = null, diagnostics = '' } = {}) {
@@ -285,7 +338,8 @@ export async function runScratchCommand(command, args, options = {}) {
       const { owner } = await loadRun(scratch.root, scratch.id);
       await saveOwner(scratch.path, { ...owner, supervisionPending: true });
     });
-    const child = spawn(command, args, { cwd: scratch.path, env: { ...process.env, GATEREEVE_SCRATCH: scratch.path }, detached: true, stdio: ['inherit', 'pipe', 'pipe'] });
+    const child = spawn(command, args, { cwd: options.cwd ?? scratch.path,
+      env: await scratchEnvironment(scratch, options.env ?? process.env), detached: true, stdio: [options.capture ? 'ignore' : 'inherit', 'pipe', 'pipe'] });
     const completed = new Promise((resolveResult, reject) => {
       child.once('error', reject);
       child.once('close', (code, signal) => resolveResult({ code, signal }));
@@ -295,9 +349,17 @@ export async function runScratchCommand(command, args, options = {}) {
     const forward = signal => { try { process.kill(-child.pid, signal); } catch {} };
     const onInt = () => forward('SIGINT'), onTerm = () => forward('SIGTERM');
     process.on('SIGINT', onInt); process.on('SIGTERM', onTerm);
-    let tail = '';
-    child.stdout.on('data', bytes => { process.stdout.write(bytes); tail = (tail + bytes).slice(-16384); });
-    child.stderr.on('data', bytes => { process.stderr.write(bytes); tail = (tail + bytes).slice(-16384); });
+    let tail = '', stdout = '', stderr = '', outputBytes = 0, timedOut = false, outputLimited = false;
+    const timer = options.timeoutMs ? setTimeout(() => { timedOut = true; forward('SIGKILL'); }, options.timeoutMs) : null;
+    const output = (bytes, stream) => {
+      tail = (tail + bytes).slice(-16384);
+      if (!options.capture) { process[stream].write(bytes); return; }
+      outputBytes += bytes.length;
+      if (outputBytes > 16 * 1024 * 1024) { outputLimited = true; forward('SIGKILL'); return; }
+      if (stream === 'stdout') stdout += bytes; else stderr += bytes;
+    };
+    child.stdout.on('data', bytes => output(bytes, 'stdout'));
+    child.stderr.on('data', bytes => output(bytes, 'stderr'));
     try {
       if (child.pid) {
         const started = await processIdentity(child.pid);
@@ -309,19 +371,31 @@ export async function runScratchCommand(command, args, options = {}) {
         });
       }
       const outcome = await completed;
-      if (outcome.code !== 0) throw new Error(`Scratch command failed (${outcome.signal ?? outcome.code}): ${tail}`);
-      return outcome;
+      const result = { ...outcome, timedOut, outputLimited, stdout, stderr };
+      if (outcome.code !== 0 || timedOut || outputLimited) {
+        const error = new Error(`Scratch command failed (${timedOut ? 'timeout' : outputLimited ? 'output limit' : outcome.signal ?? outcome.code}): ${tail}`);
+        error.scratchResult = result;
+        throw error;
+      }
+      return options.capture ? result : outcome;
     } finally {
       // If registration failed, stop and reap the command before closing its
       // owner. Otherwise a successful spawn could outlive a bookkeeping error.
       if (child.exitCode === null && child.signalCode === null) { forward('SIGKILL'); await completed.catch(() => {}); }
+      if (timer) clearTimeout(timer);
       process.off('SIGINT', onInt); process.off('SIGTERM', onTerm);
     }
   });
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  // Portable read-only Doctor entry point, also available in native plugins.
-  assert(process.argv[2] === 'inspect', 'Use inspect [--quick]');
-  console.log(JSON.stringify(await inspectScratch({ quick: process.argv.includes('--quick') })));
+  // Dependency-free entrypoint for maintained test/CI scripts. Preserve cwd.
+  if (process.argv[2] === 'run') {
+    const [command, ...args] = process.argv.slice(3);
+    assert(command, 'Use run <command> [args...]');
+    await runScratchCommand(command, args, { cwd: process.cwd() });
+  } else {
+    assert(process.argv[2] === 'inspect', 'Use inspect [--quick] or run <command> [args...]');
+    console.log(JSON.stringify(await inspectScratch({ quick: process.argv.includes('--quick') })));
+  }
 }

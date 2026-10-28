@@ -21,7 +21,9 @@ export async function createMacosDmg(options) {
   const run = options.run ?? ((file, args) => execFileAsync(file, args));
   const outputPath = resolve(options.outputPath);
   await mkdir(resolve(outputPath, '..'), { recursive: true });
-  await withScratch({ purpose: 'dmg-staging' }, async ({ path: sourceRoot }) => {
+  await withScratch({ purpose: 'dmg-staging' }, async scratch => {
+    const sourceRoot = resolve(scratch.path, 'contents');
+    await mkdir(sourceRoot);
     await run('/usr/bin/ditto', [
       resolve(options.applicationPath),
       resolve(sourceRoot, `${MACOS_PRODUCT.name}.app`),

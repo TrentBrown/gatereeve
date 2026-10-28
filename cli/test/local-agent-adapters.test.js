@@ -58,6 +58,8 @@ test('Codex adapter launches a fresh ephemeral read-only structured run', async 
   assert.equal(validateAgentWorkflowStageResult(result), result);
   assert.equal(result.receipt.provider.contextId, 'codex-context-1');
   assert.deepEqual(result.receipt.metrics, { tokens: { input: 12, output: 7, cachedInput: 5, cacheCreation: null }, cost: null });
+  assert.match(calls[0].options.env.TMPDIR, /gatereeve.*runs.*codex-evaluator/);
+  assert.equal(calls[0].options.env.TEMP, calls[0].options.env.TMPDIR);
   assert(calls[0].args.includes('--ephemeral'));
   assert(calls[0].args.includes('--skip-git-repo-check'));
   assert(calls[0].args.includes('read-only'));
@@ -91,6 +93,7 @@ test('Claude Code adapter launches a non-persistent restricted custom agent', as
   assert.equal(validateAgentWorkflowStageResult(result), result);
   assert.equal(result.receipt.provider.contextId, 'claude-context-1');
   assert.deepEqual(result.receipt.metrics, { tokens: { input: 20, output: 9, cachedInput: 3, cacheCreation: 4 }, cost: 0.03 });
+  assert.match(calls[0].options.env.TMPDIR, /gatereeve.*runs.*claude-evaluator/);
   assert(calls[0].args.includes('--agents'));
   assert(calls[0].args.includes('--agent'));
   assert(calls[0].args.includes('--restricted'));

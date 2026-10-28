@@ -184,7 +184,7 @@ test('desktop wrapper exports receipt outside scratch before removing fake build
 
 test('CLI preview/Doctor are read-only and scratch wrapper records failed command diagnostics', async t => {
   const { parent } = await fixture(t), cli = fileURLToPath(new URL('../bin/workflow.js', import.meta.url));
-  const env = { ...process.env, TMPDIR: parent, TMP: parent, TEMP: parent };
+  const env = { ...process.env, GATEREEVE_SCRATCH_ROOT: '', TMPDIR: parent, TMP: parent, TEMP: parent };
   for (const command of ['cleanup', 'doctor']) {
     const result = await execute(process.execPath, [cli, command, '--json'], { env });
     assert.deepEqual(JSON.parse(result.stdout).entries, []);

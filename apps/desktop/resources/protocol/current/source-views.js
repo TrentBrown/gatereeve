@@ -1,14 +1,15 @@
+import { createScratch, finishScratch, cleanupScratch } from '../../storage/scratch.js';
 import { mkdir, writeFile, open, link, rm, lstat, readdir, chmod } from 'node:fs/promises';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
-import { hostname, tmpdir } from 'node:os';
+import { hostname } from 'node:os';
 import { join, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { identity, requireThat } from './contracts.js';
 import { localPath, readSafe } from './store.js';
 import { ObjectReader } from './git-source.js';
 
-function expected(store, id) { return join(tmpdir(), `gatereeve-review-${identity(store.home).slice(7, 23)}-${id}`); }
+function expected(view) { return view.scratch && join(view.scratch.root, 'runs', view.scratch.id, 'view'); }
 function inactive(view) {
   if (view.host !== hostname() || !Number.isSafeInteger(view.pid) || view.pid < 1) return false;
   try { process.kill(view.pid, 0); return false; } catch (error) { return error.code === 'ESRCH'; }
@@ -18,7 +19,7 @@ export async function viewStatus(store) {
 }
 export async function cleanupViews(store, state = null) {
   for (const view of await store.openViews()) {
-    if (!inactive(view) || view.root !== expected(store, view.id)) continue;
+    if (!inactive(view) || view.root !== expected(view)) continue;
     // A dead controller does not prove its evaluator subprocess has stopped.
     if (view.jobId && (view.runId !== state?.runId || !state.jobs[view.jobId]?.finished)) continue;
     let exists = true;
@@ -28,34 +29,28 @@ export async function cleanupViews(store, state = null) {
       const info = await lstat(view.root);
       requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Unsafe interrupted review view');
       requireThat((await readSafe(view.root, '.gatereeve-view-owner')).toString() === identity({ home: store.home, id: view.id }), 'Review view ownership is unavailable');
-      await removeView(view.root); await store.finishView(view.id);
+      const result = await cleanupScratch({ ...view.scratch, apply: true, run: view.scratch.id });
+      if (result.removed.length) await store.finishView(view.id);
     } catch { /* Ambiguous ownership is preserved and remains visible. */ }
   }
 }
-async function removeView(root) {
-  // Only called for a private owned view. Do not follow symlinks while restoring directory permissions.
-  async function writable(path) {
-    const info = await lstat(path);
-    if (!info.isDirectory() || info.isSymbolicLink()) return;
-    await chmod(path, 0o700);
-    for (const name of await readdir(path)) await writable(join(path, name));
-  }
-  try { await writable(root); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  await rm(root, { recursive: true, force: true });
-}
 export async function newView(store, { runId = null, jobId = null, linkFile = link, writeMarker = writeFile } = {}) {
-  const id = randomUUID(); const root = expected(store, id);
-  await store.saveView(id, { root, pid: process.pid, host: hostname(), runId, jobId });
-  let created = false;
+  const id = randomUUID();
+  const scratch = await createScratch({ purpose: 'review-source-view' });
+  const root = join(scratch.path, 'view');
   const readers = new Map(); const backing = new Map(); const paths = new Set();
   const backingRoot = join(root, '.source-blobs');
   try {
-    await mkdir(root, { mode: 0o700 }); created = true;
+    await store.saveView(id, { root, pid: process.pid, host: hostname(), runId, jobId,
+      scratch: { root: scratch.root, id: scratch.id } });
+    await mkdir(root, { mode: 0o700 });
     await writeMarker(join(root, '.gatereeve-view-owner'), identity({ home: store.home, id }), { flag: 'wx', mode: 0o400 });
     await mkdir(backingRoot, { mode: 0o700 });
   } catch (error) {
-    if (created) await removeView(root);
-    await store.finishView(id);
+    try {
+      const result = await finishScratch(scratch, { error });
+      if (result.removed.length) await store.finishView(id);
+    } catch (cleanupError) { throw new AggregateError([error, cleanupError], 'Review view initialization and cleanup failed'); }
     throw error;
   }
   return {
@@ -113,7 +108,9 @@ export async function newView(store, { runId = null, jobId = null, linkFile = li
     },
     async close() {
       for (const reader of readers.values()) await reader.abort(); readers.clear();
-      await removeView(root); await store.finishView(id);
+      const result = await finishScratch(scratch);
+      if (result.removed.length) await store.finishView(id);
+      else console.error(`Review scratch retained: ${scratch.path}`);
     },
   };
 }

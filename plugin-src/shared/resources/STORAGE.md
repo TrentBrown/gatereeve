@@ -61,3 +61,50 @@ For local desktop packaging verification, use the maintained
 hash and verification receipt before cleaning its temporary application/fixture.
 `--keep` provides a 24-hour debugging hold. Production builds continue through
 Release Conductor with separate, explicitly retained outputs.
+
+## Default producer coverage
+
+Managed storage is the default for disposable work created by GateReeve:
+
+| Producer | Managed contents | Retained separately |
+|---|---|---|
+| Desktop packaging | source/branding staging, Electron packager intermediate trees, DMG composition copies | requested application and DMG outputs |
+| Desktop verification | mount directories, smoke profiles, local verification builds/fixtures | exported verification receipts |
+| Homebrew smoke | test application copies, temporary files and smoke-specific download cache | existing installations/taps and requested evidence |
+| Release preparation | plugin builds, coordinated packets, publication packet assembly, bundles, selected-source worktrees | final requested outputs, approvals and publication recovery records |
+| Release observation and CI reuse | downloaded provider/source/matrix evidence working copies | qualified copied receipts and their provenance |
+| Independent review | sealed source views, provider output/schema staging, evaluator OS temporary files | canonical findings/verdicts and source pins |
+| Governed checks | command-specific temporary directories and supervised child groups | caller outputs and bounded execution receipts |
+| Repository tests / portable acceptance / marketplace publish script | inherited Node, Python and shell temporary files, including abandoned fixtures | exported reports, explicitly requested build outputs |
+
+The standard npm test commands and portable acceptance script supervise their
+children automatically. For an ad hoc command, preserve the project cwd with:
+
+```sh
+gatereeve scratch run --cwd /absolute/project --purpose regression -- node --test
+# Dependency-free source-checkout entrypoint; preserves the current cwd:
+node plugin-src/shared/resources/storage/scratch.js run python3 -m unittest discover
+```
+
+Supervision sets `TMPDIR`, `TMP`, and `TEMP` to a run-owned subdirectory and
+propagates `GATEREEVE_SCRATCH_ROOT` for nested GateReeve operations. Inherited roots
+must already be registered/private; arbitrary directories are never adopted.
+These settings affect child processes only. Tools that explicitly select a path,
+ignore standard temp variables, or use their own persistent caches retain those
+separate semantics. Never pass the scratch run root itself as the contents of a
+published archive/image; use a child directory so owner records stay private.
+
+Required exceptions: final outputs and multi-step CI download/upload directories
+remain caller-owned until their consumer/export finishes. Persistent dependency,
+Electron-download and installation caches are reusable data, not disposable
+scratch. Small `.tmp` siblings used for atomic state updates stay beside their
+target. Cross-filesystem output promotion uses a short `.gatereeve-publish-*`
+transaction beside the destination so publication remains atomic; normal failure
+removes that exact transaction, but global scratch cleanup never scans it.
+Interrupted output transactions require local recovery/inspection.
+
+Managed review views restore directory write permission only after guarded
+cleanup establishes eligibility. Existing unregistered views remain visible for
+inspection; this migration never sweeps old temp prefixes. A changed controlled
+runner environment policy requires fresh affected verification; planning,
+approvals and historical evidence remain intact.

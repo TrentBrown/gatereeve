@@ -1,7 +1,7 @@
+import { withScratch, publishScratch } from '../storage.js';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   mkdir,
-  mkdtemp,
   readFile,
   readdir,
   rename,
@@ -342,9 +342,8 @@ export async function finalizeHostedPublicationV2({
     if (error.code !== 'ENOENT') throw error;
   }
   await mkdir(dirname(output), { recursive: true });
-  const staging = await mkdtemp(resolve(dirname(output), '.gatereeve-hosted-publication-'));
-  const packet = resolve(staging, 'packet');
-  try {
+  return withScratch({ purpose: 'hosted-publication-assembly' }, async ({ path: staging }) => {
+    const packet = resolve(staging, 'packet');
     const prepared = await prepareCoordinatedRelease({
       sourceTag: trusted.source.tag,
       sourceCommit: trusted.source.commit,
@@ -384,7 +383,7 @@ export async function finalizeHostedPublicationV2({
       { flag: 'wx' },
     );
     await verifyHostedPublicationPacket(resolve(packet, 'release-record.json'));
-    await rename(packet, output);
+    await publishScratch(packet, output);
     return {
       schemaVersion: 2,
       outputRoot: output,
@@ -394,9 +393,7 @@ export async function finalizeHostedPublicationV2({
       planSha256: prepared.planSha256,
       record: finalized,
     };
-  } finally {
-    await rm(staging, { recursive: true, force: true });
-  }
+  });
 }
 
 export async function publishHostedReleaseV2({

@@ -1,8 +1,9 @@
+import { withScratch } from '../plugin-src/shared/resources/storage/scratch.js';
 import { execFile as execute } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFile, writeFile, mkdir, mkdtemp, rm, copyFile, appendFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, copyFile, appendFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import { tmpdir, release } from 'node:os';
+import { release } from 'node:os';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { retryTransient } from '../plugin-src/shared/resources/release/recovery.js';
@@ -50,8 +51,7 @@ export async function matrixCheck({ artifactName, evidence, inputs, priorRunId, 
     assert(matching.length <= 1, 'Ambiguous prior matrix artifact');
     if (matching.length) {
       previousReference = { runId: priorRunId, artifactId: matching[0].id, digest: matching[0].digest ?? null };
-      const temporary = await mkdtemp(join(tmpdir(), 'gr-matrix-'));
-      try {
+      const reused = await withScratch({ purpose: 'matrix-evidence-download' }, async ({ path: temporary }) => {
         await runCommand('gh', ['run', 'download', priorRunId, '--repo', repository, '--name', artifactName, '--dir', temporary]);
         try { previous = JSON.parse(await readFile(join(temporary, basename(sidecar)), 'utf8')); }
         catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -66,7 +66,8 @@ export async function matrixCheck({ artifactName, evidence, inputs, priorRunId, 
           }
           assert(investigation.trim(), 'Prior check failed substantively; provide the model investigation before retrying these unchanged inputs');
         }
-      } finally { await rm(temporary, { recursive: true, force: true }); }
+      });
+      if (reused) return reused;
     }
   }
   const startedAt = new Date().toISOString();

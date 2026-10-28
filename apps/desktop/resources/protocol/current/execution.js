@@ -6,8 +6,7 @@ import { runnerEnvironment as resolveRunnerEnvironment } from './runner-profile.
 import { runnerDiagnostics } from './diagnostics.js';
 import { qualifyGeneratedInputs, outputIdentity } from './generated-inputs.js';
 import { patternInputs } from './pattern-inputs.js';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { runScratchCommand } from '../../storage/scratch.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CONTRACT, canonical, identity, requireThat, gate, text } from './contracts.js';
@@ -18,7 +17,6 @@ import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-
 import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
 
-const exec = promisify(execFile);
 const OUTCOMES = ['PASS', 'FAIL', 'UNAVAILABLE'];
 const schema = {
   type: 'object', additionalProperties: false, required: ['verdicts'], properties: {
@@ -207,21 +205,21 @@ export async function runCheckProcess(check, configuration, cwd, environment) {
   const timeoutMs = check.timeoutMs ?? configuration.timeoutMs ?? 600000;
   requireThat(Number.isSafeInteger(timeoutMs) && timeoutMs >= 0 && timeoutMs <= 2147483647,
     'Check timeoutMs must be an integer from 0 through 2147483647; zero disables the timeout');
-  const controller = new AbortController();
-  let timedOut = false;
-  const timer = timeoutMs === 0 ? null : setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   try {
-    const result = await exec(check.command, check.args, { cwd, env: environment, encoding: 'utf8',
-      signal: controller.signal, maxBuffer: 16 * 1024 * 1024 });
+    const result = await runScratchCommand(check.command, check.args, {
+      purpose: 'validation-check', cwd, env: environment, capture: true, timeoutMs,
+    });
     return { outcome: 'PASS', exitCode: 0, timeoutMs, termination: null, stdout: result.stdout, stderr: result.stderr };
   } catch (error) {
-    const exitCode = typeof error.code === 'number' ? error.code : null;
-    const termination = timedOut ? { kind: 'timeout', reason: `Timed out after ${timeoutMs} ms`, timeoutMs }
-      : exitCode !== null ? { kind: 'exit', reason: `Process exited with code ${exitCode}` }
-        : { kind: 'process-error', reason: 'Process could not complete', code: error.code ?? null, signal: error.signal ?? null };
-    return { outcome: timedOut || exitCode === null ? 'UNAVAILABLE' : 'FAIL', exitCode,
-      timeoutMs, termination, stdout: error.stdout ?? '', stderr: error.stderr ?? '' };
-  } finally { if (timer !== null) clearTimeout(timer); }
+    const result = error.scratchResult ?? {};
+    const exitCode = typeof result.code === 'number' ? result.code : null;
+    const termination = result.timedOut ? { kind: 'timeout', reason: `Timed out after ${timeoutMs} ms`, timeoutMs }
+      : result.outputLimited ? { kind: 'process-error', reason: 'Process output exceeded the capture limit' }
+        : exitCode !== null ? { kind: 'exit', reason: `Process exited with code ${exitCode}` }
+          : { kind: 'process-error', reason: 'Process could not complete', code: error.code ?? null, signal: result.signal ?? null };
+    return { outcome: result.timedOut || result.outputLimited || exitCode === null ? 'UNAVAILABLE' : 'FAIL', exitCode,
+      timeoutMs, termination, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
+  }
 }
 async function commands(core, state, candidate, configuration, completion, environment) {
   requireThat(Array.isArray(configuration.checks) && configuration.checks.length > 0, 'Runner requires explicit checks');
