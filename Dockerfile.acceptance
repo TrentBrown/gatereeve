@@ -46,6 +46,7 @@ COPY .github/workflows/homebrew-cask-finalize.yml ./.github/workflows/homebrew-c
 COPY .github/workflows/homebrew-cask-publish.yml ./.github/workflows/homebrew-cask-publish.yml
 COPY .github/workflows/homebrew-cask-smoke.yml ./.github/workflows/homebrew-cask-smoke.yml
 COPY .github/workflows/plugin-ci.yml ./.github/workflows/plugin-ci.yml
+COPY .github/workflows/ci-dmg-retention.yml ./.github/workflows/ci-dmg-retention.yml
 COPY plugin-src ./plugin-src
 COPY docs ./docs
 COPY ci ./ci
