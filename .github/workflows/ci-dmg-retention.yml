@@ -1,0 +1,56 @@
+name: CI installer retention
+
+on:
+  workflow_run:
+    workflows: [Plugin CI]
+    types: [completed]
+  schedule:
+    - cron: '23 9 * * *'
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Delete eligible ordinary CI installers (false previews only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: ordinary-ci-dmg-retention
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    # Dispatch only from main. Never check out or execute triggering PR code.
+    if: github.repository == 'TrentBrown/gatereeve' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Preview or apply scoped retention
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RETENTION_REPOSITORY: ${{ github.repository }}
+          APPLY_RETENTION: ${{ github.event_name != 'workflow_dispatch' || inputs.apply }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          arguments=(--repo "$RETENTION_REPOSITORY" --output "$RUNNER_TEMP/dmg-retention/receipt.json")
+          if [[ "$APPLY_RETENTION" == 'true' ]]; then arguments+=(--apply); fi
+          node ci/dmg-retention.mjs "${arguments[@]}"
+      - name: Retain compact cleanup receipt
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-dmg-retention-receipt
+          path: ${{ runner.temp }}/dmg-retention/receipt.json
+          if-no-files-found: warn
+          retention-days: 30
