@@ -240,6 +240,9 @@ jobs:
           name: gatereeve-universal-dmg
           path: apps/desktop/dist/macos/GateReeve-*-macos-universal.dmg
           if-no-files-found: error
+          # Count-based cleanup keeps the newest successful main installer and
+          # protects active runs/holds; even the keeper may expire after 90 days.
+          retention-days: 90
 
   desktop-package-runtime-macos:
     name: Packaged runtime on ${{ matrix.architecture }}
