@@ -141,6 +141,23 @@ test('a mismatched ID in the deletion target response stops cleanup', async () =
   assert.match(report.errors[0], /Deletion target identity changed/);
 });
 
+test('missing or blank run fields stop inventory and final rechecks without deletion', async () => {
+  for (const field of ['path', 'status', 'head_branch', 'event']) {
+    for (const value of [undefined, null, 42, '', ' ', '\n']) {
+      for (const phase of ['inventory', 'keeper', 'target']) {
+        let reads = 0;
+        const runId = phase === 'target' ? 1001 : 1003;
+        const f = fixture([artifact(1), artifact(2), artifact(3)], { before: ({ path, state }) => {
+          if (path.endsWith(`/runs/${runId}`) && ++reads === (phase === 'inventory' ? 1 : 2)) state.runs.get(runId)[field] = value;
+        } });
+        const report = await f.execute({ apply: true });
+        assert.equal(report.ok, false, `${phase}:${field}:${String(value)}`);
+        assert.deepEqual(f.state.deleted, []); assert.match(report.errors[0], /Run state unavailable/);
+      }
+    }
+  }
+});
+
 test('new uploads and newly successful main runs do not get deleted', async () => {
   let reads = 0;
   const f = fixture([artifact(1), artifact(2)], { runs: [run(1, { conclusion: 'failure' }), run(2)], before: ({ path, state }) => {

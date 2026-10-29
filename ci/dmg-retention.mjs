@@ -59,8 +59,8 @@ function validateArtifact(artifact) {
 }
 function validateRun(run, id, repository) {
   check(run?.id === id && run.repository?.full_name === repository
-    && typeof run.path === 'string' && typeof run.status === 'string'
-    && typeof run.head_branch === 'string' && typeof run.event === 'string'
+    && ['path', 'status', 'head_branch', 'event'].every(key => typeof run[key] === 'string'
+      && run[key].length > 0 && run[key].trim() === run[key])
     && (run.status !== 'completed' || ['success', 'failure', 'cancelled', 'timed_out', 'action_required', 'neutral', 'skipped', 'stale', 'startup_failure'].includes(run.conclusion)),
   'Run state unavailable or inconsistent');
 }
