@@ -123,6 +123,24 @@ test('incomplete or changed keeper metadata cannot authorize deleting a fallback
   }
 });
 
+test('malformed inventory expiry stops cleanup before any deletion', async () => {
+  for (const expired of [undefined, null, 0, 1, 'false', 'true', [], {}]) {
+    const f = fixture([artifact(1), artifact(2), artifact(3, { expired })]);
+    const report = await f.execute({ apply: true });
+    assert.equal(report.ok, false); assert.deepEqual(f.state.deleted, []);
+    assert.match(report.errors[0], /Incomplete artifact metadata/);
+  }
+});
+
+test('a mismatched ID in the deletion target response stops cleanup', async () => {
+  const f = fixture([artifact(1), artifact(2), artifact(3)], { before: ({ path, state }) => {
+    if (path.endsWith('/artifacts/1')) state.artifacts.get(1).id = 999;
+  } });
+  const report = await f.execute({ apply: true });
+  assert.equal(report.ok, false); assert.deepEqual(f.state.deleted, []);
+  assert.match(report.errors[0], /Deletion target identity changed/);
+});
+
 test('new uploads and newly successful main runs do not get deleted', async () => {
   let reads = 0;
   const f = fixture([artifact(1), artifact(2)], { runs: [run(1, { conclusion: 'failure' }), run(2)], before: ({ path, state }) => {

@@ -106,8 +106,9 @@ export async function cleanup({ request, repository, apply = false, previewHolds
     report.holdsSource = previewHolds === null ? `${HOLDS_PATH}@main` : 'local-preview-only';
     report.holdsRevision = policy.revision;
     const artifacts = await listArtifacts(request, repository), runs = new Map();
-    for (const a of artifacts.filter(a => a.name === ARTIFACT_NAME && !a.expired)) {
+    for (const a of artifacts.filter(a => a.name === ARTIFACT_NAME)) {
       validateArtifact(a);
+      if (a.expired) continue;
       if (!runs.has(a.workflow_run.id)) {
         const run = await request(`repos/${repository}/actions/runs/${a.workflow_run.id}`);
         validateRun(run, a.workflow_run.id, repository); runs.set(run.id, run);
@@ -136,7 +137,7 @@ export async function cleanup({ request, repository, apply = false, previewHolds
       if (!current) report.outcomes.push({ artifactId: item.artifactId, status: 'already-absent' });
       else {
         validateArtifact(current);
-        check(current.name === ARTIFACT_NAME && current.workflow_run.id === item.runId
+        check(current.id === item.artifactId && current.name === ARTIFACT_NAME && current.workflow_run.id === item.runId
           && current.created_at === item.createdAt && current.size_in_bytes === item.bytes
           && (current.digest ?? null) === item.digest, 'Deletion target identity changed');
         const livePolicy = await readHolds(request, repository);
