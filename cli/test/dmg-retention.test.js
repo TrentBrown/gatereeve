@@ -24,7 +24,7 @@ function fixture(artifacts, { runs = artifacts.map(a => run(a.id)), holds = [], 
       content: Buffer.from(JSON.stringify(state.holds)).toString('base64') };
     if (path.includes('/actions/artifacts?')) {
       const query = new URLSearchParams(path.split('?')[1]); assert.equal(query.get('name'), ARTIFACT_NAME);
-      const page = Number(query.get('page')); return { artifacts: [...state.artifacts.values()].slice((page - 1) * 100, page * 100) };
+      const page = Number(query.get('page')); return { artifacts: structuredClone([...state.artifacts.values()].slice((page - 1) * 100, page * 100)) };
     }
     const match = path.match(/\/actions\/(artifacts|runs)\/(\d+)$/u); assert.ok(match, path);
     const [, kind, rawId] = match, id = Number(rawId), map = state[kind];
@@ -107,6 +107,19 @@ test('keeper deletion or rerun aborts rather than deleting its fallback', async 
       if (path.endsWith('/artifacts/2')) { if (mode === 'absent') state.artifacts.delete(2); else state.runs.get(1002).status = 'in_progress'; }
     } });
     assert.equal((await f.execute({ apply: true })).ok, false); assert.deepEqual(f.state.deleted, []);
+  }
+});
+
+test('incomplete or changed keeper metadata cannot authorize deleting a fallback', async () => {
+  for (const patch of [{ expired: undefined }, { expired: null }, { expired: 0 }, { expired: true },
+    { id: 999 }, { workflow_run: undefined }, { created_at: 'invalid' }, { created_at: new Date(now).toISOString() },
+    { size_in_bytes: undefined }, { size_in_bytes: 1 }, { digest: 'sha256:changed' }]) {
+    const f = fixture([artifact(1), artifact(2)], { before: ({ path, state }) => {
+      if (path.endsWith('/artifacts/2')) Object.assign(state.artifacts.get(2), patch);
+    } });
+    const report = await f.execute({ apply: true });
+    assert.equal(report.ok, false, JSON.stringify(patch)); assert.deepEqual(f.state.deleted, []);
+    assert.equal(report.errors.length, 1);
   }
 });
 

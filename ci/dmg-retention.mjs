@@ -122,8 +122,12 @@ export async function cleanup({ request, repository, apply = false, previewHolds
       // keeper disappears or its run restarts, stop rather than delete a fallback.
       if (keeper) {
         const retained = await optionalGet(request, `repos/${repository}/actions/artifacts/${keeper.id}`);
-        check(retained && !retained.expired && retained.name === ARTIFACT_NAME
-          && retained.workflow_run?.id === keeper.workflow_run.id, 'Retained main installer changed or disappeared');
+        check(retained, 'Retained main installer changed or disappeared');
+        validateArtifact(retained);
+        check(retained.id === keeper.id && !retained.expired && retained.name === ARTIFACT_NAME
+          && retained.workflow_run.id === keeper.workflow_run.id
+          && retained.created_at === keeper.created_at && retained.size_in_bytes === keeper.size_in_bytes
+          && (retained.digest ?? null) === (keeper.digest ?? null), 'Retained main installer changed or disappeared');
         const run = await request(`repos/${repository}/actions/runs/${keeper.workflow_run.id}`);
         validateRun(run, keeper.workflow_run.id, repository);
         check(successfulMain(run), 'Retained main installer run no longer qualifies');
