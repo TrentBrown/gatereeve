@@ -1,6 +1,7 @@
 // @ts-check
 
 import { withScratch } from '../../../plugin-src/shared/resources/storage/scratch.js';
+import { managedPackage, usesManagedInstaller } from './managed-package.mjs';
 import { packager } from '@electron/packager';
 import { createHash } from 'node:crypto';
 import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
@@ -89,6 +90,9 @@ export async function packageMacos(options = {}) {
   const metadata = JSON.parse(await readFile(resolve(sourceRoot, 'package.json'), 'utf8'));
   const version = String(options.version ?? metadata.version);
   dmgFilename(version);
+  if (usesManagedInstaller(options)) {
+    return managedPackage({ version, produce: outputRoot => packageMacos({ ...options, outputRoot }) });
+  }
   if (metadata.productName !== MACOS_PRODUCT.name) {
     throw new Error(`Desktop productName must be ${MACOS_PRODUCT.name}.`);
   }
@@ -172,6 +176,9 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const keychain = keychainIndex === -1 ? undefined : process.argv[keychainIndex + 1];
   const resultFileIndex = process.argv.indexOf('--result-file');
   const resultFile = resultFileIndex === -1 ? undefined : process.argv[resultFileIndex + 1];
+  const outputIndex = process.argv.indexOf('--output-root');
+  const outputRoot = outputIndex === -1 ? undefined : process.argv[outputIndex + 1];
+  if (outputIndex !== -1 && !outputRoot) throw new Error('--output-root requires an explicit destination');
   if (signingIdentityIndex !== -1 && !signingIdentity) {
     throw new Error('--signing-identity requires a Developer ID Application identity');
   }
@@ -182,5 +189,6 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     version,
     signingIdentity,
     keychain,
+    outputRoot,
   }), { resultFile });
 }

@@ -1,4 +1,45 @@
-# Managed temporary storage
+# Managed storage
+
+## Local installer retention
+
+Default local desktop packaging and `verify-local-package.mjs` keep their DMG in
+`~/.local/share/gatereeve/installers/entries/<id>/installer.dmg`, separate from
+temporary scratch. `GATEREEVE_INSTALLER_ROOT` can select a different private root.
+Small ownership records register producers, consumer leases, success order and
+explicit expiring holds. The most recently completed successful available
+installer survives regardless of version naming or clock changes. A failed or
+unfinished build cannot displace it. Verification qualifies only after its
+checks and external receipt publication succeed.
+
+Successful production attempts cleanup automatically. `gatereeve cleanup`
+previews deferred older-DMG cleanup alongside scratch; `--apply` rechecks and
+deletes eligible payloads. `--run` remains scratch-only. Doctor inspects metadata
+without hashing bulk, probing activity or creating directories. Full cleanup
+checks content identity/hash, process start identity, open files and mounted
+backing images under a shared maintenance lock. Unknown activity or corrupt
+ownership blocks the sweep. Interrupted locks require inspection, not age-based
+stealing. Compact checksum and deletion receipts survive; repeat cleanup is safe.
+
+Only registered `installer.dmg` files are unlinked. Entry directories, checksums,
+verification records, installed apps, rollback copies, recovery packets and
+release assets are never recursively pruned. CI, signed release packaging and
+explicit `--output-root` exports keep their existing caller-owned outputs.
+Historical/downloaded DMGs outside the managed root are not discovered or adopted
+by filename. `gatereeve installer add /absolute/successful.dmg --version <version>`
+explicitly copies a known successful installer into retention, preserving the
+original and its neighboring evidence. Review removal of that original separately.
+
+Use `gatereeve installer hold <id> --until <timestamp> --reason <text>` to retain
+an exact entry, and `installer release-hold <id>` to clear it. Expiry permits the
+next cleanup; no scheduler runs. Use `gatereeve installer use <id> <command>
+[args...]` to lease an active consumer; exact `{installer}` arguments expand to
+the path and the child receives `GATEREEVE_INSTALLER_PATH`. Await all children;
+do not daemonize. The desktop verifier leases managed inputs automatically.
+Cooperative leases protect the entire operation, including gaps between reads;
+external consumers should take a lease or hold before use. Cleanup never restarts
+apps or switches active sessions.
+
+## Temporary storage
 
 GateReeve owns only registered run directories beneath the host temporary
 directory's `gatereeve/runs/` folder. Each run has a small owner record (purpose,
@@ -69,7 +110,7 @@ Managed storage is the default for disposable work created by GateReeve:
 
 | Producer | Managed contents | Retained separately |
 |---|---|---|
-| Desktop packaging | source/branding staging, Electron packager intermediate trees, DMG composition copies | requested application and DMG outputs |
+| Desktop packaging | source/branding staging, Electron packager intermediate trees, DMG composition copies | managed latest local DMG; explicit/CI/signed application and DMG outputs |
 | Desktop verification | mount directories, smoke profiles, local verification builds/fixtures | exported verification receipts |
 | Homebrew smoke | test application copies, temporary files and smoke-specific download cache | existing installations/taps and requested evidence |
 | Release preparation | plugin builds, coordinated packets, publication packet assembly, bundles, selected-source worktrees | final requested outputs, approvals and publication recovery records |

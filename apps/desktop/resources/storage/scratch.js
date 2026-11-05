@@ -19,6 +19,9 @@ const absent = error => error.code === 'ENOENT';
 const contains = (parent, child) => child === parent || child.startsWith(`${parent}${sep}`);
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
+// Shared private-directory and cooperative-lock rules for persistent installer storage.
+export { directory as privateStorageDirectory, regularJson as readStorageJson, lock as withStorageLock };
+
 export function scratchRoot() { return process.env.GATEREEVE_SCRATCH_ROOT || join(tmpdir(), 'gatereeve'); }
 
 async function directory(path) {

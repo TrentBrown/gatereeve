@@ -172,7 +172,7 @@ test('report publication failure preserves primary failure and protects bulk', a
 
 test('desktop wrapper exports receipt outside scratch before removing fake build outputs', async t => {
   const { root, parent } = await fixture(t), reportPath = join(parent, 'verification.json');
-  const result = await verifyLocalPackage({ reportPath, version: '0.1.0-rc.20', runtime: { root,
+  const result = await verifyLocalPackage({ reportPath, version: '0.1.0-rc.20', runtime: { root, installerRoot: join(parent, 'installers'),
     packageMacos: async ({ outputRoot, version }) => {
       await mkdir(outputRoot); const dmgPath = join(outputRoot, 'app.dmg'); await writeFile(dmgPath, 'fake');
       return { version, dmgPath, dmgSha256: 'test-hash', dmgBytes: 4 };
@@ -184,7 +184,7 @@ test('desktop wrapper exports receipt outside scratch before removing fake build
 
 test('CLI preview/Doctor are read-only and scratch wrapper records failed command diagnostics', async t => {
   const { parent } = await fixture(t), cli = fileURLToPath(new URL('../bin/workflow.js', import.meta.url));
-  const env = { ...process.env, GATEREEVE_SCRATCH_ROOT: '', TMPDIR: parent, TMP: parent, TEMP: parent };
+  const env = { ...process.env, GATEREEVE_SCRATCH_ROOT: '', GATEREEVE_INSTALLER_ROOT: join(parent, 'installers'), TMPDIR: parent, TMP: parent, TEMP: parent };
   for (const command of ['cleanup', 'doctor']) {
     const result = await execute(process.execPath, [cli, command, '--json'], { env });
     assert.deepEqual(JSON.parse(result.stdout).entries, []);

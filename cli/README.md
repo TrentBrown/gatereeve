@@ -31,7 +31,10 @@ expected `EBADENGINE` advisory.
 
 `gatereeve cleanup` previews registered temporary runs under the host temporary
 directory's `gatereeve/runs/`. Add `--apply` to recheck and remove eligible runs,
-or `--run <id>` to limit scope. `gatereeve doctor` reports a quick read-only
+plus obsolete registered local DMGs under `~/.local/share/gatereeve/installers`.
+The latest successful installer, active consumers, mounted/open files and
+unexpired holds are protected. Use `--run <id>` to limit scope to one scratch run
+(it never cleans installers). `gatereeve doctor` reports a quick read-only
 storage inventory; the installed workflow Doctor includes the same advisory.
 
 Use `gatereeve scratch run --purpose test -- /absolute/tool args` for disposable
@@ -41,6 +44,27 @@ including nested GateReeve operations. Export required results outside scratch. 
 mounts, malformed records and unregistered legacy folders are protected.
 See [storage policy](../plugin-src/shared/resources/STORAGE.md) for lifecycle,
 diagnostic retention, interrupted-run limits and desktop package verification.
+
+Default local desktop packaging and verification register their successful DMG
+and clean older eligible copies on completion. If cleanup is deferred, the same
+policy runs during `gatereeve cleanup --apply`. Only DMG payloads are deleted;
+checksums, verification records, installed apps, rollback copies and recovery
+packets are preserved. Explicit output paths, signed release outputs and legacy
+downloads remain outside automatic cleanup.
+
+```sh
+gatereeve installer add /absolute/successful.dmg --version 0.1.0-rc.22
+gatereeve installer hold <id> --until 2027-01-01T00:00:00Z --reason investigation
+gatereeve installer use <id> /absolute/tool '{installer}'
+gatereeve installer release-hold <id>
+```
+
+`add` copies an explicitly selected successful installer and preserves its
+original. It does not import a directory or authorize deleting legacy files.
+`use` holds a process lease until the supervised consumer finishes; `{installer}`
+is replaced when it is an entire argument, and `GATEREEVE_INSTALLER_PATH` is also
+available to the child. Do not detach consumers. Set `GATEREEVE_INSTALLER_ROOT`
+to use a different private cache; an existing unowned directory is never adopted.
 
 ## Workflow commands
 
