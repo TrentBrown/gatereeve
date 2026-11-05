@@ -1,0 +1,29 @@
+{
+  "provenance": {
+    "receiptHash": "sha256:9d39d81646c0f658fdcb33f1822e3deb4e3755f81dac7f32445bb1851d585e9b",
+    "source": "335fd206c4754beb1ce87d8710044073caa6d7cc",
+    "note": "Selective fixture from actual successful native Verification; local executable path replaced with node; timestamps/outcomes unchanged."
+  },
+  "receipts": [
+    {
+      "args": [
+        "cli/scripts/verify-performance.mjs"
+      ],
+      "command": "node",
+      "completedAt": "2026-11-05T18:45:24.632Z",
+      "exitCode": 0,
+      "outcome": "PASS",
+      "startedAt": "2026-11-05T18:45:05.756Z"
+    },
+    {
+      "args": [
+        "cli/scripts/benchmark-performance.mjs"
+      ],
+      "command": "node",
+      "completedAt": "2026-11-05T18:45:46.438Z",
+      "exitCode": 0,
+      "outcome": "PASS",
+      "startedAt": "2026-11-05T18:45:24.715Z"
+    }
+  ]
+}

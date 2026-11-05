@@ -4,7 +4,7 @@ import { MetricsStore } from './store.js';
 export async function runMeasured(command, args = [], options = {}) {
   if (typeof command !== 'string' || !command || !Array.isArray(args) || args.some(v => typeof v !== 'string')) throw new Error('Expected command argv');
   const store = options.store ?? new MetricsStore();
-  return observe({ category:options.category ?? 'manual', project:options.project ?? options.cwd ?? process.cwd(), feature:options.feature,
+  return observe({ id:options.execution, category:options.category ?? 'manual', project:options.project ?? options.cwd ?? process.cwd(), feature:options.feature,
     command:JSON.stringify([command,args]), reason:options.reason, scope:options.scope, worker:true }, async () => {
     const env = { ...process.env, ...options.env, GATEREEVE_METRICS_PARENT:currentSpan() ?? '' };
     if (!(await store.config().catch(() => ({ enabled:true }))).enabled) env.GATEREEVE_METRICS = 'off';

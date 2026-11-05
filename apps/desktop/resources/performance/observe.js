@@ -11,16 +11,16 @@ export function captureWarning() {
 export async function record(value, store = new MetricsStore()) {
   if (process.env.GATEREEVE_METRICS === 'off') return null;
   try { const tags=context.getStore()?.tags; return await store.put({project:tags?.project,feature:tags?.feature,parentId:currentSpan(),clock:hostname(),...value}); }
-  catch { captureWarning(); return null; }
+  catch { await store.markIncomplete?.(); captureWarning(); return null; }
 }
 export function currentSpan() { return context.getStore()?.id ?? process.env.GATEREEVE_METRICS_PARENT ?? null; }
 export async function observe(tags, fn, store = new MetricsStore()) {
   if (process.env.GATEREEVE_METRICS === 'off') return fn();
   let enabled;
-  try { enabled=(await store.config()).enabled; } catch { captureWarning(); return fn(); }
+  try { enabled=(await store.config()).enabled; } catch { await store.markIncomplete?.(); captureWarning(); return fn(); }
   if(!enabled)return fn();
   const parent = context.getStore();
-  const id = randomUUID(); const start = performance.now();
+  const id = tags.id ?? randomUUID(); const start = performance.now();
   const value = { ...parent?.tags, ...tags, id, parentId:currentSpan(), startedAt:Date.now(), clock:hostname(), pid:process.pid };
   // Polling is represented by bounded minute buckets, not unfinished executions.
   if (tags.category !== 'poll') await record({ ...value, outcome:'RUNNING' }, store);

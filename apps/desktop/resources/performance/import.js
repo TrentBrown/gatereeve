@@ -8,46 +8,57 @@ export async function importMetrics(format, data, options = {}, store=new Metric
   if (Buffer.byteLength(JSON.stringify(data))>4*1024*1024)throw new Error('Metrics import exceeds 4 MiB');
   const rows=[]; const gaps=[]; const diagnostic=(await store.config()).diagnosticDetails; let diagnosticCount=0; const project=options.project ?? 'unknown'; const clock=options.clock ?? `import:${options.execution ?? 'unknown'}`;
   if(typeof options.execution!=='string' || !options.execution || options.execution.length>1024)throw new Error('Import requires stable execution identity');
-  const add=(id,value)=>{if(rows.length>=10000)throw new Error('Import exceeds 10000 records'); rows.push({id:`${format}:${options.execution}:${id}`,project,feature:options.feature,clock,location:format==='github'?'ci':'local',category:format==='playwright'?'browser':'unit',worker:true,reason:options.reason,...value});};
+  const add=(id,value)=>{if(rows.length>=10000)throw new Error('Import exceeds 10000 records'); rows.push({id:`${format}:${options.execution}:${id}`,project,feature:options.feature,clock,location:format==='github'?'ci':'local',category:format==='playwright'?'browser':'unit',worker:true,reason:options.reason,parentId:options.parentId,...value});};
   if(format==='github') {
     if(!Array.isArray(data.jobs))throw new Error('Expected GitHub jobs');
     for(const job of data.jobs) {
       if(!Number.isInteger(job.id))throw new Error('Missing CI job identity');
       const started=time(job.started_at),ended=time(job.completed_at);
-      if(started===null){gaps.push('CI job start unavailable');continue;}
-      add(`job:${job.id}`,{category:'verification',source:job.head_sha,workflow:job.workflow_name,environment:job.labels?JSON.stringify(job.labels):null,attempt:options.execution,startedAt:started,durationMs:ended!==null && ended>=started ? ended-started : null,outcome:outcome(job.conclusion),command:`ci-job:${job.name}`, input:null});
+      if(started===null)gaps.push('CI job start unavailable');
+      add(`job:${job.id}`,{category:'verification',source:job.head_sha,workflow:job.workflow_name,environment:job.labels?JSON.stringify(job.labels):null,attempt:options.execution,startedAt:started??options.observedAt??Date.now(),provenance:started===null?'estimated':'observed',durationMs:started!==null && ended!==null && ended>=started ? ended-started : null,outcome:outcome(job.conclusion),command:`ci-job:${job.name}`, input:null});
       for(const step of job.steps??[]) {
         const a=time(step.started_at),b=time(step.completed_at);
-        if(a===null){gaps.push('CI step timing unavailable');continue;}
-        add(`job:${job.id}:step:${step.number}`,{parentId:`${format}:${options.execution}:job:${job.id}`,category:'setup',worker:false,startedAt:a,durationMs:b!==null && b>=a ? b-a : null,outcome:outcome(step.conclusion),command:`ci-step:${step.name}`});
+        if(a===null)gaps.push('CI step timing unavailable');
+        add(`job:${job.id}:step:${step.number}`,{parentId:`${format}:${options.execution}:job:${job.id}`,category:'setup',worker:false,startedAt:a??options.observedAt??Date.now(),provenance:a===null?'estimated':'observed',durationMs:a!==null && b!==null && b>=a ? b-a : null,outcome:outcome(step.conclusion),command:`ci-step:${step.name}`});
       }
     }
     gaps.push('Run-to-job delay may include dependencies; pure queue duration unavailable.');
   } else if(format==='release') {
     if(data.kind!=='gatereeve-coordinated-release'||!Array.isArray(data.stages))throw new Error('Expected release lifecycle receipt');
-    for(const stage of data.stages){const at=time(stage.completedAt);if(at===null){gaps.push('Release stage timestamp unavailable');continue;}add(`stage:${stage.sequence}`,{category:'delivery',location:'release',label:'release-observation',command:stage.stage,evidence:stage.stageSha256,startedAt:at,durationMs:0,outcome:'PASS',worker:false});}
+    for(const stage of data.stages){const at=time(stage.completedAt);if(at===null)gaps.push('Release stage timestamp unavailable');add(`stage:${stage.sequence}`,{category:'delivery',location:'release',label:'release-observation',command:stage.stage,evidence:stage.stageSha256,startedAt:at??options.observedAt??Date.now(),provenance:at===null?'estimated':'observed',durationMs:at===null?null:0,outcome:'PASS',worker:false});}
     gaps.push('Stage completion timestamps do not establish stage execution duration.');
   } else if(format==='vitest') {
     if(!Array.isArray(data.testResults))throw new Error('Expected Vitest JSON reporter testResults');
     for(const [i,suite] of data.testResults.entries()) {
       const a=time(suite.startTime),b=time(suite.endTime);
-      if(a===null){gaps.push('Suite start unavailable');continue;}
-      add(`suite:${i}`,{command:suite.name,startedAt:a,durationMs:b!==null && b>=a ? b-a:null,outcome:outcome(suite.status), count:suite.assertionResults?.length});
+      if(a===null)gaps.push('Suite start unavailable');
+      add(`suite:${i}`,{command:suite.name,startedAt:a??options.observedAt??Date.now(),provenance:a===null?'estimated':'observed',durationMs:a!==null && b!==null && b>=a ? b-a:null,outcome:outcome(suite.status), count:suite.assertionResults?.length});
     }
   } else if(format==='playwright') {
     if(!Array.isArray(data.suites))throw new Error('Expected Playwright JSON reporter suites');
     const visit=(suites,prefix='',depth=0)=>{
       if(depth>30)throw new Error('Reporter nesting exceeds bound');
       for(const [i,suite] of suites.entries()) {
-        const path=`${prefix}/${i}`; const results=(suite.specs??[]).flatMap(s=>(s.tests??[]).flatMap(t=>t.results??[]));
-        const timed=results.filter(r=>time(r.startTime)!==null && Number.isFinite(r.duration)&&r.duration>=0);
-        if(results.length && timed.length!==results.length)gaps.push('Some test timing unavailable');
-        if(timed.length){
-          const start=Math.min(...timed.map(r=>time(r.startTime))),end=Math.max(...timed.map(r=>time(r.startTime)+r.duration));
-          add(path,{command:suite.file,startedAt:start,durationMs:timed.length===results.length?end-start:null,workMs:timed.length===results.length?timed.reduce((sum,r)=>sum+r.duration,0):null,count:results.length,outcome:results.some(r=>outcome(r.status)==='FAIL')?'FAIL':results.every(r=>outcome(r.status)==='PASS')?'PASS':'UNAVAILABLE'});
-          if(diagnostic)for(const [j,r] of [...timed].sort((a,b)=>b.duration-a.duration).entries()){
+        const path=`${prefix}/${i}`;
+        // One bounded suite aggregate per retry ordinal. A recovered failure is
+        // retained as its own attempt, never allowed to poison the later verdict.
+        const attempts=new Map();
+        for(const [specIndex,spec] of (suite.specs??[]).entries())for(const [testIndex,test] of (spec.tests??[]).entries())for(const [ordinal,r] of (test.results??[]).entries()){
+          const retry=Number.isInteger(r.retry)&&r.retry>=0?r.retry:ordinal;
+          if(!attempts.has(retry))attempts.set(retry,[]);
+          attempts.get(retry).push({...r,identity:`${specIndex}:${testIndex}:${retry}`});
+        }
+        for(const [retry,results] of attempts){
+          const timed=results.filter(r=>time(r.startTime)!==null && Number.isFinite(r.duration)&&r.duration>=0);
+          const complete=timed.length===results.length;
+          if(!complete)gaps.push('Some test timing unavailable');
+          const start=timed.length?Math.min(...timed.map(r=>time(r.startTime))):options.observedAt??Date.now();
+          const end=timed.length?Math.max(...timed.map(r=>time(r.startTime)+r.duration)):start;
+          const id=`${path}:retry:${retry}`;
+          add(id,{command:suite.file,attempt:`${options.execution}:retry:${retry}`,reason:retry?'retry':options.reason,startedAt:start,provenance:complete?'observed':'estimated',durationMs:complete?end-start:null,workMs:complete?timed.reduce((sum,r)=>sum+r.duration,0):null,count:results.length,outcome:results.some(r=>outcome(r.status)==='FAIL')?'FAIL':results.every(r=>outcome(r.status)==='PASS')?'PASS':'UNAVAILABLE'});
+          if(diagnostic)for(const r of [...timed].sort((a,b)=>b.duration-a.duration)){
             if(diagnosticCount++>=10)break;
-            add(`${path}:detail:${j}`,{parentId:`${format}:${options.execution}:${path}`,worker:false,command:`${suite.file}:${j}`,startedAt:time(r.startTime),durationMs:r.duration,outcome:outcome(r.status)});
+            add(`${id}:detail:${r.identity}`,{parentId:`${format}:${options.execution}:${id}`,worker:false,command:`${suite.file}:${r.identity}`,attempt:`${options.execution}:retry:${retry}`,startedAt:time(r.startTime),durationMs:r.duration,outcome:outcome(r.status)});
           }
         }
         visit(suite.suites??[],path,depth+1);
@@ -64,8 +75,8 @@ export async function importMetrics(format, data, options = {}, store=new Metric
   } else if(format==='verification') {
     if(!Array.isArray(data.receipts??data.steps??data.commands))throw new Error('Expected verification receipts');
     for(const [i,r] of (data.receipts??data.steps??data.commands).entries()) {
-      const a=time(r.startedAt),b=time(r.completedAt??r.finishedAt);if(a===null){gaps.push('Receipt start unavailable');continue;}
-      add(`check:${i}`,{category:'verification',command:JSON.stringify([r.command,r.args]),startedAt:a,durationMs:b!==null&&b>=a?b-a:null,outcome:r.outcome??(r.exitCode===0?'PASS':r.exitCode!=null?'FAIL':'UNAVAILABLE'),input:r.inputFingerprint??null});
+      const a=time(r.startedAt),b=time(r.completedAt??r.finishedAt);if(a===null)gaps.push('Receipt start unavailable');
+      add(`check:${i}`,{category:'verification',command:JSON.stringify([r.command,r.args]),startedAt:a??options.observedAt??Date.now(),provenance:a===null?'estimated':'observed',durationMs:a!==null&&b!==null&&b>=a?b-a:null,outcome:r.outcome??(r.exitCode===0?'PASS':r.exitCode!=null?'FAIL':'UNAVAILABLE'),input:r.inputFingerprint??null});
     }
   } else throw new Error('Unsupported metrics import format');
   let imported=0;

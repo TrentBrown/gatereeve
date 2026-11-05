@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, realpath, rm, readFile, readdir, writeFile, symlink, mkdir } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { tmpdir, hostname } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { MetricsStore } from '../../plugin-src/shared/resources/performance/store.js';
@@ -110,7 +110,7 @@ test('CLI wrapper preserves argv, output and nonzero exit',async t=>{
   assert.equal(wrapped.code,direct.code);assert.equal(wrapped.stdout,direct.stdout);assert.equal(wrapped.stderr,'');assert.equal((await report({},store)).records[0].outcome,'FAIL');
 });
 test('collector reports bounded diagnostics only when explicitly enabled',async t=>{
-  const {store}=await fixture(t);const data={suites:[{file:'private-file',specs:[{tests:[{results:Array.from({length:30},()=>({startTime:new Date().toISOString(),duration:1,status:'passed'}))}]}]}]};
+  const {store}=await fixture(t);const data={suites:[{file:'private-file',specs:[{tests:Array.from({length:30},()=>({results:[{retry:0,startTime:new Date().toISOString(),duration:1,status:'passed'}]}))}]}]};
   await importMetrics('playwright',data,{execution:'normal'},store);assert.equal((await report({},store)).records.length,1);
   await store.setConfig({diagnosticDetails:true});await importMetrics('playwright',data,{execution:'detail'},store);
   const r=await report({},store);assert.equal(r.records.length,12);assert.equal(JSON.stringify(r).includes('private-file'),false);
@@ -140,4 +140,38 @@ test('summary retention preserves nested accounting',async t=>{
   await store.put({...base,id:'parent',startedAt,durationMs:6000});await store.put({...base,id:'child',parentId:'parent',startedAt,durationMs:4000});
   const before=await report({},store);await store.cleanup({apply:true,now:startedAt+2*86400000});const after=await report({},store);
   assert.equal(after.totals.workerMs,before.totals.workerMs);assert.ok(after.records.every(r=>r.summary));
+});
+
+test('unavailable importer timing remains visible after the import response is gone',async t=>{
+  const {store}=await fixture(t);
+  await importMetrics('github',{jobs:[{id:1,started_at:null,steps:[{number:1}]}]},{execution:'missing'},store);
+  await importMetrics('vitest',{testResults:[{name:'private'}]},{execution:'missing'},store);
+  await importMetrics('playwright',{suites:[{specs:[{tests:[{results:[{status:'passed'}]}]}]}]},{execution:'missing'},store);
+  await importMetrics('verification',{steps:[{command:'private'}]},{execution:'missing'},store);
+  const r=await report({},store);assert.equal(r.coverage.incomplete,5);assert.ok(r.coverage.gaps.some(g=>g.includes('unavailable timing')));assert.equal(r.totals.workerMs,0);
+});
+test('Playwright retries remain separate idempotent attempts with recovered success',async t=>{
+  const {store}=await fixture(t);const now=Date.now();
+  const data={suites:[{file:'private',specs:[{tests:[{results:[{retry:0,startTime:now,duration:5,status:'failed'},{retry:1,startTime:now+10,duration:7,status:'passed'}]}]}]}]};
+  for(let i=0;i<2;i++)await importMetrics('playwright',data,{execution:'pw-retry'},store);
+  const r=await report({},store);assert.equal(r.totals.records,2);assert.equal(r.totals.workerMs,12);assert.deepEqual(r.records.map(x=>x.outcome),['FAIL','PASS']);assert.notEqual(r.records[0].attemptId,r.records[1].attemptId);assert.equal(r.records[1].reason,'retry');
+});
+test('collector loss has persistent bounded health even when a whole span was dropped',async t=>{
+  const {store}=await fixture(t);await store.lock(async()=>{assert.equal(await record(base,store),null);});
+  const r=await report({},store);assert.equal(r.coverage.captureIncomplete,true);assert.ok(r.coverage.gaps.some(g=>g.includes('dropped')));assert.equal(r.totals.records,0);
+});
+test('real command receipt correlates with its wrapper without duplicate worker time',async t=>{
+  const {store,parent}=await fixture(t);const receipt=join(parent,'receipt.json');
+  const script="const fs=require('node:fs');const startedAt=Date.now();setTimeout(()=>fs.writeFileSync(process.argv[1],JSON.stringify({steps:[{command:'actual-node-check',startedAt,finishedAt:Date.now(),exitCode:0}]})),20)";
+  const result=await child(['cli/bin/workflow.js','metrics','run','--execution','real-wrapper','--',process.execPath,'-e',script,receipt],{GATEREEVE_METRICS_DIR:store.root});assert.equal(result.code,0);
+  const before=await report({},store);const source=JSON.parse(await readFile(receipt,'utf8'));
+  await importMetrics('verification',source,{execution:'real-child',parentId:'real-wrapper',clock:hostname()},store);
+  const after=await report({},store);assert.equal(after.totals.records,2);assert.equal(after.totals.workerMs,before.totals.workerMs);assert.equal(after.coverage.incomplete,0);
+});
+test('retained native runner receipt reconciles exactly and reimport does not duplicate work',async t=>{
+  const {store}=await fixture(t);const receiptFixture=JSON.parse(await readFile(new URL('./fixtures/performance/native-receipt.json',import.meta.url),'utf8'));
+  const expected=receiptFixture.receipts.reduce((sum,r)=>sum+Date.parse(r.completedAt)-Date.parse(r.startedAt),0);
+  for(let i=0;i<2;i++)await importMetrics('verification',receiptFixture,{execution:receiptFixture.provenance.receiptHash},store);
+  const r=await report({},store);assert.equal(r.totals.records,receiptFixture.receipts.length);assert.equal(r.totals.workerMs,expected);assert.equal(r.coverage.incomplete,0);assert.ok(r.records.every(x=>x.outcome==='PASS'));
+  console.log(JSON.stringify({reconciliation:'native-runner',receiptHash:receiptFixture.provenance.receiptHash,expectedChecks:receiptFixture.receipts.length,observedChecks:r.totals.records,expectedWorkerMs:expected,observedWorkerMs:r.totals.workerMs}));
 });

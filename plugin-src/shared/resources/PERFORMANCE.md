@@ -33,9 +33,9 @@ gatereeve metrics import --format vitest --file result.json --execution stable-r
 gatereeve metrics import --format github --repository owner/repo --run 123 --attempt 1 --execution owner/repo:123:1 --project /absolute/project
 ```
 
-Reuse the execution identity on reimport; use a distinct identity for each actual retry. Imported executions lacking a known link to wrapper spans remain a coverage limitation; do not claim their combined cost is fully deduplicated. CI job-to-start gaps can include dependencies and are not pure queue time. Framework reporter shape support is validated by fixtures, not an assertion that every version is supported.
+Reuse the execution identity on reimport; use a distinct identity for each actual retry. For known wrapper/report relationships, assign `metrics run --execution UNIQUE_ATTEMPT` and import with `--parent-id UNIQUE_ATTEMPT --clock "$(hostname)"` on that same host. Use that clock only when the timestamps are known to share the local clock. The parent keeps exclusive setup time; child work is counted once. Never reuse a wrapper ID for a new execution. Imported executions lacking a known link to wrapper spans remain a coverage limitation; do not claim their combined cost is fully deduplicated. CI job-to-start gaps can include dependencies and are not pure queue time. Framework reporter shape support is validated by fixtures, not an assertion that every version is supported.
 
-By default, suite summaries are retained rather than all passing test cases. `gatereeve metrics config --diagnostic-details true` enables at most ten additional normalized case observations per import. Their names remain private identifiers; this is not raw-log or transcript collection. Disable it when the investigation is finished.
+By default, suite summaries per retry ordinal are retained rather than all passing test cases. `gatereeve metrics config --diagnostic-details true` enables at most ten additional normalized case observations per import. Their names remain private identifiers; this is not raw-log or transcript collection. Disable it when the investigation is finished.
 
 ## Privacy, storage and interpretation
 
@@ -60,3 +60,29 @@ The small tools-only adapter implements the [MCP 2025-06-18 stdio transport](htt
 ## Desktop
 
 In a selected project's overview, load Workflow metrics to inspect totals and capture health. Open the shared report for detail. Measurement settings are global across projects; cleanup preview/apply affect only eligible owned metrics. Opening the panel does not execute validation or refresh remote CI.
+
+## MyLifeMap rollout and ordinary-use reconciliation
+
+Inventory checked 2026-11-05 against MyLifeMap's root `package.json` and `scripts/run-verification-suite.mjs`. This is a usage plan, not a separate per-project installation or a claim that MyLifeMap has already activated the collector.
+
+| Actual entrypoint | Capture and available detail |
+| --- | --- |
+| `pnpm verify:fast` | Command wrapper, then verification `steps` receipt |
+| `pnpm verify:integration` / `pnpm verify:evaluation` | Wrapper with integration category; verification receipt |
+| `pnpm verify:browser` | Wrapper with browser category; verification receipt and optionally Playwright JSON |
+| `pnpm verify:deployed` | Wrapper only during separately authorized deployed verification; receipt |
+| `pnpm test` | Command wrapper for recursive packages and Node script tests; Node reporter or Vitest JSON where produced |
+| `pnpm typecheck` | Command wrapper with build category |
+| `pnpm verify:openai-live` / `pnpm verify:postgres` | Existing credential/runtime authority still required; wrapper does not grant it |
+
+The harness writes `artifacts/verification/<suite>.json`: `steps` include `startedAt`, `finishedAt`, `exitCode` and command. Those selected fields are normalized; raw command/error strings do not enter the store. Source/runtime identity is unknown unless observed, never inferred from the command.
+
+1. After separately authorized shared installation, record installed version/source and confirm activation in each new session through its loaded plugin path/version and `metrics status`. Preserve existing active sessions; label their capture pending or incomplete.
+2. During ordinary authorized MyLifeMap work, wrap the checks the model chooses. Give each actual run a unique execution ID. Record that ID with the ordinary verification receipt so a later import can name its wrapper parent. Do not run extra tests just to populate metrics.
+3. Import matching verification or framework receipts with stable run/attempt IDs and the known wrapper parent/clock. Avoid importing overlapping unlinked representations as separate executions. Refresh only the CI run/attempts actually associated with the work, using explicit `metrics import --format github`.
+4. Reconcile the report against the known command list, receipt steps and CI job/attempt IDs: count observations, compare durations and outcomes, reimport once to confirm no duplicate cost, inspect failed retries and missing timestamps, and explain overlaps and unobserved commands. Keep that bounded reconciliation with the feature's verification notes. The report's global denominator remains unknown; the reconciled subset is not all possible work.
+5. Retain the first ordinary-use report plus activation and coverage limitations. Installation, released-artifact acceptance and ordinary-use confirmation remain separate from pre-merge fixture success. Do not restart active sessions or claim completion of these delivery obligations from a local test.
+
+### Adapter support boundary
+
+Initial support is structural, not a claim that every framework version is compatible: Node normalized `test:pass`/`test:fail` events; Vitest JSON `testResults` with suite start/end/status; Playwright JSON `suites/specs/tests/results` with startTime/duration/status and optional retry ordinal; GitHub REST jobs/steps with stable IDs, attempt identity and UTC timing. Retries without an ordinal use their position in that test's results. Missing timing produces durable incomplete observations; unsupported top-level shapes are rejected explicitly. Live Node reporter support is tested on the current Node 24 runtime. The fixtures define the supported JSON contract; validate a new producer shape before claiming its coverage. Pure CI queue time and release stage durations are unavailable when not supplied by the source.

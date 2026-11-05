@@ -54,6 +54,11 @@ export class MetricsStore {
       await writeFile(join(this.root, 'owner'), MARKER, { flag: 'wx', mode: 0o600 });
     }
   }
+  async markIncomplete() {
+    // Best effort, fixed-size health marker in a previously admitted owned store.
+    // No lock is required: this is monotonic and contains no private detail.
+    try { await this.admit(); await writeFile(join(this.root,'capture-incomplete'),'',{flag:'wx',mode:0o600}); } catch {}
+  }
   async config(admitted = false) {
     try { if(!admitted)await this.admit(); return { ...DEFAULTS, ...settings(JSON.parse(await safeFile(join(this.root, 'config.json')))) }; }
     catch (e) { if (e.code === 'ENOENT') return { ...DEFAULTS }; throw e; }
@@ -96,7 +101,7 @@ export class MetricsStore {
         catch { incomplete++; }
       }
     }
-    return { bytes, records, incomplete };
+    return { bytes, records, incomplete, captureIncomplete:entries.some(e=>e.name==='capture-incomplete') };
   }
   async setConfig(patch) {
     settings(patch);
