@@ -48,7 +48,8 @@ export async function report(q = {}, store = new MetricsStore()) {
   const gaps = ['Commands outside instrumented entrypoints are unobserved.', 'Known-execution denominator is unknown unless reconciled with source receipts.', 'No cross-host critical path is inferred.'];
   if (rows.some(r=>r.summary)) gaps.push('Some detail expired; summary drilldown is unavailable.');
   if (rows.some(r=>r.parentId && !byId.has(r.parentId))) gaps.push('Parent spans outside this dataset are unavailable.');
-  const featureAttribution=[...new Set(rows.flatMap(r=>r.featureIds))].map(featureId=>({featureId,workerMs:workers.filter(r=>r.featureIds.includes(featureId)).reduce((sum,r)=>sum+r.workerMs,0),note:'Attribution overlaps for shared work; do not sum across features.'}));
+  const featureTotals=new Map();for(const r of workers)for(const id of r.featureIds)featureTotals.set(id,(featureTotals.get(id)??0)+r.workerMs);
+  const featureAttribution=[...featureTotals].map(([featureId,workerMs])=>({featureId,workerMs,note:'Attribution overlaps for shared work; do not sum across features.'}));
   const records=rows.map(r=>({...r,projectAlias:`project-${r.projectId.slice(0,8)}`})).sort((a,b)=>a.startedAt-b.startedAt);
   return { schemaVersion:1, collectorVersion:'performance/1', window:{since:q.since??null,until:q.until??null},
     totals:{ records:rows.length, workerMs:workers.reduce((s,r)=>s+r.workerMs,0),

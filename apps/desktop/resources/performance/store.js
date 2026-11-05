@@ -123,7 +123,7 @@ export class MetricsStore {
       if (!expired && !pressure) continue;
       // Compact expired detail, preserving totals but explicitly losing drilldown.
       if (expired && !pressure && !r.summary && now - r.startedAt <= config.summaryDays * DAY) {
-        const compact = { ...r, summary: true, parentId: null, commandId: null, inputId: null, evidenceId: null };
+        const compact = { ...r, summary: true, commandId: null, inputId: null, evidenceId: null };
         const content = JSON.stringify(compact); candidates.push({ id:r.id, action:'summarize' });
         if (apply) await atomic(this.root, entry.name, content);
         bytes += Math.ceil(Buffer.byteLength(content)/4096)*4096 - entry.bytes;

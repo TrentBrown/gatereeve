@@ -135,3 +135,9 @@ test('shared execution keeps multiple feature inclusions without duplicate cost'
   const all=await report({},store);assert.equal(all.totals.workerMs,100);assert.equal(all.featureAttribution.length,2);
   assert.equal((await report({feature:'one'},store)).totals.workerMs,100);assert.equal((await report({feature:'two'},store)).totals.workerMs,100);
 });
+test('summary retention preserves nested accounting',async t=>{
+  const {store}=await fixture(t);const startedAt=Date.now();await store.setConfig({detailDays:1,summaryDays:3});
+  await store.put({...base,id:'parent',startedAt,durationMs:6000});await store.put({...base,id:'child',parentId:'parent',startedAt,durationMs:4000});
+  const before=await report({},store);await store.cleanup({apply:true,now:startedAt+2*86400000});const after=await report({},store);
+  assert.equal(after.totals.workerMs,before.totals.workerMs);assert.ok(after.records.every(r=>r.summary));
+});
