@@ -202,6 +202,8 @@ test('estimated timestamps retain measured work without inventing elapsed placem
 test('live Node reporter preserves normal output and treats delivery timestamps as estimates',async t=>{
   const {store,parent}=await fixture(t);const file=join(parent,'sample.test.mjs');
   await writeFile(file,"import test from 'node:test'; test('private-live-case',()=>{});\n");
-  const r=await child(['--test','--test-reporter=spec',`--test-reporter=${resolve(repositoryRoot,'plugin-src/shared/resources/performance/node-reporter.js')}`,'--test-reporter-destination=stdout','--test-reporter-destination=/dev/null',file],{GATEREEVE_METRICS_DIR:store.root,NODE_TEST_CONTEXT:undefined});
-  assert.equal(r.code,0);assert.match(r.stdout,/private-live-case/);const value=await report({},store);assert.ok(value.totals.records>0);assert.equal(value.totals.observedElapsedMs,null);assert.equal(JSON.stringify(value).includes('private-live-case'),false);
+  // This reporter emits no text. Use the stream destination: recent Node versions
+  // fsync file destinations, which fails for /dev/null on Linux.
+  const r=await child(['--test','--test-reporter=spec',`--test-reporter=${resolve(repositoryRoot,'plugin-src/shared/resources/performance/node-reporter.js')}`,'--test-reporter-destination=stdout','--test-reporter-destination=stderr',file],{GATEREEVE_METRICS_DIR:store.root,NODE_TEST_CONTEXT:undefined});
+  assert.equal(r.code,0,`Reporter child failed: ${r.stderr}\n${r.stdout}`);assert.match(r.stdout,/private-live-case/);const value=await report({},store);assert.ok(value.totals.records>0);assert.equal(value.totals.observedElapsedMs,null);assert.equal(JSON.stringify(value).includes('private-live-case'),false);
 });
