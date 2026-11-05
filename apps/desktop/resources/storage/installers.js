@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream, constants } from 'node:fs';
-import { copyFile, lstat, mkdir, readdir, realpath, rename, unlink, writeFile } from 'node:fs/promises';
+import { copyFile, lstat, mkdir, open, readdir, realpath, rename, unlink } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -28,8 +28,14 @@ export const installerRoot = () => process.env.GATEREEVE_INSTALLER_ROOT || join(
 
 async function save(path, value) {
   const pending = join(dirname(path), `.pending-${randomUUID()}.json`);
-  await writeFile(pending, JSON.stringify(value, null, 2), { mode: 0o600, flag: 'wx' });
+  const file = await open(pending, 'wx', 0o600);
+  try { await file.writeFile(JSON.stringify(value, null, 2)); await file.sync(); }
+  finally { await file.close(); }
   await rename(pending, path);
+  // A visible rename alone is not a durable pre-deletion receipt. Persist the
+  // directory entry too; an unsupported/failed sync must prevent deletion.
+  const directory = await open(dirname(path), 'r');
+  try { await directory.sync(); } finally { await directory.close(); }
 }
 
 async function rootInfo(root, create = false) {
@@ -247,10 +253,19 @@ export async function withInstallerLease({ root = installerRoot(), id }, consume
 
 export async function withInstallerFile({ path, root = installerRoot() }, consume) {
   path = resolve(path); root = resolve(root);
-  if (!path.startsWith(`${root}/`)) return consume(path);
-  const id = basename(dirname(path));
-  assert(ID.test(id) && path === join(root, 'entries', id, 'installer.dmg'), 'Unexpected managed installer path');
-  return withInstallerLease({ root, id }, consume);
+  // Match the same parent canonicalization used at registration. A /tmp-style
+  // alias must not turn a managed input into an unleased external file.
+  const canonicalRoot = join(await realpath(dirname(root)).catch(error => {
+    if (absent(error)) return dirname(root);
+    throw error;
+  }), basename(root));
+  const canonicalPath = await realpath(path).catch(error => { if (absent(error)) return path; throw error; });
+  const selected = path.startsWith(`${root}/`) ? path : canonicalPath;
+  const selectedRoot = path.startsWith(`${root}/`) ? root : canonicalRoot;
+  if (!selected.startsWith(`${selectedRoot}/`)) return consume(path);
+  const id = basename(dirname(selected));
+  assert(ID.test(id) && selected === join(selectedRoot, 'entries', id, 'installer.dmg'), 'Unexpected managed installer path');
+  return withInstallerLease({ root: canonicalRoot, id }, consume);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

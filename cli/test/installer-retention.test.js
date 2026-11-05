@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import fsPromises from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
 import { withInstallerBuild, cleanupInstallers, inspectInstallers, setInstallerHold, withInstallerLease,
   withInstallerFile, addInstaller } from '../../plugin-src/shared/resources/storage/installers.js';
 import { managedPackage, usesManagedInstaller } from '../../apps/desktop/scripts/managed-package.mjs';
@@ -80,6 +82,23 @@ test('file-based verifier lease protects managed files and leaves explicit exter
   assert.equal(await withInstallerFile({ root: f.root, path: '/outside.dmg' }, path => path), '/outside.dmg');
 });
 
+test('canonical and aliased consumer paths both lease a cache configured through a symlinked parent', async t => {
+  const f = await fixture(t), alias = join(f.parent, 'alias');
+  await symlink(f.parent, alias);
+  const configuredRoot = join(alias, 'installers');
+  const one = await f.build('one');
+  for (const path of [one.dmgPath, join(alias, 'installers', 'entries', one.id, 'installer.dmg')]) {
+    await withInstallerFile({ root: configuredRoot, path }, async leasedPath => {
+      assert.equal(leasedPath, one.dmgPath);
+      await f.build('new');
+      const record = JSON.parse(await readFile(join(one.path, 'owner.json')));
+      assert.equal(record.consumers.length, 1);
+      assert.equal(await exists(one.dmgPath), true);
+    });
+  }
+  assert.ok((await f.cleanup({ apply: true })).removed.some(e => e.id === one.id));
+});
+
 test('holds protect exact IDs; expiry permits cleanup; keeper survives expired holds', async t => {
   const f = await fixture(t), one = await f.build('one');
   await setInstallerHold({ root: f.root, id: one.id, until: '2099-01-01T00:00:00Z', reason: 'investigation' });
@@ -140,6 +159,34 @@ test('deletion receipt must be durable before unlink, and failed sweeps can be r
   const failure = await f.cleanup({ apply: true }); assert.ok(failure.errors.length); assert.equal(await exists(one.dmgPath), true);
   await rm(join(one.path, 'deletion.json'), { recursive: true });
   assert.equal((await f.cleanup({ apply: true })).removed[0].id, one.id);
+});
+
+test('receipt file and directory sync failures both prevent DMG unlink and permit a later retry', async t => {
+  for (const failAt of ['file', 'directory']) {
+    const f = await fixture(t), one = await f.build('one');
+    await f.build('two', { inspectActivity: async () => 'active' });
+    const original = fsPromises.open; let injected = false;
+    fsPromises.open = async (...args) => {
+      const handle = await original(...args), path = String(args[0]);
+      if (path.startsWith(`${one.path}/.pending-`) || path === one.path) {
+        const sync = handle.sync.bind(handle);
+        handle.sync = async () => {
+          if ((failAt === 'directory' && path === one.path) || (failAt === 'file' && path !== one.path)) {
+            injected = true; throw Error(`injected ${failAt} fsync failure`);
+          }
+          return sync();
+        };
+      }
+      return handle;
+    };
+    syncBuiltinESMExports();
+    try {
+      const result = await f.cleanup({ apply: true });
+      assert.equal(injected, true); assert.match(result.errors[0].reason, /fsync failure/);
+      assert.equal(await exists(one.dmgPath), true);
+    } finally { fsPromises.open = original; syncBuiltinESMExports(); }
+    assert.equal((await f.cleanup({ apply: true })).removed[0].id, one.id);
+  }
 });
 
 test('target mutation during deletion-time assessment prevents unlink', async t => {
