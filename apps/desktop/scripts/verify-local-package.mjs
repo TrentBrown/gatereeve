@@ -1,9 +1,10 @@
 import { execFile } from 'node:child_process';
-import { mkdir, realpath, writeFile } from 'node:fs/promises';
+import { copyFile, constants, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { withScratch } from '../../../plugin-src/shared/resources/storage/scratch.js';
+import { withInstallerBuild } from '../../../plugin-src/shared/resources/storage/installers.js';
 
 const execute = promisify(execFile);
 const scripts = dirname(fileURLToPath(import.meta.url));
@@ -12,11 +13,13 @@ const scripts = dirname(fileURLToPath(import.meta.url));
 // Release Conductor; its requested outputs are never managed scratch.
 export async function verifyLocalPackage({ reportPath, version, keepUntil = null, runtime = {} }) {
   if (!reportPath) throw new Error('An external --report path is required');
+  version ??= JSON.parse(await readFile(join(scripts, '..', 'package.json'), 'utf8')).version;
   const destination = resolve(reportPath);
   await mkdir(dirname(destination), { recursive: true });
   const report = join(await realpath(dirname(destination)), destination.split('/').at(-1));
   let cleanup;
-  const result = await withScratch({ purpose: 'desktop-package-verification', keepUntil,
+  const cached = await withInstallerBuild({ version, ...(runtime.installerRoot ? { root: runtime.installerRoot } : {}),
+    hold: keepUntil ? { until: keepUntil, reason: 'Explicit local verification debug hold' } : null }, entry => withScratch({ purpose: 'desktop-package-verification', keepUntil,
     ...(runtime.root ? { root: runtime.root } : {}), onCleanup: value => { cleanup = value; },
   }, async ({ path, id }) => {
     if (report === path || report.startsWith(`${path}/`)) throw new Error('Report must be outside disposable scratch');
@@ -32,9 +35,11 @@ export async function verifyLocalPackage({ reportPath, version, keepUntil = null
       recordedAt: new Date().toISOString() };
     // Don't overwrite a previous run's evidence or follow a destination symlink.
     await writeFile(report, JSON.stringify(receipt, null, 2), { flag: 'wx', mode: 0o600 });
+    await copyFile(built.dmgPath, entry.dmgPath, constants.COPYFILE_EXCL);
     return receipt;
-  });
-  return { ...result, reportPath: report, scratchCleanup: cleanup };
+  }));
+  return { ...cached.value, reportPath: report, scratchCleanup: cleanup,
+    installerId: cached.id, dmgPath: cached.dmgPath, installerCleanup: cached.cleanup };
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

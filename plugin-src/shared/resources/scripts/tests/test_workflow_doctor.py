@@ -154,6 +154,7 @@ class WorkflowDoctorTests(unittest.TestCase):
     def test_storage_is_read_only_and_never_blocks_readiness(self) -> None:
         self._configure()
         write(self.plugin_root / "resources/storage/scratch.js", "// fixture")
+        write(self.plugin_root / "resources/storage/installers.js", "// fixture")
         import subprocess
         original = subprocess.run
 
@@ -170,6 +171,9 @@ class WorkflowDoctorTests(unittest.TestCase):
         storage = next(item for item in result["checks"] if item["id"] == "temporary-storage")
         self.assertEqual(storage["status"], "info")
         self.assertIn("unsafe scratch root", storage["message"])
+        installers = next(item for item in result["checks"] if item["id"] == "local-installers")
+        self.assertEqual(installers["status"], "info")
+        self.assertIn("unsafe scratch root", installers["message"])
 
     def test_missing_configuration_fails_with_actionable_checks(self) -> None:
         result = self._run()

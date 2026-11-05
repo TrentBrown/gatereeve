@@ -72,7 +72,19 @@ in the staged Desktop runtime, Setup compatibility, DMG filename, and native
 evidence. The macOS bundle short version remains the Apple-compatible numeric
 base (`0.1.0`).
 
-The result is `dist/macos/GateReeve-<version>-macos-universal.dmg`. It contains
+Default local packaging reports a managed `dmgPath` under
+`~/.local/share/gatereeve/installers/entries/<id>/installer.dmg`. It retains the
+latest successful installer and removes older eligible DMG payloads, preserving
+active consumers, explicit holds and evidence. Generated staging app copies are
+removed; installed apps and rollback copies are never cleanup targets. Use the
+reported DMG path for installation or verification. `gatereeve cleanup` previews
+any deferred cleanup and `--apply` performs it. See the
+[storage policy](../../plugin-src/shared/resources/STORAGE.md) for holds and consumer leases.
+
+CI and signed release packaging retain the existing
+`dist/macos/GateReeve-<version>-macos-universal.dmg` output. To request a persistent
+local app and DMG export, use `npm run package:mac -- --output-root /absolute/output`;
+that directory remains caller-owned and outside automatic cleanup. The DMG contains
 one universal `GateReeve.app`, the approved Rolling Vale icon, bundle identifier
 `com.trentbrown.gatereeve.desktop`, and an Applications shortcut. Open the DMG
 and drag GateReeve to Applications.
@@ -95,7 +107,7 @@ a clearly non-authoritative x86_64 smoke under Rosetta:
 
 ```bash
 arch -x86_64 node scripts/verify-macos-package.mjs \
-  --dmg dist/macos/GateReeve-<version>-macos-universal.dmg \
+  --dmg <reported-dmg-path> \
   --version <version> \
   --fixture <governed-fixture-path> \
   --allow-rosetta-translated

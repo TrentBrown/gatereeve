@@ -281,6 +281,11 @@ export async function smokeApplication(applicationPath, fixturePath, options = {
  *   rosettaTranslated?: boolean}} options
  */
 export async function verifyDmg(options) {
+  const { withInstallerFile } = await import('../../../plugin-src/shared/resources/storage/installers.js');
+  return withInstallerFile({ path: options.dmgPath }, () => verifyDmgContents(options));
+}
+
+async function verifyDmgContents(options) {
   if (process.platform !== 'darwin') {
     throw new Error('GateReeve DMG verification requires macOS.');
   }
@@ -468,33 +473,36 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   }
   const rosettaTranslated = await detectRosettaTranslation();
   requireMacosExecutionAuthority({ rosettaTranslated, allowRosettaTranslated, evidencePath });
-  const verification = await verifyDmg({
-    dmgPath,
-    fixturePath,
-    version,
-    trustEvidencePath,
-    sourceTag,
-    sourceCommit,
-    rosettaTranslated,
-  });
-  if (evidencePath) {
-    if (!nativeArchitecture || !sourceCommit || !sourceTag) {
-      throw new Error('--evidence requires --native-architecture, --source-commit, and --source-tag');
-    }
-    await writeVerificationEvidence({
+  const { withInstallerFile } = await import('../../../plugin-src/shared/resources/storage/installers.js');
+  await withInstallerFile({ path: dmgPath }, async () => {
+    const verification = await verifyDmg({
       dmgPath,
-      evidencePath,
       fixturePath,
-      nativeArchitecture,
-      sourceCommit,
-      sourceTag,
-      trust: verification.trust,
-      appleTrust: verification.appleTrust,
-      appleTrustEvidenceSha256: verification.appleTrustEvidenceSha256,
-      rosettaTranslated,
       version,
+      trustEvidencePath,
+      sourceTag,
+      sourceCommit,
+      rosettaTranslated,
     });
-  }
+    if (evidencePath) {
+      if (!nativeArchitecture || !sourceCommit || !sourceTag) {
+        throw new Error('--evidence requires --native-architecture, --source-commit, and --source-tag');
+      }
+      await writeVerificationEvidence({
+        dmgPath,
+        evidencePath,
+        fixturePath,
+        nativeArchitecture,
+        sourceCommit,
+        sourceTag,
+        trust: verification.trust,
+        appleTrust: verification.appleTrust,
+        appleTrustEvidenceSha256: verification.appleTrustEvidenceSha256,
+        rosettaTranslated,
+        version,
+      });
+    }
+  });
   process.stdout.write(rosettaTranslated
     ? `Verified ${resolve(dmgPath)} through the x86_64 slice under Rosetta (translated evidence; not native Intel evidence).\n`
     : `Verified ${resolve(dmgPath)} natively on ${process.arch}.\n`);

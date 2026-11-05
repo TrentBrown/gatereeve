@@ -394,6 +394,23 @@ def run_doctor(
         except (OSError, subprocess.SubprocessError, ValueError) as error:
             checks.append(check("temporary-storage", "info", f"Temporary storage inventory unavailable: {error}", "Run gatereeve cleanup to inspect"))
 
+    installers = None
+    installer_inspector = plugin_root / "resources" / "storage" / "installers.js"
+    if node_executable and installer_inspector.is_file():
+        try:
+            observed = subprocess.run(
+                [node_executable, str(installer_inspector), "inspect", "--quick"],
+                capture_output=True, text=True, timeout=10, env=runtime_environment,
+                check=True,
+            )
+            installers = json.loads(observed.stdout)
+            message = ("Local installer inventory unavailable: " + installers["error"]
+                       if installers.get("error") else
+                       f"Managed local installers: {len(installers.get('entries', []))}; cleanup rechecks activity and retention")
+            checks.append(check("local-installers", "info", message, "Run gatereeve cleanup to preview; --apply removes eligible obsolete DMGs and preserves records"))
+        except (OSError, subprocess.SubprocessError, ValueError) as error:
+            checks.append(check("local-installers", "info", f"Local installer inventory unavailable: {error}", "Run gatereeve cleanup to inspect"))
+
     ready = not any(item["status"] == "fail" for item in checks)
     return {
         "schemaVersion": 1,
@@ -403,6 +420,7 @@ def run_doctor(
         "activation": "observed" if activation_observed else "pending",
         "checks": checks,
         "storage": storage,
+        "installers": installers,
     }
 
 
