@@ -3,6 +3,7 @@
 export const DESKTOP_STATE_SCHEMA_VERSION = 1;
 
 export const IPC_CHANNELS = Object.freeze({
+  metrics: 'gatereeve:desktop:metrics',
   checkForUpdates: 'gatereeve:desktop:check-for-updates',
   addProject: 'gatereeve:desktop:add-project',
   copyText: 'gatereeve:desktop:copy-text',

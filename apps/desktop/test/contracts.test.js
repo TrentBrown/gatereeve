@@ -180,6 +180,7 @@ test('IPC allow-list contains only bounded named desktop operations', () => {
     'gatereeve:desktop:get-update-state',
     'gatereeve:desktop:layout-command',
     'gatereeve:desktop:list-session',
+    'gatereeve:desktop:metrics',
     'gatereeve:desktop:open-artifact',
     'gatereeve:desktop:open-artifact-github',
     'gatereeve:desktop:open-external-link',

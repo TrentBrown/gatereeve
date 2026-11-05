@@ -16,6 +16,7 @@ await stageProtocolResources({
     'protocol',
     'release',
     'storage',
+    'performance',
     ...(await helperTree(resolve(desktopRoot, '../../plugin-src/shared/resources/scripts'))).map(([path]) => `scripts/${path}`),
   ],
 });

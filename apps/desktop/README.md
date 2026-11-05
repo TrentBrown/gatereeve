@@ -140,3 +140,12 @@ evidence and human decisions at the milestone boundary.
 Setup checks remain separate, run only in the trusted main process, invoke
 version/status/list operations for explicitly selected agents, and expose
 native remediation as copyable text rather than executing it.
+
+## Workflow performance metrics
+
+Local measurement is enabled by default with an explicit off switch. CLI,
+desktop and the local MCP adapter share the same bounded store and calculations.
+See [measurement usage and privacy](../../plugin-src/shared/resources/PERFORMANCE.md)
+for wrapper/import commands, retention, capture limits and MCP configuration.
+No metric changes required validation or authorizes reuse. Preserve active
+sessions during upgrades and verify activation separately.

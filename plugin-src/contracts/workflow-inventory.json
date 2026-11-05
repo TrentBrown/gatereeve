@@ -314,6 +314,7 @@
     "resourceGuides": [
       "PROTOCOL.md",
       "DELIVERY-EXECUTION.md",
+      "PERFORMANCE.md",
       "STORAGE.md",
       "RESOURCE-ROOT.md"
     ],

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:cc957a0a7aee1ae8f323ac2e689a044e1f3abbfb48fde0e97df630c4dad72059",
+  "protocolHash": "sha256:3d40adc257fa546596b125a5c456c29b513c2f5cc4534fe08b712e5b02f3fc36",
   "contract": "gatereeve/current/5",
   "contractSha256": "f9a65f102ae6bb83c83bc86c66fbcd07073df3253db9db79c7d924445b9984d1",
   "files": [
@@ -27,8 +27,8 @@
     },
     {
       "path": "current/adapter.js",
-      "size": 7131,
-      "sha256": "842f8c6c848c17167df7d31159f07cda6820c722fec1c0d28d65e54c943bc94d"
+      "size": 7523,
+      "sha256": "7bad89b9ac35397ff2bd1962b88b6565e0f4cf9ddb04186893f37c3bcd1f583e"
     },
     {
       "path": "current/authorization.js",
@@ -42,8 +42,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 67242,
-      "sha256": "4d00fd975d5a010de6bd705f1eec642acb9afbf9a8d962cbdf758057b294af2f"
+      "size": 67950,
+      "sha256": "b8775a6dea48717518ba691fa20bf3a2bdfef445dfe0a1790c1338002ed3c2b6"
     },
     {
       "path": "current/coverage.js",
@@ -72,8 +72,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 58361,
-      "sha256": "b028da1ece2ea9e7eb0a16c4fc058d4dd1e090fb54e5d2b0913ffe060bdbd51a"
+      "size": 59415,
+      "sha256": "3ff34a3ebc1bbc62b45b69fd6b53c4c98324b26da1f47325b06ee329c82a589f"
     },
     {
       "path": "current/generated-inputs.js",

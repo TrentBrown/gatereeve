@@ -264,9 +264,11 @@ test('IPC exposes only validated named reads, Session context, clipboard, select
     async confirmProjectTermination() { return removalConfirmed; },
     windows: () => [],
   });
-  assert.equal(handlers.size, 30);
+  assert.equal(handlers.size, 31);
   for (const key of ['applyModulePolicy', 'moduleTaskStart', 'attestModule', 'waiveBoundaryModule', 'startFinalization']) assert.equal(handlers.has(IPC_CHANNELS[key]), false, key);
   const event = trustedEvent();
+  await assert.rejects(handlers.get(IPC_CHANNELS.metrics)(event,{action:'report',input:{project:'/unselected'}}), /scope/);
+  await assert.rejects(handlers.get(IPC_CHANNELS.metrics)(event,{action:'execute'}), /Invalid/);
   assert.equal((await handlers.get(IPC_CHANNELS.addProject)(event)).phase, 'ready');
   assert.equal((await handlers.get(IPC_CHANNELS.activateProject)(event, '/repo')).phase, 'ready');
   assert.equal((await handlers.get(IPC_CHANNELS.reorderProjects)(event, ['/repo'])).phase, 'ready');
