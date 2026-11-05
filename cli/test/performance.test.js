@@ -175,3 +175,27 @@ test('retained native runner receipt reconciles exactly and reimport does not du
   const r=await report({},store);assert.equal(r.totals.records,receiptFixture.receipts.length);assert.equal(r.totals.workerMs,expected);assert.equal(r.coverage.incomplete,0);assert.ok(r.records.every(x=>x.outcome==='PASS'));
   console.log(JSON.stringify({reconciliation:'native-runner',receiptHash:receiptFixture.provenance.receiptHash,expectedChecks:receiptFixture.receipts.length,observedChecks:r.totals.records,expectedWorkerMs:expected,observedWorkerMs:r.totals.workerMs}));
 });
+
+test('write budget amortizes inventory scans and conservatively recovers an interrupted write',async t=>{
+  const {store}=await fixture(t);let inventories=0;const inventory=store.inventory.bind(store);store.inventory=async(...args)=>{inventories++;return inventory(...args);};
+  for(let i=0;i<40;i++)await store.put({...base,id:`budget-${i}`});
+  assert.equal(inventories,1);
+  const config=await store.config();await store.lock(()=>store.reserveWrite(Date.now(),config)); // interruption before publishing
+  await writeFile(join(store.root,'.write-dead-beef'),'interrupted');
+  await store.put({...base,id:'after-interruption'});assert.ok(!(await readdir(store.root)).includes('.write-dead-beef'));
+  const budget=JSON.parse(await readFile(join(store.root,'budget.json'),'utf8'));assert.ok(budget.bytes>=(await store.read()).bytes);
+});
+
+test('estimated timestamps retain measured work without inventing elapsed placement or overlap',async t=>{
+  const {store}=await fixture(t);
+  await importMetrics('node',[{type:'test:pass',data:{nesting:0,details:{duration_ms:4}}}],{execution:'missing-start'},store);
+  let r=await report({},store);assert.equal(r.totals.workerMs,4);assert.equal(r.totals.observedElapsedMs,null);assert.equal(r.totals.elapsedByClock[0].ms,null);
+  await store.put({...base,id:'parent',durationMs:100});await store.put({...base,id:'unplaced-child',parentId:'parent',provenance:'estimated',durationMs:10});
+  r=await report({},store);assert.equal(r.totals.workerMs,null);assert.equal(r.operationCost.find(x=>x.label==='unit').exclusiveMs,null);assert.match(renderReport(r,'markdown'),/Worker time: unknown/);
+});
+test('live Node reporter preserves normal output and treats delivery timestamps as estimates',async t=>{
+  const {store,parent}=await fixture(t);const file=join(parent,'sample.test.mjs');
+  await writeFile(file,"import test from 'node:test'; test('private-live-case',()=>{});\n");
+  const r=await child(['--test','--test-reporter=spec',`--test-reporter=${resolve('plugin-src/shared/resources/performance/node-reporter.js')}`,'--test-reporter-destination=stdout','--test-reporter-destination=/dev/null',file],{GATEREEVE_METRICS_DIR:store.root});
+  assert.equal(r.code,0);assert.match(r.stdout,/private-live-case/);const value=await report({},store);assert.ok(value.totals.records>0);assert.equal(value.totals.observedElapsedMs,null);assert.equal(JSON.stringify(value).includes('private-live-case'),false);
+});

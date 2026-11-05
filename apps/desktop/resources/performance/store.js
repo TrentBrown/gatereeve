@@ -113,7 +113,7 @@ export class MetricsStore {
     });
   }
   async cleanup({ apply = false, now = Date.now(), needed = 0 } = {}) {
-    if (apply) return this.lock(() => this.prune(now, needed, true));
+    if (apply) return this.lock(async () => { const result=await this.prune(now,needed,true);await unlink(join(this.root,'budget.json')).catch(e=>{if(e.code!=='ENOENT')throw e;});return result; });
     try { return await this.prune(now, needed, false); }
     catch (e) { if (e.code === 'ENOENT') return { bytes: 0, candidates: [], protected: 0 }; throw e; }
   }
@@ -139,6 +139,36 @@ export class MetricsStore {
     }
     return { bytes, candidates, protected: protectedCount, incomplete: inventory.incomplete };
   }
+  async reserveWrite(now, config) {
+    // The owned store's writers share this lock. Charge a full bounded record
+    // BEFORE publishing it; an interruption can only overestimate usage. Full
+    // reconciliation is periodic or pressure-driven, not a scan per observation.
+    const entries=await readdir(this.root,{withFileTypes:true});
+    check(entries.length<=20000,'Metrics inventory exceeds safety bound');
+    for(const entry of entries){
+      check(!entry.isSymbolicLink() && (entry.isFile() || entry.name==='lock'&&entry.isDirectory()),'Unsafe metrics entry');
+      if(/^\.write-[a-f0-9-]+$/.test(entry.name)){
+        const path=join(this.root,entry.name);const stat=await lstat(path);
+        check(stat.isFile()&&stat.nlink===1,'Unsafe interrupted metrics write');
+        await unlink(path); // Lock excludes every live atomic writer.
+      }
+    }
+    let budget;
+    try { budget=JSON.parse(await safeFile(join(this.root,'budget.json'))); }
+    catch(e){if(e.code!=='ENOENT')throw e;}
+    const policy=JSON.stringify(config);
+    const valid=budget?.schemaVersion===1 && Number.isSafeInteger(budget.bytes)&&budget.bytes>=0
+      && Number.isSafeInteger(budget.writes)&&budget.writes>=0 && Number.isFinite(budget.reconciledAt);
+    if(!valid || budget.policy!==policy || now-budget.reconciledAt>=3600000 || budget.writes>=1000
+      || budget.bytes+2*MAX_RECORD>config.maxBytes || entries.length>=19000){
+      const result=await this.prune(now,2*MAX_RECORD,true);
+      // Include a ledger allocation even on first creation. Conservatively
+      // reserving it again after reconciliation is bounded, never undercounts.
+      budget={schemaVersion:1,bytes:result.bytes+MAX_RECORD,writes:0,reconciledAt:now,policy};
+    }
+    check(budget.bytes+2*MAX_RECORD<=config.maxBytes,'Metrics capacity exhausted; capture incomplete');
+    await atomic(this.root,'budget.json',JSON.stringify({...budget,bytes:budget.bytes+MAX_RECORD,writes:budget.writes+1}));
+  }
   async put(raw) {
     return this.lock(async () => {
       const config=await this.config(true);
@@ -148,8 +178,7 @@ export class MetricsStore {
       try { const old=JSON.parse(await safeFile(join(this.root, `${r.id}.json`))); validateRecord(old); r.featureIds=[...new Set([...old.featureIds,...r.featureIds])].slice(0,32); } catch(e) { if(e.code!=='ENOENT')throw e; }
       if(r.category==='poll') { try { const old=JSON.parse(await safeFile(join(this.root, `${r.id}.json`))); validateRecord(old); r.durationMs=(old.durationMs??0)+(r.durationMs??0); r.count=(old.count??1)+1; r.startedAt=Math.min(old.startedAt,r.startedAt); } catch(e) { if(e.code!=='ENOENT')throw e; } }
       const content = JSON.stringify(r); check(Buffer.byteLength(content) <= MAX_RECORD, 'Metrics record too large');
-      const { bytes } = await this.prune(Date.now(), Buffer.byteLength(content), true);
-      if (bytes + Buffer.byteLength(content) + MAX_RECORD > config.maxBytes) throw new Error('Metrics capacity exhausted; capture incomplete');
+      await this.reserveWrite(Date.now(),config);
       await atomic(this.root, `${r.id}.json`, content); return r;
     });
   }

@@ -1,4 +1,6 @@
 import { MetricsStore, CATEGORIES } from './store.js';
+const sumKnown=values=>values.every(Number.isFinite)?values.reduce((a,b)=>a+b,0):null;
+const displayed=value=>Number.isFinite(value)?value.toFixed(1):'unknown';
 export function union(intervals) {
   let total=0, end=-Infinity;
   for (const [a,b] of intervals.sort((a,b)=>a[0]-b[0])) { if (b>a) { total+=Math.max(0,b-Math.max(end,a)); end=Math.max(end,b); } }
@@ -21,6 +23,7 @@ export async function report(q = {}, store = new MetricsStore()) {
     && (!q.since || r.startedAt>=Date.parse(q.since)) && (!q.until || r.startedAt<=Date.parse(q.until)));
   const byId = new Map(rows.map(r=>[r.id,r]));
   const finite = rows.filter(r=>r.durationMs!==null);
+  const placed=r=>r.provenance==='observed';
   const childMap=new Map(), workerChildren=new Map();
   for(const child of finite){
     if(child.parentId){if(!childMap.has(child.parentId))childMap.set(child.parentId,[]);childMap.get(child.parentId).push(child);}
@@ -31,14 +34,14 @@ export async function report(q = {}, store = new MetricsStore()) {
   const workers=finite.filter(r=>r.worker).map(r=>{
     const descendants=workerChildren.get(r.id)??[];
     const covered=descendants.filter(child=>child.clock===r.clock).map(child=>[Math.max(r.startedAt,child.startedAt),Math.min(r.startedAt+r.durationMs,child.startedAt+child.durationMs)]);
-    return {...r,workerMs:r.workMs??(descendants.some(child=>child.clock!==r.clock)?0:Math.max(0,r.durationMs-union(covered)))};
+    return {...r,workerMs:r.workMs??(descendants.some(child=>child.clock!==r.clock || !placed(child) || !placed(r))?null:Math.max(0,r.durationMs-union(covered)))};
   });
   const clocks = [...new Set(finite.map(r=>r.clock))];
-  const operations=finite.map(r=>{const children=(childMap.get(r.id)??[]).filter(c=>c.clock===r.clock);return {...r,exclusiveMs:Math.max(0,r.durationMs-union(children.map(c=>[Math.max(r.startedAt,c.startedAt),Math.min(r.startedAt+r.durationMs,c.startedAt+c.durationMs)])))};});
-  const operationCost=[...new Set(operations.map(r=>r.label))].map(label=>({label,executions:operations.filter(r=>r.label===label).length,exclusiveMs:operations.filter(r=>r.label===label).reduce((sum,r)=>sum+r.exclusiveMs,0)})).sort((a,b)=>b.exclusiveMs-a.exclusiveMs);
+  const operations=finite.map(r=>{const children=childMap.get(r.id)??[];return {...r,exclusiveMs:children.some(c=>c.clock!==r.clock||!placed(c)||!placed(r))?null:Math.max(0,r.durationMs-union(children.map(c=>[Math.max(r.startedAt,c.startedAt),Math.min(r.startedAt+r.durationMs,c.startedAt+c.durationMs)])))};});
+  const operationCost=[...new Set(operations.map(r=>r.label))].map(label=>({label,executions:operations.filter(r=>r.label===label).length,exclusiveMs:sumKnown(operations.filter(r=>r.label===label).map(r=>r.exclusiveMs))})).sort((a,b)=>b.exclusiveMs-a.exclusiveMs);
   const cost = CATEGORIES.map(category=>{
     const group=workers.filter(r=>r.category===category);
-    return { category, executions:group.length, workerMs:group.reduce((s,r)=>s+r.workerMs,0), ids:group.slice(0,1000).map(r=>r.id),idsTruncated:group.length>1000 };
+    return { category, executions:group.length, workerMs:sumKnown(group.map(r=>r.workerMs)), ids:group.slice(0,1000).map(r=>r.id),idsTruncated:group.length>1000 };
   }).filter(x=>x.executions).sort((a,b)=>b.workerMs-a.workerMs);
   const repeated = new Map();
   for (const r of rows.filter(r=>r.commandId && r.worker)) { const key=`${r.projectId}:${r.commandId}`; if (!repeated.has(key)) repeated.set(key,[]); repeated.get(key).push(r); }
@@ -46,20 +49,20 @@ export async function report(q = {}, store = new MetricsStore()) {
     classification:g.every(r=>r.inputId && r.inputId===g[0].inputId) ? 'matching-observed-inputs' : 'possible-repeat',
     ids:g.slice(0,1000).map(r=>r.id), reasons:g.slice(0,1000).map(r=>r.reason),idsTruncated:g.length>1000, conclusion:'Repetition does not authorize skipping.' }));
   const gaps = ['Commands outside instrumented entrypoints are unobserved.', 'Known-execution denominator is unknown unless reconciled with source receipts.', 'No cross-host critical path is inferred.'];
-  if (rows.some(r=>r.provenance==='estimated')) gaps.push('Some imported timestamps are estimated; missing original timing is not recovered.');
+  if (rows.some(r=>!placed(r))) gaps.push('Some timestamps are not observed; elapsed placement and affected nested accounting remain unknown.');
   if (rows.some(r=>r.location==='ci')) gaps.push('Pure CI queue duration is unavailable; start delays may include dependencies.');
   if (rows.some(r=>r.label==='release-observation')) gaps.push('Release completion observations do not establish stage execution duration.');
   if (inventory.captureIncomplete) gaps.push('Collector dropped observations; this store has known missing capture.');
   if (rows.some(r=>r.durationMs===null)) gaps.push('Some observed work has unavailable timing.');
   if (rows.some(r=>r.summary)) gaps.push('Some detail expired; summary drilldown is unavailable.');
   if (rows.some(r=>r.parentId && !byId.has(r.parentId))) gaps.push('Parent spans outside this dataset are unavailable.');
-  const featureTotals=new Map();for(const r of workers)for(const id of r.featureIds)featureTotals.set(id,(featureTotals.get(id)??0)+r.workerMs);
+  const featureTotals=new Map();for(const r of workers)for(const id of r.featureIds)featureTotals.set(id,sumKnown([featureTotals.has(id)?featureTotals.get(id):0,r.workerMs]));
   const featureAttribution=[...featureTotals].map(([featureId,workerMs])=>({featureId,workerMs,note:'Attribution overlaps for shared work; do not sum across features.'}));
   const records=rows.map(r=>({...r,projectAlias:`project-${r.projectId.slice(0,8)}`})).sort((a,b)=>a.startedAt-b.startedAt);
   return { schemaVersion:1, collectorVersion:'performance/1', window:{since:q.since??null,until:q.until??null},
-    totals:{ records:rows.length, workerMs:workers.reduce((s,r)=>s+r.workerMs,0),
-      observedElapsedMs:clocks.length<=1 ? union(finite.filter(r=>r.category!=='poll').map(r=>[r.startedAt,r.startedAt+r.durationMs])) : null,
-      elapsedByClock:clocks.map(clock=>({clock,ms:union(finite.filter(r=>r.clock===clock).map(r=>[r.startedAt,r.startedAt+r.durationMs]))})), cpuMs:null,cost:workers.length && workers.every(r=>r.cost!==null) ? workers.reduce((s,r)=>s+r.cost,0):null },
+    totals:{ records:rows.length, workerMs:sumKnown(workers.map(r=>r.workerMs)),
+      observedElapsedMs:clocks.length<=1 && finite.every(placed) ? union(finite.filter(r=>r.category!=='poll').map(r=>[r.startedAt,r.startedAt+r.durationMs])) : null,
+      elapsedByClock:clocks.map(clock=>({clock,ms:finite.filter(r=>r.clock===clock).every(placed)?union(finite.filter(r=>r.clock===clock).map(r=>[r.startedAt,r.startedAt+r.durationMs])):null})), cpuMs:null,cost:workers.length && workers.every(r=>r.cost!==null) ? workers.reduce((s,r)=>s+r.cost,0):null },
     coverage:{knownExecutionDenominator:null, incomplete:rows.filter(r=>r.durationMs===null).length+inventory.incomplete, captureIncomplete:inventory.captureIncomplete===true, gaps},
     milestones:rows.filter(r=>r.outcome==='PASS' && ['authorize-implementation','candidate.ready','accept','milestone:acceptance','merge.execute','integration.observe','milestone:completion','run.pause','run.continue'].includes(r.label)).map(r=>({id:r.id,label:r.label,at:r.startedAt,featureIds:r.featureIds})).slice(0,1000),
     cost, operationCost, featureAttribution:featureAttribution.slice(0,1000), repetitions:repetitions.slice(0,1000), detailListsTruncated:rows.length>1000, reuse:rows.filter(r=>r.category==='reuse').slice(0,1000).map(r=>({id:r.id,outcome:r.outcome,reason:r.reason})),
@@ -69,7 +72,7 @@ export async function report(q = {}, store = new MetricsStore()) {
 const escape = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function renderReport(value, format='json') {
   if(format==='json')return JSON.stringify(value,null,2);
-  const lines=['# GateReeve performance', '', `Observed records: ${value.totals.records}`, `Worker time: ${value.totals.workerMs.toFixed(1)} ms`, `Observed elapsed: ${value.totals.observedElapsedMs ?? 'unknown across clocks'} ms`, '', '## Capture limits', ...value.coverage.gaps.map(g=>`- ${g}`), `- Incomplete records: ${value.coverage.incomplete}`, '', '## Cost', '| Category | Executions | Worker ms |','|---|---:|---:|',...value.cost.map(c=>`| ${c.category} | ${c.executions} | ${c.workerMs.toFixed(1)} |`), '', '## Observed operation cost (exclusive ms)',...value.operationCost.map(o=>`- ${o.label}: ${o.exclusiveMs.toFixed(1)} ms across ${o.executions} observations`), '', '## Repetition and reuse', ...value.repetitions.map(r=>`- ${r.executions} executions: ${r.classification}. ${r.conclusion}`), ...value.reuse.map(r=>`- ${r.outcome}: ${r.reason}`), '', '## Timeline (selected page)', ...value.records.map(r=>`- ${new Date(r.startedAt).toISOString()} ${r.category}: ${r.outcome}, ${r.durationMs ?? 'unknown'} ms [${r.id}]`)];
+  const lines=['# GateReeve performance', '', `Observed records: ${value.totals.records}`, `Worker time: ${displayed(value.totals.workerMs)} ms`, `Observed elapsed: ${value.totals.observedElapsedMs ?? 'unknown timing or clocks'} ms`, '', '## Capture limits', ...value.coverage.gaps.map(g=>`- ${g}`), `- Incomplete records: ${value.coverage.incomplete}`, '', '## Cost', '| Category | Executions | Worker ms |','|---|---:|---:|',...value.cost.map(c=>`| ${c.category} | ${c.executions} | ${displayed(c.workerMs)} |`), '', '## Observed operation cost (exclusive ms)',...value.operationCost.map(o=>`- ${o.label}: ${displayed(o.exclusiveMs)} ms across ${o.executions} observations`), '', '## Repetition and reuse', ...value.repetitions.map(r=>`- ${r.executions} executions: ${r.classification}. ${r.conclusion}`), ...value.reuse.map(r=>`- ${r.outcome}: ${r.reason}`), '', '## Timeline (selected page)', ...value.records.map(r=>`- ${new Date(r.startedAt).toISOString()} ${r.category}: ${r.outcome}, ${r.durationMs ?? 'unknown'} ms [${r.id}]`)];
   if(format==='markdown')return lines.join('\n');
   if(format!=='html')throw new Error('Unknown report format');
   const categories=[...new Set(value.records.map(r=>r.category))];

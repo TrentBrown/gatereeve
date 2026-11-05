@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "receiptHash": "sha256:9d39d81646c0f658fdcb33f1822e3deb4e3755f81dac7f32445bb1851d585e9b",
-    "source": "335fd206c4754beb1ce87d8710044073caa6d7cc",
-    "note": "Selective fixture from actual successful native Verification; local executable path replaced with node; timestamps/outcomes unchanged."
+    "receiptHash": "sha256:f1679a101685c3b6f38c242c069601eab64cc439477fbf3295f8acb3d53aec42",
+    "source": "053fab2ea7ffc97b047375b234527db48749bf8c",
+    "note": "Selective fixture from actual native Verification v4. Original receipt supplied as historical evidence for independent provenance comparison. Only executable path replaced with node; timing, args, exit and outcome unchanged."
   },
   "receipts": [
     {
@@ -10,20 +10,30 @@
         "cli/scripts/verify-performance.mjs"
       ],
       "command": "node",
-      "completedAt": "2026-11-05T18:45:24.632Z",
+      "completedAt": "2026-11-05T19:02:52.245Z",
       "exitCode": 0,
       "outcome": "PASS",
-      "startedAt": "2026-11-05T18:45:05.756Z"
+      "startedAt": "2026-11-05T19:02:33.207Z"
     },
     {
       "args": [
         "cli/scripts/benchmark-performance.mjs"
       ],
       "command": "node",
-      "completedAt": "2026-11-05T18:45:46.438Z",
+      "completedAt": "2026-11-05T19:03:14.354Z",
       "exitCode": 0,
       "outcome": "PASS",
-      "startedAt": "2026-11-05T18:45:24.715Z"
+      "startedAt": "2026-11-05T19:02:52.341Z"
+    },
+    {
+      "args": [
+        "apps/desktop/scripts/metrics-rendered-smoke.mjs"
+      ],
+      "command": "node",
+      "completedAt": "2026-11-05T19:03:15.722Z",
+      "exitCode": 0,
+      "outcome": "PASS",
+      "startedAt": "2026-11-05T19:03:14.483Z"
     }
   ]
 }

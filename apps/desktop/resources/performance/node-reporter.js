@@ -1,3 +1,4 @@
+// Reporter delivery timestamps are estimates, even when test:start is available.
 // Use alongside the normal Node reporter; compact capture never owns test output.
 import { record } from './observe.js';
 import { randomUUID } from 'node:crypto';
@@ -11,6 +12,6 @@ export default async function* reporter(source) {
     const start=starts.get(key);starts.delete(key);
     if(data.nesting!==0)continue;
     const duration=data.details?.duration_ms;
-    await record({id:`node:${invocation}:${ordinal++}`,project:process.cwd(),category:'unit',command:JSON.stringify([data.file,data.name]),startedAt:start??Date.now(),durationMs:Number.isFinite(duration)&&duration>=0?duration:null,provenance:start==null?'estimated':'observed',outcome:event.type==='test:pass'?'PASS':'FAIL',worker:true});
+    await record({id:`node:${invocation}:${ordinal++}`,project:process.cwd(),category:'unit',command:JSON.stringify([data.file,data.name]),startedAt:start??Date.now(),durationMs:Number.isFinite(duration)&&duration>=0?duration:null,provenance:'estimated',outcome:event.type==='test:pass'?'PASS':'FAIL',worker:true});
   }
 }
