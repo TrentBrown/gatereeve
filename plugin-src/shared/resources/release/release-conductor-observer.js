@@ -1,3 +1,4 @@
+import { observe } from '../performance/observe.js';
 import { withScratch } from '../storage/scratch.js';
 import { execFile as execFileCallback } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
@@ -124,7 +125,7 @@ function liveStatus(discovery, failure = null) {
   };
 }
 
-export async function observeReleaseConductor(request, {
+async function observeReleaseConductorRaw(request, {
   run = command,
   runJson = jsonCommand,
   sharedRuntime = {},
@@ -254,4 +255,8 @@ export async function observeReleaseConductor(request, {
     outcome: null,
     evidence: null,
   };
+}
+
+export async function observeReleaseConductor(request, options) {
+  return observe({category:'delivery',label:'release-observation',project:request?.input?.evidence?.workspaceRoot,worker:false},()=>observeReleaseConductorRaw(request,options));
 }

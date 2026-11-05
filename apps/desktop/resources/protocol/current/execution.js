@@ -1,3 +1,4 @@
+import { observe, record } from '../../performance/observe.js';
 import { coverageClaims, validateCoverageDecisions } from './coverage.js';
 import { planningFacts, planningReferences } from './planning.js';
 import { observeReleaseConductor } from '../../release/release-conductor-observer.js';
@@ -162,7 +163,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
   const adapter = core.runtime.evaluator ?? (provider === 'codex'
     ? createCodexAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' })
     : createClaudeCodeAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' }));
-  const view = await reviewerView(core, candidate, [...packet.history.map(item => item.reference), ...packet.consumedReferences], packet, state.runId, jobId);
+  const view = await observe({category:'setup',label:'source-view',worker:false}, () => reviewerView(core, candidate, [...packet.history.map(item => item.reference), ...packet.consumedReferences], packet, state.runId, jobId));
   let retained = [];
   try {
     const root = view.root;
@@ -178,7 +179,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
       policy: { repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated' },
       repositoryPath: root, snapshotDigest: contentIdentity(candidate), instructions,
       input: packet, outputSchema, timeoutSeconds: configuration.timeoutSeconds ?? 900 };
-    const result = await adapter.runStage(request);
+    const result = await observe({category:'review',label:'provider-execution',project:core.context.workspaceRoot,feature:core.context.featureId,worker:true}, () => adapter.runStage(request));
     retained = [await core.store.putJson(result.receipt), await core.store.putJson(result.output)];
     try { requireThat(result.output && Array.isArray(result.output.verdicts) && Object.keys(result.output).length === 1, 'Invalid verdict envelope'); }
     catch (error) { error.artifacts = retained; throw error; }
@@ -229,7 +230,7 @@ export async function runCheckProcess(check, configuration, cwd, environment) {
       stderr: `${result.stderr ?? ''}${finalizationDiagnostic ? `\n${finalizationDiagnostic}` : ''}` };
   }
 }
-async function commands(core, state, candidate, configuration, completion, environment) {
+async function commands(core, state, candidate, configuration, completion, environment, executionInput) {
   requireThat(Array.isArray(configuration.checks) && configuration.checks.length > 0, 'Runner requires explicit checks');
   const receipts = [];
   try {
@@ -244,7 +245,7 @@ async function commands(core, state, candidate, configuration, completion, envir
       await assertClean(repository, core.store);
       const generatedInputs = await qualifyGeneratedInputs(core, state, candidate, check, receipts, repository.path);
       const startedAt = new Date().toISOString();
-      const result = await runCheckProcess(check, configuration, repository.path, environment);
+      const result = await observe({category:'verification', project:core.context.workspaceRoot, feature:core.context.featureId, command:JSON.stringify([check.command, check.args]), input:executionInput, source:expectedHead, worker:true}, () => runCheckProcess(check, configuration, repository.path, environment));
       const logs = runnerDiagnostics(result, configuration, environment);
       receipts.push({ evaluatedSource: expectedHead, command: check.command, args: check.args, repository: check.repository,
         purpose: check.purpose, startedAt, completedAt: new Date().toISOString(), outcome: result.outcome,
@@ -509,16 +510,19 @@ export async function executeGates(core, input, operation) {
       examined.add(result.gate);
       if (identity(previous.configuration) !== identity(configuration) || identity(previous.coverageClaims ?? []) !== identity(replacements)
         || previous.reviewContract !== value.reviewContract || identity(previous.claims) !== identity(value.claims)
-        || identity(previous.requestedHistory ?? []) !== identity(value.requestedHistory) || identity(previous.historyGaps ?? []) !== identity(missingHistory)) continue;
+        || identity(previous.requestedHistory ?? []) !== identity(value.requestedHistory) || identity(previous.historyGaps ?? []) !== identity(missingHistory)) { await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'inputs-changed'}); continue; }
       try {
         const equivalent = async refs => Promise.all(refs.map(ref => core.evidenceIdentity(ref, candidate, state, applicabilityMemo)));
-        if (identity(await equivalent(previous.consumed ?? [])) !== identity(await equivalent(consumed))) continue;
+        if (identity(await equivalent(previous.consumed ?? [])) !== identity(await equivalent(consumed))) { await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'consumed-proof-changed'}); continue; }
         const applicable = await core.currentResult(ref, candidate, state, new Set(), applicabilityMemo);
         if (applicable.outcome === 'PASS') reusable.set(result.gate, ref);
-      } catch { /* Changed or unavailable proof needs a fresh execution. */ }
+        else await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'latest-not-pass'});
+      } catch { await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'proof-unavailable'}); }
     }
-    if (input.gates.every(id => reusable.has(id))) return { reused: true,
-      results: input.gates.map(id => reusable.get(id)), currentCandidate: state.candidate };
+    if (input.gates.every(id => reusable.has(id))) {
+      await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REUSED',reason:'equivalent'});
+      return { reused:true, results:input.gates.map(id=>reusable.get(id)), currentCandidate:state.candidate };
+    }
   }
   const jobId = identity({ run: state.runId, operation }).slice(7);
   const started = events.find(event => event.type === 'JOB_STARTED' && event.payload.jobId === jobId);
@@ -567,7 +571,7 @@ export async function executeGates(core, input, operation) {
         }
       });
     } else if (role === 'runner') {
-      const ran = await commands(core, state, candidate, configuration, definitions[0].at === 'completion', runnerEnvironment);
+      const ran = await commands(core, state, candidate, configuration, definitions[0].at === 'completion', runnerEnvironment, prepared.hash);
       // Persist completed checks before postflight fingerprinting can itself fail.
       ran.changedInputs = null;
       ran.environmentCheck = 'pending';

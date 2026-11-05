@@ -1,3 +1,4 @@
+import { metricsCommands } from './commands/metrics.js';
 import { Command } from 'commander';
 
 import { pluginCommands } from './commands/plugin.js';
@@ -14,6 +15,7 @@ export function createProgram() {
     .version('0.1.0')
     .showHelpAfterError();
 
+  program.addCommand(metricsCommands());
   for (const command of currentCommands()) program.addCommand(command);
   program.addCommand(pluginCommands());
   for (const command of cleanupCommands()) program.addCommand(command);

@@ -1,3 +1,4 @@
+import { observe } from '../../performance/observe.js';
 import { mkdir, lstat } from 'node:fs/promises';
 import { join, resolve, relative, isAbsolute, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -86,7 +87,7 @@ export async function readCurrent(context, kind, id, runtime = {}) {
   }
   throw new Error('Unsupported current detail kind');
 }
-export async function executeCurrentRequest(request, runtime = {}) {
+async function executeObservedRequest(request, runtime = {}) {
   const operation = request?.operation ?? 'unknown';
   try {
     const context = await contextFor(request, runtime);
@@ -111,4 +112,9 @@ export async function executeCurrentRequest(request, runtime = {}) {
     }
     return successResult(operation, await core.execute({ ...request, input }));
   } catch (error) { return failureResult(operation, error); }
+}
+
+export async function executeCurrentRequest(request, runtime = {}) {
+  const operation = request?.operation ?? 'unknown';
+  return observe({project:request?.cwd ?? process.cwd(), category:['status','snapshot','next'].includes(operation)?'poll':'operation', command:operation, worker:false}, () => executeObservedRequest(request,runtime));
 }

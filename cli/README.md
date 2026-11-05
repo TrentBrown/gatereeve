@@ -300,3 +300,12 @@ basis bytes block its use. A behavioral Whiteboard exception requires an explici
 `policy-amend` naming `whiteboard`. Neither policy amendment can waive integrity,
 factual truth or action authority. Requirement amendments supersede old direct
 approvals and candidate authority even if earlier document bytes are restored.
+
+## Workflow performance metrics
+
+Local measurement is enabled by default with an explicit off switch. CLI,
+desktop and the local MCP adapter share the same bounded store and calculations.
+See [measurement usage and privacy](../plugin-src/shared/resources/PERFORMANCE.md)
+for wrapper/import commands, retention, capture limits and MCP configuration.
+No metric changes required validation or authorizes reuse. Preserve active
+sessions during upgrades and verify activation separately.

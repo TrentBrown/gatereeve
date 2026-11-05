@@ -1,3 +1,4 @@
+import { renderMetrics } from './metrics-view.js';
 import { renderCurrentOverview, renderCurrentObligations, renderCurrentModel } from './current-view.js';
 import { clear, node, renderJson, renderMarkdown } from './dom.js';
 import { createWorkspaceStore, workspaceDefaults } from './workspace-state.js';
@@ -427,6 +428,7 @@ async function inspectCurrentResult(id) {
 }
 function renderOverview(snapshot) {
   renderCurrentOverview(snapshot, elements, { openArtifact, copy, readResult: inspectCurrentResult });
+  renderMetrics(elements.actions, desktop);
 }
 
 function artifactButton(artifact) {

@@ -1,3 +1,4 @@
+import { metricsRequest, renderReport } from '../resources/performance/service.js';
 // @ts-check
 
 import {
@@ -70,6 +71,19 @@ export function registerDesktopIpc({
     }
     return { path: project.path, name: project.name };
   }
+  ipcMain.handle(IPC_CHANNELS.metrics, async (event, ...values) => {
+    trusted(event);
+    if(values.length!==1 || !values[0] || typeof values[0]!=='object')throw new Error('Expected metrics request');
+    const {action,input={},...extra}=values[0];
+    if(Object.keys(extra).length || !['status','report','html','config','cleanup'].includes(action))throw new Error('Invalid metrics action');
+    const project=selectedProject();
+    if(action==='report'||action==='html') {
+      if(Object.keys(input).some(key=>!['since','until','limit','offset'].includes(key)))throw new Error('Project metrics scope cannot be overridden');
+      const value=await metricsRequest('report',{...input,project:project.path});
+      return action==='html'?{html:renderReport(value,'html')}:value;
+    }
+    return metricsRequest(action,input);
+  });
   ipcMain.handle(IPC_CHANNELS.getState, async (event, ...values) => {
     noArguments(event, values);
     return validatedState(coordinator.current());

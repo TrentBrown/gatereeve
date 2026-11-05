@@ -3,6 +3,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const channels = Object.freeze({
+  metrics: 'gatereeve:desktop:metrics',
   checkForUpdates: 'gatereeve:desktop:check-for-updates',
   addProject: 'gatereeve:desktop:add-project',
   copyText: 'gatereeve:desktop:copy-text',
@@ -356,6 +357,7 @@ function terminalResizeRequest(sessionId, cols, rows) {
 }
 
 contextBridge.exposeInMainWorld('gatereeveDesktop', Object.freeze({
+  metrics(request) { return ipcRenderer.invoke(channels.metrics, request); },
   checkForUpdates: async () => requireUpdateState(await ipcRenderer.invoke(channels.checkForUpdates)),
   addProject: async () => requireState(await ipcRenderer.invoke(channels.addProject)),
   copyText: async (value) => ipcRenderer.invoke(channels.copyText, requireClipboardText(value)),

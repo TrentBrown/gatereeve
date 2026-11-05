@@ -1,3 +1,4 @@
+import { observe } from '../../performance/observe.js';
 import { checkIdentity } from './coverage.js';
 import { protectedMerge, resumeDelivery } from './delivery.js';
 import { observeReleaseConductor } from '../../release/release-conductor-observer.js';
@@ -889,6 +890,15 @@ export class CurrentCore {
       { id: `cleanup_${randomUUID()}`, hash: identity(result) });
   }
   async execute(request) {
+    const operation = typeof request?.operation === 'string' ? request.operation : 'unknown';
+    const label = operation === 'human.decide' ? request.input?.kind
+      : operation === 'milestone.pass' ? `milestone:${request.input?.name}` : operation;
+    const category = operation.startsWith('merge.') || operation.startsWith('integration.') ? 'delivery'
+      : operation === 'candidate.prepare' ? 'setup' : 'operation';
+    return observe({ project: this.context.workspaceRoot, feature: this.context.featureId,
+      label, category, command: operation, worker: false }, () => this.executeObserved(request));
+  }
+  async executeObserved(request) {
     const input = request.input ?? {};
     const operation = { id: request.operationId ?? randomUUID(), hash: identity({ operation: request.operation, input }) };
     const mutating = !['status', 'snapshot', 'milestone.check', 'coverage.status'].includes(request.operation);

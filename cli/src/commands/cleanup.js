@@ -1,3 +1,4 @@
+import { metricsRequest } from '../performance.js';
 import { Command } from 'commander';
 import { cleanupScratch, inspectScratch, runScratchCommand, cleanupInstallers, inspectInstallers,
   addInstaller, setInstallerHold, withInstallerLease } from '../storage.js';
@@ -11,6 +12,7 @@ function print(result, asJson) {
   if (result.applied) console.log(`Removed ${result.removed.length} run(s), ${result.reclaimedBytes} allocated bytes. Filesystem free-space changes may differ.`);
   else console.log(result.quick ? 'Read-only inventory; run gatereeve cleanup for activity and size checks.' : `Preview only: ${result.eligibleBytes ?? 'unknown'} eligible bytes. Use --apply to remove eligible runs.`);
   for (const error of result.errors ?? []) console.error(`${error.id}: ${error.reason}`);
+  if (result.metrics) console.log(`Metrics: ${JSON.stringify(result.metrics)}`);
   if (result.installers) {
     const installers = result.installers;
     console.log(`Local installers: ${installers.root}`);
@@ -29,12 +31,13 @@ export function cleanupCommands() {
     .action(async options => {
       const result = await cleanupScratch(options);
       if (!options.run) result.installers = await cleanupInstallers({ apply: !!options.apply });
+      if (!options.run) result.metrics = await metricsRequest('cleanup', {apply:!!options.apply}).catch(() => ({unavailable:true}));
       print(result, options.json);
       if (result.error || result.errors?.length || result.installers?.error || result.installers?.errors?.length) process.exitCode = 1;
     });
   const doctor = new Command('doctor').description('Report managed temporary storage without deleting files')
     .option('--json', 'Print structured advisory inventory')
-    .action(async options => print({ ...await inspectScratch({ quick: true }), installers: await inspectInstallers({ quick: true }) }, options.json));
+    .action(async options => print({ ...await inspectScratch({ quick: true }), installers: await inspectInstallers({ quick: true }), metrics: await metricsRequest('status').catch(() => ({unavailable:true})) }, options.json));
   const scratch = new Command('scratch').description('Run a command inside owned disposable scratch').enablePositionalOptions();
   scratch.command('run').description('Run in a fresh directory; use absolute command/input paths and export required outputs')
     .option('--cwd <path>', 'Keep a specified working directory while managing child temporary files')

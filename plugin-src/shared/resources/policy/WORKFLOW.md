@@ -93,3 +93,12 @@ client-specific closed drafts are an explicit repository setting.
 
 Execution profiles, reuse, recovery, source/artifact acceptance and safe upgrades
 follow `resources/DELIVERY-EXECUTION.md`. Status observations cannot create proof.
+
+## Measurement during implementation and validation
+
+For agent-selected test/build commands, use the lightweight wrapper described in
+`resources/PERFORMANCE.md` (CLI `metrics run`, or the plugin-local wrapper when
+CLI is absent). Choose tests freely within the authorized phase. Do not rerun
+checks just to obtain metrics. Measurement failure does not block the command;
+report capture gaps. Formal runner jobs are already observed and need no extra
+outer wrapper. Reports are advisory and never grant gate passage or reuse.
