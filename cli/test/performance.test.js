@@ -10,6 +10,7 @@ import { report, renderReport } from '../../plugin-src/shared/resources/performa
 import { importMetrics } from '../../plugin-src/shared/resources/performance/import.js';
 import { metricsRequest } from '../../plugin-src/shared/resources/performance/service.js';
 import { createSession } from '../../plugin-src/shared/resources/performance/mcp.js';
+const repositoryRoot=resolve(import.meta.dirname,'../..');
 async function fixture(t) {
   const parent=await realpath(await mkdtemp(join(tmpdir(),'gatereeve-metrics-test-')));t.after(()=>rm(parent,{recursive:true,force:true}));
   return {parent,store:new MetricsStore(join(parent,'metrics'))};
@@ -96,7 +97,7 @@ test('MCP requires handshake and management is disabled by default',async t=>{
   const response=(await call(5,'tools/call',{name:'metrics_report',arguments:{limit:1}})).result;assert.deepEqual(response.structuredContent,await report({limit:1},store));
 });
 test('actual MCP stdio process supports initialization and tools',async t=>{
-  const {store}=await fixture(t);const path=resolve('plugin-src/shared/resources/performance/mcp.js');
+  const {store}=await fixture(t);const path=resolve(repositoryRoot,'plugin-src/shared/resources/performance/mcp.js');
   const p=spawn(process.execPath,['--input-type=module','-e',`import {serve} from ${JSON.stringify(path)}; await serve();`],{env:{...process.env,GATEREEVE_METRICS_DIR:store.root},stdio:['pipe','pipe','pipe']});
   let output='';p.stdout.on('data',c=>output+=c);p.stdin.end([
     {jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-06-18',clientInfo:{name:'fixture',version:'1'},capabilities:{}}},
@@ -106,7 +107,7 @@ test('actual MCP stdio process supports initialization and tools',async t=>{
 });
 test('CLI wrapper preserves argv, output and nonzero exit',async t=>{
   const {store}=await fixture(t);const script='console.log(process.argv[1]); process.exit(7)';const args=['-e',script,'literal $(touch nope)'];
-  const direct=await child(args);const wrapped=await child(['cli/bin/workflow.js','metrics','run','--',process.execPath,...args],{GATEREEVE_METRICS_DIR:store.root});
+  const direct=await child(args);const wrapped=await child([join(repositoryRoot,'cli/bin/workflow.js'),'metrics','run','--',process.execPath,...args],{GATEREEVE_METRICS_DIR:store.root});
   assert.equal(wrapped.code,direct.code);assert.equal(wrapped.stdout,direct.stdout);assert.equal(wrapped.stderr,'');assert.equal((await report({},store)).records[0].outcome,'FAIL');
 });
 test('collector reports bounded diagnostics only when explicitly enabled',async t=>{
@@ -121,8 +122,13 @@ test('nested worker accounting retains exclusive parent setup',async t=>{
 });
 test('wrapper forwards termination and preserves terminal signal',async t=>{
   const {store}=await fixture(t);
-  const p=spawn(process.execPath,['cli/bin/workflow.js','metrics','run','--',process.execPath,'-e',"console.log('ready');setInterval(()=>{},1000)"],{env:{...process.env,GATEREEVE_METRICS_DIR:store.root},stdio:['ignore','pipe','pipe']});
-  await new Promise((resolve,reject)=>{p.stdout.once('data',resolve);p.once('error',reject);});p.kill('SIGTERM');
+  const p=spawn(process.execPath,[join(repositoryRoot,'cli/bin/workflow.js'),'metrics','run','--',process.execPath,'-e',"console.log('ready');setInterval(()=>{},1000)"],{env:{...process.env,GATEREEVE_METRICS_DIR:store.root},stdio:['ignore','pipe','pipe']});
+  t.after(()=>{if(p.exitCode===null&&p.signalCode===null)p.kill('SIGKILL');});
+  await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{p.kill('SIGKILL');reject(new Error('Wrapper did not become ready'));},30000);
+    const finish=error=>{clearTimeout(timer);error?reject(error):resolve();};
+    p.stdout.once('data',()=>finish());p.once('error',finish);p.once('exit',(code,signal)=>finish(new Error(`Wrapper exited before readiness: ${code??signal}`)));
+  });p.kill('SIGTERM');
   const result=await new Promise(resolve=>p.once('close',(code,signal)=>resolve({code,signal})));assert.equal(result.signal,'SIGTERM');
   assert.equal((await report({},store)).records[0].outcome,'CANCELLED');
 });
@@ -163,7 +169,7 @@ test('collector loss has persistent bounded health even when a whole span was dr
 test('real command receipt correlates with its wrapper without duplicate worker time',async t=>{
   const {store,parent}=await fixture(t);const receipt=join(parent,'receipt.json');
   const script="const fs=require('node:fs');const startedAt=Date.now();setTimeout(()=>fs.writeFileSync(process.argv[1],JSON.stringify({steps:[{command:'actual-node-check',startedAt,finishedAt:Date.now(),exitCode:0}]})),20)";
-  const result=await child(['cli/bin/workflow.js','metrics','run','--execution','real-wrapper','--',process.execPath,'-e',script,receipt],{GATEREEVE_METRICS_DIR:store.root});assert.equal(result.code,0);
+  const result=await child([join(repositoryRoot,'cli/bin/workflow.js'),'metrics','run','--execution','real-wrapper','--',process.execPath,'-e',script,receipt],{GATEREEVE_METRICS_DIR:store.root});assert.equal(result.code,0);
   const before=await report({},store);const source=JSON.parse(await readFile(receipt,'utf8'));
   await importMetrics('verification',source,{execution:'real-child',parentId:'real-wrapper',clock:hostname()},store);
   const after=await report({},store);assert.equal(after.totals.records,2);assert.equal(after.totals.workerMs,before.totals.workerMs);assert.equal(after.coverage.incomplete,0);
@@ -196,6 +202,6 @@ test('estimated timestamps retain measured work without inventing elapsed placem
 test('live Node reporter preserves normal output and treats delivery timestamps as estimates',async t=>{
   const {store,parent}=await fixture(t);const file=join(parent,'sample.test.mjs');
   await writeFile(file,"import test from 'node:test'; test('private-live-case',()=>{});\n");
-  const r=await child(['--test','--test-reporter=spec',`--test-reporter=${resolve('plugin-src/shared/resources/performance/node-reporter.js')}`,'--test-reporter-destination=stdout','--test-reporter-destination=/dev/null',file],{GATEREEVE_METRICS_DIR:store.root,NODE_TEST_CONTEXT:undefined});
+  const r=await child(['--test','--test-reporter=spec',`--test-reporter=${resolve(repositoryRoot,'plugin-src/shared/resources/performance/node-reporter.js')}`,'--test-reporter-destination=stdout','--test-reporter-destination=/dev/null',file],{GATEREEVE_METRICS_DIR:store.root,NODE_TEST_CONTEXT:undefined});
   assert.equal(r.code,0);assert.match(r.stdout,/private-live-case/);const value=await report({},store);assert.ok(value.totals.records>0);assert.equal(value.totals.observedElapsedMs,null);assert.equal(JSON.stringify(value).includes('private-live-case'),false);
 });
