@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:3d40adc257fa546596b125a5c456c29b513c2f5cc4534fe08b712e5b02f3fc36",
+  "protocolHash": "sha256:b6788ff3473479cc86c37f75256deb315f5b0cad6e12288e6a438490a0883b56",
   "contract": "gatereeve/current/5",
   "contractSha256": "f9a65f102ae6bb83c83bc86c66fbcd07073df3253db9db79c7d924445b9984d1",
   "files": [
@@ -42,8 +42,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 67950,
-      "sha256": "b8775a6dea48717518ba691fa20bf3a2bdfef445dfe0a1790c1338002ed3c2b6"
+      "size": 68411,
+      "sha256": "34468af3d6a588b0f3f6ecfc4c63d4292eeadde88cd61eebf889ec82d93fca9d"
     },
     {
       "path": "current/coverage.js",
@@ -62,8 +62,8 @@
     },
     {
       "path": "current/environment.js",
-      "size": 26640,
-      "sha256": "9c0b4cf0445d121a52b22b3bbefceb86590095ad7043716828fe129ddde58471"
+      "size": 31124,
+      "sha256": "e9fef32dd4a0bda8a99235cd8de4d10500b974acf4b27206ca23812b1bf2bc63"
     },
     {
       "path": "current/evidence.js",
@@ -72,8 +72,13 @@
     },
     {
       "path": "current/execution.js",
-      "size": 59415,
-      "sha256": "3ff34a3ebc1bbc62b45b69fd6b53c4c98324b26da1f47325b06ee329c82a589f"
+      "size": 62271,
+      "sha256": "e40e1a9319189856d9e976c45efba90d06b13fd443a2fdef2943563bef632e4f"
+    },
+    {
+      "path": "current/fingerprint-cache.js",
+      "size": 13190,
+      "sha256": "b48424fc94b39546a852f9793825c0b407108927f4b58034d606dc1b9170a7cf"
     },
     {
       "path": "current/generated-inputs.js",
@@ -111,9 +116,14 @@
       "sha256": "68c605c45c00358c20adb9d764f579539d934b081e78396b748626dcf466bed7"
     },
     {
+      "path": "current/review-history.js",
+      "size": 5592,
+      "sha256": "e0f63ca54a61b67806833045b3c12b49d73c3d488bae9a06c5ce7d241053cb45"
+    },
+    {
       "path": "current/runner-profile.js",
-      "size": 3988,
-      "sha256": "c0261b10f7d16489c6a77a67530d113e360d4f86b8856250543ab24b33858b73"
+      "size": 3995,
+      "sha256": "9e2ac44ecd348ea3b6f3b202c915909d73987f8f4509383e773c19c5bd674d73"
     },
     {
       "path": "current/source-retention.js",
@@ -152,8 +162,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 13077,
-      "sha256": "9d39f6d6715041ba4e391b79115fb4c7b73b48f9575b0debb39fec7197c9d8a8"
+      "size": 13441,
+      "sha256": "5c3d6708d02d4c2fb43a1124a0476a4b83c1c998d9c98e5efc3671fa19f8530b"
     },
     {
       "path": "module-runtime.js",

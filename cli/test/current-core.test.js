@@ -143,14 +143,15 @@ async function runVerification(f, fail = false, operationId = 'verify-one') {
     externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', `process.exit(${fail ? 1 : 0})`], purpose: 'Fixture verification' }],
   } }, operationId);
 }
-function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, findingId = 'finding-1', outcome = blocking ? 'FAIL' : 'PASS', dispositions = [], historyAssessment = null, criterionRows = null, coverage = null } = {}) {
+function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, findingId = 'finding-1', outcome = blocking ? 'FAIL' : 'PASS', dispositions = [], historyAssessment = null, criterionRows = null, coverage = null, summary = 'Fixture assessment', criterionEvidence = 'Fixture source and command receipt', inspect = null } = {}) {
   let launches = 0;
   f.core.runtime.evaluator = {
     async describe() { return { provider: 'codex', model: 'fixture', reasoningEffort: 'high' }; },
     async runStage(request) {
       launches++;
+      if (inspect) await inspect(request);
       const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome,
-        summary: 'Fixture assessment', criteria: criterionRows ?? request.input.criteria.map(id => ({ id, outcome, evidence: 'Fixture source and command receipt' })), coverage: coverage ?? { complete: true, paths: request.input.changedPaths ?? ['app/app.js'], interactions: ['app/app.js'], limitations: [] },
+        summary, criteria: criterionRows ?? request.input.criteria.map(id => ({ id, outcome, evidence: criterionEvidence })), coverage: coverage ?? { complete: true, paths: request.input.changedPaths ?? ['app/app.js'], interactions: ['app/app.js'], limitations: [] },
         findings: blocking ? [{ id: findingId, classId: 'class-1', criterion: 'R1', path: 'app/app.js', evidence: 'Current defect', blocking: true }] : [], dispositions, historyAssessment })) };
       if (malformed) output.verdicts.pop();
       const { sha256Digest } = await import('../../plugin-src/shared/resources/protocol/agent-workflow.js');
@@ -928,6 +929,53 @@ test('resolved history above 64 records does not halt fresh review', async t => 
   assert.equal(packet.history.length, 66); assert.equal(packet.reconsiderClosures.length, 33);
 });
 
+test('long runs with large retained reports stay reviewable without dropping open findings', async t => {
+  const f = await fixture(t); await authorize(f); await candidate(f);
+  // MyLifeMap's failing shape: every round adds 7-11 KB reports that remain
+  // relevant after later source changes, until full inlining passes the limit.
+  const bulky = { summary: 'Detailed reviewer reasoning about shared modules. '.repeat(330), criterionEvidence: 'Criterion evidence prose. '.repeat(120) };
+  const input = { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } };
+  fakeEvaluator(f, bulky); await f.request('gate.execute', input, 'bulky-seed');
+  for (let i = 0; i < 14; i++) {
+    const id = `finding-${i}`;
+    fakeEvaluator(f, { ...bulky, blocking: true, findingId: id });
+    await f.request('gate.execute', { ...input, configuration: { ...input.configuration, round: i } }, `bulky-failure-${i}`);
+    fakeEvaluator(f, { ...bulky, dispositions: [{ id, status: 'resolved', evidence: 'Independent closure' }] });
+    await f.request('gate.execute', input, `bulky-closure-${i}`);
+  }
+  fakeEvaluator(f, { ...bulky, blocking: true, findingId: 'still-open' });
+  await f.request('gate.execute', { ...input, configuration: { ...input.configuration, round: 'open' } }, 'bulky-open');
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 43;\n');
+  await git(f.repo, ['add', 'app.js']); await git(f.repo, ['commit', '-m', 'later slice touches shared source']);
+  const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
+  await f.request('candidate.prepare', { repositories: [{ alias: 'app', base: f.head, head }], scope: 'FEATURE', criteria: ['R1'] }, 'bulky-source');
+  const { promptCharacters, MAX_PROMPT_CHARACTERS_LIMIT } = await import('../../plugin-src/shared/resources/protocol/local-agent-adapters.js');
+  const seen = [];
+  const inspect = async request => {
+    const index = JSON.parse(await readFile(join(request.repositoryPath, 'history/index.json'), 'utf8'));
+    const reports = await Promise.all(index.entries.map(async entry => (await readFile(join(request.repositoryPath, entry.report))).length));
+    seen.push({ characters: promptCharacters(request), packet: request.input, index, reports });
+  };
+  const carry = { affected: [], carryForwardReason: 'Checked every prior closure against the changed shared source; none is reintroduced.' };
+  // A PASS that ignores the open finding is still rejected: projection keeps it.
+  fakeEvaluator(f, { ...bulky, historyAssessment: carry, inspect });
+  const ignored = await f.request('gate.execute', input, 'bulky-ignores-open');
+  const rejected = await f.core.store.json(ignored.event.payload.results[0]);
+  assert.equal(rejected.outcome, 'UNAVAILABLE'); assert.match(rejected.summary, /Missing supported disposition for still-open/);
+  fakeEvaluator(f, { ...bulky, historyAssessment: carry, inspect, dispositions: [{ id: 'still-open', status: 'resolved', evidence: 'Fixed in the later slice' }] });
+  const reviewed = await f.request('gate.execute', { ...input, configuration: { ...input.configuration, review: 'final' } }, 'bulky-final');
+  assert.equal((await f.core.store.json(reviewed.event.payload.results[0])).outcome, 'PASS');
+  const { characters, packet, index, reports } = seen.at(-1);
+  const total = reports.reduce((sum, bytes) => sum + bytes, 0);
+  assert.ok(total > MAX_PROMPT_CHARACTERS_LIMIT, `retained history (${total} bytes) alone would exceed the provider limit inline`);
+  assert.ok(characters < MAX_PROMPT_CHARACTERS_LIMIT * 0.75, `bounded prompt is ${characters} characters`);
+  assert.ok(packet.historyIndex.total >= 30 && index.entries.length === packet.historyIndex.total, 'every selected report is retained in the view index');
+  assert.equal(packet.historyIndex.inline + packet.historyIndex.references + packet.historyIndex.indexOnly, packet.historyIndex.total);
+  assert.deepEqual(packet.historyGaps, [], 'size bounding is not reported as unavailable evidence');
+  const open = packet.history.find(entry => entry.findings?.some(finding => finding.id === 'still-open'));
+  assert.ok(open && open.inline === undefined && !('summary' in open), 'the open finding is projected inline without bulky prose');
+  assert.equal(packet.reconsiderClosures.length, 14);
+});
 
 test('malformed successful provider text never reaches gate summaries or artifacts', async t => {
   const f = await fixture(t); await authorize(f); await candidate(f); fakeEvaluator(f);

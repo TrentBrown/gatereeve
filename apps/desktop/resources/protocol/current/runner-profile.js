@@ -30,7 +30,7 @@ export function runnerEnvironment(configuration = {}, inherited = process.env) {
   return Object.freeze(environment);
 }
 
-async function comparisonKey(context) {
+export async function comparisonKey(context) {
   const home = context.featureHome ?? context.repositories[0]?.path;
   requireThat(home, 'Environment comparison requires a local feature or repository home');
   const directory = join(home, '.gatereeve-current');

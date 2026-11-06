@@ -45,6 +45,10 @@ The store retains detail for 90 days and summaries for 365 days (12 months), cap
 
 Reports distinguish observed elapsed time and worker time; neither is CPU time or billed cost. Unknown input identity permits only possible-repeat classification, not proof that work was redundant. Known-execution denominators remain unknown until reconciled against receipts. External/uninstrumented commands are always a blind spot. No report authorizes skipping a check.
 
+## Protocol operation detail
+
+Adapter operations record child spans for work that previously showed only as operation time. `environment-fingerprint` spans cover each computed runtime-input fingerprint (count: bound entries); requests answered from an operation's shared observation add no record. `environment-hash` and `environment-hash-bytes` count the files and bytes an observation actually read, and are absent when every hash came from the stat-validated cache. Independent reviews record `review-prompt` (measured prompt characters; `REJECTED` when no history tier fits the provider limit) and `review-history` (selected entries; `SKIPPED` when some were carried by reference or index only). Counts are sizes, not durations; see `docs/RUN-SCALING.md` in the source repository for their meaning.
+
 ## Local MCP
 
 Start a local stdio server with `gatereeve metrics serve`. This exposes only bounded status/report/export tools. `--allow-management` additionally exposes explicit settings and cleanup tools; configure this only where those capabilities are intended. The client's existing approval/authorization policy still applies. No HTTP listener, shell executor or arbitrary filesystem tools are provided.

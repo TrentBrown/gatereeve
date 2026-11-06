@@ -75,8 +75,21 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
   });
 }
 
+// The provider rejects longer prompts before any model call. Callers that
+// shape bounded inputs measure against the same text with promptCharacters().
+export const MAX_PROMPT_CHARACTERS_LIMIT = MAX_PROMPT_CHARACTERS;
+export function promptCharacters(request) { return promptText(request).length; }
 function promptFor(request) {
-  const prompt = [
+  const prompt = promptText(request);
+  if (prompt.length > MAX_PROMPT_CHARACTERS) {
+    throw new ContractError(
+      `Agent workflow prompt exceeds the bounded ${MAX_PROMPT_CHARACTERS}-character provider limit`
+    );
+  }
+  return prompt;
+}
+function promptText(request) {
+  return [
     request.instructions.trim(),
     '',
     'Operate only on the supplied pinned evidence and the read-only repository view.',
@@ -90,12 +103,6 @@ function promptFor(request) {
     JSON.stringify(request.input),
     '</gatereeve-input>',
   ].join('\n');
-  if (prompt.length > MAX_PROMPT_CHARACTERS) {
-    throw new ContractError(
-      `Agent workflow prompt exceeds the bounded ${MAX_PROMPT_CHARACTERS}-character provider limit`
-    );
-  }
-  return prompt;
 }
 
 function providerMetrics(usages, costs = []) {

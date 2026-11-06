@@ -1,4 +1,4 @@
-import { access, lstat, readdir, readFile, realpath, mkdir, writeFile, link, rm } from 'node:fs/promises';
+import { access, lstat, open, readdir, readFile, realpath, mkdir, writeFile, link, rm } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { randomUUID } from 'node:crypto';
@@ -8,6 +8,8 @@ import { release, version } from 'node:os';
 import { digest, identity, requireThat } from './contracts.js';
 import { runnerEnvironment, environmentIdentity } from './runner-profile.js';
 import { workspaceSources } from './workspace-sources.js';
+import { FingerprintPass, releaseFingerprintCache, observationEpochs, reportPass } from './fingerprint-cache.js';
+import { observe } from '../../performance/observe.js';
 
 export const RUNNER_FINGERPRINT_POLICY = Object.freeze({
   id: 'runner-inputs/3',
@@ -25,6 +27,9 @@ const OMIT_BOOKKEEPING = Symbol('bookkeeping');
 const comparisonIndexes = new WeakMap();
 const comparisonLimits = new WeakMap();
 const externalIndexes = new WeakMap();
+// Observation counts for metrics only; never part of a manifest's identity.
+const observationCounts = new WeakMap();
+export const fingerprintObservation = manifest => observationCounts.get(manifest) ?? null;
 // Diagnostic baselines are compressed local hashes/identities, not source bodies
 // or gate proof. Retain them while the feature is active and release at completion.
 const indexRoot = context => join(context.featureHome ?? context.repositories[0].path, '.gatereeve-current', 'diagnostic-indexes');
@@ -65,6 +70,7 @@ export async function restoreComparisonIndexes(context, manifest) {
   } catch { return false; }
 }
 export async function releaseComparisonIndexes(context) {
+  await releaseFingerprintCache(context);
   const root = indexRoot(context);
   let info; try { info = await lstat(root); } catch (error) { if (error.code === 'ENOENT') return; throw error; }
   requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Unsafe diagnostic cache');
@@ -74,73 +80,95 @@ export async function releaseComparisonIndexes(context) {
     await rm(path);
   }
 }
-const portable = path => path.split(sep).join('/');
+const portable = sep === '/' ? path => path : path => path.split(sep).join('/');
 const taskRoot = /\/node_modules\/\.pnpm-task-run-state-v1$/u;
 function bookkeepingContainer(path) {
   const name = portable(path);
   return taskRoot.test(name) || /\/node_modules\/\.vite(?:\/vitest(?:\/[a-f0-9]{40})?)?$/u.test(name);
 }
-async function fileValue(path, info, exact) {
+const modeOf = info => Number(info.mode) & 0o777;
+const omittedBookkeeping = name => /\/node_modules\/\.vite\/vitest\/[a-f0-9]{40}\/results\.json$/u.test(name)
+  || /\/node_modules\/\.pnpm-task-run-state-v1\/(?:latest\.json|[a-f0-9]{64}\.[a-f0-9]+-\d+-\d+\.(?:jsonl|published|finished))$/u.test(name);
+const workspaceState = name => /\/node_modules\/\.pnpm-workspace-state-v1\.json$/u.test(name);
+async function fileValue(path, info, exact, pass) {
   const name = portable(path);
-  const eligible = !exact && info.isFile() && !(info.mode & 0o111);
-  if (eligible && (/\/node_modules\/\.vite\/vitest\/[a-f0-9]{40}\/results\.json$/u.test(name)
-    || /\/node_modules\/\.pnpm-task-run-state-v1\/(?:latest\.json|[a-f0-9]{64}\.[a-f0-9]+-\d+-\d+\.(?:jsonl|published|finished))$/u.test(name))) return OMIT_BOOKKEEPING;
+  const eligible = !exact && info.isFile() && !(Number(info.mode) & 0o111);
+  if (eligible && omittedBookkeeping(name)) return OMIT_BOOKKEEPING;
+  if (!(eligible && workspaceState(name))) return { mode: modeOf(info), hash: await pass.content(path, info) };
   const bytes = await readFile(path);
-  if (eligible && /\/node_modules\/\.pnpm-workspace-state-v1\.json$/u.test(name) && bytes.length <= 1024 * 1024) {
+  if (bytes.length <= 1024 * 1024) {
     try {
       const state = JSON.parse(bytes.toString('utf8'));
       if (state && typeof state === 'object' && !Array.isArray(state)
         && Number.isSafeInteger(state.lastValidatedTimestamp) && state.lastValidatedTimestamp >= 0) {
         delete state.lastValidatedTimestamp;
-        return { mode: info.mode & 0o777, hash: identity(state), normalization: 'pnpm-workspace-timestamp-v1' };
+        return { mode: modeOf(info), hash: identity(state), normalization: 'pnpm-workspace-timestamp-v1' };
       }
     } catch { /* Malformed or unfamiliar state remains an exact byte input. */ }
   }
-  return { mode: info.mode & 0o777, hash: digest(bytes) };
+  return { mode: modeOf(info), hash: digest(bytes) };
 }
+// Prefetch skips what fileValue never hashes; the walk still decides binding.
+const prefetchSkip = managedStore => (path, info) => path === managedStore
+  || Boolean(info && (omittedBookkeeping(portable(path)) || workspaceState(portable(path))));
 
 // Environment values are hashed together, never persisted in clear text.
 // Local and external dependency bytes are bound as assumptions, not copied into the review packet.
-async function tree(path, root, seen = new Set(), managedStore = null, exact = true, scope = {}) {
+//
+// A child entry of an already-checked real directory is itself a real path
+// inside the root unless it is a link, so only roots and links pay for
+// realpath() and the root/evidence-store containment checks. `local` is the
+// child's portable root-relative path when the parent supplies it.
+async function tree(path, root, seen = new Set(), managedStore = null, exact = true, scope = {}, local = null) {
+  const pass = scope.pass;
   let info;
-  try { info = await lstat(path); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
-  const actual = await realpath(path);
-  const local = relative(root, actual);
-  requireThat(local !== '..' && !local.startsWith(`..${sep}`) && !isAbsolute(local), 'Runtime input escapes its declared root');
-  requireThat(!managedStore || !within(managedStore, actual), 'Runtime input cannot depend on its own evidence store');
+  try { info = await pass.stat(path); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  const resolved = local !== null && !info.isSymbolicLink();
+  const actual = resolved ? path : await pass.real(path);
+  let actualLocal = local;
+  if (!resolved) {
+    const relativeActual = relative(root, actual);
+    requireThat(relativeActual !== '..' && !relativeActual.startsWith(`..${sep}`) && !isAbsolute(relativeActual), 'Runtime input escapes its declared root');
+    requireThat(!managedStore || !within(managedStore, actual), 'Runtime input cannot depend on its own evidence store');
+    actualLocal = portable(relativeActual);
+  }
   requireThat(!seen.has(actual), 'Cyclic runtime input link');
-  const next = new Set(seen).add(actual);
-  const remember = (value, selected = path) => {
-    if (value !== OMIT_BOOKKEEPING) scope.index?.set(portable(relative(root, selected)), { kind: info.isSymbolicLink() ? 'link' : info.isDirectory() ? 'directory' : 'file', value: identity(value) });
+  const selectedLocal = local ?? portable(relative(root, path));
+  const remember = value => {
+    if (value !== OMIT_BOOKKEEPING) scope.index?.set(selectedLocal, { kind: info.isSymbolicLink() ? 'link' : info.isDirectory() ? 'directory' : 'file', value: identity(value) });
     return value;
   };
   if (info.isSymbolicLink()) {
     const source = scope.sources?.get(actual);
     if (source && scope.allowSourceLinks) return remember({ workspaceLink: source });
-    remember({ target: portable(local) });
-    return { target: portable(local), value: await tree(actual, root, seen, managedStore, true, scope) };
+    remember({ target: actualLocal });
+    return { target: actualLocal, value: await tree(actual, root, seen, managedStore, true, scope) };
   }
-  if (info.isFile()) return remember(await fileValue(path, info, exact));
+  if (info.isFile()) return remember(await fileValue(path, info, exact, pass));
   requireThat(info.isDirectory(), 'Runtime input must be a regular file or directory');
-  const names = (await readdir(actual)).sort();
+  const names = await pass.list(actual);
+  const next = new Set(seen).add(actual);
   const entries = [];
   for (const name of names) {
-    if (join(actual, name) === managedStore) continue;
-    const value = await tree(join(actual, name), root, next, managedStore, false, scope);
+    const child = join(actual, name);
+    if (child === managedStore) continue;
+    const value = await tree(child, root, next, managedStore, false, scope, actualLocal ? `${actualLocal}/${name}` : name);
     if (value !== OMIT_BOOKKEEPING) entries.push([name, value]);
   }
   if (!exact && !entries.length && bookkeepingContainer(path)) return OMIT_BOOKKEEPING;
-  remember({ mode: info.mode & 0o777 });
-  return { mode: info.mode & 0o777, hash: identity(entries) };
+  remember({ mode: modeOf(info) });
+  return { mode: modeOf(info), hash: identity(entries) };
 }
-export async function executable(command, cwd, environment) {
+export async function executable(command, cwd, environment, pass = null) {
   const choices = isAbsolute(command) || command.includes('/') ? [resolve(cwd, command)]
     : (environment.PATH ?? '').split(delimiter).map(part => resolve(part || cwd, command));
   for (const path of choices) {
     try {
       await access(path, constants.X_OK);
       const actual = await realpath(path);
-      return { selectedPath: path, path: actual, mode: (await lstat(actual)).mode & 0o777, hash: digest(await readFile(actual)) };
+      if (!pass) return { selectedPath: path, path: actual, mode: (await lstat(actual)).mode & 0o777, hash: digest(await readFile(actual)) };
+      const info = await pass.stat(actual);
+      return { selectedPath: path, path: actual, mode: modeOf(info), hash: await pass.content(actual, info) };
     } catch (error) { if (!['ENOENT', 'EACCES', 'ENOTDIR'].includes(error.code)) throw error; }
   }
   return { unavailable: command };
@@ -160,7 +188,7 @@ async function packageRoot(path) {
 }
 // Declarations are scope commitments, not an inference that arbitrary program
 // dependencies can be discovered from filenames. Only hashes leave the host.
-async function externalClosure(root, checks, declared, environment, managedStore) {
+async function externalClosure(root, checks, declared, environment, managedStore, pass) {
   requireThat(Array.isArray(declared) && declared.every(path => typeof path === 'string' && isAbsolute(path)),
     'Runner requires explicit externalRuntimeInputs for each checked repository (an empty list declares no additional external inputs)');
   const scopes = new Map(), launches = [], arguments_ = [], exactExecutables = new Set(), privateScopes = new Set();
@@ -212,11 +240,15 @@ async function externalClosure(root, checks, declared, environment, managedStore
     requireThat(!moduleArgument, 'Module preload is missing its file argument');
   };
   const visit = async (command, seen = new Set()) => {
-    const item = await executable(command, root, environment);
+    const item = await executable(command, root, environment, pass);
     requireThat(!item.unavailable, `Runner executable is unavailable: ${command}`);
     requireThat(!seen.has(item.path), 'Cyclic shebang interpreter chain');
     exactExecutables.add(item.path); launches.push(item);
-    const bytes = await readFile(item.path);
+    // Only the interpreter line is parsed; never buffer a whole binary for it.
+    const handle = await open(item.path, 'r');
+    let bytes;
+    try { const buffer = Buffer.alloc(4096); bytes = buffer.subarray(0, (await handle.read(buffer, 0, 4096, 0)).bytesRead); }
+    finally { await handle.close(); }
     if (bytes.subarray(0, 2).toString() !== '#!') return;
     await requireScriptScope(item.path);
     const line = bytes.toString('utf8', 2, Math.min(bytes.length, 4096)).split(/\r?\n/u)[0].trim();
@@ -226,7 +258,7 @@ async function externalClosure(root, checks, declared, environment, managedStore
     const parts = line.split(/\s+/u), interpreter = parts.shift();
     const next = new Set(seen).add(item.path);
     if (basename(interpreter) === 'env') {
-      const env = await executable(interpreter, root, environment);
+      const env = await executable(interpreter, root, environment, pass);
       requireThat(!env.unavailable, 'Shebang env executable is unavailable');
       exactExecutables.add(env.path); launches.push(env);
       if (parts[0] === '-S') parts.shift();
@@ -255,33 +287,38 @@ async function externalClosure(root, checks, declared, environment, managedStore
   }
   const allowed = [root, ...[...scopes.values()].filter(Boolean), ...exactExecutables];
   const indexes = new Map();
-  const capture = async (path, seen = new Set(), exact = true, index = null) => {
+  const capture = async (path, seen = new Set(), exact = true, index = null, resolved = false) => {
     let info, actual;
-    try { info = await lstat(path); actual = await realpath(path); }
+    try { info = await pass.stat(path); actual = resolved && !info.isSymbolicLink() ? path : await pass.real(path); }
     catch (error) { if (['ENOENT', 'ENOTDIR'].includes(error.code)) return { missing: true }; throw error; }
-    requireThat(!managedStore || !within(managedStore, actual), 'Runtime input cannot depend on its own evidence store');
-    requireThat(allowed.some(scope => within(scope, actual)), 'External runtime symlink escapes declared inputs; declare its target');
+    // A non-link child of a checked directory inherits its containment.
+    if (!(resolved && !info.isSymbolicLink())) {
+      requireThat(!managedStore || !within(managedStore, actual), 'Runtime input cannot depend on its own evidence store');
+      requireThat(allowed.some(scope => within(scope, actual)), 'External runtime symlink escapes declared inputs; declare its target');
+    }
     requireThat(!seen.has(actual), 'Cyclic external runtime input link');
     if (info.isSymbolicLink()) {
       index?.set(path, identity({ target: actual }));
       return { target: actual, value: await capture(actual, seen, true, index) };
     }
     if (info.isFile()) {
-      const value = await fileValue(path, info, exact);
+      const value = await fileValue(path, info, exact, pass);
       if (value !== OMIT_BOOKKEEPING) index?.set(path, identity(value));
       return value;
     }
-    index?.set(path, identity({ mode: info.mode & 0o777 }));
+    index?.set(path, identity({ mode: modeOf(info) }));
     requireThat(info.isDirectory(), 'External runtime input must be a regular file or directory');
     const next = new Set(seen).add(actual), entries = [];
-    for (const name of (await readdir(actual)).sort()) {
+    for (const name of await pass.list(actual)) {
       if (join(actual, name) === managedStore) continue;
-      const value = await capture(join(actual, name), next, false, index);
+      const value = await capture(join(actual, name), next, false, index, true);
       if (value !== OMIT_BOOKKEEPING) entries.push([name, value]);
     }
     if (!exact && !entries.length && bookkeepingContainer(path)) { index?.delete(path); return OMIT_BOOKKEEPING; }
-    return { mode: info.mode & 0o777, hash: identity(entries) };
+    return { mode: modeOf(info), hash: identity(entries) };
   };
+  const skip = prefetchSkip(managedStore);
+  for (const path of [...scopes.values()].filter(Boolean)) pass.warm(path, skip);
   for (const argument of arguments_) if (argument.path) {
     const index = argument.privateInput ? null : new Map();
     argument.value = await capture(argument.selectedPath, new Set(), true, index);
@@ -313,33 +350,60 @@ async function dependencyInputs(root, directory = '', seen = new Set()) {
   }
   return result;
 }
-export async function executionEnvironment(context, candidate, configuration, runner, inherited = process.env, { retainDiagnostics = false } = {}) {
+// freshAfter opts into the operation's shared observation (see
+// fingerprint-cache.js): 0 accepts any epoch of the operation; a guard passes
+// observationEpochs().mark(). Retained diagnostics always observe afresh.
+export async function executionEnvironment(context, candidate, configuration, runner, inherited = process.env, { retainDiagnostics = false, freshAfter } = {}) {
   if (!runner) return { kind: 'pinned-review-inputs' };
+  const epochs = !retainDiagnostics && Number.isSafeInteger(freshAfter) ? observationEpochs() : null;
   const environment = runnerEnvironment(configuration, inherited);
+  // One metrics span per computed manifest (count: bound entries). Requests
+  // answered from the operation's shared observation record nothing.
+  const computed = (pass, retain) => observe({ category: 'setup', label: 'environment-fingerprint', project: context.workspaceRoot, feature: context.featureId, worker: false }, async span => {
+    const manifest = await fingerprint(context, candidate, configuration, environment, retain, pass);
+    span.count = fingerprintObservation(manifest).bound;
+    return manifest;
+  });
+  if (!epochs) {
+    const pass = await FingerprintPass.open(context);
+    const manifest = await computed(pass, retainDiagnostics);
+    await reportPass(pass);
+    return manifest;
+  }
+  const pass = await epochs.epoch(context, freshAfter);
+  const key = identity({ candidate, configuration, environment });
+  if (!pass.manifests.has(key)) pass.manifests.set(key, computed(pass, false));
+  return pass.manifests.get(key);
+}
+async function fingerprint(context, candidate, configuration, environment, retainDiagnostics, pass) {
   const effectiveEnvironment = await environmentIdentity(context, environment);
   const indexes = new Map();
   const base = { platform: process.platform, arch: process.arch, osRelease: release(), osVersion: version() };
   const inputs = [], executables = [];
   const managedStore = resolve(context.featureHome ?? context.repositories[0].path, '.gatereeve-current');
+  const started = Date.now();
   for (const pin of candidate.repositories) {
     const repo = context.repositories.find(item => item.alias === pin.alias);
     const root = await realpath(repo.path);
     const declared = configuration.runtimeInputs?.[pin.alias] ?? [];
     const sources = await workspaceSources(root, pin, configuration.workspaceSources?.[pin.alias] ?? []);
     requireThat(Array.isArray(declared) && declared.every(path => typeof path === 'string'), 'Runtime inputs must be repository-relative paths');
-    for (const path of [...new Set(['node_modules', '.venv', ...await dependencyInputs(root), ...declared])].sort()) {
+    const selected = [...new Set(['node_modules', '.venv', ...await dependencyInputs(root), ...declared])].sort();
+    const skip = prefetchSkip(managedStore);
+    for (const path of selected) if (!isAbsolute(path) && !path.split(/[\\/]/u).includes('..')) pass.warm(join(root, path), skip);
+    for (const path of selected) {
       requireThat(!isAbsolute(path) && !path.split(/[\\/]/u).includes('..'), 'Unsafe runtime input path');
       try {
         const index = new Map();
         inputs.push({ repository: pin.alias, path, value: await tree(join(root, path), root, new Set(), managedStore, true,
-          { sources, allowSourceLinks: !declared.includes(path), index }) });
+          { sources, allowSourceLinks: !declared.includes(path), index, pass }) });
         indexes.set(`${pin.alias}:${path}`, index);
       }
       catch (error) { error.message += ` (input ${pin.alias}:${path})`; throw error; }
     }
     const checks = (configuration.checks ?? []).filter(check => check.repository === pin.alias);
     if (checks.length) {
-      try { executables.push({ repository: pin.alias, closure: await externalClosure(root, checks, configuration.externalRuntimeInputs?.[pin.alias], environment, managedStore) }); }
+      try { executables.push({ repository: pin.alias, closure: await externalClosure(root, checks, configuration.externalRuntimeInputs?.[pin.alias], environment, managedStore, pass) }); }
       catch (error) { error.message += ` (external inputs for ${pin.alias})`; throw error; }
     }
   }
@@ -349,6 +413,12 @@ export async function executionEnvironment(context, candidate, configuration, ru
   comparisonLimits.set(manifest, limit);
   comparisonIndexes.set(manifest, indexes);
   await retainIndexes(context, manifest, indexes, retainDiagnostics);
+  await pass.finish();
+  // bound: indexed runtime entries in this manifest. The rest describe the
+  // (possibly shared) observation it was computed from.
+  const bound = [...indexes.values(), ...executables.flatMap(item => [...(externalIndexes.get(item.closure)?.values() ?? [])])]
+    .reduce((total, index) => total + index.size, 0);
+  observationCounts.set(manifest, { ...pass.counts, bound, cache: pass.cache ? (pass.cache.key ? 'sealed' : 'memory') : 'disabled', durationMs: Date.now() - started });
   return manifest;
 }
 
