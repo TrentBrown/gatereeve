@@ -14,8 +14,8 @@ The supported operating systems are macOS and Ubuntu 22.04 or 24.04. Windows
 users should currently run the workflow inside Ubuntu on WSL; native Windows
 installation has not yet been validated.
 
-The workflow plugin requires Node.js 22.12 or newer for its packaged governance
-core. It does not require npm, a checkout of this repository, the optional
+The workflow plugin requires Node.js 22.13 or newer for its packaged governance
+core and its built-in SQLite metrics store. It does not require npm, a checkout of this repository, the optional
 `gatereeve` CLI, personal instruction-file edits, or skill symlinks. Each agent
 you choose must already be installed and authenticated.
 
@@ -69,7 +69,7 @@ Then complete one or both agent paths:
 ## 3. Install and verify shared prerequisites
 
 Installing and running the workflow requires Git with `--no-lazy-fetch` support, Python 3.10 or newer, and
-Node.js 22.12 or newer. The complete PR-boundary workflow also uses GitHub CLI
+Node.js 22.13 or newer. The complete PR-boundary workflow also uses GitHub CLI
 and requires it to be authenticated for the product repositories where the
 workflow operates. Install a supported Node release with the version manager
 or package source normally used on the machine before continuing.

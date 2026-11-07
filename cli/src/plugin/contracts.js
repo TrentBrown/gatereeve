@@ -60,8 +60,8 @@ function validateWorkflowInventory(inventory) {
   );
   assert(nodeRuntime?.required === true, 'Node must be a required plugin runtime');
   assert(
-    nodeRuntime.minimumVersion === '22.12.0',
-    'Node plugin runtime minimum must be 22.12.0'
+    nodeRuntime.minimumVersion === '22.13.0',
+    'Node plugin runtime minimum must be 22.13.0'
   );
 
   return { skillCount: names.length, plannedSkillCount: planned.length };

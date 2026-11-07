@@ -21,13 +21,13 @@ const run=args=>new Promise((resolve,reject)=>{const child=spawn(process.execPat
     return {workload,baselineMeanMs:avg(false),enabledMeanMs:avg(true),addedMs:delta,percent:100*delta/avg(false),samples:rows};
   });
   const populated=new MetricsStore(join(root,'populated'));
-  for(let i=0;i<1000;i++)await populated.put({id:`seed-${i}`,project:'benchmark',category:'unit',startedAt:Date.now(),durationMs:1,outcome:'PASS'});
+  for(let i=0;i<20000;i++)await populated.put({id:`seed-${i}`,project:'benchmark',category:'unit',startedAt:Date.now(),durationMs:1,outcome:'PASS'});
   const maintenanceStart=performance.now();
   await observe({project:'benchmark',category:'unit'},()=>42,populated);
   const reconciliationMs=performance.now()-maintenanceStart;
   const populatedSamples=[];
   for(let i=0;i<10;i++){const start=performance.now();await observe({project:'benchmark',category:'unit'},()=>42,populated);populatedSamples.push(performance.now()-start);}
-  const populatedStore={retainedRecords:1000,reconciliationMs,steadyAddedMeanMs:populatedSamples.reduce((a,b)=>a+b,0)/populatedSamples.length,samples:populatedSamples,note:'Periodic full reconciliation included separately; steady writes use conservative pre-publication reservations.'};
+  const populatedStore={retainedRecords:20000,reconciliationMs,steadyAddedMeanMs:populatedSamples.reduce((a,b)=>a+b,0)/populatedSamples.length,samples:populatedSamples,note:'Periodic retention reconciliation included separately; steady writes are single SQLite transactions independent of store size.'};
   const report={schemaVersion:1,node:process.version,platform:process.platform,arch:process.arch,createdAt:new Date().toISOString(),workloads,populatedStore,limits:['Single local machine; timing noise is retained.','Child workload collection is disabled in both modes; comparison isolates observer overhead.','No inference about other projects or production performance.']};
   if(process.argv[2])await writeFile(process.argv[2],JSON.stringify(report,null,2)+'\n');else console.log(JSON.stringify(report,null,2));
 });

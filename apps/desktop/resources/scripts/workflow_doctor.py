@@ -25,7 +25,7 @@ from workflow_common import (
 
 PLUGIN_ID = "agentic-development-workflow"
 MINIMUM_PYTHON = (3, 10)
-MINIMUM_NODE = (22, 12)
+MINIMUM_NODE = (22, 13)
 REQUIRED_SKILLS = (
     "checkpoint",
     "explain-diff",
@@ -268,7 +268,7 @@ def run_doctor(
                     check(
                         "node-version",
                         "fail",
-                        f"Node {version} is too old; 22.12 or newer is required",
+                        f"Node {version} is too old; 22.13 or newer is required",
                         "Upgrade Node",
                     )
                 )
@@ -278,7 +278,7 @@ def run_doctor(
                     "node-version",
                     "fail",
                     f"Cannot determine Node version: {error}",
-                    "Install Node 22.12 or newer",
+                    "Install Node 22.13 or newer",
                 )
             )
 

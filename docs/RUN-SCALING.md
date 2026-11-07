@@ -138,9 +138,10 @@ New labels in the performance store (`performance/store.js`):
 | `review-prompt` | review | Measured prompt characters. `REJECTED` if no history tier fits the limit. |
 | `review-history` | review | Selected history entries. `SKIPPED` when some were carried by reference or index only. |
 
-Records are kept few on purpose. The metrics store reconciles its whole
-inventory on every write once it holds 19,000 files (rc.23 behavior, unchanged
-here), so each extra record per operation has a real cost.
+Records are kept few on purpose. rc.23's per-file metrics store reconciled its
+whole inventory on every write once it held 19,000 files. The SQLite store that
+replaces it (see `PERFORMANCE.md`) appends without rescanning, but each record
+still counts against the retention cap.
 
 Fingerprint time now appears as child spans of the operation, not as
 unexplained time inside `gate.execute` or `human.decide`.

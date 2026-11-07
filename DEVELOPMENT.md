@@ -5,7 +5,7 @@ itself. It begins with one safe change and then explains the repository,
 maintainer CLI, validation layers, and common maintenance paths in more depth.
 
 Plugin users do not need this checkout, npm, Docker, or the optional CLI. The
-plugin itself now requires Node 22.12 or newer for its packaged protocol core.
+plugin itself now requires Node 22.13 or newer for its packaged protocol core.
 They should follow [`INSTALL.md`](INSTALL.md), then
 [`USER-GUIDE.md`](USER-GUIDE.md). When a verified change is ready to publish,
 switch to [`RELEASING.md`](RELEASING.md).
@@ -57,7 +57,7 @@ Required:
 
 - Git;
 - GitHub CLI, authenticated for this repository;
-- Node.js 22.12 or newer (CI currently uses Node 24 LTS);
+- Node.js 22.13 or newer (CI currently uses Node 24 LTS);
 - npm;
 - Python 3.10 or newer; and
 - Codex and Claude Code only when running native-manager smoke tests.
@@ -92,7 +92,7 @@ sudo apt update
 sudo apt install -y git gh python3 ca-certificates
 ```
 
-Do not continue until `node --version` reports 22.12 or newer. The plugin and
+Do not continue until `node --version` reports 22.13 or newer. The plugin and
 optional CLI share this runtime requirement.
 
 ### 2. Clone and bootstrap the checkout

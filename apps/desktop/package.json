@@ -15,7 +15,7 @@
     "assets/branding/gatereeve-rolling-vale.png"
   ],
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "check": "npm test",
