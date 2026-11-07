@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pattern Harvest"
+  short_description: "Harvest PR review comments into pattern artifacts"
+  default_prompt: "Harvest GitHub PR review feedback into a pattern-review corpus."

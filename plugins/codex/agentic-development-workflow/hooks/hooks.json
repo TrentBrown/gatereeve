@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/resources/scripts/session_start.py\"",
+            "statusMessage": "Loading the software development workflow"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|exec_command|shell_command|mcp__.*exec_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/resources/protocol/current/pre-tool-use.js\""
+          }
+        ]
+      }
+    ]
+  }
+}

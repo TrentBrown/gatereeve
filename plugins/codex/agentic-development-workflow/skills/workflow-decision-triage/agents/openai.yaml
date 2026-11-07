@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Decision Triage"
+  short_description: "Promote reviewed decisions"
+  default_prompt: "Triage the branch decision scratchpad."

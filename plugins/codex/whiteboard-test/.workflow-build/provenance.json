@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "plugin": "whiteboard-test",
+  "platform": "codex",
+  "version": "0.1.0-rc.24",
+  "sourceCommit": "846c2da379400e1c9f372a64534730de8bd52c0c",
+  "sourceTag": "v0.1.0-rc.24"
+}

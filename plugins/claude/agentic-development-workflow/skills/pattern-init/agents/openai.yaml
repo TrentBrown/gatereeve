@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pattern Init"
+  short_description: "Create pattern-review rule files"
+  default_prompt: "Use $pattern-init to initialize pattern-review files for this repo."

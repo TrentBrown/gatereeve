@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pattern Promote"
+  short_description: "Approve pattern rule proposals"
+  default_prompt: "Review and promote pattern-review proposals."
