@@ -67,12 +67,23 @@ test('small budget remains bounded and cleanup never traverses links',async t=>{
   assert.ok((await store.read()).bytes<=65536);const outside=join(parent,'evidence');await writeFile(outside,'preserve');await symlink(outside,join(store.root,'escape'));
   await assert.rejects(store.cleanup({apply:true}),/Unsafe/);assert.equal(await readFile(outside,'utf8'),'preserve');
 });
-test('active lock is not stolen; rejection does not grant write scope',async t=>{
-  const {store}=await fixture(t);let release;const blocker=new Promise(r=>release=r);let entered;const ready=new Promise(r=>entered=r);
-  const pending=store.lock(async()=>{entered();await blocker;});await ready;
-  await assert.rejects(store.put(base),/busy/);release();await pending;
+test('a writer waits for another writer and reports busy only after its timeout',async t=>{
+  const {store}=await fixture(t);await store.put({...base,id:'seed'});
+  const blocker=new MetricsStore(store.root,{privateConnection:true}),quick=new MetricsStore(store.root,{privateConnection:true,busyTimeoutMs:50});
+  t.after(()=>{blocker.close();quick.close();});
+  let release;const held=new Promise(r=>release=r);let entered;const ready=new Promise(r=>entered=r);
+  const pending=blocker.lock(async()=>{entered();await held;});await ready;
+  await assert.rejects(quick.put(base),/busy/);release();await pending;
+  assert.ok(await quick.put({...base,id:'after-release'}),'the write succeeds once the lock is released');
   await assert.rejects(metricsRequest('cleanup',{path:'/tmp',apply:true},store),/only/);
   await assert.rejects(metricsRequest('config',{maxBytes:1},store),/Invalid/);
+});
+test('concurrent writers in separate processes lose no observations',async t=>{
+  const {store}=await fixture(t);const module=new URL('../../plugin-src/shared/resources/performance/observe.js',import.meta.url).href;
+  const script=`import {record} from ${JSON.stringify(module)};for(let i=0;i<250;i++)await record({project:'project',category:'unit',startedAt:Date.now(),durationMs:1,outcome:'PASS',worker:true,id:process.argv[1]+':'+i});`;
+  const results=await Promise.all([0,1,2,3].map(n=>child(['--input-type=module','-e',script,`writer-${n}`],{GATEREEVE_METRICS_DIR:store.root,GATEREEVE_METRICS:''})));
+  assert.ok(results.every(r=>r.code===0&&!/capture incomplete/.test(r.stderr)),results.map(r=>r.stderr).join('\n'));
+  const r=await report({},store);assert.equal(r.totals.records,1000);assert.equal(r.coverage.captureIncomplete,false);
 });
 test('framework imports accept initial adapters and preserve incomplete data',async t=>{
   const {store}=await fixture(t);const now=Date.now();
@@ -182,16 +193,42 @@ test('retained native runner receipt reconciles exactly and reimport does not du
   console.log(JSON.stringify({reconciliation:'native-runner',receiptHash:receiptFixture.provenance.receiptHash,expectedChecks:receiptFixture.receipts.length,observedChecks:r.totals.records,expectedWorkerMs:expected,observedWorkerMs:r.totals.workerMs}));
 });
 
-test('write budget amortizes inventory scans and conservatively recovers an interrupted write',async t=>{
-  const {store}=await fixture(t);let inventories=0;const inventory=store.inventory.bind(store);store.inventory=async(...args)=>{inventories++;return inventory(...args);};
-  for(let i=0;i<40;i++)await store.put({...base,id:`budget-${i}`});
-  assert.equal(inventories,1);
-  const config=await store.config();await store.lock(()=>store.reserveWrite(Date.now(),config)); // interruption before publishing
-  await writeFile(join(store.root,'.write-dead-beef'),'interrupted');
-  await store.put({...base,id:'after-interruption'});assert.ok(!(await readdir(store.root)).includes('.write-dead-beef'));
-  const budget=JSON.parse(await readFile(join(store.root,'budget.json'),'utf8'));assert.ok(budget.bytes>=(await store.read()).bytes);
+test('writes never rescan the store and per-record legacy files migrate once',async t=>{
+  const {store}=await fixture(t);
+  // rc.23 layout: owner marker, key, config.json, budget.json and one JSON file per record.
+  await mkdir(store.root,{recursive:true,mode:0o700});await writeFile(join(store.root,'owner'),'gatereeve-performance/1\n',{mode:0o600});
+  const key='a'.repeat(64);await writeFile(join(store.root,'key'),key,{mode:0o600});
+  const { createHmac }=await import('node:crypto');const h=v=>createHmac('sha256',key).update(String(v)).digest('hex');
+  const legacy=i=>({schemaVersion:1,id:h(`legacy-${i}`),parentId:null,sourceId:null,environmentId:null,workflowId:null,attemptId:null,scope:'unknown',projectId:h('project'),featureId:h('feature'),featureIds:[h('feature')],commandId:null,inputId:null,evidenceId:null,label:'unit',category:'unit',outcome:'PASS',reason:'unknown',startedAt:Date.now()-i,durationMs:5,clock:h('fixture'),location:'local',provenance:'observed',worker:true,pid:null,count:null,tokens:null,cost:null,workMs:null,summary:false});
+  for(let i=0;i<30;i++){const r=legacy(i);await writeFile(join(store.root,`${r.id}.json`),JSON.stringify(r),{mode:0o600});}
+  await writeFile(join(store.root,'config.json'),JSON.stringify({detailDays:30}),{mode:0o600});await writeFile(join(store.root,'budget.json'),'{}',{mode:0o600});
+  const migrated=await report({feature:'feature'},store);
+  assert.equal(migrated.totals.records,30,'legacy records are selectable by their unchanged private identities');
+  assert.equal((await store.config()).detailDays,30,'settings migrate');
+  assert.deepEqual((await readdir(store.root)).filter(n=>/\.json$/.test(n)),[],'legacy record, config and budget files are removed');
+  let scans=0;const rows=store.rows.bind(store);store.rows=(...args)=>{scans++;return rows(...args);};
+  for(let i=0;i<40;i++)await store.put({...base,id:`steady-${i}`});
+  assert.ok(scans<=1,`steady writes performed ${scans} retention scans`);
+  assert.equal((await report({},store)).totals.records,70);
 });
-
+test('records from a newer collector with unknown vocabulary stay readable',async t=>{
+  const {store}=await fixture(t);const written=await store.put({...base,id:'known',label:'gate.execute'});
+  const db=await store.database(true);store.write(db,{...written,id:'b'.repeat(64),label:'future-span',category:'future-category',outcome:'FUTURE_OUTCOME'});
+  const r=await report({},store);assert.equal(r.totals.records,2);assert.ok(r.records.some(x=>x.label==='future-span'));assert.equal(r.coverage.incomplete,0);
+});
+test('a feature query on a large store reads only that feature',async t=>{
+  const {store}=await fixture(t);await store.setConfig({maxBytes:1024**3});await store.put({...base,id:'seed'});
+  const db=await store.database(true),[seed]=(await store.read()).records.map(x=>x.record);
+  const { createHmac }=await import('node:crypto');const key=await store.key();const h=v=>createHmac('sha256',key).update(String(v)).digest('hex');
+  let started=performance.now();
+  store.transaction(db,()=>{for(let i=0;i<50000;i++){const feature=`feature-${i%50}`;store.write(db,{...seed,id:h(`bulk-${i}`),featureId:h(feature),featureIds:[h(feature)],startedAt:Date.now()-i*1000});}});
+  const loadMs=performance.now()-started;started=performance.now();
+  const one=await report({feature:'feature-7'},store);const queryMs=performance.now()-started;
+  assert.equal(one.totals.records,1000);
+  started=performance.now();for(let i=0;i<100;i++)await store.put({...base,id:`latency-${i}`});const writeMs=(performance.now()-started)/100;
+  started=performance.now();const s=await metricsRequest('status',{},store);const statusMs=performance.now()-started;assert.equal(s.records,50101);
+  t.diagnostic(`50k load=${Math.round(loadMs)}ms featureReport=${Math.round(queryMs)}ms put=${writeMs.toFixed(2)}ms status=${Math.round(statusMs)}ms bytes=${s.bytes}`);
+});
 test('estimated timestamps retain measured work without inventing elapsed placement or overlap',async t=>{
   const {store}=await fixture(t);
   await importMetrics('node',[{type:'test:pass',data:{nesting:0,details:{duration_ms:4}}}],{execution:'missing-start'},store);

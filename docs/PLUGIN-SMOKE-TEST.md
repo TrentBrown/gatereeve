@@ -7,7 +7,7 @@ it is not part of an ordinary feature workflow.
 ## Preconditions
 
 - `workflow-doctor` reports ready in the agent being tested.
-- Git, Python 3.10+, Node 22.12+, and GitHub CLI are available.
+- Git, Python 3.10+, Node 22.13+, and GitHub CLI are available.
 - The installed plugin is enabled and a fresh agent session can be started.
 
 ## Disposable repository

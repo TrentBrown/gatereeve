@@ -117,7 +117,7 @@ class WorkflowDoctorTests(unittest.TestCase):
         self,
         *,
         activation_observed: bool = True,
-        node_version: tuple[int, int, str] = (22, 12, "22.12.0"),
+        node_version: tuple[int, int, str] = (22, 13, "22.13.0"),
     ) -> dict[str, object]:
         return run_doctor(
             plugin_root=self.plugin_root,
@@ -147,7 +147,7 @@ class WorkflowDoctorTests(unittest.TestCase):
 
     def test_old_node_runtime_blocks_readiness(self) -> None:
         self._configure()
-        result = self._run(node_version=(22, 11, "22.11.0"))
+        result = self._run(node_version=(22, 12, "22.12.0"))
         self.assertFalse(result["ready"])
         self.assertIn("node-version", self._failed_ids(result))
 

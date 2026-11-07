@@ -16,7 +16,7 @@ cd cli
 npm install
 ```
 
-Node 22.12 or newer is required.
+Node 22.13 or newer is required.
 
 From the repository root, use `npm start --prefix cli -- <arguments>`. A local
 or global installation of this package exposes `gatereeve <arguments>`. The

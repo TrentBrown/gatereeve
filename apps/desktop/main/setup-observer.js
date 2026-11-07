@@ -44,7 +44,7 @@ const PREREQUISITES = Object.freeze([
     guideUrl: 'https://www.python.org/downloads/',
   }),
   Object.freeze({
-    id: 'node', label: 'Node.js', executable: 'node', arguments: ['--version'], minimum: '22.12.0',
+    id: 'node', label: 'Node.js', executable: 'node', arguments: ['--version'], minimum: '22.13.0',
     installCommand: null, guideUrl: 'https://nodejs.org/en/download',
   }),
   Object.freeze({

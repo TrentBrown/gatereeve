@@ -16,9 +16,12 @@ export function queryOptions(q = {}) {
 }
 export async function report(q = {}, store = new MetricsStore()) {
   queryOptions(q);
-  const inventory = await store.read();
   const project = q.project ? await store.identity(q.project).catch(()=>null) : null;
   const feature = q.feature ? await store.identity(q.feature).catch(()=>null) : null;
+  // Select by indexed identity and time; an unknown identity matches nothing.
+  const unmatched = q.project && !project || q.feature && !feature;
+  const inventory = unmatched ? { ...(await store.summary()), records: [], incomplete: 0 }
+    : await store.read({ projectId: project, featureId: feature, since: q.since ? Date.parse(q.since) : null, until: q.until ? Date.parse(q.until) : null });
   const rows = inventory.records.map(x=>x.record).filter(r=>(!q.project || r.projectId===project) && (!q.feature || r.featureIds.includes(feature))
     && (!q.since || r.startedAt>=Date.parse(q.since)) && (!q.until || r.startedAt<=Date.parse(q.until)));
   const byId = new Map(rows.map(r=>[r.id,r]));
@@ -81,4 +84,4 @@ export function renderReport(value, format='json') {
   const timeline=value.records.map(r=>`<details class="event" data-category="${r.category}"><summary>${escape(new Date(r.startedAt).toISOString())} · ${escape(r.category)} · ${escape(r.outcome)} · ${r.durationMs??'unknown'} ms</summary><pre>${escape(JSON.stringify(r,null,2))}</pre></details>`).join('');
   return `<!doctype html><html lang="en"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>GateReeve performance</title><style>body{font:16px system-ui;max-width:1000px;margin:3rem auto;padding:1rem;color:#18312d;background:#f5f8f6}pre{white-space:pre-wrap;overflow-wrap:anywhere}summary,label{cursor:pointer}.event{padding:12px;border-bottom:1px solid #cad8d3}input:checked+label{font-weight:bold}label{margin-right:12px}${css}</style><h1>GateReeve performance</h1><pre>${escape(lines.slice(2,lines.indexOf('## Timeline (selected page)')).join('\n'))}</pre><h2>Timeline</h2><p>Filter the selected page by category; expand a record for provenance. Use query dates and pagination to select another window.</p><input type="radio" name="category" id="filter-all" checked><label for="filter-all">All</label> ${filters}<div class="timeline">${timeline}</div><details><summary>Structured report and aggregate identities</summary><pre>${escape(JSON.stringify(value,null,2))}</pre></details></html>`;
 }
-export async function status(store=new MetricsStore()) { const inventory=await store.read(); return { schemaVersion:1, settings:await store.config(), bytes:inventory.bytes, captureIncomplete:inventory.captureIncomplete===true, records:inventory.records.length, incomplete:inventory.incomplete+inventory.records.filter(x=>x.record.durationMs===null).length, blindSpots:['Uninstrumented commands','Unavailable remote details'], activation:'Collector version describes this process only; existing sessions may be uninstrumented.' }; }
+export async function status(store=new MetricsStore()) { const summary=await store.summary(); return { schemaVersion:1, settings:await store.config(), bytes:summary.bytes, captureIncomplete:summary.captureIncomplete===true, records:summary.records, incomplete:summary.untimed, blindSpots:['Uninstrumented commands','Unavailable remote details'], activation:'Collector version describes this process only; existing sessions may be uninstrumented.' }; }

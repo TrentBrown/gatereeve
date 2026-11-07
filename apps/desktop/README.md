@@ -33,7 +33,7 @@ cutover does not grant publication authority.
 
 Requirements:
 
-- Node.js 22.12 or later
+- Node.js 22.13 or later
 - Python 3.10 or later for full workflow development and repository acceptance
 - Git and, for optional pull-request enrichment, an authenticated `gh` CLI
 - Electron runtime libraries for the host Ubuntu or macOS environment
