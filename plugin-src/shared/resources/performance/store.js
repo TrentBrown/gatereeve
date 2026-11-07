@@ -6,6 +6,7 @@ import { randomBytes, createHmac, randomUUID } from 'node:crypto';
 
 export const DEFAULTS = Object.freeze({ enabled: true, diagnosticDetails: false, detailDays: 90, summaryDays: 365, maxBytes: 100 * 1024 * 1024 });
 const MARKER = 'gatereeve-performance/1\n';
+const PENDING_OWNER = /^\.owner-[0-9a-f-]{36}$/u;
 const ID = /^[a-f0-9]{64}$/;
 const DAY = 86400000;
 const MAX_RECORD = 8192;
@@ -19,6 +20,20 @@ function check(condition, message) { if (!condition) throw new Error(message); }
 async function safeFile(path, max = MAX_RECORD) {
   const h = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try { const s = await h.stat(); check(s.isFile() && s.nlink === 1 && s.size <= max, 'Unsafe metrics file'); return await h.readFile('utf8'); } finally { await h.close(); }
+}
+// owner and key are published with link() (never replacing a winner's file),
+// then the temporary name is removed, so a concurrent reader can briefly see two
+// links (or one, by the time it looks again). Wait that out; a lasting extra
+// link is still refused.
+async function publishedFile(path) {
+  for (let attempt = 0; ; attempt++) {
+    try { return await safeFile(path); }
+    catch (error) {
+      const links = await lstat(path).then(s => s.nlink, () => 0);
+      if (error.message !== 'Unsafe metrics file' || links < 1 || links > 2 || attempt >= 50) throw error;
+      await new Promise(r => setTimeout(r, 10));
+    }
+  }
 }
 async function directory(path, create) {
   if (create) await mkdir(path, { recursive: true, mode: 0o700 });
@@ -102,17 +117,23 @@ export class MetricsStore {
       try { await directory(path, false); }
       catch (e) { if (e.code !== 'ENOENT' || !create) throw e; await directory(path, true); }
     }
-    try { check(await safeFile(join(this.root, 'owner')) === MARKER, 'Not an owned metrics store'); }
+    try { check(await publishedFile(join(this.root, 'owner')) === MARKER, 'Not an owned metrics store'); }
     catch (e) {
       if (!create || e.code !== 'ENOENT') throw e;
+      // Publish the marker atomically, as key() does: a concurrent first writer
+      // must never read a created-but-unwritten owner file, and link() never
+      // replaces a winner's file. Only other creators' pending markers may
+      // precede adoption.
+      const pending = join(this.root, `.owner-${randomUUID()}`);
       try {
-        check((await readdir(this.root)).length === 0, 'Refusing to adopt a nonempty directory');
-        await writeFile(join(this.root, 'owner'), MARKER, { flag: 'wx', mode: 0o600 });
+        check((await readdir(this.root)).every(name => PENDING_OWNER.test(name)), 'Refusing to adopt a nonempty directory');
+        await writeFile(pending, MARKER, { flag: 'wx', mode: 0o600 });
+        await link(pending, join(this.root, 'owner'));
       } catch (error) {
         // A concurrent first writer may have adopted the directory meanwhile.
-        if (await safeFile(join(this.root, 'owner')).catch(() => null) === MARKER) return;
+        if (await publishedFile(join(this.root, 'owner')).catch(() => null) === MARKER) return;
         throw error;
-      }
+      } finally { await unlink(pending).catch(() => {}); }
     }
   }
   // Opens (and in an owned store, creates) the database. A store that was never
@@ -210,7 +231,7 @@ export class MetricsStore {
   }
   async key() {
     if (this.keyValue) return this.keyValue;
-    try { this.keyValue = await safeFile(join(this.root, 'key')); }
+    try { this.keyValue = await publishedFile(join(this.root, 'key')); }
     catch (e) {
       if (e.code !== 'ENOENT') throw e;
       // Publish complete bytes atomically; a concurrent creator's key wins.
@@ -218,12 +239,12 @@ export class MetricsStore {
       try { await writeFile(pending, key, { flag: 'wx', mode: 0o600 }); await link(pending, join(this.root, 'key')); }
       catch (error) { if (error.code !== 'EEXIST') throw error; }
       finally { await unlink(pending).catch(() => {}); }
-      this.keyValue = await safeFile(join(this.root, 'key'));
+      this.keyValue = await publishedFile(join(this.root, 'key'));
     }
     return this.keyValue;
   }
   async identity(value) {
-    await this.admit(); const key = this.keyValue ?? await safeFile(join(this.root, 'key'));
+    await this.admit(); const key = this.keyValue ?? await publishedFile(join(this.root, 'key'));
     return createHmac('sha256', key).update(String(value)).digest('hex');
   }
   usedBytes(db) {
