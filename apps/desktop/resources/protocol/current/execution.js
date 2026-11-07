@@ -14,7 +14,8 @@ import { CONTRACT, canonical, identity, requireThat, gate, text } from './contra
 import { newView } from './source-views.js';
 import { localPath } from './store.js';
 import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean } from './evidence.js';
-import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
+import { createCodexAgentAdapter, createClaudeCodeAgentAdapter, promptCharacters, MAX_PROMPT_CHARACTERS_LIMIT } from '../local-agent-adapters.js';
+import { fitHistory, writeHistoryIndex, HISTORY_PRIORITY } from './review-history.js';
 import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
 
@@ -107,7 +108,9 @@ async function sourceMetadata(root, candidate) {
     await writeFile(join(root, 'metadata', `${repo.alias}.json`), JSON.stringify(value, null, 2), { mode: 0o400, flag: 'wx' });
   }
 }
-async function reviewerView(core, candidate, references, packet, runId, jobId) {
+// History reports and their objects are listed in evidence/index.json rather
+// than packet.evidence, so the prompt does not grow with retained history.
+async function reviewerView(core, candidate, references, packet, runId, jobId, { history = [], beforeSeal = null } = {}) {
   const store = core.store;
   const view = await newView(store, { runId, jobId });
   const root = view.root;
@@ -128,8 +131,7 @@ async function reviewerView(core, candidate, references, packet, runId, jobId) {
       await writeFile(join(root, 'requirements', localPath(name)), await store.get(ref), { mode: 0o400, flag: 'wx' });
     }
     await mkdir(join(root, 'evidence'));
-    const copied = new Set();
-    packet.evidence = [];
+    const copied = new Set(), listed = [], historic = new Set(history.map(entry => entry.reference.hash)), owned = new Map();
     for (const ref of new Map(references.map(ref => [ref.hash, ref])).values()) {
       const report = await store.json(ref);
       if (report.input) {
@@ -143,18 +145,24 @@ async function reviewerView(core, candidate, references, packet, runId, jobId) {
         }
       }
       for (const artifact of [ref, report.input, report.receipt, ...(report.artifacts ?? [])]) {
-        if (!artifact || copied.has(artifact.hash)) continue;
-        const name = artifact.hash.slice(7);
+        if (!artifact) continue;
+        const name = artifact.hash.slice(7), item = { reference: artifact, path: `evidence/${name}` };
+        if (!historic.has(ref.hash) && !owned.has(artifact.hash)) owned.set(artifact.hash, item);
+        if (copied.has(artifact.hash)) continue;
         await writeFile(join(root, 'evidence', name), await store.get(artifact), { mode: 0o400, flag: 'wx' });
-        copied.add(artifact.hash);
-        packet.evidence.push({ reference: artifact, path: `evidence/${name}` });
+        copied.add(artifact.hash); listed.push(item);
       }
     }
+    packet.evidence = [...owned.values()];
+    packet.evidenceIndex = 'evidence/index.json';
+    await writeFile(join(root, 'evidence', 'index.json'), JSON.stringify(listed), { mode: 0o400, flag: 'wx' });
+    await writeHistoryIndex(root, history);
+    if (beforeSeal) await beforeSeal(root);
     await view.seal();
     return view;
   } catch (error) { await view.close(); throw error; }
 }
-async function independent(core, state, candidate, prepared, configuration, packet, jobId) {
+async function independent(core, state, candidate, prepared, configuration, packet, jobId, history = [], priorities = new Map()) {
   const provider = configuration.provider;
   requireThat(['codex', 'claude-code'].includes(provider), 'Select codex or claude-code for independent execution');
   text(configuration.model, 'Evaluator model');
@@ -163,7 +171,20 @@ async function independent(core, state, candidate, prepared, configuration, pack
   const adapter = core.runtime.evaluator ?? (provider === 'codex'
     ? createCodexAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' })
     : createClaudeCodeAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' }));
-  const view = await observe({category:'setup',label:'source-view',worker:false}, () => reviewerView(core, candidate, [...packet.history.map(item => item.reference), ...packet.consumedReferences], packet, state.runId, jobId));
+  const outputSchema = reviewSchema(packet.gates, candidate.criteria);
+  // Shape history after the view lists its evidence, measured against the
+  // exact prompt text the adapter will send.
+  let fitted = null;
+  const shapeHistory = async () => {
+    fitted = fitHistory(history, priorities, shaped => promptCharacters({ instructions, outputSchema,
+      input: { ...packet, history: shaped.entries, historyIndex: shaped.summary } }), MAX_PROMPT_CHARACTERS_LIMIT);
+    packet.history = fitted.entries; packet.historyIndex = fitted.summary;
+  };
+  const view = await observe({category:'setup',label:'source-view',worker:false}, () => reviewerView(core, candidate, [...history.map(item => item.reference), ...packet.consumedReferences], packet, state.runId, jobId, { history, beforeSeal: shapeHistory }));
+  const metric = { category: 'review', startedAt: Date.now(), durationMs: 0, worker: false, project: core.context.workspaceRoot, feature: core.context.featureId };
+  await record({ ...metric, label: 'review-prompt', count: fitted.characters, outcome: fitted.fits ? 'PASS' : 'REJECTED' });
+  // SKIPPED: some selected history was carried by reference or index only.
+  await record({ ...metric, label: 'review-history', count: history.length, outcome: fitted.summary.inline === history.length ? 'PASS' : 'SKIPPED' });
   let retained = [];
   try {
     const root = view.root;
@@ -171,7 +192,6 @@ async function independent(core, state, candidate, prepared, configuration, pack
     requireThat(descriptor.provider === provider && descriptor.model === configuration.model, 'Evaluator descriptor differs from requested provider/model');
     requireThat(descriptor.reasoningEffort === reasoningEffort, 'Evaluator descriptor reasoning differs from request');
     validateEvaluatorCapability(HIGH_CAPABILITY_PROFILE, descriptor.reasoningEffort);
-    const outputSchema = reviewSchema(packet.gates, candidate.criteria);
     const request = { protocolVersion: AGENT_WORKFLOW_PROTOCOL_VERSION, runId: state.runId, attemptId: prepared.hash,
       module: { id: 'gatereeve/current-review', version: '3.0.0', digest: identity(outputSchema) },
       stage: { id: 'review', role: 'independent evaluator' },
@@ -428,13 +448,23 @@ export async function executeGates(core, input, operation) {
       }
     }
   }
+  // Inline priority only: what the reviewer must act on comes first.
+  const priorities = new Map();
+  const prioritize = (ref, rank) => { if (ref) priorities.set(ref.hash, Math.min(priorities.get(ref.hash) ?? HISTORY_PRIORITY.context, rank)); };
+  for (const finding of findingStates.values()) {
+    if (finding.open) { prioritize(finding.ref, HISTORY_PRIORITY.open); prioritize(finding.reopened, HISTORY_PRIORITY.open); }
+    else if (reconsiderClosures.some(item => item.gate === finding.gate && item.id === finding.id)) [finding.ref, finding.closure, finding.reopened].forEach(ref => prioritize(ref, HISTORY_PRIORITY.reconsider));
+  }
+  for (const ref of [...(input.history ?? []), input.prior]) prioritize(ref, HISTORY_PRIORITY.requested);
   for (const claim of input.claims ?? []) for (const finding of findingStates.values()) if (finding.id === claim.findingId) {
+    [finding.ref, finding.closure, finding.reopened].forEach(ref => prioritize(ref, HISTORY_PRIORITY.reconsider));
     selectedHistory.set(finding.ref.hash, finding.ref);
     if (finding.closure) selectedHistory.set(finding.closure.hash, finding.closure);
     if (finding.reopened) selectedHistory.set(finding.reopened.hash, finding.reopened);
   }
-  // Automatic history has no record-count cutoff. Provider byte capacity is
-  // bounded separately; resolved findings must never create a review-round cap.
+  // Automatic history has no record-count cutoff; resolved findings must never
+  // create a review-round cap. Provider capacity is bounded when the packet is
+  // shaped (review-history.js): full reports stay readable in the review view.
   const history = [];
   for (const ref of [...selectedHistory.values()].sort((a, b) => state.results.findIndex(item => item.hash === a.hash) - state.results.findIndex(item => item.hash === b.hash))) {
     requireThat(state.results.some(item => item.hash === ref.hash), 'Prior review is not from this run');
@@ -544,14 +574,14 @@ export async function executeGates(core, input, operation) {
     if (role === 'independent' || role === 'assessment') {
       const packet = { contract: CONTRACT, rules: input.gates.map(id => ({ id, rule: gate(id).rule })), pattern: value.pattern, gates: input.gates, criteria: candidate.criteria, scope: candidate.scope,
         source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, target: repo.target, metadata: `metadata/${repo.alias}.json`, entries: [...repo.baseFiles, ...repo.files, ...repo.targetFiles].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
-        history, coverageClaims: replacements, repair: value.repair, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
+        history: [], historyIndex: null, coverageClaims: replacements, repair: value.repair, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
       packet.consumedReferences = [...new Map([...packet.consumedReferences, ...replacements.flatMap(claim => [...claim.supersedes, ...claim.replacements])].map(ref => [ref.hash, ref])).values()];
       if (input.gates.some(id => ['reconcile', 'triage'].includes(id))) {
         const documents = Object.fromEntries(await Promise.all(value.support.map(async ref => [ref.path, (await core.store.get(ref)).toString()])));
         const facts = planningFacts((await core.store.get(candidate.requirements['spec.md'])).toString());
         packet.planning = { facts, references: planningReferences(documents, facts), documents, authority: state.decisions };
       }
-      const reviewed = await independent(core, state, candidate, prepared, configuration, packet, jobId);
+      const reviewed = await independent(core, state, candidate, prepared, configuration, packet, jobId, history, priorities);
       evaluator = reviewed.evaluator; metrics = reviewed.metrics; artifacts.push(...reviewed.artifacts);
       const returned = reviewed.output.verdicts;
       requireThat(returned.every(item => input.gates.includes(item?.gate)), 'Unrequested independent verdict');

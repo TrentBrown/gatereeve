@@ -6,6 +6,7 @@ import { workflowContextGuard } from '../context.js';
 import { ContractError } from '../errors.js';
 import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { executionEnvironment, assertEnvironmentCurrent, restoreComparisonIndexes, releaseComparisonIndexes } from './environment.js';
+import { observationEpochs, withObservationEpochs } from './fingerprint-cache.js';
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
 import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, requireThat, identity,
@@ -510,7 +511,8 @@ export class CurrentCore {
     for (const artifact of result.artifacts ?? []) await this.store.get(artifact);
     for (const ref of inputs.support ?? []) await this.store.currentBytes(ref);
     const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
-    if (!memo.has(environmentKey)) memo.set(environmentKey, executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner', process.env, { retainDiagnostics: false }));
+    // Qualification may share the operation's observation; guards re-observe.
+    if (!memo.has(environmentKey)) memo.set(environmentKey, executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner', process.env, { retainDiagnostics: false, freshAfter: 0 }));
     await restoreComparisonIndexes(this.context, inputs.environment);
     assertEnvironmentCurrent(inputs.environment, await memo.get(environmentKey));
     if (gate(result.gate).at === 'completion') requireThat(identity(inputs.integrations) === identity(state.integrations), 'Integration source changed');
@@ -564,7 +566,7 @@ export class CurrentCore {
       'Shared release identity or mutable provider facts no longer qualify');
     }
   }
-  async waiverRisk(state, candidate, id) {
+  async waiverRisk(state, candidate, id, freshAfter = 0) {
     let inputs = { configuration: null, consumed: [], support: [] }, findings = [];
     for (const ref of [...state.results].reverse()) {
       const report = await this.store.json(ref); if (report.gate !== id) continue;
@@ -594,13 +596,16 @@ export class CurrentCore {
         externalValidity: !input.validUntil || Date.now() <= Date.parse(input.validUntil),
         integrations: gate(gateId).at === 'completion' ? state.integrations : null,
         historyGaps: gaps.filter(gap => gap.gate === null || gap.gate === gateId),
-        environment: await executionEnvironment(this.context, candidate, input.configuration ?? {}, gate(gateId).role === 'runner') });
+        environment: await executionEnvironment(this.context, candidate, input.configuration ?? {}, gate(gateId).role === 'runner', process.env, { freshAfter }) });
     };
     return identity({ findings, execution: await scope(id, inputs) });
   }
   async assertLiveInputs(state, name, liveInputs) {
     const admission = admissions.get(liveInputs);
     requireThat(admission, 'Missing in-process milestone input qualification');
+    // Observe only in an epoch created after this guard began. Guards share
+    // an epoch only when it started after each of them.
+    const freshAfter = observationEpochs()?.mark();
     // Recheck the inputs of proofs already qualified above. Do not rerun gates
     // or the recursive history/coverage assessment. Each environment/closure is
     // freshly read once per final guard, never reused from earlier qualification.
@@ -615,7 +620,7 @@ export class CurrentCore {
       for (const support of inputs.support ?? []) await this.store.currentBytes(support);
       const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
       if (!environments.has(environmentKey)) environments.set(environmentKey,
-        await executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner', process.env, { retainDiagnostics: false }));
+        await executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner', process.env, { retainDiagnostics: false, freshAfter }));
       await restoreComparisonIndexes(this.context, inputs.environment);
       assertEnvironmentCurrent(inputs.environment, environments.get(environmentKey), 'Execution environment changed during milestone validation');
       if (inputs.pattern) {
@@ -638,7 +643,7 @@ export class CurrentCore {
       const candidate = await this.store.json(state.candidate);
       for (const outcome of admission.exceptions) {
         const waiver = waiverFor(state, outcome.id, state.candidate.hash, contentIdentity(candidate),
-          await this.waiverRisk(state, candidate, outcome.id), outcome.result ? await this.store.json(outcome.result) : null);
+          await this.waiverRisk(state, candidate, outcome.id, freshAfter), outcome.result ? await this.store.json(outcome.result) : null);
         requireThat(waiver && identity(waiver) === identity(outcome.exception), 'Exception applicability changed during milestone validation');
         if (waiver.waiverBasis) await this.store.get(waiver.waiverBasis.evidence);
       }
@@ -896,7 +901,7 @@ export class CurrentCore {
     const category = operation.startsWith('merge.') || operation.startsWith('integration.') ? 'delivery'
       : operation === 'candidate.prepare' ? 'setup' : 'operation';
     return observe({ project: this.context.workspaceRoot, feature: this.context.featureId,
-      label, category, command: operation, worker: false }, () => this.executeObserved(request));
+      label, category, command: operation, worker: false }, () => withObservationEpochs(() => this.executeObserved(request)));
   }
   async executeObserved(request) {
     const input = request.input ?? {};
