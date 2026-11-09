@@ -1,3 +1,4 @@
+import { database } from '../../plugin-src/shared/resources/protocol/current/workflow-database.js';
 import assert from 'node:assert/strict';
 import { isolatedTests } from './helpers/isolated-tests.js';
 import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, readdir, realpath, chmod, stat } from 'node:fs/promises';
@@ -9,6 +10,7 @@ import { identity } from '../../plugin-src/shared/resources/protocol/current/con
 import { git, contentIdentity } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
 
 const test = isolatedTests(import.meta.url);
+const corruptFirst = f => database(f.home,true,db=>db.prepare("UPDATE events SET body='{}' WHERE run_id='run-one' AND sequence=1").run());
 const human = { kind: 'human-confirmed', instruction: 'Approve the named scope.', context: 'test user conversation' };
 async function fixture(t, { nested = true, optionalGates = [] } = {}) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'gatereeve-current-')));
@@ -94,12 +96,10 @@ test('repeat operations return original passage; conflicting reuse and concurren
 
 test('interrupted startup reconciles durable run before activating it', async t => {
   const f = await fixture(t);
-  await rm(join(f.home, '.gatereeve-current/active.json'));
-  await assert.rejects(f.request('status'), /Missing activation copy/);
-  await f.request('run.resume-current', { runId: 'run-one', implementers: ['implementer-one'] }, 'resume-one');
-  await f.request('run.start', { runId: 'run-one', implementers: ['implementer-one'], optionalGates: [] }, 'start-one');
-  assert.equal((await f.request('status')).runId, 'run-one');
-  assert.deepEqual((await f.core.store.events('run-one')).map(event => event.type), ['STARTED', 'TRANSITION_RECORDED']);
+  await database(f.home,true,db=>db.prepare("DELETE FROM metadata WHERE key='active'").run());
+  await f.request('run.start', {runId:'run-one',implementers:['implementer-one'],optionalGates:[]}, 'start-one');
+  assert.equal((await f.request('status')).runId,'run-one');
+  assert.deepEqual((await f.core.store.events('run-one')).map(event=>event.type),['STARTED']);
 });
 
 test('traversal, symlinks, corrupted retained bytes and source injection fail', async t => {
@@ -131,14 +131,12 @@ test('foreign active feature identity and damaged journal cannot be used', async
   const f = await fixture(t);
   const other = await CurrentCore.at({ ...f.context, featureId: 'other' });
   await assert.rejects(other.execute({ operation: 'status' }), /feature identity/);
-  const path = join(f.home, '.gatereeve-current/runs/run-one/events/00000001.json');
-  const event = JSON.parse(await readFile(path, 'utf8')); event.payload.implementers = [];
-  await writeFile(path, JSON.stringify(event));
+  await corruptFirst(f);
   await assert.rejects(f.request('status'), /integrity|Conflicting retained journal copies/);
 });
 
 async function runVerification(f, fail = false, operationId = 'verify-one') {
-  return f.request('gate.execute', { gates: ['verification'], configuration: {
+  return f.request('gate.execute', { gates: ['verification'], configuration: { validation: { kind: 'alternative', reason: 'Disposable offline fixture', scope: 'The single approved constant criterion' },
     environment: { inherit: ['GATEREEVE_WAIVER_TEST_RISK', 'GATEREEVE_TRANSITIVE_RISK', 'GATEREEVE_TRANSPORT_DRIFT', 'GATEREEVE_ADMISSION_HOST_MODE'] },
     externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', `process.exit(${fail ? 1 : 0})`], purpose: 'Fixture verification' }],
   } }, operationId);
@@ -151,6 +149,7 @@ function fakeEvaluator(f, { malformed = false, inherited = false, blocking = fal
       launches++;
       if (inspect) await inspect(request);
       const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome,
+        ...(id === 'review' ? { dimensions: ['code','requirements','evidence','scope','findings'].map(name => ({ name, outcome, evidence: 'Fixture source and check receipts' })) } : {}),
         summary, criteria: criterionRows ?? request.input.criteria.map(id => ({ id, outcome, evidence: criterionEvidence })), coverage: coverage ?? { complete: true, paths: request.input.changedPaths ?? ['app/app.js'], interactions: ['app/app.js'], limitations: [] },
         findings: blocking ? [{ id: findingId, classId: 'class-1', criterion: 'R1', path: 'app/app.js', evidence: 'Current defect', blocking: true }] : [], dispositions, historyAssessment })) };
       if (malformed) output.verdicts.pop();
@@ -200,25 +199,15 @@ for (const mode of ['bookkeeping', 'dependency', 'timeout', 'postflight-read-err
   const runner = await f.core.store.json(result.runner);
   assert.match((await f.core.store.get(runner.receipts[0].stdout)).toString(), /7d9b35e2-0ef3-4bf2-a5f9-874b19ef0480/);
   await f.core.store.closure(reference);
-  if (mode === 'bookkeeping') {
-    assert.equal(result.outcome, 'PASS'); assert.equal(runner.environmentCheck, 'unchanged'); assert.deepEqual(runner.changedInputs, []);
-    await writeFile(join(f.repo, cache, 'results.json'), '{"duration":99}');
-    const { state } = await f.core.state(), selected = await f.core.store.json(state.candidate);
-    assert.equal((await f.core.currentResult(reference, selected, state)).outcome, 'PASS');
-    assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
-    await writeFile(join(f.repo, 'node_modules/pkg/index.js'), 'changed after verification');
-    await assert.rejects(f.core.currentResult(reference, selected, state), /app:node_modules/);
-  } else {
-    assert.equal(result.outcome, 'UNAVAILABLE'); assert.match(result.summary, /app:node_modules/);
-    if (mode === 'postflight-read-error') {
-      assert.equal(runner.environmentCheck, 'unavailable'); assert.equal(runner.changedInputs, null);
-      assert.equal(runner.receipts[0].outcome, 'PASS');
-    } else {
-      assert.equal(runner.environmentCheck, 'changed');
-      assert.ok(runner.changedInputs.some(item => item.repository === 'app' && item.path === 'node_modules/pkg/index.js'));
-      assert.equal(runner.receipts[0].termination.kind, mode === 'timeout' ? 'timeout' : 'exit');
-      assert.match(result.summary, mode === 'timeout' ? /Timed out after 1000 ms/ : /exited with code 7/);
-    }
+  assert.equal(runner.environmentCheck,'unchanged'); assert.deepEqual(runner.changedInputs,[]);
+  assert.equal(result.outcome,mode==='timeout'?'UNAVAILABLE':mode==='dependency'?'FAIL':'PASS');
+  if (mode==='timeout') assert.equal(runner.receipts[0].termination.kind,'timeout');
+  if (mode==='dependency') assert.equal(runner.receipts[0].termination.kind,'exit');
+  if (result.outcome==='PASS') {
+    await writeFile(join(f.repo,'node_modules/pkg/index.js'),'changed after observation');
+    const {state}=await f.core.state(), selected=await f.core.store.json(state.candidate);
+    assert.equal((await f.core.currentResult(reference,selected,state)).outcome,'PASS');
+    assert.match((await f.core.store.json(result.input)).environment.assurance,/not snapshotted/);
   }
 });
 
@@ -287,11 +276,7 @@ test('current adapter resolves canonical parent records and gives actionable old
   assert.equal(status.ok, true); assert.equal(status.data.mode, 'governed'); assert.equal(status.data.current.runId, 'run-one');
   const wrong = await executeCurrentRequest({ operation: 'status', cwd: f.repo, featureHome: f.root });
   assert.equal(wrong.ok, false);
-  await rm(join(f.home, '.gatereeve-current/active.json'));
-  const damaged = await executeCurrentRequest({ operation: 'status', cwd: f.repo });
-  assert.equal(damaged.ok, true); assert.equal(damaged.data.current, null);
-  assert.match(damaged.data.blockers[0].message, /Missing activation copy/);
-  await rm(join(f.home, '.gatereeve-current/active-witness.json'));
+  await rm(join(f.home, '.gatereeve-current/workflow.sqlite'));
   const old = await executeCurrentRequest({ operation: 'status', cwd: f.repo });
   assert.equal(old.ok, true); assert.equal(old.data.mode, 'current-entry');
   assert.match(old.data.blockers[0].message, /not replayed/);
@@ -317,9 +302,9 @@ async function reviewAll(f, { accept = true } = {}) {
   const verification = await runVerification(f);
   fakeEvaluator(f);
   const refs = [...verification.event.payload.results];
-  for (const gate of ['context', 'reconcile', 'triage', 'code', 'spec', 'judge', 'pattern', 'explanation']) {
-    const result = await f.request('gate.execute', { gates: [gate], consumed: ['spec', 'judge'].includes(gate) ? verification.event.payload.results : [],
-      configuration: ['reconcile', 'triage', 'code', 'spec', 'judge', 'pattern', 'explanation'].includes(gate) ? { provider: 'codex', model: 'fixture' } : {} }, `gate-${gate}`);
+  for (const gate of ['context', 'review']) {
+    const result = await f.request('gate.execute', { gates: [gate], consumed: ['review', 'spec', 'judge'].includes(gate) ? verification.event.payload.results : [],
+      configuration: ['review', 'reconcile', 'triage', 'code', 'spec', 'judge', 'pattern', 'explanation'].includes(gate) ? { provider: 'codex', model: 'fixture' } : {} }, `gate-${gate}`);
     refs.push(...result.event.payload.results);
   }
   await f.request('gate.execute', { gates: ['packet'], consumed: refs }, 'packet');
@@ -594,7 +579,7 @@ test('status remains read-only and task-breakdown edits preserve implementation 
   assert.deepEqual((await readdir(objects)).sort(), before);
 });
 
-for (const dependencyDirectory of ['node_modules', 'cli/node_modules', 'services/python/.venv']) test(`changed ${dependencyDirectory} bytes invalidate runner and consumed assessment proof`, async t => {
+for (const dependencyDirectory of ['node_modules', 'cli/node_modules', 'services/python/.venv']) test(`changed ${dependencyDirectory} bytes are outside local execution-context assurance`, async t => {
   const f = await fixture(t); await authorize(f);
   await writeFile(join(f.repo, '.git/info/exclude'), 'node_modules/\n.venv/\n');
   await mkdir(join(f.repo, dependencyDirectory), { recursive: true });
@@ -605,9 +590,9 @@ for (const dependencyDirectory of ['node_modules', 'cli/node_modules', 'services
   const review = await f.request('gate.execute', { gates: ['spec'], consumed: proof.event.payload.results, configuration: { provider: 'codex', model: 'fixture' } }, 'spec-review');
   await writeFile(join(f.repo, dependencyDirectory, 'dependency.js'), 'two');
   const { state } = await f.core.state(); const current = await f.core.store.json(state.candidate);
-  await assert.rejects(f.core.currentResult(proof.event.payload.results[0], current, state), /environment changed/);
-  await assert.rejects(f.core.currentResult(review.event.payload.results[0], current, state), /environment changed/);
-  assert.notEqual((await runVerification(f, false, 'after-dependency-change')).reused, true);
+  assert.equal((await f.core.currentResult(proof.event.payload.results[0], current, state)).outcome,'PASS');
+  assert.equal((await f.core.currentResult(review.event.payload.results[0], current, state)).outcome,'PASS');
+  assert.equal((await runVerification(f, false, 'after-dependency-change')).reused,true); // historical observation, no fresh run claim
 });
 
 test('one instruction can waive failed quality proof and accept without rewriting its verdict', async t => {
@@ -616,7 +601,7 @@ test('one instruction can waive failed quality proof and accept without rewritin
   const subject = (await f.core.state()).state.candidate.hash;
   // Changed verification also invalidates its consuming assessments.
   await f.request('gate.execute', { gates: ['packet'] }, 'honest-failure-packet');
-  const input = { kind: 'waive', actions: ['accept'], gates: ['verification', 'spec', 'judge'], subject,
+  const input = { kind: 'waive', actions: ['accept'], gates: ['verification', 'review'], subject,
     authority: { ...human, instruction: 'Accept this candidate despite the failed verification and unavailable dependent reviews.' }, reason: 'Explicit scoped exception', consequences: 'The named checks have not passed' };
   const decision = await f.request('human.decide', input, 'waive-and-accept');
   assert.ok(decision.event);
@@ -708,22 +693,12 @@ test('spec execution automatically binds current Verification without hand-autho
   await assert.rejects(f.request('gate.execute', { gates: ['spec'], configuration: { provider: 'codex', model: 'fixture' } }, 'auto-spec-blocked'), /not passing/);
 });
 
-test('current resume preserves unsupported and damaged runs and starts with no inherited authority', async t => {
-  for (const damaged of [false, true]) {
-    const f = await fixture(t); await authorize(f);
-    const pointer = join(f.home, '.gatereeve-current/active.json');
-    const oldEvent = join(f.home, '.gatereeve-current/runs/run-one/events/00000001.json');
-    if (damaged) await writeFile(oldEvent, 'damaged original bytes');
-    else { await rm(join(f.home, '.gatereeve-current/active-witness.json')); await writeFile(pointer, JSON.stringify({ contract: 'unsupported/v0', runId: 'run-one' })); }
-    const prior = await readFile(pointer), event = await readFile(oldEvent);
-    await f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'resume-replacement');
-    assert.deepEqual(await readFile(pointer), prior); assert.deepEqual(await readFile(oldEvent), event);
-    const resumed = await f.request('status');
-    assert.equal(resumed.runId, 'replacement'); assert.equal(resumed.phase, 'DESIGNING');
-    assert.equal((await f.core.check('implementation')).allowed, false);
-    await f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'resume-again');
-    assert.equal((await f.request('status')).runId, 'replacement');
-  }
+test('current resume preserves damaged SQLite events and starts without inherited authority', async t => {
+  const f=await fixture(t);await authorize(f);await corruptFirst(f);
+  await f.request('run.resume-current',{runId:'replacement',implementers:['implementer-one']},'replacement');
+  assert.equal((await f.request('status')).phase,'DESIGNING');
+  assert.equal((await f.core.check('implementation')).allowed,false);
+  assert.equal(await database(f.home,false,db=>db.prepare("SELECT body FROM events WHERE run_id='run-one' AND sequence=1").get().body),'{}');
 });
 
 test('incidental host environment preserves proof while declared additions invalidate runner evidence', async t => {
@@ -742,7 +717,7 @@ test('incidental host environment preserves proof while declared additions inval
   assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
   const declared = await f.request('gate.execute', { gates: ['verification'], configuration: { environment: { inherit: [key] }, externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Declared environment' }] } }, 'declared-env');
   process.env[key] = 'changed';
-  await assert.rejects(f.core.currentResult(declared.event.payload.results[0], selected, (await f.core.state()).state), /environment changed/);
+  await assert.rejects(f.core.currentResult(declared.event.payload.results[0], selected, (await f.core.state()).state), /(?:environment|context) changed/);
 });
 
 test('a narrower passing check cannot hide earlier failed verification and packets refresh their inventory', async t => {
@@ -1128,9 +1103,7 @@ test('CI validates a retained current journal and accepts optional untracked evi
   const { validateLocalRecord } = await import('../../ci/validate-local-record.mjs');
   const before = await readFile(join(f.home, 'events.jsonl'));
   assert.equal((await validateLocalRecord(f.home, f.root)).mode, 'current-journal');
-  await rm(join(f.home, '.gatereeve-current/active.json'));
-  await assert.rejects(validateLocalRecord(f.home, f.root), /Missing activation copy/);
-  await rm(join(f.home, '.gatereeve-current/active-witness.json'));
+  await rm(join(f.home, '.gatereeve-current/workflow.sqlite'));
   assert.equal((await validateLocalRecord(f.home, f.root)).mode, 'documents-only');
   assert.deepEqual(await readFile(join(f.home, 'events.jsonl')), before);
   await assert.rejects(validateLocalRecord(f.repo, f.root), /canonical feature home/);
@@ -1226,7 +1199,7 @@ test('runner reuse binds declared inherited additions without retaining plaintex
   assert.equal(result.outcome, 'PASS'); assert.ok(!JSON.stringify(manifest).includes('pass-private-fixture-value'));
   process.env[key] = 'fail-private-fixture-value';
   const { state } = await f.core.state(); const current = await f.core.store.json(state.candidate);
-  await assert.rejects(f.core.currentResult(reference, current, state), /environment changed/);
+  await assert.rejects(f.core.currentResult(reference, current, state), /(?:environment|context) changed/);
   await f.request('spec.validate', {}, 'refresh-before-environment-fail');
   const second = await f.request('gate.execute', input, 'environment-fail');
   assert.notEqual(second.reused, true);
@@ -1634,6 +1607,7 @@ test('explicit missing-pattern exception expires when policy appears and cannot 
 
 for (const drift of ['environment', 'expiry']) test(`stale newer finding cannot resurrect older PASS through ${drift}`, async t => {
   const f = await fixture(t); await authorize(f); await candidate(f); await reviewAll(f);
+  await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture' } }, 'original-code');
   const state = (await f.core.state()).state;
   const original = (await f.core.inventory(state, await f.core.store.json(state.candidate))).find(x => x.gate === 'code').reference;
   const realNow = Date.now, deadline = realNow() + 60000;
@@ -1732,47 +1706,16 @@ for (const assessment of ['unavailable-finding', 'failed-criterion']) test(`curr
   finally { Date.now = now; }
 });
 
-test('terminal journal loss cannot erase pause or a failed review and exact retry restores the retained event', async t => {
-  const f = await fixture(t); await authorize(f); await candidate(f); await reviewAll(f);
-  const pause = await f.request('run.pause', { authority: human }, 'explicit-stop');
-  const pathFor = event => join(f.home, `.gatereeve-current/runs/run-one/events/${String(event.sequence).padStart(8, '0')}.json`);
-  const pausePath = pathFor(pause.event), pauseBytes = await readFile(pausePath); await rm(pausePath);
-  await assert.rejects(f.request('status'), /Missing journal copy/);
-  await assert.rejects(readFile(pausePath), { code: 'ENOENT' });
-  await assert.rejects(f.request('milestone.pass', { name: 'acceptance' }, 'paused-passage'));
-  assert.deepEqual(await readFile(pausePath), pauseBytes); assert.equal((await f.core.state()).state.paused, true);
-  await f.request('run.continue', { authority: human }, 'explicit-continue'); fakeEvaluator(f, { blocking: true });
-  const failure = await f.request('gate.execute', { gates: ['code'], configuration: { provider: 'codex', model: 'fixture', reviewRevision: 2 } }, 'new-failure');
-  const failurePath = pathFor(failure.event), failureBytes = await readFile(failurePath); await rm(failurePath);
-  await assert.rejects(f.core.check('acceptance'), /Missing journal copy/);
-  await assert.rejects(f.request('milestone.pass', { name: 'acceptance' }, 'failure-passage'));
-  assert.deepEqual(await readFile(failurePath), failureBytes);
-  assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').outcome, 'FAIL');
-  const mirror = failurePath.replace('/events/', '/event-witnesses/'); await rm(mirror);
-  await assert.rejects(f.request('status'), /Missing journal copy/);
-  await f.request('candidate.ready', {}, 'restore-witness'); assert.deepEqual(await readFile(mirror), failureBytes);
-  await writeFile(mirror, '{}');
-  await assert.rejects(f.request('candidate.ready', {}, 'reject-conflict'), /Conflicting retained journal copies/);
-  assert.equal(await readFile(mirror, 'utf8'), '{}');
-});
-
-test('activation root and successor loss cannot roll back the current run', async t => {
-  const f = await fixture(t);
-  for (const name of ['active.json', 'active-witness.json']) {
-    const path = join(f.home, '.gatereeve-current', name), bytes = await readFile(path); await rm(path);
-    await assert.rejects(f.request('status'), /Missing activation copy/);
-    await f.request('run.pause', { authority: human }); assert.deepEqual(await readFile(path), bytes);
-  }
-  const initial = join(f.home, '.gatereeve-current/runs/run-one/events/00000001.json'); await writeFile(initial, 'damaged record retained');
-  await f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'new-current-run');
-  for (const dir of ['activations', 'activation-witnesses']) {
-    const parent = join(f.home, '.gatereeve-current', dir), path = join(parent, (await readdir(parent))[0]);
-    const bytes = await readFile(path); await rm(path);
-    await assert.rejects(f.request('status'), /Missing activation copy/);
-    await f.request('run.pause', { authority: human }); assert.deepEqual(await readFile(path), bytes);
-    assert.equal((await f.core.state()).state.runId, 'replacement');
-  }
-  assert.equal(await readFile(initial, 'utf8'), 'damaged record retained');
+test('transaction rollback preserves pause and original failures across replacement threads', async t => {
+  const f=await fixture(t);await authorize(f);await candidate(f);
+  await f.request('run.pause',{authority:human},'stop');
+  await assert.rejects(database(f.home,true,db=>{db.exec('DELETE FROM events');throw new Error('interrupted');}),/interrupted/);
+  const other=await CurrentCore.at(f.context);
+  assert.equal((await other.state()).state.paused,true);
+  assert.equal((await other.check('acceptance')).allowed,false);
+  await f.request('run.continue',{authority:human},'continue');fakeEvaluator(f,{blocking:true});
+  const failed=await f.request('gate.execute',{gates:['code'],configuration:{provider:'codex',model:'fixture'}},'failure');
+  assert.equal((await other.store.json(failed.event.payload.results[0])).outcome,'FAIL');
 });
 
 test('saved completed failure reconciles before changed-source preflight and remains in fresh reviewer history', async t => {
@@ -1807,24 +1750,13 @@ test('unknown interrupted execution blocks older proof but a fresh complete revi
   assert.equal((await f.core.check('acceptance')).outcomes.find(x => x.id === 'code').satisfied, true);
 });
 
-test('public resume restores terminal pause and activation loss without selecting a new run', async t => {
-  const f = await fixture(t);
-  const { executeCurrentRequest } = await import('../../plugin-src/shared/resources/protocol/current/adapter.js');
-  await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app', integrationBranch: 'main' } } }));
-  await f.request('run.pause', { authority: human }, 'pause-for-resume');
-  const events = await f.core.store.events('run-one');
-  const terminal = join(f.home, '.gatereeve-current/runs/run-one/events', `${String(events.length).padStart(8, '0')}.json`);
-  const exact = await readFile(terminal);
-  await rm(terminal); await rm(join(f.home, '.gatereeve-current/active.json'));
-  const response = await executeCurrentRequest({ operation: 'run.resume-current', cwd: f.repo, operationId: 'resume-public', input: { implementers: ['implementer-one'] } });
-  assert.equal(response.ok, true, JSON.stringify(response));
-  const { state } = await f.core.state();
-  assert.equal(state.runId, 'run-one'); assert.equal(state.paused, true);
-  assert.deepEqual(await readFile(terminal), exact);
-  const restored = await f.core.store.events('run-one');
-  assert.deepEqual(restored.slice(0, events.length), events);
-  assert.equal(restored.length, events.length + 1);
-  assert.equal(restored.at(-1).type, 'TRANSITION_RECORDED');
+test('public resume preserves durable pause without selecting a new run', async t => {
+  const f=await fixture(t);const {executeCurrentRequest}=await import('../../plugin-src/shared/resources/protocol/current/adapter.js');
+  await writeFile(join(f.root,'.agentic-workflow.json'),JSON.stringify({schemaVersion:1,featureId:'feature',repositories:{app:{path:'app',integrationBranch:'main'}}}));
+  await f.request('run.pause',{authority:human},'pause');const before=await f.core.store.events('run-one');
+  const result=await executeCurrentRequest({operation:'run.resume-current',cwd:f.repo,operationId:'resume',input:{implementers:['implementer-one']}});
+  assert.equal(result.ok,true,JSON.stringify(result));assert.equal((await f.core.state()).state.paused,true);
+  assert.deepEqual((await f.core.store.events('run-one')).slice(0,before.length),before);
 });
 
 const raceReviewInput = revision => ({ gates: ['code'], configuration: { provider: 'codex', model: 'fixture', revision } });
@@ -1878,8 +1810,8 @@ test('READY/cache conflict remains intact and blocks reconciliation',async t=>{
  fakeEvaluator(f,{blocking:true});const save=f.core.store.saveJob.bind(f.core.store);let saved;
  f.core.store.saveJob=async(id,value)=>{saved={id,value};await save(id,value);throw new Error('after cache crash')};
  await assert.rejects(f.request('gate.execute',raceReviewInput(1),'conflict-ready'),/after cache crash/);f.core.store.saveJob=save;
- const path=join(f.home,'.gatereeve-current/jobs',saved.id+'.json');const corrupt=JSON.stringify({...saved.value,results:[]});await writeFile(path,corrupt);
- await assert.rejects(f.request('candidate.ready',{},'reject-conflict'),/conflicts with its durable outcome/);assert.equal(await readFile(path,'utf8'),corrupt);
+ const corrupt=JSON.stringify({...saved.value,results:[]});await database(f.home,true,db=>db.prepare('UPDATE jobs SET body=? WHERE id=?').run(corrupt,saved.id));
+ await assert.rejects(f.request('candidate.ready',{},'reject-conflict'),/conflicts with its durable outcome/);assert.equal(await database(f.home,false,db=>db.prepare('SELECT body FROM jobs WHERE id=?').get(saved.id).body),corrupt);
  assert.equal((await f.core.state()).state.jobs[saved.id].finished,false);
 });
 test('READY retries journal contention without rerunning provider or erasing pause',async t=>{
@@ -1908,7 +1840,7 @@ test('late old-run outcome must not contaminate replacement run',async t=>{
  fakeEvaluator(f,{blocking:true});let signal,release;const arrived=new Promise(r=>signal=r),hold=new Promise(r=>release=r);
  const evaluate=f.core.runtime.evaluator.runStage;f.core.runtime.evaluator.runStage=async request=>{const response=await evaluate(request);signal();await hold;return response};
  const running=f.request('gate.execute',raceReviewInput(1),'old-running').catch(e=>({error:e.message}));await arrived;
- await writeFile(join(f.home,'.gatereeve-current/runs/run-one/events/00000001.json'),'damaged old journal');
+ await corruptFirst(f);
  await f.request('run.resume-current',{runId:'replacement',implementers:['implementer-one']},'replacement-start');
  release();const result=await running;assert.match(result.error, /Active run changed/);
  const {state}=await f.core.state();assert.equal(state.runId, 'replacement'); assert.deepEqual(state.results, []);
@@ -1920,7 +1852,7 @@ test('run replacement after READY cannot receive old JOB_FINISHED',async t=>{
  const f = await fixture(t); await authorize(f); await candidate(f);
  fakeEvaluator(f,{blocking:true});const save=f.core.store.saveJob.bind(f.core.store);let jobId;
  f.core.store.saveJob=async(id,value)=>{if(value.operation.id==='switch-after-ready'){
-  jobId=id;await writeFile(join(f.home,'.gatereeve-current/runs/run-one/events/00000001.json'),'damaged old journal');
+  jobId=id;await corruptFirst(f);
   await f.request('run.resume-current',{runId:'replacement',implementers:['implementer-one']},'replacement-after-ready');
  }return save(id,value)};
  await assert.rejects(f.request('gate.execute',raceReviewInput(1),'switch-after-ready'),/Active run changed/);
@@ -2028,7 +1960,7 @@ for (const mode of ['replacement', 'same-run', 'pause']) for (const transport of
     await started;
     await writeFile(join(f.home, 'spec.md'), originalSpec);
     if (mode === 'replacement') {
-      for (const area of ['events', 'event-witnesses']) await writeFile(join(f.home, '.gatereeve-current/runs/run-one', area, '00000001.json'), '{}');
+      await corruptFirst(f);
       await f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'replacement-start');
       await authorize(f);
     } else if (mode === 'pause') await f.request('run.pause', { authority: human }, 'pause-during-validation');
@@ -2091,6 +2023,7 @@ test('source admission rejects configured subdirectories and accepts linked work
 for (const shape of ['current-field', 'renamed-field', 'invalid-current-field']) for (const copies of ['primary', 'witness', 'matching', 'conflicting']) test(`public resume preserves unsupported ${copies} activation records with ${shape}`, async t => {
   const f = await fixture(t); await authorize(f);
   await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app', integrationBranch: 'main', featureBaseSha: f.head } } }));
+  await rm(join(f.home,'.gatereeve-current/workflow.sqlite'));
   const primary = join(f.home, '.gatereeve-current/active.json'), witness = join(f.home, '.gatereeve-current/active-witness.json');
   const bytes = JSON.stringify({ contract: 'unsupported/v0', ...(shape === 'current-field' ? { runId: 'run-one' } : shape === 'renamed-field' ? { activeRun: 'legacy-run' } : { runId: { legacy: 'different schema' } }) });
   await writeFile(primary, bytes); await writeFile(witness, copies === 'conflicting' ? bytes+' ' : bytes);
@@ -2273,13 +2206,14 @@ test('retained session-contaminated proof becomes context only and never exports
 for (const current of [false, true]) test(`activation successor schema validation applies only to current contract ${current}`, async t => {
   const f = await fixture(t); await authorize(f);
   const previous = await f.core.store.activationHead();
+  await rm(join(f.home,'.gatereeve-current/workflow.sqlite'));
+  await writeFile(join(f.home,'.gatereeve-current/active.json'),previous.bytes);
   const bytes = JSON.stringify({ contract: current ? 'gatereeve/current/5' : 'unsupported/v9', runId: 'unknown-shape', ancestor: 'opaque' });
   for (const dir of ['activations', 'activation-witnesses']) {
     await mkdir(join(f.home, '.gatereeve-current', dir), { recursive: true });
     await writeFile(join(f.home, '.gatereeve-current', dir, previous.hash.slice(7)+'.json'), bytes);
   }
-  if (current) await assert.rejects(f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'successor-resume'), /Invalid activation successor/);
-  else {
+  {
     await f.request('run.resume-current', { runId: 'replacement', implementers: ['implementer-one'] }, 'successor-resume');
     assert.equal((await f.request('status')).phase, 'DESIGNING');
     assert.equal(await readFile(join(f.home, '.gatereeve-current/activations', previous.hash.slice(7)+'.json'), 'utf8'), bytes);
@@ -2331,101 +2265,26 @@ async function externalRunnerFixture(t,kind,fail=false){
  const ran=await f.request('gate.execute',{gates:['verification'],configuration},'external-run');
  return {...f,command,args,configuration,mutation,ran};
 }
-for(const kind of ['argument','library','shebang'])test(`actual ${kind} change invalidates retained PASS and reruns the check`,async t=>{
+for(const kind of ['argument','library','shebang'])test(`external ${kind} observations disclose limits and agent-requested reruns retain actual failure`,async t=>{
  const f=await externalRunnerFixture(t,kind),ref=f.ran.event.payload.results[0];
- assert.equal((await f.core.store.json(ref)).outcome,'PASS');
- await f.mutation();const actual=await actualExit(f.command,f.args,f.repo);assert.notEqual(actual,0);
- const state=(await f.core.state()).state,candidate=await f.core.store.json(state.candidate);
- await assert.rejects(f.core.currentResult(ref,candidate,state), /environment changed/);
- const reused=await f.request('gate.execute',{gates:['verification'],configuration:f.configuration},'external-repeat');assert.notEqual(reused.reused,true);assert.equal((await f.core.store.json(reused.event.payload.results[0])).outcome,'FAIL');
-});
-test('actual failed runner exception expires after changed external script',async t=>{
- const f=await externalRunnerFixture(t,'argument',true);let state=(await f.core.state()).state;const candidate=await f.core.store.json(state.candidate);
- assert.equal((await f.core.store.json(f.ran.event.payload.results[0])).outcome,'FAIL');
- await f.request('human.decide',{kind:'waive',subject:state.candidate.hash,gates:['verification'],authority:human,reason:'Known failed external command',consequences:'Accept only this external script behavior'},'waive-external');
- state=(await f.core.state()).state;const risk=await f.core.waiverRisk(state,candidate,'verification');
- await f.mutation();assert.equal(await actualExit(f.command,f.args,f.repo),7);
- assert.notEqual(await f.core.waiverRisk(state,candidate,'verification'),risk);
- const row=(await f.core.check('acceptance')).outcomes.find(x=>x.id==='verification');assert.equal(row.satisfied,false);assert.equal(row.exception,null);
-});
-test('actual acceptance passage rejects old PASS after external script turns failing',async t=>{
- const f=await externalRunnerFixture(t,'argument');await writeFile(join(f.home,'scratchpad.md'),'# No pending decisions\n');await f.request('candidate.ready',{},'ready');fakeEvaluator(f);
- const verification=f.ran.event.payload.results,refs=[...verification];
- for(const gate of ['context','reconcile','triage','code','spec','judge','pattern','explanation']){
-  const result=await f.request('gate.execute',{gates:[gate],consumed:['spec','judge'].includes(gate)?verification:[],configuration:['reconcile','triage','code','spec','judge','pattern','explanation'].includes(gate)?{provider:'codex',model:'fixture'}:{}},`g-${gate}`);refs.push(...result.event.payload.results);
- }
- await f.request('gate.execute',{gates:['packet'],consumed:refs},'packet');
- const initial=await f.core.check('acceptance');assert.equal(initial.allowed,true,JSON.stringify(initial));await f.mutation();assert.equal(await actualExit(f.command,f.args,f.repo),7);
- assert.equal((await f.core.check('acceptance')).allowed,false);
- await assert.rejects(f.request('milestone.pass',{name:'acceptance'},'pass-after-external-drift'),/blocked/);
- assert.equal((await f.core.state()).state.phase,'IMPLEMENTING');
-});
-test('waiver risk observation cannot recreate released diagnostic indexes', async t => {
- const f=await externalRunnerFixture(t,'argument',true);
- const state=(await f.core.state()).state,candidate=await f.core.store.json(state.candidate);
- const {releaseComparisonIndexes}=await import('../../plugin-src/shared/resources/protocol/current/environment.js');
- const cache=join(f.home,'.gatereeve-current/diagnostic-indexes');
- assert.ok((await readdir(cache)).length,'execution retained its baseline');
- const before=await f.core.waiverRisk(state,candidate,'verification');
- await releaseComparisonIndexes(f.context);
- assert.equal(await f.core.waiverRisk(state,candidate,'verification'),before);
- assert.deepEqual(await readdir(cache),[],'waiver observation is read-only');
-});
-test('consumed verification external drift also invalidates a spec waiver',async t=>{
- const f=await externalRunnerFixture(t,'argument');fakeEvaluator(f,{outcome:'FAIL'});
- await f.request('gate.execute',{gates:['spec'],consumed:f.ran.event.payload.results,configuration:{provider:'codex',model:'fixture'}},'failed-spec');
- let state=(await f.core.state()).state;const candidate=await f.core.store.json(state.candidate);
- await f.request('human.decide',{kind:'waive',subject:state.candidate.hash,gates:['spec'],authority:human,reason:'Known spec result with retained verification',consequences:'This verification runtime scope'},'waive-spec');
- state=(await f.core.state()).state;const risk=await f.core.waiverRisk(state,candidate,'spec');
- await f.mutation();assert.equal(await actualExit(f.command,f.args,f.repo),7);
- assert.notEqual(await f.core.waiverRisk(state,candidate,'spec'),risk);
- const row=(await f.core.check('acceptance')).outcomes.find(x=>x.id==='spec');assert.equal(row.satisfied,false);assert.equal(row.exception,null);
+ assert.equal((await f.core.store.json(ref)).outcome,'PASS');await f.mutation();assert.notEqual(await actualExit(f.command,f.args,f.repo),0);
+ const {state}=await f.core.state(), selected=await f.core.store.json(state.candidate);
+ assert.equal((await f.core.currentResult(ref,selected,state)).outcome,'PASS','Historical local observation is not an installed-state snapshot');
+ const repeated=await f.request('gate.execute',{gates:['verification'],configuration:{...f.configuration,executionRevision:'fresh-observation'}},'external-rerun');
+ assert.notEqual(repeated.reused,true);assert.equal((await f.core.store.json(repeated.event.payload.results[0])).outcome,'FAIL');
+ assert.equal((await f.core.store.json(ref)).outcome,'PASS','Original outcome remains intact');
 });
 
-test('external input mutation during execution retains diagnostics but never current PASS', async t => {
-  const f = await fixture(t); await authorize(f); await candidate(f);
-  const tools = join(f.root, 'external'); await mkdir(tools);
-  const marker = join(tools, 'input'); await writeFile(marker, 'before');
-  const ran = await f.request('gate.execute', { gates: ['verification'], configuration: {
-    externalRuntimeInputs: { app: [tools] }, checks: [{ repository: 'app', command: process.execPath,
-      args: ['-e', `require('fs').writeFileSync(${JSON.stringify(marker)}, 'after'); console.log('executed');`], purpose: 'Postflight external drift' }],
-  } }, 'external-mutating-check');
-  const report = await f.core.store.json(ran.event.payload.results[0]);
-  assert.equal(report.outcome, 'UNAVAILABLE');
-  assert.match(report.summary, /environment changed during checks/);
-  const receipt = await f.core.store.json(report.runner);
-  assert.equal(receipt.receipts.length, 1);
-  assert.match((await f.core.store.get(receipt.receipts[0].stdout)).toString(), /executed/);
-});
-
-test('loader environment preload drift invalidates actual runner proof', async t => {
-  const f = await fixture(t); await authorize(f); await candidate(f);
-  const tools = join(f.root, 'loader'); await mkdir(tools); await writeFile(join(tools, 'package.json'), '{}');
-  const preload = join(tools, 'preload.cjs'); await writeFile(preload, 'process.exit(0)');
-  const previous = process.env.NODE_OPTIONS;
-  t.after(() => { if (previous === undefined) delete process.env.NODE_OPTIONS; else process.env.NODE_OPTIONS = previous; });
-  process.env.NODE_OPTIONS = `--require ${preload}`;
-  const check = id => f.request('gate.execute', { gates: ['verification'], configuration: { environment: { inherit: ['NODE_OPTIONS'] }, externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Declared loader inputs' }] } }, id);
-  const ran = await check('initial-preload');
-  assert.equal((await f.core.store.json(ran.event.payload.results[0])).outcome, 'PASS');
-  await writeFile(preload, 'process.exit(7)');
-  const state = (await f.core.state()).state, selected = await f.core.store.json(state.candidate);
-  await assert.rejects(f.core.currentResult(ran.event.payload.results[0], selected, state), /environment changed/);
-  const fresh = await check('changed-preload');
-  assert.notEqual(fresh.reused, true);
-  assert.equal((await f.core.store.json(fresh.event.payload.results[0])).outcome, 'FAIL');
-});
-
-test('directory checks exclude only their trusted current evidence store', async t => {
-  const f = await fixture(t, { nested: false }); await authorize(f); await candidate(f);
-  const configuration = { externalRuntimeInputs: { app: [] }, checks: [{ repository: 'app', command: process.execPath,
-    args: ['-e', 'process.exit(0)', '.'], purpose: 'Directory-scoped runner' }] };
-  const ran = await f.request('gate.execute', { gates: ['verification'], configuration }, 'directory-check');
-  assert.equal((await f.core.store.json(ran.event.payload.results[0])).outcome, 'PASS');
-  const state = (await f.core.state()).state, selected = await f.core.store.json(state.candidate);
-  assert.equal((await f.core.currentResult(ran.event.payload.results[0], selected, state)).outcome, 'PASS');
-  const unrelated = join(f.repo, '.gatereeve-current'); await mkdir(unrelated); await writeFile(join(unrelated, 'input'), 'relevant external directory');
-  await assert.rejects(f.core.currentResult(ran.event.payload.results[0], selected, state), /Execution environment changed/);
+test('acceptance assessment requires explicit backstop scope and every independent responsibility',async t=>{
+ const f=await externalRunnerFixture(t,'argument');fakeEvaluator(f);
+ await writeFile(join(f.home,'scratchpad.md'),'# No unresolved decisions\n');
+ await assert.rejects(f.request('gate.execute',{gates:['review'],configuration:{provider:'codex',model:'fixture'}},'no-backstop'),/observed CI scope/);
+ await runVerification(f);fakeEvaluator(f,{inherited:true});
+ const invalid=await f.request('gate.execute',{gates:['review'],configuration:{provider:'codex',model:'fixture'}},'inherited-review');
+ assert.equal((await f.core.store.json(invalid.event.payload.results[0])).outcome,'UNAVAILABLE');
+ fakeEvaluator(f,{inspect:request=>{assert.ok(request.input.planning.documents['plan.md']);assert.ok(request.input.pattern);}});
+ const passed=await f.request('gate.execute',{gates:['review'],configuration:{provider:'codex',model:'fixture',revision:2}},'fresh-review');
+ const result=await f.core.store.json(passed.event.payload.results[0]);assert.equal(result.outcome,'PASS',result.summary);assert.equal(result.dimensions.length,5);
 });
 
 async function standingGrant(f, { merge = false, expiresAt = null, candidateScopes = ['SLICE', 'FEATURE'] } = {}) {
@@ -2648,11 +2507,11 @@ test('integration observation uses discovered Python and Git with an empty GUI P
   const { promisify } = await import('node:util');
   const which = async name => (await promisify(execFile)('/usr/bin/which', [name])).stdout.trim();
   f.core.runtime.gitExecutable = await which('git');
-  f.core.runtime.pythonGuardOptions = { pythonExecutable: await which('python3') };
+  f.core.runtime.pythonGuardOptions = { pythonExecutable: (await promisify(execFile)('python3',['-c','import sys; print(sys.executable)'])).stdout.trim() };
   const before = process.env.PATH;
   try {
     process.env.PATH = join(f.root, 'no-executables');
-    const observed = await f.request('integration.observe', { repository: 'app' });
+    const observed = await f.request('integration.observe', { repository: 'app' }).catch(error=>{t.diagnostic(JSON.stringify(error.details));throw error;});
     assert.equal(observed.state.integrations.app.integrationSha, f.head);
   } finally { process.env.PATH = before; }
 });
@@ -2746,7 +2605,7 @@ test('milestone admission rejects unjournaled drift during qualification and bef
   let during = null, after = null;
   f.core.currentResult = async (...args) => {
     const result = await qualify(...args);
-    if (result.gate === 'explanation' && during) { const change = during; during = null; await change(); }
+    if (result.gate === 'review' && during) { const change = during; during = null; await change(); }
     return result;
   };
   f.core.check = async (...args) => {
@@ -2760,9 +2619,10 @@ test('milestone admission rejects unjournaled drift during qualification and bef
     const file = kind === 'retained-proof' ? join(f.home, '.gatereeve-current/objects', ref.hash.slice(7))
       : kind === 'retained-job' ? join(f.home, '.gatereeve-current/jobs', `${receipt.jobId}.json`)
       : ['design', 'spec'].includes(kind) ? join(f.home, `${kind}.md`) : join(f.repo, 'app.js');
-    const bytes = await readFile(file), previous = process.env.GATEREEVE_ADMISSION_HOST_MODE;
+    const bytes = kind==='retained-job' ? await database(f.home,false,db=>db.prepare('SELECT body FROM jobs WHERE id=?').get(receipt.jobId).body) : await readFile(file), previous = process.env.GATEREEVE_ADMISSION_HOST_MODE;
     const change = async () => {
       if (kind === 'environment') process.env.GATEREEVE_ADMISSION_HOST_MODE = 'changed-after-proof';
+      else if (kind==='retained-job') await database(f.home,true,db=>db.prepare('UPDATE jobs SET body=NULL WHERE id=?').run(receipt.jobId));
       else if (kind.startsWith('retained-')) await rm(file);
       else {
         await writeFile(file, Buffer.concat([bytes, Buffer.from('\n// changed during admission\n')]));
@@ -2775,7 +2635,7 @@ test('milestone admission rejects unjournaled drift during qualification and bef
       assert.equal(during ?? after, null, `${timing} ${kind} mutation ran`);
       assert.equal((await f.core.state()).state.eventCount, state.eventCount, `${timing} ${kind} cannot record passage`);
     } finally {
-      if (kind === 'head') await git(f.repo, ['reset', '--hard', f.head]); else await writeFile(file, bytes);
+      if (kind === 'head') await git(f.repo, ['reset', '--hard', f.head]); else if(kind==='retained-job') await database(f.home,true,db=>db.prepare('UPDATE jobs SET body=? WHERE id=?').run(bytes,receipt.jobId)); else await writeFile(file, bytes);
       if (previous === undefined) delete process.env.GATEREEVE_ADMISSION_HOST_MODE; else process.env.GATEREEVE_ADMISSION_HOST_MODE = previous;
       during = null; after = null;
     }

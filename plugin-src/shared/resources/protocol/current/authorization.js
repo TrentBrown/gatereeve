@@ -123,7 +123,7 @@ export async function applyStanding(core, input, operation) {
   const validity = await standingValidity(core, state, grant, candidate, input.action);
   requireThat(validity.allowed, validity.reason);
   const check = await core.check('acceptance', state);
-  requireThat(check.allowed && check.outcomes.every(item => item.outcome === 'PASS'), 'Standing application requires current PASS evidence for every required gate', check);
+  requireThat(check.allowed && check.outcomes.every(item => item.required === false || item.outcome === 'PASS'), 'Standing application requires current PASS evidence for every required gate', check);
   if (input.action) {
     const { prepareMerge } = await import('./actions.js');
     requireThat(identity(await prepareMerge(core, input.action)) === identity(input.action), 'Standing application must bind the exact prepared merge action');

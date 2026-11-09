@@ -1,4 +1,4 @@
-import { metricsRequest, renderReport } from '../resources/performance/service.js';
+import { metricsRequest, renderReport, renderReevaluation } from '../resources/performance/service.js';
 // @ts-check
 
 import {
@@ -75,11 +75,11 @@ export function registerDesktopIpc({
     trusted(event);
     if(values.length!==1 || !values[0] || typeof values[0]!=='object')throw new Error('Expected metrics request');
     const {action,input={},...extra}=values[0];
-    if(Object.keys(extra).length || !['status','report','html','config','cleanup'].includes(action))throw new Error('Invalid metrics action');
-    const project=selectedProject();
+    if(Object.keys(extra).length || !['status','report','html','config','cleanup','capture','datasets','combine','snapshot-import','snapshot-export','legacy-import','reevaluate','reevaluation-html','analyze','databases'].includes(action))throw new Error('Invalid metrics action');
+    if(action==='reevaluation-html')return {html:renderReevaluation(await metricsRequest('reevaluate',input),'html')};
     if(action==='report'||action==='html') {
       if(Object.keys(input).some(key=>!['since','until','limit','offset'].includes(key)))throw new Error('Project metrics scope cannot be overridden');
-      const value=await metricsRequest('report',{...input,project:project.path});
+      const value=await metricsRequest('report',{...input,project:selectedProject().path});
       return action==='html'?{html:renderReport(value,'html')}:value;
     }
     return metricsRequest(action,input);

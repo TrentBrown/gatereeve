@@ -103,7 +103,7 @@ test('MCP requires handshake and management is disabled by default',async t=>{
   const {store}=await fixture(t);const session=createSession({store});const call=(id,method,params)=>session({jsonrpc:'2.0',id,method,params});
   assert.ok((await call(1,'tools/list')).error);
   await call(2,'initialize',{protocolVersion:'2025-06-18',clientInfo:{name:'test',version:'1'},capabilities:{}});await session({jsonrpc:'2.0',method:'notifications/initialized'});
-  const tools=(await call(3,'tools/list')).result.tools;assert.equal(tools.length,3);assert.ok(tools.every(t=>t.annotations.readOnlyHint));
+  const tools=(await call(3,'tools/list')).result.tools;assert.ok(tools.some(t=>t.name==='metrics_reevaluate'));assert.ok(!tools.some(t=>['metrics_config','metrics_cleanup','metrics_snapshot-import'].includes(t.name)));assert.ok(tools.filter(t=>['metrics_status','metrics_report','metrics_reevaluate','metrics_databases'].includes(t.name)).every(t=>t.annotations.readOnlyHint));
   assert.ok((await call(4,'tools/call',{name:'metrics_config',arguments:{enabled:false}})).error);
   const response=(await call(5,'tools/call',{name:'metrics_report',arguments:{limit:1}})).result;assert.deepEqual(response.structuredContent,await report({limit:1},store));
 });
@@ -165,7 +165,7 @@ test('unavailable importer timing remains visible after the import response is g
   await importMetrics('vitest',{testResults:[{name:'private'}]},{execution:'missing'},store);
   await importMetrics('playwright',{suites:[{specs:[{tests:[{results:[{status:'passed'}]}]}]}]},{execution:'missing'},store);
   await importMetrics('verification',{steps:[{command:'private'}]},{execution:'missing'},store);
-  const r=await report({},store);assert.equal(r.coverage.incomplete,5);assert.ok(r.coverage.gaps.some(g=>g.includes('unavailable timing')));assert.equal(r.totals.workerMs,0);
+  const r=await report({},store);assert.equal(r.coverage.incomplete,5);assert.ok(r.coverage.gaps.some(g=>g.includes('unavailable timing')));assert.equal(r.totals.workerMs,null);assert.equal(r.totals.observedElapsedMs,null);
 });
 test('Playwright retries remain separate idempotent attempts with recovered success',async t=>{
   const {store}=await fixture(t);const now=Date.now();

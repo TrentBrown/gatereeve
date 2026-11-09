@@ -90,3 +90,53 @@ The harness writes `artifacts/verification/<suite>.json`: `steps` include `start
 ### Adapter support boundary
 
 Initial support is structural, not a claim that every framework version is compatible: Node normalized `test:pass`/`test:fail` events; Vitest JSON `testResults` with suite start/end/status; Playwright JSON `suites/specs/tests/results` with startTime/duration/status and optional retry ordinal; GitHub REST jobs/steps with stable IDs, attempt identity and UTC timing. Retries without an ordinal use their position in that test's results. Missing timing produces durable incomplete observations; unsupported top-level shapes are rejected explicitly. Live Node reporter support is tested on the current Node 24 runtime. The fixtures define the supported JSON contract; validate a new producer shape before claiming its coverage. Pure CI queue time and release stage durations are unavailable when not supplied by the source.
+
+## Fixed fleet reevaluation (current/6)
+
+The shared user-local `metrics.sqlite` is the reporting store. Each issue/worktree
+has its own authoritative `.gatereeve-current/workflow.sqlite`. Reporting is a
+nonblocking projection: it can be incomplete or deleted without erasing workflow
+authority. Snapshots import reporting observations only, never approval state.
+
+- `gatereeve metrics capture --platform local --missing-source UpCloud` captures a
+  fixed local dataset with explicit missing-source disclosure.
+- `metrics snapshot-export <dataset>` and `snapshot-import <file>` move portable
+  JSON observations between machines without database synchronization.
+- `metrics combine <dataset>...` selects latest observed versions for overlapping
+  identities. Conflicting identity/time values reject; existing datasets stay fixed.
+- `metrics reevaluate --dataset <id> --format html` emits standalone HTML; JSON is
+  the default. Optional exact project/workflow/check/model/platform filters support
+  drill down. Unknown historical project labels stay unknown unless mapped.
+- `metrics analyze --dataset <id> --provider <provider> --model <model>` explicitly
+  requests cited hypotheses and experiments. It never edits policy. Deterministic
+  results remain available if the selected provider is unavailable.
+- `metrics datasets` lists source windows; `metrics databases` lists known local
+  stores, and `--workflow <id>` inspects one workflow's schema/health. CLI `database`
+  inspects the current workflow; `--history` exposes bounded structured history.
+
+MCP exposes corresponding `metrics_*` operations; imports/settings/cleanup require
+its explicit management capability. Desktop's all-project reevaluation section
+uses these same services and supports snapshot transfer, dataset combination,
+HTML drill downs, explicit analysis and database visibility. Normal refresh does
+not launch analysis or fetch remote data.
+
+Historical rc.23/rc.24 normalized exports can be imported through `legacy-import`
+with explicit `records`, `sourceId`, `platform`, `capturedAt` and optional verified
+project-ID `labels`. Copy only normalized JSON records; never transfer collector
+keys, environment values or raw logs. Remote capture times and missing sources
+are visible. Whole conversation/transcript capture and live fleet synchronization
+remain deferred. Artifact references leave room for future transcript links.
+
+Use `workflow-note <file>` to retain bounded strategy, friction, escaped-defect,
+disposition and artifact notes with reasons and finding/fix/reference links.
+These records are agent memory, never a decision constraint or authority source.
+The report distinguishes observed facts from analysis and unknown denominators;
+it does not claim complete time capture or that every repeated check was waste.
+
+Snapshot retention uses the shared metrics summary-retention setting. Explicit
+cleanup can expire old datasets and unreferenced reporting observations; it never
+removes authoritative workflow databases or retained evidence. Optional analysis
+uses a disclosed bounded sample (failures first, then long observations), cites
+record IDs, and remains an inference. A project filter accepts a displayed label
+or the exact project group ID; equal display names do not merge identities.
+Unknown timing stays unknown in aggregate work and elapsed totals.

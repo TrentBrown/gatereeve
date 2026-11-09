@@ -12,9 +12,9 @@ test('desktop resolves the parent record, observes current core and does not mut
   await adapter.resolve(f.repo);
   const before = (await f.core.state()).events;
   const snapshot = validateSnapshot(await adapter.snapshot(f.home));
-  assert.equal(snapshot.contract, 'gatereeve/current/5');
+  assert.equal(snapshot.contract, 'gatereeve/current/6');
   assert.equal(snapshot.current.phase, 'DESIGNING');
-  assert.equal(snapshot.obligations.some(item => item.id === 'judge'), true);
+  assert.equal(snapshot.obligations.some(item => item.id === 'review'), true);
   const detail = validateDetail(await adapter.read(f.home, 'artifact', 'design.md'));
   assert.match(detail.data.content, /Approved fixture/);
   assert.deepEqual((await f.core.state()).events, before);

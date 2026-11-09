@@ -27,12 +27,12 @@ export function validateCoverageDecisions(verdict, claims) {
   const decisions = verdict.coverageDecisions ?? [];
   requireThat(Array.isArray(decisions) && new Set(decisions.map(item => item.id)).size === decisions.length, 'Coverage decisions must have distinct identities');
   requireThat(decisions.every(item => claims.some(claim => claim.id === item.id)), 'Unknown coverage decision');
-  if (['spec', 'judge'].includes(verdict.gate)) {
+  if (['review', 'spec', 'judge'].includes(verdict.gate)) {
     requireThat(claims.every(claim => decisions.some(item => item.id === claim.id)), 'Assess every proposed coverage replacement');
     for (const decision of decisions) {
       text(decision.evidence, 'Coverage decision evidence');
       requireThat(['PASS', 'FAIL'].includes(decision.outcome), 'Invalid coverage decision outcome');
       requireThat(verdict.outcome !== 'PASS' || decision.outcome === 'PASS', 'Passing verdict contradicts rejected replacement coverage');
     }
-  } else requireThat(!decisions.length, 'Only spec and Judge assess coverage replacements');
+  } else requireThat(!decisions.length, 'Only acceptance assessments assess coverage replacements');
 }

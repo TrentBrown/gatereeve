@@ -2,6 +2,7 @@ import { constants } from 'node:fs';
 import { lstat, open, mkdir, readdir, link, unlink, realpath } from 'node:fs/promises';
 import { join, resolve, relative, sep, dirname, isAbsolute } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { database, projectEvent, historyRow, inspectDatabase } from './workflow-database.js';
 import { CONTRACT, HASH, canonical, digest, identity, identifier, requireThat } from './contracts.js';
 
 const MAX_BYTES = 64 * 1024 * 1024;
@@ -105,23 +106,14 @@ export class CurrentStore {
   }
   async saveView(id, value) {
     identifier(id, 'view');
-    requireThat(await publish(this.home, `${AREA}/views/${id}.json`, Buffer.from(canonical(value))), 'Review session already exists');
+    return database(this.home, true, db => {
+      requireThat(!db.prepare('SELECT id FROM views WHERE id=?').get(id), 'Review session already exists');
+      db.prepare('INSERT INTO views(id,body) VALUES (?,?)').run(id, canonical(value));
+    });
   }
-  async finishView(id) {
-    identifier(id, 'view');
-    await publish(this.home, `${AREA}/views/${id}.closed`, Buffer.from('closed'));
-  }
+  async finishView(id) { identifier(id, 'view'); await database(this.home, true, db => db.prepare('UPDATE views SET closed=1 WHERE id=?').run(id)); }
   async openViews() {
-    let names;
-    try { const dir = join(this.home, AREA, 'views'); const info = await lstat(dir); requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Unsafe review session directory'); names = await readdir(dir); }
-    catch (error) { if (error.code === 'ENOENT') return []; throw error; }
-    const views = [];
-    for (const name of names.filter(name => name.endsWith('.json'))) {
-      const id = name.slice(0, -5); identifier(id, 'view');
-      if (names.includes(`${id}.closed`)) { await readSafe(this.home, `${AREA}/views/${id}.closed`); continue; }
-      views.push({ id, ...JSON.parse((await readSafe(this.home, `${AREA}/views/${name}`)).toString()) });
-    }
-    return views;
+    return await database(this.home, false, db => db.prepare('SELECT id,body FROM views WHERE closed=0').all().map(row => ({ id: row.id, ...JSON.parse(row.body) }))) ?? [];
   }
   async put(bytes) {
     const data = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
@@ -168,148 +160,114 @@ export class CurrentStore {
     await this.get(ref);
     return bytes;
   }
-  async mirrored(path, mirror) {
+  // Read old activation pointers only to preserve provenance on explicit resume.
+  // No old events are interpreted, repaired or copied into new authority.
+  async legacyActivation() {
     const read = async path => { try { return await readSafe(this.home, path); } catch (error) { if (error.code === 'ENOENT') return null; throw error; } };
-    const [primary, witness] = await Promise.all([read(path), read(mirror)]);
-    requireThat(!primary || !witness || primary.equals(witness), 'Conflicting retained journal copies; restore verified exact bytes');
-    return { path, mirror, primary, witness, bytes: primary ?? witness };
-  }
-  async restoreCopies(copies) {
-    for (const copy of copies) for (const path of [copy.path, copy.mirror]) {
-      if (!await publish(this.home, path, copy.bytes)) requireThat((await readSafe(this.home, path)).equals(copy.bytes), 'Conflicting retained journal copies');
-    }
-  }
-  async activationHead({ repair = false } = {}) {
-    let copy = await this.mirrored(`${AREA}/active.json`, `${AREA}/active-witness.json`);
-    if (!copy.bytes) return null;
-    const seen = new Set(), repairs = [];
-    let previous = null;
+    let pair = [`${AREA}/active.json`, `${AREA}/active-witness.json`];
+    const seen = new Set();
+    let head = null;
     while (true) {
-      const bytes = copy.bytes, hash = digest(bytes), value = JSON.parse(bytes.toString());
+      const [a, b] = await Promise.all(pair.map(read));
+      requireThat(!a || !b || a.equals(b), 'Conflicting retained journal copies; restore verified exact bytes');
+      const bytes = a ?? b;
+      if (!bytes) return head;
+      const hash = digest(bytes);
       requireThat(!seen.has(hash), 'Cyclic active reference'); seen.add(hash);
-      // Unsupported activation records remain opaque provenance for explicit
-      // resume. Only the current contract can confer active-run authority.
-      if (value.contract === CONTRACT) {
-        identifier(value.runId, 'active run');
-        if (previous) {
-          requireThat(value.previous?.hash === previous.hash, 'Invalid activation successor');
-          await this.get(value.previous);
-        }
-        requireThat(repair || copy.primary && copy.witness, 'Missing activation copy; retry a mutating operation to restore retained exact bytes');
-        if (!copy.primary || !copy.witness) repairs.push(copy);
-      }
-      // Unsupported records may have one or two retained copies. mirrored()
-      // already rejects unequal bytes; matching copies are opaque provenance,
-      // never authority, and explicit resume retains them without interpretation.
-      const next = await this.mirrored(`${AREA}/activations/${hash.slice(7)}.json`, `${AREA}/activation-witnesses/${hash.slice(7)}.json`);
-      if (!next.bytes) { if (repair) await this.restoreCopies(repairs); return { bytes, hash }; }
-      previous = { hash }; copy = next;
+      head = { bytes, hash };
+      pair = [`${AREA}/activations/${hash.slice(7)}.json`, `${AREA}/activation-witnesses/${hash.slice(7)}.json`];
     }
+  }
+  async activationHead() {
+    const value = await database(this.home, false, db => db.prepare("SELECT value FROM metadata WHERE key='active'").get()?.value ?? null);
+    return value ? { bytes: Buffer.from(value), hash: digest(Buffer.from(value)) } : this.legacyActivation();
   }
   async active() {
-    const head = await this.activationHead();
-    if (!head) return null;
-    const value = JSON.parse(head.bytes.toString('utf8'));
-    requireThat(value.contract === CONTRACT, 'Unsupported current record; resume-current establishes a fresh run while preserving history');
-    identifier(value.runId, 'active run');
-    return { contract: value.contract, runId: value.runId };
+    const value = await database(this.home, false, db => db.prepare("SELECT value FROM metadata WHERE key='active'").get()?.value ?? null);
+    if (!value) {
+      requireThat(!await this.legacyActivation(), 'Unsupported current record; resume-current establishes a fresh run while preserving history');
+      return null;
+    }
+    const active = JSON.parse(value);
+    requireThat(active.contract === CONTRACT, 'Unsupported current record; explicit resumption required');
+    identifier(active.runId, 'active run');
+    return active;
   }
   async supersedeActive(runId, previous) {
-    identifier(runId, 'replacement run');
-    const events = await this.events(runId);
-    requireThat(events[0]?.type === 'STARTED', 'Replacement run is not durable');
-    const head = await this.activationHead({ repair: true });
-    if (head.hash !== previous.hash) {
-      requireThat((await this.active()).runId === runId, 'Concurrent activation selected another run');
-      return;
-    }
-    const retained = await this.put(head.bytes);
-    const value = { contract: CONTRACT, runId, previous: retained };
-    const path = `${AREA}/activations/${head.hash.slice(7)}.json`;
-    await this.restoreCopies([{ path: `${AREA}/activation-witnesses/${head.hash.slice(7)}.json`, mirror: path, bytes: Buffer.from(canonical(value)) }]);
-    if (!await publish(this.home, path, Buffer.from(canonical(value)))) {
-      requireThat((await this.active()).runId === runId, 'Concurrent activation selected another run');
-    }
+    const head = await this.activationHead();
+    requireThat(head?.hash === previous.hash || (await this.active())?.runId === runId, 'Concurrent activation selected another run');
+    const retained = await this.put(previous.bytes);
+    return this.activate(runId, retained, previous.hash);
   }
-  async activate(runId) {
+  async activate(runId, previous = null, expectedActive = null) {
     identifier(runId, 'run');
-    const events = await this.events(runId);
-    requireThat(events.length > 0 && events[0].type === 'STARTED', 'Cannot activate an incomplete run');
-    const value = { contract: CONTRACT, runId };
-    await this.restoreCopies([{ path: `${AREA}/active-witness.json`, mirror: `${AREA}/active.json`, bytes: Buffer.from(canonical(value)) }]);
-    if (!await publish(this.home, `${AREA}/active.json`, Buffer.from(canonical(value)))) {
-      requireThat((await this.active()).runId === runId, 'Another current run is already active');
-    }
-    return value;
+    return database(this.home, true, db => {
+      const first = db.prepare('SELECT body FROM events WHERE run_id=? AND sequence=1').get(runId);
+      requireThat(first && JSON.parse(first.body).type === 'STARTED', 'Cannot activate an incomplete run');
+      const existing = db.prepare("SELECT value FROM metadata WHERE key='active'").get();
+      requireThat(!existing || JSON.parse(existing.value).runId === runId || (expectedActive && digest(Buffer.from(existing.value)) === expectedActive), 'Another current run is already active');
+      const value = { contract: CONTRACT, runId, ...(previous ? { previous } : {}) };
+      db.prepare("INSERT INTO metadata(key,value) VALUES ('active',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(canonical(value));
+      return value;
+    });
   }
   async claimJob(jobId) {
     identifier(jobId, 'job');
-    return publish(this.home, `${AREA}/claims/${jobId}.json`, Buffer.from(canonical({ jobId })));
+    return database(this.home, true, db => db.prepare('INSERT OR IGNORE INTO jobs(id,claimed) VALUES (?,1)').run(jobId).changes === 1);
   }
   async saveJob(jobId, value) {
     identifier(jobId, 'job');
-    const path = `${AREA}/jobs/${jobId}.json`;
-    if (!await publish(this.home, path, Buffer.from(canonical(value)))) {
-      requireThat(identity(await this.job(jobId)) === identity(value), 'Conflicting retained job result');
-    }
+    // Read retained artifacts before beginning the transaction.
+    const results = await Promise.all((value.results ?? []).map(async ref => ({ ref, result: await this.json(ref) })));
+    return database(this.home, true, db => {
+      const old = db.prepare('SELECT body FROM jobs WHERE id=?').get(jobId)?.body;
+      requireThat(!old || old === canonical(value), 'Conflicting retained job result');
+      if (old) return;
+      db.prepare('INSERT INTO jobs(id,claimed,body) VALUES (?,1,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body').run(jobId, canonical(value));
+      const recordedAt = new Date().toISOString();
+      for (const { ref, result } of results) {
+        historyRow(db, { id: `${jobId}:${ref.hash}`, runId: value.runId, kind: 'assessment', recordedAt, source: 'execution', body: { reference: ref, ...result } });
+        for (const [index, finding] of (result.findings ?? []).entries()) historyRow(db, { id: `${jobId}:${ref.hash}:finding:${index}`, runId: value.runId, kind: 'finding', recordedAt, source: 'reviewer', body: { ...finding, assessment: ref } });
+        for (const [index, disposition] of (result.dispositions ?? []).entries()) historyRow(db, { id: `${jobId}:${ref.hash}:disposition:${index}`, runId: value.runId, kind: 'disposition', recordedAt, source: 'reviewer', body: { ...disposition, assessment: ref } });
+      }
+    });
   }
   async job(jobId) {
     identifier(jobId, 'job');
-    try { return JSON.parse((await readSafe(this.home, `${AREA}/jobs/${jobId}.json`)).toString()); }
-    catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+    return database(this.home, false, db => JSON.parse(db.prepare('SELECT body FROM jobs WHERE id=?').get(jobId)?.body ?? 'null'));
   }
-  async events(runId, { repair = false } = {}) {
+  async events(runId) {
     identifier(runId, 'run');
-    const dir = `${AREA}/runs/${runId}/events`, witnesses = `${AREA}/runs/${runId}/event-witnesses`;
-    const namesAt = async path => {
-      try {
-        const info = await lstat(join(this.home, path));
-        requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Unsafe event directory');
-        return (await readdir(join(this.home, path))).filter(name => /^\d{8}\.json$/u.test(name));
-      } catch (error) { if (error.code === 'ENOENT') return []; throw error; }
-    };
-    const names = [...new Set([...(await namesAt(dir)), ...(await namesAt(witnesses))])].sort();
-    const result = [], repairs = [];
-    for (const name of names) {
-      const copy = await this.mirrored(`${dir}/${name}`, `${witnesses}/${name}`);
-      requireThat(copy.bytes, 'Current journal disappeared during observation');
-      const record = JSON.parse(copy.bytes.toString('utf8')), { hash, ...event } = record;
-      requireThat(event.contract === CONTRACT && event.runId === runId && event.sequence === result.length + 1
-        && name === `${String(event.sequence).padStart(8, '0')}.json`
-        && event.previous === (result.at(-1)?.hash ?? null) && hash === identity(event), 'Current journal integrity failure');
-      identifier(event.operation?.id, 'journal operation');
-      requireThat(HASH.test(event.operation?.hash), 'Invalid journal operation binding');
-      requireThat(repair || copy.primary && copy.witness, 'Missing journal copy; retry a mutating operation to restore retained exact bytes');
-      if (!copy.primary || !copy.witness) repairs.push(copy);
-      result.push(record);
-    }
-    // Validate the complete retained chain before restoring any missing copy.
-    if (repair) await this.restoreCopies(repairs);
-    return result;
+    return await database(this.home, false, db => {
+      let previous = null;
+      return db.prepare('SELECT body FROM events WHERE run_id=? ORDER BY sequence').all(runId).map((row, index) => {
+        const event = JSON.parse(row.body), { hash, ...body } = event;
+        requireThat(event.contract === CONTRACT && event.runId === runId && event.sequence === index + 1
+          && event.previous === previous && identity(body) === hash, 'Workflow event integrity failure');
+        previous = hash; return event;
+      });
+    }) ?? [];
   }
   async append(runId, expected, type, payload, operation) {
-    identifier(operation.id, 'operation');
+    identifier(runId, 'run'); identifier(operation.id, 'operation');
     requireThat(HASH.test(operation.hash), 'Operation must bind its request');
-    const events = await this.events(runId, { repair: true });
-    const existing = events.find(item => item.operation.id === operation.id);
-    if (existing) {
-      requireThat(existing.operation.hash === operation.hash, 'Operation identity reused for different input');
-      return existing;
-    }
-    requireThat(events.length === expected, 'Concurrent update; inspect current state and retry the same operation');
-    const event = { contract: CONTRACT, runId, sequence: expected + 1,
-      previous: events.at(-1)?.hash ?? null, type, payload, operation, recordedAt: new Date().toISOString() };
-    let record = { ...event, hash: identity(event) };
-    const name = `${String(event.sequence).padStart(8, '0')}.json`;
-    const path = `${AREA}/runs/${runId}/events/${name}`, mirror = `${AREA}/runs/${runId}/event-witnesses/${name}`;
-    if (!await publish(this.home, mirror, Buffer.from(canonical(record)))) {
-      const winner = JSON.parse((await readSafe(this.home, mirror)).toString());
-      const { hash, ...body } = winner;
-      requireThat(hash === identity(body) && winner.runId === runId && winner.sequence === event.sequence && winner.previous === event.previous
-        && winner.operation.id === operation.id && winner.operation.hash === operation.hash, 'Concurrent update; inspect current state and retry the same operation');
-      record = winner;
-    }
-    if (!await publish(this.home, path, Buffer.from(canonical(record)))) requireThat((await readSafe(this.home, path)).equals(Buffer.from(canonical(record))), 'Conflicting retained journal copies');
-    return record;
+    return database(this.home, true, db => {
+      const found = db.prepare('SELECT body FROM events WHERE run_id=? AND operation_id=?').get(runId, operation.id);
+      if (found) { const event = JSON.parse(found.body); requireThat(event.operation.hash === operation.hash, 'Operation identity reused for different input'); return event; }
+      const previous = db.prepare('SELECT sequence,body FROM events WHERE run_id=? ORDER BY sequence DESC LIMIT 1').get(runId);
+      requireThat((previous?.sequence ?? 0) === expected, 'Concurrent update; inspect current state and retry the same operation');
+      const event = { contract: CONTRACT, runId, sequence: expected + 1, previous: previous ? JSON.parse(previous.body).hash : null,
+        type, payload, operation, recordedAt: new Date().toISOString() };
+      const record = { ...event, hash: identity(event) };
+      db.prepare('INSERT INTO events VALUES (?,?,?,?)').run(runId, record.sequence, operation.id, canonical(record));
+      projectEvent(db, record);
+      return record;
+    });
   }
+  async history({ runId, kind, limit = 100, offset = 0 } = {}) {
+    requireThat(Number.isInteger(limit) && limit >= 0 && limit <= 1000 && Number.isInteger(offset) && offset >= 0, 'Invalid history bounds');
+    return await database(this.home, false, db => db.prepare('SELECT * FROM history WHERE (? IS NULL OR run_id=?) AND (? IS NULL OR kind=?) ORDER BY recorded_at,id LIMIT ? OFFSET ?')
+      .all(runId ?? null, runId ?? null, kind ?? null, kind ?? null, limit, offset).map(row => ({ ...row, body: JSON.parse(row.body) }))) ?? [];
+  }
+  async inspect() { return inspectDatabase(this.home); }
 }

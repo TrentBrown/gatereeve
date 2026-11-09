@@ -4,12 +4,14 @@ Read `<plugin-root>/resources/PROTOCOL.md` for the current operation/input contr
 
 Prepare a pinned candidate from clean application source and current approved
 requirements. Declare readiness explicitly; this launches no evaluator. Choose
-the order of requested checks and reviews. Request substantive checks through `gate.execute`; spec and Judge consume actual Verification evidence.
-One fresh execution may return separate code, spec, reconciliation and triage verdicts.
-Context, packet and retention are checked automatically at their milestone. Judge remains
-separate. Reuse applicable proof or request targeted independent delta review
-covering changed code and interactions. Preserve supported new findings.
-Reconcile records, triage decisions, produce the explanation and validate packet
+the order of focused checks and independent reviews. `review` consumes actual
+Verification and assesses code, every criterion, CI/local alternative scope,
+project rules, material decisions and all relevant findings in one fresh context.
+Use additional models/reviews when risk, uncertainty or prior misses justify them.
+Context, packet and retention are checked automatically at their milestone.
+Reuse qualifying proof or request targeted independent delta review covering
+changed code and interactions. Preserve original failures and supported findings.
+Include the human explanation in the review summary and validate packet
 reference closure. `milestone.check/pass` acceptance enforces required proof or
 scoped exceptions. Present exact candidate and risks for human acceptance unless
 an applicable recorded standing acceptance grant already covers this work.

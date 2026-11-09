@@ -1,3 +1,5 @@
+import { basename } from 'node:path';
+import { projectWorkflow } from '../../performance/workflow-projection.js';
 import { observe } from '../../performance/observe.js';
 import { checkIdentity } from './coverage.js';
 import { protectedMerge, resumeDelivery } from './delivery.js';
@@ -5,8 +7,7 @@ import { observeReleaseConductor } from '../../release/release-conductor-observe
 import { workflowContextGuard } from '../context.js';
 import { ContractError } from '../errors.js';
 import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
-import { executionEnvironment, assertEnvironmentCurrent, restoreComparisonIndexes, releaseComparisonIndexes } from './environment.js';
-import { observationEpochs, withObservationEpochs } from './fingerprint-cache.js';
+import { executionEnvironment, assertEnvironmentCurrent } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
 import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, requireThat, identity,
@@ -63,6 +64,7 @@ export function project(events) {
         if (value.name === 'completion') { state.phase = 'COMPLETE'; state.sourceCleanup = { status: 'pending', errors: [{ reason: 'Completion recorded; owned source reference release has not been reconciled.' }] }; }
         break;
       case 'INTEGRATED': state.integrated = value; state.integrations[value.repository] = value; state.phase = 'INTEGRATED'; break;
+      case 'OBSERVATION': break; // Agent memory; never grants authority.
       case 'PAUSED': state.paused = true; break;
       case 'RESUMED': state.paused = false; break;
       default: throw new Error(`Unsupported current event: ${event.type}`);
@@ -72,7 +74,7 @@ export function project(events) {
   return state;
 }
 function enabled(state, at) {
-  return GATES.filter(item => item.at === at && (!item.optional || state.optionalGates.includes(item.id)));
+  return GATES.filter(item => item.at === at && (!item.supplemental && (!item.optional || state.optionalGates.includes(item.id))));
 }
 function findDecision(state, kind, subject) {
   if (kind === 'authorize-implementation') {
@@ -155,7 +157,7 @@ export class CurrentCore {
         history: 'preserved without replay', documents,
         authority: transitioned.decisions.map(item => ({ event: item.event, kind: item.kind, subject: item.subject, authority: item.authority })),
         priorActivation: replacement ? { hash: replacement.hash } : null,
-        evidence: replacement || !active ? { reused: [], refreshRequired: GATES.filter(item => !item.optional || transitioned.optionalGates.includes(item.id)).map(item => item.id),
+        evidence: replacement || !active ? { reused: [], refreshRequired: GATES.filter(item => !item.supplemental && (!item.optional || transitioned.optionalGates.includes(item.id))).map(item => item.id),
           reason: 'Historical proof lacks the current checker/environment contract. No new execution is inferred.' }
           : { retained: transitioned.results, reason: 'Same-contract evidence remains subject to normal applicability; resume does not rerun it.' } },
       { id: childId('transition'), hash: identity({ run: transitioned.runId, contract: CONTRACT }) });
@@ -343,7 +345,9 @@ export class CurrentCore {
   }
   async inventory(state, candidate, memo = new Map()) {
     const inventory = [];
-    for (const definition of this.obligations(state, 'acceptance').filter(item => item.id !== 'packet')) {
+    const supplemental = new Set([...Object.values(state.jobs).flatMap(job => job.gates ?? []), ...state.decisions.flatMap(item => item.gates ?? [])]);
+    const definitions = [...this.obligations(state, 'acceptance'), ...GATES.filter(item => item.supplemental && supplemental.has(item.id))];
+    for (const definition of definitions.filter(item => item.id !== 'packet')) {
       let reference = null, result = null;
       for (const ref of [...state.results].reverse()) {
         let raw;
@@ -381,7 +385,7 @@ export class CurrentCore {
       let report, inputs;
       try {
         report = await this.store.json(ref);
-        if (!['spec', 'judge'].includes(report.gate) || report.outcome !== 'PASS') continue;
+        if (!['review', 'spec', 'judge'].includes(report.gate) || report.outcome !== 'PASS') continue;
         inputs = await this.store.json(report.input);
         if (!(inputs.coverageClaims ?? []).length) continue;
         await this.currentResult(ref, candidate, state, new Set(), memo, false);
@@ -512,8 +516,7 @@ export class CurrentCore {
     for (const ref of inputs.support ?? []) await this.store.currentBytes(ref);
     const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
     // Qualification may share the operation's observation; guards re-observe.
-    if (!memo.has(environmentKey)) memo.set(environmentKey, executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner', process.env, { retainDiagnostics: false, freshAfter: 0 }));
-    await restoreComparisonIndexes(this.context, inputs.environment);
+    if (!memo.has(environmentKey)) memo.set(environmentKey, executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner', process.env));
     assertEnvironmentCurrent(inputs.environment, await memo.get(environmentKey));
     if (gate(result.gate).at === 'completion') requireThat(identity(inputs.integrations) === identity(state.integrations), 'Integration source changed');
     if (inputs.validUntil) requireThat(Date.now() <= Date.parse(inputs.validUntil), 'External evidence validity expired');
@@ -566,7 +569,7 @@ export class CurrentCore {
       'Shared release identity or mutable provider facts no longer qualify');
     }
   }
-  async waiverRisk(state, candidate, id, freshAfter = 0) {
+  async waiverRisk(state, candidate, id) {
     let inputs = { configuration: null, consumed: [], support: [] }, findings = [];
     for (const ref of [...state.results].reverse()) {
       const report = await this.store.json(ref); if (report.gate !== id) continue;
@@ -592,20 +595,17 @@ export class CurrentCore {
       }
       const validators = ['reconcile', 'triage'].includes(gateId) ? [await planningBinding()] : [];
       return identity({ validators, configuration: input.configuration, dependencies, support, rule: reviewContract([gateId]),
-        pattern: gateId === 'pattern' ? await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false, allowMissing: true }) : null,
+        pattern: ['review', 'pattern'].includes(gateId) ? await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false, allowMissing: true }) : null,
         externalValidity: !input.validUntil || Date.now() <= Date.parse(input.validUntil),
         integrations: gate(gateId).at === 'completion' ? state.integrations : null,
         historyGaps: gaps.filter(gap => gap.gate === null || gap.gate === gateId),
-        environment: await executionEnvironment(this.context, candidate, input.configuration ?? {}, gate(gateId).role === 'runner', process.env, { freshAfter }) });
+        environment: await executionEnvironment(this.context, candidate, input.configuration ?? {}, gate(gateId).role === 'runner', process.env) });
     };
     return identity({ findings, execution: await scope(id, inputs) });
   }
   async assertLiveInputs(state, name, liveInputs) {
     const admission = admissions.get(liveInputs);
     requireThat(admission, 'Missing in-process milestone input qualification');
-    // Observe only in an epoch created after this guard began. Guards share
-    // an epoch only when it started after each of them.
-    const freshAfter = observationEpochs()?.mark();
     // Recheck the inputs of proofs already qualified above. Do not rerun gates
     // or the recursive history/coverage assessment. Each environment/closure is
     // freshly read once per final guard, never reused from earlier qualification.
@@ -620,9 +620,8 @@ export class CurrentCore {
       for (const support of inputs.support ?? []) await this.store.currentBytes(support);
       const environmentKey = identity({ configuration: inputs.configuration, source: contentIdentity(candidate), runner: definition.role === 'runner' });
       if (!environments.has(environmentKey)) environments.set(environmentKey,
-        await executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner', process.env, { retainDiagnostics: false, freshAfter }));
-      await restoreComparisonIndexes(this.context, inputs.environment);
-      assertEnvironmentCurrent(inputs.environment, environments.get(environmentKey), 'Execution environment changed during milestone validation');
+        await executionEnvironment(this.context, candidate, inputs.configuration, definition.role === 'runner', process.env));
+        assertEnvironmentCurrent(inputs.environment, environments.get(environmentKey), 'Execution environment changed during milestone validation');
       if (inputs.pattern) {
         const key = contentIdentity(candidate);
         if (!patterns.has(key)) patterns.set(key, await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false }));
@@ -643,7 +642,7 @@ export class CurrentCore {
       const candidate = await this.store.json(state.candidate);
       for (const outcome of admission.exceptions) {
         const waiver = waiverFor(state, outcome.id, state.candidate.hash, contentIdentity(candidate),
-          await this.waiverRisk(state, candidate, outcome.id, freshAfter), outcome.result ? await this.store.json(outcome.result) : null);
+          await this.waiverRisk(state, candidate, outcome.id), outcome.result ? await this.store.json(outcome.result) : null);
         requireThat(waiver && identity(waiver) === identity(outcome.exception), 'Exception applicability changed during milestone validation');
         if (waiver.waiverBasis) await this.store.get(waiver.waiverBasis.evidence);
       }
@@ -660,6 +659,9 @@ export class CurrentCore {
     requireThat(admission?.deadlines?.every(deadline => Date.now() <= deadline), 'External evidence validity expired');
   }
   async check(name, proposedState = null, memo = new Map()) {
+    return observe({category:'verification',label:'proof-qualification',worker:true,project:this.context.workspaceRoot,feature:this.context.featureId}, () => this.checkObserved(name,proposedState,memo));
+  }
+  async checkObserved(name, proposedState = null, memo = new Map()) {
     requireThat(MILESTONES.includes(name), 'Unknown milestone');
     const state = proposedState ?? (await this.state()).state;
     if (state.phase === 'COMPLETE' && name === 'completion') {
@@ -703,7 +705,9 @@ export class CurrentCore {
     } catch (error) { missing.push(error.message); }
     if (name !== 'completion' && !state.ready) missing.push('candidate readiness declaration');
     const outcomes = [];
-    const definitions = [...enabled(state, 'acceptance'), ...(name === 'completion' ? enabled(state, 'completion') : [])];
+    const selectedSupplemental = new Set([...Object.values(state.jobs).flatMap(job => job.gates ?? []), ...state.decisions.flatMap(item => item.gates ?? [])]);
+    const definitions = [...enabled(state, 'acceptance'), ...(name === 'completion' ? enabled(state, 'completion') : []),
+      ...GATES.filter(item => item.supplemental && selectedSupplemental.has(item.id))];
     for (const definition of definitions) {
       let accepted = null;
       let acceptedRef = null;
@@ -731,8 +735,8 @@ export class CurrentCore {
         catch (failure) { waiver = null; error = `Exception scope is unavailable: ${failure.message}`; }
       }
       const satisfied = accepted?.outcome === 'PASS' || waiver;
-      if (!satisfied) missing.push(`${definition.id}: ${accepted?.outcome ?? error ?? 'missing evidence'}`);
-      outcomes.push({ id: definition.id, result: acceptedRef, reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied), ...(definition.role === 'core' ? { administrative: accepted } : {}) });
+      if (!satisfied && !definition.supplemental) missing.push(`${definition.id}: ${accepted?.outcome ?? error ?? 'missing evidence'}`);
+      outcomes.push({ id: definition.id, required: !definition.supplemental, result: acceptedRef, reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied), ...(definition.role === 'core' ? { administrative: accepted } : {}) });
     }
     if (candidate && outcomes.some(item => item.id === 'verification' && item.outcome === 'PASS')) {
       try { await this.verificationCoverage(candidate, state, memo); } catch (error) { missing.push(error.message); }
@@ -741,13 +745,13 @@ export class CurrentCore {
       const acceptances = await qualifyingDecisions(this, state, 'accept', state.candidate?.hash, candidate);
       if (!acceptances.length) missing.push('current human acceptance');
       if (acceptances.length && acceptances.every(item => item.standingGrant)
-        && outcomes.some(item => item.outcome !== 'PASS')) missing.push('standing acceptance requires every required gate to PASS');
+        && outcomes.some(item => item.required !== false && item.outcome !== 'PASS')) missing.push('standing acceptance requires every required gate to PASS');
     }
     if (name === 'merge') {
       const authorizations = await qualifyingDecisions(this, state, 'authorize-merge', state.candidate?.hash, candidate);
       if (!authorizations.length) missing.push('explicit merge authorization');
       if (authorizations.length && authorizations.every(item => item.standingGrant)
-        && outcomes.some(item => item.outcome !== 'PASS')) missing.push('standing merge requires every required gate to PASS');
+        && outcomes.some(item => item.required !== false && item.outcome !== 'PASS')) missing.push('standing merge requires every required gate to PASS');
     }
     if (name === 'completion') {
       if (candidate?.scope !== 'FEATURE') missing.push('complete-feature review scope');
@@ -828,7 +832,7 @@ export class CurrentCore {
         : candidateUnavailable ? { allowed: false, reason: 'Current candidate evidence is unavailable or invalid' }
           : await standingValidity(this, state, grant, candidate, null, { allowIntegratedTargets: true })),
     })));
-    return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.optional || state.optionalGates.includes(item.id)),
+    return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.supplemental && (!item.optional || state.optionalGates.includes(item.id))),
       enforcement: ENFORCEMENT, milestones: await Promise.all(MILESTONES.map(name => this.check(name, null, memo))) };
   }
   async coverageStatus() {
@@ -840,7 +844,7 @@ export class CurrentCore {
     const assessments = new Map(), memo = new Map();
     for (const ref of [...state.results].reverse()) {
       const report = await this.store.json(ref);
-      if (!['spec', 'judge'].includes(report.gate) || assessments.has(report.gate)) continue;
+      if (!['review', 'spec', 'judge'].includes(report.gate) || assessments.has(report.gate)) continue;
       try { assessments.set(report.gate, { reference: ref, result: await this.currentResult(ref, candidate, state, new Set(), memo) }); }
       catch { /* Missing/stale assessment cannot assert coverage. */ }
     }
@@ -887,33 +891,39 @@ export class CurrentCore {
     const pending = Object.values(state.jobs).some(job => !job.finished);
     const result = pending ? { status: 'pending', errors: [{ reason: 'Active or unresolved jobs still own source references' }] }
       : await releasePins(this.context, state.sourcePreparations);
-    if (!pending && result.status === 'released') {
-      try { await releaseComparisonIndexes(this.context); }
-      catch (error) { result.status = 'pending'; result.errors = [...(result.errors ?? []), { reason: `Diagnostic cleanup: ${error.message}` }]; }
-    }
     if (identity(result) !== identity(state.sourceCleanup)) await this.append((await this.state()).state, 'SOURCE_CLEANUP', result,
       { id: `cleanup_${randomUUID()}`, hash: identity(result) });
   }
   async execute(request) {
     const operation = typeof request?.operation === 'string' ? request.operation : 'unknown';
+    if (['database.inspect','database.history'].includes(operation)) return this.executeObserved(request);
     const label = operation === 'human.decide' ? request.input?.kind
       : operation === 'milestone.pass' ? `milestone:${request.input?.name}` : operation;
     const category = operation.startsWith('merge.') || operation.startsWith('integration.') ? 'delivery'
       : operation === 'candidate.prepare' ? 'setup' : 'operation';
-    return observe({ project: this.context.workspaceRoot, feature: this.context.featureId,
-      label, category, command: operation, worker: false }, () => withObservationEpochs(() => this.executeObserved(request)));
+    const activeRun = (await this.store.active().catch(()=>null))?.runId ?? request.input?.runId;
+    return observe({ project: this.context.workspaceRoot, feature: this.context.featureId, workflow: activeRun ? `${this.store.home}:${activeRun}` : undefined,
+      display: {project:basename(this.context.workspaceRoot),issue:this.context.featureId,contract:CONTRACT,
+        ...(operation==='gate.execute'?{check:request.input.gates?.join(',')??'unknown',validator:request.input.gates?.some(id=>['independent','assessment'].includes(gate(id).role))?'agentic':'deterministic',
+          ...(request.input.configuration?.model?{model:request.input.configuration.model}:{}),...(request.input.configuration?.provider?{provider:request.input.configuration.provider}:{})}:{} )},
+      label, category, command: operation, worker: false }, async () => {
+      try { return await this.executeObserved(request); }
+      finally { if (!['status','snapshot','database.inspect','database.history','milestone.check','coverage.status'].includes(operation)) await projectWorkflow(this); }
+    });
   }
   async executeObserved(request) {
     const input = request.input ?? {};
     const operation = { id: request.operationId ?? randomUUID(), hash: identity({ operation: request.operation, input }) };
-    const mutating = !['status', 'snapshot', 'milestone.check', 'coverage.status'].includes(request.operation);
+    const mutating = !['status', 'snapshot', 'database.inspect', 'database.history', 'milestone.check', 'coverage.status'].includes(request.operation);
     if (mutating) { await this.assertContext(); await this.store.activationHead({ repair: true }); }
+    if (request.operation === 'database.inspect') return this.store.inspect();
+    if (request.operation === 'database.history') return this.store.history(input);
     if (request.operation === 'run.resume-current') return this.resume(input, operation);
     // Restore exact retained copies and record completed original jobs before
     // current candidate/phase preflight; neither action invents a passed check.
     const active = await this.store.active();
     if (active) {
-      if (mutating) { await this.store.events(active.runId, { repair: true }); await this.reconcileCompletedJobs(); await cleanupViews(this.store, (await this.state()).state); await this.cleanupSource(); }
+      if (mutating) { await this.store.events(active.runId, { repair: true }); await this.reconcileCompletedJobs(); await observe({category:'setup',label:'review-view-cleanup',worker:true}, async () => cleanupViews(this.store, (await this.state()).state)); await this.cleanupSource(); }
       const existing = (await this.store.events(active.runId)).find(event => event.operation.id === operation.id);
       if (existing) {
         requireThat(existing.operation.hash === operation.hash, 'Operation identity reused for different input');
@@ -929,6 +939,16 @@ export class CurrentCore {
       case 'spec.validate': return this.validateSpec(operation);
       case 'candidate.prepare': return this.prepare(input, operation);
       case 'candidate.ready': return this.readiness(operation);
+      case 'workflow.observe': {
+        requireThat(input && Object.keys(input).every(key => ['kind','strategy','reason','outcome','findingId','fixId','links','limitation'].includes(key)), 'Unsupported workflow observation');
+        requireThat(['strategy','friction','escaped-defect','disposition','artifact'].includes(input.kind), 'Unsupported workflow observation kind');
+        for (const [key,value] of Object.entries(input)) {
+          if (key === 'links') requireThat(Array.isArray(value) && value.length <= 32 && value.every(item => typeof item === 'string' && item.length <= 1024), 'Invalid observation links');
+          else requireThat(typeof value === 'string' && value.length > 0 && value.length <= 1024, 'Invalid observation value');
+        }
+        const { state } = await this.state();
+        return this.append(state, 'OBSERVATION', input, operation);
+      }
       case 'gate.execute': return executeGates(this, input, operation);
       case 'milestone.check': return this.check(input.name);
       case 'milestone.pass': return this.pass(input.name, operation);

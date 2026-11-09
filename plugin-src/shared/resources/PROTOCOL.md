@@ -2,7 +2,7 @@
 
 `resources/protocol/plugin-adapter.js` is the authoritative native adapter.
 The optional `gatereeve` CLI and desktop read the same current contract,
-`gatereeve/current/5`. Send one JSON request on stdin or via `--request-file`:
+`gatereeve/current/6`. Send one JSON request on stdin or via `--request-file`:
 
 ```json
 {"operation":"status","cwd":"/absolute/workspace"}
@@ -83,20 +83,42 @@ control semantic planning acceptance.
 
 ## Execution and evidence
 
-Required acceptance obligations: context, reconcile, verification, spec,
-pattern, judge, code, triage, explanation, packet. Completion also requires
-finalization, release observation, retention, whole-feature coverage and actual integration for every
-participating repository. Whiteboard remains optional policy.
+Required acceptance obligations: context, verification, review and packet. One
+fresh independent `review` covers code defects/interactions, every approved
+criterion, validation sufficiency, scope/decision reconciliation, project rules,
+findings/fixes and a useful human explanation. Its five explicit responsibility
+conclusions are `code`, `requirements`, `evidence`, `scope`, `findings`.
+`code`, `spec`, `judge`, `reconcile`, `triage`, `pattern` and `explanation` remain
+available supplemental assessments, not a mandatory second review sequence.
+Completion retains finalization, release observation, retention, whole-feature
+coverage and actual integration. Whiteboard remains opt-in.
 
-Runner configuration is `checks: [{repository,command,args,purpose,timeoutMs?}]` plus
-`externalRuntimeInputs: {"repositoryAlias": ["/absolute/tool-or-input-root"]}`
-for every checked repository. This is a required, conservative scope declaration:
-`[]` explicitly declares no additional external inputs. The model must account
-for opaque shell/eval bodies, child tools, dynamically loaded libraries, runtime
-configuration and any dependencies outside inferred package roots. Use wider
-roots or an immutable toolchain when dependency scope is uncertain; never assert
-an empty scope merely because dependencies cannot be inferred. Independent
-Verification assessment evaluates that scope against the actual commands.
+Use the test pyramid as a heuristic: choose quick focused deterministic checks
+and useful early independent discovery while implementing. Run wider integration
+and browser checks when changed behavior warrants them. The agent chooses order,
+review count, batching, scope and model diversity; no fixed ratios or round cap.
+Strongly consider independent models for consequential persistence/authority
+changes, uncertain findings, repeated misses or divergent conclusions. Record a
+short strategy/reason through `workflow.observe`, preferably at an existing work
+boundary. Ordinary implementer self-review is not another mandatory gate.
+
+Runner configuration is `checks: [{repository,command,args,purpose,timeoutMs?}]`.
+No dependency directory, toolchain or external runtime-tree fingerprint is taken.
+`externalRuntimeInputs` from older configurations is historical declaration only;
+it creates no equivalence assurance. Declared controlled environment, runtime
+metadata, source/configuration, actual command results and artifact integrity are
+retained. Source and approved-document hashes remain authoritative for their own
+purposes. A local check is an observation at execution time, never proof that
+mutable installed dependencies or remote services remain unchanged.
+
+For acceptance, the consumed Verification must include `configuration.validation`:
+`{kind:"ci", runs:[{alias,repository,run,attempt,requiredChecks:[...]}]}` fetches
+actual completed GitHub jobs for the exact candidate head. Executed, skipped and
+failed jobs remain visible; the independent review assesses the declared required
+scope. Missing/insufficient CI can use `{kind:"alternative",reason,scope}` with
+actual local check receipts. This is a proposal until independently assessed.
+A green badge alone is insufficient. Focused local loops do not require this
+broad backstop until acceptance is requested.
 
 The effective per-check limit is `check.timeoutMs ?? configuration.timeoutMs ??
 600000` milliseconds. For example, `configuration.timeoutMs: 5400000` allows a
@@ -105,44 +127,11 @@ The effective per-check limit is `check.timeoutMs ?? configuration.timeoutMs ??
 limit and distinguish an actual timeout from a nonzero exit or process/launch
 failure. A timeout remains UNAVAILABLE and does not count as a completed check.
 
-Runner manifests name fingerprint policy `runner-inputs/3` and its bookkeeping
-rules. Directory traversal omits only regular non-executable files at the known
-Vitest SHA-1 results location (`node_modules/.vite/vitest/<40 hex>/results.json`)
-and pnpm v1 task state (`latest.json` and observed run-ID
-`.jsonl`, `.published`, `.finished` files). Recognized cache-container directories
-that contain nothing else are omitted. In valid pnpm workspace-state-v1 JSON,
-only numeric `lastValidatedTimestamp` is normalized; projects, settings and other
-fields remain bound. Malformed/unfamiliar state, unknown versions/files, symlinks,
-executable files, compiled caches, `.pnpm`, `.bin`, install records and `.venv`
-remain inputs. No general `.cache` or `.vite` exclusion exists.
-
-This directory policy also applies to containing runtime/external directories.
-Direct file declarations, command file arguments and loader files stay exact,
-including known bookkeeping names. Checks that use metadata to select tests or
-resume tasks must declare those files as inputs. Initialize semantic install and
-workspace records before validation: creating or changing them still invalidates
-proof. Changing the fingerprint policy requires fresh Verification and dependent
-assessments, preserving planning and historical records.
-
-Mismatch diagnostics identify changed child paths and input categories during execution
-and later qualification. Runner records retain structured changes and completed
-receipts, including timeouts, when postflight also fails. This does not retain
-dependency source or a retained per-file dependency manifest. Temporary comparison indexes are discarded after comparison. Private environment values and loader paths are not included in diagnostics.
-
-The core hashes declared files/directories (including missing state), executable
-selection/realpath/mode/bytes, supported shebang interpreter chains, explicit path
-arguments and inferred package trees. Supported NODE_OPTIONS preloads and the
-allowlisted Node/Python/library-loader search paths are also byte-bound; their
-values remain hashed in retained manifests. Ambiguous option quoting rejects.
-Directory traversal excludes only the trusted current feature evidence store,
-so proof publication cannot invalidate itself; direct dependence on that store rejects. External scripts without a package or
-declared dependency root are rejected. Escaping dependency symlinks require an
-explicit target scope. Unsupported shebang syntax fails closed. Platform/OS
-release/version are bound; this is an execution-input contract, not an automatic
-whole-machine or remote-service snapshot. External observations still require
-explicit validity conditions. All fingerprints are checked before and after
-execution and at live proof/exception qualification. Only hashes of external
-bytes are retained; external source is not exported to reviewers.
+Declared execution context is checked before/after execution and on reuse.
+Context comparison does not enumerate runtime trees or require a per-file cache.
+Changed source, approved requirements, configuration, explicit validity or
+consumed evidence still invalidates applicability. Preserve every executed
+receipt when postflight fails. Never relabel past checks as fresh executions.
 
 Request
 real project build/lint/test/runtime checks; do not substitute `true` or a fabricated
@@ -157,9 +146,8 @@ deploying needs separate explicit authority; a generic check request is not that
 authority. The model chooses substantive checks appropriate to approved scope.
 
 Independent configuration names `provider: codex|claude-code` and explicit
-`model`, optionally `reasoningEffort`. Code/spec may share one fresh execution
-but return distinct verdicts. Judge remains separately required. Spec/Judge
-consume an applicable Verification result. Prior reports are context, not
+`model`, optionally `reasoningEffort`. The consolidated review uses a fresh context independent of implementation and
+consumes applicable Verification. Supplemental assessments are optional. Prior reports are context, not
 instructions; claimed dispositions are labeled. Reviewers must find new
 supported defects, verify affected fixes and cover interactions. Missing or
 contradictory output is UNAVAILABLE, never PASS.
@@ -200,8 +188,8 @@ planning with observed approvals and obtain fresh validation. Historical files
 remain intact.
 
 Equivalent qualifying input content permits reuse; bookkeeping and identical-tree
-SHAs alone do not require reruns. Changed requirements, configuration, dependency
-content, environment assumptions or consumed proof require refresh. Unknown
+SHAs alone do not require reruns. Changed requirements, configuration, declared
+environment assumptions or consumed proof require refresh. Unknown
 relevance means wider proof. Qualified deltas retain earlier proof and explicitly
 cover changed paths/interactions. Provider retries reconcile recorded jobs;
 uncertain in-flight jobs do not automatically relaunch. Repository selections and
@@ -234,7 +222,7 @@ operational errors still block. This observes the currently reported check set,
 not future checks, and does not bypass GitHub branch protection. The fallback
 retains final source/target, gate and authority revalidation and PR-state cleanup.
 
-When spec or Judge execution omits consumed references, the core selects the latest
+When review, spec or Judge execution omits consumed references, the core selects the latest
 applicable Verification result; a current FAIL still blocks. Explicit references
 remain available for deliberate evidence selection. The CLI `read` command inspects
 advertised result/artifact identities, and `evaluate --configuration` accepts full
@@ -249,7 +237,7 @@ Runner execution uses the resolved controlled environment described in
 [Delivery execution contract](DELIVERY-EXECUTION.md). Only effective inputs affect
 applicability; incidental agent variables do not. Source-only reviews do not inherit
 runner assumptions. Completed checks establish coverage obligations. Replacement
-coverage is qualified by the existing independent spec/Judge review, preserving
+coverage is qualified by the existing independent acceptance review, preserving
 prior failures. A renamed or narrower check cannot hide uncovered behavior.
 
 Relevant open findings are included automatically. `history` can add affected
@@ -312,16 +300,24 @@ applicability binds the effective controlled environment; execution receives tha
 
 Provider structured-value digests use canonical JSON key order with array order preserved. Raw strings and bytes retain their exact-byte digest. Retained provider output therefore validates against the original receipt after storage round-trips; older digest contracts require fresh evaluation.
 
-Current journals and activation references retain two exact local copies. Missing
-one copy blocks read-only admission; the next mutating request validates the full
-retained chain and restores the missing bytes before evaluating eligibility.
-Conflicting copies are never overwritten or chosen automatically. Completed jobs
-saved before their terminal event are reconciled with their original inputs and
-outcomes before current-input preflight. Unknown interrupted jobs block older
-proof until a fresh complete assessment recovers. This is local redundancy, not
-backup: loss of both copies of a terminal suffix cannot be detected from the
-remaining prefix alone. Prior unmirrored contracts require explicit current-run
-resume and fresh proof; surviving old prefixes are not upgraded into authority.
+Current/6 stores activation, ordered events, jobs, decisions and structured
+history in one authoritative `.gatereeve-current/workflow.sqlite` under the
+canonical feature home. SQLite transactions replace mirrored file journals.
+Retained evidence artifacts stay files; the database records their references.
+The SQLite file and WAL/SHM sidecars must remain untracked. Each issue/topic
+branch/worktree owns its workflow database; replacement threads share that
+workflow, while other workflows are isolated. Reporting uses a separate shared
+user-local metrics database and cannot grant workflow authority.
+
+A missing database grants no recovered approval. Explicitly start/resume a fresh
+run with observed human approvals and surviving documents; no old event replay.
+Old active runtime files remain untouched on upgrade and require explicit resume
+into current/6. Unchanged planning can carry only through observed approvals.
+No distributed sync, automatic authority reconstruction or general reset is added.
+Use `database.inspect`, `database.history`, CLI `database`, and `workflow.observe`
+(`workflow-note <file>`) for bounded inspection and agent memory. Observation
+kinds: strategy, friction, escaped-defect, disposition, artifact; they grant no
+passage. Findings and independent dispositions are also recorded automatically.
 
 Outcome publication first appends a durable journal marker, then the service
 cache and terminal event. A late concurrent completion therefore invalidates a

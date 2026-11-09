@@ -10,7 +10,7 @@ export function captureWarning() {
 }
 export async function record(value, store = new MetricsStore()) {
   if (process.env.GATEREEVE_METRICS === 'off') return null;
-  try { const tags=context.getStore()?.tags; return await store.put({project:tags?.project,feature:tags?.feature,parentId:currentSpan(),clock:hostname(),...value}); }
+  try { const tags=context.getStore()?.tags; return await store.put({project:tags?.project,feature:tags?.feature,workflow:tags?.workflow,display:tags?.display,parentId:currentSpan(),clock:hostname(),...value}); }
   catch { await store.markIncomplete?.(); captureWarning(); return null; }
 }
 export function currentSpan() { return context.getStore()?.id ?? process.env.GATEREEVE_METRICS_PARENT ?? null; }
@@ -22,7 +22,7 @@ export async function observe(tags, fn, store = new MetricsStore()) {
   if(!enabled)return unobserved();
   const parent = context.getStore();
   const id = tags.id ?? randomUUID(); const start = performance.now();
-  const value = { ...parent?.tags, ...tags, id, parentId:currentSpan(), startedAt:Date.now(), clock:hostname(), pid:process.pid };
+  const value = { ...parent?.tags, ...tags, ...(parent?.tags?.display || tags.display ? {display:{...parent?.tags?.display,...tags.display}} : {}), id, parentId:currentSpan(), startedAt:Date.now(), clock:hostname(), pid:process.pid };
   // Polling is represented by bounded minute buckets, not unfinished executions.
   if (tags.category !== 'poll') await record({ ...value, outcome:'RUNNING' }, store);
   // The callee may annotate its own span with a bounded count or explicit outcome.

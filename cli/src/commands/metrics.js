@@ -1,10 +1,25 @@
 import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
-import { metricsRequest, renderReport, runMeasured, importMetrics, fetchGitHubJobs, serve } from '../performance.js';
+import { metricsRequest, renderReport, renderReevaluation, runMeasured, importMetrics, fetchGitHubJobs, serve } from '../performance.js';
 const output=value=>process.stdout.write(`${typeof value==='string'?value:JSON.stringify(value,null,2)}\n`);
 export function metricsCommands() {
   const root=new Command('metrics').enablePositionalOptions().description('Local workflow measurement; never grants gate authority');
   for(const action of ['report','export'])root.command(action).option('--project <identity>').option('--feature <identity>').option('--since <date>').option('--until <date>').option('--limit <count>','maximum records',Number,200).option('--offset <count>','record offset',Number,0).option('--format <format>','json, markdown or html','json').action(async options=>{const {format,...query}=options;output(renderReport(await metricsRequest(action,query),format));});
+  root.command('capture').option('--platform <label>').option('--missing-source <name>', 'Unavailable fleet source', (value, rows) => [...rows,value], []).action(async options => output(await metricsRequest('capture',{platform:options.platform,missingSources:options.missingSource})));
+  root.command('datasets').action(async()=>output(await metricsRequest('datasets')));
+  root.command('databases').option('--workflow <id>').action(async options=>output(await metricsRequest('databases',options)));
+  root.command('combine').argument('<datasets...>').action(async datasets=>output(await metricsRequest('combine',{datasets})));
+  for(const action of ['snapshot-import','legacy-import'])root.command(action).argument('<file>').action(async file=>{
+    const {stat}=await import('node:fs/promises'); if((await stat(file)).size>64*1024*1024)throw new Error('Snapshot exceeds 64 MiB');
+    output(await metricsRequest(action,JSON.parse(await readFile(file,'utf8'))));
+  });
+  root.command('snapshot-export').argument('<dataset>').action(async dataset=>output(await metricsRequest('snapshot-export',{dataset})));
+  for(const action of ['reevaluate','analyze']) {
+    const cmd=root.command(action).requiredOption('--dataset <id>').option('--project <label>').option('--workflow <id>').option('--platform <label>').option('--check <label>');
+    if(action==='analyze')cmd.requiredOption('--provider <provider>').requiredOption('--model <model>').option('--reasoning-effort <effort>','Provider reasoning','high');
+    else cmd.option('--model <label>').option('--format <format>','json or html','json');
+    cmd.action(async options=>{const {format,...input}=options;const value=await metricsRequest(action,input);output(action==='reevaluate'?renderReevaluation(value,format):value);});
+  }
   root.command('status').action(async()=>output(await metricsRequest('status')));
   root.command('config').option('--enabled <boolean>').option('--diagnostic-details <boolean>').option('--detail-days <days>',undefined,Number).option('--summary-days <days>',undefined,Number).option('--max-bytes <bytes>',undefined,Number).action(async options=>{
     for(const key of ['enabled','diagnosticDetails'])if(key in options){if(!['true','false'].includes(options[key]))throw new Error(`${key} must be true or false`);options[key]=options[key]==='true';}

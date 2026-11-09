@@ -84,7 +84,7 @@ export async function merge(core, input, operation) {
   const authorization = (await qualifyingDecisions(core, state, 'authorize-merge', state.candidate.hash, candidate))
     .findLast(item => identity(item.action) === identity(action));
   requireThat(authorization, 'Human authorization must name this exact PR, source, target and method');
-  if (authorization.standingGrant) requireThat(initial.outcomes.every(item => item.outcome === 'PASS'), 'Standing merge requires every required gate to PASS');
+  if (authorization.standingGrant) requireThat(initial.outcomes.every(item => item.required === false || item.outcome === 'PASS'), 'Standing merge requires every required gate to PASS');
   const repository = core.context.repositories.find(item => item.alias === action.repository);
   const run = core.runtime.gh ?? gh;
   let opened = false;
@@ -107,7 +107,7 @@ export async function merge(core, input, operation) {
     await waitForHostedChecks(repository.path, action, run);
     await requireCurrentState(core, state);
     const currentProof = await core.check('merge', state);
-    requireThat(currentProof.allowed && (!authorization.standingGrant || currentProof.outcomes.every(item => item.outcome === 'PASS')), 'Gate proof changed while waiting for hosted checks');
+    requireThat(currentProof.allowed && (!authorization.standingGrant || currentProof.outcomes.every(item => item.required === false || item.outcome === 'PASS')), 'Gate proof changed while waiting for hosted checks');
     const latestBase = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${action.baseBranch}`])).split(/\s/u)[0];
     requireThat(latestBase === action.base, 'PR base changed while waiting for hosted checks; refresh review');
     const refreshed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
