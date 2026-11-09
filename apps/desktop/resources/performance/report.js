@@ -20,7 +20,7 @@ export function workerAccounting(rows) {
   const byId = new Map(rows.map(r=>[r.id,r]));
   const finite = rows.filter(r=>r.durationMs!==null);
   const childMap=new Map(), workerChildren=new Map();
-  for(const child of finite){
+  for(const child of rows){
     if(child.parentId){if(!childMap.has(child.parentId))childMap.set(child.parentId,[]);childMap.get(child.parentId).push(child);}
     if(!child.worker)continue;
     let id=child.parentId;const seen=new Set();
@@ -30,7 +30,7 @@ export function workerAccounting(rows) {
     if(r.durationMs===null)return {...r,workerMs:null};
     const descendants=workerChildren.get(r.id)??[];
     const covered=descendants.filter(child=>child.clock===r.clock).map(child=>[Math.max(r.startedAt,child.startedAt),Math.min(r.startedAt+r.durationMs,child.startedAt+child.durationMs)]);
-    return {...r,workerMs:r.workMs??(descendants.some(child=>child.clock!==r.clock || !placed(child) || !placed(r))?null:Math.max(0,r.durationMs-union(covered)))};
+    return {...r,workerMs:r.workMs??(descendants.some(child=>child.durationMs===null || child.clock!==r.clock || !placed(child) || !placed(r))?null:Math.max(0,r.durationMs-union(covered)))};
   });
   return { byId, finite, workers, childMap };
 }
@@ -52,7 +52,7 @@ export async function report(q = {}, store = new MetricsStore()) {
   const finite = accounting.finite.filter(row=>selected.has(row.id));
   const workers = accounting.workers.filter(row=>selected.has(row.id));
   const clocks = [...new Set(rows.map(r=>r.clock))];
-  const operations=rows.map(r=>{if(r.durationMs===null)return {...r,exclusiveMs:null};const children=childMap.get(r.id)??[];return {...r,exclusiveMs:children.some(c=>c.clock!==r.clock||!placed(c)||!placed(r))?null:Math.max(0,r.durationMs-union(children.map(c=>[Math.max(r.startedAt,c.startedAt),Math.min(r.startedAt+r.durationMs,c.startedAt+c.durationMs)])))};});
+  const operations=rows.map(r=>{if(r.durationMs===null)return {...r,exclusiveMs:null};const children=childMap.get(r.id)??[];return {...r,exclusiveMs:children.some(c=>c.durationMs===null||c.clock!==r.clock||!placed(c)||!placed(r))?null:Math.max(0,r.durationMs-union(children.map(c=>[Math.max(r.startedAt,c.startedAt),Math.min(r.startedAt+r.durationMs,c.startedAt+c.durationMs)])))};});
   const operationCost=[...new Set(operations.map(r=>r.label))].map(label=>({label,executions:operations.filter(r=>r.label===label).length,exclusiveMs:sumKnown(operations.filter(r=>r.label===label).map(r=>r.exclusiveMs))})).sort((a,b)=>b.exclusiveMs-a.exclusiveMs);
   const cost = CATEGORIES.map(category=>{
     const group=workers.filter(r=>r.category===category);

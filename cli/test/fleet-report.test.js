@@ -177,3 +177,12 @@ test('filtered model totals retain nested context and reconcile with overview co
     assert.equal(filtered.models[0].recordedWorkerMs,filtered.totals.workerMs);
   }
 });
+
+test('unknown nested timing remains unknown in a parent-only drill-down',async t=>{
+  const store=await fixture(t),at=Date.parse(now);
+  await store.put({id:'parent',project:'p',worker:true,category:'review',startedAt:at,durationMs:100,outcome:'PASS',display:{model:'one'}});
+  await store.put({id:'child',parentId:'parent',project:'p',worker:true,category:'unit',startedAt:at+20,durationMs:null,outcome:'UNAVAILABLE',display:{model:'two'}});
+  const {dataset}=await metricsRequest('capture',{},store),filtered=await metricsRequest('reevaluate',{dataset,model:'one'},store);
+  assert.equal(filtered.totals.workerMs,null);assert.equal(filtered.models[0].recordedWorkerMs,null);
+  assert.equal(filtered.operationCost[0].exclusiveMs,null);
+});
