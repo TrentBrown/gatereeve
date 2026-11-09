@@ -32,6 +32,10 @@ export function renderCurrentOverview(snapshot, elements, { openArtifact, copy, 
     : 'The model chooses work and check order within the authorized phase. Milestone passage requires current proof and authority.';
   clear(elements['phase-context-uses']); clear(elements['phase-context-produces']);
   const milestones = clear(elements.milestones); milestones.hidden = false;
+  if (snapshot?.database) milestones.append(node('details', { className: 'action-card', attributes: { 'data-workflow-database': '' } }, [
+    node('summary', { text: 'Workflow database health and state' }),
+    node('pre', { text: JSON.stringify(snapshot.database, null, 2) }),
+  ]));
   for (const milestone of snapshot?.milestones ?? []) {
     const card = node('details', { className: 'action-card' }, [node('summary', { text: `${title(milestone.name)} · ${milestone.historical ? (milestone.allowed ? 'Recorded' : 'Recorded; evidence unavailable') : milestone.allowed ? 'Ready' : 'Blocked'}` })]);
     const missing = node('ul');

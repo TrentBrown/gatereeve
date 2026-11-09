@@ -132,3 +132,12 @@ filtering before nested accounting reports model-one overview contribution 80 ms
 but its filtered total 100 ms. The pending correction keeps full fixed-dataset
 span context for accounting while selecting only requested observations. This is
 part of the same R6 accounting repair, not a new requirement.
+
+## Measurement-independent database visibility
+
+Review on 476ace0 closed the earlier three findings and accepted historical
+evidence and focused check replacement, but found selected-workflow inspection
+unavailable when collection is disabled. The current overview now displays its
+already supplied authoritative database snapshot independently of shared metrics
+registration. Its real protocol-adapter integration test starts the workflow with
+GATEREEVE_METRICS=off and checks displayed schema, integrity and state.

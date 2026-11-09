@@ -7,6 +7,9 @@ import { currentFixture } from '../../../cli/test/helpers/current-fixture.js';
 import { createProtocolAdapter } from '../main/protocol-adapter.js';
 
 test('current view shows milestone blockers, preserved verdicts, exceptions and no ordering controls', async t => {
+  const previousMetrics = process.env.GATEREEVE_METRICS;
+  process.env.GATEREEVE_METRICS = 'off';
+  t.after(() => { if (previousMetrics === undefined) delete process.env.GATEREEVE_METRICS; else process.env.GATEREEVE_METRICS = previousMetrics; });
   const f = await currentFixture(t);
   await f.request('run.start', { implementers: ['fixture'] }, 'start');
   const adapter = createProtocolAdapter(); await adapter.resolve(f.repo);
@@ -17,6 +20,12 @@ test('current view shows milestone blockers, preserved verdicts, exceptions and 
   const before = (await f.core.state()).events;
   renderCurrentOverview(snapshot, elements);
   assert.equal(window.document.querySelectorAll('#state-rail .state-node').length, 7);
+  assert.equal(snapshot.database.exists, true);
+  const database = window.document.querySelector('[data-workflow-database]');
+  assert.ok(database, 'selected workflow remains inspectable with measurement disabled');
+  assert.deepEqual(JSON.parse(database.querySelector('pre').textContent), snapshot.database);
+  assert.equal(snapshot.database.integrity, 'ok');
+  assert.equal(snapshot.database.schemaVersion, 1);
   assert.match(elements.milestones.textContent, /Implementation.*Blocked/s);
   assert.match(elements['module-settings-list'].textContent, /Independent acceptance assessment/);
   assert.doesNotMatch(elements['module-settings-list'].textContent, /Run after|dependsOn|before/);
