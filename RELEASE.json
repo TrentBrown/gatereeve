@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "plugins": [
+    "agentic-development-workflow",
+    "whiteboard-test"
+  ],
+  "marketplace": "quality-code",
+  "version": "0.1.0-rc.26",
+  "sourceTag": "v0.1.0-rc.26",
+  "sourceCommit": "d177ec2732351207eaeae7360ff2185e5f788552",
+  "ubuntuRcEvidence": null
+}
