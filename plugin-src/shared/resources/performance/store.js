@@ -11,7 +11,7 @@ const ID = /^[a-f0-9]{64}$/;
 const DAY = 86400000;
 const MAX_RECORD = 8192;
 export const CATEGORIES = ['operation', 'verification', 'unit', 'browser', 'integration', 'build', 'setup', 'review', 'delivery', 'reuse', 'poll', 'manual'];
-const OPERATIONS=['approve-design','authorize-implementation','accept','authorize-merge','waive','amend','policy-amend','authorize-standing','revoke-standing','milestone:implementation','milestone:acceptance','milestone:merge','milestone:completion','candidate.prepare','candidate.ready','gate.execute','milestone.check','milestone.pass','human.decide','spec.validate','merge.prepare','merge.execute','integration.observe','run.start','run.resume-current','run.pause','run.continue','status','snapshot','next','read','coverage.status','source-view','provider-execution','release-observation','environment-fingerprint','environment-hash','environment-hash-bytes','review-prompt','review-history'];
+const OPERATIONS=['approve-design','authorize-implementation','accept','authorize-merge','waive','amend','policy-amend','authorize-standing','revoke-standing','milestone:implementation','milestone:acceptance','milestone:merge','milestone:completion','candidate.prepare','candidate.ready','gate.execute','milestone.check','milestone.pass','human.decide','spec.validate','merge.prepare','merge.execute','integration.observe','run.start','run.resume-current','run.pause','run.continue','status','snapshot','next','read','coverage.status','source-view','provider-execution','release-observation','environment-fingerprint','environment-hash','environment-hash-bytes','review-prompt','review-history','execution-preparation','proof-qualification','review-view-cleanup'];
 export const OUTCOMES = ['PASS', 'FAIL', 'UNAVAILABLE', 'RUNNING', 'CANCELLED', 'REUSED', 'REJECTED', 'SKIPPED'];
 export const REASONS = ['initial', 'source-change', 'configuration-change', 'remediation', 'retry', 'integration-change', 'investigation', 'unknown', 'inputs-changed', 'consumed-proof-changed', 'proof-unavailable', 'latest-not-pass', 'no-prior-proof', 'equivalent'];
 const alive = pid => { try { process.kill(pid, 0); return true; } catch (e) { return e.code !== 'ESRCH'; } };
@@ -410,6 +410,7 @@ function normalize(raw, hash) {
     cost:Number.isFinite(raw.cost)&&raw.cost>=0?raw.cost:null,
     workMs:Number.isFinite(raw.workMs)&&raw.workMs>=0?raw.workMs:null,
     summary:false,
+    ...(raw.display ? {display: raw.display} : {}),
   };
   validateRecord(r); return r;
 }
@@ -419,7 +420,8 @@ function readable(r) { try { return validateRecord(r, { lenient: true }); } catc
 export function validateRecord(r, { lenient = false } = {}) {
   const known = (list, value) => list.includes(value) || (lenient && typeof value === 'string' && TERM.test(value));
   check(r && typeof r === 'object' && !Array.isArray(r), 'Invalid metrics record');
-  check(Object.keys(r).every(k=>['schemaVersion','sourceId','environmentId','workflowId','attemptId','scope','id','parentId','projectId','featureId','featureIds','commandId','inputId','evidenceId','category','label','outcome','reason','startedAt','durationMs','clock','location','provenance','worker','pid','count','summary','tokens','cost','workMs'].includes(k)), 'Unexpected metrics field');
+  check(Object.keys(r).every(k=>['schemaVersion','sourceId','environmentId','workflowId','attemptId','scope','id','parentId','projectId','featureId','featureIds','commandId','inputId','evidenceId','category','label','outcome','reason','startedAt','durationMs','clock','location','provenance','worker','pid','count','summary','tokens','cost','workMs','display'].includes(k)), 'Unexpected metrics field');
+  if(r.display!==undefined)check(r.display && Object.keys(r.display).every(key=>['project','issue','branch','check','model','provider','validator','contract'].includes(key) && typeof r.display[key]==='string' && r.display[key].length<=200 && !/[\x00-\x1f]/u.test(r.display[key])), 'Invalid public display label');
   check(Array.isArray(r.featureIds)&&r.featureIds.length<=32&&r.featureIds.every(v=>ID.test(v)), 'Invalid feature attribution');
   for(const key of ['sourceId','environmentId','workflowId','attemptId','parentId','featureId','commandId','inputId','evidenceId','clock'])check(r[key]===null||ID.test(r[key]), 'Invalid private identity');
   check(known(OPERATIONS, r.label)||known(CATEGORIES, r.label),'Invalid label');

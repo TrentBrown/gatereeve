@@ -43,6 +43,10 @@ export function currentCommands() {
   status.action(options => run(options, 'status'));
   const coverage = command('coverage', 'Derive criterion status from applicable independent evidence');
   coverage.action(options => run(options, 'coverage.status'));
+  const database = command('database', 'Inspect the current authoritative SQLite store').option('--history','Read bounded workflow history').option('--kind <kind>').option('--limit <count>', 'History rows', Number, 100);
+  database.action(options => run(options, options.history ? 'database.history' : 'database.inspect', options.history ? {kind:options.kind,limit:options.limit} : {}));
+  const note = command('workflow-note', 'Record strategy, friction, fixes or escaped defects without granting authority').argument('<file>');
+  note.action(async (file,options) => run(options,'workflow.observe',await readJsonFile(file)));
   const read = command('read', 'Inspect a named artifact, current result, event history or model')
     .argument('<kind>', 'artifact, result, events or model').argument('[id]', 'Advertised artifact ID or result hash')
     .action((kind, id, options) => run(options, 'read', {}, { kind, id: id ?? null }));
@@ -84,9 +88,9 @@ export function currentCommands() {
     .option('--provider <name>', 'codex or claude-code')
     .option('--model <name>', 'Explicit reviewer model')
     .option('--reasoning <effort>', 'Reviewer reasoning effort', 'high')
-    .option('--configuration <file>', 'Full check configuration, including checks, externalRuntimeInputs, runtimeInputs and external validity')
+    .option('--configuration <file>', 'Full check configuration, including checks, controlled environment, validation scope and external validity')
     .addOption(new Option('--checks <file>').hideHelp().argParser(() => {
-      throw new Error('--checks has been retired. Use --configuration with checks and explicit externalRuntimeInputs for each checked repository.');
+      throw new Error('--checks has been retired. Use --configuration with checks and an acceptance validation scope when applicable.');
     }))
     .option('--consume <file>', 'JSON list of retained evidence references')
     .option('--claims <file>', 'JSON list of findingId and implementer claim pairs')
@@ -148,5 +152,5 @@ export function currentCommands() {
     .option('--merge <file>', 'Selected repository, PR number and merge method')
     .action(async options => run(options, 'delivery.resume', {
       ...(options.grant ? { grant: options.grant } : {}), ...(options.merge ? { merge: await readJsonFile(options.merge) } : {}) }));
-  return [status, coverage, read, runCommand, spec, candidate, ready, gate, decide, apply, milestone, merge, observe, delivery];
+  return [status, coverage, database, note, read, runCommand, spec, candidate, ready, gate, decide, apply, milestone, merge, observe, delivery];
 }

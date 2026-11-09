@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:381606fd328d01819d846dd889ac5158206404948aea82c3b9f5e78e13200e73",
-  "contract": "gatereeve/current/5",
-  "contractSha256": "f9a65f102ae6bb83c83bc86c66fbcd07073df3253db9db79c7d924445b9984d1",
+  "protocolHash": "sha256:340ebaa7a3d95348c97cede326a96c1aa22b36e3003878e644d3a41f178c46a9",
+  "contract": "gatereeve/current/6",
+  "contractSha256": "d801920d67285ff42afe9971049580030240b11c9b24170a9e85b6cd624cb53f",
   "files": [
     {
       "path": "agent-workflow.js",
@@ -22,33 +22,33 @@
     },
     {
       "path": "current/actions.js",
-      "size": 13573,
-      "sha256": "c693d5c8f99fada50e83e31d4117638f05ed52fd7aacae90e7f2cf5dca63bc0f"
+      "size": 13627,
+      "sha256": "2a4b0ad8163949bde0cf0478820446f59cbc7ac02c92c9b29fd1d099710873d9"
     },
     {
       "path": "current/adapter.js",
-      "size": 7523,
-      "sha256": "7bad89b9ac35397ff2bd1962b88b6565e0f4cf9ddb04186893f37c3bcd1f583e"
+      "size": 8489,
+      "sha256": "19ae33d13ea0c4d59dfefac1c60e7704bf3feb8e6da4b666b81b3e0e3578bf71"
     },
     {
       "path": "current/authorization.js",
-      "size": 10682,
-      "sha256": "84ba2f89bee57e3b58f94b37ddc2191b379d926cc7165d49f0caabba33c25bb7"
+      "size": 10709,
+      "sha256": "12a8abd4e421c05281b6da47da7ecfa8699cd8b838555fb7a56f5777e0d6503c"
     },
     {
       "path": "current/contracts.js",
-      "size": 12982,
-      "sha256": "f9a65f102ae6bb83c83bc86c66fbcd07073df3253db9db79c7d924445b9984d1"
+      "size": 13759,
+      "sha256": "d801920d67285ff42afe9971049580030240b11c9b24170a9e85b6cd624cb53f"
     },
     {
       "path": "current/core.js",
-      "size": 68411,
-      "sha256": "34468af3d6a588b0f3f6ecfc4c63d4292eeadde88cd61eebf889ec82d93fca9d"
+      "size": 70902,
+      "sha256": "4c939b7010104a26b6826daa3f79419ccc8f5890226233dac9c85e9fd16e74ba"
     },
     {
       "path": "current/coverage.js",
-      "size": 2881,
-      "sha256": "29ec08cfb475154cb91495a48eaa9aa9629edc2b0d707e2fe1adef70a27d58c1"
+      "size": 2899,
+      "sha256": "e5508842c1135b0041f44b587cb2c85fe12ab5e2559da9038e71d2787270ac8d"
     },
     {
       "path": "current/delivery.js",
@@ -62,8 +62,8 @@
     },
     {
       "path": "current/environment.js",
-      "size": 31124,
-      "sha256": "e9fef32dd4a0bda8a99235cd8de4d10500b974acf4b27206ca23812b1bf2bc63"
+      "size": 2132,
+      "sha256": "6af577d0befe7f2934ef3f3c60531c86166a3bbd8437120c44ba8c64b5091ce1"
     },
     {
       "path": "current/evidence.js",
@@ -72,13 +72,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 62271,
-      "sha256": "e40e1a9319189856d9e976c45efba90d06b13fd443a2fdef2943563bef632e4f"
-    },
-    {
-      "path": "current/fingerprint-cache.js",
-      "size": 13190,
-      "sha256": "b48424fc94b39546a852f9793825c0b407108927f4b58034d606dc1b9170a7cf"
+      "size": 65519,
+      "sha256": "0329ce18b859c00904946da433c24caed463c33319627504564fb1c9c73b3d53"
     },
     {
       "path": "current/generated-inputs.js",
@@ -137,13 +132,18 @@
     },
     {
       "path": "current/store.js",
-      "size": 16673,
-      "sha256": "2362b25c90401222b8588cbc4e8025fbf48c67c6b011e8e78078315d06d43e46"
+      "size": 15054,
+      "sha256": "1fe80e3a53a8bc38d9f7220bf1eba0c1b5b7d41be5be585929605d69714422a7"
     },
     {
-      "path": "current/workspace-sources.js",
-      "size": 4035,
-      "sha256": "a5ba81c027679447397806c79f0add8d0c96e3139a06c2ff1c1497ddfbaa6f16"
+      "path": "current/validation-scope.js",
+      "size": 3363,
+      "sha256": "c4fc1ee49ff604aa808892714d6488c8fb057a5f6dadad3a717ac0038dedd825"
+    },
+    {
+      "path": "current/workflow-database.js",
+      "size": 5679,
+      "sha256": "bc39de8dca4c715214d8e4ff919b7d512dea2e38ed094de092dd775f1d60c7e9"
     },
     {
       "path": "errors.js",

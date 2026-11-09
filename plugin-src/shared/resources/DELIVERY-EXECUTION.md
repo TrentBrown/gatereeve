@@ -1,7 +1,7 @@
 # Delivery execution contract
 
 The model chooses work inside the authorized phase. GateReeve verifies identities,
-declared inputs, required separate verdicts and authority at milestone boundaries.
+declared inputs, required independent assessment and authority at milestone boundaries.
 Judgments about adequate scope, coverage, decision dispositions and replacement
 checks belong in existing independent reviews; do not launch an assessor per setting.
 
@@ -19,8 +19,7 @@ attempt; the same effective environment launches every declared check.
     "required": ["PROJECT_TEST_TOKEN"],
     "publicValues": {"NODE_ENV": "test"}
   },
-  "externalRuntimeInputs": {"app": []},
-  "workspaceSources": {"app": ["packages/unusual"]},
+  "validation": {"kind":"alternative","reason":"Example local coverage proposal","scope":"All approved changed behavior; reviewer must assess sufficiency"},
   "checks": [
     {"repository":"app","command":"npm","args":["run","build"],"purpose":"Build reviewed source","produces":["dist"]},
     {"repository":"app","command":"npm","args":["test"],"purpose":"Exercise distributed behavior","generatedInputs":[{"path":"dist","fromCheck":0}]}
@@ -35,11 +34,10 @@ local comparison key; key loss requires refreshed proof. Logs redact named inher
 additions before retention. Failed-check excerpts default to 64 KiB and changed-path lists to 100 entries, with truncation
 and retained supporting references. Deeper capture can increase the limit.
 
-Standard pnpm/npm/Yarn workspace declarations identify pinned source packages.
-Dependency links to those packages bind package/source identity without following
-their generated output. Verified `workspaceSources` declarations handle unusual
-layouts. Explicit runtime inputs remain exact; unknown, escaping or cyclic links
-remain conservative. Declared output scopes are concrete directories/files without
+Runtime/dependency trees are not traversed or fingerprinted. Installed-state
+changes are not automatically detected; actual broad CI or an independently
+assessed alternative provides the acceptance backstop. Explicit generated
+artifacts are a separate opt-in provenance mechanism. Declared output scopes are concrete directories/files without
 symlinks. A generated input uses `fromCheck` for an earlier preparation in this
 attempt or `fromResult` for an applicable retained runner result. Its output must
 still match the preparation receipt. A stale output hash alone is insufficient.
@@ -47,10 +45,11 @@ Reviewers assess whether these declarations cover the real execution.
 
 ## Reviews and evidence
 
-Batch `code`, `spec`, `reconcile`, `triage` when useful. Judge stays separate.
+Use one fresh `review` for acceptance. Additional model-diverse perspectives and
+supplemental named reviews are agent choices.
 Use `coverageClaims` (CLI `--coverage-claims`) with `id`, `supersedes`,
 `replacements`, selected `criteria` and `reason`. References name actual results.
-Independent spec/Judge verdicts qualify each replacement in `coverageDecisions`;
+Independent acceptance verdicts qualify each replacement in `coverageDecisions`;
 prior failures remain in history. Mechanical proof equivalence ignores receipt
 timestamps, not substantive output, configuration, source or coverage changes.
 

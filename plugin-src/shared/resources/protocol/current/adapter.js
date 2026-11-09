@@ -1,5 +1,5 @@
 import { observe } from '../../performance/observe.js';
-import { mkdir, lstat } from 'node:fs/promises';
+import { mkdir, lstat, appendFile } from 'node:fs/promises';
 import { join, resolve, relative, isAbsolute, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { resolveWorkflowContext } from '../context.js';
@@ -53,8 +53,8 @@ export async function currentSnapshot(context, options = {}, runtime = {}) {
   return {
     schemaVersion: 1, contract: CONTRACT, mode: data ? 'governed' : 'current-entry',
     featureId: context.featureId, featureHome: context.featureHome, current: data,
-    phases: PHASES, obligations: data?.obligations ?? GATES.filter(item => !item.optional),
-    milestones: data?.milestones ?? [], artifacts, enforcement: ENFORCEMENT,
+    phases: PHASES, obligations: data?.obligations ?? GATES.filter(item => !item.optional && !item.supplemental),
+    milestones: data?.milestones ?? [], database: core ? await core.store.inspect() : null, artifacts, enforcement: ENFORCEMENT,
     events: { count: events.length, lastEventId: events.at(-1)?.hash ?? null },
     recentEvents: events.slice(-10), sources: options.sources ?? {},
     blockers: reason ? [{ type: 'current-entry', message: reason }] : [],
@@ -108,6 +108,15 @@ async function executeObservedRequest(request, runtime = {}) {
       }
       catch (error) { if (operation !== 'run.resume-current') throw error; active = null; }
       if (active && operation === 'run.start') throw new Error('Current run already exists; use run.resume-current');
+      // Explicit start/resume setup owns this narrow untracked-file policy.
+      // Existing runtime records are never edited or interpreted here.
+      const localStore = join(context.featureHome, '.gatereeve-current');
+      await mkdir(localStore, {recursive:true});
+      requireThat(!(await lstat(localStore)).isSymbolicLink(), 'Unsafe local workflow directory');
+      let ignored = '';
+      try { ignored = (await readSafe(context.featureHome, '.gatereeve-current/.gitignore')).toString(); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      if (!ignored.split('\n').includes('/workflow.sqlite*')) await appendFile(join(localStore,'.gitignore'), `${ignored && !ignored.endsWith('\n') ? '\n' : ''}/workflow.sqlite*\n`, {mode:0o600});
       input = { ...input, runId: input.runId ?? active?.runId ?? request.operationId ?? randomUUID() };
     }
     return successResult(operation, await core.execute({ ...request, input }));
@@ -116,5 +125,6 @@ async function executeObservedRequest(request, runtime = {}) {
 
 export async function executeCurrentRequest(request, runtime = {}) {
   const operation = request?.operation ?? 'unknown';
+  if (['database.inspect','database.history'].includes(operation)) return executeObservedRequest(request,runtime);
   return observe({project:request?.cwd ?? process.cwd(), category:['status','snapshot','next'].includes(operation)?'poll':'operation', command:operation, worker:false}, () => executeObservedRequest(request,runtime));
 }

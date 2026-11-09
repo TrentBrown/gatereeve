@@ -9,3 +9,6 @@ apps/desktop/node_modules/
 apps/desktop/renderer/generated/
 cli/resources/
 dist/
+
+# Local authoritative workflow state (documents remain trackable).
+**/.gatereeve-current/workflow.sqlite*

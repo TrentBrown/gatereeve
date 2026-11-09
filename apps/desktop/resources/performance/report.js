@@ -34,13 +34,14 @@ export async function report(q = {}, store = new MetricsStore()) {
     let id=child.parentId;const seen=new Set();
     while(id && !seen.has(id) && seen.size<100){seen.add(id);const parent=byId.get(id);if(!parent)break;if(parent.worker){if(!workerChildren.has(id))workerChildren.set(id,[]);workerChildren.get(id).push(child);break;}id=parent.parentId;}
   }
-  const workers=finite.filter(r=>r.worker).map(r=>{
+  const workers=rows.filter(r=>r.worker).map(r=>{
+    if(r.durationMs===null)return {...r,workerMs:null};
     const descendants=workerChildren.get(r.id)??[];
     const covered=descendants.filter(child=>child.clock===r.clock).map(child=>[Math.max(r.startedAt,child.startedAt),Math.min(r.startedAt+r.durationMs,child.startedAt+child.durationMs)]);
     return {...r,workerMs:r.workMs??(descendants.some(child=>child.clock!==r.clock || !placed(child) || !placed(r))?null:Math.max(0,r.durationMs-union(covered)))};
   });
-  const clocks = [...new Set(finite.map(r=>r.clock))];
-  const operations=finite.map(r=>{const children=childMap.get(r.id)??[];return {...r,exclusiveMs:children.some(c=>c.clock!==r.clock||!placed(c)||!placed(r))?null:Math.max(0,r.durationMs-union(children.map(c=>[Math.max(r.startedAt,c.startedAt),Math.min(r.startedAt+r.durationMs,c.startedAt+c.durationMs)])))};});
+  const clocks = [...new Set(rows.map(r=>r.clock))];
+  const operations=rows.map(r=>{if(r.durationMs===null)return {...r,exclusiveMs:null};const children=childMap.get(r.id)??[];return {...r,exclusiveMs:children.some(c=>c.clock!==r.clock||!placed(c)||!placed(r))?null:Math.max(0,r.durationMs-union(children.map(c=>[Math.max(r.startedAt,c.startedAt),Math.min(r.startedAt+r.durationMs,c.startedAt+c.durationMs)])))};});
   const operationCost=[...new Set(operations.map(r=>r.label))].map(label=>({label,executions:operations.filter(r=>r.label===label).length,exclusiveMs:sumKnown(operations.filter(r=>r.label===label).map(r=>r.exclusiveMs))})).sort((a,b)=>b.exclusiveMs-a.exclusiveMs);
   const cost = CATEGORIES.map(category=>{
     const group=workers.filter(r=>r.category===category);
@@ -51,6 +52,9 @@ export async function report(q = {}, store = new MetricsStore()) {
   const repetitions=[...repeated.values()].filter(g=>g.length>1).map(g=>({ commandId:g[0].commandId, executions:g.length,
     classification:g.every(r=>r.inputId && r.inputId===g[0].inputId) ? 'matching-observed-inputs' : 'possible-repeat',
     ids:g.slice(0,1000).map(r=>r.id), reasons:g.slice(0,1000).map(r=>r.reason),idsTruncated:g.length>1000, conclusion:'Repetition does not authorize skipping.' }));
+  const operationSpans=operations.filter(r=>r.category==='operation');
+  const rootOperations=operationSpans.filter(r=>!r.parentId || !byId.has(r.parentId));
+  const operationMs=sumKnown(rootOperations.map(r=>r.durationMs)), unattributedMs=sumKnown(operationSpans.map(r=>r.exclusiveMs));
   const gaps = ['Commands outside instrumented entrypoints are unobserved.', 'Known-execution denominator is unknown unless reconciled with source receipts.', 'No cross-host critical path is inferred.'];
   if (rows.some(r=>!placed(r))) gaps.push('Some timestamps are not observed; elapsed placement and affected nested accounting remain unknown.');
   if (rows.some(r=>r.location==='ci')) gaps.push('Pure CI queue duration is unavailable; start delays may include dependencies.');
@@ -64,9 +68,9 @@ export async function report(q = {}, store = new MetricsStore()) {
   const records=rows.map(r=>({...r,projectAlias:`project-${r.projectId.slice(0,8)}`})).sort((a,b)=>a.startedAt-b.startedAt);
   return { schemaVersion:1, collectorVersion:'performance/1', window:{since:q.since??null,until:q.until??null},
     totals:{ records:rows.length, workerMs:sumKnown(workers.map(r=>r.workerMs)),
-      observedElapsedMs:clocks.length<=1 && finite.every(placed) ? union(finite.filter(r=>r.category!=='poll').map(r=>[r.startedAt,r.startedAt+r.durationMs])) : null,
-      elapsedByClock:clocks.map(clock=>({clock,ms:finite.filter(r=>r.clock===clock).every(placed)?union(finite.filter(r=>r.clock===clock).map(r=>[r.startedAt,r.startedAt+r.durationMs])):null})), cpuMs:null,cost:workers.length && workers.every(r=>r.cost!==null) ? workers.reduce((s,r)=>s+r.cost,0):null },
-    coverage:{knownExecutionDenominator:null, incomplete:rows.filter(r=>r.durationMs===null).length+inventory.incomplete, captureIncomplete:inventory.captureIncomplete===true, gaps},
+      observedElapsedMs:clocks.length<=1 && rows.every(r=>placed(r)&&r.durationMs!==null) ? union(finite.filter(r=>r.category!=='poll').map(r=>[r.startedAt,r.startedAt+r.durationMs])) : null,
+      elapsedByClock:clocks.map(clock=>({clock,ms:rows.filter(r=>r.clock===clock).every(r=>placed(r)&&r.durationMs!==null)?union(finite.filter(r=>r.clock===clock).map(r=>[r.startedAt,r.startedAt+r.durationMs])):null})), cpuMs:null,cost:workers.length && workers.every(r=>r.cost!==null) ? workers.reduce((s,r)=>s+r.cost,0):null },
+    coverage:{knownExecutionDenominator:null, operationAttribution:{rootOperationMs:operationMs,unattributedMs,unattributedFraction:operationMs>0&&unattributedMs!==null?unattributedMs/operationMs:null,note:'Attribution within recorded operations only; summed overlapping roots are not elapsed developer time.'}, incomplete:rows.filter(r=>r.durationMs===null).length+inventory.incomplete, captureIncomplete:inventory.captureIncomplete===true, gaps},
     milestones:rows.filter(r=>r.outcome==='PASS' && ['authorize-implementation','candidate.ready','accept','milestone:acceptance','merge.execute','integration.observe','milestone:completion','run.pause','run.continue'].includes(r.label)).map(r=>({id:r.id,label:r.label,at:r.startedAt,featureIds:r.featureIds})).slice(0,1000),
     cost, operationCost, featureAttribution:featureAttribution.slice(0,1000), repetitions:repetitions.slice(0,1000), detailListsTruncated:rows.length>1000, reuse:rows.filter(r=>r.category==='reuse').slice(0,1000).map(r=>({id:r.id,outcome:r.outcome,reason:r.reason})),
     pagination:{offset:q.offset??0,limit:q.limit??200,total:records.length},

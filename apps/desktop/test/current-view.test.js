@@ -18,7 +18,7 @@ test('current view shows milestone blockers, preserved verdicts, exceptions and 
   renderCurrentOverview(snapshot, elements);
   assert.equal(window.document.querySelectorAll('#state-rail .state-node').length, 7);
   assert.match(elements.milestones.textContent, /Implementation.*Blocked/s);
-  assert.match(elements['module-settings-list'].textContent, /Independent compliance judgment/);
+  assert.match(elements['module-settings-list'].textContent, /Independent acceptance assessment/);
   assert.doesNotMatch(elements['module-settings-list'].textContent, /Run after|dependsOn|before/);
   assert.equal(elements['module-apply'].hidden, true);
   for (const milestone of snapshot.milestones) {

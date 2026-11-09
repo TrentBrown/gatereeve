@@ -119,7 +119,7 @@ test('renderer consumes a canonical current feature without mutating either jour
     `${window.document.querySelector('#chooser-error').textContent} | ${window.document.querySelector('#model-graph').textContent}`,
   );
   assert.equal(window.document.querySelector('#slices-surface').hidden, true);
-  assert.match(window.document.querySelector('#module-settings-list').textContent, /Independent compliance judgment/);
+  assert.match(window.document.querySelector('#module-settings-list').textContent, /Independent acceptance assessment/);
   assert.equal(window.document.querySelectorAll('[data-artifact-id]').length, snapshot.artifacts.length);
 
   window.document.querySelector('[data-artifact-id="design.md"]').click();

@@ -27,7 +27,7 @@ async function ready(t) {
 }
 const reviewConfig = { provider: 'codex', model: 'fixture' };
 async function verify(f, code = 'process.exit(0)', operationId) {
-  const result = await f.request('gate.execute', { gates: ['verification'], configuration: { checks: [{ repository: 'app', command: process.execPath, args: ['-e', code], purpose: 'Test required behavior' }], externalRuntimeInputs: { app: [] } } }, operationId);
+  const result = await f.request('gate.execute', { gates: ['verification'], configuration: { validation:{kind:'alternative',reason:'Offline fixture',scope:'Approved fixture criterion'}, checks: [{ repository: 'app', command: process.execPath, args: ['-e', code], purpose: 'Test required behavior' }], externalRuntimeInputs: { app: [] } } }, operationId);
   return result.results ?? result.event.payload.results;
 }
 function evaluator(f, transform) {
@@ -80,13 +80,12 @@ test('replacement coverage is qualified in the existing review and cannot be sel
   assert.equal((await f.core.store.json(prior[0])).outcome, 'FAIL');
 });
 
-test('planning judgments batch with code/spec and administrative gates need no separate launches', async t => {
+test('one fresh assessment consolidates planning/code/spec and administrative gates need no launches', async t => {
   const f = await ready(t); await verify(f);
-  const count = evaluator(f);
-  const batch = await f.request('gate.execute', { gates: ['code', 'spec', 'reconcile', 'triage'], configuration: reviewConfig });
+  const count = evaluator(f, output=>{for(const row of output.verdicts)row.dimensions=['code','requirements','evidence','scope','findings'].map(name=>({name,outcome:'PASS',evidence:'Actual fixture source and receipts'}));});
+  const batch = await f.request('gate.execute', { gates: ['review'], configuration: reviewConfig });
   for (const ref of batch.event.payload.results) { const report = await f.core.store.json(ref); assert.equal(report.outcome, 'PASS', report.summary); }
   assert.equal(count(), 1);
-  for (const gate of ['judge', 'pattern', 'explanation']) await f.request('gate.execute', { gates: [gate], configuration: reviewConfig });
   const check = await f.request('milestone.check', { name: 'acceptance' });
   assert.equal(check.allowed, true, check.missing.join('; '));
   for (const gate of ['context', 'packet']) assert.equal(check.outcomes.find(item => item.id === gate).administrative.outcome, 'PASS');

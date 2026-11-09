@@ -30,13 +30,20 @@ round cap; change approach when repeating a failure and respect human stop rules
 Keep issues, tracker and decision notes useful without generating ceremony on
 each commit. Ordinary commits do not require milestone passage.
 
-Preserve all required acceptance obligations: source/context, reconciliation,
-Verification, spec assessment, pattern review, independent Judge, code review,
-decision triage, explanation and packet integrity. One fresh evaluator independent
-of the implementer may assess code, spec, reconciliation and triage together with
-separate verdicts. Boundary context, packet and retention checks run internally. Judge remains
-required. Optional whiteboard is selected by current run policy. Use actual runner
-receipts and native evaluator execution, never implementer-authored PASS records.
+Required acceptance uses source/context, actual Verification, one fresh
+independent acceptance assessment (`review`) and packet integrity. The assessment
+covers code, approved requirements, evidence/CI scope, project rules, material
+decisions, findings/fixes and the human explanation. Separate code/spec/Judge
+sessions are supplemental choices. Whiteboard remains opt-in. Use actual runner
+receipts and fresh evaluator execution, never implementer-authored PASS records.
+
+The test pyramid guides agent decisions: quick focused checks early, broader
+checks when changed behavior requires them, actual broad CI scope or an explicitly
+assessed local alternative at acceptance. Agents may depart from this heuristic.
+Encourage additional independent models for consequential changes, uncertainty,
+repeated misses or divergent conclusions; do not run them automatically each round.
+Batch supported findings before returning. Record strategy, rerun reasons, fixes
+and friction in workflow memory during existing work, without a new approval gate.
 
 Reuse exact qualifying proof while its relevant inputs remain equivalent. An
 independent delta can supplement earlier proof only with changed-scope and
