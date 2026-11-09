@@ -1,6 +1,7 @@
 import { MetricsStore, CATEGORIES } from './store.js';
 const sumKnown=values=>values.every(Number.isFinite)?values.reduce((a,b)=>a+b,0):null;
 const displayed=value=>Number.isFinite(value)?value.toFixed(1):'unknown';
+const placed=r=>r.provenance==='observed';
 export function union(intervals) {
   let total=0, end=-Infinity;
   for (const [a,b] of intervals.sort((a,b)=>a[0]-b[0])) { if (b>a) { total+=Math.max(0,b-Math.max(end,a)); end=Math.max(end,b); } }
@@ -14,19 +15,10 @@ export function queryOptions(q = {}) {
   for (const key of ['limit','offset']) if (q[key] != null && (!Number.isInteger(q[key]) || q[key]<0 || q[key]>(key==='limit'?1000:20000))) throw new Error('Invalid query bound');
   return q;
 }
-export async function report(q = {}, store = new MetricsStore()) {
-  queryOptions(q);
-  const project = q.project ? await store.identity(q.project).catch(()=>null) : null;
-  const feature = q.feature ? await store.identity(q.feature).catch(()=>null) : null;
-  // Select by indexed identity and time; an unknown identity matches nothing.
-  const unmatched = q.project && !project || q.feature && !feature;
-  const inventory = unmatched ? { ...(await store.summary()), records: [], incomplete: 0 }
-    : await store.read({ projectId: project, featureId: feature, since: q.since ? Date.parse(q.since) : null, until: q.until ? Date.parse(q.until) : null });
-  const rows = inventory.records.map(x=>x.record).filter(r=>(!q.project || r.projectId===project) && (!q.feature || r.featureIds.includes(feature))
-    && (!q.since || r.startedAt>=Date.parse(q.since)) && (!q.until || r.startedAt<=Date.parse(q.until)));
+// Shared exclusive worker accounting for overview and dimension contributions.
+export function workerAccounting(rows) {
   const byId = new Map(rows.map(r=>[r.id,r]));
   const finite = rows.filter(r=>r.durationMs!==null);
-  const placed=r=>r.provenance==='observed';
   const childMap=new Map(), workerChildren=new Map();
   for(const child of finite){
     if(child.parentId){if(!childMap.has(child.parentId))childMap.set(child.parentId,[]);childMap.get(child.parentId).push(child);}
@@ -40,6 +32,19 @@ export async function report(q = {}, store = new MetricsStore()) {
     const covered=descendants.filter(child=>child.clock===r.clock).map(child=>[Math.max(r.startedAt,child.startedAt),Math.min(r.startedAt+r.durationMs,child.startedAt+child.durationMs)]);
     return {...r,workerMs:r.workMs??(descendants.some(child=>child.clock!==r.clock || !placed(child) || !placed(r))?null:Math.max(0,r.durationMs-union(covered)))};
   });
+  return { byId, finite, workers, childMap };
+}
+export async function report(q = {}, store = new MetricsStore()) {
+  queryOptions(q);
+  const project = q.project ? await store.identity(q.project).catch(()=>null) : null;
+  const feature = q.feature ? await store.identity(q.feature).catch(()=>null) : null;
+  // Select by indexed identity and time; an unknown identity matches nothing.
+  const unmatched = q.project && !project || q.feature && !feature;
+  const inventory = unmatched ? { ...(await store.summary()), records: [], incomplete: 0 }
+    : await store.read({ projectId: project, featureId: feature, since: q.since ? Date.parse(q.since) : null, until: q.until ? Date.parse(q.until) : null });
+  const rows = inventory.records.map(x=>x.record).filter(r=>(!q.project || r.projectId===project) && (!q.feature || r.featureIds.includes(feature))
+    && (!q.since || r.startedAt>=Date.parse(q.since)) && (!q.until || r.startedAt<=Date.parse(q.until)));
+  const { byId, finite, workers, childMap } = workerAccounting(rows);
   const clocks = [...new Set(rows.map(r=>r.clock))];
   const operations=rows.map(r=>{if(r.durationMs===null)return {...r,exclusiveMs:null};const children=childMap.get(r.id)??[];return {...r,exclusiveMs:children.some(c=>c.clock!==r.clock||!placed(c)||!placed(r))?null:Math.max(0,r.durationMs-union(children.map(c=>[Math.max(r.startedAt,c.startedAt),Math.min(r.startedAt+r.durationMs,c.startedAt+c.durationMs)])))};});
   const operationCost=[...new Set(operations.map(r=>r.label))].map(label=>({label,executions:operations.filter(r=>r.label===label).length,exclusiveMs:sumKnown(operations.filter(r=>r.label===label).map(r=>r.exclusiveMs))})).sort((a,b)=>b.exclusiveMs-a.exclusiveMs);

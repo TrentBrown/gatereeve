@@ -34,7 +34,17 @@ export function renderMetrics(container, api) {
   fleetButton('List datasets',list);
   fleetButton('Capture this machine',async()=>{await api.metrics({action:'capture',input:platform.value?{platform:platform.value}:{}});await list();});
   fleetButton('Open reevaluation report',async()=>{const {html}=await api.metrics({action:'reevaluation-html',input:query()});let frame=fleet.querySelector('iframe');if(!frame){frame=node('iframe',{attributes:{title:'All-project reevaluation report',sandbox:''}});frame.style.width='100%';frame.style.height='650px';fleet.append(frame);}frame.srcdoc=html;});
-  fleetButton('Inspect databases',async()=>{result.textContent=JSON.stringify(await api.metrics({action:'databases'}),null,2);});
+  const workflows=node('select',{attributes:{'aria-label':'Workflow database'}});
+  fleetButton('Inspect databases',async()=>{
+    const value=await api.metrics({action:'databases'});result.textContent=JSON.stringify(value,null,2);
+    workflows.replaceChildren(...(value.workflows??[]).map(row=>node('option',{attributes:{value:row.id},text:`${row.project} · ${row.issue} · ${row.home}`})));
+    status.textContent=value.workflows?.length?'Select a workflow to inspect its database.':'No known local workflow databases; imported snapshots do not register authority.';
+  });
+  fleet.append(workflows);
+  fleetButton('Inspect selected workflow',async()=>{
+    if(!workflows.value)throw new Error('Select a known local workflow database first.');
+    result.textContent=JSON.stringify(await api.metrics({action:'databases',input:{workflow:workflows.value}}),null,2);
+  });
   const transfer=node('textarea',{attributes:{'aria-label':'Snapshot JSON',placeholder:'Paste a portable snapshot to import, or export the selected dataset here'}});fleet.append(transfer);
   const importKind=node('select',{attributes:{'aria-label':'Snapshot import format'}},[['snapshot-import','Portable snapshot'],['legacy-import','Historical rc.23/rc.24 envelope']].map(([value,text])=>node('option',{attributes:{value},text})));fleet.append(importKind);
   fleetButton('Import snapshot',async()=>{await api.metrics({action:importKind.value || 'snapshot-import',input:JSON.parse(transfer.value)});await list();});

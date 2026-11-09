@@ -51,6 +51,7 @@ test('snapshot datasets preserve independent clocks and nested timing accounting
   ])await store.put({...input,project:'test',outcome:'PASS'});
   const {dataset}=await metricsRequest('capture',{},store),report=await metricsRequest('reevaluate',{dataset},store);
   assert.equal(report.totals.workerMs,130); assert.equal(report.totals.observedElapsedMs,null);
+  for(const dimension of ['projects','workflows','checks','models','platforms','validators']) assert.equal(report[dimension].reduce((sum,row)=>sum+row.recordedWorkerMs,0),130,dimension);
 });
 test('CI scope observes exact head and required executed jobs; alternative stays a proposal',async()=>{
   const candidate={repositories:[{alias:'app',head:'abc'}]},configuration={validation:{kind:'ci',runs:[{alias:'app',repository:'org/repo',run:1,attempt:1,requiredChecks:['full']}]}};
@@ -138,4 +139,28 @@ test('unknown worker timing stays unknown beside observed work and spans inherit
   assert.equal(report.totals.workerMs,null);assert.equal(report.totals.observedElapsedMs,null);
   const workers=report.observations.filter(row=>row.metrics?.worker);
   assert.equal(workers.length,2);assert.ok(workers.every(row=>row.branch==='tb-42'&&row.workflow));
+});
+
+test('legacy imports retain known runs under a shared feature and disclose unknown runs',async t=>{
+  const store=await fixture(t);
+  for(const [id,workflow] of [['a','run-one'],['b','run-two'],['c',undefined]]) await store.put({id,workflow,feature:'same-feature',project:'test',category:'unit',worker:true,startedAt:Date.parse(now),durationMs:10,outcome:'PASS'});
+  const records=(await store.read({})).records.map(row=>row.record);
+  const result=await metricsRequest('legacy-import',{records,platform:'historical',sourceId:'legacy',capturedAt:now},store);
+  const report=await metricsRequest('reevaluate',{dataset:result.dataset},store);
+  assert.equal(report.workflows.length,3);
+  for(const metric of records.filter(row=>row.workflowId)) assert.equal((await metricsRequest('reevaluate',{dataset:result.dataset,workflow:metric.workflowId},store)).observations.length,1);
+  assert.ok(report.workflows.some(row=>row.id.startsWith('Unknown run (')));
+});
+test('combining snapshots retains earlier source gaps and the full known window',async t=>{
+  const store=await fixture(t);
+  const first=await metricsRequest('snapshot-import',{...snapshot([row]),sources:[{...source,since:'2026-11-01T00:00:00Z',until:'2026-11-02T00:00:00Z',limitations:['First window lost capture']}]},store);
+  const second=await metricsRequest('snapshot-import',{...snapshot([{...row,id:'later',observedAt:'2026-11-10T00:00:00Z'}]),sources:[{...source,capturedAt:'2026-11-10T00:00:00Z',since:'2026-11-02T00:00:00Z',until:'2026-11-03T00:00:00Z',status:'available',limitations:[]}]},store);
+  const combined=await metricsRequest('combine',{datasets:[first.dataset,second.dataset]},store);
+  const value=await metricsRequest('snapshot-export',{dataset:combined.dataset},store);
+  assert.equal(value.sources[0].since,'2026-11-01T00:00:00.000Z');assert.equal(value.sources[0].until,'2026-11-03T00:00:00.000Z');
+  assert.equal(value.sources[0].status,'partial');assert.deepEqual(value.sources[0].limitations,['First window lost capture']);
+  assert.equal((await metricsRequest('combine',{datasets:[second.dataset,first.dataset]},store)).dataset,combined.dataset);
+  const unknown=await metricsRequest('snapshot-import',snapshot([]),store);
+  const all=await metricsRequest('combine',{datasets:[combined.dataset,unknown.dataset]},store);
+  assert.equal((await metricsRequest('snapshot-export',{dataset:all.dataset},store)).sources[0].since,null);
 });

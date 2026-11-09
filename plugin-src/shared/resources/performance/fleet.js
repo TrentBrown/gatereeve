@@ -3,7 +3,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { lstat } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { createHash } from 'node:crypto';
-import { report } from './report.js';
+import { report, workerAccounting } from './report.js';
 import { validateRecord } from './store.js';
 
 export const SNAPSHOT_FORMAT = 'gatereeve-metrics-snapshot/1';
@@ -55,9 +55,10 @@ export async function importSnapshot(input, store) {
   check(Array.isArray(input.sources) && Array.isArray(input.records) && input.records.length <= 100000, 'Invalid snapshot contents');
   check(Buffer.byteLength(JSON.stringify(input)) <= 64 * 1024 * 1024, 'Snapshot exceeds 64 MiB');
   const sources = input.sources.map(source), records = input.records.map(observation);
-  check(new Set(sources.map(item => item.id)).size === sources.length, 'Duplicate source identity');
+  const sourceIds = new Set(sources.map(item => item.id));
+  check(sourceIds.size === sources.length, 'Duplicate source identity');
   check(new Set(records.map(item => item.id)).size === records.length, 'Duplicate observation identity');
-  check(records.every(row => sources.some(item => item.id === row.source)), 'Observation has unknown source');
+  check(records.every(row => sourceIds.has(row.source)), 'Observation has unknown source');
   const canonical = { format: SNAPSHOT_FORMAT, sources: [...sources].sort((a,b) => compare(a.id,b.id)), records: [...records].sort((a,b) => compare(a.id,b.id)) };
   const id = hash(canonical), db = await reportingDatabase(store);
   return store.transaction(db, () => {
@@ -122,20 +123,27 @@ export async function captureSnapshot(input = {}, store) {
 export async function importLegacySnapshot({ records, platform, sourceId, capturedAt, labels = {} }, store) {
   check(label(sourceId) && label(platform) && time(capturedAt) && Array.isArray(records), 'Legacy import needs explicit source, platform and capture time');
   const rows = records.map(metrics => { validateRecord(metrics, { lenient: true }); return observation({ id: `${sourceId}:${metrics.id}`, source: sourceId, observedAt: capturedAt, kind: 'execution',
-    projectKey: `${sourceId}:${metrics.projectId}`, project: labels[metrics.projectId] ?? `Unknown project (${metrics.projectId.slice(0,8)})`, workflow: metrics.featureId, platform, check: metrics.label, outcome: metrics.outcome, metrics }); });
+    projectKey: `${sourceId}:${metrics.projectId}`, ...(metrics.display ?? {}), project: labels[metrics.projectId] ?? metrics.display?.project ?? `Unknown project (${metrics.projectId.slice(0,8)})`, workflow: metrics.workflowId ?? (metrics.featureId ? `Unknown run (${metrics.featureId.slice(0,8)})` : null), platform, check: metrics.label, outcome: metrics.outcome, metrics }); });
   return importSnapshot({ format: SNAPSHOT_FORMAT, sources: [{ id: sourceId, platform, capturedAt, since: null, until: capturedAt, status: 'partial', collectorVersion: 'legacy-performance/1', limitations: ['Historical rc.23/rc.24 export; coverage window and execution denominator may be incomplete. Labels are supplied mappings, not inferred identities.'] }], records: rows }, store);
 }
 const projectKey = row => row.projectKey ?? (row.metrics?.projectId ? `${row.source}:${row.metrics.projectId}` : `${row.source}:${row.project ?? 'Unknown'}`);
-function group(rows, key) {
-  const identity = row => key === 'project' ? projectKey(row) : row[key] ?? 'Unknown';
-  return [...new Set(rows.map(identity))].sort().map(id => {
-    const selected = rows.filter(row => identity(row) === id), timed = selected.filter(row => row.metrics?.worker);
-    const name = key === 'project' ? selected[0].project ?? 'Unknown' : key === 'workflow' && selected[0].issue ? [selected[0].issue,selected[0].branch].filter(Boolean).join(' · ') : id;
-    return { id, name, observations: selected.length, executions: selected.filter(row => row.kind === 'execution').length,
-      failures: selected.filter(row => row.outcome === 'FAIL').length, findings: selected.filter(row => row.kind === 'finding').length,
-      recordedWorkerMs: timed.length && timed.every(row => row.metrics.durationMs !== null) ? timed.reduce((sum,row) => sum + row.metrics.durationMs,0) : null,
-      ids: selected.map(row => row.id) };
-  });
+function group(rows, key, work) {
+  const groups = new Map();
+  for (const row of rows) {
+    const id = key === 'project' ? projectKey(row) : row[key] ?? 'Unknown';
+    if (!groups.has(id)) groups.set(id, { id,
+      name: key === 'project' ? row.project ?? 'Unknown' : key === 'workflow' && row.issue ? [row.issue,row.branch].filter(Boolean).join(' · ') : id,
+      observations: 0, executions: 0, failures: 0, findings: 0, recordedWorkerMs: 0, hasWorker: false, ids: [] });
+    const group = groups.get(id);
+    group.observations++; group.executions += Number(row.kind === 'execution');
+    group.failures += Number(row.outcome === 'FAIL'); group.findings += Number(row.kind === 'finding'); group.ids.push(row.id);
+    if (row.metrics?.worker) {
+      group.hasWorker = true;
+      const amount = work.get(`${row.source}:${row.metrics.id}`);
+      group.recordedWorkerMs = group.recordedWorkerMs == null || amount == null ? null : group.recordedWorkerMs + amount;
+    }
+  }
+  return [...groups.values()].sort((a,b)=>compare(a.id,b.id)).map(({hasWorker,...row})=>({...row,recordedWorkerMs:hasWorker?row.recordedWorkerMs:null}));
 }
 export async function reevaluationReport(input, store) {
   check(input && Object.keys(input).every(key => ['dataset','project','workflow','platform','check','model'].includes(key)), 'Invalid reevaluation filter');
@@ -144,11 +152,12 @@ export async function reevaluationReport(input, store) {
   // Existing accounting computes nested exclusive work and union elapsed per
   // clock. Source-prefix all private IDs so imported independent stores cannot collide.
   const metrics = rows.filter(row => row.metrics).map(row => { const r = structuredClone(row.metrics); for (const key of ['id','parentId','clock','projectId','commandId']) if (r[key]) r[key] = `${row.source}:${r[key]}`; return r; });
+  const work = new Map(workerAccounting(metrics).workers.map(row=>[row.id,row.workerMs]));
   const timings = await report({ limit: 1000 }, { read: async () => ({records:metrics.map(record => ({record})), incomplete:0}), summary:async()=>({}) });
   return { format: 'gatereeve-reevaluation/1', dataset: input.dataset, filters: input, sources: snapshot.sources,
     totals: timings.totals, coverage: { ...timings.coverage, missingSources: snapshot.sources.filter(row => row.status === 'missing').map(row => row.platform),
       gaps: [...timings.coverage.gaps, ...snapshot.sources.flatMap(row => row.limitations), 'Snapshot freshness and source coverage are independent of observed work totals.'] },
-    projects: group(rows,'project'), workflows: group(rows,'workflow'), checks: group(rows,'check'), models: group(rows,'model'), platforms: group(rows,'platform'), validators: group(rows,'validator'), strategies: group(rows,'strategy'),
+    projects: group(rows,'project',work), workflows: group(rows,'workflow',work), checks: group(rows,'check',work), models: group(rows,'model',work), platforms: group(rows,'platform',work), validators: group(rows,'validator',work), strategies: group(rows,'strategy',work),
     outcomes: {findings:rows.filter(row=>row.kind==='finding').length,dispositions:rows.filter(row=>row.kind==='disposition').length,escapedDefects:rows.filter(row=>row.kind==='escaped-defect').length,friction:rows.filter(row=>row.kind==='friction').length},
     repetitions: timings.repetitions, reuse: timings.reuse, detailListsTruncated: timings.detailListsTruncated, operationCost: timings.operationCost, observations: rows,
     interpretation: 'Recorded observations only. Repetition is not proof of waste; findings are not a measured escaped-defect rate. No causal speedup is inferred.' };
@@ -169,11 +178,21 @@ export async function combineSnapshots({ datasets }, store) {
   const records = new Map(), sources = new Map();
   for (const dataset of datasets) {
     const snapshot = await exportSnapshot({dataset},store);
-    for (const item of snapshot.sources) if (!sources.has(item.id) || Date.parse(item.capturedAt) > Date.parse(sources.get(item.id).capturedAt)) sources.set(item.id,item);
+    for (const item of snapshot.sources) {
+      const prior = sources.get(item.id);
+      if (!prior) { sources.set(item.id,item); continue; }
+      const newest = Date.parse(item.capturedAt) > Date.parse(prior.capturedAt) ? item : prior;
+      const bound = (key, pick) => prior[key] && item[key] ? new Date(pick(Date.parse(prior[key]),Date.parse(item[key]))).toISOString() : null;
+      sources.set(item.id, { ...newest, since: bound('since',Math.min), until: bound('until',Math.max),
+        status: prior.status === item.status ? item.status : 'partial',
+        collectorVersion: prior.collectorVersion === item.collectorVersion ? item.collectorVersion : 'mixed',
+        limitations: [...new Set([...prior.limitations,...item.limitations])].sort(compare) });
+    }
     for (const item of snapshot.records) {
       const prior = records.get(item.id);
       if (prior && prior.observedAt === item.observedAt) check(JSON.stringify(prior) === JSON.stringify(item), 'Conflicting overlapping snapshot observation');
       if (!prior || Date.parse(item.observedAt) > Date.parse(prior.observedAt)) records.set(item.id,item);
+      check(records.size <= 100000, 'Combined snapshot exceeds 100000 observations');
     }
   }
   return importSnapshot({ format: SNAPSHOT_FORMAT, sources:[...sources.values()], records:[...records.values()] },store);

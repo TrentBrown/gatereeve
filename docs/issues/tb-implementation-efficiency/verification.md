@@ -80,3 +80,47 @@ against the retained broad failure and untouched passing cases.
 User authorized selecting another available reviewer. An actual isolated Codex
 availability check succeeded with `gpt-6.1-sol` at high reasoning. That provider
 will perform fresh governing reviews; the probe itself is not a review.
+
+## Reviewer launch diagnosis
+
+The first shell probe and GateReeve launches resolved different Codex installations.
+The standalone 0.142.4 CLI rejected the model and could not parse the newer model
+catalog; its UNAVAILABLE outcomes remain retained. A real installed-adapter probe
+using `/Users/trent.brown/.nvm/versions/node/v24.15.0/bin/codex` (0.166.0) completed
+with gpt-6.1-sol/high and a fresh provider context. The substantive review now uses
+that explicit executable through the existing runtime adapter injection. No
+installed plugin or global configuration was modified; no receipt is synthesized.
+
+## Additional import-path audit while review runs
+
+A disposable two-snapshot reproduction confirmed that combine currently selects
+the latest source metadata, losing an earlier partial-coverage limitation and
+narrowing the displayed coverage window despite retaining the earlier records.
+The follow-up should union known windows/limitations, preserve unknown bounds,
+and retain partial status whenever any contributing source is partial/missing.
+
+Also inspect future per-command public check labels: nested verification spans
+currently inherit only the generic verification gate label despite retaining a
+human-readable check purpose. Preserve useful public labels without exporting
+raw argv/environment/logs. Batch these reporting fixes with any independent
+findings; do not relabel the current candidate as already corrected.
+
+## Batched independent-review repairs
+
+The gpt-6.1-sol code/spec/reconciliation execution and separate gpt-6-astra judge
+independently found the same three defects on 7ca3009: nested worker totals in
+drill-down groups, loss of known legacy workflow identities, and unreachable
+selected-workflow database inspection in desktop. Exact historical findings are
+retained under review-7ca3009 and in the current runtime objects.
+
+Repairs share exclusive worker accounting with the overview, preserve actual run
+identities while labeling absent ones unknown, and provide a desktop workflow
+selector backed by the shared database inspection service. A real SQLite desktop
+integration test also exposed initialization of a new reporting store before its
+first workflow projection; that is repaired. Combining snapshots now retains
+earlier coverage limitations/windows. Per-command public purpose labels and
+explicit batch-discovery guidance improve future observability and review.
+
+Focused fleet and desktop regressions passed 16/16. A fresh actual runner will
+retain the exact 303-record historical import input and output, plus current
+focused regressions, before independent reassessment. No speedup is yet measured.

@@ -11,6 +11,7 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
   if (process.env.GATEREEVE_METRICS === 'off') return;
   try {
     if (!(await store.config()).enabled) return;
+    await store.admit(true); await store.key();
     const { state, events } = await core.state();
     const source = await store.identity(`source:${hostname()}`), workflow = await store.identity(`${core.store.home}:${state.runId}`);
     const db = await reportingDatabase(store);
