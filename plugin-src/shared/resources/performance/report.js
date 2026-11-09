@@ -44,7 +44,13 @@ export async function report(q = {}, store = new MetricsStore()) {
     : await store.read({ projectId: project, featureId: feature, since: q.since ? Date.parse(q.since) : null, until: q.until ? Date.parse(q.until) : null });
   const rows = inventory.records.map(x=>x.record).filter(r=>(!q.project || r.projectId===project) && (!q.feature || r.featureIds.includes(feature))
     && (!q.since || r.startedAt>=Date.parse(q.since)) && (!q.until || r.startedAt<=Date.parse(q.until)));
-  const { byId, finite, workers, childMap } = workerAccounting(rows);
+  // A fixed-dataset drill-down can retain surrounding spans for accounting
+  // without adding those observations to the selected result.
+  const accounting = workerAccounting(inventory.accountingRecords ?? rows);
+  const byId = accounting.byId, childMap = accounting.childMap;
+  const selected = new Set(rows.map(row=>row.id));
+  const finite = accounting.finite.filter(row=>selected.has(row.id));
+  const workers = accounting.workers.filter(row=>selected.has(row.id));
   const clocks = [...new Set(rows.map(r=>r.clock))];
   const operations=rows.map(r=>{if(r.durationMs===null)return {...r,exclusiveMs:null};const children=childMap.get(r.id)??[];return {...r,exclusiveMs:children.some(c=>c.clock!==r.clock||!placed(c)||!placed(r))?null:Math.max(0,r.durationMs-union(children.map(c=>[Math.max(r.startedAt,c.startedAt),Math.min(r.startedAt+r.durationMs,c.startedAt+c.durationMs)])))};});
   const operationCost=[...new Set(operations.map(r=>r.label))].map(label=>({label,executions:operations.filter(r=>r.label===label).length,exclusiveMs:sumKnown(operations.filter(r=>r.label===label).map(r=>r.exclusiveMs))})).sort((a,b)=>b.exclusiveMs-a.exclusiveMs);

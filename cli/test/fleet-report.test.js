@@ -164,3 +164,16 @@ test('combining snapshots retains earlier source gaps and the full known window'
   const all=await metricsRequest('combine',{datasets:[combined.dataset,unknown.dataset]},store);
   assert.equal((await metricsRequest('snapshot-export',{dataset:all.dataset},store)).sources[0].since,null);
 });
+
+test('filtered model totals retain nested context and reconcile with overview contributions',async t=>{
+  const store=await fixture(t),at=Date.parse(now);
+  await store.put({id:'parent',project:'p',worker:true,category:'review',startedAt:at,durationMs:100,outcome:'PASS',display:{model:'one'}});
+  await store.put({id:'child',parentId:'parent',project:'p',worker:true,category:'unit',startedAt:at+20,durationMs:20,outcome:'PASS',display:{model:'two'}});
+  const {dataset}=await metricsRequest('capture',{},store),overview=await metricsRequest('reevaluate',{dataset},store);
+  for(const model of ['one','two']){
+    const filtered=await metricsRequest('reevaluate',{dataset,model},store);
+    assert.equal(filtered.observations.length,1);
+    assert.equal(filtered.totals.workerMs,overview.models.find(row=>row.id===model).recordedWorkerMs);
+    assert.equal(filtered.models[0].recordedWorkerMs,filtered.totals.workerMs);
+  }
+});

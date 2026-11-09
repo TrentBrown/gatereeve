@@ -151,9 +151,11 @@ export async function reevaluationReport(input, store) {
   const rows = snapshot.records.filter(row => ['project','workflow','platform','check','model'].every(key => input[key] == null || (input[key] === row[key] || (key === 'project' && input[key] === projectKey(row)))));
   // Existing accounting computes nested exclusive work and union elapsed per
   // clock. Source-prefix all private IDs so imported independent stores cannot collide.
-  const metrics = rows.filter(row => row.metrics).map(row => { const r = structuredClone(row.metrics); for (const key of ['id','parentId','clock','projectId','commandId']) if (r[key]) r[key] = `${row.source}:${r[key]}`; return r; });
-  const work = new Map(workerAccounting(metrics).workers.map(row=>[row.id,row.workerMs]));
-  const timings = await report({ limit: 1000 }, { read: async () => ({records:metrics.map(record => ({record})), incomplete:0}), summary:async()=>({}) });
+  const allMetrics = snapshot.records.filter(row => row.metrics).map(row => { const r = structuredClone(row.metrics); for (const key of ['id','parentId','clock','projectId','commandId']) if (r[key]) r[key] = `${row.source}:${r[key]}`; return r; });
+  const selected = new Set(rows.filter(row=>row.metrics).map(row=>`${row.source}:${row.metrics.id}`));
+  const metrics = allMetrics.filter(row=>selected.has(row.id));
+  const work = new Map(workerAccounting(allMetrics).workers.map(row=>[row.id,row.workerMs]));
+  const timings = await report({ limit: 1000 }, { read: async () => ({records:metrics.map(record => ({record})), accountingRecords:allMetrics, incomplete:0}), summary:async()=>({}) });
   return { format: 'gatereeve-reevaluation/1', dataset: input.dataset, filters: input, sources: snapshot.sources,
     totals: timings.totals, coverage: { ...timings.coverage, missingSources: snapshot.sources.filter(row => row.status === 'missing').map(row => row.platform),
       gaps: [...timings.coverage.gaps, ...snapshot.sources.flatMap(row => row.limitations), 'Snapshot freshness and source coverage are independent of observed work totals.'] },

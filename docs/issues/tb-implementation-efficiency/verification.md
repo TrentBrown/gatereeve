@@ -124,3 +124,11 @@ explicit batch-discovery guidance improve future observability and review.
 Focused fleet and desktop regressions passed 16/16. A fresh actual runner will
 retain the exact 303-record historical import input and output, plus current
 focused regressions, before independent reassessment. No speedup is yet measured.
+
+## Additional focused accounting reproduction
+
+After 476ace0 verification, a two-model parent/child reproduction found that
+filtering before nested accounting reports model-one overview contribution 80 ms
+but its filtered total 100 ms. The pending correction keeps full fixed-dataset
+span context for accounting while selecting only requested observations. This is
+part of the same R6 accounting repair, not a new requirement.
