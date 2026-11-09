@@ -17,12 +17,14 @@ test('metrics UI loads on demand, opens sandboxed report and uses explicit manag
 
 test('fleet UI selects fixed datasets and calls shared import/export and analysis explicitly',async t=>{
   const {document,Event}=parseHTML('<html><body><main></main></body></html>').window;globalThis.document=document;t.after(()=>delete globalThis.document);
-  const calls=[];const api={metrics:async request=>{calls.push(request);if(request.action==='datasets')return {datasets:[{id:'dataset-one',capturedAt:'2026-11-09',records:3,sources:[{platform:'Playpen'}]}]};if(request.action==='reevaluation-html')return {html:'<h1>Fleet report</h1>'};if(request.action==='analyze')return {status:'unavailable',reason:'fixture'};return {format:'gatereeve-metrics-snapshot/1',sources:[],records:[]};}};
+  const calls=[];const api={metrics:async request=>{calls.push(request);if(request.action==='datasets')return {datasets:[{id:'dataset-one',capturedAt:'2026-11-09',records:3,sources:[{platform:'Playpen'}]}]};if(['reevaluation-html','html'].includes(request.action))return {html:'<h1>Fleet report</h1>'};if(request.action==='analyze')return {status:'unavailable',reason:'fixture'};return {format:'gatereeve-metrics-snapshot/1',sources:[],records:[]};}};
   const card=renderMetrics(document.querySelector('main'),api);assert.equal(calls.length,0);
   const click=async text=>{[...card.querySelectorAll('button')].find(b=>b.textContent===text).dispatchEvent(new Event('click'));await new Promise(r=>setTimeout(r,0));};
   await click('List datasets');const select=card.querySelector('[aria-label="Fixed reporting dataset"]');select.querySelector('option').selected=true;
   await click('Open reevaluation report');assert.deepEqual(calls.at(-1),{action:'reevaluation-html',input:{dataset:'dataset-one'}});
   assert.equal(card.querySelector('iframe').getAttribute('sandbox'),'');
+  await click('Open full report');assert.equal(card.querySelectorAll('iframe').length,2);
+  assert.equal(card.querySelector('iframe[title="All-project reevaluation report"]').srcdoc,'<h1>Fleet report</h1>');
   await click('Export snapshot');assert.match(card.querySelector('textarea').value,/gatereeve-metrics-snapshot/);
   await click('Import snapshot');assert.ok(calls.some(call=>call.action==='snapshot-import'));
   const provider=card.querySelector('[aria-label="Analysis provider"]');provider.querySelector('option').selected=true;

@@ -24,7 +24,7 @@ test('runner CLI executes focused checks without requiring a dependency-tree dec
   for (const args of [['--checks', 'unused.json'], ['--configuration', configuration, '--checks', 'unused.json'], ['--checks', 'unused.json', '--configuration', configuration]]) {
     await assert.rejects(invoke(...args), error => {
       assert.equal(error.code, 1);
-      assert.match(error.stderr, /--checks has been retired.*--configuration.*externalRuntimeInputs/);
+      assert.match(error.stderr, /--checks has been retired.*--configuration.*validation scope/);
       return true;
     });
   }

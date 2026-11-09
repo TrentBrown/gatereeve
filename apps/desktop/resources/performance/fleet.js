@@ -7,7 +7,8 @@ import { report } from './report.js';
 import { validateRecord } from './store.js';
 
 export const SNAPSHOT_FORMAT = 'gatereeve-metrics-snapshot/1';
-const stable = value => JSON.stringify(value, function(key, item) { return item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a],[b])=>a.localeCompare(b))) : item; });
+const compare = (a,b) => a < b ? -1 : a > b ? 1 : 0;
+const stable = value => JSON.stringify(value, function(key, item) { return item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a],[b])=>compare(a,b))) : item; });
 const hash = value => createHash('sha256').update(stable(value)).digest('hex');
 const check = (ok, message) => { if (!ok) throw new Error(message); };
 const label = value => typeof value === 'string' && value.length <= 1024 && !/[\x00-\x1f]/u.test(value);
@@ -57,12 +58,14 @@ export async function importSnapshot(input, store) {
   check(new Set(sources.map(item => item.id)).size === sources.length, 'Duplicate source identity');
   check(new Set(records.map(item => item.id)).size === records.length, 'Duplicate observation identity');
   check(records.every(row => sources.some(item => item.id === row.source)), 'Observation has unknown source');
-  const canonical = { format: SNAPSHOT_FORMAT, sources: [...sources].sort((a,b) => a.id.localeCompare(b.id)), records: [...records].sort((a,b) => a.id.localeCompare(b.id)) };
+  const canonical = { format: SNAPSHOT_FORMAT, sources: [...sources].sort((a,b) => compare(a.id,b.id)), records: [...records].sort((a,b) => compare(a.id,b.id)) };
   const id = hash(canonical), db = await reportingDatabase(store);
   return store.transaction(db, () => {
     if (db.prepare('SELECT id FROM reporting_datasets WHERE id=?').get(id)) return { dataset: id, records: records.length, reused: true };
     for (const row of records) {
       const version = hash(row);
+      const historical = db.prepare('SELECT body,observed_at FROM reporting_observations WHERE id=?').all(row.id);
+      check(!historical.some(old => Date.parse(old.observed_at) === Date.parse(row.observedAt) && old.body !== JSON.stringify(row)), 'Conflicting values for the same observation time');
       const latest = db.prepare('SELECT o.body,o.observed_at FROM reporting_observations o JOIN reporting_latest l ON o.id=l.id AND o.version=l.version WHERE o.id=?').get(row.id);
       if (latest && latest.body !== JSON.stringify(row)) {
         const old = JSON.parse(latest.body);

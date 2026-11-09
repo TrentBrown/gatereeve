@@ -13,7 +13,7 @@ export function renderMetrics(container, api) {
     enabled.checked=health.settings.enabled;diagnostics.checked=health.settings.diagnosticDetails;
   };
   button('Load metrics',load);
-  button('Open full report',async()=>{const {html}=await api.metrics({action:'html'});let frame=card.querySelector('iframe');if(!frame){frame=node('iframe',{attributes:{title:'Workflow performance report',sandbox:''}});frame.style.width='100%';frame.style.height='600px';card.append(frame);}frame.srcdoc=html;});
+  button('Open full report',async()=>{const {html}=await api.metrics({action:'html'});let frame=card.querySelector('iframe[title="Workflow performance report"]');if(!frame){frame=node('iframe',{attributes:{title:'Workflow performance report',sandbox:''}});frame.style.width='100%';frame.style.height='600px';card.append(frame);}frame.srcdoc=html;});
   const settings=node('details',{},[node('summary',{text:'Measurement settings (all projects)'})]);
   const enabled=node('input',{type:'checkbox'});settings.append(node('label',{},[enabled,node('span',{text:' Enable collection'})]));
   const diagnostics=node('input',{type:'checkbox'});settings.append(node('label',{},[diagnostics,node('span',{text:' Enable bounded diagnostic detail'})]));

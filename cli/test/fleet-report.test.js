@@ -22,6 +22,8 @@ test('fixed datasets are idempotent, overlapping imports do not change old repor
   const second=await metricsRequest('snapshot-import',snapshot([next]),store);
   assert.equal((await metricsRequest('reevaluate',{dataset:first.dataset},store)).observations[0].outcome,'PASS');
   await assert.rejects(metricsRequest('snapshot-import',snapshot([{...next,outcome:'PASS'}]),store),/Conflicting/);
+  await assert.rejects(metricsRequest('snapshot-import',snapshot([{...row,outcome:'FAIL'}]),store),/Conflicting/);
+  assert.equal((await metricsRequest('datasets',{},store)).datasets.length,2);
   const combined=await metricsRequest('combine',{datasets:[first.dataset,second.dataset]},store);
   const report=await metricsRequest('reevaluate',{dataset:combined.dataset},store);
   assert.equal(report.observations.length,1); assert.equal(report.projects[0].failures,1);
