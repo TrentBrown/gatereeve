@@ -55,8 +55,10 @@ retain their separate authority.
     - who set it (human or agent);
     - the observed instruction or reason;
     - the time.
-  - **Existing runs.** A run created before this change, which has no dial events, is
-    reported as `full`/`supervised` without rewriting or replaying its history.
+  - **Existing runs.** A run created under an earlier contract is retained unchanged
+    and reported as requiring current-protocol resumption; its history is neither
+    rewritten nor replayed. A resumed run defaults to `full`/`supervised` unless an
+    explicit choice is supplied.
   - **Visibility.** Both current dial values appear in:
     - `status`/`snapshot`/`next` output;
     - the CLI status display;
@@ -197,13 +199,15 @@ retain their separate authority.
   - **Rollout.**
     - The changed protocol is a new contract version.
     - The CLI, desktop, MCP and plugin copies behave identically.
-    - Existing runs and documents are neither converted nor deleted.
+    - Existing runs and documents are neither converted nor deleted. Runs under an
+      earlier contract continue only through explicit current-protocol resumption
+      (AC1).
 
 ## Rubric
 
 | # | Criterion | Pass | Fail | Evidence |
 |---|-----------|------|------|----------|
-| R1 | Defaults, provenance and no config path (AC1) | New runs default to full/supervised. Explicit choices are recorded with value, source, actor, instruction and time. No configuration layer or invalid input yields light or delegated. Pre-change runs report full/supervised unchanged. | Any config, invalid input or missing value produces light or delegated; dial events lack provenance; or existing runs are rewritten or misreported. | Pre-merge protocol tests for start, resume and invalid inputs; fixture of a contract-6 run. |
+| R1 | Defaults, provenance and no config path (AC1) | New runs default to full/supervised. Explicit choices are recorded with value, source, actor, instruction and time. No configuration layer or invalid input yields light or delegated. Pre-change runs are retained unchanged and reported as requiring resumption; a resumed run defaults to full/supervised. | Any config, invalid input or missing value produces light or delegated; dial events lack provenance; or existing runs are rewritten, replayed, misreported, or resumed into a dial other than the explicit or default value. | Pre-merge protocol tests for start, resume and invalid inputs; fixture of a contract-6 run. |
 | R2 | Dial visibility (AC1) | Both dials appear in status/snapshot/next, CLI status, the desktop workflow header and SessionStart. With no run, activation guidance requires the up-front "full or light?" question. | Any listed surface omits or contradicts a dial, or no-run guidance lacks the question. | Adapter/CLI output tests, desktop renderer test or visual capture, SessionStart unit tests. |
 | R3 | Asymmetric toggles (AC2) | Light→full and delegated→supervised succeed for human or agent. Full→light succeeds only for a human, while supervised, with no unresolved required FAIL. Supervised→delegated succeeds only for a human. Retained evidence survives lowering. | Any disallowed actor, autonomy or FAIL state can lower rigor or delegate; or lowering discards evidence. | Pre-merge protocol acceptance/rejection tests covering each transition and actor. |
 | R4 | Light commitments and authority (AC3) | A light run reaches acceptance with only `brief.md`. Supervised implementation needs human authorization bound to the brief's hash; a changed brief invalidates it. Light→full requires full commitments before acceptance. | Light requires full planning documents; implementation proceeds without brief-bound authority; or a stale brief keeps authority. | Pre-merge protocol tests for a light run lifecycle and brief changes. |
@@ -219,3 +223,24 @@ retain their separate authority.
 ## Changes
 
 Append spec amendments here. Do not remove or weaken original criteria.
+
+### 2026-11-15 — Existing-run compatibility under the contract bump
+
+The original wording of AC1, R1 and AC8 said pre-change runs are reported as `full`/`supervised`
+without rewriting or replaying. That cannot hold together with AC8's new contract
+version: the store, event history, workflow database, candidates and results all
+reject records from another contract (`store.js`, `workflow-database.js`,
+`evidence.js`, `core.js`). Contract upgrades proceed by explicit
+`run.resume-current`, as 5 → 6 did.
+
+The criteria now require:
+- Pre-change runs are retained unchanged and reported as requiring resumption.
+- A resumed run defaults to `full`/`supervised`.
+
+This keeps mixed-version installations safe: an older plugin never misreads dial
+events it does not understand.
+
+The original "no rewrite, no replay, no conversion" guarantees are kept, and R1 adds
+a failure condition for resuming into an unchosen dial.
+
+Approved by Trent: "Yes".
