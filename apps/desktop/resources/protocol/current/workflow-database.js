@@ -7,6 +7,9 @@ import { CONTRACT, canonical, requireThat } from './contracts.js';
 // plain workflow.sqlite) is retained byte-for-byte; a new contract never opens
 // it, so explicit run.resume-current starts a fresh current run beside it.
 export const DATABASE_NAME = `workflow.sqlite.${CONTRACT.replace(/^gatereeve\//u, '').replace('/', '-')}`;
+// Earlier contracts' database names, newest first. They are read only to
+// preserve activation provenance on explicit resumption; never written.
+export const EARLIER_DATABASE_NAMES = Object.freeze(['workflow.sqlite']);
 const VERSION = 1;
 const SCHEMA = `
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT;
@@ -93,3 +96,24 @@ export async function inspectDatabase(home) {
       : { path, exists: false, state: 'missing', recovery: 'Start or explicitly resume a fresh workflow; missing history grants no authority.' };
   } catch (error) { return { path, exists: true, state: 'unavailable', reason: error.message }; }
 }
+
+// The retained activation value of the newest earlier-contract database, if
+// any. Opened read-only with the same file safety rules; no schema, contract or
+// event is interpreted, so nothing from it becomes current authority.
+export async function earlierActivation(home) {
+  const directory = join(home, '.gatereeve-current');
+  for (const name of EARLIER_DATABASE_NAMES) {
+    const path = join(directory, name);
+    let info;
+    try { info = await lstat(path); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+    requireThat(info.isFile() && !info.isSymbolicLink() && info.nlink === 1, 'Unsafe earlier workflow database file');
+    const db = new DatabaseSync(path, { readOnly: true });
+    try {
+      const table = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='metadata'").get();
+      const value = table ? db.prepare("SELECT value FROM metadata WHERE key='active'").get()?.value ?? null : null;
+      if (value) return { bytes: Buffer.from(value), database: name };
+    } finally { db.close(); }
+  }
+  return null;
+}
+

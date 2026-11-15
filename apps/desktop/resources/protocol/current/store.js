@@ -2,7 +2,7 @@ import { constants } from 'node:fs';
 import { lstat, open, mkdir, readdir, link, unlink, realpath } from 'node:fs/promises';
 import { join, resolve, relative, sep, dirname, isAbsolute } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { database, projectEvent, historyRow, inspectDatabase } from './workflow-database.js';
+import { database, projectEvent, historyRow, inspectDatabase, earlierActivation } from './workflow-database.js';
 import { CONTRACT, HASH, canonical, digest, identity, identifier, requireThat } from './contracts.js';
 
 const MAX_BYTES = 64 * 1024 * 1024;
@@ -171,12 +171,16 @@ export class CurrentStore {
       const [a, b] = await Promise.all(pair.map(read));
       requireThat(!a || !b || a.equals(b), 'Conflicting retained journal copies; restore verified exact bytes');
       const bytes = a ?? b;
-      if (!bytes) return head;
+      if (!bytes) return head ?? await this.earlierDatabaseActivation();
       const hash = digest(bytes);
       requireThat(!seen.has(hash), 'Cyclic active reference'); seen.add(hash);
       head = { bytes, hash };
       pair = [`${AREA}/activations/${hash.slice(7)}.json`, `${AREA}/activation-witnesses/${hash.slice(7)}.json`];
     }
+  }
+  async earlierDatabaseActivation() {
+    const earlier = await earlierActivation(this.home);
+    return earlier ? { bytes: earlier.bytes, hash: digest(earlier.bytes) } : null;
   }
   async activationHead() {
     const value = await database(this.home, false, db => db.prepare("SELECT value FROM metadata WHERE key='active'").get()?.value ?? null);

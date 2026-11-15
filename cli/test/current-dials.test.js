@@ -129,22 +129,30 @@ test('rules: lowering rigor is refused under delegation or unresolved required F
   assert.throws(() => dialChange(dials('full', 'supervised'), { ...lower, actor: 'system' }), /human or agent/);
 });
 
-test('rigor lowering uses acceptance satisfaction, so a stale or narrower waiver cannot resolve a FAIL', async () => {
-  const candidate = { hash: 'sha256:' + 'c'.repeat(64) };
+test('rigor lowering is blocked by unsatisfied acceptance FAIL and by recorded FAIL when the candidate cannot qualify', async () => {
+  const candidate = { hash: 'sha256:' + 'c'.repeat(64) }, other = { hash: 'sha256:' + 'd'.repeat(64) };
+  const objects = {
+    rf: { gate: 'review', outcome: 'FAIL', input: { hash: 'in-current' } },
+    vp: { gate: 'verification', outcome: 'PASS', input: { hash: 'in-current' } },
+    old: { gate: 'verification', outcome: 'FAIL', input: { hash: 'in-other' } },
+    'in-current': { candidate }, 'in-other': { candidate: other },
+  };
   const failures = CurrentCore.prototype.unresolvedRequiredFailures;
-  const withOutcomes = outcomes => ({ check: async (name, state) => { assert.equal(name, 'acceptance'); assert.equal(state.candidate, candidate); return { outcomes }; } });
-  const state = { candidate, decisions: [{ kind: 'waive', subject: candidate.hash, gates: ['review'], findings: ['F1'] }] };
-  // A FAIL that acceptance does not consider satisfied blocks, even though a
-  // waiver naming the gate exists (it covers F1, not the current blocking F2).
-  assert.deepEqual(await failures.call(withOutcomes([
-    { id: 'review', required: true, outcome: 'FAIL', satisfied: false, exception: null },
-    { id: 'verification', required: true, outcome: 'PASS', satisfied: true },
-    { id: 'code', required: false, outcome: 'FAIL', satisfied: false },
-  ]), state), ['review']);
-  // A FAIL acceptance considers satisfied by an applicable exception does not block.
-  assert.deepEqual(await failures.call(withOutcomes([{ id: 'review', required: true, outcome: 'FAIL', satisfied: true, exception: {} }]), state), []);
-  // Missing evidence is not an unresolved FAIL; with no candidate nothing blocks.
-  assert.deepEqual(await failures.call(withOutcomes([{ id: 'review', required: true, outcome: 'UNAVAILABLE', satisfied: false }]), state), []);
+  const fake = outcomes => ({ store: { json: async ref => objects[ref.hash] },
+    check: async (name, state) => { assert.equal(name, 'acceptance'); assert.equal(state.candidate, candidate); return { outcomes }; } });
+  const state = { candidate, optionalGates: [], results: [{ hash: 'old' }, { hash: 'vp' }, { hash: 'rf' }],
+    decisions: [{ kind: 'waive', subject: candidate.hash, gates: ['review'], findings: ['F1'] }] };
+  // Acceptance reports an unsatisfied FAIL even though a narrower waiver names the gate.
+  assert.deepEqual(await failures.call(fake([{ id: 'review', required: true, outcome: 'FAIL', satisfied: false }]), state), ['review']);
+  // The live candidate cannot qualify (dirty tree / moved HEAD): acceptance reports
+  // every gate UNAVAILABLE, but the recorded FAIL for this candidate still blocks.
+  const unqualified = [{ id: 'review', required: true, outcome: 'UNAVAILABLE', satisfied: false },
+    { id: 'verification', required: true, outcome: 'UNAVAILABLE', satisfied: false }];
+  assert.deepEqual(await failures.call(fake(unqualified), state), ['review']);
+  // Only acceptance's own satisfaction (an applicable exception) resolves a recorded FAIL.
+  assert.deepEqual(await failures.call(fake([{ id: 'review', required: true, outcome: 'FAIL', satisfied: true, exception: {} }]), state), []);
+  // An older FAIL for another candidate is not the latest result for this one.
+  assert.deepEqual(await failures.call(fake(unqualified), { ...state, results: [{ hash: 'old' }] }), []);
   assert.deepEqual(await failures.call({ check: async () => assert.fail('no check without a candidate') }, { ...state, candidate: null }), []);
 });
 
@@ -188,12 +196,20 @@ test('an earlier-contract run is retained, reported as needing resumption, and r
   assert.equal(status.ok, true, JSON.stringify(status.error)); assert.equal(status.data.mode, 'current-entry');
   assert.equal(status.data.dials, null);
   assert.equal(status.data.actions[0].id, 'resume-current');
+  // A fresh start cannot bypass the retained earlier-contract run.
+  const started = await executeCurrentRequest({ operation: 'run.start', cwd: f.repo, operationId: 'bypass', input: { implementers: ['implementer-one'] } });
+  assert.equal(started.ok, false); assert.match(JSON.stringify(started.error), /resume-current/);
   const resumed = await executeCurrentRequest({ operation: 'run.resume-current', cwd: f.repo, operationId: 'resume', input: { implementers: ['implementer-one'] } });
   assert.equal(resumed.ok, true, JSON.stringify(resumed.error));
   const after = await executeCurrentRequest({ operation: 'status', cwd: f.repo });
   assert.equal(after.data.mode, 'governed');
   assert.deepEqual(after.data.dials, { rigor: 'full', autonomy: 'supervised' });
   assert.equal(await digest(), before, 'The earlier-contract database is retained byte-for-byte');
+  // The resumed run links the earlier activation as provenance without interpreting it.
+  const core = await CurrentCore.at({ featureId: 'feature', featureHome: f.home, workspaceRoot: f.root, repositories: [{ alias: 'app', path: f.repo }] });
+  const first = (await core.state()).events[0];
+  assert.ok(first.payload.priorActive, 'STARTED records the earlier activation');
+  assert.equal((await core.store.get(first.payload.priorActive)).toString(), JSON.stringify({ contract: 'gatereeve/current/6', runId: 'old' }));
 });
 
 test('resuming an active run reports a differing dial choice instead of dropping it', async t => {
