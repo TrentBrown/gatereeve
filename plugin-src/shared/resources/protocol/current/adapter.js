@@ -6,7 +6,7 @@ import { resolveWorkflowContext } from '../context.js';
 import { successResult, failureResult } from '../result.js';
 import { CurrentCore } from './core.js';
 import { CurrentStore, readSafe } from './store.js';
-import { CONTRACT, PHASES, GATES, ENFORCEMENT, identity, digest, requireThat } from './contracts.js';
+import { CONTRACT, PHASES, GATES, ENFORCEMENT, DEFAULT_DIALS, identity, digest, requireThat } from './contracts.js';
 
 const DOCUMENTS = ['interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md', 'scratchpad.md', 'decisions.md'];
 export async function contextFor(request, runtime = {}) {
@@ -53,6 +53,10 @@ export async function currentSnapshot(context, options = {}, runtime = {}) {
   return {
     schemaVersion: 1, contract: CONTRACT, mode: data ? 'governed' : 'current-entry',
     featureId: context.featureId, featureHome: context.featureHome, current: data,
+    // Current dial values for a governed run; with no current run, the built-in
+    // defaults a new or resumed run receives unless explicitly chosen.
+    dials: data ? { rigor: data.dials.rigor.value, autonomy: data.dials.autonomy.value } : null,
+    dialDefaults: DEFAULT_DIALS,
     phases: PHASES, obligations: data?.obligations ?? GATES.filter(item => !item.optional && !item.supplemental),
     milestones: data?.milestones ?? [], database: core ? await core.store.inspect() : null, artifacts, enforcement: ENFORCEMENT,
     events: { count: events.length, lastEventId: events.at(-1)?.hash ?? null },

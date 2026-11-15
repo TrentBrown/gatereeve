@@ -10,7 +10,7 @@ import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-w
 import { executionEnvironment, assertEnvironmentCurrent } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
-import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, requireThat, identity,
+import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, startDial, dialChange, requireThat, identity,
   identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity } from './evidence.js';
@@ -33,6 +33,9 @@ export function project(events) {
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
     decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, actions: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
     sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length };
+  state.dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial,
+    { ...(first.dials?.[dial] ?? startDial(dial)), at: events[0].recordedAt, event: events[0].hash }]));
+  state.dialHistory = Object.entries(state.dials).map(([dial, value]) => ({ dial, ...value }));
   for (const event of events.slice(1)) {
     const value = event.payload;
     switch (event.type) {
@@ -65,6 +68,10 @@ export function project(events) {
         break;
       case 'INTEGRATED': state.integrated = value; state.integrations[value.repository] = value; state.phase = 'INTEGRATED'; break;
       case 'OBSERVATION': break; // Agent memory; never grants authority.
+      case 'DIAL_SET': {
+        const recorded = { ...value, at: event.recordedAt, event: event.hash };
+        state.dials[value.dial] = recorded; state.dialHistory.push(recorded); break;
+      }
       case 'PAUSED': state.paused = true; break;
       case 'RESUMED': state.paused = false; break;
       default: throw new Error(`Unsupported current event: ${event.type}`);
@@ -115,9 +122,10 @@ export class CurrentCore {
     requireThat(Array.isArray(optionalGates) && optionalGates.every(id => gate(id).optional), 'Only optional gates may be selected');
     const active = replacement ? null : await this.store.active();
     requireThat(!active || active.runId === input.runId, 'A current run already exists; resume that run');
+    const dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial, startDial(dial, input[dial])]));
     // No legacy files are read or overwritten. STARTED is durable before activation.
     await this.store.append(input.runId, 0, 'STARTED', { featureId: this.context.featureId,
-      implementers: [...new Set(input.implementers)], optionalGates: [...new Set(optionalGates)], ...(replacement ? { priorActive: await this.store.put(replacement.bytes) } : {}) }, operation);
+      implementers: [...new Set(input.implementers)], optionalGates: [...new Set(optionalGates)], dials, ...(replacement ? { priorActive: await this.store.put(replacement.bytes) } : {}) }, operation);
     if (replacement) await this.store.supersedeActive(input.runId, replacement);
     else await this.store.activate(input.runId);
     return this.inspect();
@@ -885,6 +893,32 @@ export class CurrentCore {
       state = recorded.state;
     }
   }
+  // Required non-core acceptance gates whose latest result for the current
+  // candidate is FAIL without a current waiver. Lowering rigor cannot escape them.
+  async unresolvedRequiredFailures(state) {
+    if (!state.candidate) return [];
+    const failing = [];
+    for (const definition of enabled(state, 'acceptance').filter(item => item.role !== 'core')) {
+      for (const ref of [...state.results].reverse()) {
+        const result = await this.store.json(ref);
+        if (result.gate !== definition.id) continue;
+        const input = await this.store.json(result.input);
+        if (input.candidate?.hash !== state.candidate.hash) continue;
+        const waived = currentAuthorityDecisions(state).some(item => decisionHas(item, 'waive')
+          && item.subject === state.candidate.hash && item.gates.includes(definition.id));
+        if (result.outcome === 'FAIL' && !waived) failing.push(definition.id);
+        break;
+      }
+    }
+    return failing;
+  }
+  async setDial(input, operation) {
+    const { state } = await this.state();
+    requireThat(state.phase !== 'COMPLETE', 'Run dials cannot change after completion');
+    const lowering = input?.dial === 'rigor' && input?.value === 'light';
+    const change = dialChange(state, input, lowering ? await this.unresolvedRequiredFailures(state) : []);
+    return this.append(state, 'DIAL_SET', change, operation);
+  }
   async cleanupSource() {
     const { state } = await this.state();
     if (state.phase !== 'COMPLETE' || state.sourceCleanup?.status === 'released') return;
@@ -932,6 +966,7 @@ export class CurrentCore {
     }
     switch (request.operation) {
       case 'run.start': return this.start(input, operation);
+      case 'run.set-dial': return this.setDial(input, operation);
       case 'status': case 'snapshot': return this.inspect();
       case 'coverage.status': requireThat(!Object.keys(input).length, 'Coverage status accepts no asserted outcomes'); return this.coverageStatus();
       case 'human.decide': return this.decide(input, operation);

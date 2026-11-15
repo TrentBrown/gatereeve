@@ -2,7 +2,7 @@
 
 `resources/protocol/plugin-adapter.js` is the authoritative native adapter.
 The optional `gatereeve` CLI and desktop read the same current contract,
-`gatereeve/current/6`. Send one JSON request on stdin or via `--request-file`:
+`gatereeve/current/7`. Send one JSON request on stdin or via `--request-file`:
 
 ```json
 {"operation":"status","cwd":"/absolute/workspace"}
@@ -23,7 +23,8 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | --- | --- |
 | `status`, `snapshot`, `next` | Current phase, commitment hashes, obligations, applicability, exceptions and milestone blockers |
 | `read` | Top-level `kind` = artifact/events/model/result; artifact/result `id` must come from status |
-| `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]` |
+| `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]`, `rigor`/`autonomy` choices `{value, authority?, reason?}` (defaults `full`/`supervised`; a non-default value needs an observed human `authority`) |
+| `run.set-dial` | `dial: rigor|autonomy`, `value`, `actor: human|agent`, `reason`, `authority` (required for `human`, forbidden for `agent`). Raising rigor or returning to supervised is open to either actor; lowering rigor needs a human, supervised autonomy and no unresolved required FAIL on the current candidate |
 | `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals |
 | `human.decide` | See decisions below |
 | `spec.validate` | Run trusted spec lint after the model's semantic review of AC, rubric and boundary feasibility |
@@ -42,6 +43,18 @@ convert, overwrite or delete old locks/journals. A resume with missing approvals
 reports those obligations. Supply observed prior instructions for unchanged
 commitments; ask only for genuinely missing decisions. Do not restart an
 unchanged interview or invent provenance.
+
+## Run dials
+
+Every run carries `rigor` (`full | light`) and `autonomy` (`supervised | delegated`),
+recorded in `STARTED` and in each `DIAL_SET` event with value, source
+(`explicit | built-in`), actor, instruction or reason, and time. Defaults are
+`full` and `supervised`. No global, repository or workspace configuration changes
+them. `status` reports current values in `dials` and the defaults in
+`dialDefaults`. Delegated autonomy is rejected until release-branch protection
+checks are available. A run from an earlier contract is retained unchanged and
+reported as needing `run.resume-current`; the resumed run starts at the defaults
+unless a choice is supplied.
 
 ## Decisions
 
@@ -312,7 +325,7 @@ user-local metrics database and cannot grant workflow authority.
 A missing database grants no recovered approval. Explicitly start/resume a fresh
 run with observed human approvals and surviving documents; no old event replay.
 Old active runtime files remain untouched on upgrade and require explicit resume
-into current/6. Unchanged planning can carry only through observed approvals.
+into current/7. Unchanged planning can carry only through observed approvals.
 No distributed sync, automatic authority reconstruction or general reset is added.
 Use `database.inspect`, `database.history`, CLI `database`, and `workflow.observe`
 (`workflow-note <file>`) for bounded inspection and agent memory. Observation
