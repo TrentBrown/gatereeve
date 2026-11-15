@@ -316,8 +316,10 @@ Provider structured-value digests use canonical JSON key order with array order 
 Current/7 stores activation, ordered events, jobs, decisions and structured
 history in one authoritative `.gatereeve-current/workflow.sqlite.current-7` under
 the canonical feature home. SQLite transactions replace mirrored file journals.
-Each contract has its own database; an earlier contract's database (current/6:
-`workflow.sqlite`) is retained unchanged and is never opened by a later contract.
+Each contract has its own database. An earlier contract's database (current/6:
+`workflow.sqlite`) is never written or migrated; a later contract opens it
+read-only only to link its activation as provenance on explicit resumption. A
+read-only open of a WAL-mode database may create ignored `-wal`/`-shm` sidecars.
 Retained evidence artifacts stay files; the database records their references.
 The SQLite file and WAL/SHM sidecars must remain untracked. Each issue/topic
 branch/worktree owns its workflow database; replacement threads share that

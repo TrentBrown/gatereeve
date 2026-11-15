@@ -4,8 +4,9 @@ import { join } from 'node:path';
 import { CONTRACT, canonical, requireThat } from './contracts.js';
 
 // One database per contract. An earlier contract's database (current/6 used
-// plain workflow.sqlite) is retained byte-for-byte; a new contract never opens
-// it, so explicit run.resume-current starts a fresh current run beside it.
+// plain workflow.sqlite) is never written or migrated. A later contract only
+// opens it read-only to read its activation for provenance (earlierActivation);
+// explicit run.resume-current starts a fresh current run beside it.
 export const DATABASE_NAME = `workflow.sqlite.${CONTRACT.replace(/^gatereeve\//u, '').replace('/', '-')}`;
 // Earlier contracts' database names, newest first. They are read only to
 // preserve activation provenance on explicit resumption; never written.

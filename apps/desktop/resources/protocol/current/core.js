@@ -901,7 +901,8 @@ export class CurrentCore {
   // Two sources, either of which blocks lowering rigor:
   // - the acceptance check, so waiver risk binding and finding scope match
   //   milestone admission exactly; and
-  // - the latest recorded result per required gate for this candidate, because
+  // - the latest decisive (PASS or FAIL) recorded result per required gate for
+  //   this candidate, because
   //   acceptance evaluates no results while the live candidate cannot qualify
   //   (moved HEAD, dirty tree, changed commitments), which is normal after a FAIL.
   // A recorded FAIL is resolved only when acceptance itself reports the gate
@@ -916,6 +917,10 @@ export class CurrentCore {
         const result = await this.store.json(ref);
         if (result.gate !== definition.id) continue;
         if ((await this.store.json(result.input)).candidate?.hash !== state.candidate.hash) continue;
+        // UNAVAILABLE (malformed verdict, provider or transport error, timeout)
+        // decides nothing: it cannot hide an earlier FAIL. Only a later PASS or
+        // FAIL for this candidate settles the gate's recorded outcome.
+        if (!['PASS', 'FAIL'].includes(result.outcome)) continue;
         if (result.outcome === 'FAIL' && !satisfied.has(definition.id)) failing.add(definition.id);
         break;
       }

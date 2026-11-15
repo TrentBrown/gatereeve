@@ -163,6 +163,10 @@ export class CurrentStore {
   // Read old activation pointers only to preserve provenance on explicit resume.
   // No old events are interpreted, repaired or copied into new authority.
   async legacyActivation() {
+    // The newest earlier contract's database supersedes older pointer chains:
+    // a home upgraded current/5 -> current/6 keeps its contract-5 active.json.
+    const earlier = await this.earlierDatabaseActivation();
+    if (earlier) return earlier;
     const read = async path => { try { return await readSafe(this.home, path); } catch (error) { if (error.code === 'ENOENT') return null; throw error; } };
     let pair = [`${AREA}/active.json`, `${AREA}/active-witness.json`];
     const seen = new Set();
@@ -171,7 +175,7 @@ export class CurrentStore {
       const [a, b] = await Promise.all(pair.map(read));
       requireThat(!a || !b || a.equals(b), 'Conflicting retained journal copies; restore verified exact bytes');
       const bytes = a ?? b;
-      if (!bytes) return head ?? await this.earlierDatabaseActivation();
+      if (!bytes) return head;
       const hash = digest(bytes);
       requireThat(!seen.has(hash), 'Cyclic active reference'); seen.add(hash);
       head = { bytes, hash };

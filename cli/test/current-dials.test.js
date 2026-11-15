@@ -151,6 +151,13 @@ test('rigor lowering is blocked by unsatisfied acceptance FAIL and by recorded F
   assert.deepEqual(await failures.call(fake(unqualified), state), ['review']);
   // Only acceptance's own satisfaction (an applicable exception) resolves a recorded FAIL.
   assert.deepEqual(await failures.call(fake([{ id: 'review', required: true, outcome: 'FAIL', satisfied: true, exception: {} }]), state), []);
+  // A later UNAVAILABLE result (malformed verdict, provider error) decides nothing
+  // and cannot hide the earlier FAIL; a later PASS does settle it.
+  objects.ru = { gate: 'review', outcome: 'UNAVAILABLE', input: { hash: 'in-current' } };
+  objects.rp = { gate: 'review', outcome: 'PASS', input: { hash: 'in-current' } };
+  const latestUnavailable = [{ id: 'review', required: true, outcome: 'UNAVAILABLE', satisfied: false }];
+  assert.deepEqual(await failures.call(fake(latestUnavailable), { ...state, results: [...state.results, { hash: 'ru' }] }), ['review']);
+  assert.deepEqual(await failures.call(fake(latestUnavailable), { ...state, results: [...state.results, { hash: 'rp' }, { hash: 'ru' }] }), []);
   // An older FAIL for another candidate is not the latest result for this one.
   assert.deepEqual(await failures.call(fake(unqualified), { ...state, results: [{ hash: 'old' }] }), []);
   assert.deepEqual(await failures.call({ check: async () => assert.fail('no check without a candidate') }, { ...state, candidate: null }), []);
@@ -181,13 +188,17 @@ test('an earlier-contract run is retained, reported as needing resumption, and r
   const store = join(f.home, '.gatereeve-current');
   await mkdir(store, { recursive: true, mode: 0o700 });
   const legacyPath = join(store, 'workflow.sqlite');
+  // Contract 5 pointer retained from the earlier 5 -> 6 upgrade.
+  await writeFile(join(store, 'active.json'), '{"contract":"gatereeve/current/5","runId":"older"}');
   const legacy = new DatabaseSync(legacyPath);
+  legacy.exec('PRAGMA journal_mode = WAL');
   legacy.exec(`CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT;
     CREATE TABLE events(run_id TEXT NOT NULL, sequence INTEGER NOT NULL, operation_id TEXT NOT NULL, body TEXT NOT NULL, PRIMARY KEY(run_id,sequence), UNIQUE(run_id,operation_id)) STRICT;
     PRAGMA user_version = 1;`);
   legacy.prepare('INSERT INTO metadata VALUES (?,?)').run('contract', 'gatereeve/current/6');
   legacy.prepare('INSERT INTO metadata VALUES (?,?)').run('active', JSON.stringify({ contract: 'gatereeve/current/6', runId: 'old' }));
   legacy.prepare('INSERT INTO events VALUES (?,?,?,?)').run('old', 1, 'start', JSON.stringify({ contract: 'gatereeve/current/6', type: 'STARTED' }));
+  legacy.exec('PRAGMA wal_checkpoint(TRUNCATE)');
   legacy.close();
   const digest = async () => createHash('sha256').update(await readFile(legacyPath)).digest('hex');
   const before = await digest();
@@ -205,7 +216,8 @@ test('an earlier-contract run is retained, reported as needing resumption, and r
   assert.equal(after.data.mode, 'governed');
   assert.deepEqual(after.data.dials, { rigor: 'full', autonomy: 'supervised' });
   assert.equal(await digest(), before, 'The earlier-contract database is retained byte-for-byte');
-  // The resumed run links the earlier activation as provenance without interpreting it.
+  // The resumed run links the newest earlier activation (contract 6, not the
+  // older contract-5 pointer) as provenance without interpreting it.
   const core = await CurrentCore.at({ featureId: 'feature', featureHome: f.home, workspaceRoot: f.root, repositories: [{ alias: 'app', path: f.repo }] });
   const first = (await core.state()).events[0];
   assert.ok(first.payload.priorActive, 'STARTED records the earlier activation');
