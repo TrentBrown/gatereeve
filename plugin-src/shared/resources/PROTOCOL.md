@@ -313,9 +313,11 @@ applicability binds the effective controlled environment; execution receives tha
 
 Provider structured-value digests use canonical JSON key order with array order preserved. Raw strings and bytes retain their exact-byte digest. Retained provider output therefore validates against the original receipt after storage round-trips; older digest contracts require fresh evaluation.
 
-Current/6 stores activation, ordered events, jobs, decisions and structured
-history in one authoritative `.gatereeve-current/workflow.sqlite` under the
-canonical feature home. SQLite transactions replace mirrored file journals.
+Current/7 stores activation, ordered events, jobs, decisions and structured
+history in one authoritative `.gatereeve-current/workflow.sqlite.current-7` under
+the canonical feature home. SQLite transactions replace mirrored file journals.
+Each contract has its own database; an earlier contract's database (current/6:
+`workflow.sqlite`) is retained unchanged and is never opened by a later contract.
 Retained evidence artifacts stay files; the database records their references.
 The SQLite file and WAL/SHM sidecars must remain untracked. Each issue/topic
 branch/worktree owns its workflow database; replacement threads share that

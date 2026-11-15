@@ -145,6 +145,10 @@ export class CurrentCore {
       const { state } = await this.state();
       requireThat(!input.runId || input.runId === state.runId, 'Another current run is already active');
       requireThat(identity(input.implementers) === identity(state.implementers), 'Resume must preserve the implementing contexts');
+      // Dial choices apply only when resumption starts a run. Never drop a
+      // differing choice silently on an already active run.
+      for (const dial of Object.keys(DIALS)) requireThat(input[dial] === undefined || input[dial]?.value === state.dials[dial].value,
+        `The active run is already ${dial} ${state.dials[dial].value}; change it with run.set-dial`);
       await this.reconcileCompletedJobs();
     }
     // Supplied approvals are observations of actual instructions, never inferred
@@ -893,24 +897,14 @@ export class CurrentCore {
       state = recorded.state;
     }
   }
-  // Required non-core acceptance gates whose latest result for the current
-  // candidate is FAIL without a current waiver. Lowering rigor cannot escape them.
+  // Required acceptance gates whose current result is FAIL and that acceptance
+  // itself does not consider satisfied. Using the acceptance check keeps waiver
+  // risk binding and finding scope identical to milestone admission, so lowering
+  // rigor can never treat a stale or narrower exception as resolving a FAIL.
   async unresolvedRequiredFailures(state) {
     if (!state.candidate) return [];
-    const failing = [];
-    for (const definition of enabled(state, 'acceptance').filter(item => item.role !== 'core')) {
-      for (const ref of [...state.results].reverse()) {
-        const result = await this.store.json(ref);
-        if (result.gate !== definition.id) continue;
-        const input = await this.store.json(result.input);
-        if (input.candidate?.hash !== state.candidate.hash) continue;
-        const waived = currentAuthorityDecisions(state).some(item => decisionHas(item, 'waive')
-          && item.subject === state.candidate.hash && item.gates.includes(definition.id));
-        if (result.outcome === 'FAIL' && !waived) failing.push(definition.id);
-        break;
-      }
-    }
-    return failing;
+    const { outcomes = [] } = await this.check('acceptance', state);
+    return outcomes.filter(item => item.required && item.outcome === 'FAIL' && !item.satisfied).map(item => item.id);
   }
   async setDial(input, operation) {
     const { state } = await this.state();

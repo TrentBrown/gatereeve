@@ -94,7 +94,7 @@ Initial support is structural, not a claim that every framework version is compa
 ## Fixed fleet reevaluation (current/6)
 
 The shared user-local `metrics.sqlite` is the reporting store. Each issue/worktree
-has its own authoritative `.gatereeve-current/workflow.sqlite`. Reporting is a
+has its own authoritative per-contract `.gatereeve-current/workflow.sqlite*` database. Reporting is a
 nonblocking projection: it can be incomplete or deleted without erasing workflow
 authority. Snapshots import reporting observations only, never approval state.
 

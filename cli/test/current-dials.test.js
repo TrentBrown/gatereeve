@@ -129,23 +129,23 @@ test('rules: lowering rigor is refused under delegation or unresolved required F
   assert.throws(() => dialChange(dials('full', 'supervised'), { ...lower, actor: 'system' }), /human or agent/);
 });
 
-test('unresolved required FAIL detection binds the current candidate and honours waivers', async () => {
-  const candidate = { hash: 'sha256:' + 'c'.repeat(64) }, other = { hash: 'sha256:' + 'd'.repeat(64) };
-  const objects = {
-    rf: { gate: 'review', outcome: 'FAIL', input: { hash: 'in-current' } },
-    vp: { gate: 'verification', outcome: 'PASS', input: { hash: 'in-current' } },
-    old: { gate: 'verification', outcome: 'FAIL', input: { hash: 'in-other' } },
-    'in-current': { candidate }, 'in-other': { candidate: other },
-  };
-  const fake = { store: { json: async ref => objects[ref.hash] } };
-  const state = { candidate, optionalGates: [], results: [{ hash: 'old' }, { hash: 'vp' }, { hash: 'rf' }], decisions: [] };
+test('rigor lowering uses acceptance satisfaction, so a stale or narrower waiver cannot resolve a FAIL', async () => {
+  const candidate = { hash: 'sha256:' + 'c'.repeat(64) };
   const failures = CurrentCore.prototype.unresolvedRequiredFailures;
-  assert.deepEqual(await failures.call(fake, state), ['review']);
-  const waived = { ...state, decisions: [{ kind: 'waive', subject: candidate.hash, gates: ['review'] }] };
-  assert.deepEqual(await failures.call(fake, waived), []);
-  assert.deepEqual(await failures.call(fake, { ...state, candidate: null }), []);
-  // The earlier FAIL for another candidate is not the latest current result.
-  assert.deepEqual(await failures.call(fake, { ...state, results: [{ hash: 'old' }] }), []);
+  const withOutcomes = outcomes => ({ check: async (name, state) => { assert.equal(name, 'acceptance'); assert.equal(state.candidate, candidate); return { outcomes }; } });
+  const state = { candidate, decisions: [{ kind: 'waive', subject: candidate.hash, gates: ['review'], findings: ['F1'] }] };
+  // A FAIL that acceptance does not consider satisfied blocks, even though a
+  // waiver naming the gate exists (it covers F1, not the current blocking F2).
+  assert.deepEqual(await failures.call(withOutcomes([
+    { id: 'review', required: true, outcome: 'FAIL', satisfied: false, exception: null },
+    { id: 'verification', required: true, outcome: 'PASS', satisfied: true },
+    { id: 'code', required: false, outcome: 'FAIL', satisfied: false },
+  ]), state), ['review']);
+  // A FAIL acceptance considers satisfied by an applicable exception does not block.
+  assert.deepEqual(await failures.call(withOutcomes([{ id: 'review', required: true, outcome: 'FAIL', satisfied: true, exception: {} }]), state), []);
+  // Missing evidence is not an unresolved FAIL; with no candidate nothing blocks.
+  assert.deepEqual(await failures.call(withOutcomes([{ id: 'review', required: true, outcome: 'UNAVAILABLE', satisfied: false }]), state), []);
+  assert.deepEqual(await failures.call({ check: async () => assert.fail('no check without a candidate') }, { ...state, candidate: null }), []);
 });
 
 test('dial changes retain recorded evidence', () => {
@@ -164,18 +164,42 @@ test('dial changes retain recorded evidence', () => {
 test('an earlier-contract run is retained, reported as needing resumption, and resumes at the defaults', async t => {
   const f = await fixture(t);
   const { executeCurrentRequest } = await import('../../plugin-src/shared/resources/protocol/current/adapter.js');
+  const { DATABASE_NAME } = await import('../../plugin-src/shared/resources/protocol/current/workflow-database.js');
+  const { DatabaseSync } = await import('node:sqlite');
+  const { createHash } = await import('node:crypto');
   await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature',
     repositories: { app: { path: 'app', integrationBranch: 'main' } } }));
-  await mkdir(join(f.home, '.gatereeve-current'), { recursive: true });
-  const legacy = '{"contract":"gatereeve/current/6","runId":"old"}';
-  await writeFile(join(f.home, '.gatereeve-current/active.json'), legacy);
+  // A real contract-6 store: plain workflow.sqlite with an active run and events.
+  const store = join(f.home, '.gatereeve-current');
+  await mkdir(store, { recursive: true, mode: 0o700 });
+  const legacyPath = join(store, 'workflow.sqlite');
+  const legacy = new DatabaseSync(legacyPath);
+  legacy.exec(`CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT;
+    CREATE TABLE events(run_id TEXT NOT NULL, sequence INTEGER NOT NULL, operation_id TEXT NOT NULL, body TEXT NOT NULL, PRIMARY KEY(run_id,sequence), UNIQUE(run_id,operation_id)) STRICT;
+    PRAGMA user_version = 1;`);
+  legacy.prepare('INSERT INTO metadata VALUES (?,?)').run('contract', 'gatereeve/current/6');
+  legacy.prepare('INSERT INTO metadata VALUES (?,?)').run('active', JSON.stringify({ contract: 'gatereeve/current/6', runId: 'old' }));
+  legacy.prepare('INSERT INTO events VALUES (?,?,?,?)').run('old', 1, 'start', JSON.stringify({ contract: 'gatereeve/current/6', type: 'STARTED' }));
+  legacy.close();
+  const digest = async () => createHash('sha256').update(await readFile(legacyPath)).digest('hex');
+  const before = await digest();
+  assert.notEqual(DATABASE_NAME, 'workflow.sqlite');
   const status = await executeCurrentRequest({ operation: 'status', cwd: f.repo });
-  assert.equal(status.ok, true); assert.equal(status.data.mode, 'current-entry');
+  assert.equal(status.ok, true, JSON.stringify(status.error)); assert.equal(status.data.mode, 'current-entry');
   assert.equal(status.data.dials, null);
   assert.equal(status.data.actions[0].id, 'resume-current');
   const resumed = await executeCurrentRequest({ operation: 'run.resume-current', cwd: f.repo, operationId: 'resume', input: { implementers: ['implementer-one'] } });
   assert.equal(resumed.ok, true, JSON.stringify(resumed.error));
   const after = await executeCurrentRequest({ operation: 'status', cwd: f.repo });
+  assert.equal(after.data.mode, 'governed');
   assert.deepEqual(after.data.dials, { rigor: 'full', autonomy: 'supervised' });
-  assert.equal(await readFile(join(f.home, '.gatereeve-current/active.json'), 'utf8'), legacy);
+  assert.equal(await digest(), before, 'The earlier-contract database is retained byte-for-byte');
+});
+
+test('resuming an active run reports a differing dial choice instead of dropping it', async t => {
+  const f = await fixture(t); await f.start();
+  const resume = (input, id) => f.request('run.resume-current', { runId: 'run-one', implementers: ['implementer-one'], ...input }, id);
+  await resume({ rigor: { value: 'full' } }, 'same');
+  await assert.rejects(resume({ rigor: { value: 'light', authority: human } }, 'differs'), /already rigor full; change it with run.set-dial/);
+  assert.equal((await f.request('status')).dials.rigor.value, 'full');
 });

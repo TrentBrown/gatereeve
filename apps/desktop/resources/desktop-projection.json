@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:cfaa54d61c093ed00da4ed264aa4f44f33c79332cb737f69f79b2695f83e1863",
+  "protocolHash": "sha256:f9af79389e579b8ebd62f8ebe97f24e88e762a6088fbd7acb563d8c39fa3e116",
   "contract": "gatereeve/current/7",
   "contractSha256": "b6ff8c621a84b9bda1d25e1672ed0313da1320aad902f344d5326d9b15cc9efd",
   "files": [
@@ -42,8 +42,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 72970,
-      "sha256": "34ee1f09527828fe704e331c1f904c97719c4ecc7179d5b59a7cc7bfbbc4f532"
+      "size": 72965,
+      "sha256": "864490ee5f7c1aca72c7774cad040452ecf5f1e93ed387d2677f91aaf38c5c52"
     },
     {
       "path": "current/coverage.js",
@@ -142,8 +142,8 @@
     },
     {
       "path": "current/workflow-database.js",
-      "size": 5679,
-      "sha256": "bc39de8dca4c715214d8e4ff919b7d512dea2e38ed094de092dd775f1d60c7e9"
+      "size": 5971,
+      "sha256": "5255364545dda309cddb04a8d8575775b5992d33e92bc5dcd3542a1bd275d538"
     },
     {
       "path": "errors.js",

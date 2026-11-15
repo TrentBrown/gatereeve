@@ -3,7 +3,10 @@ import { lstat, mkdir, open } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CONTRACT, canonical, requireThat } from './contracts.js';
 
-export const DATABASE_NAME = 'workflow.sqlite';
+// One database per contract. An earlier contract's database (current/6 used
+// plain workflow.sqlite) is retained byte-for-byte; a new contract never opens
+// it, so explicit run.resume-current starts a fresh current run beside it.
+export const DATABASE_NAME = `workflow.sqlite.${CONTRACT.replace(/^gatereeve\//u, '').replace('/', '-')}`;
 const VERSION = 1;
 const SCHEMA = `
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT;
