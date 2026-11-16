@@ -310,3 +310,21 @@ flow already does this is to be checked during spec work.
   runs.
 
 ## Changes
+
+### 2026-11-16 — Rigor can never be lowered within a run (revises D5)
+
+- **Rigor full → light is prohibited** for every actor and autonomy setting. This
+  supersedes the "Rigor full → light" row of the §1 toggle table and the
+  "delegated attempt to lower rigor" hand-back trigger in §4, which can no longer
+  occur.
+- **To work at light rigor after starting full,** the human and agent start a new
+  light run: a new topic branch and feature home. The old run and its evidence are
+  retained unchanged and abandoned, not resolved.
+- **A restart-in-place operation** (superseding the active run on the same branch) is
+  deliberately not added; it can be designed separately if needed.
+- **Reason:** after four review rounds, safely deciding whether failing evidence is
+  resolved enough to drop obligations kept producing new edge cases. Lowering rigor
+  is not a normal workflow. A simple rule ("rigor only goes up") is easy to
+  understand, and restarting is always available.
+- Approved by Trent on 2026-11-16.
+
