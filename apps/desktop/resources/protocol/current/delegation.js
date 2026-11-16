@@ -219,22 +219,34 @@ export async function reviewPlanning(core, input, operation) {
   finally { await view.close(); }
 }
 
-// The scope-bearing content of a brief: everything except the Findings
-// section (its heading and any nested sub-headings, up to the next heading of
-// the same or a higher level). Preamble, goal, scope, sub-headings and any other
-// section all count. The findings log may grow during a run; any other change
-// is a scope-changing amendment. Whitespace-only differences are ignored.
-export function briefScope(bytes) {
-  const kept = []; let findingsLevel = null;
+// The scope-bearing content of a brief: everything except its Findings log.
+// That is the first heading (outside fenced code) whose text starts with
+// "findings" at the level of the brief's Goal/Scope headings, with its nested
+// sub-headings, up to the next heading of the same or a higher level.
+// Preamble, goal, scope, other sections and any differently-levelled or nested
+// "findings..." heading all count, and `#` lines inside fenced code are never
+// headings. The findings log may grow during a run; any other change is a
+// scope-changing amendment. Whitespace-only differences are ignored.
+const FENCE = /^ {0,3}(`{3,}|~{3,})/u;
+export function briefLines(bytes) {
+  const lines = []; let fence = null;
   for (const line of bytes.toString('utf8').split(/\r?\n/u)) {
+    const marker = FENCE.exec(line)?.[1];
+    if (fence) { if (marker && marker[0] === fence[0] && marker.length >= fence.length && !line.slice(line.indexOf(marker) + marker.length).trim()) fence = null; lines.push({ line }); continue; }
+    if (marker) { fence = marker; lines.push({ line }); continue; }
     const heading = /^(#{1,6})\s+(.+)$/u.exec(line);
-    if (heading) {
-      const level = heading[1].length;
-      if (findingsLevel !== null && level <= findingsLevel) findingsLevel = null;
-      if (findingsLevel === null && heading[2].trim().toLowerCase().startsWith('findings')) findingsLevel = level;
-    }
-    if (findingsLevel === null) kept.push(line.trim().replace(/\s+/gu, ' '));
+    lines.push({ line, ...(heading ? { level: heading[1].length, title: heading[2].trim().toLowerCase() } : {}) });
   }
+  return lines;
+}
+export function briefScope(bytes) {
+  const lines = briefLines(bytes);
+  const sectionLevels = lines.filter(item => item.level && ['goal', 'scope'].some(name => item.title.startsWith(name))).map(item => item.level);
+  const level = sectionLevels.length ? Math.min(...sectionLevels) : null;
+  const start = level === null ? -1 : lines.findIndex(item => item.level === level && item.title.startsWith('findings'));
+  let end = lines.length;
+  if (start !== -1) for (let index = start + 1; index < lines.length; index++) if (lines[index].level && lines[index].level <= level) { end = index; break; }
+  const kept = lines.filter((_, index) => start === -1 || index < start || index >= end).map(item => item.line.trim().replace(/\s+/gu, ' '));
   return identity(kept.filter(Boolean).join('\n'));
 }
 

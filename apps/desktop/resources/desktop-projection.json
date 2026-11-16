@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:bf2d2be9d4b9ab6de2e5b9ecc51659a4a19946bdd523743d5597fd03a351e877",
+  "protocolHash": "sha256:30f777fcb7d9c279868f20b0474acb41215d27215706091ba3a01419bea691df",
   "contract": "gatereeve/current/7",
   "contractSha256": "795835042b5f22355711f134404d89c43b7da3b3c362e176e3bb337ed7133679",
   "files": [
@@ -22,8 +22,8 @@
     },
     {
       "path": "current/actions.js",
-      "size": 19370,
-      "sha256": "e8e420a6e6d3c57c1c4897746e1b8b756e6368bc65172ba761a2651b92987d59"
+      "size": 19683,
+      "sha256": "6c98b3ec3e6ab9c4ae2e269e99377d5570d962dcc38e389c13e6ca4e90915a1e"
     },
     {
       "path": "current/adapter.js",
@@ -37,8 +37,8 @@
     },
     {
       "path": "current/command-guard.js",
-      "size": 15311,
-      "sha256": "4e06f080f7f9ec0c2ba412ddf6dcfe2362414b3e8e63fcb90965127c1a36f32a"
+      "size": 17334,
+      "sha256": "6202a1122c5e4d3ad3a04f6d68454a30ffd7bb01fb05e12d8bb6d1e3270a2ce9"
     },
     {
       "path": "current/contracts.js",
@@ -47,8 +47,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 85515,
-      "sha256": "464067ad34e40aa7cdccfad0098fd473410ba3898241ff9f476314b4364ccc34"
+      "size": 87404,
+      "sha256": "510118a3092c571f844cca446bbef0291a10912ec969473f12c67528688882de"
     },
     {
       "path": "current/coverage.js",
@@ -57,8 +57,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 28156,
-      "sha256": "f76f21cbcaba7ac2b779574875881ffab0ff6f54ed1cd1f732707a5667131ed1"
+      "size": 29245,
+      "sha256": "41df9990f897a36893b254921b7e612d6df87247d40d2ac98ae951287bc7b2f6"
     },
     {
       "path": "current/delivery.js",
@@ -127,8 +127,8 @@
     },
     {
       "path": "current/publication.js",
-      "size": 8567,
-      "sha256": "f6cd3cf62fff5e70894675649eb6a5aa3abdb6d971bd038f9de479c179960ba6"
+      "size": 8848,
+      "sha256": "ca8711d6fdad7bdfeff8742ba343dd325d969c9e4fc4762f8300eaa2a251a00b"
     },
     {
       "path": "current/review-history.js",

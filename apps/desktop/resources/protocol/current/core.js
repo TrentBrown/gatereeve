@@ -20,7 +20,7 @@ import { prepareMerge, merge, observeIntegration } from './actions.js';
 import { captureStanding, applyStanding, standingValidity, standingReleaseRefusal, qualifyingDecisions, requireUnexpired } from './authorization.js';
 import { publishReview, requirePublishedReview } from './publication.js';
 import { evaluateTripwires, describeHits, hitKey } from './tripwires.js';
-import { isDelegated, requireProtection, guardDelegatedAction, reviewPlanning, delegatedPlanningAuthority, assertBriefScopeUnchanged, applyDelegation, delegationStatus } from './delegation.js';
+import { isDelegated, requireProtection, guardDelegatedAction, reviewPlanning, delegatedPlanningAuthority, assertBriefScopeUnchanged, applyDelegation, delegationStatus, briefLines } from './delegation.js';
 
 import { sourcePreparation, ensurePins, releasePins } from './source-retention.js';
 import { cleanupViews, viewStatus } from './source-views.js';
@@ -37,9 +37,39 @@ function stayLightCovers(state, hits) {
 }
 // A light run's sole planning commitment. Its adequacy is the human's
 // confirmation and the independent review's concern; only structure is checked.
+// Headings inside fenced code blocks do not count.
 function assertBrief(bytes) {
-  const headings = bytes.toString('utf8').split(/\r?\n/u).map(line => /^#{1,6}\s+(.+)$/u.exec(line)?.[1].trim().toLowerCase()).filter(Boolean);
+  const headings = briefLines(bytes).map(item => item.title).filter(Boolean);
   for (const section of ['goal', 'scope', 'findings']) requireThat(headings.some(heading => heading.startsWith(section)), `The brief needs a ${section} section (goal, scope and findings log)`);
+}
+
+// workflow.observe: bounded agent notes. They never grant authority. An
+// escaped-defect note that links a fix to its origin run, candidate or PR
+// records that link only on a human basis (spec AC8): `human-stated` when the
+// human named the origin, `agent-proposed` when the agent proposed it and the
+// human confirmed it. Either way the observed human instruction is the
+// authority. An unconfirmed proposal is refused, so it is never stored.
+const LINK_BASES = ['human-stated', 'agent-proposed'];
+export function workflowObservation(input) {
+  requireThat(input && typeof input === 'object' && !Array.isArray(input), 'Unsupported workflow observation');
+  requireThat(Object.keys(input).every(key => ['kind','strategy','reason','outcome','findingId','fixId','links','limitation','linkBasis','authority'].includes(key)), 'Unsupported workflow observation');
+  requireThat(['strategy','friction','escaped-defect','disposition','artifact'].includes(input.kind), 'Unsupported workflow observation kind');
+  for (const [key,value] of Object.entries(input)) {
+    if (key === 'authority') continue;
+    if (key === 'links') requireThat(Array.isArray(value) && value.length <= 32 && value.every(item => typeof item === 'string' && item.length > 0 && item.length <= 1024), 'Invalid observation links');
+    else requireThat(typeof value === 'string' && value.length > 0 && value.length <= 1024, 'Invalid observation value');
+  }
+  const origin = input.kind === 'escaped-defect' && input.links?.length > 0;
+  requireThat(origin || (input.linkBasis === undefined && input.authority === undefined),
+    'linkBasis and authority belong only to an escaped-defect note that links a fix to its origin');
+  if (!origin) return input;
+  requireThat(input.linkBasis !== undefined, 'An escaped-defect origin link needs linkBasis human-stated (the human named the origin) or agent-proposed (the human confirmed your proposal)');
+  requireThat(LINK_BASES.includes(input.linkBasis), `Unknown escaped-defect link basis; use ${LINK_BASES.join(' or ')}`);
+  requireThat(input.fixId !== undefined, 'An escaped-defect origin link names the fix (fixId) it links to the origin');
+  requireThat(input.authority !== undefined, input.linkBasis === 'agent-proposed'
+    ? 'Agent-proposed origin links are recorded only after the human confirms them: ask the human, then record the confirmation as authority. Unconfirmed proposals are not stored.'
+    : 'A human-stated origin link needs the observed human statement as authority');
+  return { ...input, authority: authority(input.authority) };
 }
 
 export function project(events) {
@@ -1102,14 +1132,9 @@ export class CurrentCore {
       case 'candidate.prepare': return this.prepare(input, operation);
       case 'candidate.ready': return this.readiness(operation);
       case 'workflow.observe': {
-        requireThat(input && Object.keys(input).every(key => ['kind','strategy','reason','outcome','findingId','fixId','links','limitation'].includes(key)), 'Unsupported workflow observation');
-        requireThat(['strategy','friction','escaped-defect','disposition','artifact'].includes(input.kind), 'Unsupported workflow observation kind');
-        for (const [key,value] of Object.entries(input)) {
-          if (key === 'links') requireThat(Array.isArray(value) && value.length <= 32 && value.every(item => typeof item === 'string' && item.length <= 1024), 'Invalid observation links');
-          else requireThat(typeof value === 'string' && value.length > 0 && value.length <= 1024, 'Invalid observation value');
-        }
+        const note = workflowObservation(input);
         const { state } = await this.state();
-        return this.append(state, 'OBSERVATION', input, operation);
+        return this.append(state, 'OBSERVATION', note, operation);
       }
       case 'gate.execute': return executeGates(this, input, operation);
       case 'milestone.check': return this.check(input.name);
