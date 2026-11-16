@@ -1,4 +1,4 @@
-import { database } from '../../plugin-src/shared/resources/protocol/current/workflow-database.js';
+import { database, DATABASE_NAME } from '../../plugin-src/shared/resources/protocol/current/workflow-database.js';
 import assert from 'node:assert/strict';
 import { isolatedTests } from './helpers/isolated-tests.js';
 import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, readdir, realpath, chmod, stat } from 'node:fs/promises';
@@ -276,7 +276,7 @@ test('current adapter resolves canonical parent records and gives actionable old
   assert.equal(status.ok, true); assert.equal(status.data.mode, 'governed'); assert.equal(status.data.current.runId, 'run-one');
   const wrong = await executeCurrentRequest({ operation: 'status', cwd: f.repo, featureHome: f.root });
   assert.equal(wrong.ok, false);
-  await rm(join(f.home, '.gatereeve-current/workflow.sqlite'));
+  await rm(join(f.home, `.gatereeve-current/${DATABASE_NAME}`));
   const old = await executeCurrentRequest({ operation: 'status', cwd: f.repo });
   assert.equal(old.ok, true); assert.equal(old.data.mode, 'current-entry');
   assert.match(old.data.blockers[0].message, /not replayed/);
@@ -1103,7 +1103,7 @@ test('CI validates a retained current journal and accepts optional untracked evi
   const { validateLocalRecord } = await import('../../ci/validate-local-record.mjs');
   const before = await readFile(join(f.home, 'events.jsonl'));
   assert.equal((await validateLocalRecord(f.home, f.root)).mode, 'current-journal');
-  await rm(join(f.home, '.gatereeve-current/workflow.sqlite'));
+  await rm(join(f.home, `.gatereeve-current/${DATABASE_NAME}`));
   assert.equal((await validateLocalRecord(f.home, f.root)).mode, 'documents-only');
   assert.deepEqual(await readFile(join(f.home, 'events.jsonl')), before);
   await assert.rejects(validateLocalRecord(f.repo, f.root), /canonical feature home/);
@@ -2023,7 +2023,7 @@ test('source admission rejects configured subdirectories and accepts linked work
 for (const shape of ['current-field', 'renamed-field', 'invalid-current-field']) for (const copies of ['primary', 'witness', 'matching', 'conflicting']) test(`public resume preserves unsupported ${copies} activation records with ${shape}`, async t => {
   const f = await fixture(t); await authorize(f);
   await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app', integrationBranch: 'main', featureBaseSha: f.head } } }));
-  await rm(join(f.home,'.gatereeve-current/workflow.sqlite'));
+  await rm(join(f.home,`.gatereeve-current/${DATABASE_NAME}`));
   const primary = join(f.home, '.gatereeve-current/active.json'), witness = join(f.home, '.gatereeve-current/active-witness.json');
   const bytes = JSON.stringify({ contract: 'unsupported/v0', ...(shape === 'current-field' ? { runId: 'run-one' } : shape === 'renamed-field' ? { activeRun: 'legacy-run' } : { runId: { legacy: 'different schema' } }) });
   await writeFile(primary, bytes); await writeFile(witness, copies === 'conflicting' ? bytes+' ' : bytes);
@@ -2206,7 +2206,7 @@ test('retained session-contaminated proof becomes context only and never exports
 for (const current of [false, true]) test(`activation successor schema validation applies only to current contract ${current}`, async t => {
   const f = await fixture(t); await authorize(f);
   const previous = await f.core.store.activationHead();
-  await rm(join(f.home,'.gatereeve-current/workflow.sqlite'));
+  await rm(join(f.home,`.gatereeve-current/${DATABASE_NAME}`));
   await writeFile(join(f.home,'.gatereeve-current/active.json'),previous.bytes);
   const bytes = JSON.stringify({ contract: current ? 'gatereeve/current/5' : 'unsupported/v9', runId: 'unknown-shape', ancestor: 'opaque' });
   for (const dir of ['activations', 'activation-witnesses']) {

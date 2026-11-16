@@ -45,5 +45,5 @@ test('desktop selection inspects the actual local workflow database through the 
   const card=renderMetrics(document.querySelector('main'),api);
   const click=async text=>{completed=undefined;[...card.querySelectorAll('button')].find(b=>b.textContent===text).dispatchEvent(new Event('click'));for(let n=0;n<100&&completed===undefined;n++)await new Promise(r=>setTimeout(r,10));assert.ok(completed);};
   await click('Inspect databases');const selector=card.querySelector('[aria-label="Workflow database"]');assert.equal(selector.querySelectorAll('option').length,1);selector.querySelector('option').selected=true;
-  await click('Inspect selected workflow');assert.ok(calls.at(-1).input.workflow);assert.equal(completed.exists,true);assert.equal(completed.integrity,'ok');assert.equal(completed.schemaVersion,1);assert.match(JSON.stringify(completed),/gatereeve\/current\/6/);
+  await click('Inspect selected workflow');assert.ok(calls.at(-1).input.workflow);assert.equal(completed.exists,true);assert.equal(completed.integrity,'ok');assert.equal(completed.schemaVersion,1);assert.match(JSON.stringify(completed),/gatereeve\/current\/7/);
 });

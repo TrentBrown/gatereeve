@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:8adf610466c1b5c0945b97469137974390aab7fe7616d6113f6d982143ccedf6",
-  "contract": "gatereeve/current/6",
-  "contractSha256": "d801920d67285ff42afe9971049580030240b11c9b24170a9e85b6cd624cb53f",
+  "protocolHash": "sha256:5fec37061741567630e3a15588d4beee5a7b45c081eb43e1f31f7a242cca3fbc",
+  "contract": "gatereeve/current/7",
+  "contractSha256": "fca83a4f9f2466cb6166336ff6ddbfdcbf994078ab6e0d6049d6c3ae5b7709dc",
   "files": [
     {
       "path": "agent-workflow.js",
@@ -27,8 +27,8 @@
     },
     {
       "path": "current/adapter.js",
-      "size": 8489,
-      "sha256": "19ae33d13ea0c4d59dfefac1c60e7704bf3feb8e6da4b666b81b3e0e3578bf71"
+      "size": 8787,
+      "sha256": "67fee94569d8995c35d9cb1ccf55ed2dc46219297794414c61eef819802e32d8"
     },
     {
       "path": "current/authorization.js",
@@ -37,13 +37,13 @@
     },
     {
       "path": "current/contracts.js",
-      "size": 13759,
-      "sha256": "d801920d67285ff42afe9971049580030240b11c9b24170a9e85b6cd624cb53f"
+      "size": 17535,
+      "sha256": "fca83a4f9f2466cb6166336ff6ddbfdcbf994078ab6e0d6049d6c3ae5b7709dc"
     },
     {
       "path": "current/core.js",
-      "size": 70902,
-      "sha256": "4c939b7010104a26b6826daa3f79419ccc8f5890226233dac9c85e9fd16e74ba"
+      "size": 72387,
+      "sha256": "3f249dae7cee800effd785ee3a011b9ede8f6c30df7706a032287d20df2662cb"
     },
     {
       "path": "current/coverage.js",
@@ -132,8 +132,8 @@
     },
     {
       "path": "current/store.js",
-      "size": 15054,
-      "sha256": "1fe80e3a53a8bc38d9f7220bf1eba0c1b5b7d41be5be585929605d69714422a7"
+      "size": 15506,
+      "sha256": "a9b3313466187d209ffc98cb250d00852ca2bdfbbfbd1f2af7226b3b76771664"
     },
     {
       "path": "current/validation-scope.js",
@@ -142,8 +142,8 @@
     },
     {
       "path": "current/workflow-database.js",
-      "size": 5679,
-      "sha256": "bc39de8dca4c715214d8e4ff919b7d512dea2e38ed094de092dd775f1d60c7e9"
+      "size": 7646,
+      "sha256": "379a4cf3cef8eb3ebc1199f29872868a675b3dbd85e246ababc5e91494ff57bb"
     },
     {
       "path": "errors.js",

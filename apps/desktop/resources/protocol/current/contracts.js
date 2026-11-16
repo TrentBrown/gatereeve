@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto';
 import { ContractError } from '../errors.js';
 
-export const CONTRACT = 'gatereeve/current/6';
+export const CONTRACT = 'gatereeve/current/7';
+// Run dials. Values are explicit per-run choices over these built-in defaults;
+// no configuration layer can change them (design D3/D4).
+export const DIALS = Object.freeze({ rigor: Object.freeze(['full', 'light']), autonomy: Object.freeze(['supervised', 'delegated']) });
+export const DEFAULT_DIALS = Object.freeze({ rigor: 'full', autonomy: 'supervised' });
 export const PHASES = ['DESIGNING', 'SPECIFYING', 'PLANNING', 'IMPLEMENTING', 'ACCEPTING', 'INTEGRATED', 'COMPLETE'];
 export const MILESTONES = ['implementation', 'acceptance', 'merge', 'completion'];
 export const HASH = /^sha256:[a-f0-9]{64}$/u;
@@ -142,3 +146,46 @@ export const ENFORCEMENT = Object.freeze({
   codex: { sessionStart: 'guidance', actionHooks: 'PreToolUse: direct gh pr merge guard', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
   claude: { sessionStart: 'guidance', actionHooks: 'PreToolUse: direct gh pr merge guard', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
 });
+
+// A dial choice supplied at run start. Only the built-in default may be chosen
+// without an observed human instruction; delegation is not yet available.
+export function startDial(dial, value) {
+  requireThat(Object.hasOwn(DIALS, dial), 'Unknown run dial');
+  if (value === undefined) return { value: DEFAULT_DIALS[dial], source: 'built-in', actor: null };
+  object(value, `${dial} choice`);
+  requireThat(Object.keys(value).every(key => ['value', 'authority', 'reason'].includes(key)), `Unsupported ${dial} choice field`);
+  requireThat(DIALS[dial].includes(value.value), `Invalid ${dial} value`);
+  requireThat(!(dial === 'autonomy' && value.value === 'delegated'), 'Delegated autonomy requires release-branch protection checks that are not yet available');
+  if (value.value !== DEFAULT_DIALS[dial]) requireThat(value.authority !== undefined, `Choosing ${dial} ${value.value} requires an observed human instruction`);
+  // Every explicit choice carries provenance: the observed instruction or a reason.
+  requireThat(value.authority !== undefined || value.reason !== undefined, `An explicit ${dial} choice needs an observed human instruction or a reason`);
+  const choice = { value: value.value, source: 'explicit', actor: value.authority ? 'human' : 'agent' };
+  if (value.authority !== undefined) choice.authority = authority(value.authority);
+  if (value.reason !== undefined) choice.reason = text(value.reason, `${dial} reason`);
+  return choice;
+}
+export const LOWERING_REFUSED = 'Rigor cannot be lowered within a run; to work at light rigor, start a new light run on a new topic branch (this run and its evidence remain retained)';
+// Validate a requested dial change against the asymmetric rules (design D5 as
+// revised 2026-11-16): rigor only rises; lowering it requires a new light run.
+export function dialChange(state, input) {
+  object(input, 'Dial change');
+  requireThat(Object.keys(input).every(key => ['dial', 'value', 'actor', 'authority', 'reason'].includes(key)), 'Unsupported dial change field');
+  requireThat(Object.hasOwn(DIALS, input.dial), 'Unknown run dial');
+  requireThat(DIALS[input.dial].includes(input.value), `Invalid ${input.dial} value`);
+  // Lowering is refused before any other field check, so every caller gets the
+  // path forward rather than a missing-field error.
+  requireThat(!(input.dial === 'rigor' && input.value === 'light'), LOWERING_REFUSED);
+  requireThat(['human', 'agent'].includes(input.actor), 'Dial change actor must be human or agent');
+  text(input.reason, 'Dial change reason');
+  requireThat(input.actor !== 'human' || input.authority !== undefined, 'A human dial change requires the observed instruction');
+  requireThat(input.actor !== 'agent' || input.authority === undefined, 'An agent dial change cannot claim human authority');
+  const current = state.dials[input.dial].value;
+  requireThat(current !== input.value, `Run ${input.dial} is already ${input.value}`);
+  if (input.dial === 'autonomy' && input.value === 'delegated') {
+    requireThat(input.actor === 'human', 'Only a human can delegate');
+    requireThat(false, 'Delegated autonomy requires release-branch protection checks that are not yet available');
+  }
+  return { dial: input.dial, value: input.value, previous: current, source: 'explicit', actor: input.actor,
+    ...(input.authority !== undefined ? { authority: authority(input.authority) } : {}), reason: input.reason };
+}
+

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CurrentStore } from '../../plugin-src/shared/resources/protocol/current/store.js';
 import { identity } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
-import { database } from '../../plugin-src/shared/resources/protocol/current/workflow-database.js';
+import { database, DATABASE_NAME } from '../../plugin-src/shared/resources/protocol/current/workflow-database.js';
 
 async function fixture(t) {
   const home = await mkdtemp(join(tmpdir(), 'gatereeve-sqlite-'));
@@ -60,7 +60,7 @@ test('missing database has no reconstructed approvals', async t => {
   await writeFile(join(home,'design.md'), 'approved surviving document');
   await store.append('run', 0, 'STARTED', { implementers: [] }, op('start'));
   await store.activate('run');
-  await rm(join(home,'.gatereeve-current/workflow.sqlite'));
+  await rm(join(home,`.gatereeve-current/${DATABASE_NAME}`));
   assert.equal((await store.inspect()).state, 'missing');
   assert.deepEqual(await store.events('run'), []);
   assert.equal(await store.active(), null);
