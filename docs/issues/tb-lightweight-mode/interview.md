@@ -372,3 +372,25 @@ implementation?
 - Relaxing the amend restriction after use (D9).
 - Whether the current PR flow already publishes the review summary (D14).
 - Request to Brad: protect `fca-it/careNav-admin` `main`.
+
+## D16 — Rigor can never be lowered within a run (revises D5)
+
+**Question:** After four independent reviews of S1 each found a further gap in
+deciding whether a required FAIL was resolved before rigor could be lowered, should
+full → light (a) stay allowed with a stricter acceptance-only rule, (b) be deferred
+to S2, or (c) be prohibited, with restarting as a new light run as the only path?
+
+**Answer:** Trent: lowering rigor is "a workflow that we shouldn't be doing
+generally". Prohibit it; restarting the whole workflow is always the human's way out.
+"Yes, this is clearly the way to go … We're saying that you can't reduce rigor at
+all. It's a simple rule for people to understand, and there's always an out for the
+human to restart the whole workflow again."
+
+**Decision:**
+- A run's rigor can rise (light → full) but never fall.
+- Full → light is rejected for every actor and autonomy setting, with a message
+  naming the path forward: start a new light run (new topic branch and feature home).
+- The old run's evidence is retained and abandoned, not resolved.
+- No restart-in-place operation is added now.
+- Supersedes D5's full → light row.
+

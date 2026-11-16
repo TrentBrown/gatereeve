@@ -71,12 +71,10 @@ retain their separate authority.
   - **Light → full:** may be performed by the human or the agent, with a reason.
     Acceptance then requires the full commitments (design, spec, plan, issues, and
     spec validation).
-  - **Full → light:** accepted only with an observed human instruction.
-    - It is rejected when the agent requests it.
-    - It is rejected while autonomy is `delegated`.
-    - It is rejected while any required gate has an unresolved FAIL for the current
-      candidate.
-    - Previously recorded evidence remains retained and visible.
+  - **Full → light:** always rejected, for every actor and autonomy setting. A run's
+    rigor can rise but never fall. The rejection tells the caller that working at
+    light rigor requires starting a new light run (a new topic branch and feature
+    home). The existing run and all its recorded evidence are retained unchanged.
   - **Supervised → delegated:** accepted only with an observed human instruction
     naming the run.
   - **Delegated → supervised:** may be performed by the human or the agent, with a
@@ -209,7 +207,7 @@ retain their separate authority.
 |---|-----------|------|------|----------|
 | R1 | Defaults, provenance and no config path (AC1) | New runs default to full/supervised. Explicit choices are recorded with value, source, actor, instruction and time. No configuration layer or invalid input yields light or delegated. Pre-change runs are retained unchanged and reported as requiring resumption; a resumed run defaults to full/supervised. | Any config, invalid input or missing value produces light or delegated; dial events lack provenance; or existing runs are rewritten, replayed, misreported, or resumed into a dial other than the explicit or default value. | Pre-merge protocol tests for start, resume and invalid inputs; fixture of a contract-6 run. |
 | R2 | Dial visibility (AC1) | Both dials appear in status/snapshot/next, CLI status, the desktop workflow header and SessionStart. With no run, activation guidance requires the up-front "full or light?" question. | Any listed surface omits or contradicts a dial, or no-run guidance lacks the question. | Adapter/CLI output tests, desktop renderer test or visual capture, SessionStart unit tests. |
-| R3 | Asymmetric toggles (AC2) | Light→full and delegated→supervised succeed for human or agent. Full→light succeeds only for a human, while supervised, with no unresolved required FAIL. Supervised→delegated succeeds only for a human. Retained evidence survives lowering. | Any disallowed actor, autonomy or FAIL state can lower rigor or delegate; or lowering discards evidence. | Pre-merge protocol acceptance/rejection tests covering each transition and actor. |
+| R3 | Asymmetric toggles (AC2) | Light→full and delegated→supervised succeed for human or agent. Full→light is rejected for every actor and autonomy, and the rejection names starting a new light run. Supervised→delegated succeeds only for a human. | Any actor or state can lower a run's rigor; the rejection gives no path forward; or a disallowed actor can delegate. | Pre-merge protocol acceptance/rejection tests covering each transition and actor. |
 | R4 | Light commitments and authority (AC3) | A light run reaches acceptance with only `brief.md`. Supervised implementation needs human authorization bound to the brief's hash; a changed brief invalidates it. Light→full requires full commitments before acceptance. | Light requires full planning documents; implementation proceeds without brief-bound authority; or a stale brief keeps authority. | Pre-merge protocol tests for a light run lifecycle and brief changes. |
 | R5 | Light gates, review basis and verification provenance (AC3) | Light acceptance requires exactly the full required gate set. Light `review` uses the brief as its requirement basis via an independent fresh evaluator. Verification records agent-run/CI/none per claim, and an absent CI set is never shown as passing CI. | Light omits or adds a required gate; light review lacks an independent evaluator or brief basis; or provenance is missing or misrepresented. | Pre-merge gate/evaluator contract tests, verification receipt tests with stubbed `gh pr checks` results. |
 | R6 | Tripwires (AC4) | Each built-in category triggers on a representative diff and is repository-configurable. A supervised hit blocks until escalation or a hit-bound human stay-light decision. A delegated hit auto-escalates and rejects agent stay-light. No-hit runs are unaffected. | A category fails to trigger, triggers are not configurable, a hit can be bypassed without the specified decision, or delegated runs can stay light. | Pre-merge classifier unit tests and protocol tests for supervised and delegated hits. |
@@ -244,3 +242,21 @@ The original "no rewrite, no replay, no conversion" guarantees are kept, and R1 
 a failure condition for resuming into an unchosen dial.
 
 Approved by Trent: "Yes".
+
+### 2026-11-16 — Rigor can never be lowered within a run
+
+The original AC2 allowed full → light for a human, under supervision, with no
+unresolved required FAIL on the current candidate. Four independent reviews of S1
+(PR #105) each found a further case where GateReeve's "unresolved FAIL" judgement
+disagreed with acceptance (waiver scope, non-live candidates, indecisive results,
+non-qualifying later passes).
+
+Trent decided that lowering rigor is not a normal workflow. Full → light is now always
+rejected; to work light, the human and agent start a new light run and abandon the
+old run's evidence rather than resolve it. AC2 and R3 now require that rejection.
+
+Raising rigor, hand-back and delegation rules are unchanged.
+
+Approved by Trent: "Yes, this is clearly the way to go. Amend whatever you need to
+amend to put this into place. We're saying that you can't reduce rigor at all."
+

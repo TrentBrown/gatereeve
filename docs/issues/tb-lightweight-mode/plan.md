@@ -85,8 +85,8 @@ delegated.
   - Add dial state to run start (`rigor`, `autonomy` inputs with built-in defaults
     and rejection of invalid values) and dial-change events. Each event records
     value, source, actor, instruction/reason and time.
-  - Enforce the AC2 transition matrix, including the "no unresolved required FAIL"
-    check for lowering rigor and evidence retention.
+  - Enforce the AC2 transition matrix: rigor only rises; full → light is always
+    rejected with a message to start a new light run (design Changes 2026-11-16).
   - Expose dials in the snapshot. Interpret runs without dial events as
     `full`/`supervised`.
   - Ensure no configuration layer is read for dials.
