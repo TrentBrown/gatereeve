@@ -76,12 +76,12 @@ Covers:
 
 ## I-5 - Tripwires and delegated autonomy
 
-- **Status:** in-progress
+- **Status:** merged
 - **Estimate:** unknown
 - **Plan steps:** P5, P6
 - **Rubric criteria:** R6, R7, R8 (delegated)
 - **Depends on:** I-2, I-3
-- **PR:** -
+- **PR:** #109 (merged 2026-11-16, `bbc5560`)
 
 Covers:
 - tripwire classifiers and their supervised/delegated responses;
@@ -92,7 +92,7 @@ Covers:
 
 ## I-6 - Measurement and rollout
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** P8, P9
 - **Rubric criteria:** R12
