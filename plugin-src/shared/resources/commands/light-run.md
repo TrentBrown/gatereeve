@@ -51,8 +51,11 @@ before continuing. `amend` is not used in a light run.
 PASS, record `authorize-implementation` with authority
 `{kind: "delegated-evaluator", delegation: <status delegation.event>, evaluation: <the PLANNING_REVIEWED event>}`.
 A FAIL means fix the brief and review again, or hand back. Updating the findings
-log needs a new brief review and delegated re-authorization; changing the goal or
-scope is a scope change that hands control back to the human.
+log needs a new brief review and delegated re-authorization; any other change to
+the brief (preamble, goal, scope, sub-headings or other sections) is a scope
+change that hands control back to the human. After any hand-back, stop: a human
+`authorize-implementation` is needed before more implementation, candidates or
+gates.
 
 ## 4. Implement and keep the findings log
 

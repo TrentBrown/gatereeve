@@ -198,7 +198,10 @@ of that artifact for exactly the decision's subject, no later review of that
 subject supersedes it, the reviewer is not an implementing context and release
 protection is re-observed. The recorded authority cites the delegation instruction
 and the evaluator result. Full runs still need `spec.validate`. Other kinds, and
-any delegated authority while supervised, are rejected.
+any delegated authority while supervised, are rejected. In a run raised from light
+rigor (for example by a tripwire), design and spec reviews also receive the brief
+last authorized while light and must block commitments that go beyond its goal or
+scope; a delegated decision must cite such a review.
 
 **Delivery.** `delegation.apply` accepts and authorizes the merge of a `SLICE`
 candidate only for a prepared PR into a distinct integration branch, with every
@@ -212,18 +215,24 @@ SLICE PR into integration.
 **Hand-back.** Autonomy returns to supervised, recorded as `DIAL_SET`, on:
 
 - a scope-changing amendment: any `amend` recorded while delegated, or a delegated
-  re-authorization of a brief whose goal or scope changed (findings-log updates
-  are not scope changes);
+  re-authorization of a brief that changed anywhere outside its findings section
+  (the Findings heading and its nested sub-headings); preamble, goal, scope,
+  sub-headings and any other section count as scope;
 - an agent hand-back (`run.set-dial autonomy supervised`, `actor: agent`, with a
   reason; always allowed);
-- an external merge blocker (`MERGE_BLOCKED`);
+- an external merge blocker (`MERGE_BLOCKED`). The recorded blocker voids the
+  delegation's authority even if recording the hand-back fails (the error then
+  carries `handBackFailed: true`);
 - release-branch protection observed lost before a delegated decision,
   `delegation.apply` or a delegated merge. An unobservable state refuses the
   action without handing back.
 
 After a hand-back the delegated acceptance no longer authorizes, delegated
-decisions are refused, and `status` shows a `hand-back` blocker until a human
-decision is observed. Only a human can delegate again.
+decisions are refused, and a delegated `authorize-implementation` no longer
+counts: implementation, candidates and gates stop until the human records
+`authorize-implementation` (a full run may re-authorize its unchanged validated
+commitments in place). `status` shows a `hand-back` blocker until a human decision
+is observed. Only a human can delegate again.
 
 ## Execution and evidence
 

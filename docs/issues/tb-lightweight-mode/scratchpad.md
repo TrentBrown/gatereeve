@@ -397,3 +397,38 @@ entries are appended to `decisions.md`.
   `__pycache__` under `plugin-src`, which the plugin source lint (and every
   release/marketplace test that composes sources) rejects. Run them with
   `PYTHONDONTWRITEBYTECODE=1` or delete the caches before `npm test`.
+
+### S5 review round 1 (FAIL on 7fa0563) — fixes
+
+- **F1 brief scope.** `briefScope` compared only text directly under Goal/Scope
+  headings, so edits under Scope sub-headings, other sections or the preamble
+  escaped the scope-change hand-back. It now hashes the whole brief except the
+  Findings section (that heading and nested sub-headings up to the next heading
+  of the same or higher level), whitespace-normalized. Findings-only edits,
+  including nested headings, still re-authorize with a new brief review.
+- **N2 failed hand-back.** A `MERGE_BLOCKED` recorded while delegated now sets
+  `state.delegationBlocked` to the delegation event (cleared by any autonomy
+  `DIAL_SET`). `delegationValidity` refuses delegated acceptance/merge under it,
+  `guardDelegatedAction` refuses every delegated action, a delegated
+  `authorize-implementation` stops counting, and the snapshot shows a
+  `hand-back` blocker. `recordExternalBlocker` reports `handBackFailed: true` and
+  says so in the message. Residual: if both the `MERGE_BLOCKED` append and the
+  hand-back fail, nothing durable records the blocker; the error says so.
+- **N3 raised runs.** When rigor was raised from light, design and spec
+  `planning.review` packets add `requirements/brief.md` (the brief from the last
+  brief-bound authorization, else the current file) and an extra rule: going
+  beyond its goal or scope is blocking. The review contract identity includes the
+  variant, and a delegated decision in a raised run must cite a review that
+  carried that brief. The brief is checked as retained bytes, not live bytes.
+- **N4 voided delegated implementation.** `findDecision` ignores a
+  delegated-evaluator `authorize-implementation` unless its delegation is the
+  current one (and not blocked). After any hand-back, implementation checks,
+  `candidate.prepare`, `candidate.ready` and `gate.execute` refuse until a human
+  `authorize-implementation`. A full run may record that in IMPLEMENTING/ACCEPTING
+  for its unchanged validated commitments (previously only PLANNING), otherwise
+  a hand-back would deadlock it. A delegated `approve-design` stays valid; the
+  human authorization is the stop. The hand-back blocker text names this.
+- **Known limitation (N1, kept).** A `stay-light` decision binds hit keys
+  `category|rule|repository|path` without content or line, so further risky
+  content added to an already-hit path under the same rule is covered by the
+  existing decision. Accepted so fix iterations on the same hits don't re-ask.

@@ -102,7 +102,7 @@ export async function externalBlocker(run, root, action, error) {
 async function recordExternalBlocker(core, state, action, blocker, cause) {
   const payload = { candidate: state.candidate, repository: action.repository, number: action.number, ownerRepo: action.ownerRepo,
     headBranch: action.headBranch, baseBranch: action.baseBranch, head: action.head, deliveryTarget: action.deliveryTarget ?? null, ...blocker };
-  let recorded = true, handedBack = false;
+  let recorded = true, handedBack = false, handBackFailed = false;
   try { await core.append(state, 'MERGE_BLOCKED', payload, { id: `blocked_${randomUUID()}`, hash: identity(payload) }); }
   catch { recorded = false; }
   // An external blocker is a delegation hand-back trigger (spec AC5).
@@ -110,12 +110,16 @@ async function recordExternalBlocker(core, state, action, blocker, cause) {
     const { handBack } = await import('./delegation.js');
     try { handedBack = (await handBack(core, 'external-blocker', `PR #${action.number} is blocked by a hosting rule (${blocker.blocker})`, { number: action.number, repository: action.repository })).handedBack; }
     catch { handedBack = false; }
+    // Fail closed: a recorded MERGE_BLOCKED already voids this delegation's
+    // authority; the caller is told the hand-back itself is still pending.
+    handBackFailed = !handedBack && await core.state().then(current => current.state.dials.autonomy.value === 'delegated', () => true);
   }
   return new ExternalBlockerError(`Merge of PR #${action.number} is blocked by a hosting rule outside GateReeve (${blocker.blocker}). `
     + 'This is an external blocker, not a gate failure: gate proof and authorization are unchanged. '
     + (handedBack ? 'Delegation is handed back to supervised: stop for the human. ' : '')
+    + (handBackFailed ? `The delegation hand-back could not be recorded${recorded ? '; the recorded blocker still voids delegated authority' : ' and the blocker was not recorded either'}: stop for the human and do not continue delegated work. ` : '')
     + `Resolve it on the host (for example, an eligible reviewer approves) and run merge.execute again.${blocker.message ? ` Host said: ${blocker.message}` : ''}`,
-  { kind: 'external-blocker', gateFailure: false, recorded, handedBack, ...payload }, { cause });
+  { kind: 'external-blocker', gateFailure: false, recorded, handedBack, handBackFailed, ...payload }, { cause });
 }
 async function requireCurrentState(core, expected) {
   const { state } = await core.state();

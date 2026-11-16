@@ -6,8 +6,9 @@ import { isolatedTests } from './helpers/isolated-tests.js';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DELEGATED_AUTHORITY } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
+import { briefScope } from '../../plugin-src/shared/resources/protocol/current/delegation.js';
 import { currentSnapshot } from '../../plugin-src/shared/resources/protocol/current/adapter.js';
-import { fixture, human, BRIEF, reviewConfig, authorizeBrief, branchWith, candidate, openPr, evaluator, gates, acceptanceMissing, delegate, assertDial } from './helpers/lightweight-fixture.js';
+import { fixture, human, BRIEF, reviewConfig, authorizeBrief, branchWith, candidate, openPr, evaluator, gates, acceptanceMissing, delegate, assertDial, writeFullDocuments } from './helpers/lightweight-fixture.js';
 
 const test = isolatedTests(import.meta.url);
 const status = f => f.request('status');
@@ -98,6 +99,31 @@ test('delegated planning decisions need a qualifying independent PASS and are re
   assert.deepEqual(current.delegation.decisions.map(item => [item.kind, item.basis]), [['approve-design', 'planning-review'], ['authorize-implementation', 'planning-review']]);
   assert.ok(current.decisions.every(item => item.authority.kind === 'delegated-evaluator'));
   assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
+  // After a hand-back the delegated implementation authority no longer counts;
+  // the human re-authorizes the unchanged commitments in place.
+  await f.request('run.set-dial', { dial: 'autonomy', value: 'supervised', actor: 'agent', reason: 'Unsure' }, 'hand-back');
+  const voided = await f.request('milestone.check', { name: 'implementation' });
+  assert.equal(voided.allowed, false); assert.deepEqual(voided.missing, ['current implementation authorization']);
+  await f.request('human.decide', { kind: 'authorize-implementation', subject, authority: { ...human, instruction: 'Carry on with run-one.' }, reason: 'Human resumes', consequences: 'May implement' }, 'human-reauthorize');
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
+});
+
+test('brief scope covers everything except the findings section', () => {
+  const brief = '# Brief\nPreamble.\n\n## Goal\nExport 42.\n\n## Scope\n### In scope\napp.js\n### Out of scope\nbilling\n\n## Approach\nSmall edit.\n\n## Findings log\n- none\n### Notes\n- nested\n\n## Risks\nNone.\n';
+  const same = briefScope(Buffer.from(brief));
+  for (const [label, changed] of [
+    ['in-scope sub-heading', brief.replace('### In scope\napp.js', '### In scope\napp.js and billing.js')],
+    ['out-of-scope removed', brief.replace('### Out of scope\nbilling\n', '')],
+    ['other section', brief.replace('Small edit.', 'Rewrite the module.')],
+    ['preamble', brief.replace('Preamble.', 'Preamble covering billing too.')],
+    ['section after findings', brief.replace('## Risks\nNone.', '## Risks\nMigrates data.')],
+    ['new heading', `${brief}\n## Extra scope\nbilling\n`],
+  ]) assert.notEqual(briefScope(Buffer.from(changed)), same, label);
+  for (const [label, changed] of [
+    ['findings entry', brief.replace('- none', '- none\n- Found: also exported elsewhere')],
+    ['nested findings heading', brief.replace('- nested', '- nested\n#### Deeper\n- more')],
+    ['whitespace', brief.replace('Export 42.', 'Export   42.  ')],
+  ]) assert.equal(briefScope(Buffer.from(changed)), same, label);
 });
 
 test('light delegation: a brief review substitutes for the human; a goal or scope change hands back', async t => {
@@ -108,12 +134,12 @@ test('light delegation: a brief review substitutes for the human; a goal or scop
   const first = await review(f, 'brief');
   await delegated(f, 'authorize-implementation', (await f.core.commitments()).subject, delegation, first.event.hash);
   assert.equal((await status(f)).phase, 'IMPLEMENTING');
-  // The findings log may grow; a new brief review re-authorizes delegated.
-  await writeFile(join(f.home, 'brief.md'), `${BRIEF}- Found: nothing surprising.\n`);
+  // The findings log may grow, even with nested headings; a new brief review re-authorizes delegated.
+  await writeFile(join(f.home, 'brief.md'), `${BRIEF}- Found: nothing surprising.\n### Details\n- the constant is also exported elsewhere\n`);
   const second = await review(f, 'brief', 'review-brief-2');
   await delegated(f, 'authorize-implementation', (await f.core.commitments()).subject, delegation, second.event.hash, 'reauthorize');
-  // A changed scope is a scope-changing amendment: hand back and stop.
-  await writeFile(join(f.home, 'brief.md'), BRIEF.replace('app.js only.', 'app.js and the billing service.'));
+  // A changed scope, even only under a sub-heading, is a scope-changing amendment: hand back and stop.
+  await writeFile(join(f.home, 'brief.md'), BRIEF.replace('app.js only.', 'app.js only.\n### Also in scope\nThe billing service.'));
   const third = await review(f, 'brief', 'review-brief-3');
   await assert.rejects(delegated(f, 'authorize-implementation', (await f.core.commitments()).subject, delegation, third.event.hash, 'scope-change'), /scope-changing amendment: delegation is handed back to supervised/);
   const current = await status(f);
@@ -123,6 +149,25 @@ test('light delegation: a brief review substitutes for the human; a goal or scop
   // The human can still authorize; that observed decision clears the stop.
   await authorizeBrief(f, 'human-authorize');
   assert.ok(!(await snapshot(f)).blockers.some(item => item.type === 'hand-back'));
+});
+
+test('hand-back voids delegated implementation authority until a human authorizes', async t => {
+  const f = await fixture(t, { authorize: false });
+  const delegation = (await delegate(f)).event.hash;
+  evaluator(f);
+  await delegated(f, 'authorize-implementation', (await f.core.commitments()).subject, delegation, (await review(f, 'brief')).event.hash);
+  const head = await branchWith(f, 'topic', 'export const answer = 42;\n');
+  await candidate(f, 'SLICE', head);
+  await f.request('run.set-dial', { dial: 'autonomy', value: 'supervised', actor: 'agent', reason: 'Unsure about scope' }, 'hand-back');
+  assert.deepEqual((await f.request('milestone.check', { name: 'implementation' })).missing, ['current implementation authorization']);
+  await assert.rejects(candidate(f, 'SLICE', head, 'after-hand-back'), /Current implementation authority is required/);
+  await assert.rejects(f.request('candidate.ready', {}, 'ready'), /Current implementation authority is required/);
+  await assert.rejects(f.request('gate.execute', { gates: ['context'] }, 'context'), /Current implementation authorization is required/);
+  const blocker = (await snapshot(f)).blockers.find(item => item.type === 'hand-back');
+  assert.match(blocker.message, /need a human authorize-implementation/);
+  await authorizeBrief(f, 'human-authorize');
+  assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
+  await candidate(f, 'SLICE', head, 'after-human');
 });
 
 async function delegatedSlice(t, options = {}) {
@@ -254,6 +299,36 @@ test('hand-back: an external merge blocker returns the run to supervised', async
   await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'retry'), /blocked/);
 });
 
+test('a hand-back that cannot be recorded after an external blocker fails closed', async t => {
+  const { f, action } = await delegatedSlice(t);
+  await f.request('review.publish', { repository: 'app', number: 12 }, 'publish');
+  await f.request('delegation.apply', { action }, 'apply');
+  f.gh.merge = async () => {
+    Object.assign(f.gh.pr, { mergeStateStatus: 'BLOCKED', reviewDecision: 'REVIEW_REQUIRED' });
+    throw Object.assign(new Error('Command failed: gh pr merge'), { code: 1, stdout: '', stderr: 'At least 1 approving review is required.' });
+  };
+  // The journal refuses the hand-back DIAL_SET; everything else is recorded.
+  const append = f.core.append.bind(f.core);
+  f.core.append = async (state, type, ...rest) => { if (type === 'DIAL_SET') throw new Error('disk full'); return append(state, type, ...rest); };
+  let blocked;
+  await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'blocked'), error => { blocked = error; return true; });
+  f.core.append = append;
+  assert.equal(blocked.code, 'EXTERNAL_BLOCKER');
+  assert.equal(blocked.details.recorded, true); assert.equal(blocked.details.handedBack, false); assert.equal(blocked.details.handBackFailed, true);
+  assert.match(blocked.message, /hand-back could not be recorded; the recorded blocker still voids delegated authority/);
+  const current = await status(f);
+  assert.equal(current.dials.autonomy.value, 'delegated');
+  assert.equal(current.delegationBlocked, current.dials.autonomy.event);
+  assert.ok((await snapshot(f)).blockers.some(item => item.type === 'hand-back' && /hand-back could not be recorded/.test(item.message)));
+  // Delegated authority cannot be used again under this delegation.
+  f.gh.merge = null; Object.assign(f.gh.pr, { mergeStateStatus: 'CLEAN', reviewDecision: 'APPROVED' });
+  const merge = await f.request('milestone.check', { name: 'merge' });
+  assert.ok(merge.missing.includes('explicit merge authorization'));
+  await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'retry'), /blocked/);
+  await assert.rejects(f.request('delegation.apply', { action }, 'apply-again'), /external merge blocker was recorded under this delegation/);
+  assert.equal(current.integrations.app, undefined);
+});
+
 test('hand-back: release-branch protection lost before a delegated action', async t => {
   // Lost before the merge write.
   const { f, action } = await delegatedSlice(t);
@@ -317,4 +392,25 @@ test('tripwires under delegation escalate to full automatically and reject stay-
   // The hit set is unchanged since preparation, so no duplicate record is added.
   assert.equal(current.tripwires.stage, 'candidate.prepare');
   assert.equal(current.tripwireHistory.length, 1);
+});
+
+test('after a tripwire escalation, design and spec reviews must check the delegated brief', async t => {
+  const f = await fixture(t);
+  const delegation = (await delegate(f)).event.hash;
+  const head = await branchWith(f, 'topic', { 'app.js': 'export const answer = 42;\n', 'src/auth/token.js': 'export const ttl = 5;\n' });
+  assert.equal((await candidate(f, 'SLICE', head)).tripwires.escalated, true);
+  await writeFullDocuments(f.home);
+  const runs = evaluator(f);
+  const design = await review(f, 'design');
+  const packet = runs.at(-1).input;
+  assert.deepEqual(packet.documents.map(item => item.path), ['requirements/design.md', 'requirements/interview.md', 'requirements/brief.md']);
+  assert.match(packet.rule, /raised from light rigor/);
+  assert.equal(design.event.payload.documents['brief.md'].hash, (await f.core.store.capture('brief.md')).hash);
+  await delegated(f, 'approve-design', design.event.payload.subject, delegation, design.event.hash);
+  await f.request('spec.validate', {}, 'spec');
+  const spec = await review(f, 'spec');
+  assert.ok(runs.at(-1).input.documents.some(item => item.path === 'requirements/brief.md'));
+  assert.match(runs.at(-1).input.rule, /goes beyond that brief is blocking/);
+  await delegated(f, 'authorize-implementation', (await f.core.commitments()).subject, delegation, spec.event.hash);
+  assert.equal((await status(f)).phase, 'IMPLEMENTING');
 });

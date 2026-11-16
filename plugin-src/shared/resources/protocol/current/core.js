@@ -49,7 +49,7 @@ export function project(events) {
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
     decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, actions: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
     sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length,
-    externalBlockers: [], externalBlocker: null, tripwires: null, tripwireHistory: [], planningReviews: [], handBack: null };
+    externalBlockers: [], externalBlocker: null, tripwires: null, tripwireHistory: [], planningReviews: [], handBack: null, delegationBlocked: null };
   state.dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial,
     { ...(first.dials?.[dial] ?? startDial(dial)), at: events[0].recordedAt, event: events[0].hash }]));
   state.dialHistory = Object.entries(state.dials).map(([dial, value]) => ({ dial, ...value }));
@@ -92,12 +92,16 @@ export function project(events) {
         break;
       case 'INTEGRATED': state.integrated = value; state.integrations[value.repository] = value; state.externalBlocker = null; state.phase = 'INTEGRATED'; break;
       // A hosting rule refused an authorized merge. Reported, never a gate failure.
-      case 'MERGE_BLOCKED': { const blocked = { ...value, at: event.recordedAt, event: event.hash }; state.externalBlockers.push(blocked); state.externalBlocker = blocked; break; }
+      case 'MERGE_BLOCKED': { const blocked = { ...value, at: event.recordedAt, event: event.hash }; state.externalBlockers.push(blocked); state.externalBlocker = blocked;
+        // Fail closed: a blocker under delegation ends that delegation's authority
+        // even if recording the hand-back itself failed.
+        if (state.dials.autonomy.value === 'delegated') state.delegationBlocked = state.dials.autonomy.event;
+        break; }
       case 'OBSERVATION': break; // Agent memory; never grants authority.
       case 'DIAL_SET': {
         const recorded = { ...value, at: event.recordedAt, event: event.hash };
         state.dials[value.dial] = recorded; state.dialHistory.push(recorded);
-        if (value.dial === 'autonomy') state.handBack = value.value === 'supervised' && value.previous === 'delegated' && value.actor !== 'human' ? recorded : null;
+        if (value.dial === 'autonomy') { state.handBack = value.value === 'supervised' && value.previous === 'delegated' && value.actor !== 'human' ? recorded : null; state.delegationBlocked = null; }
         // Raised rigor voids brief-bound authority: full planning starts again
         // so design approval, spec validation and authorization are reachable.
         if (value.dial === 'rigor' && value.previous === 'light' && !['DESIGNING', 'SPECIFYING', 'PLANNING'].includes(state.phase)) { state.phase = 'DESIGNING'; state.ready = false; }
@@ -114,10 +118,17 @@ export function project(events) {
 function enabled(state, at) {
   return GATES.filter(item => item.at === at && (!item.supplemental && (!item.optional || state.optionalGates.includes(item.id))));
 }
+// A delegated implementation authorization counts only while the delegation
+// it cites is current. After any hand-back the supervised run stops until a
+// human records implementation authority again.
+function voidedDelegation(state, decision) {
+  return decision?.authority?.kind === DELEGATED_AUTHORITY
+    && (!isDelegated(state) || state.dials.autonomy.event !== decision.authority.delegation?.event || Boolean(state.delegationBlocked));
+}
 function findDecision(state, kind, subject) {
   if (kind === 'authorize-implementation') {
     const latest = latestImplementation(state);
-    return latest && decisionHas(latest, kind) && latest.subject === subject ? latest : null;
+    return latest && decisionHas(latest, kind) && latest.subject === subject && !voidedDelegation(state, latest) ? latest : null;
   }
   return currentAuthorityDecisions(state).findLast(item => decisionHas(item, kind) && item.subject === subject);
 }
@@ -299,7 +310,9 @@ export class CurrentCore {
       value.documents = current.docs;
     } else if (value.kind === 'authorize-implementation') {
       const current = await this.commitments({ state });
-      requireThat(state.phase === 'PLANNING' && state.specValidation, 'Validate specification before implementation authorization');
+      // After a hand-back the human re-authorizes the unchanged commitments in place.
+      const reauthorize = ['IMPLEMENTING', 'ACCEPTING'].includes(state.phase) && voidedDelegation(state, latestImplementation(state));
+      requireThat((state.phase === 'PLANNING' || reauthorize) && state.specValidation, 'Validate specification before implementation authorization');
       requireThat(currentDesignApproval(state, current.docs['design.md'].hash), 'Design approval is not current');
       requireThat(state.specValidation.spec.hash === current.docs['spec.md'].hash && state.specValidation.design.hash === current.docs['design.md'].hash,
         'Specification validation is not current');

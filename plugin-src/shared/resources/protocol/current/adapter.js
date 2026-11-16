@@ -76,7 +76,10 @@ function runBlockers(data) {
         : `Stop for the human: escalate to full (run.set-dial rigor full) or record their stay-light decision bound to subject ${tripwires.subject}.`) });
   // Pending until a human decision is observed after the hand-back.
   if (data.handBack) blockers.push({ type: 'hand-back',
-    message: `Delegation was handed back to supervised (${data.handBack.trigger ?? 'agent'}: ${data.handBack.reason ?? 'no reason recorded'}). Stop for the human; only a human can delegate again.` });
+    message: `Delegation was handed back to supervised (${data.handBack.trigger ?? 'agent'}: ${data.handBack.reason ?? 'no reason recorded'}). Stop for the human. `
+      + 'Delegated decisions no longer count: implementation, candidates and gates need a human authorize-implementation (and acceptance and merges a human decision); only a human can delegate again.' });
+  if (data.delegationBlocked && data.dials?.autonomy?.value === 'delegated') blockers.push({ type: 'hand-back',
+    message: 'An external merge blocker was recorded under delegation but the hand-back could not be recorded. Delegated authority is void: stop for the human.' });
   return blockers;
 }
 export async function currentSnapshot(context, options = {}, runtime = {}) {

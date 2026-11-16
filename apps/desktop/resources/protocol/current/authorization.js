@@ -198,6 +198,9 @@ export function delegationValidity(state, item, candidate, action = null) {
   if (state.dials.autonomy.value !== 'delegated' || state.dials.autonomy.event !== item.delegation) {
     return { allowed: false, reason: 'Delegation was handed back or replaced; the delegated acceptance no longer authorizes' };
   }
+  if (state.delegationBlocked === item.delegation) {
+    return { allowed: false, reason: 'An external merge blocker was recorded under this delegation; delegated authority stops until the human acts' };
+  }
   if (candidate?.scope !== 'SLICE' || item.action?.deliveryTarget !== 'integration') {
     return { allowed: false, reason: 'Delegated authority covers only SLICE PRs into the integration branch' };
   }

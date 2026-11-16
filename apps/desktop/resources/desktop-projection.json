@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:a7848d33f6c4385fc7c7624ea87f634ec3d3ab5f8a7a04a494fb83f02f7a2295",
+  "protocolHash": "sha256:bf2d2be9d4b9ab6de2e5b9ecc51659a4a19946bdd523743d5597fd03a351e877",
   "contract": "gatereeve/current/7",
   "contractSha256": "795835042b5f22355711f134404d89c43b7da3b3c362e176e3bb337ed7133679",
   "files": [
@@ -22,18 +22,18 @@
     },
     {
       "path": "current/actions.js",
-      "size": 18790,
-      "sha256": "4d034a42772dbf75897a79f252797b899364a84d65a91757c6d7f91a888b87d1"
+      "size": 19370,
+      "sha256": "e8e420a6e6d3c57c1c4897746e1b8b756e6368bc65172ba761a2651b92987d59"
     },
     {
       "path": "current/adapter.js",
-      "size": 12649,
-      "sha256": "8ffb87d7a29348133445124a94de23e32ddae32f6c9746451d5d74344ce37cdf"
+      "size": 13095,
+      "sha256": "f3342fb4ba16c688c7b62ffe855b0b5f2ccc81a30eb4f8ed7af6021773fd8f50"
     },
     {
       "path": "current/authorization.js",
-      "size": 15269,
-      "sha256": "4eea2337950d6f58170d099301049c584366cff772ce92a3b60cd314611dbcaf"
+      "size": 15477,
+      "sha256": "8dd03e9c894f365c3035308439b55143de9fbca8dce213516b34a2414690d7ed"
     },
     {
       "path": "current/command-guard.js",
@@ -47,8 +47,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 84473,
-      "sha256": "19abe551d10c50c90eac2152839939c0d39e4d33f4c9c2658ec1934103dae2de"
+      "size": 85515,
+      "sha256": "464067ad34e40aa7cdccfad0098fd473410ba3898241ff9f476314b4364ccc34"
     },
     {
       "path": "current/coverage.js",
@@ -57,8 +57,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 25484,
-      "sha256": "755ab5dcb177951d2b2a6995b99fb77e548d18494e66e7cb6323e1459c1c6794"
+      "size": 28156,
+      "sha256": "f76f21cbcaba7ac2b779574875881ffab0ff6f54ed1cd1f732707a5667131ed1"
     },
     {
       "path": "current/delivery.js",
