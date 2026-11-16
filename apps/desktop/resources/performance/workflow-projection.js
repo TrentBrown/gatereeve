@@ -26,7 +26,10 @@ function noted(common, value) {
 // counts are projected: no reasons, instructions, paths or matched text.
 function measured(type, value) {
   switch (type) {
-    case 'DECIDED': return defined({ authorityKind: text(value.authority?.kind), authorityBasis: text(value.authority?.basis),
+    // A decision applied under a standing grant keeps the grant's original
+    // authority kind; its basis distinguishes it from a per-decision human act.
+    case 'DECIDED': return defined({ authorityKind: text(value.authority?.kind),
+      authorityBasis: text(value.authority?.basis) ?? (value.standingGrant ? 'standing-grant' : undefined),
       actions: Array.isArray(value.actions) && value.actions.length ? value.actions : undefined,
       count: value.kind === 'stay-light' && Array.isArray(value.hits) ? value.hits.length : undefined });
     case 'DIAL_SET': return defined({ dial: text(value.dial), dialValue: text(value.value), dialPrevious: text(value.previous), dialSource: text(value.source),

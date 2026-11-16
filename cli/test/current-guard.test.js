@@ -62,6 +62,10 @@ const MERGES = [
   "notes=$(cat <<EOF\nWon't (stop\nEOF\n) && gh pr merge 12",
   'echo $(bash <<EOF\ngh pr merge 12\nEOF\n)',
   'x=$(true # a comment mentioning <<EOF\n); gh pr merge 12',
+  // Parameter expansions and arithmetic hold no comments or heredocs (S6 review N1).
+  'echo ${X:- #}; gh pr merge 12',
+  'echo ${X:-<<EOF}\ngh pr merge 12',
+  'echo $(( 1 #2 )); gh pr merge 12',
   'bash <<< "gh pr merge 12"',
   "eval 'gh pr merge 12'",
   'env -S "gh pr merge 12"',

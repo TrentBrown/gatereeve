@@ -52,18 +52,22 @@ function matching(text, start, open, close) {
   // `start` indexes the opening delimiter; returns the index of its match.
   // Heredoc bodies inside a command substitution are data: their quotes and
   // parentheses neither open strings nor close the substitution.
+  // Only a command substitution holds shell syntax. Parameter expansions
+  // (`${...}`) and arithmetic (`$((...))`) contain no comments or heredocs, so a
+  // `#` or `<<` there must not hide the rest of the command.
   let depth = 1, pending = [];
   const arithmetic = open === '(' && text[start + 1] === '(';
+  const shell = open === '(' && !arithmetic;
   for (let i = start + 1; i < text.length; i++) {
     const c = text[i];
     if (c === '\\') { i++; continue; }
-    if (c === '<' && !arithmetic && text[i + 1] === '<' && text[i + 2] !== '<') {
+    if (c === '<' && shell && text[i + 1] === '<' && text[i + 2] !== '<') {
       const found = HEREDOC.exec(text.slice(i));
       if (found) { pending.push({ delimiter: found[2].replace(/\\(.)/gu, '$1').replace(/['"]/gu, ''), strip: found[1] === '-' }); i += found[0].length - 1; continue; }
     }
     if (c === '\n' && pending.length) { i = skipHeredocBodies(text, i + 1, pending) - 1; pending = []; continue; }
     // A comment (at a word start) runs to the end of its line.
-    if (c === '#' && /\s/u.test(text[i - 1] ?? ' ')) { const end = text.indexOf('\n', i); if (end === -1) return text.length; i = end - 1; continue; }
+    if (c === '#' && shell && /\s/u.test(text[i - 1] ?? ' ')) { const end = text.indexOf('\n', i); if (end === -1) return text.length; i = end - 1; continue; }
     if (c === "'") { const end = text.indexOf("'", i + 1); if (end === -1) return text.length; i = end; continue; }
     if (c === '"') {
       for (i++; i < text.length && text[i] !== '"'; i++) if (text[i] === '\\') i++;

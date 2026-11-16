@@ -131,7 +131,7 @@ test('every projected observation carries the run dials; decisions carry their a
   assert.equal(m.dialChanges, 3); assert.equal(m.delegations, 1);
   assert.deepEqual(m.escalations, { total: 1, byTrigger: { tripwire: 1 } });
   assert.deepEqual(m.handBacks, { total: 1, byTrigger: { 'external-blocker': 1 } });
-  assert.deepEqual(m.decisions, { total: 4, byAuthority: { 'delegated-evaluator': 2, 'human-confirmed': 2 } });
+  assert.deepEqual(m.decisions, { total: 4, byAuthority: { 'delegated-evaluator': 2, 'human-confirmed': 2 }, standingApplications: 0 });
   assert.equal(m.humanTouches, 4, 'two human decisions, the human delegation and the human start choice');
   assert.deepEqual(m.tripwires, { evaluations: 2, withHits: 2, hits: 3, stayLight: 1 });
   assert.equal(m.planningReviews, 1); assert.equal(m.externalBlockers, 1);
@@ -140,6 +140,26 @@ test('every projected observation carries the run dials; decisions carry their a
   assert.deepEqual(value.rigors.map(row => row.name).sort(), ['full', 'light']);
   assert.deepEqual(value.autonomies.map(row => row.name).sort(), ['delegated', 'supervised']);
   assert.deepEqual(value.authorities.map(row => [row.name, row.observations]), [['delegated-evaluator', 2], ['human-confirmed', 2]]);
+});
+
+test('decisions applied under a standing grant are measured apart from per-decision human acts', async t => {
+  const store = await metricsStore(t);
+  const at = n => new Date(Date.parse('2026-11-16T00:00:00Z') + n * 1000).toISOString();
+  const events = [
+    { sequence: 1, hash: 'standing-1', recordedAt: at(1), type: 'STARTED', payload: { featureId: 'feature', implementers: ['implementer'], optionalGates: [] } },
+    { sequence: 2, hash: 'standing-2', recordedAt: at(2), type: 'DECIDED', payload: { kind: 'accept', subject: H(1), authority: human(), reason: 'Per-PR human acceptance', consequences: 'Merge PR #3' } },
+    // An application of a standing grant records the grant's original authority plus the grant marker.
+    { sequence: 3, hash: 'standing-3', recordedAt: at(3), type: 'DECIDED', payload: { kind: 'accept', subject: H(2), authority: human(), standingGrant: 'grant-event',
+      actions: ['authorize-merge'], reason: 'Standing application', consequences: 'Merge PR #4' } },
+  ];
+  await projectWorkflow(syntheticCore(events), store);
+  const value = await report(store);
+  const decisions = value.observations.filter(row => row.kind === 'decision');
+  assert.deepEqual(decisions.map(row => [row.reference, row.authorityKind, row.authorityBasis ?? null]),
+    [['standing-2', 'human-confirmed', null], ['standing-3', 'human-confirmed', 'standing-grant']]);
+  assert.deepEqual(value.measurement.decisions, { total: 2, byAuthority: { 'human-confirmed': 2 }, standingApplications: 1 });
+  assert.equal(value.measurement.humanTouches, 1, 'only the per-decision human acceptance is a human touch');
+  assert.ok(!JSON.stringify(value.observations).includes('grant-event'), 'the grant reference itself is not projected');
 });
 
 test('a contract-7 run without dial events reads full/supervised; earlier reporting rows are not converted', async t => {

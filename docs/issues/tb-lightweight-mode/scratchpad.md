@@ -516,3 +516,20 @@ entries are appended to `decisions.md`.
   `GATEREEVE_METRICS_DIR` is set). On this machine it is at its 100 MiB cap, so
   those projections fail and print "capture incomplete" (authority unaffected).
   The new measurement test isolates its default store.
+
+### S6 review round 1 (PASS with advisories, fixed before the FEATURE PR)
+
+- **N1 (guard regression).** S6's comment and heredoc skipping in `matching()`
+  also ran for `${...}` and `$((...))`, so a merge command after `${X:- #}` was
+  admitted. Both rules now apply only inside a command substitution `$(...)`;
+  three such forms are in the MERGES corpus.
+- **N2 (measurement).** Decisions applied under a standing grant keep the grant's
+  `human-confirmed` authority kind, so they were counted as human touches. They
+  now project `authorityBasis: standing-grant`, are excluded from `humanTouches`,
+  and are reported as `standingApplications`.
+- **Known, out of scope:** a top-level `(( x <<EOF ))` arithmetic expression is
+  parsed as a heredoc and can hide the following lines from the guard
+  (pre-existing S4 parsing; best-effort).
+- **Dogfooding note.** The installed rc.26 regex guard denied a shell command
+  whose heredoc text merely mentioned the merge command; S4's parser fixes this
+  class once installed.
