@@ -20,7 +20,7 @@
 | R9 | Review summary on the PR | PASS (slice) | PR #107 | S3 review PASS 2026-11-16 |
 | R10 | Guard coverage and actionable recovery | PASS (slice) | PR #108 | S4 review PASS 2026-11-16; best-effort advisories N1-N4 |
 | R11 | State-reporting SessionStart | PASS (slice) | PR #108 | S4 review PASS 2026-11-16; delegated state fixture-tested until S5 |
-| R12 | Measurement and rollout | NOT YET | - | Planned for P8 / I-6 |
+| R12 | Measurement and rollout | PASS (slice) | PR #110 | S6 review PASS 2026-11-16 (two rounds); advisories A1, A2 |
 
 ## Review Log
 
@@ -94,3 +94,20 @@ Append pull-request review boundary entries here.
 - **Advisories carried forward:** N1 (stay-light binds path and rule, not
   content; design choice), N5 (any heading starting "findings" opens an excluded
   region in the brief scope check).
+
+### 2026-11-16 — S6 (PR #110) merged into tb-lightweight-mode
+
+- **Merge:** protected merge at `0a0e85e` (head `8db5d9a`, base `bbc5560`).
+- **Authority:** Trent's acceptance and merge authorization, bound to the prepared
+  action.
+- **Gates:** context, review, verification and packet PASS.
+- **Review rounds:** PASS on `14ffc57` with advisories N1 (guard regression from
+  this slice: comment/heredoc skipping inside `${...}`/`$((...))`) and N2
+  (standing applications counted as human touches), both fixed in `8db5d9a`;
+  PASS on `8db5d9a`.
+- **CI:** on `815034c` the new parity test failed in the Ubuntu 22.04 container,
+  whose image omits the desktop app; fixed in `14ffc57`.
+- **Advisories carried forward:** A1 (`authorityBasis` is copied from any
+  `authority.basis`; measurement only), A2 (unquoted `${X:-$(...)}` is not parsed
+  as a nested command; pre-existing, best-effort guard).
+- **Carried-forward fixes landed in S6:** S5 N5, S3 N1, S3 N2, S3 N3, S4 N2, S4 N4.
