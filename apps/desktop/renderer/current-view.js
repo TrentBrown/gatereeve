@@ -3,8 +3,27 @@ import { clear, node } from './dom.js';
 const title = value => String(value ?? '').toLowerCase().replace(/(^|[-_ ])\w/gu, part => part.replace(/[-_]/gu, ' ').toUpperCase());
 const phaseDocs = { DESIGNING: 'interview.md', SPECIFYING: 'spec.md', PLANNING: 'plan.md', IMPLEMENTING: 'issues.md', ACCEPTING: 'tracker.md', INTEGRATED: 'tracker.md', COMPLETE: 'tracker.md' };
 
+const DIAL_DEFAULTS = { rigor: 'full', autonomy: 'supervised' };
+const DIAL_LABELS = { rigor: 'Rigor', autonomy: 'Autonomy' };
+
+// Both run dials as header badges. With no current run, the built-in defaults a
+// new run receives are shown and marked as defaults. Light and delegated stand out.
+export function renderWorkflowDials(snapshot, container) {
+  if (!container) return;
+  clear(container);
+  const dials = snapshot?.dials ?? null;
+  for (const dial of ['rigor', 'autonomy']) {
+    const value = dials?.[dial] ?? snapshot?.dialDefaults?.[dial] ?? DIAL_DEFAULTS[dial];
+    const elevated = (dial === 'rigor' && value === 'light') || (dial === 'autonomy' && value === 'delegated');
+    const className = `badge ${elevated ? `dial-${value}` : 'neutral'}${dials ? '' : ' dial-default'}`;
+    container.append(node('span', { className, text: `${DIAL_LABELS[dial]} · ${title(value)}${dials ? '' : ' (default)'}`,
+      attributes: { 'data-dial': dial, 'data-value': value, title: dials ? `Current run ${dial}` : `No current run; a new run starts ${value} unless explicitly chosen` } }));
+  }
+}
+
 export function renderCurrentOverview(snapshot, elements, { openArtifact, copy, readResult } = {}) {
   const phase = snapshot?.current?.phase ?? 'NOT_STARTED';
+  renderWorkflowDials(snapshot, elements['workflow-dials']);
   for (const id of ['slices-surface', 'boundary-surface', 'closeout-surface', 'finalization-surface']) elements[id].hidden = true;
   clear(elements['global-alerts']);
   for (const blocker of snapshot?.blockers ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: blocker.message }));

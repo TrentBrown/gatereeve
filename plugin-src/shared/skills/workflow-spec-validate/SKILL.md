@@ -11,3 +11,6 @@ Read `<plugin-root>/resources/PROTOCOL.md` and follow
 Use the current core for status, execution and milestone passage. The model
 chooses work order within the authorized phase; no per-commit gate or automatic
 readiness review applies. Preserve actual evidence and observed human authority.
+
+In a light run (`status` `dials.rigor: light`) this procedure does not apply:
+follow `<plugin-root>/resources/commands/light-run.md` instead.

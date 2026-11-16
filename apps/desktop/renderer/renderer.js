@@ -15,7 +15,7 @@ const ids = [
   'terminal-panel', 'terminal-resizer', 'terminal-title', 'terminal-shell', 'terminal-status',
   'terminal-hosts', 'terminal-terminate', 'terminal-restart', 'terminal-session-select',
   'source-dialog', 'source-dialog-close', 'source-dialog-list', 'global-alerts', 'state-rail',
-  'milestones', 'phase-context-surface', 'phase-context-kicker', 'phase-context-title',
+  'milestones', 'workflow-dials', 'phase-context-surface', 'phase-context-kicker', 'phase-context-title',
   'phase-context-description', 'phase-context-uses', 'phase-context-produces',
   'slices-surface', 'slices',
   'boundary-surface', 'attempt-select', 'boundary-summary', 'gate-dag',

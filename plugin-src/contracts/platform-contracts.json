@@ -24,7 +24,7 @@
     "sessionStartOutput": {
       "hookSpecificOutput": {
         "hookEventName": "SessionStart",
-        "additionalContext": "Non-trivial software work must load software-development-workflow unless the user explicitly bypasses it."
+        "additionalContext": "Reports the GateReeve run state from status: with no run, the full/supervised defaults and the up-front \"full or light?\" question; for a run, rigor, autonomy, phase, blockers and the light-run procedure or full workflow; for a delegated run, also the delegation scope and hand-back triggers."
       }
     }
   },

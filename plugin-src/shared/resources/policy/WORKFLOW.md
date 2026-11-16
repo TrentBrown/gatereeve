@@ -4,6 +4,16 @@ GateReeve preserves a planning backbone and enforces required milestone gates.
 Load `<plugin-root>/resources/PROTOCOL.md` for current operations. The protocol core is authoritative
 for passage; a prose statement cannot replace missing evidence or authorization.
 
+## Run dials
+
+Every run has `rigor` (`full | light`) and `autonomy` (`supervised | delegated`),
+defaulting to `full`/`supervised`; no configuration changes them. When no run
+exists, ask the human "full or light?" before non-trivial work and record the
+answer as the explicit rigor choice. This document describes full rigor. A light
+run follows `<plugin-root>/resources/commands/light-run.md` instead of the planning
+backbone below. SessionStart reports the current dials, phase and blockers; it is
+guidance, not enforcement.
+
 ## Planning backbone
 
 Interview the user on material design decisions, one question at a time where
@@ -67,6 +77,11 @@ scope needs fresh/wider evidence. Generate mechanical records through operations
 - PR presentation: in both rigors, publish the current independent review summary
   on the PR with `review.publish` before presenting it for human review or merge
   authorization. Authorization is refused without it.
+- Merge path: never merge with a shell `gh pr merge` or `gh api` merge call, or
+  `git push` to the integration or release branch. The PreToolUse guard denies the
+  common forms and names the installed entry points (bundled adapter, or the CLI
+  when on `PATH`); it is best-effort, and GitHub branch protection is the real
+  enforcement.
 - External blockers: a hosting rule that refuses an authorized merge (for example
   a required review the author cannot give) is reported as an external blocker,
   not a gate failure. Report it to the human; retry after it is resolved.

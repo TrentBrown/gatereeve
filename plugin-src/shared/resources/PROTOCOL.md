@@ -52,7 +52,9 @@ recorded in `STARTED` and in each `DIAL_SET` event with value, source
 (`explicit | built-in`), actor, instruction or reason, and time. Defaults are
 `full` and `supervised`. No global, repository or workspace configuration changes
 them. `status` reports current values in `dials` and the defaults in
-`dialDefaults`. Delegated autonomy is rejected until release-branch protection
+`dialDefaults`, and the configured delivery branches in `branches`. With no run,
+ask the human "full or light?" before non-trivial work. Delegated autonomy is
+rejected until release-branch protection
 checks are available. A run from an earlier contract is retained unchanged and
 reported as needing `run.resume-current`; the resumed run starts at the defaults
 unless a choice is supplied.
@@ -78,6 +80,8 @@ Light candidates and their evidence do not qualify for the full candidate.
 
 Light acceptance requires the same gates as full (context, review, verification
 and packet; retention and the other completion obligations at completion).
+The step-by-step light procedure is `resources/commands/light-run.md`; skills route
+light runs to it instead of the full planning procedures.
 
 ## Decisions
 
@@ -264,13 +268,53 @@ Protected merge and milestone adapters consult the core and deny unavailable
 checks. Milestone checks bind the checked run and journal revision; a concurrent
 state change requires a fresh check. Protected merge keeps the same candidate
 and authority state through hosted waiting and the write, and its integration
-observation cannot be attributed to a replacement candidate. SessionStart is guidance in both native packages. Arbitrary shell writes
+observation cannot be attributed to a replacement candidate. Arbitrary shell writes
 and GitHub actions outside these adapters are not claimed to be intercepted.
-Both packages configure PreToolUse for recognized direct `gh pr merge` commands.
-Manifest and handler-subprocess tests verify a deny response and routing to the
+
+**Merge guard (best-effort).** Both packages configure a PreToolUse guard on
+shell tool calls. It denies, with a reason:
+
+- `gh pr merge` in any form, including `--auto`, `-R`/`--repo`, absolute or
+  relative executable paths, environment prefixes and `sudo`/`env`/`command`/
+  `exec`/`timeout`/`xargs` wrappers, and `gh alias set` for it;
+- `gh api` calls to `repos/{owner}/{repo}/pulls/{n}/merge` with any method other
+  than an explicit `GET`/`HEAD`, and GraphQL `mergePullRequest`/
+  `enablePullRequestAutoMerge` mutations given inline;
+- `git push` that would update a configured integration or release branch of any
+  configured repository: explicit refspecs (`main`, `+main`, `HEAD:main`,
+  `refs/heads/main`, `:main`, `--delete`), `--all`/`--mirror`, matching globs, and
+  an implicit destination or `HEAD` while on that branch. An unconfigured Git
+  workspace names no protected branch.
+
+It follows quoting, `&&`/`||`/`;`/`|`/`&`/newline chains, subshells, `$(...)`,
+backticks, `bash -c`/`sh -c`, `eval` and shell heredocs, and leaves quoted text
+(for example a commit message mentioning `gh pr merge`) and unrelated commands
+alone. It is best-effort: scripts, aliases defined outside `gh`, variables naming
+commands, request bodies from files and other clients are not seen. GitHub branch
+protection is the real enforcement. Merges go through `merge.prepare` and
+`merge.execute`; a recognized merge is denied even when the milestone is eligible,
+because the shell command is not bound to the prepared action.
+
+**Recovery entry points.** Every denial and every `status` recovery action or
+message names only entry points present in the current installation: the bundled
+`resources/protocol/plugin-adapter.js` (`node <adapter> --request-file
+<request.json>`, or `node <adapter> status --cwd <dir>`), and the `gatereeve` CLI
+only when it is found on `PATH`. An adapter inside a packaged desktop archive is
+not offered. `status` reports what it found in `entryPoints` and gives each
+action an `entryPoint` (`cli`, `adapter` or `none`) and, for the adapter, a
+`request` skeleton.
+
+**SessionStart** is guidance in both native packages. It reports run state from
+`status` rather than prescribing the full workflow: with no run, the built-in
+defaults and the up-front "full or light?" question; for a run, its rigor,
+autonomy, phase and blockers and a pointer to the light-run procedure
+(`resources/commands/light-run.md`) or the full workflow; for a delegated run,
+also the delegation scope and hand-back triggers. If status cannot be read it
+emits a short safe message with the defaults and the question.
+
+Manifest and handler-subprocess tests verify deny responses and routing to the
 protected action. Actual native-host plugin activation, matcher dispatch and
-interception remain unverified; the coverage matrix labels this explicitly.
-Indirect scripts and alternate external clients are outside this handler coverage. Do not add
+interception remain unverified; the coverage matrix labels this explicitly. Do not add
 per-commit gates. Desktop observes current proof and
 provides commands; refreshing it never launches evaluators.
 

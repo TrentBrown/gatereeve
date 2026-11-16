@@ -47,3 +47,41 @@ test('current view shows milestone blockers, preserved verdicts, exceptions and 
   assert.match(elements['global-alerts'].textContent, /Source retention: pending.*Completion recorded/);
   assert.deepEqual((await f.core.state()).events, before);
 });
+
+test('workflow header shows both run dials, marking defaults when no run exists', async t => {
+  const previousMetrics = process.env.GATEREEVE_METRICS;
+  process.env.GATEREEVE_METRICS = 'off';
+  t.after(() => { if (previousMetrics === undefined) delete process.env.GATEREEVE_METRICS; else process.env.GATEREEVE_METRICS = previousMetrics; });
+  const f = await currentFixture(t);
+  const adapter = createProtocolAdapter(); await adapter.resolve(f.repo);
+  const { window } = parseHTML(await readFile(new URL('../renderer/index.html', import.meta.url), 'utf8'));
+  globalThis.document = window.document; t.after(() => delete globalThis.document);
+  const elements = Object.fromEntries([...window.document.querySelectorAll('[id]')].map(element => [element.id, element]));
+  const header = window.document.querySelector('.page-heading #workflow-dials');
+  assert.ok(header, 'the dial badges live in the workflow overview heading');
+  assert.equal(header.getAttribute('aria-label'), 'Run dials');
+  const badges = () => [...header.querySelectorAll('[data-dial]')].map(item => ({ dial: item.getAttribute('data-dial'), value: item.getAttribute('data-value'), text: item.textContent, className: item.className }));
+
+  renderCurrentOverview(await adapter.snapshot(f.home), elements);
+  assert.deepEqual(badges().map(({ dial, value, text }) => ({ dial, value, text })), [
+    { dial: 'rigor', value: 'full', text: 'Rigor · Full (default)' },
+    { dial: 'autonomy', value: 'supervised', text: 'Autonomy · Supervised (default)' },
+  ]);
+  assert.ok(badges().every(item => item.className.includes('dial-default')));
+
+  const authority = { kind: 'human-confirmed', instruction: 'Light for this one.', context: 'desktop fixture conversation' };
+  const started = await f.request('run.start', { implementers: ['fixture'], rigor: { value: 'light', authority, reason: 'Small slice' } }, 'light-start');
+  assert.equal(started.ok, true, JSON.stringify(started.error));
+  renderCurrentOverview(await adapter.snapshot(f.home), elements);
+  assert.deepEqual(badges().map(({ dial, value, text }) => ({ dial, value, text })), [
+    { dial: 'rigor', value: 'light', text: 'Rigor · Light' },
+    { dial: 'autonomy', value: 'supervised', text: 'Autonomy · Supervised' },
+  ]);
+  assert.match(badges()[0].className, /dial-light/u);
+  assert.doesNotMatch(badges()[1].className, /dial-default|dial-delegated/u);
+
+  // Delegation is enabled in a later slice; the header renders it from status.
+  renderCurrentOverview({ ...(await adapter.snapshot(f.home)), dials: { rigor: 'full', autonomy: 'delegated' } }, elements);
+  assert.deepEqual(badges().map(item => item.text), ['Rigor · Full', 'Autonomy · Delegated']);
+  assert.match(badges()[1].className, /dial-delegated/u);
+});

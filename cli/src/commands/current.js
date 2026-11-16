@@ -19,6 +19,11 @@ async function run(options, operation, input = {}, detail = {}) {
   else if (!result.ok) console.error(`${result.error.code}: ${result.error.message}`);
   else if (result.data?.contract && result.data?.featureId && result.data?.milestones) {
     console.log(`${result.data.featureId}: ${result.data.current?.phase ?? result.data.phase ?? 'current run needed'}`);
+    // Both run dials, or the built-in defaults a new run receives when none exists.
+    const dials = result.data.dials, defaults = result.data.dialDefaults ?? { rigor: 'full', autonomy: 'supervised' };
+    for (const dial of ['rigor', 'autonomy']) {
+      console.log(`${dial === 'rigor' ? 'Rigor' : 'Autonomy'}: ${dials ? dials[dial] : `${defaults[dial]} (default for a new run)`}`);
+    }
     for (const milestone of result.data.milestones) {
       console.log(`${milestone.name}: ${milestone.historical ? (milestone.allowed ? 'recorded' : `recorded; ${milestone.missing.join('; ')}`) : milestone.allowed ? 'ready' : milestone.missing.join('; ')}`);
       for (const outcome of milestone.outcomes ?? []) if (outcome.exception) {

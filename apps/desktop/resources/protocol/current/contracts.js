@@ -143,8 +143,8 @@ const actions = Object.freeze({
 });
 export const ENFORCEMENT = Object.freeze({
   core: 'milestone checks',
-  codex: { sessionStart: 'guidance', actionHooks: 'PreToolUse: direct gh pr merge guard', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
-  claude: { sessionStart: 'guidance', actionHooks: 'PreToolUse: direct gh pr merge guard', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
+  codex: { sessionStart: 'run-state guidance', actionHooks: 'PreToolUse: best-effort guard for gh pr merge, gh api merge and protected-branch git push', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
+  claude: { sessionStart: 'run-state guidance', actionHooks: 'PreToolUse: best-effort guard for gh pr merge, gh api merge and protected-branch git push', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
 });
 
 // A dial choice supplied at run start. Only the built-in default may be chosen

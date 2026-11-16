@@ -72,3 +72,19 @@ test('CLI preserves constrained Whiteboard waiver basis and explanation policy a
   await assert.rejects(invoke('waive', '--gate', 'explanation'), error => { assert.match(JSON.parse(error.stdout).error.message, /policy amendment/); return true; });
   assert.equal(JSON.parse((await invoke('policy-amend', '--gate', 'explanation', '--continue-with', 'waive')).stdout).ok, true);
 });
+
+test('CLI status shows both run dials, and the defaults when no run exists', async t => {
+  const f = await currentFixture(t);
+  const status = async () => (await exec(process.execPath, [cli, 'status', '--cwd', f.repo])).stdout;
+  const none = await status();
+  assert.match(none, /^feature: current run needed$/mu);
+  assert.match(none, /^Rigor: full \(default for a new run\)$/mu);
+  assert.match(none, /^Autonomy: supervised \(default for a new run\)$/mu);
+  const authority = { kind: 'human-confirmed', instruction: 'Light for this one.', context: 'CLI fixture conversation' };
+  const started = await f.request('run.start', { implementers: ['implementer'], rigor: { value: 'light', authority, reason: 'Small slice' } }, 'light-start');
+  assert.equal(started.ok, true, JSON.stringify(started.error));
+  const light = await status();
+  assert.match(light, /^Rigor: light$/mu);
+  assert.match(light, /^Autonomy: supervised$/mu);
+  assert.doesNotMatch(light, /default for a new run/u);
+});
