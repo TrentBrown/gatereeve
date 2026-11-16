@@ -60,7 +60,7 @@ async function bindings(core, scope) {
 }
 export async function captureStanding(core, state, value) {
   requireThat(!state.paused && state.phase !== 'COMPLETE', 'Standing grant requires an active unpaused feature');
-  const current = await core.commitments();
+  const current = await core.commitments({ state });
   const implementation = latestImplementation(state);
   requireThat(value.subject === current.subject && implementation?.subject === current.subject
     && decisionHas(implementation, 'authorize-implementation')
@@ -78,7 +78,7 @@ export async function standingValidity(core, state, grant, candidate = null, act
     requireThat(!state.paused, 'Feature is explicitly paused');
     requireThat(!state.decisions.some(item => item.kind === 'revoke-standing' && item.subject === grant.event), 'Standing grant was revoked');
     requireUnexpired(grant);
-    const current = await core.commitments({ capture: false });
+    const current = await core.commitments({ capture: false, state });
     requireThat(current.subject === grant.subject && latestImplementation(state)?.event === grant.implementation,
       'Standing grant no longer matches approved commitments or implementation authorization');
     requireThat(identity(await bindings(core, grant.scope)) === identity(grant.repositories), 'Standing repository configuration or remote identity changed');

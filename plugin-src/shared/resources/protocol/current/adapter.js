@@ -8,7 +8,8 @@ import { CurrentCore } from './core.js';
 import { CurrentStore, readSafe } from './store.js';
 import { CONTRACT, PHASES, GATES, ENFORCEMENT, DEFAULT_DIALS, identity, digest, requireThat } from './contracts.js';
 
-const DOCUMENTS = ['interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md', 'scratchpad.md', 'decisions.md'];
+// brief.md is a light run's commitment; it is listed only when present.
+const DOCUMENTS = ['brief.md', 'interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md', 'scratchpad.md', 'decisions.md'];
 export async function contextFor(request, runtime = {}) {
   const context = await resolveWorkflowContext({ cwd: request.cwd ?? process.cwd(), repository: request.repository ?? null, gitExecutable: runtime.gitExecutable ?? 'git' });
   if (request.featureHome) requireThat(resolve(request.featureHome) === resolve(context.featureHome), 'Explicit feature home differs from the canonical resolver');
@@ -35,6 +36,7 @@ async function documents(context) {
       const bytes = await readSafe(context.featureHome, name);
       ref = { bytes: bytes.length, hash: digest(bytes) };
     } catch (error) { if (error.code !== 'ENOENT') unsafe = true; }
+    if (name === 'brief.md' && !ref && !unsafe) continue;
     artifacts.push({ id: name, kind: 'document', format: 'markdown', label: name.replace('.md', ''), path: name,
       absolutePath: join(context.featureHome, name), exists: Boolean(ref), unsafe,
       status: unsafe ? 'unavailable' : ref ? 'available' : 'missing', fingerprint: ref?.hash ?? null });

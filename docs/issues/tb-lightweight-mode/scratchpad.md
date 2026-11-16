@@ -41,3 +41,46 @@ entries are appended to `decisions.md`.
   read-only, solely for activation provenance, and its `-wal`/`-shm` sidecars get the
   same file-safety checks (review F10). It takes precedence over older `active.json`
   chains (F8).
+
+## S2 — light rigor (tb-lightweight-mode-02-light-rigor)
+
+- **Light phase flow.**
+  - A light run starts in DESIGNING. A human `authorize-implementation` bound to the
+    brief subject moves it straight to IMPLEMENTING.
+  - That decision is accepted in any phase before INTEGRATED, so a changed brief is
+    re-authorized the same way, superseding earlier authority and the old candidate.
+  - `amend` is refused while light.
+- **Light commitments.** `brief.md` is the only document. The subject is
+  `identity({contract, featureId, rigor: 'light', brief})`, and spec validation is
+  neither required nor checked while light.
+- **Brief structure.** A light `authorize-implementation` requires Goal, Scope and
+  Findings headings in `brief.md`. Content is not judged (spec AC3: goal, scope,
+  findings log).
+- **Raising light → full.**
+  - The phase returns to DESIGNING if past PLANNING, and readiness is cleared.
+  - The full sequence is then required: approve-design, spec.validate, a new
+    authorize-implementation, and a rubric candidate.
+  - Because `approve-design` captures `interview.md`, a raised run must also
+    backfill an interview record. This goes slightly beyond AC2's list and is
+    accepted as a consequence of the existing design gate.
+- **Light candidate criterion.** `criteria` is exactly `["brief"]` for SLICE and
+  FEATURE; rubric IDs are rejected. Requirements contain only `brief.md`.
+- **Light review basis.**
+  - Reviewer requirements are only `requirements/brief.md`; the packet carries
+    `planning.basis: 'brief'`.
+  - Finding criteria are `brief` or `gate:<gate>`.
+  - Evaluator independence is unchanged, and full-rigor review text is
+    byte-identical to before.
+- **Refused in light:** the supplemental `spec`, `judge`, `reconcile` and `triage`
+  gates, which need a rubric. `code`, `pattern`, `explanation` and Whiteboard still
+  work.
+- **Verification provenance, both rigors.**
+  - Shape: `provenance: {policy, agentRun[], hostedCi[], none, summary}` on the
+    verification result and runner record, shown in milestone outcomes and as a CLI
+    status line.
+  - A CI run reporting zero jobs fails explicitly ("reported no CI checks") and
+    stays UNAVAILABLE.
+  - At merge, the integration receipt records the hosted-check observation
+    (`required | reported | none`). This touches `actions.js`, which S3 also changes.
+- **commitments() with no run** falls back to full, the default rigor (needed by
+  resume before a run exists).

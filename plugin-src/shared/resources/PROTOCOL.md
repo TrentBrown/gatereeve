@@ -28,7 +28,7 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals |
 | `human.decide` | See decisions below |
 | `spec.validate` | Run trusted spec lint after the model's semantic review of AC, rubric and boundary feasibility |
-| `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row |
+| `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row. A light run has no rubric: `criteria` is exactly `["brief"]` for either scope |
 | `candidate.ready` | Declare the pinned candidate ready; launches nothing |
 | `gate.execute` | `gates: [id]` or `["code","spec"]`, explicit `configuration`, typed `consumed`, bounded `history`, labeled `claims`, optional `prior` for a delta |
 | `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
@@ -55,6 +55,28 @@ them. `status` reports current values in `dials` and the defaults in
 checks are available. A run from an earlier contract is retained unchanged and
 reported as needing `run.resume-current`; the resumed run starts at the defaults
 unless a choice is supplied.
+
+### Light rigor
+
+A light run's sole planning commitment is `brief.md` in the feature home, with
+goal, scope and findings-log sections. Interview, design, spec, plan, issues and
+spec validation are not required. The commitment subject is derived from the
+brief (contract, feature, `rigor: light`, brief hash) and appears in `status`
+`commitments`. Under supervision, a human `authorize-implementation` naming that
+subject is the implementation authority; no `approve-design` or `spec.validate`
+precedes it. It is accepted in any phase before integration. A changed brief no
+longer matches the authorized subject, so implementation, candidates and gates
+stop until the changed brief is authorized again; that decision supersedes earlier
+authority, acceptance and exceptions. `amend` is refused while light.
+
+Raising rigor to full voids the brief-bound authority: the subject becomes the
+full design/spec subject and the phase returns to `DESIGNING`. Backfill interview,
+design, spec, plan and issues, then record `approve-design`, `spec.validate` and a
+new `authorize-implementation` and prepare a rubric candidate before acceptance.
+Light candidates and their evidence do not qualify for the full candidate.
+
+Light acceptance requires the same gates as full (context, review, verification
+and packet; retention and the other completion obligations at completion).
 
 ## Decisions
 
@@ -96,7 +118,8 @@ control semantic planning acceptance.
 
 ## Execution and evidence
 
-Required acceptance obligations: context, verification, review and packet. One
+Required acceptance obligations: context, verification, review and packet, in
+both rigors. One
 fresh independent `review` covers code defects/interactions, every approved
 criterion, validation sufficiency, scope/decision reconciliation, project rules,
 findings/fixes and a useful human explanation. Its five explicit responsibility
@@ -105,6 +128,16 @@ conclusions are `code`, `requirements`, `evidence`, `scope`, `findings`.
 available supplemental assessments, not a mandatory second review sequence.
 Completion retains finalization, release observation, retention, whole-feature
 coverage and actual integration. Whiteboard remains opt-in.
+
+In a light run the requirement basis is `requirements/brief.md`. The `review`
+gate assesses code defects and interactions, verification sufficiency and scope
+against the brief's goal and scope, scoring the single `brief` criterion, with the
+same fresh independent-evaluator qualification as full. Blocking findings use
+`brief` or `gate:<gate>`; findings about the brief cite `requirements/brief.md`.
+Rubric criteria and spec/planning paths are rejected. `spec`, `judge`,
+`reconcile` and `triage` need a rubric or planning record and are refused for a
+brief-based candidate; `code`, `pattern`, `explanation` and an enabled Whiteboard
+remain available.
 
 Use the test pyramid as a heuristic: choose quick focused deterministic checks
 and useful early independent discovery while implementing. Run wider integration
@@ -131,7 +164,16 @@ failed jobs remain visible; the independent review assesses the declared require
 scope. Missing/insufficient CI can use `{kind:"alternative",reason,scope}` with
 actual local check receipts. This is a proposal until independently assessed.
 A green badge alone is insufficient. Focused local loops do not require this
-broad backstop until acceptance is requested.
+broad backstop until acceptance is requested. A CI run reporting no jobs is "no CI
+checks" and leaves Verification UNAVAILABLE; it is never passing CI.
+
+Every Verification result and runner record carries `provenance` (both rigors):
+`agentRun` lists each agent-run command with outcome and receipt (index and
+retained stdout/stderr), `hostedCi` lists each CI run observed on the exact head
+with its jobs, `none` marks the absence of both, and `summary` states "no CI
+checks" whenever no hosted job was observed. The summary is appended to the
+result summary, and the verification outcome in `milestone.check`/`status`
+includes the structured `provenance`.
 
 The effective per-check limit is `check.timeoutMs ?? configuration.timeoutMs ??
 600000` milliseconds. For example, `configuration.timeoutMs: 5400000` allows a
@@ -230,7 +272,9 @@ provides commands; refreshing it never launches evaluators.
 Hosted merge checks watch required checks first. If GitHub CLI reports the exact
 empty-required-checks or no-checks diagnostic, the protected action queries and
 watches all reported checks instead. An exact no-checks response from this
-unfiltered query permits proceeding without hosted CI. Failed checks and
+unfiltered query permits proceeding without hosted CI; the integration receipt
+records `hostedChecks` as `required`, `reported` or `none` ("no CI checks", never
+passing CI). Only the protected merge supplies that observation. Failed checks and
 operational errors still block. This observes the currently reported check set,
 not future checks, and does not bypass GitHub branch protection. The fallback
 retains final source/target, gate and authority revalidation and PR-state cleanup.

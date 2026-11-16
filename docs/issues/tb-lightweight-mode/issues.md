@@ -10,12 +10,12 @@ into the integration branch `tb-lightweight-mode`.
 
 ## I-1 - Contract 7 and run dials
 
-- **Status:** open
+- **Status:** merged
 - **Estimate:** unknown
 - **Plan steps:** P1, P9
 - **Rubric criteria:** R1, R3, R2 (snapshot data)
 - **Depends on:** none
-- **PR:** -
+- **PR:** #105 (merged 2026-11-16, `3857de2`)
 
 Bump to `gatereeve/current/7`. Add rigor and autonomy at run start, with built-in
 defaults, no config path and invalid-input rejection. Add dial-change events with
@@ -24,7 +24,7 @@ Runs without dial events read as `full`/`supervised`.
 
 ## I-2 - Light rigor
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** P2, P9
 - **Rubric criteria:** R4, R5

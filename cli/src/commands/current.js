@@ -25,6 +25,8 @@ async function run(options, operation, input = {}, detail = {}) {
         console.log(`  ${outcome.id}: ${outcome.outcome}; accepted exception: ${outcome.exception.reason}; consequences: ${outcome.exception.consequences}`);
       }
     }
+    const verification = result.data.milestones.flatMap(milestone => milestone.outcomes ?? []).find(outcome => outcome.provenance);
+    if (verification) console.log(`Verification provenance: ${verification.provenance.summary}`);
     for (const pending of result.data.pendingDecisions ?? result.data.current?.pendingDecisions ?? []) console.log(`Pending human instruction (${pending.operation.id}): ${pending.decision.reason}; requested continuation has not been authorized.`);
     for (const grant of result.data.standingAuthorizations ?? result.data.current?.standingAuthorizations ?? []) console.log(`Standing authorization ${grant.grant}: ${grant.allowed ? 'active' : grant.reason}; scope: ${JSON.stringify(grant.scope)}`);
     for (const gap of result.data.current?.historyGaps ?? result.data.historyGaps ?? []) console.log(`Historical evidence unavailable: ${gap.resultHash}; fresh proof must replace any required role.`);

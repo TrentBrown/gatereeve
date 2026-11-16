@@ -9,9 +9,9 @@
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | Defaults, provenance, no config path | NOT YET | - | Planned for P1 / I-1 |
-| R2 | Dial visibility | NOT YET | - | P1 data (I-1); P7 surfaces (I-4) |
-| R3 | Asymmetric toggles | NOT YET | - | Planned for P1 / I-1 |
+| R1 | Defaults, provenance, no config path | PASS (slice) | PR #105 | S1 review PASS 2026-11-16; re-checked at FEATURE review |
+| R2 | Dial visibility | PARTIAL | PR #105 | S1 share (status/snapshot/next data) PASS; CLI, desktop, SessionStart pending I-4 |
+| R3 | Asymmetric toggles | PASS (slice) | PR #105 | Rigor only rises (D16); delegated→supervised rule-level until S5 |
 | R4 | Light commitments and authority | NOT YET | - | Planned for P2 / I-2 |
 | R5 | Light gates, review basis, verification provenance | NOT YET | - | Planned for P2 / I-2 |
 | R6 | Tripwires | NOT YET | - | Planned for P5 / I-5 |
@@ -25,3 +25,16 @@
 ## Review Log
 
 Append pull-request review boundary entries here.
+
+### 2026-11-16 — S1 (PR #105) merged into tb-lightweight-mode
+
+- **Merge:** protected merge at `3857de2` (head `37e4bd4`, base `cf3ba2a`).
+- **Authority:** Trent's acceptance and merge authorization, bound to the prepared
+  action.
+- **Gates:** context, review, verification and packet PASS.
+- **Review rounds:** two UNAVAILABLE (malformed evaluator output); four FAIL with
+  real defects (F1, F2, F5, F7, F11, plus non-blocking F3/F4/F6/F8/F9/F10/F12),
+  all fixed; final PASS. One advisory remains: F13, rejection wording.
+- **Spec change:** amended mid-slice twice — existing-run compatibility, and the
+  rigor-lowering prohibition (D16).
+

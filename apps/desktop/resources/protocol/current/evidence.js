@@ -178,7 +178,10 @@ export async function assertClean(repository, store) {
     if (/[RC]/u.test(entry.slice(0, 2))) requireThat(await bookkeeping(entries[++i]), 'Renamed application source is dirty');
   }
 }
-export async function sourceCandidate(store, context, input, authorization, sourceRetention) {
+// A light run has no rubric: its single criterion is the brief's goal and scope.
+export const LIGHT_CRITERION = 'brief';
+export const briefBased = candidate => Boolean(candidate?.requirements && Object.hasOwn(candidate.requirements, 'brief.md'));
+export async function sourceCandidate(store, context, input, authorization, sourceRetention, { light = false } = {}) {
   requireThat(Array.isArray(input.repositories) && input.repositories.length > 0, 'Select at least one repository');
   requireThat(new Set(input.repositories.map(repo => repo.alias)).size === input.repositories.length, 'Duplicate repository selection');
   const repos = [];
@@ -198,13 +201,16 @@ export async function sourceCandidate(store, context, input, authorization, sour
     requireThat((await git(repository.path, ['rev-parse', 'HEAD'], { gitExecutable: repository.gitExecutable })).trim() === pin.head, 'Working repository differs from selected source');
     repos.push({ identity: repositoryIdentity(repository), alias: pin.alias, base: pin.base, head: pin.head, objectFormat, baseFiles: base.files, files: head.files, target, targetFiles: targetView.files, classifications: { base: base.classifications, head: head.classifications, target: targetView.classifications } });
   }
-  const docs = await requirements(store);
+  const docs = await requirements(store, light ? ['brief.md'] : undefined);
   requireThat(['SLICE', 'FEATURE'].includes(input.scope), 'Explicit review scope is required');
   requireThat(Array.isArray(input.criteria) && input.criteria.length > 0 && new Set(input.criteria).size === input.criteria.length, 'Explicit distinct criteria are required');
-  const spec = (await store.get(docs['spec.md'])).toString('utf8');
-  const rubric = planningFacts(spec).criteria.map(item => item.id);
-  requireThat(input.criteria.every(id => rubric.includes(id)), 'Review criterion is not in approved spec');
-  requireThat(input.scope !== 'FEATURE' || input.criteria.length === rubric.length, 'Feature review must cover the entire rubric');
+  if (light) requireThat(input.criteria.length === 1 && input.criteria[0] === LIGHT_CRITERION, `A light run has no rubric; its candidate criteria must be exactly ["${LIGHT_CRITERION}"]`);
+  else {
+    const spec = (await store.get(docs['spec.md'])).toString('utf8');
+    const rubric = planningFacts(spec).criteria.map(item => item.id);
+    requireThat(input.criteria.every(id => rubric.includes(id)), 'Review criterion is not in approved spec');
+    requireThat(input.scope !== 'FEATURE' || input.criteria.length === rubric.length, 'Feature review must cover the entire rubric');
+  }
   const value = { contract: CONTRACT, kind: 'candidate', sourceStorage: 'git-manifest', sourceRetention, featureId: context.featureId, repositories: repos,
     requirements: docs, authorization, scope: input.scope, criteria: [...input.criteria].sort() };
   await checkSource(store, context, value);
