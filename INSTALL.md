@@ -271,9 +271,10 @@ user.
 
 Skip this section if you installed only Claude Code.
 
-The plugin uses a small `SessionStart` hook to tell fresh sessions that
-non-trivial software work must load the workflow. Codex requires explicit
-review of non-managed hooks.
+The plugin uses a small `SessionStart` hook to report the GateReeve run state
+to fresh sessions: with no run, the full/supervised defaults and the up-front
+"full or light?" question; for a run, its rigor, autonomy, phase and blockers.
+Codex requires explicit review of non-managed hooks.
 
 1. Start a new interactive Codex session.
 2. Run `/hooks`.

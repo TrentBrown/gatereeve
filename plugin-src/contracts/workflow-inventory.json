@@ -201,7 +201,8 @@
       "spec-evaluate.md",
       "spec-validate.md",
       "advisory-review.md",
-      "boundary-retry.md"
+      "boundary-retry.md",
+      "light-run.md"
     ],
     "scripts": [
       "boundary_context.py",
@@ -249,11 +250,13 @@
       "current/actions.js",
       "current/adapter.js",
       "current/authorization.js",
+      "current/command-guard.js",
       "current/contracts.js",
       "current/core.js",
       "current/coverage.js",
       "current/delivery.js",
       "current/diagnostics.js",
+      "current/entry-point.js",
       "current/generated-inputs.js",
       "current/planning-lint.js",
       "current/planning.js",

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:5ded22213814d2e99de3667168417d0c096c2319a896d0653dcdbce2bcc70991",
+  "protocolHash": "sha256:588ee29453e220e6c6a2b57894e058b0a6a6f1e99c4300fb569bcd84846bdff8",
   "contract": "gatereeve/current/7",
-  "contractSha256": "fca83a4f9f2466cb6166336ff6ddbfdcbf994078ab6e0d6049d6c3ae5b7709dc",
+  "contractSha256": "c5b0fb6a7a33901693019afd118c908c8f9547e4db62c018c272cd60cf7cfd19",
   "files": [
     {
       "path": "agent-workflow.js",
@@ -27,8 +27,8 @@
     },
     {
       "path": "current/adapter.js",
-      "size": 9261,
-      "sha256": "d4dd99475b6782b57048a2251d121c37d27860bcee9fb3ef3e9eec036ac595bf"
+      "size": 10514,
+      "sha256": "76a34b568cf63580ec6e0c8a8d67215eace48efaaaa5e3451bcb9f551aa75acf"
     },
     {
       "path": "current/authorization.js",
@@ -36,9 +36,14 @@
       "sha256": "cd1d41dcea9b44c801f88c451f1a591b3805e89a963fae7d4e8172d316549ed0"
     },
     {
+      "path": "current/command-guard.js",
+      "size": 15311,
+      "sha256": "4e06f080f7f9ec0c2ba412ddf6dcfe2362414b3e8e63fcb90965127c1a36f32a"
+    },
+    {
       "path": "current/contracts.js",
-      "size": 17535,
-      "sha256": "fca83a4f9f2466cb6166336ff6ddbfdcbf994078ab6e0d6049d6c3ae5b7709dc"
+      "size": 17661,
+      "sha256": "c5b0fb6a7a33901693019afd118c908c8f9547e4db62c018c272cd60cf7cfd19"
     },
     {
       "path": "current/core.js",
@@ -59,6 +64,11 @@
       "path": "current/diagnostics.js",
       "size": 1335,
       "sha256": "af703a3545686bf1e3fde16c166e1487c9b73c54fe42a2b3d21837545b9e42e6"
+    },
+    {
+      "path": "current/entry-point.js",
+      "size": 4520,
+      "sha256": "35dfff55e464ad09fe16ce6d49fb006bec73ac7796529ae5aa55325f070a8642"
     },
     {
       "path": "current/environment.js",
@@ -107,8 +117,8 @@
     },
     {
       "path": "current/pre-tool-use.js",
-      "size": 2078,
-      "sha256": "68c605c45c00358c20adb9d764f579539d934b081e78396b748626dcf466bed7"
+      "size": 6050,
+      "sha256": "d2dc6ad2acc7d60a0fc751af256ef3abefb2ab378cbf2a40f9449629b489ccc7"
     },
     {
       "path": "current/publication.js",

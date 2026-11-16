@@ -21,3 +21,6 @@ Present for approval before writing files unless the user explicitly asked for
 file edits.
 
 Keep DoD out of AC. DoD is global.
+
+In a light run (`status` `dials.rigor: light`) this procedure does not apply:
+follow `<plugin-root>/resources/commands/light-run.md` instead.

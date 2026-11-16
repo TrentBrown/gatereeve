@@ -41,12 +41,12 @@ Covers:
 
 ## I-3 - Delivery targets, release merge authority, review summary on PR
 
-- **Status:** in-progress
+- **Status:** merged
 - **Estimate:** unknown
 - **Plan steps:** P3, P4, P9
 - **Rubric criteria:** R8 (non-delegated), R9
 - **Depends on:** I-1
-- **PR:** -
+- **PR:** #107 (merged 2026-11-16, `c5d0373`)
 
 Covers:
 - scope/target binding;
@@ -60,7 +60,7 @@ Covers:
 
 ## I-4 - Guard, recovery messages, SessionStart and visibility
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** P7
 - **Rubric criteria:** R2, R10, R11

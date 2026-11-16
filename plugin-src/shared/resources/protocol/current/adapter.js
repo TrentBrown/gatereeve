@@ -7,6 +7,7 @@ import { successResult, failureResult } from '../result.js';
 import { CurrentCore } from './core.js';
 import { CurrentStore, readSafe } from './store.js';
 import { CONTRACT, PHASES, GATES, ENFORCEMENT, DEFAULT_DIALS, identity, digest, requireThat } from './contracts.js';
+import { resolveEntryPoints, operationCommand, recoveryText } from './entry-point.js';
 
 // brief.md is a light run's commitment; it is listed only when present.
 const DOCUMENTS = ['brief.md', 'interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md', 'scratchpad.md', 'decisions.md'];
@@ -43,12 +44,26 @@ async function documents(context) {
   }
   return artifacts;
 }
+// Recovery commands name only entry points present in this installation: the
+// bundled adapter, and the gatereeve CLI when it is on PATH.
+function snapshotActions(entry, cwd, resume) {
+  const action = (id, operation, label, extra = {}) => ({ id, label, operation, ...operationCommand(entry, operation, { cwd }), ...extra });
+  return resume ? [action('resume-current', 'run.resume-current', 'Resume using current commitments', { readiness: 'available' })] : [
+    action('status', 'status', 'Inspect exact current commitments and proof'),
+    action('work', 'next', 'Choose work within the authorized phase'),
+    action('evaluate', 'gate.execute', 'Request checks explicitly; readiness launches none'),
+    action('decide', 'human.decide', 'Record observed human decisions and scoped exceptions'),
+    action('apply-authorization', 'authorization.apply', 'Apply recorded standing permission after all required gates pass'),
+  ];
+}
 export async function currentSnapshot(context, options = {}, runtime = {}) {
   let core, data = null, reason = null;
+  const entry = runtime.entryPoints ?? await resolveEntryPoints({ env: runtime.environment ?? process.env });
+  const cwd = context.repository?.path ?? context.workspaceRoot;
   try {
     core = await CurrentCore.at(context, runtime);
     if (await core.store.active()) data = await core.inspect();
-    else reason = 'Resume with the current protocol. Existing documents and old journals remain intact; old events are not replayed.';
+    else reason = `Resume with the current protocol (run.resume-current; ${recoveryText(entry, ['run.resume-current'], { cwd, requests: { 'run.resume-current': { input: { implementers: ['<implementing-context>'] } } } })}). Existing documents and old journals remain intact; old events are not replayed.`;
   } catch (error) { reason = error.message; }
   const artifacts = await documents(context);
   const events = data ? (await core.state()).events : [];
@@ -59,19 +74,17 @@ export async function currentSnapshot(context, options = {}, runtime = {}) {
     // defaults a new or resumed run receives unless explicitly chosen.
     dials: data ? { rigor: data.dials.rigor.value, autonomy: data.dials.autonomy.value } : null,
     dialDefaults: DEFAULT_DIALS,
+    // Configured delivery branches (empty for the unconfigured Git fallback).
+    branches: (context.repositories ?? []).filter(item => item.integrationBranch).map(item => ({ alias: item.alias,
+      integrationBranch: item.integrationBranch, releaseBranch: item.releaseBranch || item.integrationBranch })),
+    entryPoints: { adapter: entry.adapter, cli: entry.cli },
     phases: PHASES, obligations: data?.obligations ?? GATES.filter(item => !item.optional && !item.supplemental),
     milestones: data?.milestones ?? [], database: core ? await core.store.inspect() : null, artifacts, enforcement: ENFORCEMENT,
     events: { count: events.length, lastEventId: events.at(-1)?.hash ?? null },
     recentEvents: events.slice(-10), sources: options.sources ?? {},
     blockers: reason ? [{ type: 'current-entry', message: reason }] : data?.externalBlocker ? [{ type: 'external-blocker',
-      message: `PR #${data.externalBlocker.number} (${data.externalBlocker.headBranch} -> ${data.externalBlocker.baseBranch}) is blocked by a hosting rule (${data.externalBlocker.blocker}); this is not a gate failure. Resolve it on the host, then run merge.execute again.` }] : [],
-    actions: reason ? [{ id: 'resume-current', command: 'gatereeve run resume-current --help', readiness: 'available', label: 'Resume using current commitments' }] : [
-      { id: 'status', command: 'gatereeve status --json', label: 'Inspect exact current commitments and proof' },
-      { id: 'work', command: 'gatereeve --help', label: 'Choose work within the authorized phase' },
-      { id: 'evaluate', command: 'gatereeve evaluate --help', label: 'Request checks explicitly; readiness launches none' },
-      { id: 'decide', command: 'gatereeve decide --help', label: 'Record observed human decisions and scoped exceptions' },
-      { id: 'apply-authorization', command: 'gatereeve apply-authorization --help', label: 'Apply recorded standing permission after all required gates pass' },
-    ],
+      message: `PR #${data.externalBlocker.number} (${data.externalBlocker.headBranch} -> ${data.externalBlocker.baseBranch}) is blocked by a hosting rule (${data.externalBlocker.blocker}); this is not a gate failure. Resolve it on the host, then run merge.execute again (${recoveryText(entry, ['merge.execute'], { cwd, requests: { 'merge.execute': { input: { repository: data.externalBlocker.repository ?? '<alias>', number: data.externalBlocker.number, method: data.externalBlocker.method ?? '<authorized method>' } } } })}).` }] : [],
+    actions: snapshotActions(entry, cwd, Boolean(reason)),
   };
 }
 export async function readCurrent(context, kind, id, runtime = {}) {

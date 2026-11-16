@@ -178,3 +178,78 @@ entries are appended to `decisions.md`.
       tests publish before authorizing.
   - `current-cli.test.js` standing test: uses a fixture with
     `releaseBranch: production` (new `currentFixture` option).
+
+## S4 — guard and session (tb-lightweight-mode-04-guard-and-session)
+
+- **Guard structure.** The classifier is a new pure module,
+  `protocol/current/command-guard.js`: a small shell tokenizer (quotes, `$'...'`,
+  separators, subshells, `$(...)`, backticks, process substitution, redirects,
+  heredocs) plus unwrapping of assignments, reserved words and wrappers (`sudo`,
+  `doas`, `env` incl. `-S`, `command`, `exec`, `nohup`, `nice`, `timeout`,
+  `xargs`, ...). Shell scripts given with `-c`, as a heredoc or here-string to a
+  shell, and `eval` arguments are classified recursively (depth 6).
+  `pre-tool-use.js` keeps the hook I/O and the milestone reason.
+- **Quoted text and heredoc bodies are not commands.** A commit message or
+  `cat <<EOF` body mentioning `gh pr merge` is allowed; a heredoc or here-string
+  fed to a shell is classified. Without this, ordinary commit messages in this
+  very feature would be denied.
+- **`gh api` merge endpoint:** denied for any method except an explicit
+  `GET`/`HEAD` (an omitted method is treated as a write, because `-f` fields make
+  gh POST). GraphQL `mergePullRequest`, `enablePullRequestAutoMerge` and
+  `enqueuePullRequest` are denied only when the query is inline; `--input`
+  files and `-F query=@file` are not read. `gh alias set` defining a merge is
+  denied too.
+- **`git push` protection** uses the integration and release branches of every
+  configured repository (union), whatever the remote. Destinations come from
+  refspecs (`+`, `src:dst`, `:dst`, `refs/heads/`, `--delete`), `--all`/
+  `--mirror`/`--branches`, and globs; an implicit destination or `HEAD`/`@`
+  resolves to the current branch (`git branch --show-current`, honouring `-C`),
+  i.e. push.default `simple`/`current`. Tags and other `refs/` are ignored. An
+  unconfigured (Git fallback) workspace or an unresolvable context protects no
+  branch, so pushes there are allowed (merges are still denied, fail-closed).
+- **Consequence for this feature's own process:** once installed, the guard
+  denies direct pushes to `tb-lightweight-mode` (the configured integration
+  branch) as well as `main`. Record-keeping commits on the integration branch
+  then go through a PR, or are pushed by the human.
+- **Entry-point resolution** (`protocol/current/entry-point.js`), one helper for
+  the hook and `status`: the bundled `plugin-adapter.js` next to the module copy
+  that is running (plugin, CLI resources or desktop resources), offered only if
+  it exists and is not inside an `.asar` archive; and `gatereeve` only when an
+  executable file of that name is on `PATH` (PATHEXT on Windows). If neither
+  exists the message says so instead of naming a command. No wrapper script was
+  added: the adapter's `--request-file` and `status --cwd` forms are sufficient.
+- **Denials name both** available entry points (adapter request skeletons for
+  `merge.prepare` then `merge.execute`, filled with the configured alias and the
+  PR number/method parsed from the command when present; CLI forms only when on
+  PATH). The invalid-hook-input denial also names the status entry point.
+- **Status recovery.** `status` adds `entryPoints {adapter, cli}` and
+  `branches [{alias, integrationBranch, releaseBranch}]`. Each action gets
+  `operation` and `entryPoint` (`cli` | `adapter` | `none`); copyable `command`
+  is the CLI form when on PATH (unchanged text), otherwise the adapter command
+  with a `request` skeleton. The resume and external-blocker messages name the
+  entry points. Callers may pass `runtime.environment`/`runtime.entryPoints`
+  (tests, desktop).
+- **SessionStart.** `session_start.py` now renders state from adapter `status`:
+  no run (defaults, "full or light?", pointer to both procedures, resume hint
+  only when feature documents exist), light (light procedure only; never the
+  full workflow), full (skill + WORKFLOW.md), delegated (scope naming the
+  configured integration/release branches, hand-back triggers). Unknown dial
+  values render as the defaults, never light/delegated. Any adapter or
+  interpretation failure gives a short safe message with the defaults and the
+  question. Timeout raised from 3 s to 5 s.
+- **Visibility.** CLI status prints `Rigor:`/`Autonomy:` lines ("(default for a
+  new run)" with no run). The desktop overview heading has a `#workflow-dials`
+  group with two badges; defaults are marked "(default)", light and delegated
+  use a highlighted style. `ENFORCEMENT` text in `contracts.js` now describes the
+  wider guard and run-state SessionStart (contract stays `current/7`).
+- **Light procedure and routing.** New `resources/commands/light-run.md`
+  (start, brief skeleton, brief-bound authority, raising rigor, acceptance with
+  the same gates, publication and merge). The `software-development-workflow`
+  skill routes by rigor; `workflow-design`, `workflow-spec-draft`,
+  `workflow-spec-validate` and `workflow-branch-bootstrap` redirect light runs.
+  No `templates/brief.md` was added; the skeleton is in the procedure.
+- **Existing tests changed by intended behavior:** `test_session_start.py` was
+  rewritten (the old assertions required "load the software-development-workflow
+  skill" for every session and the "current run needed" wording). The
+  `platform-contracts.json` `sessionStartOutput` description and INSTALL.md were
+  updated to the state-reporting behavior.

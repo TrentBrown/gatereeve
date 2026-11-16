@@ -11,6 +11,19 @@ Resolve `<plugin-root>` from the real path of this `SKILL.md`: it is the parent
 directory of `skills/`. Replace the placeholder with that absolute path before
 opening files or running commands, and quote the resolved path.
 
+## Run rigor routing
+
+Check the run's dials first (`status` reports `dials` and `dialDefaults`; the
+SessionStart context states them):
+
+- **No current run:** before non-trivial work, ask the human "full or light?".
+  Defaults are `full`/`supervised`; light and delegated are explicit per-run
+  choices only.
+- **Light run (`rigor: light`), or the human chose light:** follow
+  `<plugin-root>/resources/commands/light-run.md` instead of the full planning
+  backbone. Do not load the design, spec, plan or branch-bootstrap procedures.
+- **Full run:** follow the canonical workflow below.
+
 Follow the canonical workflow at:
 
 `<plugin-root>/resources/policy/WORKFLOW.md`
@@ -37,6 +50,7 @@ passage.
 
 Load the specific command file when the task matches:
 
+- Light run (brief, authority, acceptance, merge): `<plugin-root>/resources/commands/light-run.md`
 - Branch start or missing docs: `<plugin-root>/resources/commands/branch-bootstrap.md`
 - Draft AC/rubric: `<plugin-root>/resources/commands/spec-draft.md`
 - Validate spec before planning: `<plugin-root>/resources/commands/spec-validate.md`
