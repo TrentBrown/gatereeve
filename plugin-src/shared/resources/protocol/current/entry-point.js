@@ -17,6 +17,8 @@ const CLI_FORMS = Object.freeze({
   'gate.execute': 'gatereeve evaluate --help',
   'human.decide': 'gatereeve decide --help',
   'authorization.apply': 'gatereeve apply-authorization --help',
+  'planning.review': 'gatereeve review-planning --help',
+  'delegation.apply': 'gatereeve apply-delegation --help',
   'review.publish': 'gatereeve publish-review --number <PR> --source-repository <alias>',
   'merge.prepare': 'gatereeve merge prepare --number <PR> --source-repository <alias>',
   'merge.execute': 'gatereeve merge execute --number <PR> --source-repository <alias>',

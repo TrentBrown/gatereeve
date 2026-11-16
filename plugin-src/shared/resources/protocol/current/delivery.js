@@ -85,7 +85,10 @@ export async function resumeDelivery(core, input, operation) {
   const candidate = await core.store.json(state.candidate);
   const authorized = (await qualifyingDecisions(core, state, action ? 'authorize-merge' : 'accept', state.candidate.hash, candidate))
     .some(item => !action || identity(item.action) === identity(action));
-  if (!authorized) {
+  // Delegated autonomy covers a SLICE PR into the integration branch (AC5).
+  if (!authorized && action && !input.grant && state.dials.autonomy.value === 'delegated' && action.deliveryTarget === 'integration') {
+    await request('delegation.apply', { action });
+  } else if (!authorized) {
     let grant = input.grant;
     if (!grant) for (const item of [...state.decisions].reverse()) {
       if (item.kind === 'authorize-standing' && (await standingValidity(core, state, item, candidate, action)).allowed) { grant = item.event; break; }

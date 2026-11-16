@@ -58,7 +58,10 @@ test('invalid, unauthorized or unavailable start choices never yield light or de
     [{ rigor: 'light' }, /must be an object/],
     [{ rigor: { value: 'light', authority: human, scope: 'repo' } }, /Unsupported rigor choice field/],
     [{ rigor: { value: 'light', authority: { kind: 'agent', instruction: 'x', context: 'y' } } }, /observed human instruction/],
-    [{ autonomy: { value: 'delegated', authority: human } }, /protection checks/],
+    // Delegation needs an observed protected release branch; this Git-fallback
+    // fixture names none (S5; delegated paths are in current-delegation.test.js).
+    [{ autonomy: { value: 'delegated', authority: human } }, /Delegation needs a configured release branch/],
+    [{ autonomy: { value: 'delegated' } }, /observed human instruction/],
   ]) {
     const f = await fixture(t);
     await assert.rejects(f.start(input), pattern);
@@ -109,10 +112,15 @@ test('raising rigor is open to either actor and a raised run can never be lowere
     ['rigor:light:human', 'autonomy:supervised:built-in', 'rigor:full:agent']);
 });
 
-test('delegation is human-only and unavailable before protection checks', async t => {
+test('delegation is human-only, names the run, and needs a configured protected release branch', async t => {
   const f = await fixture(t); await f.start();
   await assert.rejects(f.request('run.set-dial', { dial: 'autonomy', value: 'delegated', actor: 'agent', reason: 'go' }, 'agent-delegate'), /Only a human can delegate/);
-  await assert.rejects(f.request('run.set-dial', { dial: 'autonomy', value: 'delegated', actor: 'human', authority: human, reason: 'go' }, 'human-delegate'), /protection checks/);
+  await assert.rejects(f.request('run.set-dial', { dial: 'autonomy', value: 'delegated', actor: 'human', authority: human, reason: 'go' }, 'unnamed'), /Delegation must name this run: supply runId run-one/);
+  await assert.rejects(f.request('run.set-dial', { dial: 'autonomy', value: 'delegated', actor: 'human', authority: human, reason: 'go', runId: 'other' }, 'misnamed'), /Delegation must name this run/);
+  // This Git-fallback fixture configures no release branch, so protection cannot be observed.
+  await assert.rejects(f.request('run.set-dial', { dial: 'autonomy', value: 'delegated', actor: 'human', authority: human, reason: 'go', runId: 'run-one' }, 'human-delegate'), /Delegation needs a configured release branch/);
+  assert.throws(() => dialChange({ runId: 'run-one', dials: { rigor: { value: 'light' }, autonomy: { value: 'supervised' } } },
+    { dial: 'rigor', value: 'full', actor: 'agent', reason: 'x', runId: 'run-one' }), /Only a delegation names the run/);
   assert.equal((await f.request('status')).dials.autonomy.value, 'supervised');
 });
 

@@ -10,7 +10,7 @@ import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-w
 import { executionEnvironment, assertEnvironmentCurrent } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
-import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, startDial, dialChange, requireThat, identity,
+import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, DELEGATED_AUTHORITY, startDial, dialChange, automaticDial, requireThat, identity,
   identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity, briefBased } from './evidence.js';
@@ -19,6 +19,8 @@ import { executeGates, reviewContract, coreEvidence } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
 import { captureStanding, applyStanding, standingValidity, standingReleaseRefusal, qualifyingDecisions, requireUnexpired } from './authorization.js';
 import { publishReview, requirePublishedReview } from './publication.js';
+import { evaluateTripwires, describeHits, hitKey } from './tripwires.js';
+import { isDelegated, requireProtection, guardDelegatedAction, reviewPlanning, delegatedPlanningAuthority, assertBriefScopeUnchanged, applyDelegation, delegationStatus } from './delegation.js';
 
 import { sourcePreparation, ensurePins, releasePins } from './source-retention.js';
 import { cleanupViews, viewStatus } from './source-views.js';
@@ -27,6 +29,12 @@ const LIVE_PROOFS = Symbol('qualified live proof inputs');
 const RETAINED_CLOSURE = Symbol('retained bytes verified in this observation');
 const admissions = new WeakMap();
 const lightRun = state => state.dials.rigor.value === 'light';
+// A human stay-light decision covers the current tripwire hits only when every
+// current hit was named in it; a new hit needs a new decision (spec AC4).
+function stayLightCovers(state, hits) {
+  const keys = hits.map(hitKey);
+  return currentAuthorityDecisions(state).some(item => item.kind === 'stay-light' && keys.every(key => item.hits?.includes(key)));
+}
 // A light run's sole planning commitment. Its adequacy is the human's
 // confirmation and the independent review's concern; only structure is checked.
 function assertBrief(bytes) {
@@ -41,7 +49,7 @@ export function project(events) {
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
     decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, actions: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
     sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length,
-    externalBlockers: [], externalBlocker: null };
+    externalBlockers: [], externalBlocker: null, tripwires: null, tripwireHistory: [], planningReviews: [], handBack: null };
   state.dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial,
     { ...(first.dials?.[dial] ?? startDial(dial)), at: events[0].recordedAt, event: events[0].hash }]));
   state.dialHistory = Object.entries(state.dials).map(([dial, value]) => ({ dial, ...value }));
@@ -53,6 +61,8 @@ export function project(events) {
       case 'DECIDED':
         state.pendingDecisions = state.pendingDecisions.filter(item => item.operation.id !== value.requestId);
         state.decisions.push({ ...value, event: event.hash });
+        // A hand-back stops for the human until a human decision is observed.
+        if (value.authority?.kind === 'human-confirmed') state.handBack = null;
         if (value.kind === 'approve-design') state.phase = 'SPECIFYING';
         if (value.kind === 'authorize-implementation') state.phase = 'IMPLEMENTING';
         if (value.kind === 'amend') { state.phase = 'SPECIFYING'; state.specValidation = null; state.ready = false; }
@@ -63,7 +73,12 @@ export function project(events) {
       case 'SOURCE_PREPARING': state.sourcePreparations.push(value); state.sourcePreparationStatus[value.id] = { status: 'preparing', reason: 'Preparation has not published a candidate; owned references are retained for retry.' }; break;
       case 'SOURCE_PREPARATION_FAILED': state.sourcePreparationStatus[value.id] = { status: 'retry-required', reason: value.reason }; break;
       case 'SOURCE_CLEANUP': state.sourceCleanup = value; break;
-      case 'CANDIDATE': if (value.preparationId) state.sourcePreparationStatus[value.preparationId] = { status: 'published', reason: null }; state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.externalBlocker = null; state.phase = 'IMPLEMENTING'; break;
+      case 'CANDIDATE': if (value.preparationId) state.sourcePreparationStatus[value.preparationId] = { status: 'published', reason: null }; state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.externalBlocker = null; state.tripwires = null; state.phase = 'IMPLEMENTING'; break;
+      // Tripwire classification of a light candidate (spec AC4). Hits are facts;
+      // dispositions are separate decisions or dial events.
+      case 'TRIPWIRES_EVALUATED': { const recorded = { ...value, at: event.recordedAt, event: event.hash }; state.tripwireHistory.push(recorded); if (value.candidate?.hash === state.candidate?.hash) state.tripwires = recorded; break; }
+      // Independent planning review; a delegated planning decision cites a PASS.
+      case 'PLANNING_REVIEWED': state.planningReviews.push({ ...value, at: event.recordedAt, event: event.hash }); break;
       case 'READY': state.ready = true; break;
       case 'TRANSITION_RECORDED': state.transition = value; break;
       case 'ACTION_CLAIMED': state.actions[value.id] = { ...value, running: true }; break;
@@ -82,6 +97,7 @@ export function project(events) {
       case 'DIAL_SET': {
         const recorded = { ...value, at: event.recordedAt, event: event.hash };
         state.dials[value.dial] = recorded; state.dialHistory.push(recorded);
+        if (value.dial === 'autonomy') state.handBack = value.value === 'supervised' && value.previous === 'delegated' && value.actor !== 'human' ? recorded : null;
         // Raised rigor voids brief-bound authority: full planning starts again
         // so design approval, spec validation and authorization are reachable.
         if (value.dial === 'rigor' && value.previous === 'light' && !['DESIGNING', 'SPECIFYING', 'PLANNING'].includes(state.phase)) { state.phase = 'DESIGNING'; state.ready = false; }
@@ -138,6 +154,9 @@ export class CurrentCore {
     const active = replacement ? null : await this.store.active();
     requireThat(!active || active.runId === input.runId, 'A current run already exists; resume that run');
     const dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial, startDial(dial, input[dial])]));
+    // Delegating at start names this run (its runId) and needs the release
+    // branch observed as protected, exactly as run.set-dial does (spec AC5).
+    if (dials.autonomy.value === 'delegated') dials.autonomy = { ...dials.autonomy, runId: input.runId, protection: await requireProtection(this) };
     // No legacy files are read or overwritten. STARTED is durable before activation.
     await this.store.append(input.runId, 0, 'STARTED', { featureId: this.context.featureId,
       implementers: [...new Set(input.implementers)], optionalGates: [...new Set(optionalGates)], dials, ...(replacement ? { priorActive: await this.store.put(replacement.bytes) } : {}) }, operation);
@@ -261,6 +280,9 @@ export class CurrentCore {
     let value = decision(input);
     let { state } = await this.state();
     let admission = null;
+    const delegated = value.authority.kind === DELEGATED_AUTHORITY;
+    // Any amendment under delegation changes approved scope: hand back (AC5).
+    const amendHandBack = value.kind === 'amend' && isDelegated(state);
     if (value.kind === 'approve-design') {
       requireThat(['DESIGNING', 'SPECIFYING', 'PLANNING'].includes(state.phase), 'Use an amendment to change approved delivery requirements');
       const doc = await this.store.capture('design.md');
@@ -301,6 +323,17 @@ export class CurrentCore {
         for (const ref of Object.values(current.docs)) await this.store.currentBytes(ref);
         value.specValidation = { spec: current.docs['spec.md'], design: current.docs['design.md'], proof };
       }
+    } else if (value.kind === 'stay-light') {
+      // Supervised light only: the human keeps light rigor despite these exact
+      // tripwire hits. Under delegation a hit escalates instead (spec AC4).
+      requireThat(lightRun(state), 'Stay-light applies only to a light run; this run is already full rigor');
+      requireThat(!isDelegated(state), 'Under delegated autonomy a tripwire hit escalates the run to full; a stay-light decision is rejected');
+      requireThat(state.candidate, 'Prepare a candidate before deciding on its tripwire hits');
+      const evaluation = await evaluateTripwires(this.context, await checkCandidate(this.store, this.context, state.candidate));
+      requireThat(evaluation.hits.length, 'The current candidate has no tripwire hits; there is nothing to decide');
+      requireThat(value.subject === evaluation.subject, `Stay-light must bind the current tripwire hit set (subject ${evaluation.subject}); new hits need a new decision`);
+      value.hits = [...new Set(evaluation.hits.map(hitKey))].sort();
+      value.candidate = state.candidate;
     } else if (value.kind === 'authorize-standing') {
       value = await captureStanding(this, state, value);
     } else if (value.kind === 'revoke-standing') {
@@ -339,11 +372,22 @@ export class CurrentCore {
         await requirePublishedReview(this, value.action);
       }
     }
+    if (delegated) {
+      // Delegated planning: cite the delegation and a qualifying independent
+      // planning review PASS, then re-observe release-branch protection.
+      value.authority = await delegatedPlanningAuthority(this, state, value);
+      if (value.kind === 'authorize-implementation' && lightRun(state)) await assertBriefScopeUnchanged(this, state, value.documents);
+      await guardDelegatedAction(this, state, `delegated ${value.kind}`);
+    }
     if (decisionHas(value, 'authorize-merge')) await checkCandidate(this.store, this.context, state.candidate);
     for (const ref of Object.values(value.documents ?? {})) await this.store.currentBytes(ref);
     if (admission) await this.assertLiveInputs({ ...state, decisions: [...state.decisions, value] }, 'acceptance', admission.liveInputs);
     else await this.assertContext();
     if (value.kind === 'authorize-standing') requireUnexpired(value);
+    if (amendHandBack) {
+      const change = automaticDial(state, 'autonomy', 'supervised', 'amend', 'A scope-changing amendment was recorded under delegated autonomy; stop for the human');
+      state = (await this.append(state, 'DIAL_SET', change, { id: `handback_${identity({ operation: operation.id }).slice(7, 71)}`, hash: identity(change) })).state;
+    }
     return this.append(state, 'DECIDED', { ...value, requestId: operation.id }, operation);
   }
   async validateSpec(operation) {
@@ -371,7 +415,13 @@ export class CurrentCore {
     try {
       await ensurePins(this.context, preparation);
       const candidate = await sourceCandidate(this.store, this.context, input, { event: authorization.event, subject: authorization.subject, documents: authorization.documents }, preparation, { light: lightRun(state) });
-      return await this.append(preparedState, 'CANDIDATE', { ...candidate.ref, preparationId: preparation.id }, operation);
+      // A light candidate is classified before it is published (spec AC4); an
+      // invalid tripwire configuration fails the preparation, never passes it.
+      const tripwires = lightRun(state) ? await evaluateTripwires(this.context, candidate.value) : null;
+      const published = await this.append(preparedState, 'CANDIDATE', { ...candidate.ref, preparationId: preparation.id }, operation);
+      if (!tripwires) return published;
+      const recorded = await this.recordTripwires(published.state, tripwires, 'candidate.prepare', operation.id);
+      return { ...published, state: recorded.state, tripwires: { hits: tripwires.hits, subject: tripwires.subject, escalated: recorded.escalated } };
     } catch (error) {
       // Retain pins until this operation retries or the run completes. A second
       // process may still be preparing the same operation; never delete its pins.
@@ -753,6 +803,18 @@ export class CurrentCore {
         'Candidate implementation authorization was superseded');
     } catch (error) { missing.push(error.message); }
     if (name !== 'completion' && !state.ready) missing.push('candidate readiness declaration');
+    // Light runs: tripwires are evaluated again at acceptance (and every later
+    // milestone) from the pinned source, never from a recorded claim.
+    let tripwires = null;
+    if (candidate && lightRun(state)) {
+      try {
+        const key = `tripwires:${state.candidate.hash}`;
+        if (!memo.has(key)) memo.set(key, evaluateTripwires(this.context, candidate));
+        tripwires = await memo.get(key);
+        if (tripwires.hits.length && isDelegated(state)) missing.push(`tripwire: ${describeHits(tripwires.hits)}; under delegated autonomy a hit escalates the run to full rigor`);
+        else if (tripwires.hits.length && !stayLightCovers(state, tripwires.hits)) missing.push(`tripwire: ${describeHits(tripwires.hits)}; escalate to full (run.set-dial rigor full) or record a human stay-light decision bound to these hits (subject ${tripwires.subject})`);
+      } catch (error) { missing.push(`tripwire evaluation unavailable: ${error.message}`); }
+    }
     const outcomes = [];
     const selectedSupplemental = new Set([...Object.values(state.jobs).flatMap(job => job.gates ?? []), ...state.decisions.flatMap(item => item.gates ?? [])]);
     const definitions = [...enabled(state, 'acceptance'), ...(name === 'completion' ? enabled(state, 'completion') : []),
@@ -793,14 +855,14 @@ export class CurrentCore {
     if (['merge', 'completion'].includes(name)) {
       const acceptances = await qualifyingDecisions(this, state, 'accept', state.candidate?.hash, candidate);
       if (!acceptances.length) missing.push('current human acceptance');
-      if (acceptances.length && acceptances.every(item => item.standingGrant)
-        && outcomes.some(item => item.required !== false && item.outcome !== 'PASS')) missing.push('standing acceptance requires every required gate to PASS');
+      if (acceptances.length && acceptances.every(item => item.standingGrant || item.delegation)
+        && outcomes.some(item => item.required !== false && item.outcome !== 'PASS')) missing.push('standing or delegated acceptance requires every required gate to PASS');
     }
     if (name === 'merge') {
       const authorizations = await qualifyingDecisions(this, state, 'authorize-merge', state.candidate?.hash, candidate);
       if (!authorizations.length) missing.push('explicit merge authorization');
-      if (authorizations.length && authorizations.every(item => item.standingGrant)
-        && outcomes.some(item => item.required !== false && item.outcome !== 'PASS')) missing.push('standing merge requires every required gate to PASS');
+      if (authorizations.length && authorizations.every(item => item.standingGrant || item.delegation)
+        && outcomes.some(item => item.required !== false && item.outcome !== 'PASS')) missing.push('standing or delegated merge requires every required gate to PASS');
     }
     if (name === 'completion') {
       if (candidate?.scope !== 'FEATURE') missing.push('complete-feature review scope');
@@ -816,12 +878,15 @@ export class CurrentCore {
     // Proof/remote qualification may take time without changing the journal.
     // Re-read mutable inputs after it, and again at the actual passage write.
     if (current && candidate) try { await this.assertLiveInputs(state, name, liveInputs); } catch (error) { missing.push(error.message); }
-    return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, candidate: state.candidate, outcomes, liveInputs };
+    return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, candidate: state.candidate, outcomes, liveInputs,
+      ...(tripwires ? { tripwires: { hits: tripwires.hits, subject: tripwires.subject, skipped: tripwires.skipped, coveredByStayLight: Boolean(tripwires.hits.length && stayLightCovers(state, tripwires.hits)) } } : {}) };
   }
   async pass(name, operation) {
     const prior = (await this.state()).state;
     if (name === 'completion' && prior.phase === 'COMPLETE') { requireThat((await this.check(name)).allowed, 'Recorded completion evidence is unavailable'); await this.cleanupSource(); return { state: (await this.state()).state, historical: true }; }
     requireThat(name !== 'merge', 'Merge must execute through a protected action adapter');
+    // Delegated light: a hit found at acceptance escalates before the check.
+    if (name === 'acceptance') await this.escalateOnTripwire('acceptance');
     const check = await this.check(name);
     requireThat(check.allowed, 'Milestone is blocked', check);
     const { state } = await this.state();
@@ -882,7 +947,7 @@ export class CurrentCore {
         : candidateUnavailable ? { allowed: false, reason: 'Current candidate evidence is unavailable or invalid' }
           : await standingValidity(this, state, grant, candidate, null, { allowIntegratedTargets: true })),
     })));
-    return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.supplemental && (!item.optional || state.optionalGates.includes(item.id))),
+    return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, delegation: delegationStatus(this, state), historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.supplemental && (!item.optional || state.optionalGates.includes(item.id))),
       enforcement: ENFORCEMENT, milestones: await Promise.all(MILESTONES.map(name => this.check(name, null, memo))) };
   }
   async coverageStatus() {
@@ -940,7 +1005,30 @@ export class CurrentCore {
     const { state } = await this.state();
     requireThat(state.phase !== 'COMPLETE', 'Run dials cannot change after completion');
     const change = dialChange(state, input);
+    if (change.dial === 'autonomy' && change.value === 'delegated') change.protection = await requireProtection(this);
     return this.append(state, 'DIAL_SET', change, operation);
+  }
+  // Classify the current light candidate. Under delegation a hit raises rigor to
+  // full automatically (recorded, never a lowering). Returns true when escalated.
+  async recordTripwires(state, evaluation, stage, operationId) {
+    let current = state;
+    const payload = { candidate: state.candidate, stage, ...evaluation };
+    const recorded = state.tripwires;
+    if (!(recorded && recorded.candidate.hash === state.candidate.hash && identity(recorded.hits) === identity(evaluation.hits)
+      && identity(recorded.configurations) === identity(evaluation.configurations))) {
+      current = (await this.append(current, 'TRIPWIRES_EVALUATED', payload, { id: `tripwires_${identity({ operationId, stage }).slice(7, 71)}`, hash: identity(payload) })).state;
+    }
+    if (!evaluation.hits.length || !isDelegated(current) || !lightRun(current)) return { state: current, escalated: false };
+    const change = automaticDial(current, 'rigor', 'full', 'tripwire', `Tripwire escalation under delegated autonomy: ${describeHits(evaluation.hits)}`, { tripwires: evaluation.subject });
+    current = (await this.append(current, 'DIAL_SET', change, { id: `escalate_${identity({ operationId, stage }).slice(7, 71)}`, hash: identity(change) })).state;
+    return { state: current, escalated: true };
+  }
+  async escalateOnTripwire(label) {
+    const { state } = await this.state();
+    if (!lightRun(state) || !isDelegated(state) || !state.candidate) return false;
+    const evaluation = await evaluateTripwires(this.context, await this.store.json(state.candidate));
+    if (!evaluation.hits.length) return false;
+    return (await this.recordTripwires(state, evaluation, label, `${label.replace(/[^a-zA-Z0-9_-]/gu, '-')}_${randomUUID()}`)).escalated;
   }
   async cleanupSource() {
     const { state } = await this.state();
@@ -956,7 +1044,8 @@ export class CurrentCore {
     if (['database.inspect','database.history'].includes(operation)) return this.executeObserved(request);
     const label = operation === 'human.decide' ? request.input?.kind
       : operation === 'milestone.pass' ? `milestone:${request.input?.name}` : operation;
-    const category = operation.startsWith('merge.') || operation.startsWith('integration.') || operation === 'review.publish' ? 'delivery'
+    const category = operation.startsWith('merge.') || operation.startsWith('integration.') || ['review.publish', 'delegation.apply'].includes(operation) ? 'delivery'
+      : operation === 'planning.review' ? 'review'
       : operation === 'candidate.prepare' ? 'setup' : 'operation';
     const activeRun = (await this.store.active().catch(()=>null))?.runId ?? request.input?.runId;
     return observe({ project: this.context.workspaceRoot, feature: this.context.featureId, workflow: activeRun ? `${this.store.home}:${activeRun}` : undefined,
@@ -994,6 +1083,8 @@ export class CurrentCore {
       case 'coverage.status': requireThat(!Object.keys(input).length, 'Coverage status accepts no asserted outcomes'); return this.coverageStatus();
       case 'human.decide': return this.decide(input, operation);
       case 'authorization.apply': return applyStanding(this, input, operation);
+      case 'delegation.apply': return applyDelegation(this, input, operation);
+      case 'planning.review': return reviewPlanning(this, input, operation);
       case 'spec.validate': return this.validateSpec(operation);
       case 'candidate.prepare': return this.prepare(input, operation);
       case 'candidate.ready': return this.readiness(operation);

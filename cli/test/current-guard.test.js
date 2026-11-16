@@ -234,7 +234,7 @@ test('status recovery actions and messages name only installed entry points', as
 
   await f.request('run.start', { implementers: ['implementer'] }, 'start');
   const governed = await currentSnapshot(context, {}, { environment: NO_CLI });
-  assert.deepEqual(governed.actions.map(item => item.operation), ['status', 'next', 'gate.execute', 'human.decide', 'authorization.apply']);
+  assert.deepEqual(governed.actions.map(item => item.operation), ['status', 'next', 'gate.execute', 'human.decide', 'authorization.apply', 'planning.review', 'delegation.apply']);
   assert.equal(governed.actions[0].command, `node '${ADAPTER}' status --cwd '${f.repo}'`);
   assert.ok(governed.actions.every(item => item.entryPoint === 'adapter' && item.command.includes(ADAPTER)));
   const governedCli = await currentSnapshot(context, {}, { environment: { PATH } });

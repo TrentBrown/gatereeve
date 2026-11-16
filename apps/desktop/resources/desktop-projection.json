@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:588ee29453e220e6c6a2b57894e058b0a6a6f1e99c4300fb569bcd84846bdff8",
+  "protocolHash": "sha256:a7848d33f6c4385fc7c7624ea87f634ec3d3ab5f8a7a04a494fb83f02f7a2295",
   "contract": "gatereeve/current/7",
-  "contractSha256": "c5b0fb6a7a33901693019afd118c908c8f9547e4db62c018c272cd60cf7cfd19",
+  "contractSha256": "795835042b5f22355711f134404d89c43b7da3b3c362e176e3bb337ed7133679",
   "files": [
     {
       "path": "agent-workflow.js",
@@ -22,18 +22,18 @@
     },
     {
       "path": "current/actions.js",
-      "size": 17631,
-      "sha256": "547a07db36b106239b63b494a72da78fd21c003c56aa83e1ddd12337e5babe10"
+      "size": 18790,
+      "sha256": "4d034a42772dbf75897a79f252797b899364a84d65a91757c6d7f91a888b87d1"
     },
     {
       "path": "current/adapter.js",
-      "size": 10514,
-      "sha256": "76a34b568cf63580ec6e0c8a8d67215eace48efaaaa5e3451bcb9f551aa75acf"
+      "size": 12649,
+      "sha256": "8ffb87d7a29348133445124a94de23e32ddae32f6c9746451d5d74344ce37cdf"
     },
     {
       "path": "current/authorization.js",
-      "size": 14213,
-      "sha256": "cd1d41dcea9b44c801f88c451f1a591b3805e89a963fae7d4e8172d316549ed0"
+      "size": 15269,
+      "sha256": "4eea2337950d6f58170d099301049c584366cff772ce92a3b60cd314611dbcaf"
     },
     {
       "path": "current/command-guard.js",
@@ -42,13 +42,13 @@
     },
     {
       "path": "current/contracts.js",
-      "size": 17661,
-      "sha256": "c5b0fb6a7a33901693019afd118c908c8f9547e4db62c018c272cd60cf7cfd19"
+      "size": 20267,
+      "sha256": "795835042b5f22355711f134404d89c43b7da3b3c362e176e3bb337ed7133679"
     },
     {
       "path": "current/core.js",
-      "size": 76241,
-      "sha256": "f2af4d028ebdfc854b98ae9bb71e7c9b7d70ccd578dcce0a1e38022df8d603ed"
+      "size": 84473,
+      "sha256": "19abe551d10c50c90eac2152839939c0d39e4d33f4c9c2658ec1934103dae2de"
     },
     {
       "path": "current/coverage.js",
@@ -56,9 +56,14 @@
       "sha256": "e5508842c1135b0041f44b587cb2c85fe12ab5e2559da9038e71d2787270ac8d"
     },
     {
+      "path": "current/delegation.js",
+      "size": 25484,
+      "sha256": "755ab5dcb177951d2b2a6995b99fb77e548d18494e66e7cb6323e1459c1c6794"
+    },
+    {
       "path": "current/delivery.js",
-      "size": 7050,
-      "sha256": "4a1f3bec2beef7b8ea803d4240677c674d7e9d0e318175ec8572623ecfd6efbd"
+      "size": 7321,
+      "sha256": "76b8ae55fca66e1250a131f2d36a55d359ae964a8ab1c5e3a61b4a673a98ad86"
     },
     {
       "path": "current/diagnostics.js",
@@ -67,8 +72,8 @@
     },
     {
       "path": "current/entry-point.js",
-      "size": 4520,
-      "sha256": "35dfff55e464ad09fe16ce6d49fb006bec73ac7796529ae5aa55325f070a8642"
+      "size": 4636,
+      "sha256": "db2ef8c4921bda292f57f7ef9a5092d14b052a02f24f03d2949fca1449a878d8"
     },
     {
       "path": "current/environment.js",
@@ -149,6 +154,11 @@
       "path": "current/store.js",
       "size": 15506,
       "sha256": "a9b3313466187d209ffc98cb250d00852ca2bdfbbfbd1f2af7226b3b76771664"
+    },
+    {
+      "path": "current/tripwires.js",
+      "size": 13499,
+      "sha256": "9033bc92e777f148be7b94e4737c23e8d923786bd908e973116badcba3538314"
     },
     {
       "path": "current/validation-scope.js",
