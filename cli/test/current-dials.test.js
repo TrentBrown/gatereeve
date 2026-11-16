@@ -64,8 +64,9 @@ test('invalid, unauthorized or unavailable start choices never yield light or de
     await assert.rejects(f.start(input), pattern);
     await assert.rejects(f.core.state(), /No current run/);
   }
-  // An explicit default needs no human instruction and is recorded as explicit.
-  assert.deepEqual(startDial('rigor', { value: 'full' }), { value: 'full', source: 'explicit', actor: 'agent' });
+  // An explicit default needs no human instruction but must carry a reason.
+  assert.throws(() => startDial('rigor', { value: 'full' }), /needs an observed human instruction or a reason/);
+  assert.deepEqual(startDial('rigor', { value: 'full', reason: 'Backend change' }), { value: 'full', source: 'explicit', actor: 'agent', reason: 'Backend change' });
 });
 
 test('configuration cannot change dial defaults', async t => {
@@ -117,6 +118,7 @@ test('delegation is human-only and unavailable before protection checks', async 
 
 test('rules: rigor never falls within a run for any actor or autonomy; hand-back is open to either actor', () => {
   const dials = (rigor, autonomy) => ({ dials: { rigor: { value: rigor }, autonomy: { value: autonomy } } });
+  assert.throws(() => dialChange(dials('full', 'supervised'), { dial: 'rigor', value: 'light', actor: 'human' }), /start a new light run/);
   for (const autonomy of ['supervised', 'delegated']) for (const actor of ['human', 'agent']) {
     const lower = { dial: 'rigor', value: 'light', actor, reason: 'r', ...(actor === 'human' ? { authority: human } : {}) };
     assert.throws(() => dialChange(dials('full', autonomy), lower), /cannot be lowered within a run; to work at light rigor, start a new light run/);
@@ -196,7 +198,8 @@ test('an earlier-contract run is retained, reported as needing resumption, and r
 test('resuming an active run reports a differing dial choice instead of dropping it', async t => {
   const f = await fixture(t); await f.start();
   const resume = (input, id) => f.request('run.resume-current', { runId: 'run-one', implementers: ['implementer-one'], ...input }, id);
-  await resume({ rigor: { value: 'full' } }, 'same');
-  await assert.rejects(resume({ rigor: { value: 'light', authority: human } }, 'differs'), /already rigor full; change it with run.set-dial/);
+  await resume({ rigor: { value: 'full', reason: 'retry' } }, 'same');
+  await assert.rejects(resume({ rigor: { value: 'light', authority: human } }, 'differs'), /start a new light run/);
+  await assert.rejects(resume({ autonomy: { value: 'delegated', authority: human } }, 'differs-autonomy'), /already autonomy supervised; change it with run.set-dial/);
   assert.equal((await f.request('status')).dials.rigor.value, 'full');
 });

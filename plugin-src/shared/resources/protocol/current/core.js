@@ -10,7 +10,7 @@ import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-w
 import { executionEnvironment, assertEnvironmentCurrent } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
-import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, startDial, dialChange, requireThat, identity,
+import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, startDial, dialChange, requireThat, identity,
   identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity } from './evidence.js';
@@ -147,8 +147,11 @@ export class CurrentCore {
       requireThat(identity(input.implementers) === identity(state.implementers), 'Resume must preserve the implementing contexts');
       // Dial choices apply only when resumption starts a run. Never drop a
       // differing choice silently on an already active run.
-      for (const dial of Object.keys(DIALS)) requireThat(input[dial] === undefined || input[dial]?.value === state.dials[dial].value,
-        `The active run is already ${dial} ${state.dials[dial].value}; change it with run.set-dial`);
+      for (const dial of Object.keys(DIALS)) {
+        if (input[dial] === undefined || input[dial]?.value === state.dials[dial].value) continue;
+        requireThat(!(dial === 'rigor' && input[dial]?.value === 'light'), LOWERING_REFUSED);
+        requireThat(false, `The active run is already ${dial} ${state.dials[dial].value}; change it with run.set-dial`);
+      }
       await this.reconcileCompletedJobs();
     }
     // Supplied approvals are observations of actual instructions, never inferred

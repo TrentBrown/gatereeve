@@ -157,11 +157,14 @@ export function startDial(dial, value) {
   requireThat(DIALS[dial].includes(value.value), `Invalid ${dial} value`);
   requireThat(!(dial === 'autonomy' && value.value === 'delegated'), 'Delegated autonomy requires release-branch protection checks that are not yet available');
   if (value.value !== DEFAULT_DIALS[dial]) requireThat(value.authority !== undefined, `Choosing ${dial} ${value.value} requires an observed human instruction`);
+  // Every explicit choice carries provenance: the observed instruction or a reason.
+  requireThat(value.authority !== undefined || value.reason !== undefined, `An explicit ${dial} choice needs an observed human instruction or a reason`);
   const choice = { value: value.value, source: 'explicit', actor: value.authority ? 'human' : 'agent' };
   if (value.authority !== undefined) choice.authority = authority(value.authority);
   if (value.reason !== undefined) choice.reason = text(value.reason, `${dial} reason`);
   return choice;
 }
+export const LOWERING_REFUSED = 'Rigor cannot be lowered within a run; to work at light rigor, start a new light run on a new topic branch (this run and its evidence remain retained)';
 // Validate a requested dial change against the asymmetric rules (design D5 as
 // revised 2026-11-16): rigor only rises; lowering it requires a new light run.
 export function dialChange(state, input) {
@@ -169,14 +172,15 @@ export function dialChange(state, input) {
   requireThat(Object.keys(input).every(key => ['dial', 'value', 'actor', 'authority', 'reason'].includes(key)), 'Unsupported dial change field');
   requireThat(Object.hasOwn(DIALS, input.dial), 'Unknown run dial');
   requireThat(DIALS[input.dial].includes(input.value), `Invalid ${input.dial} value`);
+  // Lowering is refused before any other field check, so every caller gets the
+  // path forward rather than a missing-field error.
+  requireThat(!(input.dial === 'rigor' && input.value === 'light'), LOWERING_REFUSED);
   requireThat(['human', 'agent'].includes(input.actor), 'Dial change actor must be human or agent');
   text(input.reason, 'Dial change reason');
   requireThat(input.actor !== 'human' || input.authority !== undefined, 'A human dial change requires the observed instruction');
   requireThat(input.actor !== 'agent' || input.authority === undefined, 'An agent dial change cannot claim human authority');
   const current = state.dials[input.dial].value;
   requireThat(current !== input.value, `Run ${input.dial} is already ${input.value}`);
-  requireThat(!(input.dial === 'rigor' && input.value === 'light'),
-    'Rigor cannot be lowered within a run; to work at light rigor, start a new light run on a new topic branch (this run and its evidence remain retained)');
   if (input.dial === 'autonomy' && input.value === 'delegated') {
     requireThat(input.actor === 'human', 'Only a human can delegate');
     requireThat(false, 'Delegated autonomy requires release-branch protection checks that are not yet available');
