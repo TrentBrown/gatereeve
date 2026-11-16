@@ -60,6 +60,18 @@ a distinct integration branch. The Git fallback (no configuration) names no
 branches, so protected merge preparation needs a workspace configuration that
 names them.
 
+Delegated autonomy needs a configured release branch for every repository, observed
+as protected through GitHub's non-admin branches API, and delegated merges exist
+only for `SLICE` PRs into a distinct integration branch. The Git fallback cannot
+delegate.
+
+## Repository tripwire configuration
+
+Light-run tripwires are configured per repository, not in this workspace file: a
+committed `.gatereeve/tripwires.json` at the repository root extends or narrows the
+built-in categories (see PROTOCOL.md, Tripwires). It is read from each candidate's
+pinned base commit, and changing it is itself a tripwire hit.
+
 ## Resolution
 
 Run the portable resolver from the installed plugin resource root:

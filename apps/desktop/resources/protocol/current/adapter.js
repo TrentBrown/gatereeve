@@ -54,7 +54,33 @@ function snapshotActions(entry, cwd, resume) {
     action('evaluate', 'gate.execute', 'Request checks explicitly; readiness launches none'),
     action('decide', 'human.decide', 'Record observed human decisions and scoped exceptions'),
     action('apply-authorization', 'authorization.apply', 'Apply recorded standing permission after all required gates pass'),
+    action('review-planning', 'planning.review', 'Request an independent planning review (design, spec or brief) for a delegated decision'),
+    action('apply-delegation', 'delegation.apply', 'Under delegation, accept and authorize a fully passing SLICE PR into the integration branch'),
   ];
+}
+function tripwireSummary(data) {
+  const recorded = data.tripwires;
+  const checked = (data.milestones ?? []).find(item => item.name === 'acceptance')?.tripwires ?? null;
+  if (!recorded && !checked) return null;
+  return { hits: checked?.hits ?? recorded.hits, subject: checked?.subject ?? recorded.subject, coveredByStayLight: checked?.coveredByStayLight ?? false,
+    recordedAt: recorded?.at ?? null, stage: recorded?.stage ?? null, skipped: checked?.skipped ?? recorded?.skipped ?? [] };
+}
+// Stop-for-the-human states that are not gate failures.
+function runBlockers(data) {
+  if (!data) return [];
+  const blockers = [];
+  const tripwires = tripwireSummary(data);
+  if (data.dials?.rigor?.value === 'light' && tripwires?.hits?.length && !tripwires.coveredByStayLight) blockers.push({ type: 'tripwire',
+    message: `${tripwires.hits.length} tripwire hit(s) (${[...new Set(tripwires.hits.map(hit => hit.category))].join(', ')}) block acceptance of this light run. `
+      + (data.dials.autonomy.value === 'delegated' ? 'Under delegation the run escalates to full rigor.'
+        : `Stop for the human: escalate to full (run.set-dial rigor full) or record their stay-light decision bound to subject ${tripwires.subject}.`) });
+  // Pending until a human decision is observed after the hand-back.
+  if (data.handBack) blockers.push({ type: 'hand-back',
+    message: `Delegation was handed back to supervised (${data.handBack.trigger ?? 'agent'}: ${data.handBack.reason ?? 'no reason recorded'}). Stop for the human. `
+      + 'Delegated decisions no longer count: implementation, candidates and gates need a human authorize-implementation (and acceptance and merges a human decision); only a human can delegate again.' });
+  if (data.delegationBlocked && data.dials?.autonomy?.value === 'delegated') blockers.push({ type: 'hand-back',
+    message: 'An external merge blocker was recorded under delegation but the hand-back could not be recorded. Delegated authority is void: stop for the human.' });
+  return blockers;
 }
 export async function currentSnapshot(context, options = {}, runtime = {}) {
   let core, data = null, reason = null;
@@ -82,8 +108,12 @@ export async function currentSnapshot(context, options = {}, runtime = {}) {
     milestones: data?.milestones ?? [], database: core ? await core.store.inspect() : null, artifacts, enforcement: ENFORCEMENT,
     events: { count: events.length, lastEventId: events.at(-1)?.hash ?? null },
     recentEvents: events.slice(-10), sources: options.sources ?? {},
-    blockers: reason ? [{ type: 'current-entry', message: reason }] : data?.externalBlocker ? [{ type: 'external-blocker',
-      message: `PR #${data.externalBlocker.number} (${data.externalBlocker.headBranch} -> ${data.externalBlocker.baseBranch}) is blocked by a hosting rule (${data.externalBlocker.blocker}); this is not a gate failure. Resolve it on the host, then run merge.execute again (${recoveryText(entry, ['merge.execute'], { cwd, requests: { 'merge.execute': { input: { repository: data.externalBlocker.repository ?? '<alias>', number: data.externalBlocker.number, method: data.externalBlocker.method ?? '<authorized method>' } } } })}).` }] : [],
+    // Delegation scope, protection, hand-backs and delegated decisions, and the
+    // current light candidate's tripwire hits (spec AC4, AC5).
+    delegation: data?.delegation ?? null,
+    tripwires: data ? tripwireSummary(data) : null,
+    blockers: reason ? [{ type: 'current-entry', message: reason }] : [...runBlockers(data), ...(data?.externalBlocker ? [{ type: 'external-blocker',
+      message: `PR #${data.externalBlocker.number} (${data.externalBlocker.headBranch} -> ${data.externalBlocker.baseBranch}) is blocked by a hosting rule (${data.externalBlocker.blocker}); this is not a gate failure. Resolve it on the host, then run merge.execute again (${recoveryText(entry, ['merge.execute'], { cwd, requests: { 'merge.execute': { input: { repository: data.externalBlocker.repository ?? '<alias>', number: data.externalBlocker.number, method: data.externalBlocker.method ?? '<authorized method>' } } } })}).` }] : [])],
     actions: snapshotActions(entry, cwd, Boolean(reason)),
   };
 }

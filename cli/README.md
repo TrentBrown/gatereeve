@@ -81,6 +81,9 @@ gatereeve milestone check acceptance --json
 gatereeve decide --help
 gatereeve merge prepare --help
 gatereeve publish-review --help
+gatereeve review-planning --help
+gatereeve decide-delegated --help
+gatereeve apply-delegation --help
 ```
 
 The planning backbone remains interview, approved design, validated spec,
@@ -285,6 +288,14 @@ the release branch is rejected, and the final PR into the release branch always
 needs a per-PR human `decide accept --continue-with authorize-merge --action ...`.
 The exact action is retained and rechecked at execution. To revoke, use `decide
 revoke-standing --subject <grant-event-hash>` with the observed instruction.
+
+Under delegated autonomy (a human `run.set-dial` delegation naming the run, after
+the release branch is observed as protected), `review-planning design|spec|brief`
+runs the independent planning review, `decide-delegated` records
+`approve-design`/`authorize-implementation` citing the delegation and that PASS,
+and `apply-delegation --action <prepared-action.json>` accepts and authorizes a
+fully passing `SLICE` PR into the distinct integration branch. Release merges
+still need the per-PR human decision above. See PROTOCOL.md (Delegated autonomy).
 
 For acceptance only, remove `authorize-merge` and `methods`. A null expiry lasts
 only for the current approved feature run; a UTC timestamp limits it further.

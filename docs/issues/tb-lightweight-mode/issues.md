@@ -60,12 +60,12 @@ Covers:
 
 ## I-4 - Guard, recovery messages, SessionStart and visibility
 
-- **Status:** in-progress
+- **Status:** merged
 - **Estimate:** unknown
 - **Plan steps:** P7
 - **Rubric criteria:** R2, R10, R11
 - **Depends on:** I-1
-- **PR:** -
+- **PR:** #108 (merged 2026-11-16, `20f7560`)
 
 Covers:
 - widened merge/push guard;
@@ -76,7 +76,7 @@ Covers:
 
 ## I-5 - Tripwires and delegated autonomy
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** P5, P6
 - **Rubric criteria:** R6, R7, R8 (delegated)

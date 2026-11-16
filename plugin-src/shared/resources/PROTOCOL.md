@@ -23,12 +23,14 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | --- | --- |
 | `status`, `snapshot`, `next` | Current phase, commitment hashes, obligations, applicability, exceptions and milestone blockers |
 | `read` | Top-level `kind` = artifact/events/model/result; artifact/result `id` must come from status |
-| `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]`, `rigor`/`autonomy` choices `{value, authority?, reason?}` (defaults `full`/`supervised`; every explicit choice needs `authority` or `reason`, and a non-default value needs an observed human `authority`) |
-| `run.set-dial` | `dial: rigor|autonomy`, `value`, `actor: human|agent`, `reason`, `authority` (required for `human`, forbidden for `agent`). Raising rigor or returning to supervised is open to either actor. Rigor never falls within a run: to work light, start a new light run on a new topic branch; this run and its evidence stay retained |
+| `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]`, `rigor`/`autonomy` choices `{value, authority?, reason?}` (defaults `full`/`supervised`; every explicit choice needs `authority` or `reason`, and a non-default value needs an observed human `authority`; `delegated` also needs the protected release branch) |
+| `run.set-dial` | `dial: rigor|autonomy`, `value`, `actor: human|agent`, `reason`, `authority` (required for `human`, forbidden for `agent`). Raising rigor or returning to supervised is open to either actor. Rigor never falls within a run: to work light, start a new light run on a new topic branch; this run and its evidence stay retained. Delegating (`autonomy: delegated`) is human-only, must name the run (`runId`) and needs the release branch observed as protected (see Delegated autonomy) |
+| `planning.review` | `artifact: design|spec|brief`, `configuration: {provider, model, reasoningEffort?}`; an independent fresh-context review of the planning artifact, recorded as `PLANNING_REVIEWED` with its exact subject. A delegated planning decision cites a PASS |
+| `delegation.apply` | `action`: the exact prepared `SLICE` merge action into the integration branch. Under delegation only: records `accept` + `authorize-merge` with the `delegated-evaluator` authority when every required gate PASSes and the review summary is published |
 | `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals |
 | `human.decide` | See decisions below |
 | `spec.validate` | Run trusted spec lint after the model's semantic review of AC, rubric and boundary feasibility |
-| `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row. A light run has no rubric: `criteria` is exactly `["brief"]` for either scope |
+| `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row. A light run has no rubric: `criteria` is exactly `["brief"]` for either scope, and its change is classified by the tripwires (result `tripwires`) |
 | `candidate.ready` | Declare the pinned candidate ready; launches nothing |
 | `gate.execute` | `gates: [id]` or `["code","spec"]`, explicit `configuration`, typed `consumed`, bounded `history`, labeled `claims`, optional `prior` for a delta |
 | `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
@@ -53,9 +55,11 @@ recorded in `STARTED` and in each `DIAL_SET` event with value, source
 `full` and `supervised`. No global, repository or workspace configuration changes
 them. `status` reports current values in `dials` and the defaults in
 `dialDefaults`, and the configured delivery branches in `branches`. With no run,
-ask the human "full or light?" before non-trivial work. Delegated autonomy is
-rejected until release-branch protection
-checks are available. A run from an earlier contract is retained unchanged and
+ask the human "full or light?" before non-trivial work. Delegated autonomy is a
+human decision naming the run (see Delegated autonomy). `DIAL_SET` events the
+protocol records itself carry `source: automatic`, `actor: gatereeve` and a
+`trigger` (`tripwire` raises rigor; `amend`, `external-blocker` and
+`protection-lost` return autonomy to supervised). A run from an earlier contract is retained unchanged and
 reported as needing `run.resume-current`; the resumed run starts at the defaults
 unless a choice is supplied.
 
@@ -83,6 +87,46 @@ and packet; retention and the other completion obligations at completion).
 The step-by-step light procedure is `resources/commands/light-run.md`; skills route
 light runs to it instead of the full planning procedures.
 
+### Tripwires
+
+Light candidates are classified by deterministic tripwires at `candidate.prepare`
+and again at every milestone check from acceptance on. Path rules match every
+changed path between the candidate's base and head (added, modified or deleted);
+content rules match lines the head adds (binary files and files over 1 MiB are
+classified by path only and listed as `skipped`). Built-in categories:
+
+| Category | Built-in rules (examples) |
+| --- | --- |
+| `migrations-schema` | `migrations/`, `migrate/`, `alembic/` paths; `*.sql`, `*.prisma`, `schema.rb`; `schema/` directories; added `CREATE/ALTER/DROP TABLE...`, `ADD COLUMN`, migration calls |
+| `auth-security` | path segments such as `auth`, `security`, `permissions`, `oauth`, `login`, `password`, `credentials`, `crypto`, `rbac`, `acl`, `jwt`, `session`; any change to `.gatereeve/tripwires.json` |
+| `secrets` | `.env*`, key material (`*.pem`, `*.key`, `*.p12`, ...), `id_rsa`-style keys, `credentials*`/`secrets*`, `.npmrc`/`.netrc`; added private-key blocks, AWS, GitHub, Slack and provider API keys, quoted secret assignments |
+| `public-api` | OpenAPI/Swagger documents, `*.proto`, GraphQL schemas, `*.avsc`, `*.schema.json`, `*.d.ts` |
+| `data-deletion` | added `DROP TABLE/COLUMN`, `TRUNCATE`, `DELETE FROM`, bulk-delete calls, recursive removal |
+
+A repository extends or narrows them in `.gatereeve/tripwires.json` (modeled on
+pattern-review triggers), read from the candidate's pinned **base** commit so a
+change cannot weaken its own tripwires:
+
+```json
+{"schemaVersion":1,"categories":{"public-api":{"paths":["plugin-src/contracts/**"],"content":[{"pattern":"export\\s+interface","ignoreCase":true}]},"secrets":{"excludePaths":["test/fixtures/**"]},"auth-security":{"builtIn":false}}}
+```
+
+`paths`/`excludePaths` are globs (`**`, `*`, `?`, `{a,b}`; no `/` matches the file
+name anywhere), `content` entries are regular expressions, and `builtIn: false`
+drops a category's built-in patterns (never the configuration-file rule). An
+invalid configuration makes classification unavailable, which blocks acceptance.
+Hits record category, rule, repository, path and line, never matched text; they
+are recorded in `TRIPWIRES_EVALUATED` and shown in `status` `tripwires`.
+
+- **Supervised:** a hit blocks acceptance until the human escalates to full
+  (`run.set-dial rigor full`) or records `stay-light` with `subject` equal to the
+  hit-set identity in `status` `tripwires.subject`. That decision covers only the
+  hits it names: a new hit needs a new decision, and a re-authorized brief voids it.
+- **Delegated:** a hit raises rigor to full automatically (recorded `DIAL_SET`,
+  `trigger: tripwire`), at preparation or when acceptance or `delegation.apply` is
+  attempted. Any `stay-light` decision is rejected.
+- **Full rigor:** not classified. A run without hits is unaffected.
+
 ## Decisions
 
 A decision includes `kind`, exact `subject` hash from current status or the
@@ -94,7 +138,13 @@ captured design, `reason`, `consequences` and:
 
 Available message/conversation IDs are optional. This is a cooperative record,
 not authentication. Kinds: `approve-design`, `authorize-implementation`, `accept`,
-`waive`, `amend`, `policy-amend`, `authorize-merge`.
+`waive`, `amend`, `policy-amend`, `authorize-merge`, `authorize-standing`,
+`revoke-standing`, `stay-light` (see Tripwires).
+
+Authority kinds: `human-confirmed` (an observed human instruction) and, only under
+delegated autonomy, `delegated-evaluator` (see Delegated autonomy). Status,
+snapshot and decision records always carry the kind; a delegated decision is never
+reported or counted as human-confirmed.
 
 `authorize-merge` (alone or as an `accept`/`waive` continuation) is refused
 unless the PR description already carries the current review summary from
@@ -124,6 +174,65 @@ or checkbox can grant passage. `spec.validate` refreshes unchanged commitments
 without new implementation authority. Failed validation remains retained.
 Python remains a leaf provider for Git integration/context checks; it does not
 control semantic planning acceptance.
+
+## Delegated autonomy
+
+A human delegates one named run: `run.set-dial` with `dial: autonomy`,
+`value: delegated`, `actor: human`, the observed instruction and `runId`, or an
+explicit `autonomy` choice at `run.start`. Delegation is rejected unless every
+configured repository's release branch is observed as protected through the
+non-admin branches API (`GET repos/{owner}/{repo}/branches/{release}`, field
+`protected`). The observations are recorded on the `DIAL_SET` (`protection`). The
+Git fallback names no release branch, so it cannot delegate. There is no
+configured or standing delegation for runs that do not exist yet. Status
+`delegation` reports the event, instruction, scope, hand-back triggers, hand-backs
+and delegated decisions.
+
+**Planning.** `planning.review` runs an independent fresh-context review of
+`design` (design.md, approve-design), `spec` (spec, design, plan and issues,
+authorize-implementation) or `brief` (brief.md, light authorize-implementation).
+While delegated, `human.decide` for `approve-design` or `authorize-implementation`
+may carry `{"kind":"delegated-evaluator","delegation":"<status delegation.event>","evaluation":"<PLANNING_REVIEWED event>"}`
+instead of a human instruction. It is accepted only when the cited review is a PASS
+of that artifact for exactly the decision's subject, no later review of that
+subject supersedes it, the reviewer is not an implementing context and release
+protection is re-observed. The recorded authority cites the delegation instruction
+and the evaluator result. Full runs still need `spec.validate`. Other kinds, and
+any delegated authority while supervised, are rejected. In a run raised from light
+rigor (for example by a tripwire), design and spec reviews also receive the brief
+last authorized while light and must block commitments that go beyond its goal or
+scope; a delegated decision must cite such a review.
+
+**Delivery.** `delegation.apply` accepts and authorizes the merge of a `SLICE`
+candidate only for a prepared PR into a distinct integration branch, with every
+required gate PASS (no exceptions) and the review summary published.
+`merge.execute` then merges through the protected path after re-observing
+protection. `FEATURE` PRs, release-branch merges and repositories whose
+integration and release branches are the same have no delegated merge; they need
+the per-PR human `authorize-merge`. `delivery.resume` applies delegation for a
+SLICE PR into integration.
+
+**Hand-back.** Autonomy returns to supervised, recorded as `DIAL_SET`, on:
+
+- a scope-changing amendment: any `amend` recorded while delegated, or a delegated
+  re-authorization of a brief that changed anywhere outside its findings section
+  (the Findings heading and its nested sub-headings); preamble, goal, scope,
+  sub-headings and any other section count as scope;
+- an agent hand-back (`run.set-dial autonomy supervised`, `actor: agent`, with a
+  reason; always allowed);
+- an external merge blocker (`MERGE_BLOCKED`). The recorded blocker voids the
+  delegation's authority even if recording the hand-back fails (the error then
+  carries `handBackFailed: true`);
+- release-branch protection observed lost before a delegated decision,
+  `delegation.apply` or a delegated merge. An unobservable state refuses the
+  action without handing back.
+
+After a hand-back the delegated acceptance no longer authorizes, delegated
+decisions are refused, and a delegated `authorize-implementation` no longer
+counts: implementation, candidates and gates stop until the human records
+`authorize-implementation` (a full run may re-authorize its unchanged validated
+commitments in place). `status` shows a `hand-back` blocker until a human decision
+is observed. Only a human can delegate again.
 
 ## Execution and evidence
 
@@ -484,7 +593,7 @@ the integration branch). When they differ, scope is bound to target at
 - every other pairing is rejected, naming the allowed pairing.
 
 When the branches are the same, every PR targets the release branch and no
-standing (or delegated) merge authority exists for that repository.
+standing or delegated merge authority exists for that repository.
 
 **Release merges, any rigor.** A merge into the release branch needs a human
 `authorize-merge` from a per-PR instruction ("merge #N"), bound through the

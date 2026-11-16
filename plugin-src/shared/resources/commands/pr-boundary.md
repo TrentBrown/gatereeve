@@ -17,7 +17,10 @@ scoped exceptions. In both rigors, run `review.publish` for the PR so its
 description carries the current independent review summary for the candidate
 head before presenting it; republish after any new review or candidate. Present
 exact candidate and risks for human acceptance unless an applicable recorded
-standing acceptance grant already covers this work.
+standing acceptance grant already covers this work, or the run is delegated and
+the candidate is a fully passing `SLICE` PR into the integration branch
+(`delegation.apply`; PROTOCOL.md Delegated autonomy). A light run's tripwire hits
+stop for the human under supervision.
 Use `delivery.resume` to advance eligible steps under existing authority and reconnect work.
 When all required gates PASS, `authorization.apply` can also be used with that grant's event
 hash to record exact candidate acceptance. A standing grant never waives a gate.

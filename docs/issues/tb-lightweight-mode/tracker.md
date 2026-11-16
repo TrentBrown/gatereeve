@@ -10,7 +10,7 @@
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|----|-------|
 | R1 | Defaults, provenance, no config path | PASS (slice) | PR #105 | S1 review PASS 2026-11-16; re-checked at FEATURE review |
-| R2 | Dial visibility | PARTIAL | PR #105 | S1 share (status/snapshot/next data) PASS; CLI, desktop, SessionStart pending I-4 |
+| R2 | Dial visibility | PASS (slice) | PR #105, #108 | S1 snapshot data; S4 CLI, desktop header and SessionStart (review PASS 2026-11-16) |
 | R3 | Asymmetric toggles | PASS (slice) | PR #105 | Rigor only rises (D16); delegated→supervised rule-level until S5 |
 | R4 | Light commitments and authority | PASS (slice) | PR #106 | S2 review PASS 2026-11-16 |
 | R5 | Light gates, review basis, verification provenance | PASS (slice) | PR #106 | S2 review PASS 2026-11-16; light-run procedure file and skill routing land in S4 |
@@ -18,8 +18,8 @@
 | R7 | Delegation precondition, planning substitution, hand-back | NOT YET | - | Planned for P6 / I-5 |
 | R8 | Delivery targets and merge authority | PARTIAL | PR #107 | Non-delegated paths PASS (S3 review 2026-11-16); delegated paths P6 / I-5 |
 | R9 | Review summary on the PR | PASS (slice) | PR #107 | S3 review PASS 2026-11-16 |
-| R10 | Guard coverage and actionable recovery | NOT YET | - | Planned for P7 / I-4 |
-| R11 | State-reporting SessionStart | NOT YET | - | Planned for P7 / I-4 |
+| R10 | Guard coverage and actionable recovery | PASS (slice) | PR #108 | S4 review PASS 2026-11-16; best-effort advisories N1-N4 |
+| R11 | State-reporting SessionStart | PASS (slice) | PR #108 | S4 review PASS 2026-11-16; delegated state fixture-tested until S5 |
 | R12 | Measurement and rollout | NOT YET | - | Planned for P8 / I-6 |
 
 ## Review Log
@@ -63,3 +63,18 @@ Append pull-request review boundary entries here.
   required-review), N3 (`review.publish` missing from the measurement allowlist,
   S6), N4 (S1/S2-era merge authorizations must be re-authorized; fails closed).
 - **Deferred:** Git-fallback per-PR release merges (no workspace config).
+
+### 2026-11-16 — S4 (PR #108) merged into tb-lightweight-mode
+
+- **Merge:** protected merge at `20f7560` (head `0ab11a5`, base `c5d0373`).
+- **Authority:** Trent's acceptance and merge authorization, bound to the prepared
+  action.
+- **Gates:** context, review, verification and packet PASS.
+- **Review rounds:** one UNAVAILABLE (malformed evaluator output), then PASS with no
+  blocking findings.
+- **Verification:** a second run re-executed S1's dial checks, because S1 also
+  covered R2 and earlier checks are coverage obligations for shared criteria.
+- **Advisories carried forward (guard):** N1 (substitution-built commands, stdin
+  scripts), N2 (unbalanced `)` in a heredoc inside `$(...)` false-denies), N3
+  (malformed workspace config disables push denial), N4 (`git push --tags` on a
+  protected branch false-denies).

@@ -126,6 +126,29 @@ Keep merge permission explicit and deployment separately authorized. Revocation,
 expiry and changed scope invalidate further use. Open drafts remain the default;
 client-specific closed drafts are an explicit repository setting.
 
+## Delegated autonomy
+
+Only the human delegates, naming the run (`run.set-dial` with `runId`, or an
+explicit choice at `run.start`), and only when the release branch is observed as
+protected on GitHub. While delegated, `approve-design` and
+`authorize-implementation` may be recorded under the `delegated-evaluator`
+authority after an independent `planning.review` PASS of the design, the spec
+(after `spec.validate`) or, in a light run, the brief. Such decisions are never
+reported as human-confirmed. `delegation.apply` accepts and authorizes a `SLICE` PR
+into a distinct integration branch when every required gate PASSes and the review
+summary is published; the final `FEATURE` PR into the release branch always needs
+the human. Hand back to supervised and stop for the human on a scope-changing
+amendment, uncertainty (an agent hand-back is always allowed), an external merge
+blocker or lost release-branch protection; GateReeve records the automatic ones.
+
+## Light-run tripwires
+
+Light candidates are classified for migrations/schema, auth/security, secrets,
+public API and data-deletion changes (and repository rules in
+`.gatereeve/tripwires.json`). Under supervision a hit stops for the human, who
+raises rigor to full or records a `stay-light` decision bound to those hits; under
+delegation it raises rigor to full automatically. See PROTOCOL.md (Tripwires).
+
 Execution profiles, reuse, recovery, source/artifact acceptance and safe upgrades
 follow `resources/DELIVERY-EXECUTION.md`. Status observations cannot create proof.
 

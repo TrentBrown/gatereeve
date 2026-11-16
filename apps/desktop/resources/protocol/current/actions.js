@@ -102,13 +102,24 @@ export async function externalBlocker(run, root, action, error) {
 async function recordExternalBlocker(core, state, action, blocker, cause) {
   const payload = { candidate: state.candidate, repository: action.repository, number: action.number, ownerRepo: action.ownerRepo,
     headBranch: action.headBranch, baseBranch: action.baseBranch, head: action.head, deliveryTarget: action.deliveryTarget ?? null, ...blocker };
-  let recorded = true;
+  let recorded = true, handedBack = false, handBackFailed = false;
   try { await core.append(state, 'MERGE_BLOCKED', payload, { id: `blocked_${randomUUID()}`, hash: identity(payload) }); }
   catch { recorded = false; }
+  // An external blocker is a delegation hand-back trigger (spec AC5).
+  if (state.dials.autonomy.value === 'delegated') {
+    const { handBack } = await import('./delegation.js');
+    try { handedBack = (await handBack(core, 'external-blocker', `PR #${action.number} is blocked by a hosting rule (${blocker.blocker})`, { number: action.number, repository: action.repository })).handedBack; }
+    catch { handedBack = false; }
+    // Fail closed: a recorded MERGE_BLOCKED already voids this delegation's
+    // authority; the caller is told the hand-back itself is still pending.
+    handBackFailed = !handedBack && await core.state().then(current => current.state.dials.autonomy.value === 'delegated', () => true);
+  }
   return new ExternalBlockerError(`Merge of PR #${action.number} is blocked by a hosting rule outside GateReeve (${blocker.blocker}). `
     + 'This is an external blocker, not a gate failure: gate proof and authorization are unchanged. '
+    + (handedBack ? 'Delegation is handed back to supervised: stop for the human. ' : '')
+    + (handBackFailed ? `The delegation hand-back could not be recorded${recorded ? '; the recorded blocker still voids delegated authority' : ' and the blocker was not recorded either'}: stop for the human and do not continue delegated work. ` : '')
     + `Resolve it on the host (for example, an eligible reviewer approves) and run merge.execute again.${blocker.message ? ` Host said: ${blocker.message}` : ''}`,
-  { kind: 'external-blocker', gateFailure: false, recorded, ...payload }, { cause });
+  { kind: 'external-blocker', gateFailure: false, recorded, handedBack, handBackFailed, ...payload }, { cause });
 }
 async function requireCurrentState(core, expected) {
   const { state } = await core.state();
@@ -127,7 +138,12 @@ export async function merge(core, input, operation) {
     .findLast(item => identity(item.action) === identity(action));
   requireThat(authorization, 'Human authorization must name this exact PR, source, target and method');
   requireThat(!authorization.standingGrant || action.deliveryTarget !== 'release', 'No standing grant authorizes a release-branch merge; a per-PR human authorize-merge is required');
-  if (authorization.standingGrant) requireThat(initial.outcomes.every(item => item.required === false || item.outcome === 'PASS'), 'Standing merge requires every required gate to PASS');
+  requireThat(!authorization.delegation || (action.deliveryTarget === 'integration' && candidate.scope === 'SLICE'), 'Delegation authorizes only SLICE merges into the integration branch; a per-PR human authorize-merge is required');
+  const unattended = Boolean(authorization.standingGrant || authorization.delegation);
+  if (unattended) requireThat(initial.outcomes.every(item => item.required === false || item.outcome === 'PASS'), `${authorization.delegation ? 'Delegated' : 'Standing'} merge requires every required gate to PASS`);
+  // Delegated merges re-observe release-branch protection before any write.
+  const guard = async () => { if (authorization.delegation) await (await import('./delegation.js')).guardDelegatedAction(core, state, 'the delegated merge'); };
+  await guard();
   const repository = core.context.repositories.find(item => item.alias === action.repository);
   const run = core.runtime.gh ?? gh;
   // The PR must still present the current review summary for this head.
@@ -152,7 +168,7 @@ export async function merge(core, input, operation) {
     const hostedChecks = await waitForHostedChecks(repository.path, action, run);
     await requireCurrentState(core, state);
     const currentProof = await core.check('merge', state);
-    requireThat(currentProof.allowed && (!authorization.standingGrant || currentProof.outcomes.every(item => item.required === false || item.outcome === 'PASS')), 'Gate proof changed while waiting for hosted checks');
+    requireThat(currentProof.allowed && (!unattended || currentProof.outcomes.every(item => item.required === false || item.outcome === 'PASS')), 'Gate proof changed while waiting for hosted checks');
     const latestBase = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${action.baseBranch}`])).split(/\s/u)[0];
     requireThat(latestBase === action.base, 'PR base changed while waiting for hosted checks; refresh review');
     const refreshed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
@@ -165,6 +181,7 @@ export async function merge(core, input, operation) {
     await requireCurrentState(core, state);
     requireThat((await qualifyingDecisions(core, state, 'authorize-merge', state.candidate.hash, candidate))
       .some(item => item.event === authorization.event), 'Merge authorization expired or changed while waiting for hosted checks');
+    await guard();
     await requireCurrentState(core, state);
     await core.assertLiveInputs(state, 'merge', currentProof.liveInputs);
     await requireCurrentState(core, state);

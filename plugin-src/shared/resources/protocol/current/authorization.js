@@ -11,8 +11,8 @@ export function requireUnexpired(grant) {
 // Delivery targets (spec AC6). With distinct branches, a SLICE PR targets the
 // integration branch and only the FEATURE PR from integration to release targets
 // release. With one branch, every merge targets release. Release merges always
-// need a per-PR human authorize-merge: no standing grant (and, from S5, no
-// delegation) may authorize one.
+// need a per-PR human authorize-merge: no standing grant and no delegation may
+// authorize one.
 export function deliveryBranches(repository) {
   const integration = repository?.integrationBranch || null;
   const release = repository?.releaseBranch || integration;
@@ -191,10 +191,27 @@ export async function applyStanding(core, input, operation) {
     standingGrant: grant.event, actions: input.action ? ['authorize-merge'] : [],
     ...(input.action ? { action: input.action } : {}), requestId: operation.id }, operation);
 }
+// A delegated acceptance (delegation.apply) authorizes only while the run is
+// still under the same delegation, for a SLICE candidate whose prepared action
+// targets the distinct integration branch. A hand-back ends it.
+export function delegationValidity(state, item, candidate, action = null) {
+  if (state.dials.autonomy.value !== 'delegated' || state.dials.autonomy.event !== item.delegation) {
+    return { allowed: false, reason: 'Delegation was handed back or replaced; the delegated acceptance no longer authorizes' };
+  }
+  if (state.delegationBlocked === item.delegation) {
+    return { allowed: false, reason: 'An external merge blocker was recorded under this delegation; delegated authority stops until the human acts' };
+  }
+  if (candidate?.scope !== 'SLICE' || item.action?.deliveryTarget !== 'integration') {
+    return { allowed: false, reason: 'Delegated authority covers only SLICE PRs into the integration branch' };
+  }
+  if (action && identity(action) !== identity(item.action)) return { allowed: false, reason: 'Merge action differs from the delegated acceptance' };
+  return { allowed: true, reason: null };
+}
 export async function qualifyingDecisions(core, state, kind, subject, candidate) {
   const decisions = [];
   for (const item of currentAuthorityDecisions(state)) {
     if (!decisionHas(item, kind) || item.subject !== subject) continue;
+    if (item.delegation && !delegationValidity(state, item, candidate, kind === 'authorize-merge' ? item.action : null).allowed) continue;
     if (item.standingGrant) {
       const grant = state.decisions.find(entry => entry.event === item.standingGrant);
       if (!(await standingValidity(core, state, grant, candidate, kind === 'authorize-merge' ? item.action : null,
