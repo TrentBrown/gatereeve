@@ -31,7 +31,8 @@ test('runner CLI executes focused checks without requiring a dependency-tree dec
 });
 
 test('CLI records and revokes standing authority through the native core and fails closed without proof', async t => {
-  const f = await currentFixture(t); await establishCurrentRun(f.core);
+  // Standing grants may name only a distinct integration branch, never release.
+  const f = await currentFixture(t, { releaseBranch: 'production' }); await establishCurrentRun(f.core);
   const { git } = await import('../../plugin-src/shared/resources/protocol/current/evidence.js');
   const bare = join(f.root, 'host.git');
   await git(f.root, ['init', '--bare', bare]);

@@ -33,8 +33,9 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `gate.execute` | `gates: [id]` or `["code","spec"]`, explicit `configuration`, typed `consumed`, bounded `history`, labeled `claims`, optional `prior` for a delta |
 | `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
 | `milestone.pass` | Record an allowed milestone; merge must use its protected action |
-| `merge.prepare` | `repository`, PR `number`, `method`; derive exact source/target action to present for authorization |
-| `merge.execute` | Same action selector; requires current proof, human acceptance and authorization bound to prepared action |
+| `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. Rejects a PR whose candidate scope does not match its target (see Delivery targets) |
+| `review.publish` | `repository`, PR `number`; write the current independent `review` summary for the candidate head into a delimited section of the PR description. Idempotent; refuses without a current qualifying review result or when the PR head differs from the candidate head |
+| `merge.execute` | Same action selector; requires current proof, human acceptance, authorization bound to the prepared action and the current review summary on the PR. A hosting-rule refusal fails with `EXTERNAL_BLOCKER`, not a gate failure |
 | `integration.observe` | `repository`, optional configured `branch`; fetch and verify actual reviewed-content integration, independent of acceptance |
 | `run.pause`, `run.continue` | Actual `authority` instruction; continuation never follows merely from elapsed time |
 
@@ -90,6 +91,10 @@ captured design, `reason`, `consequences` and:
 Available message/conversation IDs are optional. This is a cooperative record,
 not authentication. Kinds: `approve-design`, `authorize-implementation`, `accept`,
 `waive`, `amend`, `policy-amend`, `authorize-merge`.
+
+`authorize-merge` (alone or as an `accept`/`waive` continuation) is refused
+unless the PR description already carries the current review summary from
+`review.publish` for the prepared head (see Delivery targets).
 
 Waivers name `gates` and preserve FAIL/UNAVAILABLE. They default to this candidate.
 Optional `findings` narrows an exception to named current blocking findings; it
@@ -423,10 +428,59 @@ root/successor records with different fields. Current runId and previous-referen
 schema checks apply only to current-contract records. Conflicting mirrors still block;
 explicit resume preserves historical bytes and grants no inherited approval.
 
+## Delivery targets and release merges
+
+Each repository configures an `integrationBranch` and a `releaseBranch` (default:
+the integration branch). When they differ, scope is bound to target at
+`merge.prepare`, and again wherever an authorization binds the prepared action:
+
+- a `SLICE` candidate's PR runs from a slice branch into the integration branch;
+- only the `FEATURE` candidate's PR whose head is the integration branch itself and
+  whose base is the release branch may target the release branch (the final PR);
+- every other pairing is rejected, naming the allowed pairing.
+
+When the branches are the same, every PR targets the release branch and no
+standing (or delegated) merge authority exists for that repository.
+
+**Release merges, any rigor.** A merge into the release branch needs a human
+`authorize-merge` from a per-PR instruction ("merge #N"), bound through the
+prepared action to that PR's number, head, base and method. With it, the agent
+runs `merge.execute`, which keeps every protected-merge safeguard. Light runs use
+the same path. No standing grant authorizes a release merge.
+
+**Review summary on the PR.** In both rigors, before the PR is presented for human
+review or merge authorization, run `review.publish`. It renders the latest
+qualifying `review` result (PASS or FAIL) for the current candidate and writes it
+between `<!-- gatereeve:review-summary:start -->` and
+`<!-- gatereeve:review-summary:end -->` in the PR description, replacing an
+earlier section and keeping all other text. The section names the outcome,
+reviewed head, candidate, result identity, evaluator and basis (rubric or brief),
+then the summary, criteria, dimensions and findings. Human `authorize-merge`,
+standing merge application and `merge.execute` each re-read the PR description
+and require the section to equal a fresh rendering for the prepared head; a newer
+review result, a new candidate or an edited section requires publishing again.
+Authorization is the enforcement point because that is when someone relies on the
+presentation; `merge.execute` repeats the check before any external write.
+
+**External blockers.** When GitHub refuses an authorized merge because of a hosting
+rule (for example a required approving review the author cannot give, or a base
+branch policy) and the PR is observed still open at the authorized head, the
+protected merge reports an external blocker. The result fails with error code
+`EXTERNAL_BLOCKER` and details `{kind: "external-blocker", blocker:
+"required-review"|"branch-policy", gateFailure: false, ...}`; the run records a
+`MERGE_BLOCKED` event shown as `status.externalBlocker` (history in
+`externalBlockers`) and a snapshot blocker; `delivery.resume` returns status
+`external-blocker` with next action `human`. Gate proof, acceptance and
+authorization are unchanged and the PR's prior presentation is restored. After the
+rule is satisfied on the host, run `merge.execute` again; a new candidate or
+integration clears the current blocker. Any other merge error keeps its original
+failure.
+
 ## Scoped standing authorization
 
 An explicit human instruction may authorize unattended acceptance alone, or
-acceptance plus merging the feature's slice and final PRs. “Work overnight” alone
+acceptance plus merging the feature's slice PRs into a distinct integration
+branch. “Work overnight” alone
 does not imply merge or deployment permission. Record the actual instruction
 once with `human.decide`, kind `authorize-standing`, subject the current
 commitment hash, and an explicit `scope` such as:
@@ -434,9 +488,9 @@ commitment hash, and an explicit `scope` such as:
 ```json
 {
   "actions": ["accept", "authorize-merge"],
-  "candidateScopes": ["SLICE", "FEATURE"],
+  "candidateScopes": ["SLICE"],
   "repositories": [{
-    "alias": "product", "headPrefix": "tb-example-feature", "baseBranch": "main",
+    "alias": "product", "headPrefix": "tb-example-feature", "baseBranch": "tb-example-feature",
     "methods": ["merge"]
   }],
   "expiresAt": null
@@ -445,7 +499,11 @@ commitment hash, and an explicit `scope` such as:
 
 For acceptance only, use `actions: ["accept"]` and omit `methods`. Prefixes match
 the exact branch or hyphen-delimited subsequent delivery branches. Each target
-must already be configured. `expiresAt` is a UTC timestamp or explicit `null`
+must already be configured as the integration branch: a grant naming the release
+branch is rejected, and with integration equal to release no grant exists. Grants
+recorded before this rule are retained and reported in status with
+`namesReleaseBranch: true` and an inactive reason; they authorize neither
+acceptance nor merge. `expiresAt` is a UTC timestamp or explicit `null`
 meaning this feature run, not indefinite authority across runs. The core binds
 current implementation approval, approved requirements and repository
 configuration/remote identities. Scope is never inferred from an agent's label.
@@ -461,7 +519,9 @@ include `action` from `merge.prepare`. Application records exact candidate
 acceptance and, if requested, exact PR/head/target/method authorization with the
 original grant reference. It performs no merge. Then use `merge.execute`; its
 existing live source/target, hosted checks, direction and integration safeguards
-remain mandatory. This supports both intermediate slices and the final PR.
+remain mandatory. This supports intermediate slice PRs into the integration
+branch; the final PR into the release branch always needs a per-PR human
+`authorize-merge`.
 Completion still requires whole-feature evidence, actual integration, required
 finalization/release observations and retention. Deployment/publishing permission
 is separate and cannot be added to this grant's supported actions.

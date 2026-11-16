@@ -16,7 +16,7 @@ used to deliver one PR. A configured feature workspace contains
     "product": {
       "path": ".",
       "remote": "origin",
-      "integrationBranch": "main",
+      "integrationBranch": "tb-1234-my-important-feature",
       "releaseBranch": "main",
       "keepPullRequestsClosed": false,
       "featureBaseSha": "1111111111111111111111111111111111111111"
@@ -35,6 +35,30 @@ integration-branch commit before the first delivery slice begins. Each
 repository has its own original base in a multi-repository feature. The pinned
 PR context preserves this value so later configuration drift cannot silently
 change the complete-feature evaluation range.
+
+## Integration and release branches
+
+- **Release branch** (`releaseBranch`): the branch the finished feature ships to,
+  usually `main`. Defaults to the integration branch when omitted.
+- **Integration branch** (`integrationBranch`): where slices of this feature
+  accumulate. Use a distinct feature branch (for example the feature ID) when the
+  feature is delivered as several slices.
+- **Slice PR**: a `SLICE` candidate from a delivery branch into the integration
+  branch.
+- **Final PR**: the `FEATURE` candidate whose head is the integration branch and
+  whose base is the release branch, reviewed from `featureBaseSha`.
+
+When the two branches differ, the protocol binds scope to target: a slice PR must
+target the integration branch, and only the final PR may target the release
+branch. When they are the same (the single-PR shape), every PR targets the release
+branch and no standing merge authority exists.
+
+Every merge into the release branch, in any rigor, needs a per-PR human
+instruction recorded as `authorize-merge` for that PR's number, head and base; the
+agent then executes it through the protected merge. Standing grants may name only
+a distinct integration branch. The Git fallback (no configuration) names no
+branches, so protected merge preparation needs a workspace configuration that
+names them.
 
 ## Resolution
 
@@ -77,6 +101,8 @@ python3 "<plugin-root>/resources/scripts/workflow_context.py" delivery-branch \
 
 This prints `tb-1234-my-important-feature-02-application-shell`. Begin every
 later slice from the updated integration branch after the preceding PR merges.
+After the last slice, the final PR runs from the integration branch into the
+release branch.
 
 ## Tracking policy
 

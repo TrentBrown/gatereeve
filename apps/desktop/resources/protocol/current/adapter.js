@@ -63,7 +63,8 @@ export async function currentSnapshot(context, options = {}, runtime = {}) {
     milestones: data?.milestones ?? [], database: core ? await core.store.inspect() : null, artifacts, enforcement: ENFORCEMENT,
     events: { count: events.length, lastEventId: events.at(-1)?.hash ?? null },
     recentEvents: events.slice(-10), sources: options.sources ?? {},
-    blockers: reason ? [{ type: 'current-entry', message: reason }] : [],
+    blockers: reason ? [{ type: 'current-entry', message: reason }] : data?.externalBlocker ? [{ type: 'external-blocker',
+      message: `PR #${data.externalBlocker.number} (${data.externalBlocker.headBranch} -> ${data.externalBlocker.baseBranch}) is blocked by a hosting rule (${data.externalBlocker.blocker}); this is not a gate failure. Resolve it on the host, then run merge.execute again.` }] : [],
     actions: reason ? [{ id: 'resume-current', command: 'gatereeve run resume-current --help', readiness: 'available', label: 'Resume using current commitments' }] : [
       { id: 'status', command: 'gatereeve status --json', label: 'Inspect exact current commitments and proof' },
       { id: 'work', command: 'gatereeve --help', label: 'Choose work within the authorized phase' },

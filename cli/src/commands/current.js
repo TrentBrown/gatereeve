@@ -141,6 +141,10 @@ export function currentCommands() {
     .requiredOption('--source-repository <alias>', 'Pinned repository alias')
     .option('--method <method>', 'merge, squash or rebase', 'merge')
     .action(options => run(options, `merge.${action}`, { repository: options.sourceRepository, number: options.number, method: options.method })));
+  const publish = command('publish-review', 'Publish the current independent review summary into the PR description')
+    .requiredOption('--number <number>', 'PR number', Number)
+    .requiredOption('--source-repository <alias>', 'Pinned repository alias')
+    .action(options => run(options, 'review.publish', { repository: options.sourceRepository, number: options.number }));
   const observe = command('observe-integration', 'Verify reviewed content on configured integration without asserting quality')
     .requiredOption('--source-repository <alias>', 'Pinned repository alias')
     .action(options => run(options, 'integration.observe', { repository: options.sourceRepository }));
@@ -154,5 +158,5 @@ export function currentCommands() {
     .option('--merge <file>', 'Selected repository, PR number and merge method')
     .action(async options => run(options, 'delivery.resume', {
       ...(options.grant ? { grant: options.grant } : {}), ...(options.merge ? { merge: await readJsonFile(options.merge) } : {}) }));
-  return [status, coverage, database, note, read, runCommand, spec, candidate, ready, gate, decide, apply, milestone, merge, observe, delivery];
+  return [status, coverage, database, note, read, runCommand, spec, candidate, ready, gate, decide, apply, milestone, merge, publish, observe, delivery];
 }

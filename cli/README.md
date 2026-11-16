@@ -80,6 +80,7 @@ gatereeve evaluate judge --provider claude-code --model opus
 gatereeve milestone check acceptance --json
 gatereeve decide --help
 gatereeve merge prepare --help
+gatereeve publish-review --help
 ```
 
 The planning backbone remains interview, approved design, validated spec,
@@ -266,8 +267,8 @@ For example, `standing-scope.json` may contain:
 ```json
 {
   "actions": ["accept", "authorize-merge"],
-  "candidateScopes": ["SLICE", "FEATURE"],
-  "repositories": [{"alias": "product", "headPrefix": "tb-example-feature", "baseBranch": "main", "methods": ["merge"]}],
+  "candidateScopes": ["SLICE"],
+  "repositories": [{"alias": "product", "headPrefix": "tb-example-feature", "baseBranch": "tb-example-feature", "methods": ["merge"]}],
   "expiresAt": null
 }
 ```
@@ -277,7 +278,11 @@ standing-scope.json` with the usual `--instruction`, `--context`, `--reason` and
 `--consequences` from the actual user decision. Use `apply-authorization --grant
 <grant-event-hash>` after all required gates PASS. For a permitted merge, supply
 `--action <prepared-action.json>` containing the action returned by `merge prepare`
-(the CLI JSON response's `data`, not its envelope), then use `merge execute`.
+(the CLI JSON response's `data`, not its envelope), publish the current review
+summary with `publish-review --source-repository <alias> --number <n>`, then use
+`merge execute`. `baseBranch` must be a distinct integration branch: a grant naming
+the release branch is rejected, and the final PR into the release branch always
+needs a per-PR human `decide accept --continue-with authorize-merge --action ...`.
 The exact action is retained and rechecked at execution. To revoke, use `decide
 revoke-standing --subject <grant-event-hash>` with the observed instruction.
 

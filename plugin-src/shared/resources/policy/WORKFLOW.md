@@ -59,7 +59,17 @@ scope needs fresh/wider evidence. Generate mechanical records through operations
   exceptions, plus validated retained review packet.
 - Merge: current acceptance and expressly authorized exact source/target action,
   either directly approved or derived from a valid scoped standing merge grant.
-  Respect PR closure and branch-direction policy; never reopen to help a reviewer.
+  Scope is bound to target: slice PRs into the integration branch, and only the
+  final PR from the integration branch into the release branch. A release-branch
+  merge always needs a per-PR human `authorize-merge`, in any rigor; the agent may
+  then execute it through the protected merge. Respect PR closure and
+  branch-direction policy; never reopen to help a reviewer.
+- PR presentation: in both rigors, publish the current independent review summary
+  on the PR with `review.publish` before presenting it for human review or merge
+  authorization. Authorization is refused without it.
+- External blockers: a hosting rule that refuses an authorized merge (for example
+  a required review the author cannot give) is reported as an external blocker,
+  not a gate failure. Report it to the human; retry after it is resolved.
 - Completion: whole-feature acceptance, actual integration, required finalization
   proof and verified local evidence retention.
 
@@ -93,7 +103,10 @@ required before adopting the current protocol.
 Record explicit acceptance-only or acceptance-plus-merge permission through
 `human.decide` (`authorize-standing`) with the scope in PROTOCOL.md. Apply it
 per candidate through `authorization.apply` only after all required gates PASS.
-This can cover slice and final PRs without repeating the same human question.
+It can cover slice PRs into a distinct integration branch without repeating the
+same human question. It never covers the release branch: the final PR needs a
+per-PR human instruction, and with integration equal to release no standing grant
+exists.
 Keep merge permission explicit and deployment separately authorized. Revocation,
 expiry and changed scope invalidate further use. Open drafts remain the default;
 client-specific closed drafts are an explicit repository setting.

@@ -13,8 +13,11 @@ Reuse qualifying proof or request targeted independent delta review covering
 changed code and interactions. Preserve original failures and supported findings.
 Include the human explanation in the review summary and validate packet
 reference closure. `milestone.check/pass` acceptance enforces required proof or
-scoped exceptions. Present exact candidate and risks for human acceptance unless
-an applicable recorded standing acceptance grant already covers this work.
+scoped exceptions. In both rigors, run `review.publish` for the PR so its
+description carries the current independent review summary for the candidate
+head before presenting it; republish after any new review or candidate. Present
+exact candidate and risks for human acceptance unless an applicable recorded
+standing acceptance grant already covers this work.
 Use `delivery.resume` to advance eligible steps under existing authority and reconnect work.
 When all required gates PASS, `authorization.apply` can also be used with that grant's event
 hash to record exact candidate acceptance. A standing grant never waives a gate.
@@ -22,7 +25,13 @@ Use configured PR closure policy; only reopen inside an explicitly authorized
 protected merge. `merge.prepare` produces the action; `human.decide` records the
 actual authorization, or `authorization.apply` derives the exact action from an
 explicitly permitted standing merge grant. Acceptance-only permission cannot
-merge. `merge.execute` rechecks gates and authority before execution, including
-slice PRs and the final PR. Deployment remains separately authorized. Open
+merge. `merge.execute` rechecks gates, authority and the published summary before
+execution. Slice PRs target the integration branch; the final PR runs from the
+integration branch into the release branch. A release-branch merge needs a per-PR
+human instruction ("merge #N") recorded as `authorize-merge` bound to that PR;
+the agent then runs `merge.execute`. Standing grants never cover the release
+branch. If GitHub refuses an authorized merge under a hosting rule, report the
+`EXTERNAL_BLOCKER` to the human as an external blocker, not a gate failure, and
+retry `merge.execute` after it is resolved. Deployment remains separately authorized. Open
 drafts are default; closed drafts require explicit repository configuration. No automatic
 remediation-round limit or evidence-commit requirement applies.
