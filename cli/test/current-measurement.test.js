@@ -325,7 +325,17 @@ test('new operations are measured under their own labels', async t => {
 
 test('CLI, desktop, MCP and plugin copies match and use contract gatereeve/current/7', async t => {
   const canonical = join(repositoryRoot, 'plugin-src/shared/resources');
-  const copies = [join(repositoryRoot, 'apps/desktop/resources'), join(repositoryRoot, 'cli/resources')];
+  // Compare every copy this checkout ships. Partial images (the CI container copies
+  // only apps/desktop/scripts) omit the desktop app; wherever the desktop package
+  // is present its staged copy is required. cli/resources is generated, so it is
+  // compared whenever a build produced it.
+  const present = async path => { try { await readdir(path); return true; } catch { return false; } };
+  const desktopApp = await readFile(join(repositoryRoot, 'apps/desktop/package.json')).then(() => true, () => false);
+  const copies = [];
+  if (desktopApp) copies.push(join(repositoryRoot, 'apps/desktop/resources'));
+  else t.diagnostic('desktop app absent from this checkout; its staged copy is compared where it ships');
+  if (await present(join(repositoryRoot, 'cli/resources'))) copies.push(join(repositoryRoot, 'cli/resources'));
+  else t.diagnostic('cli/resources not generated in this checkout');
   const files = async root => (await readdir(root, { recursive: true, withFileTypes: true })).filter(entry => entry.isFile()).map(entry => join(entry.parentPath, entry.name).slice(root.length + 1)).sort();
   for (const directory of ['performance', 'protocol/current']) {
     const expected = await files(join(canonical, directory));
