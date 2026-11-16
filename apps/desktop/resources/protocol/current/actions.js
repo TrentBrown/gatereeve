@@ -1,16 +1,19 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { randomUUID } from 'node:crypto';
 import { CONTRACT, requireThat, identity, text } from './contracts.js';
 import { checkCandidate } from './evidence.js';
 import { runTrustedPythonGuard } from '../python-guards.js';
-import { qualifyingDecisions, requireUnexpired, configuredGit } from './authorization.js';
+import { ExternalBlockerError } from '../errors.js';
+import { qualifyingDecisions, requireUnexpired, configuredGit, deliveryTarget } from './authorization.js';
+import { requirePublishedReview } from './publication.js';
 
 const exec = promisify(execFile);
 export async function gh(root, args) {
   const { stdout } = await exec('gh', args, { cwd: root, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
   return stdout;
 }
-function remoteName(url) {
+export function remoteName(url) {
   const match = /^(?:git@github\.com:|https:\/\/github\.com\/)([^/]+\/[^/]+?)(?:\.git)?$/u.exec(url.trim());
   requireThat(match, 'Protected merge requires a configured GitHub remote');
   return match[1];
@@ -63,7 +66,9 @@ export async function prepareMerge(core, input) {
   requireThat(pr.number === input.number && pr.state !== 'MERGED', 'Selected PR is already merged or has changed identity');
   const head = (await runGit(repository.path, ['branch', '--show-current'])).trim();
   mergeDirection(head, pr.baseRefName);
-  requireThat(pr.headRefName === head && [repository.integrationBranch, repository.releaseBranch].filter(Boolean).includes(pr.baseRefName), 'PR branches do not match configured delivery');
+  requireThat(pr.headRefName === head, 'PR branches do not match configured delivery: the PR source is not the checked-out delivery branch');
+  // Scope is bound to target (AC6): the final PR's head is the integration branch.
+  const target = deliveryTarget(repository, candidate.scope, head, pr.baseRefName);
   const remoteHead = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${head}`])).split(/\s/u)[0];
   requireThat(remoteHead === pin.head, 'Remote PR source differs from reviewed source');
   const base = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${pr.baseRefName}`])).split(/\s/u)[0];
@@ -73,7 +78,37 @@ export async function prepareMerge(core, input) {
   await core.assertContext();
   return { contract: CONTRACT, kind: 'github-pr', repository: input.repository, number: input.number,
     ownerRepo: name, url: pr.url, headBranch: head, baseBranch: pr.baseRefName, head: pin.head, base,
-    keepClosed: Boolean(repository.keepPullRequestsClosed), method: input.method ?? 'merge' };
+    keepClosed: Boolean(repository.keepPullRequestsClosed), method: input.method ?? 'merge', deliveryTarget: target };
+}
+// Classify a refused hosted merge. Only a PR observed as still unmerged and
+// blocked by a hosting rule is an external blocker; anything else (including a
+// lost response after a completed merge) keeps its original error.
+const REVIEW_RULE = /approving review|review(?:s)? (?:is |are )?required|changes requested|review required/iu;
+const POLICY_RULE = /base branch policy|protected branch|repository rule|rule violation|merge(?:s)? (?:is |are )?blocked/iu;
+export async function externalBlocker(run, root, action, error) {
+  let observed;
+  try {
+    observed = JSON.parse(await run(root, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
+      '--json', 'number,state,headRefOid,mergeStateStatus,reviewDecision']));
+  } catch { return null; }
+  if (observed?.number !== action.number || observed.state !== 'OPEN' || observed.headRefOid !== action.head) return null;
+  const message = [error?.stderr, error?.message].filter(item => typeof item === 'string').join('\n').trim().slice(0, 2000);
+  const review = ['REVIEW_REQUIRED', 'CHANGES_REQUESTED'].includes(observed.reviewDecision) || REVIEW_RULE.test(message);
+  const policy = observed.mergeStateStatus === 'BLOCKED' || POLICY_RULE.test(message);
+  if (!review && !policy) return null;
+  return { blocker: review ? 'required-review' : 'branch-policy', mergeStateStatus: observed.mergeStateStatus ?? null,
+    reviewDecision: observed.reviewDecision ?? null, message };
+}
+async function recordExternalBlocker(core, state, action, blocker, cause) {
+  const payload = { candidate: state.candidate, repository: action.repository, number: action.number, ownerRepo: action.ownerRepo,
+    headBranch: action.headBranch, baseBranch: action.baseBranch, head: action.head, deliveryTarget: action.deliveryTarget ?? null, ...blocker };
+  let recorded = true;
+  try { await core.append(state, 'MERGE_BLOCKED', payload, { id: `blocked_${randomUUID()}`, hash: identity(payload) }); }
+  catch { recorded = false; }
+  return new ExternalBlockerError(`Merge of PR #${action.number} is blocked by a hosting rule outside GateReeve (${blocker.blocker}). `
+    + 'This is an external blocker, not a gate failure: gate proof and authorization are unchanged. '
+    + `Resolve it on the host (for example, an eligible reviewer approves) and run merge.execute again.${blocker.message ? ` Host said: ${blocker.message}` : ''}`,
+  { kind: 'external-blocker', gateFailure: false, recorded, ...payload }, { cause });
 }
 async function requireCurrentState(core, expected) {
   const { state } = await core.state();
@@ -91,9 +126,12 @@ export async function merge(core, input, operation) {
   const authorization = (await qualifyingDecisions(core, state, 'authorize-merge', state.candidate.hash, candidate))
     .findLast(item => identity(item.action) === identity(action));
   requireThat(authorization, 'Human authorization must name this exact PR, source, target and method');
+  requireThat(!authorization.standingGrant || action.deliveryTarget !== 'release', 'No standing grant authorizes a release-branch merge; a per-PR human authorize-merge is required');
   if (authorization.standingGrant) requireThat(initial.outcomes.every(item => item.required === false || item.outcome === 'PASS'), 'Standing merge requires every required gate to PASS');
   const repository = core.context.repositories.find(item => item.alias === action.repository);
   const run = core.runtime.gh ?? gh;
+  // The PR must still present the current review summary for this head.
+  await requirePublishedReview(core, action);
   let opened = false;
   let madeReady = false;
   await requireCurrentState(core, state);
@@ -132,8 +170,14 @@ export async function merge(core, input, operation) {
     await requireCurrentState(core, state);
     core.assertLiveDeadlines(currentProof.liveInputs);
     if (authorization.standingGrant) requireUnexpired(state.decisions.find(item => item.event === authorization.standingGrant));
-    await run(repository.path, ['pr', 'merge', String(action.number), '--repo', action.ownerRepo,
-      `--${action.method}`, '--match-head-commit', action.head]);
+    try {
+      await run(repository.path, ['pr', 'merge', String(action.number), '--repo', action.ownerRepo,
+        `--${action.method}`, '--match-head-commit', action.head]);
+    } catch (error) {
+      const blocker = await externalBlocker(run, repository.path, action, error);
+      if (!blocker) throw error;
+      throw await recordExternalBlocker(core, state, action, blocker, error);
+    }
     const observed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
       '--json', 'number,state,mergeCommit,url']));
     requireThat(observed.number === action.number && observed.state === 'MERGED' && observed.mergeCommit?.oid, 'Hosted merge outcome is not verified');

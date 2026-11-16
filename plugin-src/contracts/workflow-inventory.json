@@ -257,6 +257,7 @@
       "current/generated-inputs.js",
       "current/planning-lint.js",
       "current/planning.js",
+      "current/publication.js",
       "current/runner-profile.js",
       "current/environment.js",
       "current/evidence.js",

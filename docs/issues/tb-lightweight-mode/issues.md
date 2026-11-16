@@ -24,12 +24,12 @@ Runs without dial events read as `full`/`supervised`.
 
 ## I-2 - Light rigor
 
-- **Status:** in-progress
+- **Status:** merged
 - **Estimate:** unknown
 - **Plan steps:** P2, P9
 - **Rubric criteria:** R4, R5
 - **Depends on:** I-1
-- **PR:** -
+- **PR:** #106 (merged 2026-11-16, `09eeb93`)
 
 Covers:
 - `brief.md` commitments;
@@ -41,7 +41,7 @@ Covers:
 
 ## I-3 - Delivery targets, release merge authority, review summary on PR
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** P3, P4, P9
 - **Rubric criteria:** R8 (non-delegated), R9

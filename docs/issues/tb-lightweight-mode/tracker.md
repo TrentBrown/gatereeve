@@ -12,8 +12,8 @@
 | R1 | Defaults, provenance, no config path | PASS (slice) | PR #105 | S1 review PASS 2026-11-16; re-checked at FEATURE review |
 | R2 | Dial visibility | PARTIAL | PR #105 | S1 share (status/snapshot/next data) PASS; CLI, desktop, SessionStart pending I-4 |
 | R3 | Asymmetric toggles | PASS (slice) | PR #105 | Rigor only rises (D16); delegated→supervised rule-level until S5 |
-| R4 | Light commitments and authority | NOT YET | - | Planned for P2 / I-2 |
-| R5 | Light gates, review basis, verification provenance | NOT YET | - | Planned for P2 / I-2 |
+| R4 | Light commitments and authority | PASS (slice) | PR #106 | S2 review PASS 2026-11-16 |
+| R5 | Light gates, review basis, verification provenance | PASS (slice) | PR #106 | S2 review PASS 2026-11-16; light-run procedure file and skill routing land in S4 |
 | R6 | Tripwires | NOT YET | - | Planned for P5 / I-5 |
 | R7 | Delegation precondition, planning substitution, hand-back | NOT YET | - | Planned for P6 / I-5 |
 | R8 | Delivery targets and merge authority | NOT YET | - | P3 / I-3; delegated paths P6 / I-5 |
@@ -38,3 +38,13 @@ Append pull-request review boundary entries here.
 - **Spec change:** amended mid-slice twice — existing-run compatibility, and the
   rigor-lowering prohibition (D16).
 
+### 2026-11-16 — S2 (PR #106) merged into tb-lightweight-mode
+
+- **Merge:** protected merge at `09eeb93` (head `2394625`, base `3857de2`).
+- **Authority:** Trent's acceptance and merge authorization, bound to the prepared
+  action.
+- **Gates:** context, review, verification and packet PASS.
+- **Review rounds:** one; PASS with no blocking findings.
+- **Advisories:** the light-run procedure is a `PROTOCOL.md` section until S4;
+  raising rigor on an integrated light run returns it to design (errs towards
+  rigor).

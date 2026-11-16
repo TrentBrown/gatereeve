@@ -17,7 +17,8 @@ import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, c
 import { validatePlanning, assertPlanningProof, planningBinding } from './planning.js';
 import { executeGates, reviewContract, coreEvidence } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
-import { captureStanding, applyStanding, standingValidity, qualifyingDecisions, requireUnexpired } from './authorization.js';
+import { captureStanding, applyStanding, standingValidity, standingReleaseRefusal, qualifyingDecisions, requireUnexpired } from './authorization.js';
+import { publishReview, requirePublishedReview } from './publication.js';
 
 import { sourcePreparation, ensurePins, releasePins } from './source-retention.js';
 import { cleanupViews, viewStatus } from './source-views.js';
@@ -39,7 +40,8 @@ export function project(events) {
   const state = { contract: CONTRACT, runId: events[0].runId, featureId: first.featureId,
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
     decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, actions: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
-    sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length };
+    sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length,
+    externalBlockers: [], externalBlocker: null };
   state.dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial,
     { ...(first.dials?.[dial] ?? startDial(dial)), at: events[0].recordedAt, event: events[0].hash }]));
   state.dialHistory = Object.entries(state.dials).map(([dial, value]) => ({ dial, ...value }));
@@ -61,7 +63,7 @@ export function project(events) {
       case 'SOURCE_PREPARING': state.sourcePreparations.push(value); state.sourcePreparationStatus[value.id] = { status: 'preparing', reason: 'Preparation has not published a candidate; owned references are retained for retry.' }; break;
       case 'SOURCE_PREPARATION_FAILED': state.sourcePreparationStatus[value.id] = { status: 'retry-required', reason: value.reason }; break;
       case 'SOURCE_CLEANUP': state.sourceCleanup = value; break;
-      case 'CANDIDATE': if (value.preparationId) state.sourcePreparationStatus[value.preparationId] = { status: 'published', reason: null }; state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.phase = 'IMPLEMENTING'; break;
+      case 'CANDIDATE': if (value.preparationId) state.sourcePreparationStatus[value.preparationId] = { status: 'published', reason: null }; state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.externalBlocker = null; state.phase = 'IMPLEMENTING'; break;
       case 'READY': state.ready = true; break;
       case 'TRANSITION_RECORDED': state.transition = value; break;
       case 'ACTION_CLAIMED': state.actions[value.id] = { ...value, running: true }; break;
@@ -73,7 +75,9 @@ export function project(events) {
         if (value.name === 'acceptance') state.phase = 'ACCEPTING';
         if (value.name === 'completion') { state.phase = 'COMPLETE'; state.sourceCleanup = { status: 'pending', errors: [{ reason: 'Completion recorded; owned source reference release has not been reconciled.' }] }; }
         break;
-      case 'INTEGRATED': state.integrated = value; state.integrations[value.repository] = value; state.phase = 'INTEGRATED'; break;
+      case 'INTEGRATED': state.integrated = value; state.integrations[value.repository] = value; state.externalBlocker = null; state.phase = 'INTEGRATED'; break;
+      // A hosting rule refused an authorized merge. Reported, never a gate failure.
+      case 'MERGE_BLOCKED': { const blocked = { ...value, at: event.recordedAt, event: event.hash }; state.externalBlockers.push(blocked); state.externalBlocker = blocked; break; }
       case 'OBSERVATION': break; // Agent memory; never grants authority.
       case 'DIAL_SET': {
         const recorded = { ...value, at: event.recordedAt, event: event.hash };
@@ -331,6 +335,8 @@ export class CurrentCore {
       if (decisionHas(value, 'authorize-merge')) {
         requireThat(findDecision(proposed, 'accept', value.subject), 'Human acceptance is required before merge authorization');
         requireThat(value.action && identity(value.action) === identity(await prepareMerge(this, value.action)), 'Merge authorization must bind the prepared action');
+        // R9: the PR presents the current independent review before authorization.
+        await requirePublishedReview(this, value.action);
       }
     }
     if (decisionHas(value, 'authorize-merge')) await checkCandidate(this.store, this.context, state.candidate);
@@ -868,6 +874,7 @@ export class CurrentCore {
     }
     const standingAuthorizations = await Promise.all(state.decisions.filter(item => item.kind === 'authorize-standing').map(async grant => ({
       grant: grant.event, scope: grant.scope, subject: grant.subject, authority: grant.authority,
+      namesReleaseBranch: Boolean(standingReleaseRefusal(this, grant)),
       applications: state.decisions.filter(item => item.standingGrant === grant.event).map(item => ({
         event: item.event, subject: item.subject, actions: ['accept', ...(item.actions ?? [])], action: item.action ?? null,
       })),
@@ -949,7 +956,7 @@ export class CurrentCore {
     if (['database.inspect','database.history'].includes(operation)) return this.executeObserved(request);
     const label = operation === 'human.decide' ? request.input?.kind
       : operation === 'milestone.pass' ? `milestone:${request.input?.name}` : operation;
-    const category = operation.startsWith('merge.') || operation.startsWith('integration.') ? 'delivery'
+    const category = operation.startsWith('merge.') || operation.startsWith('integration.') || operation === 'review.publish' ? 'delivery'
       : operation === 'candidate.prepare' ? 'setup' : 'operation';
     const activeRun = (await this.store.active().catch(()=>null))?.runId ?? request.input?.runId;
     return observe({ project: this.context.workspaceRoot, feature: this.context.featureId, workflow: activeRun ? `${this.store.home}:${activeRun}` : undefined,
@@ -1004,10 +1011,14 @@ export class CurrentCore {
       case 'milestone.check': return this.check(input.name);
       case 'milestone.pass': return this.pass(input.name, operation);
       case 'merge.prepare': return prepareMerge(this, input);
+      case 'review.publish': return publishReview(this, input);
       case 'merge.execute': return protectedMerge(this, input, operation);
       case 'delivery.resume':
         try { return await resumeDelivery(this, input, operation); }
-        catch (error) { return { status: 'needs-attention', reason: error.message, nextAction: 'inspect-and-resume' }; }
+        catch (error) {
+          if (error.code === 'EXTERNAL_BLOCKER') return { status: 'external-blocker', reason: error.message, nextAction: 'human', blocker: error.details };
+          return { status: 'needs-attention', reason: error.message, nextAction: 'inspect-and-resume' };
+        }
       case 'integration.observe':
         requireThat(input.hostedChecks === undefined, 'Hosted check observations come only from the protected merge');
         return observeIntegration(this, input, operation);

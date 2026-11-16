@@ -8,6 +8,50 @@ const branchMatches = (branch, prefix) => branch === prefix || branch.startsWith
 export function requireUnexpired(grant) {
   requireThat(grant.scope.expiresAt === null || Date.parse(grant.scope.expiresAt) > Date.now(), 'Standing grant has expired');
 }
+// Delivery targets (spec AC6). With distinct branches, a SLICE PR targets the
+// integration branch and only the FEATURE PR from integration to release targets
+// release. With one branch, every merge targets release. Release merges always
+// need a per-PR human authorize-merge: no standing grant (and, from S5, no
+// delegation) may authorize one.
+export function deliveryBranches(repository) {
+  const integration = repository?.integrationBranch || null;
+  const release = repository?.releaseBranch || integration;
+  return { integration, release, distinct: Boolean(integration && release && integration !== release) };
+}
+export function deliveryTarget(repository, scope, headBranch, baseBranch) {
+  const { integration, release, distinct } = deliveryBranches(repository);
+  requireThat(integration, 'PR branches do not match configured delivery: configure integrationBranch (and releaseBranch) for this repository');
+  const pairing = `${scope} ${headBranch} -> ${baseBranch}`;
+  if (!distinct) {
+    requireThat(baseBranch === release, `PR branches do not match configured delivery: ${pairing} must target the configured branch ${release}`);
+    return 'release';
+  }
+  requireThat(['SLICE', 'FEATURE'].includes(scope), 'Merge preparation requires an explicit candidate scope');
+  if (scope === 'SLICE') {
+    requireThat(baseBranch === integration && headBranch !== release,
+      `Scope does not match target: a SLICE PR must target the integration branch ${integration} (only the FEATURE PR ${integration} -> ${release} may target ${release}); ${pairing} is rejected`);
+    return 'integration';
+  }
+  requireThat(headBranch === integration && baseBranch === release,
+    `Scope does not match target: only the FEATURE PR from the integration branch ${integration} to the release branch ${release} is a FEATURE delivery; ${pairing} is rejected (prepare a SLICE candidate for slice PRs)`);
+  return 'release';
+}
+// Reason a standing grant naming this target cannot authorize, or null.
+export function standingTargetRefusal(repository, baseBranch) {
+  const { release, distinct } = deliveryBranches(repository);
+  if (!release || baseBranch !== release) return null;
+  return distinct
+    ? `Standing scope names the release branch ${release}; release merges need a per-PR human authorize-merge, so a standing grant naming it authorizes neither acceptance nor merge`
+    : `Integration and release are the same branch (${release}); no standing acceptance or merge authority exists for this repository. Configure a distinct integrationBranch for standing slice delivery`;
+}
+function releaseRefusal(core, scope) {
+  for (const selected of scope?.repositories ?? []) {
+    const reason = standingTargetRefusal(core.context.repositories.find(item => item.alias === selected?.alias), selected?.baseBranch);
+    if (reason) return reason;
+  }
+  return null;
+}
+export function standingReleaseRefusal(core, grant) { return releaseRefusal(core, grant?.scope); }
 export function configuredGit(core) {
   return core.runtime.git ?? ((root, args) => git(root, args, {
     gitExecutable: core.context.repositories.find(repository => repository.path === root)?.gitExecutable ?? 'git',
@@ -66,6 +110,8 @@ export async function captureStanding(core, state, value) {
     && decisionHas(implementation, 'authorize-implementation')
     && (await core.check('implementation', state)).allowed, 'Standing grant requires current implementation authority');
   const scope = standingScope(value.scope);
+  const refusal = releaseRefusal(core, scope);
+  requireThat(!refusal, refusal);
   requireThat(scope.expiresAt === null || Date.parse(scope.expiresAt) > Date.now(), 'Standing grant has expired');
   return { ...value, scope, runId: state.runId, implementation: implementation.event,
     repositories: await bindings(core, scope), documents: current.docs };
@@ -75,6 +121,9 @@ export async function standingValidity(core, state, grant, candidate = null, act
     await core.assertContext();
     requireThat(grant?.kind === 'authorize-standing', 'Unknown standing grant');
     requireThat(grant.runId === state.runId, 'Standing grant belongs to another run');
+    // Grants recorded before this rule are retained but never authorize.
+    const refusal = releaseRefusal(core, grant.scope);
+    requireThat(!refusal, refusal);
     requireThat(!state.paused, 'Feature is explicitly paused');
     requireThat(!state.decisions.some(item => item.kind === 'revoke-standing' && item.subject === grant.event), 'Standing grant was revoked');
     requireUnexpired(grant);
@@ -105,6 +154,7 @@ export async function standingValidity(core, state, grant, candidate = null, act
     }
     if (action) {
       const selected = grant.scope.repositories.find(item => item.alias === action.repository);
+      requireThat(action.deliveryTarget !== 'release', 'No standing grant authorizes a release-branch merge; a per-PR human authorize-merge is required');
       requireThat(grant.scope.actions.includes('authorize-merge') && selected
         && action.baseBranch === selected.baseBranch && branchMatches(action.headBranch, selected.headPrefix)
         && selected.methods.includes(action.method), 'Merge action is outside standing scope');
@@ -127,6 +177,8 @@ export async function applyStanding(core, input, operation) {
   if (input.action) {
     const { prepareMerge } = await import('./actions.js');
     requireThat(identity(await prepareMerge(core, input.action)) === identity(input.action), 'Standing application must bind the exact prepared merge action');
+    const { requirePublishedReview } = await import('./publication.js');
+    await requirePublishedReview(core, input.action);
   }
   // Recheck after potentially slow proof and remote reads. append also checks the
   // original event count, so a concurrent revoke/pause/candidate cannot win a race.
