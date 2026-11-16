@@ -162,10 +162,9 @@ export function startDial(dial, value) {
   if (value.reason !== undefined) choice.reason = text(value.reason, `${dial} reason`);
   return choice;
 }
-// Validate a requested dial change against the asymmetric rules (design D5).
-// `unresolvedFailures` lists required gates with an unwaived FAIL on the
-// current candidate.
-export function dialChange(state, input, unresolvedFailures = []) {
+// Validate a requested dial change against the asymmetric rules (design D5 as
+// revised 2026-11-16): rigor only rises; lowering it requires a new light run.
+export function dialChange(state, input) {
   object(input, 'Dial change');
   requireThat(Object.keys(input).every(key => ['dial', 'value', 'actor', 'authority', 'reason'].includes(key)), 'Unsupported dial change field');
   requireThat(Object.hasOwn(DIALS, input.dial), 'Unknown run dial');
@@ -176,11 +175,8 @@ export function dialChange(state, input, unresolvedFailures = []) {
   requireThat(input.actor !== 'agent' || input.authority === undefined, 'An agent dial change cannot claim human authority');
   const current = state.dials[input.dial].value;
   requireThat(current !== input.value, `Run ${input.dial} is already ${input.value}`);
-  if (input.dial === 'rigor' && input.value === 'light') {
-    requireThat(input.actor === 'human', 'Only a human can lower rigor');
-    requireThat(state.dials.autonomy.value !== 'delegated', 'Rigor cannot be lowered under delegated autonomy');
-    requireThat(unresolvedFailures.length === 0, `Rigor cannot be lowered while required gates have unresolved FAIL: ${unresolvedFailures.join(', ')}`);
-  }
+  requireThat(!(input.dial === 'rigor' && input.value === 'light'),
+    'Rigor cannot be lowered within a run; to work at light rigor, start a new light run on a new topic branch (this run and its evidence remain retained)');
   if (input.dial === 'autonomy' && input.value === 'delegated') {
     requireThat(input.actor === 'human', 'Only a human can delegate');
     requireThat(false, 'Delegated autonomy requires release-branch protection checks that are not yet available');

@@ -897,41 +897,10 @@ export class CurrentCore {
       state = recorded.state;
     }
   }
-  // Required acceptance gates with an unresolved FAIL on the current candidate.
-  // Two sources, either of which blocks lowering rigor:
-  // - the acceptance check, so waiver risk binding and finding scope match
-  //   milestone admission exactly; and
-  // - the latest decisive (PASS or FAIL) recorded result per required gate for
-  //   this candidate, because
-  //   acceptance evaluates no results while the live candidate cannot qualify
-  //   (moved HEAD, dirty tree, changed commitments), which is normal after a FAIL.
-  // A recorded FAIL is resolved only when acceptance itself reports the gate
-  // satisfied; an exception that cannot currently be qualified does not count.
-  async unresolvedRequiredFailures(state) {
-    if (!state.candidate) return [];
-    const { outcomes = [] } = await this.check('acceptance', state);
-    const satisfied = new Set(outcomes.filter(item => item.satisfied).map(item => item.id));
-    const failing = new Set(outcomes.filter(item => item.required && item.outcome === 'FAIL' && !item.satisfied).map(item => item.id));
-    for (const definition of enabled(state, 'acceptance').filter(item => item.role !== 'core')) {
-      for (const ref of [...state.results].reverse()) {
-        const result = await this.store.json(ref);
-        if (result.gate !== definition.id) continue;
-        if ((await this.store.json(result.input)).candidate?.hash !== state.candidate.hash) continue;
-        // UNAVAILABLE (malformed verdict, provider or transport error, timeout)
-        // decides nothing: it cannot hide an earlier FAIL. Only a later PASS or
-        // FAIL for this candidate settles the gate's recorded outcome.
-        if (!['PASS', 'FAIL'].includes(result.outcome)) continue;
-        if (result.outcome === 'FAIL' && !satisfied.has(definition.id)) failing.add(definition.id);
-        break;
-      }
-    }
-    return [...failing];
-  }
   async setDial(input, operation) {
     const { state } = await this.state();
     requireThat(state.phase !== 'COMPLETE', 'Run dials cannot change after completion');
-    const lowering = input?.dial === 'rigor' && input?.value === 'light';
-    const change = dialChange(state, input, lowering ? await this.unresolvedRequiredFailures(state) : []);
+    const change = dialChange(state, input);
     return this.append(state, 'DIAL_SET', change, operation);
   }
   async cleanupSource() {

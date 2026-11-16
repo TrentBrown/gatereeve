@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:a55d110ea23ada67c24ae28c217e948fe4cdfa776abaffab3ef7948683f63f7e",
+  "protocolHash": "sha256:e05fa386b90858e97e656787d66f675f84b9575147d61c7050d9cc9eeea4fe5a",
   "contract": "gatereeve/current/7",
-  "contractSha256": "b6ff8c621a84b9bda1d25e1672ed0313da1320aad902f344d5326d9b15cc9efd",
+  "contractSha256": "cc5bccbd1a73de0375412793090d34291c9d3ed9a5e084e5568c3a3fbf90a6cf",
   "files": [
     {
       "path": "agent-workflow.js",
@@ -37,13 +37,13 @@
     },
     {
       "path": "current/contracts.js",
-      "size": 17334,
-      "sha256": "b6ff8c621a84b9bda1d25e1672ed0313da1320aad902f344d5326d9b15cc9efd"
+      "size": 17117,
+      "sha256": "cc5bccbd1a73de0375412793090d34291c9d3ed9a5e084e5568c3a3fbf90a6cf"
     },
     {
       "path": "current/core.js",
-      "size": 74255,
-      "sha256": "4efcdfb80601ca098c162290ba9e67554f08e588d943ead907f197e95a2553f6"
+      "size": 72236,
+      "sha256": "653dead73c6b52316a1f73d9a9627104f90a054f9a0177afaa824f4c358621e3"
     },
     {
       "path": "current/coverage.js",
@@ -142,8 +142,8 @@
     },
     {
       "path": "current/workflow-database.js",
-      "size": 7344,
-      "sha256": "45e79fabf68bfa125fa9f9f1046614eab1d848510362cbd5fd455f17cd40b43c"
+      "size": 7646,
+      "sha256": "379a4cf3cef8eb3ebc1199f29872868a675b3dbd85e246ababc5e91494ff57bb"
     },
     {
       "path": "errors.js",

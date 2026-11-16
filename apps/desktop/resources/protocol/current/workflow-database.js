@@ -108,6 +108,10 @@ export async function earlierActivation(home) {
     let info;
     try { info = await lstat(path); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
     requireThat(info.isFile() && !info.isSymbolicLink() && info.nlink === 1, 'Unsafe earlier workflow database file');
+    for (const suffix of ['-wal', '-shm']) {
+      try { const sidecar = await lstat(path + suffix); requireThat(sidecar.isFile() && !sidecar.isSymbolicLink() && sidecar.nlink === 1, 'Unsafe earlier workflow database sidecar'); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
     const db = new DatabaseSync(path, { readOnly: true });
     try {
       const table = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='metadata'").get();

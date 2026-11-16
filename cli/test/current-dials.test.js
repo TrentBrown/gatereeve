@@ -89,7 +89,7 @@ test('configuration cannot change dial defaults', async t => {
   }
 });
 
-test('raising rigor and returning to supervised are open to either actor; lowering needs a human', async t => {
+test('raising rigor is open to either actor and a raised run can never be lowered', async t => {
   const f = await fixture(t);
   await f.start({ rigor: { value: 'light', authority: human } });
   await assert.rejects(f.request('run.set-dial', { dial: 'rigor', value: 'full', actor: 'agent' }, 'no-reason'), /reason/);
@@ -98,13 +98,14 @@ test('raising rigor and returning to supervised are open to either actor; loweri
   let status = await f.request('status');
   assert.equal(status.dials.rigor.value, 'full'); assert.equal(status.dials.rigor.actor, 'agent'); assert.equal(status.dials.rigor.previous, 'light');
   await assert.rejects(f.request('run.set-dial', { dial: 'rigor', value: 'full', actor: 'agent', reason: 'again' }, 'same'), /already full/);
-  await assert.rejects(f.request('run.set-dial', { dial: 'rigor', value: 'light', actor: 'agent', reason: 'faster' }, 'agent-lower'), /Only a human can lower rigor/);
-  await assert.rejects(f.request('run.set-dial', { dial: 'rigor', value: 'light', actor: 'human', reason: 'faster' }, 'no-quote'), /observed instruction/);
-  await f.request('run.set-dial', { dial: 'rigor', value: 'light', actor: 'human', authority: human, reason: 'Back to light' }, 'lower');
+  for (const [actor, extra] of [['agent', {}], ['human', { authority: human }]]) {
+    await assert.rejects(f.request('run.set-dial', { dial: 'rigor', value: 'light', actor, reason: 'faster', ...extra }, `lower-${actor}`),
+      /cannot be lowered within a run; to work at light rigor, start a new light run/);
+  }
   status = await f.request('status');
-  assert.equal(status.dials.rigor.value, 'light');
+  assert.equal(status.dials.rigor.value, 'full');
   assert.deepEqual(status.dialHistory.map(item => `${item.dial}:${item.value}:${item.actor ?? 'built-in'}`),
-    ['rigor:light:human', 'autonomy:supervised:built-in', 'rigor:full:agent', 'rigor:light:human']);
+    ['rigor:light:human', 'autonomy:supervised:built-in', 'rigor:full:agent']);
 });
 
 test('delegation is human-only and unavailable before protection checks', async t => {
@@ -114,66 +115,34 @@ test('delegation is human-only and unavailable before protection checks', async 
   assert.equal((await f.request('status')).dials.autonomy.value, 'supervised');
 });
 
-test('rules: lowering rigor is refused under delegation or unresolved required FAIL; hand-back is open to either actor', () => {
+test('rules: rigor never falls within a run for any actor or autonomy; hand-back is open to either actor', () => {
   const dials = (rigor, autonomy) => ({ dials: { rigor: { value: rigor }, autonomy: { value: autonomy } } });
-  const lower = { dial: 'rigor', value: 'light', actor: 'human', authority: human, reason: 'r' };
-  assert.throws(() => dialChange(dials('full', 'delegated'), lower), /under delegated autonomy/);
-  assert.throws(() => dialChange(dials('full', 'supervised'), lower, ['review']), /unresolved FAIL: review/);
-  assert.equal(dialChange(dials('full', 'supervised'), lower, []).value, 'light');
+  for (const autonomy of ['supervised', 'delegated']) for (const actor of ['human', 'agent']) {
+    const lower = { dial: 'rigor', value: 'light', actor, reason: 'r', ...(actor === 'human' ? { authority: human } : {}) };
+    assert.throws(() => dialChange(dials('full', autonomy), lower), /cannot be lowered within a run; to work at light rigor, start a new light run/);
+  }
   for (const actor of ['agent', 'human']) {
     const change = dialChange(dials('full', 'delegated'), { dial: 'autonomy', value: 'supervised', actor, reason: 'uncertain', ...(actor === 'human' ? { authority: human } : {}) });
     assert.equal(change.value, 'supervised'); assert.equal(change.previous, 'delegated');
   }
-  assert.throws(() => dialChange(dials('full', 'supervised'), { ...lower, dial: 'mode' }), /Unknown run dial/);
-  assert.throws(() => dialChange(dials('full', 'supervised'), { ...lower, extra: 1 }), /Unsupported dial change field/);
-  assert.throws(() => dialChange(dials('full', 'supervised'), { ...lower, actor: 'system' }), /human or agent/);
-});
-
-test('rigor lowering is blocked by unsatisfied acceptance FAIL and by recorded FAIL when the candidate cannot qualify', async () => {
-  const candidate = { hash: 'sha256:' + 'c'.repeat(64) }, other = { hash: 'sha256:' + 'd'.repeat(64) };
-  const objects = {
-    rf: { gate: 'review', outcome: 'FAIL', input: { hash: 'in-current' } },
-    vp: { gate: 'verification', outcome: 'PASS', input: { hash: 'in-current' } },
-    old: { gate: 'verification', outcome: 'FAIL', input: { hash: 'in-other' } },
-    'in-current': { candidate }, 'in-other': { candidate: other },
-  };
-  const failures = CurrentCore.prototype.unresolvedRequiredFailures;
-  const fake = outcomes => ({ store: { json: async ref => objects[ref.hash] },
-    check: async (name, state) => { assert.equal(name, 'acceptance'); assert.equal(state.candidate, candidate); return { outcomes }; } });
-  const state = { candidate, optionalGates: [], results: [{ hash: 'old' }, { hash: 'vp' }, { hash: 'rf' }],
-    decisions: [{ kind: 'waive', subject: candidate.hash, gates: ['review'], findings: ['F1'] }] };
-  // Acceptance reports an unsatisfied FAIL even though a narrower waiver names the gate.
-  assert.deepEqual(await failures.call(fake([{ id: 'review', required: true, outcome: 'FAIL', satisfied: false }]), state), ['review']);
-  // The live candidate cannot qualify (dirty tree / moved HEAD): acceptance reports
-  // every gate UNAVAILABLE, but the recorded FAIL for this candidate still blocks.
-  const unqualified = [{ id: 'review', required: true, outcome: 'UNAVAILABLE', satisfied: false },
-    { id: 'verification', required: true, outcome: 'UNAVAILABLE', satisfied: false }];
-  assert.deepEqual(await failures.call(fake(unqualified), state), ['review']);
-  // Only acceptance's own satisfaction (an applicable exception) resolves a recorded FAIL.
-  assert.deepEqual(await failures.call(fake([{ id: 'review', required: true, outcome: 'FAIL', satisfied: true, exception: {} }]), state), []);
-  // A later UNAVAILABLE result (malformed verdict, provider error) decides nothing
-  // and cannot hide the earlier FAIL; a later PASS does settle it.
-  objects.ru = { gate: 'review', outcome: 'UNAVAILABLE', input: { hash: 'in-current' } };
-  objects.rp = { gate: 'review', outcome: 'PASS', input: { hash: 'in-current' } };
-  const latestUnavailable = [{ id: 'review', required: true, outcome: 'UNAVAILABLE', satisfied: false }];
-  assert.deepEqual(await failures.call(fake(latestUnavailable), { ...state, results: [...state.results, { hash: 'ru' }] }), ['review']);
-  assert.deepEqual(await failures.call(fake(latestUnavailable), { ...state, results: [...state.results, { hash: 'rp' }, { hash: 'ru' }] }), []);
-  // An older FAIL for another candidate is not the latest result for this one.
-  assert.deepEqual(await failures.call(fake(unqualified), { ...state, results: [{ hash: 'old' }] }), []);
-  assert.deepEqual(await failures.call({ check: async () => assert.fail('no check without a candidate') }, { ...state, candidate: null }), []);
+  const raise = { dial: 'rigor', value: 'full', actor: 'agent', reason: 'r' };
+  assert.equal(dialChange(dials('light', 'supervised'), raise).value, 'full');
+  assert.throws(() => dialChange(dials('light', 'supervised'), { ...raise, dial: 'mode' }), /Unknown run dial/);
+  assert.throws(() => dialChange(dials('light', 'supervised'), { ...raise, extra: 1 }), /Unsupported dial change field/);
+  assert.throws(() => dialChange(dials('light', 'supervised'), { ...raise, actor: 'system' }), /human or agent/);
 });
 
 test('dial changes retain recorded evidence', () => {
   const event = (sequence, type, payload) => ({ runId: 'r', sequence, type, payload, recordedAt: `2026-11-15T00:00:0${sequence}Z`, hash: `h${sequence}` });
   const ref = { hash: 'sha256:' + 'e'.repeat(64), bytes: 1, format: 'json' };
   const state = project([
-    event(1, 'STARTED', { featureId: 'feature', implementers: ['i'], optionalGates: [], dials: { rigor: startDial('rigor'), autonomy: startDial('autonomy') } }),
+    event(1, 'STARTED', { featureId: 'feature', implementers: ['i'], optionalGates: [], dials: { rigor: startDial('rigor', { value: 'light', authority: human }), autonomy: startDial('autonomy') } }),
     event(2, 'JOB_STARTED', { jobId: 'j', gates: ['review'] }),
     event(3, 'JOB_FINISHED', { jobId: 'j', results: [ref] }),
-    event(4, 'DIAL_SET', { dial: 'rigor', value: 'light', previous: 'full', source: 'explicit', actor: 'human', authority: human, reason: 'r' }),
+    event(4, 'DIAL_SET', { dial: 'rigor', value: 'full', previous: 'light', source: 'explicit', actor: 'agent', reason: 'Tripwire' }),
   ]);
   assert.deepEqual(state.results, [ref]);
-  assert.equal(state.dials.rigor.value, 'light'); assert.equal(state.dials.rigor.at, '2026-11-15T00:00:04Z');
+  assert.equal(state.dials.rigor.value, 'full'); assert.equal(state.dials.rigor.at, '2026-11-15T00:00:04Z');
 });
 
 test('an earlier-contract run is retained, reported as needing resumption, and resumes at the defaults', async t => {

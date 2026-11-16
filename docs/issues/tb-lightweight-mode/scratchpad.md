@@ -31,3 +31,13 @@ entries are appended to `decisions.md`.
   3655274, left by an interrupted local test run) blocks the default scratch root.
   Per STORAGE.md it was not removed. Suites run with a private registered
   `GATEREEVE_SCRATCH_ROOT`.
+- **Superseded 2026-11-16: "unresolved required FAIL".** The bullet above defining
+  it no longer applies. Four S1 review rounds found successive gaps in judging FAIL
+  resolution: waiver scope, non-live candidates, indecisive results, and
+  non-qualifying later passes. Trent prohibited lowering rigor within a run (D16;
+  design Changes 2026-11-16). `run.set-dial` now always rejects full → light, and
+  the detection code was removed.
+- **Earlier-contract database handling.** The current-6 `workflow.sqlite` is read
+  read-only, solely for activation provenance, and its `-wal`/`-shm` sidecars get the
+  same file-safety checks (review F10). It takes precedence over older `active.json`
+  chains (F8).
