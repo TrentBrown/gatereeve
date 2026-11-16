@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, startDial, dialChange, requireThat, identity,
   identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval } from './contracts.js';
 import { CurrentStore } from './store.js';
-import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity } from './evidence.js';
+import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity, briefBased } from './evidence.js';
 import { validatePlanning, assertPlanningProof, planningBinding } from './planning.js';
 import { executeGates, reviewContract, coreEvidence } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
@@ -25,6 +25,13 @@ import { cleanupViews, viewStatus } from './source-views.js';
 const LIVE_PROOFS = Symbol('qualified live proof inputs');
 const RETAINED_CLOSURE = Symbol('retained bytes verified in this observation');
 const admissions = new WeakMap();
+const lightRun = state => state.dials.rigor.value === 'light';
+// A light run's sole planning commitment. Its adequacy is the human's
+// confirmation and the independent review's concern; only structure is checked.
+function assertBrief(bytes) {
+  const headings = bytes.toString('utf8').split(/\r?\n/u).map(line => /^#{1,6}\s+(.+)$/u.exec(line)?.[1].trim().toLowerCase()).filter(Boolean);
+  for (const section of ['goal', 'scope', 'findings']) requireThat(headings.some(heading => heading.startsWith(section)), `The brief needs a ${section} section (goal, scope and findings log)`);
+}
 
 export function project(events) {
   requireThat(events[0]?.type === 'STARTED', 'Current run is not initialized');
@@ -70,7 +77,11 @@ export function project(events) {
       case 'OBSERVATION': break; // Agent memory; never grants authority.
       case 'DIAL_SET': {
         const recorded = { ...value, at: event.recordedAt, event: event.hash };
-        state.dials[value.dial] = recorded; state.dialHistory.push(recorded); break;
+        state.dials[value.dial] = recorded; state.dialHistory.push(recorded);
+        // Raised rigor voids brief-bound authority: full planning starts again
+        // so design approval, spec validation and authorization are reachable.
+        if (value.dial === 'rigor' && value.previous === 'light' && !['DESIGNING', 'SPECIFYING', 'PLANNING'].includes(state.phase)) { state.phase = 'DESIGNING'; state.ready = false; }
+        break;
       }
       case 'PAUSED': state.paused = true; break;
       case 'RESUMED': state.paused = false; break;
@@ -159,12 +170,13 @@ export class CurrentCore {
     const planning = input.planning ?? {};
     const childId = step => `resume_${identity({ run: input.runId ?? active.runId, step, planning }).slice(7)}`;
     if (planning.design) await this.execute({ operation: 'human.decide', operationId: childId('design'), input: { ...planning.design, kind: 'approve-design' } });
-    if (planning.design || planning.implementation) await this.execute({ operation: 'spec.validate', operationId: childId('spec') });
+    const light = lightRun((await this.state()).state);
+    if (!light && (planning.design || planning.implementation)) await this.execute({ operation: 'spec.validate', operationId: childId('spec') });
     if (planning.implementation) await this.execute({ operation: 'human.decide', operationId: childId('implementation'), input: { ...planning.implementation, kind: 'authorize-implementation' } });
     const transitioned = (await this.state()).state;
     if (!transitioned.transition) {
       const documents = {};
-      for (const name of ['interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md', 'scratchpad.md', 'decisions.md']) {
+      for (const name of ['brief.md', 'interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md', 'scratchpad.md', 'decisions.md']) {
         try { documents[name] = await this.store.fingerprint(name); }
         catch (error) { if (error.code !== 'ENOENT') throw error; }
       }
@@ -180,7 +192,13 @@ export class CurrentCore {
     return this.inspect();
   }
   obligations(state, at) { return enabled(state, at); }
-  async commitments({ capture = true } = {}) {
+  async commitments({ capture = true, state = null } = {}) {
+    // Without a run (for example before resumption) the built-in rigor is full.
+    const run = state ?? (await this.store.active() ? (await this.state()).state : null);
+    if (run && lightRun(run)) {
+      const docs = await requirements(this.store, ['brief.md'], { capture });
+      return { docs, subject: identity({ contract: CONTRACT, featureId: this.context.featureId, rigor: 'light', brief: docs['brief.md'] }) };
+    }
     const docs = await requirements(this.store, ['design.md', 'spec.md', 'plan.md', 'issues.md'], { capture });
     return { docs, subject: identity({ contract: CONTRACT, featureId: this.context.featureId, design: docs['design.md'], spec: docs['spec.md'] }) };
   }
@@ -217,7 +235,7 @@ export class CurrentCore {
               const later = current.events.slice(origin.eventCount);
               const freshValidation = later.some(event => event.type === 'SPEC_VALIDATED'
                 || event.type === 'DECIDED' && event.payload.specValidation);
-              const commitments = await this.commitments({ capture: false });
+              const commitments = await this.commitments({ capture: false, state: current.state });
               retry = current.state.runId === origin.runId && !freshValidation
                 && identity(current.state.specValidation) === identity(origin.specValidation)
                 && ['spec.md', 'design.md'].every(name => commitments.docs[name].hash === documents[name].hash)
@@ -245,8 +263,16 @@ export class CurrentCore {
       requireThat(doc.hash === value.subject, 'Design approval does not match current bytes');
       value.documents = { 'design.md': doc };
       value.interview = await this.store.capture('interview.md');
+    } else if (value.kind === 'authorize-implementation' && lightRun(state)) {
+      // Supervised light: the observed human instruction binds the current brief.
+      // Re-authorizing a changed brief supersedes earlier authority and candidates.
+      requireThat(!['INTEGRATED', 'COMPLETE'].includes(state.phase), 'Implementation authorization is outside the light run phase');
+      const current = await this.commitments({ state });
+      assertBrief(await this.store.get(current.docs['brief.md']));
+      requireThat(value.subject === current.subject, 'Implementation authorization does not match the current brief');
+      value.documents = current.docs;
     } else if (value.kind === 'authorize-implementation') {
-      const current = await this.commitments();
+      const current = await this.commitments({ state });
       requireThat(state.phase === 'PLANNING' && state.specValidation, 'Validate specification before implementation authorization');
       requireThat(currentDesignApproval(state, current.docs['design.md'].hash), 'Design approval is not current');
       requireThat(state.specValidation.spec.hash === current.docs['spec.md'].hash && state.specValidation.design.hash === current.docs['design.md'].hash,
@@ -255,7 +281,8 @@ export class CurrentCore {
       requireThat(value.subject === current.subject, 'Implementation authorization does not match current commitments');
       value.documents = current.docs;
     } else if (value.kind === 'amend') {
-      const current = await this.commitments();
+      requireThat(!lightRun(state), 'A light run has no design or specification to amend; authorize the changed brief with authorize-implementation');
+      const current = await this.commitments({ state });
       requireThat(value.subject === current.subject, 'Amendment must bind the new commitments');
       const previous = latestImplementation(state);
       requireThat(previous && input.previousSubject === previous.subject, 'Amendment must identify the prior authorized commitments');
@@ -315,7 +342,7 @@ export class CurrentCore {
   }
   async validateSpec(operation) {
     const { state } = await this.state();
-    const current = ['SPECIFYING', 'PLANNING'].includes(state.phase) ? null : await this.commitments();
+    const current = ['SPECIFYING', 'PLANNING'].includes(state.phase) ? null : await this.commitments({ state });
     requireThat(['SPECIFYING', 'PLANNING'].includes(state.phase) || (state.phase !== 'COMPLETE' && findDecision(state, 'authorize-implementation', current.subject)), 'Specification validation is not available without current planning or implementation authority');
     const docs = await requirements(this.store);
     const approval = currentDesignApproval(state, docs['design.md'].hash);
@@ -327,7 +354,7 @@ export class CurrentCore {
   async prepare(input, operation) {
     const { state } = await this.state();
     requireThat((await this.check('implementation')).allowed && state.phase !== 'COMPLETE', 'Current implementation authority is required');
-    const current = await this.commitments();
+    const current = await this.commitments({ state });
     const authorization = findDecision(state, 'authorize-implementation', current.subject);
     const preparation = await sourcePreparation(this.store, this.context, input, state.runId, operation);
     const pendingId = `source_${preparation.id}`;
@@ -337,7 +364,7 @@ export class CurrentCore {
     else preparedState = (await this.append(state, 'SOURCE_PREPARING', preparation, { id: pendingId, hash: identity(preparation) })).state;
     try {
       await ensurePins(this.context, preparation);
-      const candidate = await sourceCandidate(this.store, this.context, input, { event: authorization.event, subject: authorization.subject, documents: authorization.documents }, preparation);
+      const candidate = await sourceCandidate(this.store, this.context, input, { event: authorization.event, subject: authorization.subject, documents: authorization.documents }, preparation, { light: lightRun(state) });
       return await this.append(preparedState, 'CANDIDATE', { ...candidate.ref, preparationId: preparation.id }, operation);
     } catch (error) {
       // Retain pins until this operation retries or the run completes. A second
@@ -492,7 +519,7 @@ export class CurrentCore {
           const supportedBlocker = raised.some(finding =>
             (candidate.criteria.includes(finding.criterion) || finding.criterion === `gate:${report.gate}`)
             && (candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`))
-              || ['requirements/spec.md', 'requirements/design.md', 'planning/plan.md', 'planning/issues.md',
+              || ['requirements/brief.md', 'requirements/spec.md', 'requirements/design.md', 'planning/plan.md', 'planning/issues.md',
                 'planning/tracker.md', 'planning/scratchpad.md', 'planning/decisions.md'].includes(finding.path)));
           const failedScope = scopeOverlaps && failedCriteria.some(row => candidate.criteria.includes(row.id));
           // Code review may legitimately omit criterion rows. Its bound candidate
@@ -524,7 +551,7 @@ export class CurrentCore {
         && receipt.evaluator.provider === inputs.configuration.provider && receipt.evaluator.model === inputs.configuration.model,
       'Retained evaluator qualification differs from the requested proof');
     }
-    requireThat(inputs.reviewContract === reviewContract(inputs.gates), 'Evaluator rules or output contract changed');
+    requireThat(inputs.reviewContract === reviewContract(inputs.gates, candidate), 'Evaluator rules or output contract changed');
     if (inputs.pattern) requireThat(identity(inputs.pattern) === identity(await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false })), 'Pattern policy or trigger inputs changed');
     const evaluated = await checkCandidate(this.store, this.context, inputs.candidate, { live: false, memo });
     for (const artifact of result.artifacts ?? []) await this.store.get(artifact);
@@ -609,7 +636,7 @@ export class CurrentCore {
         catch (error) { if (error.code !== 'ENOENT') throw error; support.push({ path, missing: true }); }
       }
       const validators = ['reconcile', 'triage'].includes(gateId) ? [await planningBinding()] : [];
-      return identity({ validators, configuration: input.configuration, dependencies, support, rule: reviewContract([gateId]),
+      return identity({ validators, configuration: input.configuration, dependencies, support, rule: reviewContract([gateId], candidate),
         pattern: ['review', 'pattern'].includes(gateId) ? await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false, allowMissing: true }) : null,
         externalValidity: !input.validUntil || Date.now() <= Date.parse(input.validUntil),
         integrations: gate(gateId).at === 'completion' ? state.integrations : null,
@@ -626,7 +653,7 @@ export class CurrentCore {
     // freshly read once per final guard, never reused from earlier qualification.
     const environments = new Map(), retained = new Set(), patterns = new Map(), deadlines = [];
     await this.store.closure([state.decisions, state.specValidation], retained);
-    if (state.specValidation) await assertPlanningProof(await this.store.json(state.specValidation.proof));
+    if (state.specValidation && !lightRun(state)) await assertPlanningProof(await this.store.json(state.specValidation.proof));
     for (const { ref, candidate } of admission.proofs.values()) {
       await this.store.closure(ref, retained);
       const { result } = await this.recordedResult(ref, state);
@@ -662,7 +689,7 @@ export class CurrentCore {
         if (waiver.waiverBasis) await this.store.get(waiver.waiverBasis.evidence);
       }
     }
-    requireThat(identity((await this.commitments({ capture: false })).docs) === liveInputs.commitments,
+    requireThat(identity((await this.commitments({ capture: false, state })).docs) === liveInputs.commitments,
       'Commitment inputs changed during milestone validation');
     if (name !== 'implementation') await checkCandidate(this.store, this.context, state.candidate, { live: name !== 'completion' });
     await this.assertContext();
@@ -694,11 +721,12 @@ export class CurrentCore {
     let current;
     try {
       await this.assertContext();
-      current = await this.commitments({ capture: false });
+      current = await this.commitments({ capture: false, state });
       if (!findDecision(state, 'authorize-implementation', current.subject)) missing.push('current implementation authorization');
-      if (!state.specValidation || state.specValidation.spec.hash !== current.docs['spec.md'].hash
-        || state.specValidation.design.hash !== current.docs['design.md'].hash) missing.push('current specification validation');
-      if (state.specValidation) {
+      // A light run's brief-bound authorization needs no specification validation.
+      if (!lightRun(state) && (!state.specValidation || state.specValidation.spec.hash !== current.docs['spec.md'].hash
+        || state.specValidation.design.hash !== current.docs['design.md'].hash)) missing.push('current specification validation');
+      if (state.specValidation && !lightRun(state)) {
         try { await assertPlanningProof(await this.store.json(state.specValidation.proof)); }
         catch { missing.push('current trusted specification validator proof'); }
       }
@@ -751,7 +779,7 @@ export class CurrentCore {
       }
       const satisfied = accepted?.outcome === 'PASS' || waiver;
       if (!satisfied && !definition.supplemental) missing.push(`${definition.id}: ${accepted?.outcome ?? error ?? 'missing evidence'}`);
-      outcomes.push({ id: definition.id, required: !definition.supplemental, result: acceptedRef, reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied), ...(definition.role === 'core' ? { administrative: accepted } : {}) });
+      outcomes.push({ id: definition.id, required: !definition.supplemental, result: acceptedRef, reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied), ...(definition.role === 'core' ? { administrative: accepted } : {}), ...(accepted?.provenance ? { provenance: accepted.provenance } : {}) });
     }
     if (candidate && outcomes.some(item => item.id === 'verification' && item.outcome === 'PASS')) {
       try { await this.verificationCoverage(candidate, state, memo); } catch (error) { missing.push(error.message); }
@@ -831,7 +859,7 @@ export class CurrentCore {
   async inspect() {
     const { state } = await this.state();
     let commitments = null;
-    try { commitments = await this.commitments({ capture: false }); } catch { /* Missing docs are reported by milestone checks. */ }
+    try { commitments = await this.commitments({ capture: false, state }); } catch { /* Missing docs are reported by milestone checks. */ }
     const memo = new Map();
     let candidate = null, candidateUnavailable = false;
     if (state.candidate && state.decisions.some(item => item.kind === 'authorize-standing')) {
@@ -865,8 +893,9 @@ export class CurrentCore {
     }
     return { candidate: state.candidate, criteria: candidate.criteria.map(id => {
       const rows = [...assessments.values()].map(item => ({ reference: item.reference, row: item.result.criteria?.find(row => row.id === id) }));
+      // A brief-based candidate has only the consolidated review; spec is refused.
       const outcome = rows.some(item => item.row?.outcome === 'FAIL') ? 'FAIL'
-        : rows.length === 2 && rows.every(item => item.row?.outcome === 'PASS') ? 'PASS' : 'NOT YET';
+        : rows.length === (briefBased(candidate) ? 1 : 2) && rows.every(item => item.row?.outcome === 'PASS') ? 'PASS' : 'NOT YET';
       return { id, outcome, evidence: rows.filter(item => item.row).map(item => ({ result: item.reference, evidence: item.row.evidence })) };
     }), note: 'Derived from applicable independent assessments. This observation creates no gate proof or passage.' };
   }
@@ -979,7 +1008,9 @@ export class CurrentCore {
       case 'delivery.resume':
         try { return await resumeDelivery(this, input, operation); }
         catch (error) { return { status: 'needs-attention', reason: error.message, nextAction: 'inspect-and-resume' }; }
-      case 'integration.observe': return observeIntegration(this, input, operation);
+      case 'integration.observe':
+        requireThat(input.hostedChecks === undefined, 'Hosted check observations come only from the protected merge');
+        return observeIntegration(this, input, operation);
       case 'run.pause': case 'run.continue': {
         authority(input.authority);
         const { state } = await this.state();

@@ -23,11 +23,16 @@ function emptyCheckSet(error, action, required = false) {
   return error?.code === 1 && error.stdout === '' && typeof error.stderr === 'string'
     && error.stderr.trim() === `no ${required ? 'required ' : ''}checks reported on the '${action.headBranch}' branch`;
 }
+// Returns what was observed so an absent check set is recorded as "no CI
+// checks", never as passing CI.
 export async function waitForHostedChecks(root, action, run = gh) {
   const args = ['pr', 'checks', String(action.number), '--repo', action.ownerRepo];
+  const observed = checks => ({ checks, head: action.head ?? null, summary: checks === 'none'
+    ? 'no CI checks: GitHub reported no hosted checks for this pull request; this is not passing CI'
+    : `${checks === 'required' ? 'required' : 'all reported'} hosted checks completed successfully for this pull request` });
   try {
     await run(root, [...args, '--required', '--watch', '--fail-fast']);
-    return;
+    return observed('required');
   } catch (error) {
     // gh reports no checks before filtering for required checks. Confirm either
     // empty-set diagnostic through an unfiltered query; all other errors block.
@@ -35,11 +40,13 @@ export async function waitForHostedChecks(root, action, run = gh) {
   }
   try {
     await run(root, [...args, '--watch', '--fail-fast']);
+    return observed('reported');
   } catch (error) {
     // Explicitly reported absence is allowed; API/auth failures are not absence.
     // The caller still revalidates gate proof, authority and exact PR identity.
     if (!emptyCheckSet(error, action)) throw error;
   }
+  return observed('none');
 }
 export async function prepareMerge(core, input) {
   await core.assertContext();
@@ -104,7 +111,7 @@ export async function merge(core, input, operation) {
       madeReady = true;
       await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo]);
     }
-    await waitForHostedChecks(repository.path, action, run);
+    const hostedChecks = await waitForHostedChecks(repository.path, action, run);
     await requireCurrentState(core, state);
     const currentProof = await core.check('merge', state);
     requireThat(currentProof.allowed && (!authorization.standingGrant || currentProof.outcomes.every(item => item.required === false || item.outcome === 'PASS')), 'Gate proof changed while waiting for hosted checks');
@@ -131,7 +138,7 @@ export async function merge(core, input, operation) {
       '--json', 'number,state,mergeCommit,url']));
     requireThat(observed.number === action.number && observed.state === 'MERGED' && observed.mergeCommit?.oid, 'Hosted merge outcome is not verified');
     await runGit(repository.path, ['fetch', repository.remote ?? 'origin', action.baseBranch]);
-    return observeIntegration(core, { repository: action.repository, branch: action.baseBranch, hosted: observed }, operation, state);
+    return observeIntegration(core, { repository: action.repository, branch: action.baseBranch, hosted: observed, hostedChecks }, operation, state);
   } finally {
     if (opened) {
       const observed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo, '--json', 'state']));
@@ -177,7 +184,7 @@ export async function observeIntegration(core, input, operation, expectedState =
   requireThat(proof.passed && proof.data?.status === 'verified', 'Reviewed content is not verified on integration', proof.stderr);
   if (input.hosted) requireThat(proof.data.integrationSha === input.hosted.mergeCommit.oid, 'Observed hosted merge differs from integration source');
   const receipt = await core.store.putJson({ contract: CONTRACT, candidate: state.candidate, repository: input.repository,
-    proof, hosted: input.hosted ?? null, observedAt: new Date().toISOString() });
+    proof, hosted: input.hosted ?? null, ...(input.hostedChecks ? { hostedChecks: input.hostedChecks } : {}), observedAt: new Date().toISOString() });
   return core.append(state, 'INTEGRATED', { candidate: state.candidate, repository: input.repository,
-    branch, integrationSha: proof.data.integrationSha, receipt }, operation);
+    branch, integrationSha: proof.data.integrationSha, receipt, ...(input.hostedChecks ? { hostedChecks: input.hostedChecks } : {}) }, operation);
 }
