@@ -47,3 +47,26 @@ test('desktop selection inspects the actual local workflow database through the 
   await click('Inspect databases');const selector=card.querySelector('[aria-label="Workflow database"]');assert.equal(selector.querySelectorAll('option').length,1);selector.querySelector('option').selected=true;
   await click('Inspect selected workflow');assert.ok(calls.at(-1).input.workflow);assert.equal(completed.exists,true);assert.equal(completed.integrity,'ok');assert.equal(completed.schemaVersion,1);assert.match(JSON.stringify(completed),/gatereeve\/current\/7/);
 });
+
+test('desktop reevaluation uses the staged measurement: dial groups, authority and qualified defect wording',async t=>{
+  const {mkdtemp,rm}=await import('node:fs/promises');const {tmpdir}=await import('node:os');const {join}=await import('node:path');
+  const {MetricsStore}=await import('../resources/performance/store.js');
+  const {metricsRequest,renderReevaluation}=await import('../resources/performance/service.js');
+  const {projectWorkflow}=await import('../resources/performance/workflow-projection.js');
+  const root=await mkdtemp(join(tmpdir(),'desktop-measurement-'));const store=new MetricsStore(join(root,'metrics'),{privateConnection:true});
+  t.after(async()=>{store.close();await rm(root,{recursive:true,force:true});});
+  const human={kind:'human-confirmed',instruction:'Light for this one.',context:'conversation'};
+  const events=[
+    {sequence:1,hash:'e1',recordedAt:'2026-11-16T00:00:01Z',type:'STARTED',payload:{dials:{rigor:{value:'light',source:'explicit',actor:'human',authority:human},autonomy:{value:'supervised',source:'built-in',actor:null}}}},
+    {sequence:2,hash:'e2',recordedAt:'2026-11-16T00:00:02Z',type:'DECIDED',payload:{kind:'authorize-implementation',authority:human}},
+    {sequence:3,hash:'e3',recordedAt:'2026-11-16T00:00:03Z',type:'DIAL_SET',payload:{dial:'rigor',value:'full',previous:'light',source:'explicit',actor:'agent',reason:'Raise'}},
+  ];
+  await projectWorkflow({context:{workspaceRoot:'/project/app',featureId:'feature',repositories:[]},store:{home:'/runs/app'},state:async()=>({state:{runId:'run'},events})},store);
+  const {dataset}=await metricsRequest('capture',{},store);const report=await metricsRequest('reevaluate',{dataset},store);
+  assert.deepEqual(report.rigors.map(row=>[row.name,row.observations]).sort(),[['full',1],['light',4]]);
+  assert.deepEqual(report.authorities.map(row=>row.name),['human-confirmed']);
+  assert.deepEqual(report.measurement.escalations,{total:1,byTrigger:{'Not recorded':1}});
+  const html=renderReevaluation(report,'html');
+  assert.ok(html.includes('No escaped defects recorded.'));assert.ok(!html.includes('instruction'),'no instruction text is reported');
+  assert.doesNotMatch(html,/No escaped defects(?! recorded)/u);
+});

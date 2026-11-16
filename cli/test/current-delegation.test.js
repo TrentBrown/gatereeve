@@ -126,6 +126,29 @@ test('brief scope covers everything except the findings section', () => {
   ]) assert.equal(briefScope(Buffer.from(changed)), same, label);
 });
 
+test('brief scope excludes only the top-level findings section; nested, other-level and fenced headings count', () => {
+  const brief = '# Brief\n\n## Goal\nExport 42.\n\n## Scope\napp.js only.\n### Findings from the spike\nUse the cache.\n\n```md\n# Findings\nfenced example\n```\n\n## Findings log\n- none\n### Notes\n- nested\n\n## Risks\nNone.\n';
+  const same = briefScope(Buffer.from(brief));
+  for (const [label, changed] of [
+    // A nested "findings..." heading inside Scope is scope, not the findings log.
+    ['nested findings heading under scope', brief.replace('Use the cache.', 'Use the cache and rewrite billing.')],
+    // A "# Findings" line inside a fenced block is not a heading and opens nothing.
+    ['fenced findings heading', brief.replace('fenced example', 'fenced example changed')],
+    // A second top-level findings section is not the findings log.
+    ['second findings section', `${brief}\n## Findings appendix\nScope grows to billing.\n`],
+    // Text after the findings log still counts.
+    ['section after findings', brief.replace('## Risks\nNone.', '## Risks\nMigrates data.')],
+  ]) assert.notEqual(briefScope(Buffer.from(changed)), same, label);
+  for (const [label, changed] of [
+    ['findings log entry', brief.replace('- none', '- none\n- Found: also exported elsewhere')],
+    ['nested heading inside the log', brief.replace('- nested', '- nested\n#### Deeper\n- more')],
+    ['fenced heading inside the log', brief.replace('- nested', '- nested\n```\n## Risks\n```\n- after fence')],
+  ]) assert.equal(briefScope(Buffer.from(changed)), same, label);
+  // A findings heading at a different level from Goal/Scope is not the log: edits there count (fail closed).
+  const levelled = '# Brief\n\n## Goal\nExport 42.\n\n## Scope\napp.js only.\n\n# Findings log\n- none\n';
+  assert.notEqual(briefScope(Buffer.from(levelled.replace('- none', '- none\n- more'))), briefScope(Buffer.from(levelled)));
+});
+
 test('light delegation: a brief review substitutes for the human; a goal or scope change hands back', async t => {
   const f = await fixture(t, { authorize: false });
   const delegation = (await delegate(f)).event.hash;

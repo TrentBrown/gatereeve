@@ -57,6 +57,11 @@ const MERGES = [
   "bash -lc 'gh pr merge 12'",
   "zsh -c 'gh pr merge 12'",
   'bash <<EOF\ngh pr merge 12\nEOF',
+  // A heredoc inside $(...) is data, but commands after it are still seen (S4 N2).
+  "x=$(cat <<'EOF'\n)\nEOF\n); gh pr merge 12",
+  "notes=$(cat <<EOF\nWon't (stop\nEOF\n) && gh pr merge 12",
+  'echo $(bash <<EOF\ngh pr merge 12\nEOF\n)',
+  'x=$(true # a comment mentioning <<EOF\n); gh pr merge 12',
   'bash <<< "gh pr merge 12"',
   "eval 'gh pr merge 12'",
   'env -S "gh pr merge 12"',
@@ -89,6 +94,10 @@ const ALLOWED = [
   "git commit -m 'Explain why gh pr merge is guarded'",
   'git commit -F - <<\'EOF\'\nGuard gh pr merge forms\n\ngh pr merge is denied\nEOF',
   'cat <<EOF > notes.md\ngh pr merge 12\nEOF',
+  // Unbalanced parentheses or quotes in a heredoc body inside $(...) (S4 N2).
+  "msg=$(cat <<'EOF'\nClose the paren) early; gh pr merge is guarded\nEOF\n)\ngit commit -m \"$msg\"",
+  "msg=$(cat <<-EOF\n\tWon't (merge; gh pr merge later\n\tEOF\n)\necho \"$msg\"",
+  'git commit -m "$(cat <<\'EOF\'\nFix (parser) :) and gh pr merge text\nEOF\n)"',
   'grep -rn "gh pr merge" docs',
   'git log --grep="gh pr merge"',
   'cat <<< "gh pr merge 12"',
@@ -173,6 +182,12 @@ test('pushes to the configured integration or release branch are denied; topic p
   for (const command of ['git push', 'git push origin', 'git push origin HEAD', `git -C ${JSON.stringify(f.repo)} push`]) {
     assert.match((await decide(command, command.includes(" -C ") ? f.root : f.repo)).hookSpecificOutput?.permissionDecisionReason ?? '', /integration branch main/u, command);
   }
+  // --tags alone pushes only tags (no implicit branch); with a protected refspec it is still denied (S4 N4).
+  for (const command of ['git push --tags', 'git push origin --tags', 'git push --tags origin', 'git push origin --tags v1.0.0']) assert.deepEqual(await decide(command), {}, command);
+  for (const command of ['git push --tags origin main', 'git push origin --tags HEAD', 'git push origin --tags topic:main']) {
+    assert.match((await decide(command)).hookSpecificOutput?.permissionDecisionReason ?? '', /integration branch main/u, command);
+  }
+  assert.match((await decide('git push --follow-tags')).hookSpecificOutput?.permissionDecisionReason ?? '', /integration branch main/u, '--follow-tags also pushes the branch');
 });
 
 test('an unconfigured Git workspace names no protected branches', async t => {

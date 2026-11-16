@@ -17,8 +17,10 @@ const normalize = text => String(text ?? '').replace(/\r\n/gu, '\n');
 const inline = value => normalize(value).replace(/<!--/gu, '&lt;!--').replace(/-->/gu, '--&gt;').replace(/\s+/gu, ' ').trim();
 const block = value => normalize(value).replace(/<!--/gu, '&lt;!--').replace(/-->/gu, '--&gt;').trim();
 
-// Latest review result that qualifies for the current candidate and reached a
-// conclusion. UNAVAILABLE results carry no reviewer conclusion to present.
+// The latest review result that qualifies for the current candidate, whatever
+// its outcome: the same selection the acceptance gate makes. A newer
+// UNAVAILABLE result is published as UNAVAILABLE; an older PASS or FAIL is
+// never presented in its place.
 export async function currentReview(core, state, candidate) {
   const memo = new Map();
   for (const ref of [...state.results].reverse()) {
@@ -27,16 +29,21 @@ export async function currentReview(core, state, candidate) {
     if (raw.gate !== 'review') continue;
     try {
       const result = await core.currentResult(ref, candidate, state, new Set(), memo);
-      if (['PASS', 'FAIL'].includes(result.outcome)) return { ref, result, receipt: await core.store.json(result.receipt) };
+      return { ref, result, receipt: await core.store.json(result.receipt) };
     } catch { /* Stale or unqualified review cannot be presented as current. */ }
   }
   return null;
 }
+const OUTCOME_NOTE = {
+  PASS: '',
+  FAIL: '',
+  UNAVAILABLE: ' (the latest independent review reached no conclusion; this is not a PASS, and no earlier result is shown in its place)',
+};
 export function renderSummary({ candidateRef, candidate, pin, review }) {
   const { result, receipt, ref } = review;
   const evaluator = receipt.evaluator ?? {};
   const lines = [SUMMARY_START, '### GateReeve independent review', '',
-    `- **Outcome:** ${result.outcome}`,
+    `- **Outcome:** ${result.outcome}${OUTCOME_NOTE[result.outcome] ?? ''}`,
     `- **Reviewed head:** \`${pin.alias}\` \`${pin.head}\` (base \`${pin.base}\`, target \`${pin.target}\`)`,
     `- **Candidate:** \`${candidateRef.hash}\` (${candidate.scope}; ${briefBased(candidate) ? 'light rigor, brief basis' : 'full rigor, rubric basis'}; criteria ${candidate.criteria.join(', ')})`,
     `- **Review result:** \`${ref.hash}\``,

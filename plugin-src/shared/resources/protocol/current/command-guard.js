@@ -33,12 +33,37 @@ const PUSH_VALUES = new Set(['--repo', '-o', '--push-option', '--receive-pack', 
 const MERGE_ENDPOINT = /^(?:https?:\/\/[^/]+(?:\/api\/v3)?)?\/?repos\/[^/]+\/[^/]+\/pulls\/([^/?#]+)\/merge\/?(?:[?#].*)?$/iu;
 const GRAPHQL_MERGE = /\b(?:mergePullRequest|enablePullRequestAutoMerge|enqueuePullRequest)\b/u;
 
+// A heredoc operator and its delimiter word (`<<EOF`, `<<-'EOF'`, `<< "EOF"`).
+const HEREDOC = /^<<(-?)[ \t]*((?:[^\s;&|()<>'"\\]|'[^'\n]*'|"[^"\n]*"|\\.)+)/u;
+// Skip the bodies of pending heredocs starting at `i` (just after a newline);
+// returns the index after the last delimiter line.
+function skipHeredocBodies(text, i, pending) {
+  for (const item of pending) {
+    while (i < text.length) {
+      const end = text.indexOf('\n', i);
+      const line = text.slice(i, end === -1 ? text.length : end);
+      i = end === -1 ? text.length : end + 1;
+      if ((item.strip ? line.replace(/^\t+/u, '') : line) === item.delimiter) break;
+    }
+  }
+  return i;
+}
 function matching(text, start, open, close) {
   // `start` indexes the opening delimiter; returns the index of its match.
-  let depth = 1;
+  // Heredoc bodies inside a command substitution are data: their quotes and
+  // parentheses neither open strings nor close the substitution.
+  let depth = 1, pending = [];
+  const arithmetic = open === '(' && text[start + 1] === '(';
   for (let i = start + 1; i < text.length; i++) {
     const c = text[i];
     if (c === '\\') { i++; continue; }
+    if (c === '<' && !arithmetic && text[i + 1] === '<' && text[i + 2] !== '<') {
+      const found = HEREDOC.exec(text.slice(i));
+      if (found) { pending.push({ delimiter: found[2].replace(/\\(.)/gu, '$1').replace(/['"]/gu, ''), strip: found[1] === '-' }); i += found[0].length - 1; continue; }
+    }
+    if (c === '\n' && pending.length) { i = skipHeredocBodies(text, i + 1, pending) - 1; pending = []; continue; }
+    // A comment (at a word start) runs to the end of its line.
+    if (c === '#' && /\s/u.test(text[i - 1] ?? ' ')) { const end = text.indexOf('\n', i); if (end === -1) return text.length; i = end - 1; continue; }
     if (c === "'") { const end = text.indexOf("'", i + 1); if (end === -1) return text.length; i = end; continue; }
     if (c === '"') {
       for (i++; i < text.length && text[i] !== '"'; i++) if (text[i] === '\\') i++;
@@ -263,18 +288,19 @@ function classifyGit(args, findings) {
   if (args[index] !== 'push') return;
   const rest = args.slice(index + 1);
   const positionals = [];
-  let all = false, remoteOption = null;
+  let all = false, tags = false, remoteOption = null;
   for (let at = 0; at < rest.length; at++) {
     const arg = rest[at];
     if (arg === '--') { positionals.push(...rest.slice(at + 1)); break; }
     if (['--all', '--mirror', '--branches'].includes(arg)) { all = true; continue; }
+    if (arg === '--tags') { tags = true; continue; }
     if (arg.startsWith('--repo=')) { remoteOption = arg.slice(7); continue; }
     if (PUSH_VALUES.has(arg)) { if (arg === '--repo') remoteOption = rest[at + 1]; at++; continue; }
     if (/^-./u.test(arg)) continue;
     positionals.push(arg);
   }
   const remote = remoteOption ?? positionals.shift() ?? null;
-  findings.push({ kind: 'git-push', remote, refspecs: positionals, all, directory: directories.length ? directories : null });
+  findings.push({ kind: 'git-push', remote, refspecs: positionals, all, tags, directory: directories.length ? directories : null });
 }
 
 function classifyWords(command, depth) {
@@ -306,9 +332,11 @@ export function classifyShellCommand(text, depth = 0) {
 
 // Branch names a push finding may update. `current` resolves HEAD and an
 // implicit destination (push.default simple/current); '*' globs match branches.
+// `--tags` adds refs/tags/* as a refspec, so with no other refspec git pushes
+// only tags and no implicit branch; explicit refspecs still apply.
 export function pushDestinations(finding, current) {
   if (finding.all) return ['*'];
-  if (!finding.refspecs.length) return current ? [current] : [];
+  if (!finding.refspecs.length) return finding.tags ? [] : current ? [current] : [];
   const destinations = [];
   for (const refspec of finding.refspecs) {
     const spec = refspec.replace(/^\+/u, '');

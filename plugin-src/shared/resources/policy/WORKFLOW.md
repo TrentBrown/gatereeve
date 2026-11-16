@@ -113,6 +113,14 @@ execution time, token/cost data, friction, escaped defects and rework honestly;
 unknown metrics are unknown. No benchmark threshold, pilot or extra audit gate is
 required before adopting the current protocol.
 
+On a run that fixes a defect an earlier run or PR let through, record an
+`escaped-defect` note linking the fix to its origin (PROTOCOL.md, Escaped
+defects). When the human names the origin, record it as `human-stated`. Otherwise
+propose likely origins (for example by blaming the changed lines against recent
+runs), ask, and record only the origins the human confirms as `agent-proposed`.
+Never record an unconfirmed proposal, and never present a lack of escaped-defect
+records as evidence that light or delegated work is safe.
+
 ## Standing permission for unattended delivery
 
 Record explicit acceptance-only or acceptance-plus-merge permission through

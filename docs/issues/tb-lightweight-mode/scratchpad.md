@@ -432,3 +432,87 @@ entries are appended to `decisions.md`.
   `category|rule|repository|path` without content or line, so further risky
   content added to an already-hit path under the same rule is covered by the
   existing decision. Accepted so fix iterations on the same hits don't re-ask.
+
+## S6 — measurement and rollout (tb-lightweight-mode-06-measurement)
+
+- **Observation fields.** `fleet.js` `observation()` allows `rigor`, `autonomy`
+  (validated against the dial values), `authorityKind`, `authorityBasis`, `dial`,
+  `dialValue`, `dialPrevious`, `dialSource`, `actor`, `trigger`, `blocker`,
+  `linkBasis`, `stage`, `count` (non-negative integer) and the label lists
+  `categories` and `actions`. The dial source is `dialSource` because `source`
+  is already the reporting source identity.
+- **Dials on every projected observation.** `projectWorkflow` replays dial values
+  from the whole journal (the projection is incremental) and stamps each row
+  with the rigor and autonomy in force when its event was recorded (a
+  `DIAL_SET` row carries its new value). A STARTED without dials reads
+  `full`/`supervised`, matching `project()`. Rows projected before S6 are not
+  rewritten; reports group them, and execution timings (not run events), as
+  "Not recorded", never as full/supervised (conservative).
+- **Event mapping.** `STARTED` adds one `DIAL_INITIAL` row per recorded start
+  dial (value, source, actor, authority kind); `DIAL_SET` carries dial, previous,
+  value, source, actor, trigger and authority kind (settings, delegation,
+  escalation and hand-back); `DECIDED` carries authority kind, delegated basis,
+  continuation `actions` and, for `stay-light`, the hit `count`;
+  `TRIPWIRES_EVALUATED` carries stage, `HIT`/`CLEAR`, hit count and categories;
+  `PLANNING_REVIEWED` becomes an `artifact` row `planning-review:<artifact>` with
+  outcome and evaluator; `MERGE_BLOCKED` carries the blocker kind. No reasons,
+  instructions, conversation context, paths or messages are projected.
+- **Review publication** records no run event (S3: the PR body is the record),
+  so it is measured as the `review.publish` operation timing rather than adding
+  a journal event. `stay-light`, `run.set-dial`, `review.publish`,
+  `planning.review` and `delegation.apply` were added to the metrics operation
+  labels (older collectors read new labels leniently).
+- **Escaped defects** use the existing `workflow.observe` (CLI `workflow-note`).
+  A note whose `links` link a fix to an origin needs `fixId`, `linkBasis`
+  (`human-stated` or `agent-proposed`) and a `human-confirmed` authority; an
+  agent proposal without the human's confirmation is refused, so it is never
+  stored. `linkBasis`/`authority` are refused on any other note. Both bases
+  require the observed human instruction (conservative: a human-stated link is
+  the human's statement). The projection emits links only with that basis;
+  links on escaped-defect notes recorded by earlier builds are dropped from
+  reporting (not counted as confirmed). Imported snapshots are not rejected for
+  lacking a basis; reports count confirmed origins by `linkBasis` only.
+- **Wording.** `metrics reevaluate` adds Rigor/Autonomy/Decision authority
+  groups and a `measurement` summary. With no records the report says "No
+  escaped defects recorded" plus that absence is not evidence of safety;
+  otherwise "N escaped defects recorded, M with a human-stated or
+  human-confirmed origin link ... neither a defect rate nor evidence of safety".
+  A dial-comparison caveat (observational, not randomized, incomplete defect
+  capture) is part of the summary and HTML. The optional analysis instructions
+  forbid treating absent defect records as safety.
+- **No run, nothing to project.** `projectWorkflow` returns without marking
+  capture incomplete when there is no current run (for example a contract-6 run
+  awaiting resumption). Previously any operation without a current run marked
+  the store incomplete.
+- **Advisory fixes.**
+  - S5 N5: `briefScope` excludes only the first `findings...` heading at the
+    level of the Goal/Scope headings (with its sub-headings). Headings inside
+    fenced code are ignored, there and in `assertBrief`. A findings heading at
+    another level is not the log, so edits to it hand back (fail closed).
+  - S3 N1: publication renders the latest qualifying review result whatever its
+    outcome, as the acceptance inventory selects it; an UNAVAILABLE result is
+    shown as "UNAVAILABLE (... not a PASS, and no earlier result is shown in its
+    place)". Authorization uses the same selection.
+  - S3 N2: `required-review` needs the refusal to name a review rule, or the
+    host to report `mergeStateStatus` BLOCKED with a pending review decision.
+    The existing unit case "CHANGES_REQUESTED on a CLEAN PR with an empty
+    message → required-review" now expects no classification (intended).
+  - S4 N4: `git push [remote] --tags` with no other refspec pushes only tags and
+    is allowed; `--tags` with a protected refspec is still denied.
+    `--follow-tags` still pushes the current branch and is denied on it.
+  - S4 N2: `$(...)` matching skips heredoc bodies (delimiter forms `<<EOF`,
+    `<<-EOF`, quoted), except in `$((...))` arithmetic, and skips `#` comments
+    at a word start so a `<<` in a comment cannot open a heredoc that would
+    swallow later commands.
+  - S4 N1/N3 and S5 N1 remain documented limitations in PROTOCOL.md.
+- **Contract** stays `gatereeve/current/7`; no new event type was added in S6.
+- **Inventory.** `workflow-inventory.json` already lists every file S1–S5 added
+  (`light-run.md`, `command-guard.js`, `delegation.js`, `entry-point.js`,
+  `publication.js`, `tripwires.js`); S6 adds no resource file, operation or
+  hook. (`release/package.json` is absent from the inventory, as before this
+  feature.)
+- **Test environment.** Tests that run real operations project into the default
+  metrics store (`~/.local/share/gatereeve/performance` unless
+  `GATEREEVE_METRICS_DIR` is set). On this machine it is at its 100 MiB cap, so
+  those projections fail and print "capture incomplete" (authority unaffected).
+  The new measurement test isolates its default store.

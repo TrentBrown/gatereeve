@@ -280,7 +280,10 @@ test('only an unmerged, hosting-rule refusal is classified as an external blocke
   const view = fields => async () => JSON.stringify({ number: 12, state: 'OPEN', headRefOid: action.head, mergeStateStatus: 'CLEAN', reviewDecision: 'APPROVED', ...fields });
   const failure = stderr => Object.assign(new Error('Command failed'), { stderr });
   assert.equal((await externalBlocker(view({ mergeStateStatus: 'BLOCKED' }), '/r', action, failure('')))?.blocker, 'branch-policy');
-  assert.equal((await externalBlocker(view({ reviewDecision: 'CHANGES_REQUESTED' }), '/r', action, failure('')))?.blocker, 'required-review');
+  // A pending review decision classifies only when the host reports the PR
+  // BLOCKED or the refusal names the review rule (S3 N2).
+  assert.equal((await externalBlocker(view({ reviewDecision: 'CHANGES_REQUESTED', mergeStateStatus: 'BLOCKED' }), '/r', action, failure('')))?.blocker, 'required-review');
+  assert.equal((await externalBlocker(view({ reviewDecision: 'REVIEW_REQUIRED', mergeStateStatus: 'BLOCKED' }), '/r', action, failure('')))?.blocker, 'required-review');
   assert.equal((await externalBlocker(view({}), '/r', action, failure('GraphQL: At least 1 approving review is required by reviewers with write access.')))?.blocker, 'required-review');
   assert.equal((await externalBlocker(view({}), '/r', action, failure('Repository rule violations found')))?.blocker, 'branch-policy');
   for (const [name, run, error] of [
@@ -288,6 +291,11 @@ test('only an unmerged, hosting-rule refusal is classified as an external blocke
     ['merged despite lost response', view({ state: 'MERGED', mergeStateStatus: 'BLOCKED' }), failure('the base branch policy prohibits the merge')],
     ['changed head', view({ headRefOid: 'b'.repeat(40), mergeStateStatus: 'BLOCKED' }), failure('')],
     ['unreadable PR', async () => { throw new Error('HTTP 401'); }, failure('the base branch policy prohibits the merge')],
+    // A conflict (or any other failure) on a PR that also awaits review keeps its original error.
+    ['conflict while review is required', view({ mergeStateStatus: 'DIRTY', reviewDecision: 'REVIEW_REQUIRED' }), failure('X Pull request #12 is not mergeable: the merge commit cannot be cleanly created.')],
+    ['conflict while changes are requested', view({ mergeStateStatus: 'DIRTY', reviewDecision: 'CHANGES_REQUESTED' }), failure('GraphQL: Pull Request is not mergeable (mergePullRequest)')],
+    ['unknown failure while review is required', view({ mergeStateStatus: 'UNKNOWN', reviewDecision: 'REVIEW_REQUIRED' }), failure('')],
+    ['clean PR awaiting review', view({ reviewDecision: 'CHANGES_REQUESTED' }), failure('')],
   ]) assert.equal(await externalBlocker(run, '/r', action, error), null, name);
 });
 
@@ -325,6 +333,40 @@ test('review publication writes and replaces one section idempotently and refuse
   await f.request('review.publish', { repository: 'app', number: 12 }, 'publish-4');
   await authorizeMerge(f, subject, action, 'with-summary');
   assert.equal((await f.request('milestone.check', { name: 'merge' })).allowed, true);
+});
+
+test('publication presents the latest qualifying review, even when it is UNAVAILABLE, and authorization matches', async t => {
+  const f = await fixture(t);
+  const head = await branchWith(f, 'topic', 'export const answer = 42;\n');
+  await candidate(f, 'SLICE', head);
+  openPr(f, 'topic', f.integration, head, 'Intro text.');
+  await f.request('candidate.ready', {}, 'ready');
+  await f.request('gate.execute', { gates: ['verification'], configuration: { validation: { kind: 'alternative', reason: 'Fixture has no hosted CI', scope: 'The approved criterion' },
+    checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Fixture verification' }] } }, 'verify');
+  evaluator(f);
+  await f.request('gate.execute', { gates: ['review'], configuration: reviewConfig }, 'review-pass');
+  const passed = await f.request('review.publish', { repository: 'app', number: 12 }, 'publish-pass');
+  assert.equal(passed.outcome, 'PASS');
+  // A newer review reaches no conclusion: it is what the gate now sees, so it is what the PR shows.
+  f.core.runtime.evaluator.runStage = async () => { throw new Error('Evaluator output was malformed'); };
+  // A different declared configuration (explicit effort) runs a fresh review instead of reusing the PASS.
+  await f.request('gate.execute', { gates: ['review'], configuration: { ...reviewConfig, reasoningEffort: 'high' } }, 'review-unavailable');
+  const latest = await f.core.store.json((await f.core.state()).state.results.at(-1));
+  assert.deepEqual([latest.gate, latest.outcome], ['review', 'UNAVAILABLE']);
+  const inventory = await f.core.inventory((await f.core.state()).state, await f.core.store.json((await f.request('status')).candidate));
+  assert.equal(inventory.find(item => item.gate === 'review').outcome, 'UNAVAILABLE', 'the gate selects the newer UNAVAILABLE result');
+  const published = await f.request('review.publish', { repository: 'app', number: 12 }, 'publish-unavailable');
+  assert.equal(published.outcome, 'UNAVAILABLE'); assert.equal(published.changed, true);
+  assert.notEqual(published.review.hash, passed.review.hash);
+  assert.match(f.gh.pr.body, /\*\*Outcome:\*\* UNAVAILABLE \(the latest independent review reached no conclusion; this is not a PASS/u);
+  assert.doesNotMatch(f.gh.pr.body, /\*\*Outcome:\*\* PASS/u);
+  assert.equal(f.gh.pr.body.split(SUMMARY_START).length, 2);
+  // The authorization check makes the same selection: the older PASS section no longer qualifies.
+  const { requirePublishedReview } = await import('../../plugin-src/shared/resources/protocol/current/publication.js');
+  const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
+  assert.equal((await requirePublishedReview(f.core, action)).review.hash, published.review.hash);
+  f.gh.pr.body = withSummary('Intro text.', passed.section);
+  await assert.rejects(requirePublishedReview(f.core, action), /does not carry the current independent review summary/);
 });
 
 test('model-authored review text cannot close or forge the published section', () => {

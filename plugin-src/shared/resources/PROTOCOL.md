@@ -122,6 +122,10 @@ are recorded in `TRIPWIRES_EVALUATED` and shown in `status` `tripwires`.
   (`run.set-dial rigor full`) or records `stay-light` with `subject` equal to the
   hit-set identity in `status` `tripwires.subject`. That decision covers only the
   hits it names: a new hit needs a new decision, and a re-authorized brief voids it.
+  A hit is identified by category, rule, repository and path, not by line or
+  content, so further risky content added to an already-covered path under the
+  same rule stays covered (deliberate: fix iterations on the same hits do not
+  re-ask). Re-check such paths before relying on a stay-light decision.
 - **Delegated:** a hit raises rigor to full automatically (recorded `DIAL_SET`,
   `trigger: tripwire`), at preparation or when acceptance or `delegation.apply` is
   attempted. Any `stay-light` decision is rejected.
@@ -392,15 +396,24 @@ shell tool calls. It denies, with a reason:
 - `git push` that would update a configured integration or release branch of any
   configured repository: explicit refspecs (`main`, `+main`, `HEAD:main`,
   `refs/heads/main`, `:main`, `--delete`), `--all`/`--mirror`, matching globs, and
-  an implicit destination or `HEAD` while on that branch. An unconfigured Git
-  workspace names no protected branch.
+  an implicit destination or `HEAD` while on that branch. `--tags` with no other
+  refspec pushes only tags and is allowed; with a protected refspec it is denied.
+  An unconfigured Git workspace names no protected branch.
 
-It follows quoting, `&&`/`||`/`;`/`|`/`&`/newline chains, subshells, `$(...)`,
-backticks, `bash -c`/`sh -c`, `eval` and shell heredocs, and leaves quoted text
-(for example a commit message mentioning `gh pr merge`) and unrelated commands
-alone. It is best-effort: scripts, aliases defined outside `gh`, variables naming
-commands, request bodies from files and other clients are not seen. GitHub branch
-protection is the real enforcement. Merges go through `merge.prepare` and
+It follows quoting, `&&`/`||`/`;`/`|`/`&`/newline chains, subshells, `$(...)`
+(including heredoc bodies inside it), backticks, `bash -c`/`sh -c`, `eval` and
+shell heredocs, and leaves quoted text (for example a commit message mentioning
+`gh pr merge`) and unrelated commands alone. It is best-effort. Known limits:
+
+- scripts, aliases defined outside `gh`, variables naming commands, request
+  bodies from files and other clients are not seen;
+- commands assembled from substitutions (for example `$(echo gh) pr merge`) and
+  scripts fed to a shell on standard input (`echo 'gh pr merge 1' | bash`) are not
+  recognized;
+- a missing, unreadable or malformed workspace configuration names no protected
+  branch, so push denial is off there (merge denial still applies).
+
+GitHub branch protection is the real enforcement. Merges go through `merge.prepare` and
 `merge.execute`; a recognized merge is denied even when the milestone is eligible,
 because the shell command is not bound to the prepared action.
 
@@ -537,6 +550,26 @@ Use `database.inspect`, `database.history`, CLI `database`, and `workflow.observ
 (`workflow-note <file>`) for bounded inspection and agent memory. Observation
 kinds: strategy, friction, escaped-defect, disposition, artifact; they grant no
 passage. Findings and independent dispositions are also recorded automatically.
+
+**Escaped defects.** Record a defect found after an earlier run or PR let it
+through as an `escaped-defect` note in the run that fixes it. To link the fix to
+its origin, give `fixId` (the fix PR or commit), `links` (origin references such
+as `run:<runId>`, `candidate:<hash>` or `owner/repo#12`), `linkBasis` and the
+observed human `authority`:
+
+```json
+{"kind":"escaped-defect","fixId":"owner/repo#31","reason":"Export returned 41","links":["owner/repo#12"],"linkBasis":"agent-proposed","authority":{"kind":"human-confirmed","instruction":"Yes, #12 introduced it.","context":"Agent proposed origin #12 from blame of the changed line"}}
+```
+
+- `human-stated`: the human named the origin ("this fixes a bug from #12");
+  record it with that statement as authority.
+- `agent-proposed`: you proposed candidate origins (for example by blaming the
+  changed lines against recent runs). Ask the human; record only the origins they
+  confirm, with the confirmation as authority. An unconfirmed proposal is refused
+  and never stored; do not record it as a link.
+
+A note without `links` needs neither. Origin links are reporting data only; the
+authority text stays in the journal and is not projected into metrics.
 
 Outcome publication first appends a durable journal marker, then the service
 cache and terminal event. A late concurrent completion therefore invalidates a

@@ -82,7 +82,11 @@ export async function prepareMerge(core, input) {
 }
 // Classify a refused hosted merge. Only a PR observed as still unmerged and
 // blocked by a hosting rule is an external blocker; anything else (including a
-// lost response after a completed merge) keeps its original error.
+// lost response after a completed merge) keeps its original error. The refusal
+// itself must indicate the rule: its message names a review or policy block,
+// or the host reports mergeStateStatus BLOCKED. A pending review decision alone
+// does not: a conflict or other failure on a PR that also awaits review keeps
+// its original error.
 const REVIEW_RULE = /approving review|review(?:s)? (?:is |are )?required|changes requested|review required/iu;
 const POLICY_RULE = /base branch policy|protected branch|repository rule|rule violation|merge(?:s)? (?:is |are )?blocked/iu;
 export async function externalBlocker(run, root, action, error) {
@@ -93,8 +97,9 @@ export async function externalBlocker(run, root, action, error) {
   } catch { return null; }
   if (observed?.number !== action.number || observed.state !== 'OPEN' || observed.headRefOid !== action.head) return null;
   const message = [error?.stderr, error?.message].filter(item => typeof item === 'string').join('\n').trim().slice(0, 2000);
-  const review = ['REVIEW_REQUIRED', 'CHANGES_REQUESTED'].includes(observed.reviewDecision) || REVIEW_RULE.test(message);
-  const policy = observed.mergeStateStatus === 'BLOCKED' || POLICY_RULE.test(message);
+  const blocked = observed.mergeStateStatus === 'BLOCKED';
+  const review = REVIEW_RULE.test(message) || (blocked && ['REVIEW_REQUIRED', 'CHANGES_REQUESTED'].includes(observed.reviewDecision));
+  const policy = blocked || POLICY_RULE.test(message);
   if (!review && !policy) return null;
   return { blocker: review ? 'required-review' : 'branch-policy', mergeStateStatus: observed.mergeStateStatus ?? null,
     reviewDecision: observed.reviewDecision ?? null, message };

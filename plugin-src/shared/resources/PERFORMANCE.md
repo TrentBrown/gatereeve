@@ -130,8 +130,39 @@ remain deferred. Artifact references leave room for future transcript links.
 Use `workflow-note <file>` to retain bounded strategy, friction, escaped-defect,
 disposition and artifact notes with reasons and finding/fix/reference links.
 These records are agent memory, never a decision constraint or authority source.
-The report distinguishes observed facts from analysis and unknown denominators;
-it does not claim complete time capture or that every repeated check was waste.
+An escaped-defect origin link (fix to origin run or PR) is recorded only with a
+`linkBasis` of `human-stated` or `agent-proposed` and the human's statement or
+confirmation as authority; an unconfirmed agent proposal is refused (see
+PROTOCOL.md, Escaped defects). The report distinguishes observed facts from
+analysis and unknown denominators; it does not claim complete time capture or
+that every repeated check was waste.
+
+**Rigor, autonomy and authority.** Every observation projected from a run
+carries `rigor` (`full`/`light`) and `autonomy` (`supervised`/`delegated`): the
+run's dials when its event was recorded. A contract-7 run with no dial events
+reads `full`/`supervised`. Observations projected before dial measurement, and
+execution timings (which are not run events), have no dial fields and are
+grouped as "Not recorded", never as full/supervised. Projected run events:
+
+| Run event | Observation |
+|---|---|
+| `STARTED` | `event`, check `STARTED`, initial dials; plus one `DIAL_INITIAL` per recorded start dial with `dial`, `dialValue`, `dialSource` (`built-in`/`explicit`), `actor`, `authorityKind` |
+| `DIAL_SET` (settings, delegation, escalation, hand-back) | `event`, check `DIAL_SET`, `dial`, `dialValue`, `dialPrevious`, `dialSource` (`explicit`/`automatic`), `actor`, `trigger` (`tripwire`, `amend`, `agent`, `human`, `external-blocker`, `protection-lost`), `authorityKind` when a human instruction was observed |
+| `DECIDED` (incl. `stay-light`, delegated decisions) | `decision`, check = kind, `authorityKind` (`human-confirmed`/`delegated-evaluator`), `authorityBasis` (`planning-review`/`required-gates`), `actions`, `count` of hits for `stay-light` |
+| `TRIPWIRES_EVALUATED` | `event`, `stage`, `outcome` `HIT`/`CLEAR`, hit `count`, hit `categories` (never paths or text) |
+| `PLANNING_REVIEWED` | `artifact`, check `planning-review:<artifact>`, outcome, evaluator model/provider |
+| `MERGE_BLOCKED` | `event`, `blocker` (`required-review`/`branch-policy`), outcome `BLOCKED` |
+| `OBSERVATION` | the note; escaped-defect links only with `linkBasis` |
+
+Review publication writes the PR description and records no run event; it is
+measured as the `review.publish` operation timing. `metrics reevaluate` adds
+Rigor, Autonomy and Decision authority groups and a `measurement` summary (runs
+by dial, dial changes, delegations, escalations and hand-backs by trigger,
+decisions by authority, human touches, tripwire hits and stay-light decisions,
+planning reviews, external blockers, escaped defects). With no escaped-defect
+records the report says "No escaped defects recorded" and that this is not
+evidence of safety; it never reports "no escaped defects". Dial comparisons are
+observational, not randomized, and are never presented as safety evidence.
 
 Snapshot retention uses the shared metrics summary-retention setting. Explicit
 cleanup can expire old datasets and unreferenced reporting observations; it never
