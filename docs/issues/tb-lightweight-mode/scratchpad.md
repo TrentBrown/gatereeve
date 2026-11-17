@@ -880,3 +880,17 @@ simplified design:
   absolute `cd` and still denies (NEW10).
 - GIT_DIR comes from `--git-dir`, a prefix (dropped by `env -u`/`-i` and by
   `sudo`/`doas` without `-E`), or an inherited prefix in `bash -c`/`eval`.
+
+### S10 review round 5 (FAIL on 9d8fec2) — fixes
+
+Three in-scope defects, fixed:
+
+- NEW8: a newline after `&&`/`||`/`|` replaced the pending operator, so
+  `false &&⏎cd d` looked certain. The parser keeps the operator across the
+  newline.
+- NEW19: separated `env --split-string '…'` sliced the option name instead of
+  taking the next argument.
+- NEW20: a pipeline joined its list with its first command's status, and leaving
+  a subshell restored the caller's old status. A pipeline now takes its last
+  command's status, and a subshell keeps its exit status while its directory
+  changes map back to where it started.

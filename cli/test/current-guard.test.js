@@ -199,7 +199,7 @@ test('pushes to the configured integration or release branch are denied; topic p
   assert.match((await decide('git push --follow-tags')).hookSpecificOutput?.permissionDecisionReason ?? '', /integration branch main/u, '--follow-tags also pushes the branch');
 });
 
-test('a push is checked in every repository it could act on, per the documented coverage list (NEW6-NEW18)', async t => {
+test('a push is checked in every repository it could act on, per the documented coverage list (NEW6-NEW20)', async t => {
   const f = await configured(t);
   const outside = await mkdtemp(join(tmpdir(), 'gatereeve-guard-outside-'));
   t.after(() => rm(outside, { recursive: true, force: true }));
@@ -275,6 +275,15 @@ test('a push is checked in every repository it could act on, per the documented 
     // NEW18: a wrapped builtin cannot change the calling shell.
     [outside, `cd ${q(f.repo)}; env -C ${q(outside)} eval true; git push origin main`],
     [outside, `cd ${q(f.repo)}; sudo cd ${q(outside)}; git push origin main`],
+    // NEW8: a newline after && continues the list.
+    [outside, `cd ${q(f.repo)}; false &&\ncd ${q(outside)}; git push origin main`],
+    // NEW19: the separated long split-string option.
+    [outside, "env --split-string 'gh pr merge 12'"],
+    [outside, `env --split-string ${q(`git -C ${f.repo} push origin main`)}`],
+    // NEW20: a pipeline's status is its last command's; a subshell keeps its status.
+    [outside, `false | true && cd ${q(f.repo)}; git push origin main`],
+    [outside, `false; (true) && cd ${q(f.repo)}; git push origin main`],
+    [outside, `true; (false) || cd ${q(f.repo)}; git push origin main`],
     // Past the tracked number of possible directories a push is denied, not admitted.
     [outside, `${['a', 'b', 'c', 'd', 'e'].map(name => `test -d ${name} && cd ${name}`).join('; ')}; git push origin topic`],
   ];
@@ -300,6 +309,10 @@ test('a push is checked in every repository it could act on, per the documented 
     [outside, `(cd ${q(f.repo)}); git push origin main`],
     [outside, `cd ${q(f.repo)} | cat; git push origin main`],
     [outside, `cd ${q(f.repo)} & git push origin main`],
+    [outside, `true ||\ncd ${q(f.repo)}; git push origin main`],
+    [outside, `true | false && cd ${q(f.repo)}; git push origin main`],
+    [outside, `true; (false) && cd ${q(f.repo)}; git push origin main`],
+    [outside, `(cd ${q(f.repo)}; true) && git push origin main`],
     // NEW15: superseded directories are not checked, inside compound commands too.
     [outside, `cd ${q(f.repo)}; cd ${q(outside)}; { git push origin main; }`],
     [outside, `cd ${q(f.repo)}; cd ${q(outside)}; if true; then git push origin main; fi`],

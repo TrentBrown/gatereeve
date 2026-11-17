@@ -97,7 +97,8 @@ export function parseShell(text) {
   const fresh = () => ({ words: [], heredocs: [], herestrings: [], subshells: [...subshells] });
   const nest = script => { nested.push(script); nestedAt.push(commands.length); };
   // Each command records the separator before and after it (null at the ends):
-  // ';', '\n', '&&', '||', '|', '|&' or '&'. Subshell parentheses do not count.
+  // ';', '\n', '&&', '||', '|', '|&' or '&'. Subshell parentheses do not count,
+  // and a newline after `&&`, `||` or `|` continues the list (NEW8).
   let before = null;
   let current = fresh();
   let word = null, expect = null, pending = [];
@@ -114,7 +115,7 @@ export function parseShell(text) {
     if (current.words.length || current.heredocs.length || current.herestrings.length || pending.some(item => item.command === current)) {
       current.before = before; current.after = separator; commands.push(current);
       before = separator;
-    } else if (separator !== null) before = separator;
+    } else if (separator !== null && !(separator === '\n' && ['&&', '||', '|', '|&'].includes(before))) before = separator;
     current = fresh();
   };
   const consumeHeredocs = start => {
@@ -362,7 +363,7 @@ function unwrap(words, scope) {
       for (let at = 1; at < rest.length && /^-./u.test(rest[at]) && rest[at] !== '--'; at += WRAPPERS.get('env').has(rest[at]) ? 2 : 1) {
         const item = rest[at];
         if (!(item.startsWith('-S') || item === '--split-string' || item.startsWith('--split-string='))) continue;
-        const attached = item.startsWith('--split-string=') ? item.slice(15) : item.length > 2 ? item.slice(2) : null;
+        const attached = item === '--split-string' ? null : item.startsWith('--split-string=') ? item.slice(15) : item.length > 2 ? item.slice(2) : null;
         rest = [rest[0], ...rest.slice(1, at), ...splitString(attached ?? rest[at + 1] ?? ''), ...rest.slice(at + (attached === null ? 2 : 1))];
         found = true; break;
       }
@@ -510,24 +511,36 @@ function analyze(text, depth, start) {
   const { commands, nested, nestedAt } = parseShell(text);
   const findings = [];
   let ok = start.places, fail = NOWHERE, listStart = start.places, gitDir = start.gitDir;
-  let compound = 0, path = [], fallback = null;
+  let compound = 0, path = [], fallback = null, pipeline = null, moves = 0;
   const saved = [];
+  // Leaving a subshell keeps its exit status but undoes its directory and
+  // GIT_DIR changes: if it moved, each status maps back to where it started.
+  const leave = () => {
+    const entered = saved.pop(); path.pop();
+    if (moves !== entered.moves) {
+      const at = entered.input ?? union(entered.ok, entered.fail);
+      ok = reachable(ok) ? at : NOWHERE; fail = reachable(fail) ? at : NOWHERE;
+    }
+    ({ listStart, gitDir } = entered); fallback = null;
+  };
   const classifyNested = (index, state) => {
     for (let at = 0; at < nested.length; at++) if (nestedAt[at] === index) findings.push(...analyze(nested[at], depth + 1, state).findings);
   };
   commands.forEach((command, index) => {
-    // Entering a subshell saves the shell's state; leaving restores it.
+    // Entering a subshell saves the shell's state (see leave).
     const target = command.subshells;
-    while (path.length && !path.every((id, k) => target[k] === id)) { ({ ok, fail, listStart, gitDir } = saved.pop()); path.pop(); }
-    while (path.length < target.length) { saved.push({ ok, fail, listStart, gitDir }); path.push(target[path.length]); }
+    while (path.length && !path.every((id, k) => target[k] === id)) leave();
+    while (path.length < target.length) { saved.push({ ok, fail, listStart, gitDir, moves, input: null }); path.push(target[path.length]); }
     const head = command.words[0];
     const inside = compound > 0 || OPENERS.has(head) || BRANCHES.has(head) || head === 'function';
     if (OPENERS.has(head) || (head === 'function' && command.words.includes('{'))) compound++;
     if (CLOSERS.has(head)) compound = Math.max(0, compound - 1);
     const before = command.before;
     // A command right after `cd … ||` runs where the shell was before the cd.
-    const input = before === '&&' ? ok : before === '||' ? (fallback ? union(fail, fallback) : fail) : before === '&' ? listStart : union(ok, fail);
+    // Every command of a pipeline starts where the pipeline does.
+    const input = PIPED.has(before) && pipeline ? pipeline.input : before === '&&' ? ok : before === '||' ? (fallback ? union(fail, fallback) : fail) : before === '&' ? listStart : union(ok, fail);
     if (!['&&', '||', '|', '|&'].includes(before)) listStart = input;
+    for (const entered of saved) if (entered.input === null) entered.input = input;
     const state = { places: input, gitDir };
     classifyNested(index, state);
     const scope = { chdir: [], gitDir: undefined, external: false };
@@ -556,6 +569,7 @@ function analyze(text, depth, start) {
     const moved = own && words.length ? changedDirectory(words) : null;
     // A function body may change anything when called later (a limit).
     if (head === 'function') result = { ok: SOMEWHERE, fail: SOMEWHERE };
+    if (head === 'function' || moved !== null || result.ok === SOMEWHERE) moves++;
     if (moved !== null) result = inside ? { ok: SOMEWHERE, fail: SOMEWHERE } : { ok: moved === undefined ? (reachable(input) ? SOMEWHERE : NOWHERE) : move(input, moved), fail: NOWHERE };
     // `unwrap` drops assignments, so a bare `GIT_DIR=…` is read from the words.
     const variable = own ? gitDirChange(words.length ? words : command.words.filter(word => !RESERVED.has(word))) : null;
@@ -567,13 +581,16 @@ function analyze(text, depth, start) {
       else if (command.words.length === 1 && head === 'false') result = { ok: NOWHERE, fail: input };
     }
     fallback = moved !== null && !inside ? input : null;
-    // A piped command leaves its list's state alone.
-    if (PIPED.has(before)) return;
-    if (before === '&&') { ok = result.ok; fail = union(result.fail, fail); }
-    else if (before === '||') { fail = result.fail; ok = union(result.ok, ok); }
+    // A pipeline's status is its last command's (NEW20); it joins its list by
+    // the separator before its first command.
+    if (PIPED.has(command.after)) { if (!PIPED.has(before)) pipeline = { before, input }; return; }
+    let link = before;
+    if (PIPED.has(before)) { if (!pipeline) return; link = pipeline.before; pipeline = null; }
+    if (link === '&&') { ok = result.ok; fail = union(result.fail, fail); }
+    else if (link === '||') { fail = result.fail; ok = union(result.ok, ok); }
     else { ok = result.ok; fail = result.fail; }
   });
-  while (path.length) { ({ ok, fail, listStart, gitDir } = saved.pop()); path.pop(); }
+  while (path.length) leave();
   const end = commands.at(-1)?.after === '&' ? listStart : union(ok, fail);
   classifyNested(commands.length, { places: end, gitDir });
   return { findings, places: end, gitDir };
