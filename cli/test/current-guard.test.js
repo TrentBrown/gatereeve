@@ -199,7 +199,7 @@ test('pushes to the configured integration or release branch are denied; topic p
   assert.match((await decide('git push --follow-tags')).hookSpecificOutput?.permissionDecisionReason ?? '', /integration branch main/u, '--follow-tags also pushes the branch');
 });
 
-test('a push is checked in every repository it could act on, per the documented coverage list (NEW6-NEW20)', async t => {
+test('a push is checked in every repository it could act on, per the documented coverage list (NEW6-NEW21)', async t => {
   const f = await configured(t);
   const outside = await mkdtemp(join(tmpdir(), 'gatereeve-guard-outside-'));
   t.after(() => rm(outside, { recursive: true, force: true }));
@@ -290,6 +290,8 @@ test('a push is checked in every repository it could act on, per the documented 
     // NEW21: an unquoted heredoc body is subject to command substitution.
     [outside, 'cat <<EOF\n$(gh pr merge 12)\nEOF'],
     [outside, 'cat <<EOF\n`gh pr merge 12`\nEOF'],
+    [outside, 'cat <<EO\\\nF\n$(gh pr merge 12)\nEOF'],
+    [outside, `cd ${q(outside)}; (exit 3) || cd ${q(f.repo)}; git push origin main`],
     [outside, `cat <<EOF\n$(git -C ${q(f.repo)} push origin main)\nEOF`],
     // Past the tracked number of possible directories a push is denied, not admitted.
     [outside, `${['a', 'b', 'c', 'd', 'e'].map(name => `test -d ${name} && cd ${name}`).join('; ')}; git push origin topic`],
@@ -321,6 +323,9 @@ test('a push is checked in every repository it could act on, per the documented 
     [outside, `true; (false) && cd ${q(f.repo)}; git push origin main`],
     [outside, `(cd ${q(f.repo)}; true) && git push origin main`],
     [outside, `true || (false; false) || cd ${q(f.repo)}; git push origin main`],
+    [outside, `(exit 0) || cd ${q(f.repo)}; git push origin main`],
+    [outside, `cd ${q(f.repo)}; (exit 0) && cd ${q(outside)}; git push origin main`],
+    [outside, `(exit 3) && cd ${q(f.repo)}; git push origin main`],
     [outside, "cat <<'EOF'\n$(gh pr merge 12)\nEOF"],
     [outside, 'cat <<\\EOF\n`gh pr merge 12`\nEOF'],
     // NEW15: superseded directories are not checked, inside compound commands too.

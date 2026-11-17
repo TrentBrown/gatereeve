@@ -155,7 +155,9 @@ export function parseShell(text) {
   let i = 0;
   while (i < text.length) {
     const c = text[i];
-    if (expect?.kind === 'heredoc' && (c === '\\' || c === "'" || c === '"')) expect.quoted = true;
+    // A quoted or escaped heredoc delimiter keeps the body as data; a
+    // backslash-newline is only a line continuation (NEW21).
+    if (expect?.kind === 'heredoc' && ((c === '\\' && text[i + 1] !== '\n') || c === "'" || c === '"')) expect.quoted = true;
     if (c === '\\') {
       if (text[i + 1] !== '\n') append(text[i + 1] ?? '');
       i += 2; continue;
@@ -533,6 +535,8 @@ function analyze(text, depth, start) {
   const findings = [];
   let ok = start.places, fail = NOWHERE, listStart = start.places, gitDir = start.gitDir;
   let compound = 0, path = [], fallback = null, pipeline = null, composite = null;
+  // Statuses an `exit` in the current subshell may end it with.
+  let exits = { ok: false, fail: false };
   const saved = [];
   // Where a command starts, from the separator before it. A command right after
   // `cd … ||` runs where the shell was before the cd; every command of a
@@ -550,20 +554,20 @@ function analyze(text, depth, start) {
   };
   // A `( … )` subshell is one composite command: it starts a fresh list where
   // the caller's list reaches it, and joins the caller's list with its exit
-  // status while its directory and GIT_DIR changes end with it. After `exit`
-  // inside it, either status is possible.
+  // status while its directory and GIT_DIR changes end with it. An `exit`
+  // inside it ends it with its literal status (`exit 0` succeeds, another
+  // number fails), or either status without one.
   const enter = (before, id) => {
     const input = inputFor(before);
     if (!['&&', '||', '|', '|&'].includes(before)) listStart = input;
-    saved.push({ ok, fail, listStart, gitDir, pipeline, before, input });
+    saved.push({ ok, fail, listStart, gitDir, pipeline, before, input, exits });
     path.push(id);
-    ok = input; fail = NOWHERE; listStart = input; pipeline = null; fallback = null;
+    ok = input; fail = NOWHERE; listStart = input; pipeline = null; fallback = null; exits = { ok: false, fail: false };
   };
   const leave = () => {
     const entered = saved.pop(); path.pop();
-    const exited = !reachable(ok) && !reachable(fail);
-    const result = { ok: exited || reachable(ok) ? entered.input : NOWHERE, fail: exited || reachable(fail) ? entered.input : NOWHERE };
-    ({ ok, fail, listStart, gitDir, pipeline } = entered); fallback = null;
+    const result = { ok: exits.ok || reachable(ok) ? entered.input : NOWHERE, fail: exits.fail || reachable(fail) ? entered.input : NOWHERE };
+    ({ ok, fail, listStart, gitDir, pipeline, exits } = entered); fallback = null;
     composite = { before: entered.before, input: entered.input, ok, fail, pipeline };
     join(entered.before, null, entered.input, result);
   };
@@ -623,7 +627,14 @@ function analyze(text, depth, start) {
     if (variable === 'set') gitDir = UNKNOWN_GIT_DIR;
     if (variable === 'unset') gitDir = !inside && [null, ';', '\n'].includes(before) ? null : gitDir === null ? null : UNKNOWN_GIT_DIR;
     if (!inside && moved === null) {
-      if (name === 'exit' && own) result = { ok: NOWHERE, fail: NOWHERE };
+      if (name === 'exit' && own) {
+        if (reachable(input)) {
+          const code = words[1];
+          if (code === undefined || !/^\d+$/u.test(code) || Number(code) === 0) exits.ok = true;
+          if (code === undefined || !/^\d+$/u.test(code) || Number(code) !== 0) exits.fail = true;
+        }
+        result = { ok: NOWHERE, fail: NOWHERE };
+      }
       else if (command.words.length === 1 && ['true', ':'].includes(head)) result = { ok: input, fail: NOWHERE };
       else if (command.words.length === 1 && head === 'false') result = { ok: NOWHERE, fail: input };
     }

@@ -907,3 +907,11 @@ Three in-scope defects, fixed:
   are expanded by the shell before the command reads the body. They are now
   classified where the command runs; a quoted delimiter (`'EOF'`, `"EOF"`,
   `\EOF`) keeps the body as data. Pre-existing, but inside the coverage list.
+
+### S10 review round 7 (FAIL on 842bd3c) — fixes
+
+- NEW20: an `exit` inside a subshell ended it with either status, so
+  `(exit 0) || cd d` looked possible. A literal `exit 0` now succeeds and
+  another number fails; `exit` without a number still allows either.
+- NEW21: a backslash-newline in a heredoc delimiter (`<<EO\⏎F`) is a line
+  continuation, not quoting, so the body's substitutions are classified.
