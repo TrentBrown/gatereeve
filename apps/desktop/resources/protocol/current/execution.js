@@ -301,7 +301,7 @@ async function commands(core, state, candidate, configuration, completion, envir
   return { receipts, outcome: receipts.some(item => item.outcome === 'UNAVAILABLE') ? 'UNAVAILABLE'
     : receipts.every(item => item.outcome === 'PASS') ? 'PASS' : 'FAIL' };
 }
-function validateVerdict(verdict, ids, candidate, changes, history, claims, reconsiderClosures = []) {
+export function validateVerdict(verdict, ids, candidate, changes, history, claims, reconsiderClosures = []) {
   requireThat(ids.includes(verdict.gate) && OUTCOMES.includes(verdict.outcome), 'Reviewer returned an unrequested gate or invalid outcome');
   text(verdict.summary, 'Review summary');
   requireThat(verdict.coverage && typeof verdict.coverage.complete === 'boolean'
@@ -336,7 +336,11 @@ function validateVerdict(verdict, ids, candidate, changes, history, claims, reco
     const reconsider = reconsiderClosures.filter(item => item.gate === verdict.gate).map(item => item.id);
     if (reconsider.length) {
       const assessment = verdict.historyAssessment;
-      requireThat(assessment && Array.isArray(assessment.affected) && new Set(assessment.affected).size === assessment.affected.length && assessment.affected.every(id => reconsider.includes(id)), 'Reconsider affected closed findings and justify any carried closures');
+      // Affected IDs may name the reconsidered closures and also findings that
+      // are already required (open prior findings, claimed fixes): evaluators
+      // list those too. Unknown or duplicate IDs are still rejected.
+      const known = new Set([...reconsider, ...required, ...claims.map(claim => claim.findingId)]);
+      requireThat(assessment && Array.isArray(assessment.affected) && new Set(assessment.affected).size === assessment.affected.length && assessment.affected.every(id => known.has(id)), 'Reconsider affected closed findings and justify any carried closures');
       for (const id of assessment.affected) required.add(id);
       if (reconsider.some(id => !assessment.affected.includes(id))) text(assessment.carryForwardReason, 'Unaffected closure applicability justification');
     }

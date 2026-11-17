@@ -45,12 +45,30 @@ async function run(options, operation, input = {}, detail = {}) {
     const cleanup = result.data.current?.sourceCleanup ?? result.data.sourceCleanup;
     if (cleanup) console.log(`Source retention: ${cleanup.status}; ${cleanup.errors?.map(item => item.reason).join('; ') || 'completed-run pins released; later reuse checks availability'}`);
     for (const view of result.data.current?.temporaryViews ?? result.data.temporaryViews ?? []) console.log(`Review view ${view.id}: ${view.status}`);
+    const workspaceState = result.data.workspace;
+    if (workspaceState?.recorded && ['created', 'replaced'].includes(workspaceState.recorded.status)) console.log(`Workspace configuration ${workspaceState.recorded.status} ${({ 'run.start': 'at run start', 'run.resume-current': 'when resumption started the run' })[workspaceState.recorded.operation] ?? 'by workspace.configure'}: ${workspaceState.recorded.configPath} (feature ${workspaceState.recorded.featureId}; integration and release ${workspaceState.recorded.configuration.repositories.repository.integrationBranch}; excluded locally in ${workspaceState.recorded.exclude.path})`);
+    if (workspaceState?.message) console.log(`Workspace: ${workspaceState.message}`);
     for (const blocker of result.data.blockers ?? []) console.log(blocker.message);
   } else console.log(JSON.stringify(result.data, null, 2));
   if (!result.ok) { const error = new Error(result.error.message); error.reported = true; throw error; }
   return result.data;
 }
 const collect = (value, values) => [...values, value];
+// Workspace instruction options (spec AC6): replacing another feature's
+// configuration, or confirming the run belongs to it, needs the human instruction.
+function workspaceOptions(item) {
+  return item.option('--replace-workspace', 'Replace a configuration naming another feature (needs --instruction and --instruction-context)')
+    .option('--confirm-feature <featureId>', 'Confirm this run belongs to the configured feature although the branch does not name it (needs --instruction and --instruction-context)')
+    .option('--instruction <quote>', 'Observed human instruction for the workspace decision')
+    .option('--instruction-context <text>', 'Proposal/conversation context of that instruction');
+}
+function workspaceInput(options) {
+  if (!options.replaceWorkspace && options.confirmFeature === undefined) return undefined;
+  // Both are passed through when both are given, so the protocol rejects the
+  // contradiction instead of the CLI silently choosing one.
+  return { ...(options.replaceWorkspace ? { replace: true } : {}), ...(options.confirmFeature !== undefined ? { confirmFeature: options.confirmFeature } : {}),
+    authority: { kind: 'human-confirmed', instruction: options.instruction, context: options.instructionContext } };
+}
 export function currentCommands() {
   const status = command('status', 'Inspect current commitments, proof and milestone blockers');
   status.action(options => run(options, 'status'));
@@ -65,13 +83,19 @@ export function currentCommands() {
     .action((kind, id, options) => run(options, 'read', {}, { kind, id: id ?? null }));
   const runCommand = new Command('run').description('Start or resume current work without replaying old protocol state');
   for (const action of ['start', 'resume-current']) {
-    runCommand.addCommand(command(action, 'Preserve documents and establish the current run')
+    const item = command(action, action === 'start' ? 'Establish the current run; in a repository with a GitHub remote and no workspace configuration, write a minimal one'
+      : 'Preserve documents and establish the current run (a fresh run follows the run start workspace rules)')
       .requiredOption('--implementer <context>', 'Implementing context identity', collect, [])
       .option('--planning <file>', 'Observed design and implementation approval records for resumption')
-      .option('--whiteboard', 'Include the optional whiteboard gate')
-      .action(async options => run(options, `run.${action}`, { implementers: options.implementer,
-        optionalGates: options.whiteboard ? ['whiteboard'] : [], ...(options.planning ? { planning: await readJsonFile(options.planning) } : {}) })));
+      .option('--whiteboard', 'Include the optional whiteboard gate');
+    workspaceOptions(item);
+    runCommand.addCommand(item.action(async options => run(options, `run.${action}`, { implementers: options.implementer,
+      optionalGates: options.whiteboard ? ['whiteboard'] : [], ...(options.planning ? { planning: await readJsonFile(options.planning) } : {}),
+      ...(workspaceInput(options) ? { workspace: workspaceInput(options) } : {}) })));
   }
+  const workspace = new Command('workspace').description('Workspace configuration for delivery (.agentic-workflow.json)');
+  workspace.addCommand(workspaceOptions(command('configure', 'For an existing run without one, write the minimal workspace configuration: the GitHub default branch as integration and release, excluded locally'))
+    .action(options => run(options, 'workspace.configure', workspaceInput(options) ?? {})));
   const spec = command('validate-spec', 'Run specification validation against the approved design');
   spec.action(options => run(options, 'spec.validate'));
   const ready = command('ready', 'Declare the prepared candidate ready without launching a reviewer');
@@ -189,5 +213,5 @@ export function currentCommands() {
     .option('--merge <file>', 'Selected repository, PR number and merge method')
     .action(async options => run(options, 'delivery.resume', {
       ...(options.grant ? { grant: options.grant } : {}), ...(options.merge ? { merge: await readJsonFile(options.merge) } : {}) }));
-  return [status, coverage, database, note, read, runCommand, spec, candidate, ready, gate, decide, delegatedDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
+  return [status, coverage, database, note, read, runCommand, workspace, spec, candidate, ready, gate, decide, delegatedDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
 }

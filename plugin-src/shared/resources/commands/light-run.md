@@ -14,6 +14,13 @@ Delegated autonomy, Delivery targets) for the exact operation inputs. Do not loa
 - Start the run with `run.start` and
   `rigor: {value: "light", authority: <the human's observed instruction>, reason}`.
   Autonomy stays `supervised` unless the human explicitly delegates this run.
+- Delivery needs a workspace configuration. In a repository with a GitHub remote
+  and no `.agentic-workflow.json`, `run.start` writes a minimal one (this branch as
+  the feature, the default branch as integration and release, excluded locally) and
+  `status` `workspace` reports it. If `run.start` stops because an existing
+  configuration names another feature, stop and ask the human: record their answer
+  as `workspace: {confirmFeature: <that featureId>, authority}` or
+  `workspace: {replace: true, authority}`. Never pick one yourself.
 - A full run never becomes light. To work light after starting full, start a new
   light run on a new topic branch and feature home; the old run and its evidence
   stay retained.
@@ -44,7 +51,9 @@ No interview, design, spec, plan, issues or spec validation is required.
 confirmation as `human.decide` kind `authorize-implementation` against the
 brief-derived subject from `status` `commitments`. Changing the brief afterwards
 invalidates that authority: show the changed brief and record a new authorization
-before continuing. `amend` is not used in a light run.
+before continuing. `amend` is not used in a light run. If the run was delegated, a
+human re-authorization of a brief changed outside its findings log also returns
+the run to supervised.
 
 **Delegated** (only when the human delegated this run by name). Run
 `planning.review` with `artifact: "brief"` in a fresh independent context. On
@@ -99,6 +108,10 @@ Light acceptance requires the same gates as full: `context`, `review`,
   PR, a release-branch target, a gate that is not PASS) goes to the human.
 
 ## 6. Merge
+
+If `merge.prepare` reports that the workspace has no configuration, run the
+`workspace.configure` operation it names (or ask the human to write the file when
+the repository has no GitHub remote).
 
 Merges go through `merge.prepare` and `merge.execute`, never a shell
 `gh pr merge`, `gh api` merge call or `git push` to the integration or release

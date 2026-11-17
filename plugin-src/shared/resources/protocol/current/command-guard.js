@@ -337,13 +337,17 @@ export function classifyShellCommand(text, depth = 0) {
 // Branch names a push finding may update. `current` resolves HEAD and an
 // implicit destination (push.default simple/current); '*' globs match branches.
 // `--tags` adds refs/tags/* as a refspec, so with no other refspec git pushes
-// only tags and no implicit branch; explicit refspecs still apply.
+// only tags and no implicit branch; explicit refspecs still apply. The matching
+// refspec `:` (or `+:`) is treated like `--all`.
 export function pushDestinations(finding, current) {
   if (finding.all) return ['*'];
   if (!finding.refspecs.length) return finding.tags ? [] : current ? [current] : [];
   const destinations = [];
   for (const refspec of finding.refspecs) {
     const spec = refspec.replace(/^\+/u, '');
+    // The matching refspec (`:` or `+:`) updates every branch that exists on
+    // both sides, so it may update any protected branch.
+    if (spec === ':') { destinations.push('*'); continue; }
     let destination = spec.includes(':') ? spec.slice(spec.indexOf(':') + 1) : spec;
     if (!destination) continue;
     if (destination === 'HEAD' || destination === '@') destination = current;

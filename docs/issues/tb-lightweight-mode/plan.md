@@ -188,6 +188,18 @@ delegated.
   - This is supporting work that is required for consistent behavior. It carries no
     separate rubric row and is checked within R2, R9, R11 and R12 parity evidence.
 
+- **P10. Workspace configuration at run start and feature-final review fixes.**
+  - Run start writes a minimal `.agentic-workflow.json` when a repository with a
+    GitHub remote has none: the current branch as the feature, the observed default
+    branch as integration and release, added to the local Git excludes, and recorded
+    with the run start. A configuration naming a different feature stops run start
+    until a human instructs its replacement. A standalone operation writes it for an
+    existing unconfigured run, and merge preparation names that operation.
+  - Feature-final review fixes: a changed light brief hands delegation back whatever
+    authority approves it (NEW1); the guard denies matching refspecs `:` and `+:`
+    (NEW3); asking for light on a light run reports "already light" (F13).
+  - **Advances:** R8, R7, R10 (design and spec Changes 2026-11-17).
+
 ## Slices
 
 | Slice | Branch | Steps | Depends on |
@@ -198,7 +210,9 @@ delegated.
 | S4 | `tb-lightweight-mode-04-guard-and-session` | P7 | S1 |
 | S5 | `tb-lightweight-mode-05-tripwires-and-delegation` | P5, P6 | S2, S3 |
 | S6 | `tb-lightweight-mode-06-measurement` | P8, P9 (inventory finalization) | S1–S5 |
-| Final | `tb-lightweight-mode` → `main` | Whole-feature `FEATURE` review | S1–S6 |
+| S7 | `tb-lightweight-mode-07-final-records` | Records only (S6 merge) | S6 |
+| S8 | `tb-lightweight-mode-08-workspace-config` | P10 | S1–S7 |
+| Final | `tb-lightweight-mode` → `main` | Whole-feature `FEATURE` review | S1–S8 |
 
 ## Verification
 

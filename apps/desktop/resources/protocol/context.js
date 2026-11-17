@@ -342,6 +342,15 @@ export function workflowContextGuard(context) {
   };
 }
 
+// Resolve a discovered context again with its original options, for example
+// after GateReeve itself wrote the workspace configuration (run.start).
+export async function reresolveWorkflowContext(context) {
+  const resolution = resolutions.get(context);
+  if (!resolution) throw new ProtocolError('WORKFLOW_CONTEXT_ERROR',
+    'Workflow context discovery is unavailable; resolve the original request again');
+  return resolveWorkflowContext(resolution.options);
+}
+
 export async function resolveWorkflowContext({
   cwd = process.cwd(),
   repository = null,

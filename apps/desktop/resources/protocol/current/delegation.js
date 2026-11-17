@@ -275,14 +275,20 @@ export async function delegatedPlanningAuthority(core, state, value) {
     delegation: { event: delegation.event, at: delegation.at, authority: delegation.authority },
     evaluation: { event: cited.event, artifact, outcome: 'PASS', result: cited.result, evaluator: cited.evaluator } };
 }
-// Delegated re-authorization of a light brief whose goal or scope changed is a
-// scope-changing amendment: hand back and stop.
-export async function assertBriefScopeUnchanged(core, state, docs) {
+// Whether a light re-authorization changes the brief outside its findings
+// section since the last implementation authorization.
+export async function briefScopeChanged(core, state, docs) {
   const previous = latestImplementation(state);
-  if (!previous || !decisionHas(previous, 'authorize-implementation') || !previous.documents?.['brief.md']) return;
+  if (!previous || !decisionHas(previous, 'authorize-implementation') || !previous.documents?.['brief.md']) return false;
   const before = briefScope(await core.store.get(previous.documents['brief.md']));
   const after = briefScope(await core.store.get(docs['brief.md']));
-  if (before === after) return;
+  return before !== after;
+}
+// Delegated re-authorization of a light brief whose goal or scope changed is a
+// scope-changing amendment: hand back and stop. (A human-confirmed one is
+// recorded and also hands back; see core decide.)
+export async function assertBriefScopeUnchanged(core, state, docs) {
+  if (!await briefScopeChanged(core, state, docs)) return;
   await handBack(core, 'amend', 'The brief changed outside its findings log after implementation was authorized; a scope-changing amendment under delegation');
   throw new ContractError('The brief changed outside its findings log since the last authorization. That is a scope-changing amendment: delegation is handed back to supervised. Stop for the human.', { handedBack: 'amend' });
 }

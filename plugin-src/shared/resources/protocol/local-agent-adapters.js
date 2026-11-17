@@ -25,6 +25,12 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
     const stdout = [];
     const stderr = [];
     let size = 0;
+    // A provider that exits before reading a large prompt makes the pending
+    // stdin write fail (EPIPE, or a destroyed stream). Unhandled, that 'error'
+    // event would terminate the evaluator host before the failure could be
+    // retained; it is recorded here and the process outcome decides at close.
+    let stdinError = null;
+    child.stdin.on('error', (error) => { stdinError ??= error; });
     let timedOut = false;
     let killTimer = null;
     const timer = setTimeout(() => {
@@ -69,6 +75,13 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
           providerFailure: { category, exitCode: code, signal, startedAt: iso(startedAt), completedAt: iso(completedAt) },
         }));
       }
+      // Exit 0 without the complete prompt delivered is not a trustworthy run.
+      if (stdinError) {
+        return reject(Object.assign(new Error('Evaluator unavailable: configuration-or-execution; the provider did not accept the complete prompt on standard input.'), {
+          code: 'AGENT_PROVIDER_CONFIGURATION',
+          providerFailure: { category: 'configuration-or-execution', exitCode: code, signal, stdin: stdinError.code ?? 'error', startedAt: iso(startedAt), completedAt: iso(completedAt) },
+        }));
+      }
       resolve(result);
     });
     child.stdin.end(input);
@@ -79,6 +92,17 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
 // shape bounded inputs measure against the same text with promptCharacters().
 export const MAX_PROMPT_CHARACTERS_LIMIT = MAX_PROMPT_CHARACTERS;
 export function promptCharacters(request) { return promptText(request).length; }
+// Linux limits each argv element to MAX_ARG_STRLEN (32 pages, 128 KiB). Large
+// text belongs on standard input; anything else that large fails clearly here
+// instead of as spawn E2BIG.
+export const MAX_ARGUMENT_BYTES = 128 * 1024;
+export function assertArgumentSizes(args) {
+  for (const arg of args) {
+    if (Buffer.byteLength(String(arg)) >= MAX_ARGUMENT_BYTES) {
+      throw new ContractError(`An agent command-line argument exceeds the ${MAX_ARGUMENT_BYTES}-byte per-argument limit; pass large text on standard input`);
+    }
+  }
+}
 function promptFor(request) {
   const prompt = promptText(request);
   if (prompt.length > MAX_PROMPT_CHARACTERS) {
@@ -288,7 +312,11 @@ export function createClaudeCodeAgentAdapter({
           tools: ['Read', 'Glob', 'Grep'],
         },
       };
-      const processResult = await runner(executable, [
+      // The prompt goes on standard input (`--print` reads it there when no
+      // prompt argument is given; `--input-format text` is the default, stated
+      // explicitly). As one argv element it hit Linux's 128 KiB per-argument
+      // limit (spawn E2BIG) well below the 512 KiB prompt bound.
+      const args = [
         '--print', '--restricted', '--permission-mode', 'dontAsk',
         '--permission-prompts', 'none', '--no-session-persistence',
         '--setting-sources', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
@@ -296,10 +324,12 @@ export function createClaudeCodeAgentAdapter({
         '--model', model, '--effort', reasoningEffort,
         '--agents', JSON.stringify(agents), '--agent', agentName,
         '--tools', 'Read,Glob,Grep', '--json-schema', JSON.stringify(request.outputSchema),
-        '--output-format', 'json', promptFor(request),
-      ], {
+        '--output-format', 'json', '--input-format', 'text',
+      ];
+      assertArgumentSizes(args);
+      const processResult = await runner(executable, args, {
         cwd: request.repositoryPath,
-        input: '',
+        input: promptFor(request),
         env: await scratchEnvironment(scratchRun, environment),
         timeoutSeconds: request.timeoutSeconds,
       });

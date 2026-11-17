@@ -1,4 +1,4 @@
-import { basename } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { projectWorkflow } from '../../performance/workflow-projection.js';
 import { observe } from '../../performance/observe.js';
 import { checkIdentity } from './coverage.js';
@@ -20,10 +20,11 @@ import { prepareMerge, merge, observeIntegration } from './actions.js';
 import { captureStanding, applyStanding, standingValidity, standingReleaseRefusal, qualifyingDecisions, requireUnexpired } from './authorization.js';
 import { publishReview, requirePublishedReview } from './publication.js';
 import { evaluateTripwires, describeHits, hitKey } from './tripwires.js';
-import { isDelegated, requireProtection, guardDelegatedAction, reviewPlanning, delegatedPlanningAuthority, assertBriefScopeUnchanged, applyDelegation, delegationStatus, briefLines } from './delegation.js';
+import { isDelegated, requireProtection, guardDelegatedAction, reviewPlanning, delegatedPlanningAuthority, assertBriefScopeUnchanged, briefScopeChanged, applyDelegation, delegationStatus, briefLines } from './delegation.js';
 
 import { sourcePreparation, ensurePins, releasePins } from './source-retention.js';
 import { cleanupViews, viewStatus } from './source-views.js';
+import { prepareWorkspace, workspaceInstruction, WORKSPACE_PREPARED } from './workspace.js';
 
 const LIVE_PROOFS = Symbol('qualified live proof inputs');
 const RETAINED_CLOSURE = Symbol('retained bytes verified in this observation');
@@ -79,7 +80,9 @@ export function project(events) {
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
     decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, actions: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
     sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length,
-    externalBlockers: [], externalBlocker: null, tripwires: null, tripwireHistory: [], planningReviews: [], handBack: null, delegationBlocked: null };
+    externalBlockers: [], externalBlocker: null, tripwires: null, tripwireHistory: [], planningReviews: [], handBack: null, delegationBlocked: null,
+    // Workspace configuration observed or written at run start (spec AC6), or later by workspace.configure.
+    workspace: first.workspace ? { ...first.workspace, at: events[0].recordedAt, event: events[0].hash } : null };
   state.dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial,
     { ...(first.dials?.[dial] ?? startDial(dial)), at: events[0].recordedAt, event: events[0].hash }]));
   state.dialHistory = Object.entries(state.dials).map(([dial, value]) => ({ dial, ...value }));
@@ -128,6 +131,7 @@ export function project(events) {
         if (state.dials.autonomy.value === 'delegated') state.delegationBlocked = state.dials.autonomy.event;
         break; }
       case 'OBSERVATION': break; // Agent memory; never grants authority.
+      case 'WORKSPACE_CONFIGURED': state.workspace = { ...value, at: event.recordedAt, event: event.hash }; break;
       case 'DIAL_SET': {
         const recorded = { ...value, at: event.recordedAt, event: event.hash };
         state.dials[value.dial] = recorded; state.dialHistory.push(recorded);
@@ -162,6 +166,18 @@ function findDecision(state, kind, subject) {
   }
   return currentAuthorityDecisions(state).findLast(item => decisionHas(item, kind) && item.subject === subject);
 }
+// run.start input checks that need no state, run before anything is written.
+export function validateStart(input) {
+  requireThat(input && typeof input === 'object' && !Array.isArray(input), 'run.start input must be an object');
+  if (input.runId !== undefined) identifier(input.runId, 'run');
+  requireThat(Array.isArray(input.implementers) && input.implementers.length > 0, 'Identify the implementing contexts');
+  input.implementers.forEach(value => text(value, 'Implementer context'));
+  const optionalGates = input.optionalGates ?? [];
+  requireThat(Array.isArray(optionalGates) && optionalGates.every(id => gate(id).optional), 'Only optional gates may be selected');
+  const dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial, startDial(dial, input[dial])]));
+  workspaceInstruction(input.workspace);
+  return { optionalGates, dials };
+}
 export class CurrentCore {
   constructor(context, store, runtime = {}) {
     this.sourceContext = context;
@@ -186,24 +202,58 @@ export class CurrentCore {
     requireThat(state.featureId === this.context.featureId, 'Current feature identity changed');
     return { state, events };
   }
-  async start(input, operation, replacement = null) {
+  async start(input, operation, replacement = null, { workspace = false, workspaceOperation = 'run.start' } = {}) {
+    const { optionalGates, dials } = validateStart(input);
     identifier(input.runId, 'run');
-    requireThat(Array.isArray(input.implementers) && input.implementers.length > 0, 'Identify the implementing contexts');
-    input.implementers.forEach(value => text(value, 'Implementer context'));
-    const optionalGates = input.optionalGates ?? [];
-    requireThat(Array.isArray(optionalGates) && optionalGates.every(id => gate(id).optional), 'Only optional gates may be selected');
     const active = replacement ? null : await this.store.active();
     requireThat(!active || active.runId === input.runId, 'A current run already exists; resume that run');
-    const dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial, startDial(dial, input[dial])]));
     // Delegating at start names this run (its runId) and needs the release
     // branch observed as protected, exactly as run.set-dial does (spec AC5).
+    // It is observed before any workspace configuration is written, so the Git
+    // fallback still cannot delegate at start.
     if (dials.autonomy.value === 'delegated') dials.autonomy = { ...dials.autonomy, runId: input.runId, protection: await requireProtection(this) };
-    // No legacy files are read or overwritten. STARTED is durable before activation.
-    await this.store.append(input.runId, 0, 'STARTED', { featureId: this.context.featureId,
-      implementers: [...new Set(input.implementers)], optionalGates: [...new Set(optionalGates)], dials, ...(replacement ? { priorActive: await this.store.put(replacement.bytes) } : {}) }, operation);
+    // Workspace configuration (spec AC6): decided and possibly written here,
+    // unless the adapter already did so before creating the feature home.
+    const prepared = workspace ? await this.prepareWorkspace(input.workspace, workspaceOperation, { createAllowed: dials.autonomy.value !== 'delegated' }) : null;
+    try {
+      const recorded = prepared?.record ? await this.retainWorkspace(prepared) : null;
+      // No legacy files are read or overwritten. STARTED is durable before activation.
+      await this.store.append(input.runId, 0, 'STARTED', { featureId: this.context.featureId,
+        implementers: [...new Set(input.implementers)], optionalGates: [...new Set(optionalGates)], dials, ...(replacement ? { priorActive: await this.store.put(replacement.bytes) } : {}),
+        ...(recorded ? { workspace: recorded } : {}) }, operation);
+    } catch (error) { await prepared?.rollback?.(); throw error; }
     if (replacement) await this.store.supersedeActive(input.runId, replacement);
     else await this.store.activate(input.runId);
     return this.inspect();
+  }
+  // The adapter's preparation for this request, or (for an embedder holding a
+  // resolved context) a preparation that may not move the feature home.
+  async prepareWorkspace(value, operation, options = {}) {
+    const prepared = this[WORKSPACE_PREPARED] ?? await prepareWorkspace(this.sourceContext, value, this.runtime, { operation, fixedHome: this.store.home, ...options });
+    if (prepared.context !== this.sourceContext) {
+      requireThat(resolve(prepared.context.featureHome) === resolve(this.sourceContext.featureHome), 'The workspace configuration moved the feature home; run the operation again');
+      this.sourceContext = prepared.context;
+      this.contextGuard = workflowContextGuard(prepared.context);
+    }
+    return prepared;
+  }
+  // Retain the written (and any replaced) configuration bytes with the record.
+  async retainWorkspace(prepared) {
+    const record = { ...prepared.record };
+    if (prepared.bytes) requireThat((await this.store.put(prepared.bytes)).hash === record.file.hash, 'Written workspace configuration changed');
+    if (prepared.previousBytes) requireThat((await this.store.put(prepared.previousBytes)).hash === record.previous.file.hash, 'Replaced workspace configuration changed');
+    return record;
+  }
+  // workspace.configure: the standalone write for an existing run without a
+  // configuration, with the same rules as run.start (spec AC6).
+  async configureWorkspace(input, operation) {
+    const prepared = await this.prepareWorkspace(input, 'workspace.configure');
+    const { state } = await this.state();
+    if (!prepared.bytes) return { workspace: prepared.record, written: false, state };
+    try {
+      const record = await this.retainWorkspace(prepared);
+      return { ...await this.append(state, 'WORKSPACE_CONFIGURED', record, operation), workspace: record, written: true };
+    } catch (error) { await prepared.rollback?.(); throw error; }
   }
   async resume(input, operation) {
     let active = null, replacement = null;
@@ -215,7 +265,12 @@ export class CurrentCore {
       requireThat(replacement, 'No retained activation can be recovered');
       active = null;
     }
-    if (!active) await this.start(input, operation, replacement);
+    // Workspace instructions belong to starting a fresh run; never drop one
+    // silently when an existing run or retained activation is resumed.
+    requireThat(input.workspace === undefined || (!active && !replacement), 'Workspace instructions apply only when resumption starts a fresh run; this resumes an existing run or retained activation');
+    // With nothing to resume, resumption starts a fresh run: the run-start
+    // workspace rules apply, including the different-feature check (AC6, NEW4).
+    if (!active) await this.start(input, operation, replacement, { workspace: !replacement, workspaceOperation: 'run.resume-current' });
     else {
       const { state } = await this.state();
       requireThat(!input.runId || input.runId === state.runId, 'Another current run is already active');
@@ -324,6 +379,10 @@ export class CurrentCore {
     const delegated = value.authority.kind === DELEGATED_AUTHORITY;
     // Any amendment under delegation changes approved scope: hand back (AC5).
     const amendHandBack = value.kind === 'amend' && isDelegated(state);
+    // A light brief changed outside its findings log is the light scope-changing
+    // amendment. Whatever authority approves it, delegation hands back (AC5);
+    // the delegated-evaluator path is refused below, a human one is recorded.
+    let scopeHandBack = false;
     if (value.kind === 'approve-design') {
       requireThat(['DESIGNING', 'SPECIFYING', 'PLANNING'].includes(state.phase), 'Use an amendment to change approved delivery requirements');
       const doc = await this.store.capture('design.md');
@@ -338,6 +397,7 @@ export class CurrentCore {
       assertBrief(await this.store.get(current.docs['brief.md']));
       requireThat(value.subject === current.subject, 'Implementation authorization does not match the current brief');
       value.documents = current.docs;
+      scopeHandBack = !delegated && isDelegated(state) && await briefScopeChanged(this, state, value.documents);
     } else if (value.kind === 'authorize-implementation') {
       const current = await this.commitments({ state });
       // After a hand-back the human re-authorizes the unchanged commitments in place.
@@ -427,8 +487,10 @@ export class CurrentCore {
     if (admission) await this.assertLiveInputs({ ...state, decisions: [...state.decisions, value] }, 'acceptance', admission.liveInputs);
     else await this.assertContext();
     if (value.kind === 'authorize-standing') requireUnexpired(value);
-    if (amendHandBack) {
-      const change = automaticDial(state, 'autonomy', 'supervised', 'amend', 'A scope-changing amendment was recorded under delegated autonomy; stop for the human');
+    if (amendHandBack || scopeHandBack) {
+      const change = automaticDial(state, 'autonomy', 'supervised', 'amend', amendHandBack
+        ? 'A scope-changing amendment was recorded under delegated autonomy; stop for the human'
+        : 'The brief changed outside its findings log and was re-authorized under delegated autonomy; a scope-changing amendment returns the run to supervised');
       state = (await this.append(state, 'DIAL_SET', change, { id: `handback_${identity({ operation: operation.id }).slice(7, 71)}`, hash: identity(change) })).state;
     }
     return this.append(state, 'DECIDED', { ...value, requestId: operation.id }, operation);
@@ -1120,7 +1182,8 @@ export class CurrentCore {
       }
     }
     switch (request.operation) {
-      case 'run.start': return this.start(input, operation);
+      case 'run.start': return this.start(input, operation, null, { workspace: true });
+      case 'workspace.configure': return this.configureWorkspace(input, operation);
       case 'run.set-dial': return this.setDial(input, operation);
       case 'status': case 'snapshot': return this.inspect();
       case 'coverage.status': requireThat(!Object.keys(input).length, 'Coverage status accepts no asserted outcomes'); return this.coverageStatus();

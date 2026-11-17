@@ -35,6 +35,12 @@ HAND_BACK_TRIGGERS = (
     "an external merge blocker, or loss of release-branch protection"
 )
 GUIDANCE_NOTE = "SessionStart is guidance, not action interception."
+RUN_START_CONFIGURES = (
+    "Delivery needs a workspace configuration: in a repository with a GitHub remote and "
+    "no .agentic-workflow.json, run.start writes a minimal one (the default branch as "
+    "integration and release, excluded locally, never committed); a configuration naming "
+    "another feature stops run.start until the human confirms or replaces it."
+)
 
 
 def read_status(cwd: str | None = None) -> dict[str, Any] | None:
@@ -105,6 +111,15 @@ def _branches(data: dict[str, Any]) -> tuple[str, str]:
     return integration, release
 
 
+def _workspace_note(data: dict[str, Any] | None, run: bool) -> str | None:
+    """The status workspace message, or the run-start rule when status has none."""
+    workspace = data.get("workspace") if data else None
+    if isinstance(workspace, dict):
+        message = workspace.get("message")
+        return message if isinstance(message, str) and message else None
+    return None if run else RUN_START_CONFIGURES
+
+
 def no_run_context(data: dict[str, Any] | None, reason: str | None = None) -> str:
     feature = f" for feature {data['featureId']}" if data and isinstance(data.get("featureId"), str) else ""
     prefix = f"GateReeve: no current run{feature}." if reason is None else f"GateReeve run state unavailable ({reason})."
@@ -115,6 +130,9 @@ def no_run_context(data: dict[str, Any] | None, reason: str | None = None) -> st
         "For full rigor, load the software-development-workflow skill; for light rigor, "
         f"follow the light-run procedure at {LIGHT_PROCEDURE}.",
     ]
+    note = _workspace_note(data, run=False)
+    if note:
+        parts.append(note)
     artifacts = data.get("artifacts") if data else None
     if isinstance(artifacts, list) and any(isinstance(item, dict) and item.get("exists") for item in artifacts):
         parts.append(
@@ -155,6 +173,9 @@ def run_context(data: dict[str, Any]) -> str:
             f"Merges into {release} still need a per-PR human instruction. Hand back to "
             f"supervised and stop for the human on {HAND_BACK_TRIGGERS}."
         )
+    note = _workspace_note(data, run=True)
+    if note:
+        parts.append(note)
     parts.append(
         "Work freely within the authorized phase; milestone passage uses the core and readiness "
         f"does not launch review. {GUIDANCE_NOTE}"

@@ -77,6 +77,29 @@ class SessionStartStateTests(unittest.TestCase):
         self.assertIn(LIGHT_PROCEDURE, context)
         self.assertNotIn("run.resume-current", context)
 
+    def test_no_run_states_that_run_start_writes_the_workspace_configuration(self) -> None:
+        # Status without workspace information (older adapter or unreadable): the rule itself.
+        self.assertIn(session_start.RUN_START_CONFIGURES, render_context(NO_RUN))
+        self.assertIn("run.start writes a minimal one", render_context(None))
+        legacy = dict(NO_RUN, workspace={"mode": "legacy", "configured": False,
+            "message": "Delivery needs a workspace configuration (.agentic-workflow.json) naming the integration and release branches. run.start writes a minimal one."})
+        context = render_context(legacy)
+        self.assertIn("Delivery needs a workspace configuration (.agentic-workflow.json)", context)
+        self.assertNotIn(session_start.RUN_START_CONFIGURES, context)
+        mismatch = dict(NO_RUN, workspace={"mode": "configured", "configured": True, "matchesBranch": False,
+            "message": "The workspace configuration /w/.agentic-workflow.json names feature old, but the current branch is new: run.start stops until the human confirms"})
+        self.assertIn("names feature old, but the current branch is new", render_context(mismatch))
+        configured = dict(NO_RUN, workspace={"mode": "configured", "configured": True, "matchesBranch": True, "message": None})
+        self.assertNotIn("workspace configuration", render_context(configured))
+
+    def test_run_reports_a_missing_workspace_configuration(self) -> None:
+        message = "Delivery needs a workspace configuration (.agentic-workflow.json); write it for this run with workspace.configure"
+        context = render_context(governed("light", "supervised", workspace={"mode": "legacy", "configured": False, "message": message}))
+        self.assertIn(message, context)
+        self.assertIn(LIGHT_PROCEDURE, context)
+        self.assertNotIn("workspace.configure", render_context(governed("full", "supervised", workspace={"configured": True, "message": None})))
+        self.assertNotIn("workspace.configure", render_context(governed("full", "supervised")))
+
     def test_no_run_with_existing_documents_mentions_resumption(self) -> None:
         data = dict(NO_RUN, artifacts=[{"id": "design.md", "exists": True}])
         context = render_context(data)
@@ -185,6 +208,7 @@ class SessionStartHookTests(unittest.TestCase):
             no_run = discover_status_context(root)
             self.assertIn("no current run for feature session-feature", no_run)
             self.assertIn('"full or light?"', no_run)
+            self.assertIn("run.start writes a minimal one", no_run)
             feature_home = repository / "docs" / "issues" / "session-feature"
             feature_home.mkdir(parents=True)
             (feature_home / "interview.md").write_text("# legacy\n", encoding="utf-8")
@@ -210,6 +234,10 @@ class SessionStartHookTests(unittest.TestCase):
             self.assertIn("GateReeve current run:", context)
             self.assertIn("rigor=full; autonomy=supervised; phase=DESIGNING", context)
             self.assertIn(FULL_WORKFLOW_SKILL, context)
+            # No GitHub remote: nothing was written, and the run is told what delivery needs.
+            self.assertFalse((repository / ".agentic-workflow.json").exists())
+            self.assertIn("not written at run start because the repository has no GitHub remote", context)
+            self.assertIn("workspace.configure", context)
 
             # A light run started through the real adapter.
             subprocess.run([git, "-C", root, "switch", "-c", "light-feature"], check=True, capture_output=True)

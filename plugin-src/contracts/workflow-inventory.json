@@ -276,6 +276,7 @@
       "current/store.js",
       "current/tripwires.js",
       "current/workflow-database.js",
+      "current/workspace.js",
       "current/validation-scope.js",
       "errors.js",
       "index.js",

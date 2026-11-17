@@ -174,6 +174,31 @@ test('light delegation: a brief review substitutes for the human; a goal or scop
   assert.ok(!(await snapshot(f)).blockers.some(item => item.type === 'hand-back'));
 });
 
+// NEW1: the light scope-changing amendment hands back whatever authority approves it.
+test('light delegation: a human-authorized scope change hands back; a findings-only one does not', async t => {
+  const f = await fixture(t, { authorize: false });
+  await delegate(f);
+  await authorizeBrief(f, 'human-first');
+  assert.equal((await status(f)).dials.autonomy.value, 'delegated');
+  // Findings-only edits re-authorized by the human keep delegation.
+  await writeFile(join(f.home, 'brief.md'), `${BRIEF}- Found: nothing surprising.\n### Details\n- also exported elsewhere\n`);
+  await authorizeBrief(f, 'human-findings');
+  assert.equal((await status(f)).dials.autonomy.value, 'delegated');
+  // A scope change approved by the human is recorded and returns the run to supervised.
+  await writeFile(join(f.home, 'brief.md'), BRIEF.replace('app.js only.', 'app.js and the billing service.'));
+  const recorded = await authorizeBrief(f, 'human-scope');
+  assert.equal(recorded.event.payload.kind, 'authorize-implementation');
+  assert.equal(recorded.event.payload.authority.kind, 'human-confirmed');
+  const current = await status(f);
+  assertDial(current.dials.autonomy, { value: 'supervised', previous: 'delegated', source: 'automatic', actor: 'gatereeve', trigger: 'amend' });
+  assert.match(current.dials.autonomy.reason, /brief changed outside its findings log/u);
+  assert.equal(current.dialHistory.filter(item => item.trigger === 'amend').length, 1);
+  // The hand-back precedes the decision it accompanies; the human decision is the observed stop.
+  const { events } = await f.core.state();
+  assert.deepEqual(events.slice(-2).map(event => event.type), ['DIAL_SET', 'DECIDED']);
+  assert.equal(current.phase, 'IMPLEMENTING');
+});
+
 test('hand-back voids delegated implementation authority until a human authorizes', async t => {
   const f = await fixture(t, { authorize: false });
   const delegation = (await delegate(f)).event.hash;

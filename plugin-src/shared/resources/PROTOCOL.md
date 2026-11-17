@@ -23,11 +23,12 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | --- | --- |
 | `status`, `snapshot`, `next` | Current phase, commitment hashes, obligations, applicability, exceptions and milestone blockers |
 | `read` | Top-level `kind` = artifact/events/model/result; artifact/result `id` must come from status |
-| `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]`, `rigor`/`autonomy` choices `{value, authority?, reason?}` (defaults `full`/`supervised`; every explicit choice needs `authority` or `reason`, and a non-default value needs an observed human `authority`; `delegated` also needs the protected release branch) |
-| `run.set-dial` | `dial: rigor|autonomy`, `value`, `actor: human|agent`, `reason`, `authority` (required for `human`, forbidden for `agent`). Raising rigor or returning to supervised is open to either actor. Rigor never falls within a run: to work light, start a new light run on a new topic branch; this run and its evidence stay retained. Delegating (`autonomy: delegated`) is human-only, must name the run (`runId`) and needs the release branch observed as protected (see Delegated autonomy) |
+| `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]`, `rigor`/`autonomy` choices `{value, authority?, reason?}` (defaults `full`/`supervised`; every explicit choice needs `authority` or `reason`, and a non-default value needs an observed human `authority`; `delegated` also needs the protected release branch); optional `workspace: {confirmFeature, authority}` or `{replace: true, authority}` (see Workspace configuration). In a repository with a GitHub remote and no workspace configuration it writes a minimal one and records it in `STARTED.workspace` |
+| `workspace.configure` | Optional `{confirmFeature, authority}` or `{replace: true, authority}`. For an existing run without a workspace configuration, write it under the run-start rules and record `WORKSPACE_CONFIGURED`; reports `written: false` when the configuration already names the feature |
+| `run.set-dial` | `dial: rigor|autonomy`, `value`, `actor: human|agent`, `reason`, `authority` (required for `human`, forbidden for `agent`). Raising rigor or returning to supervised is open to either actor. Rigor never falls within a run: to work light, start a new light run on a new topic branch; this run and its evidence stay retained. Asking for `light` on a light run reports that it is already light Delegating (`autonomy: delegated`) is human-only, must name the run (`runId`) and needs the release branch observed as protected (see Delegated autonomy) |
 | `planning.review` | `artifact: design|spec|brief`, `configuration: {provider, model, reasoningEffort?}`; an independent fresh-context review of the planning artifact, recorded as `PLANNING_REVIEWED` with its exact subject. A delegated planning decision cites a PASS |
 | `delegation.apply` | `action`: the exact prepared `SLICE` merge action into the integration branch. Under delegation only: records `accept` + `authorize-merge` with the `delegated-evaluator` authority when every required gate PASSes and the review summary is published |
-| `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals |
+| `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals. When nothing is retained to resume (no current run and no earlier activation), it starts a fresh run under the `run.start` workspace rules, including `workspace`; resuming an existing run or activation refuses `workspace` and writes nothing |
 | `human.decide` | See decisions below |
 | `spec.validate` | Run trusted spec lint after the model's semantic review of AC, rubric and boundary feasibility |
 | `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row. A light run has no rubric: `criteria` is exactly `["brief"]` for either scope, and its change is classified by the tripwires (result `tripwires`) |
@@ -35,7 +36,7 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `gate.execute` | `gates: [id]` or `["code","spec"]`, explicit `configuration`, typed `consumed`, bounded `history`, labeled `claims`, optional `prior` for a delta |
 | `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
 | `milestone.pass` | Record an allowed milestone; merge must use its protected action |
-| `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. Rejects a PR whose candidate scope does not match its target (see Delivery targets) |
+| `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. Rejects a PR whose candidate scope does not match its target (see Delivery targets). Without a workspace configuration it fails naming `workspace.configure` |
 | `review.publish` | `repository`, PR `number`; write the current independent `review` summary for the candidate head into a delimited section of the PR description. Idempotent; refuses without a current qualifying review result or when the PR head differs from the candidate head |
 | `merge.execute` | Same action selector; requires current proof, human acceptance, authorization bound to the prepared action and the current review summary on the PR. A hosting-rule refusal fails with `EXTERNAL_BLOCKER`, not a gate failure |
 | `integration.observe` | `repository`, optional configured `branch`; fetch and verify actual reviewed-content integration, independent of acceptance |
@@ -218,10 +219,12 @@ SLICE PR into integration.
 
 **Hand-back.** Autonomy returns to supervised, recorded as `DIAL_SET`, on:
 
-- a scope-changing amendment: any `amend` recorded while delegated, or a delegated
+- a scope-changing amendment: any `amend` recorded while delegated, or a light
   re-authorization of a brief that changed anywhere outside its findings section
   (the Findings heading and its nested sub-headings); preamble, goal, scope,
-  sub-headings and any other section count as scope;
+  sub-headings and any other section count as scope. Under any authority: a
+  delegated one is refused and hands back; a human-confirmed one is recorded and
+  hands back (the `DIAL_SET` precedes the `DECIDED`);
 - an agent hand-back (`run.set-dial autonomy supervised`, `actor: agent`, with a
   reason; always allowed);
 - an external merge blocker (`MERGE_BLOCKED`). The recorded blocker voids the
@@ -396,9 +399,11 @@ shell tool calls. It denies, with a reason:
 - `git push` that would update a configured integration or release branch of any
   configured repository: explicit refspecs (`main`, `+main`, `HEAD:main`,
   `refs/heads/main`, `:main`, `--delete`), `--all`/`--mirror`, matching globs, and
-  an implicit destination or `HEAD` while on that branch. `--tags` with no other
-  refspec pushes only tags and is allowed; with a protected refspec it is denied.
-  An unconfigured Git workspace names no protected branch.
+  an implicit destination or `HEAD` while on that branch, and the matching
+  refspec `:` or `+:` (it may update every protected branch). `--tags` with no
+  other refspec pushes only tags and is allowed; with a protected refspec it is
+  denied. An unconfigured Git workspace names no protected branch; the
+  configuration `run.start` writes protects the default branch.
 
 It follows quoting, `&&`/`||`/`;`/`|`/`&`/newline chains, subshells, `$(...)`
 (including heredoc bodies inside it), backticks, `bash -c`/`sh -c`, `eval` and
@@ -431,8 +436,12 @@ action an `entryPoint` (`cli`, `adapter` or `none`) and, for the adapter, a
 defaults and the up-front "full or light?" question; for a run, its rigor,
 autonomy, phase and blockers and a pointer to the light-run procedure
 (`resources/commands/light-run.md`) or the full workflow; for a delegated run,
-also the delegation scope and hand-back triggers. If status cannot be read it
-emits a short safe message with the defaults and the question.
+also the delegation scope and hand-back triggers. It repeats `status`
+`workspace.message`: with no run, that `run.start` writes the workspace
+configuration (or that an existing one names another feature); for a run without
+one, that delivery needs `workspace.configure`. If status cannot be read it emits a
+short safe message with the defaults, the question and the run-start
+configuration rule.
 
 Manifest and handler-subprocess tests verify deny responses and routing to the
 protected action. Actual native-host plugin activation, matcher dispatch and
@@ -613,6 +622,48 @@ Unsupported activation records use their exact bytes as opaque provenance, inclu
 root/successor records with different fields. Current runId and previous-reference
 schema checks apply only to current-contract records. Conflicting mirrors still block;
 explicit resume preserves historical bytes and grants no inherited approval.
+
+## Workspace configuration
+
+Delivery uses the workspace configuration (`.agentic-workflow.json`, see
+WORKSPACE-CONTEXT.md); there is no configuration-free delivery path.
+
+- **Written at run start.** In the Git fallback, `run.start` observes the GitHub
+  remote and the repository's default branch (`gh api --method GET
+  repos/{owner}/{repo}`, non-admin) and writes, atomically and never over an
+  existing file, `{schemaVersion: 1, featureId: <current branch>, repositories:
+  {repository: {path: ".", remote, integrationBranch: <default>, releaseBranch:
+  <default>, keepPullRequestsClosed: false}}}`, then adds `/.agentic-workflow.json`
+  to the repository's local `info/exclude`. The feature home does not move.
+  `STARTED.workspace` records `{status: "created", observed, configuration, file,
+  exclude}` and retains the bytes. Integration equal to release means only per-PR
+  human merges.
+- **Not written** (no GitHub remote, an unobservable or unusable default branch,
+  a run started on the default branch, or a delegated start): the run starts and
+  `STARTED.workspace` records `{status: "unconfigured", reason}`.
+- **Existing, same feature** (the current branch is the configured feature, one of
+  its delivery branches `<featureId>-NN-<description>`, or its distinct integration
+  branch): used unchanged, recorded as `{status: "configured", match}`.
+- **Existing, different feature:** `run.start` fails before creating any feature
+  home (`details.kind: workspace-feature-mismatch`). It continues only with the
+  human's instruction: `workspace.confirmFeature` naming the configured feature
+  (recorded as `match: human-confirmed`), or `workspace.replace` (a
+  single-repository configuration at the repository root is replaced by a minimal
+  one for the current branch, recorded as `{status: "replaced", previous,
+  authority}` with the previous bytes retained). A replacement whose target feature
+  already has a run is refused before writing.
+- **Fresh resumption:** `run.resume-current` with nothing retained to resume in
+  the resolved feature home starts a fresh run and follows all of the above
+  (recorded with `operation: run.resume-current`). Resuming a current run or a
+  retained activation is unchanged: no check, no write, and `workspace` is refused.
+- **Existing run without configuration:** `workspace.configure` applies the same
+  rules and records `WORKSPACE_CONFIGURED`. `merge.prepare` without branch
+  configuration fails naming it through an available entry point.
+
+A configuration written for a request that then fails without recording it is
+removed again. `status` reports `workspace: {mode, configPath, configured,
+recorded, message}` (and, for a configured workspace, whether the current branch
+belongs to it) and offers a `configure-workspace` action for an unconfigured run.
 
 ## Delivery targets and release merges
 

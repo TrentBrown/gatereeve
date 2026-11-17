@@ -70,7 +70,9 @@ to use a different private cache; an existing unowned directory is never adopted
 
 ```bash
 gatereeve status --json
+gatereeve run start --implementer <context>
 gatereeve run resume-current --implementer <context> --planning approvals.json
+gatereeve workspace configure
 gatereeve validate-spec
 gatereeve candidate --pin app=<base-sha>..<head-sha> --criterion R1 --scope SLICE
 gatereeve ready
@@ -85,6 +87,20 @@ gatereeve review-planning --help
 gatereeve decide-delegated --help
 gatereeve apply-delegation --help
 ```
+
+Delivery always uses a workspace configuration (`.agentic-workflow.json`).
+`run start` in a repository with a GitHub remote and none writes a minimal one:
+the current branch as the feature and the GitHub default branch (observed through
+`gh api repos/{owner}/{repo}`) as both the integration and the release branch, so
+only per-PR human merges exist. It is added to the repository's local excludes
+(`.git/info/exclude`), never committed, and recorded with the run start. When the
+default branch cannot be observed, or there is no GitHub remote, the run starts
+without it and `status` says why. A configuration naming another feature stops
+`run start`: pass `--confirm-feature <featureId>` (the run belongs to it) or
+`--replace-workspace`, each with the human's `--instruction` and
+`--instruction-context`. For an existing run without a configuration,
+`workspace configure` writes it under the same rules; `merge prepare` names it
+when the configuration is missing.
 
 The planning backbone remains interview, approved design, validated spec,
 plan/issues, and explicit implementation authority. The model chooses work order

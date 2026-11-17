@@ -157,6 +157,23 @@ retain their separate authority.
   - **Standing grants:**
     - A standing grant naming the release branch is rejected for new grants.
     - Existing grants naming it are reported as no longer authorizing merges.
+  - **Workspace configuration for delivery.** Merge preparation and execution use
+    a workspace configuration (`.agentic-workflow.json`); there is no
+    configuration-free delivery path.
+    - **Created at run start.** When a run starts in a repository that has a GitHub
+      remote and no workspace configuration, GateReeve writes one. It names the
+      current branch as the feature and the repository's observed default branch as
+      both the integration and the release branch, so only per-PR human merges are
+      possible. It is added to the repository's local Git excludes, never committed,
+      and the write is recorded with the run start and reported in status.
+    - **Same feature.** An existing configuration naming the feature being started
+      is used unchanged.
+    - **Different feature.** An existing configuration naming a different feature
+      stops run start; it is replaced only on an explicit human instruction, never
+      silently reused.
+    - **No GitHub remote, or an existing run without configuration.** Nothing is
+      written automatically. Merge preparation fails with a message naming the
+      operation that writes the configuration.
   - **External blockers.** A merge blocked by a hosting rule, such as a required
     approving review the author cannot give, is reported as an external blocker, not
     a gate failure.
@@ -212,7 +229,7 @@ retain their separate authority.
 | R5 | Light gates, review basis and verification provenance (AC3) | Light acceptance requires exactly the full required gate set. Light `review` uses the brief as its requirement basis via an independent fresh evaluator. Verification records agent-run/CI/none per claim, and an absent CI set is never shown as passing CI. | Light omits or adds a required gate; light review lacks an independent evaluator or brief basis; or provenance is missing or misrepresented. | Pre-merge gate/evaluator contract tests, verification receipt tests with stubbed `gh pr checks` results. |
 | R6 | Tripwires (AC4) | Each built-in category triggers on a representative diff and is repository-configurable. A supervised hit blocks until escalation or a hit-bound human stay-light decision. A delegated hit auto-escalates and rejects agent stay-light. No-hit runs are unaffected. | A category fails to trigger, triggers are not configurable, a hit can be bypassed without the specified decision, or delegated runs can stay light. | Pre-merge classifier unit tests and protocol tests for supervised and delegated hits. |
 | R7 | Delegation precondition, planning substitution and hand-back (AC5) | Delegation requires the release branch observed as protected (non-admin read). Delegated planning decisions require a qualifying independent PASS and carry a distinct authority kind. Each hand-back trigger returns the run to supervised and stops. | Delegation starts without observed protection; a delegated planning decision lacks a PASS or is reported as human-confirmed; or a trigger fails to hand back. | Pre-merge protocol tests with stubbed GitHub branch responses, evaluator receipts and trigger scenarios. |
-| R8 | Delivery targets and merge authority (AC5, AC6) | Delegated merges succeed only for `SLICE` PRs into a distinct integration branch with every required gate PASS. Scope/target mismatches are rejected. The integration==release configuration yields no delegated or standing merges. A per-PR human instruction lets the agent execute a release merge via the protected path, including for light runs. New release-branch standing grants are rejected and existing ones are reported as non-authorizing. External blockers are reported distinctly. | Any agent merge into the release branch without per-PR human authority; a slice merges outside the integration branch; light runs cannot use the protected human-authorized merge; or external blocks appear as gate failures. | Pre-merge `prepareMerge`/`protectedMerge`/standing-validation tests with stubbed `gh`/git, including FEATURE-shaped final PRs. |
+| R8 | Delivery targets and merge authority (AC5, AC6) | Delegated merges succeed only for `SLICE` PRs into a distinct integration branch with every required gate PASS. Scope/target mismatches are rejected. The integration==release configuration yields no delegated or standing merges. A per-PR human instruction lets the agent execute a release merge via the protected path, including for light runs. New release-branch standing grants are rejected and existing ones are reported as non-authorizing. External blockers are reported distinctly. A run started without a workspace configuration in a repository with a GitHub remote gets one naming the observed default branch as integration and release, so it can complete a per-PR human merge; a configuration for a different feature is never silently reused. | Any agent merge into the release branch without per-PR human authority; a slice merges outside the integration branch; light runs cannot use the protected human-authorized merge; external blocks appear as gate failures; a run without prior configuration cannot reach a per-PR human merge; or run start reuses or overwrites another feature's configuration without a human instruction. | Pre-merge `prepareMerge`/`protectedMerge`/standing-validation tests with stubbed `gh`/git, including FEATURE-shaped final PRs; run-start configuration tests (absent, same feature, different feature, no GitHub remote). |
 | R9 | Review summary on the PR (AC6) | Before human review or merge authorization is requested, the PR description or a pinned comment contains the current independent `review` summary for the candidate head, in both rigors. | A PR is presented for review or authorization without the current review summary. | Pre-merge tests of the PR publication step with stubbed `gh`; guidance parity. |
 | R10 | Guard coverage and actionable recovery (AC7) | The guard denies each listed merge/push form, including `-R`/path/chained variants, and leaves unrelated commands alone. Every denial/recovery message names an entry point that exists in the test installation (adapter or wrapper, CLI only when on `PATH`). | A listed form is admitted; unrelated commands are denied; or a message names an unavailable command. | Pre-merge hook unit tests with command corpora; tests with and without CLI on `PATH`. |
 | R11 | State-reporting SessionStart (AC7) | No-run, light, full and delegated states each produce the specified context. No state instructs the agent to load the full workflow when the run is light. | SessionStart still prescribes the full workflow for light runs or omits specified state. | Pre-merge SessionStart unit tests over adapter status fixtures. |
@@ -260,3 +277,22 @@ Raising rigor, hand-back and delegation rules are unchanged.
 Approved by Trent: "Yes, this is clearly the way to go. Amend whatever you need to
 amend to put this into place. We're saying that you can't reduce rigor at all."
 
+### 2026-11-17 — Delivery always uses a workspace configuration, created at run start
+
+The approved design (§5) said the Git fallback, with no `.agentic-workflow.json`,
+supports light and supervised runs and per-PR human merges. S3 bound merge
+preparation to configured branches and deferred the fallback, so in an unconfigured
+repository the agent could not merge even on a per-PR instruction. The feature-final
+review (PR #112) found this as blocking finding NEW2.
+
+The workspace configuration is not created by any run today: it is hand-written,
+local and excluded from Git, and most repositories lack it. Rather than add a second,
+configuration-free delivery path, AC6 now requires every delivering run to have a
+configuration and GateReeve to write a minimal one at run start (the default branch
+as both integration and release), refusing to silently reuse another feature's.
+The R8 rubric row gains the matching pass, failure and evidence conditions.
+
+Delegated merges still need a distinct integration branch, which a person
+configures explicitly, as before.
+
+Approved by Trent: (pending).

@@ -11,7 +11,10 @@ export async function currentFixture(t, { releaseBranch = null } = {}) {
   t.after(() => rm(root, { recursive: true, force: true }));
   const repo = join(root, 'app'); const home = join(root, 'docs/issues/feature');
   await mkdir(repo, { recursive: true }); await mkdir(home, { recursive: true });
-  await git(repo, ['init', '-b', 'topic']);
+  // The branch names the configured feature (WORKSPACE-CONTEXT.md: the first
+  // delivery branch may use the exact feature ID), so run.start uses the
+  // configuration unchanged rather than refusing another feature's (spec AC6).
+  await git(repo, ['init', '-b', 'feature']);
   await git(repo, ['config', 'user.name', 'Fixture']); await git(repo, ['config', 'user.email', 'fixture@example.test']);
   await git(repo, ['config', 'commit.gpgsign', 'false']);
   await writeFile(join(repo, 'app.js'), 'export const answer = 42;\n');

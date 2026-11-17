@@ -14,6 +14,7 @@ const CLI_FORMS = Object.freeze({
   next: 'gatereeve --help',
   'run.start': 'gatereeve run start --help',
   'run.resume-current': 'gatereeve run resume-current --help',
+  'workspace.configure': 'gatereeve workspace configure --help',
   'gate.execute': 'gatereeve evaluate --help',
   'human.decide': 'gatereeve decide --help',
   'authorization.apply': 'gatereeve apply-authorization --help',

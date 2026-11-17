@@ -170,6 +170,11 @@ test('pushes to the configured integration or release branch are denied; topic p
     'git status && git push origin main': /integration branch main/u,
     "bash -c 'git push origin main'": /integration branch main/u,
     'echo $(git push origin production)': /release branch production/u,
+    // NEW3: the matching refspec updates every branch present on both sides.
+    'git push origin :': /release branch production/u,
+    'git push origin +:': /integration branch main/u,
+    'git push --force upstream +:': /release branch production/u,
+    'git push origin topic :': /integration branch main/u,
   };
   for (const [command, pattern] of Object.entries(denied)) {
     const decision = (await decide(command)).hookSpecificOutput;
