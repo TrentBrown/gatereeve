@@ -284,6 +284,13 @@ test('a push is checked in every repository it could act on, per the documented 
     [outside, `false | true && cd ${q(f.repo)}; git push origin main`],
     [outside, `false; (true) && cd ${q(f.repo)}; git push origin main`],
     [outside, `true; (false) || cd ${q(f.repo)}; git push origin main`],
+    [outside, `cd ${q(f.repo)}; false && (true; true) && cd ${q(outside)}; git push origin main`],
+    [outside, `cd ${q(f.repo)}; (exit 0); git push origin main`],
+    [outside, `(false) | true && cd ${q(f.repo)}; git push origin main`],
+    // NEW21: an unquoted heredoc body is subject to command substitution.
+    [outside, 'cat <<EOF\n$(gh pr merge 12)\nEOF'],
+    [outside, 'cat <<EOF\n`gh pr merge 12`\nEOF'],
+    [outside, `cat <<EOF\n$(git -C ${q(f.repo)} push origin main)\nEOF`],
     // Past the tracked number of possible directories a push is denied, not admitted.
     [outside, `${['a', 'b', 'c', 'd', 'e'].map(name => `test -d ${name} && cd ${name}`).join('; ')}; git push origin topic`],
   ];
@@ -313,6 +320,9 @@ test('a push is checked in every repository it could act on, per the documented 
     [outside, `true | false && cd ${q(f.repo)}; git push origin main`],
     [outside, `true; (false) && cd ${q(f.repo)}; git push origin main`],
     [outside, `(cd ${q(f.repo)}; true) && git push origin main`],
+    [outside, `true || (false; false) || cd ${q(f.repo)}; git push origin main`],
+    [outside, "cat <<'EOF'\n$(gh pr merge 12)\nEOF"],
+    [outside, 'cat <<\\EOF\n`gh pr merge 12`\nEOF'],
     // NEW15: superseded directories are not checked, inside compound commands too.
     [outside, `cd ${q(f.repo)}; cd ${q(outside)}; { git push origin main; }`],
     [outside, `cd ${q(f.repo)}; cd ${q(outside)}; if true; then git push origin main; fi`],

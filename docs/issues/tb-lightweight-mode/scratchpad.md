@@ -894,3 +894,16 @@ Three in-scope defects, fixed:
   a subshell restored the caller's old status. A pipeline now takes its last
   command's status, and a subshell keeps its exit status while its directory
   changes map back to where it started.
+
+### S10 review round 6 (FAIL on 262780b) — fixes
+
+- NEW20 (continued): a `( … )` subshell took part in its caller's and-or list
+  command by command, so a skipped group's inner commands overwrote the status
+  and `(exit 0)` looked like it ended the caller. A subshell is now one composite
+  command: it starts a fresh list where the caller's list reaches it and joins
+  with its exit status (either, after an inner `exit`); a subshell followed by
+  `|` joins as a pipeline element.
+- NEW21: substitutions in an unquoted heredoc body (`cat <<EOF … $(…) … EOF`)
+  are expanded by the shell before the command reads the body. They are now
+  classified where the command runs; a quoted delimiter (`'EOF'`, `"EOF"`,
+  `\EOF`) keeps the body as data. Pre-existing, but inside the coverage list.
