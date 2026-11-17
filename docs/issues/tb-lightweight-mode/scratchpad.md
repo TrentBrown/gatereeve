@@ -791,3 +791,29 @@ and the hook denies if any protects the destination (fail closed).
   `git --git-dir=/other/.git push origin main` run inside a protected
   repository. That only affects pushes to a protected branch name.
 - Limit: at most 64 contexts per script.
+
+### S10 review round 2 (FAIL on ed0fdbb) — narrowed scope
+
+Round 2 found NEW10 (the 64-context cap failed open), NEW8 again (`eval "cd …"`
+and `eval "export GIT_DIR=…"` changes not propagated), NEW11 (collecting every
+`cd` in the script made a later `cd` deny an earlier unrelated push, contrary to
+R10's "leaves unrelated commands alone") and NEW12 (`env -S` dropped the
+arguments after the split string; present before S10).
+
+Tracking state that earlier commands change (`cd`, `export`) cannot be both
+complete and free of false denials without modelling the shell. It had also
+made those forms "listed" under R10. S10 therefore narrows to forms that are
+exact for a single command, and lists earlier-command changes as a known limit
+in PROTOCOL.md, next to variables and scripts:
+
+- A push's repository is the directory Git runs in (wrapper `env -C`/`--chdir`,
+  `sudo -D`/`--chdir`, then each `-C`/`-Cdir`) or, when set, the Git directory
+  (`--git-dir` over a `GIT_DIR=` prefix; `.git` stands for its parent). A work
+  tree selects only the checkout and is ignored (NEW7, without over-denial).
+- Wrapper directories and `GIT_DIR` carry into `bash -c`, `eval` and `env -S`
+  scripts, and inner assignments override them (NEW9).
+- `env -S`/`--split-string` (also attached `-S…`) classifies the split string
+  plus the remaining arguments, and is recognized only among `env`'s own options
+  (NEW12).
+- No context set, so NEW10 and NEW11 no longer arise. `cd`/`pushd`/`export`
+  (NEW8) are the disclosed limit.

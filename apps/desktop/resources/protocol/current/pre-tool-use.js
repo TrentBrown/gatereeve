@@ -39,12 +39,11 @@ async function protectedBranches(cwd, contextFor) {
 
 async function pushReasons(pushes, cwd, runtime, contextFor) {
   const reasons = [];
-  const walk = steps => (steps ?? []).reduce((at, next) => resolve(at, next ?? '.'), cwd);
   for (const push of pushes) {
-    // The classifier lists every location the push could act on (fail closed);
-    // a protected destination in any of them denies it.
-    const directories = [...new Set((push.locations?.length ? push.locations : [[]]).map(walk))];
-    for (const directory of directories) reasons.push(...await directoryReasons(push, directory, runtime, contextFor));
+    // The repository the command names (Git -C/--git-dir, GIT_DIR, wrapper
+    // directories), resolved from the hook's directory.
+    const directory = (push.directory ?? []).reduce((at, next) => resolve(at, next ?? '.'), cwd);
+    reasons.push(...await directoryReasons(push, directory, runtime, contextFor));
   }
   return [...new Set(reasons)];
 }

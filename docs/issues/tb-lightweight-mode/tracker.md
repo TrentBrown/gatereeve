@@ -167,6 +167,7 @@ Append pull-request review boundary entries here.
   directory, so a push to a protected branch of another repository was admitted.
   The other eleven criteria pass and the prior blocking fixes remain supported.
   Advisories A1, A2, N1 carried.
-- **S10:** fixes NEW6, and resolves the other ways a command names the repository
-  (`--git-dir`, `--work-tree`, `GIT_DIR`/`GIT_WORK_TREE`, `env`/`sudo` directory
-  options, a literal `cd`) the same way.
+- **S10:** fixes NEW6, and resolves the other ways a single command names the
+  repository (`--git-dir`, `GIT_DIR`, `env`/`sudo` directory options) the same
+  way; `env -S` keeps its trailing arguments. Changes made by earlier commands
+  (`cd`, `export`) are a disclosed limit.

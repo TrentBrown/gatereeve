@@ -199,103 +199,77 @@ test('pushes to the configured integration or release branch are denied; topic p
   assert.match((await decide('git push --follow-tags')).hookSpecificOutput?.permissionDecisionReason ?? '', /integration branch main/u, '--follow-tags also pushes the branch');
 });
 
-test('a push naming another repository is checked against that repository, in every Git spelling (NEW6)', async t => {
-  const f = await configured(t);
-  const outside = await mkdtemp(join(tmpdir(), 'gatereeve-guard-outside-'));
-  t.after(() => rm(outside, { recursive: true, force: true }));
-  await git(outside, ['init', '-b', 'main']);
-  const decide = command => preToolUse({ cwd: outside, tool_input: { command } }, { env: NO_CLI });
-  const q = JSON.stringify;
-  // From the unconfigured directory itself nothing is protected.
-  assert.deepEqual(await decide('git push origin main'), {});
-  const denied = [
-    `git -C ${q(f.repo)} push origin main`,
-    `git ${q(`-C${f.repo}`)} push origin main`,
-    `git -C ${q(f.root)} -Capp push origin main`,
-    `git ${q(`-C${f.root}`)} -C app push origin production`,
-    `git --git-dir=${q(join(f.repo, '.git'))} push origin main`,
-    `git --git-dir ${q(join(f.repo, '.git'))} push origin main`,
-    `git --work-tree=${q(f.repo)} push origin main`,
-    `git --work-tree ${q(f.repo)} --git-dir ${q(join(outside, '.git'))} push origin production`,
-    `git -C ${q(f.root)} --git-dir app/.git push origin main`,
-    `cd /; git ${q(`-C${f.repo}`)} push origin main`,
-    // Other ways to name the repository: environment, wrapper directories, cd.
-    `GIT_DIR=${q(join(f.repo, '.git'))} git push origin main`,
-    `GIT_WORK_TREE=${q(f.repo)} git push origin main`,
-    `env GIT_DIR=${q(join(f.repo, '.git'))} git push origin main`,
-    `env -C ${q(f.repo)} git push origin main`,
-    `env ${q(`--chdir=${f.repo}`)} git push origin main`,
-    `sudo -D ${q(f.repo)} git push origin production`,
-    `cd ${q(f.repo)} && git push origin main`,
-    `cd ${q(f.root)}; cd app && git push origin production`,
-    `pushd ${q(f.repo)} && git push origin main`,
-    `cd ${q(f.root)} && git -C app push origin main`,
-    `cd ${q(f.repo)} && bash -c 'git push origin main'`,
-    `env -C ${q(f.repo)} sh -c 'git push origin main'`,
-  ];
-  for (const command of denied) {
-    const decision = (await decide(command)).hookSpecificOutput;
-    assert.equal(decision?.permissionDecision, 'deny', command);
-    assert.match(decision.permissionDecisionReason, /(integration branch main|release branch production)/u, command);
-  }
-  for (const command of [`git ${q(`-C${f.repo}`)} push origin topic`, `git --work-tree=${q(f.repo)} push origin topic`, `cd ${q(f.repo)} && git push origin topic`, 'cd - && git push origin main', 'cd && git push origin main']) {
-    assert.deepEqual(await decide(command), {}, command);
-  }
-  const at = command => classifyShellCommand(command)[0].locations;
-  assert.deepEqual(at('git push origin main'), [[]]);
-  assert.deepEqual(at('git -C/w -Crepo -cpush.default=current push'), [['/w', 'repo']]);
-  assert.deepEqual(at('git --git-dir=/w/repo/.git push'), [[], ['/w/repo/.git', '..']]);
-  assert.deepEqual(at('git --git-dir=/w/bare.git push'), [[], ['/w/bare.git']]);
-  assert.deepEqual(at('git -C /w --work-tree repo --git-dir /x/.git push'), [['/w'], ['/w', '/x/.git', '..'], ['/w', 'repo']]);
-  assert.deepEqual(at('GIT_DIR=/e/.git git --git-dir=/f/.git push'), [[], ['/f/.git', '..']], 'the option overrides the environment');
-  assert.deepEqual(at('env -C /w GIT_WORK_TREE=repo git -C sub push'), [['/w', 'sub'], ['/w', 'sub', 'repo']]);
-  assert.deepEqual(at('sudo -C 3 -D/w git push'), [['/w']], 'sudo -C closes descriptors; -D changes directory');
-  assert.deepEqual(at('cd /a && (cd b; git push origin main)'), [[], ['/a'], ['b'], ['/a', 'b']]);
-  assert.deepEqual(at('builtin cd /a; git push'), [[], ['/a']]);
-});
-
-test('every location a push could act on is checked: work tree, cd context and inherited Git environment (NEW7-NEW9)', async t => {
+test('a push is checked in the repository the command names (NEW6, NEW7, NEW9, NEW11, NEW12)', async t => {
   const f = await configured(t);
   const outside = await mkdtemp(join(tmpdir(), 'gatereeve-guard-outside-'));
   t.after(() => rm(outside, { recursive: true, force: true }));
   await git(outside, ['init', '-b', 'main']);
   const q = JSON.stringify;
   const gitDir = q(join(f.repo, '.git'));
-  const cases = [
-    // NEW7: a work tree changes only the checkout; the repository Git runs in still counts.
+  const decide = (cwd, command) => preToolUse({ cwd, tool_input: { command } }, { env: NO_CLI });
+  // From the unconfigured directory itself nothing is protected.
+  assert.deepEqual(await decide(outside, 'git push origin main'), {});
+  const denied = [
+    // NEW6: -C in both spellings, in order.
+    [outside, `git -C ${q(f.repo)} push origin main`],
+    [outside, `git ${q(`-C${f.repo}`)} push origin main`],
+    [outside, `git -C ${q(f.root)} -Capp push origin main`],
+    [outside, `git ${q(`-C${f.root}`)} -C app push origin production`],
+    [outside, `cd /; git ${q(`-C${f.repo}`)} push origin main`],
+    // The Git directory selects the repository: option or environment.
+    [outside, `git --git-dir=${gitDir} push origin main`],
+    [outside, `git --git-dir ${gitDir} push origin main`],
+    [outside, `git -C ${q(f.root)} --git-dir app/.git push origin main`],
+    [outside, `GIT_DIR=${gitDir} git push origin main`],
+    [outside, `env GIT_DIR=${gitDir} git push origin main`],
+    // Wrapper directories.
+    [outside, `env -C ${q(f.repo)} git push origin main`],
+    [outside, `env ${q(`--chdir=${f.repo}`)} git push origin main`],
+    [outside, `sudo -D ${q(f.repo)} git push origin production`],
+    // NEW7: a work tree selects only the checkout; the repository Git runs in still counts.
     [f.repo, `git --work-tree=${q(outside)} push origin main`],
     [f.repo, `git --work-tree ${q(outside)} push origin production`],
     [f.repo, `GIT_WORK_TREE=${q(outside)} git push origin main`],
     [outside, `git --git-dir=${gitDir} --work-tree=${q(outside)} push origin main`],
     [outside, `GIT_DIR=${gitDir} GIT_WORK_TREE=${q(outside)} git push origin main`],
-    // NEW8: substitutions, conditionals, subshells and loops keep every possible directory.
-    [outside, `cd ${q(f.repo)}; echo $(git push origin main)`],
-    [outside, `cd ${q(f.repo)}; false && cd ${q(outside)}; git push origin main`],
-    [outside, `cd ${q(f.repo)} && (cd ${q(outside)}); git push origin main`],
-    [outside, `for i in 1 2; do git push origin main; cd ${q(f.repo)}; done`],
-    [outside, `if true; then cd ${q(f.repo)}; fi; git push origin production`],
-    [outside, `command cd ${q(f.repo)} && git push origin main`],
-    // NEW9: Git environment is inherited by shells, eval and env -S, and by later commands.
+    // NEW9: wrapper directories and GIT_DIR carry into shells, eval and env -S.
     [outside, `GIT_DIR=${gitDir} sh -c 'git push origin main'`],
-    [outside, `GIT_DIR=${gitDir} bash -c "cd / && git push origin main"`],
     [outside, `GIT_DIR=${gitDir} eval 'git push origin main'`],
     [outside, `GIT_DIR=${gitDir} env -S 'git push origin main'`],
+    [outside, `env -C ${q(f.repo)} sh -c 'git push origin main'`],
     [outside, `env -C ${q(f.root)} -S 'GIT_DIR=app/.git git push origin main'`],
-    [outside, `export GIT_DIR=${gitDir}; git push origin main`],
-    [outside, `GIT_DIR=${gitDir}; git push origin main`],
-    [outside, `export GIT_WORK_TREE=${q(f.repo)} && sh -c 'git push origin production'`],
+    // NEW12: env -S appends the remaining arguments to the split string.
+    [outside, `env -C ${q(f.repo)} -S git push origin main`],
+    [outside, 'env -S gh pr merge 12'],
+    [outside, 'env --split-string=gh pr merge 12'],
   ];
-  for (const [cwd, command] of cases) {
-    const decision = (await preToolUse({ cwd, tool_input: { command } }, { env: NO_CLI })).hookSpecificOutput;
+  for (const [cwd, command] of denied) {
+    const decision = (await decide(cwd, command)).hookSpecificOutput;
     assert.equal(decision?.permissionDecision, 'deny', command);
-    assert.match(decision.permissionDecisionReason, /(integration branch main|release branch production)/u, command);
+    assert.match(decision.permissionDecisionReason, /(integration branch main|release branch production|merge milestone)/iu, command);
   }
   for (const [cwd, command] of [
-    [outside, `git --work-tree=${q(f.repo)} push origin topic`],
+    [outside, `git ${q(`-C${f.repo}`)} push origin topic`],
     [outside, `GIT_DIR=${gitDir} sh -c 'git push origin topic'`],
-    [outside, `cd ${q(f.repo)}; false && cd /; git push origin topic`],
-    [outside, 'git push origin main'],
-  ]) assert.deepEqual(await preToolUse({ cwd, tool_input: { command } }, { env: NO_CLI }), {}, command);
+    // A work tree or another Git directory does not make an unrelated push protected.
+    [outside, `git --work-tree=${q(f.repo)} push origin main`],
+    [f.repo, `git --git-dir=${q(join(outside, '.git'))} push origin main`],
+    // NEW11: a later command does not change an earlier push.
+    [outside, `git push origin main; cd ${q(f.repo)}`],
+    [outside, 'env git commit -S -m signed'],
+  ]) assert.deepEqual(await decide(cwd, command), {}, command);
+  const at = command => classifyShellCommand(command)[0].directory;
+  assert.deepEqual(at('git push origin main'), []);
+  assert.deepEqual(at('git -C/w -Crepo -cpush.default=current push'), ['/w', 'repo']);
+  assert.deepEqual(at('git --git-dir=/w/repo/.git push'), ['/w/repo/.git', '..']);
+  assert.deepEqual(at('git --git-dir=/w/bare.git push'), ['/w/bare.git']);
+  assert.deepEqual(at('git -C /w --work-tree repo --git-dir /x/.git push'), ['/w', '/x/.git', '..']);
+  assert.deepEqual(at('git -C /w --work-tree=repo push'), ['/w']);
+  assert.deepEqual(at('GIT_DIR=/e/.git git --git-dir=/f/.git push'), ['/f/.git', '..'], 'the option overrides the environment');
+  assert.deepEqual(at('env -C /w GIT_DIR=repo/.git git -C sub push'), ['/w', 'sub', 'repo/.git', '..']);
+  assert.deepEqual(at('sudo -C 3 -D/w git push'), ['/w'], 'sudo -C closes descriptors; -D changes directory');
+  assert.deepEqual(at("sudo -D/w env -C x bash -c 'git -Cy push'"), ['/w', 'x', 'y']);
+  assert.deepEqual(at("GIT_DIR=/a/.git bash -c 'GIT_DIR=/b/.git git push'"), ['/b/.git', '..'], 'an inner assignment overrides the inherited one');
 });
 
 test('an unconfigured Git workspace names no protected branches', async t => {
