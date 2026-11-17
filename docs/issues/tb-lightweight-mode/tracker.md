@@ -18,7 +18,7 @@
 | R7 | Delegation precondition, planning substitution, hand-back | PASS (slice) | PR #109, #113 | S5 review PASS 2026-11-16 after F1 fix; S8 fixes NEW1 (human-approved light scope change hands back) |
 | R8 | Delivery targets and merge authority | PASS (slice) | PR #107, #109, #113 | Non-delegated paths S3; delegated paths S5 (review PASS 2026-11-16); S8 workspace configuration at run start (NEW2, amended 2026-11-17; review gate waived on a PASS verdict) |
 | R9 | Review summary on the PR | PASS (slice) | PR #107 | S3 review PASS 2026-11-16 |
-| R10 | Guard coverage and actionable recovery | PASS (slice) | PR #108, #113 | S4 review PASS 2026-11-16; best-effort advisories N1-N4; S8 denies matching refspecs (NEW3) |
+| R10 | Guard coverage and actionable recovery | WAIVED (slice review) | PR #108, #113, #115 | S4 review PASS 2026-11-16; S8 denies matching refspecs (NEW3); R10 amended 2026-11-17 to the documented coverage list; S10 (NEW6) review gate waived by Trent after nine rounds, known gaps NEW17/NEW20/NEW24/NEW25; advisories N1-N4, A2 |
 | R11 | State-reporting SessionStart | PASS (slice) | PR #108, #113 | S4 review PASS 2026-11-16; delegated state fixture-tested until S5; S8 reports the workspace configuration |
 | R12 | Measurement and rollout | PASS (slice) | PR #110 | S6 review PASS 2026-11-16 (two rounds); advisories A1, A2 |
 
@@ -185,3 +185,25 @@ Append pull-request review boundary entries here.
   decision, spec re-validation and implementation re-authorization.
 - S10 simplified to the listed scope: a change it does not follow makes the
   location unknown and the push is admitted, so no unrelated push is denied.
+
+### 2026-11-17 — S10 (PR #115) merged with its review gate waived
+
+- **Scope:** NEW6 and the R10 coverage list (amendment `4f1863e`): the push
+  guard reads protection from the repository the push acts on, follows literal
+  `cd`/`pushd` in plain sequences, wrapper directory options, `git -C`,
+  `--git-dir` and `GIT_DIR` prefixes, and admits a push whose location it
+  cannot name.
+- **Gates on `bb93689`:** CI run 44145533826 (16 checks) and verification (11
+  re-executed R10 checks) PASS. Codex (`gpt-6.1-sol`, high) review FAIL in
+  round 9 on four new edge forms after eight earlier rounds each repaired the
+  previous findings.
+- **Waiver:** before round 9 Trent set a stop rule (waive if it fails only on
+  new unusual forms); after it he waived the review gate for `bb93689` ("Yes"),
+  then accepted S10 and authorized the merge ("Approved"). Protected merge at
+  `eac3cf6`.
+- **Known gaps (best-effort guard; GitHub branch protection is the real
+  enforcement):** NEW17 `env -iC dir -S …` (split scan skips a clustered
+  option's operand), NEW20 `(exit +256)` (signed exit code), NEW24 `! cd …`
+  (negated status), NEW25 `env --help gh pr merge …` (non-executing wrapper
+  mode; also on base).
+- **Next:** S11 records this; then the FEATURE review of PR #112 is rerun.
