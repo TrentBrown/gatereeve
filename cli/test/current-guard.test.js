@@ -199,7 +199,7 @@ test('pushes to the configured integration or release branch are denied; topic p
   assert.match((await decide('git push --follow-tags')).hookSpecificOutput?.permissionDecisionReason ?? '', /integration branch main/u, '--follow-tags also pushes the branch');
 });
 
-test('a push is checked in every repository it could act on, per the documented coverage list (NEW6-NEW21)', async t => {
+test('a push is checked in every repository it could act on, per the documented coverage list (NEW6-NEW23)', async t => {
   const f = await configured(t);
   const outside = await mkdtemp(join(tmpdir(), 'gatereeve-guard-outside-'));
   t.after(() => rm(outside, { recursive: true, force: true }));
@@ -291,6 +291,17 @@ test('a push is checked in every repository it could act on, per the documented 
     [outside, 'cat <<EOF\n$(gh pr merge 12)\nEOF'],
     [outside, 'cat <<EOF\n`gh pr merge 12`\nEOF'],
     [outside, 'cat <<EO\\\nF\n$(gh pr merge 12)\nEOF'],
+    // NEW20: exit codes count modulo 256; a bare exit keeps the previous status.
+    [outside, `(exit 256) && cd ${q(f.repo)}; git push origin main`],
+    [outside, `(false; exit) || cd ${q(f.repo)}; git push origin main`],
+    // NEW17: clustered and abbreviated wrapper options.
+    [outside, `env ${q(`-iC${f.repo}`)} git push origin main`],
+    [outside, `env -iC ${q(f.repo)} git push origin main`],
+    [outside, `env ${q(`--ch=${f.repo}`)} git push origin main`],
+    [outside, `sudo -nD ${q(f.repo)} git push origin main`],
+    [outside, "env -vS 'gh pr merge 12'"],
+    // NEW23: exec -c clears the environment.
+    [outside, `bash -c ${q(`GIT_DIR=${join(outside, '.git')} exec -c git -C ${f.repo} push origin main`)}`],
     [outside, `cd ${q(outside)}; (exit 3) || cd ${q(f.repo)}; git push origin main`],
     [outside, `cat <<EOF\n$(git -C ${q(f.repo)} push origin main)\nEOF`],
     // Past the tracked number of possible directories a push is denied, not admitted.
@@ -326,6 +337,14 @@ test('a push is checked in every repository it could act on, per the documented 
     [outside, `(exit 0) || cd ${q(f.repo)}; git push origin main`],
     [outside, `cd ${q(f.repo)}; (exit 0) && cd ${q(outside)}; git push origin main`],
     [outside, `(exit 3) && cd ${q(f.repo)}; git push origin main`],
+    [f.repo, `cd ${q(outside)}; (true; exit) || cd ${q(f.repo)}; git push origin main`],
+    [f.repo, `env ${q(`-iC${outside}`)} git push origin main`],
+    // NEW22: pushd -n edits only the directory stack.
+    [outside, `pushd -n ${q(f.repo)}; git push origin main`],
+    // An option the guard does not model makes the location unknown: admitted.
+    [f.repo, 'env -Z git push origin main'],
+    [f.repo, `cd -x ${q(outside)}; git push origin main`],
+    [f.repo, 'sudo -R /tmp git -C /x push origin main'],
     [outside, "cat <<'EOF'\n$(gh pr merge 12)\nEOF"],
     [outside, 'cat <<\\EOF\n`gh pr merge 12`\nEOF'],
     // NEW15: superseded directories are not checked, inside compound commands too.

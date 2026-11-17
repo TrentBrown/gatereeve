@@ -260,22 +260,75 @@ function skipOptions(words, values) {
   return words.slice(index);
 }
 
-// Wrapper options that change the working directory of the wrapped command.
-const CHDIR = { env: { short: '-C', long: '--chdir' }, sudo: { short: '-D', long: '--chdir' } };
+// Options of the wrappers that can change where a wrapped Git command acts,
+// with short letters that take no operand (`flags`) or one (`values`), and
+// long names (unique abbreviations accepted) that take none, one (`value`) or
+// only an attached one (`optional`). The guard acts on the ones it models;
+// any other option makes the directory and GIT_DIR unknown, so a push behind
+// it is admitted rather than checked in the wrong place (NEW17, NEW23).
+const WRAPPER_OPTIONS = {
+  env: {
+    flags: 'i0v', values: 'uCS',
+    long: { 'ignore-environment': 'flag', null: 'flag', debug: 'flag', unset: 'value', chdir: 'value', 'split-string': 'value', 'default-signal': 'optional', 'ignore-signal': 'optional', 'block-signal': 'optional', 'list-signal-handling': 'flag' },
+    act: { i: 'clear', 'ignore-environment': 'clear', u: 'unset', unset: 'unset', C: 'dir', chdir: 'dir' },
+  },
+  sudo: {
+    flags: 'AbBEeHiKklnPSsVv', values: 'ugCDhprtTUR',
+    long: { askpass: 'flag', background: 'flag', bell: 'flag', 'close-from': 'value', chdir: 'value', chroot: 'value', 'preserve-env': 'optional', edit: 'flag', group: 'value', 'set-home': 'flag', host: 'value', login: 'flag', 'remove-timestamp': 'flag', 'reset-timestamp': 'flag', list: 'flag', 'non-interactive': 'flag', 'preserve-groups': 'flag', prompt: 'value', role: 'value', stdin: 'flag', shell: 'flag', type: 'value', 'command-timeout': 'value', 'other-user': 'value', user: 'value', validate: 'flag', version: 'flag', help: 'flag' },
+    act: { D: 'dir', chdir: 'dir', R: 'root', chroot: 'root', i: 'unknown', login: 'unknown', E: 'keep', 'preserve-env': 'keep' },
+  },
+  doas: { flags: 'nsL', values: 'uC', long: {}, act: {} },
+  exec: { flags: 'cl', values: 'a', long: {}, act: { c: 'clear' } },
+};
+// A directory the guard cannot name.
+const UNKNOWN_DIR = Symbol('unknown directory');
 
-function wrapperDirectories(name, words, values) {
-  const option = CHDIR[name];
-  const directories = [];
-  if (!option) return directories;
-  for (let index = 0; index < words.length && /^-./u.test(words[index]); index++) {
+// Apply a wrapper's options to the scope; returns the words after them.
+function wrapperOptions(name, words, scope) {
+  const spec = WRAPPER_OPTIONS[name];
+  let keep = false, unknown = false;
+  const act = (option, value) => {
+    const effect = option === null ? 'unknown' : spec.act[option];
+    if (effect === 'unknown' || effect === 'root') { unknown = true; scope.chdir.push(UNKNOWN_DIR); scope.gitDirUnknown = true; }
+    // Under another root even absolute paths name other directories.
+    if (effect === 'root') scope.rooted = true;
+    else if (effect === 'dir' && value !== undefined) scope.chdir.push(value);
+    else if (effect === 'clear' || (effect === 'unset' && value === 'GIT_DIR')) { scope.gitDir = null; scope.gitDirUnknown = false; }
+    else if (effect === 'keep') keep = value === null || value.split(',').includes('GIT_DIR');
+  };
+  let index = 0;
+  for (; index < words.length; index++) {
     const word = words[index];
-    if (word === '--') break;
-    if (word === option.short || word === option.long) directories.push(words[index + 1]);
-    else if (word.startsWith(`${option.long}=`)) directories.push(word.slice(option.long.length + 1));
-    else if (word.length > 2 && word.startsWith(option.short)) directories.push(word.slice(2));
-    if (values.has(word)) index++;
+    if (word === '--') { index++; break; }
+    if (word === '-' && name === 'env') { act('i', null); continue; }
+    if (!/^-./u.test(word)) break;
+    if (word.startsWith('--')) {
+      const equals = word.indexOf('=');
+      const given = equals === -1 ? word.slice(2) : word.slice(2, equals);
+      const names = Object.keys(spec.long).filter(option => option === given || option.startsWith(given));
+      const option = names.includes(given) ? given : names.length === 1 ? names[0] : null;
+      if (option === null) { act(null); continue; }
+      const value = equals !== -1 ? word.slice(equals + 1) : spec.long[option] === 'value' ? words[++index] : null;
+      act(option, value); continue;
+    }
+    for (let at = 1; at < word.length; at++) {
+      const letter = word[at];
+      if (spec.flags.includes(letter)) { act(letter, null); continue; }
+      if (spec.values.includes(letter)) { act(letter, at + 1 < word.length ? word.slice(at + 1) : words[++index]); break; }
+      act(null); break;
+    }
   }
-  return directories.filter(item => item !== undefined);
+  // sudo and doas start the command with a reset environment unless sudo is
+  // told to preserve it (NEW14); `sudo`/`doas` policy beyond that is a limit.
+  if ((name === 'sudo' && !keep && !unknown) || name === 'doas') { scope.gitDir = null; scope.gitDirUnknown = false; }
+  return words.slice(index);
+}
+
+// The GIT_DIR a wrapped command inherits: its scope's prefix or the shell's,
+// unknown when an unmodelled wrapper option may have changed it.
+function scopedGitDir(scope, inherited) {
+  const value = scope.gitDir !== undefined ? scope.gitDir : inherited;
+  return scope.gitDirUnknown && value !== null ? UNKNOWN_GIT_DIR : value;
 }
 
 // Where a push may act, as the set of directories the shell may be in: each is
@@ -309,6 +362,7 @@ function union(a, b) {
 // possibility (including unknown and omitted ones).
 function move(places, target) {
   if (target === undefined || target === null || !reachable(places)) return places;
+  if (target === UNKNOWN_DIR) return SOMEWHERE;
   if (String(target).startsWith('/')) return { dirs: [[target]], unknown: false, overflow: false };
   return { dirs: places.dirs.map(dir => [...dir, target]), unknown: places.unknown, overflow: places.overflow };
 }
@@ -339,29 +393,6 @@ function splitString(text) {
   return words;
 }
 
-// GIT_DIR effects of a wrapper's options: env -i/-u/--unset and sudo/doas,
-// which reset the environment unless sudo is told to preserve it (NEW14).
-// Each option's operand is consumed once. Clustered short options are a
-// documented limit.
-function wrapperEnvironment(name, words, values, scope) {
-  if (name === 'sudo' || name === 'doas') {
-    const preserves = name === 'sudo' && words.some(word => word === '-E' || word === '--preserve-env' || (word.startsWith('--preserve-env=') && word.slice(15).split(',').includes('GIT_DIR')));
-    if (!preserves) scope.gitDir = null;
-    return;
-  }
-  if (name !== 'env') return;
-  for (let index = 0; index < words.length && /^-/u.test(words[index]) && words[index] !== '--'; index++) {
-    const word = words[index];
-    let unset = null;
-    if (word === '-' || word === '-i' || word === '--ignore-environment') scope.gitDir = null;
-    else if (word === '-u' || word === '--unset') unset = words[++index];
-    else if (word.startsWith('--unset=')) unset = word.slice(8);
-    else if (word.startsWith('-u')) unset = word.slice(2);
-    else if (values.has(word)) index++;
-    if (unset === 'GIT_DIR') scope.gitDir = null;
-  }
-}
-
 // Remove assignments, reserved words and wrappers until the real command. The
 // scope collects what selects the repository a wrapped Git command acts on:
 // wrapper directory options and GIT_DIR prefixes (NEW6), and whether a
@@ -371,7 +402,7 @@ function unwrap(words, scope) {
   let rest = [...words];
   for (let guard = 0; guard < 32 && rest.length; guard++) {
     const assignment = ASSIGNMENT.exec(rest[0]);
-    if (assignment?.[1] === 'GIT_DIR') scope.gitDir = assignment[2];
+    if (assignment?.[1] === 'GIT_DIR') { scope.gitDir = assignment[2]; scope.gitDirUnknown = false; }
     if (RESERVED.has(rest[0]) || assignment) { rest.shift(); continue; }
     const name = commandName(rest[0]);
     if (!WRAPPERS.has(name)) break;
@@ -383,16 +414,17 @@ function unwrap(words, scope) {
       let found = false;
       for (let at = 1; at < rest.length && /^-./u.test(rest[at]) && rest[at] !== '--'; at += WRAPPERS.get('env').has(rest[at]) ? 2 : 1) {
         const item = rest[at];
-        if (!(item.startsWith('-S') || item === '--split-string' || item.startsWith('--split-string='))) continue;
-        const attached = item === '--split-string' ? null : item.startsWith('--split-string=') ? item.slice(15) : item.length > 2 ? item.slice(2) : null;
-        rest = [rest[0], ...rest.slice(1, at), ...splitString(attached ?? rest[at + 1] ?? ''), ...rest.slice(at + (attached === null ? 2 : 1))];
+        // `-S…`, a cluster of flags ending in S (`-vS…`), or the long option.
+        const short = /^-([i0v]*)S(.*)$/su.exec(item);
+        if (!(short || item === '--split-string' || item.startsWith('--split-string='))) continue;
+        const flags = short?.[1] ? [`-${short[1]}`] : [];
+        const attached = short ? (short[2] || null) : item.startsWith('--split-string=') ? item.slice(15) : null;
+        rest = [rest[0], ...rest.slice(1, at), ...flags, ...splitString(attached ?? rest[at + 1] ?? ''), ...rest.slice(at + (attached === null ? 2 : 1))];
         found = true; break;
       }
       if (!found) break;
     }
-    scope.chdir.push(...wrapperDirectories(name, rest.slice(1), WRAPPERS.get(name)));
-    wrapperEnvironment(name, rest.slice(1), WRAPPERS.get(name), scope);
-    rest = skipOptions(rest.slice(1), WRAPPERS.get(name));
+    rest = WRAPPER_OPTIONS[name] ? wrapperOptions(name, rest.slice(1), scope) : skipOptions(rest.slice(1), WRAPPERS.get(name));
     if (name === 'timeout') rest = rest.slice(1);
   }
   return rest;
@@ -474,22 +506,37 @@ function classifyGit(args, findings, scope, state) {
   }
   const remote = remoteOption ?? positionals.shift() ?? null;
   const base = [...scope.chdir, ...directories].reduce(move, state.places);
-  const dir = gitDir ?? (scope.gitDir !== undefined ? scope.gitDir : state.gitDir);
+  const dir = gitDir ?? scopedGitDir(scope, state.gitDir);
   let where = base;
-  if (dir === UNKNOWN_GIT_DIR) where = reachable(base) ? SOMEWHERE : NOWHERE;
+  if (scope.rooted || state.rooted) where = reachable(base) ? SOMEWHERE : NOWHERE;
+  else if (dir === UNKNOWN_GIT_DIR) where = reachable(base) ? SOMEWHERE : NOWHERE;
   else if (dir) where = /(?:^|\/)\.git\/*$/u.test(dir) ? move(move(base, dir), '..') : move(base, dir);
   findings.push({ kind: 'git-push', remote, refspecs: positionals, all, tags, locations: where.dirs, ...(where.unknown ? { unknown: true } : {}), ...(where.overflow ? { overflow: true } : {}) });
 }
 
-// The directory a `cd`/`pushd`/`popd` moves to: a literal target, or
-// undefined when the guard cannot name it (no target, `-`, `~`, a variable, a
-// substitution or a glob). Null when the command is not one of these.
+// The directory a `cd`/`pushd`/`popd` moves to: a literal target, undefined
+// when the guard cannot name it (no target, `-`, `~`, a variable, a
+// substitution, a glob, a stack entry, `popd`, or an option it does not model),
+// or null when the command does not move (not one of these, or `pushd -n`/
+// `popd -n`, which only edit the directory stack; NEW22).
 function changedDirectory(words) {
   const name = commandName(words[0] ?? '');
-  if (name === 'popd') return undefined;
-  if (!['cd', 'pushd'].includes(name)) return null;
-  const target = words.slice(1).find(word => word !== '--' && !/^[-+]./u.test(word));
-  return target && target !== '-' && !/^~|[$`*?[\u0000]/u.test(target) ? target : undefined;
+  if (!['cd', 'pushd', 'popd'].includes(name)) return null;
+  const args = words.slice(1);
+  let index = 0, stackOnly = false;
+  for (; index < args.length && /^-./u.test(args[index]); index++) {
+    const word = args[index];
+    if (word === '--') { index++; break; }
+    if (name === 'cd' && /^-[LPe@]+$/u.test(word)) continue;
+    if (name !== 'cd' && word === '-n') { stackOnly = true; continue; }
+    if (name !== 'cd' && /^-\d+$/u.test(word)) break;
+    return undefined;
+  }
+  if (stackOnly) return null;
+  const operands = args.slice(index);
+  if (name === 'popd' || operands.length !== 1) return undefined;
+  const target = operands[0];
+  return target && !/^[~+-]|[$`*?[\u0000]/u.test(target) ? target : undefined;
 }
 
 // How a command changes GIT_DIR for later commands: 'unset' (`unset`,
@@ -593,12 +640,12 @@ function analyze(text, depth, start) {
     const before = entering ? null : command.before;
     const input = inputFor(before);
     if (!['&&', '||', '|', '|&'].includes(before)) listStart = input;
-    const state = { places: input, gitDir };
+    const state = { places: input, gitDir, rooted: start.rooted };
     classifyNested(index, state);
-    const scope = { chdir: [], gitDir: undefined, external: false };
+    const scope = { chdir: [], gitDir: undefined, gitDirUnknown: false, rooted: false, external: false };
     const words = unwrap(command.words, scope);
     const name = words.length ? commandName(words[0]) : null;
-    const inner = { places: scope.chdir.reduce(move, input), gitDir: scope.gitDir !== undefined ? scope.gitDir : gitDir };
+    const inner = { places: scope.chdir.reduce(move, input), gitDir: scopedGitDir(scope, gitDir), rooted: start.rooted || scope.rooted };
     let result = { ok: input, fail: input };
     if (name && SHELLS.has(name)) {
       const flag = words.findIndex((word, at) => at > 0 && /^-[A-Za-z]*c[A-Za-z]*$/u.test(word));
@@ -629,9 +676,14 @@ function analyze(text, depth, start) {
     if (!inside && moved === null) {
       if (name === 'exit' && own) {
         if (reachable(input)) {
+          // A literal code counts modulo 256; without one, exit keeps the
+          // previous command's status.
           const code = words[1];
-          if (code === undefined || !/^\d+$/u.test(code) || Number(code) === 0) exits.ok = true;
-          if (code === undefined || !/^\d+$/u.test(code) || Number(code) !== 0) exits.fail = true;
+          const literal = code !== undefined && /^-?\d+$/u.test(code) ? ((BigInt(code) % 256n) + 256n) % 256n === 0n : null;
+          const previous = before === '&&' ? [true, false] : before === '||' ? [false, true] : before === '&' ? [true, false] : before === null ? [true, true] : [reachable(ok), reachable(fail)];
+          const [succeeds, fails] = code === undefined ? previous : literal === null ? [true, true] : [literal, !literal];
+          if (succeeds) exits.ok = true;
+          if (fails) exits.fail = true;
         }
         result = { ok: NOWHERE, fail: NOWHERE };
       }
@@ -643,7 +695,7 @@ function analyze(text, depth, start) {
   });
   while (path.length) leave();
   const end = commands.at(-1)?.after === '&' ? listStart : union(ok, fail);
-  classifyNested(commands.length, { places: end, gitDir });
+  classifyNested(commands.length, { places: end, gitDir, rooted: start.rooted });
   return { findings, places: end, gitDir };
 }
 

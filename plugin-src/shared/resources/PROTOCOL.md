@@ -429,7 +429,10 @@ follows, in order:
   `git -C dir`/`-Cdir`. These and a `GIT_DIR=` prefix carry into `bash -c`,
   `eval` and `env -S` scripts. `env -S` splits its string into arguments (not
   shell syntax) and appends the remaining ones. `env -u GIT_DIR`/`--unset`/`-i`,
-  and `sudo` (unless `-E`/`--preserve-env`) or `doas`, drop the prefix.
+  `exec -c`, and `sudo` (unless `-E`/`--preserve-env`) or `doas`, drop the
+  prefix. Wrapper options are read as the wrappers read them (clustered short
+  options, unique long-option abbreviations); `pushd -n` and `popd -n` only edit
+  the directory stack.
 
 A push is checked in every directory it could act on, and denied if any of them
 protects its destination. One with more possible directories than the guard
@@ -446,11 +449,16 @@ rather than deny an unrelated one.
 - Shell-variable state across commands (`export`/assignments/`unset` of
   `GIT_DIR`) is not followed. After a `GIT_DIR` assignment, a push without its
   own `--git-dir` or prefix is admitted.
-- `env -S` escape sequences beyond quotes, `\_`, `\n` and `\t`, and clustered
-  short options (`env -iC dir`, `env -vS …`), are not interpreted.
+- `env -S` escape sequences beyond quotes, `\_`, `\n` and `\t` are not
+  interpreted.
+- An option of `env`, `sudo`, `doas`, `exec`, `cd`, `pushd` or `popd` that the
+  guard does not model (including `sudo -i`/`--login` and a `sudo` chroot)
+  makes the directory and `GIT_DIR` unknown; the push is admitted unless it
+  names an absolute directory or Git directory after it.
 - `sudo`/`doas` environment policy beyond the defaults above is not modelled.
-- A `cd` target or `GIT_DIR` value built from variables, `~`, `CDPATH`, `cd -`
-  or `popd` is not resolved (the directory becomes unknown).
+- A `cd` target or `GIT_DIR` value built from variables, `~`, `CDPATH`, `cd -`,
+  a directory-stack entry or `popd` is not resolved (the directory becomes
+  unknown).
 - Scripts, aliases defined outside `gh`, shell functions, `source`d files,
   earlier tool calls, variables naming commands, request bodies from files and
   other clients are not seen.

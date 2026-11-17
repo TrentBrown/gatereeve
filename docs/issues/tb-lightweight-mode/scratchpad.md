@@ -915,3 +915,24 @@ Three in-scope defects, fixed:
   another number fails; `exit` without a number still allows either.
 - NEW21: a backslash-newline in a heredoc delimiter (`<<EO\⏎F`) is a line
   continuation, not quoting, so the body's substitutions are classified.
+
+### S10 review round 8 (FAIL on 8e5736e) — Trent chose option 1
+
+Findings: NEW20 (bare `exit` keeps the previous status; codes count modulo
+256), NEW17 (an unparsed `env -iC/dir` cluster was checked in the caller's
+directory, an unrelated denial), NEW22 (`pushd -n` does not move), NEW23
+(`exec -c` clears GIT_DIR). Trent chose one last round that also closes the
+general case, with a stop rule: if round 9 fails only on new unusual forms, the
+review gate is waived.
+
+- Wrapper options (`env`, `sudo`, `doas`, `exec`) are parsed by one table-driven
+  reader: clustered short options, operands attached or separate, unique
+  long-option abbreviations. Any option it does not model makes the directory
+  and GIT_DIR unknown, so a push behind it is admitted; `sudo -i` and a chroot
+  (`-R`, where even absolute paths differ) are unknown by design.
+- `cd`/`pushd`/`popd`: only `-L`/`-P`/`-e`/`-@` for cd and `-n` (stack only) for
+  pushd/popd are modelled; any other option, stack entry or operand count makes
+  the directory unknown.
+- `exit` with a literal code counts it modulo 256; a bare `exit` keeps the
+  previous command's status (after `&&` success, after `||` failure, at the
+  start of a script or subshell either).
