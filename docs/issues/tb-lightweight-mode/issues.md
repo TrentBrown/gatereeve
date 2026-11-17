@@ -109,12 +109,12 @@ Covers:
 
 ## I-8 - Workspace configuration at run start and feature-final fixes
 
-- **Status:** in-progress
+- **Status:** merged
 - **Estimate:** unknown
 - **Plan steps:** P10
 - **Rubric criteria:** R8, R7, R10
 - **Depends on:** I-1 to I-6
-- **PR:** -
+- **PR:** #113 (merged 2026-11-17, `ece5081`; review gate waived on a PASS verdict)
 
 Covers:
 - run-start creation of a minimal workspace configuration (default branch as
