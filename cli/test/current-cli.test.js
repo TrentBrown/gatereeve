@@ -41,7 +41,7 @@ test('CLI records and revokes standing authority through the native core and fai
   await git(f.repo, ['push', 'origin', 'HEAD:refs/heads/main']);
   const scope = join(f.root, 'standing.json');
   await writeFile(scope, JSON.stringify({ actions: ['accept'], candidateScopes: ['SLICE', 'FEATURE'],
-    repositories: [{ alias: 'app', headPrefix: 'topic', baseBranch: 'main' }], expiresAt: null }));
+    repositories: [{ alias: 'app', headPrefix: 'feature', baseBranch: 'main' }], expiresAt: null }));
   const invoke = (...args) => exec(process.execPath, [cli, ...args, '--cwd', f.repo, '--json']);
   const human = ['--instruction', 'Accept the approved feature when every gate passes.', '--context', 'User fixture conversation', '--reason', 'Overnight operation', '--consequences', 'No merge or deployment'];
   const grant = JSON.parse((await invoke('decide', 'authorize-standing', '--subject', (await f.core.commitments()).subject, '--scope', scope, ...human)).stdout);

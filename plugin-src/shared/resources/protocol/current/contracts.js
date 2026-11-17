@@ -190,7 +190,8 @@ export function dialChange(state, input) {
   requireThat(DIALS[input.dial].includes(input.value), `Invalid ${input.dial} value`);
   // Lowering is refused before any other field check, so every caller gets the
   // path forward rather than a missing-field error.
-  requireThat(!(input.dial === 'rigor' && input.value === 'light'), LOWERING_REFUSED);
+  // A light run asking for light is told so, not told it cannot lower (F13).
+  if (input.dial === 'rigor' && input.value === 'light') requireThat(false, state.dials.rigor.value === 'light' ? 'Run rigor is already light' : LOWERING_REFUSED);
   requireThat(['human', 'agent'].includes(input.actor), 'Dial change actor must be human or agent');
   text(input.reason, 'Dial change reason');
   requireThat(input.actor !== 'human' || input.authority !== undefined, 'A human dial change requires the observed instruction');

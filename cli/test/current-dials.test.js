@@ -15,7 +15,8 @@ async function fixture(t, start = {}) {
   t.after(() => rm(root, { recursive: true, force: true }));
   const repo = join(root, 'app'), home = join(root, 'docs/issues/feature');
   await mkdir(repo, { recursive: true }); await mkdir(home, { recursive: true });
-  await git(repo, ['init', '-b', 'topic']);
+  // Named for the configured feature so configured adapter starts use it (spec AC6).
+  await git(repo, ['init', '-b', 'feature']);
   await git(repo, ['config', 'user.email', 'fixture@example.test']);
   await git(repo, ['config', 'user.name', 'Fixture']);
   await git(repo, ['config', 'commit.gpgsign', 'false']);
@@ -96,6 +97,12 @@ test('configuration cannot change dial defaults', async t => {
 test('raising rigor is open to either actor and a raised run can never be lowered', async t => {
   const f = await fixture(t);
   await f.start({ rigor: { value: 'light', authority: human } });
+  // F13: asking for light on a light run reports the same value, not a lowering.
+  for (const extra of [{ actor: 'agent', reason: 'stay' }, { actor: 'human', authority: human, reason: 'stay' }, {}]) {
+    await assert.rejects(f.request('run.set-dial', { dial: 'rigor', value: 'light', ...extra }, `light-again-${extra.actor ?? 'bare'}`), error => {
+      assert.match(error.message, /^Run rigor is already light$/u); return true;
+    });
+  }
   await assert.rejects(f.request('run.set-dial', { dial: 'rigor', value: 'full', actor: 'agent' }, 'no-reason'), /reason/);
   await assert.rejects(f.request('run.set-dial', { dial: 'rigor', value: 'full', actor: 'agent', authority: human, reason: 'x' }, 'claim'), /cannot claim human authority/);
   await f.request('run.set-dial', { dial: 'rigor', value: 'full', actor: 'agent', reason: 'Tripped on a migration' }, 'raise');
@@ -127,6 +134,8 @@ test('delegation is human-only, names the run, and needs a configured protected 
 test('rules: rigor never falls within a run for any actor or autonomy; hand-back is open to either actor', () => {
   const dials = (rigor, autonomy) => ({ dials: { rigor: { value: rigor }, autonomy: { value: autonomy } } });
   assert.throws(() => dialChange(dials('full', 'supervised'), { dial: 'rigor', value: 'light', actor: 'human' }), /start a new light run/);
+  // F13: light on a light run is the same value, for either autonomy.
+  for (const autonomy of ['supervised', 'delegated']) assert.throws(() => dialChange(dials('light', autonomy), { dial: 'rigor', value: 'light', actor: 'agent', reason: 'r' }), /Run rigor is already light/);
   for (const autonomy of ['supervised', 'delegated']) for (const actor of ['human', 'agent']) {
     const lower = { dial: 'rigor', value: 'light', actor, reason: 'r', ...(actor === 'human' ? { authority: human } : {}) };
     assert.throws(() => dialChange(dials('full', autonomy), lower), /cannot be lowered within a run; to work at light rigor, start a new light run/);

@@ -533,3 +533,115 @@ entries are appended to `decisions.md`.
 - **Dogfooding note.** The installed rc.26 regex guard denied a shell command
   whose heredoc text merely mentioned the merge command; S4's parser fixes this
   class once installed.
+
+## S8 — workspace configuration (tb-lightweight-mode-08-workspace-config)
+
+- **Module.** New `protocol/current/workspace.js` (`prepareWorkspace`,
+  `observeDelivery`, `branchFeatureMatch`, `excludeConfiguration`,
+  `workspaceStatus`). `context.js` gains `reresolveWorkflowContext` (re-resolve a
+  discovered context with its retained options after GateReeve writes the file).
+- **Where enforced.** The adapter prepares the workspace for `run.start` and
+  `workspace.configure` before it creates the feature home or checks for an active
+  run, so a configuration naming another feature stops before anything is created
+  in that feature's home, and a written or replaced configuration decides which
+  home is used. The core receives the preparation through a module symbol
+  (`WORKSPACE_PREPARED`), not through JSON input. An embedder calling the core with
+  a resolved context gets the same rules from `core.start`; there a replacement that
+  would move the feature home is refused before writing. Explicit in-memory
+  contexts (no `mode`) are untouched and refuse workspace instructions.
+- **Feature identity of the started run.** The current branch of the selected
+  repository, as in the Git fallback. An existing configuration "names the feature
+  being started" when the branch is its `featureId`, one of its sequential delivery
+  branches (`<featureId>-NN-<description>`, ordinal >= 1, the
+  `validate_delivery_branch` rule in `workflow_context.py`), or its distinct
+  integration branch. Anything else, including a detached HEAD, is a mismatch.
+  This applies to every configuration, hand-written or GateReeve-written
+  (conservative): a stale hand-written file is as dangerous as a generated one.
+- **Mismatch.** `run.start` fails (`details.kind: workspace-feature-mismatch`)
+  naming both features and both instructions. Continuing needs the observed human
+  instruction (`authority`, human-confirmed) in `workspace`:
+  `{confirmFeature: <configured featureId>, authority}` (the run belongs to the
+  configured feature after all; recorded as `match: human-confirmed`) or
+  `{replace: true, authority}`. Chosen conservative: confirming also needs the
+  human, so the agent cannot get past the refusal by restating the configured
+  feature. Any instruction is refused when the configuration already matches, and
+  when there is no configuration.
+- **Replacement limits.** Only a single-repository configuration at the selected
+  repository's root is replaced (a multi-repository workspace file is edited by
+  hand). The default branch must be observed, and the target feature home must not
+  already hold a run, before anything is written; then the file must still hold the
+  judged bytes and is replaced by rename. The record keeps the previous feature and
+  retains the previous bytes in the run's store.
+- **Creation.** Git fallback only. GitHub remote: `origin` when it is a GitHub URL
+  (the `remoteName` forms merge preparation accepts), else the only GitHub remote;
+  several non-origin GitHub remotes or none means nothing is written. Default branch:
+  `gh api --method GET repos/{owner}/{repo}` `default_branch` (non-admin), validated
+  as a branch name. No `git symbolic-ref refs/remotes/<remote>/HEAD` fallback: no
+  other code observes branches that way, and a stale local remote HEAD could name
+  the wrong branch. Any failure starts the run without writing and records
+  `{status: unconfigured, reason}`. Also not written (choices): a run started on the
+  default branch itself (featureId would equal integration/release), and a run
+  started with `autonomy: delegated` (S5: the Git fallback cannot delegate; the
+  protection check runs against the pre-write context, so delegation at start still
+  needs an existing configuration). `featureBaseSha` is not written: the single-PR
+  shape delivers `SLICE` PRs into the default branch; a `FEATURE` review needs a
+  person to add it (as for any configuration).
+- **Writing.** Local exclude first (`<git-common-dir>/info/exclude`, entry
+  `/.agentic-workflow.json`, added only when neither that nor the bare name is
+  present), then an exclusive atomic write (temporary file, `link`, never over an
+  existing file; an appearing file aborts the operation). The context is then
+  re-resolved and must name the same feature and home. The record stores the
+  observation (remote name and owner/repo, never the URL, which could carry
+  credentials), the configuration, the file hash (bytes retained in the store) and
+  the exclude change.
+- **Rollback.** A configuration written for a request that then fails without any
+  event recording it is removed (or the previous bytes restored after a
+  replacement), in the adapter and in `core.start`/`configureWorkspace`. The
+  exclude entry stays (harmless, idempotent).
+- **Recording.** `STARTED.workspace` for run start (`created`, `replaced`,
+  `configured` with `match`, or `unconfigured` with `reason`); new event
+  `WORKSPACE_CONFIGURED` for `workspace.configure` (projected to `state.workspace`).
+  Contract stays `gatereeve/current/7`, as S3/S5 did for new events. An S1–S7 build
+  reading a journal with `WORKSPACE_CONFIGURED` would throw "Unsupported current
+  event"; nothing has been released between slices.
+- **workspace.configure.** Input `{}` or the same instruction shape. Needs an
+  active run in the target feature home ("run.start writes it" otherwise). Already
+  configured for the feature: `{written: false, workspace: {status: configured}}`,
+  no event. Fallback without a GitHub remote or observable default branch: fails
+  with the reason (nothing to record). CLI `gatereeve workspace configure`
+  (`--replace-workspace` / `--confirm-feature` with `--instruction` and
+  `--instruction-context`); `run start` takes the same options. Added to
+  `CLI_FORMS`, the metrics `OPERATIONS` allowlist and the status actions (a
+  `configure-workspace` action only for an unconfigured run).
+- **merge.prepare.** Before the candidate and PR checks, a selected repository without an
+  integration branch fails with `details: {kind: workspace-unconfigured, operation:
+  workspace.configure}` and a message naming `workspace.configure` through S4's
+  `recoveryText` (adapter request and/or CLI form, or the unavailable text).
+  `merge.execute` uses `prepareMerge`, so it reports the same.
+- **Status.** Snapshot `workspace: {mode, configPath, configured, recorded,
+  branch?, matchesBranch?, message}`. With no run, the message says `run.start`
+  writes the configuration (fallback) or that an existing one names another feature
+  (configured, branch mismatch). For a run without configuration it names
+  `workspace.configure`. CLI status prints the recorded write and the message;
+  SessionStart repeats the message, and states the run-start rule itself when status
+  carries no workspace information. A resumed run (`run.resume-current`) writes
+  nothing automatically: it is an existing run; `workspace.configure` covers it.
+- **Guard consequence.** Once written, the configuration protects the default
+  branch from direct pushes (S4 rule), which it did not in the fallback.
+- **NEW1.** `decide` computes `briefScopeChanged` for any light
+  `authorize-implementation` while delegated. The delegated-evaluator path is
+  unchanged (hands back, refuses). A human-confirmed one is recorded and hands back:
+  `DIAL_SET` autonomy supervised, trigger `amend`, appended before the `DECIDED`
+  (as an `amend` under delegation does). Findings-only edits do not hand back.
+- **NEW3.** `pushDestinations` treats the matching refspec (`:` after stripping
+  `+`) as `*`, so it is denied whenever any integration or release branch is
+  configured. `:main` deletion handling is unchanged.
+- **F13.** `dialChange`: rigor `light` on a light run reports "Run rigor is already
+  light" before other field checks; full → light is still `LOWERING_REFUSED`.
+- **Existing tests changed by intended behavior:**
+  - `helpers/current-fixture.js`: the fixture repository's branch is `feature`
+    (was `topic`) so it names the configured feature `feature`; with `topic`,
+    run start is now refused as another feature's configuration.
+  - `current-cli.test.js` standing test: the grant's `headPrefix` is `feature`
+    (was `topic`) to match that branch, since standing validity checks the
+    checked-out branch.

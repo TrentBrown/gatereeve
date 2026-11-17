@@ -4,8 +4,9 @@ import { randomUUID } from 'node:crypto';
 import { CONTRACT, requireThat, identity, text } from './contracts.js';
 import { checkCandidate } from './evidence.js';
 import { runTrustedPythonGuard } from '../python-guards.js';
-import { ExternalBlockerError } from '../errors.js';
-import { qualifyingDecisions, requireUnexpired, configuredGit, deliveryTarget } from './authorization.js';
+import { ExternalBlockerError, ContractError } from '../errors.js';
+import { resolveEntryPoints, recoveryText } from './entry-point.js';
+import { qualifyingDecisions, requireUnexpired, configuredGit, deliveryTarget, deliveryBranches } from './authorization.js';
 import { requirePublishedReview } from './publication.js';
 
 const exec = promisify(execFile);
@@ -51,9 +52,21 @@ export async function waitForHostedChecks(root, action, run = gh) {
   }
   return observed('none');
 }
+// Delivery has no configuration-free path (spec AC6): an unconfigured workspace
+// names the operation that writes the configuration.
+async function requireDeliveryConfiguration(core, repository) {
+  if (!repository || deliveryBranches(repository).integration) return;
+  const entry = core.runtime.entryPoints ?? await resolveEntryPoints({ env: core.runtime.environment ?? process.env });
+  const cwd = repository.path ?? core.context.workspaceRoot;
+  throw new ContractError('Merge preparation needs a workspace configuration (.agentic-workflow.json) naming this repository\'s integration and release branches; this workspace has none (Git fallback). '
+    + `Write it with workspace.configure (${recoveryText(entry, ['workspace.configure'], { cwd, requests: { 'workspace.configure': { input: {} } } })}): `
+    + 'it observes the GitHub default branch and names it as both integration and release, so only per-PR human merges exist. Without a GitHub remote, write the file by hand (WORKSPACE-CONTEXT.md).',
+  { kind: 'workspace-unconfigured', operation: 'workspace.configure' });
+}
 export async function prepareMerge(core, input) {
   await core.assertContext();
   const { state } = await core.state();
+  await requireDeliveryConfiguration(core, core.context.repositories.find(item => item.alias === input?.repository));
   const runGit = configuredGit(core);
   const candidate = await checkCandidate(core.store, core.context, state.candidate);
   const pin = candidate.repositories.find(item => item.alias === input.repository);

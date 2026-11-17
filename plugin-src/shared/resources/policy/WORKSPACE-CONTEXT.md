@@ -56,9 +56,48 @@ branch and no standing merge authority exists.
 Every merge into the release branch, in any rigor, needs a per-PR human
 instruction recorded as `authorize-merge` for that PR's number, head and base; the
 agent then executes it through the protected merge. Standing grants may name only
-a distinct integration branch. The Git fallback (no configuration) names no
-branches, so protected merge preparation needs a workspace configuration that
-names them.
+a distinct integration branch.
+
+## Configuration for delivery (written at run start)
+
+Merge preparation and execution use this configuration; there is no
+configuration-free delivery path. The Git fallback names no branches, so:
+
+- **Absent, GitHub remote.** `run.start` writes a minimal configuration at the
+  repository root: the current branch as `featureId` (the same feature home the
+  fallback uses), alias `repository`, `path: "."`, the GitHub remote (`origin`, or
+  the only GitHub remote when origin is not one), and the repository's default
+  branch as both `integrationBranch` and `releaseBranch`, with
+  `keepPullRequestsClosed: false`. Integration equal to release means only per-PR
+  human merges exist. The default branch is observed with non-admin access
+  (`gh api --method GET repos/{owner}/{repo}`, field `default_branch`). The file is
+  written atomically and never over an existing file, and `/.agentic-workflow.json`
+  is added to the repository's local excludes
+  (`$(git rev-parse --git-common-dir)/info/exclude`). The run's `STARTED` event
+  records what was observed and written (and retains the bytes); `status` reports it
+  under `workspace`.
+- **Not written.** With no GitHub remote, when the default branch cannot be
+  observed, when the current branch is the default branch, or when `run.start`
+  delegates (delegation needs an existing configuration with a protected release
+  branch), the run starts without a configuration. The reason is recorded and
+  `status` says that delivery needs one.
+- **Existing, same feature.** Used unchanged. The current branch belongs to the
+  configured feature when it is the feature branch, one of its sequential delivery
+  branches (`<featureId>-NN-<description>`) or its distinct integration branch.
+- **Existing, different feature.** `run.start` stops and writes nothing; a stale
+  file never silently points a new run at another feature's records. Only an
+  explicit human instruction continues: `workspace: {confirmFeature: "<featureId>",
+  authority}` when this run belongs to the configured feature after all (used
+  unchanged), or `workspace: {replace: true, authority}` to replace a
+  single-repository configuration at the repository root with a minimal one for the
+  current branch. The replacement is recorded with the previous bytes retained.
+- **Existing run without configuration.** `workspace.configure` (CLI
+  `gatereeve workspace configure`) writes it under the same rules and records
+  `WORKSPACE_CONFIGURED` in that run. `merge.prepare` fails with a message naming
+  it through an entry point present in the installation.
+
+Delegated merges still need a distinct integration branch, which a person
+configures explicitly (with `featureBaseSha` for a feature-final review).
 
 Delegated autonomy needs a configured release branch for every repository, observed
 as protected through GitHub's non-admin branches API, and delegated merges exist
@@ -97,7 +136,9 @@ specific matching path; otherwise pass `--repository <alias>`.
 
 If no configuration exists, the resolver uses the Git fallback: the current Git
 repository is the workspace, the current branch is the feature identity, and
-documents live under `docs/issues/<current-branch>/`.
+documents live under `docs/issues/<current-branch>/`. Starting a run there writes
+the configuration described above when the repository has a GitHub remote; the
+feature identity and home stay the same.
 
 ## Sequential delivery branches
 
@@ -121,8 +162,9 @@ release branch.
 The workspace configuration is local and untracked by default. A client-level
 repository may deliberately track it. Workflow tools must not silently edit a
 repository `.gitignore`, global ignore file, or other Git policy to hide the
-configuration; exclusion through `.git/info/exclude` is an explicit local
-operator choice.
+configuration. The one exception is explicit and recorded: when `run.start` or
+`workspace.configure` writes the configuration, it adds that file alone to the
+repository's local `info/exclude` and records the change with the run.
 
 ## Current source and review context
 
