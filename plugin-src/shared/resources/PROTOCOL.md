@@ -404,12 +404,15 @@ shell tool calls. It denies, with a reason:
   other refspec pushes only tags and is allowed; with a protected refspec it is
   denied. An unconfigured Git workspace names no protected branch; the
   configuration `run.start` writes protects the default branch. Protection is
-  read from the repository the push acts on: `git -C dir`/`-Cdir`, `--work-tree`,
-  `--git-dir` (a `.git` directory stands for its parent), `GIT_WORK_TREE`/
-  `GIT_DIR` assignments and `env -C`/`--chdir` or `sudo -D`/`--chdir` wrappers
-  choose it. A literal `cd`/`pushd` earlier in the same command may or may not
-  apply (control flow is not modelled), so the push is checked both with and
-  without it.
+  checked in every location the push could act on, and any protected
+  destination denies it: the directory Git runs in (`git -C dir`/`-Cdir`,
+  `env -C`/`--chdir`, `sudo -D`/`--chdir`), the Git directory (`--git-dir`,
+  `GIT_DIR`; a `.git` directory stands for its parent) and the work tree
+  (`--work-tree`, `GIT_WORK_TREE`). Literal `cd`/`pushd` commands and
+  `GIT_DIR`/`GIT_WORK_TREE` assignments or exports anywhere in the command add
+  possible locations without removing earlier ones, because conditionals, loops,
+  subshells and substitutions are not modelled; they carry into `bash -c`,
+  `eval` and `env -S` scripts. At most 64 combinations are tracked per script.
 
 It follows quoting, `&&`/`||`/`;`/`|`/`&`/newline chains, subshells, `$(...)`
 (including heredoc bodies inside it), backticks, `bash -c`/`sh -c`, `eval` and

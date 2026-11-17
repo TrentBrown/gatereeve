@@ -757,3 +757,37 @@ failed with `spawn E2BIG`.
 - **Tests:** hook denials from an unconfigured directory outside the workspace for
   every spelling, topic pushes still allowed, and classifier directory lists. The
   attached `-C` case fails on the previous guard.
+
+### S10 review round 1 (FAIL on 79a0c0e) — fixes
+
+The widened directory tracking introduced three blocking gaps, all R10:
+
+- **NEW7: `--work-tree` replaced the repository.** A work tree changes only the
+  checkout. From a protected repository, `git --work-tree=/outside push origin
+  main` looked up only `/outside`, a regression from the base.
+- **NEW8: one `cd` sequence assumed.** Substitutions were classified before the
+  `cd` that precedes them; `false && cd /outside` and subshell `cd`s collapsed the
+  lookup onto the last target.
+- **NEW9: Git environment lost in recursion.** `GIT_DIR=/p/.git sh -c 'git push
+  origin main'` checked the hook's directory.
+
+Fix: the classifier now returns `locations`, every place a push could act on,
+and the hook denies if any protects the destination (fail closed).
+
+- A context is directory steps plus inherited `GIT_DIR`/`GIT_WORK_TREE`.
+- Within a script, literal `cd`/`pushd` (also behind `builtin`/`command` or
+  reserved words) and `GIT_DIR`/`GIT_WORK_TREE` assignments or
+  `export`/`declare`/`typeset`/`local`/`readonly` add contexts and never remove
+  them. Every command and substitution in the script is classified against the
+  final set, which covers loops, conditionals and subshells.
+- Wrapper directories and Git environment carry into `bash -c`, `eval` and
+  `env -S`.
+- For a push in a context, the locations are: the directory Git runs in (after
+  `-C`); the Git directory (option over environment; a `.git` directory stands
+  for its parent); and the work tree. The work tree is an addition, never a
+  replacement.
+- Cost: possible over-denial. A push is denied when a protected branch of the
+  same name exists in any location the command could reach, for example
+  `git --git-dir=/other/.git push origin main` run inside a protected
+  repository. That only affects pushes to a protected branch name.
+- Limit: at most 64 contexts per script.

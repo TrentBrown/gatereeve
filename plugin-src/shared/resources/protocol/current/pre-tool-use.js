@@ -39,11 +39,11 @@ async function protectedBranches(cwd, contextFor) {
 
 async function pushReasons(pushes, cwd, runtime, contextFor) {
   const reasons = [];
-  const walk = (base, steps) => (steps ?? []).reduce((at, next) => resolve(at, next ?? '.'), base);
+  const walk = steps => (steps ?? []).reduce((at, next) => resolve(at, next ?? '.'), cwd);
   for (const push of pushes) {
-    // Explicit Git and wrapper directories are exact. An earlier `cd` may or may not
-    // apply (control flow and subshells are not modelled), so both are checked.
-    const directories = [...new Set([walk(cwd, push.directory), ...(push.cd?.length ? [walk(walk(cwd, push.cd), push.directory)] : [])])];
+    // The classifier lists every location the push could act on (fail closed);
+    // a protected destination in any of them denies it.
+    const directories = [...new Set((push.locations?.length ? push.locations : [[]]).map(walk))];
     for (const directory of directories) reasons.push(...await directoryReasons(push, directory, runtime, contextFor));
   }
   return [...new Set(reasons)];
