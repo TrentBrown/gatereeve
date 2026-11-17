@@ -90,8 +90,16 @@ function closingBacktick(text, start) {
 // Split a script into simple commands of unquoted words. Command and process
 // substitutions are returned separately as nested scripts.
 export function parseShell(text) {
-  const commands = [], nested = [];
-  let current = { words: [], heredocs: [], herestrings: [] };
+  const commands = [], nested = [], nestedAt = [];
+  // Subshell nesting, so a `cd` inside `( … )` is scoped to it; each command
+  // records the path of subshells enclosing it.
+  const subshells = []; let nextSubshell = 0;
+  const fresh = () => ({ words: [], heredocs: [], herestrings: [], subshells: [...subshells] });
+  const nest = script => { nested.push(script); nestedAt.push(commands.length); };
+  // Each command records the separator before and after it (null at the ends):
+  // ';', '\n', '&&', '||', '|', '|&' or '&'. Subshell parentheses do not count.
+  let before = null;
+  let current = fresh();
   let word = null, expect = null, pending = [];
   const append = value => { word = (word ?? '') + value; };
   const pushWord = () => {
@@ -101,10 +109,13 @@ export function parseShell(text) {
     else if (!expect) current.words.push(word);
     expect = null; word = null;
   };
-  const endCommand = () => {
+  const endCommand = (separator = null) => {
     pushWord();
-    if (current.words.length || current.heredocs.length || current.herestrings.length || pending.some(item => item.command === current)) commands.push(current);
-    current = { words: [], heredocs: [], herestrings: [] };
+    if (current.words.length || current.heredocs.length || current.herestrings.length || pending.some(item => item.command === current)) {
+      current.before = before; current.after = separator; commands.push(current);
+      before = separator;
+    } else if (separator !== null) before = separator;
+    current = fresh();
   };
   const consumeHeredocs = start => {
     let i = start;
@@ -150,10 +161,10 @@ export function parseShell(text) {
           if (['$', '`', '"', '\\'].includes(next)) { value += next; i++; continue; }
           value += d; continue;
         }
-        if (d === '`') { const end = closingBacktick(text, i + 1); nested.push(text.slice(i + 1, end)); value += SUBSTITUTION; i = end; continue; }
+        if (d === '`') { const end = closingBacktick(text, i + 1); nest(text.slice(i + 1, end)); value += SUBSTITUTION; i = end; continue; }
         if (d === '$' && text[i + 1] === '(') {
           const end = matching(text, i + 1, '(', ')');
-          if (text[i + 2] !== '(') nested.push(text.slice(i + 2, end));
+          if (text[i + 2] !== '(') nest(text.slice(i + 2, end));
           value += SUBSTITUTION; i = end; continue;
         }
         value += d;
@@ -162,11 +173,11 @@ export function parseShell(text) {
     }
     if (c === '`') {
       const end = closingBacktick(text, i + 1);
-      nested.push(text.slice(i + 1, end)); append(SUBSTITUTION); i = end + 1; continue;
+      nest(text.slice(i + 1, end)); append(SUBSTITUTION); i = end + 1; continue;
     }
     if (c === '$' && text[i + 1] === '(') {
       const end = matching(text, i + 1, '(', ')');
-      if (text[i + 2] !== '(') nested.push(text.slice(i + 2, end));
+      if (text[i + 2] !== '(') nest(text.slice(i + 2, end));
       append(SUBSTITUTION); i = end + 1; continue;
     }
     if (c === '$' && text[i + 1] === '{') {
@@ -175,10 +186,10 @@ export function parseShell(text) {
     }
     if ((c === '<' || c === '>') && text[i + 1] === '(') {
       const end = matching(text, i + 1, '(', ')');
-      nested.push(text.slice(i + 2, end)); append(SUBSTITUTION); i = end + 1; continue;
+      nest(text.slice(i + 2, end)); append(SUBSTITUTION); i = end + 1; continue;
     }
     if (c === ' ' || c === '\t' || c === '\r') { pushWord(); i++; continue; }
-    if (c === '\n') { endCommand(); i = consumeHeredocs(i + 1); continue; }
+    if (c === '\n') { endCommand('\n'); i = consumeHeredocs(i + 1); continue; }
     if (c === '#' && word === null) {
       const end = text.indexOf('\n', i);
       i = end === -1 ? text.length : end; continue;
@@ -187,10 +198,15 @@ export function parseShell(text) {
       pushWord(); i += text[i + 2] === '>' ? 3 : 2; expect = { kind: 'redirect' }; continue;
     }
     if (c === ';' || c === '&' || c === '|') {
-      endCommand();
-      i += text[i + 1] === c || (c === '|' && text[i + 1] === '&') ? 2 : 1; continue;
+      const separator = text[i + 1] === c || (c === '|' && text[i + 1] === '&') ? c + text[i + 1] : c;
+      endCommand(separator === ';;' ? ';' : separator);
+      i += separator.length; continue;
     }
-    if (c === '(' || c === ')') { endCommand(); i++; continue; }
+    if (c === '(' || c === ')') {
+      endCommand();
+      if (c === '(') subshells.push(nextSubshell++); else subshells.pop();
+      current = fresh(); i++; continue;
+    }
     if (c === '<' || c === '>') {
       if (word !== null && /^\d+$/u.test(word)) word = null; else pushWord();
       if (text.startsWith('<<<', i)) { i += 3; expect = { kind: 'herestring' }; continue; }
@@ -206,7 +222,7 @@ export function parseShell(text) {
   }
   endCommand();
   if (pending.length) consumeHeredocs(text.length);
-  return { commands, nested };
+  return { commands, nested, nestedAt };
 }
 
 export function commandName(word) {
@@ -240,24 +256,115 @@ function wrapperDirectories(name, words, values) {
   return directories.filter(item => item !== undefined);
 }
 
-// Where a command runs, as it affects which repository a push acts on: directory
-// steps from the hook's directory and an inherited GIT_DIR. Only what the command
-// itself (or a wrapper or shell running it) names is followed; directory or
-// environment changes made by earlier commands (`cd`, `export`) are not.
+// Where a command may run, as it affects which repository a push acts on:
+// directory steps from the hook's directory (an absolute step replaces earlier
+// ones) and the inherited GIT_DIR (null when unset). A script tracks the set of
+// contexts each command could run in, in execution order: directory and Git
+// environment changes made by earlier commands (`cd`, `pushd`, `export`,
+// assignments, `unset`, and those made inside `eval`) add contexts for later
+// commands in the same or an enclosed subshell. Conditionals cannot remove a
+// context, so a push after an uncertain change is checked in each (fail closed);
+// in a script with a loop every command sees every context. Past MAX_CONTEXTS
+// the result is marked as overflowing and the hook denies its pushes.
 const ROOT_CONTEXT = Object.freeze({ steps: [], gitDir: null });
+const MAX_CONTEXTS = 64;
 const ASSIGNMENT = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/su;
+const LOOPS = new Set(['for', 'while', 'until', 'select']);
+const contextKey = context => JSON.stringify([context.steps, context.gitDir]);
 
-// A wrapper's directory change and Git directory apply to what it runs.
-function within(context, scope) {
-  return { steps: [...context.steps, ...scope.chdir], gitDir: scope.gitDir ?? context.gitDir };
+function step(steps, next) {
+  if (next === undefined || next === null) return steps;
+  return String(next).startsWith('/') ? [next] : [...steps, next];
 }
 
-const quoted = word => `'${word.replaceAll("'", "'\\''")}'`;
+function contextSet(initial = []) {
+  const set = { items: [], keys: new Set(), overflow: false };
+  for (const context of initial) addContext(set, context);
+  return set;
+}
+
+function addContext(set, context) {
+  const key = contextKey(context);
+  if (set.keys.has(key)) return;
+  if (set.items.length >= MAX_CONTEXTS) { set.overflow = true; return; }
+  set.keys.add(key); set.items.push(context);
+}
+
+function mergeSets(target, source) {
+  for (const context of source.items) addContext(target, context);
+  if (source.overflow) target.overflow = true;
+  return target;
+}
+
+// A wrapper's directory changes and Git environment apply to what it runs.
+// scope.gitDir: undefined inherits, null clears, a string sets.
+function within(set, scope) {
+  const result = contextSet();
+  for (const context of set.items) {
+    addContext(result, {
+      steps: scope.chdir.reduce(step, context.steps),
+      gitDir: scope.gitDir === undefined ? context.gitDir : scope.gitDir,
+    });
+  }
+  if (set.overflow) result.overflow = true;
+  return result;
+}
+
+// env -S splits its string into arguments (quotes and backslash escapes, no
+// shell syntax), then continues processing them as its own arguments (NEW13).
+function splitString(text) {
+  const words = [];
+  let word = null;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === ' ' || c === '\t' || c === '\n') { if (word !== null) words.push(word); word = null; continue; }
+    if (c === "'") { const end = text.indexOf("'", i + 1), stop = end === -1 ? text.length : end; word = (word ?? '') + text.slice(i + 1, stop); i = stop; continue; }
+    if (c === '"') {
+      let value = '';
+      for (i++; i < text.length && text[i] !== '"'; i++) value += text[i] === '\\' && i + 1 < text.length ? text[++i] : text[i];
+      word = (word ?? '') + value; continue;
+    }
+    if (c === '\\' && i + 1 < text.length) { const next = text[++i]; word = (word ?? '') + ({ _: ' ', n: '\n', t: '\t' }[next] ?? next); continue; }
+    word = (word ?? '') + c;
+  }
+  if (word !== null) words.push(word);
+  return words;
+}
+
+// Git environment effects of a wrapper's options: env -i/-u, and sudo/doas,
+// which reset the environment unless sudo is told to preserve it (NEW14).
+function wrapperEnvironment(name, words, values, scope) {
+  if (name === 'sudo' || name === 'doas') {
+    const preserves = words.some((word, index) => index < words.length && (word === '-E' || word === '--preserve-env' || (word.startsWith('--preserve-env=') && word.slice(15).split(',').includes('GIT_DIR'))));
+    if (!(name === 'sudo' && preserves)) scope.gitDir = null;
+    return;
+  }
+  if (name !== 'env') return;
+  for (let index = 0; index < words.length && /^-./u.test(words[index]) && words[index] !== '--'; index++) {
+    const word = words[index];
+    if (word.startsWith('--')) {
+      if (word === '--ignore-environment') scope.gitDir = null;
+      const unset = word === '--unset' ? words[++index] : word.startsWith('--unset=') ? word.slice(8) : null;
+      if (unset === 'GIT_DIR') scope.gitDir = null;
+      else if (values.has(word)) index++;
+      continue;
+    }
+    // A short-option cluster such as -iu NAME: letters until one that takes a value.
+    for (let at = 1; at < word.length; at++) {
+      const letter = word[at];
+      if (letter === 'i') { scope.gitDir = null; continue; }
+      if (!'uCS'.includes(letter)) continue;
+      const value = at + 1 < word.length ? word.slice(at + 1) : words[++index];
+      if (letter === 'u' && value === 'GIT_DIR') scope.gitDir = null;
+      break;
+    }
+  }
+}
 
 // Remove assignments, reserved words and wrappers until the real command. The
 // scope collects what selects the repository a wrapped Git command acts on:
 // wrapper directory changes and GIT_DIR assignments (NEW6).
-function unwrap(words, depth, findings, scope = { chdir: [], gitDir: null }, context = ROOT_CONTEXT) {
+function unwrap(words, depth, findings, scope = { chdir: [], gitDir: undefined }, set = contextSet([ROOT_CONTEXT])) {
   let rest = [...words];
   for (let guard = 0; guard < 32 && rest.length; guard++) {
     const assignment = ASSIGNMENT.exec(rest[0]);
@@ -266,23 +373,21 @@ function unwrap(words, depth, findings, scope = { chdir: [], gitDir: null }, con
     const name = commandName(rest[0]);
     if (!WRAPPERS.has(name)) break;
     if (name === 'command' && ['-v', '-V'].includes(rest[1])) return [];
-    scope.chdir.push(...wrapperDirectories(name, rest.slice(1), WRAPPERS.get(name)));
-    if (name === 'env') {
-      // Only env's own options (before any assignment or command) can split.
-      let split = -1;
+    // Only env's own options (before any assignment or command) can split; the
+    // split arguments are then processed as env's own, so repeat.
+    for (let splits = 0; name === 'env' && splits < 8; splits++) {
+      let found = false;
       for (let at = 1; at < rest.length && /^-./u.test(rest[at]) && rest[at] !== '--'; at += WRAPPERS.get('env').has(rest[at]) ? 2 : 1) {
-        if (rest[at].startsWith('-S') || rest[at] === '--split-string' || rest[at].startsWith('--split-string=')) { split = at; break; }
+        const item = rest[at];
+        if (!(item.startsWith('-S') || item === '--split-string' || item.startsWith('--split-string='))) continue;
+        const attached = item.startsWith('--split-string=') ? item.slice(15) : item.length > 2 && item.startsWith('-S') ? item.slice(2) : null;
+        rest = [rest[0], ...rest.slice(1, at), ...splitString(attached ?? rest[at + 1] ?? ''), ...rest.slice(at + (attached === null ? 2 : 1))];
+        found = true; break;
       }
-      if (split !== -1) {
-        // env splits the string into arguments and appends the remaining ones (NEW12).
-        const item = rest[split];
-        const attached = item.startsWith('--split-string=') ? item.slice(15) : item.startsWith('-S') && item.length > 2 ? item.slice(2) : null;
-        const script = attached ?? rest[split + 1] ?? '';
-        const remaining = rest.slice(split + (attached === null ? 2 : 1));
-        findings.push(...classifyShellCommand([script, ...remaining.map(quoted)].join(' '), depth + 1, within(context, scope)));
-        return [];
-      }
+      if (!found) break;
     }
+    scope.chdir.push(...wrapperDirectories(name, rest.slice(1), WRAPPERS.get(name)));
+    wrapperEnvironment(name, rest.slice(1), WRAPPERS.get(name), scope);
     rest = skipOptions(rest.slice(1), WRAPPERS.get(name));
     if (name === 'timeout') rest = rest.slice(1);
   }
@@ -327,7 +432,7 @@ function classifyGh(args, findings, depth) {
   if (positionals[0] === 'alias' && positionals[1] === 'set') findings.push(...classifyShellCommand(`gh ${positionals.slice(3).join(' ')}`, depth + 1).map(item => ({ ...item, alias: true })));
 }
 
-function classifyGit(args, findings, scope, context) {
+function classifyGit(args, findings, scope, set) {
   let index = 0;
   const directories = [];
   let gitDir = null;
@@ -358,44 +463,144 @@ function classifyGit(args, findings, scope, context) {
     positionals.push(arg);
   }
   const remote = remoteOption ?? positionals.shift() ?? null;
-  // The repository the push acts on, as directory steps from the hook's directory:
-  // where Git runs (wrappers, then each -C) and, when set, the Git directory
-  // (option over environment, as in Git; a `.git` directory stands for its
-  // parent). A work tree selects only the checkout, not the repository (NEW7).
-  const inner = within(context, scope);
-  const dir = gitDir ?? inner.gitDir;
-  const directory = [...inner.steps, ...directories, ...(dir ? [dir, ...(/(?:^|\/)\.git\/*$/u.test(dir) ? ['..'] : [])] : [])];
-  findings.push({ kind: 'git-push', remote, refspecs: positionals, all, tags, directory });
+  // The repository the push acts on, as directory steps from the hook's directory,
+  // in each context the command could run in: where Git runs (wrappers, then each
+  // -C) or, when set, the Git directory (option over environment, as in Git; a
+  // `.git` directory stands for its parent). A work tree selects only the
+  // checkout, not the repository (NEW7).
+  const runs = within(set, scope);
+  const locations = [];
+  const seen = new Set();
+  for (const context of runs.items) {
+    const base = directories.reduce(step, context.steps);
+    const dir = gitDir ?? context.gitDir;
+    const location = dir ? (/(?:^|\/)\.git\/*$/u.test(dir) ? step(step(base, dir), '..') : step(base, dir)) : base;
+    const key = JSON.stringify(location);
+    if (!seen.has(key)) { seen.add(key); locations.push(location); }
+  }
+  findings.push({ kind: 'git-push', remote, refspecs: positionals, all, tags, locations, ...(runs.overflow ? { overflow: true } : {}) });
 }
 
-function classifyWords(command, depth, context) {
+// The directory a `cd`/`pushd` command names, when it is a literal target.
+function changedDirectory(words) {
+  if (!['cd', 'pushd'].includes(commandName(words[0] ?? ''))) return null;
+  const target = words.slice(1).find(word => word !== '--' && !/^[-+]./u.test(word));
+  return target && target !== '-' && !target.startsWith('~') ? target : null;
+}
+
+// GIT_DIR changes for later commands: assignments (alone or with `export`,
+// `declare`, `typeset`, `local`, `readonly`) set it; `unset` or `export -n`
+// clears it.
+function environmentChanges(words) {
+  const name = commandName(words[0] ?? '');
+  if (name === 'unset') return words.slice(1).includes('GIT_DIR') ? [null] : [];
+  if (name === 'export' && words.includes('-n')) return words.slice(1).some(word => word === 'GIT_DIR' || word.startsWith('GIT_DIR=')) ? [null] : [];
+  const rest = ['export', 'declare', 'typeset', 'local', 'readonly'].includes(name) ? words.slice(1).filter(word => !/^[-+]/u.test(word)) : words;
+  if (!rest.length || (rest === words && !rest.every(word => ASSIGNMENT.test(word)))) return [];
+  return rest.map(word => ASSIGNMENT.exec(word)).filter(match => match?.[1] === 'GIT_DIR').map(match => match[2]);
+}
+
+// Classify one simple command in the given contexts. Returns its findings and,
+// when it changes the current shell's directory or GIT_DIR, the contexts it adds.
+function classifyWords(command, depth, set) {
   const findings = [];
-  const scope = { chdir: [], gitDir: null };
-  const words = unwrap(command.words, depth, findings, scope, context);
-  if (!words.length) return findings;
+  // A command made only of assignments changes the current shell's variables.
+  const bare = command.words.filter(word => !RESERVED.has(word));
+  if (bare.length && bare.every(word => ASSIGNMENT.test(word))) {
+    let effects = null;
+    for (const value of environmentChanges(bare)) effects = mergeSets(effects ?? contextSet(), contextSet(set.items.map(context => ({ ...context, gitDir: value }))));
+    return { findings, effects };
+  }
+  const scope = { chdir: [], gitDir: undefined };
+  const words = unwrap(command.words, depth, findings, scope, set);
+  if (!words.length) return { findings, effects: null };
   const name = commandName(words[0]);
-  const inner = within(context, scope);
+  const inner = within(set, scope);
+  let effects = null;
   if (SHELLS.has(name)) {
     const flag = words.findIndex((word, index) => index > 0 && /^-[A-Za-z]*c[A-Za-z]*$/u.test(word));
     if (flag !== -1) {
       const script = words.slice(flag + 1).find(word => !/^[-+]/u.test(word));
-      if (script !== undefined) findings.push(...classifyShellCommand(script, depth + 1, inner));
-    } else for (const script of [...command.heredocs, ...command.herestrings]) findings.push(...classifyShellCommand(script, depth + 1, inner));
-  } else if (name === 'eval') findings.push(...classifyShellCommand(words.slice(1).join(' '), depth + 1, inner));
-  else if (name === 'gh') classifyGh(words.slice(1), findings, depth);
-  else if (name === 'git') classifyGit(words.slice(1), findings, scope, context);
-  return findings;
+      if (script !== undefined) findings.push(...analyze(script, depth + 1, inner).findings);
+    } else for (const script of [...command.heredocs, ...command.herestrings]) findings.push(...analyze(script, depth + 1, inner).findings);
+  } else if (name === 'eval') {
+    // eval runs in the current shell, so its changes reach later commands (NEW8).
+    const result = analyze(words.slice(1).join(' '), depth + 1, inner);
+    findings.push(...result.findings);
+    effects = result.after;
+  } else if (name === 'gh') classifyGh(words.slice(1), findings, depth);
+  else if (name === 'git') classifyGit(words.slice(1), findings, scope, set);
+  const target = changedDirectory(words);
+  if (target) effects = mergeSets(effects ?? contextSet(), contextSet(set.items.map(context => ({ ...context, steps: step(context.steps, target) }))));
+  for (const value of environmentChanges(words)) effects = mergeSets(effects ?? contextSet(), contextSet(set.items.map(context => ({ ...context, gitDir: value }))));
+  return { findings, effects };
+}
+
+const OPENERS = new Set(['if', 'while', 'until', 'for', 'select', 'case', '{']);
+const CLOSERS = new Set(['fi', 'done', 'esac', '}']);
+const BRANCHES = new Set(['then', 'else', 'elif', 'do']);
+
+// Analyze a script in execution order (see ROOT_CONTEXT). Returns its findings
+// and the contexts the current shell is in afterwards.
+//
+// - A command that certainly runs (at the start, or after `;` or a newline,
+//   outside any compound command) and changes directory or GIT_DIR replaces
+//   the current contexts. One that may not run (after `&&` or `||`, or inside
+//   `if`/`case`/a loop/a brace group or function) adds to them.
+// - A command after `||` or inside a compound command may run in any context
+//   seen so far.
+// - A command in a pipeline or in the background runs in a subshell and changes
+//   nothing; a `( … )` subshell's changes end with it; `$( … )` runs in the
+//   contexts of the command that contains it.
+// - In a script with a loop, every command may follow every other, so a second
+//   pass classifies every command in every context the first pass saw.
+function analyze(text, depth, initial) {
+  if (typeof text !== 'string' || depth > MAX_DEPTH) return { findings: [], after: initial };
+  const { commands, nested, nestedAt } = parseShell(text);
+  const copy = set => mergeSets(contextSet(), set);
+  const loop = commands.some(command => LOOPS.has(command.words[0]) || command.words[0] === 'do');
+  const pass = (start, everywhere) => {
+    let current = copy(start);
+    const all = copy(start);
+    const saved = new Map();
+    let path = [], compound = 0;
+    const findings = [];
+    const classifyNested = (index, set) => {
+      for (let at = 0; at < nested.length; at++) {
+        if (nestedAt[at] === index) findings.push(...analyze(nested[at], depth + 1, set).findings);
+      }
+    };
+    commands.forEach((command, index) => {
+      const target = command.subshells;
+      while (path.length && !path.every((id, k) => target[k] === id)) current = saved.get(path.pop());
+      while (path.length < target.length) { const id = target[path.length]; saved.set(id, copy(current)); path.push(id); }
+      const head = command.words[0];
+      const inside = compound > 0 || OPENERS.has(head) || BRANCHES.has(head);
+      if (OPENERS.has(head)) compound++;
+      if (CLOSERS.has(head)) compound = Math.max(0, compound - 1);
+      const available = everywhere || inside || command.before === '||' ? copy(all) : copy(current);
+      classifyNested(index, available);
+      const result = classifyWords(command, depth, available);
+      findings.push(...result.findings);
+      const subshell = ['|', '|&'].includes(command.before) || ['|', '|&', '&'].includes(command.after);
+      if (!result.effects || subshell) return;
+      const certain = !inside && [null, ';', '\n'].includes(command.before);
+      current = certain ? copy(result.effects) : mergeSets(current, result.effects);
+      mergeSets(all, result.effects);
+    });
+    while (path.length) current = saved.get(path.pop());
+    classifyNested(commands.length, everywhere ? copy(all) : copy(current));
+    return { findings, after: everywhere ? all : current, all };
+  };
+  const first = pass(initial, false);
+  if (!loop) return { findings: first.findings, after: first.after };
+  const second = pass(first.all, true);
+  return { findings: second.findings, after: second.all };
 }
 
 // Returns merge/push findings; an empty list means the guard has no opinion.
-// `context` is where an enclosing wrapper or shell runs this script.
-export function classifyShellCommand(text, depth = 0, context = ROOT_CONTEXT) {
-  if (typeof text !== 'string' || depth > MAX_DEPTH) return [];
-  const { commands, nested } = parseShell(text);
-  const findings = [];
-  for (const script of nested) findings.push(...classifyShellCommand(script, depth + 1, context));
-  for (const command of commands) findings.push(...classifyWords(command, depth, context));
-  return findings;
+export function classifyShellCommand(text, depth = 0) {
+  return analyze(text, depth, contextSet([ROOT_CONTEXT])).findings;
 }
 
 // Branch names a push finding may update. `current` resolves HEAD and an

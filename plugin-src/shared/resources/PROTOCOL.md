@@ -404,13 +404,21 @@ shell tool calls. It denies, with a reason:
   other refspec pushes only tags and is allowed; with a protected refspec it is
   denied. An unconfigured Git workspace names no protected branch; the
   configuration `run.start` writes protects the default branch. Protection is
-  read from the repository the command names: the directory Git runs in
-  (`env -C`/`--chdir` and `sudo -D`/`--chdir` wrappers, then each
-  `git -C dir`/`-Cdir`) or, when set, the Git directory (`--git-dir`, or a
-  `GIT_DIR=` prefix; a `.git` directory stands for its parent). A work tree
-  (`--work-tree`, `GIT_WORK_TREE`) selects only the checkout. Wrapper
-  directories and `GIT_DIR` carry into `bash -c`, `eval` and `env -S` scripts,
-  and `env -S` appends its remaining arguments to the split string.
+  read from the repository the push acts on: the directory Git runs in or, when
+  set, the Git directory (`--git-dir` over `GIT_DIR`; a `.git` directory stands
+  for its parent). A work tree (`--work-tree`, `GIT_WORK_TREE`) selects only the
+  checkout. The directory follows `git -C dir`/`-Cdir`, `env -C`/`--chdir` and
+  `sudo -D`/`--chdir` wrappers, and literal `cd`/`pushd` commands earlier in the
+  same command line, in execution order; `GIT_DIR` follows prefixes,
+  assignments, `export`/`unset`, `env -u`/`-i`, and `sudo` (which resets the
+  environment unless `-E`). A change that certainly runs (at the start or after
+  `;` or a newline, outside `if`/`case`/loops/brace groups) replaces the
+  directory; one that may not run adds a possibility, and the push is checked in
+  each. Subshells, pipelines and background commands keep their changes to
+  themselves; `eval` changes the current shell. These carry into `bash -c`,
+  `eval` and `env -S` scripts; `env -S` splits its string into arguments (not
+  shell syntax) and appends the remaining ones. A push with more possible
+  locations than the guard tracks is denied.
 
 It follows quoting, `&&`/`||`/`;`/`|`/`&`/newline chains, subshells, `$(...)`
 (including heredoc bodies inside it), backticks, `bash -c`/`sh -c`, `eval` and
@@ -424,9 +432,9 @@ shell heredocs, and leaves quoted text (for example a commit message mentioning
   recognized;
 - a missing, unreadable or malformed workspace configuration names no protected
   branch, so push denial is off there (merge denial still applies);
-- directory and environment changes made by earlier commands (`cd`, `pushd`,
-  `export GIT_DIR=…`, including inside `eval`) are not followed: a push is
-  checked where it names its repository, else in the hook's directory.
+- a `cd` target or `GIT_DIR` value built from variables, `~`, `CDPATH` or
+  `cd -` is not resolved, and shell functions, `source`d files and earlier tool
+  calls are not followed.
 
 GitHub branch protection is the real enforcement. Merges go through `merge.prepare` and
 `merge.execute`; a recognized merge is denied even when the milestone is eligible,

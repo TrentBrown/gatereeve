@@ -40,10 +40,12 @@ async function protectedBranches(cwd, contextFor) {
 async function pushReasons(pushes, cwd, runtime, contextFor) {
   const reasons = [];
   for (const push of pushes) {
-    // The repository the command names (Git -C/--git-dir, GIT_DIR, wrapper
-    // directories), resolved from the hook's directory.
-    const directory = (push.directory ?? []).reduce((at, next) => resolve(at, next ?? '.'), cwd);
-    reasons.push(...await directoryReasons(push, directory, runtime, contextFor));
+    // Too many possible directories to check: deny rather than guess (fail closed).
+    if (push.overflow) { reasons.push('git push follows more directory or GIT_DIR changes than the guard can check; run it as a separate command.'); continue; }
+    // Every repository the push could act on, resolved from the hook's directory;
+    // a protected destination in any of them denies it.
+    const directories = [...new Set((push.locations?.length ? push.locations : [[]]).map(steps => steps.reduce((at, next) => resolve(at, next ?? '.'), cwd)))];
+    for (const directory of directories) reasons.push(...await directoryReasons(push, directory, runtime, contextFor));
   }
   return [...new Set(reasons)];
 }

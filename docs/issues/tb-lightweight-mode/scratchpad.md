@@ -817,3 +817,35 @@ in PROTOCOL.md, next to variables and scripts:
   (NEW12).
 - No context set, so NEW10 and NEW11 no longer arise. `cd`/`pushd`/`export`
   (NEW8) are the disclosed limit.
+
+### S10 review round 3 (FAIL on 7cf6496) — execution-order tracking
+
+Round 3 rejected the narrowed scope: AC7 lists chained commands and the spec
+forbids weakening criteria, so `cd /protected; git push origin main` must be
+denied (NEW8). It also found NEW13 (`env -S` was classified as shell syntax:
+`env -S '-C /p gh pr merge 12'` was missed and `env -S 'echo ok; gh pr merge
+12'` denied) and NEW14 (`env -u GIT_DIR`, `--unset=GIT_DIR`, `-i` and `sudo` left
+a stale `GIT_DIR` choosing the repository).
+
+Design now, without an amendment:
+
+- `parseShell` records each command's separators (before/after) and enclosing
+  subshell path, and the command each substitution belongs to.
+- `analyze` walks commands in order with the set of contexts (directory steps,
+  `GIT_DIR`) the current shell may be in. A change that certainly runs (start,
+  after `;`/newline, outside `if`/`case`/loops/brace groups) replaces the set,
+  so straightforward sequences are exact and a later `cd` never affects an
+  earlier push (NEW11). A change that may not run (after `&&`/`||`, inside a
+  compound command) adds to it. A command after `||` or inside a compound
+  command sees every context seen so far. Pipeline and background commands
+  change nothing; a subshell's changes are restored at its end; a substitution
+  uses its command's contexts; `eval` changes propagate (NEW8).
+- A script with a loop gets a second pass where every command sees every context
+  of the first pass.
+- An absolute step replaces earlier steps, so absolute `cd`s do not multiply.
+  Past 64 contexts the push is marked `overflow` and the hook denies it (NEW10).
+- `env -S` splits its string with env's quoting rules into arguments that env
+  processes as its own options, repeatedly (NEW13). `env -u`/`--unset`/`-i` and
+  `sudo` without `-E`/`--preserve-env` clear `GIT_DIR`; `doas` too (NEW14).
+- Remaining disclosed limits: variables, `~`, `CDPATH`, `cd -`, functions,
+  sourced files, earlier tool calls.

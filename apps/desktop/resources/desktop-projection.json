@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:355b3f782ebe30528fb93e638c80a9969ac2e9d1282165be38c47a486306f586",
+  "protocolHash": "sha256:2bf207359bd676e4b2937758c6e6eeec10ce84bd01ddb0013f1a506283c87996",
   "contract": "gatereeve/current/7",
   "contractSha256": "dae5f4a795bb9e5486b2994af34b05511cd62df27de41720d7772beb7f43bb59",
   "files": [
@@ -37,8 +37,8 @@
     },
     {
       "path": "current/command-guard.js",
-      "size": 21276,
-      "sha256": "f30365d2da45192f7838859d9aec02b6940e6103541d23247f21e9ac7aadb332"
+      "size": 31805,
+      "sha256": "8f287b17db5344c2221d030b2c9daab0821e6ec57d1099bfb8fc1aa11df4018d"
     },
     {
       "path": "current/contracts.js",
@@ -122,8 +122,8 @@
     },
     {
       "path": "current/pre-tool-use.js",
-      "size": 6348,
-      "sha256": "cb995872aee7f0dd82622558b0866c2dc1fb4e1f84bfd5cb486057aeab141e8a"
+      "size": 6700,
+      "sha256": "7062508489aec0559db071f9fb1e8a6cac7cea88133e3298961200e886048eee"
     },
     {
       "path": "current/publication.js",

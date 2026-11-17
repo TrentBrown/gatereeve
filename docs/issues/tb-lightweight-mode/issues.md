@@ -136,10 +136,10 @@ Covers:
 Covers:
 - NEW6 from the second feature-final review: `git -C/path push` (attached `-C`)
   resolved protection from the hook's working directory instead of `/path`;
-- the same resolution for `--git-dir` (both spellings), `GIT_DIR`, and
-  `env`/`sudo` directory options, carried into `bash -c`/`eval`/`env -S`;
-- `env -S` trailing arguments; earlier-command `cd`/`export` disclosed as a
-  limit.
+- the same resolution for `--git-dir` (both spellings), `GIT_DIR`, `env`/`sudo`
+  options and earlier literal `cd`/`export` in execution order, carried into
+  `bash -c`/`eval`/`env -S`;
+- `env -S` parsed as env arguments, with its trailing arguments.
 
 ## I-7 - Feature-final review and release merge
 
