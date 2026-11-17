@@ -708,3 +708,25 @@ failed with `spawn E2BIG`.
     clear error before spawning. This could only happen through `--agents`, which
     carries the stage instructions.
   - No other adapter or helper passes large text in argv: Codex already used stdin.
+
+### S8 review round 2 (FAIL on 1400155) — fixes
+
+- **NEW5 (blocking): unhandled stdin EPIPE in `runAgentProcess`.** With the Claude
+  prompt now on stdin (as Codex already was), a provider that exits before reading
+  a large prompt made the pending write emit `error` on `child.stdin`. Nothing
+  handled it, so it terminated the evaluator host before the failure could be
+  retained as UNAVAILABLE.
+  - `child.stdin` errors are now recorded and decided at `close`. A nonzero exit or
+    signal keeps the existing classified provider failure.
+  - A zero exit with a stdin error (the provider never received the complete
+    prompt) is rejected as `AGENT_PROVIDER_CONFIGURATION` /
+    `configuration-or-execution` with `providerFailure.stdin`. This is stricter
+    than ignoring it (fail closed): such a run cannot be trusted to have assessed
+    the prompt the receipt digests.
+  - The other stdin writers already handle this: `git-source.js` listens for stdin
+    errors (EPIPE after an early Git exit). The scratch and performance runners do
+    not pipe stdin.
+- **N5 (advisory):** CLI `workspaceInput` passed only `replace` when both
+  `--replace-workspace` and `--confirm-feature` were given. It now passes both, so
+  `workspaceInstruction` rejects the contradiction for `run start`,
+  `run resume-current` and `workspace configure`.

@@ -25,6 +25,12 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
     const stdout = [];
     const stderr = [];
     let size = 0;
+    // A provider that exits before reading a large prompt makes the pending
+    // stdin write fail (EPIPE, or a destroyed stream). Unhandled, that 'error'
+    // event would terminate the evaluator host before the failure could be
+    // retained; it is recorded here and the process outcome decides at close.
+    let stdinError = null;
+    child.stdin.on('error', (error) => { stdinError ??= error; });
     let timedOut = false;
     let killTimer = null;
     const timer = setTimeout(() => {
@@ -67,6 +73,13 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
         return reject(Object.assign(new Error(`Evaluator unavailable: ${category}; check the provider configuration before retrying.`), {
           code: transient ? 'AGENT_PROVIDER_TRANSIENT' : 'AGENT_PROVIDER_CONFIGURATION',
           providerFailure: { category, exitCode: code, signal, startedAt: iso(startedAt), completedAt: iso(completedAt) },
+        }));
+      }
+      // Exit 0 without the complete prompt delivered is not a trustworthy run.
+      if (stdinError) {
+        return reject(Object.assign(new Error('Evaluator unavailable: configuration-or-execution; the provider did not accept the complete prompt on standard input.'), {
+          code: 'AGENT_PROVIDER_CONFIGURATION',
+          providerFailure: { category: 'configuration-or-execution', exitCode: code, signal, stdin: stdinError.code ?? 'error', startedAt: iso(startedAt), completedAt: iso(completedAt) },
         }));
       }
       resolve(result);

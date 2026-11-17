@@ -64,7 +64,9 @@ function workspaceOptions(item) {
 }
 function workspaceInput(options) {
   if (!options.replaceWorkspace && options.confirmFeature === undefined) return undefined;
-  return { ...(options.replaceWorkspace ? { replace: true } : { confirmFeature: options.confirmFeature }),
+  // Both are passed through when both are given, so the protocol rejects the
+  // contradiction instead of the CLI silently choosing one.
+  return { ...(options.replaceWorkspace ? { replace: true } : {}), ...(options.confirmFeature !== undefined ? { confirmFeature: options.confirmFeature } : {}),
     authority: { kind: 'human-confirmed', instruction: options.instruction, context: options.instructionContext } };
 }
 export function currentCommands() {

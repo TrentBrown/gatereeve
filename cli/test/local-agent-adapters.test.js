@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdtemp, rm, chmod } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import { MAX_ARGUMENT_BYTES, assertArgumentSizes } from '../../plugin-src/shared/resources/protocol/local-agent-adapters.js';
@@ -138,6 +141,48 @@ test('a real child process receives a prompt above 128 KiB on standard input', a
   const result = await runAgentProcess(process.execPath, ['-e', 'let n=0;process.stdin.on("data",c=>n+=c.length).on("end",()=>process.stdout.write(String(n)))'],
     { cwd: process.cwd(), input: prompt, timeoutSeconds: 30 });
   assert.equal(result.stdout, String(prompt.length));
+});
+
+// S8 review round 2 (NEW5): a provider that exits before reading a large
+// prompt must yield a controlled, classified failure, never an unhandled EPIPE.
+test('an early-exiting child with a prompt above 128 KiB is a controlled failure, never an unhandled error', async () => {
+  // In a separate process, exactly as the reviewer reproduced it: an unhandled
+  // 'error' event would exit that process 1 before it prints the outcome.
+  const adapterModule = new URL('../../plugin-src/shared/resources/protocol/local-agent-adapters.js', import.meta.url).href;
+  const script = `import { runAgentProcess } from ${JSON.stringify(adapterModule)};
+    try { await runAgentProcess(process.execPath, ['-e', 'process.exit(1)'], { cwd: process.cwd(), input: 'p'.repeat(300 * 1024), timeoutSeconds: 30 }); console.log('resolved'); }
+    catch (error) { console.log(JSON.stringify({ code: error.code, category: error.providerFailure?.category, exitCode: error.providerFailure?.exitCode })); }`;
+  const child = await new Promise(resolve => {
+    const run = spawn(process.execPath, ['--input-type=module', '-e', script], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    run.stdout.on('data', chunk => { stdout += chunk; }); run.stderr.on('data', chunk => { stderr += chunk; });
+    run.on('close', code => resolve({ code, stdout, stderr }));
+  });
+  assert.equal(child.code, 0, child.stderr);
+  assert.doesNotMatch(child.stderr, /Unhandled 'error' event|EPIPE/u);
+  assert.deepEqual(JSON.parse(child.stdout.trim()), { code: 'AGENT_PROVIDER_CONFIGURATION', category: 'configuration-or-execution', exitCode: 1 });
+  // A successful exit without reading the whole prompt is not a trustworthy run either.
+  await assert.rejects(runAgentProcess(process.execPath, ['-e', 'process.exit(0)'], { cwd: process.cwd(), input: 'p'.repeat(300 * 1024), timeoutSeconds: 30 }), error => {
+    assert.equal(error.code, 'AGENT_PROVIDER_CONFIGURATION'); assert.match(error.message, /did not accept the complete prompt/u);
+    assert.equal(error.providerFailure.exitCode, 0); return true;
+  });
+});
+
+test('both adapters turn an early provider exit with a large prompt into a classified provider failure', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'gatereeve-early-exit-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const executable = join(directory, 'provider');
+  await writeFile(executable, '#!/bin/sh\necho "invalid configuration" >&2\nexit 2\n');
+  await chmod(executable, 0o755);
+  const large = { ...request(), repositoryPath: directory, input: { diff: 'x'.repeat(200 * 1024) } };
+  for (const create of [createClaudeCodeAgentAdapter, createCodexAgentAdapter]) {
+    await assert.rejects(create({ model: 'fixture', executable }).runStage(large), error => {
+      assert.equal(error.code, 'AGENT_PROVIDER_CONFIGURATION', create.name);
+      assert.equal(error.providerFailure.category, 'configuration-or-execution', create.name);
+      assert.equal(error.providerFailure.exitCode, 2, create.name);
+      return true;
+    });
+  }
 });
 
 test('adapter parsers require structured output and opaque context IDs', () => {

@@ -197,6 +197,7 @@ test('different feature: run start stops, writes nothing, and replaces only on a
   await assert.rejects(start(f, { workspace: { replace: true, authority: { kind: 'agent', instruction: 'x', context: 'y' } } }), /observed human instruction is required/u);
   await assert.rejects(start(f, { workspace: { confirmFeature: 'new-feature', authority: instruction('Yes.') } }), /confirmFeature must name the configured feature old-feature/u);
   assert.throws(() => workspaceInstruction({ replace: false, authority: human }), /replace must be true/u);
+  assert.throws(() => workspaceInstruction({ replace: true, confirmFeature: 'old-feature', authority: human }), /not both/u);
   assert.deepEqual(await readFile(join(f.root, CONFIG)), original);
   assert.deepEqual(f.host.api, []);
   // Replaced on the human's instruction, and recorded with the previous bytes retained.
