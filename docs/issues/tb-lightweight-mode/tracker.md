@@ -15,11 +15,11 @@
 | R4 | Light commitments and authority | PASS (slice) | PR #106 | S2 review PASS 2026-11-16 |
 | R5 | Light gates, review basis, verification provenance | PASS (slice) | PR #106 | S2 review PASS 2026-11-16; light-run procedure file and skill routing land in S4 |
 | R6 | Tripwires | PASS (slice) | PR #109 | S5 review PASS 2026-11-16; advisory N1 (stay-light binds path and rule) |
-| R7 | Delegation precondition, planning substitution, hand-back | PASS (slice) | PR #109 | S5 review PASS 2026-11-16 after F1 fix; advisory N5 |
-| R8 | Delivery targets and merge authority | PASS (slice) | PR #107, #109 | Non-delegated paths S3; delegated paths S5 (review PASS 2026-11-16) |
+| R7 | Delegation precondition, planning substitution, hand-back | PASS (slice) | PR #109, #113 | S5 review PASS 2026-11-16 after F1 fix; S8 fixes NEW1 (human-approved light scope change hands back) |
+| R8 | Delivery targets and merge authority | PASS (slice) | PR #107, #109, #113 | Non-delegated paths S3; delegated paths S5 (review PASS 2026-11-16); S8 workspace configuration at run start (NEW2, amended 2026-11-17; review gate waived on a PASS verdict) |
 | R9 | Review summary on the PR | PASS (slice) | PR #107 | S3 review PASS 2026-11-16 |
-| R10 | Guard coverage and actionable recovery | PASS (slice) | PR #108 | S4 review PASS 2026-11-16; best-effort advisories N1-N4 |
-| R11 | State-reporting SessionStart | PASS (slice) | PR #108 | S4 review PASS 2026-11-16; delegated state fixture-tested until S5 |
+| R10 | Guard coverage and actionable recovery | PASS (slice) | PR #108, #113 | S4 review PASS 2026-11-16; best-effort advisories N1-N4; S8 denies matching refspecs (NEW3) |
+| R11 | State-reporting SessionStart | PASS (slice) | PR #108, #113 | S4 review PASS 2026-11-16; delegated state fixture-tested until S5; S8 reports the workspace configuration |
 | R12 | Measurement and rollout | PASS (slice) | PR #110 | S6 review PASS 2026-11-16 (two rounds); advisories A1, A2 |
 
 ## Review Log
@@ -128,4 +128,31 @@ Append pull-request review boundary entries here.
   re-authorization; the "(pending)" wording in those entries was left as drafted
   because editing it would change the authorized commitments.
 - **S8:** implements the amendment plus NEW1, NEW3 and F13.
-- **Follow-up:** the Claude Code evaluator adapter should pass its prompt on stdin.
+- **Follow-up:** the Claude Code evaluator adapter should pass its prompt on stdin
+  (done in S8).
+
+### 2026-11-17 — S8 (PR #113) merged into tb-lightweight-mode
+
+- **Merge:** protected merge at `ece5081` (head `6941f2e`, base `2781eaa`).
+- **Authority:** Trent's waiver of the review gate for candidate `6941f2e` ("Yes. I
+  waive it"), recorded with his acceptance and merge authorization in one decision
+  bound to the prepared action.
+- **Gates:** context, verification and packet PASS. Review: the Codex evaluator
+  (`gpt-6.1-sol`, high) returned PASS on `6941f2e` (R7, R8, R10, R11 pass; F1,
+  NEW1–NEW5 and N5 resolved; no new blocking defect), but the installed rc.26
+  recorded it UNAVAILABLE because its history assessment listed an open finding
+  among reconsidered closures. Recorded as a waiver on that exact candidate, not a
+  pass.
+- **Review rounds:** FAIL on `6f823b1` with NEW4 (`run.resume-current` could start a
+  fresh run under another feature's configuration), fixed in `5f59b37`; three PASS
+  verdicts on `5f59b37` rejected by the same validation bug and one Claude attempt
+  failed with `spawn E2BIG`; FAIL on `1400155` with NEW5 (early evaluator exit
+  crashed the host with an unhandled stdin EPIPE), fixed in `6941f2e` with the CLI
+  contradiction N5; PASS on `6941f2e` as above.
+- **Review machinery fixes landed in S8 (approved by Trent):** history assessments
+  may list already-required finding IDs; the Claude Code evaluator receives its
+  prompt on stdin; an evaluator that exits before consuming its prompt is a
+  classified failure. They take effect for runs on a plugin built from this
+  release; this run stays on rc.26, so the FEATURE review may need the same
+  waiver.
+- **Advisories carried forward:** N1 (stay-light binds path and rule), A1, A2.

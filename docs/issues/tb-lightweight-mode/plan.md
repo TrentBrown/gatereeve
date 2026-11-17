@@ -212,7 +212,8 @@ delegated.
 | S6 | `tb-lightweight-mode-06-measurement` | P8, P9 (inventory finalization) | S1–S5 |
 | S7 | `tb-lightweight-mode-07-final-records` | Records only (S6 merge) | S6 |
 | S8 | `tb-lightweight-mode-08-workspace-config` | P10 | S1–S7 |
-| Final | `tb-lightweight-mode` → `main` | Whole-feature `FEATURE` review | S1–S8 |
+| S9 | `tb-lightweight-mode-09-final-records` | Records only (S8 merge) | S8 |
+| Final | `tb-lightweight-mode` → `main` | Whole-feature `FEATURE` review | S1–S9 |
 
 ## Verification
 
