@@ -28,7 +28,7 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `run.set-dial` | `dial: rigor|autonomy`, `value`, `actor: human|agent`, `reason`, `authority` (required for `human`, forbidden for `agent`). Raising rigor or returning to supervised is open to either actor. Rigor never falls within a run: to work light, start a new light run on a new topic branch; this run and its evidence stay retained. Asking for `light` on a light run reports that it is already light Delegating (`autonomy: delegated`) is human-only, must name the run (`runId`) and needs the release branch observed as protected (see Delegated autonomy) |
 | `planning.review` | `artifact: design|spec|brief`, `configuration: {provider, model, reasoningEffort?}`; an independent fresh-context review of the planning artifact, recorded as `PLANNING_REVIEWED` with its exact subject. A delegated planning decision cites a PASS |
 | `delegation.apply` | `action`: the exact prepared `SLICE` merge action into the integration branch. Under delegation only: records `accept` + `authorize-merge` with the `delegated-evaluator` authority when every required gate PASSes and the review summary is published |
-| `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals |
+| `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals. When nothing is retained to resume (no current run and no earlier activation), it starts a fresh run under the `run.start` workspace rules, including `workspace`; resuming an existing run or activation refuses `workspace` and writes nothing |
 | `human.decide` | See decisions below |
 | `spec.validate` | Run trusted spec lint after the model's semantic review of AC, rubric and boundary feasibility |
 | `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row. A light run has no rubric: `criteria` is exactly `["brief"]` for either scope, and its change is classified by the tripwires (result `tripwires`) |
@@ -652,6 +652,10 @@ WORKSPACE-CONTEXT.md); there is no configuration-free delivery path.
   one for the current branch, recorded as `{status: "replaced", previous,
   authority}` with the previous bytes retained). A replacement whose target feature
   already has a run is refused before writing.
+- **Fresh resumption:** `run.resume-current` with nothing retained to resume in
+  the resolved feature home starts a fresh run and follows all of the above
+  (recorded with `operation: run.resume-current`). Resuming a current run or a
+  retained activation is unchanged: no check, no write, and `workspace` is refused.
 - **Existing run without configuration:** `workspace.configure` applies the same
   rules and records `WORKSPACE_CONFIGURED`. `merge.prepare` without branch
   configuration fails naming it through an available entry point.

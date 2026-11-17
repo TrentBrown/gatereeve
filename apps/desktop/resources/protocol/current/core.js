@@ -202,7 +202,7 @@ export class CurrentCore {
     requireThat(state.featureId === this.context.featureId, 'Current feature identity changed');
     return { state, events };
   }
-  async start(input, operation, replacement = null, { workspace = false } = {}) {
+  async start(input, operation, replacement = null, { workspace = false, workspaceOperation = 'run.start' } = {}) {
     const { optionalGates, dials } = validateStart(input);
     identifier(input.runId, 'run');
     const active = replacement ? null : await this.store.active();
@@ -214,7 +214,7 @@ export class CurrentCore {
     if (dials.autonomy.value === 'delegated') dials.autonomy = { ...dials.autonomy, runId: input.runId, protection: await requireProtection(this) };
     // Workspace configuration (spec AC6): decided and possibly written here,
     // unless the adapter already did so before creating the feature home.
-    const prepared = workspace ? await this.prepareWorkspace(input.workspace, 'run.start', { createAllowed: dials.autonomy.value !== 'delegated' }) : null;
+    const prepared = workspace ? await this.prepareWorkspace(input.workspace, workspaceOperation, { createAllowed: dials.autonomy.value !== 'delegated' }) : null;
     try {
       const recorded = prepared?.record ? await this.retainWorkspace(prepared) : null;
       // No legacy files are read or overwritten. STARTED is durable before activation.
@@ -265,7 +265,12 @@ export class CurrentCore {
       requireThat(replacement, 'No retained activation can be recovered');
       active = null;
     }
-    if (!active) await this.start(input, operation, replacement);
+    // Workspace instructions belong to starting a fresh run; never drop one
+    // silently when an existing run or retained activation is resumed.
+    requireThat(input.workspace === undefined || (!active && !replacement), 'Workspace instructions apply only when resumption starts a fresh run; this resumes an existing run or retained activation');
+    // With nothing to resume, resumption starts a fresh run: the run-start
+    // workspace rules apply, including the different-feature check (AC6, NEW4).
+    if (!active) await this.start(input, operation, replacement, { workspace: !replacement, workspaceOperation: 'run.resume-current' });
     else {
       const { state } = await this.state();
       requireThat(!input.runId || input.runId === state.runId, 'Another current run is already active');

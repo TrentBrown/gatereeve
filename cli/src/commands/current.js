@@ -46,7 +46,7 @@ async function run(options, operation, input = {}, detail = {}) {
     if (cleanup) console.log(`Source retention: ${cleanup.status}; ${cleanup.errors?.map(item => item.reason).join('; ') || 'completed-run pins released; later reuse checks availability'}`);
     for (const view of result.data.current?.temporaryViews ?? result.data.temporaryViews ?? []) console.log(`Review view ${view.id}: ${view.status}`);
     const workspaceState = result.data.workspace;
-    if (workspaceState?.recorded && ['created', 'replaced'].includes(workspaceState.recorded.status)) console.log(`Workspace configuration ${workspaceState.recorded.status} ${workspaceState.recorded.operation === 'run.start' ? 'at run start' : 'by workspace.configure'}: ${workspaceState.recorded.configPath} (feature ${workspaceState.recorded.featureId}; integration and release ${workspaceState.recorded.configuration.repositories.repository.integrationBranch}; excluded locally in ${workspaceState.recorded.exclude.path})`);
+    if (workspaceState?.recorded && ['created', 'replaced'].includes(workspaceState.recorded.status)) console.log(`Workspace configuration ${workspaceState.recorded.status} ${({ 'run.start': 'at run start', 'run.resume-current': 'when resumption started the run' })[workspaceState.recorded.operation] ?? 'by workspace.configure'}: ${workspaceState.recorded.configPath} (feature ${workspaceState.recorded.featureId}; integration and release ${workspaceState.recorded.configuration.repositories.repository.integrationBranch}; excluded locally in ${workspaceState.recorded.exclude.path})`);
     if (workspaceState?.message) console.log(`Workspace: ${workspaceState.message}`);
     for (const blocker of result.data.blockers ?? []) console.log(blocker.message);
   } else console.log(JSON.stringify(result.data, null, 2));
@@ -82,14 +82,14 @@ export function currentCommands() {
   const runCommand = new Command('run').description('Start or resume current work without replaying old protocol state');
   for (const action of ['start', 'resume-current']) {
     const item = command(action, action === 'start' ? 'Establish the current run; in a repository with a GitHub remote and no workspace configuration, write a minimal one'
-      : 'Preserve documents and establish the current run')
+      : 'Preserve documents and establish the current run (a fresh run follows the run start workspace rules)')
       .requiredOption('--implementer <context>', 'Implementing context identity', collect, [])
       .option('--planning <file>', 'Observed design and implementation approval records for resumption')
       .option('--whiteboard', 'Include the optional whiteboard gate');
-    if (action === 'start') workspaceOptions(item);
+    workspaceOptions(item);
     runCommand.addCommand(item.action(async options => run(options, `run.${action}`, { implementers: options.implementer,
       optionalGates: options.whiteboard ? ['whiteboard'] : [], ...(options.planning ? { planning: await readJsonFile(options.planning) } : {}),
-      ...(action === 'start' && workspaceInput(options) ? { workspace: workspaceInput(options) } : {}) })));
+      ...(workspaceInput(options) ? { workspace: workspaceInput(options) } : {}) })));
   }
   const workspace = new Command('workspace').description('Workspace configuration for delivery (.agentic-workflow.json)');
   workspace.addCommand(workspaceOptions(command('configure', 'For an existing run without one, write the minimal workspace configuration: the GitHub default branch as integration and release, excluded locally'))

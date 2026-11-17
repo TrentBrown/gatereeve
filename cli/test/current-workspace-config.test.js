@@ -244,6 +244,72 @@ test('different feature: a stale configuration whose feature has a run stops sta
   assert.deepEqual(await readFile(join(f.root, CONFIG)), bytes, 'the configuration is not replaced when the start cannot proceed');
 });
 
+// NEW4: resumption that would start a fresh run is a run start.
+const resume = (f, input = {}, operationId = 'resume') => f.result('run.resume-current', { implementers: ['implementer-one'], ...input }, operationId);
+test('run.resume-current starting a fresh run applies the different-feature check before creating anything', async t => {
+  const f = await repository(t, { branch: 'new-feature', config: minimal('old-feature') });
+  const original = await readFile(join(f.root, CONFIG));
+  const oldHome = join(f.root, 'docs/issues/old-feature');
+  const refused = await resume(f);
+  assert.equal(refused.ok, false);
+  assert.match(refused.error.message, /names feature old-feature, but run\.resume-current runs on branch new-feature/u);
+  assert.equal(refused.error.details.kind, 'workspace-feature-mismatch');
+  assert.equal(await exists(oldHome), false, 'no feature home is created for the other feature');
+  assert.equal((await f.request('status')).mode, 'current-entry');
+  assert.deepEqual(await readFile(join(f.root, CONFIG)), original);
+  await assert.rejects(f.request('run.resume-current', { implementers: ['implementer-one'], workspace: { confirmFeature: 'old-feature' } }, 'resume-unconfirmed'), /needs the observed human instruction/u);
+  assert.equal(await exists(oldHome), false);
+  // With the human's confirmation the fresh run starts in the configured feature, recorded.
+  const authority = instruction('Yes, resume old-feature from this branch.');
+  const resumed = await resume(f, { workspace: { confirmFeature: 'old-feature', authority } }, 'resume-confirmed');
+  assert.equal(resumed.ok, true, JSON.stringify(resumed.error));
+  assert.deepEqual(await readFile(join(f.root, CONFIG)), original);
+  const [started] = await f.events();
+  assert.equal(started.payload.featureId, 'old-feature');
+  assert.deepEqual({ ...started.payload.workspace, configPath: undefined, authority: undefined },
+    { status: 'configured', operation: 'run.resume-current', configPath: undefined, featureId: 'old-feature', branch: 'new-feature', match: 'human-confirmed', authority: undefined });
+  assert.equal(started.payload.workspace.authority.instruction, authority.instruction);
+  // A replacement works the same way for a fresh resume.
+  const g = await repository(t, { branch: 'new-feature', config: minimal('old-feature') });
+  assert.equal((await resume(g, { workspace: { replace: true, authority: instruction('Replace it.') } }, 'resume-replace')).ok, true);
+  assert.equal(JSON.parse(await readFile(join(g.root, CONFIG))).featureId, 'new-feature');
+  assert.equal((await g.events())[0].payload.workspace.status, 'replaced');
+});
+
+test('run.resume-current: an unconfigured fresh resume writes the configuration as run.start does; genuine resumption writes nothing', async t => {
+  // Chosen rule: a fresh run started by resumption is a run start (spec AC6
+  // "when a run starts"), so it observes and writes exactly like run.start.
+  const f = await repository(t);
+  await mkdir(f.home, { recursive: true });
+  await writeFile(join(f.home, 'interview.md'), '# Interview\nEarlier work.\n');
+  const resumed = await resume(f);
+  assert.equal(resumed.ok, true, JSON.stringify(resumed.error));
+  assert.deepEqual(JSON.parse(await readFile(join(f.root, CONFIG))), minimal('feature-x'));
+  assert.deepEqual(await excludes(f), [`/${CONFIG}`]);
+  const [started] = await f.events();
+  assert.equal(started.payload.workspace.status, 'created'); assert.equal(started.payload.workspace.operation, 'run.resume-current');
+  assert.equal(f.host.api.length, 1);
+  // Genuine resumption of the existing run: no observation, no write, no workspace record.
+  const bytes = await readFile(join(f.root, CONFIG));
+  const count = (await f.events()).length;
+  const again = await resume(f, {}, 'resume-again');
+  assert.equal(again.ok, true, JSON.stringify(again.error));
+  assert.equal(f.host.api.length, 1);
+  assert.deepEqual(await readFile(join(f.root, CONFIG)), bytes);
+  assert.ok((await f.events()).slice(count).every(event => !event.payload?.workspace && event.type !== 'WORKSPACE_CONFIGURED'));
+  // A workspace instruction is never dropped silently on a genuine resumption.
+  const instructed = await resume(f, { workspace: { replace: true, authority: instruction('Replace it.') } }, 'resume-instructed');
+  assert.equal(instructed.ok, false);
+  assert.match(instructed.error.message, /Workspace instructions apply only when resumption starts a fresh run/u);
+  // Unchanged from before S8: genuinely resuming the existing run is not a run
+  // start, so it is not subject to the branch check (no new records are created).
+  await git(f.root, ['checkout', '-b', 'other-branch']);
+  const elsewhere = await resume(f, {}, 'resume-elsewhere');
+  assert.equal(elsewhere.ok, true, JSON.stringify(elsewhere.error));
+  assert.equal(await exists(join(f.root, 'docs/issues/other-branch')), false);
+  assert.deepEqual(await readFile(join(f.root, CONFIG)), bytes);
+});
+
 test('no GitHub remote: nothing is written, the run starts, status and merge preparation say what delivery needs', async t => {
   for (const remote of [null, 'https://gitlab.example/fixture/project.git']) {
     const f = await repository(t, { remote });

@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { resolveWorkflowContext } from '../context.js';
 import { successResult, failureResult } from '../result.js';
 import { CurrentCore, validateStart } from './core.js';
-import { prepareWorkspace, workspaceStatus, WORKSPACE_PREPARED } from './workspace.js';
+import { prepareWorkspace, workspaceStatus, startsFreshRun, WORKSPACE_PREPARED } from './workspace.js';
 import { CurrentStore, readSafe } from './store.js';
 import { CONTRACT, PHASES, GATES, ENFORCEMENT, DEFAULT_DIALS, identity, digest, requireThat } from './contracts.js';
 import { resolveEntryPoints, operationCommand, recoveryText } from './entry-point.js';
@@ -163,7 +163,11 @@ async function executeObservedRequest(request, runtime = {}) {
     // Workspace configuration (spec AC6) is decided, and when allowed written,
     // before the feature home is created: a configuration naming another feature
     // stops here, and a written or replaced one decides which home is used.
-    if (operation === 'run.start') {
+    // run.resume-current that would start a fresh run (nothing to resume in the
+    // resolved feature home) is a run start and follows the same rules (NEW4);
+    // genuine resumption of a current run or retained activation is unaffected.
+    const freshResume = operation === 'run.resume-current' && context.mode && await startsFreshRun(context.featureHome, context.workspaceRoot);
+    if (operation === 'run.start' || freshResume) {
       validateStart(request.input ?? {});
       prepared = await prepareWorkspace(context, request.input?.workspace, runtime, { operation, createAllowed: request.input?.autonomy?.value !== 'delegated' });
       context = prepared.context;
@@ -213,7 +217,7 @@ async function unrecorded(core, prepared, operation, input) {
   prepared.kept = true;
   try {
     const active = await core.store.active();
-    if (!active || (operation === 'run.start' && active.runId !== input.runId)) return true;
+    if (!active || (operation !== 'workspace.configure' && active.runId !== input.runId)) return true;
     const events = await core.store.events(active.runId);
     return !events.some(event => event.payload?.workspace?.file?.hash === prepared.record.file.hash || event.payload?.file?.hash === prepared.record.file.hash);
   } catch { return false; }

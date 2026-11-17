@@ -159,17 +159,27 @@ export async function excludeConfiguration(root, runtime = {}) {
   return { path, entry: EXCLUDE_ENTRY, added: !present };
 }
 
+// Whether run.resume-current would start a fresh run here: no current run and
+// no retained activation (of this or an earlier contract) to resume. Reading
+// creates nothing, so a stale feature home is never created by the check.
+export async function startsFreshRun(home, root) {
+  let store;
+  try { store = await CurrentStore.at(home, root); }
+  catch (error) { if (error.code === 'ENOENT') return true; throw error; }
+  return !(await store.activationHead());
+}
 async function activeRun(home, root) {
   let store;
   try { store = await CurrentStore.at(home, root); }
   catch (error) { if (error.code === 'ENOENT') return null; throw error; }
   return store.active();
 }
-// run.start needs the target feature home free; workspace.configure needs the
-// existing run there (it records the write in that run's journal).
+// A run start (run.start, or run.resume-current starting a fresh run) needs the
+// target feature home free; workspace.configure needs the existing run there (it
+// records the write in that run's journal).
 async function requireRunState(operation, home, root) {
   const active = await activeRun(home, root);
-  if (operation === 'run.start') requireThat(!active, 'Current run already exists; use run.resume-current');
+  if (operation !== 'workspace.configure') requireThat(!active, 'Current run already exists; use run.resume-current');
   else requireThat(active, 'No current run for this feature. run.start writes the workspace configuration when it starts a run; workspace.configure is for an existing run without one.');
 }
 

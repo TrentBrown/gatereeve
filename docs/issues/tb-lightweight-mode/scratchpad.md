@@ -626,6 +626,7 @@ entries are appended to `decisions.md`.
   SessionStart repeats the message, and states the run-start rule itself when status
   carries no workspace information. A resumed run (`run.resume-current`) writes
   nothing automatically: it is an existing run; `workspace.configure` covers it.
+  (Superseded for fresh resumption by review round 1, NEW4, below.)
 - **Guard consequence.** Once written, the configuration protects the default
   branch from direct pushes (S4 rule), which it did not in the fallback.
 - **NEW1.** `decide` computes `briefScopeChanged` for any light
@@ -645,3 +646,29 @@ entries are appended to `decisions.md`.
   - `current-cli.test.js` standing test: the grant's `headPrefix` is `feature`
     (was `topic`) to match that branch, since standing validity checks the
     checked-out branch.
+
+### S8 review round 1 (FAIL on 6f823b1) — fixes
+
+- **NEW4 (blocking, R8): fresh resumption bypassed the different-feature check.**
+  `run.resume-current` with nothing to resume started a run through `core.start`
+  without workspace preparation, after the adapter had already created the resolved
+  (possibly stale) feature home. Now:
+  - "Fresh" means the resolved feature home has no current run and no retained
+    activation (`store.activationHead()` is empty; a missing home counts as fresh).
+    `workspace.startsFreshRun` checks this without creating anything.
+  - The adapter prepares the workspace for a fresh resume exactly as for
+    `run.start` (input validated first, then the mismatch refusal or human
+    `confirmFeature`/`replace`, or the write when unconfigured), before
+    `ensureHome`. `core.resume` calls `start` with workspace preparation when there
+    is neither an active run nor a replacement activation; records carry
+    `operation: run.resume-current`.
+  - **Chosen rule for an unconfigured fresh resume:** it is a run start (spec AC6
+    "when a run starts"), so it observes the default branch and writes the minimal
+    configuration like `run.start`. Genuine resumption (a current run, a corrupt
+    current run recovered from its activation, or an earlier-contract activation)
+    is unchanged: no check, no write; a `workspace` instruction there is refused
+    rather than silently dropped.
+  - Residual (unchanged from before S8): genuinely resuming an existing run from a
+    branch that does not belong to its configured feature still resumes it; no new
+    feature home or run is created.
+  - CLI `run resume-current` takes the same workspace options as `run start`.

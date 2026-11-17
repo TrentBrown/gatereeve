@@ -91,6 +91,10 @@ configuration-free delivery path. The Git fallback names no branches, so:
   unchanged), or `workspace: {replace: true, authority}` to replace a
   single-repository configuration at the repository root with a minimal one for the
   current branch. The replacement is recorded with the previous bytes retained.
+- **Fresh resumption.** `run.resume-current` that finds nothing to resume (no
+  current run and no retained activation) starts a fresh run, so every rule above
+  applies to it, including the different-feature stop. Resuming an existing run
+  writes nothing.
 - **Existing run without configuration.** `workspace.configure` (CLI
   `gatereeve workspace configure`) writes it under the same rules and records
   `WORKSPACE_CONFIGURED` in that run. `merge.prepare` fails with a message naming
