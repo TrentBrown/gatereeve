@@ -111,3 +111,21 @@ Append pull-request review boundary entries here.
   `authority.basis`; measurement only), A2 (unquoted `${X:-$(...)}` is not parsed
   as a nested command; pre-existing, best-effort guard).
 - **Carried-forward fixes landed in S6:** S5 N5, S3 N1, S3 N2, S3 N3, S4 N2, S4 N4.
+
+### 2026-11-17 — Feature-final review of PR #112: FAIL; amendment and S8
+
+- **Review:** independent FEATURE review on `2781eaa`. The Claude Code evaluator
+  could not start (`spawn E2BIG`: the installed plugin passes the whole prompt as one
+  command-line argument, over Linux's 128 KiB limit), so the Codex evaluator
+  (`gpt-6.1-sol`, high) ran it: FAIL with NEW1 (human-approved light scope change
+  kept delegation), NEW2 (no per-PR human merge without a workspace configuration,
+  contrary to design §5), NEW3 (`git push origin :` matching refspec admitted), plus
+  advisories A1, A2, N1, F13.
+- **Amendment:** Trent chose option C — delivery always uses a workspace
+  configuration, written at run start when missing. Design and spec Changes entries
+  dated 2026-11-17 (commit `74fdd09`). Approved by Trent ("Yes") and recorded as a
+  GateReeve `amend` decision followed by spec re-validation and implementation
+  re-authorization; the "(pending)" wording in those entries was left as drafted
+  because editing it would change the authorized commitments.
+- **S8:** implements the amendment plus NEW1, NEW3 and F13.
+- **Follow-up:** the Claude Code evaluator adapter should pass its prompt on stdin.
