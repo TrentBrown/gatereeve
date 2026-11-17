@@ -92,12 +92,12 @@ Covers:
 
 ## I-6 - Measurement and rollout
 
-- **Status:** in-progress
+- **Status:** merged
 - **Estimate:** unknown
 - **Plan steps:** P8, P9
 - **Rubric criteria:** R12
 - **Depends on:** I-1, I-2, I-3, I-4, I-5
-- **PR:** -
+- **PR:** #110 (merged 2026-11-16, `0a0e85e`)
 
 Covers:
 - observation dial and authority fields;
@@ -109,7 +109,7 @@ Covers:
 
 ## I-7 - Feature-final review and release merge
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** Verification final step
 - **Rubric criteria:** R1–R12
