@@ -107,14 +107,31 @@ Covers:
 - parity and compatibility fixtures;
 - inventory finalization.
 
+## I-8 - Workspace configuration at run start and feature-final fixes
+
+- **Status:** in-progress
+- **Estimate:** unknown
+- **Plan steps:** P10
+- **Rubric criteria:** R8, R7, R10
+- **Depends on:** I-1 to I-6
+- **PR:** -
+
+Covers:
+- run-start creation of a minimal workspace configuration (default branch as
+  integration and release), local Git exclude, recording and reporting;
+- refusing to reuse another feature's configuration without a human instruction;
+- a standalone operation for existing unconfigured runs, named by merge preparation;
+- NEW1 (light scope change hands delegation back under any authority), NEW3
+  (matching refspecs), F13 (wording).
+
 ## I-7 - Feature-final review and release merge
 
 - **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** Verification final step
 - **Rubric criteria:** R1–R12
-- **Depends on:** I-1 to I-6
-- **PR:** -
+- **Depends on:** I-1 to I-8
+- **PR:** #112 (open)
 
 Covers:
 - `FEATURE` candidate from `featureBaseSha`;

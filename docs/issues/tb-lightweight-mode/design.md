@@ -328,3 +328,25 @@ flow already does this is to be checked during spec work.
   understand, and restarting is always available.
 - Approved by Trent on 2026-11-16.
 
+### 2026-11-17 — Delivery always uses a workspace configuration, created at run start (revises §5 "Configuration")
+
+- **Supersedes** the §5 statement that the Git fallback (no configuration) supports
+  per-PR human merges. There is no configuration-free delivery path.
+- **Run start writes a minimal configuration** when a repository with a GitHub remote
+  has none: the current branch as the feature, and the observed default branch as
+  both the integration and the release branch. With integration equal to release,
+  only per-PR human merges exist, which matches the fallback's intended behavior. The
+  file is added to the local Git excludes, never committed, and the write is
+  recorded and reported.
+- **An existing configuration for the same feature is used as is.** One naming a
+  different feature stops run start until the human instructs a replacement, so a
+  stale file never silently points a new run at another feature's records.
+- **No GitHub remote, or an existing unconfigured run:** nothing is written
+  automatically, and merge preparation names the operation that writes the file.
+- **Reason:** the file holds the branch names that merge preparation and the push
+  guard need, and the stable feature identity that keeps one feature's records
+  together across slice branches. Making it explicit and automatic keeps one
+  delivery path instead of a hidden second one. Most repositories had no
+  configuration, so without this light runs there could not merge on instruction
+  (original friction 1). Found by the feature-final review of PR #112 (NEW2).
+- Approved by Trent: (pending).
