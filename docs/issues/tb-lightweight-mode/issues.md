@@ -124,13 +124,33 @@ Covers:
 - NEW1 (light scope change hands delegation back under any authority), NEW3
   (matching refspecs), F13 (wording).
 
+## I-9 - Guard: Git spellings that name another repository
+
+- **Status:** in-progress
+- **Estimate:** unknown
+- **Plan steps:** P7 (guard)
+- **Rubric criteria:** R10
+- **Depends on:** I-4, I-8
+- **PR:** -
+
+Covers:
+- NEW6 from the second feature-final review: `git -C/path push` (attached `-C`)
+  resolved protection from the hook's working directory instead of `/path`;
+- the same resolution for `--git-dir` (both spellings), a `GIT_DIR` prefix,
+  `env`/`sudo` directory options and literal `cd`/`pushd` earlier in a plain
+  sequence, carried into `bash -c`/`eval`/`env -S`, per the coverage list in
+  PROTOCOL.md (R10 amended 2026-11-17);
+- `env -S` parsed as env arguments, with its trailing arguments;
+- named best-effort limits, after which a push whose location is unknown is
+  admitted rather than checked in the wrong place.
+
 ## I-7 - Feature-final review and release merge
 
 - **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** Verification final step
 - **Rubric criteria:** R1–R12
-- **Depends on:** I-1 to I-8
+- **Depends on:** I-1 to I-9
 - **PR:** #112 (open)
 
 Covers:

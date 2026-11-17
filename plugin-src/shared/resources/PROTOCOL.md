@@ -403,19 +403,69 @@ shell tool calls. It denies, with a reason:
   refspec `:` or `+:` (it may update every protected branch). `--tags` with no
   other refspec pushes only tags and is allowed; with a protected refspec it is
   denied. An unconfigured Git workspace names no protected branch; the
-  configuration `run.start` writes protects the default branch.
+  configuration `run.start` writes protects the default branch. Protection is
+  read from the repository the push acts on (below).
 
-It follows quoting, `&&`/`||`/`;`/`|`/`&`/newline chains, subshells, `$(...)`
-(including heredoc bodies inside it), backticks, `bash -c`/`sh -c`, `eval` and
-shell heredocs, and leaves quoted text (for example a commit message mentioning
-`gh pr merge`) and unrelated commands alone. It is best-effort. Known limits:
+It follows quoting, `&&`/`||`/`;`/`|`/`&`/newline chains (each command of a chain
+is checked), subshells, `$(...)` (including heredoc bodies inside it), backticks,
+`bash -c`/`sh -c`, `eval`, `env -S` and shell heredocs, and leaves quoted text
+(for example a commit message mentioning `gh pr merge`) and unrelated commands
+alone.
 
-- scripts, aliases defined outside `gh`, variables naming commands, request
-  bodies from files and other clients are not seen;
-- commands assembled from substitutions (for example `$(echo gh) pr merge`) and
+*Coverage list: the repository a push acts on.* This is what spec AC7/R10
+require (amended 2026-11-17). The repository is the directory Git runs in or,
+when set, the Git directory (`--git-dir` over a `GIT_DIR=` prefix; a `.git`
+directory stands for its parent). A work tree (`--work-tree`, `GIT_WORK_TREE`)
+selects only the checkout. The directory starts at the hook's directory and
+follows, in order:
+
+- literal `cd`/`pushd` commands earlier in a plain top-level sequence joined by
+  `;`, `&&` or newlines. A `cd` is assumed to succeed, except that a command
+  right after `cd … ||` runs where the shell was. A `cd` after `&&` may not run,
+  so a later push (after `;`) is checked both where it would run with and
+  without it. `cd` in a pipeline, in the background or behind a wrapper such as
+  `env`/`sudo` changes nothing;
+- `env -C`/`--chdir` and `sudo -D`/`--chdir` wrappers, then each
+  `git -C dir`/`-Cdir`. These and a `GIT_DIR=` prefix carry into `bash -c`,
+  `eval` and `env -S` scripts. `env -S` splits its string into arguments (not
+  shell syntax) and appends the remaining ones. `env -u GIT_DIR`/`--unset`/`-i`,
+  `exec -c`, and `sudo` (unless `-E`/`--preserve-env`) or `doas`, drop the
+  prefix. Wrapper options are read as the wrappers read them (clustered short
+  options, unique long-option abbreviations); `pushd -n` and `popd -n` only edit
+  the directory stack.
+
+A push is checked in every directory it could act on, and denied if any of them
+protects its destination. One with more possible directories than the guard
+tracks is denied. Where the guard cannot name the directory, it admits the push
+rather than deny an unrelated one.
+
+*Best-effort limits (outside AC7/R10).*
+
+- Directory or environment changes inside subshells, conditionals, loops,
+  `case`, brace groups, functions or `eval`. Inside a `( … )` subshell the plain
+  sequence rules above are applied until it ends; elsewhere the change is not
+  followed, and afterwards a push that does not name an absolute directory or
+  Git directory is admitted.
+- Shell-variable state across commands (`export`/assignments/`unset` of
+  `GIT_DIR`) is not followed. After a `GIT_DIR` assignment, a push without its
+  own `--git-dir` or prefix is admitted.
+- `env -S` escape sequences beyond quotes, `\_`, `\n` and `\t` are not
+  interpreted.
+- An option of `env`, `sudo`, `doas`, `exec`, `cd`, `pushd` or `popd` that the
+  guard does not model (including `sudo -i`/`--login` and a `sudo` chroot)
+  makes the directory and `GIT_DIR` unknown; the push is admitted unless it
+  names an absolute directory or Git directory after it.
+- `sudo`/`doas` environment policy beyond the defaults above is not modelled.
+- A `cd` target or `GIT_DIR` value built from variables, `~`, `CDPATH`, `cd -`,
+  a directory-stack entry or `popd` is not resolved (the directory becomes
+  unknown).
+- Scripts, aliases defined outside `gh`, shell functions, `source`d files,
+  earlier tool calls, variables naming commands, request bodies from files and
+  other clients are not seen.
+- Commands assembled from substitutions (for example `$(echo gh) pr merge`) and
   scripts fed to a shell on standard input (`echo 'gh pr merge 1' | bash`) are not
-  recognized;
-- a missing, unreadable or malformed workspace configuration names no protected
+  recognized.
+- A missing, unreadable or malformed workspace configuration names no protected
   branch, so push denial is off there (merge denial still applies).
 
 GitHub branch protection is the real enforcement. Merges go through `merge.prepare` and

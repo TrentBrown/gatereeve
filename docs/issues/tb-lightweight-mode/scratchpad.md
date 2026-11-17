@@ -730,3 +730,209 @@ failed with `spawn E2BIG`.
   `--replace-workspace` and `--confirm-feature` were given. It now passes both, so
   `workspaceInstruction` rejects the contradiction for `run start`,
   `run resume-current` and `workspace configure`.
+
+## S10 — guard: Git spellings that name another repository (tb-lightweight-mode-10-guard-attached-directory)
+
+- **NEW6 (blocking, FEATURE review round 2).** `classifyGit` recorded a directory
+  only for the separated `-C dir`. Git also accepts `-Cdir`; the guard skipped it as
+  an unknown flag, so `pre-tool-use` looked up protected branches in the hook's
+  working directory. From an unconfigured directory, `git -C/repo push origin main`
+  was admitted.
+  - Attached `-Cdir` is now a directory step, in order with separated `-C`.
+  - The same gap existed for `--git-dir` and `--work-tree` (separated and `=`),
+    which also choose the repository Git pushes from. `--work-tree` is resolved
+    after the `-C` steps; otherwise `--git-dir`, and when it names a `.git`
+    directory, its parent. A bare Git directory is looked up as given (no
+    workspace configuration there, so nothing is protected; best-effort, as the
+    guard documents).
+  - Same class, also fixed: `GIT_DIR`/`GIT_WORK_TREE` assignments (an option
+    overrides them, as in Git), wrapper directory changes (`env -C`/`--chdir`,
+    `sudo -D`/`--chdir`; `sudo -C` closes descriptors), and a literal `cd`/`pushd`
+    earlier in the command. The classifier does not model control flow or
+    subshells, so a push after a `cd` is checked in both the hook's directory and
+    the `cd` target and denied if either protects the destination (fails closed).
+    The `cd` chain and wrapper directories carry into `bash -c`, `eval` and
+    `env -S` scripts. `cd -`, `cd ~…` and a bare `cd` name no literal target.
+  - PROTOCOL.md's merge-guard section names these spellings.
+- **Tests:** hook denials from an unconfigured directory outside the workspace for
+  every spelling, topic pushes still allowed, and classifier directory lists. The
+  attached `-C` case fails on the previous guard.
+
+### S10 review round 1 (FAIL on 79a0c0e) — fixes
+
+The widened directory tracking introduced three blocking gaps, all R10:
+
+- **NEW7: `--work-tree` replaced the repository.** A work tree changes only the
+  checkout. From a protected repository, `git --work-tree=/outside push origin
+  main` looked up only `/outside`, a regression from the base.
+- **NEW8: one `cd` sequence assumed.** Substitutions were classified before the
+  `cd` that precedes them; `false && cd /outside` and subshell `cd`s collapsed the
+  lookup onto the last target.
+- **NEW9: Git environment lost in recursion.** `GIT_DIR=/p/.git sh -c 'git push
+  origin main'` checked the hook's directory.
+
+Fix: the classifier now returns `locations`, every place a push could act on,
+and the hook denies if any protects the destination (fail closed).
+
+- A context is directory steps plus inherited `GIT_DIR`/`GIT_WORK_TREE`.
+- Within a script, literal `cd`/`pushd` (also behind `builtin`/`command` or
+  reserved words) and `GIT_DIR`/`GIT_WORK_TREE` assignments or
+  `export`/`declare`/`typeset`/`local`/`readonly` add contexts and never remove
+  them. Every command and substitution in the script is classified against the
+  final set, which covers loops, conditionals and subshells.
+- Wrapper directories and Git environment carry into `bash -c`, `eval` and
+  `env -S`.
+- For a push in a context, the locations are: the directory Git runs in (after
+  `-C`); the Git directory (option over environment; a `.git` directory stands
+  for its parent); and the work tree. The work tree is an addition, never a
+  replacement.
+- Cost: possible over-denial. A push is denied when a protected branch of the
+  same name exists in any location the command could reach, for example
+  `git --git-dir=/other/.git push origin main` run inside a protected
+  repository. That only affects pushes to a protected branch name.
+- Limit: at most 64 contexts per script.
+
+### S10 review round 2 (FAIL on ed0fdbb) — narrowed scope
+
+Round 2 found NEW10 (the 64-context cap failed open), NEW8 again (`eval "cd …"`
+and `eval "export GIT_DIR=…"` changes not propagated), NEW11 (collecting every
+`cd` in the script made a later `cd` deny an earlier unrelated push, contrary to
+R10's "leaves unrelated commands alone") and NEW12 (`env -S` dropped the
+arguments after the split string; present before S10).
+
+Tracking state that earlier commands change (`cd`, `export`) cannot be both
+complete and free of false denials without modelling the shell. It had also
+made those forms "listed" under R10. S10 therefore narrows to forms that are
+exact for a single command, and lists earlier-command changes as a known limit
+in PROTOCOL.md, next to variables and scripts:
+
+- A push's repository is the directory Git runs in (wrapper `env -C`/`--chdir`,
+  `sudo -D`/`--chdir`, then each `-C`/`-Cdir`) or, when set, the Git directory
+  (`--git-dir` over a `GIT_DIR=` prefix; `.git` stands for its parent). A work
+  tree selects only the checkout and is ignored (NEW7, without over-denial).
+- Wrapper directories and `GIT_DIR` carry into `bash -c`, `eval` and `env -S`
+  scripts, and inner assignments override them (NEW9).
+- `env -S`/`--split-string` (also attached `-S…`) classifies the split string
+  plus the remaining arguments, and is recognized only among `env`'s own options
+  (NEW12).
+- No context set, so NEW10 and NEW11 no longer arise. `cd`/`pushd`/`export`
+  (NEW8) are the disclosed limit.
+
+### S10 review round 3 (FAIL on 7cf6496) — execution-order tracking
+
+Round 3 rejected the narrowed scope: AC7 lists chained commands and the spec
+forbids weakening criteria, so `cd /protected; git push origin main` must be
+denied (NEW8). It also found NEW13 (`env -S` was classified as shell syntax:
+`env -S '-C /p gh pr merge 12'` was missed and `env -S 'echo ok; gh pr merge
+12'` denied) and NEW14 (`env -u GIT_DIR`, `--unset=GIT_DIR`, `-i` and `sudo` left
+a stale `GIT_DIR` choosing the repository).
+
+Design now, without an amendment:
+
+- `parseShell` records each command's separators (before/after) and enclosing
+  subshell path, and the command each substitution belongs to.
+- `analyze` walks commands in order with the set of contexts (directory steps,
+  `GIT_DIR`) the current shell may be in. A change that certainly runs (start,
+  after `;`/newline, outside `if`/`case`/loops/brace groups) replaces the set,
+  so straightforward sequences are exact and a later `cd` never affects an
+  earlier push (NEW11). A change that may not run (after `&&`/`||`, inside a
+  compound command) adds to it. A command after `||` or inside a compound
+  command sees every context seen so far. Pipeline and background commands
+  change nothing; a subshell's changes are restored at its end; a substitution
+  uses its command's contexts; `eval` changes propagate (NEW8).
+- A script with a loop gets a second pass where every command sees every context
+  of the first pass.
+- An absolute step replaces earlier steps, so absolute `cd`s do not multiply.
+  Past 64 contexts the push is marked `overflow` and the hook denies it (NEW10).
+- `env -S` splits its string with env's quoting rules into arguments that env
+  processes as its own options, repeatedly (NEW13). `env -u`/`--unset`/`-i` and
+  `sudo` without `-E`/`--preserve-env` clear `GIT_DIR`; `doas` too (NEW14).
+- Remaining disclosed limits: variables, `~`, `CDPATH`, `cd -`, functions,
+  sourced files, earlier tool calls.
+
+### S10 review round 4 (FAIL on f592efe) and the coverage-list amendment
+
+Round 4 found further forms: loop accumulation (NEW8), overflow lost through an
+environment change (NEW10), env's `\_` escape (NEW13), `--unset` consuming two
+words (NEW14), superseded directories resurrected inside compound commands
+(NEW15, an unrelated denial), unexported `GIT_DIR` assignments (NEW16), env
+option clusters (NEW17) and wrapped builtins changing the caller (NEW18).
+
+Trent chose to amend R10 to a defined coverage list (approved 2026-11-17). The
+simplified design:
+
+- Each and-or list tracks where the shell may be after its last command
+  succeeded (`ok`) or failed (`fail`). A literal `cd`/`pushd` is assumed to
+  succeed, except that the command right after `cd … ||` runs where the shell
+  was; `exit` ends the script; `true`/`:`/`false` are exact; other commands do
+  not move. After `&&` a command runs from `ok`, after `||` from `fail`, and a
+  new list from either, so `x && cd d; git push` is checked in both places.
+- Pipelines and background commands change nothing (a backgrounded list
+  restores its start); `( … )` subshells restore on exit.
+- A change inside a compound command or `eval`, a function definition, an
+  unresolvable target (`cd $X`, `~`, `-`, `popd`) or any `GIT_DIR` assignment
+  makes the location unknown; a push there is admitted unless it names an
+  absolute directory or Git directory. This removes NEW15 and NEW16 by
+  construction; NEW8 (loops) and NEW17 (clusters) are named limits.
+- External wrappers (`env`, `sudo`, …) stop `cd`/`eval` changing the caller
+  (NEW18); `--unset` consumes one operand (NEW14); `\_` separates arguments
+  outside quotes (NEW13); overflow (more than 16 places) is only cleared by an
+  absolute `cd` and still denies (NEW10).
+- GIT_DIR comes from `--git-dir`, a prefix (dropped by `env -u`/`-i` and by
+  `sudo`/`doas` without `-E`), or an inherited prefix in `bash -c`/`eval`.
+
+### S10 review round 5 (FAIL on 9d8fec2) — fixes
+
+Three in-scope defects, fixed:
+
+- NEW8: a newline after `&&`/`||`/`|` replaced the pending operator, so
+  `false &&⏎cd d` looked certain. The parser keeps the operator across the
+  newline.
+- NEW19: separated `env --split-string '…'` sliced the option name instead of
+  taking the next argument.
+- NEW20: a pipeline joined its list with its first command's status, and leaving
+  a subshell restored the caller's old status. A pipeline now takes its last
+  command's status, and a subshell keeps its exit status while its directory
+  changes map back to where it started.
+
+### S10 review round 6 (FAIL on 262780b) — fixes
+
+- NEW20 (continued): a `( … )` subshell took part in its caller's and-or list
+  command by command, so a skipped group's inner commands overwrote the status
+  and `(exit 0)` looked like it ended the caller. A subshell is now one composite
+  command: it starts a fresh list where the caller's list reaches it and joins
+  with its exit status (either, after an inner `exit`); a subshell followed by
+  `|` joins as a pipeline element.
+- NEW21: substitutions in an unquoted heredoc body (`cat <<EOF … $(…) … EOF`)
+  are expanded by the shell before the command reads the body. They are now
+  classified where the command runs; a quoted delimiter (`'EOF'`, `"EOF"`,
+  `\EOF`) keeps the body as data. Pre-existing, but inside the coverage list.
+
+### S10 review round 7 (FAIL on 842bd3c) — fixes
+
+- NEW20: an `exit` inside a subshell ended it with either status, so
+  `(exit 0) || cd d` looked possible. A literal `exit 0` now succeeds and
+  another number fails; `exit` without a number still allows either.
+- NEW21: a backslash-newline in a heredoc delimiter (`<<EO\⏎F`) is a line
+  continuation, not quoting, so the body's substitutions are classified.
+
+### S10 review round 8 (FAIL on 8e5736e) — Trent chose option 1
+
+Findings: NEW20 (bare `exit` keeps the previous status; codes count modulo
+256), NEW17 (an unparsed `env -iC/dir` cluster was checked in the caller's
+directory, an unrelated denial), NEW22 (`pushd -n` does not move), NEW23
+(`exec -c` clears GIT_DIR). Trent chose one last round that also closes the
+general case, with a stop rule: if round 9 fails only on new unusual forms, the
+review gate is waived.
+
+- Wrapper options (`env`, `sudo`, `doas`, `exec`) are parsed by one table-driven
+  reader: clustered short options, operands attached or separate, unique
+  long-option abbreviations. Any option it does not model makes the directory
+  and GIT_DIR unknown, so a push behind it is admitted; `sudo -i` and a chroot
+  (`-R`, where even absolute paths differ) are unknown by design.
+- `cd`/`pushd`/`popd`: only `-L`/`-P`/`-e`/`-@` for cd and `-n` (stack only) for
+  pushd/popd are modelled; any other option, stack entry or operand count makes
+  the directory unknown.
+- `exit` with a literal code counts it modulo 256; a bare `exit` keeps the
+  previous command's status (after `&&` success, after `||` failure, at the
+  start of a script or subshell either).

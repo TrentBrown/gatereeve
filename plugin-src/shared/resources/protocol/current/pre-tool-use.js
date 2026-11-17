@@ -40,19 +40,30 @@ async function protectedBranches(cwd, contextFor) {
 async function pushReasons(pushes, cwd, runtime, contextFor) {
   const reasons = [];
   for (const push of pushes) {
-    const directory = push.directory ? push.directory.reduce((base, next) => resolve(base, next ?? '.'), cwd) : cwd;
-    const { branches } = await protectedBranches(directory, contextFor);
-    if (!branches.size) continue;
-    // The current branch matters only for an implicit destination or HEAD/@.
-    const needsCurrent = !push.all && (push.refspecs.length === 0 || push.refspecs.some(spec => /(?:^\+?|:)(?:HEAD|@)$/u.test(spec)));
-    const destinations = pushDestinations(push, needsCurrent ? await currentBranch(directory, runtime.gitExecutable ?? 'git') : null);
-    for (const [branch, role] of branches) {
-      if (destinations.some(destination => destinationMatches(destination, branch))) {
-        reasons.push(`git push would update the configured ${role} branch ${branch}; it changes only through a reviewed PR and the protected merge.`);
-      }
-    }
+    // More possible directories than the guard tracks: deny rather than guess.
+    if (push.overflow) { reasons.push('git push may run in more directories than the guard tracks; run it as a separate command.'); continue; }
+    // Every repository the push could act on, resolved from the hook's directory;
+    // a protected destination in any of them denies it. A location the guard
+    // cannot name (push.unknown) is admitted: best-effort, never a guess.
+    const directories = [...new Set((push.locations ?? []).map(steps => steps.reduce((at, next) => resolve(at, next ?? '.'), cwd)))];
+    for (const directory of directories) reasons.push(...await directoryReasons(push, directory, runtime, contextFor));
   }
   return [...new Set(reasons)];
+}
+
+async function directoryReasons(push, directory, runtime, contextFor) {
+  const reasons = [];
+  const { branches } = await protectedBranches(directory, contextFor);
+  if (!branches.size) return reasons;
+  // The current branch matters only for an implicit destination or HEAD/@.
+  const needsCurrent = !push.all && (push.refspecs.length === 0 || push.refspecs.some(spec => /(?:^\+?|:)(?:HEAD|@)$/u.test(spec)));
+  const destinations = pushDestinations(push, needsCurrent ? await currentBranch(directory, runtime.gitExecutable ?? 'git') : null);
+  for (const [branch, role] of branches) {
+    if (destinations.some(destination => destinationMatches(destination, branch))) {
+      reasons.push(`git push would update the configured ${role} branch ${branch}; it changes only through a reviewed PR and the protected merge.`);
+    }
+  }
+  return reasons;
 }
 
 async function mergeReason(event) {

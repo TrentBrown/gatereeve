@@ -190,6 +190,9 @@ retain their separate authority.
       commands.
 
     Its guidance states that it is best-effort.
+  - **Coverage list (amended 2026-11-17).** The forms the guard must handle are
+    the ones its protocol documentation lists. Forms that documentation names as
+    best-effort limits are outside the requirement. See Changes.
   - **Actionable recovery.** Every denial and status recovery message names an entry
     point present in the current installation: the bundled adapter or a shipped
     wrapper, or the `gatereeve` CLI only when it is on `PATH`.
@@ -231,7 +234,7 @@ retain their separate authority.
 | R7 | Delegation precondition, planning substitution and hand-back (AC5) | Delegation requires the release branch observed as protected (non-admin read). Delegated planning decisions require a qualifying independent PASS and carry a distinct authority kind. Each hand-back trigger returns the run to supervised and stops. | Delegation starts without observed protection; a delegated planning decision lacks a PASS or is reported as human-confirmed; or a trigger fails to hand back. | Pre-merge protocol tests with stubbed GitHub branch responses, evaluator receipts and trigger scenarios. |
 | R8 | Delivery targets and merge authority (AC5, AC6) | Delegated merges succeed only for `SLICE` PRs into a distinct integration branch with every required gate PASS. Scope/target mismatches are rejected. The integration==release configuration yields no delegated or standing merges. A per-PR human instruction lets the agent execute a release merge via the protected path, including for light runs. New release-branch standing grants are rejected and existing ones are reported as non-authorizing. External blockers are reported distinctly. A run started without a workspace configuration in a repository with a GitHub remote gets one naming the observed default branch as integration and release, so it can complete a per-PR human merge; a configuration for a different feature is never silently reused. | Any agent merge into the release branch without per-PR human authority; a slice merges outside the integration branch; light runs cannot use the protected human-authorized merge; external blocks appear as gate failures; a run without prior configuration cannot reach a per-PR human merge; or run start reuses or overwrites another feature's configuration without a human instruction. | Pre-merge `prepareMerge`/`protectedMerge`/standing-validation tests with stubbed `gh`/git, including FEATURE-shaped final PRs; run-start configuration tests (absent, same feature, different feature, no GitHub remote). |
 | R9 | Review summary on the PR (AC6) | Before human review or merge authorization is requested, the PR description or a pinned comment contains the current independent `review` summary for the candidate head, in both rigors. | A PR is presented for review or authorization without the current review summary. | Pre-merge tests of the PR publication step with stubbed `gh`; guidance parity. |
-| R10 | Guard coverage and actionable recovery (AC7) | The guard denies each listed merge/push form, including `-R`/path/chained variants, and leaves unrelated commands alone. Every denial/recovery message names an entry point that exists in the test installation (adapter or wrapper, CLI only when on `PATH`). | A listed form is admitted; unrelated commands are denied; or a message names an unavailable command. | Pre-merge hook unit tests with command corpora; tests with and without CLI on `PATH`. |
+| R10 | Guard coverage and actionable recovery (AC7) | The guard denies each listed merge/push form, including `-R`/path/chained variants, and leaves unrelated commands alone. Every denial/recovery message names an entry point that exists in the test installation (adapter or wrapper, CLI only when on `PATH`). "Listed" means the coverage list in the guard's protocol documentation (amended 2026-11-17). | A listed form is admitted; unrelated commands are denied; or a message names an unavailable command. A form the documentation names as a best-effort limit is not a failure. | Pre-merge hook unit tests with command corpora; tests with and without CLI on `PATH`. |
 | R11 | State-reporting SessionStart (AC7) | No-run, light, full and delegated states each produce the specified context. No state instructs the agent to load the full workflow when the run is light. | SessionStart still prescribes the full workflow for light runs or omits specified state. | Pre-merge SessionStart unit tests over adapter status fixtures. |
 | R12 | Measurement and rollout (AC8) | Projected observations carry rigor, autonomy and decision authority kind. The specified run events appear as observations. Escaped-defect links are recorded, with agent-proposed links only after confirmation. Reports don't treat absent defects as safety. The new contract version is used, plugin/desktop/CLI/MCP copies match, and existing runs are untouched. | Observations lack dial or authority fields; events are missing from projection; unconfirmed proposed links are stored; projection failure affects authority; copies diverge; or existing runs are converted. | Pre-merge projection/fleet tests, report wording tests, package parity checks, compatibility fixture tests. |
 
@@ -296,3 +299,42 @@ Delegated merges still need a distinct integration branch, which a person
 configures explicitly, as before.
 
 Approved by Trent: (pending).
+
+### 2026-11-17 — Merge-guard coverage is a defined list
+
+The second feature-final review (PR #112) found that `git -C/repo push` (no space)
+was admitted (NEW6). S10 fixed that, and four further review rounds kept finding
+new shell forms that change which repository a push acts on: directory changes
+inside loops and conditionals, `eval`, unexported variables, `env -S` escapes and
+option clusters. Handling every such form means emulating the shell, and each
+attempt exposed more cases. The design already says the guard is best-effort and
+that GitHub branch protection is the real enforcement.
+
+The guard-coverage part of AC7 therefore names a coverage list, kept in the
+guard's protocol documentation, and R10 is judged against it. The list must
+include:
+
+- every merge form already listed (`gh pr merge` variants, `gh api` merge
+  endpoints, wrappers, paths, `bash -c`/`sh -c`, `eval`, `env -S`, substitutions,
+  heredocs);
+- `git push` to a configured integration or release branch of the repository the
+  push acts on: the hook's directory, changed by `git -C dir`/`-Cdir`, by
+  `env -C`/`--chdir` and `sudo -D`/`--chdir`, and by literal `cd`/`pushd`
+  commands earlier in a plain top-level sequence (joined by `;`, `&&` or
+  newlines); or the Git directory named by `--git-dir` or a `GIT_DIR=` prefix;
+- each command of a chain (`;`, `&&`, `||`, `|`, `&`, newlines).
+
+The documentation also lists the best-effort limits, which R10 does not cover:
+
+- directory or environment changes inside subshells, conditionals, loops,
+  functions or `eval`;
+- shell-variable state across commands (`export`, `unset`);
+- `env -S` escape sequences and clustered short options;
+- `sudo`/`doas` environment policy;
+- values built from variables, `~`, `CDPATH` or `cd -`;
+- scripts, aliases and other clients.
+
+"Leaves unrelated commands alone" still applies everywhere. Where the guard cannot
+tell where a push runs, it admits the push rather than deny an unrelated one.
+
+Approved by Trent on 2026-11-17: "Approved".

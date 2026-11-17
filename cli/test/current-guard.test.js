@@ -199,6 +199,198 @@ test('pushes to the configured integration or release branch are denied; topic p
   assert.match((await decide('git push --follow-tags')).hookSpecificOutput?.permissionDecisionReason ?? '', /integration branch main/u, '--follow-tags also pushes the branch');
 });
 
+test('a push is checked in every repository it could act on, per the documented coverage list (NEW6-NEW23)', async t => {
+  const f = await configured(t);
+  const outside = await mkdtemp(join(tmpdir(), 'gatereeve-guard-outside-'));
+  t.after(() => rm(outside, { recursive: true, force: true }));
+  await git(outside, ['init', '-b', 'main']);
+  const q = JSON.stringify;
+  const gitDir = q(join(f.repo, '.git'));
+  const decide = (cwd, command) => preToolUse({ cwd, tool_input: { command } }, { env: NO_CLI });
+  // From the unconfigured directory itself nothing is protected.
+  assert.deepEqual(await decide(outside, 'git push origin main'), {});
+  const denied = [
+    // NEW6: -C in both spellings, in order.
+    [outside, `git -C ${q(f.repo)} push origin main`],
+    [outside, `git ${q(`-C${f.repo}`)} push origin main`],
+    [outside, `git -C ${q(f.root)} -Capp push origin main`],
+    [outside, `git ${q(`-C${f.root}`)} -C app push origin production`],
+    [outside, `cd /; git ${q(`-C${f.repo}`)} push origin main`],
+    // The Git directory selects the repository: option or environment.
+    [outside, `git --git-dir=${gitDir} push origin main`],
+    [outside, `git --git-dir ${gitDir} push origin main`],
+    [outside, `git -C ${q(f.root)} --git-dir app/.git push origin main`],
+    [outside, `GIT_DIR=${gitDir} git push origin main`],
+    [outside, `env GIT_DIR=${gitDir} git push origin main`],
+    // Wrapper directories.
+    [outside, `env -C ${q(f.repo)} git push origin main`],
+    [outside, `env ${q(`--chdir=${f.repo}`)} git push origin main`],
+    [outside, `sudo -D ${q(f.repo)} git push origin production`],
+    // NEW7: a work tree selects only the checkout; the repository Git runs in still counts.
+    [f.repo, `git --work-tree=${q(outside)} push origin main`],
+    [f.repo, `git --work-tree ${q(outside)} push origin production`],
+    [f.repo, `GIT_WORK_TREE=${q(outside)} git push origin main`],
+    [outside, `git --git-dir=${gitDir} --work-tree=${q(outside)} push origin main`],
+    [outside, `GIT_DIR=${gitDir} GIT_WORK_TREE=${q(outside)} git push origin main`],
+    // NEW9: wrapper directories and GIT_DIR carry into shells, eval and env -S.
+    [outside, `GIT_DIR=${gitDir} sh -c 'git push origin main'`],
+    [outside, `GIT_DIR=${gitDir} eval 'git push origin main'`],
+    [outside, `GIT_DIR=${gitDir} env -S 'git push origin main'`],
+    [outside, `env -C ${q(f.repo)} sh -c 'git push origin main'`],
+    [outside, `env -C ${q(f.root)} -S 'GIT_DIR=app/.git git push origin main'`],
+    // NEW12: env -S appends the remaining arguments to the split string.
+    [outside, `env -C ${q(f.repo)} -S git push origin main`],
+    [outside, 'env -S gh pr merge 12'],
+    [outside, 'env --split-string=gh pr merge 12'],
+    // NEW13: the split string is env's own arguments, options included.
+    [outside, `env -S ${q(`-C ${f.repo} gh pr merge 12`)}`],
+    [outside, `env -S ${q(`--chdir=${f.repo} git push origin main`)}`],
+    // NEW14: env -u/-i and sudo drop an earlier GIT_DIR before the repository is chosen.
+    [outside, `GIT_DIR=${q(join(outside, '.git'))} env -u GIT_DIR git -C ${q(f.repo)} push origin main`],
+    [outside, `GIT_DIR=${q(join(outside, '.git'))} env --unset=GIT_DIR git -C ${q(f.repo)} push origin main`],
+    [outside, `GIT_DIR=${q(join(outside, '.git'))} env -i git -C ${q(f.repo)} push origin main`],
+    [outside, `GIT_DIR=${q(join(outside, '.git'))} sudo git -C ${q(f.repo)} push origin main`],
+    [outside, `GIT_DIR=${q(join(outside, '.git'))} env --unset OTHER --unset GIT_DIR git -C ${q(f.repo)} push origin main`],
+    [outside, `GIT_DIR=${q(join(outside, '.git'))} env --unset OTHER -i git -C ${q(f.repo)} push origin main`],
+    // NEW13: outside quotes, env's \_ escape separates arguments.
+    [outside, "env -S 'gh\\_pr\\_merge\\_12'"],
+    // NEW8: literal cd/pushd earlier in a plain sequence (;, &&, newlines).
+    [outside, `cd ${q(f.repo)} && git push origin main`],
+    [outside, `cd ${q(f.repo)}; git push origin main`],
+    [outside, `cd ${q(f.root)}\ncd app\ngit push origin production`],
+    [outside, `pushd ${q(f.repo)} && git push origin main`],
+    [outside, `builtin cd ${q(f.repo)}; git push origin main`],
+    [outside, `cd ${q(f.root)} && git -C app push origin main`],
+    [outside, `cd ${q(f.repo)}; echo $(git push origin main)`],
+    [outside, `cd ${q(f.repo)}; false && cd ${q(outside)}; git push origin main`],
+    [outside, `test -d x && cd ${q(f.repo)}; git push origin main`],
+    [outside, `cd ${q(f.repo)} || exit 1; git push origin main`],
+    [f.repo, `cd ${q(outside)} || git push origin main`],
+    [outside, `cd ${q(f.repo)} && (cd ${q(outside)}); git push origin main`],
+    [outside, `(cd ${q(f.repo)} && git push origin main)`],
+    [outside, `cd ${q(f.repo)} && git push origin main &`],
+    [outside, `cd ${q(f.repo)}; if true; then git push origin main; fi`],
+    [outside, `cd ${q(f.repo)} && bash -c 'git push origin main'`],
+    [outside, `cd "$HOME"; git -C ${q(f.repo)} push origin main`],
+    // NEW18: a wrapped builtin cannot change the calling shell.
+    [outside, `cd ${q(f.repo)}; env -C ${q(outside)} eval true; git push origin main`],
+    [outside, `cd ${q(f.repo)}; sudo cd ${q(outside)}; git push origin main`],
+    // NEW8: a newline after && continues the list.
+    [outside, `cd ${q(f.repo)}; false &&\ncd ${q(outside)}; git push origin main`],
+    // NEW19: the separated long split-string option.
+    [outside, "env --split-string 'gh pr merge 12'"],
+    [outside, `env --split-string ${q(`git -C ${f.repo} push origin main`)}`],
+    // NEW20: a pipeline's status is its last command's; a subshell keeps its status.
+    [outside, `false | true && cd ${q(f.repo)}; git push origin main`],
+    [outside, `false; (true) && cd ${q(f.repo)}; git push origin main`],
+    [outside, `true; (false) || cd ${q(f.repo)}; git push origin main`],
+    [outside, `cd ${q(f.repo)}; false && (true; true) && cd ${q(outside)}; git push origin main`],
+    [outside, `cd ${q(f.repo)}; (exit 0); git push origin main`],
+    [outside, `(false) | true && cd ${q(f.repo)}; git push origin main`],
+    // NEW21: an unquoted heredoc body is subject to command substitution.
+    [outside, 'cat <<EOF\n$(gh pr merge 12)\nEOF'],
+    [outside, 'cat <<EOF\n`gh pr merge 12`\nEOF'],
+    [outside, 'cat <<EO\\\nF\n$(gh pr merge 12)\nEOF'],
+    // NEW20: exit codes count modulo 256; a bare exit keeps the previous status.
+    [outside, `(exit 256) && cd ${q(f.repo)}; git push origin main`],
+    [outside, `(false; exit) || cd ${q(f.repo)}; git push origin main`],
+    // NEW17: clustered and abbreviated wrapper options.
+    [outside, `env ${q(`-iC${f.repo}`)} git push origin main`],
+    [outside, `env -iC ${q(f.repo)} git push origin main`],
+    [outside, `env ${q(`--ch=${f.repo}`)} git push origin main`],
+    [outside, `sudo -nD ${q(f.repo)} git push origin main`],
+    [outside, "env -vS 'gh pr merge 12'"],
+    // NEW23: exec -c clears the environment.
+    [outside, `bash -c ${q(`GIT_DIR=${join(outside, '.git')} exec -c git -C ${f.repo} push origin main`)}`],
+    [outside, `cd ${q(outside)}; (exit 3) || cd ${q(f.repo)}; git push origin main`],
+    [outside, `cat <<EOF\n$(git -C ${q(f.repo)} push origin main)\nEOF`],
+    // Past the tracked number of possible directories a push is denied, not admitted.
+    [outside, `${['a', 'b', 'c', 'd', 'e'].map(name => `test -d ${name} && cd ${name}`).join('; ')}; git push origin topic`],
+  ];
+  for (const [cwd, command] of denied) {
+    const decision = (await decide(cwd, command)).hookSpecificOutput;
+    assert.equal(decision?.permissionDecision, 'deny', command);
+    assert.match(decision.permissionDecisionReason, /(integration branch main|release branch production|merge milestone|more directories than the guard tracks)/iu, command);
+  }
+  for (const [cwd, command] of [
+    [outside, `git ${q(`-C${f.repo}`)} push origin topic`],
+    [outside, `GIT_DIR=${gitDir} sh -c 'git push origin topic'`],
+    [outside, `cd ${q(f.repo)} && git push origin topic`],
+    // A work tree or another Git directory does not make an unrelated push protected.
+    [outside, `git --work-tree=${q(f.repo)} push origin main`],
+    [f.repo, `git --git-dir=${q(join(outside, '.git'))} push origin main`],
+    // NEW11: a later command does not change an earlier push, and a certain cd
+    // replaces the directory rather than adding to it.
+    [outside, `git push origin main; cd ${q(f.repo)}`],
+    [outside, `echo $(git push origin main); cd ${q(f.repo)}`],
+    [f.repo, `cd ${q(outside)} && git push origin main`],
+    [f.repo, `cd ${q(outside)}; git push origin main`],
+    // A subshell's cd ends with it; a pipeline or background cd changes nothing.
+    [outside, `(cd ${q(f.repo)}); git push origin main`],
+    [outside, `cd ${q(f.repo)} | cat; git push origin main`],
+    [outside, `cd ${q(f.repo)} & git push origin main`],
+    [outside, `true ||\ncd ${q(f.repo)}; git push origin main`],
+    [outside, `true | false && cd ${q(f.repo)}; git push origin main`],
+    [outside, `true; (false) && cd ${q(f.repo)}; git push origin main`],
+    [outside, `(cd ${q(f.repo)}; true) && git push origin main`],
+    [outside, `true || (false; false) || cd ${q(f.repo)}; git push origin main`],
+    [outside, `(exit 0) || cd ${q(f.repo)}; git push origin main`],
+    [outside, `cd ${q(f.repo)}; (exit 0) && cd ${q(outside)}; git push origin main`],
+    [outside, `(exit 3) && cd ${q(f.repo)}; git push origin main`],
+    [f.repo, `cd ${q(outside)}; (true; exit) || cd ${q(f.repo)}; git push origin main`],
+    [f.repo, `env ${q(`-iC${outside}`)} git push origin main`],
+    // NEW22: pushd -n edits only the directory stack.
+    [outside, `pushd -n ${q(f.repo)}; git push origin main`],
+    // An option the guard does not model makes the location unknown: admitted.
+    [f.repo, 'env -Z git push origin main'],
+    [f.repo, `cd -x ${q(outside)}; git push origin main`],
+    [f.repo, 'sudo -R /tmp git -C /x push origin main'],
+    [outside, "cat <<'EOF'\n$(gh pr merge 12)\nEOF"],
+    [outside, 'cat <<\\EOF\n`gh pr merge 12`\nEOF'],
+    // NEW15: superseded directories are not checked, inside compound commands too.
+    [outside, `cd ${q(f.repo)}; cd ${q(outside)}; { git push origin main; }`],
+    [outside, `cd ${q(f.repo)}; cd ${q(outside)}; if true; then git push origin main; fi`],
+    [f.repo, `(cd ${q(outside)} && git push origin main)`],
+    [f.repo, `cd ${q(outside)} || exit 1; git push origin main`],
+    // Outside the coverage list the location is unknown, so an unrelated push is
+    // admitted rather than checked where it does not run.
+    [f.repo, `if true; then cd ${q(outside)}; fi; git push origin main`],
+    [f.repo, `for d in x; do cd ${q(outside)}; git push origin main; done`],
+    [f.repo, `eval ${q(`cd ${outside}`)}; git push origin main`],
+    [f.repo, `export GIT_DIR=${q(join(outside, '.git'))}; git push origin main`],
+    [f.repo, `cd "$OUT"; git push origin main`],
+    [f.repo, `f() { cd ${q(outside)}; }; f; git push origin main`],
+    // NEW13: split-string text is arguments, not shell syntax.
+    [outside, `env -S ${q('echo ok; gh pr merge 12')}`],
+    [outside, 'env git commit -S -m signed'],
+  ]) assert.deepEqual(await decide(cwd, command), {}, command);
+  const at = command => classifyShellCommand(command)[0].locations;
+  assert.deepEqual(at('git push origin main'), [[]]);
+  assert.deepEqual(at('git -C/w -Crepo -cpush.default=current push'), [['/w', 'repo']]);
+  assert.deepEqual(at('git -C /w -C /v push'), [['/v']], 'an absolute directory replaces earlier steps');
+  assert.deepEqual(at('git --git-dir=/w/repo/.git push'), [['/w/repo/.git', '..']]);
+  assert.deepEqual(at('git --git-dir=/w/bare.git push'), [['/w/bare.git']]);
+  assert.deepEqual(at('git -C /w --work-tree repo --git-dir /x/.git push'), [['/x/.git', '..']]);
+  assert.deepEqual(at('git -C /w --work-tree=repo push'), [['/w']]);
+  assert.deepEqual(at('git -C /w --git-dir repo/.git push'), [['/w', 'repo/.git', '..']]);
+  assert.deepEqual(at('GIT_DIR=/e/.git git --git-dir=/f/.git push'), [['/f/.git', '..']], 'the option overrides the environment');
+  assert.deepEqual(at('sudo -C 3 -D/w git push'), [['/w']], 'sudo -C closes descriptors; -D changes directory');
+  assert.deepEqual(at("sudo -D/w env -C x bash -c 'git -Cy push'"), [['/w', 'x', 'y']]);
+  assert.deepEqual(at("GIT_DIR=/a/.git bash -c 'GIT_DIR=/b/.git git push'"), [['/b/.git', '..']], 'an inner assignment overrides the inherited one');
+  assert.deepEqual(at('GIT_DIR=/a/.git sudo -E git push'), [['/a/.git', '..']], 'sudo -E preserves the environment');
+  assert.deepEqual(at('cd a && cd b; git push'), [['a', 'b']], 'a cd is assumed to succeed');
+  assert.deepEqual(at('x && cd b; git push'), [['b'], []], 'a cd after && may not run');
+  assert.deepEqual(at('cd /a || git push'), [[]], 'after cd || the shell is where it was');
+  assert.deepEqual(at('cd /a; cd b; x || git push'), [['/a', 'b']]);
+  assert.deepEqual(at('false && git push'), [], 'a push that cannot run has no location');
+  assert.deepEqual(at('if x; then cd /a; fi; git push'), [], 'a change inside a compound command is not followed');
+  assert.equal(classifyShellCommand('if x; then cd /a; fi; git push')[0].unknown, true);
+  assert.deepEqual(at('cd $X; cd /a; git push'), [['/a']], 'an absolute cd names the directory again');
+  assert.deepEqual(at('GIT_DIR=/a/.git; git push'), []);
+  assert.deepEqual(at('export GIT_DIR=/a/.git; unset GIT_DIR; git push'), [[]]);
+  assert.equal(classifyShellCommand('git push')[0].overflow, undefined);
+});
+
 test('an unconfigured Git workspace names no protected branches', async t => {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-guard-legacy-'));
   t.after(() => rm(root, { recursive: true, force: true }));

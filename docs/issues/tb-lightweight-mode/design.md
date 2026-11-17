@@ -350,3 +350,27 @@ flow already does this is to be checked during spec work.
   configuration, so without this light runs there could not merge on instruction
   (original friction 1). Found by the feature-final review of PR #112 (NEW2).
 - Approved by Trent: (pending).
+
+### 2026-11-17 — Merge-guard coverage is a defined list (clarifies §6 "Wider merge guard")
+
+- **The guard's coverage is the list in its protocol documentation**, and the
+  requirement (AC7/R10) is judged against that list. The list covers the merge
+  forms and `git push` to a protected branch of the repository the push acts on.
+  That repository is followed through `git -C`/`-Cdir`, `--git-dir`/`GIT_DIR=`
+  prefixes, `env`/`sudo` directory options, each command of a chain, and literal
+  `cd`/`pushd` earlier in a plain top-level sequence.
+- **Best-effort limits are named, not chased.** These are:
+  - directory and environment changes inside subshells, conditionals, loops,
+    functions or `eval`;
+  - variable state across commands;
+  - `env -S` escapes and option clusters;
+  - `sudo`/`doas` environment policy;
+  - variables, `~` and `CDPATH`;
+  - scripts and other clients.
+
+  In these cases the guard admits rather than risk denying an unrelated command.
+- **Reason:** five review rounds on S10 showed that full shell semantics cannot be
+  covered without emulating the shell, and each attempt added both bypasses and
+  false denials. GitHub branch protection remains the real enforcement, as §6
+  already says.
+- Approved by Trent on 2026-11-17: "Approved".
