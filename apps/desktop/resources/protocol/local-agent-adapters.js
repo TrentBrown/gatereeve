@@ -79,6 +79,17 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
 // shape bounded inputs measure against the same text with promptCharacters().
 export const MAX_PROMPT_CHARACTERS_LIMIT = MAX_PROMPT_CHARACTERS;
 export function promptCharacters(request) { return promptText(request).length; }
+// Linux limits each argv element to MAX_ARG_STRLEN (32 pages, 128 KiB). Large
+// text belongs on standard input; anything else that large fails clearly here
+// instead of as spawn E2BIG.
+export const MAX_ARGUMENT_BYTES = 128 * 1024;
+export function assertArgumentSizes(args) {
+  for (const arg of args) {
+    if (Buffer.byteLength(String(arg)) >= MAX_ARGUMENT_BYTES) {
+      throw new ContractError(`An agent command-line argument exceeds the ${MAX_ARGUMENT_BYTES}-byte per-argument limit; pass large text on standard input`);
+    }
+  }
+}
 function promptFor(request) {
   const prompt = promptText(request);
   if (prompt.length > MAX_PROMPT_CHARACTERS) {
@@ -288,7 +299,11 @@ export function createClaudeCodeAgentAdapter({
           tools: ['Read', 'Glob', 'Grep'],
         },
       };
-      const processResult = await runner(executable, [
+      // The prompt goes on standard input (`--print` reads it there when no
+      // prompt argument is given; `--input-format text` is the default, stated
+      // explicitly). As one argv element it hit Linux's 128 KiB per-argument
+      // limit (spawn E2BIG) well below the 512 KiB prompt bound.
+      const args = [
         '--print', '--restricted', '--permission-mode', 'dontAsk',
         '--permission-prompts', 'none', '--no-session-persistence',
         '--setting-sources', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
@@ -296,10 +311,12 @@ export function createClaudeCodeAgentAdapter({
         '--model', model, '--effort', reasoningEffort,
         '--agents', JSON.stringify(agents), '--agent', agentName,
         '--tools', 'Read,Glob,Grep', '--json-schema', JSON.stringify(request.outputSchema),
-        '--output-format', 'json', promptFor(request),
-      ], {
+        '--output-format', 'json', '--input-format', 'text',
+      ];
+      assertArgumentSizes(args);
+      const processResult = await runner(executable, args, {
         cwd: request.repositoryPath,
-        input: '',
+        input: promptFor(request),
         env: await scratchEnvironment(scratchRun, environment),
         timeoutSeconds: request.timeoutSeconds,
       });

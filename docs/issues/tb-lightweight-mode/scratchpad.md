@@ -672,3 +672,39 @@ entries are appended to `decisions.md`.
     branch that does not belong to its configured feature still resumes it; no new
     feature home or run is created.
   - CLI `run resume-current` takes the same workspace options as `run start`.
+
+### Review machinery fixes, approved by Trent 2026-11-17
+
+These fix GateReeve's existing review machinery; they are not new feature scope.
+They came from the S8 re-review: three Codex attempts returned PASS (NEW4 and
+F1/NEW1–NEW3 resolved), yet each was recorded UNAVAILABLE ("Reconsider affected
+closed findings and justify any carried closures"), and the Claude evaluator
+failed with `spawn E2BIG`.
+
+- **History-assessment validation** (`execution.js` `validateVerdict`). A PASS
+  with `reconsiderClosures` required every `historyAssessment.affected` ID to be a
+  reconsidered closure, but evaluators also list open prior findings and claimed
+  fixes, which are already required. `affected` may now draw from reconsidered
+  closures ∪ open prior findings and claimed fixes of that gate ∪ claim finding IDs.
+  Unknown and duplicate IDs are still rejected. A `carryForwardReason` is still
+  needed when any reconsidered closure is not affected. Every required ID still needs
+  a supported disposition, and an open finding still cannot be carried as unaffected.
+  - The evaluator prompt was left byte-identical. Its text ("independently identify
+    affected IDs in historyAssessment.affected ...") does not restrict the list to
+    reconsidered IDs, so it already matches the relaxed rule. Editing it would change
+    the review-contract identity and make every retained review result inapplicable
+    for in-flight runs.
+  - `validateVerdict` is exported for the new unit tests
+    (`current-history-assessment.test.js`).
+- **Claude Code evaluator prompt on stdin** (`local-agent-adapters.js`). The prompt
+  was the last argv element, which exceeded Linux's per-argument limit
+  (MAX_ARG_STRLEN, 128 KiB) for large packets while the prompt bound is 512 KiB.
+  It now goes on standard input (`input: promptFor(request)`, as the Codex
+  adapter does) with `--input-format text` stated explicitly.
+  - The CLI help documents `--input-format text` as the `--print` default, and
+    `--print` without a prompt argument reads the prompt from stdin, which is the
+    standard piped usage. I did not run a live model call to confirm it.
+  - New `assertArgumentSizes` refuses any argv element of 128 KiB or more with a
+    clear error before spawning. This could only happen through `--agents`, which
+    carries the stage instructions.
+  - No other adapter or helper passes large text in argv: Codex already used stdin.

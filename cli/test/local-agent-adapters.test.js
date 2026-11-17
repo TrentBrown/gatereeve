@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import test from 'node:test';
 
+import { MAX_ARGUMENT_BYTES, assertArgumentSizes } from '../../plugin-src/shared/resources/protocol/local-agent-adapters.js';
 import {
   createClaudeCodeAgentAdapter,
   createCodexAgentAdapter,
@@ -101,6 +102,42 @@ test('Claude Code adapter launches a non-persistent restricted custom agent', as
   assert.equal(calls[0].args[calls[0].args.indexOf('--mcp-config') + 1], '{"mcpServers":{}}');
   assert(!calls[0].args.includes('--resume'));
   assert(!calls[0].args.includes('--continue'));
+});
+
+// Review machinery fix (S8, approved 2026-11-17): the prompt travels on stdin,
+// so packets above Linux's 128 KiB per-argument limit no longer fail with E2BIG.
+test('Claude Code adapter passes the prompt on standard input, never in argv, including above 128 KiB', async () => {
+  const calls = [];
+  const adapter = createClaudeCodeAgentAdapter({
+    model: 'claude-test',
+    runner: async (executable, args, options) => {
+      calls.push({ executable, args, options });
+      return { code: 0, signal: null, stdout: JSON.stringify({ session_id: 'claude-context-2', structured_output: { verdict: 'PASS' } }), stderr: '',
+        startedAt: new Date('2026-09-24T12:00:00Z'), completedAt: new Date('2026-09-24T12:01:00Z') };
+    },
+  });
+  const large = { ...request(), input: { diff: 'x'.repeat(200 * 1024) } };
+  const result = await adapter.runStage(large);
+  assert.equal(result.output.verdict, 'PASS');
+  const [{ args, options }] = calls;
+  assert.ok(options.input.length > 200 * 1024, 'the prompt is on standard input');
+  assert.ok(options.input.includes('Review the pinned evidence.') && options.input.includes('x'.repeat(1024)));
+  assert.ok(args.every(arg => !String(arg).includes('x'.repeat(1024)) && Buffer.byteLength(String(arg)) < MAX_ARGUMENT_BYTES), 'no argv element carries the prompt or exceeds the limit');
+  assert.ok(!args.some(arg => String(arg).includes('<gatereeve-output-schema>')));
+  assert.deepEqual(args.slice(-4), ['--output-format', 'json', '--input-format', 'text']);
+  // The bounded prompt limit still applies on stdin.
+  await assert.rejects(adapter.runStage({ ...request(), input: { diff: 'x'.repeat(600 * 1024) } }), /exceeds the bounded 524288-character provider limit/);
+  assert.equal(calls.length, 1);
+  // Any other oversized argument fails clearly before spawning.
+  assert.throws(() => assertArgumentSizes(['--print', 'y'.repeat(MAX_ARGUMENT_BYTES)]), /per-argument limit; pass large text on standard input/);
+  assert.doesNotThrow(() => assertArgumentSizes(['--print', 'y'.repeat(MAX_ARGUMENT_BYTES - 1)]));
+});
+
+test('a real child process receives a prompt above 128 KiB on standard input', async () => {
+  const prompt = 'p'.repeat(300 * 1024);
+  const result = await runAgentProcess(process.execPath, ['-e', 'let n=0;process.stdin.on("data",c=>n+=c.length).on("end",()=>process.stdout.write(String(n)))'],
+    { cwd: process.cwd(), input: prompt, timeoutSeconds: 30 });
+  assert.equal(result.stdout, String(prompt.length));
 });
 
 test('adapter parsers require structured output and opaque context IDs', () => {
