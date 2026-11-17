@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto';
 import { ContractError } from '../errors.js';
 
-export const CONTRACT = 'gatereeve/current/6';
+export const CONTRACT = 'gatereeve/current/7';
+// Run dials. Values are explicit per-run choices over these built-in defaults;
+// no configuration layer can change them (design D3/D4).
+export const DIALS = Object.freeze({ rigor: Object.freeze(['full', 'light']), autonomy: Object.freeze(['supervised', 'delegated']) });
+export const DEFAULT_DIALS = Object.freeze({ rigor: 'full', autonomy: 'supervised' });
 export const PHASES = ['DESIGNING', 'SPECIFYING', 'PLANNING', 'IMPLEMENTING', 'ACCEPTING', 'INTEGRATED', 'COMPLETE'];
 export const MILESTONES = ['implementation', 'acceptance', 'merge', 'completion'];
 export const HASH = /^sha256:[a-f0-9]{64}$/u;
@@ -69,12 +73,28 @@ export function authority(value) {
   if (value.conversationId !== undefined) text(value.conversationId, 'Conversation reference');
   return structuredClone(value);
 }
+// A delegated planning decision cites the human's delegation and an
+// independent evaluator PASS instead of a live human instruction (spec AC5).
+// It is reported as its own authority kind, never as human-confirmed.
+export const DELEGATED_AUTHORITY = 'delegated-evaluator';
+export const DELEGATED_DECISIONS = Object.freeze(['approve-design', 'authorize-implementation']);
+export function delegatedAuthority(value) {
+  object(value, 'Delegated authority');
+  requireThat(value.kind === DELEGATED_AUTHORITY, 'Unknown delegated authority kind');
+  requireThat(Object.keys(value).every(key => ['kind', 'delegation', 'evaluation'].includes(key)), 'Delegated authority names only the delegation event and the evaluator result event');
+  requireThat(HASH.test(value.delegation) && HASH.test(value.evaluation), 'Delegated authority must cite the delegation event and the planning review event by identity');
+  return structuredClone(value);
+}
 export function decision(value) {
   object(value, 'Decision');
   requireThat(Object.keys(value).every(key => ['kind', 'subject', 'authority', 'reason', 'consequences', 'actions', 'gates', 'findings', 'action', 'previousSubject', 'scope', 'waiverBasis'].includes(key)), 'Unsupported decision field; scope must be explicit in the supported contract');
-  requireThat(['approve-design', 'authorize-implementation', 'accept', 'waive', 'amend', 'policy-amend', 'authorize-merge', 'authorize-standing', 'revoke-standing'].includes(value.kind), 'Unknown decision kind');
+  requireThat(['approve-design', 'authorize-implementation', 'accept', 'waive', 'amend', 'policy-amend', 'authorize-merge', 'authorize-standing', 'revoke-standing', 'stay-light'].includes(value.kind), 'Unknown decision kind');
   requireThat(value.scope === undefined || value.kind === 'authorize-standing', 'Scope is only supported on a standing grant');
-  authority(value.authority);
+  if (value.authority?.kind === DELEGATED_AUTHORITY) {
+    requireThat(DELEGATED_DECISIONS.includes(value.kind) && !(value.actions ?? []).length,
+      `Delegated authority covers only ${DELEGATED_DECISIONS.join(' and ')} without continuations; ${value.kind} needs an observed human instruction`);
+    delegatedAuthority(value.authority);
+  } else authority(value.authority);
   text(value.reason, 'Decision reason');
   text(value.consequences, 'Known consequences');
   requireThat(HASH.test(value.subject), 'Decision must name the exact subject identity');
@@ -139,6 +159,64 @@ const actions = Object.freeze({
 });
 export const ENFORCEMENT = Object.freeze({
   core: 'milestone checks',
-  codex: { sessionStart: 'guidance', actionHooks: 'PreToolUse: direct gh pr merge guard', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
-  claude: { sessionStart: 'guidance', actionHooks: 'PreToolUse: direct gh pr merge guard', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
+  codex: { sessionStart: 'run-state guidance', actionHooks: 'PreToolUse: best-effort guard for gh pr merge, gh api merge and protected-branch git push', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
+  claude: { sessionStart: 'run-state guidance', actionHooks: 'PreToolUse: best-effort guard for gh pr merge, gh api merge and protected-branch git push', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
 });
+
+// A dial choice supplied at run start. Only the built-in default may be chosen
+// without an observed human instruction. Delegation additionally needs the
+// release-branch protection observation, which the core attaches (spec AC5).
+export function startDial(dial, value) {
+  requireThat(Object.hasOwn(DIALS, dial), 'Unknown run dial');
+  if (value === undefined) return { value: DEFAULT_DIALS[dial], source: 'built-in', actor: null };
+  object(value, `${dial} choice`);
+  requireThat(Object.keys(value).every(key => ['value', 'authority', 'reason'].includes(key)), `Unsupported ${dial} choice field`);
+  requireThat(DIALS[dial].includes(value.value), `Invalid ${dial} value`);
+  if (value.value !== DEFAULT_DIALS[dial]) requireThat(value.authority !== undefined, `Choosing ${dial} ${value.value} requires an observed human instruction`);
+  // Every explicit choice carries provenance: the observed instruction or a reason.
+  requireThat(value.authority !== undefined || value.reason !== undefined, `An explicit ${dial} choice needs an observed human instruction or a reason`);
+  const choice = { value: value.value, source: 'explicit', actor: value.authority ? 'human' : 'agent' };
+  if (value.authority !== undefined) choice.authority = authority(value.authority);
+  if (value.reason !== undefined) choice.reason = text(value.reason, `${dial} reason`);
+  return choice;
+}
+export const LOWERING_REFUSED = 'Rigor cannot be lowered within a run; to work at light rigor, start a new light run on a new topic branch (this run and its evidence remain retained)';
+// Validate a requested dial change against the asymmetric rules (design D5 as
+// revised 2026-11-16): rigor only rises; lowering it requires a new light run.
+export function dialChange(state, input) {
+  object(input, 'Dial change');
+  requireThat(Object.keys(input).every(key => ['dial', 'value', 'actor', 'authority', 'reason', 'runId'].includes(key)), 'Unsupported dial change field');
+  requireThat(Object.hasOwn(DIALS, input.dial), 'Unknown run dial');
+  requireThat(DIALS[input.dial].includes(input.value), `Invalid ${input.dial} value`);
+  // Lowering is refused before any other field check, so every caller gets the
+  // path forward rather than a missing-field error.
+  // A light run asking for light is told so, not told it cannot lower (F13).
+  if (input.dial === 'rigor' && input.value === 'light') requireThat(false, state.dials.rigor.value === 'light' ? 'Run rigor is already light' : LOWERING_REFUSED);
+  requireThat(['human', 'agent'].includes(input.actor), 'Dial change actor must be human or agent');
+  text(input.reason, 'Dial change reason');
+  requireThat(input.actor !== 'human' || input.authority !== undefined, 'A human dial change requires the observed instruction');
+  requireThat(input.actor !== 'agent' || input.authority === undefined, 'An agent dial change cannot claim human authority');
+  const current = state.dials[input.dial].value;
+  requireThat(current !== input.value, `Run ${input.dial} is already ${input.value}`);
+  // Delegation is a human decision naming this run; the core adds the observed
+  // release-branch protection before it is recorded.
+  if (input.dial === 'autonomy' && input.value === 'delegated') {
+    requireThat(input.actor === 'human', 'Only a human can delegate');
+    requireThat(input.runId === state.runId, `Delegation must name this run: supply runId ${state.runId}`);
+  } else requireThat(input.runId === undefined, 'Only a delegation names the run');
+  return { dial: input.dial, value: input.value, previous: current, source: 'explicit', actor: input.actor,
+    ...(input.authority !== undefined ? { authority: authority(input.authority) } : {}), reason: input.reason,
+    ...(input.runId !== undefined ? { runId: input.runId } : {}),
+    // Returning delegated work is a hand-back: by the agent, or by the human.
+    ...(input.dial === 'autonomy' && input.value === 'supervised' ? { trigger: input.actor === 'agent' ? 'agent' : 'human' } : {}) };
+}
+// Recorded automatic dial changes (tripwire escalation, hand-back). They are
+// raises or returns to supervision only, so no human instruction is needed.
+export const HAND_BACK_TRIGGERS = Object.freeze(['amend', 'agent', 'external-blocker', 'protection-lost']);
+// Tripwire categories (spec AC4); patterns live in tripwires.js.
+export const TRIPWIRE_CATEGORIES = Object.freeze(['migrations-schema', 'auth-security', 'secrets', 'public-api', 'data-deletion']);
+export function automaticDial(state, dial, value, trigger, reason, details = {}) {
+  requireThat((dial === 'rigor' && value === 'full') || (dial === 'autonomy' && value === 'supervised'), 'Automatic dial changes only raise rigor or return autonomy to supervised');
+  return { dial, value, previous: state.dials[dial].value, source: 'automatic', actor: 'gatereeve', trigger, reason: text(reason, 'Automatic dial reason'), ...details };
+}
+

@@ -16,7 +16,7 @@ import { join } from 'node:path';
 import { CONTRACT, canonical, identity, requireThat, gate, text } from './contracts.js';
 import { newView } from './source-views.js';
 import { localPath } from './store.js';
-import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean } from './evidence.js';
+import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean, briefBased } from './evidence.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter, promptCharacters, MAX_PROMPT_CHARACTERS_LIMIT } from '../local-agent-adapters.js';
 import { fitHistory, writeHistoryIndex, HISTORY_PRIORITY } from './review-history.js';
 import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
@@ -101,7 +101,14 @@ For delta review, explicitly cover all changed paths and their interactions and 
 Every snapshot has metadata/<alias>.json with the original Git modes and kinds at base, head and target; prior snapshots have the same metadata under prior/<result-hash>/. Files in this read-only view are materialized without executable permissions, so use the retained mode metadata when assessing permission changes. Git symlinks are regular text files containing their target, never followed. Gitlinks are JSON metadata with the pinned commit; contents require a separately selected repository or an explicit coverage limitation. Do not treat metadata as reviewed implementation.
 Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, target/<alias>/ is the independently pinned proposed merge target; assess its interactions with the complete feature change. Prior targets are under prior/<result-hash>/target/<alias>/. Read requirements/ and the explicit evidence paths in the input. Do not access network or modify files.`;
 
-export const reviewContract = ids => identity({ capabilityProfile: HIGH_CAPABILITY_PROFILE, providerContract: AGENT_WORKFLOW_PROTOCOL_VERSION, schema, instructions, rules: [...ids].sort().map(id => ({ id, rule: gate(id).rule ?? null })) });
+const briefInstructions = `This is a light-rigor run. Its requirement basis is requirements/brief.md (goal, scope and findings log); there is no specification rubric or planning record. The single selected criterion "brief" means the change achieves the brief's goal within its stated scope. Assess code defects and interactions, verification sufficiency and scope against the brief; the requirements dimension assesses conformance to the brief's goal and scope. Blocking findings set criterion to brief or exactly gate:<gate>; findings about the brief itself cite requirements/brief.md.`;
+// Full-rigor rules stay byte-identical; a brief-based candidate adds its basis.
+const evaluatorInstructions = candidate => briefBased(candidate) ? `${instructions}\n${briefInstructions}` : instructions;
+// Gates that need a specification rubric or planning record; refused for a brief-based candidate.
+export const RUBRIC_GATES = Object.freeze(['spec', 'judge', 'reconcile', 'triage']);
+const PLANNING_PATHS = ['requirements/spec.md', 'requirements/design.md', 'planning/plan.md', 'planning/issues.md', 'planning/tracker.md', 'planning/scratchpad.md', 'planning/decisions.md'];
+
+export const reviewContract = (ids, candidate = null) => identity({ capabilityProfile: HIGH_CAPABILITY_PROFILE, providerContract: AGENT_WORKFLOW_PROTOCOL_VERSION, schema, instructions: evaluatorInstructions(candidate), rules: [...ids].sort().map(id => ({ id, rule: gate(id).rule ?? null })) });
 
 async function sourceMetadata(root, candidate) {
   await mkdir(join(root, 'metadata'), { recursive: true });
@@ -176,6 +183,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
     ? createCodexAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' })
     : createClaudeCodeAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' }));
   const outputSchema = reviewSchema(packet.gates, candidate.criteria);
+  const instructions = evaluatorInstructions(candidate);
   // Shape history after the view lists its evidence, measured against the
   // exact prompt text the adapter will send.
   let fitted = null;
@@ -293,7 +301,7 @@ async function commands(core, state, candidate, configuration, completion, envir
   return { receipts, outcome: receipts.some(item => item.outcome === 'UNAVAILABLE') ? 'UNAVAILABLE'
     : receipts.every(item => item.outcome === 'PASS') ? 'PASS' : 'FAIL' };
 }
-function validateVerdict(verdict, ids, candidate, changes, history, claims, reconsiderClosures = []) {
+export function validateVerdict(verdict, ids, candidate, changes, history, claims, reconsiderClosures = []) {
   requireThat(ids.includes(verdict.gate) && OUTCOMES.includes(verdict.outcome), 'Reviewer returned an unrequested gate or invalid outcome');
   text(verdict.summary, 'Review summary');
   requireThat(verdict.coverage && typeof verdict.coverage.complete === 'boolean'
@@ -301,7 +309,7 @@ function validateVerdict(verdict, ids, candidate, changes, history, claims, reco
   'Review must state coverage and limitations');
   requireThat(Array.isArray(verdict.findings) && Array.isArray(verdict.dispositions), 'Review must include findings and dispositions');
   const paths = new Set(candidate.repositories.flatMap(repo => [...repo.files, ...repo.baseFiles, ...repo.targetFiles].map(file => `${repo.alias}/${file.path}`)));
-  if (['review', 'spec', 'judge', 'reconcile', 'triage'].includes(verdict.gate)) for (const path of ['requirements/spec.md', 'requirements/design.md', 'planning/plan.md', 'planning/issues.md', 'planning/tracker.md', 'planning/scratchpad.md', 'planning/decisions.md']) paths.add(path);
+  if (['review', 'spec', 'judge', 'reconcile', 'triage'].includes(verdict.gate)) for (const path of briefBased(candidate) ? ['requirements/brief.md'] : PLANNING_PATHS) paths.add(path);
   for (const finding of verdict.findings) {
     ['id', 'classId', 'criterion', 'path', 'evidence'].forEach(key => text(finding[key], `Finding ${key}`));
     requireThat(paths.has(finding.path) && typeof finding.blocking === 'boolean', 'Finding must name source in scope');
@@ -328,7 +336,11 @@ function validateVerdict(verdict, ids, candidate, changes, history, claims, reco
     const reconsider = reconsiderClosures.filter(item => item.gate === verdict.gate).map(item => item.id);
     if (reconsider.length) {
       const assessment = verdict.historyAssessment;
-      requireThat(assessment && Array.isArray(assessment.affected) && new Set(assessment.affected).size === assessment.affected.length && assessment.affected.every(id => reconsider.includes(id)), 'Reconsider affected closed findings and justify any carried closures');
+      // Affected IDs may name the reconsidered closures and also findings that
+      // are already required (open prior findings, claimed fixes): evaluators
+      // list those too. Unknown or duplicate IDs are still rejected.
+      const known = new Set([...reconsider, ...required, ...claims.map(claim => claim.findingId)]);
+      requireThat(assessment && Array.isArray(assessment.affected) && new Set(assessment.affected).size === assessment.affected.length && assessment.affected.every(id => known.has(id)), 'Reconsider affected closed findings and justify any carried closures');
       for (const id of assessment.affected) required.add(id);
       if (reconsider.some(id => !assessment.affected.includes(id))) text(assessment.carryForwardReason, 'Unaffected closure applicability justification');
     }
@@ -383,6 +395,9 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
   const role = definitions[0].role;
   requireThat(state.candidate, 'Prepare a candidate first');
   const candidate = await checkCandidate(core.store, core.context, state.candidate, { live: state.phase !== 'INTEGRATED', memo: applicabilityMemo });
+  const brief = briefBased(candidate);
+  requireThat(!brief || !input.gates.some(id => RUBRIC_GATES.includes(id)),
+    `${RUBRIC_GATES.join(', ')} need a specification rubric or planning record; a light run's brief-based candidate is assessed by the consolidated review`);
   const configuration = input.configuration ?? {};
   const replacements = await coverageClaims(core, state, candidate, input.coverageClaims ?? []);
   requireThat(!replacements.length || input.gates.some(id => ['review', 'spec', 'judge'].includes(id)), 'Coverage replacement needs an existing spec or Judge assessment');
@@ -526,8 +541,9 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
   const historyPosition = item => state.results.findIndex(ref => ref.hash === (item.reviewerResult.originalResultHash ?? item.reference.hash));
   history.sort((a, b) => historyPosition(a) - historyPosition(b));
   const support = [];
-  if (input.gates.some(id => ['review', 'triage'].includes(id))) support.push(await core.store.capture('scratchpad.md'), await core.store.capture('decisions.md'));
-  if (input.gates.some(id => ['review', 'reconcile'].includes(id))) {
+  // A brief-based review's sole requirement basis is the brief in requirements/.
+  if (!brief && input.gates.some(id => ['review', 'triage'].includes(id))) support.push(await core.store.capture('scratchpad.md'), await core.store.capture('decisions.md'));
+  if (!brief && input.gates.some(id => ['review', 'reconcile'].includes(id))) {
     support.push(await core.store.capture('plan.md'), await core.store.capture('issues.md'), await core.store.capture('tracker.md'));
   }
   let repair = null;
@@ -546,7 +562,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
     environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment, { retainDiagnostics: true }),
     pattern: input.gates.some(id => ['review', 'pattern'].includes(id)) ? await patternInputs(core.store, core.context, candidate, core.runtime.pythonGuardOptions) : null,
     integrations: definitions[0].at === 'completion' ? state.integrations : null,
-    reviewContract: reviewContract(input.gates), coverageClaims: replacements, repair, claims: input.claims ?? [], requestedHistory: [...(input.history ?? [])].sort((a, b) => a.hash.localeCompare(b.hash)),
+    reviewContract: reviewContract(input.gates, candidate), coverageClaims: replacements, repair, claims: input.claims ?? [], requestedHistory: [...(input.history ?? [])].sort((a, b) => a.hash.localeCompare(b.hash)),
     history: history.map(item => item.reference), historyGaps: missingHistory, reconsiderClosures: reconsiderClosures.filter(item => history.some(entry => entry.reviewerResult.findings?.some(finding => finding.id === item.id && entry.reviewerResult.gate === item.gate))), prior: input.prior ?? null,
     validUntil: configuration.validUntil ?? null };
   if (value.validUntil) requireThat(Number.isFinite(Date.parse(value.validUntil)) && Date.parse(value.validUntil) > Date.now(), 'Invalid external validity window');
@@ -602,7 +618,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
         source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, target: repo.target, metadata: `metadata/${repo.alias}.json`, entries: [...repo.baseFiles, ...repo.files, ...repo.targetFiles].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
         history: [], historyIndex: null, coverageClaims: replacements, repair: value.repair, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
       packet.consumedReferences = [...new Map([...packet.consumedReferences, ...replacements.flatMap(claim => [...claim.supersedes, ...claim.replacements])].map(ref => [ref.hash, ref])).values()];
-      if (input.gates.some(id => ['review', 'reconcile', 'triage'].includes(id))) {
+      if (brief && input.gates.includes('review')) packet.planning = { basis: 'brief', brief: 'requirements/brief.md', authority: state.decisions };
+      else if (input.gates.some(id => ['review', 'reconcile', 'triage'].includes(id))) {
         const documents = Object.fromEntries(await Promise.all(value.support.map(async ref => [ref.path, (await core.store.get(ref)).toString()])));
         const facts = planningFacts((await core.store.get(candidate.requirements['spec.md'])).toString());
         packet.planning = { facts, references: planningReferences(documents, facts), documents, authority: state.decisions };
@@ -633,7 +650,13 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
       ran.environmentCheck = 'pending';
       runner = await core.store.putJson(ran);
       artifacts.push(runner);
-      ran.validation = await validationScope(configuration, candidate, core.runtime.fetchValidationRun);
+      try { ran.validation = await validationScope(configuration, candidate, core.runtime.fetchValidationRun); }
+      catch (error) {
+        error.provenance = ran.provenance = verificationProvenance(ran.receipts, null, error.message);
+        runner = await core.store.putJson(ran); artifacts.push(runner);
+        throw error;
+      }
+      ran.provenance = verificationProvenance(ran.receipts, ran.validation);
       for (const receipt of ran.receipts) artifacts.push(receipt.stdout, receipt.stderr);
       const failures = ran.receipts.filter(item => item.termination).map(item => item.termination.reason);
       try {
@@ -650,7 +673,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
         throw error;
       }
       verdicts = [{ gate: input.gates[0], outcome: ran.outcome,
-        summary: failures.length ? `Actual runner receipts retained: ${failures.join('; ')}` : 'Actual runner receipts retained', findings: [], dispositions: [] }];
+        summary: `${failures.length ? `Actual runner receipts retained: ${failures.join('; ')}` : 'Actual runner receipts retained'}. Provenance: ${ran.provenance.summary}`,
+        provenance: ran.provenance, findings: [], dispositions: [] }];
     } else if (role === 'observation') {
       requireThat(input.gates[0] === 'release' && candidate.scope === 'FEATURE', 'Release observation needs complete-feature scope');
       const observations = [];
@@ -678,7 +702,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
     runner = error.runner ?? runner;
     artifacts.push(...(error.artifacts ?? []));
     if (error.providerFailure) artifacts.push(await core.store.putJson(error.providerFailure));
-    verdicts = input.gates.map(id => ({ gate: id, outcome: error.outcome ?? 'UNAVAILABLE', summary: error.message, findings: [], dispositions: [] }));
+    verdicts = input.gates.map(id => ({ gate: id, outcome: error.outcome ?? 'UNAVAILABLE', summary: error.message, findings: [], dispositions: [],
+      ...(error.provenance ? { provenance: error.provenance } : {}) }));
   }
   const receipt = await core.store.putJson({ contract: CONTRACT, kind: 'execution', runId: state.runId,
     input: prepared.hash, jobId, gates: input.gates, role, evaluator, startedAt, completedAt: new Date().toISOString(), metrics });
@@ -708,6 +733,24 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
   // Results retain their original candidate even if edits occurred during execution.
   requireThat(current.runId === state.runId, 'Active run changed during execution; original outcome retained without entering the replacement run');
   return core.append(current, 'JOB_FINISHED', { jobId, results: refs }, operation);
+}
+
+// Per-claim verification provenance (both rigors): an agent-run command with its
+// receipt, a hosted CI run observed on the exact head, or no checks. A CI scope
+// without observed jobs is "no CI checks", never passing CI.
+export function verificationProvenance(receipts, validation, failure = null) {
+  const agentRun = receipts.map((item, index) => ({ repository: item.repository, command: item.command, args: item.args, purpose: item.purpose,
+    source: item.evaluatedSource, outcome: item.outcome, exitCode: item.exitCode, receipt: { index, stdout: item.stdout, stderr: item.stderr } }));
+  const hostedCi = validation?.kind === 'ci' ? validation.runs.map(run => ({ alias: run.alias, repository: run.repository, run: run.run, attempt: run.attempt,
+    head: run.head, jobs: run.jobs.map(job => ({ name: job.name, status: job.status, conclusion: job.conclusion })) })) : [];
+  const observed = hostedCi.filter(run => run.jobs.length);
+  const tally = jobs => Object.entries(jobs.reduce((counts, job) => ({ ...counts, [job.conclusion ?? job.status]: (counts[job.conclusion ?? job.status] ?? 0) + 1 }), {}))
+    .map(([conclusion, count]) => `${count} ${conclusion}`).join(', ');
+  const agent = agentRun.length ? `agent-run: ${agentRun.length} command${agentRun.length === 1 ? '' : 's'} with receipts (${agentRun.filter(item => item.outcome === 'PASS').length} passed)` : 'agent-run: none';
+  const ci = failure ? `hosted CI: not qualified (${failure})`
+    : observed.length ? `hosted CI on exact head: ${observed.map(run => `${run.repository} run ${run.run} attempt ${run.attempt} at ${run.head}, ${run.jobs.length} jobs (${tally(run.jobs)})`).join('; ')}`
+      : validation?.kind === 'alternative' ? 'no CI checks (local alternative proposed for independent assessment)' : 'no CI checks';
+  return { policy: 'verification-provenance/1', agentRun, hostedCi, none: !agentRun.length && !observed.length, summary: `${agent}; ${ci}` };
 }
 
 export async function coreEvidence(core, state, candidate, id, consumed = [], applicabilityMemo = new Map()) {

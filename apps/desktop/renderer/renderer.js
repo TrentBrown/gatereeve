@@ -15,7 +15,7 @@ const ids = [
   'terminal-panel', 'terminal-resizer', 'terminal-title', 'terminal-shell', 'terminal-status',
   'terminal-hosts', 'terminal-terminate', 'terminal-restart', 'terminal-session-select',
   'source-dialog', 'source-dialog-close', 'source-dialog-list', 'global-alerts', 'state-rail',
-  'milestones', 'phase-context-surface', 'phase-context-kicker', 'phase-context-title',
+  'milestones', 'workflow-dials', 'phase-context-surface', 'phase-context-kicker', 'phase-context-title',
   'phase-context-description', 'phase-context-uses', 'phase-context-produces',
   'slices-surface', 'slices',
   'boundary-surface', 'attempt-select', 'boundary-summary', 'gate-dag',
@@ -1259,10 +1259,13 @@ function renderHistoryList(events) {
   clear(elements['history-list']);
   elements['history-count'].textContent = `${events.length} events`;
   for (const event of [...events].reverse()) {
-    const human = event.payload?.authority;
+    // A delegated decision (independent evaluator PASS under a human's
+    // delegation) is never presented as a human decision.
+    const kind = event.payload?.authority?.kind;
+    const human = kind === 'human-confirmed';
     const button = node('button', { className: 'collection-item', type: 'button' }, [
       node('strong', { text: `#${event.sequence} · ${humanize(event.type)}` }),
-      node('small', { text: `${formatTime(event.recordedAt)} · ${human ? 'Human decision' : 'Core operation'}` }),
+      node('small', { text: `${formatTime(event.recordedAt)} · ${human ? 'Human decision' : kind === 'delegated-evaluator' ? 'Delegated decision (evaluator PASS)' : 'Core operation'}` }),
     ]);
     button.dataset.eventId = event.hash;
     button.dataset.human = String(Boolean(human));

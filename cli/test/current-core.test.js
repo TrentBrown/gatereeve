@@ -1,4 +1,4 @@
-import { database } from '../../plugin-src/shared/resources/protocol/current/workflow-database.js';
+import { database, DATABASE_NAME } from '../../plugin-src/shared/resources/protocol/current/workflow-database.js';
 import assert from 'node:assert/strict';
 import { isolatedTests } from './helpers/isolated-tests.js';
 import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, readdir, realpath, chmod, stat } from 'node:fs/promises';
@@ -276,7 +276,7 @@ test('current adapter resolves canonical parent records and gives actionable old
   assert.equal(status.ok, true); assert.equal(status.data.mode, 'governed'); assert.equal(status.data.current.runId, 'run-one');
   const wrong = await executeCurrentRequest({ operation: 'status', cwd: f.repo, featureHome: f.root });
   assert.equal(wrong.ok, false);
-  await rm(join(f.home, '.gatereeve-current/workflow.sqlite'));
+  await rm(join(f.home, `.gatereeve-current/${DATABASE_NAME}`));
   const old = await executeCurrentRequest({ operation: 'status', cwd: f.repo });
   assert.equal(old.ok, true); assert.equal(old.data.mode, 'current-entry');
   assert.match(old.data.blockers[0].message, /not replayed/);
@@ -490,15 +490,18 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'can
   const checkCalls = [];
   const ciFailure = Object.assign(new Error('Reported CI failed'), { code: 1, stdout: 'unit tests\tfail\n', stderr: '' });
   const writes = [];
+  let body = 'Reviewed fixture change.';
   f.core.runtime.gh = async (root, args) => {
     const action = args[1];
+    // Review summary publication (R9) writes only the PR description.
+    if (action === 'edit') { body = args[args.indexOf('--body') + 1]; return ''; }
     if (action === 'view' && drift === 'candidate-before-write' && writes.includes('checks') && !writes.includes('replaced')) {
       writes.push('replaced');
       await f.request('candidate.prepare', { repositories: [{ alias: 'app', base, head, target }], scope: 'SLICE', criteria: ['R1'] }, 'replacement-before-merge');
     }
     if (action === 'view') return JSON.stringify({ number: 12, url: 'https://github.com/fixture/project/pull/12', state,
       headRefName: 'topic', baseRefName: ['target-after-checks', 'fallback-drift', 'fallback-empty-drift'].includes(drift) && writes.includes('checks') ? 'production' : 'main', headRefOid: drift === true && state === 'OPEN' ? '0'.repeat(40) : head,
-      baseRefOid: target, isDraft, mergeCommit: state === 'MERGED' ? { oid: head } : null });
+      baseRefOid: target, isDraft, body, mergeCommit: state === 'MERGED' ? { oid: head } : null });
     writes.push(action);
     if (action === 'reopen') state = 'OPEN';
     if (action === 'close') state = 'CLOSED';
@@ -532,6 +535,7 @@ for (const drift of [false, true, 'target-after-checks', 'advanced-target', 'can
   await reviewAll(f);
   const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
   const subject = (await f.request('status')).candidate.hash;
+  await f.request('review.publish', { repository: 'app', number: 12 }, 'publish-review');
   await f.request('human.decide', { kind: 'authorize-merge', subject, action, authority: { ...human, instruction: 'Merge this exact reviewed PR to main.' }, reason: 'Exact action approved', consequences: 'Integrate reviewed change' }, 'merge-authority');
   if (drift === 'fallback-fail-closed' || drift === 'fallback-fail-draft') {
     await assert.rejects(f.request('merge.execute', { repository: 'app', number: 12 }, 'merge'), error => error === ciFailure);
@@ -1103,7 +1107,7 @@ test('CI validates a retained current journal and accepts optional untracked evi
   const { validateLocalRecord } = await import('../../ci/validate-local-record.mjs');
   const before = await readFile(join(f.home, 'events.jsonl'));
   assert.equal((await validateLocalRecord(f.home, f.root)).mode, 'current-journal');
-  await rm(join(f.home, '.gatereeve-current/workflow.sqlite'));
+  await rm(join(f.home, `.gatereeve-current/${DATABASE_NAME}`));
   assert.equal((await validateLocalRecord(f.home, f.root)).mode, 'documents-only');
   assert.deepEqual(await readFile(join(f.home, 'events.jsonl')), before);
   await assert.rejects(validateLocalRecord(f.repo, f.root), /canonical feature home/);
@@ -2023,7 +2027,7 @@ test('source admission rejects configured subdirectories and accepts linked work
 for (const shape of ['current-field', 'renamed-field', 'invalid-current-field']) for (const copies of ['primary', 'witness', 'matching', 'conflicting']) test(`public resume preserves unsupported ${copies} activation records with ${shape}`, async t => {
   const f = await fixture(t); await authorize(f);
   await writeFile(join(f.root, '.agentic-workflow.json'), JSON.stringify({ schemaVersion: 1, featureId: 'feature', repositories: { app: { path: 'app', integrationBranch: 'main', featureBaseSha: f.head } } }));
-  await rm(join(f.home,'.gatereeve-current/workflow.sqlite'));
+  await rm(join(f.home,`.gatereeve-current/${DATABASE_NAME}`));
   const primary = join(f.home, '.gatereeve-current/active.json'), witness = join(f.home, '.gatereeve-current/active-witness.json');
   const bytes = JSON.stringify({ contract: 'unsupported/v0', ...(shape === 'current-field' ? { runId: 'run-one' } : shape === 'renamed-field' ? { activeRun: 'legacy-run' } : { runId: { legacy: 'different schema' } }) });
   await writeFile(primary, bytes); await writeFile(witness, copies === 'conflicting' ? bytes+' ' : bytes);
@@ -2206,7 +2210,7 @@ test('retained session-contaminated proof becomes context only and never exports
 for (const current of [false, true]) test(`activation successor schema validation applies only to current contract ${current}`, async t => {
   const f = await fixture(t); await authorize(f);
   const previous = await f.core.store.activationHead();
-  await rm(join(f.home,'.gatereeve-current/workflow.sqlite'));
+  await rm(join(f.home,`.gatereeve-current/${DATABASE_NAME}`));
   await writeFile(join(f.home,'.gatereeve-current/active.json'),previous.bytes);
   const bytes = JSON.stringify({ contract: current ? 'gatereeve/current/5' : 'unsupported/v9', runId: 'unknown-shape', ancestor: 'opaque' });
   for (const dir of ['activations', 'activation-witnesses']) {
@@ -2301,7 +2305,8 @@ async function standingRepository(f) {
   await git(f.repo, ['remote', 'add', 'origin', 'https://github.com/fixture/project.git']);
   await git(f.repo, ['config', `url.${bare}.insteadOf`, 'https://github.com/fixture/project.git']);
   await git(f.repo, ['push', 'origin', 'HEAD:refs/heads/main']);
-  Object.assign(f.context.repositories[0], { integrationBranch: 'main', remote: 'origin' });
+  // Standing grants may name only a distinct integration branch (AC6).
+  Object.assign(f.context.repositories[0], { integrationBranch: 'main', releaseBranch: 'production', remote: 'origin' });
 }
 
 test('standing authority is explicit, run-scoped, visible, revocable and never substitutes for proof', async t => {
@@ -2395,9 +2400,11 @@ for (const mode of ['slice', 'final', 'acceptance-only', 'revoke-during-checks',
   await authorize(f);
   const expiresAt = mode.startsWith('expire-') ? new Date(Date.now()+600000).toISOString() : null;
   const grant = await standingGrant(f, { merge: mode !== 'acceptance-only', expiresAt });
-  const scope = mode === 'slice' ? 'SLICE' : 'FEATURE';
+  // Standing merges are SLICE PRs into the integration branch; a FEATURE PR from a
+  // slice branch to integration is a scope/target mismatch (AC6).
+  const scope = mode === 'final' ? 'FEATURE' : 'SLICE';
   await f.request('candidate.prepare', { repositories: [{ alias: 'app', base, head: f.head, target: base }], scope, criteria: ['R1'] });
-  let remoteState = 'OPEN'; let isDraft = true; const writes = []; let finalRead = false; let revoked = false;
+  let remoteState = 'OPEN'; let isDraft = true; const writes = []; let finalRead = false; let revoked = false; let body = '';
   f.core.runtime.git = async (root, args) => {
     const result = await git(root, args);
     if (mode === 'revoke-during-final-qualification' && finalRead && args[0] === 'ls-remote' && !revoked) {
@@ -2422,9 +2429,10 @@ for (const mode of ['slice', 'final', 'acceptance-only', 'revoke-during-checks',
   // Actual local git remote and integration verification; only GitHub transport is simulated.
   f.core.runtime.gh = async (root, args) => {
     const command = args[1];
+    if (command === 'edit') { body = args[args.indexOf('--body') + 1]; return ''; }
     if (command === 'view' && writes.includes('checks')) finalRead = true;
     if (command === 'view') return JSON.stringify({ number: 12, url: 'https://github.com/fixture/project/pull/12', state: remoteState,
-      headRefName: 'topic', baseRefName: 'main', headRefOid: f.head, baseRefOid: base, isDraft,
+      headRefName: 'topic', baseRefName: 'main', headRefOid: f.head, baseRefOid: base, isDraft, body,
       mergeCommit: remoteState === 'MERGED' ? { oid: f.head } : null });
     writes.push(command);
     if (command === 'ready') isDraft = args.includes('--undo');
@@ -2437,8 +2445,13 @@ for (const mode of ['slice', 'final', 'acceptance-only', 'revoke-during-checks',
     return '';
   };
   await reviewAll(f, { accept: false });
+  if (mode === 'final') {
+    await assert.rejects(f.request('merge.prepare', { repository: 'app', number: 12 }), /Scope does not match target/);
+    assert.deepEqual(writes, []); return;
+  }
   const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
   assert.equal(action.keepClosed, false); // absent config preserves default open drafts
+  assert.equal(action.deliveryTarget, 'integration');
   const acceptance = await f.request('authorization.apply', { grant: grant.event.hash }, 'apply-acceptance');
   assert.equal(acceptance.event.payload.standingGrant, grant.event.hash);
   const repeat = await f.request('authorization.apply', { grant: grant.event.hash }, 'apply-acceptance');
@@ -2450,6 +2463,8 @@ for (const mode of ['slice', 'final', 'acceptance-only', 'revoke-during-checks',
     assert.deepEqual(writes, []); return;
   }
   await assert.rejects(f.request('authorization.apply', { grant: grant.event.hash, action: { ...action, method: 'squash' } }), /outside standing scope/);
+  await assert.rejects(f.request('authorization.apply', { grant: grant.event.hash, action }), /does not carry the current independent review summary/);
+  await f.request('review.publish', { repository: 'app', number: 12 }, 'publish-review');
   await f.request('authorization.apply', { grant: grant.event.hash, action }, 'apply-merge');
   assert.equal((await f.request('milestone.check', { name: 'merge' })).allowed, true);
   if (mode.includes('during-')) {

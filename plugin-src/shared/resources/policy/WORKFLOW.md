@@ -4,6 +4,16 @@ GateReeve preserves a planning backbone and enforces required milestone gates.
 Load `<plugin-root>/resources/PROTOCOL.md` for current operations. The protocol core is authoritative
 for passage; a prose statement cannot replace missing evidence or authorization.
 
+## Run dials
+
+Every run has `rigor` (`full | light`) and `autonomy` (`supervised | delegated`),
+defaulting to `full`/`supervised`; no configuration changes them. When no run
+exists, ask the human "full or light?" before non-trivial work and record the
+answer as the explicit rigor choice. This document describes full rigor. A light
+run follows `<plugin-root>/resources/commands/light-run.md` instead of the planning
+backbone below. SessionStart reports the current dials, phase and blockers; it is
+guidance, not enforcement.
+
 ## Planning backbone
 
 Interview the user on material design decisions, one question at a time where
@@ -59,7 +69,22 @@ scope needs fresh/wider evidence. Generate mechanical records through operations
   exceptions, plus validated retained review packet.
 - Merge: current acceptance and expressly authorized exact source/target action,
   either directly approved or derived from a valid scoped standing merge grant.
-  Respect PR closure and branch-direction policy; never reopen to help a reviewer.
+  Scope is bound to target: slice PRs into the integration branch, and only the
+  final PR from the integration branch into the release branch. A release-branch
+  merge always needs a per-PR human `authorize-merge`, in any rigor; the agent may
+  then execute it through the protected merge. Respect PR closure and
+  branch-direction policy; never reopen to help a reviewer.
+- PR presentation: in both rigors, publish the current independent review summary
+  on the PR with `review.publish` before presenting it for human review or merge
+  authorization. Authorization is refused without it.
+- Merge path: never merge with a shell `gh pr merge` or `gh api` merge call, or
+  `git push` to the integration or release branch. The PreToolUse guard denies the
+  common forms and names the installed entry points (bundled adapter, or the CLI
+  when on `PATH`); it is best-effort, and GitHub branch protection is the real
+  enforcement.
+- External blockers: a hosting rule that refuses an authorized merge (for example
+  a required review the author cannot give) is reported as an external blocker,
+  not a gate failure. Report it to the human; retry after it is resolved.
 - Completion: whole-feature acceptance, actual integration, required finalization
   proof and verified local evidence retention.
 
@@ -88,15 +113,49 @@ execution time, token/cost data, friction, escaped defects and rework honestly;
 unknown metrics are unknown. No benchmark threshold, pilot or extra audit gate is
 required before adopting the current protocol.
 
+On a run that fixes a defect an earlier run or PR let through, record an
+`escaped-defect` note linking the fix to its origin (PROTOCOL.md, Escaped
+defects). When the human names the origin, record it as `human-stated`. Otherwise
+propose likely origins (for example by blaming the changed lines against recent
+runs), ask, and record only the origins the human confirms as `agent-proposed`.
+Never record an unconfirmed proposal, and never present a lack of escaped-defect
+records as evidence that light or delegated work is safe.
+
 ## Standing permission for unattended delivery
 
 Record explicit acceptance-only or acceptance-plus-merge permission through
 `human.decide` (`authorize-standing`) with the scope in PROTOCOL.md. Apply it
 per candidate through `authorization.apply` only after all required gates PASS.
-This can cover slice and final PRs without repeating the same human question.
+It can cover slice PRs into a distinct integration branch without repeating the
+same human question. It never covers the release branch: the final PR needs a
+per-PR human instruction, and with integration equal to release no standing grant
+exists.
 Keep merge permission explicit and deployment separately authorized. Revocation,
 expiry and changed scope invalidate further use. Open drafts remain the default;
 client-specific closed drafts are an explicit repository setting.
+
+## Delegated autonomy
+
+Only the human delegates, naming the run (`run.set-dial` with `runId`, or an
+explicit choice at `run.start`), and only when the release branch is observed as
+protected on GitHub. While delegated, `approve-design` and
+`authorize-implementation` may be recorded under the `delegated-evaluator`
+authority after an independent `planning.review` PASS of the design, the spec
+(after `spec.validate`) or, in a light run, the brief. Such decisions are never
+reported as human-confirmed. `delegation.apply` accepts and authorizes a `SLICE` PR
+into a distinct integration branch when every required gate PASSes and the review
+summary is published; the final `FEATURE` PR into the release branch always needs
+the human. Hand back to supervised and stop for the human on a scope-changing
+amendment, uncertainty (an agent hand-back is always allowed), an external merge
+blocker or lost release-branch protection; GateReeve records the automatic ones.
+
+## Light-run tripwires
+
+Light candidates are classified for migrations/schema, auth/security, secrets,
+public API and data-deletion changes (and repository rules in
+`.gatereeve/tripwires.json`). Under supervision a hit stops for the human, who
+raises rigor to full or records a `stay-light` decision bound to those hits; under
+delegation it raises rigor to full automatically. See PROTOCOL.md (Tripwires).
 
 Execution profiles, reuse, recovery, source/artifact acceptance and safe upgrades
 follow `resources/DELIVERY-EXECUTION.md`. Status observations cannot create proof.

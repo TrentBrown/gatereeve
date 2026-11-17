@@ -1,4 +1,4 @@
-import { basename } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { projectWorkflow } from '../../performance/workflow-projection.js';
 import { observe } from '../../performance/observe.js';
 import { checkIdentity } from './coverage.js';
@@ -10,21 +10,68 @@ import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-w
 import { executionEnvironment, assertEnvironmentCurrent } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
-import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, requireThat, identity,
+import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, DELEGATED_AUTHORITY, startDial, dialChange, automaticDial, requireThat, identity,
   identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval } from './contracts.js';
 import { CurrentStore } from './store.js';
-import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity } from './evidence.js';
+import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity, briefBased } from './evidence.js';
 import { validatePlanning, assertPlanningProof, planningBinding } from './planning.js';
 import { executeGates, reviewContract, coreEvidence } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
-import { captureStanding, applyStanding, standingValidity, qualifyingDecisions, requireUnexpired } from './authorization.js';
+import { captureStanding, applyStanding, standingValidity, standingReleaseRefusal, qualifyingDecisions, requireUnexpired } from './authorization.js';
+import { publishReview, requirePublishedReview } from './publication.js';
+import { evaluateTripwires, describeHits, hitKey } from './tripwires.js';
+import { isDelegated, requireProtection, guardDelegatedAction, reviewPlanning, delegatedPlanningAuthority, assertBriefScopeUnchanged, briefScopeChanged, applyDelegation, delegationStatus, briefLines } from './delegation.js';
 
 import { sourcePreparation, ensurePins, releasePins } from './source-retention.js';
 import { cleanupViews, viewStatus } from './source-views.js';
+import { prepareWorkspace, workspaceInstruction, WORKSPACE_PREPARED } from './workspace.js';
 
 const LIVE_PROOFS = Symbol('qualified live proof inputs');
 const RETAINED_CLOSURE = Symbol('retained bytes verified in this observation');
 const admissions = new WeakMap();
+const lightRun = state => state.dials.rigor.value === 'light';
+// A human stay-light decision covers the current tripwire hits only when every
+// current hit was named in it; a new hit needs a new decision (spec AC4).
+function stayLightCovers(state, hits) {
+  const keys = hits.map(hitKey);
+  return currentAuthorityDecisions(state).some(item => item.kind === 'stay-light' && keys.every(key => item.hits?.includes(key)));
+}
+// A light run's sole planning commitment. Its adequacy is the human's
+// confirmation and the independent review's concern; only structure is checked.
+// Headings inside fenced code blocks do not count.
+function assertBrief(bytes) {
+  const headings = briefLines(bytes).map(item => item.title).filter(Boolean);
+  for (const section of ['goal', 'scope', 'findings']) requireThat(headings.some(heading => heading.startsWith(section)), `The brief needs a ${section} section (goal, scope and findings log)`);
+}
+
+// workflow.observe: bounded agent notes. They never grant authority. An
+// escaped-defect note that links a fix to its origin run, candidate or PR
+// records that link only on a human basis (spec AC8): `human-stated` when the
+// human named the origin, `agent-proposed` when the agent proposed it and the
+// human confirmed it. Either way the observed human instruction is the
+// authority. An unconfirmed proposal is refused, so it is never stored.
+const LINK_BASES = ['human-stated', 'agent-proposed'];
+export function workflowObservation(input) {
+  requireThat(input && typeof input === 'object' && !Array.isArray(input), 'Unsupported workflow observation');
+  requireThat(Object.keys(input).every(key => ['kind','strategy','reason','outcome','findingId','fixId','links','limitation','linkBasis','authority'].includes(key)), 'Unsupported workflow observation');
+  requireThat(['strategy','friction','escaped-defect','disposition','artifact'].includes(input.kind), 'Unsupported workflow observation kind');
+  for (const [key,value] of Object.entries(input)) {
+    if (key === 'authority') continue;
+    if (key === 'links') requireThat(Array.isArray(value) && value.length <= 32 && value.every(item => typeof item === 'string' && item.length > 0 && item.length <= 1024), 'Invalid observation links');
+    else requireThat(typeof value === 'string' && value.length > 0 && value.length <= 1024, 'Invalid observation value');
+  }
+  const origin = input.kind === 'escaped-defect' && input.links?.length > 0;
+  requireThat(origin || (input.linkBasis === undefined && input.authority === undefined),
+    'linkBasis and authority belong only to an escaped-defect note that links a fix to its origin');
+  if (!origin) return input;
+  requireThat(input.linkBasis !== undefined, 'An escaped-defect origin link needs linkBasis human-stated (the human named the origin) or agent-proposed (the human confirmed your proposal)');
+  requireThat(LINK_BASES.includes(input.linkBasis), `Unknown escaped-defect link basis; use ${LINK_BASES.join(' or ')}`);
+  requireThat(input.fixId !== undefined, 'An escaped-defect origin link names the fix (fixId) it links to the origin');
+  requireThat(input.authority !== undefined, input.linkBasis === 'agent-proposed'
+    ? 'Agent-proposed origin links are recorded only after the human confirms them: ask the human, then record the confirmation as authority. Unconfirmed proposals are not stored.'
+    : 'A human-stated origin link needs the observed human statement as authority');
+  return { ...input, authority: authority(input.authority) };
+}
 
 export function project(events) {
   requireThat(events[0]?.type === 'STARTED', 'Current run is not initialized');
@@ -32,7 +79,13 @@ export function project(events) {
   const state = { contract: CONTRACT, runId: events[0].runId, featureId: first.featureId,
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
     decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, actions: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
-    sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length };
+    sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length,
+    externalBlockers: [], externalBlocker: null, tripwires: null, tripwireHistory: [], planningReviews: [], handBack: null, delegationBlocked: null,
+    // Workspace configuration observed or written at run start (spec AC6), or later by workspace.configure.
+    workspace: first.workspace ? { ...first.workspace, at: events[0].recordedAt, event: events[0].hash } : null };
+  state.dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial,
+    { ...(first.dials?.[dial] ?? startDial(dial)), at: events[0].recordedAt, event: events[0].hash }]));
+  state.dialHistory = Object.entries(state.dials).map(([dial, value]) => ({ dial, ...value }));
   for (const event of events.slice(1)) {
     const value = event.payload;
     switch (event.type) {
@@ -41,6 +94,8 @@ export function project(events) {
       case 'DECIDED':
         state.pendingDecisions = state.pendingDecisions.filter(item => item.operation.id !== value.requestId);
         state.decisions.push({ ...value, event: event.hash });
+        // A hand-back stops for the human until a human decision is observed.
+        if (value.authority?.kind === 'human-confirmed') state.handBack = null;
         if (value.kind === 'approve-design') state.phase = 'SPECIFYING';
         if (value.kind === 'authorize-implementation') state.phase = 'IMPLEMENTING';
         if (value.kind === 'amend') { state.phase = 'SPECIFYING'; state.specValidation = null; state.ready = false; }
@@ -51,7 +106,12 @@ export function project(events) {
       case 'SOURCE_PREPARING': state.sourcePreparations.push(value); state.sourcePreparationStatus[value.id] = { status: 'preparing', reason: 'Preparation has not published a candidate; owned references are retained for retry.' }; break;
       case 'SOURCE_PREPARATION_FAILED': state.sourcePreparationStatus[value.id] = { status: 'retry-required', reason: value.reason }; break;
       case 'SOURCE_CLEANUP': state.sourceCleanup = value; break;
-      case 'CANDIDATE': if (value.preparationId) state.sourcePreparationStatus[value.preparationId] = { status: 'published', reason: null }; state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.phase = 'IMPLEMENTING'; break;
+      case 'CANDIDATE': if (value.preparationId) state.sourcePreparationStatus[value.preparationId] = { status: 'published', reason: null }; state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.externalBlocker = null; state.tripwires = null; state.phase = 'IMPLEMENTING'; break;
+      // Tripwire classification of a light candidate (spec AC4). Hits are facts;
+      // dispositions are separate decisions or dial events.
+      case 'TRIPWIRES_EVALUATED': { const recorded = { ...value, at: event.recordedAt, event: event.hash }; state.tripwireHistory.push(recorded); if (value.candidate?.hash === state.candidate?.hash) state.tripwires = recorded; break; }
+      // Independent planning review; a delegated planning decision cites a PASS.
+      case 'PLANNING_REVIEWED': state.planningReviews.push({ ...value, at: event.recordedAt, event: event.hash }); break;
       case 'READY': state.ready = true; break;
       case 'TRANSITION_RECORDED': state.transition = value; break;
       case 'ACTION_CLAIMED': state.actions[value.id] = { ...value, running: true }; break;
@@ -63,8 +123,24 @@ export function project(events) {
         if (value.name === 'acceptance') state.phase = 'ACCEPTING';
         if (value.name === 'completion') { state.phase = 'COMPLETE'; state.sourceCleanup = { status: 'pending', errors: [{ reason: 'Completion recorded; owned source reference release has not been reconciled.' }] }; }
         break;
-      case 'INTEGRATED': state.integrated = value; state.integrations[value.repository] = value; state.phase = 'INTEGRATED'; break;
+      case 'INTEGRATED': state.integrated = value; state.integrations[value.repository] = value; state.externalBlocker = null; state.phase = 'INTEGRATED'; break;
+      // A hosting rule refused an authorized merge. Reported, never a gate failure.
+      case 'MERGE_BLOCKED': { const blocked = { ...value, at: event.recordedAt, event: event.hash }; state.externalBlockers.push(blocked); state.externalBlocker = blocked;
+        // Fail closed: a blocker under delegation ends that delegation's authority
+        // even if recording the hand-back itself failed.
+        if (state.dials.autonomy.value === 'delegated') state.delegationBlocked = state.dials.autonomy.event;
+        break; }
       case 'OBSERVATION': break; // Agent memory; never grants authority.
+      case 'WORKSPACE_CONFIGURED': state.workspace = { ...value, at: event.recordedAt, event: event.hash }; break;
+      case 'DIAL_SET': {
+        const recorded = { ...value, at: event.recordedAt, event: event.hash };
+        state.dials[value.dial] = recorded; state.dialHistory.push(recorded);
+        if (value.dial === 'autonomy') { state.handBack = value.value === 'supervised' && value.previous === 'delegated' && value.actor !== 'human' ? recorded : null; state.delegationBlocked = null; }
+        // Raised rigor voids brief-bound authority: full planning starts again
+        // so design approval, spec validation and authorization are reachable.
+        if (value.dial === 'rigor' && value.previous === 'light' && !['DESIGNING', 'SPECIFYING', 'PLANNING'].includes(state.phase)) { state.phase = 'DESIGNING'; state.ready = false; }
+        break;
+      }
       case 'PAUSED': state.paused = true; break;
       case 'RESUMED': state.paused = false; break;
       default: throw new Error(`Unsupported current event: ${event.type}`);
@@ -76,12 +152,31 @@ export function project(events) {
 function enabled(state, at) {
   return GATES.filter(item => item.at === at && (!item.supplemental && (!item.optional || state.optionalGates.includes(item.id))));
 }
+// A delegated implementation authorization counts only while the delegation
+// it cites is current. After any hand-back the supervised run stops until a
+// human records implementation authority again.
+function voidedDelegation(state, decision) {
+  return decision?.authority?.kind === DELEGATED_AUTHORITY
+    && (!isDelegated(state) || state.dials.autonomy.event !== decision.authority.delegation?.event || Boolean(state.delegationBlocked));
+}
 function findDecision(state, kind, subject) {
   if (kind === 'authorize-implementation') {
     const latest = latestImplementation(state);
-    return latest && decisionHas(latest, kind) && latest.subject === subject ? latest : null;
+    return latest && decisionHas(latest, kind) && latest.subject === subject && !voidedDelegation(state, latest) ? latest : null;
   }
   return currentAuthorityDecisions(state).findLast(item => decisionHas(item, kind) && item.subject === subject);
+}
+// run.start input checks that need no state, run before anything is written.
+export function validateStart(input) {
+  requireThat(input && typeof input === 'object' && !Array.isArray(input), 'run.start input must be an object');
+  if (input.runId !== undefined) identifier(input.runId, 'run');
+  requireThat(Array.isArray(input.implementers) && input.implementers.length > 0, 'Identify the implementing contexts');
+  input.implementers.forEach(value => text(value, 'Implementer context'));
+  const optionalGates = input.optionalGates ?? [];
+  requireThat(Array.isArray(optionalGates) && optionalGates.every(id => gate(id).optional), 'Only optional gates may be selected');
+  const dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial, startDial(dial, input[dial])]));
+  workspaceInstruction(input.workspace);
+  return { optionalGates, dials };
 }
 export class CurrentCore {
   constructor(context, store, runtime = {}) {
@@ -107,20 +202,58 @@ export class CurrentCore {
     requireThat(state.featureId === this.context.featureId, 'Current feature identity changed');
     return { state, events };
   }
-  async start(input, operation, replacement = null) {
+  async start(input, operation, replacement = null, { workspace = false, workspaceOperation = 'run.start' } = {}) {
+    const { optionalGates, dials } = validateStart(input);
     identifier(input.runId, 'run');
-    requireThat(Array.isArray(input.implementers) && input.implementers.length > 0, 'Identify the implementing contexts');
-    input.implementers.forEach(value => text(value, 'Implementer context'));
-    const optionalGates = input.optionalGates ?? [];
-    requireThat(Array.isArray(optionalGates) && optionalGates.every(id => gate(id).optional), 'Only optional gates may be selected');
     const active = replacement ? null : await this.store.active();
     requireThat(!active || active.runId === input.runId, 'A current run already exists; resume that run');
-    // No legacy files are read or overwritten. STARTED is durable before activation.
-    await this.store.append(input.runId, 0, 'STARTED', { featureId: this.context.featureId,
-      implementers: [...new Set(input.implementers)], optionalGates: [...new Set(optionalGates)], ...(replacement ? { priorActive: await this.store.put(replacement.bytes) } : {}) }, operation);
+    // Delegating at start names this run (its runId) and needs the release
+    // branch observed as protected, exactly as run.set-dial does (spec AC5).
+    // It is observed before any workspace configuration is written, so the Git
+    // fallback still cannot delegate at start.
+    if (dials.autonomy.value === 'delegated') dials.autonomy = { ...dials.autonomy, runId: input.runId, protection: await requireProtection(this) };
+    // Workspace configuration (spec AC6): decided and possibly written here,
+    // unless the adapter already did so before creating the feature home.
+    const prepared = workspace ? await this.prepareWorkspace(input.workspace, workspaceOperation, { createAllowed: dials.autonomy.value !== 'delegated' }) : null;
+    try {
+      const recorded = prepared?.record ? await this.retainWorkspace(prepared) : null;
+      // No legacy files are read or overwritten. STARTED is durable before activation.
+      await this.store.append(input.runId, 0, 'STARTED', { featureId: this.context.featureId,
+        implementers: [...new Set(input.implementers)], optionalGates: [...new Set(optionalGates)], dials, ...(replacement ? { priorActive: await this.store.put(replacement.bytes) } : {}),
+        ...(recorded ? { workspace: recorded } : {}) }, operation);
+    } catch (error) { await prepared?.rollback?.(); throw error; }
     if (replacement) await this.store.supersedeActive(input.runId, replacement);
     else await this.store.activate(input.runId);
     return this.inspect();
+  }
+  // The adapter's preparation for this request, or (for an embedder holding a
+  // resolved context) a preparation that may not move the feature home.
+  async prepareWorkspace(value, operation, options = {}) {
+    const prepared = this[WORKSPACE_PREPARED] ?? await prepareWorkspace(this.sourceContext, value, this.runtime, { operation, fixedHome: this.store.home, ...options });
+    if (prepared.context !== this.sourceContext) {
+      requireThat(resolve(prepared.context.featureHome) === resolve(this.sourceContext.featureHome), 'The workspace configuration moved the feature home; run the operation again');
+      this.sourceContext = prepared.context;
+      this.contextGuard = workflowContextGuard(prepared.context);
+    }
+    return prepared;
+  }
+  // Retain the written (and any replaced) configuration bytes with the record.
+  async retainWorkspace(prepared) {
+    const record = { ...prepared.record };
+    if (prepared.bytes) requireThat((await this.store.put(prepared.bytes)).hash === record.file.hash, 'Written workspace configuration changed');
+    if (prepared.previousBytes) requireThat((await this.store.put(prepared.previousBytes)).hash === record.previous.file.hash, 'Replaced workspace configuration changed');
+    return record;
+  }
+  // workspace.configure: the standalone write for an existing run without a
+  // configuration, with the same rules as run.start (spec AC6).
+  async configureWorkspace(input, operation) {
+    const prepared = await this.prepareWorkspace(input, 'workspace.configure');
+    const { state } = await this.state();
+    if (!prepared.bytes) return { workspace: prepared.record, written: false, state };
+    try {
+      const record = await this.retainWorkspace(prepared);
+      return { ...await this.append(state, 'WORKSPACE_CONFIGURED', record, operation), workspace: record, written: true };
+    } catch (error) { await prepared.rollback?.(); throw error; }
   }
   async resume(input, operation) {
     let active = null, replacement = null;
@@ -132,11 +265,23 @@ export class CurrentCore {
       requireThat(replacement, 'No retained activation can be recovered');
       active = null;
     }
-    if (!active) await this.start(input, operation, replacement);
+    // Workspace instructions belong to starting a fresh run; never drop one
+    // silently when an existing run or retained activation is resumed.
+    requireThat(input.workspace === undefined || (!active && !replacement), 'Workspace instructions apply only when resumption starts a fresh run; this resumes an existing run or retained activation');
+    // With nothing to resume, resumption starts a fresh run: the run-start
+    // workspace rules apply, including the different-feature check (AC6, NEW4).
+    if (!active) await this.start(input, operation, replacement, { workspace: !replacement, workspaceOperation: 'run.resume-current' });
     else {
       const { state } = await this.state();
       requireThat(!input.runId || input.runId === state.runId, 'Another current run is already active');
       requireThat(identity(input.implementers) === identity(state.implementers), 'Resume must preserve the implementing contexts');
+      // Dial choices apply only when resumption starts a run. Never drop a
+      // differing choice silently on an already active run.
+      for (const dial of Object.keys(DIALS)) {
+        if (input[dial] === undefined || input[dial]?.value === state.dials[dial].value) continue;
+        requireThat(!(dial === 'rigor' && input[dial]?.value === 'light'), LOWERING_REFUSED);
+        requireThat(false, `The active run is already ${dial} ${state.dials[dial].value}; change it with run.set-dial`);
+      }
       await this.reconcileCompletedJobs();
     }
     // Supplied approvals are observations of actual instructions, never inferred
@@ -144,12 +289,13 @@ export class CurrentCore {
     const planning = input.planning ?? {};
     const childId = step => `resume_${identity({ run: input.runId ?? active.runId, step, planning }).slice(7)}`;
     if (planning.design) await this.execute({ operation: 'human.decide', operationId: childId('design'), input: { ...planning.design, kind: 'approve-design' } });
-    if (planning.design || planning.implementation) await this.execute({ operation: 'spec.validate', operationId: childId('spec') });
+    const light = lightRun((await this.state()).state);
+    if (!light && (planning.design || planning.implementation)) await this.execute({ operation: 'spec.validate', operationId: childId('spec') });
     if (planning.implementation) await this.execute({ operation: 'human.decide', operationId: childId('implementation'), input: { ...planning.implementation, kind: 'authorize-implementation' } });
     const transitioned = (await this.state()).state;
     if (!transitioned.transition) {
       const documents = {};
-      for (const name of ['interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md', 'scratchpad.md', 'decisions.md']) {
+      for (const name of ['brief.md', 'interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md', 'scratchpad.md', 'decisions.md']) {
         try { documents[name] = await this.store.fingerprint(name); }
         catch (error) { if (error.code !== 'ENOENT') throw error; }
       }
@@ -165,7 +311,13 @@ export class CurrentCore {
     return this.inspect();
   }
   obligations(state, at) { return enabled(state, at); }
-  async commitments({ capture = true } = {}) {
+  async commitments({ capture = true, state = null } = {}) {
+    // Without a run (for example before resumption) the built-in rigor is full.
+    const run = state ?? (await this.store.active() ? (await this.state()).state : null);
+    if (run && lightRun(run)) {
+      const docs = await requirements(this.store, ['brief.md'], { capture });
+      return { docs, subject: identity({ contract: CONTRACT, featureId: this.context.featureId, rigor: 'light', brief: docs['brief.md'] }) };
+    }
     const docs = await requirements(this.store, ['design.md', 'spec.md', 'plan.md', 'issues.md'], { capture });
     return { docs, subject: identity({ contract: CONTRACT, featureId: this.context.featureId, design: docs['design.md'], spec: docs['spec.md'] }) };
   }
@@ -202,7 +354,7 @@ export class CurrentCore {
               const later = current.events.slice(origin.eventCount);
               const freshValidation = later.some(event => event.type === 'SPEC_VALIDATED'
                 || event.type === 'DECIDED' && event.payload.specValidation);
-              const commitments = await this.commitments({ capture: false });
+              const commitments = await this.commitments({ capture: false, state: current.state });
               retry = current.state.runId === origin.runId && !freshValidation
                 && identity(current.state.specValidation) === identity(origin.specValidation)
                 && ['spec.md', 'design.md'].every(name => commitments.docs[name].hash === documents[name].hash)
@@ -224,15 +376,33 @@ export class CurrentCore {
     let value = decision(input);
     let { state } = await this.state();
     let admission = null;
+    const delegated = value.authority.kind === DELEGATED_AUTHORITY;
+    // Any amendment under delegation changes approved scope: hand back (AC5).
+    const amendHandBack = value.kind === 'amend' && isDelegated(state);
+    // A light brief changed outside its findings log is the light scope-changing
+    // amendment. Whatever authority approves it, delegation hands back (AC5);
+    // the delegated-evaluator path is refused below, a human one is recorded.
+    let scopeHandBack = false;
     if (value.kind === 'approve-design') {
       requireThat(['DESIGNING', 'SPECIFYING', 'PLANNING'].includes(state.phase), 'Use an amendment to change approved delivery requirements');
       const doc = await this.store.capture('design.md');
       requireThat(doc.hash === value.subject, 'Design approval does not match current bytes');
       value.documents = { 'design.md': doc };
       value.interview = await this.store.capture('interview.md');
+    } else if (value.kind === 'authorize-implementation' && lightRun(state)) {
+      // Supervised light: the observed human instruction binds the current brief.
+      // Re-authorizing a changed brief supersedes earlier authority and candidates.
+      requireThat(!['INTEGRATED', 'COMPLETE'].includes(state.phase), 'Implementation authorization is outside the light run phase');
+      const current = await this.commitments({ state });
+      assertBrief(await this.store.get(current.docs['brief.md']));
+      requireThat(value.subject === current.subject, 'Implementation authorization does not match the current brief');
+      value.documents = current.docs;
+      scopeHandBack = !delegated && isDelegated(state) && await briefScopeChanged(this, state, value.documents);
     } else if (value.kind === 'authorize-implementation') {
-      const current = await this.commitments();
-      requireThat(state.phase === 'PLANNING' && state.specValidation, 'Validate specification before implementation authorization');
+      const current = await this.commitments({ state });
+      // After a hand-back the human re-authorizes the unchanged commitments in place.
+      const reauthorize = ['IMPLEMENTING', 'ACCEPTING'].includes(state.phase) && voidedDelegation(state, latestImplementation(state));
+      requireThat((state.phase === 'PLANNING' || reauthorize) && state.specValidation, 'Validate specification before implementation authorization');
       requireThat(currentDesignApproval(state, current.docs['design.md'].hash), 'Design approval is not current');
       requireThat(state.specValidation.spec.hash === current.docs['spec.md'].hash && state.specValidation.design.hash === current.docs['design.md'].hash,
         'Specification validation is not current');
@@ -240,7 +410,8 @@ export class CurrentCore {
       requireThat(value.subject === current.subject, 'Implementation authorization does not match current commitments');
       value.documents = current.docs;
     } else if (value.kind === 'amend') {
-      const current = await this.commitments();
+      requireThat(!lightRun(state), 'A light run has no design or specification to amend; authorize the changed brief with authorize-implementation');
+      const current = await this.commitments({ state });
       requireThat(value.subject === current.subject, 'Amendment must bind the new commitments');
       const previous = latestImplementation(state);
       requireThat(previous && input.previousSubject === previous.subject, 'Amendment must identify the prior authorized commitments');
@@ -255,6 +426,17 @@ export class CurrentCore {
         for (const ref of Object.values(current.docs)) await this.store.currentBytes(ref);
         value.specValidation = { spec: current.docs['spec.md'], design: current.docs['design.md'], proof };
       }
+    } else if (value.kind === 'stay-light') {
+      // Supervised light only: the human keeps light rigor despite these exact
+      // tripwire hits. Under delegation a hit escalates instead (spec AC4).
+      requireThat(lightRun(state), 'Stay-light applies only to a light run; this run is already full rigor');
+      requireThat(!isDelegated(state), 'Under delegated autonomy a tripwire hit escalates the run to full; a stay-light decision is rejected');
+      requireThat(state.candidate, 'Prepare a candidate before deciding on its tripwire hits');
+      const evaluation = await evaluateTripwires(this.context, await checkCandidate(this.store, this.context, state.candidate));
+      requireThat(evaluation.hits.length, 'The current candidate has no tripwire hits; there is nothing to decide');
+      requireThat(value.subject === evaluation.subject, `Stay-light must bind the current tripwire hit set (subject ${evaluation.subject}); new hits need a new decision`);
+      value.hits = [...new Set(evaluation.hits.map(hitKey))].sort();
+      value.candidate = state.candidate;
     } else if (value.kind === 'authorize-standing') {
       value = await captureStanding(this, state, value);
     } else if (value.kind === 'revoke-standing') {
@@ -289,18 +471,33 @@ export class CurrentCore {
       if (decisionHas(value, 'authorize-merge')) {
         requireThat(findDecision(proposed, 'accept', value.subject), 'Human acceptance is required before merge authorization');
         requireThat(value.action && identity(value.action) === identity(await prepareMerge(this, value.action)), 'Merge authorization must bind the prepared action');
+        // R9: the PR presents the current independent review before authorization.
+        await requirePublishedReview(this, value.action);
       }
+    }
+    if (delegated) {
+      // Delegated planning: cite the delegation and a qualifying independent
+      // planning review PASS, then re-observe release-branch protection.
+      value.authority = await delegatedPlanningAuthority(this, state, value);
+      if (value.kind === 'authorize-implementation' && lightRun(state)) await assertBriefScopeUnchanged(this, state, value.documents);
+      await guardDelegatedAction(this, state, `delegated ${value.kind}`);
     }
     if (decisionHas(value, 'authorize-merge')) await checkCandidate(this.store, this.context, state.candidate);
     for (const ref of Object.values(value.documents ?? {})) await this.store.currentBytes(ref);
     if (admission) await this.assertLiveInputs({ ...state, decisions: [...state.decisions, value] }, 'acceptance', admission.liveInputs);
     else await this.assertContext();
     if (value.kind === 'authorize-standing') requireUnexpired(value);
+    if (amendHandBack || scopeHandBack) {
+      const change = automaticDial(state, 'autonomy', 'supervised', 'amend', amendHandBack
+        ? 'A scope-changing amendment was recorded under delegated autonomy; stop for the human'
+        : 'The brief changed outside its findings log and was re-authorized under delegated autonomy; a scope-changing amendment returns the run to supervised');
+      state = (await this.append(state, 'DIAL_SET', change, { id: `handback_${identity({ operation: operation.id }).slice(7, 71)}`, hash: identity(change) })).state;
+    }
     return this.append(state, 'DECIDED', { ...value, requestId: operation.id }, operation);
   }
   async validateSpec(operation) {
     const { state } = await this.state();
-    const current = ['SPECIFYING', 'PLANNING'].includes(state.phase) ? null : await this.commitments();
+    const current = ['SPECIFYING', 'PLANNING'].includes(state.phase) ? null : await this.commitments({ state });
     requireThat(['SPECIFYING', 'PLANNING'].includes(state.phase) || (state.phase !== 'COMPLETE' && findDecision(state, 'authorize-implementation', current.subject)), 'Specification validation is not available without current planning or implementation authority');
     const docs = await requirements(this.store);
     const approval = currentDesignApproval(state, docs['design.md'].hash);
@@ -312,7 +509,7 @@ export class CurrentCore {
   async prepare(input, operation) {
     const { state } = await this.state();
     requireThat((await this.check('implementation')).allowed && state.phase !== 'COMPLETE', 'Current implementation authority is required');
-    const current = await this.commitments();
+    const current = await this.commitments({ state });
     const authorization = findDecision(state, 'authorize-implementation', current.subject);
     const preparation = await sourcePreparation(this.store, this.context, input, state.runId, operation);
     const pendingId = `source_${preparation.id}`;
@@ -322,8 +519,14 @@ export class CurrentCore {
     else preparedState = (await this.append(state, 'SOURCE_PREPARING', preparation, { id: pendingId, hash: identity(preparation) })).state;
     try {
       await ensurePins(this.context, preparation);
-      const candidate = await sourceCandidate(this.store, this.context, input, { event: authorization.event, subject: authorization.subject, documents: authorization.documents }, preparation);
-      return await this.append(preparedState, 'CANDIDATE', { ...candidate.ref, preparationId: preparation.id }, operation);
+      const candidate = await sourceCandidate(this.store, this.context, input, { event: authorization.event, subject: authorization.subject, documents: authorization.documents }, preparation, { light: lightRun(state) });
+      // A light candidate is classified before it is published (spec AC4); an
+      // invalid tripwire configuration fails the preparation, never passes it.
+      const tripwires = lightRun(state) ? await evaluateTripwires(this.context, candidate.value) : null;
+      const published = await this.append(preparedState, 'CANDIDATE', { ...candidate.ref, preparationId: preparation.id }, operation);
+      if (!tripwires) return published;
+      const recorded = await this.recordTripwires(published.state, tripwires, 'candidate.prepare', operation.id);
+      return { ...published, state: recorded.state, tripwires: { hits: tripwires.hits, subject: tripwires.subject, escalated: recorded.escalated } };
     } catch (error) {
       // Retain pins until this operation retries or the run completes. A second
       // process may still be preparing the same operation; never delete its pins.
@@ -477,7 +680,7 @@ export class CurrentCore {
           const supportedBlocker = raised.some(finding =>
             (candidate.criteria.includes(finding.criterion) || finding.criterion === `gate:${report.gate}`)
             && (candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`))
-              || ['requirements/spec.md', 'requirements/design.md', 'planning/plan.md', 'planning/issues.md',
+              || ['requirements/brief.md', 'requirements/spec.md', 'requirements/design.md', 'planning/plan.md', 'planning/issues.md',
                 'planning/tracker.md', 'planning/scratchpad.md', 'planning/decisions.md'].includes(finding.path)));
           const failedScope = scopeOverlaps && failedCriteria.some(row => candidate.criteria.includes(row.id));
           // Code review may legitimately omit criterion rows. Its bound candidate
@@ -509,7 +712,7 @@ export class CurrentCore {
         && receipt.evaluator.provider === inputs.configuration.provider && receipt.evaluator.model === inputs.configuration.model,
       'Retained evaluator qualification differs from the requested proof');
     }
-    requireThat(inputs.reviewContract === reviewContract(inputs.gates), 'Evaluator rules or output contract changed');
+    requireThat(inputs.reviewContract === reviewContract(inputs.gates, candidate), 'Evaluator rules or output contract changed');
     if (inputs.pattern) requireThat(identity(inputs.pattern) === identity(await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false })), 'Pattern policy or trigger inputs changed');
     const evaluated = await checkCandidate(this.store, this.context, inputs.candidate, { live: false, memo });
     for (const artifact of result.artifacts ?? []) await this.store.get(artifact);
@@ -594,7 +797,7 @@ export class CurrentCore {
         catch (error) { if (error.code !== 'ENOENT') throw error; support.push({ path, missing: true }); }
       }
       const validators = ['reconcile', 'triage'].includes(gateId) ? [await planningBinding()] : [];
-      return identity({ validators, configuration: input.configuration, dependencies, support, rule: reviewContract([gateId]),
+      return identity({ validators, configuration: input.configuration, dependencies, support, rule: reviewContract([gateId], candidate),
         pattern: ['review', 'pattern'].includes(gateId) ? await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false, allowMissing: true }) : null,
         externalValidity: !input.validUntil || Date.now() <= Date.parse(input.validUntil),
         integrations: gate(gateId).at === 'completion' ? state.integrations : null,
@@ -611,7 +814,7 @@ export class CurrentCore {
     // freshly read once per final guard, never reused from earlier qualification.
     const environments = new Map(), retained = new Set(), patterns = new Map(), deadlines = [];
     await this.store.closure([state.decisions, state.specValidation], retained);
-    if (state.specValidation) await assertPlanningProof(await this.store.json(state.specValidation.proof));
+    if (state.specValidation && !lightRun(state)) await assertPlanningProof(await this.store.json(state.specValidation.proof));
     for (const { ref, candidate } of admission.proofs.values()) {
       await this.store.closure(ref, retained);
       const { result } = await this.recordedResult(ref, state);
@@ -647,7 +850,7 @@ export class CurrentCore {
         if (waiver.waiverBasis) await this.store.get(waiver.waiverBasis.evidence);
       }
     }
-    requireThat(identity((await this.commitments({ capture: false })).docs) === liveInputs.commitments,
+    requireThat(identity((await this.commitments({ capture: false, state })).docs) === liveInputs.commitments,
       'Commitment inputs changed during milestone validation');
     if (name !== 'implementation') await checkCandidate(this.store, this.context, state.candidate, { live: name !== 'completion' });
     await this.assertContext();
@@ -679,11 +882,12 @@ export class CurrentCore {
     let current;
     try {
       await this.assertContext();
-      current = await this.commitments({ capture: false });
+      current = await this.commitments({ capture: false, state });
       if (!findDecision(state, 'authorize-implementation', current.subject)) missing.push('current implementation authorization');
-      if (!state.specValidation || state.specValidation.spec.hash !== current.docs['spec.md'].hash
-        || state.specValidation.design.hash !== current.docs['design.md'].hash) missing.push('current specification validation');
-      if (state.specValidation) {
+      // A light run's brief-bound authorization needs no specification validation.
+      if (!lightRun(state) && (!state.specValidation || state.specValidation.spec.hash !== current.docs['spec.md'].hash
+        || state.specValidation.design.hash !== current.docs['design.md'].hash)) missing.push('current specification validation');
+      if (state.specValidation && !lightRun(state)) {
         try { await assertPlanningProof(await this.store.json(state.specValidation.proof)); }
         catch { missing.push('current trusted specification validator proof'); }
       }
@@ -704,6 +908,18 @@ export class CurrentCore {
         'Candidate implementation authorization was superseded');
     } catch (error) { missing.push(error.message); }
     if (name !== 'completion' && !state.ready) missing.push('candidate readiness declaration');
+    // Light runs: tripwires are evaluated again at acceptance (and every later
+    // milestone) from the pinned source, never from a recorded claim.
+    let tripwires = null;
+    if (candidate && lightRun(state)) {
+      try {
+        const key = `tripwires:${state.candidate.hash}`;
+        if (!memo.has(key)) memo.set(key, evaluateTripwires(this.context, candidate));
+        tripwires = await memo.get(key);
+        if (tripwires.hits.length && isDelegated(state)) missing.push(`tripwire: ${describeHits(tripwires.hits)}; under delegated autonomy a hit escalates the run to full rigor`);
+        else if (tripwires.hits.length && !stayLightCovers(state, tripwires.hits)) missing.push(`tripwire: ${describeHits(tripwires.hits)}; escalate to full (run.set-dial rigor full) or record a human stay-light decision bound to these hits (subject ${tripwires.subject})`);
+      } catch (error) { missing.push(`tripwire evaluation unavailable: ${error.message}`); }
+    }
     const outcomes = [];
     const selectedSupplemental = new Set([...Object.values(state.jobs).flatMap(job => job.gates ?? []), ...state.decisions.flatMap(item => item.gates ?? [])]);
     const definitions = [...enabled(state, 'acceptance'), ...(name === 'completion' ? enabled(state, 'completion') : []),
@@ -736,7 +952,7 @@ export class CurrentCore {
       }
       const satisfied = accepted?.outcome === 'PASS' || waiver;
       if (!satisfied && !definition.supplemental) missing.push(`${definition.id}: ${accepted?.outcome ?? error ?? 'missing evidence'}`);
-      outcomes.push({ id: definition.id, required: !definition.supplemental, result: acceptedRef, reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied), ...(definition.role === 'core' ? { administrative: accepted } : {}) });
+      outcomes.push({ id: definition.id, required: !definition.supplemental, result: acceptedRef, reason: accepted?.summary ?? error, outcome: accepted?.outcome ?? 'UNAVAILABLE', exception: waiver ?? null, satisfied: Boolean(satisfied), ...(definition.role === 'core' ? { administrative: accepted } : {}), ...(accepted?.provenance ? { provenance: accepted.provenance } : {}) });
     }
     if (candidate && outcomes.some(item => item.id === 'verification' && item.outcome === 'PASS')) {
       try { await this.verificationCoverage(candidate, state, memo); } catch (error) { missing.push(error.message); }
@@ -744,14 +960,14 @@ export class CurrentCore {
     if (['merge', 'completion'].includes(name)) {
       const acceptances = await qualifyingDecisions(this, state, 'accept', state.candidate?.hash, candidate);
       if (!acceptances.length) missing.push('current human acceptance');
-      if (acceptances.length && acceptances.every(item => item.standingGrant)
-        && outcomes.some(item => item.required !== false && item.outcome !== 'PASS')) missing.push('standing acceptance requires every required gate to PASS');
+      if (acceptances.length && acceptances.every(item => item.standingGrant || item.delegation)
+        && outcomes.some(item => item.required !== false && item.outcome !== 'PASS')) missing.push('standing or delegated acceptance requires every required gate to PASS');
     }
     if (name === 'merge') {
       const authorizations = await qualifyingDecisions(this, state, 'authorize-merge', state.candidate?.hash, candidate);
       if (!authorizations.length) missing.push('explicit merge authorization');
-      if (authorizations.length && authorizations.every(item => item.standingGrant)
-        && outcomes.some(item => item.required !== false && item.outcome !== 'PASS')) missing.push('standing merge requires every required gate to PASS');
+      if (authorizations.length && authorizations.every(item => item.standingGrant || item.delegation)
+        && outcomes.some(item => item.required !== false && item.outcome !== 'PASS')) missing.push('standing or delegated merge requires every required gate to PASS');
     }
     if (name === 'completion') {
       if (candidate?.scope !== 'FEATURE') missing.push('complete-feature review scope');
@@ -767,12 +983,15 @@ export class CurrentCore {
     // Proof/remote qualification may take time without changing the journal.
     // Re-read mutable inputs after it, and again at the actual passage write.
     if (current && candidate) try { await this.assertLiveInputs(state, name, liveInputs); } catch (error) { missing.push(error.message); }
-    return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, candidate: state.candidate, outcomes, liveInputs };
+    return { name, runId: state.runId, eventCount: state.eventCount, allowed: missing.length === 0, missing, candidate: state.candidate, outcomes, liveInputs,
+      ...(tripwires ? { tripwires: { hits: tripwires.hits, subject: tripwires.subject, skipped: tripwires.skipped, coveredByStayLight: Boolean(tripwires.hits.length && stayLightCovers(state, tripwires.hits)) } } : {}) };
   }
   async pass(name, operation) {
     const prior = (await this.state()).state;
     if (name === 'completion' && prior.phase === 'COMPLETE') { requireThat((await this.check(name)).allowed, 'Recorded completion evidence is unavailable'); await this.cleanupSource(); return { state: (await this.state()).state, historical: true }; }
     requireThat(name !== 'merge', 'Merge must execute through a protected action adapter');
+    // Delegated light: a hit found at acceptance escalates before the check.
+    if (name === 'acceptance') await this.escalateOnTripwire('acceptance');
     const check = await this.check(name);
     requireThat(check.allowed, 'Milestone is blocked', check);
     const { state } = await this.state();
@@ -816,7 +1035,7 @@ export class CurrentCore {
   async inspect() {
     const { state } = await this.state();
     let commitments = null;
-    try { commitments = await this.commitments({ capture: false }); } catch { /* Missing docs are reported by milestone checks. */ }
+    try { commitments = await this.commitments({ capture: false, state }); } catch { /* Missing docs are reported by milestone checks. */ }
     const memo = new Map();
     let candidate = null, candidateUnavailable = false;
     if (state.candidate && state.decisions.some(item => item.kind === 'authorize-standing')) {
@@ -825,6 +1044,7 @@ export class CurrentCore {
     }
     const standingAuthorizations = await Promise.all(state.decisions.filter(item => item.kind === 'authorize-standing').map(async grant => ({
       grant: grant.event, scope: grant.scope, subject: grant.subject, authority: grant.authority,
+      namesReleaseBranch: Boolean(standingReleaseRefusal(this, grant)),
       applications: state.decisions.filter(item => item.standingGrant === grant.event).map(item => ({
         event: item.event, subject: item.subject, actions: ['accept', ...(item.actions ?? [])], action: item.action ?? null,
       })),
@@ -832,7 +1052,7 @@ export class CurrentCore {
         : candidateUnavailable ? { allowed: false, reason: 'Current candidate evidence is unavailable or invalid' }
           : await standingValidity(this, state, grant, candidate, null, { allowIntegratedTargets: true })),
     })));
-    return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.supplemental && (!item.optional || state.optionalGates.includes(item.id))),
+    return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, delegation: delegationStatus(this, state), historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.supplemental && (!item.optional || state.optionalGates.includes(item.id))),
       enforcement: ENFORCEMENT, milestones: await Promise.all(MILESTONES.map(name => this.check(name, null, memo))) };
   }
   async coverageStatus() {
@@ -850,8 +1070,9 @@ export class CurrentCore {
     }
     return { candidate: state.candidate, criteria: candidate.criteria.map(id => {
       const rows = [...assessments.values()].map(item => ({ reference: item.reference, row: item.result.criteria?.find(row => row.id === id) }));
+      // A brief-based candidate has only the consolidated review; spec is refused.
       const outcome = rows.some(item => item.row?.outcome === 'FAIL') ? 'FAIL'
-        : rows.length === 2 && rows.every(item => item.row?.outcome === 'PASS') ? 'PASS' : 'NOT YET';
+        : rows.length === (briefBased(candidate) ? 1 : 2) && rows.every(item => item.row?.outcome === 'PASS') ? 'PASS' : 'NOT YET';
       return { id, outcome, evidence: rows.filter(item => item.row).map(item => ({ result: item.reference, evidence: item.row.evidence })) };
     }), note: 'Derived from applicable independent assessments. This observation creates no gate proof or passage.' };
   }
@@ -885,6 +1106,35 @@ export class CurrentCore {
       state = recorded.state;
     }
   }
+  async setDial(input, operation) {
+    const { state } = await this.state();
+    requireThat(state.phase !== 'COMPLETE', 'Run dials cannot change after completion');
+    const change = dialChange(state, input);
+    if (change.dial === 'autonomy' && change.value === 'delegated') change.protection = await requireProtection(this);
+    return this.append(state, 'DIAL_SET', change, operation);
+  }
+  // Classify the current light candidate. Under delegation a hit raises rigor to
+  // full automatically (recorded, never a lowering). Returns true when escalated.
+  async recordTripwires(state, evaluation, stage, operationId) {
+    let current = state;
+    const payload = { candidate: state.candidate, stage, ...evaluation };
+    const recorded = state.tripwires;
+    if (!(recorded && recorded.candidate.hash === state.candidate.hash && identity(recorded.hits) === identity(evaluation.hits)
+      && identity(recorded.configurations) === identity(evaluation.configurations))) {
+      current = (await this.append(current, 'TRIPWIRES_EVALUATED', payload, { id: `tripwires_${identity({ operationId, stage }).slice(7, 71)}`, hash: identity(payload) })).state;
+    }
+    if (!evaluation.hits.length || !isDelegated(current) || !lightRun(current)) return { state: current, escalated: false };
+    const change = automaticDial(current, 'rigor', 'full', 'tripwire', `Tripwire escalation under delegated autonomy: ${describeHits(evaluation.hits)}`, { tripwires: evaluation.subject });
+    current = (await this.append(current, 'DIAL_SET', change, { id: `escalate_${identity({ operationId, stage }).slice(7, 71)}`, hash: identity(change) })).state;
+    return { state: current, escalated: true };
+  }
+  async escalateOnTripwire(label) {
+    const { state } = await this.state();
+    if (!lightRun(state) || !isDelegated(state) || !state.candidate) return false;
+    const evaluation = await evaluateTripwires(this.context, await this.store.json(state.candidate));
+    if (!evaluation.hits.length) return false;
+    return (await this.recordTripwires(state, evaluation, label, `${label.replace(/[^a-zA-Z0-9_-]/gu, '-')}_${randomUUID()}`)).escalated;
+  }
   async cleanupSource() {
     const { state } = await this.state();
     if (state.phase !== 'COMPLETE' || state.sourceCleanup?.status === 'released') return;
@@ -899,7 +1149,8 @@ export class CurrentCore {
     if (['database.inspect','database.history'].includes(operation)) return this.executeObserved(request);
     const label = operation === 'human.decide' ? request.input?.kind
       : operation === 'milestone.pass' ? `milestone:${request.input?.name}` : operation;
-    const category = operation.startsWith('merge.') || operation.startsWith('integration.') ? 'delivery'
+    const category = operation.startsWith('merge.') || operation.startsWith('integration.') || ['review.publish', 'delegation.apply'].includes(operation) ? 'delivery'
+      : operation === 'planning.review' ? 'review'
       : operation === 'candidate.prepare' ? 'setup' : 'operation';
     const activeRun = (await this.store.active().catch(()=>null))?.runId ?? request.input?.runId;
     return observe({ project: this.context.workspaceRoot, feature: this.context.featureId, workflow: activeRun ? `${this.store.home}:${activeRun}` : undefined,
@@ -931,33 +1182,38 @@ export class CurrentCore {
       }
     }
     switch (request.operation) {
-      case 'run.start': return this.start(input, operation);
+      case 'run.start': return this.start(input, operation, null, { workspace: true });
+      case 'workspace.configure': return this.configureWorkspace(input, operation);
+      case 'run.set-dial': return this.setDial(input, operation);
       case 'status': case 'snapshot': return this.inspect();
       case 'coverage.status': requireThat(!Object.keys(input).length, 'Coverage status accepts no asserted outcomes'); return this.coverageStatus();
       case 'human.decide': return this.decide(input, operation);
       case 'authorization.apply': return applyStanding(this, input, operation);
+      case 'delegation.apply': return applyDelegation(this, input, operation);
+      case 'planning.review': return reviewPlanning(this, input, operation);
       case 'spec.validate': return this.validateSpec(operation);
       case 'candidate.prepare': return this.prepare(input, operation);
       case 'candidate.ready': return this.readiness(operation);
       case 'workflow.observe': {
-        requireThat(input && Object.keys(input).every(key => ['kind','strategy','reason','outcome','findingId','fixId','links','limitation'].includes(key)), 'Unsupported workflow observation');
-        requireThat(['strategy','friction','escaped-defect','disposition','artifact'].includes(input.kind), 'Unsupported workflow observation kind');
-        for (const [key,value] of Object.entries(input)) {
-          if (key === 'links') requireThat(Array.isArray(value) && value.length <= 32 && value.every(item => typeof item === 'string' && item.length <= 1024), 'Invalid observation links');
-          else requireThat(typeof value === 'string' && value.length > 0 && value.length <= 1024, 'Invalid observation value');
-        }
+        const note = workflowObservation(input);
         const { state } = await this.state();
-        return this.append(state, 'OBSERVATION', input, operation);
+        return this.append(state, 'OBSERVATION', note, operation);
       }
       case 'gate.execute': return executeGates(this, input, operation);
       case 'milestone.check': return this.check(input.name);
       case 'milestone.pass': return this.pass(input.name, operation);
       case 'merge.prepare': return prepareMerge(this, input);
+      case 'review.publish': return publishReview(this, input);
       case 'merge.execute': return protectedMerge(this, input, operation);
       case 'delivery.resume':
         try { return await resumeDelivery(this, input, operation); }
-        catch (error) { return { status: 'needs-attention', reason: error.message, nextAction: 'inspect-and-resume' }; }
-      case 'integration.observe': return observeIntegration(this, input, operation);
+        catch (error) {
+          if (error.code === 'EXTERNAL_BLOCKER') return { status: 'external-blocker', reason: error.message, nextAction: 'human', blocker: error.details };
+          return { status: 'needs-attention', reason: error.message, nextAction: 'inspect-and-resume' };
+        }
+      case 'integration.observe':
+        requireThat(input.hostedChecks === undefined, 'Hosted check observations come only from the protected merge');
+        return observeIntegration(this, input, operation);
       case 'run.pause': case 'run.continue': {
         authority(input.authority);
         const { state } = await this.state();

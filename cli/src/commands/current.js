@@ -19,12 +19,25 @@ async function run(options, operation, input = {}, detail = {}) {
   else if (!result.ok) console.error(`${result.error.code}: ${result.error.message}`);
   else if (result.data?.contract && result.data?.featureId && result.data?.milestones) {
     console.log(`${result.data.featureId}: ${result.data.current?.phase ?? result.data.phase ?? 'current run needed'}`);
+    // Both run dials, or the built-in defaults a new run receives when none exists.
+    const dials = result.data.dials, defaults = result.data.dialDefaults ?? { rigor: 'full', autonomy: 'supervised' };
+    for (const dial of ['rigor', 'autonomy']) {
+      console.log(`${dial === 'rigor' ? 'Rigor' : 'Autonomy'}: ${dials ? dials[dial] : `${defaults[dial]} (default for a new run)`}`);
+    }
     for (const milestone of result.data.milestones) {
       console.log(`${milestone.name}: ${milestone.historical ? (milestone.allowed ? 'recorded' : `recorded; ${milestone.missing.join('; ')}`) : milestone.allowed ? 'ready' : milestone.missing.join('; ')}`);
       for (const outcome of milestone.outcomes ?? []) if (outcome.exception) {
         console.log(`  ${outcome.id}: ${outcome.outcome}; accepted exception: ${outcome.exception.reason}; consequences: ${outcome.exception.consequences}`);
       }
     }
+    // Delegation scope and delegated decisions, reported distinctly from human-confirmed ones.
+    const delegation = result.data.delegation ?? result.data.current?.delegation;
+    if (delegation?.active) console.log(`Delegation: active since ${delegation.since}; ${delegation.scope.map(item => `${item.repository}: ${item.delegatedMerges}`).join('; ')}; hands back on ${delegation.handBackTriggers.join(', ')}`);
+    for (const item of delegation?.decisions ?? []) console.log(`Delegated decision ${item.kind}${item.actions.length ? ` + ${item.actions.join(', ')}` : ''} (delegated-evaluator, ${item.basis}): ${item.event}`);
+    const tripwires = result.data.tripwires;
+    if (tripwires?.hits?.length) console.log(`Tripwires: ${tripwires.hits.length} hit(s): ${tripwires.hits.map(hit => `${hit.category} ${hit.repository}/${hit.path}`).join('; ')}${tripwires.coveredByStayLight ? ' (human stay-light decision recorded)' : ''}; subject ${tripwires.subject}`);
+    const verification = result.data.milestones.flatMap(milestone => milestone.outcomes ?? []).find(outcome => outcome.provenance);
+    if (verification) console.log(`Verification provenance: ${verification.provenance.summary}`);
     for (const pending of result.data.pendingDecisions ?? result.data.current?.pendingDecisions ?? []) console.log(`Pending human instruction (${pending.operation.id}): ${pending.decision.reason}; requested continuation has not been authorized.`);
     for (const grant of result.data.standingAuthorizations ?? result.data.current?.standingAuthorizations ?? []) console.log(`Standing authorization ${grant.grant}: ${grant.allowed ? 'active' : grant.reason}; scope: ${JSON.stringify(grant.scope)}`);
     for (const gap of result.data.current?.historyGaps ?? result.data.historyGaps ?? []) console.log(`Historical evidence unavailable: ${gap.resultHash}; fresh proof must replace any required role.`);
@@ -32,12 +45,30 @@ async function run(options, operation, input = {}, detail = {}) {
     const cleanup = result.data.current?.sourceCleanup ?? result.data.sourceCleanup;
     if (cleanup) console.log(`Source retention: ${cleanup.status}; ${cleanup.errors?.map(item => item.reason).join('; ') || 'completed-run pins released; later reuse checks availability'}`);
     for (const view of result.data.current?.temporaryViews ?? result.data.temporaryViews ?? []) console.log(`Review view ${view.id}: ${view.status}`);
+    const workspaceState = result.data.workspace;
+    if (workspaceState?.recorded && ['created', 'replaced'].includes(workspaceState.recorded.status)) console.log(`Workspace configuration ${workspaceState.recorded.status} ${({ 'run.start': 'at run start', 'run.resume-current': 'when resumption started the run' })[workspaceState.recorded.operation] ?? 'by workspace.configure'}: ${workspaceState.recorded.configPath} (feature ${workspaceState.recorded.featureId}; integration and release ${workspaceState.recorded.configuration.repositories.repository.integrationBranch}; excluded locally in ${workspaceState.recorded.exclude.path})`);
+    if (workspaceState?.message) console.log(`Workspace: ${workspaceState.message}`);
     for (const blocker of result.data.blockers ?? []) console.log(blocker.message);
   } else console.log(JSON.stringify(result.data, null, 2));
   if (!result.ok) { const error = new Error(result.error.message); error.reported = true; throw error; }
   return result.data;
 }
 const collect = (value, values) => [...values, value];
+// Workspace instruction options (spec AC6): replacing another feature's
+// configuration, or confirming the run belongs to it, needs the human instruction.
+function workspaceOptions(item) {
+  return item.option('--replace-workspace', 'Replace a configuration naming another feature (needs --instruction and --instruction-context)')
+    .option('--confirm-feature <featureId>', 'Confirm this run belongs to the configured feature although the branch does not name it (needs --instruction and --instruction-context)')
+    .option('--instruction <quote>', 'Observed human instruction for the workspace decision')
+    .option('--instruction-context <text>', 'Proposal/conversation context of that instruction');
+}
+function workspaceInput(options) {
+  if (!options.replaceWorkspace && options.confirmFeature === undefined) return undefined;
+  // Both are passed through when both are given, so the protocol rejects the
+  // contradiction instead of the CLI silently choosing one.
+  return { ...(options.replaceWorkspace ? { replace: true } : {}), ...(options.confirmFeature !== undefined ? { confirmFeature: options.confirmFeature } : {}),
+    authority: { kind: 'human-confirmed', instruction: options.instruction, context: options.instructionContext } };
+}
 export function currentCommands() {
   const status = command('status', 'Inspect current commitments, proof and milestone blockers');
   status.action(options => run(options, 'status'));
@@ -52,13 +83,19 @@ export function currentCommands() {
     .action((kind, id, options) => run(options, 'read', {}, { kind, id: id ?? null }));
   const runCommand = new Command('run').description('Start or resume current work without replaying old protocol state');
   for (const action of ['start', 'resume-current']) {
-    runCommand.addCommand(command(action, 'Preserve documents and establish the current run')
+    const item = command(action, action === 'start' ? 'Establish the current run; in a repository with a GitHub remote and no workspace configuration, write a minimal one'
+      : 'Preserve documents and establish the current run (a fresh run follows the run start workspace rules)')
       .requiredOption('--implementer <context>', 'Implementing context identity', collect, [])
       .option('--planning <file>', 'Observed design and implementation approval records for resumption')
-      .option('--whiteboard', 'Include the optional whiteboard gate')
-      .action(async options => run(options, `run.${action}`, { implementers: options.implementer,
-        optionalGates: options.whiteboard ? ['whiteboard'] : [], ...(options.planning ? { planning: await readJsonFile(options.planning) } : {}) })));
+      .option('--whiteboard', 'Include the optional whiteboard gate');
+    workspaceOptions(item);
+    runCommand.addCommand(item.action(async options => run(options, `run.${action}`, { implementers: options.implementer,
+      optionalGates: options.whiteboard ? ['whiteboard'] : [], ...(options.planning ? { planning: await readJsonFile(options.planning) } : {}),
+      ...(workspaceInput(options) ? { workspace: workspaceInput(options) } : {}) })));
   }
+  const workspace = new Command('workspace').description('Workspace configuration for delivery (.agentic-workflow.json)');
+  workspace.addCommand(workspaceOptions(command('configure', 'For an existing run without one, write the minimal workspace configuration: the GitHub default branch as integration and release, excluded locally'))
+    .action(options => run(options, 'workspace.configure', workspaceInput(options) ?? {})));
   const spec = command('validate-spec', 'Run specification validation against the approved design');
   spec.action(options => run(options, 'spec.validate'));
   const ready = command('ready', 'Declare the prepared candidate ready without launching a reviewer');
@@ -107,7 +144,7 @@ export function currentCommands() {
     ...(options.repair ? { repair: await readJsonFile(options.repair) } : {}),
     ...(options.prior ? { prior: await readJsonFile(options.prior) } : {}) }));
   const decide = command('decide', 'Record one concrete observed human instruction')
-    .argument('<kind>', 'approve-design, authorize-implementation, accept, waive, amend, policy-amend, authorize-merge, authorize-standing, revoke-standing')
+    .argument('<kind>', 'approve-design, authorize-implementation, accept, waive, amend, policy-amend, authorize-merge, authorize-standing, revoke-standing, stay-light')
     .requiredOption('--subject <hash>', 'Exact document, commitment or candidate identity')
     .requiredOption('--instruction <quote>', 'Observed human instruction')
     .requiredOption('--context <text>', 'Proposal/conversation context')
@@ -129,6 +166,26 @@ export function currentCommands() {
     ...(options.scope ? { scope: await readJsonFile(options.scope) } : {}),
     ...(options.waiverBasis ? { waiverBasis: await readJsonFile(options.waiverBasis) } : {}),
     ...(options.previousSubject ? { previousSubject: options.previousSubject } : {}) }));
+  const delegatedDecision = command('decide-delegated', 'Under delegated autonomy, record a planning decision citing the delegation and an independent planning review PASS')
+    .argument('<kind>', 'approve-design or authorize-implementation')
+    .requiredOption('--subject <hash>', 'Exact design or commitment identity the review passed')
+    .requiredOption('--delegation <hash>', 'Current delegation event identity (status delegation.event)')
+    .requiredOption('--evaluation <hash>', 'Planning review event identity with outcome PASS')
+    .requiredOption('--reason <text>', 'Reason for decision')
+    .requiredOption('--consequences <text>', 'Known consequences');
+  delegatedDecision.action((kind, options) => run(options, 'human.decide', { kind, subject: options.subject,
+    authority: { kind: 'delegated-evaluator', delegation: options.delegation, evaluation: options.evaluation },
+    reason: options.reason, consequences: options.consequences }));
+  const planningReview = command('review-planning', 'Run an independent planning review of the design, spec or brief')
+    .argument('<artifact>', 'design, spec or brief')
+    .requiredOption('--provider <name>', 'codex or claude-code')
+    .requiredOption('--model <name>', 'Explicit reviewer model')
+    .option('--reasoning <effort>', 'Reviewer reasoning effort', 'high');
+  planningReview.action((artifact, options) => run(options, 'planning.review', { artifact,
+    configuration: { provider: options.provider, model: options.model, reasoningEffort: options.reasoning } }));
+  const applyDelegation = command('apply-delegation', 'Under delegated autonomy, accept and authorize a fully passing SLICE PR into the integration branch')
+    .requiredOption('--action <file>', 'Exact prepared SLICE merge action')
+    .action(async options => run(options, 'delegation.apply', { action: await readJsonFile(options.action) }));
   const milestone = new Command('milestone').description('Check or record a protected milestone');
   for (const action of ['check', 'pass']) milestone.addCommand(command(action, `${action} a milestone`)
     .argument('<name>', 'implementation, acceptance, merge or completion')
@@ -139,6 +196,10 @@ export function currentCommands() {
     .requiredOption('--source-repository <alias>', 'Pinned repository alias')
     .option('--method <method>', 'merge, squash or rebase', 'merge')
     .action(options => run(options, `merge.${action}`, { repository: options.sourceRepository, number: options.number, method: options.method })));
+  const publish = command('publish-review', 'Publish the current independent review summary into the PR description')
+    .requiredOption('--number <number>', 'PR number', Number)
+    .requiredOption('--source-repository <alias>', 'Pinned repository alias')
+    .action(options => run(options, 'review.publish', { repository: options.sourceRepository, number: options.number }));
   const observe = command('observe-integration', 'Verify reviewed content on configured integration without asserting quality')
     .requiredOption('--source-repository <alias>', 'Pinned repository alias')
     .action(options => run(options, 'integration.observe', { repository: options.sourceRepository }));
@@ -152,5 +213,5 @@ export function currentCommands() {
     .option('--merge <file>', 'Selected repository, PR number and merge method')
     .action(async options => run(options, 'delivery.resume', {
       ...(options.grant ? { grant: options.grant } : {}), ...(options.merge ? { merge: await readJsonFile(options.merge) } : {}) }));
-  return [status, coverage, database, note, read, runCommand, spec, candidate, ready, gate, decide, apply, milestone, merge, observe, delivery];
+  return [status, coverage, database, note, read, runCommand, workspace, spec, candidate, ready, gate, decide, delegatedDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
 }

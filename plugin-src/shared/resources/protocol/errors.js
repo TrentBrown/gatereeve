@@ -27,3 +27,12 @@ export class TransitionRejectedError extends ProtocolError {
     this.name = 'TransitionRejectedError';
   }
 }
+
+// A hosting rule outside GateReeve (for example a required approving review the
+// author cannot give) blocked an authorized merge. This is not a gate failure.
+export class ExternalBlockerError extends ProtocolError {
+  constructor(message, details = null, options = undefined) {
+    super('EXTERNAL_BLOCKER', message, details, options);
+    this.name = 'ExternalBlockerError';
+  }
+}

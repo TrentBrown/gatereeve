@@ -1,16 +1,20 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { randomUUID } from 'node:crypto';
 import { CONTRACT, requireThat, identity, text } from './contracts.js';
 import { checkCandidate } from './evidence.js';
 import { runTrustedPythonGuard } from '../python-guards.js';
-import { qualifyingDecisions, requireUnexpired, configuredGit } from './authorization.js';
+import { ExternalBlockerError, ContractError } from '../errors.js';
+import { resolveEntryPoints, recoveryText } from './entry-point.js';
+import { qualifyingDecisions, requireUnexpired, configuredGit, deliveryTarget, deliveryBranches } from './authorization.js';
+import { requirePublishedReview } from './publication.js';
 
 const exec = promisify(execFile);
 export async function gh(root, args) {
   const { stdout } = await exec('gh', args, { cwd: root, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
   return stdout;
 }
-function remoteName(url) {
+export function remoteName(url) {
   const match = /^(?:git@github\.com:|https:\/\/github\.com\/)([^/]+\/[^/]+?)(?:\.git)?$/u.exec(url.trim());
   requireThat(match, 'Protected merge requires a configured GitHub remote');
   return match[1];
@@ -23,11 +27,16 @@ function emptyCheckSet(error, action, required = false) {
   return error?.code === 1 && error.stdout === '' && typeof error.stderr === 'string'
     && error.stderr.trim() === `no ${required ? 'required ' : ''}checks reported on the '${action.headBranch}' branch`;
 }
+// Returns what was observed so an absent check set is recorded as "no CI
+// checks", never as passing CI.
 export async function waitForHostedChecks(root, action, run = gh) {
   const args = ['pr', 'checks', String(action.number), '--repo', action.ownerRepo];
+  const observed = checks => ({ checks, head: action.head ?? null, summary: checks === 'none'
+    ? 'no CI checks: GitHub reported no hosted checks for this pull request; this is not passing CI'
+    : `${checks === 'required' ? 'required' : 'all reported'} hosted checks completed successfully for this pull request` });
   try {
     await run(root, [...args, '--required', '--watch', '--fail-fast']);
-    return;
+    return observed('required');
   } catch (error) {
     // gh reports no checks before filtering for required checks. Confirm either
     // empty-set diagnostic through an unfiltered query; all other errors block.
@@ -35,15 +44,29 @@ export async function waitForHostedChecks(root, action, run = gh) {
   }
   try {
     await run(root, [...args, '--watch', '--fail-fast']);
+    return observed('reported');
   } catch (error) {
     // Explicitly reported absence is allowed; API/auth failures are not absence.
     // The caller still revalidates gate proof, authority and exact PR identity.
     if (!emptyCheckSet(error, action)) throw error;
   }
+  return observed('none');
+}
+// Delivery has no configuration-free path (spec AC6): an unconfigured workspace
+// names the operation that writes the configuration.
+async function requireDeliveryConfiguration(core, repository) {
+  if (!repository || deliveryBranches(repository).integration) return;
+  const entry = core.runtime.entryPoints ?? await resolveEntryPoints({ env: core.runtime.environment ?? process.env });
+  const cwd = repository.path ?? core.context.workspaceRoot;
+  throw new ContractError('Merge preparation needs a workspace configuration (.agentic-workflow.json) naming this repository\'s integration and release branches; this workspace has none (Git fallback). '
+    + `Write it with workspace.configure (${recoveryText(entry, ['workspace.configure'], { cwd, requests: { 'workspace.configure': { input: {} } } })}): `
+    + 'it observes the GitHub default branch and names it as both integration and release, so only per-PR human merges exist. Without a GitHub remote, write the file by hand (WORKSPACE-CONTEXT.md).',
+  { kind: 'workspace-unconfigured', operation: 'workspace.configure' });
 }
 export async function prepareMerge(core, input) {
   await core.assertContext();
   const { state } = await core.state();
+  await requireDeliveryConfiguration(core, core.context.repositories.find(item => item.alias === input?.repository));
   const runGit = configuredGit(core);
   const candidate = await checkCandidate(core.store, core.context, state.candidate);
   const pin = candidate.repositories.find(item => item.alias === input.repository);
@@ -56,7 +79,9 @@ export async function prepareMerge(core, input) {
   requireThat(pr.number === input.number && pr.state !== 'MERGED', 'Selected PR is already merged or has changed identity');
   const head = (await runGit(repository.path, ['branch', '--show-current'])).trim();
   mergeDirection(head, pr.baseRefName);
-  requireThat(pr.headRefName === head && [repository.integrationBranch, repository.releaseBranch].filter(Boolean).includes(pr.baseRefName), 'PR branches do not match configured delivery');
+  requireThat(pr.headRefName === head, 'PR branches do not match configured delivery: the PR source is not the checked-out delivery branch');
+  // Scope is bound to target (AC6): the final PR's head is the integration branch.
+  const target = deliveryTarget(repository, candidate.scope, head, pr.baseRefName);
   const remoteHead = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${head}`])).split(/\s/u)[0];
   requireThat(remoteHead === pin.head, 'Remote PR source differs from reviewed source');
   const base = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${pr.baseRefName}`])).split(/\s/u)[0];
@@ -66,7 +91,53 @@ export async function prepareMerge(core, input) {
   await core.assertContext();
   return { contract: CONTRACT, kind: 'github-pr', repository: input.repository, number: input.number,
     ownerRepo: name, url: pr.url, headBranch: head, baseBranch: pr.baseRefName, head: pin.head, base,
-    keepClosed: Boolean(repository.keepPullRequestsClosed), method: input.method ?? 'merge' };
+    keepClosed: Boolean(repository.keepPullRequestsClosed), method: input.method ?? 'merge', deliveryTarget: target };
+}
+// Classify a refused hosted merge. Only a PR observed as still unmerged and
+// blocked by a hosting rule is an external blocker; anything else (including a
+// lost response after a completed merge) keeps its original error. The refusal
+// itself must indicate the rule: its message names a review or policy block,
+// or the host reports mergeStateStatus BLOCKED. A pending review decision alone
+// does not: a conflict or other failure on a PR that also awaits review keeps
+// its original error.
+const REVIEW_RULE = /approving review|review(?:s)? (?:is |are )?required|changes requested|review required/iu;
+const POLICY_RULE = /base branch policy|protected branch|repository rule|rule violation|merge(?:s)? (?:is |are )?blocked/iu;
+export async function externalBlocker(run, root, action, error) {
+  let observed;
+  try {
+    observed = JSON.parse(await run(root, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
+      '--json', 'number,state,headRefOid,mergeStateStatus,reviewDecision']));
+  } catch { return null; }
+  if (observed?.number !== action.number || observed.state !== 'OPEN' || observed.headRefOid !== action.head) return null;
+  const message = [error?.stderr, error?.message].filter(item => typeof item === 'string').join('\n').trim().slice(0, 2000);
+  const blocked = observed.mergeStateStatus === 'BLOCKED';
+  const review = REVIEW_RULE.test(message) || (blocked && ['REVIEW_REQUIRED', 'CHANGES_REQUESTED'].includes(observed.reviewDecision));
+  const policy = blocked || POLICY_RULE.test(message);
+  if (!review && !policy) return null;
+  return { blocker: review ? 'required-review' : 'branch-policy', mergeStateStatus: observed.mergeStateStatus ?? null,
+    reviewDecision: observed.reviewDecision ?? null, message };
+}
+async function recordExternalBlocker(core, state, action, blocker, cause) {
+  const payload = { candidate: state.candidate, repository: action.repository, number: action.number, ownerRepo: action.ownerRepo,
+    headBranch: action.headBranch, baseBranch: action.baseBranch, head: action.head, deliveryTarget: action.deliveryTarget ?? null, ...blocker };
+  let recorded = true, handedBack = false, handBackFailed = false;
+  try { await core.append(state, 'MERGE_BLOCKED', payload, { id: `blocked_${randomUUID()}`, hash: identity(payload) }); }
+  catch { recorded = false; }
+  // An external blocker is a delegation hand-back trigger (spec AC5).
+  if (state.dials.autonomy.value === 'delegated') {
+    const { handBack } = await import('./delegation.js');
+    try { handedBack = (await handBack(core, 'external-blocker', `PR #${action.number} is blocked by a hosting rule (${blocker.blocker})`, { number: action.number, repository: action.repository })).handedBack; }
+    catch { handedBack = false; }
+    // Fail closed: a recorded MERGE_BLOCKED already voids this delegation's
+    // authority; the caller is told the hand-back itself is still pending.
+    handBackFailed = !handedBack && await core.state().then(current => current.state.dials.autonomy.value === 'delegated', () => true);
+  }
+  return new ExternalBlockerError(`Merge of PR #${action.number} is blocked by a hosting rule outside GateReeve (${blocker.blocker}). `
+    + 'This is an external blocker, not a gate failure: gate proof and authorization are unchanged. '
+    + (handedBack ? 'Delegation is handed back to supervised: stop for the human. ' : '')
+    + (handBackFailed ? `The delegation hand-back could not be recorded${recorded ? '; the recorded blocker still voids delegated authority' : ' and the blocker was not recorded either'}: stop for the human and do not continue delegated work. ` : '')
+    + `Resolve it on the host (for example, an eligible reviewer approves) and run merge.execute again.${blocker.message ? ` Host said: ${blocker.message}` : ''}`,
+  { kind: 'external-blocker', gateFailure: false, recorded, handedBack, handBackFailed, ...payload }, { cause });
 }
 async function requireCurrentState(core, expected) {
   const { state } = await core.state();
@@ -84,9 +155,17 @@ export async function merge(core, input, operation) {
   const authorization = (await qualifyingDecisions(core, state, 'authorize-merge', state.candidate.hash, candidate))
     .findLast(item => identity(item.action) === identity(action));
   requireThat(authorization, 'Human authorization must name this exact PR, source, target and method');
-  if (authorization.standingGrant) requireThat(initial.outcomes.every(item => item.required === false || item.outcome === 'PASS'), 'Standing merge requires every required gate to PASS');
+  requireThat(!authorization.standingGrant || action.deliveryTarget !== 'release', 'No standing grant authorizes a release-branch merge; a per-PR human authorize-merge is required');
+  requireThat(!authorization.delegation || (action.deliveryTarget === 'integration' && candidate.scope === 'SLICE'), 'Delegation authorizes only SLICE merges into the integration branch; a per-PR human authorize-merge is required');
+  const unattended = Boolean(authorization.standingGrant || authorization.delegation);
+  if (unattended) requireThat(initial.outcomes.every(item => item.required === false || item.outcome === 'PASS'), `${authorization.delegation ? 'Delegated' : 'Standing'} merge requires every required gate to PASS`);
+  // Delegated merges re-observe release-branch protection before any write.
+  const guard = async () => { if (authorization.delegation) await (await import('./delegation.js')).guardDelegatedAction(core, state, 'the delegated merge'); };
+  await guard();
   const repository = core.context.repositories.find(item => item.alias === action.repository);
   const run = core.runtime.gh ?? gh;
+  // The PR must still present the current review summary for this head.
+  await requirePublishedReview(core, action);
   let opened = false;
   let madeReady = false;
   await requireCurrentState(core, state);
@@ -104,10 +183,10 @@ export async function merge(core, input, operation) {
       madeReady = true;
       await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo]);
     }
-    await waitForHostedChecks(repository.path, action, run);
+    const hostedChecks = await waitForHostedChecks(repository.path, action, run);
     await requireCurrentState(core, state);
     const currentProof = await core.check('merge', state);
-    requireThat(currentProof.allowed && (!authorization.standingGrant || currentProof.outcomes.every(item => item.required === false || item.outcome === 'PASS')), 'Gate proof changed while waiting for hosted checks');
+    requireThat(currentProof.allowed && (!unattended || currentProof.outcomes.every(item => item.required === false || item.outcome === 'PASS')), 'Gate proof changed while waiting for hosted checks');
     const latestBase = (await runGit(repository.path, ['ls-remote', '--exit-code', repository.remote ?? 'origin', `refs/heads/${action.baseBranch}`])).split(/\s/u)[0];
     requireThat(latestBase === action.base, 'PR base changed while waiting for hosted checks; refresh review');
     const refreshed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
@@ -120,18 +199,25 @@ export async function merge(core, input, operation) {
     await requireCurrentState(core, state);
     requireThat((await qualifyingDecisions(core, state, 'authorize-merge', state.candidate.hash, candidate))
       .some(item => item.event === authorization.event), 'Merge authorization expired or changed while waiting for hosted checks');
+    await guard();
     await requireCurrentState(core, state);
     await core.assertLiveInputs(state, 'merge', currentProof.liveInputs);
     await requireCurrentState(core, state);
     core.assertLiveDeadlines(currentProof.liveInputs);
     if (authorization.standingGrant) requireUnexpired(state.decisions.find(item => item.event === authorization.standingGrant));
-    await run(repository.path, ['pr', 'merge', String(action.number), '--repo', action.ownerRepo,
-      `--${action.method}`, '--match-head-commit', action.head]);
+    try {
+      await run(repository.path, ['pr', 'merge', String(action.number), '--repo', action.ownerRepo,
+        `--${action.method}`, '--match-head-commit', action.head]);
+    } catch (error) {
+      const blocker = await externalBlocker(run, repository.path, action, error);
+      if (!blocker) throw error;
+      throw await recordExternalBlocker(core, state, action, blocker, error);
+    }
     const observed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo,
       '--json', 'number,state,mergeCommit,url']));
     requireThat(observed.number === action.number && observed.state === 'MERGED' && observed.mergeCommit?.oid, 'Hosted merge outcome is not verified');
     await runGit(repository.path, ['fetch', repository.remote ?? 'origin', action.baseBranch]);
-    return observeIntegration(core, { repository: action.repository, branch: action.baseBranch, hosted: observed }, operation, state);
+    return observeIntegration(core, { repository: action.repository, branch: action.baseBranch, hosted: observed, hostedChecks }, operation, state);
   } finally {
     if (opened) {
       const observed = JSON.parse(await run(repository.path, ['pr', 'view', String(action.number), '--repo', action.ownerRepo, '--json', 'state']));
@@ -177,7 +263,7 @@ export async function observeIntegration(core, input, operation, expectedState =
   requireThat(proof.passed && proof.data?.status === 'verified', 'Reviewed content is not verified on integration', proof.stderr);
   if (input.hosted) requireThat(proof.data.integrationSha === input.hosted.mergeCommit.oid, 'Observed hosted merge differs from integration source');
   const receipt = await core.store.putJson({ contract: CONTRACT, candidate: state.candidate, repository: input.repository,
-    proof, hosted: input.hosted ?? null, observedAt: new Date().toISOString() });
+    proof, hosted: input.hosted ?? null, ...(input.hostedChecks ? { hostedChecks: input.hostedChecks } : {}), observedAt: new Date().toISOString() });
   return core.append(state, 'INTEGRATED', { candidate: state.candidate, repository: input.repository,
-    branch, integrationSha: proof.data.integrationSha, receipt }, operation);
+    branch, integrationSha: proof.data.integrationSha, receipt, ...(input.hostedChecks ? { hostedChecks: input.hostedChecks } : {}) }, operation);
 }

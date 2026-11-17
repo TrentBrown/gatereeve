@@ -30,7 +30,9 @@ await writeFile(
     },
   }, null, 2)}\n`
 );
-await git(worktree, ['init', '-b', 'smoke-topic']);
+// A delivery branch of the configured feature (<featureId>-NN-<description>), so
+// run start accepts the workspace configuration as this feature's.
+await git(worktree, ['init', '-b', `${featureId}-01-smoke`]);
 await git(worktree, ['config', 'user.name', 'Disposable smoke fixture']);
 await git(worktree, ['config', 'user.email', 'fixture@example.test']);
 await git(worktree, ['config', 'commit.gpgsign', 'false']);

@@ -70,7 +70,9 @@ to use a different private cache; an existing unowned directory is never adopted
 
 ```bash
 gatereeve status --json
+gatereeve run start --implementer <context>
 gatereeve run resume-current --implementer <context> --planning approvals.json
+gatereeve workspace configure
 gatereeve validate-spec
 gatereeve candidate --pin app=<base-sha>..<head-sha> --criterion R1 --scope SLICE
 gatereeve ready
@@ -80,7 +82,25 @@ gatereeve evaluate judge --provider claude-code --model opus
 gatereeve milestone check acceptance --json
 gatereeve decide --help
 gatereeve merge prepare --help
+gatereeve publish-review --help
+gatereeve review-planning --help
+gatereeve decide-delegated --help
+gatereeve apply-delegation --help
 ```
+
+Delivery always uses a workspace configuration (`.agentic-workflow.json`).
+`run start` in a repository with a GitHub remote and none writes a minimal one:
+the current branch as the feature and the GitHub default branch (observed through
+`gh api repos/{owner}/{repo}`) as both the integration and the release branch, so
+only per-PR human merges exist. It is added to the repository's local excludes
+(`.git/info/exclude`), never committed, and recorded with the run start. When the
+default branch cannot be observed, or there is no GitHub remote, the run starts
+without it and `status` says why. A configuration naming another feature stops
+`run start`: pass `--confirm-feature <featureId>` (the run belongs to it) or
+`--replace-workspace`, each with the human's `--instruction` and
+`--instruction-context`. For an existing run without a configuration,
+`workspace configure` writes it under the same rules; `merge prepare` names it
+when the configuration is missing.
 
 The planning backbone remains interview, approved design, validated spec,
 plan/issues, and explicit implementation authority. The model chooses work order
@@ -266,8 +286,8 @@ For example, `standing-scope.json` may contain:
 ```json
 {
   "actions": ["accept", "authorize-merge"],
-  "candidateScopes": ["SLICE", "FEATURE"],
-  "repositories": [{"alias": "product", "headPrefix": "tb-example-feature", "baseBranch": "main", "methods": ["merge"]}],
+  "candidateScopes": ["SLICE"],
+  "repositories": [{"alias": "product", "headPrefix": "tb-example-feature", "baseBranch": "tb-example-feature", "methods": ["merge"]}],
   "expiresAt": null
 }
 ```
@@ -277,9 +297,21 @@ standing-scope.json` with the usual `--instruction`, `--context`, `--reason` and
 `--consequences` from the actual user decision. Use `apply-authorization --grant
 <grant-event-hash>` after all required gates PASS. For a permitted merge, supply
 `--action <prepared-action.json>` containing the action returned by `merge prepare`
-(the CLI JSON response's `data`, not its envelope), then use `merge execute`.
+(the CLI JSON response's `data`, not its envelope), publish the current review
+summary with `publish-review --source-repository <alias> --number <n>`, then use
+`merge execute`. `baseBranch` must be a distinct integration branch: a grant naming
+the release branch is rejected, and the final PR into the release branch always
+needs a per-PR human `decide accept --continue-with authorize-merge --action ...`.
 The exact action is retained and rechecked at execution. To revoke, use `decide
 revoke-standing --subject <grant-event-hash>` with the observed instruction.
+
+Under delegated autonomy (a human `run.set-dial` delegation naming the run, after
+the release branch is observed as protected), `review-planning design|spec|brief`
+runs the independent planning review, `decide-delegated` records
+`approve-design`/`authorize-implementation` citing the delegation and that PASS,
+and `apply-delegation --action <prepared-action.json>` accepts and authorizes a
+fully passing `SLICE` PR into the distinct integration branch. Release merges
+still need the per-PR human decision above. See PROTOCOL.md (Delegated autonomy).
 
 For acceptance only, remove `authorize-merge` and `methods`. A null expiry lasts
 only for the current approved feature run; a UTC timestamp limits it further.

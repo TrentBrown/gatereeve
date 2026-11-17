@@ -26,6 +26,8 @@ export async function validationScope(configuration, candidate, fetchRun = fetch
     requireThat(Array.isArray(request.requiredChecks) && request.requiredChecks.length && request.requiredChecks.every(name => typeof name === 'string' && name.trim()), 'Declare required broad CI checks');
     const observed = await fetchRun(request.repository, request.run, request.attempt);
     requireThat(observed.head_sha === repo.head && observed.status === 'completed', 'CI run must complete on the exact candidate');
+    // An empty job set is the absence of CI, never a passing CI scope.
+    requireThat(observed.jobs.length > 0, `CI run ${request.run} reported no CI checks for ${request.alias}; no CI checks is not passing CI. Use an explicit local alternative with agent-run receipts`);
     const jobs = observed.jobs.map(job => ({ id: job.id, name: job.name, status: job.status, conclusion: job.conclusion, startedAt: job.started_at, completedAt: job.completed_at, url: job.html_url }));
     requireThat(request.requiredChecks.every(name => jobs.some(job => job.name === name && job.status === 'completed' && job.conclusion === 'success')), 'Required CI scope is missing, skipped or unsuccessful');
     runs.push({ alias: request.alias, repository: request.repository, run: String(request.run), attempt: String(request.attempt), head: observed.head_sha,

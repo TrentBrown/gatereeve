@@ -2,7 +2,7 @@
 
 `resources/protocol/plugin-adapter.js` is the authoritative native adapter.
 The optional `gatereeve` CLI and desktop read the same current contract,
-`gatereeve/current/6`. Send one JSON request on stdin or via `--request-file`:
+`gatereeve/current/7`. Send one JSON request on stdin or via `--request-file`:
 
 ```json
 {"operation":"status","cwd":"/absolute/workspace"}
@@ -23,17 +23,22 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | --- | --- |
 | `status`, `snapshot`, `next` | Current phase, commitment hashes, obligations, applicability, exceptions and milestone blockers |
 | `read` | Top-level `kind` = artifact/events/model/result; artifact/result `id` must come from status |
-| `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]` |
-| `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals |
+| `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]`, `rigor`/`autonomy` choices `{value, authority?, reason?}` (defaults `full`/`supervised`; every explicit choice needs `authority` or `reason`, and a non-default value needs an observed human `authority`; `delegated` also needs the protected release branch); optional `workspace: {confirmFeature, authority}` or `{replace: true, authority}` (see Workspace configuration). In a repository with a GitHub remote and no workspace configuration it writes a minimal one and records it in `STARTED.workspace` |
+| `workspace.configure` | Optional `{confirmFeature, authority}` or `{replace: true, authority}`. For an existing run without a workspace configuration, write it under the run-start rules and record `WORKSPACE_CONFIGURED`; reports `written: false` when the configuration already names the feature |
+| `run.set-dial` | `dial: rigor|autonomy`, `value`, `actor: human|agent`, `reason`, `authority` (required for `human`, forbidden for `agent`). Raising rigor or returning to supervised is open to either actor. Rigor never falls within a run: to work light, start a new light run on a new topic branch; this run and its evidence stay retained. Asking for `light` on a light run reports that it is already light Delegating (`autonomy: delegated`) is human-only, must name the run (`runId`) and needs the release branch observed as protected (see Delegated autonomy) |
+| `planning.review` | `artifact: design|spec|brief`, `configuration: {provider, model, reasoningEffort?}`; an independent fresh-context review of the planning artifact, recorded as `PLANNING_REVIEWED` with its exact subject. A delegated planning decision cites a PASS |
+| `delegation.apply` | `action`: the exact prepared `SLICE` merge action into the integration branch. Under delegation only: records `accept` + `authorize-merge` with the `delegated-evaluator` authority when every required gate PASSes and the review summary is published |
+| `run.resume-current` | Same run identity; optional `planning.design` and `planning.implementation` observed human decisions. Establishes current authority without interpreting old journals. When nothing is retained to resume (no current run and no earlier activation), it starts a fresh run under the `run.start` workspace rules, including `workspace`; resuming an existing run or activation refuses `workspace` and writes nothing |
 | `human.decide` | See decisions below |
 | `spec.validate` | Run trusted spec lint after the model's semantic review of AC, rubric and boundary feasibility |
-| `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row |
+| `candidate.prepare` | `repositories: [{alias,base,head,target?}]` full commit IDs, `scope: SLICE|FEATURE`, `criteria: ["R1", ...]`; FEATURE requires every rubric row. A light run has no rubric: `criteria` is exactly `["brief"]` for either scope, and its change is classified by the tripwires (result `tripwires`) |
 | `candidate.ready` | Declare the pinned candidate ready; launches nothing |
 | `gate.execute` | `gates: [id]` or `["code","spec"]`, explicit `configuration`, typed `consumed`, bounded `history`, labeled `claims`, optional `prior` for a delta |
 | `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
 | `milestone.pass` | Record an allowed milestone; merge must use its protected action |
-| `merge.prepare` | `repository`, PR `number`, `method`; derive exact source/target action to present for authorization |
-| `merge.execute` | Same action selector; requires current proof, human acceptance and authorization bound to prepared action |
+| `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. Rejects a PR whose candidate scope does not match its target (see Delivery targets). Without a workspace configuration it fails naming `workspace.configure` |
+| `review.publish` | `repository`, PR `number`; write the current independent `review` summary for the candidate head into a delimited section of the PR description. Idempotent; refuses without a current qualifying review result or when the PR head differs from the candidate head |
+| `merge.execute` | Same action selector; requires current proof, human acceptance, authorization bound to the prepared action and the current review summary on the PR. A hosting-rule refusal fails with `EXTERNAL_BLOCKER`, not a gate failure |
 | `integration.observe` | `repository`, optional configured `branch`; fetch and verify actual reviewed-content integration, independent of acceptance |
 | `run.pause`, `run.continue` | Actual `authority` instruction; continuation never follows merely from elapsed time |
 
@@ -42,6 +47,90 @@ convert, overwrite or delete old locks/journals. A resume with missing approvals
 reports those obligations. Supply observed prior instructions for unchanged
 commitments; ask only for genuinely missing decisions. Do not restart an
 unchanged interview or invent provenance.
+
+## Run dials
+
+Every run carries `rigor` (`full | light`) and `autonomy` (`supervised | delegated`),
+recorded in `STARTED` and in each `DIAL_SET` event with value, source
+(`explicit | built-in`), actor, instruction or reason, and time. Defaults are
+`full` and `supervised`. No global, repository or workspace configuration changes
+them. `status` reports current values in `dials` and the defaults in
+`dialDefaults`, and the configured delivery branches in `branches`. With no run,
+ask the human "full or light?" before non-trivial work. Delegated autonomy is a
+human decision naming the run (see Delegated autonomy). `DIAL_SET` events the
+protocol records itself carry `source: automatic`, `actor: gatereeve` and a
+`trigger` (`tripwire` raises rigor; `amend`, `external-blocker` and
+`protection-lost` return autonomy to supervised). A run from an earlier contract is retained unchanged and
+reported as needing `run.resume-current`; the resumed run starts at the defaults
+unless a choice is supplied.
+
+### Light rigor
+
+A light run's sole planning commitment is `brief.md` in the feature home, with
+goal, scope and findings-log sections. Interview, design, spec, plan, issues and
+spec validation are not required. The commitment subject is derived from the
+brief (contract, feature, `rigor: light`, brief hash) and appears in `status`
+`commitments`. Under supervision, a human `authorize-implementation` naming that
+subject is the implementation authority; no `approve-design` or `spec.validate`
+precedes it. It is accepted in any phase before integration. A changed brief no
+longer matches the authorized subject, so implementation, candidates and gates
+stop until the changed brief is authorized again; that decision supersedes earlier
+authority, acceptance and exceptions. `amend` is refused while light.
+
+Raising rigor to full voids the brief-bound authority: the subject becomes the
+full design/spec subject and the phase returns to `DESIGNING`. Backfill interview,
+design, spec, plan and issues, then record `approve-design`, `spec.validate` and a
+new `authorize-implementation` and prepare a rubric candidate before acceptance.
+Light candidates and their evidence do not qualify for the full candidate.
+
+Light acceptance requires the same gates as full (context, review, verification
+and packet; retention and the other completion obligations at completion).
+The step-by-step light procedure is `resources/commands/light-run.md`; skills route
+light runs to it instead of the full planning procedures.
+
+### Tripwires
+
+Light candidates are classified by deterministic tripwires at `candidate.prepare`
+and again at every milestone check from acceptance on. Path rules match every
+changed path between the candidate's base and head (added, modified or deleted);
+content rules match lines the head adds (binary files and files over 1 MiB are
+classified by path only and listed as `skipped`). Built-in categories:
+
+| Category | Built-in rules (examples) |
+| --- | --- |
+| `migrations-schema` | `migrations/`, `migrate/`, `alembic/` paths; `*.sql`, `*.prisma`, `schema.rb`; `schema/` directories; added `CREATE/ALTER/DROP TABLE...`, `ADD COLUMN`, migration calls |
+| `auth-security` | path segments such as `auth`, `security`, `permissions`, `oauth`, `login`, `password`, `credentials`, `crypto`, `rbac`, `acl`, `jwt`, `session`; any change to `.gatereeve/tripwires.json` |
+| `secrets` | `.env*`, key material (`*.pem`, `*.key`, `*.p12`, ...), `id_rsa`-style keys, `credentials*`/`secrets*`, `.npmrc`/`.netrc`; added private-key blocks, AWS, GitHub, Slack and provider API keys, quoted secret assignments |
+| `public-api` | OpenAPI/Swagger documents, `*.proto`, GraphQL schemas, `*.avsc`, `*.schema.json`, `*.d.ts` |
+| `data-deletion` | added `DROP TABLE/COLUMN`, `TRUNCATE`, `DELETE FROM`, bulk-delete calls, recursive removal |
+
+A repository extends or narrows them in `.gatereeve/tripwires.json` (modeled on
+pattern-review triggers), read from the candidate's pinned **base** commit so a
+change cannot weaken its own tripwires:
+
+```json
+{"schemaVersion":1,"categories":{"public-api":{"paths":["plugin-src/contracts/**"],"content":[{"pattern":"export\\s+interface","ignoreCase":true}]},"secrets":{"excludePaths":["test/fixtures/**"]},"auth-security":{"builtIn":false}}}
+```
+
+`paths`/`excludePaths` are globs (`**`, `*`, `?`, `{a,b}`; no `/` matches the file
+name anywhere), `content` entries are regular expressions, and `builtIn: false`
+drops a category's built-in patterns (never the configuration-file rule). An
+invalid configuration makes classification unavailable, which blocks acceptance.
+Hits record category, rule, repository, path and line, never matched text; they
+are recorded in `TRIPWIRES_EVALUATED` and shown in `status` `tripwires`.
+
+- **Supervised:** a hit blocks acceptance until the human escalates to full
+  (`run.set-dial rigor full`) or records `stay-light` with `subject` equal to the
+  hit-set identity in `status` `tripwires.subject`. That decision covers only the
+  hits it names: a new hit needs a new decision, and a re-authorized brief voids it.
+  A hit is identified by category, rule, repository and path, not by line or
+  content, so further risky content added to an already-covered path under the
+  same rule stays covered (deliberate: fix iterations on the same hits do not
+  re-ask). Re-check such paths before relying on a stay-light decision.
+- **Delegated:** a hit raises rigor to full automatically (recorded `DIAL_SET`,
+  `trigger: tripwire`), at preparation or when acceptance or `delegation.apply` is
+  attempted. Any `stay-light` decision is rejected.
+- **Full rigor:** not classified. A run without hits is unaffected.
 
 ## Decisions
 
@@ -54,7 +143,17 @@ captured design, `reason`, `consequences` and:
 
 Available message/conversation IDs are optional. This is a cooperative record,
 not authentication. Kinds: `approve-design`, `authorize-implementation`, `accept`,
-`waive`, `amend`, `policy-amend`, `authorize-merge`.
+`waive`, `amend`, `policy-amend`, `authorize-merge`, `authorize-standing`,
+`revoke-standing`, `stay-light` (see Tripwires).
+
+Authority kinds: `human-confirmed` (an observed human instruction) and, only under
+delegated autonomy, `delegated-evaluator` (see Delegated autonomy). Status,
+snapshot and decision records always carry the kind; a delegated decision is never
+reported or counted as human-confirmed.
+
+`authorize-merge` (alone or as an `accept`/`waive` continuation) is refused
+unless the PR description already carries the current review summary from
+`review.publish` for the prepared head (see Delivery targets).
 
 Waivers name `gates` and preserve FAIL/UNAVAILABLE. They default to this candidate.
 Optional `findings` narrows an exception to named current blocking findings; it
@@ -81,9 +180,71 @@ without new implementation authority. Failed validation remains retained.
 Python remains a leaf provider for Git integration/context checks; it does not
 control semantic planning acceptance.
 
+## Delegated autonomy
+
+A human delegates one named run: `run.set-dial` with `dial: autonomy`,
+`value: delegated`, `actor: human`, the observed instruction and `runId`, or an
+explicit `autonomy` choice at `run.start`. Delegation is rejected unless every
+configured repository's release branch is observed as protected through the
+non-admin branches API (`GET repos/{owner}/{repo}/branches/{release}`, field
+`protected`). The observations are recorded on the `DIAL_SET` (`protection`). The
+Git fallback names no release branch, so it cannot delegate. There is no
+configured or standing delegation for runs that do not exist yet. Status
+`delegation` reports the event, instruction, scope, hand-back triggers, hand-backs
+and delegated decisions.
+
+**Planning.** `planning.review` runs an independent fresh-context review of
+`design` (design.md, approve-design), `spec` (spec, design, plan and issues,
+authorize-implementation) or `brief` (brief.md, light authorize-implementation).
+While delegated, `human.decide` for `approve-design` or `authorize-implementation`
+may carry `{"kind":"delegated-evaluator","delegation":"<status delegation.event>","evaluation":"<PLANNING_REVIEWED event>"}`
+instead of a human instruction. It is accepted only when the cited review is a PASS
+of that artifact for exactly the decision's subject, no later review of that
+subject supersedes it, the reviewer is not an implementing context and release
+protection is re-observed. The recorded authority cites the delegation instruction
+and the evaluator result. Full runs still need `spec.validate`. Other kinds, and
+any delegated authority while supervised, are rejected. In a run raised from light
+rigor (for example by a tripwire), design and spec reviews also receive the brief
+last authorized while light and must block commitments that go beyond its goal or
+scope; a delegated decision must cite such a review.
+
+**Delivery.** `delegation.apply` accepts and authorizes the merge of a `SLICE`
+candidate only for a prepared PR into a distinct integration branch, with every
+required gate PASS (no exceptions) and the review summary published.
+`merge.execute` then merges through the protected path after re-observing
+protection. `FEATURE` PRs, release-branch merges and repositories whose
+integration and release branches are the same have no delegated merge; they need
+the per-PR human `authorize-merge`. `delivery.resume` applies delegation for a
+SLICE PR into integration.
+
+**Hand-back.** Autonomy returns to supervised, recorded as `DIAL_SET`, on:
+
+- a scope-changing amendment: any `amend` recorded while delegated, or a light
+  re-authorization of a brief that changed anywhere outside its findings section
+  (the Findings heading and its nested sub-headings); preamble, goal, scope,
+  sub-headings and any other section count as scope. Under any authority: a
+  delegated one is refused and hands back; a human-confirmed one is recorded and
+  hands back (the `DIAL_SET` precedes the `DECIDED`);
+- an agent hand-back (`run.set-dial autonomy supervised`, `actor: agent`, with a
+  reason; always allowed);
+- an external merge blocker (`MERGE_BLOCKED`). The recorded blocker voids the
+  delegation's authority even if recording the hand-back fails (the error then
+  carries `handBackFailed: true`);
+- release-branch protection observed lost before a delegated decision,
+  `delegation.apply` or a delegated merge. An unobservable state refuses the
+  action without handing back.
+
+After a hand-back the delegated acceptance no longer authorizes, delegated
+decisions are refused, and a delegated `authorize-implementation` no longer
+counts: implementation, candidates and gates stop until the human records
+`authorize-implementation` (a full run may re-authorize its unchanged validated
+commitments in place). `status` shows a `hand-back` blocker until a human decision
+is observed. Only a human can delegate again.
+
 ## Execution and evidence
 
-Required acceptance obligations: context, verification, review and packet. One
+Required acceptance obligations: context, verification, review and packet, in
+both rigors. One
 fresh independent `review` covers code defects/interactions, every approved
 criterion, validation sufficiency, scope/decision reconciliation, project rules,
 findings/fixes and a useful human explanation. Its five explicit responsibility
@@ -92,6 +253,16 @@ conclusions are `code`, `requirements`, `evidence`, `scope`, `findings`.
 available supplemental assessments, not a mandatory second review sequence.
 Completion retains finalization, release observation, retention, whole-feature
 coverage and actual integration. Whiteboard remains opt-in.
+
+In a light run the requirement basis is `requirements/brief.md`. The `review`
+gate assesses code defects and interactions, verification sufficiency and scope
+against the brief's goal and scope, scoring the single `brief` criterion, with the
+same fresh independent-evaluator qualification as full. Blocking findings use
+`brief` or `gate:<gate>`; findings about the brief cite `requirements/brief.md`.
+Rubric criteria and spec/planning paths are rejected. `spec`, `judge`,
+`reconcile` and `triage` need a rubric or planning record and are refused for a
+brief-based candidate; `code`, `pattern`, `explanation` and an enabled Whiteboard
+remain available.
 
 Use the test pyramid as a heuristic: choose quick focused deterministic checks
 and useful early independent discovery while implementing. Run wider integration
@@ -118,7 +289,16 @@ failed jobs remain visible; the independent review assesses the declared require
 scope. Missing/insufficient CI can use `{kind:"alternative",reason,scope}` with
 actual local check receipts. This is a proposal until independently assessed.
 A green badge alone is insufficient. Focused local loops do not require this
-broad backstop until acceptance is requested.
+broad backstop until acceptance is requested. A CI run reporting no jobs is "no CI
+checks" and leaves Verification UNAVAILABLE; it is never passing CI.
+
+Every Verification result and runner record carries `provenance` (both rigors):
+`agentRun` lists each agent-run command with outcome and receipt (index and
+retained stdout/stderr), `hostedCi` lists each CI run observed on the exact head
+with its jobs, `none` marks the absence of both, and `summary` states "no CI
+checks" whenever no hosted job was observed. The summary is appended to the
+result summary, and the verification outcome in `milestone.check`/`status`
+includes the structured `provenance`.
 
 The effective per-check limit is `check.timeoutMs ?? configuration.timeoutMs ??
 600000` milliseconds. For example, `configuration.timeoutMs: 5400000` allows a
@@ -204,20 +384,127 @@ Protected merge and milestone adapters consult the core and deny unavailable
 checks. Milestone checks bind the checked run and journal revision; a concurrent
 state change requires a fresh check. Protected merge keeps the same candidate
 and authority state through hosted waiting and the write, and its integration
-observation cannot be attributed to a replacement candidate. SessionStart is guidance in both native packages. Arbitrary shell writes
+observation cannot be attributed to a replacement candidate. Arbitrary shell writes
 and GitHub actions outside these adapters are not claimed to be intercepted.
-Both packages configure PreToolUse for recognized direct `gh pr merge` commands.
-Manifest and handler-subprocess tests verify a deny response and routing to the
+
+**Merge guard (best-effort).** Both packages configure a PreToolUse guard on
+shell tool calls. It denies, with a reason:
+
+- `gh pr merge` in any form, including `--auto`, `-R`/`--repo`, absolute or
+  relative executable paths, environment prefixes and `sudo`/`env`/`command`/
+  `exec`/`timeout`/`xargs` wrappers, and `gh alias set` for it;
+- `gh api` calls to `repos/{owner}/{repo}/pulls/{n}/merge` with any method other
+  than an explicit `GET`/`HEAD`, and GraphQL `mergePullRequest`/
+  `enablePullRequestAutoMerge` mutations given inline;
+- `git push` that would update a configured integration or release branch of any
+  configured repository: explicit refspecs (`main`, `+main`, `HEAD:main`,
+  `refs/heads/main`, `:main`, `--delete`), `--all`/`--mirror`, matching globs, and
+  an implicit destination or `HEAD` while on that branch, and the matching
+  refspec `:` or `+:` (it may update every protected branch). `--tags` with no
+  other refspec pushes only tags and is allowed; with a protected refspec it is
+  denied. An unconfigured Git workspace names no protected branch; the
+  configuration `run.start` writes protects the default branch. Protection is
+  read from the repository the push acts on (below).
+
+It follows quoting, `&&`/`||`/`;`/`|`/`&`/newline chains (each command of a chain
+is checked), subshells, `$(...)` (including heredoc bodies inside it), backticks,
+`bash -c`/`sh -c`, `eval`, `env -S` and shell heredocs, and leaves quoted text
+(for example a commit message mentioning `gh pr merge`) and unrelated commands
+alone.
+
+*Coverage list: the repository a push acts on.* This is what spec AC7/R10
+require (amended 2026-11-17). The repository is the directory Git runs in or,
+when set, the Git directory (`--git-dir` over a `GIT_DIR=` prefix; a `.git`
+directory stands for its parent). A work tree (`--work-tree`, `GIT_WORK_TREE`)
+selects only the checkout. The directory starts at the hook's directory and
+follows, in order:
+
+- literal `cd`/`pushd` commands earlier in a plain top-level sequence joined by
+  `;`, `&&` or newlines. A `cd` is assumed to succeed, except that a command
+  right after `cd … ||` runs where the shell was. A `cd` after `&&` may not run,
+  so a later push (after `;`) is checked both where it would run with and
+  without it. `cd` in a pipeline, in the background or behind a wrapper such as
+  `env`/`sudo` changes nothing;
+- `env -C`/`--chdir` and `sudo -D`/`--chdir` wrappers, then each
+  `git -C dir`/`-Cdir`. These and a `GIT_DIR=` prefix carry into `bash -c`,
+  `eval` and `env -S` scripts. `env -S` splits its string into arguments (not
+  shell syntax) and appends the remaining ones. `env -u GIT_DIR`/`--unset`/`-i`,
+  `exec -c`, and `sudo` (unless `-E`/`--preserve-env`) or `doas`, drop the
+  prefix. Wrapper options are read as the wrappers read them (clustered short
+  options, unique long-option abbreviations); `pushd -n` and `popd -n` only edit
+  the directory stack.
+
+A push is checked in every directory it could act on, and denied if any of them
+protects its destination. One with more possible directories than the guard
+tracks is denied. Where the guard cannot name the directory, it admits the push
+rather than deny an unrelated one.
+
+*Best-effort limits (outside AC7/R10).*
+
+- Directory or environment changes inside subshells, conditionals, loops,
+  `case`, brace groups, functions or `eval`. Inside a `( … )` subshell the plain
+  sequence rules above are applied until it ends; elsewhere the change is not
+  followed, and afterwards a push that does not name an absolute directory or
+  Git directory is admitted.
+- Shell-variable state across commands (`export`/assignments/`unset` of
+  `GIT_DIR`) is not followed. After a `GIT_DIR` assignment, a push without its
+  own `--git-dir` or prefix is admitted.
+- `env -S` escape sequences beyond quotes, `\_`, `\n` and `\t` are not
+  interpreted.
+- An option of `env`, `sudo`, `doas`, `exec`, `cd`, `pushd` or `popd` that the
+  guard does not model (including `sudo -i`/`--login` and a `sudo` chroot)
+  makes the directory and `GIT_DIR` unknown; the push is admitted unless it
+  names an absolute directory or Git directory after it.
+- `sudo`/`doas` environment policy beyond the defaults above is not modelled.
+- A `cd` target or `GIT_DIR` value built from variables, `~`, `CDPATH`, `cd -`,
+  a directory-stack entry or `popd` is not resolved (the directory becomes
+  unknown).
+- Scripts, aliases defined outside `gh`, shell functions, `source`d files,
+  earlier tool calls, variables naming commands, request bodies from files and
+  other clients are not seen.
+- Commands assembled from substitutions (for example `$(echo gh) pr merge`) and
+  scripts fed to a shell on standard input (`echo 'gh pr merge 1' | bash`) are not
+  recognized.
+- A missing, unreadable or malformed workspace configuration names no protected
+  branch, so push denial is off there (merge denial still applies).
+
+GitHub branch protection is the real enforcement. Merges go through `merge.prepare` and
+`merge.execute`; a recognized merge is denied even when the milestone is eligible,
+because the shell command is not bound to the prepared action.
+
+**Recovery entry points.** Every denial and every `status` recovery action or
+message names only entry points present in the current installation: the bundled
+`resources/protocol/plugin-adapter.js` (`node <adapter> --request-file
+<request.json>`, or `node <adapter> status --cwd <dir>`), and the `gatereeve` CLI
+only when it is found on `PATH`. An adapter inside a packaged desktop archive is
+not offered. `status` reports what it found in `entryPoints` and gives each
+action an `entryPoint` (`cli`, `adapter` or `none`) and, for the adapter, a
+`request` skeleton.
+
+**SessionStart** is guidance in both native packages. It reports run state from
+`status` rather than prescribing the full workflow: with no run, the built-in
+defaults and the up-front "full or light?" question; for a run, its rigor,
+autonomy, phase and blockers and a pointer to the light-run procedure
+(`resources/commands/light-run.md`) or the full workflow; for a delegated run,
+also the delegation scope and hand-back triggers. It repeats `status`
+`workspace.message`: with no run, that `run.start` writes the workspace
+configuration (or that an existing one names another feature); for a run without
+one, that delivery needs `workspace.configure`. If status cannot be read it emits a
+short safe message with the defaults, the question and the run-start
+configuration rule.
+
+Manifest and handler-subprocess tests verify deny responses and routing to the
 protected action. Actual native-host plugin activation, matcher dispatch and
-interception remain unverified; the coverage matrix labels this explicitly.
-Indirect scripts and alternate external clients are outside this handler coverage. Do not add
+interception remain unverified; the coverage matrix labels this explicitly. Do not add
 per-commit gates. Desktop observes current proof and
 provides commands; refreshing it never launches evaluators.
 
 Hosted merge checks watch required checks first. If GitHub CLI reports the exact
 empty-required-checks or no-checks diagnostic, the protected action queries and
 watches all reported checks instead. An exact no-checks response from this
-unfiltered query permits proceeding without hosted CI. Failed checks and
+unfiltered query permits proceeding without hosted CI; the integration receipt
+records `hostedChecks` as `required`, `reported` or `none` ("no CI checks", never
+passing CI). Only the protected merge supplies that observation. Failed checks and
 operational errors still block. This observes the currently reported check set,
 not future checks, and does not bypass GitHub branch protection. The fallback
 retains final source/target, gate and authority revalidation and PR-state cleanup.
@@ -300,9 +587,13 @@ applicability binds the effective controlled environment; execution receives tha
 
 Provider structured-value digests use canonical JSON key order with array order preserved. Raw strings and bytes retain their exact-byte digest. Retained provider output therefore validates against the original receipt after storage round-trips; older digest contracts require fresh evaluation.
 
-Current/6 stores activation, ordered events, jobs, decisions and structured
-history in one authoritative `.gatereeve-current/workflow.sqlite` under the
-canonical feature home. SQLite transactions replace mirrored file journals.
+Current/7 stores activation, ordered events, jobs, decisions and structured
+history in one authoritative `.gatereeve-current/workflow.sqlite.current-7` under
+the canonical feature home. SQLite transactions replace mirrored file journals.
+Each contract has its own database. An earlier contract's database (current/6:
+`workflow.sqlite`) is never written or migrated; a later contract opens it
+read-only only to link its activation as provenance on explicit resumption. A
+read-only open of a WAL-mode database may create ignored `-wal`/`-shm` sidecars.
 Retained evidence artifacts stay files; the database records their references.
 The SQLite file and WAL/SHM sidecars must remain untracked. Each issue/topic
 branch/worktree owns its workflow database; replacement threads share that
@@ -312,12 +603,32 @@ user-local metrics database and cannot grant workflow authority.
 A missing database grants no recovered approval. Explicitly start/resume a fresh
 run with observed human approvals and surviving documents; no old event replay.
 Old active runtime files remain untouched on upgrade and require explicit resume
-into current/6. Unchanged planning can carry only through observed approvals.
+into current/7. Unchanged planning can carry only through observed approvals.
 No distributed sync, automatic authority reconstruction or general reset is added.
 Use `database.inspect`, `database.history`, CLI `database`, and `workflow.observe`
 (`workflow-note <file>`) for bounded inspection and agent memory. Observation
 kinds: strategy, friction, escaped-defect, disposition, artifact; they grant no
 passage. Findings and independent dispositions are also recorded automatically.
+
+**Escaped defects.** Record a defect found after an earlier run or PR let it
+through as an `escaped-defect` note in the run that fixes it. To link the fix to
+its origin, give `fixId` (the fix PR or commit), `links` (origin references such
+as `run:<runId>`, `candidate:<hash>` or `owner/repo#12`), `linkBasis` and the
+observed human `authority`:
+
+```json
+{"kind":"escaped-defect","fixId":"owner/repo#31","reason":"Export returned 41","links":["owner/repo#12"],"linkBasis":"agent-proposed","authority":{"kind":"human-confirmed","instruction":"Yes, #12 introduced it.","context":"Agent proposed origin #12 from blame of the changed line"}}
+```
+
+- `human-stated`: the human named the origin ("this fixes a bug from #12");
+  record it with that statement as authority.
+- `agent-proposed`: you proposed candidate origins (for example by blaming the
+  changed lines against recent runs). Ask the human; record only the origins they
+  confirm, with the confirmation as authority. An unconfirmed proposal is refused
+  and never stored; do not record it as a link.
+
+A note without `links` needs neither. Origin links are reporting data only; the
+authority text stays in the journal and is not projected into metrics.
 
 Outcome publication first appends a durable journal marker, then the service
 cache and terminal event. A late concurrent completion therefore invalidates a
@@ -362,10 +673,101 @@ root/successor records with different fields. Current runId and previous-referen
 schema checks apply only to current-contract records. Conflicting mirrors still block;
 explicit resume preserves historical bytes and grants no inherited approval.
 
+## Workspace configuration
+
+Delivery uses the workspace configuration (`.agentic-workflow.json`, see
+WORKSPACE-CONTEXT.md); there is no configuration-free delivery path.
+
+- **Written at run start.** In the Git fallback, `run.start` observes the GitHub
+  remote and the repository's default branch (`gh api --method GET
+  repos/{owner}/{repo}`, non-admin) and writes, atomically and never over an
+  existing file, `{schemaVersion: 1, featureId: <current branch>, repositories:
+  {repository: {path: ".", remote, integrationBranch: <default>, releaseBranch:
+  <default>, keepPullRequestsClosed: false}}}`, then adds `/.agentic-workflow.json`
+  to the repository's local `info/exclude`. The feature home does not move.
+  `STARTED.workspace` records `{status: "created", observed, configuration, file,
+  exclude}` and retains the bytes. Integration equal to release means only per-PR
+  human merges.
+- **Not written** (no GitHub remote, an unobservable or unusable default branch,
+  a run started on the default branch, or a delegated start): the run starts and
+  `STARTED.workspace` records `{status: "unconfigured", reason}`.
+- **Existing, same feature** (the current branch is the configured feature, one of
+  its delivery branches `<featureId>-NN-<description>`, or its distinct integration
+  branch): used unchanged, recorded as `{status: "configured", match}`.
+- **Existing, different feature:** `run.start` fails before creating any feature
+  home (`details.kind: workspace-feature-mismatch`). It continues only with the
+  human's instruction: `workspace.confirmFeature` naming the configured feature
+  (recorded as `match: human-confirmed`), or `workspace.replace` (a
+  single-repository configuration at the repository root is replaced by a minimal
+  one for the current branch, recorded as `{status: "replaced", previous,
+  authority}` with the previous bytes retained). A replacement whose target feature
+  already has a run is refused before writing.
+- **Fresh resumption:** `run.resume-current` with nothing retained to resume in
+  the resolved feature home starts a fresh run and follows all of the above
+  (recorded with `operation: run.resume-current`). Resuming a current run or a
+  retained activation is unchanged: no check, no write, and `workspace` is refused.
+- **Existing run without configuration:** `workspace.configure` applies the same
+  rules and records `WORKSPACE_CONFIGURED`. `merge.prepare` without branch
+  configuration fails naming it through an available entry point.
+
+A configuration written for a request that then fails without recording it is
+removed again. `status` reports `workspace: {mode, configPath, configured,
+recorded, message}` (and, for a configured workspace, whether the current branch
+belongs to it) and offers a `configure-workspace` action for an unconfigured run.
+
+## Delivery targets and release merges
+
+Each repository configures an `integrationBranch` and a `releaseBranch` (default:
+the integration branch). When they differ, scope is bound to target at
+`merge.prepare`, and again wherever an authorization binds the prepared action:
+
+- a `SLICE` candidate's PR runs from a slice branch into the integration branch;
+- only the `FEATURE` candidate's PR whose head is the integration branch itself and
+  whose base is the release branch may target the release branch (the final PR);
+- every other pairing is rejected, naming the allowed pairing.
+
+When the branches are the same, every PR targets the release branch and no
+standing or delegated merge authority exists for that repository.
+
+**Release merges, any rigor.** A merge into the release branch needs a human
+`authorize-merge` from a per-PR instruction ("merge #N"), bound through the
+prepared action to that PR's number, head, base and method. With it, the agent
+runs `merge.execute`, which keeps every protected-merge safeguard. Light runs use
+the same path. No standing grant authorizes a release merge.
+
+**Review summary on the PR.** In both rigors, before the PR is presented for human
+review or merge authorization, run `review.publish`. It renders the latest
+qualifying `review` result (PASS or FAIL) for the current candidate and writes it
+between `<!-- gatereeve:review-summary:start -->` and
+`<!-- gatereeve:review-summary:end -->` in the PR description, replacing an
+earlier section and keeping all other text. The section names the outcome,
+reviewed head, candidate, result identity, evaluator and basis (rubric or brief),
+then the summary, criteria, dimensions and findings. Human `authorize-merge`,
+standing merge application and `merge.execute` each re-read the PR description
+and require the section to equal a fresh rendering for the prepared head; a newer
+review result, a new candidate or an edited section requires publishing again.
+Authorization is the enforcement point because that is when someone relies on the
+presentation; `merge.execute` repeats the check before any external write.
+
+**External blockers.** When GitHub refuses an authorized merge because of a hosting
+rule (for example a required approving review the author cannot give, or a base
+branch policy) and the PR is observed still open at the authorized head, the
+protected merge reports an external blocker. The result fails with error code
+`EXTERNAL_BLOCKER` and details `{kind: "external-blocker", blocker:
+"required-review"|"branch-policy", gateFailure: false, ...}`; the run records a
+`MERGE_BLOCKED` event shown as `status.externalBlocker` (history in
+`externalBlockers`) and a snapshot blocker; `delivery.resume` returns status
+`external-blocker` with next action `human`. Gate proof, acceptance and
+authorization are unchanged and the PR's prior presentation is restored. After the
+rule is satisfied on the host, run `merge.execute` again; a new candidate or
+integration clears the current blocker. Any other merge error keeps its original
+failure.
+
 ## Scoped standing authorization
 
 An explicit human instruction may authorize unattended acceptance alone, or
-acceptance plus merging the feature's slice and final PRs. “Work overnight” alone
+acceptance plus merging the feature's slice PRs into a distinct integration
+branch. “Work overnight” alone
 does not imply merge or deployment permission. Record the actual instruction
 once with `human.decide`, kind `authorize-standing`, subject the current
 commitment hash, and an explicit `scope` such as:
@@ -373,9 +775,9 @@ commitment hash, and an explicit `scope` such as:
 ```json
 {
   "actions": ["accept", "authorize-merge"],
-  "candidateScopes": ["SLICE", "FEATURE"],
+  "candidateScopes": ["SLICE"],
   "repositories": [{
-    "alias": "product", "headPrefix": "tb-example-feature", "baseBranch": "main",
+    "alias": "product", "headPrefix": "tb-example-feature", "baseBranch": "tb-example-feature",
     "methods": ["merge"]
   }],
   "expiresAt": null
@@ -384,7 +786,11 @@ commitment hash, and an explicit `scope` such as:
 
 For acceptance only, use `actions: ["accept"]` and omit `methods`. Prefixes match
 the exact branch or hyphen-delimited subsequent delivery branches. Each target
-must already be configured. `expiresAt` is a UTC timestamp or explicit `null`
+must already be configured as the integration branch: a grant naming the release
+branch is rejected, and with integration equal to release no grant exists. Grants
+recorded before this rule are retained and reported in status with
+`namesReleaseBranch: true` and an inactive reason; they authorize neither
+acceptance nor merge. `expiresAt` is a UTC timestamp or explicit `null`
 meaning this feature run, not indefinite authority across runs. The core binds
 current implementation approval, approved requirements and repository
 configuration/remote identities. Scope is never inferred from an agent's label.
@@ -400,7 +806,9 @@ include `action` from `merge.prepare`. Application records exact candidate
 acceptance and, if requested, exact PR/head/target/method authorization with the
 original grant reference. It performs no merge. Then use `merge.execute`; its
 existing live source/target, hosted checks, direction and integration safeguards
-remain mandatory. This supports both intermediate slices and the final PR.
+remain mandatory. This supports intermediate slice PRs into the integration
+branch; the final PR into the release branch always needs a per-PR human
+`authorize-merge`.
 Completion still requires whole-feature evidence, actual integration, required
 finalization/release observations and retention. Deployment/publishing permission
 is separate and cannot be added to this grant's supported actions.

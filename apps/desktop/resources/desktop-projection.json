@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:8adf610466c1b5c0945b97469137974390aab7fe7616d6113f6d982143ccedf6",
-  "contract": "gatereeve/current/6",
-  "contractSha256": "d801920d67285ff42afe9971049580030240b11c9b24170a9e85b6cd624cb53f",
+  "protocolHash": "sha256:29d896983f11c79a1f94c5199822a02e9c331be0d870d1dd3faba45b47ff337d",
+  "contract": "gatereeve/current/7",
+  "contractSha256": "dae5f4a795bb9e5486b2994af34b05511cd62df27de41720d7772beb7f43bb59",
   "files": [
     {
       "path": "agent-workflow.js",
@@ -17,33 +17,38 @@
     },
     {
       "path": "context.js",
-      "size": 14165,
-      "sha256": "6a591d342d4d9ed53cbe4b4ad1c6d87a0958fd0a9a65f729f36499a652cd8d2f"
+      "size": 14631,
+      "sha256": "f389de38dd2838215418ec2634d606aff6a91fe43aabab8641356e47b1951e09"
     },
     {
       "path": "current/actions.js",
-      "size": 13627,
-      "sha256": "2a4b0ad8163949bde0cf0478820446f59cbc7ac02c92c9b29fd1d099710873d9"
+      "size": 20988,
+      "sha256": "18f94bd5707419c1750b79458fbf1536a50388a4ce9d55a2af634c71ec80c92b"
     },
     {
       "path": "current/adapter.js",
-      "size": 8489,
-      "sha256": "19ae33d13ea0c4d59dfefac1c60e7704bf3feb8e6da4b666b81b3e0e3578bf71"
+      "size": 17265,
+      "sha256": "148862751b3ec9c6f3b965d2349c51e72e98b7e1406b81d42ba38916458924b7"
     },
     {
       "path": "current/authorization.js",
-      "size": 10709,
-      "sha256": "12a8abd4e421c05281b6da47da7ecfa8699cd8b838555fb7a56f5777e0d6503c"
+      "size": 15477,
+      "sha256": "8dd03e9c894f365c3035308439b55143de9fbca8dce213516b34a2414690d7ed"
+    },
+    {
+      "path": "current/command-guard.js",
+      "size": 40319,
+      "sha256": "9de82485203bd10c2f9edc3c4998c5b97dfb37bf40feb1dd09393d8273594eb6"
     },
     {
       "path": "current/contracts.js",
-      "size": 13759,
-      "sha256": "d801920d67285ff42afe9971049580030240b11c9b24170a9e85b6cd624cb53f"
+      "size": 20422,
+      "sha256": "dae5f4a795bb9e5486b2994af34b05511cd62df27de41720d7772beb7f43bb59"
     },
     {
       "path": "current/core.js",
-      "size": 70902,
-      "sha256": "4c939b7010104a26b6826daa3f79419ccc8f5890226233dac9c85e9fd16e74ba"
+      "size": 92203,
+      "sha256": "64dae935d66341b7945fb2b04356cfb9318b156d9b2b5adf030407e316c62926"
     },
     {
       "path": "current/coverage.js",
@@ -51,14 +56,24 @@
       "sha256": "e5508842c1135b0041f44b587cb2c85fe12ab5e2559da9038e71d2787270ac8d"
     },
     {
+      "path": "current/delegation.js",
+      "size": 29576,
+      "sha256": "4c0d00e69ffff212afb7576cf3f0948ad78d66fc25f3a64fef6e30bb59dd8775"
+    },
+    {
       "path": "current/delivery.js",
-      "size": 7050,
-      "sha256": "4a1f3bec2beef7b8ea803d4240677c674d7e9d0e318175ec8572623ecfd6efbd"
+      "size": 7321,
+      "sha256": "76b8ae55fca66e1250a131f2d36a55d359ae964a8ab1c5e3a61b4a673a98ad86"
     },
     {
       "path": "current/diagnostics.js",
       "size": 1335,
       "sha256": "af703a3545686bf1e3fde16c166e1487c9b73c54fe42a2b3d21837545b9e42e6"
+    },
+    {
+      "path": "current/entry-point.js",
+      "size": 4701,
+      "sha256": "d9df20e47369f6575d9ed6d602169e6b6ac0c6aeab8f50667f7497102e6ded1a"
     },
     {
       "path": "current/environment.js",
@@ -67,13 +82,13 @@
     },
     {
       "path": "current/evidence.js",
-      "size": 17350,
-      "sha256": "1f0f5ed0b17665f2f1f9f23f6b8d9fbb2333a2787b53ee638f7a4bf108e0afe1"
+      "size": 17865,
+      "sha256": "6dc6613166011f77f87ab99b00b50cd07dba73726b06df5b768e963a149b2934"
     },
     {
       "path": "current/execution.js",
-      "size": 65762,
-      "sha256": "86bdd24636842c62c4f3b4ce829347e5b97e770cc2f551779de945054a0f7976"
+      "size": 70224,
+      "sha256": "4acd7c985ba5ef52952c4d05f25e1050083dd88fe3fdcb321c5f37e09df537e2"
     },
     {
       "path": "current/generated-inputs.js",
@@ -107,8 +122,13 @@
     },
     {
       "path": "current/pre-tool-use.js",
-      "size": 2078,
-      "sha256": "68c605c45c00358c20adb9d764f579539d934b081e78396b748626dcf466bed7"
+      "size": 6748,
+      "sha256": "7c1920736777e9480dfff6f59da310bdff81ace17cb6dcbe0294df22e3b1f87c"
+    },
+    {
+      "path": "current/publication.js",
+      "size": 8848,
+      "sha256": "ca8711d6fdad7bdfeff8742ba343dd325d969c9e4fc4762f8300eaa2a251a00b"
     },
     {
       "path": "current/review-history.js",
@@ -132,23 +152,33 @@
     },
     {
       "path": "current/store.js",
-      "size": 15054,
-      "sha256": "1fe80e3a53a8bc38d9f7220bf1eba0c1b5b7d41be5be585929605d69714422a7"
+      "size": 15506,
+      "sha256": "a9b3313466187d209ffc98cb250d00852ca2bdfbbfbd1f2af7226b3b76771664"
+    },
+    {
+      "path": "current/tripwires.js",
+      "size": 13499,
+      "sha256": "9033bc92e777f148be7b94e4737c23e8d923786bd908e973116badcba3538314"
     },
     {
       "path": "current/validation-scope.js",
-      "size": 3363,
-      "sha256": "c4fc1ee49ff604aa808892714d6488c8fb057a5f6dadad3a717ac0038dedd825"
+      "size": 3637,
+      "sha256": "6be3a3715ef93c6e71886d0114afe2dca650ee54d097646575706438b1ae2a26"
     },
     {
       "path": "current/workflow-database.js",
-      "size": 5679,
-      "sha256": "bc39de8dca4c715214d8e4ff919b7d512dea2e38ed094de092dd775f1d60c7e9"
+      "size": 7646,
+      "sha256": "379a4cf3cef8eb3ebc1199f29872868a675b3dbd85e246ababc5e91494ff57bb"
+    },
+    {
+      "path": "current/workspace.js",
+      "size": 18845,
+      "sha256": "934358204028aebd5d03226b234110072a1e9a7a7e961616d26778701bcf6b1e"
     },
     {
       "path": "errors.js",
-      "size": 897,
-      "sha256": "adec91e206d3af2387bb2c85820bee4ea4fd490ed881ce5626deece230afcda5"
+      "size": 1283,
+      "sha256": "88bfd526d31ec423d5df4c2c85425f677fa8bc82ec71235224e2e2d2775acc48"
     },
     {
       "path": "index.js",
@@ -162,8 +192,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 13441,
-      "sha256": "5c3d6708d02d4c2fb43a1124a0476a4b83c1c998d9c98e5efc3671fa19f8530b"
+      "size": 15299,
+      "sha256": "4e521fb2cabce07abaf0e126b8af814d4a4ad9373522ab7076c244fdbf2fb623"
     },
     {
       "path": "module-runtime.js",

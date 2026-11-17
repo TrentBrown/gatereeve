@@ -31,7 +31,8 @@ test('runner CLI executes focused checks without requiring a dependency-tree dec
 });
 
 test('CLI records and revokes standing authority through the native core and fails closed without proof', async t => {
-  const f = await currentFixture(t); await establishCurrentRun(f.core);
+  // Standing grants may name only a distinct integration branch, never release.
+  const f = await currentFixture(t, { releaseBranch: 'production' }); await establishCurrentRun(f.core);
   const { git } = await import('../../plugin-src/shared/resources/protocol/current/evidence.js');
   const bare = join(f.root, 'host.git');
   await git(f.root, ['init', '--bare', bare]);
@@ -40,7 +41,7 @@ test('CLI records and revokes standing authority through the native core and fai
   await git(f.repo, ['push', 'origin', 'HEAD:refs/heads/main']);
   const scope = join(f.root, 'standing.json');
   await writeFile(scope, JSON.stringify({ actions: ['accept'], candidateScopes: ['SLICE', 'FEATURE'],
-    repositories: [{ alias: 'app', headPrefix: 'topic', baseBranch: 'main' }], expiresAt: null }));
+    repositories: [{ alias: 'app', headPrefix: 'feature', baseBranch: 'main' }], expiresAt: null }));
   const invoke = (...args) => exec(process.execPath, [cli, ...args, '--cwd', f.repo, '--json']);
   const human = ['--instruction', 'Accept the approved feature when every gate passes.', '--context', 'User fixture conversation', '--reason', 'Overnight operation', '--consequences', 'No merge or deployment'];
   const grant = JSON.parse((await invoke('decide', 'authorize-standing', '--subject', (await f.core.commitments()).subject, '--scope', scope, ...human)).stdout);
@@ -70,4 +71,34 @@ test('CLI preserves constrained Whiteboard waiver basis and explanation policy a
   assert.equal(result.ok, true); assert.deepEqual(result.data.event.payload.waiverBasis.evidence, evidence);
   await assert.rejects(invoke('waive', '--gate', 'explanation'), error => { assert.match(JSON.parse(error.stdout).error.message, /policy amendment/); return true; });
   assert.equal(JSON.parse((await invoke('policy-amend', '--gate', 'explanation', '--continue-with', 'waive')).stdout).ok, true);
+});
+
+test('CLI status shows both run dials, and the defaults when no run exists', async t => {
+  const f = await currentFixture(t);
+  const status = async () => (await exec(process.execPath, [cli, 'status', '--cwd', f.repo])).stdout;
+  const none = await status();
+  assert.match(none, /^feature: current run needed$/mu);
+  assert.match(none, /^Rigor: full \(default for a new run\)$/mu);
+  assert.match(none, /^Autonomy: supervised \(default for a new run\)$/mu);
+  const authority = { kind: 'human-confirmed', instruction: 'Light for this one.', context: 'CLI fixture conversation' };
+  const started = await f.request('run.start', { implementers: ['implementer'], rigor: { value: 'light', authority, reason: 'Small slice' } }, 'light-start');
+  assert.equal(started.ok, true, JSON.stringify(started.error));
+  const light = await status();
+  assert.match(light, /^Rigor: light$/mu);
+  assert.match(light, /^Autonomy: supervised$/mu);
+  assert.doesNotMatch(light, /default for a new run/u);
+});
+
+// S8 review round 2 (N5): contradictory workspace options reach the protocol,
+// which rejects them, instead of the CLI silently choosing replacement.
+test('CLI passes both workspace instructions through so the contradiction is rejected', async t => {
+  const f = await currentFixture(t);
+  const human = ['--instruction', 'Do both.', '--instruction-context', 'User fixture conversation'];
+  for (const command of [['run', 'start', '--implementer', 'fixture'], ['run', 'resume-current', '--implementer', 'fixture'], ['workspace', 'configure']]) {
+    await assert.rejects(exec(process.execPath, [cli, ...command, '--cwd', f.repo, '--json', '--replace-workspace', '--confirm-feature', 'feature', ...human]), error => {
+      assert.match(JSON.parse(error.stdout).error.message, /Either replace the workspace configuration or confirm its feature, not both/u, command.join(' '));
+      return true;
+    });
+  }
+  assert.equal(await f.core.store.active(), null, 'no run was started');
 });
