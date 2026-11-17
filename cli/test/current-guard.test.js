@@ -199,7 +199,7 @@ test('pushes to the configured integration or release branch are denied; topic p
   assert.match((await decide('git push --follow-tags')).hookSpecificOutput?.permissionDecisionReason ?? '', /integration branch main/u, '--follow-tags also pushes the branch');
 });
 
-test('a push is checked in every repository it could act on, in execution order (NEW6-NEW14)', async t => {
+test('a push is checked in every repository it could act on, per the documented coverage list (NEW6-NEW18)', async t => {
   const f = await configured(t);
   const outside = await mkdtemp(join(tmpdir(), 'gatereeve-guard-outside-'));
   t.after(() => rm(outside, { recursive: true, force: true }));
@@ -250,7 +250,11 @@ test('a push is checked in every repository it could act on, in execution order 
     [outside, `GIT_DIR=${q(join(outside, '.git'))} env --unset=GIT_DIR git -C ${q(f.repo)} push origin main`],
     [outside, `GIT_DIR=${q(join(outside, '.git'))} env -i git -C ${q(f.repo)} push origin main`],
     [outside, `GIT_DIR=${q(join(outside, '.git'))} sudo git -C ${q(f.repo)} push origin main`],
-    // NEW8: directory and GIT_DIR changes by earlier commands, in execution order.
+    [outside, `GIT_DIR=${q(join(outside, '.git'))} env --unset OTHER --unset GIT_DIR git -C ${q(f.repo)} push origin main`],
+    [outside, `GIT_DIR=${q(join(outside, '.git'))} env --unset OTHER -i git -C ${q(f.repo)} push origin main`],
+    // NEW13: outside quotes, env's \_ escape separates arguments.
+    [outside, "env -S 'gh\\_pr\\_merge\\_12'"],
+    // NEW8: literal cd/pushd earlier in a plain sequence (;, &&, newlines).
     [outside, `cd ${q(f.repo)} && git push origin main`],
     [outside, `cd ${q(f.repo)}; git push origin main`],
     [outside, `cd ${q(f.root)}\ncd app\ngit push origin production`],
@@ -259,21 +263,25 @@ test('a push is checked in every repository it could act on, in execution order 
     [outside, `cd ${q(f.root)} && git -C app push origin main`],
     [outside, `cd ${q(f.repo)}; echo $(git push origin main)`],
     [outside, `cd ${q(f.repo)}; false && cd ${q(outside)}; git push origin main`],
+    [outside, `test -d x && cd ${q(f.repo)}; git push origin main`],
+    [outside, `cd ${q(f.repo)} || exit 1; git push origin main`],
+    [f.repo, `cd ${q(outside)} || git push origin main`],
     [outside, `cd ${q(f.repo)} && (cd ${q(outside)}); git push origin main`],
-    [outside, `if true; then cd ${q(f.repo)}; fi; git push origin production`],
-    [outside, `for i in 1 2; do git push origin main; cd ${q(f.repo)}; done`],
-    [outside, `eval ${q(`cd ${f.repo}`)}; git push origin main`],
-    [outside, `eval ${q(`export GIT_DIR=${join(f.repo, '.git')}`)}; git push origin main`],
-    [outside, `export GIT_DIR=${gitDir}; git push origin main`],
-    [outside, `GIT_DIR=${gitDir}; git push origin main`],
+    [outside, `(cd ${q(f.repo)} && git push origin main)`],
+    [outside, `cd ${q(f.repo)} && git push origin main &`],
+    [outside, `cd ${q(f.repo)}; if true; then git push origin main; fi`],
     [outside, `cd ${q(f.repo)} && bash -c 'git push origin main'`],
-    // NEW10: past the context limit a push is denied, not admitted.
-    [outside, `${['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(name => `true && cd ${name}`).join('; ')}; git push origin topic`],
+    [outside, `cd "$HOME"; git -C ${q(f.repo)} push origin main`],
+    // NEW18: a wrapped builtin cannot change the calling shell.
+    [outside, `cd ${q(f.repo)}; env -C ${q(outside)} eval true; git push origin main`],
+    [outside, `cd ${q(f.repo)}; sudo cd ${q(outside)}; git push origin main`],
+    // Past the tracked number of possible directories a push is denied, not admitted.
+    [outside, `${['a', 'b', 'c', 'd', 'e'].map(name => `test -d ${name} && cd ${name}`).join('; ')}; git push origin topic`],
   ];
   for (const [cwd, command] of denied) {
     const decision = (await decide(cwd, command)).hookSpecificOutput;
     assert.equal(decision?.permissionDecision, 'deny', command);
-    assert.match(decision.permissionDecisionReason, /(integration branch main|release branch production|merge milestone|more directory or GIT_DIR changes)/iu, command);
+    assert.match(decision.permissionDecisionReason, /(integration branch main|release branch production|merge milestone|more directories than the guard tracks)/iu, command);
   }
   for (const [cwd, command] of [
     [outside, `git ${q(`-C${f.repo}`)} push origin topic`],
@@ -291,6 +299,20 @@ test('a push is checked in every repository it could act on, in execution order 
     // A subshell's cd ends with it; a pipeline or background cd changes nothing.
     [outside, `(cd ${q(f.repo)}); git push origin main`],
     [outside, `cd ${q(f.repo)} | cat; git push origin main`],
+    [outside, `cd ${q(f.repo)} & git push origin main`],
+    // NEW15: superseded directories are not checked, inside compound commands too.
+    [outside, `cd ${q(f.repo)}; cd ${q(outside)}; { git push origin main; }`],
+    [outside, `cd ${q(f.repo)}; cd ${q(outside)}; if true; then git push origin main; fi`],
+    [f.repo, `(cd ${q(outside)} && git push origin main)`],
+    [f.repo, `cd ${q(outside)} || exit 1; git push origin main`],
+    // Outside the coverage list the location is unknown, so an unrelated push is
+    // admitted rather than checked where it does not run.
+    [f.repo, `if true; then cd ${q(outside)}; fi; git push origin main`],
+    [f.repo, `for d in x; do cd ${q(outside)}; git push origin main; done`],
+    [f.repo, `eval ${q(`cd ${outside}`)}; git push origin main`],
+    [f.repo, `export GIT_DIR=${q(join(outside, '.git'))}; git push origin main`],
+    [f.repo, `cd "$OUT"; git push origin main`],
+    [f.repo, `f() { cd ${q(outside)}; }; f; git push origin main`],
     // NEW13: split-string text is arguments, not shell syntax.
     [outside, `env -S ${q('echo ok; gh pr merge 12')}`],
     [outside, 'env git commit -S -m signed'],
@@ -309,8 +331,15 @@ test('a push is checked in every repository it could act on, in execution order 
   assert.deepEqual(at("sudo -D/w env -C x bash -c 'git -Cy push'"), [['/w', 'x', 'y']]);
   assert.deepEqual(at("GIT_DIR=/a/.git bash -c 'GIT_DIR=/b/.git git push'"), [['/b/.git', '..']], 'an inner assignment overrides the inherited one');
   assert.deepEqual(at('GIT_DIR=/a/.git sudo -E git push'), [['/a/.git', '..']], 'sudo -E preserves the environment');
-  assert.deepEqual(at('cd a && cd b; git push'), [['a'], ['a', 'b']], 'a cd after && may not run');
-  assert.deepEqual(at('cd /a || git push'), [[], ['/a']], 'after || any earlier context is possible');
+  assert.deepEqual(at('cd a && cd b; git push'), [['a', 'b']], 'a cd is assumed to succeed');
+  assert.deepEqual(at('x && cd b; git push'), [['b'], []], 'a cd after && may not run');
+  assert.deepEqual(at('cd /a || git push'), [[]], 'after cd || the shell is where it was');
+  assert.deepEqual(at('cd /a; cd b; x || git push'), [['/a', 'b']]);
+  assert.deepEqual(at('false && git push'), [], 'a push that cannot run has no location');
+  assert.deepEqual(at('if x; then cd /a; fi; git push'), [], 'a change inside a compound command is not followed');
+  assert.equal(classifyShellCommand('if x; then cd /a; fi; git push')[0].unknown, true);
+  assert.deepEqual(at('cd $X; cd /a; git push'), [['/a']], 'an absolute cd names the directory again');
+  assert.deepEqual(at('GIT_DIR=/a/.git; git push'), []);
   assert.deepEqual(at('export GIT_DIR=/a/.git; unset GIT_DIR; git push'), [[]]);
   assert.equal(classifyShellCommand('git push')[0].overflow, undefined);
 });

@@ -849,3 +849,34 @@ Design now, without an amendment:
   `sudo` without `-E`/`--preserve-env` clear `GIT_DIR`; `doas` too (NEW14).
 - Remaining disclosed limits: variables, `~`, `CDPATH`, `cd -`, functions,
   sourced files, earlier tool calls.
+
+### S10 review round 4 (FAIL on f592efe) and the coverage-list amendment
+
+Round 4 found further forms: loop accumulation (NEW8), overflow lost through an
+environment change (NEW10), env's `\_` escape (NEW13), `--unset` consuming two
+words (NEW14), superseded directories resurrected inside compound commands
+(NEW15, an unrelated denial), unexported `GIT_DIR` assignments (NEW16), env
+option clusters (NEW17) and wrapped builtins changing the caller (NEW18).
+
+Trent chose to amend R10 to a defined coverage list (approved 2026-11-17). The
+simplified design:
+
+- Each and-or list tracks where the shell may be after its last command
+  succeeded (`ok`) or failed (`fail`). A literal `cd`/`pushd` is assumed to
+  succeed, except that the command right after `cd … ||` runs where the shell
+  was; `exit` ends the script; `true`/`:`/`false` are exact; other commands do
+  not move. After `&&` a command runs from `ok`, after `||` from `fail`, and a
+  new list from either, so `x && cd d; git push` is checked in both places.
+- Pipelines and background commands change nothing (a backgrounded list
+  restores its start); `( … )` subshells restore on exit.
+- A change inside a compound command or `eval`, a function definition, an
+  unresolvable target (`cd $X`, `~`, `-`, `popd`) or any `GIT_DIR` assignment
+  makes the location unknown; a push there is admitted unless it names an
+  absolute directory or Git directory. This removes NEW15 and NEW16 by
+  construction; NEW8 (loops) and NEW17 (clusters) are named limits.
+- External wrappers (`env`, `sudo`, …) stop `cd`/`eval` changing the caller
+  (NEW18); `--unset` consumes one operand (NEW14); `\_` separates arguments
+  outside quotes (NEW13); overflow (more than 16 places) is only cleared by an
+  absolute `cd` and still denies (NEW10).
+- GIT_DIR comes from `--git-dir`, a prefix (dropped by `env -u`/`-i` and by
+  `sudo`/`doas` without `-E`), or an inherited prefix in `bash -c`/`eval`.

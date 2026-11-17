@@ -168,5 +168,20 @@ Append pull-request review boundary entries here.
   The other eleven criteria pass and the prior blocking fixes remain supported.
   Advisories A1, A2, N1 carried.
 - **S10:** fixes NEW6, and follows the other ways a command line selects the
-  repository (`--git-dir`, `GIT_DIR`, `env`/`sudo` options, earlier literal
-  `cd`/`export` in execution order); `env -S` is parsed as env arguments.
+  repository, per the coverage list in PROTOCOL.md (`--git-dir`, a `GIT_DIR`
+  prefix, `env`/`sudo` directory options, earlier literal `cd`/`pushd` in a
+  plain sequence); `env -S` is parsed as env arguments.
+
+### 2026-11-17 — R10 amended to a defined merge-guard coverage list
+
+- S10 failed four Codex review rounds (PR #115), each on further shell forms
+  that change where a push runs (loops, conditionals, `eval`, unexported
+  variables, `env -S` escapes and option clusters), with some attempts adding
+  unrelated denials.
+- Trent chose to amend rather than keep hardening or waive, and approved the
+  wording ("Approved"): AC7/R10 are judged against the coverage list in the
+  guard's protocol documentation; named best-effort limits are not failures.
+  Spec and design Changes 2026-11-17, commit `4f1863e`. Recorded as an amend
+  decision, spec re-validation and implementation re-authorization.
+- S10 simplified to the listed scope: a change it does not follow makes the
+  location unknown and the push is admitted, so no unrelated push is denied.
