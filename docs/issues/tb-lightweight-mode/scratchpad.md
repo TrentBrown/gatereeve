@@ -730,3 +730,30 @@ failed with `spawn E2BIG`.
   `--replace-workspace` and `--confirm-feature` were given. It now passes both, so
   `workspaceInstruction` rejects the contradiction for `run start`,
   `run resume-current` and `workspace configure`.
+
+## S10 — guard: Git spellings that name another repository (tb-lightweight-mode-10-guard-attached-directory)
+
+- **NEW6 (blocking, FEATURE review round 2).** `classifyGit` recorded a directory
+  only for the separated `-C dir`. Git also accepts `-Cdir`; the guard skipped it as
+  an unknown flag, so `pre-tool-use` looked up protected branches in the hook's
+  working directory. From an unconfigured directory, `git -C/repo push origin main`
+  was admitted.
+  - Attached `-Cdir` is now a directory step, in order with separated `-C`.
+  - The same gap existed for `--git-dir` and `--work-tree` (separated and `=`),
+    which also choose the repository Git pushes from. `--work-tree` is resolved
+    after the `-C` steps; otherwise `--git-dir`, and when it names a `.git`
+    directory, its parent. A bare Git directory is looked up as given (no
+    workspace configuration there, so nothing is protected; best-effort, as the
+    guard documents).
+  - Same class, also fixed: `GIT_DIR`/`GIT_WORK_TREE` assignments (an option
+    overrides them, as in Git), wrapper directory changes (`env -C`/`--chdir`,
+    `sudo -D`/`--chdir`; `sudo -C` closes descriptors), and a literal `cd`/`pushd`
+    earlier in the command. The classifier does not model control flow or
+    subshells, so a push after a `cd` is checked in both the hook's directory and
+    the `cd` target and denied if either protects the destination (fails closed).
+    The `cd` chain and wrapper directories carry into `bash -c`, `eval` and
+    `env -S` scripts. `cd -`, `cd ~…` and a bare `cd` name no literal target.
+  - PROTOCOL.md's merge-guard section names these spellings.
+- **Tests:** hook denials from an unconfigured directory outside the workspace for
+  every spelling, topic pushes still allowed, and classifier directory lists. The
+  attached `-C` case fails on the previous guard.

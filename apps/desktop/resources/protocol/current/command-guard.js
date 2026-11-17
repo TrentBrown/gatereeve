@@ -222,19 +222,45 @@ function skipOptions(words, values) {
   return words.slice(index);
 }
 
-// Remove assignments, reserved words and wrappers until the real command.
-function unwrap(words, depth, findings) {
+// Wrapper options that change the working directory of the wrapped command.
+const CHDIR = { env: { short: '-C', long: '--chdir' }, sudo: { short: '-D', long: '--chdir' } };
+
+function wrapperDirectories(name, words, values) {
+  const option = CHDIR[name];
+  const directories = [];
+  if (!option) return directories;
+  for (let index = 0; index < words.length && /^-./u.test(words[index]); index++) {
+    const word = words[index];
+    if (word === '--') break;
+    if (word === option.short || word === option.long) directories.push(words[index + 1]);
+    else if (word.startsWith(`${option.long}=`)) directories.push(word.slice(option.long.length + 1));
+    else if (word.length > 2 && word.startsWith(option.short)) directories.push(word.slice(2));
+    if (values.has(word)) index++;
+  }
+  return directories.filter(item => item !== undefined);
+}
+
+// Remove assignments, reserved words and wrappers until the real command. The
+// scope collects what selects the repository a wrapped Git command acts on:
+// wrapper directory changes and GIT_DIR/GIT_WORK_TREE assignments (NEW6).
+function unwrap(words, depth, findings, scope = { chdir: [], gitDir: null, workTree: null }, cd = []) {
   let rest = [...words];
   for (let guard = 0; guard < 32 && rest.length; guard++) {
-    if (RESERVED.has(rest[0]) || /^[A-Za-z_][A-Za-z0-9_]*=/u.test(rest[0])) { rest.shift(); continue; }
+    const assignment = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/su.exec(rest[0]);
+    if (assignment) {
+      if (assignment[1] === 'GIT_DIR') scope.gitDir = assignment[2];
+      if (assignment[1] === 'GIT_WORK_TREE') scope.workTree = assignment[2];
+    }
+    if (RESERVED.has(rest[0]) || assignment) { rest.shift(); continue; }
     const name = commandName(rest[0]);
     if (!WRAPPERS.has(name)) break;
     if (name === 'command' && ['-v', '-V'].includes(rest[1])) return [];
+    scope.chdir.push(...wrapperDirectories(name, rest.slice(1), WRAPPERS.get(name)));
     if (name === 'env') {
       const split = rest.findIndex(item => item === '-S' || item === '--split-string' || item.startsWith('--split-string='));
       if (split !== -1) {
         const script = rest[split].includes('=') ? rest[split].slice(rest[split].indexOf('=') + 1) : rest[split + 1];
-        findings.push(...classifyShellCommand(script ?? '', depth + 1));
+        findings.push(...classifyShellCommand(script ?? '', depth + 1, [...cd, ...scope.chdir]));
         return [];
       }
     }
@@ -282,13 +308,28 @@ function classifyGh(args, findings, depth) {
   if (positionals[0] === 'alias' && positionals[1] === 'set') findings.push(...classifyShellCommand(`gh ${positionals.slice(3).join(' ')}`, depth + 1).map(item => ({ ...item, alias: true })));
 }
 
-function classifyGit(args, findings) {
+function classifyGit(args, findings, scope, cd) {
   let index = 0;
-  const directories = [];
+  const directories = [...scope.chdir];
+  let gitDir = scope.gitDir, workTree = scope.workTree;
   while (index < args.length && /^-./u.test(args[index])) {
     const arg = args[index];
-    if (GIT_GLOBAL_VALUES.has(arg)) { if (arg === '-C') directories.push(args[index + 1]); index += 2; } else index++;
+    // Git accepts `-C dir` and the attached `-Cdir`; each changes directory in order (NEW6).
+    if (arg.length > 2 && arg.startsWith('-C')) { directories.push(arg.slice(2)); index++; continue; }
+    const attached = /^(--git-dir|--work-tree)=(.*)$/su.exec(arg);
+    if (attached) { if (attached[1] === '--git-dir') gitDir = attached[2]; else workTree = attached[2]; index++; continue; }
+    if (GIT_GLOBAL_VALUES.has(arg)) {
+      const value = args[index + 1];
+      if (arg === '-C') directories.push(value);
+      else if (arg === '--git-dir') gitDir = value;
+      else if (arg === '--work-tree') workTree = value;
+      index += 2;
+    } else index++;
   }
+  // A repository named by --work-tree or --git-dir (relative to the final -C directory)
+  // decides which workspace configuration applies, as it decides where Git pushes from.
+  if (workTree) directories.push(workTree);
+  else if (gitDir) directories.push(gitDir, ...(/(?:^|\/)\.git\/*$/u.test(gitDir) ? ['..'] : []));
   if (args[index] !== 'push') return;
   const rest = args.slice(index + 1);
   const positionals = [];
@@ -304,33 +345,51 @@ function classifyGit(args, findings) {
     positionals.push(arg);
   }
   const remote = remoteOption ?? positionals.shift() ?? null;
-  findings.push({ kind: 'git-push', remote, refspecs: positionals, all, tags, directory: directories.length ? directories : null });
+  findings.push({ kind: 'git-push', remote, refspecs: positionals, all, tags, directory: directories.length ? directories : null, ...(cd.length ? { cd: [...cd] } : {}) });
 }
 
-function classifyWords(command, depth) {
+function classifyWords(command, depth, cd) {
   const findings = [];
-  const words = unwrap(command.words, depth, findings);
+  const scope = { chdir: [], gitDir: null, workTree: null };
+  const words = unwrap(command.words, depth, findings, scope, cd);
   if (!words.length) return findings;
   const name = commandName(words[0]);
+  const inner = [...cd, ...scope.chdir];
   if (SHELLS.has(name)) {
     const flag = words.findIndex((word, index) => index > 0 && /^-[A-Za-z]*c[A-Za-z]*$/u.test(word));
     if (flag !== -1) {
       const script = words.slice(flag + 1).find(word => !/^[-+]/u.test(word));
-      if (script !== undefined) findings.push(...classifyShellCommand(script, depth + 1));
-    } else for (const script of [...command.heredocs, ...command.herestrings]) findings.push(...classifyShellCommand(script, depth + 1));
-  } else if (name === 'eval') findings.push(...classifyShellCommand(words.slice(1).join(' '), depth + 1));
+      if (script !== undefined) findings.push(...classifyShellCommand(script, depth + 1, inner));
+    } else for (const script of [...command.heredocs, ...command.herestrings]) findings.push(...classifyShellCommand(script, depth + 1, inner));
+  } else if (name === 'eval') findings.push(...classifyShellCommand(words.slice(1).join(' '), depth + 1, inner));
   else if (name === 'gh') classifyGh(words.slice(1), findings, depth);
-  else if (name === 'git') classifyGit(words.slice(1), findings);
+  else if (name === 'git') classifyGit(words.slice(1), findings, scope, cd);
   return findings;
 }
 
+// The directory a `cd`/`pushd` command names, when it is a literal target.
+function changedDirectory(words) {
+  const rest = words.filter(word => !/^[A-Za-z_][A-Za-z0-9_]*=/u.test(word));
+  if (!['cd', 'pushd'].includes(commandName(rest[0] ?? ''))) return null;
+  const target = rest.slice(1).find(word => word === '--' ? false : !/^[-+]./u.test(word));
+  return target && target !== '-' && !target.startsWith('~') ? target : null;
+}
+
 // Returns merge/push findings; an empty list means the guard has no opinion.
-export function classifyShellCommand(text, depth = 0) {
+// `cd` carries the directories earlier `cd`/`pushd` commands in the same script
+// (or an enclosing wrapper) named. Shell control flow and subshells are not
+// modelled, so the hook checks a push both with and without them.
+export function classifyShellCommand(text, depth = 0, cd = []) {
   if (typeof text !== 'string' || depth > MAX_DEPTH) return [];
   const { commands, nested } = parseShell(text);
   const findings = [];
-  for (const script of nested) findings.push(...classifyShellCommand(script, depth + 1));
-  for (const command of commands) findings.push(...classifyWords(command, depth));
+  const chain = [...cd];
+  for (const script of nested) findings.push(...classifyShellCommand(script, depth + 1, cd));
+  for (const command of commands) {
+    findings.push(...classifyWords(command, depth, [...chain]));
+    const target = changedDirectory(command.words);
+    if (target) chain.push(target);
+  }
   return findings;
 }
 

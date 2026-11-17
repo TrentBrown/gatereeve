@@ -403,7 +403,13 @@ shell tool calls. It denies, with a reason:
   refspec `:` or `+:` (it may update every protected branch). `--tags` with no
   other refspec pushes only tags and is allowed; with a protected refspec it is
   denied. An unconfigured Git workspace names no protected branch; the
-  configuration `run.start` writes protects the default branch.
+  configuration `run.start` writes protects the default branch. Protection is
+  read from the repository the push acts on: `git -C dir`/`-Cdir`, `--work-tree`,
+  `--git-dir` (a `.git` directory stands for its parent), `GIT_WORK_TREE`/
+  `GIT_DIR` assignments and `env -C`/`--chdir` or `sudo -D`/`--chdir` wrappers
+  choose it. A literal `cd`/`pushd` earlier in the same command may or may not
+  apply (control flow is not modelled), so the push is checked both with and
+  without it.
 
 It follows quoting, `&&`/`||`/`;`/`|`/`&`/newline chains, subshells, `$(...)`
 (including heredoc bodies inside it), backticks, `bash -c`/`sh -c`, `eval` and

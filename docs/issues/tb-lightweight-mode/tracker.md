@@ -156,3 +156,17 @@ Append pull-request review boundary entries here.
   release; this run stays on rc.26, so the FEATURE review may need the same
   waiver.
 - **Advisories carried forward:** N1 (stay-light binds path and rule), A1, A2.
+
+### 2026-11-17 — S9 (PR #114) merged; feature-final review of PR #112, round 2: FAIL
+
+- **S9:** records-only slice (S8 merge and waiver). Codex review PASS; Trent's
+  acceptance and merge authorization; protected merge at `106dbe1`.
+- **Review:** FEATURE candidate on `106dbe1` (R1–R12); CI and verification (11
+  re-executed checks) PASS. Codex (`gpt-6.1-sol`, high): FAIL on R10 with NEW6 —
+  `git -C/path push` (attached `-C`) resolved protection from the hook's working
+  directory, so a push to a protected branch of another repository was admitted.
+  The other eleven criteria pass and the prior blocking fixes remain supported.
+  Advisories A1, A2, N1 carried.
+- **S10:** fixes NEW6, and resolves the other ways a command names the repository
+  (`--git-dir`, `--work-tree`, `GIT_DIR`/`GIT_WORK_TREE`, `env`/`sudo` directory
+  options, a literal `cd`) the same way.

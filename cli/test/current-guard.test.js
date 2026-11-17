@@ -199,6 +199,60 @@ test('pushes to the configured integration or release branch are denied; topic p
   assert.match((await decide('git push --follow-tags')).hookSpecificOutput?.permissionDecisionReason ?? '', /integration branch main/u, '--follow-tags also pushes the branch');
 });
 
+test('a push naming another repository is checked against that repository, in every Git spelling (NEW6)', async t => {
+  const f = await configured(t);
+  const outside = await mkdtemp(join(tmpdir(), 'gatereeve-guard-outside-'));
+  t.after(() => rm(outside, { recursive: true, force: true }));
+  await git(outside, ['init', '-b', 'main']);
+  const decide = command => preToolUse({ cwd: outside, tool_input: { command } }, { env: NO_CLI });
+  const q = JSON.stringify;
+  // From the unconfigured directory itself nothing is protected.
+  assert.deepEqual(await decide('git push origin main'), {});
+  const denied = [
+    `git -C ${q(f.repo)} push origin main`,
+    `git ${q(`-C${f.repo}`)} push origin main`,
+    `git -C ${q(f.root)} -Capp push origin main`,
+    `git ${q(`-C${f.root}`)} -C app push origin production`,
+    `git --git-dir=${q(join(f.repo, '.git'))} push origin main`,
+    `git --git-dir ${q(join(f.repo, '.git'))} push origin main`,
+    `git --work-tree=${q(f.repo)} push origin main`,
+    `git --work-tree ${q(f.repo)} --git-dir ${q(join(outside, '.git'))} push origin production`,
+    `git -C ${q(f.root)} --git-dir app/.git push origin main`,
+    `cd /; git ${q(`-C${f.repo}`)} push origin main`,
+    // Other ways to name the repository: environment, wrapper directories, cd.
+    `GIT_DIR=${q(join(f.repo, '.git'))} git push origin main`,
+    `GIT_WORK_TREE=${q(f.repo)} git push origin main`,
+    `env GIT_DIR=${q(join(f.repo, '.git'))} git push origin main`,
+    `env -C ${q(f.repo)} git push origin main`,
+    `env ${q(`--chdir=${f.repo}`)} git push origin main`,
+    `sudo -D ${q(f.repo)} git push origin production`,
+    `cd ${q(f.repo)} && git push origin main`,
+    `cd ${q(f.root)}; cd app && git push origin production`,
+    `pushd ${q(f.repo)} && git push origin main`,
+    `cd ${q(f.root)} && git -C app push origin main`,
+    `cd ${q(f.repo)} && bash -c 'git push origin main'`,
+    `env -C ${q(f.repo)} sh -c 'git push origin main'`,
+  ];
+  for (const command of denied) {
+    const decision = (await decide(command)).hookSpecificOutput;
+    assert.equal(decision?.permissionDecision, 'deny', command);
+    assert.match(decision.permissionDecisionReason, /(integration branch main|release branch production)/u, command);
+  }
+  for (const command of [`git ${q(`-C${f.repo}`)} push origin topic`, `git --work-tree=${q(f.repo)} push origin topic`, `cd ${q(f.repo)} && git push origin topic`, 'cd - && git push origin main', 'cd && git push origin main']) {
+    assert.deepEqual(await decide(command), {}, command);
+  }
+  assert.deepEqual(classifyShellCommand('git -C/w -Crepo -cpush.default=current push')[0].directory, ['/w', 'repo']);
+  assert.deepEqual(classifyShellCommand('git --git-dir=/w/repo/.git push')[0].directory, ['/w/repo/.git', '..']);
+  assert.deepEqual(classifyShellCommand('git --git-dir=/w/bare.git push')[0].directory, ['/w/bare.git']);
+  assert.deepEqual(classifyShellCommand('git -C /w --work-tree repo --git-dir /x/.git push')[0].directory, ['/w', 'repo']);
+  assert.deepEqual(classifyShellCommand('GIT_DIR=/e/.git git --git-dir=/f/.git push')[0].directory, ['/f/.git', '..'], 'the option overrides the environment');
+  assert.deepEqual(classifyShellCommand('env -C /w GIT_WORK_TREE=repo git -C sub push')[0].directory, ['/w', 'sub', 'repo']);
+  assert.deepEqual(classifyShellCommand('sudo -C 3 -D/w git push')[0].directory, ['/w'], 'sudo -C closes descriptors; -D changes directory');
+  const sequenced = classifyShellCommand('cd /a && (cd b; git push origin main)');
+  assert.deepEqual([sequenced[0].directory, sequenced[0].cd], [null, ['/a', 'b']]);
+  assert.equal(classifyShellCommand('git push origin main')[0].cd, undefined);
+});
+
 test('an unconfigured Git workspace names no protected branches', async t => {
   const root = await mkdtemp(join(tmpdir(), 'gatereeve-guard-legacy-'));
   t.after(() => rm(root, { recursive: true, force: true }));

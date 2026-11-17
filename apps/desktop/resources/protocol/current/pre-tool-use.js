@@ -39,20 +39,29 @@ async function protectedBranches(cwd, contextFor) {
 
 async function pushReasons(pushes, cwd, runtime, contextFor) {
   const reasons = [];
+  const walk = (base, steps) => (steps ?? []).reduce((at, next) => resolve(at, next ?? '.'), base);
   for (const push of pushes) {
-    const directory = push.directory ? push.directory.reduce((base, next) => resolve(base, next ?? '.'), cwd) : cwd;
-    const { branches } = await protectedBranches(directory, contextFor);
-    if (!branches.size) continue;
-    // The current branch matters only for an implicit destination or HEAD/@.
-    const needsCurrent = !push.all && (push.refspecs.length === 0 || push.refspecs.some(spec => /(?:^\+?|:)(?:HEAD|@)$/u.test(spec)));
-    const destinations = pushDestinations(push, needsCurrent ? await currentBranch(directory, runtime.gitExecutable ?? 'git') : null);
-    for (const [branch, role] of branches) {
-      if (destinations.some(destination => destinationMatches(destination, branch))) {
-        reasons.push(`git push would update the configured ${role} branch ${branch}; it changes only through a reviewed PR and the protected merge.`);
-      }
-    }
+    // Explicit Git and wrapper directories are exact. An earlier `cd` may or may not
+    // apply (control flow and subshells are not modelled), so both are checked.
+    const directories = [...new Set([walk(cwd, push.directory), ...(push.cd?.length ? [walk(walk(cwd, push.cd), push.directory)] : [])])];
+    for (const directory of directories) reasons.push(...await directoryReasons(push, directory, runtime, contextFor));
   }
   return [...new Set(reasons)];
+}
+
+async function directoryReasons(push, directory, runtime, contextFor) {
+  const reasons = [];
+  const { branches } = await protectedBranches(directory, contextFor);
+  if (!branches.size) return reasons;
+  // The current branch matters only for an implicit destination or HEAD/@.
+  const needsCurrent = !push.all && (push.refspecs.length === 0 || push.refspecs.some(spec => /(?:^\+?|:)(?:HEAD|@)$/u.test(spec)));
+  const destinations = pushDestinations(push, needsCurrent ? await currentBranch(directory, runtime.gitExecutable ?? 'git') : null);
+  for (const [branch, role] of branches) {
+    if (destinations.some(destination => destinationMatches(destination, branch))) {
+      reasons.push(`git push would update the configured ${role} branch ${branch}; it changes only through a reviewed PR and the protected merge.`);
+    }
+  }
+  return reasons;
 }
 
 async function mergeReason(event) {

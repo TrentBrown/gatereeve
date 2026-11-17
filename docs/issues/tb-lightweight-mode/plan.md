@@ -213,7 +213,8 @@ delegated.
 | S7 | `tb-lightweight-mode-07-final-records` | Records only (S6 merge) | S6 |
 | S8 | `tb-lightweight-mode-08-workspace-config` | P10 | S1–S7 |
 | S9 | `tb-lightweight-mode-09-final-records` | Records only (S8 merge) | S8 |
-| Final | `tb-lightweight-mode` → `main` | Whole-feature `FEATURE` review | S1–S9 |
+| S10 | `tb-lightweight-mode-10-guard-attached-directory` | P7 (NEW6 guard fix) | S9 |
+| Final | `tb-lightweight-mode` → `main` | Whole-feature `FEATURE` review | S1–S10 |
 
 ## Verification
 
