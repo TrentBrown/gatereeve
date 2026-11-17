@@ -126,12 +126,12 @@ Covers:
 
 ## I-9 - Guard: Git spellings that name another repository
 
-- **Status:** in-progress
+- **Status:** merged
 - **Estimate:** unknown
 - **Plan steps:** P7 (guard)
 - **Rubric criteria:** R10
 - **Depends on:** I-4, I-8
-- **PR:** -
+- **PR:** #115 (merged 2026-11-17, `eac3cf6`; review gate waived after nine rounds)
 
 Covers:
 - NEW6 from the second feature-final review: `git -C/path push` (attached `-C`)
