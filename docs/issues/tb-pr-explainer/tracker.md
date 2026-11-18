@@ -9,13 +9,13 @@
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|--------|-------|
-| R1 | Replacement and portable identified invocation | NOT YET | - | Planned P1-P4 / I-1-I-3 |
-| R2 | Reviewer-oriented grounded explanation | NOT YET | - | Planned P1/P3 / I-1/I-2 |
-| R3 | Useful honest visuals and comparisons | NOT YET | - | Planned P1/P3 / I-1/I-2 |
-| R4 | Discover and qualify existing visual evidence | NOT YET | - | Planned P1/P3 / I-1/I-2 |
-| R5 | Evidence integrity and invocation boundaries | NOT YET | - | Planned P1/P3/P4 / I-1-I-3 |
-| R6 | Portable usable checked artifact | NOT YET | - | Planned P1/P3/P4 / I-1-I-3 |
-| R7 | Governed identity and bounded integration | NOT YET | - | Planned P1-P4 / I-1-I-3 |
+| R1 | Replacement and portable identified invocation | PASS | self-check | 28-skill contracts, dual native discovery; exact real comparisons. |
+| R2 | Reviewer-oriented grounded explanation | PASS | self-check | UI42 and PR101 HTML checked against raw source; 64 references resolved. |
+| R3 | Useful honest visuals and comparisons | PASS | self-check | Aligned UI/source mechanism comparisons; fixture before/after; no fabricated captures. |
+| R4 | Discover and qualify existing visual evidence | PASS | self-check | Ignored non-default report and relative PNG found; unrelated failed-base capture excluded. |
+| R5 | Evidence integrity and invocation boundaries | PASS | self-check | Independent action logs separate source, execution, author claims and gaps; no product execution. |
+| R6 | Portable usable checked artifact | PASS | self-check | All three pages 1280/390 widths; keyboard controls checked; self-contained assets. |
+| R7 | Governed identity and bounded integration | PASS | self-check | Pinned caller PR101 and destination honored; narrow classifier regression; no gate change. |
 
 ## Review Log
 
@@ -28,3 +28,5 @@
 Full rigor, supervised autonomy, run pr-explainer-start-full-20261118. The human authorized the prepared implementation commitments and later requested full autonomy. GateReeve refused the delegated dial because GitHub reports main as unprotected. Implementation continues under the actual supervised dial and the existing explicit implementation authority. No host protection settings were changed.
 
 The replacement skill and references are implemented; verification and example generation are in progress. Merge, release, deployment, active installation, capture enhancements, and mandatory workflow enforcement remain excluded.
+
+Implementation self-checks above are not GateReeve acceptance. Independent consolidated review remains pending actual broad Verification. See [verification record](evidence/verification.md), [browser outcomes](evidence/artifact-browser-checks.txt), and trial HTML text/evidence links there. Actual HTML files remain in the recorded task-owned trial directories.

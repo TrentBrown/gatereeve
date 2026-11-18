@@ -18,7 +18,7 @@ Implement pr-explainer and focused references. Remove the old skill, update curr
 
 ## I-2 - Exercise reviewer artifacts and evidence discovery
 
-- **Status:** in-progress
+- **Status:** in-review
 - **Estimate:** unknown
 - **Plan steps:** P3
 - **Rubric criteria:** R1-R7
@@ -29,7 +29,7 @@ Generate HTML for permitted fixed real changes and clearly labeled discovery fix
 
 ## I-3 - Complete validation and independent acceptance preparation
 
-- **Status:** open
+- **Status:** in-progress
 - **Estimate:** unknown
 - **Plan steps:** P4
 - **Rubric criteria:** R1-R7
