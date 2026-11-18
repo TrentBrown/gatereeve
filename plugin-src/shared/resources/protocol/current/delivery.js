@@ -86,8 +86,13 @@ export async function resumeDelivery(core, input, operation) {
   const authorized = (await qualifyingDecisions(core, state, action ? 'authorize-merge' : 'accept', state.candidate.hash, candidate))
     .some(item => !action || identity(item.action) === identity(action));
   // Delegated autonomy covers a SLICE PR into the integration branch (AC5).
-  if (!authorized && action && !input.grant && state.dials.autonomy.value === 'delegated' && action.deliveryTarget === 'integration') {
+  if (!authorized && action && !input.grant && ['delegated', 'autonomous'].includes(state.dials.autonomy.value) && action.deliveryTarget === 'integration') {
     await request('delegation.apply', { action });
+  } else if (!authorized && action?.deliveryTarget === 'release' && state.dials.autonomy.value === 'autonomous') {
+    const { requirePublishedReview } = await import('./publication.js');
+    await requirePublishedReview(core, action);
+    return status('ready-for-human', 'The final PR has current review evidence and published risks. Its release merge needs the per-PR human instruction.', 'human.authorize-merge',
+      { action, candidate: state.candidate, review: check.outcomes.find(outcome => outcome.id === 'review') });
   } else if (!authorized) {
     let grant = input.grant;
     if (!grant) for (const item of [...state.decisions].reverse()) {

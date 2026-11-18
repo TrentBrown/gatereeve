@@ -1,3 +1,4 @@
+import { selection, pairExistingEvaluator } from './helpers/paired-review-fixture.js';
 // Synthetic evaluator transport tests; these are not independent product reviews.
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -80,12 +81,13 @@ test('replacement coverage is qualified in the existing review and cannot be sel
   assert.equal((await f.core.store.json(prior[0])).outcome, 'FAIL');
 });
 
-test('one fresh assessment consolidates planning/code/spec and administrative gates need no launches', async t => {
+test('two fresh complete assessments consolidate planning/code/spec and administrative gates need no launches', async t => {
   const f = await ready(t); await verify(f);
   const count = evaluator(f, output=>{for(const row of output.verdicts)row.dimensions=['code','requirements','evidence','scope','findings'].map(name=>({name,outcome:'PASS',evidence:'Actual fixture source and receipts'}));});
-  const batch = await f.request('gate.execute', { gates: ['review'], configuration: reviewConfig });
-  for (const ref of batch.event.payload.results) { const report = await f.core.store.json(ref); assert.equal(report.outcome, 'PASS', report.summary); }
-  assert.equal(count(), 1);
+  await f.request('review.select', selection()); pairExistingEvaluator(f);
+  const batch = await f.request('review.execute');
+  for (const ref of batch.event.payload.outcomes.flatMap(row => row.results)) { const report = await f.core.store.json(ref); assert.equal(report.outcome, 'PASS', report.summary); }
+  assert.equal(count(), 2);
   const check = await f.request('milestone.check', { name: 'acceptance' });
   assert.equal(check.allowed, true, check.missing.join('; '));
   for (const gate of ['context', 'packet']) assert.equal(check.outcomes.find(item => item.id === gate).administrative.outcome, 'PASS');

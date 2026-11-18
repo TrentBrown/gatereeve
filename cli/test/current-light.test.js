@@ -1,3 +1,4 @@
+import { selection, pairExistingEvaluator } from './helpers/paired-review-fixture.js';
 import assert from 'node:assert/strict';
 import { isolatedTests } from './helpers/isolated-tests.js';
 import { mkdtemp, mkdir, writeFile, readFile, rm, realpath, readdir } from 'node:fs/promises';
@@ -95,7 +96,8 @@ async function review(f, operationId = 'review-one', { revision = null, ...optio
 async function gatesToAcceptance(f) {
   await f.request('candidate.ready', {}, 'ready');
   const refs = [...(await verify(f)).event.payload.results];
-  refs.push((await review(f)).ref);
+  evaluator(f); pairExistingEvaluator(f); await f.request('review.select', selection(), 'select');
+  refs.push(...(await f.request('review.execute', {}, 'review-pair')).event.payload.outcomes.flatMap(row => row.results));
   refs.push(...(await f.request('gate.execute', { gates: ['context'] }, 'gate-context')).event.payload.results);
   await f.request('gate.execute', { gates: ['packet'], consumed: refs }, 'gate-packet');
   return refs;

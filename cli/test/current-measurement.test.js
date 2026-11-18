@@ -142,6 +142,26 @@ test('every projected observation carries the run dials; decisions carry their a
   assert.deepEqual(value.authorities.map(row => [row.name, row.observations]), [['delegated-evaluator', 2], ['human-confirmed', 2]]);
 });
 
+test('autonomous projection preserves its mode and judgment basis without exporting mandate text', async t => {
+  const store = await metricsStore(t), events = journal();
+  events[4].payload.value = 'autonomous';
+  events[4].payload.mandate = { goal: SECRET, constraints: [SECRET] };
+  for (const n of [6, 10]) {
+    events[n].payload.authority.kind = 'autonomous-evaluator';
+    events[n].payload.authority.basis = 'autonomous-judgment';
+    events[n].payload.authority.judgment = { reason: SECRET, mandateRebuttal: { goalEvidence: SECRET } };
+  }
+  events[12].payload.previous = 'autonomous';
+  await projectWorkflow(syntheticCore(events), store);
+  const value = await report(store);
+  assert.equal(await store.captureIncomplete(), false);
+  const decision = byEvent(value.observations, 7)[0];
+  assert.deepEqual([decision.autonomy, decision.authorityKind, decision.authorityBasis], ['autonomous', 'autonomous-evaluator', 'autonomous-judgment']);
+  assert.equal(value.measurement.handBacks.total, 1);
+  assert.ok(value.autonomies.some(row => row.name === 'autonomous'));
+  assert.ok(!JSON.stringify(value.observations).includes(SECRET));
+});
+
 test('decisions applied under a standing grant are measured apart from per-decision human acts', async t => {
   const store = await metricsStore(t);
   const at = n => new Date(Date.parse('2026-11-16T00:00:00Z') + n * 1000).toISOString();
@@ -343,7 +363,7 @@ test('new operations are measured under their own labels', async t => {
   assert.equal((await store.put({ id: 'unknown', project: 'gatereeve', label: 'made.up', category: 'delivery', startedAt: Date.now(), durationMs: 1, outcome: 'PASS' })).label, 'delivery');
 });
 
-test('CLI, desktop, MCP and plugin copies match and use contract gatereeve/current/7', async t => {
+test('CLI, desktop, MCP and plugin copies match and use contract gatereeve/current/8', async t => {
   const canonical = join(repositoryRoot, 'plugin-src/shared/resources');
   // Compare every copy this checkout ships. Partial images (the CI container copies
   // only apps/desktop/scripts) omit the desktop app; wherever the desktop package
@@ -366,7 +386,7 @@ test('CLI, desktop, MCP and plugin copies match and use contract gatereeve/curre
   }
   for (const root of [canonical, ...copies]) {
     const { CONTRACT } = await import(join(root, 'protocol/current/contracts.js'));
-    assert.equal(CONTRACT, 'gatereeve/current/7', root);
+    assert.equal(CONTRACT, 'gatereeve/current/8', root);
   }
   // MCP returns the shared service's report, measurement included.
   const store = await metricsStore(t);

@@ -41,8 +41,16 @@ export async function readSafe(root, path) {
     requireThat(info.dev === before.dev && info.ino === before.ino, 'Evidence path changed during capture');
     const bytes = await handle.readFile();
     const after = await handle.stat();
+    // Exclusive publication links an immutable object then removes its private
+    // staging name. That removal changes ctime/nlink without changing bytes;
+    // another parallel reviewer can already be reading the published object.
+    // Accept only this narrow transition, and only for a hash-verified object.
+    const objectHash = /^\.gatereeve-current\/objects\/([a-f0-9]{64})$/u.exec(path)?.[1];
+    const publicationUnlink = objectHash && info.nlink > after.nlink && after.nlink === 1
+      && info.mode === after.mode && info.uid === after.uid && info.gid === after.gid
+      && digest(bytes) === `sha256:${objectHash}`;
     requireThat(info.size === bytes.length && info.size === after.size && info.mtimeMs === after.mtimeMs
-      && info.ctimeMs === after.ctimeMs, 'Evidence changed during capture');
+      && (info.ctimeMs === after.ctimeMs || publicationUnlink), 'Evidence changed during capture');
     const checked = await components(root, path);
     const current = await lstat(checked);
     requireThat(current.dev === info.dev && current.ino === info.ino, 'Evidence path replaced during capture');

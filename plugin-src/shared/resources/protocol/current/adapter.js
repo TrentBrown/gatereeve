@@ -53,6 +53,9 @@ function snapshotActions(entry, cwd, resume) {
     action('status', 'status', 'Inspect exact current commitments and proof'),
     action('work', 'next', 'Choose work within the authorized phase'),
     action('evaluate', 'gate.execute', 'Request checks explicitly; readiness launches none'),
+    action('select-reviewers', 'review.select', 'Select two available daily-driver reviewer providers and record discovery'),
+    action('review-boundary', 'review.execute', 'Run both independent boundary reviewers in parallel'),
+    action('adjudicate-review', 'review.adjudicate', 'With autonomous authority, record eligible residual risk and stopping rationale'),
     action('decide', 'human.decide', 'Record observed human decisions and scoped exceptions'),
     action('apply-authorization', 'authorization.apply', 'Apply recorded standing permission after all required gates pass'),
     action('review-planning', 'planning.review', 'Request an independent planning review (design, spec or brief) for a delegated decision'),
@@ -73,7 +76,7 @@ function runBlockers(data) {
   const tripwires = tripwireSummary(data);
   if (data.dials?.rigor?.value === 'light' && tripwires?.hits?.length && !tripwires.coveredByStayLight) blockers.push({ type: 'tripwire',
     message: `${tripwires.hits.length} tripwire hit(s) (${[...new Set(tripwires.hits.map(hit => hit.category))].join(', ')}) block acceptance of this light run. `
-      + (data.dials.autonomy.value === 'delegated' ? 'Under delegation the run escalates to full rigor.'
+      + (['delegated', 'autonomous'].includes(data.dials.autonomy.value) ? 'Under unattended authority the run escalates to full rigor.'
         : `Stop for the human: escalate to full (run.set-dial rigor full) or record their stay-light decision bound to subject ${tripwires.subject}.`) });
   // Pending until a human decision is observed after the hand-back.
   if (data.handBack) blockers.push({ type: 'hand-back',
@@ -148,10 +151,11 @@ export async function readCurrent(context, kind, id, runtime = {}) {
   const { state, events } = await core.state();
   if (kind === 'events') return { schemaVersion: 1, kind, id: state.runId, data: { events } };
   if (kind === 'result') {
-    const ref = state.results.find(item => item.hash === id);
+    const ref = state.results.find(item => item.hash === id) ?? state.planningReviews.find(item => item.result.hash === id)?.result;
     requireThat(ref, 'Unknown current result');
     const result = await core.store.json(ref);
-    return { schemaVersion: 1, kind, id, data: { result, input: await core.store.json(result.input), receipt: await core.store.json(result.receipt) } };
+    return { schemaVersion: 1, kind, id, data: { result, input: result.input ? await core.store.json(result.input) : null, receipt: await core.store.json(result.receipt),
+      ...(result.kind === 'planning-review' ? { output: await core.store.json(result.output) } : {}) } };
   }
   throw new Error('Unsupported current detail kind');
 }

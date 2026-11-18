@@ -1,7 +1,9 @@
-import { requireThat } from './contracts.js';
+import { requireThat, latestImplementation, currentDesignApproval } from './contracts.js';
 import { checkCandidate, briefBased } from './evidence.js';
 import { configuredGit } from './authorization.js';
 import { gh, remoteName } from './actions.js';
+import { boundaryReviews } from './boundary-review.js';
+import { currentAdjudication } from './autonomous.js';
 
 // The independent review summary is published into a delimited section of the
 // PR description (spec AC6/R9). The section is rendered deterministically from
@@ -22,17 +24,15 @@ const block = value => normalize(value).replace(/<!--/gu, '&lt;!--').replace(/--
 // UNAVAILABLE result is published as UNAVAILABLE; an older PASS or FAIL is
 // never presented in its place.
 export async function currentReview(core, state, candidate) {
-  const memo = new Map();
-  for (const ref of [...state.results].reverse()) {
-    let raw;
-    try { raw = await core.store.json(ref); } catch { continue; }
-    if (raw.gate !== 'review') continue;
-    try {
-      const result = await core.currentResult(ref, candidate, state, new Set(), memo);
-      return { ref, result, receipt: await core.store.json(result.receipt) };
-    } catch { /* Stale or unqualified review cannot be presented as current. */ }
-  }
-  return null;
+  let pair;
+  try { pair = await boundaryReviews(core, state, candidate, new Map(), { allowIncomplete: true }); }
+  catch { return null; }
+  const adjudication = pair.members.every(member => member.ref) ? await currentAdjudication(core, state, pair) : null;
+  const active = [latestImplementation(state), candidate.requirements?.['design.md'] ? currentDesignApproval(state, candidate.requirements['design.md'].hash) : null];
+  const planningJudgments = [...new Map(active.filter(item => item?.authority?.basis === 'autonomous-judgment').map(item => [item.event, item])).values()];
+  const ref = await core.store.putJson({ kind: 'boundary-review-summary', candidate: state.candidate,
+    pair: pair.identity, selection: pair.selection, reviews: pair.members.map(member => member.ref), outcome: pair.outcome, adjudication, planningJudgments });
+  return { ref, pair, adjudication, planningJudgments, result: { outcome: pair.outcome, summary: pair.summary }, receipt: {} };
 }
 const OUTCOME_NOTE = {
   PASS: '',
@@ -40,6 +40,44 @@ const OUTCOME_NOTE = {
   UNAVAILABLE: ' (the latest independent review reached no conclusion; this is not a PASS, and no earlier result is shown in its place)',
 };
 export function renderSummary({ candidateRef, candidate, pin, review }) {
+  if (review.pair) {
+    const { pair, adjudication } = review;
+    const lines = [SUMMARY_START, '### GateReeve independent reviews', '',
+      `- **Outcome:** ${pair.outcome}${adjudication ? ' — autonomous adjudication accepts the documented residual risk; original reviewer verdicts are preserved' : ''}`,
+      `- **Reviewed head:** \`${pin.alias}\` \`${pin.head}\` (base \`${pin.base}\`, target \`${pin.target}\`)`,
+      `- **Candidate:** \`${candidateRef.hash}\` (${candidate.scope}; ${briefBased(candidate) ? 'light rigor, brief basis' : 'full rigor, rubric basis'})`,
+      `- **Selection:** ${inline(pair.selection.selection.reason)}`];
+    for (const member of pair.members) {
+      lines.push('', `**${inline(member.reviewer.modelProvider)} — ${inline(member.reviewer.model)} (${inline(member.reviewer.reasoningEffort)} effort): ${member.result.outcome}**`,
+        `- **Evidence:** ${member.ref ? `\`${member.ref.hash}\`` : 'UNAVAILABLE — no current receipt'}`,
+        `- **Fresh context:** ${member.receipt.evaluator?.contextId ? `\`${inline(member.receipt.evaluator.contextId)}\`` : 'UNAVAILABLE'}`,
+        block(member.result.summary));
+      for (const dimension of member.result.dimensions ?? []) lines.push(`- ${inline(dimension.name)}: ${inline(dimension.outcome)} — ${inline(dimension.evidence)}`);
+      for (const criterion of member.result.criteria ?? []) lines.push(`- ${inline(criterion.id)}: ${inline(criterion.outcome)} — ${inline(criterion.evidence)}`);
+      if (member.result.mandateAssessment) lines.push(`- **Mandate assessment:** ${inline(member.result.mandateAssessment.outcome)} — ${inline(member.result.mandateAssessment.evidence)}`);
+      for (const finding of member.result.findings ?? []) lines.push(`- ${finding.blocking ? 'Blocking' : 'Nonblocking'} \`${inline(finding.id)}\` (${inline(finding.criterion)}, \`${inline(finding.path)}\`): ${inline(finding.evidence)}`);
+      for (const disposition of member.result.dispositions ?? []) lines.push(`- Finding \`${inline(disposition.id)}\`: ${inline(disposition.status)} — ${inline(disposition.evidence)}`);
+      if (member.qualification) lines.push(`- **Qualification limit:** ${inline(member.qualification)}`);
+    }
+    if (adjudication) {
+      lines.push('', '**Autonomous adjudication**', block(adjudication.reason));
+      if (adjudication.stopReason) lines.push(`- **Iteration stopping reason:** ${inline(adjudication.stopReason)}`);
+      if (adjudication.mandateRebuttal) {
+        lines.push(`- **Agent mandate rebuttal:** ${inline(adjudication.mandateRebuttal.goalEvidence)}`);
+        for (const constraint of adjudication.mandateRebuttal.constraints) lines.push(`- Fixed constraint ${constraint.index}: ${inline(constraint.evidence)}`);
+      }
+      for (const disposition of adjudication.dispositions) lines.push(`- \`${inline(disposition.findingId)}\` ${inline(disposition.outcome)}: ${inline(disposition.reason)} Evidence: ${inline(disposition.evidence)} Residual risk: ${inline(disposition.residualRisk)}`);
+    }
+    for (const decision of review.planningJudgments ?? []) {
+      lines.push('', '**Autonomous planning judgment**', `- **Original independent planning outcome:** ${inline(decision.authority.evaluation.outcome)}`,
+        block(decision.authority.evaluation.summary), block(decision.authority.judgment.reason));
+      for (const finding of decision.authority.evaluation.findings ?? []) lines.push(`- Original finding \`${inline(finding.id)}\`: ${inline(finding.evidence)}`);
+      for (const disposition of decision.authority.judgment.dispositions) lines.push(`- \`${inline(disposition.findingId)}\` ${inline(disposition.outcome)}: ${inline(disposition.reason)} Evidence: ${inline(disposition.evidence)} Residual risk: ${inline(disposition.residualRisk)}`);
+      if (decision.authority.judgment.stopReason) lines.push(`- **Planning iteration stopping reason:** ${inline(decision.authority.judgment.stopReason)}`);
+    }
+    lines.push('', '_Published from both retained independent perspectives and any separately recorded adjudication._', SUMMARY_END);
+    return lines.join('\n');
+  }
   const { result, receipt, ref } = review;
   const evaluator = receipt.evaluator ?? {};
   const lines = [SUMMARY_START, '### GateReeve independent review', '',

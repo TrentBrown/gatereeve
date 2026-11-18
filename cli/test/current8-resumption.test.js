@@ -1,0 +1,34 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
+import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { CurrentStore } from '../../plugin-src/shared/resources/protocol/current/store.js';
+import { CONTRACT, identity } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
+import { DATABASE_NAME } from '../../plugin-src/shared/resources/protocol/current/workflow-database.js';
+
+test('current/7 activation remains provenance and supplies no current/8 review or authority', async t => {
+  const home = await mkdtemp(join(tmpdir(), 'gatereeve-current8-'));
+  t.after(() => rm(home, { recursive: true, force: true }));
+  const area = join(home, '.gatereeve-current'); await mkdir(area);
+  const oldPath = join(area, 'workflow.sqlite.current-7');
+  const old = new DatabaseSync(oldPath);
+  old.exec('CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT');
+  old.prepare('INSERT INTO metadata VALUES (?,?)').run('contract', 'gatereeve/current/7');
+  old.prepare('INSERT INTO metadata VALUES (?,?)').run('active', JSON.stringify({ contract: 'gatereeve/current/7', runId: 'old-single-review' }));
+  old.close();
+  const before = await readFile(oldPath);
+  const store = await CurrentStore.at(home);
+  await assert.rejects(store.active(), /resume-current/);
+  const provenance = await store.activationHead();
+  assert.match(provenance.bytes.toString(), /old-single-review/);
+  await store.append('new-dual-review', 0, 'STARTED', { featureId: 'feature', implementers: ['implementer'], optionalGates: [] }, { id: 'start', hash: identity('start') });
+  await store.supersedeActive('new-dual-review', provenance);
+  assert.equal((await store.active()).contract, CONTRACT);
+  assert.equal((await store.active()).runId, 'new-dual-review');
+  assert.deepEqual(await store.events('old-single-review'), []);
+  assert.equal((await store.events('new-dual-review')).length, 1);
+  assert.deepEqual(await readFile(oldPath), before);
+  assert.equal(DATABASE_NAME, 'workflow.sqlite.current-8');
+});

@@ -29,7 +29,7 @@ def governed(rigor: str, autonomy: str, *, phase: str = "IMPLEMENTING", **extra:
     """Adapter status data for a current run, shaped like currentSnapshot()."""
     data: dict[str, object] = {
         "schemaVersion": 1,
-        "contract": "gatereeve/current/7",
+        "contract": "gatereeve/current/8",
         "mode": "governed",
         "featureId": "fixture-feature",
         "current": {"phase": phase, "paused": False, "pendingDecisions": []},
@@ -51,7 +51,7 @@ def governed(rigor: str, autonomy: str, *, phase: str = "IMPLEMENTING", **extra:
 
 NO_RUN = {
     "schemaVersion": 1,
-    "contract": "gatereeve/current/7",
+    "contract": "gatereeve/current/8",
     "mode": "current-entry",
     "featureId": "fixture-feature",
     "current": None,

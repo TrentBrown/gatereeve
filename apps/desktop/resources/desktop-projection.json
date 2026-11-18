@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:c34e50b579fa61bc2cc06b9315fcf248d2efacf3d3364767e26513d35bf03063",
-  "contract": "gatereeve/current/7",
-  "contractSha256": "dae5f4a795bb9e5486b2994af34b05511cd62df27de41720d7772beb7f43bb59",
+  "protocolHash": "sha256:0b0f44918c1de2fd0bdfb0f0e01d4fba6b637973c088f00b360e4cd1c0f4d763",
+  "contract": "gatereeve/current/8",
+  "contractSha256": "83710584359e6c5032493af4cde03e539d4dc90f2b8603b7a29fc00fd13c65d2",
   "files": [
     {
       "path": "agent-workflow.js",
@@ -27,13 +27,23 @@
     },
     {
       "path": "current/adapter.js",
-      "size": 17265,
-      "sha256": "148862751b3ec9c6f3b965d2349c51e72e98b7e1406b81d42ba38916458924b7"
+      "size": 17859,
+      "sha256": "bee170e1bf9c71400bfec85b029201cb977f5f2a57333dd6a620a6ce636a66df"
     },
     {
       "path": "current/authorization.js",
-      "size": 15477,
-      "sha256": "8dd03e9c894f365c3035308439b55143de9fbca8dce213516b34a2414690d7ed"
+      "size": 15607,
+      "sha256": "53dfab2600247d360b2cc9fbeb424e7dc7b5f44eaeb29f6ac25bffb448398ef8"
+    },
+    {
+      "path": "current/autonomous.js",
+      "size": 7341,
+      "sha256": "b91b92f99ff4bfdf7e357cbe28f85317ae01be05518d0393eff816c549b549bf"
+    },
+    {
+      "path": "current/boundary-review.js",
+      "size": 8187,
+      "sha256": "dd3e8307d5eefd99050f74b26d0f3d18982b1ff8cd3860151cd0bc2a17148b91"
     },
     {
       "path": "current/command-guard.js",
@@ -42,13 +52,13 @@
     },
     {
       "path": "current/contracts.js",
-      "size": 20422,
-      "sha256": "dae5f4a795bb9e5486b2994af34b05511cd62df27de41720d7772beb7f43bb59"
+      "size": 23290,
+      "sha256": "83710584359e6c5032493af4cde03e539d4dc90f2b8603b7a29fc00fd13c65d2"
     },
     {
       "path": "current/core.js",
-      "size": 92203,
-      "sha256": "64dae935d66341b7945fb2b04356cfb9318b156d9b2b5adf030407e316c62926"
+      "size": 97090,
+      "sha256": "e5b56b4b21f2d159be56ba4c32676f6ea643e1b0ac5698011b7b48be0f3f4c23"
     },
     {
       "path": "current/coverage.js",
@@ -57,13 +67,13 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 29576,
-      "sha256": "4c0d00e69ffff212afb7576cf3f0948ad78d66fc25f3a64fef6e30bb59dd8775"
+      "size": 35132,
+      "sha256": "b170f14814a3629f7efe04fd236ced1dc3446cce4ce0d9765781e527c549ad8f"
     },
     {
       "path": "current/delivery.js",
-      "size": 7321,
-      "sha256": "76b8ae55fca66e1250a131f2d36a55d359ae964a8ab1c5e3a61b4a673a98ad86"
+      "size": 7872,
+      "sha256": "7f03d14184df1b40d0ffc42a94e0d5371784c5b1449461f372db1bfab5fca1dd"
     },
     {
       "path": "current/diagnostics.js",
@@ -72,8 +82,8 @@
     },
     {
       "path": "current/entry-point.js",
-      "size": 4701,
-      "sha256": "d9df20e47369f6575d9ed6d602169e6b6ac0c6aeab8f50667f7497102e6ded1a"
+      "size": 4925,
+      "sha256": "5ce0cb9facb6be1b3ac9b3365c8f6ed5cfc5a8f398f631cc89149556dc7e444c"
     },
     {
       "path": "current/environment.js",
@@ -87,8 +97,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 70224,
-      "sha256": "4acd7c985ba5ef52952c4d05f25e1050083dd88fe3fdcb321c5f37e09df537e2"
+      "size": 73774,
+      "sha256": "5750dbdfeea9e294653c1d0c3ab353cab0d4fbabf74395856a26889c48a5ab10"
     },
     {
       "path": "current/generated-inputs.js",
@@ -127,13 +137,18 @@
     },
     {
       "path": "current/publication.js",
-      "size": 8848,
-      "sha256": "ca8711d6fdad7bdfeff8742ba343dd325d969c9e4fc4762f8300eaa2a251a00b"
+      "size": 13629,
+      "sha256": "98b965a1290b2ca8eb07c7949e50edb748b3f6a6d37ffcd5f567eb8144f6979b"
     },
     {
       "path": "current/review-history.js",
       "size": 5592,
       "sha256": "e0f63ca54a61b67806833045b3c12b49d73c3d488bae9a06c5ce7d241053cb45"
+    },
+    {
+      "path": "current/reviewer-selection.js",
+      "size": 3581,
+      "sha256": "445358573c9e079e278bbd278c36121ac1d2e38da34b2db2ab6bfe733aca4dd8"
     },
     {
       "path": "current/runner-profile.js",
@@ -152,8 +167,8 @@
     },
     {
       "path": "current/store.js",
-      "size": 15506,
-      "sha256": "a9b3313466187d209ffc98cb250d00852ca2bdfbbfbd1f2af7226b3b76771664"
+      "size": 16162,
+      "sha256": "d2172190c9cc4d5672fbe5c89171bfe517569be79ce42487e46c7c11821401bf"
     },
     {
       "path": "current/tripwires.js",
@@ -167,8 +182,8 @@
     },
     {
       "path": "current/workflow-database.js",
-      "size": 7646,
-      "sha256": "379a4cf3cef8eb3ebc1199f29872868a675b3dbd85e246ababc5e91494ff57bb"
+      "size": 7675,
+      "sha256": "fbd0c0f29008f63babc387749007c833dc87c99eacc555e84c5007d123473124"
     },
     {
       "path": "current/workspace.js",
