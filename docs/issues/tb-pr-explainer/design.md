@@ -24,7 +24,9 @@ When a governed caller supplies a candidate, use its exact source identities, re
 
 ### An explanation organized around reviewer understanding
 
-The artifact addresses five responsibilities, with page structure and depth adapted to the actual change:
+Begin with a clearly labeled executive summary: a substantive, plainspoken overview of the problem, meaningful change, high-level mechanism and scope, and the most consequential evidence limit or reviewer consideration where material. A reader should understand the central story without first opening code details. Consider one or two overview diagrams where they provide the clearest orientation; this is guidance, not a figure quota.
+
+After that opening, the artifact addresses five responsibilities, with page structure and depth adapted to the actual change:
 
 - **Purpose and scope:** explain the problem, intended behavior, and portion of the feature delivered by this PR. Use the design, plan, specification, issue, and decision records when available. Identify inferred intent and missing or conflicting sources.
 - **Behavior:** show before and after where useful. Bug fixes show the problematic and corrected case; refactors explain structural changes and the intended behavioral equivalence; API, data, configuration, and infrastructure changes use the corresponding contracts, transitions, or operational effects. An explanatory model is clearly distinguished from an observed runtime capture.
@@ -52,7 +54,7 @@ Screenshots are only one visual source. Create diagrams, before/after structures
 
 Generate one self-contained HTML file, including its styles, scripts, and necessary visual assets. Source links can open external material, but reading the explanation itself does not depend on a live server or external rendering toolkit. Reuse diagrams, visual motifs, and examples where doing so helps the reader follow the same mechanism across cases.
 
-Use prose, figures, annotated excerpts, and interactions according to their explanatory value. A state stepper or before/after control is appropriate when it reveals something difficult to grasp statically. Fixed section counts, visual quotas, mandatory simulations, and the old mandatory quiz are removed. Quizzes remain available when requested. Scores, review-performance metrics, and dashboards are excluded.
+Use prose, figures, annotated excerpts, and interactions according to their explanatory value. Mermaid is an authoring option throughout the explanation, including the executive summary: render it during generation and embed the rendition, preferably inline SVG. Do not require raw Mermaid source or a Mermaid runtime to render at reading time. Use interactive HTML when it clarifies a relationship, event order, or choice; keep the core overview understandable without operating a control. A state stepper or before/after control is appropriate when it reveals something difficult to grasp statically. Fixed section counts, visual quotas, mandatory simulations, and the old mandatory quiz are removed. Quizzes remain available when requested. Scores, review-performance metrics, and dashboards are excluded.
 
 The page supports desktop and phone widths, semantic navigation, keyboard-operable controls, readable code blocks, and visual encodings that do not rely on color alone. Optional depth can be expandable; the main explanation remains readable as a continuous page.
 

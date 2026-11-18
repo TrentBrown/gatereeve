@@ -37,3 +37,14 @@ Generate HTML for permitted fixed real changes and clearly labeled discovery fix
 - **PR:** https://github.com/TrentBrown/gatereeve/pull/118
 
 Run relevant regression, skill, packaging/discovery, and broad acceptance checks. Prepare the exact candidate and independently assessed review packet; resolve supported findings and evaluate all rubric rows. No issue authorizes a merge, release, installation, or deployment.
+
+## I-4 - Refine the executive summary and diagram guidance
+
+- **Status:** in-review
+- **Estimate:** unknown
+- **Plan steps:** D13 revision
+- **Rubric criteria:** R2, R3, R6
+- **Depends on:** user revision D13
+- **PR:** -
+
+Require a useful plainspoken opening overview; support generation-time Mermaid renditions and purposeful interactive HTML. Validate a representative artifact and the revised skill without changing product runtime or enforcing a new workflow gate.

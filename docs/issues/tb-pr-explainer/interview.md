@@ -121,3 +121,7 @@ The initial synthesis proposed a thin explain-diff entrypoint and legacy workflo
 Evaluation will use permitted read-only change snapshots and generated local HTML. Exact examples and focused checks belong in the later spec/plan. Mandatory workflow enforcement remains a separate follow-up. No actual skill implementation, spec, or implementation plan was written during this interview.
 
 This interview is now ready to inform a separate design synthesis.
+
+## D13 - Executive summary, Mermaid renditions, and interaction
+
+The user requested a more complete executive summary at the top: an understandable, plainspoken overview without implementation detail, where one or two diagrams may be especially useful. Mermaid may be used throughout when useful, and interactive HTML is available where appropriate. The user clarified: "Actually, it doesn't make sense to embed Mermaid, does it? A rendition of a Mermaid diagram makes sense." Therefore render Mermaid at generation time and embed its rendition, preferably inline SVG; no reading-time Mermaid dependency. This is a refinement of the existing reviewer artifact, not mandatory workflow enforcement.

@@ -27,7 +27,9 @@ Use existing evidence by default. Do not run product tests, start the applicatio
 
 ## Explain the change
 
-Read [artifact composition](references/artifact.md) before generating HTML. Choose the page's shape for this change; these are responsibilities, not mandatory sections:
+Read [artifact composition](references/artifact.md) before generating HTML. Open with a clearly labeled executive summary: a concise but substantive plainspoken overview of the problem, meaningful change, high-level mechanism and scope, and any material evidence limit or reviewer consideration. The reader should understand the central story from this opening alone. Consider one or two overview diagrams where they help orient the reader; there is no figure quota.
+
+Choose the rest of the page's shape for this change; these are responsibilities, not mandatory sections:
 
 - Give the relevant domain/system context, problem, intended behavior, and delivered scope.
 - Show meaningful before/after behavior or structure where useful. Distinguish observed captures from source-grounded diagrams and illustrative models.
@@ -35,7 +37,7 @@ Read [artifact composition](references/artifact.md) before generating HTML. Choo
 - Explain what the available evidence covers and what remains unknown. Link raw evidence without making the page a log dump.
 - Surface consequential assumptions, tradeoffs, and possible defects/spec mismatches as reviewer concerns with sources and uncertainty. Do not expand into a separate review, assign an approval verdict, or recommend merging.
 
-Create useful diagrams and walkthroughs from the actual code even when runtime screenshots are unavailable. Do not fabricate product screenshots. Avoid fixed figure quotas, compulsory simulations, confidence scores, metrics dashboards, and unrequested quizzes. A quiz is optional when requested.
+Create useful diagrams and walkthroughs from the actual code even when runtime screenshots are unavailable. Mermaid is an authoring option throughout: render it during generation and embed the rendition, preferably inline SVG, without a Mermaid runtime or CDN dependency. Use interactive HTML when it clarifies the change; keep the core summary understandable without operating controls. Do not fabricate product screenshots. Avoid fixed figure quotas, compulsory simulations, confidence scores, metrics dashboards, and unrequested quizzes. A quiz is optional when requested.
 
 ## Deliver
 

@@ -23,6 +23,10 @@
 - 2026-11-18: GateReeve spec.validate passed structural extraction for the initial specification against the approved design and moved the run to PLANNING. Semantic AC/rubric coverage was checked by the implementing agent before validation; no independent product acceptance or implementation checks have run.
 - 2026-11-18: issue and tracker reference lint passed. milestone.check for implementation reports only current implementation authorization missing. Proposed implementation subject: sha256:806b4a086f34cf22675bf6872e6045aebbb6456a06d441dcba65da08f37c55e0.
 
+## D13 refinement status
+
+The user requested a substantive executive summary, rendered Mermaid diagrams, and purposeful interactive HTML. Skill instructions and the artifact reference now reflect that direction. Earlier PASS rows describe the original delivery; amended R2/R3/R6 behavior is undergoing a fresh representative trial and scoped verification/independent review. Historical results are not claimed as fresh executions. Current preparation presentation is closed PR #119; any newer head requires a fresh pinned presentation.
+
 ## Current position
 
 Full rigor, supervised autonomy, run pr-explainer-start-full-20261118. The human authorized the prepared implementation commitments and later requested full autonomy. GateReeve refused the delegated dial because GitHub reports main as unprotected. Implementation continues under the actual supervised dial and the existing explicit implementation authority. No host protection settings were changed.

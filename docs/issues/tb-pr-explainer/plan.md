@@ -72,3 +72,7 @@ Checks are selected according to the implemented changes, with actual receipts r
 | R5 | P1 invocation boundaries; P3 tool/action records and concern/evidence output inspection |
 | R6 | P1 artifact guidance; P3 desktop/phone, controls, destination/preservation checks; P4 portability |
 | R7 | P1 contract; P2 narrow naming recognition; P3 governed input/output comparison; P4 boundary regression |
+
+## D13 revision
+
+Strengthen the opening summary and explicitly allow Mermaid authoring with rendered, self-contained output and purposeful HTML interaction. Update the skill and artifact reference; exercise the amended behavior on a pinned real PR, render/inspect the output, and validate the package. Use scoped verification and a fresh independent review for the instruction-only revision; do not repeat unchanged executable-source suites without a demonstrated need.

@@ -2,7 +2,9 @@
 
 ## Put the mental model first
 
-Assume engineering experience, not familiarity with this subsystem. Explain the few domain terms, existing responsibilities, and constraints needed to understand this change. Start with the problem and the resulting behavior, then lead into the mechanism and its consequences. Deeper context can be expandable.
+Assume engineering experience, not familiarity with this subsystem. Start with a clearly labeled executive summary that stands on its own: explain the relevant problem, what changes for users or the system, how the change works at a high level, and its scope. Include the most consequential evidence limit or reviewer consideration when material. Use short connected paragraphs and explain necessary domain terms in place. A file inventory or test-result list cannot substitute for the overview; keep code details and deeper context below it.
+
+Consider one or two overview diagrams when they convey the central story more clearly than prose alone. A small before/after flow, responsibility map, or event sequence can supply orientation before the detailed walkthrough. Choose for explanatory value rather than filling a diagram quota. The overview must remain understandable without opening disclosures or operating controls.
 
 Group files by the reason they changed. A request handler, its schema, and its tests may form one chapter. A large generated-file update may deserve one short scope note. Put consequential changes before wiring and housekeeping. Select excerpts to explain the mechanism; do not reproduce the full diff or omit material changes because they are awkward to explain.
 
@@ -23,6 +25,10 @@ Choose the representation that exposes the relevant relationship:
 | Pure logic | A worked example or stepper that exposes intermediate values |
 
 Diagrams explain mechanisms, not just component names: label meaningful arrows with actions and use concrete sample data where useful. Reuse the same layout or example for comparisons. A simulation uses real extracted logic only when that is practical without running the product; otherwise label it as a simplified explanatory model and state its omissions. It is not evidence that the implementation ran.
+
+Mermaid may be used to author diagrams anywhere in the explanation, including the executive summary. Render it during generation and embed the rendition, preferably inline SVG. Do not leave raw Mermaid as the displayed diagram, ship a Mermaid runtime, or require a CDN at reading time. Optional diagram source can accompany the artifact as a reference. When embedding multiple SVGs, keep their IDs and internal references unique; provide accessible labels/captions and preserve readable diagram text on phones. If rendering is unavailable, use another self-contained diagram representation and report the limitation honestly.
+
+Use interactive HTML where a step-through, before/after control, or input choice reveals a relationship that is hard to see statically. Keep it optional, source-grounded, and keyboard-operable, and label any simplifications. Interaction should deepen the explanation while the initial view and executive summary communicate the essential behavior on their own.
 
 Use screenshots as captured evidence only under [the evidence rules](visual-evidence.md). An HTML overlay or adjacent callout can annotate a capture without altering its original meaning. Keep the raw capture available. Do not synthesize an image and present it as a screenshot.
 
