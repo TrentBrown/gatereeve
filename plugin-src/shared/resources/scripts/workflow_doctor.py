@@ -28,7 +28,7 @@ MINIMUM_PYTHON = (3, 10)
 MINIMUM_NODE = (22, 13)
 REQUIRED_SKILLS = (
     "checkpoint",
-    "explain-diff",
+    "pr-explainer",
     "grill-me",
     "handoff",
     "pattern-audit",

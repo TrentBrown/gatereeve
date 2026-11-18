@@ -276,7 +276,7 @@ your intent unambiguous.
 | Evaluate implementation against the spec | “Run workflow-spec-evaluate.” |
 | Run the complete PR boundary | “Run workflow-pr-boundary.” |
 | Review a PR or local diff | “Run workflow-pr-review.” |
-| Produce a reviewer-oriented walkthrough | “Run explain-diff.” |
+| Produce a visual reviewer-oriented walkthrough | “Run pr-explainer.” |
 | Capture a decision immediately | “Run workflow-decision-record.” |
 | Save resumable session state | “Create a checkpoint.” |
 | Transfer work to another agent | “Create a handoff for `<recipient>`.” |

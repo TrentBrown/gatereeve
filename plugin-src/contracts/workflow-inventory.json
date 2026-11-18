@@ -164,10 +164,10 @@
       "canonicalPath": "shared/skills/handoff"
     },
     {
-      "name": "explain-diff",
+      "name": "pr-explainer",
       "group": "review",
       "state": "existing",
-      "canonicalPath": "shared/skills/explain-diff"
+      "canonicalPath": "shared/skills/pr-explainer"
     },
     {
       "name": "workflow-advisory-review",
