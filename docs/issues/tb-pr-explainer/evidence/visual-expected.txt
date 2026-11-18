@@ -1,0 +1,12 @@
+{
+  "base": "898543da5eb46a7ad259d241d26d502f9bb77106",
+  "head": "042b34bbd87ba1f553746e2e47aa88acc9b6bdba",
+  "config": "playwright.config.ts",
+  "report": "captured-output/html/results.json",
+  "image": "captured-output/html/data/failure.png",
+  "role": "stale failing attempt; unrelated borrowed image; not current behavior proof",
+  "intent": "no spec or plan supplied",
+  "relevantCapture": "captured-output/html/data/pending-save.png",
+  "relevantReport": "captured-output/html/fixture-capture.json",
+  "role2": "controlled head-helper harness capture; not actual product or test-suite proof"
+}

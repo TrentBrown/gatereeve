@@ -1,0 +1,10 @@
+# Actions, evidence, and limitations
+
+- Read the requested PR Explainer skill plus artifact and visual-evidence references; read the Playwright skill for artifact-only inspection.
+- Inspected only the supplied visual-input fixture for source/evidence. Verified pinned base `898543da5eb46a7ad259d241d26d502f9bb77106` and head `042b34bbd87ba1f553746e2e47aa88acc9b6bdba`, full diff, clean working tree, and no configured remote.
+- Read editor.js, e2e/save.spec.ts, playwright.config.ts, .gitignore, and the configured ignored output tree. Followed results.json attachment relative to its report directory and opened failure.png.
+- Report is labeled controlled fixture data: failed base-revision metadata, no head result, run/environment/assertion details absent. Image depicts unrelated GateReeve desktop; excluded from behavior figures. No relevant capture/trace/video was available.
+- Created pr-explainer.html with inline CSS and source-grounded before/after states; labels conceptual visuals, inferred purpose, exact revisions, test/evidence limits, and caller-dependent concerns. All five local reference targets exist; portable explanation needs no network assets.
+- Artifact-only inspection: CUA host unavailable; CLI file protocol blocked. Rendered generated HTML using Playwright page.setContent on about:blank, never loading the product. Inspected desktop 1280px and phone 390px captures; fixed code-grid horizontal overflow, then verified document scrollWidth equals viewport width (1280 and 390). Code excerpts retain bounded horizontal scrolling.
+- Native evidence disclosure opened with pointer, collapsed and reopened with Enter; visible keyboard focus inspected. Closed the dedicated browser session and removed task-created inspection captures/snapshots.
+- No product tests/app execution, fresh product captures, source/test/config edits, Git mutations, posts, hosting, delivery actions, or skill edits. Local source/evidence links were verified on disk, not navigated in browser. Source links require adjacent fixture; no head execution or actual save success is established.

@@ -1,0 +1,404 @@
+found 0 vulnerabilities
+{
+  "schemaVersion": 1,
+  "skillCount": 28,
+  "plannedSkillCount": 0,
+  "marketplace": "quality-code",
+  "platforms": [
+    "codex",
+    "claude"
+  ],
+  "pluginCount": 2,
+  "plugins": [
+    "agentic-development-workflow",
+    "whiteboard-test"
+  ]
+}
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "plugins": [
+    "agentic-development-workflow",
+    "whiteboard-test"
+  ],
+  "version": "0.1.0",
+  "marketplace": "quality-code",
+  "platforms": [
+    "codex",
+    "claude"
+  ]
+}
+{
+  "schemaVersion": 1,
+  "fileCount": 205,
+  "existingSkillCount": 28
+}
+{
+  "schemaVersion": 1,
+  "marketplace": "quality-code",
+  "sourceRoot": "[redacted]/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src",
+  "distRoot": "[redacted]/Code/tb/.worktrees/gatereeve-pr-explainer/dist",
+  "version": "0.1.0",
+  "sourceCommit": "portable-acceptance",
+  "sourceTag": null,
+  "plugins": [
+    {
+      "id": "agentic-development-workflow",
+      "displayName": "Agentic Software Development Workflow",
+      "sourceRoot": "."
+    },
+    {
+      "id": "whiteboard-test",
+      "displayName": "Whiteboard Test",
+      "sourceRoot": "plugins/whiteboard-test"
+    }
+  ],
+  "packages": [
+    {
+      "platform": "codex",
+      "pluginName": "agentic-development-workflow",
+      "outputPath": "[redacted]/Code/tb/.worktrees/gatereeve-pr-explainer/dist/codex/agentic-development-workflow",
+      "fileCount": 210,
+      "sharedFileCount": 205,
+      "pluginId": "agentic-development-workflow"
+    },
+    {
+      "platform": "claude",
+      "pluginName": "agentic-development-workflow",
+      "outputPath": "[redacted]/Code/tb/.worktrees/gatereeve-pr-explainer/dist/claude/agentic-development-workflow",
+      "fileCount": 210,
+      "sharedFileCount": 205,
+      "pluginId": "agentic-development-workflow"
+    },
+    {
+      "platform": "codex",
+      "pluginName": "whiteboard-test",
+      "outputPath": "[redacted]/Code/tb/.worktrees/gatereeve-pr-explainer/dist/codex/whiteboard-test",
+      "fileCount": 12,
+      "sharedFileCount": 9,
+      "pluginId": "whiteboard-test"
+    },
+    {
+      "platform": "claude",
+      "pluginName": "whiteboard-test",
+      "outputPath": "[redacted]/Code/tb/.worktrees/gatereeve-pr-explainer/dist/claude/whiteboard-test",
+      "fileCount": 12,
+      "sharedFileCount": 9,
+      "pluginId": "whiteboard-test"
+    }
+  ]
+}
+{
+  "schemaVersion": 1,
+  "scope": "global",
+  "repository": null,
+  "profile": "quality-code",
+  "branchPrefix": "smoke-",
+  "profilePath": "/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.XAkaVlCpms/workflow package codex/resources/policy/profiles/quality-code.md"
+}
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "platform": "codex",
+  "ready": true,
+  "activation": "observed",
+  "checks": [
+    {
+      "id": "platform",
+      "status": "pass",
+      "message": "Detected codex package"
+    },
+    {
+      "id": "python",
+      "status": "pass",
+      "message": "Python 3.11 is supported"
+    },
+    {
+      "id": "executable-git",
+      "status": "pass",
+      "message": "Found git: /usr/bin/git"
+    },
+    {
+      "id": "executable-python3",
+      "status": "pass",
+      "message": "Found python3: [redacted]/.pyenv/versions/3.11.11/bin/python3"
+    },
+    {
+      "id": "executable-node",
+      "status": "pass",
+      "message": "Found node: [redacted]/.nvm/versions/node/v24.15.0/bin/node"
+    },
+    {
+      "id": "executable-gh",
+      "status": "pass",
+      "message": "Found gh: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.HKLEB67LFM/gh"
+    },
+    {
+      "id": "executable-codex",
+      "status": "pass",
+      "message": "Found codex: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.HKLEB67LFM/codex"
+    },
+    {
+      "id": "node-version",
+      "status": "pass",
+      "message": "Node 24.15.0 is supported"
+    },
+    {
+      "id": "github-auth",
+      "status": "pass",
+      "message": "GitHub CLI authentication is ready"
+    },
+    {
+      "id": "package-integrity",
+      "status": "pass",
+      "message": "Verified all shared package files and 28 skills"
+    },
+    {
+      "id": "required-skills",
+      "status": "pass",
+      "message": "All 28 workflow skills are present"
+    },
+    {
+      "id": "activation-hook",
+      "status": "pass",
+      "message": "SessionStart hook is present"
+    },
+    {
+      "id": "codex-hook-feature",
+      "status": "pass",
+      "message": "Codex hooks use the enabled-by-default setting"
+    },
+    {
+      "id": "activation-observed",
+      "status": "pass",
+      "message": "The current session contains the workflow activation policy"
+    },
+    {
+      "id": "profile",
+      "status": "pass",
+      "message": "Effective profile: quality-code"
+    },
+    {
+      "id": "branch-prefix",
+      "status": "pass",
+      "message": "Effective branch prefix: smoke-"
+    },
+    {
+      "id": "duplicate-legacy-skills",
+      "status": "pass",
+      "message": "No duplicate legacy workflow skills found"
+    },
+    {
+      "id": "optional-integrations",
+      "status": "info",
+      "message": "No optional specialist integrations detected"
+    },
+    {
+      "id": "temporary-storage",
+      "status": "info",
+      "message": "Managed temporary runs: 1; sizes and removal eligibility require cleanup inspection",
+      "remedy": "Run gatereeve cleanup to preview; --apply removes only eligible managed scratch"
+    },
+    {
+      "id": "local-installers",
+      "status": "info",
+      "message": "Managed local installers: 0; cleanup rechecks activity and retention",
+      "remedy": "Run gatereeve cleanup to preview; --apply removes eligible obsolete DMGs and preserves records"
+    }
+  ],
+  "storage": {
+    "root": "/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve",
+    "entries": [
+      {
+        "id": "validation-check-28e836ae-d28a-4dff-a64a-dd881a7938a7",
+        "path": "/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve/runs/validation-check-28e836ae-d28a-4dff-a64a-dd881a7938a7",
+        "status": "active-or-interrupted",
+        "bytes": null,
+        "purpose": "validation-check",
+        "createdAt": "2026-11-18T18:15:32.382Z",
+        "keepUntil": null,
+        "identity": {
+          "dev": 16777234,
+          "ino": 254731235
+        }
+      }
+    ],
+    "eligibleBytes": null,
+    "quick": true
+  },
+  "installers": {
+    "root": "[redacted]/.local/share/gatereeve/installers",
+    "quick": true,
+    "entries": [],
+    "errors": [],
+    "eligibleBytes": 0
+  }
+}
+{
+  "schemaVersion": 1,
+  "scope": "global",
+  "repository": null,
+  "profile": "quality-code",
+  "branchPrefix": "smoke-",
+  "profilePath": "/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.baJrfz6wtx/workflow package claude/resources/policy/profiles/quality-code.md"
+}
+{
+  "schemaVersion": 1,
+  "plugin": "agentic-development-workflow",
+  "platform": "claude",
+  "ready": true,
+  "activation": "observed",
+  "checks": [
+    {
+      "id": "platform",
+      "status": "pass",
+      "message": "Detected claude package"
+    },
+    {
+      "id": "python",
+      "status": "pass",
+      "message": "Python 3.11 is supported"
+    },
+    {
+      "id": "executable-git",
+      "status": "pass",
+      "message": "Found git: /usr/bin/git"
+    },
+    {
+      "id": "executable-python3",
+      "status": "pass",
+      "message": "Found python3: [redacted]/.pyenv/versions/3.11.11/bin/python3"
+    },
+    {
+      "id": "executable-node",
+      "status": "pass",
+      "message": "Found node: [redacted]/.nvm/versions/node/v24.15.0/bin/node"
+    },
+    {
+      "id": "executable-gh",
+      "status": "pass",
+      "message": "Found gh: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.HKLEB67LFM/gh"
+    },
+    {
+      "id": "executable-claude",
+      "status": "pass",
+      "message": "Found claude: /var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/tmp.HKLEB67LFM/claude"
+    },
+    {
+      "id": "node-version",
+      "status": "pass",
+      "message": "Node 24.15.0 is supported"
+    },
+    {
+      "id": "github-auth",
+      "status": "pass",
+      "message": "GitHub CLI authentication is ready"
+    },
+    {
+      "id": "package-integrity",
+      "status": "pass",
+      "message": "Verified all shared package files and 28 skills"
+    },
+    {
+      "id": "required-skills",
+      "status": "pass",
+      "message": "All 28 workflow skills are present"
+    },
+    {
+      "id": "activation-hook",
+      "status": "pass",
+      "message": "SessionStart hook is present"
+    },
+    {
+      "id": "activation-observed",
+      "status": "pass",
+      "message": "The current session contains the workflow activation policy"
+    },
+    {
+      "id": "profile",
+      "status": "pass",
+      "message": "Effective profile: quality-code"
+    },
+    {
+      "id": "branch-prefix",
+      "status": "pass",
+      "message": "Effective branch prefix: smoke-"
+    },
+    {
+      "id": "duplicate-legacy-skills",
+      "status": "pass",
+      "message": "No duplicate legacy workflow skills found"
+    },
+    {
+      "id": "optional-integrations",
+      "status": "info",
+      "message": "No optional specialist integrations detected"
+    },
+    {
+      "id": "temporary-storage",
+      "status": "info",
+      "message": "Managed temporary runs: 1; sizes and removal eligibility require cleanup inspection",
+      "remedy": "Run gatereeve cleanup to preview; --apply removes only eligible managed scratch"
+    },
+    {
+      "id": "local-installers",
+      "status": "info",
+      "message": "Managed local installers: 0; cleanup rechecks activity and retention",
+      "remedy": "Run gatereeve cleanup to preview; --apply removes eligible obsolete DMGs and preserves records"
+    }
+  ],
+  "storage": {
+    "root": "/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve",
+    "entries": [
+      {
+        "id": "validation-check-28e836ae-d28a-4dff-a64a-dd881a7938a7",
+        "path": "/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve/runs/validation-check-28e836ae-d28a-4dff-a64a-dd881a7938a7",
+        "status": "active-or-interrupted",
+        "bytes": null,
+        "purpose": "validation-check",
+        "createdAt": "2026-11-18T18:15:32.382Z",
+        "keepUntil": null,
+        "identity": {
+          "dev": 16777234,
+          "ino": 254731235
+        }
+      }
+    ],
+    "eligibleBytes": null,
+    "quick": true
+  },
+  "installers": {
+    "root": "[redacted]/.local/share/gatereeve/installers",
+    "quick": true,
+    "entries": [],
+    "errors": [],
+    "eligibleBytes": 0
+  }
+}
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+PASS: factual extraction and references
+Semantic coverage and material decisions require the existing independent review; this lint does not grant passage.
+PASS
+Portable acceptance remaining stages passed on Darwin arm64 with Python 3.11.11 and Node v24.15.0
+
+STDERR
+.............................
+----------------------------------------------------------------------
+Ran 29 tests in 1.634s
+
+OK
+.....................................................................
+----------------------------------------------------------------------
+Ran 69 tests in 10.146s
+
+OK
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.039s
+
+OK

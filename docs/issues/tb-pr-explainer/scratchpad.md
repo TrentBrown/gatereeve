@@ -21,3 +21,8 @@ Working record of implementation decisions. The approved product decisions and t
 Material choices will be triaged at the review boundary.
 
 - Workflow Doctor owns an active required-skill list in addition to the packaging inventory; it now requires pr-explainer. Historical UI fixtures retain their original artifact labels. Native install smoke passed in disposable Codex and Claude profiles (doctor ready, activation pending); active user profiles were not modified.
+
+- Broad verification exposed a stale generated Desktop projection for evidence.js. Regenerated Desktop resources with the maintained stage-protocol script (not manual edits); current parity regression passes. The clean bounded Node suite had 434 passes, two skips and this one subsequently repaired failure. Retain prior failures and propose explicit coverage replacement for independent review.
+- Updated the active static site index links and optional-use description; historical copied skills, diagrams and example reports remain unchanged. Site-wide regeneration needs optional Mermaid CLI, so current link/anchor and existing site checks cover the text-only update. CI review-artifact filename optimization remains conservative: unknown new names take full CI rather than reducing scope.
+
+- Switching the local PR-closure setting from the run-start default false to the standing closed-PR preference true changes GateReeve repository identity. The core correctly refused to treat older-identity coverage as current claim evidence. Keep those receipts historical and execute a fresh full backstop for the repaired candidate under the final identity. No approval/proof was forged or reclassified.

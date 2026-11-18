@@ -1,0 +1,87 @@
+✔ composes both packages with matching shared content and provenance (22.081333ms)
+✔ composes every registered marketplace plugin into independent platform packages (20.388458ms)
+✔ removes stale package output before rebuilding (6.363917ms)
+✔ produces identical content for identical inputs (20.56725ms)
+✔ rejects overlay paths that duplicate shared content (2.52475ms)
+✔ rejects symlinks so generated packages remain self-contained (1.608125ms)
+✔ rejects transient interpreter and operating-system files (1.67875ms)
+✔ rejects invalid versions and unsupported platforms (1.202208ms)
+✔ rejects platform manifests with different plugin identities (2.020834ms)
+✔ PR explanations stay evidence while nearby HTML and configuration remain application inputs (462.0375ms)
+✔ large trees stream source, skip excluded bodies, and retain manifests without file copies (2014.604541ms)
+✔ full views share verified bytes only inside the session, ignore archive attributes, and clean up (748.646333ms)
+✔ reference ownership protects shared source, detects conflicts and releases idempotently (826.104625ms)
+✔ equivalent commits reuse content identity while changed bytes and modes do not (854.256792ms)
+✔ ambiguous JSON classification is bounded, provenance checked, and nonregular records rejected (903.441083ms)
+✔ ordinary object availability is lightweight but materialization verifies corrupted contents (818.45925ms)
+✔ cleanup leaves live view sessions intact (454.580417ms)
+✔ completion cleanup is durable, protects active jobs, and does not undo completion (463.548833ms)
+✔ pin preparation retry preserves independent owners across linked worktrees (512.309667ms)
+✔ SHA-256 objects and views use their native object identities (771.478541ms)
+✔ copy fallback preserves full bytes and removes backing files (721.588875ms)
+✔ interrupted controller cannot clean an unresolved evaluator job or an unknown view owner (458.470792ms)
+✔ multi-repository partial pin failure retries without disturbing another operation (803.601291ms)
+✔ candidate publication cannot cross a concurrent human pause after preparation intent (802.355834ms)
+✔ view initialization failure removes the created root even before its owner marker exists (449.6625ms)
+✔ completion exposes pending cleanup immediately and failed preparation is visible until retry (1290.741167ms)
+✔ classification and metadata limits reject precisely at their documented boundaries (762.948375ms)
+✔ malformed Git object streams reject with a source diagnostic (326.974084ms)
+✔ promisor repositories do not invoke a remote helper for missing source (231.455041ms)
+✔ validates matching native manifests, catalogs, and hooks (3.547084ms)
+✔ rejects native identity and hook drift (1.313541ms)
+✔ enforces contract-declared manifest and catalog fields (1.641375ms)
+✔ empty manifest leaves the Early Access release unresolved (0.406875ms)
+✔ only complete Apple trust evidence activates the exact GitHub tag page (0.383375ms)
+✔ website fetch uses one same-origin manifest without identifiers (0.099541ms)
+✖ production site keeps the prerequisite visible and ships the exact trusted RC (3.265708ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 35
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14736.040584
+
+✖ failing tests:
+
+test at workflow-site/test-desktop-early-access.mjs:70:1
+✖ production site keeps the prerequisite visible and ships the exact trusted RC (3.265708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    {
+      appleTrust: {
+        developerIdApplication: true,
+        gatekeeperAccepted: true,
+        hardenedRuntime: true,
+  ...
+      artifact: {
+  +     bytes: 259079289,
+  +     name: 'GateReeve-0.1.0-rc.29-macos-universal.dmg',
+  +     sha256: '4babbd3aa3ff50e538f97d2753367bb733a422429203c95a7f85ef45c457ec91'
+  -     bytes: 246098110,
+  -     name: 'GateReeve-0.1.0-rc.1-macos-universal.dmg',
+  -     sha256: '9cbe51065692857ba929e153863fa92c8fe2dc4d275eb29453014a04e1f1ea92'
+      },
+  +   publishedAt: '2026-11-17T21:50:13.285Z',
+  +   sourceCommit: '8ac623c192ae29628aac9c343b294f23e1f81ed2',
+  +   version: '0.1.0-rc.29'
+  -   publishedAt: '2026-08-28T15:14:01.037Z',
+  -   sourceCommit: '117a58511ef20957426d3fc5e801f6d5b1173b32',
+  -   version: '0.1.0-rc.1'
+    }
+  
+      at TestContext.<anonymous> (file://[redacted]/Code/tb/.worktrees/gatereeve-pr-explainer/workflow-site/test-desktop-early-access.mjs:79:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { version: '0.1.0-rc.29', publishedAt: '2026-11-17T21:50:13.285Z', sourceCommit: '8ac623c192ae29628aac9c343b294f23e1f81ed2', artifact: { name: 'GateReeve-0.1.0-rc.29-macos-universal.dmg', bytes: 259079289, sha256: '4babbd3aa3ff50e538f97d2753367bb733a422429203c95a7f85ef45c457ec91' }, appleTrust: { developerIdApplication: true, hardenedRuntime: true, secureTimestamp: true, notarized: true, stapled: true, gatekeeperAccepted: true } },
+    expected: { version: '0.1.0-rc.1', publishedAt: '2026-08-28T15:14:01.037Z', sourceCommit: '117a58511ef20957426d3fc5e801f6d5b1173b32', artifact: { name: 'GateReeve-0.1.0-rc.1-macos-universal.dmg', bytes: 246098110, sha256: '9cbe51065692857ba929e153863fa92c8fe2dc4d275eb29453014a04e1f1ea92' }, appleTrust: { developerIdApplication: true, hardenedRuntime: true, secureTimestamp: true, notarized: true, stapled: true, gatekeeperAccepted: true } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+STDERR

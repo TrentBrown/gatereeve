@@ -1,0 +1,44 @@
+✔ composes both packages with matching shared content and provenance (25.395958ms)
+✔ composes every registered marketplace plugin into independent platform packages (20.879375ms)
+✔ removes stale package output before rebuilding (6.30675ms)
+✔ produces identical content for identical inputs (23.738541ms)
+✔ rejects overlay paths that duplicate shared content (2.604667ms)
+✔ rejects symlinks so generated packages remain self-contained (2.118542ms)
+✔ rejects transient interpreter and operating-system files (1.859ms)
+✔ rejects invalid versions and unsupported platforms (1.495875ms)
+✔ rejects platform manifests with different plugin identities (3.474916ms)
+(node:25442) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ PR explanations stay evidence while nearby HTML and configuration remain application inputs (571.545292ms)
+✔ large trees stream source, skip excluded bodies, and retain manifests without file copies (2030.101792ms)
+✔ full views share verified bytes only inside the session, ignore archive attributes, and clean up (820.06375ms)
+✔ reference ownership protects shared source, detects conflicts and releases idempotently (960.333625ms)
+✔ equivalent commits reuse content identity while changed bytes and modes do not (1055.791208ms)
+✔ ambiguous JSON classification is bounded, provenance checked, and nonregular records rejected (1049.960875ms)
+✔ ordinary object availability is lightweight but materialization verifies corrupted contents (941.18625ms)
+✔ cleanup leaves live view sessions intact (503.328083ms)
+✔ completion cleanup is durable, protects active jobs, and does not undo completion (523.810625ms)
+✔ pin preparation retry preserves independent owners across linked worktrees (590.855959ms)
+✔ SHA-256 objects and views use their native object identities (846.580542ms)
+✔ copy fallback preserves full bytes and removes backing files (769.7965ms)
+✔ interrupted controller cannot clean an unresolved evaluator job or an unknown view owner (473.822417ms)
+✔ multi-repository partial pin failure retries without disturbing another operation (946.245458ms)
+✔ candidate publication cannot cross a concurrent human pause after preparation intent (958.910041ms)
+✔ view initialization failure removes the created root even before its owner marker exists (488.770042ms)
+✔ completion exposes pending cleanup immediately and failed preparation is visible until retry (1424.263042ms)
+✔ classification and metadata limits reject precisely at their documented boundaries (822.645375ms)
+✔ malformed Git object streams reject with a source diagnostic (280.054791ms)
+✔ promisor repositories do not invoke a remote helper for missing source (287.064958ms)
+✔ validates matching native manifests, catalogs, and hooks (4.418791ms)
+✔ rejects native identity and hook drift (1.397542ms)
+✔ enforces contract-declared manifest and catalog fields (1.967209ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16443.735292

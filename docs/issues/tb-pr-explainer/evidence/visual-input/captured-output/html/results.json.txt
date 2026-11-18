@@ -1,0 +1,14 @@
+{
+  "fixture": true,
+  "note": "Controlled evidence-discovery data. The attached image is reused from an unrelated GateReeve desktop run and is not a screenshot of this fixture application.",
+  "revision": "898543da5eb46a7ad259d241d26d502f9bb77106",
+  "test": "prevent duplicate save",
+  "status": "failed",
+  "attachments": [
+    {
+      "name": "failure screenshot",
+      "path": "data/failure.png",
+      "contentType": "image/png"
+    }
+  ]
+}

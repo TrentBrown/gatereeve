@@ -1,0 +1,20 @@
+{
+  "fixture": true,
+  "kind": "controlled source-driven harness capture",
+  "revision": "042b34bbd87ba1f553746e2e47aa88acc9b6bdba",
+  "scenario": "Save button during unresolved persistence",
+  "createdAt": "2026-11-18T18:07:46.213608+00:00",
+  "browser": "Chromium artifact harness",
+  "viewport": {
+    "width": 760,
+    "height": 550
+  },
+  "note": "Created as controlled evidence-discovery test data using the exact head helper in an isolated HTML harness. No real product or Playwright suite was run. This is not a GateReeve runtime screenshot.",
+  "attachments": [
+    {
+      "name": "pending save fixture capture",
+      "path": "data/pending-save.png",
+      "contentType": "image/png"
+    }
+  ]
+}

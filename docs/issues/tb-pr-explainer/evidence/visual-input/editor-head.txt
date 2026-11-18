@@ -1,0 +1,1 @@
+export async function save(button, persist) { button.disabled = true; try { await persist(); button.textContent = 'Saved'; } finally { button.disabled = false; } }

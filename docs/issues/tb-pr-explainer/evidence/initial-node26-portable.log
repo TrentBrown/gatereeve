@@ -1,0 +1,620 @@
+(node:38816) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+> @quality-code/gatereeve@0.1.0 pretest
+> npm run stage:protocol
+
+
+> @quality-code/gatereeve@0.1.0 stage:protocol
+> node scripts/stage-protocol.js
+
+
+> @quality-code/gatereeve@0.1.0 test
+> node ../plugin-src/shared/resources/storage/scratch.js run node --test
+
+(node:38953) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:39066) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ agent workflow receipts bind provider configuration, isolation policy, and stage output (1.196209ms)
+✔ agent workflow receipts reject inherited context and output substitution (0.275959ms)
+✔ the public provider receipt contract rejects the retired workflow version and policy (0.118083ms)
+✔ Cask rehearsal follows released version and retains publication before a later smoke failure (1.526792ms)
+✔ Cask baseline rejects untrusted, active, mismatched or unrelated producers (0.216083ms)
+✔ CLI starts from a clean checkout without staged protocol resources (439.972542ms)
+✔ plugin build and clean commands work through the Commander entrypoint (862.66625ms)
+✔ uses the selected source root when resolving the default version (426.553459ms)
+✔ prepares a release through the grouped command path (11450.188166ms)
+✔ legacy local publication entrypoints are removed (281.512708ms)
+✔ hosted mutation commands require a dispatched Release Conductor context (200.022625ms)
+✔ renders hierarchical help through the local command-tree helper (122.396625ms)
+✔ composes both packages with matching shared content and provenance (108.904834ms)
+✔ composes every registered marketplace plugin into independent platform packages (235.326708ms)
+✔ removes stale package output before rebuilding (42.036208ms)
+✔ produces identical content for identical inputs (258.654417ms)
+✔ rejects overlay paths that duplicate shared content (16.200792ms)
+✔ rejects symlinks so generated packages remain self-contained (29.599583ms)
+✔ rejects transient interpreter and operating-system files (25.517917ms)
+✔ rejects invalid versions and unsupported platforms (36.556292ms)
+✔ rejects platform manifests with different plugin identities (22.063166ms)
+✔ JavaScript and Python resolve the same configured multi-repository context (667.338333ms)
+✔ JavaScript and Python preserve the same legacy branch-derived context (457.257958ms)
+✔ JavaScript preserves Python workspace semantics for a symlinked config file (212.242209ms)
+✔ JavaScript rejects the same unsafe configured contexts as Python (2541.827417ms)
+✔ validates the repository contract fixtures (6.668041ms)
+✔ rejects duplicate skills and cross-contract identity drift (2.667416ms)
+(node:39072) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ refuses to force the marketplace over an equal or newer deployment (1.144833ms)
+✔ waits for the exact production manifest without query or credential leakage (34.173583ms)
+✔ bounds streamed website verification responses (0.9ms)
+(node:39073) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ prepares one immutable Plugin and Desktop release record without publication authority (14727.65775ms)
+✔ trusted preparation seals exact checksum and update-manifest outputs (10691.48925ms)
+✔ stable promotion is bound to the exact coordinated RC source (28071.995917ms)
+✔ rejects contradictory release state and unsafe artifact identity (8485.106208ms)
+✔ rejects a Desktop candidate whose release version diverges from the Plugin tag (6188.500709ms)
+✖ publication resumes every partial boundary without duplicating a remote mutation (25751.991791ms)
+✔ release phases are reusable-only production units with no manual dispatch (14.5885ms)
+✔ protected preparation binds the conductor source and remains publication-free (5.030791ms)
+✔ bounded recovery reuses retained trust bytes without signing authority (5.532084ms)
+✔ finalization and rehearsals are read-only while publication retains its own gate (9.953083ms)
+✔ Cask finalization and smoke bind conductor runs and exact public artifacts (8.337417ms)
+✔ Release Conductor is the sole start/resume entry point and derives every phase identity (6.451666ms)
+✔ state checkpoint action always emits a dashboard and immutable retained artifact (4.954208ms)
+✔ full product CI ignores only the sealed Desktop metadata transport path (1.975208ms)
+✔ PR automation reduces only chained review-artifact updates and cancels only PR work (10.541958ms)
+✔ all GitHub workflows use Node-24-compatible official action majors and Node 24 jobs (14.461541ms)
+(node:39075) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ runner CLI executes focused checks without requiring a dependency-tree declaration (21683.54875ms)
+✔ CLI records and revokes standing authority through the native core and fails closed without proof (30804.71425ms)
+✔ CLI preserves constrained Whiteboard waiver basis and explanation policy amendment (12919.629958ms)
+✔ CLI status shows both run dials, and the defaults when no run exists (684.741875ms)
+✔ CLI passes both workspace instructions through so the contradiction is rejected (636.808ms)
+(node:39076) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ live context guard follows original discovery and rejects actual policy edits (182.670209ms)
+✔ live context guard normalizes irrelevant edits and retains immutable initial meaning (21.358375ms)
+✔ cached core blocks mutations and reports milestone drift without switching feature stores (560.341417ms)
+
+Interrupted while running:
+
+⚠ test/current-core.test.js (test/current-core.test.js:1:1)
+⚠ test/current-delegation.test.js (test/current-delegation.test.js:1:1)
+⚠ test/current-delivery-targets.test.js (test/current-delivery-targets.test.js:1:1)
+⚠ test/current-delivery.test.js (test/current-delivery.test.js:1:1)
+⚠ test/current-dials.test.js (test/current-dials.test.js:1:1)
+⚠ test/current-environment.test.js (test/current-environment.test.js:1:1)
+⚠ test/current-guard.test.js (test/current-guard.test.js:1:1)
+⚠ test/current-history-assessment.test.js (test/current-history-assessment.test.js:1:1)
+⚠ test/current-hook.test.js (test/current-hook.test.js:1:1)
+⚠ test/current-light.test.js (test/current-light.test.js:1:1)
+⚠ test/current-measurement.test.js (test/current-measurement.test.js:1:1)
+⚠ test/current-planning.test.js (test/current-planning.test.js:1:1)
+⚠ test/current-scaling.test.js (test/current-scaling.test.js:1:1)
+⚠ test/current-source.test.js (test/current-source.test.js:1:1)
+⚠ test/current-tripwires.test.js (test/current-tripwires.test.js:1:1)
+⚠ test/current-workspace-config.test.js (test/current-workspace-config.test.js:1:1)
+⚠ test/delivery-recovery.test.js (test/delivery-recovery.test.js:1:1)
+⚠ test/desktop-release-manifest.test.js (test/desktop-release-manifest.test.js:1:1)
+⚠ test/developer-documentation.test.js (test/developer-documentation.test.js:1:1)
+⚠ test/dmg-retention.test.js (test/dmg-retention.test.js:1:1)
+⚠ test/fixtures/runner-tool-smoke.mjs (test/fixtures/runner-tool-smoke.mjs:1:1)
+⚠ test/fleet-report.test.js (test/fleet-report.test.js:1:1)
+⚠ test/gatereeve-cli.test.js (test/gatereeve-cli.test.js:1:1)
+⚠ test/github-publication.test.js (test/github-publication.test.js:1:1)
+⚠ test/helpers/current-fixture.js (test/helpers/current-fixture.js:1:1)
+⚠ test/helpers/established-current-run.js (test/helpers/established-current-run.js:1:1)
+⚠ test/helpers/isolated-tests.js (test/helpers/isolated-tests.js:1:1)
+⚠ test/helpers/lightweight-fixture.js (test/helpers/lightweight-fixture.js:1:1)
+⚠ test/helpers/plugin-candidate.js (test/helpers/plugin-candidate.js:1:1)
+⚠ test/homebrew-cask.test.js (test/homebrew-cask.test.js:1:1)
+⚠ test/hosted-checks.test.js (test/hosted-checks.test.js:1:1)
+⚠ test/hosted-publication-v2.test.js (test/hosted-publication-v2.test.js:1:1)
+⚠ test/install-documentation.test.js (test/install-documentation.test.js:1:1)
+⚠ test/installer-retention.test.js (test/installer-retention.test.js:1:1)
+⚠ test/json-schema.test.js (test/json-schema.test.js:1:1)
+⚠ test/local-agent-adapters.test.js (test/local-agent-adapters.test.js:1:1)
+⚠ test/module-runtime.test.js (test/module-runtime.test.js:1:1)
+⚠ test/native-trust-evidence-v2.test.js (test/native-trust-evidence-v2.test.js:1:1)
+⚠ test/native.test.js (test/native.test.js:1:1)
+⚠ test/performance.test.js (test/performance.test.js:1:1)
+⚠ test/plugin-adapter.test.js (test/plugin-adapter.test.js:1:1)
+⚠ test/plugin-candidate-integrity.test.js (test/plugin-candidate-integrity.test.js:1:1)
+⚠ test/portability.test.js (test/portability.test.js:1:1)
+⚠ test/publish.test.js (test/publish.test.js:1:1)
+⚠ test/python-guards.test.js (test/python-guards.test.js:1:1)
+⚠ test/release-conductor-artifact.test.js (test/release-conductor-artifact.test.js:1:1)
+⚠ test/release-conductor-cli.test.js (test/release-conductor-cli.test.js:1:1)
+⚠ test/release-conductor-discovery.test.js (test/release-conductor-discovery.test.js:1:1)
+⚠ test/release-conductor-publication-receipt.test.js (test/release-conductor-publication-receipt.test.js:1:1)
+⚠ test/release-conductor-state.test.js (test/release-conductor-state.test.js:1:1)
+⚠ test/release-lifecycle-v2.test.js (test/release-lifecycle-v2.test.js:1:1)
+⚠ test/release-operations.test.js (test/release-operations.test.js:1:1)
+⚠ test/release-version.test.js (test/release-version.test.js:1:1)
+⚠ test/release.test.js (test/release.test.js:1:1)
+⚠ test/runner-smoke-entrypoint.test.js (test/runner-smoke-entrypoint.test.js:1:1)
+⚠ test/runner-timeouts.test.js (test/runner-timeouts.test.js:1:1)
+⚠ test/scratch-cleanup.test.js (test/scratch-cleanup.test.js:1:1)
+⚠ test/scratch-defaults.test.js (test/scratch-defaults.test.js:1:1)
+⚠ test/smoke.test.js (test/smoke.test.js:1:1)
+⚠ test/stage-protocol.test.js (test/stage-protocol.test.js:1:1)
+⚠ test/test-shards.test.js (test/test-shards.test.js:1:1)
+⚠ test/trusted-release-lifecycle-v2.test.js (test/trusted-release-lifecycle-v2.test.js:1:1)
+⚠ test/whiteboard-validator.test.js (test/whiteboard-validator.test.js:1:1)
+⚠ test/workflow-database.test.js (test/workflow-database.test.js:1:1)
+file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:386
+        const error = new Error(`Scratch command failed (${timedOut ? 'timeout' : outputLimited ? 'output limit' : outcome.signal ?? outcome.code})${options.capture ? '' : `: ${tail}`}`);
+                      ^
+
+Error: Scratch command failed (1): (node:39066) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ agent workflow receipts bind provider configuration, isolation policy, and stage output (1.196209ms)
+✔ agent workflow receipts reject inherited context and output substitution (0.275959ms)
+✔ the public provider receipt contract rejects the retired workflow version and policy (0.118083ms)
+✔ Cask rehearsal follows released version and retains publication before a later smoke failure (1.526792ms)
+✔ Cask baseline rejects untrusted, active, mismatched or unrelated producers (0.216083ms)
+✔ CLI starts from a clean checkout without staged protocol resources (439.972542ms)
+✔ plugin build and clean commands work through the Commander entrypoint (862.66625ms)
+✔ uses the selected source root when resolving the default version (426.553459ms)
+✔ prepares a release through the grouped command path (11450.188166ms)
+✔ legacy local publication entrypoints are removed (281.512708ms)
+✔ hosted mutation commands require a dispatched Release Conductor context (200.022625ms)
+✔ renders hierarchical help through the local command-tree helper (122.396625ms)
+✔ composes both packages with matching shared content and provenance (108.904834ms)
+✔ composes every registered marketplace plugin into independent platform packages (235.326708ms)
+✔ removes stale package output before rebuilding (42.036208ms)
+✔ produces identical content for identical inputs (258.654417ms)
+✔ rejects overlay paths that duplicate shared content (16.200792ms)
+✔ rejects symlinks so generated packages remain self-contained (29.599583ms)
+✔ rejects transient interpreter and operating-system files (25.517917ms)
+✔ rejects invalid versions and unsupported platforms (36.556292ms)
+✔ rejects platform manifests with different plugin identities (22.063166ms)
+✔ JavaScript and Python resolve the same configured multi-repository context (667.338333ms)
+✔ JavaScript and Python preserve the same legacy branch-derived context (457.257958ms)
+✔ JavaScript preserves Python workspace semantics for a symlinked config file (212.242209ms)
+✔ JavaScript rejects the same unsafe configured contexts as Python (2541.827417ms)
+✔ validates the repository contract fixtures (6.668041ms)
+✔ rejects duplicate skills and cross-contract identity drift (2.667416ms)
+(node:39072) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ refuses to force the marketplace over an equal or newer deployment (1.144833ms)
+✔ waits for the exact production manifest without query or credential leakage (34.173583ms)
+✔ bounds streamed website verification responses (0.9ms)
+(node:39073) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ prepares one immutable Plugin and Desktop release record without publication authority (14727.65775ms)
+✔ trusted preparation seals exact checksum and update-manifest outputs (10691.48925ms)
+✔ stable promotion is bound to the exact coordinated RC source (28071.995917ms)
+✔ rejects contradictory release state and unsafe artifact identity (8485.106208ms)
+✔ rejects a Desktop candidate whose release version diverges from the Plugin tag (6188.500709ms)
+✖ publication resumes every partial boundary without duplicating a remote mutation (25751.991791ms)
+✔ release phases are reusable-only production units with no manual dispatch (14.5885ms)
+✔ protected preparation binds the conductor source and remains publication-free (5.030791ms)
+✔ bounded recovery reuses retained trust bytes without signing authority (5.532084ms)
+✔ finalization and rehearsals are read-only while publication retains its own gate (9.953083ms)
+✔ Cask finalization and smoke bind conductor runs and exact public artifacts (8.337417ms)
+✔ Release Conductor is the sole start/resume entry point and derives every phase identity (6.451666ms)
+✔ state checkpoint action always emits a dashboard and immutable retained artifact (4.954208ms)
+✔ full product CI ignores only the sealed Desktop metadata transport path (1.975208ms)
+✔ PR automation reduces only chained review-artifact updates and cancels only PR work (10.541958ms)
+✔ all GitHub workflows use Node-24-compatible official action majors and Node 24 jobs (14.461541ms)
+(node:39075) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ runner CLI executes focused checks without requiring a dependency-tree declaration (21683.54875ms)
+✔ CLI records and revokes standing authority through the native core and fails closed without proof (30804.71425ms)
+✔ CLI preserves constrained Whiteboard waiver basis and explanation policy amendment (12919.629958ms)
+✔ CLI status shows both run dials, and the defaults when no run exists (684.741875ms)
+✔ CLI passes both workspace instructions through so the contradiction is rejected (636.808ms)
+(node:39076) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ live context guard follows original discovery and rejects actual policy edits (182.670209ms)
+✔ live context guard normalizes irrelevant edits and retains immutable initial meaning (21.358375ms)
+✔ cached core blocks mutations and reports milestone drift without switching feature stores (560.341417ms)
+
+Interrupted while running:
+
+⚠ test/current-core.test.js (test/current-core.test.js:1:1)
+⚠ test/current-delegation.test.js (test/current-delegation.test.js:1:1)
+⚠ test/current-delivery-targets.test.js (test/current-delivery-targets.test.js:1:1)
+⚠ test/current-delivery.test.js (test/current-delivery.test.js:1:1)
+⚠ test/current-dials.test.js (test/current-dials.test.js:1:1)
+⚠ test/current-environment.test.js (test/current-environment.test.js:1:1)
+⚠ test/current-guard.test.js (test/current-guard.test.js:1:1)
+⚠ test/current-history-assessment.test.js (test/current-history-assessment.test.js:1:1)
+⚠ test/current-hook.test.js (test/current-hook.test.js:1:1)
+⚠ test/current-light.test.js (test/current-light.test.js:1:1)
+⚠ test/current-measurement.test.js (test/current-measurement.test.js:1:1)
+⚠ test/current-planning.test.js (test/current-planning.test.js:1:1)
+⚠ test/current-scaling.test.js (test/current-scaling.test.js:1:1)
+⚠ test/current-source.test.js (test/current-source.test.js:1:1)
+⚠ test/current-tripwires.test.js (test/current-tripwires.test.js:1:1)
+⚠ test/current-workspace-config.test.js (test/current-workspace-config.test.js:1:1)
+⚠ test/delivery-recovery.test.js (test/delivery-recovery.test.js:1:1)
+⚠ test/desktop-release-manifest.test.js (test/desktop-release-manifest.test.js:1:1)
+⚠ test/developer-documentation.test.js (test/developer-documentation.test.js:1:1)
+⚠ test/dmg-retention.test.js (test/dmg-retention.test.js:1:1)
+⚠ test/fixtures/runner-tool-smoke.mjs (test/fixtures/runner-tool-smoke.mjs:1:1)
+⚠ test/fleet-report.test.js (test/fleet-report.test.js:1:1)
+⚠ test/gatereeve-cli.test.js (test/gatereeve-cli.test.js:1:1)
+⚠ test/github-publication.test.js (test/github-publication.test.js:1:1)
+⚠ test/helpers/current-fixture.js (test/helpers/current-fixture.js:1:1)
+⚠ test/helpers/established-current-run.js (test/helpers/established-current-run.js:1:1)
+⚠ test/helpers/isolated-tests.js (test/helpers/isolated-tests.js:1:1)
+⚠ test/helpers/lightweight-fixture.js (test/helpers/lightweight-fixture.js:1:1)
+⚠ test/helpers/plugin-candidate.js (test/helpers/plugin-candidate.js:1:1)
+⚠ test/homebrew-cask.test.js (test/homebrew-cask.test.js:1:1)
+⚠ test/hosted-checks.test.js (test/hosted-checks.test.js:1:1)
+⚠ test/hosted-publication-v2.test.js (test/hosted-publication-v2.test.js:1:1)
+⚠ test/install-documentation.test.js (test/install-documentation.test.js:1:1)
+⚠ test/installer-retention.test.js (test/installer-retention.test.js:1:1)
+⚠ test/json-schema.test.js (test/json-schema.test.js:1:1)
+⚠ test/local-agent-adapters.test.js (test/local-agent-adapters.test.js:1:1)
+⚠ test/module-runtime.test.js (test/module-runtime.test.js:1:1)
+⚠ test/native-trust-evidence-v2.test.js (test/native-trust-evidence-v2.test.js:1:1)
+⚠ test/native.test.js (test/native.test.js:1:1)
+⚠ test/performance.test.js (test/performance.test.js:1:1)
+⚠ test/plugin-adapter.test.js (test/plugin-adapter.test.js:1:1)
+⚠ test/plugin-candidate-integrity.test.js (test/plugin-candidate-integrity.test.js:1:1)
+⚠ test/portability.test.js (test/portability.test.js:1:1)
+⚠ test/publish.test.js (test/publish.test.js:1:1)
+⚠ test/python-guards.test.js (test/python-guards.test.js:1:1)
+⚠ test/release-conductor-artifact.test.js (test/release-conductor-artifact.test.js:1:1)
+⚠ test/release-conductor-cli.test.js (test/release-conductor-cli.test.js:1:1)
+⚠ test/release-conductor-discovery.test.js (test/release-conductor-discovery.test.js:1:1)
+⚠ test/release-conductor-publication-receipt.test.js (test/release-conductor-publication-receipt.test.js:1:1)
+⚠ test/release-conductor-state.test.js (test/release-conductor-state.test.js:1:1)
+⚠ test/release-lifecycle-v2.test.js (test/release-lifecycle-v2.test.js:1:1)
+⚠ test/release-operations.test.js (test/release-operations.test.js:1:1)
+⚠ test/release-version.test.js (test/release-version.test.js:1:1)
+⚠ test/release.test.js (test/release.test.js:1:1)
+⚠ test/runner-smoke-entrypoint.test.js (test/runner-smoke-entrypoint.test.js:1:1)
+⚠ test/runner-timeouts.test.js (test/runner-timeouts.test.js:1:1)
+⚠ test/scratch-cleanup.test.js (test/scratch-cleanup.test.js:1:1)
+⚠ test/scratch-defaults.test.js (test/scratch-defaults.test.js:1:1)
+⚠ test/smoke.test.js (test/smoke.test.js:1:1)
+⚠ test/stage-protocol.test.js (test/stage-protocol.test.js:1:1)
+⚠ test/test-shards.test.js (test/test-shards.test.js:1:1)
+⚠ test/trusted-release-lifecycle-v2.test.js (test/trusted-release-lifecycle-v2.test.js:1:1)
+⚠ test/whiteboard-validator.test.js (test/whiteboard-validator.test.js:1:1)
+⚠ test/workflow-database.test.js (test/workflow-database.test.js:1:1)
+
+    at file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:386:23
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async withScratch (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:325:18)
+    at async file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:411:5 {
+  scratchResult: {
+    code: 1,
+    signal: null,
+    timedOut: false,
+    outputLimited: false,
+    stdout: '',
+    stderr: ''
+  },
+  scratchCleanup: {
+    root: '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve',
+    entries: [
+      {
+        id: 'node-78fcc901-0735-41c8-94fe-748121568359',
+        path: '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve/runs/node-78fcc901-0735-41c8-94fe-748121568359',
+        status: 'eligible',
+        bytes: 120233984,
+        purpose: 'node',
+        createdAt: '2026-11-18T17:46:03.691Z',
+        keepUntil: null,
+        identity: { dev: 16777234, ino: 253387942 }
+      }
+    ],
+    eligibleBytes: 120233984,
+    quick: false,
+    applied: true,
+    removed: [
+      {
+        id: 'node-78fcc901-0735-41c8-94fe-748121568359',
+        bytes: 120233984
+      }
+    ],
+    skipped: [],
+    errors: [],
+    reclaimedBytes: 120233984
+  }
+}
+
+Node.js v26.0.0
+file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:386
+        const error = new Error(`Scratch command failed (${timedOut ? 'timeout' : outputLimited ? 'output limit' : outcome.signal ?? outcome.code})${options.capture ? '' : `: ${tail}`}`);
+                      ^
+
+Error: Scratch command failed (SIGTERM): xture.js (test/helpers/current-fixture.js:1:1)
+⚠ test/helpers/established-current-run.js (test/helpers/established-current-run.js:1:1)
+⚠ test/helpers/isolated-tests.js (test/helpers/isolated-tests.js:1:1)
+⚠ test/helpers/lightweight-fixture.js (test/helpers/lightweight-fixture.js:1:1)
+⚠ test/helpers/plugin-candidate.js (test/helpers/plugin-candidate.js:1:1)
+⚠ test/homebrew-cask.test.js (test/homebrew-cask.test.js:1:1)
+⚠ test/hosted-checks.test.js (test/hosted-checks.test.js:1:1)
+⚠ test/hosted-publication-v2.test.js (test/hosted-publication-v2.test.js:1:1)
+⚠ test/install-documentation.test.js (test/install-documentation.test.js:1:1)
+⚠ test/installer-retention.test.js (test/installer-retention.test.js:1:1)
+⚠ test/json-schema.test.js (test/json-schema.test.js:1:1)
+⚠ test/local-agent-adapters.test.js (test/local-agent-adapters.test.js:1:1)
+⚠ test/module-runtime.test.js (test/module-runtime.test.js:1:1)
+⚠ test/native-trust-evidence-v2.test.js (test/native-trust-evidence-v2.test.js:1:1)
+⚠ test/native.test.js (test/native.test.js:1:1)
+⚠ test/performance.test.js (test/performance.test.js:1:1)
+⚠ test/plugin-adapter.test.js (test/plugin-adapter.test.js:1:1)
+⚠ test/plugin-candidate-integrity.test.js (test/plugin-candidate-integrity.test.js:1:1)
+⚠ test/portability.test.js (test/portability.test.js:1:1)
+⚠ test/publish.test.js (test/publish.test.js:1:1)
+⚠ test/python-guards.test.js (test/python-guards.test.js:1:1)
+⚠ test/release-conductor-artifact.test.js (test/release-conductor-artifact.test.js:1:1)
+⚠ test/release-conductor-cli.test.js (test/release-conductor-cli.test.js:1:1)
+⚠ test/release-conductor-discovery.test.js (test/release-conductor-discovery.test.js:1:1)
+⚠ test/release-conductor-publication-receipt.test.js (test/release-conductor-publication-receipt.test.js:1:1)
+⚠ test/release-conductor-state.test.js (test/release-conductor-state.test.js:1:1)
+⚠ test/release-lifecycle-v2.test.js (test/release-lifecycle-v2.test.js:1:1)
+⚠ test/release-operations.test.js (test/release-operations.test.js:1:1)
+⚠ test/release-version.test.js (test/release-version.test.js:1:1)
+⚠ test/release.test.js (test/release.test.js:1:1)
+⚠ test/runner-smoke-entrypoint.test.js (test/runner-smoke-entrypoint.test.js:1:1)
+⚠ test/runner-timeouts.test.js (test/runner-timeouts.test.js:1:1)
+⚠ test/scratch-cleanup.test.js (test/scratch-cleanup.test.js:1:1)
+⚠ test/scratch-defaults.test.js (test/scratch-defaults.test.js:1:1)
+⚠ test/smoke.test.js (test/smoke.test.js:1:1)
+⚠ test/stage-protocol.test.js (test/stage-protocol.test.js:1:1)
+⚠ test/test-shards.test.js (test/test-shards.test.js:1:1)
+⚠ test/trusted-release-lifecycle-v2.test.js (test/trusted-release-lifecycle-v2.test.js:1:1)
+⚠ test/whiteboard-validator.test.js (test/whiteboard-validator.test.js:1:1)
+⚠ test/workflow-database.test.js (test/workflow-database.test.js:1:1)
+file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:386
+        const error = new Error(`Scratch command failed (${timedOut ? 'timeout' : outputLimited ? 'output limit' : outcome.signal ?? outcome.code})${options.capture ? '' : `: ${tail}`}`);
+                      ^
+
+Error: Scratch command failed (1): (node:39066) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ agent workflow receipts bind provider configuration, isolation policy, and stage output (1.196209ms)
+✔ agent workflow receipts reject inherited context and output substitution (0.275959ms)
+✔ the public provider receipt contract rejects the retired workflow version and policy (0.118083ms)
+✔ Cask rehearsal follows released version and retains publication before a later smoke failure (1.526792ms)
+✔ Cask baseline rejects untrusted, active, mismatched or unrelated producers (0.216083ms)
+✔ CLI starts from a clean checkout without staged protocol resources (439.972542ms)
+✔ plugin build and clean commands work through the Commander entrypoint (862.66625ms)
+✔ uses the selected source root when resolving the default version (426.553459ms)
+✔ prepares a release through the grouped command path (11450.188166ms)
+✔ legacy local publication entrypoints are removed (281.512708ms)
+✔ hosted mutation commands require a dispatched Release Conductor context (200.022625ms)
+✔ renders hierarchical help through the local command-tree helper (122.396625ms)
+✔ composes both packages with matching shared content and provenance (108.904834ms)
+✔ composes every registered marketplace plugin into independent platform packages (235.326708ms)
+✔ removes stale package output before rebuilding (42.036208ms)
+✔ produces identical content for identical inputs (258.654417ms)
+✔ rejects overlay paths that duplicate shared content (16.200792ms)
+✔ rejects symlinks so generated packages remain self-contained (29.599583ms)
+✔ rejects transient interpreter and operating-system files (25.517917ms)
+✔ rejects invalid versions and unsupported platforms (36.556292ms)
+✔ rejects platform manifests with different plugin identities (22.063166ms)
+✔ JavaScript and Python resolve the same configured multi-repository context (667.338333ms)
+✔ JavaScript and Python preserve the same legacy branch-derived context (457.257958ms)
+✔ JavaScript preserves Python workspace semantics for a symlinked config file (212.242209ms)
+✔ JavaScript rejects the same unsafe configured contexts as Python (2541.827417ms)
+✔ validates the repository contract fixtures (6.668041ms)
+✔ rejects duplicate skills and cross-contract identity drift (2.667416ms)
+(node:39072) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ refuses to force the marketplace over an equal or newer deployment (1.144833ms)
+✔ waits for the exact production manifest without query or credential leakage (34.173583ms)
+✔ bounds streamed website verification responses (0.9ms)
+(node:39073) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ prepares one immutable Plugin and Desktop release record without publication authority (14727.65775ms)
+✔ trusted preparation seals exact checksum and update-manifest outputs (10691.48925ms)
+✔ stable promotion is bound to the exact coordinated RC source (28071.995917ms)
+✔ rejects contradictory release state and unsafe artifact identity (8485.106208ms)
+✔ rejects a Desktop candidate whose release version diverges from the Plugin tag (6188.500709ms)
+✖ publication resumes every partial boundary without duplicating a remote mutation (25751.991791ms)
+✔ release phases are reusable-only production units with no manual dispatch (14.5885ms)
+✔ protected preparation binds the conductor source and remains publication-free (5.030791ms)
+✔ bounded recovery reuses retained trust bytes without signing authority (5.532084ms)
+✔ finalization and rehearsals are read-only while publication retains its own gate (9.953083ms)
+✔ Cask finalization and smoke bind conductor runs and exact public artifacts (8.337417ms)
+✔ Release Conductor is the sole start/resume entry point and derives every phase identity (6.451666ms)
+✔ state checkpoint action always emits a dashboard and immutable retained artifact (4.954208ms)
+✔ full product CI ignores only the sealed Desktop metadata transport path (1.975208ms)
+✔ PR automation reduces only chained review-artifact updates and cancels only PR work (10.541958ms)
+✔ all GitHub workflows use Node-24-compatible official action majors and Node 24 jobs (14.461541ms)
+(node:39075) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ runner CLI executes focused checks without requiring a dependency-tree declaration (21683.54875ms)
+✔ CLI records and revokes standing authority through the native core and fails closed without proof (30804.71425ms)
+✔ CLI preserves constrained Whiteboard waiver basis and explanation policy amendment (12919.629958ms)
+✔ CLI status shows both run dials, and the defaults when no run exists (684.741875ms)
+✔ CLI passes both workspace instructions through so the contradiction is rejected (636.808ms)
+(node:39076) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/trent.brown/Code/tb/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ live context guard follows original discovery and rejects actual policy edits (182.670209ms)
+✔ live context guard normalizes irrelevant edits and retains immutable initial meaning (21.358375ms)
+✔ cached core blocks mutations and reports milestone drift without switching feature stores (560.341417ms)
+
+Interrupted while running:
+
+⚠ test/current-core.test.js (test/current-core.test.js:1:1)
+⚠ test/current-delegation.test.js (test/current-delegation.test.js:1:1)
+⚠ test/current-delivery-targets.test.js (test/current-delivery-targets.test.js:1:1)
+⚠ test/current-delivery.test.js (test/current-delivery.test.js:1:1)
+⚠ test/current-dials.test.js (test/current-dials.test.js:1:1)
+⚠ test/current-environment.test.js (test/current-environment.test.js:1:1)
+⚠ test/current-guard.test.js (test/current-guard.test.js:1:1)
+⚠ test/current-history-assessment.test.js (test/current-history-assessment.test.js:1:1)
+⚠ test/current-hook.test.js (test/current-hook.test.js:1:1)
+⚠ test/current-light.test.js (test/current-light.test.js:1:1)
+⚠ test/current-measurement.test.js (test/current-measurement.test.js:1:1)
+⚠ test/current-planning.test.js (test/current-planning.test.js:1:1)
+⚠ test/current-scaling.test.js (test/current-scaling.test.js:1:1)
+⚠ test/current-source.test.js (test/current-source.test.js:1:1)
+⚠ test/current-tripwires.test.js (test/current-tripwires.test.js:1:1)
+⚠ test/current-workspace-config.test.js (test/current-workspace-config.test.js:1:1)
+⚠ test/delivery-recovery.test.js (test/delivery-recovery.test.js:1:1)
+⚠ test/desktop-release-manifest.test.js (test/desktop-release-manifest.test.js:1:1)
+⚠ test/developer-documentation.test.js (test/developer-documentation.test.js:1:1)
+⚠ test/dmg-retention.test.js (test/dmg-retention.test.js:1:1)
+⚠ test/fixtures/runner-tool-smoke.mjs (test/fixtures/runner-tool-smoke.mjs:1:1)
+⚠ test/fleet-report.test.js (test/fleet-report.test.js:1:1)
+⚠ test/gatereeve-cli.test.js (test/gatereeve-cli.test.js:1:1)
+⚠ test/github-publication.test.js (test/github-publication.test.js:1:1)
+⚠ test/helpers/current-fixture.js (test/helpers/current-fixture.js:1:1)
+⚠ test/helpers/established-current-run.js (test/helpers/established-current-run.js:1:1)
+⚠ test/helpers/isolated-tests.js (test/helpers/isolated-tests.js:1:1)
+⚠ test/helpers/lightweight-fixture.js (test/helpers/lightweight-fixture.js:1:1)
+⚠ test/helpers/plugin-candidate.js (test/helpers/plugin-candidate.js:1:1)
+⚠ test/homebrew-cask.test.js (test/homebrew-cask.test.js:1:1)
+⚠ test/hosted-checks.test.js (test/hosted-checks.test.js:1:1)
+⚠ test/hosted-publication-v2.test.js (test/hosted-publication-v2.test.js:1:1)
+⚠ test/install-documentation.test.js (test/install-documentation.test.js:1:1)
+⚠ test/installer-retention.test.js (test/installer-retention.test.js:1:1)
+⚠ test/json-schema.test.js (test/json-schema.test.js:1:1)
+⚠ test/local-agent-adapters.test.js (test/local-agent-adapters.test.js:1:1)
+⚠ test/module-runtime.test.js (test/module-runtime.test.js:1:1)
+⚠ test/native-trust-evidence-v2.test.js (test/native-trust-evidence-v2.test.js:1:1)
+⚠ test/native.test.js (test/native.test.js:1:1)
+⚠ test/performance.test.js (test/performance.test.js:1:1)
+⚠ test/plugin-adapter.test.js (test/plugin-adapter.test.js:1:1)
+⚠ test/plugin-candidate-integrity.test.js (test/plugin-candidate-integrity.test.js:1:1)
+⚠ test/portability.test.js (test/portability.test.js:1:1)
+⚠ test/publish.test.js (test/publish.test.js:1:1)
+⚠ test/python-guards.test.js (test/python-guards.test.js:1:1)
+⚠ test/release-conductor-artifact.test.js (test/release-conductor-artifact.test.js:1:1)
+⚠ test/release-conductor-cli.test.js (test/release-conductor-cli.test.js:1:1)
+⚠ test/release-conductor-discovery.test.js (test/release-conductor-discovery.test.js:1:1)
+⚠ test/release-conductor-publication-receipt.test.js (test/release-conductor-publication-receipt.test.js:1:1)
+⚠ test/release-conductor-state.test.js (test/release-conductor-state.test.js:1:1)
+⚠ test/release-lifecycle-v2.test.js (test/release-lifecycle-v2.test.js:1:1)
+⚠ test/release-operations.test.js (test/release-operations.test.js:1:1)
+⚠ test/release-version.test.js (test/release-version.test.js:1:1)
+⚠ test/release.test.js (test/release.test.js:1:1)
+⚠ test/runner-smoke-entrypoint.test.js (test/runner-smoke-entrypoint.test.js:1:1)
+⚠ test/runner-timeouts.test.js (test/runner-timeouts.test.js:1:1)
+⚠ test/scratch-cleanup.test.js (test/scratch-cleanup.test.js:1:1)
+⚠ test/scratch-defaults.test.js (test/scratch-defaults.test.js:1:1)
+⚠ test/smoke.test.js (test/smoke.test.js:1:1)
+⚠ test/stage-protocol.test.js (test/stage-protocol.test.js:1:1)
+⚠ test/test-shards.test.js (test/test-shards.test.js:1:1)
+⚠ test/trusted-release-lifecycle-v2.test.js (test/trusted-release-lifecycle-v2.test.js:1:1)
+⚠ test/whiteboard-validator.test.js (test/whiteboard-validator.test.js:1:1)
+⚠ test/workflow-database.test.js (test/workflow-database.test.js:1:1)
+
+    at file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:386:23
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async withScratch (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:325:18)
+    at async file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:411:5 {
+  scratchResult: {
+    code: 1,
+    signal: null,
+    timedOut: false,
+    outputLimited: false,
+    stdout: '',
+    stderr: ''
+  },
+  scratchCleanup: {
+    root: '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve',
+    entries: [
+      {
+        id: 'node-78fcc901-0735-41c8-94fe-748121568359',
+        path: '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve/runs/node-78fcc901-0735-41c8-94fe-748121568359',
+        status: 'eligible',
+        bytes: 120233984,
+        purpose: 'node',
+        createdAt: '2026-11-18T17:46:03.691Z',
+        keepUntil: null,
+        identity: { dev: 16777234, ino: 253387942 }
+      }
+    ],
+    eligibleBytes: 120233984,
+    quick: false,
+    applied: true,
+    removed: [
+      {
+        id: 'node-78fcc901-0735-41c8-94fe-748121568359',
+        bytes: 120233984
+      }
+    ],
+    skipped: [],
+    errors: [],
+    reclaimedBytes: 120233984
+  }
+}
+
+Node.js v26.0.0
+
+    at file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:386:23
+    at async withScratch (file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:325:18)
+    at async file:///Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/plugin-src/shared/resources/storage/scratch.js:411:5 {
+  scratchResult: {
+    code: null,
+    signal: 'SIGTERM',
+    timedOut: false,
+    outputLimited: false,
+    stdout: '',
+    stderr: ''
+  },
+  scratchCleanup: {
+    root: '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve',
+    entries: [
+      {
+        id: 'env-f21875aa-28ed-4491-acc0-08128dcf71ae',
+        path: '/private/var/folders/3v/v5sch0sx5qq8r6p6pqyp2zlc0000gn/T/gatereeve/runs/env-f21875aa-28ed-4491-acc0-08128dcf71ae',
+        status: 'eligible',
+        bytes: 536576,
+        purpose: 'env',
+        createdAt: '2026-11-18T17:46:03.202Z',
+        keepUntil: null,
+        identity: { dev: 16777234, ino: 253387662 }
+      }
+    ],
+    eligibleBytes: 536576,
+    quick: false,
+    applied: true,
+    removed: [
+      { id: 'env-f21875aa-28ed-4491-acc0-08128dcf71ae', bytes: 536576 }
+    ],
+    skipped: [],
+    errors: [],
+    reclaimedBytes: 536576
+  }
+}
+
+Node.js v26.0.0

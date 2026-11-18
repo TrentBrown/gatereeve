@@ -1,0 +1,1 @@
+export default { testDir: './e2e', outputDir: './captured-output/results', reporter: [['html', { outputFolder: './captured-output/html' }]], use: { screenshot: 'only-on-failure', trace: 'retain-on-failure' } };

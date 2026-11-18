@@ -12,9 +12,9 @@
 | R1 | Replacement and portable identified invocation | PASS | self-check | 28-skill contracts, dual native discovery; exact real comparisons. |
 | R2 | Reviewer-oriented grounded explanation | PASS | self-check | UI42 and PR101 HTML checked against raw source; 64 references resolved. |
 | R3 | Useful honest visuals and comparisons | PASS | self-check | Aligned UI/source mechanism comparisons; fixture before/after; no fabricated captures. |
-| R4 | Discover and qualify existing visual evidence | PASS | self-check | Ignored non-default report and relative PNG found; unrelated failed-base capture excluded. |
+| R4 | Discover and qualify existing visual evidence | PASS | self-check | Ignored non-default reports and relevant head-helper capture found/embedded; unrelated failed-base capture excluded. |
 | R5 | Evidence integrity and invocation boundaries | PASS | self-check | Independent action logs separate source, execution, author claims and gaps; no product execution. |
-| R6 | Portable usable checked artifact | PASS | self-check | All three pages 1280/390 widths; keyboard controls checked; self-contained assets. |
+| R6 | Portable usable checked artifact | PASS | self-check | All four pages 1280/390 widths; keyboard controls checked; self-contained assets. |
 | R7 | Governed identity and bounded integration | PASS | self-check | Pinned caller PR101 and destination honored; narrow classifier regression; no gate change. |
 
 ## Review Log
@@ -27,6 +27,8 @@
 
 Full rigor, supervised autonomy, run pr-explainer-start-full-20261118. The human authorized the prepared implementation commitments and later requested full autonomy. GateReeve refused the delegated dial because GitHub reports main as unprotected. Implementation continues under the actual supervised dial and the existing explicit implementation authority. No host protection settings were changed.
 
-The replacement skill and references are implemented; verification and example generation are in progress. Merge, release, deployment, active installation, capture enhancements, and mandatory workflow enforcement remain excluded.
+The replacement skill and references are implemented and delivered for independent and human review. Four behavioral trials and desktop/phone/keyboard artifact checks are retained. The final full portable backstop PASS is sha256:83f9449c06fecfcebdba1c76f1bc9f258b83da5e5914c1d3b38bb6493c7340ca (435 Node passes, two skips; 100 Python passes). Scoped Verification PASS is sha256:889f5ab01a32f32cc70df625c20b74f2cc454e78f213bf734702b24bfe0c1e66.
 
-Implementation self-checks above are not GateReeve acceptance. Independent consolidated review remains pending actual broad Verification. See [verification record](evidence/verification.md), [browser outcomes](evidence/artifact-browser-checks.txt), and trial HTML text/evidence links there. Actual HTML files remain in the recorded task-owned trial directories.
+The table records implementation self-checks. The recorded independent conclusions and human-review readiness are reported in [completion-report.md](completion-report.md) and GateReeve's retained results; generating artifacts and self-checks do not grant acceptance. The independent assessment must qualify the unchanged legacy site release-tuple exclusion using actual retained failure and baseline evidence.
+
+Preparation PR: https://github.com/TrentBrown/gatereeve/pull/118, kept closed. Merge, release, deployment, active installation, capture enhancements, and mandatory enforcement remain excluded. See [verification record](evidence/verification.md) and [browser outcomes](evidence/artifact-browser-checks.txt). Actual self-contained HTML originals remain in the task-owned trial directories recorded by invocation logs; retained HTML text copies preserve the same explanation for review without changing the installed adapter.

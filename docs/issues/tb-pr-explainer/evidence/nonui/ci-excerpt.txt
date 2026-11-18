@@ -1,0 +1,9 @@
+Existing GitHub Actions log excerpt; retrieved 2026-11-18T17:49:18+00:00
+Run 42326110375; job 128261698554; Ubuntu 22.04 acceptance
+Ubuntu 22.04 acceptance	UNKNOWN STEP	2026-11-07T01:49:52.0020944Z HEAD is now at 6dd8287 Merge aa9541fe824da53a82f13b09a5fa566cfc65aa9a into fec5039eaa98b9194173543ee34c92d1be33292e
+Ubuntu 22.04 acceptance	UNKNOWN STEP	2026-11-07T01:59:42.3615966Z ✔ concurrent writers in separate processes lose no observations (681.326759ms)
+Ubuntu 22.04 acceptance	UNKNOWN STEP	2026-11-07T01:59:42.3664618Z ℹ tests 426
+Ubuntu 22.04 acceptance	UNKNOWN STEP	2026-11-07T01:59:42.3664758Z ℹ pass 424
+Ubuntu 22.04 acceptance	UNKNOWN STEP	2026-11-07T01:59:42.3664821Z ℹ fail 0
+Ubuntu 22.04 acceptance	UNKNOWN STEP	2026-11-07T01:59:42.3664968Z ℹ skipped 2
+Ubuntu 22.04 acceptance	UNKNOWN STEP	2026-11-07T01:59:49.7863858Z Portable acceptance passed on Linux x86_64 with Python 3.10.12 and Node v24.22.2

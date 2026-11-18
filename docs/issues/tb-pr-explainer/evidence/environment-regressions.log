@@ -1,0 +1,24 @@
+✔ effective timeout is visible, per-check overrides runner limit, and zero disables it (1777.488542ms)
+✔ actual timeout is distinguished from a nonzero exit and a failed launch (1437.548542ms)
+✔ invalid timeout rejects: -1 (0.337875ms)
+✔ invalid timeout rejects: 1.5 (0.054375ms)
+✔ invalid timeout rejects: 100 (0.044875ms)
+✔ invalid timeout rejects: 2147483648 (0.035417ms)
+✔ supervised tools inherit managed temporary storage, preserve cwd and share one nested root (1216.673584ms)
+✔ failed child exports bounded diagnostics before reclaiming tool leftovers (477.736875ms)
+✔ split UTF-8 output is preserved in captured streams and failure diagnostics (1790.191791ms)
+✔ inherited unmanaged root is rejected without adopting it (27.178208ms)
+✔ cross-volume publication preserves outputs and symlinks without exposing ownership records (4.326292ms)
+✔ sealed reviewer trees are reclaimable without following links into caller data (400.846542ms)
+✔ governed check supervisor captures failure, bounds timeout and reaps the command (1372.45025ms)
+✔ governed checks retain command evidence when scratch report publication also fails (1718.325041ms)
+✔ concurrent producers wait for a verified live maintainer beyond the interrupted-lock grace period (3371.779917ms)
+✔ captured validation output stays out of scratch failure diagnostics (429.067625ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10846.46925

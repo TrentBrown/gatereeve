@@ -1,0 +1,430 @@
+### Page
+- Page URL: about:blank#race
+- Page Title: GateReeve PR 42 · Markdown without new authority
+### Snapshot
+```yaml
+- main [ref=e196]:
+  - generic [ref=e197]:
+    - generic [ref=e198]: "Engineering walkthrough · GateReeve Desktop · PR #42"
+    - heading "Richer Markdown. The same bounded reader." [level=1] [ref=e199]: Richer Markdown.The same bounded reader.
+    - paragraph [ref=e200]: Workflow documents gain proper tables, nested structure, task state, and footnotes. A bundled syntax-tree pipeline replaces the handwritten parser, while GateReeve still decides which links can act and which content stays literal.
+    - paragraph [ref=e201]:
+      - text: Explains
+      - 'link "feat(desktop): add full markdown rendering" [ref=e202] [cursor=pointer]':
+        - /url: https://github.com/TrentBrown/gatereeve/pull/42
+      - text: · base
+      - code [ref=e203]: 1d10d6da7b4a
+      - text: → head
+      - code [ref=e204]: faa30266bf0b
+      - text: · static revision-bound explanation
+    - navigation "Walkthrough" [ref=e205]:
+      - link "Context & visible change" [ref=e206] [cursor=pointer]:
+        - /url: "#context"
+      - link "Rendering path" [ref=e207] [cursor=pointer]:
+        - /url: "#mechanism"
+      - link "Links & anchors" [ref=e208] [cursor=pointer]:
+        - /url: "#links"
+      - link "Build & scope" [ref=e209] [cursor=pointer]:
+        - /url: "#shipping"
+      - link "Evidence" [ref=e210] [cursor=pointer]:
+        - /url: "#evidence"
+      - link "Where to look" [ref=e211] [cursor=pointer]:
+        - /url: "#reading"
+  - generic [ref=e212]:
+    - heading "A document viewer with two kinds of content" [level=2] [ref=e213]
+    - paragraph [ref=e214]:
+      - text: GateReeve Desktop observes governed software-workflow records. Its
+      - strong [ref=e215]: canonical artifacts
+      - text: "are named documents from the trusted workflow snapshot: for example, a feature’s design or spec."
+      - strong [ref=e216]: Session Markdown
+      - text: shows supporting checkpoints and handoffs; it is marked non-authoritative. Both already call the same
+      - code [ref=e217]: renderMarkdown
+      - text: function. Canonical artifacts pass navigation callbacks; Session does not.
+    - paragraph [ref=e218]:
+      - text: This PR changes the rendering seam, rather than artifact loading or workflow state. The approved design asks a maintained parser to own Markdown grammar, leaving GateReeve’s trust and presentation rules in application code.
+      - link "Artifact call site" [ref=e219] [cursor=pointer]:
+        - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/renderer.js#L1366-L1373
+      - text: ·
+      - link "Session call site" [ref=e220] [cursor=pointer]:
+        - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/renderer.js#L1653-L1661
+      - text: ·
+      - link "Design intent" [ref=e221] [cursor=pointer]:
+        - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/docs/issues/tb-desktop-markdown-rendering/design.md#L5-L34
+    - generic [ref=e222]:
+      - generic [ref=e223]:
+        - generic [ref=e224]: Before · source-grounded sketch
+        - heading "Tables are paragraph text; tasks are list text" [level=3] [ref=e225]
+        - generic [ref=e226]:
+          - paragraph [ref=e227]: "| Surface | Status | | :--- | ---: | | Artifacts | Ready |"
+          - paragraph [ref=e228]: • [x] Renderer bundle ready• [ ] Human review
+        - paragraph [ref=e229]:
+          - text: The base line scanner joins non-special lines into a paragraph; list items have inline formatting but no task control.
+          - link "Base parser" [ref=e230] [cursor=pointer]:
+            - /url: https://github.com/TrentBrown/gatereeve/blob/1d10d6da7b4acac054c31e65993a2f03bcbf0ee3/apps/desktop/renderer/dom.js#L83-L193
+      - generic [ref=e231]:
+        - generic [ref=e232]: After · source-grounded sketch
+        - heading "Semantic table and disabled task state" [level=3] [ref=e233]
+        - generic [ref=e234]:
+          - table [ref=e235]:
+            - rowgroup [ref=e236]:
+              - row [ref=e237]:
+                - columnheader "Surface" [ref=e238]
+                - columnheader "Status" [ref=e239]
+            - rowgroup [ref=e240]:
+              - row [ref=e241]:
+                - cell "Artifacts" [ref=e242]
+                - cell "Ready" [ref=e243]
+          - generic [ref=e244]:
+            - generic [aria-hidden] [ref=e245]: ✓
+            - text: "Complete: Renderer bundle ready"
+          - generic [ref=e246]: "Pending: Human review"
+        - paragraph [ref=e248]:
+          - text: Illustration of the semantic output and task policy, not a captured Desktop screen. The actual visual fixture supplies these examples.
+          - link "Head fixture content" [ref=e249] [cursor=pointer]:
+            - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/visual/visual-fixture.js#L380-L404
+    - generic [ref=e250]:
+      - strong [ref=e251]: "The visible scope:"
+      - text: headings through level six and Setext headings, nested ordered/unordered lists, hard breaks, code fences/indented code, reference links, GFM tables, task lists, autolinks, strikethrough, and footnotes. Raw HTML and image syntax remain visible text. Mermaid fences remain code; this PR does not render diagrams.
+      - link "Acceptance criteria" [ref=e252] [cursor=pointer]:
+        - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/docs/issues/tb-desktop-markdown-rendering/spec.md#L19-L72
+  - generic [ref=e253]:
+    - heading "Parse broadly, then narrow the output" [level=2] [ref=e254]
+    - paragraph [ref=e255]:
+      - text: The new module constructs real DOM nodes from syntax trees. It does not ask a library for an HTML string and insert it into the application. The intermediate representations are
+      - strong [ref=e256]: MDAST
+      - text: (Markdown structure) and
+      - strong [ref=e257]: HAST
+      - text: (HTML-shaped structure).
+    - figure "Source-grounded mechanism; no product execution is implied. Source transforms and processor · DOM construction and policy" [ref=e258]:
+      - list [ref=e259]:
+        - listitem [ref=e260]:
+          - generic [ref=e261]:
+            - strong [ref=e262]: Parse Markdown + GFM
+            - generic [ref=e263]:
+              - code [ref=e264]: remark-parse
+              - text: and
+              - code [ref=e265]: remark-gfm
+              - text: recognize syntax and retain source offsets.
+          - text: ↓
+        - listitem [ref=e266]:
+          - generic [ref=e267]:
+            - strong [ref=e268]: Preserve risky constructs as text
+            - text: Raw HTML, images, and reference images become text nodes using the original source slice. An image URL is still readable, but cannot become a loaded image.
+          - text: ↓
+        - listitem [ref=e269]:
+          - generic [ref=e270]:
+            - strong [ref=e271]: Convert to HAST and capture link intent
+            - generic [ref=e272]:
+              - code [ref=e273]: remark-rehype
+              - text: creates semantic structure. Ordinary link destinations move into temporary application metadata and lose their
+              - code [ref=e274]: href
+              - text: before sanitizing.
+          - text: ↓
+        - listitem [ref=e275]:
+          - generic [ref=e276]:
+            - strong [ref=e277]: Sanitize against a narrow schema
+            - text: Allow headings, tables, lists, code, footnotes, and disabled checkboxes; omit resource-bearing image/media elements and arbitrary attributes.
+          - text: ↓
+        - listitem [ref=e278]:
+          - generic [ref=e279]:
+            - strong [ref=e280]: Construct DOM and apply product policy
+            - generic [ref=e281]:
+              - code [ref=e282]: hast-util-to-dom
+              - text: uses the supplied document. Post-processing adds heading IDs, wraps wide tables, disables tasks, and activates only accepted ordinary links.
+      - generic [ref=e283]:
+        - text: Source-grounded mechanism; no product execution is implied.
+        - link "Source transforms and processor" [ref=e284] [cursor=pointer]:
+          - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L91-L141
+        - text: ·
+        - link "DOM construction and policy" [ref=e285] [cursor=pointer]:
+          - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L228-L275
+    - figure "HEAD · renderer/markdown-source.js:135–141" [ref=e286]:
+      - generic [ref=e287]:
+        - text: HEAD ·
+        - link "renderer/markdown-source.js:135–141" [ref=e288] [cursor=pointer]:
+          - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L135-L141
+      - code [ref=e290]: "135 const PROCESSOR = unified() 136 .use(remarkParse) 137 .use(remarkGfm) 138 .use(preserveInertSource) 139 .use(remarkRehype, { clobberPrefix: 'footnote-' }) 140 .use(annotateLinks) 141 .use(rehypeSanitize, SANITIZE_SCHEMA);"
+    - generic [ref=e291]:
+      - generic [ref=e292]:
+        - heading "Visibility before filtering" [level=3] [ref=e293]
+        - paragraph [ref=e294]:
+          - code [ref=e295]: <script>…</script>
+          - text: and
+          - code [ref=e296]: "![diagram](https://…)"
+          - text: become literal source before conversion. This preserves meaningful content without creating executable or resource-loading nodes. Unsupported parse/conversion failures fall back to the entire normalized source as a text node.
+        - paragraph [ref=e297]:
+          - link "Exact-source preservation" [ref=e298] [cursor=pointer]:
+            - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L74-L110
+          - text: ·
+          - link "Conversion and fallback" [ref=e299] [cursor=pointer]:
+            - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L238-L265
+      - generic [ref=e300]:
+        - heading "Contain wide content locally" [level=3] [ref=e301]
+        - paragraph [ref=e302]: Tables receive a named scroll region; CSS keeps tables and code locally scrollable and distinguishes all six heading levels. Semantic table elements and footnote labels remain available to assistive technology. Task checkboxes are forced disabled in both the schema and post-processing.
+        - paragraph [ref=e303]:
+          - link "Table wrapper" [ref=e304] [cursor=pointer]:
+            - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L165-L174
+          - text: ·
+          - link "Disabled tasks" [ref=e305] [cursor=pointer]:
+            - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L269-L273
+          - text: ·
+          - link "Markdown styles" [ref=e306] [cursor=pointer]:
+            - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/styles.css#L423-L456
+  - generic [ref=e307]:
+    - heading "Grammar support does not grant navigation" [level=2] [ref=e308]
+    - paragraph [ref=e309]:
+      - text: The parser now recognizes more link forms, including reference links and autolinks. The same caller-owned resolver still decides whether an ordinary link becomes interactive. Rejected targets are replaced by their original Markdown source; accepted anchors use
+      - code [ref=e310]: href="#"
+      - text: ", prevent default navigation, and invoke the existing activation callback."
+    - region "Link behavior comparison" [ref=e311]:
+      - table [ref=e312]:
+        - rowgroup [ref=e313]:
+          - row [ref=e314]:
+            - columnheader "Input / destination" [ref=e315]
+            - columnheader "Canonical artifact" [ref=e316]
+            - columnheader "Session Markdown" [ref=e317]
+        - rowgroup [ref=e318]:
+          - row [ref=e319]:
+            - cell [ref=e320]:
+              - code [ref=e321]: https://example.com
+            - cell "Credential-free HTTP(S) → external-link capability" [ref=e322]
+            - cell "Visible, inert source" [ref=e323]
+          - row [ref=e324]:
+            - cell [ref=e325]:
+              - code [ref=e326]: spec.md#rubric
+            - cell "Resolve relative to the current artifact; accept only a present, safe canonical target, then scroll" [ref=e327]
+            - cell "Visible, inert source" [ref=e328]
+          - row [ref=e329]:
+            - cell [ref=e330]:
+              - code [ref=e331]: "#details"
+            - cell "Scroll within the artifact viewer using its logical heading fragment" [ref=e332]
+            - cell "Ordinary link stays inert without a resolver" [ref=e333]
+          - row [ref=e334]:
+            - cell [ref=e335]:
+              - text: Unsafe schemes,
+              - code [ref=e336]: //host
+              - text: ", credentials, missing paths"
+            - cell "Visible, inert source" [ref=e337]
+            - cell "Visible, inert source" [ref=e338]
+          - row [ref=e339]:
+            - cell "Generated footnote reference / backreference" [ref=e340]
+            - cell "Local navigation inside the rendered Markdown" [ref=e341]
+            - cell "Local navigation inside the rendered Markdown" [ref=e342]
+    - paragraph [ref=e343]:
+      - text: Footnotes have a dedicated local path, so resolver-less Session content can still navigate its generated notes. This is distinct from ordinary Session links.
+      - link "Caller resolver and activation" [ref=e344] [cursor=pointer]:
+        - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/renderer.js#L1283-L1349
+      - text: ·
+      - link "Local footnotes and ordinary links" [ref=e345] [cursor=pointer]:
+        - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L176-L225
+    - figure "HEAD · renderer/markdown-source.js:208–224" [ref=e346]:
+      - generic [ref=e347]:
+        - text: HEAD ·
+        - link "renderer/markdown-source.js:208–224" [ref=e348] [cursor=pointer]:
+          - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L208-L224
+      - code [ref=e350]: "208 let resolved = null; 209 try { 210 resolved = options.resolveLink?.(target) ?? null; 211 } catch { 212 resolved = null; 213 } 214 if (resolved === null) { 215 element.replaceWith(document.createTextNode(source || element.textContent || target)); 216 continue; 217 } 218 element.classList.add('markdown-link'); 219 element.setAttribute('href', '#'); 220 element.setAttribute('title', target); 221 element.addEventListener('click', (event) => { 222 event.preventDefault(); 223 options.activateLink?.(resolved); 224 });"
+    - heading "Logical fragments survive physical ID prefixes" [level=3] [ref=e351]
+    - paragraph [ref=e352]:
+      - text: A visible heading such as
+      - code [ref=e353]: "## **Rubric**"
+      - text: gets physical ID
+      - code [ref=e354]: gatereeve-md-heading-rubric
+      - text: and
+      - code [ref=e355]: data-markdown-fragment="rubric"
+      - text: . The artifact fragment lookup now accepts that logical value as well as a direct ID. Repeated identical headings get
+      - code [ref=e356]: "-2"
+      - text: ","
+      - code [ref=e357]: "-3"
+      - text: suffixes. This preserves ordinary
+      - code [ref=e358]: "#rubric"
+      - text: links while reducing collision with application-owned IDs.
+      - link "Heading IDs" [ref=e359] [cursor=pointer]:
+        - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L143-L163
+      - text: ·
+      - link "Logical-fragment lookup" [ref=e360] [cursor=pointer]:
+        - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/renderer.js#L1322-L1329
+    - group [ref=e361]:
+      - generic "Read the exact heading-ID and fragment changes" [ref=e362] [cursor=pointer]
+  - generic [ref=e363]:
+    - heading "A new build input, a self-contained runtime" [level=2] [ref=e364]
+    - paragraph [ref=e365]:
+      - text: The dependency tree is a build-time concern. Pinned Unified packages and
+      - code [ref=e366]: esbuild
+      - text: produce
+      - code [ref=e367]: renderer/generated/markdown-renderer.js
+      - text: ", which"
+      - code [ref=e368]: dom.js
+      - text: imports. The generated directory is ignored; the source tree must build it before use.
+    - generic [ref=e369]:
+      - generic [ref=e370]:
+        - heading "Source entry points" [level=3] [ref=e371]
+        - paragraph [ref=e372]:
+          - code [ref=e373]: pretest
+          - text: ","
+          - code [ref=e374]: prepack
+          - text: ", and"
+          - code [ref=e375]: start
+          - text: build the renderer. The renderer-only visual fixture now documents an explicit build prerequisite. The bundler emits ESM targeting ES2022 with no source map.
+        - paragraph [ref=e376]:
+          - link "Bundle build" [ref=e377] [cursor=pointer]:
+            - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/scripts/build-renderer.mjs#L15-L45
+          - text: ·
+          - link "Lifecycle hooks and pins" [ref=e378] [cursor=pointer]:
+            - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/package.json#L20-L42
+      - generic [ref=e379]:
+        - heading "Packaged entry point" [level=3] [ref=e380]
+        - paragraph [ref=e381]:
+          - text: macOS staging calls the build directly, copies the bundle, and removes unbundled
+          - code [ref=e382]: markdown-source.js
+          - text: . The ASAR contract requires the generated file. The staged application excludes the general
+          - code [ref=e383]: node_modules
+          - text: tree.
+        - paragraph [ref=e384]:
+          - link "Staging build and removal" [ref=e385] [cursor=pointer]:
+            - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/scripts/package-macos.mjs#L31-L48
+          - text: ·
+          - link "Required ASAR paths" [ref=e386] [cursor=pointer]:
+            - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/scripts/macos-package-contract.mjs#L32-L46
+    - paragraph [ref=e387]: "The neutral esbuild platform is deliberate: the build comment says the browser-conditioned character-entity dependency initializes a scratch element at import time. Keeping its deterministic table allows Node DOM tests to import the module before a fixture document exists. This is a build compatibility choice, not an additional renderer capability."
+    - group [ref=e388]:
+      - 'generic "Scope map: account for the rest of the diff" [ref=e389] [cursor=pointer]'
+    - paragraph [ref=e390]:
+      - text: "The existing sandbox, context isolation, denied popups/direct navigation, and CSP remain relevant:"
+      - link "Window options" [ref=e391] [cursor=pointer]:
+        - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/main/window.js#L15-L27
+      - text: ·
+      - link "Navigation denial" [ref=e392] [cursor=pointer]:
+        - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/main/window.js#L71-L76
+      - text: ·
+      - link "CSP" [ref=e393] [cursor=pointer]:
+        - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/main/renderer-protocol.js#L45-L50
+      - text: . Those outer controls complement the new DOM policy.
+  - generic [ref=e394]:
+    - heading "What the retained evidence establishes" [level=2] [ref=e395]
+    - paragraph [ref=e396]: No product tests, application launch, or fresh product captures were performed for this walkthrough. Source assertions, retained execution logs, and author reports have different evidentiary weight.
+    - region "Evidence and limitations" [ref=e397]:
+      - table [ref=e398]:
+        - rowgroup [ref=e399]:
+          - row [ref=e400]:
+            - columnheader "Evidence" [ref=e401]
+            - columnheader "What is available" [ref=e402]
+            - columnheader "Practical limit" [ref=e403]
+        - rowgroup [ref=e404]:
+          - row [ref=e405]:
+            - cell [ref=e406]:
+              - strong [ref=e407]: Tests in the candidate
+            - cell [ref=e408]:
+              - text: Representative CommonMark, GFM, literal hostile source, duplicate/formatted IDs, malformed/Mermaid cases; Session and artifact integration; build/package contracts.
+              - link "Added DOM cases" [ref=e409] [cursor=pointer]:
+                - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/test/dom.test.js#L72-L256
+              - text: ·
+              - link "Artifact policy integration" [ref=e410] [cursor=pointer]:
+                - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/test/renderer.test.js#L925-L980
+            - cell "Representative examples, not an exhaustive official CommonMark conformance suite. Source presence alone would not show execution." [ref=e411]
+          - row [ref=e412]:
+            - cell [ref=e413]:
+              - strong [ref=e414]: Retrieved CI log
+            - cell [ref=e415]:
+              - text: "Ubuntu 22.04 Desktop contract: renderer bundle 421,335 bytes; 137 tests passed, zero failures/skips."
+              - link "Job and log" [ref=e416] [cursor=pointer]:
+                - /url: https://github.com/TrentBrown/gatereeve/actions/runs/33428783903/job/99608761346
+            - cell [ref=e417]:
+              - text: PR run 33428783903 names head
+              - code [ref=e418]: faa30266…
+              - text: ; checkout actually used synthetic merge
+              - code [ref=e419]: e691de0d6e4ddd81ebcbe46b08e63fe5900b7d9a
+              - text: of this exact head into this exact base.
+          - row [ref=e420]:
+            - cell [ref=e421]:
+              - strong [ref=e422]: CI job results
+            - cell [ref=e423]:
+              - text: Run metadata shows successful Ubuntu/macOS runtime jobs, universal macOS packaging, and packaged runtime on Apple Silicon and Intel.
+              - link "Run" [ref=e424] [cursor=pointer]:
+                - /url: https://github.com/TrentBrown/gatereeve/actions/runs/33428783903
+            - cell "The native smoke inspects startup, setup, shell layout, and isolation context; its source is not a Markdown-specific visual exercise. Successful native launch does not establish all new syntax behavior." [ref=e425]
+          - row [ref=e426]:
+            - cell [ref=e427]:
+              - strong [ref=e428]: Author verification record
+            - cell [ref=e429]:
+              - text: Reports real-browser GFM/hostile-input checks, zero external requests, 1280px containment, 718ms for 2,000 items / 127,779 source bytes, a repeated bundle digest, and a clean dependency audit.
+              - link "Retained verification record" [ref=e430] [cursor=pointer]:
+                - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/docs/issues/tb-desktop-markdown-rendering/pr-42/verification.md#L1-L24
+            - cell [ref=e431]:
+              - text: Record’s focused range ends at
+              - code [ref=e432]: a981e3ed…
+              - text: ", earlier than the explained head. No raw browser transcript or capture was found. Performance and audit numbers are historical author reports, not fresh measurements."
+          - row [ref=e433]:
+            - cell [ref=e434]:
+              - strong [ref=e435]: Visual evidence search
+            - cell "Inspected the production visual fixture, package/test scripts, CI upload configuration, relevant local feature/Desktop files including ignored outputs, and CI artifact listing." [ref=e436]
+            - cell "No relevant retained screenshot, trace, video, or browser report was found. CI uploads only a DMG; the current run artifact list is empty. The optional smoke screenshot environment variable is not set by this CI workflow." [ref=e437]
+    - paragraph [ref=e438]: The older record’s “native smoke unavailable on this Linux host” is a local-host limitation. The later CI job results supply separate native startup/package evidence. They do not recover the missing visual captures.
+    - group [ref=e439]:
+      - generic "Trace the evidence to its producers" [ref=e440] [cursor=pointer]
+  - generic [ref=e441]:
+    - heading "Read these seams closely" [level=2] [ref=e442]
+    - paragraph [ref=e443]: "The change is easiest to examine in policy order: preservation before sanitization, metadata before capability activation, then build inclusion. These concerns guide inspection; they are not an approval verdict."
+    - generic [ref=e444]:
+      - heading "Heading suffixes can overlap another heading’s own slug" [level=3] [ref=e445]
+      - paragraph [ref=e446]:
+        - text: The code counts duplicates separately for each base slug. By source reasoning, headings
+        - code [ref=e447]: A
+        - text: ","
+        - code [ref=e448]: A
+        - text: ", and"
+        - code [ref=e449]: A-2
+        - text: can produce
+        - code [ref=e450]: a
+        - text: ","
+        - code [ref=e451]: a-2
+        - text: ", and"
+        - code [ref=e452]: a-2
+        - text: as logical fragments. That deserves inspection against the spec’s uniqueness requirement. The added heading test covers repeated identical slugs and formatting, but not this overlapping-suffix case. No product execution was used to confirm it.
+      - paragraph [ref=e453]:
+        - link "Per-slug counter" [ref=e454] [cursor=pointer]:
+          - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L152-L161
+        - text: ·
+        - link "Added heading test" [ref=e455] [cursor=pointer]:
+          - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/test/dom.test.js#L211-L233
+        - text: ·
+        - link "AC5" [ref=e456] [cursor=pointer]:
+          - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/docs/issues/tb-desktop-markdown-rendering/spec.md#L48-L52
+    - generic [ref=e457]:
+      - heading "Syntax correctness and renderer responsiveness have separate limits" [level=3] [ref=e458]
+      - paragraph [ref=e459]:
+        - code [ref=e460]: parse
+        - text: and
+        - code [ref=e461]: runSync
+        - text: run synchronously. The design explicitly calls out pathological documents blocking the renderer. The reported 718ms sample is useful context, but does not establish a resource bound or a latency limit for malformed/large input.
+        - link "Synchronous parse" [ref=e462] [cursor=pointer]:
+          - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L238-L239
+        - text: ·
+        - link "Design risk" [ref=e463] [cursor=pointer]:
+          - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/docs/issues/tb-desktop-markdown-rendering/design.md#L116-L122
+    - generic [ref=e464]:
+      - heading "Preserve semantics while narrowing attributes" [level=3] [ref=e465]
+      - paragraph [ref=e466]:
+        - text: Footnotes need prefixed IDs, corrected
+        - code [ref=e467]: aria-describedby
+        - text: ", and local backreference handling. Tables need semantic cells plus local scrolling. Inspect these alongside the schema rather than reading the allow-list alone. Browser/screen-reader behavior is less directly established than DOM assertions because the captures and raw browser observations were not retained."
+        - link "Schema" [ref=e468] [cursor=pointer]:
+          - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L11-L72
+        - text: ·
+        - link "Footnote mapping" [ref=e469] [cursor=pointer]:
+          - /url: https://github.com/TrentBrown/gatereeve/blob/faa30266bf0b60a03ac2285017762f76faf52b63/apps/desktop/renderer/markdown-source.js#L176-L205
+  - generic [ref=e470]:
+    - heading "Source identity" [level=2] [ref=e471]
+    - generic [ref=e472]:
+      - term [ref=e473]: Repository / comparison
+      - definition [ref=e474]: "TrentBrown/gatereeve · PR #42 · pinned Git comparison"
+      - term [ref=e475]: Base
+      - definition [ref=e476]: 1d10d6da7b4acac054c31e65993a2f03bcbf0ee3
+      - term [ref=e477]: Head
+      - definition [ref=e478]: faa30266bf0b60a03ac2285017762f76faf52b63
+      - term [ref=e479]: Retrieved CI checkout
+      - definition [ref=e480]: e691de0d6e4ddd81ebcbe46b08e63fe5900b7d9a · synthetic merge of the base/head above
+      - term [ref=e481]: Generated
+      - definition [ref=e482]: 2026-11-18T17:51:16+00:00
+    - paragraph [ref=e483]: All source links are revision-bound. Base snippets are explicitly labelled; unlabelled source references point to the pinned head. Source diagrams and sketches are illustrative explanations, not product screenshots. Later pushes do not update this file. No review acceptance, workflow passage, or delivery action is implied.
+  - generic [ref=e484]: Prepared for an experienced engineer unfamiliar with the Desktop renderer. Read with access to the repository for source references; all explanatory text, styles, and visuals are embedded in this file.
+```
