@@ -1,0 +1,13 @@
+✔ empty manifest leaves the Early Access release unresolved (0.375959ms)
+✔ only complete Apple trust evidence activates the exact GitHub tag page (0.3375ms)
+✔ website fetch uses one same-origin manifest without identifiers (0.09225ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 32.510375
+
+STDERR

@@ -126,7 +126,7 @@ the production HTML, CSS, and renderer modules but is excluded from packages.
 
 The renderer may request explicit worktree selection, canonical snapshot and
 named-detail reads, refresh, clipboard copy, and open or reveal actions for
-artifact IDs from the current snapshot. Trusted interactive explain-diff and
+artifact IDs from the current snapshot. Trusted interactive PR-explainer and
 Whiteboard Defense HTML are served only by canonical artifact ID in the
 artifact sandbox. Checkpoints and handoffs use a
 separate exact-ID Session reader and never become workflow evidence. The

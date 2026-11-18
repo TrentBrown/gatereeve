@@ -1,0 +1,123 @@
+[
+  {
+    "case": "ui",
+    "result": {
+      "keyboard": [
+        {
+          "name": "Read the exact heading-ID and fragment changes",
+          "opened": true,
+          "closed": true
+        },
+        {
+          "name": "Scope map: account for the rest of the diff",
+          "opened": true,
+          "closed": true
+        },
+        {
+          "name": "Trace the evidence to its producers",
+          "opened": true,
+          "closed": true
+        },
+        {
+          "navigation": "#context",
+          "worked": true
+        }
+      ],
+      "sizes": [
+        {
+          "width": 1280,
+          "scroll": 1280,
+          "loadedImages": true,
+          "remoteAssets": 0
+        },
+        {
+          "width": 390,
+          "scroll": 390,
+          "loadedImages": true,
+          "remoteAssets": 0
+        }
+      ]
+    },
+    "code": 0
+  },
+  {
+    "case": "nonui",
+    "result": {
+      "keyboard": [
+        {
+          "navigation": "#context",
+          "worked": true
+        }
+      ],
+      "sizes": [
+        {
+          "width": 1280,
+          "scroll": 1280,
+          "loadedImages": true,
+          "remoteAssets": 0
+        },
+        {
+          "width": 390,
+          "scroll": 390,
+          "loadedImages": true,
+          "remoteAssets": 0
+        }
+      ]
+    },
+    "code": 0
+  },
+  {
+    "case": "visual-output",
+    "result": {
+      "keyboard": [
+        {
+          "name": "Where evidence discovery looked",
+          "opened": true,
+          "closed": true
+        }
+      ],
+      "sizes": [
+        {
+          "width": 1280,
+          "scroll": 1280,
+          "loadedImages": true,
+          "remoteAssets": 0
+        },
+        {
+          "width": 390,
+          "scroll": 390,
+          "loadedImages": true,
+          "remoteAssets": 0
+        }
+      ]
+    },
+    "code": 0
+  },
+  {
+    "case": "capture-output",
+    "result": {
+      "keyboard": [
+        {
+          "name": "Source reading guide and provenance",
+          "opened": true,
+          "closed": true
+        }
+      ],
+      "sizes": [
+        {
+          "width": 1280,
+          "scroll": 1280,
+          "loadedImages": true,
+          "remoteAssets": 0
+        },
+        {
+          "width": 390,
+          "scroll": 390,
+          "loadedImages": true,
+          "remoteAssets": 0
+        }
+      ]
+    },
+    "code": 0
+  }
+]

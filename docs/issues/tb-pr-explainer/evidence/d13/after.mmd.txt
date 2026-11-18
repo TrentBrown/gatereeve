@@ -1,0 +1,9 @@
+flowchart TD
+ A["Write complete marker<br/>to private pending name"] -->|link, never replace| B["owner points to complete bytes<br/>Two names can exist briefly"]
+ B --> C["Reader waits while validation fails<br/>Up to 50 delays of 10 ms"]
+ B -->|unlink pending name| D["Only owner name remains"]
+ D --> E["Reader validates one link<br/>and exact marker bytes"]
+ C -->|retry validation| E
+ E --> F["Continue metrics storage"]
+ classDef fresh fill:#e8f3ee,stroke:#2c735a,color:#153a2e
+ class A,B,C,D,E,F fresh

@@ -35,6 +35,30 @@ async function fill(path, mib, value = 120) {
   try { const block = Buffer.alloc(1024 * 1024, value); for (let i = 0; i < mib; i++) await fd.write(block); } finally { await fd.close(); }
 }
 
+test('PR explanations stay evidence while nearby HTML and configuration remain application inputs', async t => {
+  const f = await currentFixture(t);
+  const files = {
+    'docs/issues/feature/pr-explainer.html': '<html>Current reviewer artifact</html>',
+    'docs/issues/feature/pr-12/pr-explainer.html': '<html>PR reviewer artifact</html>',
+    'docs/issues/feature/pr-12/explain-diff.html': '<html>Retained historical artifact</html>',
+    'docs/issues/feature/evidence/ordinary-page.html': '<html>Application page, not a reserved report</html>',
+    'docs/issues/feature/evidence/pr-explainer.js': 'export const executable = true;\n',
+    'docs/issues/feature/evidence/settings.json': '{"routing":"application"}',
+  };
+  for (const [path, body] of Object.entries(files)) {
+    await mkdir(join(f.repo, path, '..'), { recursive: true });
+    await writeFile(join(f.repo, path), body);
+  }
+  await commit(f);
+  const candidate = await capture(f);
+  const paths = candidate.repositories[0].files.map(file => file.path);
+  for (const path of Object.keys(files)) {
+    assert.equal(paths.includes(path), !path.endsWith('/pr-explainer.html') && !path.endsWith('/explain-diff.html'), path);
+  }
+  assert.equal(await readFile(join(f.repo, 'docs/issues/feature/pr-12/explain-diff.html'), 'utf8'), files['docs/issues/feature/pr-12/explain-diff.html']);
+  await checkSource(f.core.store, f.context, candidate);
+});
+
 test('large trees stream source, skip excluded bodies, and retain manifests without file copies', async t => {
   const f = await currentFixture(t);
   await fill(join(f.repo, 'large.bin'), 150);

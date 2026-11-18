@@ -281,10 +281,13 @@ acceptance step.
 
 ### 9. Prepare the pull request boundary
 
-Ask the agent to run `workflow-pr-boundary`. A complete boundary reconciles
-`issues.md` and `tracker.md`, records the exact verification matrix, evaluates
-the spec, runs the adversarial judge and code review, creates
-`explain-diff.html`, triages decisions, and updates the PR description.
+Ask the agent to run `workflow-pr-boundary`. The current protocol requires
+the pinned source and requirements, actual verification, one fresh independent
+acceptance assessment, and a validated review packet. Reconcile the issue,
+tracker, and decision records. When a visual walkthrough is requested, run
+`pr-explainer` to create `pr-explainer.html` from the change and existing evidence;
+the standalone skill does not add a required gate. Follow the current review
+publication and PR closure policy when preparing the human-review boundary.
 
 Before committing, confirm that only intended sources and branch artifacts are
 present:

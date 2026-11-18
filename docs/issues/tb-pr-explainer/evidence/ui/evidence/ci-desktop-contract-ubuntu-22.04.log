@@ -1,0 +1,1045 @@
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	﻿2026-08-31T19:07:12.7480405Z Current runner version: '2.336.0'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7504548Z ##[group]Runner Image Provisioner
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7505389Z Hosted Compute Agent
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7505945Z Version: 20260819.586
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7506512Z Commit: 3cc4a88dfa507ef76119ad1bb3eccc6378bb2b76
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7507209Z Build Date: 2026-08-18T23:20:18Z
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7507838Z Worker ID: {ceaea279-ae7d-4482-9e8f-a6e1a28d6f48}
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7508576Z Azure Region: westus3
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7509115Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7510476Z ##[group]Operating System
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7511065Z Ubuntu
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7511553Z 22.04.5
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7511996Z LTS
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7512497Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7513171Z ##[group]Runner Image
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7513744Z Image: ubuntu-22.04
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7514318Z Version: 20260824.273.3
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7515424Z Included Software: https://github.com/actions/runner-images/blob/ubuntu22/20260824.273/images/ubuntu/Ubuntu2204-Readme.md
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7516860Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu22%2F20260824.273
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7517714Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7518761Z ##[group]GITHUB_TOKEN Permissions
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7520839Z Contents: read
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7521356Z Metadata: read
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7521853Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7524130Z Secret source: Actions
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7525343Z Prepare workflow directory
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7807943Z Prepare all required actions
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:12.7867726Z Getting action download info
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.1318046Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.2109110Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.3945277Z Complete job name: Desktop contract on Ubuntu 22.04
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4641447Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4649789Z ##[group]Run actions/checkout@v4
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4650454Z with:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4651081Z   repository: TrentBrown/gatereeve
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4654853Z   token: ***
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4655367Z   ssh-strict: true
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4655840Z   ssh-user: git
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4656304Z   persist-credentials: true
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4656876Z   clean: true
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4657362Z   sparse-checkout-cone-mode: true
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4657926Z   fetch-depth: 1
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4658396Z   fetch-tags: false
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4658864Z   show-progress: true
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4659367Z   lfs: false
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4659914Z   submodules: false
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4660423Z   set-safe-directory: true
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4660987Z   allow-unsafe-pr-checkout: false
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.4661704Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5648776Z Syncing repository: TrentBrown/gatereeve
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5651288Z ##[group]Getting Git version info
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5652291Z Working directory is '/home/runner/work/gatereeve/gatereeve'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5653943Z [command]/usr/bin/git version
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5697117Z git version 2.55.0
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5715012Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5728211Z Temporarily overriding HOME='/home/runner/work/_temp/bdf4878d-cdd7-4207-870c-ab498dba46eb' before making global git config changes
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5730250Z Adding repository directory to the temporary git global config as a safe directory
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5734847Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/gatereeve/gatereeve
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5775344Z Deleting the contents of '/home/runner/work/gatereeve/gatereeve'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5789477Z ##[group]Initializing the repository
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5793775Z [command]/usr/bin/git init /home/runner/work/gatereeve/gatereeve
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5860286Z hint: Using 'master' as the name for the initial branch. This default branch name
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5862018Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5863914Z hint: to use in all of your new repositories, which will suppress this warning,
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5865227Z hint: call:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5866027Z hint:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5867135Z hint: 	git config --global init.defaultBranch <name>
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5868153Z hint:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5871571Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5873324Z hint: 'development'. The just-created branch can be renamed via this command:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5874954Z hint:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5875922Z hint: 	git branch -m <name>
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5876939Z hint:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5878069Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5879879Z Initialized empty Git repository in /home/runner/work/gatereeve/gatereeve/.git/
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5882790Z [command]/usr/bin/git remote add origin https://github.com/TrentBrown/gatereeve
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5896432Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5897794Z ##[group]Disabling automatic garbage collection
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5898984Z [command]/usr/bin/git config --local gc.auto 0
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5925532Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5926761Z ##[group]Setting up auth
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5930624Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.5957113Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.6248035Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.6275604Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.6460596Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.6488921Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.6689996Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.6720772Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.6721696Z ##[group]Fetching the repository
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:13.6728892Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e691de0d6e4ddd81ebcbe46b08e63fe5900b7d9a:refs/remotes/pull/42/merge
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.7437226Z From https://github.com/TrentBrown/gatereeve
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.7439779Z  * [new ref]         e691de0d6e4ddd81ebcbe46b08e63fe5900b7d9a -> pull/42/merge
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.7444002Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.7445441Z ##[group]Determining the checkout info
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.7447302Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.7448348Z [command]/usr/bin/git sparse-checkout disable
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.7483576Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.7516915Z ##[group]Checking out the ref
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.7518774Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/42/merge
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8365899Z Note: switching to 'refs/remotes/pull/42/merge'.
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8367007Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8368381Z You are in 'detached HEAD' state. You can look around, make experimental
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8370364Z changes and commit them, and you can discard any commits you make in this
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8372272Z state without impacting any branches by switching back to a branch.
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8373856Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8375117Z If you want to create a new branch to retain commits you create, you may
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8376907Z do so (now or later) by using -c with the switch command. Example:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8377865Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8378357Z   git switch -c <new-branch-name>
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8379041Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8379549Z Or undo this operation with:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8380254Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8380694Z   git switch -
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8381389Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8382323Z Turn off this advice by setting config variable advice.detachedHead to false
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8383793Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8385276Z HEAD is now at e691de0 Merge faa30266bf0b60a03ac2285017762f76faf52b63 into 1d10d6da7b4acac054c31e65993a2f03bcbf0ee3
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8390658Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8404646Z [command]/usr/bin/git log -1 --format=%H
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8426463Z e691de0d6e4ddd81ebcbe46b08e63fe5900b7d9a
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8774232Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8779550Z ##[group]Run actions/setup-node@v4
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8780622Z with:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8781461Z   node-version: 22.17.0
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8782385Z   cache: npm
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8783577Z   cache-dependency-path: apps/desktop/package-lock.json
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8784928Z   always-auth: false
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8785881Z   check-latest: false
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8794407Z   token: ***
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:14.8795258Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:15.0137566Z Attempting to download 22.17.0...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:15.0236193Z (node:1610) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:15.0238936Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:16.0636623Z Acquiring 22.17.0 - x64 from https://github.com/actions/node-versions/releases/download/22.17.0-15866718879/node-22.17.0-linux-x64.tar.gz
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:16.5667568Z Extracting ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:16.5788822Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/70a5a3d1-abc8-483a-a62a-45ea2877c16c -f /home/runner/work/_temp/84ab356b-c37d-496d-b463-f09bb1eb0581
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:17.7438413Z Adding to the cache ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:19.5849474Z ##[group]Environment details
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:19.7921882Z node: v22.17.0
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:19.7922519Z npm: 10.9.2
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:19.7922816Z yarn: 1.22.22
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:19.7924055Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:19.7941098Z [command]/opt/hostedtoolcache/node/22.17.0/x64/bin/npm config get cache
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:19.8752085Z /home/runner/.npm
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:20.1586702Z Cache hit for: node-cache-Linux-x64-npm-401fe32952cff556b1c87b31c372be997bb7b818cf80a40d2ffc17a23b646162
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:20.1726628Z (node:1610) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:21.3884400Z Received 10509249 of 14703553 (71.5%), 10.0 MBs/sec
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:22.3889213Z Received 10509249 of 14703553 (71.5%), 5.0 MBs/sec
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:23.2548330Z Received 14703553 of 14703553 (100.0%), 4.9 MBs/sec
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:23.2548875Z Cache Size: ~14 MB (14703553 B)
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:23.2569955Z [command]/usr/bin/tar -xf /home/runner/work/_temp/a4fdf1a6-7f1d-4401-9f6e-dce19d5b56c7/cache.tzst -P -C /home/runner/work/gatereeve/gatereeve --use-compress-program unzstd
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:23.2957309Z Cache restored successfully
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:23.2978265Z Cache restored from key: node-cache-Linux-x64-npm-401fe32952cff556b1c87b31c372be997bb7b818cf80a40d2ffc17a23b646162
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:23.3134350Z ##[group]Run npm ci --prefix apps/desktop
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:23.3135518Z ^[[36;1mnpm ci --prefix apps/desktop^[[0m
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:23.3396097Z shell: /usr/bin/bash -e {0}
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:23.3396499Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.5680265Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.5689552Z added 145 packages, and audited 146 packages in 1s
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.5690229Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.5690571Z 92 packages are looking for funding
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.5691140Z   run `npm fund` for details
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.5691498Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.5691731Z found 0 vulnerabilities
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.5938811Z ##[group]Run npm run check --prefix apps/desktop
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.5939311Z ^[[36;1mnpm run check --prefix apps/desktop^[[0m
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.5980311Z shell: /usr/bin/bash -e {0}
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.5980753Z ##[endgroup]
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.6801243Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.6802235Z > @quality-code/gatereeve-desktop@0.1.0 check
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.6803164Z > npm test
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.6803579Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.7620577Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.7621458Z > @quality-code/gatereeve-desktop@0.1.0 pretest
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.7622424Z > npm run stage:protocol && npm run build:renderer
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.7623214Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.8424536Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.8425104Z > @quality-code/gatereeve-desktop@0.1.0 stage:protocol
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.8425753Z > node scripts/stage-protocol.mjs
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.8425961Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.9820830Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.9821926Z > @quality-code/gatereeve-desktop@0.1.0 build:renderer
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.9823196Z > node scripts/build-renderer.mjs
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:24.9823525Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.0978874Z Built renderer Markdown bundle (421335 bytes).
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.1084381Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.1085181Z > @quality-code/gatereeve-desktop@0.1.0 test
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.1085641Z > node --test
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.1085918Z 
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.1623353Z TAP version 13
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3593142Z # Subtest: principal controls use keyboard-native elements with visible accessible names
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3600818Z ok 1 - principal controls use keyboard-native elements with visible accessible names
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3601883Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3616408Z   duration_ms: 35.019068
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3617494Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3618064Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3823319Z # Subtest: status regions and principal views expose semantic text independent of color
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3831311Z ok 2 - status regions and principal views expose semantic text independent of color
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3833711Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3834394Z   duration_ms: 22.962078
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3835182Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3835782Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3875037Z # Subtest: styles preserve visible focus, docked regions, and reduced-motion behavior
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3881338Z ok 3 - styles preserve visible focus, docked regions, and reduced-motion behavior
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3882232Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3883100Z   duration_ms: 3.869301
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3883806Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.3884398Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4492235Z # Subtest: Apple signing configuration requires a team-scoped Developer ID identity
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4513196Z ok 4 - Apple signing configuration requires a team-scoped Developer ID identity
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4514311Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4514967Z   duration_ms: 1.618873
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4515537Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4515948Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4516672Z # Subtest: codesign facts require Developer ID, hardened runtime, and a secure timestamp
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4517872Z ok 5 - codesign facts require Developer ID, hardened runtime, and a secure timestamp
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4518458Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4518786Z   duration_ms: 1.620333
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4519130Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4519425Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4519906Z # Subtest: notarization emits complete non-secret evidence for the exact disk image
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4520589Z ok 6 - notarization emits complete non-secret evidence for the exact disk image
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4521054Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4521584Z   duration_ms: 19.461997
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4521916Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4522251Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4522725Z # Subtest: trust finalization preserves submitted bytes and makes final evidence create-once
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4523877Z ok 7 - trust finalization preserves submitted bytes and makes final evidence create-once
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4524539Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4524883Z   duration_ms: 11.841638
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4525467Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4525923Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4526645Z # Subtest: notarization timeout is durable and recovery polls the same request without resubmitting
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4527683Z ok 8 - notarization timeout is durable and recovery polls the same request without resubmitting
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4528447Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4528809Z   duration_ms: 214.393122
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4529203Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4529628Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4624889Z # Subtest: submission interruption persists uncertainty and refuses an automatic second submit
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4643380Z ok 9 - submission interruption persists uncertainty and refuses an automatic second submit
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4644658Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4645292Z   duration_ms: 13.283844
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4645770Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4646246Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4693167Z # Subtest: malformed submission output and Apple rejection become durable fail-closed states
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4694336Z     # Subtest: malformed submission output
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4695691Z     ok 1 - malformed submission output
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4696306Z       ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4696844Z       duration_ms: 6.620585
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4697363Z       type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4703715Z       ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4799720Z     # Subtest: Apple rejection
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4813979Z     ok 2 - Apple rejection
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4818821Z       ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4833503Z       duration_ms: 10.465993
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4837506Z       type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4838079Z       ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4995573Z     # Subtest: status response without the recorded request ID
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4996716Z     ok 3 - status response without the recorded request ID
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4997516Z       ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4998115Z       duration_ms: 18.535354
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4998749Z       type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.4999436Z       ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5000043Z     1..3
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5001110Z ok 10 - malformed submission output and Apple rejection become durable fail-closed states
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5002128Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5002687Z   duration_ms: 37.025484
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5011390Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5012068Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5013168Z # Subtest: Apple trust evidence rejects an altered or incomplete candidate
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5014555Z ok 11 - Apple trust evidence rejects an altered or incomplete candidate
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5015407Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5016074Z   duration_ms: 0.663826
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5016791Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5017395Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5131973Z # Subtest: GitHub artifact URLs require a tracked path, GitHub origin, and exact HEAD
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5144182Z ok 12 - GitHub artifact URLs require a tracked path, GitHub origin, and exact HEAD
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5163740Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5164297Z   duration_ms: 1.924557
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5164973Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5165443Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5166182Z # Subtest: Downloads choose a non-overwriting filename
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5166965Z ok 13 - Downloads choose a non-overwriting filename
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5167514Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5168023Z   duration_ms: 0.37772
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5168505Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5168981Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5169814Z # Subtest: editor preference store persists only a bounded editor selection document
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5172419Z ok 14 - editor preference store persists only a bounded editor selection document
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5173577Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5174017Z   duration_ms: 10.72716
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5174480Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5174852Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5175670Z # Subtest: artifact actions detect bounded editors, remember explicit choices, and preserve source files
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5176683Z ok 15 - artifact actions detect bounded editors, remember explicit choices, and preserve source files
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5177462Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5184038Z   duration_ms: 4.362554
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5184704Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5186881Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5187709Z # Subtest: desktop state requires the exact read-only envelope
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5188778Z ok 16 - desktop state requires the exact read-only envelope
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5189638Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5190114Z   duration_ms: 2.021242
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5191581Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5193473Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5194359Z # Subtest: Setup state and selected agents are exact, bounded read-only contracts
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5195367Z ok 17 - Setup state and selected agents are exact, bounded read-only contracts
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5196067Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5196528Z   duration_ms: 0.748829
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5197058Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5197603Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5198427Z # Subtest: update state exposes notification-only discovery without a download contract
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5199539Z ok 18 - update state exposes notification-only discovery without a download contract
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5200277Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5200704Z   duration_ms: 0.424546
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5202711Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5203418Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5204365Z # Subtest: named read and artifact requests reject broad or malformed access
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5205622Z ok 19 - named read and artifact requests reject broad or malformed access
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5206663Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5207518Z   duration_ms: 0.843892
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5208593Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5209204Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5210131Z # Subtest: IPC allow-list contains no workflow mutation or process-execution surface
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5211323Z ok 20 - IPC allow-list contains no workflow mutation or process-execution surface
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5212080Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5212658Z   duration_ms: 0.261754
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5213346Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5213820Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5214800Z # Subtest: selection publishes local state before enrichment and polls GitHub only while needed
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5215969Z ok 21 - selection publishes local state before enrichment and polls GitHub only while needed
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5216823Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5217349Z   duration_ms: 10.647499
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5217907Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5218411Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5219225Z # Subtest: unavailable GitHub enrichment preserves a readable local snapshot
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5220261Z ok 22 - unavailable GitHub enrichment preserves a readable local snapshot
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5220990Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5221572Z   duration_ms: 1.79924
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5222098Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5222581Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5224486Z # Subtest: notifications are opt-in, baseline current state, deduplicate refreshes, and stop with the coordinator
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5225922Z ok 23 - notifications are opt-in, baseline current state, deduplicate refreshes, and stop with the coordinator
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5226935Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5227460Z   duration_ms: 10.073061
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5228000Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5228546Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5229762Z # Subtest: selected-agent Setup persists explicit choice and rechecks without requiring a worktree
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5231150Z ok 24 - selected-agent Setup persists explicit choice and rechecks without requiring a worktree
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5232104Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5232643Z   duration_ms: 1.038513
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5233803Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5234611Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5235407Z # Subtest: changing agent selection clears stale detection cards before rechecking
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5236573Z ok 25 - changing agent selection clears stale detection cards before rechecking
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5237360Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5237857Z   duration_ms: 0.675831
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5238440Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5238946Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5239940Z # Subtest: failed project admission remains unsaved and leaves the active project intact
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5241164Z ok 26 - failed project admission remains unsaved and leaves the active project intact
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5241940Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5242491Z   duration_ms: 5.068477
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5243264Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5243776Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5244710Z # Subtest: startup validates every saved project and observes only the restored active project
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5245982Z ok 27 - startup validates every saved project and observes only the restored active project
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5246847Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5247364Z   duration_ms: 3.50501
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5247906Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5248399Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5249132Z # Subtest: active project summary follows the enriched canonical workflow state
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5250107Z ok 28 - active project summary follows the enriched canonical workflow state
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5250842Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5251411Z   duration_ms: 1.601364
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5251941Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5252466Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5253576Z # Subtest: removing the active project preserves disk and activates the nearest saved project
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5254780Z ok 29 - removing the active project preserves disk and activates the nearest saved project
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5255623Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5256099Z   duration_ms: 5.268851
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5256659Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.5257213Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6514926Z # Subtest: Markdown renders safe emphasis while preserving code, identifiers, and images
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6577739Z ok 30 - Markdown renders safe emphasis while preserving code, identifiers, and images
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6597699Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6598518Z   duration_ms: 32.441453
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6599142Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6599690Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6600696Z # Subtest: Markdown links are semantic only when an explicit resolver accepts their target
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6602044Z ok 31 - Markdown links are semantic only when an explicit resolver accepts their target
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6603081Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6603613Z   duration_ms: 5.362681
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6604188Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6604813Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6605734Z # Subtest: Markdown covers representative CommonMark block and inline structures
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6606978Z ok 32 - Markdown covers representative CommonMark block and inline structures
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6607828Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6608380Z   duration_ms: 13.307893
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6609039Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6609545Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6610534Z # Subtest: Markdown renders GFM tables, task lists, autolinks, strikethrough, and footnotes
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6611768Z ok 33 - Markdown renders GFM tables, task lists, autolinks, strikethrough, and footnotes
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6614147Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6614754Z   duration_ms: 11.036428
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6615395Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6615907Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6616816Z # Subtest: Markdown keeps HTML, images, and rejected destinations visible without resource DOM
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6618075Z ok 34 - Markdown keeps HTML, images, and rejected destinations visible without resource DOM
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6618881Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6619491Z   duration_ms: 3.655559
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6620783Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6635964Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6637644Z # Subtest: Markdown heading anchors are deterministic, prefixed, formatted, and duplicate-aware
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6638900Z ok 35 - Markdown heading anchors are deterministic, prefixed, formatted, and duplicate-aware
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6639826Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6640409Z   duration_ms: 1.846132
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6641002Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6641553Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6642678Z # Subtest: Markdown keeps malformed input and Mermaid fences literal
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6643863Z ok 36 - Markdown keeps malformed input and Mermaid fences literal
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6644612Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6645211Z   duration_ms: 2.071684
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6645783Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6646356Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6932462Z # Subtest: Finder-compatible discovery checks fixed macOS and explicit PATH locations
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.6934312Z ok 37 - Finder-compatible discovery checks fixed macOS and explicit PATH locations
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7024022Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7113894Z   duration_ms: 1.261983
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7193775Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7223664Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7254528Z # Subtest: Finder-compatible discovery checks only the bounded NVM version root after fixed paths
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7284019Z ok 38 - Finder-compatible discovery checks only the bounded NVM version root after fixed paths
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7304134Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7334056Z   duration_ms: 11.142956
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7334781Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7335464Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7336245Z # Subtest: explicit executable overrides are narrow and fail closed
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7337354Z ok 39 - explicit executable overrides are narrow and fail closed
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7338113Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7338630Z   duration_ms: 0.405027
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7339272Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7339777Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7340571Z # Subtest: multi-candidate discovery retains bounded deterministic order
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7341701Z ok 40 - multi-candidate discovery retains bounded deterministic order
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7342437Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7343159Z   duration_ms: 1.053953
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7343775Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7344323Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7345188Z # Subtest: multi-candidate discovery treats an explicit override as the entire search
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7346438Z ok 41 - multi-candidate discovery treats an explicit override as the entire search
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7347285Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7347793Z   duration_ms: 0.379565
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7348426Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7348923Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7349853Z # Subtest: Homebrew smoke rejects a claimed architecture that is not the native process
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7350990Z ok 42 - Homebrew smoke rejects a claimed architecture that is not the native process
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7351766Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7352370Z   duration_ms: 1.264612
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7353065Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7353665Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7354528Z # Subtest: public Homebrew smoke rejects a claimed architecture that is not native
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7355677Z ok 43 - public Homebrew smoke rejects a claimed architecture that is not native
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7356460Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7356993Z   duration_ms: 0.663662
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7357572Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7358081Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7358955Z # Subtest: IPC authenticates the exact top-level application frame
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7359950Z ok 44 - IPC authenticates the exact top-level application frame
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7360709Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7361217Z   duration_ms: 0.622464
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7361736Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7362341Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7363569Z # Subtest: IPC exposes only validated named reads, Session context, clipboard, selection, refresh, and artifact OS actions
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7365200Z ok 45 - IPC exposes only validated named reads, Session context, clipboard, selection, refresh, and artifact OS actions
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7366580Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7367074Z   duration_ms: 4.442569
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7367658Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7368146Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7845806Z # Subtest: Rolling Vale is the pinned, square production icon source
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7852774Z ok 46 - Rolling Vale is the pinned, square production icon source
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7866300Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7881260Z   duration_ms: 5.703364
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7886077Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7887868Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7890268Z # Subtest: macOS identity and universal packager options are permanent
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7906843Z ok 47 - macOS identity and universal packager options are permanent
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7907564Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7908111Z   duration_ms: 0.743766
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7908693Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7909145Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7910129Z # Subtest: icon generation creates every standard macOS iconset size
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7911029Z ok 48 - icon generation creates every standard macOS iconset size
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7912138Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7912640Z   duration_ms: 5.492821
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7913505Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.7913951Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.9939944Z # Subtest: Desktop staging contains only self-contained runtime resources
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.9974854Z ok 49 - Desktop staging contains only self-contained runtime resources
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.9995760Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.9996279Z   duration_ms: 202.499806
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.9996654Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.9996932Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:25.9997552Z # Subtest: package results can use a dedicated machine-readable file
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0020451Z ok 50 - package results can use a dedicated machine-readable file
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0021190Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0021709Z   duration_ms: 5.809594
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0022286Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0022813Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0041080Z # Subtest: DMG composition adds a conventional Applications shortcut
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0041945Z ok 51 - DMG composition adds a conventional Applications shortcut
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0063878Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0064670Z   duration_ms: 2.115277
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0065276Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0065734Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0090558Z # Subtest: native package evidence binds the exact source and DMG bytes
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0091613Z ok 52 - native package evidence binds the exact source and DMG bytes
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0092506Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0093190Z   duration_ms: 7.711432
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0094003Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0094526Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0095413Z # Subtest: native authority detects and rejects Rosetta substitution evidence
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0096537Z ok 53 - native authority detects and rejects Rosetta substitution evidence
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0097315Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0097857Z   duration_ms: 0.449273
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0098507Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0099077Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0214195Z # Subtest: attempt records request identity before bounded polling and acceptance
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0237552Z ok 54 - attempt records request identity before bounded polling and acceptance
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0238736Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0239249Z   duration_ms: 7.123589
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0239813Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0240338Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0241216Z # Subtest: each polling session times out after exactly 60 polls and recovery reuses the request
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0242146Z ok 55 - each polling session times out after exactly 60 polls and recovery reuses the request
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0242668Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0243297Z   duration_ms: 105.276044
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0243794Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0244227Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0244914Z # Subtest: uncertain submission fails closed until Apple history proves found or absent
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0245946Z ok 56 - uncertain submission fails closed until Apple history proves found or absent
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0247004Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0247406Z   duration_ms: 1.304926
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0248054Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0248433Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0249199Z # Subtest: attempt validation rejects candidate identity drift and Apple rejection is terminal
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0250267Z ok 57 - attempt validation rejects candidate identity drift and Apple rejection is terminal
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0251095Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0251494Z   duration_ms: 0.806029
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0251963Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0252377Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0253286Z # Subtest: supersession preserves the old attempt and requires a fresh candidate version
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0254257Z ok 58 - supersession preserves the old attempt and requires a fresh candidate version
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0254845Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0255157Z   duration_ms: 1.095691
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0255563Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0255974Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0256544Z # Subtest: notification candidates cover every specified attention class
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0257389Z ok 59 - notification candidates cover every specified attention class
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0258009Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0258401Z   duration_ms: 2.10708
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0258813Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0259305Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0260088Z # Subtest: observer establishes a quiet baseline and emits only newly entered transitions
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0261203Z ok 60 - observer establishes a quiet baseline and emits only newly entered transitions
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0261999Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0262389Z   duration_ms: 1.608456
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0263034Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0263495Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0264284Z # Subtest: event and GitHub observations deduplicate the same pull-request merge
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0265307Z ok 61 - event and GitHub observations deduplicate the same pull-request merge
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0265967Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0266381Z   duration_ms: 0.492697
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0266774Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0267224Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0267843Z # Subtest: Git facts distinguish source activity from governed record dirtiness
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0268748Z ok 62 - Git facts distinguish source activity from governed record dirtiness
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0269407Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0271396Z   duration_ms: 2.288177
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0271947Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0272388Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0273311Z # Subtest: Git observer degrades independently when Git is unavailable
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0274187Z ok 63 - Git observer degrades independently when Git is unavailable
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0274847Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0275240Z   duration_ms: 0.95066
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0275669Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0276238Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0277017Z # Subtest: missing Finder executables do not execute bare commands or erase local state
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0278088Z ok 64 - missing Finder executables do not execute bare commands or erase local state
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0320777Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0343631Z   duration_ms: 0.552622
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0351326Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0351939Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0352781Z # Subtest: GitHub polling is conditional on open PRs or pending checks
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0354241Z ok 65 - GitHub polling is conditional on open PRs or pending checks
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0354977Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0355495Z   duration_ms: 0.290342
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0356087Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0356606Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0357390Z # Subtest: GitHub observer reports unavailable without invalidating Git data
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0358501Z ok 66 - GitHub observer reports unavailable without invalidating Git data
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0359229Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0359700Z   duration_ms: 0.394197
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0360336Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0360827Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0361985Z # Subtest: preferences persist only saved project references and ordinary application settings
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0363388Z ok 67 - preferences persist only saved project references and ordinary application settings
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0364237Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0364798Z   duration_ms: 14.160295
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0365311Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0365845Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0366833Z # Subtest: schema v1 recent worktrees migrate in place to ordered project references
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0367951Z ok 68 - schema v1 recent worktrees migrate in place to ordered project references
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0368759Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0369327Z   duration_ms: 1.964964
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0369838Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0370320Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0371242Z # Subtest: project references append, activate, reorder, and remove without touching paths
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0372435Z ok 69 - project references append, activate, reorder, and remove without touching paths
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0373459Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0373958Z   duration_ms: 1.038118
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0374488Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0375036Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0375777Z # Subtest: preferences discard invalid fields and require the last path to be saved
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0376915Z ok 70 - preferences discard invalid fields and require the last path to be saved
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0377744Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0378276Z   duration_ms: 0.263377
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0378850Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0379389Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0380217Z # Subtest: agent selection is explicit, canonical, and rejects unsupported agents
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0381279Z ok 71 - agent selection is explicit, canonical, and rejects unsupported agents
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0382555Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0383169Z   duration_ms: 0.236676
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0383713Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0384274Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0384973Z # Subtest: concurrent preference saves are serialized in call order
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0386038Z ok 72 - concurrent preference saves are serialized in call order
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0386719Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0387242Z   duration_ms: 4.03529
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0387810Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0388309Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0389286Z # Subtest: presentation derives the state rail from the pinned model and keeps exact IDs
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0390478Z ok 73 - presentation derives the state rail from the pinned model and keeps exact IDs
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0391333Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0391819Z   duration_ms: 3.604232
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0393011Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0393505Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0394377Z # Subtest: presentation keeps governed workflow state distinct from observational selection
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0395734Z ok 74 - presentation keeps governed workflow state distinct from observational selection
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0396624Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0397196Z   duration_ms: 0.319617
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0397850Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0419038Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0422546Z # Subtest: phase context resolves approved recipes against canonical artifact inventory
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0423937Z ok 75 - phase context resolves approved recipes against canonical artifact inventory
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0424799Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0425391Z   duration_ms: 0.753376
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0425976Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0426494Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0427468Z # Subtest: phase context keeps a disabled unavailable entry when inventory metadata is absent
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0428715Z ok 76 - phase context keeps a disabled unavailable entry when inventory metadata is absent
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0429536Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0430166Z   duration_ms: 0.191372
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0430669Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0431194Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0432013Z # Subtest: hierarchy selection stays scoped to the selected slice and attempt
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0433275Z ok 77 - hierarchy selection stays scoped to the selected slice and attempt
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0434539Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0438453Z   duration_ms: 0.362484
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0439060Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0439570Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0440490Z # Subtest: attempt and gate artifacts resolve only canonical scoped evidence
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0441482Z ok 78 - attempt and gate artifacts resolve only canonical scoped evidence
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0442283Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0443340Z   duration_ms: 0.210286
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0444023Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0444604Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0445496Z # Subtest: diagnostic and action explanations distinguish observation from workflow passage
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0446704Z ok 79 - diagnostic and action explanations distinguish observation from workflow passage
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0447446Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0447908Z   duration_ms: 0.394241
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0448495Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0449061Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0449941Z # Subtest: global alerts reserve headline visibility for exceptional workflow conditions
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0451148Z ok 80 - global alerts reserve headline visibility for exceptional workflow conditions
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0451935Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0452443Z   duration_ms: 0.521913
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0453126Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0453710Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0454456Z # Subtest: project inspection admits only a canonical governed directory
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0455536Z ok 81 - project inspection admits only a canonical governed directory
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0456203Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0456675Z   duration_ms: 4.601509
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0457335Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0457854Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0458817Z # Subtest: project inspection preserves protocol diagnostic details without admission
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0460093Z ok 82 - project inspection preserves protocol diagnostic details without admission
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0460963Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0461527Z   duration_ms: 1.702853
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0462060Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0462615Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0463781Z # Subtest: project inspection turns filesystem and malformed-record failures into diagnostics
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0465013Z ok 83 - project inspection turns filesystem and malformed-record failures into diagnostics
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0465793Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0466325Z   duration_ms: 1.883065
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0466872Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0467360Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0468256Z # Subtest: Desktop reads canonical snapshots and details without journal mutation or CLI execution
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0469444Z ok 84 - Desktop reads canonical snapshots and details without journal mutation or CLI execution
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0470254Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0470831Z   duration_ms: 22.597846
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0471426Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0471953Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0472790Z # Subtest: Desktop preserves canonical missing, legacy, inconsistent, and incompatible diagnostics
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0474291Z ok 85 - Desktop preserves canonical missing, legacy, inconsistent, and incompatible diagnostics
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0475185Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0475719Z   duration_ms: 9.608003
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0476264Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0476819Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0477704Z # Subtest: Apple history reconciliation recovers exactly one request without resubmission
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0478875Z ok 86 - Apple history reconciliation recovers exactly one request without resubmission
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0479754Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0480271Z   duration_ms: 4.276118
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0480894Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0481385Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0482017Z # Subtest: Apple history ambiguity and absence fail closed
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0483077Z ok 87 - Apple history ambiguity and absence fail closed
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0483747Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0484242Z   duration_ms: 0.890182
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0485081Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.0485601Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5605589Z # Subtest: renderer consumes the real canonical GateReeve feature without mutating its journal
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5644262Z ok 88 - renderer consumes the real canonical GateReeve feature without mutating its journal
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5661458Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5663282Z   duration_ms: 389.529859
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5684662Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5685491Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5746931Z # Subtest: renderer protocols confine application files and serve only named trusted HTML artifacts
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5764494Z ok 89 - renderer protocols confine application files and serve only named trusted HTML artifacts
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5765518Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5765981Z   duration_ms: 35.744684
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5766571Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5767118Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5767954Z # Subtest: renderer presents selection first and then canonical observation status
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5769109Z ok 90 - renderer presents selection first and then canonical observation status
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5769953Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5770480Z   duration_ms: 71.501883
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5771011Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5771573Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5772448Z # Subtest: renderer exposes state, gate, artifact, history, model, command, and Session inspection
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5774206Z ok 91 - renderer exposes state, gate, artifact, history, model, command, and Session inspection
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5775133Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5775602Z   duration_ms: 209.586362
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5776295Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5776763Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5777581Z # Subtest: renderer reloads optional Session context when a refresh begins
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5778611Z ok 92 - renderer reloads optional Session context when a refresh begins
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5779349Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5779891Z   duration_ms: 13.950506
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5780505Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5780974Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5781801Z # Subtest: selected artifact rereads automatically when its canonical fingerprint changes
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5783207Z ok 93 - selected artifact rereads automatically when its canonical fingerprint changes
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5784177Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5784720Z   duration_ms: 44.153867
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5785318Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5785788Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5786701Z # Subtest: artifact Markdown confines external, relative, fragment, and unsafe links
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5787862Z ok 94 - artifact Markdown confines external, relative, fragment, and unsafe links
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5788639Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5789166Z   duration_ms: 26.065663
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5789697Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5790172Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5869554Z # Subtest: Session observer exposes only named checkpoint and handoff files beneath the worktree
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5871116Z ok 95 - Session observer exposes only named checkpoint and handoff files beneath the worktree
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5872084Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5872610Z   duration_ms: 19.706552
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5873309Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5873783Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5874633Z # Subtest: Session observer refuses allow-listed directories that are themselves symlinks
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5875794Z ok 96 - Session observer refuses allow-listed directories that are themselves symlinks
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5876623Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5877093Z   duration_ms: 1.815074
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5877642Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5878111Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5900783Z # Subtest: compatibility follows exact project-controlled pairs for all three states
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5944749Z ok 97 - compatibility follows exact project-controlled pairs for all three states
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.5983241Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6043816Z   duration_ms: 1.462569
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6049695Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6060696Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6062263Z # Subtest: metadata rejects duplicate, inferred, or contradictory compatibility
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6063433Z ok 98 - metadata rejects duplicate, inferred, or contradictory compatibility
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6064118Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6064671Z   duration_ms: 0.812547
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6065176Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6065695Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6066696Z # Subtest: shipped compatibility metadata is synchronized with Desktop identity
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6067727Z ok 99 - shipped compatibility metadata is synchronized with Desktop identity
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6068503Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6068940Z   duration_ms: 5.123416
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6069487Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6069980Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6070778Z # Subtest: observer checks only selected agents and accepts only an explicit compatible pair
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6071826Z ok 100 - observer checks only selected agents and accepts only an explicit compatible pair
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6072650Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6073206Z   duration_ms: 9.256763
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6073616Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6074138Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6074876Z # Subtest: Python prerequisite continues past Apple Python to the first compatible candidate
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6077031Z ok 101 - Python prerequisite continues past Apple Python to the first compatible candidate
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6077790Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6078282Z   duration_ms: 1.287932
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6078853Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6079299Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6080156Z # Subtest: Python prerequisite retains bounded failure evidence when no candidate is compatible
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6081349Z ok 102 - Python prerequisite retains bounded failure evidence when no candidate is compatible
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6082124Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6082576Z   duration_ms: 0.928768
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6083257Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6083738Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6084494Z # Subtest: explicit Python candidate remains authoritative when it is incompatible
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6085579Z ok 103 - explicit Python candidate remains authoritative when it is incompatible
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6086258Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6086776Z   duration_ms: 1.825494
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6087280Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6087704Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6088581Z # Subtest: unknown Plugin versions fail readiness while historical reading remains a UI concern
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6089698Z ok 104 - unknown Plugin versions fail readiness while historical reading remains a UI concern
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6090494Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6091005Z   duration_ms: 8.978134
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6091496Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6091965Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6092703Z # Subtest: a failed native Plugin listing is unavailable, not evidence of absence
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6093876Z ok 105 - a failed native Plugin listing is unavailable, not evidence of absence
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6094549Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6095066Z   duration_ms: 4.275164
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6095568Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6096059Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6096829Z # Subtest: an enabled Plugin without an exact manager-reported version is incompatible
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6097899Z ok 106 - an enabled Plugin without an exact manager-reported version is incompatible
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6098789Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6102509Z   duration_ms: 11.802206
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6103263Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6103815Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6104527Z # Subtest: unselected agents are not probed when a selected agent is missing
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6105564Z ok 107 - unselected agents are not probed when a selected agent is missing
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6106306Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6106809Z   duration_ms: 2.400068
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6107322Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6107840Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6108590Z # Subtest: one ready selected agent is enough for operational readiness
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6109896Z ok 108 - one ready selected agent is enough for operational readiness
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6110699Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6111147Z   duration_ms: 11.861972
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6111660Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6112067Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6112788Z # Subtest: shared prerequisite remediation follows the host-native package owner
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6113928Z ok 109 - shared prerequisite remediation follows the host-native package owner
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6114592Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6115187Z   duration_ms: 28.414306
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6115711Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6116153Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6116904Z # Subtest: visual fixture remaps the confined production brand route to the source asset
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6117943Z ok 110 - visual fixture remaps the confined production brand route to the source asset
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6118651Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6119102Z   duration_ms: 4.526614
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6119620Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6120040Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6120818Z # Subtest: every supported renderer entry path builds the self-contained Markdown module
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6121853Z ok 111 - every supported renderer entry path builds the self-contained Markdown module
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6122511Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6123192Z   duration_ms: 2.151724
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6151840Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6152437Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6616484Z # Subtest: first launch presents persistent non-mutating Setup and preserves historical access
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6624791Z ok 112 - first launch presents persistent non-mutating Setup and preserves historical access
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6625497Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6625916Z   duration_ms: 72.315906
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6626381Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6626754Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6889341Z # Subtest: Setup names the ready path without hiding an incomplete selected agent
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6892263Z ok 113 - Setup names the ready path without hiding an incomplete selected agent
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6894809Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6895930Z   duration_ms: 30.578372
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6896538Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.6897108Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7004434Z # Subtest: Desktop stages the exact canonical protocol without a CLI runtime dependency
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7005755Z ok 114 - Desktop stages the exact canonical protocol without a CLI runtime dependency
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7006536Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7007126Z   duration_ms: 17.766772
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7007720Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7008133Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7008891Z # Subtest: update cache is separate, private user data and malformed input resets safely
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7009985Z ok 115 - update cache is separate, private user data and malformed input resets safely
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7010685Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7011200Z   duration_ms: 7.272667
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7011706Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7012167Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7131305Z # Subtest: fetches only the fixed identifier-free endpoint with bounded request options
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7142770Z ok 116 - fetches only the fixed identifier-free endpoint with bounded request options
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7143750Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7144350Z   duration_ms: 26.706106
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7144866Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7145337Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7146089Z # Subtest: rejects HTTP, parse, schema, and response-size failures
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7146969Z ok 117 - rejects HTTP, parse, schema, and response-size failures
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7147643Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7148160Z   duration_ms: 1.89262
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7148654Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7149156Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7164917Z # Subtest: aborts a manifest request at the fixed timeout boundary
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7181761Z ok 118 - aborts a manifest request at the fixed timeout boundary
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7210197Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7211019Z   duration_ms: 5.339032
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7212147Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7212777Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7306708Z # Subtest: starts a stale automatic check without blocking initialization and caches its result
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7308148Z ok 119 - starts a stale automatic check without blocking initialization and caches its result
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7309096Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7309548Z   duration_ms: 6.927595
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7310066Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7310613Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7311741Z # Subtest: a fresh cache suppresses automatic network access while manual checks are always fresh
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7313121Z ok 120 - a fresh cache suppresses automatic network access while manual checks are always fresh
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7313988Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7314463Z   duration_ms: 0.954973
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7314953Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7315459Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7316256Z # Subtest: failures become quiet unavailable state and never reject the caller
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7317316Z ok 121 - failures become quiet unavailable state and never reject the caller
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7318098Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7318566Z   duration_ms: 0.378641
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7319148Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7319650Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7320489Z # Subtest: native update notification is opt-in and deduplicated across persisted checks
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7321738Z ok 122 - native update notification is opt-in and deduplicated across persisted checks
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7322498Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7323095Z   duration_ms: 0.724617
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7323688Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7324140Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7493819Z # Subtest: strictly validates an empty or fully trusted URL-free manifest
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7518214Z ok 123 - strictly validates an empty or fully trusted URL-free manifest
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7557496Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7558114Z   duration_ms: 3.897934
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7574252Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7588282Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7589386Z # Subtest: RC installations see later RC and eventual stable only on their version line
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7590556Z ok 124 - RC installations see later RC and eventual stable only on their version line
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7591388Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7591913Z   duration_ms: 0.613595
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7592463Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7593295Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7594118Z # Subtest: stable installations ignore RCs and see only later stable versions
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7595170Z ok 125 - stable installations ignore RCs and see only later stable versions
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7595994Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7596522Z   duration_ms: 0.460566
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7597110Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7597595Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7598350Z # Subtest: release navigation is derived only from a validated version
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7599383Z ok 126 - release navigation is derived only from a validated version
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7600049Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7600606Z   duration_ms: 0.378206
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7601197Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7601717Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7800953Z # Subtest: filesystem bursts coalesce into one full refresh request
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7827050Z ok 127 - filesystem bursts coalesce into one full refresh request
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7851043Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7873504Z   duration_ms: 4.551053
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7873966Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7874297Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7893565Z # Subtest: Electron window uses process isolation and denies embedded web content
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7894692Z ok 128 - Electron window uses process isolation and denies embedded web content
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7903602Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7904463Z   duration_ms: 0.953811
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7905114Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7905714Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7906477Z # Subtest: layout commands use the approved platform shortcuts
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7907442Z ok 129 - layout commands use the approved platform shortcuts
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7908498Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7908999Z   duration_ms: 2.373129
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7909627Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7910109Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7910875Z # Subtest: window navigation is confined to the application URL
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7912273Z ok 130 - window navigation is confined to the application URL
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7913077Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7913704Z   duration_ms: 0.357168
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7914243Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.7914984Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8030914Z # Subtest: workspace state is isolated per canonical project and remains serializable
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8032023Z ok 131 - workspace state is isolated per canonical project and remains serializable
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8032792Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8033268Z   duration_ms: 1.418171
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8033693Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8033986Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8036512Z # Subtest: document tabs deduplicate by canonical path and close to the nearest tab
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8038395Z ok 132 - document tabs deduplicate by canonical path and close to the nearest tab
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8039118Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8039522Z   duration_ms: 1.066462
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8039798Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8040187Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8044618Z # Subtest: hiding panels preserves tabs and width while reconciliation marks stale content unavailable
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8047326Z ok 133 - hiding panels preserves tabs and width while reconciliation marks stale content unavailable
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8048263Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8048804Z   duration_ms: 0.252594
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8049188Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8049558Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8050076Z # Subtest: virtual gate tabs retain scoped attempt and gate identity
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8050705Z ok 134 - virtual gate tabs retain scoped attempt and gate identity
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8051203Z   ---
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8051534Z   duration_ms: 0.20565
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8051953Z   type: 'test'
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8052290Z   ...
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8111790Z 1..134
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8112536Z # tests 137
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8113056Z # suites 0
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8113490Z # pass 137
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8113770Z # fail 0
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8114097Z # cancelled 0
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8114418Z # skipped 0
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8114703Z # todo 0
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8115045Z # duration_ms 1677.61735
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8334287Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.8335486Z Post job cleanup.
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.9489239Z (node:2145) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.9490054Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.9492417Z Cache hit occurred on the primary key node-cache-Linux-x64-npm-401fe32952cff556b1c87b31c372be997bb7b818cf80a40d2ffc17a23b646162, not saving cache.
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.9637833Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:26.9639124Z Post job cleanup.
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0419056Z [command]/usr/bin/git version
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0450221Z git version 2.55.0
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0480637Z Temporarily overriding HOME='/home/runner/work/_temp/8ad65522-ade5-4d2a-875d-5f1a08a41f88' before making global git config changes
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0482559Z Adding repository directory to the temporary git global config as a safe directory
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0486045Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/gatereeve/gatereeve
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0516975Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0546004Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0734710Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0751851Z http.https://github.com/.extraheader
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0760883Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0787217Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.0978961Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.1006446Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.1337540Z Cleaning up orphan processes
+Desktop contract on Ubuntu 22.04	UNKNOWN STEP	2026-08-31T19:07:27.1605561Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

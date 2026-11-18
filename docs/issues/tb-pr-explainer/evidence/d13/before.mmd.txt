@@ -1,0 +1,6 @@
+flowchart TD
+ A["Process A creates owner<br/>File exists before bytes are written"] -->|interleaving| B["Process B reads empty owner"]
+ B --> C["Marker check fails<br/>Observation is dropped"]
+ A -->|later| D["Process A finishes writing marker"]
+ classDef old fill:#fff0eb,stroke:#b25036,color:#3a221a
+ class A,B,C,D old

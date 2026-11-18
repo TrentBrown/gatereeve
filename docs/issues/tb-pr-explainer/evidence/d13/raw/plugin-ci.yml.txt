@@ -1,0 +1,289 @@
+name: Plugin CI
+
+on:
+  pull_request:
+    paths-ignore:
+      - "workflow-site/releases/desktop.json"
+  push:
+    branches:
+      - main
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: plugin-ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  source-acceptance-receipt:
+    name: Retain complete source acceptance
+    needs: [ci-scope, portable-acceptance, container-acceptance, desktop-contract, desktop-runtime-ubuntu, desktop-runtime-macos, desktop-package-runtime-macos]
+    if: github.event_name == 'push' && needs.ci-scope.outputs.scope == 'full'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: node ci/source-acceptance.mjs record "$RUNNER_TEMP/source-acceptance"
+        env:
+          CI_SCOPE: ${{ needs.ci-scope.outputs.scope }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gatereeve-source-acceptance
+          path: ${{ runner.temp }}/source-acceptance
+          if-no-files-found: error
+          retention-days: 90
+
+  ci-scope:
+    name: Resolve CI scope
+    runs-on: ubuntu-24.04
+    outputs:
+      scope: ${{ steps.scope.outputs.scope }}
+      before: ${{ steps.scope.outputs.before }}
+      after: ${{ steps.scope.outputs.after }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - id: scope
+        uses: ./.github/actions/pr-ci-scope
+        with:
+          workflow-file: plugin-ci.yml
+
+  review-artifacts:
+    name: Review artifact validation
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'review-artifacts'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Validate the exact evidence-only delta and affected feature records
+        env:
+          BEFORE_SHA: ${{ needs.ci-scope.outputs.before }}
+          AFTER_SHA: ${{ needs.ci-scope.outputs.after }}
+        run: |
+          set -euo pipefail
+          paths_file="$RUNNER_TEMP/review-artifact-paths"
+          feature_homes="$RUNNER_TEMP/review-artifact-feature-homes"
+          git diff --check "$BEFORE_SHA" "$AFTER_SHA"
+          git diff --name-only -z "$BEFORE_SHA" "$AFTER_SHA" > "$paths_file"
+          test "$(node ci/review-artifact-change.mjs "$paths_file")" = review-artifacts
+          node ci/review-artifact-change.mjs --feature-homes "$paths_file" > "$feature_homes"
+          while IFS= read -r feature_home; do
+            test -n "$feature_home"
+            python3 plugin-src/shared/resources/scripts/lint_spec.py "$feature_home"
+            python3 plugin-src/shared/resources/scripts/lint_issues.py "$feature_home"
+            python3 plugin-src/shared/resources/scripts/lint_tracker.py "$feature_home"
+            python3 plugin-src/shared/resources/scripts/gate_triage.py "$feature_home"
+            python3 plugin-src/shared/resources/scripts/validate_branch_docs.py "$feature_home"
+            node ci/validate-local-record.mjs "$feature_home"
+          done < "$feature_homes"
+
+  portable-acceptance:
+    name: Ubuntu ${{ matrix.ubuntu }} acceptance
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
+    runs-on: ubuntu-${{ matrix.ubuntu }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu:
+          - "22.04"
+          - "24.04"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci --prefix cli
+      - run: bash ci/portable-acceptance.sh
+
+  container-acceptance:
+    name: Ubuntu ${{ matrix.ubuntu }} container
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu:
+          - "22.04"
+          - "24.04"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Build acceptance image with reusable BuildKit and npm layers
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.acceptance
+          build-args: UBUNTU_VERSION=${{ matrix.ubuntu }}
+          load: true
+          tags: workflow-acceptance:${{ matrix.ubuntu }}
+          cache-from: type=gha,scope=acceptance-${{ matrix.ubuntu }}
+          cache-to: type=gha,mode=max,scope=acceptance-${{ matrix.ubuntu }}
+      - name: Run acceptance image
+        run: docker run --rm workflow-acceptance:${{ matrix.ubuntu }}
+
+  desktop-contract:
+    name: Desktop contract on Ubuntu ${{ matrix.ubuntu }}
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
+    runs-on: ubuntu-${{ matrix.ubuntu }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu:
+          - "22.04"
+          - "24.04"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --prefix apps/desktop
+      - run: npm run check --prefix apps/desktop
+
+  desktop-runtime-ubuntu:
+    name: Desktop runtime on Ubuntu ${{ matrix.ubuntu }}
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
+    runs-on: ubuntu-${{ matrix.ubuntu }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu:
+          - "22.04"
+          - "24.04"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --prefix apps/desktop
+      - name: Configure the Chromium SUID sandbox
+        run: |
+          node apps/desktop/node_modules/electron/install.js
+          sudo chown root:root apps/desktop/node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 apps/desktop/node_modules/electron/dist/chrome-sandbox
+      - name: Prepare a real governed runtime fixture
+        run: >-
+          node apps/desktop/scripts/create-smoke-fixture.mjs
+          "$RUNNER_TEMP/gatereeve-desktop-smoke"
+      - name: Launch Electron without a Python context runtime or optional CLI
+        run: xvfb-run --auto-servernum npm start --prefix apps/desktop
+        env:
+          GATEREEVE_DESKTOP_SMOKE: "1"
+          GATEREEVE_DESKTOP_SMOKE_WORKTREE: ${{ runner.temp }}/gatereeve-desktop-smoke
+
+  desktop-runtime-macos:
+    name: Desktop runtime on macOS
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --prefix apps/desktop
+      - name: Prepare a real governed runtime fixture
+        run: >-
+          node apps/desktop/scripts/create-smoke-fixture.mjs
+          "$RUNNER_TEMP/gatereeve-desktop-smoke"
+      - name: Launch Electron without a Python context runtime or optional CLI
+        run: npm start --prefix apps/desktop
+        env:
+          GATEREEVE_DESKTOP_SMOKE: "1"
+          GATEREEVE_DESKTOP_SMOKE_WORKTREE: ${{ runner.temp }}/gatereeve-desktop-smoke
+
+  desktop-package-macos:
+    name: Universal macOS package
+    needs: ci-scope
+    if: needs.ci-scope.outputs.scope == 'full'
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --prefix apps/desktop
+      - name: Build the universal application and DMG
+        run: npm run package:mac --prefix apps/desktop
+      - name: Upload the exact candidate DMG
+        uses: actions/upload-artifact@v7
+        with:
+          name: gatereeve-universal-dmg
+          path: apps/desktop/dist/macos/GateReeve-*-macos-universal.dmg
+          if-no-files-found: error
+          # Count-based cleanup keeps the newest successful main installer and
+          # protects active runs/holds; even the keeper may expire after 90 days.
+          retention-days: 90
+
+  desktop-package-runtime-macos:
+    name: Packaged runtime on ${{ matrix.architecture }}
+    needs: [ci-scope, desktop-package-macos]
+    if: needs.ci-scope.outputs.scope == 'full'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: Apple Silicon
+            native: arm64
+            runner: macos-15
+          - architecture: Intel
+            native: x64
+            runner: macos-15-intel
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci --ignore-scripts --prefix apps/desktop
+      - uses: actions/download-artifact@v8
+        with:
+          name: gatereeve-universal-dmg
+          path: ${{ runner.temp }}/gatereeve-package
+      - name: Prepare a real governed runtime fixture
+        run: >-
+          node apps/desktop/scripts/create-smoke-fixture.mjs
+          "$RUNNER_TEMP/gatereeve-desktop-smoke"
+      - name: Resolve the coordinated Desktop version
+        id: desktop-metadata
+        run: |
+          node -e "process.stdout.write('version=' + require('./apps/desktop/package.json').version + '\n')" >> "$GITHUB_OUTPUT"
+      - name: Inspect, mount, and launch the exact packaged bytes
+        run: >-
+          node apps/desktop/scripts/verify-macos-package.mjs
+          --dmg "$RUNNER_TEMP/gatereeve-package/GateReeve-${{ steps.desktop-metadata.outputs.version }}-macos-universal.dmg"
+          --version "${{ steps.desktop-metadata.outputs.version }}"
+          --fixture "$RUNNER_TEMP/gatereeve-desktop-smoke"
+          --native-architecture "${{ matrix.native }}"

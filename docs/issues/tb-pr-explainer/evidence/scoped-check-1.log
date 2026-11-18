@@ -1,0 +1,42 @@
+✔ composes both packages with matching shared content and provenance (21.813917ms)
+✔ composes every registered marketplace plugin into independent platform packages (19.87775ms)
+✔ removes stale package output before rebuilding (6.137583ms)
+✔ produces identical content for identical inputs (20.125959ms)
+✔ rejects overlay paths that duplicate shared content (2.392166ms)
+✔ rejects symlinks so generated packages remain self-contained (1.588208ms)
+✔ rejects transient interpreter and operating-system files (1.627709ms)
+✔ rejects invalid versions and unsupported platforms (1.21525ms)
+✔ rejects platform manifests with different plugin identities (2.010666ms)
+✔ PR explanations stay evidence while nearby HTML and configuration remain application inputs (448.456041ms)
+✔ large trees stream source, skip excluded bodies, and retain manifests without file copies (1856.807166ms)
+✔ full views share verified bytes only inside the session, ignore archive attributes, and clean up (744.968542ms)
+✔ reference ownership protects shared source, detects conflicts and releases idempotently (835.553ms)
+✔ equivalent commits reuse content identity while changed bytes and modes do not (832.193584ms)
+✔ ambiguous JSON classification is bounded, provenance checked, and nonregular records rejected (901.377333ms)
+✔ ordinary object availability is lightweight but materialization verifies corrupted contents (803.745291ms)
+✔ cleanup leaves live view sessions intact (446.293375ms)
+✔ completion cleanup is durable, protects active jobs, and does not undo completion (452.797458ms)
+✔ pin preparation retry preserves independent owners across linked worktrees (520.875292ms)
+✔ SHA-256 objects and views use their native object identities (790.263416ms)
+✔ copy fallback preserves full bytes and removes backing files (695.079542ms)
+✔ interrupted controller cannot clean an unresolved evaluator job or an unknown view owner (453.730708ms)
+✔ multi-repository partial pin failure retries without disturbing another operation (789.297666ms)
+✔ candidate publication cannot cross a concurrent human pause after preparation intent (791.244333ms)
+✔ view initialization failure removes the created root even before its owner marker exists (447.104667ms)
+✔ completion exposes pending cleanup immediately and failed preparation is visible until retry (1313.213375ms)
+✔ classification and metadata limits reject precisely at their documented boundaries (721.647708ms)
+✔ malformed Git object streams reject with a source diagnostic (290.894542ms)
+✔ promisor repositories do not invoke a remote helper for missing source (233.256208ms)
+✔ validates matching native manifests, catalogs, and hooks (3.688083ms)
+✔ rejects native identity and hook drift (1.46675ms)
+✔ enforces contract-declared manifest and catalog fields (2.095375ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14423.4245
+
+STDERR

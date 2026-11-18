@@ -17,7 +17,7 @@ export async function git(root, args, options = {}) {
 const DOCUMENTS = new Set(['interview.md', 'design.md', 'spec.md', 'plan.md', 'issues.md', 'tracker.md',
   'scratchpad.md', 'decisions.md', 'completion-report.md', 'events.jsonl', 'model-lock.json', 'workflow-model.lock.json', 'feature.json']);
 const REPORTS = new Set(['code-review.md', 'spec-evaluation.md', 'judge.md', 'pattern-review.md', 'verification.md',
-  'spec-validation.md', 'planning-verification.md', 'explain-diff.html', 'decision-triage.md']);
+  'spec-validation.md', 'planning-verification.md', 'pr-explainer.html', 'explain-diff.html', 'decision-triage.md']);
 function recordLocal(path, featureRelative) {
   if (featureRelative && path.startsWith(`${featureRelative}/`)) return path.slice(featureRelative.length + 1);
   return /^docs\/issues\/[^/]+\/(.+)$/u.exec(path)?.[1] ?? null;

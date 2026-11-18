@@ -1078,6 +1078,7 @@
 </head>
 <body>
 <main>
+<aside class="mini" aria-label="Current skill and historical examples"><strong>Current reviewer skill: <a href="https://github.com/TrentBrown/gatereeve/blob/main/plugin-src/shared/skills/pr-explainer/SKILL.md">pr-explainer</a>.</strong> It replaces explain-diff and produces self-contained reviewer HTML from source, intent, and existing evidence. Invocation is optional; mandatory GateReeve enforcement follows separately. This static walkthrough includes earlier workflow diagrams and historical skill/artifact snapshots. Use the <a href="https://github.com/TrentBrown/gatereeve/blob/main/plugin-src/shared/resources/PROTOCOL.md">current protocol</a> for required gates.</aside>
   <header>
     <div class="lockup">
       <div class="mark" aria-hidden="true">
@@ -1433,7 +1434,7 @@
       </a>
       <a class="gate-card" href="#pr-boundary-gate" data-gate-link data-gate-surface="gate-spine">
         <strong>PR Boundary</strong>
-        <span>Definition-of-done, eval, pattern review, adversarial /judge, review checks, and explain-diff pass.</span>
+        <span>Definition-of-done, eval, pattern review, adversarial /judge, review checks, and a review packet; PR explanation is optional.</span>
       </a>
       <a class="gate-card" href="#human-review-gate" data-gate-link data-gate-surface="gate-spine">
         <strong>Human Review</strong>
@@ -1471,7 +1472,7 @@
       <div class="node artifact"><a href="artifacts/spec.html" target="_blank" rel="noopener"><code>spec.md</code></a><br>rubric table<br>architecture contracts</div>
       <div class="node artifact"><a href="artifacts/plan.html" target="_blank" rel="noopener"><code>plan.md</code></a><br><a href="artifacts/issues.html" target="_blank" rel="noopener"><code>issues.md</code></a><br><a href="artifacts/tracker.html" target="_blank" rel="noopener"><code>tracker.md</code></a><br>repo shape</div>
       <div class="node artifact"><a href="artifacts/scratchpad.html" target="_blank" rel="noopener"><code>scratchpad.md</code></a><br>tests and code changes</div>
-      <div class="node artifact">current diff<br><a href="artifacts/pattern-review.html" target="_blank" rel="noopener">Pattern Review</a><br><a href="artifacts/judge.html" target="_blank" rel="noopener">judge result</a><br><a href="artifacts/code-review.html" target="_blank" rel="noopener">PR Review</a><br><a href="artifacts/explain-diff.html" target="_blank" rel="noopener">explain-diff</a><br>learning events</div>
+      <div class="node artifact">current diff<br><a href="artifacts/pattern-review.html" target="_blank" rel="noopener">Pattern Review</a><br><a href="artifacts/judge.html" target="_blank" rel="noopener">judge result</a><br><a href="artifacts/code-review.html" target="_blank" rel="noopener">PR Review</a><br><a href="artifacts/explain-diff.html" target="_blank" rel="noopener">historical explain-diff</a><br>learning events</div>
       <div class="node artifact">PR comments<br><a href="artifacts/issues.html" target="_blank" rel="noopener">updated issues</a></div>
       <div class="node artifact"><a href="artifacts/tracker.html" target="_blank" rel="noopener">final tracker</a><br>checkpoint</div>
 
@@ -1614,7 +1615,7 @@
             <a class="artifact-chip output" href="artifacts/pattern-review.html" target="_blank" rel="noopener">Pattern Review</a>
             <a class="artifact-chip output" href="artifacts/judge.html" target="_blank" rel="noopener">judge report</a>
             <a class="artifact-chip output" href="artifacts/code-review.html" target="_blank" rel="noopener">PR Review</a>
-            <a class="artifact-chip output" href="artifacts/explain-diff.html" target="_blank" rel="noopener">explain-diff</a>
+            <a class="artifact-chip output" href="artifacts/explain-diff.html" target="_blank" rel="noopener">historical explain-diff</a>
           </div>
         </div>
       </div>
@@ -1633,7 +1634,7 @@
         <a href="artifacts/pattern-review.html" target="_blank" rel="noopener">Pattern Review</a>,
         <a href="skills-copy/workflow-judge/SKILL.html" target="_blank" rel="noopener">judge</a>,
         <a href="skills-copy/workflow-pr-review/SKILL.html" target="_blank" rel="noopener">PR-review</a>,
-        <a href="skills-copy/explain-diff/SKILL.html" target="_blank" rel="noopener">explain-diff</a>, and completion reports are evidence,
+        <a href="https://github.com/TrentBrown/gatereeve/blob/main/plugin-src/shared/skills/pr-explainer/SKILL.md" target="_blank" rel="noopener">pr-explainer</a>, and completion reports are evidence,
         not replacements for the source artifacts.
       </div>
       <div class="mini">
@@ -1830,8 +1831,8 @@
         A code-review stance looks for bugs, regressions, and residual risks.
       </a>
       <a class="validation-step model-link" href="#review-stage-explain-diff" data-review-stack-link>
-        <strong>Explain diff</strong>
-        The completed branch is translated into a reviewer-facing walkthrough.
+        <strong>PR explainer (optional)</strong>
+        When requested, the change is translated into a visual reviewer walkthrough.
       </a>
       <a class="validation-step model-link" href="#review-stage-ready-evidence" data-review-stack-link>
         <strong>Ready evidence</strong>
@@ -1988,26 +1989,28 @@
         </div>
       </details>
       <details id="review-stage-explain-diff">
-        <summary>Explain diff</summary>
+        <summary>PR explainer (optional)</summary>
         <div class="detail-grid">
           <div class="mini">
             <div class="label">Purpose</div>
-            Translate the completed branch diff into a reviewer-facing
-            walkthrough.
+            Explain a resolved PR, branch, commit range, or local change
+            for an engineer unfamiliar with the area.
           </div>
           <div class="mini">
             <div class="label">What happens</div>
-            The explanation gives background, intuition, code walkthrough,
-            diagrams, and comprehension checks so the reviewer can understand
-            the change faster.
+            The explanation connects intent, behavior, selected annotated code,
+            source-grounded diagrams, and existing test or capture evidence.
+            It identifies gaps and reviewer concerns without an approval verdict.
+            Quizzes are optional when requested.
           </div>
           <div class="mini">
             <div class="label">Artifact</div>
-            <a href="artifacts/explain-diff.html" target="_blank" rel="noopener"><code>explain-diff.html</code></a>.
+            Default: <code>pr-explainer.html</code>. Previous example:
+            <a href="artifacts/explain-diff.html" target="_blank" rel="noopener">historical <code>explain-diff.html</code></a>.
           </div>
           <div class="mini">
             <div class="label">Skill</div>
-            <a href="skills-copy/explain-diff/SKILL.html" target="_blank" rel="noopener">explain-diff</a>
+            <a href="https://github.com/TrentBrown/gatereeve/blob/main/plugin-src/shared/skills/pr-explainer/SKILL.md" target="_blank" rel="noopener">pr-explainer</a>
           </div>
           <div class="mini">
             <div class="label">Output</div>
@@ -2657,7 +2660,7 @@
           <a href="skills-copy/pattern-review/SKILL.html" target="_blank" rel="noopener">pattern-review</a>,
           adversarial <a href="skills-copy/workflow-judge/SKILL.html" target="_blank" rel="noopener"><code>/judge</code></a>,
           <a href="skills-copy/workflow-pr-review/SKILL.html" target="_blank" rel="noopener">PR-review</a>,
-          <a href="skills-copy/explain-diff/SKILL.html" target="_blank" rel="noopener">explain-diff</a>,
+          <a href="https://github.com/TrentBrown/gatereeve/blob/main/plugin-src/shared/skills/pr-explainer/SKILL.md" target="_blank" rel="noopener">pr-explainer</a>,
           and decision triage.
         </div>
         <div class="mini">
@@ -2666,7 +2669,7 @@
           <a href="artifacts/pattern-review.html" target="_blank" rel="noopener">Pattern Review</a>,
           <a href="artifacts/judge.html" target="_blank" rel="noopener">judge result</a>,
           <a href="artifacts/code-review.html" target="_blank" rel="noopener">PR Review</a>,
-          <a href="artifacts/explain-diff.html" target="_blank" rel="noopener">explain-diff</a>,
+          <a href="artifacts/explain-diff.html" target="_blank" rel="noopener">historical explain-diff</a>,
           normalized learning events, and PR description. These outputs are
           grounded in both the artifact stack and the current diff.
         </div>
@@ -2743,7 +2746,7 @@
           <a href="artifacts/pattern-review.html" target="_blank" rel="noopener">Pattern Review</a>,
           <a href="artifacts/judge.html" target="_blank" rel="noopener">judge result</a>,
           <a href="artifacts/code-review.html" target="_blank" rel="noopener">PR Review</a>,
-          <a href="artifacts/explain-diff.html" target="_blank" rel="noopener">explain-diff</a>, and PR-ready
+          <a href="artifacts/explain-diff.html" target="_blank" rel="noopener">historical explain-diff</a>, and PR-ready
           evidence.
         </div>
         <div class="mini">
@@ -2782,7 +2785,7 @@
         <a class="artifact-link" href="skills-copy/workflow-spec-evaluate/SKILL.html" target="_blank" rel="noopener"><strong>workflow-spec-evaluate</strong><span>Implementation evaluation against the spec</span></a>
         <a class="artifact-link" href="skills-copy/workflow-pr-boundary/SKILL.html" target="_blank" rel="noopener"><strong>workflow-pr-boundary</strong><span>PR boundary verification</span></a>
         <a class="artifact-link" href="skills-copy/workflow-pr-review/SKILL.html" target="_blank" rel="noopener"><strong>workflow-pr-review</strong><span>PR/code review</span></a>
-        <a class="artifact-link" href="skills-copy/explain-diff/SKILL.html" target="_blank" rel="noopener"><strong>explain-diff</strong><span>Reviewer-facing diff explanation</span></a>
+        <a class="artifact-link" href="https://github.com/TrentBrown/gatereeve/blob/main/plugin-src/shared/skills/pr-explainer/SKILL.md" target="_blank" rel="noopener"><strong>pr-explainer</strong><span>Reviewer-facing diff explanation</span></a>
         <a class="artifact-link" href="skills-copy/workflow-judge/SKILL.html" target="_blank" rel="noopener"><strong>workflow-judge</strong><span>Independent compliance evaluation</span></a>
         <a class="artifact-link" href="skills-copy/workflow-commit/SKILL.html" target="_blank" rel="noopener"><strong>workflow-commit</strong><span>Commit workflow changes</span></a>
       </div>
@@ -2830,7 +2833,7 @@
         <a class="artifact-link" href="artifacts/judge.html" target="_blank" rel="noopener"><strong>judge.md</strong><span>Independent LLM-as-judge verdict</span></a>
         <a class="artifact-link" href="artifacts/verification.html" target="_blank" rel="noopener"><strong>verification.md</strong><span>Boundary verification evidence</span></a>
         <a class="artifact-link" href="artifacts/spec-evaluation.html" target="_blank" rel="noopener"><strong>spec-evaluation.md</strong><span>Spec compliance evaluation</span></a>
-        <a class="artifact-link" href="artifacts/explain-diff.html" target="_blank" rel="noopener"><strong>explain-diff.html</strong><span>Interactive PR walkthrough</span></a>
+        <a class="artifact-link" href="artifacts/explain-diff.html" target="_blank" rel="noopener">historical <strong>explain-diff.html</strong><span>Interactive PR walkthrough</span></a>
         <a class="artifact-link" href="artifacts/workflow-overview.html" target="_blank" rel="noopener"><strong>Workflow overview</strong><span>Rendered Mermaid process diagram</span></a>
         <a class="artifact-link" href="artifacts/grillme-explainer.html" target="_blank" rel="noopener"><strong>Grill Me overview</strong><span>Rendered explainer and PDF link</span></a>
       </div>

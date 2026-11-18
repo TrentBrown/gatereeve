@@ -1,0 +1,6 @@
+#!/bin/sh
+# Preserve every test; bound only top-level test-file scheduling on this workstation.
+if [ "$1" = "--test" ]; then
+  exec /Users/trent.brown/.nvm/versions/node/v24.15.0/bin/node --test-concurrency=2 "$@"
+fi
+exec /Users/trent.brown/.nvm/versions/node/v24.15.0/bin/node "$@"

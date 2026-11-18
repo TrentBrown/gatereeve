@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "workspace": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke",
+  "marketplaceRoot": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke/marketplace",
+  "activationEvidence": "structural-simulation",
+  "pythonExecutable": "/Users/trent.brown/.pyenv/shims/python3",
+  "note": "The doctor activation flag proves the expected session policy contract only; fresh-session implicit activation requires the authenticated manual procedure.",
+  "platforms": [
+    {
+      "platform": "codex",
+      "profileRoot": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke/codex-home",
+      "pluginRoot": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke/marketplace/plugins/codex/agentic-development-workflow",
+      "version": "0.1.0",
+      "enabled": true,
+      "activation": "pending",
+      "skillCount": 29,
+      "plugins": [
+        {
+          "id": "agentic-development-workflow",
+          "pluginRoot": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke/marketplace/plugins/codex/agentic-development-workflow",
+          "skillCount": 28
+        },
+        {
+          "id": "whiteboard-test",
+          "pluginRoot": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke/marketplace/plugins/codex/whiteboard-test",
+          "skillCount": 1
+        }
+      ],
+      "setup": {
+        "schemaVersion": 1,
+        "scope": "global",
+        "repository": null,
+        "profile": "quality-code",
+        "branchPrefix": "smoke-",
+        "profilePath": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke/marketplace/plugins/codex/agentic-development-workflow/resources/policy/profiles/quality-code.md"
+      },
+      "doctor": {
+        "ready": true,
+        "activation": "pending",
+        "checkCount": 20
+      }
+    },
+    {
+      "platform": "claude",
+      "profileRoot": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke/claude-home",
+      "pluginRoot": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke/claude-home/plugins/cache/quality-code/agentic-development-workflow/0.1.0",
+      "version": "0.1.0",
+      "enabled": true,
+      "activation": "pending",
+      "skillCount": 29,
+      "plugins": [
+        {
+          "id": "agentic-development-workflow",
+          "pluginRoot": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke/claude-home/plugins/cache/quality-code/agentic-development-workflow/0.1.0",
+          "skillCount": 28
+        },
+        {
+          "id": "whiteboard-test",
+          "pluginRoot": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke/claude-home/plugins/cache/quality-code/whiteboard-test/0.1.0",
+          "skillCount": 1
+        }
+      ],
+      "setup": {
+        "schemaVersion": 1,
+        "scope": "global",
+        "repository": null,
+        "profile": "quality-code",
+        "branchPrefix": "smoke-",
+        "profilePath": "/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/native-smoke/claude-home/plugins/cache/quality-code/agentic-development-workflow/0.1.0/resources/policy/profiles/quality-code.md"
+      },
+      "doctor": {
+        "ready": true,
+        "activation": "pending",
+        "checkCount": 19
+      }
+    }
+  ],
+  "workspaceRemoved": false,
+  "scratchCleanup": null
+}

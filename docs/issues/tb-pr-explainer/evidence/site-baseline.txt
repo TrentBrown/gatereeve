@@ -1,0 +1,3 @@
+workflow-site/test-desktop-early-access.mjs unchanged blob b52c745342b09aa28e5c62e8e66f9b0622490f0e
+workflow-site/releases/desktop.json unchanged blob d9d92294fa2ef1f78f669f4da9a520ac443096c7
+Full site run: 35 of 36 combined tests passed, one unrelated fixed-release tuple failed (test line79 requires rc.1; unchanged production manifest is rc.29). Scope excludes release metadata/fixture repair; original failed receipt retained in current-check-1.log.
