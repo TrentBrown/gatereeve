@@ -6,7 +6,7 @@ for passage; a prose statement cannot replace missing evidence or authorization.
 
 ## Run dials
 
-Every run has `rigor` (`full | light`) and `autonomy` (`supervised | delegated`),
+Every run has `rigor` (`full | light`) and `autonomy` (`supervised | delegated | autonomous`),
 defaulting to `full`/`supervised`; no configuration changes them. When no run
 exists, ask the human "full or light?" before non-trivial work and record the
 answer as the explicit rigor choice. This document describes full rigor. A light
@@ -40,8 +40,8 @@ round cap; change approach when repeating a failure and respect human stop rules
 Keep issues, tracker and decision notes useful without generating ceremony on
 each commit. Ordinary commits do not require milestone passage.
 
-Required acceptance uses source/context, actual Verification, one fresh
-independent acceptance assessment (`review`) and packet integrity. The assessment
+Required acceptance uses source/context, actual Verification, two fresh
+independent cross-provider acceptance assessments (`review`) and packet integrity. Each assessment
 covers code, approved requirements, evidence/CI scope, project rules, material
 decisions, findings/fixes and the human explanation. Separate code/spec/Judge
 sessions are supplemental choices. Whiteboard remains opt-in. Use actual runner
@@ -168,3 +168,25 @@ CLI is absent). Choose tests freely within the authorized phase. Do not rerun
 checks just to obtain metrics. Measurement failure does not block the command;
 report capture gaps. Formal runner jobs are already observed and need no extra
 outer wrapper. Reports are advisory and never grant gate passage or reuse.
+
+
+## Paired review and autonomous convergence
+
+Use PROTOCOL.md current/8 for the paired-review and autonomous authority contract.
+At the first PR boundary, discover native execution capabilities and select two
+capable daily-driver models from different providers at high supported effort.
+Record selection observations/rationale with review.select, then use
+review.execute for parallel initial assessments. Honor developer instructions,
+reuse the pair and record justified replacements. Neither model selection
+configuration nor a change of the implementing thread's model is required.
+Both complete reviews are required in both rigors; fresh delta review retains
+each perspective's changed-scope and interaction coverage.
+
+In supervised/delegated mode, persistent material disagreement returns to the
+human with retained evidence. Autonomous mode instead permits documented
+residual-risk adjudication and an agent-judged diminishing-returns stop. It
+requires an explicit named-run human mandate, independent mandate-compliance
+assessment, preserved original reviewer outcomes and all other mandatory proof.
+It may amend derived planning within the fixed goal/constraints without routine
+human handback. It cannot rewrite the mandate, excuse missing reviews or failed
+mandatory checks, or merge the final release PR without the human instruction.

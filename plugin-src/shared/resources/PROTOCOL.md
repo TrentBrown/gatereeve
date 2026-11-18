@@ -2,7 +2,7 @@
 
 `resources/protocol/plugin-adapter.js` is the authoritative native adapter.
 The optional `gatereeve` CLI and desktop read the same current contract,
-`gatereeve/current/7`. Send one JSON request on stdin or via `--request-file`:
+`gatereeve/current/8`. Send one JSON request on stdin or via `--request-file`:
 
 ```json
 {"operation":"status","cwd":"/absolute/workspace"}
@@ -23,7 +23,7 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | --- | --- |
 | `status`, `snapshot`, `next` | Current phase, commitment hashes, obligations, applicability, exceptions and milestone blockers |
 | `read` | Top-level `kind` = artifact/events/model/result; artifact/result `id` must come from status |
-| `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]`, `rigor`/`autonomy` choices `{value, authority?, reason?}` (defaults `full`/`supervised`; every explicit choice needs `authority` or `reason`, and a non-default value needs an observed human `authority`; `delegated` also needs the protected release branch); optional `workspace: {confirmFeature, authority}` or `{replace: true, authority}` (see Workspace configuration). In a repository with a GitHub remote and no workspace configuration it writes a minimal one and records it in `STARTED.workspace` |
+| `run.start` | `implementers`: actual implementing context IDs; optional `runId`, `optionalGates: ["whiteboard"]`, `rigor`/`autonomy` choices `{value, authority?, reason?}` (defaults `full`/`supervised`; every explicit choice needs `authority` or `reason`, and a non-default value needs an observed human `authority`; `delegated` and `autonomous` also need the protected release branch; autonomous additionally needs a fixed human mandate); optional `workspace: {confirmFeature, authority}` or `{replace: true, authority}` (see Workspace configuration). In a repository with a GitHub remote and no workspace configuration it writes a minimal one and records it in `STARTED.workspace` |
 | `workspace.configure` | Optional `{confirmFeature, authority}` or `{replace: true, authority}`. For an existing run without a workspace configuration, write it under the run-start rules and record `WORKSPACE_CONFIGURED`; reports `written: false` when the configuration already names the feature |
 | `run.set-dial` | `dial: rigor|autonomy`, `value`, `actor: human|agent`, `reason`, `authority` (required for `human`, forbidden for `agent`). Raising rigor or returning to supervised is open to either actor. Rigor never falls within a run: to work light, start a new light run on a new topic branch; this run and its evidence stay retained. Asking for `light` on a light run reports that it is already light Delegating (`autonomy: delegated`) is human-only, must name the run (`runId`) and needs the release branch observed as protected (see Delegated autonomy) |
 | `planning.review` | `artifact: design|spec|brief`, `configuration: {provider, model, reasoningEffort?}`; an independent fresh-context review of the planning artifact, recorded as `PLANNING_REVIEWED` with its exact subject. A delegated planning decision cites a PASS |
@@ -37,6 +37,9 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
 | `milestone.pass` | Record an allowed milestone; merge must use its protected action |
 | `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. Rejects a PR whose candidate scope does not match its target (see Delivery targets). Without a workspace configuration it fails naming `workspace.configure` |
+| `review.select` | `observations`, exactly two `reviewers`, `reason`, optional developer `instruction` and replacement `previous` selection event. Record runtime discovery and daily-driver/high-effort choices; this is not model-selection configuration |
+| `review.execute` | Run the selected pair in parallel; optional `consumed`, bounded `history`/`claims`, `coverageClaims`, per-provider `prior` and shared non-identity `configuration`. Individual `gate.execute review` results alone do not satisfy acceptance |
+| `review.adjudicate` | Autonomous only: exact `candidate` hash and `pair` identity, complete material-finding `dispositions`, `reason`, retained `evidence`, optional `stopReason`; preserves original reviewer outcomes |
 | `review.publish` | `repository`, PR `number`; write the current independent `review` summary for the candidate head into a delimited section of the PR description. Idempotent; refuses without a current qualifying review result or when the PR head differs from the candidate head |
 | `merge.execute` | Same action selector; requires current proof, human acceptance, authorization bound to the prepared action and the current review summary on the PR. A hosting-rule refusal fails with `EXTERNAL_BLOCKER`, not a gate failure |
 | `integration.observe` | `repository`, optional configured `branch`; fetch and verify actual reviewed-content integration, independent of acceptance |
@@ -50,7 +53,7 @@ unchanged interview or invent provenance.
 
 ## Run dials
 
-Every run carries `rigor` (`full | light`) and `autonomy` (`supervised | delegated`),
+Every run carries `rigor` (`full | light`) and `autonomy` (`supervised | delegated | autonomous`),
 recorded in `STARTED` and in each `DIAL_SET` event with value, source
 (`explicit | built-in`), actor, instruction or reason, and time. Defaults are
 `full` and `supervised`. No global, repository or workspace configuration changes
@@ -146,8 +149,9 @@ not authentication. Kinds: `approve-design`, `authorize-implementation`, `accept
 `waive`, `amend`, `policy-amend`, `authorize-merge`, `authorize-standing`,
 `revoke-standing`, `stay-light` (see Tripwires).
 
-Authority kinds: `human-confirmed` (an observed human instruction) and, only under
-delegated autonomy, `delegated-evaluator` (see Delegated autonomy). Status,
+Authority kinds: `human-confirmed` (an observed human instruction),
+`delegated-evaluator` under delegated autonomy, and `autonomous-evaluator` under
+explicit autonomous authority (see the current/8 sections below). Status,
 snapshot and decision records always carry the kind; a delegated decision is never
 reported or counted as human-confirmed.
 
@@ -244,10 +248,9 @@ is observed. Only a human can delegate again.
 ## Execution and evidence
 
 Required acceptance obligations: context, verification, review and packet, in
-both rigors. One
-fresh independent `review` covers code defects/interactions, every approved
+both rigors. Two fresh independent cross-provider `review` perspectives each cover code defects/interactions, every approved
 criterion, validation sufficiency, scope/decision reconciliation, project rules,
-findings/fixes and a useful human explanation. Its five explicit responsibility
+findings/fixes and a useful human explanation. Each perspective's five explicit responsibility
 conclusions are `code`, `requirements`, `evidence`, `scope`, `findings`.
 `code`, `spec`, `judge`, `reconcile`, `triage`, `pattern` and `explanation` remain
 available supplemental assessments, not a mandatory second review sequence.
@@ -326,7 +329,7 @@ deploying needs separate explicit authority; a generic check request is not that
 authority. The model chooses substantive checks appropriate to approved scope.
 
 Independent configuration names `provider: codex|claude-code` and explicit
-`model`, optionally `reasoningEffort`. The consolidated review uses a fresh context independent of implementation and
+`model`, optionally `reasoningEffort`. Each boundary review uses a fresh context independent of implementation and its peer, and
 consumes applicable Verification. Supplemental assessments are optional. Prior reports are context, not
 instructions; claimed dispositions are labeled. Reviewers must find new
 supported defects, verify affected fixes and cover interactions. Missing or
@@ -587,12 +590,12 @@ applicability binds the effective controlled environment; execution receives tha
 
 Provider structured-value digests use canonical JSON key order with array order preserved. Raw strings and bytes retain their exact-byte digest. Retained provider output therefore validates against the original receipt after storage round-trips; older digest contracts require fresh evaluation.
 
-Current/7 stores activation, ordered events, jobs, decisions and structured
-history in one authoritative `.gatereeve-current/workflow.sqlite.current-7` under
+Current/8 stores activation, ordered events, jobs, decisions and structured
+history in one authoritative `.gatereeve-current/workflow.sqlite.current-8` under
 the canonical feature home. SQLite transactions replace mirrored file journals.
-Each contract has its own database. An earlier contract's database (current/6:
-`workflow.sqlite`) is never written or migrated; a later contract opens it
-read-only only to link its activation as provenance on explicit resumption. A
+Each contract has its own database. Earlier databases (current/7:
+`workflow.sqlite.current-7`; current/6: `workflow.sqlite`) are never written or migrated; a later contract opens them
+read-only only to link their activation as provenance on explicit resumption. A
 read-only open of a WAL-mode database may create ignored `-wal`/`-shm` sidecars.
 Retained evidence artifacts stay files; the database records their references.
 The SQLite file and WAL/SHM sidecars must remain untracked. Each issue/topic
@@ -603,7 +606,7 @@ user-local metrics database and cannot grant workflow authority.
 A missing database grants no recovered approval. Explicitly start/resume a fresh
 run with observed human approvals and surviving documents; no old event replay.
 Old active runtime files remain untouched on upgrade and require explicit resume
-into current/7. Unchanged planning can carry only through observed approvals.
+into current/8. Unchanged planning can carry only through observed approvals.
 No distributed sync, automatic authority reconstruction or general reset is added.
 Use `database.inspect`, `database.history`, CLI `database`, and `workflow.observe`
 (`workflow-note <file>`) for bounded inspection and agent memory. Observation
@@ -828,3 +831,102 @@ adapter restores draft status for the unchanged, unmerged PR and verifies it,
 allowing a later authorized retry. Host-discovered Git is honored by grant and
 protected action reads. Acceptance scope includes the assessed target branch;
 verified integration on that same branch preserves prior acceptance for completion.
+
+
+## Dual boundary review and autonomous authority (current/8)
+
+In either rigor, acceptance requires both selected provider perspectives. Each
+independently assesses code, requirements, evidence, scope and findings against
+the same pinned source and applicable Verification. Light uses the brief; full
+uses selected approved criteria for a slice and every criterion for a feature.
+Initial assessments run concurrently in isolated read-only views without the
+peer's initial output. Recovery after a provider failure need not overlap an
+already completed peer. Retain both results, including failed/unavailable ones.
+
+At the first boundary, the agent discovers available native providers/models and
+reasoning options and records its decision with `review.select`. Prefer capable
+standard/daily-driver models at high effort, honor explicit developer model
+instructions and label inferred model classes as agent judgment. Version names
+are data, not built-in defaults. Reuse the pair within the run; replace it only
+for availability changes or developer direction, identifying the previous
+selection and reason. Autonomous mode may choose an available comparably capable
+replacement; changing user-pinned choices in other modes needs developer
+direction. A missing second provider remains a blocker. Discovery does not prove
+successful native execution. The main thread and planning-review model policy
+are unchanged. No model-selection configuration is added.
+
+`review.execute` coordinates native assessments and `boundaryReviews` qualifies
+the latest applicable result independently for each selected perspective. An
+individual `gate.execute` remains useful for a targeted perspective, but cannot
+stand in for the pair. Per-provider delta priors must retain their own provider
+perspective. Findings receive provider-specific identities and original-ID
+provenance. Rebuttals are claims until evaluated or legitimately adjudicated.
+Supervised/delegated modes require material clearance from both reviewers; on
+persistent dispute, record the evidence/reason and return control to the human
+(`run.set-dial autonomy supervised`, actor agent, under delegation). There is no
+fixed review-round cap. Do not endlessly retry unchanged disputed claims.
+
+`autonomous` is a third explicit per-run choice, independent of rigor. Defaults
+remain full/supervised. Grant it only from an observed human instruction bound to
+the named run and recorded `mandate: {goal, constraints}`. At run start the mandate
+belongs to the autonomy choice; in `run.set-dial` it is a top-level input. The
+original human goal and explicit constraints are retained in the grant event,
+separate from mutable planning files. Release protection is required as for
+delegation. Only the human grants or replaces this authority.
+
+A planning reviewer in autonomous mode receives the fixed mandate and granting
+instruction and must return `mandateAssessment: {outcome, evidence}`. Overall PASS
+requires explicit mandate compliance. An `autonomous-evaluator` planning decision
+cites the current grant in `delegation` and qualifying review event in
+`evaluation`. It covers approve-design, authorize-implementation and in-mandate
+amendments (with previousSubject and optional authorize-implementation action).
+Amendments retain old/new commitments and refresh affected evidence instead of
+causing routine human handback. Changing the mandate requires the human. A light
+tripwire raises rigor and refreshes full planning within the retained mandate.
+
+Autonomous boundary reviewers likewise assess mandate compliance. The agent may
+record candidate/pair-bound adjudication for every remaining material finding,
+including an evidence-backed rebuttal or accepted residual risk. Record reviewer
+positions, rationale, retained evidence, remaining risk and a diminishing-returns
+stopping reason when used. Unanimous approval is not required; both complete
+assessments are. Original FAIL/UNAVAILABLE never becomes reviewer PASS.
+
+Missing or invalid assessments, uncovered required scope, missing verification,
+rejected coverage replacements, evidence-integrity failure and unknown mandate
+compliance are not adjudicable. A completed negative scope/mandate opinion may
+receive an explicit `mandateRebuttal` addressing the retained goal and every
+constraint with evidence. A claimed mandate violation must be rebutted as
+unsupported, never accepted as a known violation. Failed mandatory checks still
+block acceptance. A stop reason alone never grants passage. Candidate, pair,
+selection, grant or mandate changes invalidate affected adjudication.
+
+Protected SLICE delivery into a distinct integration branch may apply autonomous
+authority when mandatory proof and any eligible adjudication qualify and the
+current summary is published. Final release-branch merge always needs the
+per-PR human instruction; deployment remains separately authorized. The
+unattended endpoint is a ready final PR, not fabricated post-merge completion.
+External blockers may prevent completion; exhaust authorized alternatives and
+report them truthfully rather than bypassing protections or changing the goal.
+
+Current/8 uses its own database. Current/7 records remain unchanged and supply
+activation provenance on explicit resumption, never an invented second review or
+a new autonomous grant. CLI, desktop and published summaries retain both models,
+receipts, original verdicts and any separately recorded accepted risk.
+
+
+An autonomous planning authority may include `judgment` when settling a completed
+negative independent planning assessment: `reason`, `mandateRebuttal` (goalEvidence
+and every fixed constraint by index/evidence), complete material-finding
+`dispositions`, retained `evidence` references and optional `stopReason`. The
+original assessment must be complete (PASS or FAIL, never UNAVAILABLE). Its
+original FAIL stays FAIL in evaluation and publication; the authority basis is
+`autonomous-judgment`, not a manufactured planning PASS. Unsupported mandate
+claims require explicit counterevidence and unsupported dispositions, rather than
+acceptance of a known violation. Binary specification validation and all other
+mandatory factual obligations still apply. Delegated mode still requires the
+independent planning PASS; it cannot use autonomous judgment.
+
+Existing explicitly scoped human gate-exception authority remains separate from
+unattended adjudication. Human exceptions retain original UNAVAILABLE/FAIL and
+never claim two reviews occurred. A finding-specific exception cannot silently
+cover a missing peer. Autonomous judgment itself cannot waive mandatory facts.

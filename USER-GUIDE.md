@@ -162,9 +162,25 @@ When a coherent, reviewable slice is ready, say:
 
 The boundary is more than opening a pull request. The agent reconciles the
 feature documents, verifies the intended code, evaluates the applicable
-rubric, runs an independent judge, performs applicable Pattern Review and code
-review, explains the diff, triages decisions, and assembles the evidence into
-the draft PR.
+rubric, obtains two complete independent reviews from different model providers,
+explains the change, reconciles material decisions and assembles the evidence
+into the draft PR. Both reviewers assess code, requirements, validation, scope
+and findings. Initial reviews normally run in parallel; subsequent work addresses
+their findings and refreshes affected proof. Extra Judge or Pattern Review
+sessions remain available when useful.
+
+The agent chooses available reviewer models at runtime, preferring capable daily
+drivers at high effort and honoring your instructions. No model-selection
+configuration is required, and the implementing thread keeps your chosen model.
+
+Autonomy defaults to **supervised**. **Delegated** allows independently approved
+planning and qualifying slice delivery, with human handback for scope amendments
+or unresolved material disagreement. **Autonomous** requires your explicit grant
+for that run and retains your original goal and constraints. It can amend its
+approach within that mandate, document eligible residual risks and stop iterating
+when further rounds add little value. Both reviews and actual mandatory checks
+remain required; native failures stay visible. Every final release merge still
+needs your instruction for that PR.
 
 The boundary deliberately refuses to evaluate an ambiguous local state. The
 intended code must be committed, pushed, represented by the draft PR, and
