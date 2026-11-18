@@ -1,0 +1,8 @@
+{
+  "codeHead": "e80f1ca89c28948316b08073ebf4c4ecc4f53d73",
+  "reviewedHead": "c42c65bd9b27163e0dad6c6204e7b521595bc739",
+  "filteredSourceEntries": 1298,
+  "allEntriesExactlyEqual": true,
+  "sourceManifestSha256": "f973ff95ec09b203b1ffb06d5f01c9bd8528012909d0b052e7400fbef04c9455",
+  "basis": "Exact equality of every retained filtered file entry, including Git object IDs and modes; not counts alone."
+}

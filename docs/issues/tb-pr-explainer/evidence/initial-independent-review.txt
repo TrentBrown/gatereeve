@@ -1,0 +1,165 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1333,
+      "format": "json",
+      "hash": "sha256:a6f2ed82337063c319b62fb301a379f420ad66661fd8b8252356fa64fab7d6a3"
+    },
+    {
+      "bytes": 17831,
+      "format": "json",
+      "hash": "sha256:d9201a4e674fe6c1ff71a01328eb611cde7f989fa0b6a0606e7e3547cf07ef33"
+    }
+  ],
+  "contract": "gatereeve/current/7",
+  "coverage": {
+    "complete": true,
+    "interactions": [
+      "evidence.js REPORTS addition \u00d7 excluded()/artifactArea(): pr-explainer.html is exempt only at the feature root or as the basename inside pr-N/review-*/advisory/verification/evidence/runtime/learning-events. Nearby ordinary HTML, JS and JSON stay source, as shown by the current-source regression.",
+      "Canonical evidence.js \u00d7 Desktop staged copy \u00d7 desktop-projection.json: byte parity covered by the CLI copies-match test in the full backstop; the projection size of 17886 matches the 21-byte addition.",
+      "workflow-inventory.json \u00d7 workflow_doctor.py REQUIRED_SKILLS (both copies) \u00d7 plugin build/validate: backstop reports 'All 28 workflow skills are present' in both packages.",
+      "ci/review-artifact-change.mjs PACKET_ARTIFACT is unchanged, so a pr-explainer.html-only change classifies as 'full' CI. This is conservative and safe.",
+      "Desktop renderer-protocol serves any format 'html' artifact under a sandbox CSP regardless of filename; the README rename matches that behavior.",
+      "workflow-site/index.html \u00d7 test-desktop-early-access.mjs: the index.html assertions at lines 75-78 passed in the retained run; only the unrelated line-79 manifest tuple fails, identically to base.",
+      "Historical docs/issues/** records, workflow-site historical artifacts/skills-copy and the explainDiff fixture IDs are unchanged (grep counts identical to base)."
+    ],
+    "limitations": [],
+    "paths": [
+      "repository/plugin-src/shared/skills/pr-explainer/SKILL.md",
+      "repository/plugin-src/shared/skills/pr-explainer/agents/openai.yaml",
+      "repository/plugin-src/shared/skills/pr-explainer/references/artifact.md",
+      "repository/plugin-src/shared/skills/pr-explainer/references/visual-evidence.md",
+      "repository/plugin-src/shared/skills/pr-explainer/references/invocation-contract.md",
+      "repository/plugin-src/shared/skills/explain-diff/SKILL.md",
+      "repository/plugin-src/contracts/workflow-inventory.json",
+      "repository/plugin-src/shared/resources/protocol/current/evidence.js",
+      "repository/apps/desktop/resources/protocol/current/evidence.js",
+      "repository/apps/desktop/resources/desktop-projection.json",
+      "repository/plugin-src/shared/resources/scripts/workflow_doctor.py",
+      "repository/apps/desktop/resources/scripts/workflow_doctor.py",
+      "repository/cli/test/current-source.test.js",
+      "repository/USER-GUIDE.md",
+      "repository/DEVELOPMENT.md",
+      "repository/apps/desktop/README.md",
+      "repository/workflow-site/index.html"
+    ]
+  },
+  "coverageDecisions": [
+    {
+      "evidence": "The superseded FAIL (6cd2\u2026, receipt ff2c944b) failed only 'production site keeps the prerequisite visible and ships the exact trusted RC', at test-desktop-early-access.mjs:79:10. That assertion deep-equals a hardcoded 0.1.0-rc.1 tuple against releases/desktop.json, which is 0.1.0-rc.29. Both files are identical in base/repository and the head: same rc lines at test lines 23-24, 48, 80 and 84 and manifest lines 8 and 12, with blob IDs claimed in site-baseline.txt. Because the failure is at line 79, the index.html assertions at lines 75-78 ran and passed on the changed index.html. The scoped replacement (889f\u2026, receipt 1d126aff) ran the other 3 site tests, passing. The full portable backstop (83f9\u2026) passed 435/437 with 2 skips, plus Python, audit, build and doctor. No CI workflow runs workflow-site tests (plugin-ci.yml references only releases/desktop.json as a path filter). The failure predates this feature and is unrelated to it, and the exclusion is limited to that one tuple. The original failure stays retained and is not relabeled green.",
+      "id": "unchanged-legacy-site-tuple",
+      "outcome": "PASS"
+    }
+  ],
+  "criteria": [
+    {
+      "evidence": "plugin-src/contracts/workflow-inventory.json:167-170 now names pr-explainer at shared/skills/pr-explainer. The old plugin-src/shared/skills/explain-diff/SKILL.md is absent at head (metadata base entry only) and nothing aliases it; invocation-contract.md:29 states 'There is no explain-diff alias'. Both workflow_doctor.py copies require pr-explainer (line 31). USER-GUIDE.md:279 and DEVELOPMENT.md:287-289 use the new name and pr-explainer.html. In the backstop, 318ac085 lines 2562-2567 and 2708-2713 report 28 skills in both native packages, and lines 2795/2401-2406 report Portable acceptance passed. SKILL.md:12-18 requires resolving identities, clarifying unresolved scope and needing no GateReeve run. Trials record exact base/head pairs (898543da/042b34bb; fec5039e/aa9541fe; PR42 faa30266 with synthetic merge e691de0d disclosed). The remaining explain-diff references are historical records and fixtures, unchanged from base.",
+      "id": "R1",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "artifact.md:5-9 and SKILL.md:30-36 require context \u2192 behavior \u2192 mechanism \u2192 evidence \u2192 reviewer focus, plus grouped scope and labeled inference. The PR101 artifact (4395d191 lines 409-458) gives context, the problem, a two-file scope note, a before/after race, head-pinned excerpts with blob/aa9541fe links and line ranges, an evidence table, and reviewer-attention items. The PR42 artifact uses faa30266-pinned excerpts (markdown-source.js:135-141, 208-224). The UI log (line 208) and the verification record report 64 revision-bound references validated. Missing intent docs are stated explicitly in PR101 ('no matching design/spec packet') and in the fixture cases.",
+      "id": "R2",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "artifact.md:11-29 sets a change-type-to-visual table with no quota and says not to synthesize screenshots or force a one-sided before/after. SKILL.md:38 makes quizzes optional only when requested. The PR101 figure caption reads 'Conceptual event sequence derived from the two source revisions, not a captured execution or product screenshot' (line 421). The visual-output case presents aligned base/head save-helper states and labels them conceptual; the capture-output case embeds the head-helper harness PNG with a fixture boundary note (line 9). No fabricated product screens were found.",
+      "id": "R3",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "visual-evidence.md:5-13 says to follow tests, Playwright config, ignored outputs, report attachments resolved relative to their report, and CI artifacts with scoped retrieval; \u00a7'Establish what each image actually shows' distinguishes baseline, actual, diff, failure and context-only images. Trial logs (4395d191 lines 51-56 and 495-498) show config \u2192 ignored captured-output/html \u2192 fixture-capture.json/results.json \u2192 relative PNGs that were opened in a viewer. The relevant pending-save capture was embedded with head-helper provenance; the unrelated failed-base failure.png was excluded and labeled. The expected inventory (visual-expected.txt) was withheld from generation, and the embedded bytes match the original (3e420548 line 353). The PR101 CI artifact inventory was inspected without dispatching jobs (line 370).",
+      "id": "R4",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "SKILL.md:22 and 26 distinguish tests added, checks run, retained output, author reports and observed behavior, and forbid running tests or the app, fresh captures, CI or code edits, posting and delivery. artifact.md:31-43 lists evidence categories and says concerns carry no PASS/FAIL or score. The PR101 evidence table (lines 447-451) separates test source, retained CI (with the synthetic-merge identity qualified) and author-reported runs ('not independently reproduced'). The action logs (lines 64, 213, 375 and 502) record no product tests, app runs, captures, edits, posts or delivery actions. No metrics or enforcement were added, and DEVELOPMENT.md:288-289 says the skill adds no required gate.",
+      "id": "R5",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "artifact.md:45-53 requires a self-contained file, reflow, bounded code scroll, keyboard-operable native controls and honest check reporting. The retained artifact-browser-checks (4395d191 lines 1716-1839) show all four cases at 1280/390 with scroll equal to width, remoteAssets 0, loaded images and disclosures opened and closed by keyboard. A real 390 px overflow was found and fixed before the recheck (verification.md line 1982). The non-UI child honestly reported its host CUA as unavailable (line 373) before the parent check. The explicit nonui destination was honored and writes stayed in the trial directory (lines 365 and 375).",
+      "id": "R6",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "invocation-contract.md:5-27 defines caller inputs (change identity, intent, evidence, destination), forbids live-branch or feature substitution, and lists handoff contents. It creates no gate, publication or acceptance. The PR101 governed trial used the caller identity tb-metrics-sqlite-store, the exact range and the explicit destination (lines 365-368 and 412). Naming recognition is narrow: evidence.js:20 adds only 'pr-explainer.html' to REPORTS, and the current-source.test.js:38-60 regression proves ordinary-page.html, pr-explainer.js and settings.json remain source while explain-diff.html is preserved. The test passed in the full backstop (318ac085 line 1828). There are no PROTOCOL, gate or authority changes; pr-boundary.md is unchanged.",
+      "id": "R7",
+      "outcome": "PASS"
+    }
+  ],
+  "dimensions": [
+    {
+      "evidence": "evidence.js:19-20, 25-39: the REPORTS addition is gated by root-level or artifactArea-basename checks, so no broad HTML exemption is introduced. The desktop copy matches by line count and content, and the projection entry is size 17886 with sha 4b8c47\u2026. Both workflow_doctor.py REQUIRED_SKILLS copies are updated identically. The regression test at current-source.test.js:38-60 is behavioral, not a prose match. The skill files are instructions with no executable helpers or dependencies. The renderer-protocol sandbox CSP applies to any html artifact, so it is unaffected. I found no defects; ci/review-artifact-change.mjs keeps its conservative full-CI fallback (F1, nonblocking).",
+      "name": "code",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "R1-R7 are each supported by current source and retained trial artifacts and logs (see criteria). Project rules: the plan's expected source areas match the changed paths. Historical records are unrewritten (identical explain-diff grep counts across the docs/issues/** JSON, workflow-site/artifacts and skills-copy). No gate, schema or authority change was made. Design exclusions hold: no merge, release, installation or capture-policy changes. D-implementation-1 to 5 are consistent with the source: no renderer dependency, narrow recognition, fixture labeling, validation replacement and a fresh backstop. The autonomy-dial refusal and the supervised continuation are recorded honestly.",
+      "name": "requirements",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Actual receipts are below.\n- Full portable backstop at e80f1ca: exit 0, 435 pass / 0 fail / 2 skip Node, Python 29+69+2 OK, Portable acceptance passed on Darwin arm64 with Node v24.15.0.\n- Scoped run: parity test, current-source/compose/native (2979-byte receipt), 3 site tests passing, remaining-stage script, and 4-artifact checks.\n- Raw-context check at head c42c65bd.\nThe local alternative is assessed against the approved plan, whose P4 backstop is the portable script and which accepts an independently assessed alternative: adequate. No hosted CI ran, so this is not claimed. The skipped desktop-contract job is a residual risk mitigated by inspection (F2). History gaps for three earlier verification results were handled by relying only on the fresh results. The e80f1ca\u2192c42c65bd delta is supported as feature-home only: identical per-file reference counts, identical tree entry counts and identical candidate size. Skill-creator quick_validate and native smoke are implementer claims.",
+      "name": "evidence",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Changes stay within plan P1-P4 areas: the skill directory, the inventory, evidence.js plus its Desktop mirror and projection, doctor required-skills, the current-source test, and active docs (USER-GUIDE, DEVELOPMENT, desktop README, static site index). The DEVELOPMENT.md boundary paragraph now matches current commands/pr-boundary.md rather than the outdated explain-diff step. Release metadata, the site fixture, CI, retention and gates are untouched, and historical copies are preserved. The site-tuple exclusion is narrowly scoped and qualified (coverage decision PASS).",
+      "name": "scope",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "There are no prior review findings: the history entry 84d8e95e was UNAVAILABLE (unsupported-model), and reconsiderClosures is empty. A fresh full assessment found three nonblocking follow-ups:\n- F1: the CI artifact-name pattern is conservative.\n- F2: the desktop-contract job was not executed.\n- F3: the site links point to main and resolve only after merge.\nThere are no blocking findings.",
+      "name": "findings",
+      "outcome": "PASS"
+    }
+  ],
+  "dispositions": [],
+  "featureId": "tb-pr-explainer",
+  "findings": [
+    {
+      "blocking": false,
+      "classId": "ci-scope-conservative-artifact-name",
+      "criterion": "R7",
+      "evidence": "PACKET_ARTIFACT (line 8) still lists explain-diff\\.html but not pr-explainer\\.html, so a PR that changes only docs/issues/<f>/pr-N/pr-explainer.html is classified 'full' rather than 'review-artifacts'. The fallback is safe: extra CI, no lost coverage. The scratchpad records this as deliberate. Nonblocking follow-up only.",
+      "id": "F1",
+      "path": "repository/ci/review-artifact-change.mjs"
+    },
+    {
+      "blocking": false,
+      "classId": "unexecuted-desktop-contract-job",
+      "criterion": "gate:review",
+      "evidence": "The feature changes apps/desktop/resources/scripts/workflow_doctor.py and apps/desktop/resources/desktop-projection.json. The desktop-contract CI job (plugin-ci.yml:141-160, npm test in apps/desktop) checks staged-script parity, and it ran neither locally nor in hosted CI. By inspection, both workflow_doctor.py copies have 457 lines with an identical pr-explainer line 31, and the projection evidence.js size of 17886 matches the canonical edit. The approved plan names the portable script as the backstop. Nonblocking residual verification risk.",
+      "id": "F2",
+      "path": "repository/apps/desktop/test/stage-protocol.test.js"
+    },
+    {
+      "blocking": false,
+      "classId": "site-link-resolves-after-merge",
+      "criterion": "R1",
+      "evidence": "The new links point to https://github.com/TrentBrown/gatereeve/blob/main/plugin-src/shared/skills/pr-explainer/SKILL.md, which exists on main only after merge. Base at 67871b00 has no such path. This is acceptable for a site deployed from main; a preview built from this branch would show a dangling link. Nonblocking observation.",
+      "id": "F3",
+      "path": "repository/workflow-site/index.html"
+    }
+  ],
+  "gate": "review",
+  "historyAssessment": null,
+  "input": {
+    "bytes": 3843,
+    "format": "json",
+    "hash": "sha256:ed423f3760b8d53ba7f56f4460881352f0089ee53eb4eace033be93933af756c"
+  },
+  "kind": "result",
+  "mode": "full",
+  "outcome": "PASS",
+  "prior": null,
+  "priorCandidate": null,
+  "receipt": {
+    "bytes": 728,
+    "format": "json",
+    "hash": "sha256:495e6ecf8c2c74c6339ced0fd6b9622ab3e09f96bd04e61f3a366b4da4eb00a5"
+  },
+  "runId": "pr-explainer-start-full-20261118",
+  "summary": "Independent consolidated review of the pr-explainer feature: base 67871b00 \u2192 head c42c65bd (target = base, so merging adds nothing beyond the feature change). The change replaces the explain-diff skill with a concise pr-explainer SKILL.md plus three references (artifact, visual-evidence, invocation-contract) and agents/openai.yaml. It removes plugin-src/shared/skills/explain-diff/SKILL.md and swaps the inventory entry and both workflow_doctor.py REQUIRED_SKILLS copies. It adds 'pr-explainer.html' to the REPORTS set in both evidence.js copies and regenerates desktop-projection.json. It adds a behavioral classifier regression in cli/test/current-source.test.js and updates USER-GUIDE.md, DEVELOPMENT.md, apps/desktop/README.md and workflow-site/index.html. Historical records (docs/issues/** JSON, workflow-site/artifacts/explain-diff.html, workflow-site/skills-copy/explain-diff/*, test fixtures with explainDiff gate IDs) are unchanged. I found no blocking defects.\n\nAll seven criteria are supported. The evidence includes four actual trial artifacts with action logs. PR42 (UI) and PR101 (non-UI, governed caller identity and explicit destination) are real pinned changes. Two controlled fixture cases are explicitly labeled as test data: one discovers a relevant capture in an ignored, non-default directory found through the config; the other rejects an unrelated stale failure image. The retained browser checks show scroll width equal to the viewport at 1280 and 390 px, zero remote assets, and keyboard-operable disclosures for all four pages.\n\nValidation: the fresh full portable backstop (83f9\u2026, 435/437 Node pass with 2 skips, 100 Python tests OK, validate/lint/validate-native, deterministic dual-platform builds and disposable setup/doctor) and the scoped run (889f\u2026) both ran on e80f1ca. The reviewed head is c42c65bd, whose only receipt is a raw-input integrity check (49f3\u2026). Grep counts of pr-explainer references are identical across all 13 changed files at both commits, the head tree entry counts match, and the candidate manifests have identical byte size (1045487). Together this supports the claim that the application source is unchanged and only the excluded feature-home records moved, though I could not byte-compare every file.\n\nThe legacy site-tuple coverage claim passes. The skipped test fails only at test-desktop-early-access.mjs:79, a fixed rc.1 deepEqual, against releases/desktop.json rc.29. Both files are identical in base and head. The retained failing receipt shows the earlier index.html assertions in that test (lines 75-78) were reached and passed. No CI job runs this suite.\n\nCaveats:\n- No hosted CI ran.\n- The desktop-contract job (apps/desktop npm test, including stage-protocol.test.js script-parity checks) was not run locally. The approved plan names the portable acceptance script as the backstop, and I checked the mirrored desktop copies by inspection: identical line counts, an identical single changed line, and a projection size of 17886 that matches the 21-byte REPORTS addition.\n- changedPaths was not supplied and the metadata carries no blob hashes, so I rebuilt the changed-path set from base/head name greps, the tree entry delta (+5/\u22121) and the retained diffs.\n- The skill-creator quick_validate and native install smoke results are implementer claims without receipts in the consumed evidence. Package inventory validation did run in the backstop."
+}

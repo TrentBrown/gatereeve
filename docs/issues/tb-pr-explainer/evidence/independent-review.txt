@@ -1,0 +1,179 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1332,
+      "format": "json",
+      "hash": "sha256:a6d4a50eabdb71e02bdb5b89bc78619327fe6d136ca9908eed979a24ae938e6d"
+    },
+    {
+      "bytes": 19966,
+      "format": "json",
+      "hash": "sha256:44f730956481ae866ea690de73a1de135ce2f928ce860cb764389b4a7bfa2195"
+    }
+  ],
+  "contract": "gatereeve/current/7",
+  "coverage": {
+    "complete": true,
+    "interactions": [
+      "evidence.js REPORTS addition \u00d7 excluded()/artifactArea() (lines 19-39): pr-explainer.html is exempt only at the feature-record root or as the basename inside the pr-N/review-*/advisory/verification/evidence/runtime/learning-events areas. The current-source.test.js:38-60 regression keeps ordinary-page.html, pr-explainer.js and settings.json as source and preserves the historical explain-diff.html bytes.",
+      "Canonical evidence.js \u00d7 Desktop staged copy \u00d7 desktop-projection.json: identical line 20 in both copies, and the retained diff shows the projection evidence.js entry with size 17886 and sha 4b8c47\u2026. stage-protocol.test.js passed directly on c42 (receipt 459ef489), and both hosted Desktop contract jobs passed on application-identical e80.",
+      "workflow-inventory.json \u00d7 both workflow_doctor.py REQUIRED_SKILLS copies \u00d7 package build: the c42 full portable receipt (1c0cb110 lines 2567/2726) reports all 28 workflow skills present in both packages.",
+      "ci/review-artifact-change.mjs PACKET_ARTIFACT is unchanged, so a change touching only pr-explainer.html takes full CI. This is conservative (F1).",
+      "DEVELOPMENT.md section 9 \u00d7 plugin-src/shared/resources/commands/pr-boundary.md: the new text (pinned source, actual Verification, one fresh independent assessment, review packet, PR closure policy) matches the current command. The old 'creates explain-diff.html' step was outdated.",
+      "workflow-site/index.html \u00d7 test-desktop-early-access.mjs: lines 75-78 ran and passed against the changed index (the failure is at 79:10 per receipt ff2c944b). The rc.1 tuple and the rc.29 workflow-site/releases/desktop.json are identical in base and head.",
+      "Historical docs/issues/**, workflow-site/artifacts, skills-copy, the visual-fixture.js/renderer-protocol explainDiff gate IDs and the workflow-model-1.6 fixture are unchanged from base.",
+      "Target = base, so there is no additional merge interaction."
+    ],
+    "limitations": [],
+    "paths": [
+      "repository/plugin-src/shared/skills/pr-explainer/SKILL.md",
+      "repository/plugin-src/shared/skills/pr-explainer/agents/openai.yaml",
+      "repository/plugin-src/shared/skills/pr-explainer/references/artifact.md",
+      "repository/plugin-src/shared/skills/pr-explainer/references/visual-evidence.md",
+      "repository/plugin-src/shared/skills/pr-explainer/references/invocation-contract.md",
+      "repository/plugin-src/shared/skills/explain-diff/SKILL.md",
+      "repository/plugin-src/contracts/workflow-inventory.json",
+      "repository/plugin-src/shared/resources/protocol/current/evidence.js",
+      "repository/apps/desktop/resources/protocol/current/evidence.js",
+      "repository/apps/desktop/resources/desktop-projection.json",
+      "repository/plugin-src/shared/resources/scripts/workflow_doctor.py",
+      "repository/apps/desktop/resources/scripts/workflow_doctor.py",
+      "repository/cli/test/current-source.test.js",
+      "repository/USER-GUIDE.md",
+      "repository/DEVELOPMENT.md",
+      "repository/apps/desktop/README.md",
+      "repository/workflow-site/index.html"
+    ]
+  },
+  "coverageDecisions": [
+    {
+      "evidence": "The retained failing receipt ff2c944b fails only at test-desktop-early-access.mjs:79:10: a deepEqual of a hardcoded 0.1.0-rc.1 tuple against workflow-site/releases/desktop.json, which holds 0.1.0-rc.29.\n- I confirmed head and base are identical for this test: rc lines 23-24, 48, 80 and 84 are the same.\n- The manifest's version and name lines 8 and 12 are also identical between base and head.\n- The failure point is after the index.html assertions at lines 75-78, so the changed index passed those assertions.\n- The replacement run 1d126aff passes the other 3 site tests.\n- The fresh full portable run, both on e80 (83f9) and directly on c42 (6404, command 2: 435 pass, 0 fail, 2 skip), plus the hosted full-scope CI on application-identical e80, cover everything else.\n- plugin-ci.yml does not run the workflow-site suite.\n\nThe exclusion covers one unrelated pre-existing release tuple; the failure stays retained and is not relabelled as passing.",
+      "id": "unchanged-legacy-site-tuple",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Aggregate 6404 FAIL is retained, not relabelled.\n- Its command 2 is an actual exit-0 receipt (1c0cb110) for the unmodified ci/portable-acceptance.sh on c42c65bd: 437 Node tests, 435 passed, 2 skipped (lines 2401-2406); Python 29+69+2 OK; both packages report 28 skills; 'Portable acceptance passed' (line 2821).\n- Its command 1 failed in verify-evidence.mjs:38 with spawnSync git ENOBUFS while running 'git diff 6894bb4 HEAD' for the report (stderr 8148ca96). Its stdout 7266ca81:2019-2020 already shows 'Artifact integrity checks passed' and the site link and anchor checks.\n- The repaired run 7b4e (stdout 140949) passes the exact absolute-node command on c42 with the same integrity lines (2019-2020) and a bounded application-path delta (2021+).\n\nThe helper is a scratch script outside the repository, so the repair affects only reporting, not product source or the checks performed.",
+      "id": "reporting-helper-repair",
+      "outcome": "PASS"
+    }
+  ],
+  "criteria": [
+    {
+      "evidence": "Replacement and naming:\n- workflow-inventory.json:167-170 names pr-explainer at shared/skills/pr-explainer.\n- base/plugin-src/shared/skills/explain-diff/SKILL.md is absent at head, and no alias exists: invocation-contract.md:29 says 'There is no explain-diff alias'.\n- Both workflow_doctor.py copies list 'pr-explainer' at line 31.\n- USER-GUIDE.md:279 says 'Run pr-explainer.' DEVELOPMENT.md:287-289 names pr-explainer and pr-explainer.html.\n- The Desktop README:129 now says 'PR-explainer'.\n\nPackaging: the c42 full portable receipt (1c0cb110:2567, 2726) shows 28 skills present in both packages.\n\nStandalone invocation:\n- SKILL.md:12-18 requires full base/head or working-tree snapshot identity, asks for clarification when the scope is unresolved, and says 'Ordinary use needs no GateReeve run'.\n- The trials record exact ranges, e.g. 140949:368 fec5039e..aa9541fe.\n\nHistorical records: the remaining explain-diff references (site artifacts, skills-copy, fixtures, docs/issues) match base counts and are not rewritten.",
+      "id": "R1",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Guidance:\n- artifact.md:5-9 and SKILL.md:30-36 require context, problem, behaviour, mechanism, evidence and reviewer focus.\n- They also require grouped scope including consequential non-excerpted changes, base/head-bound citations, and labelled inference.\n\nTrials (retained receipt 140949):\n- 64 revision-bound source references were validated (line 2019). The PR101 static check resolved 22 Git path/line references against pinned blobs (line 384).\n- PR101 states its missing design/spec packet explicitly (lines 380 and 1989) instead of inventing one.\n- The UI42 log shows pinned intent documents were read and the earlier generated explain-diff.html was not consulted (line 203).",
+      "id": "R2",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Guidance:\n- artifact.md:11-29 maps each change type to a suitable representation with no quota.\n- It forbids synthesised screenshots and forced one-sided before/after comparisons.\n- It keeps the explanation visual when captures are missing.\n- SKILL.md:38 makes quizzes optional and only when requested.\n\nTrials (receipt 140949):\n- The PR101 figure caption (lines 317/421) reads 'Conceptual event sequence derived from the two source revisions, not a captured execution or product screenshot'.\n- The capture trial embeds the relevant head-helper PNG with a fixture-provenance note and excludes the unrelated image (line 2006).\n- No fabricated product screens appear.",
+      "id": "R3",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Guidance:\n- visual-evidence.md:5-13 follows tests, Playwright config, ignored output directories, report attachments resolved relative to their report, and scoped CI artifact reads.\n- Lines 15-29 distinguish baseline, actual, diff, failure and context-only captures, and forbid presenting stale or unknown images as current evidence.\n\nTrials (receipt 140949):\n- The capture log (line 497) shows playwright.config.ts \u2192 .gitignore \u2192 configured ignored output \u2192 results.json attachment resolved relative to its report \u2192 failure.png opened and inspected.\n- The relevant pending-save capture was embedded with head-helper provenance; the unrelated stale failure image was excluded (line 2006).\n- Visual discovery for PR101 stayed bounded to that scenario (line 372).\n- Raw-context verification 49f3 / receipt 3e420548 checks the embedded PNG bytes against the original.",
+      "id": "R4",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Guidance:\n- SKILL.md:22 separates tests added, checks run, retained output, author reports and observed behaviour.\n- SKILL.md:26 forbids running product tests, starting the app, fresh captures, test/CI changes, fixes, posting and delivery unless explicitly requested.\n- artifact.md:31-43 says concerns carry no PASS/FAIL, score or merge recommendation.\n\nTrials (receipt 140949):\n- The PR101 log (lines 370-375) labels author stress tests as author-reported, qualifies synthetic-merge CI, records that CI was not dispatched, and shows no checkout, edits, posts or delivery.\n\nNo metrics, gate or enforcement is added. DEVELOPMENT.md:289 says 'the standalone skill does not add a required gate'.",
+      "id": "R5",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Guidance:\n- artifact.md:45-53 requires one self-contained file, reflow, bounded code scrolling, native keyboard-operable controls, and honest reporting of render and interaction checks.\n- SKILL.md:42-46 honours explicit destinations and prohibits overwriting unrelated artifacts.\n\nBrowser checks (receipt 140949, lines 1736-1833), for all four trials:\n- Width 1280 \u2192 scroll 1280, and 390 \u2192 390.\n- remoteAssets 0, images loaded, keyboard navigation worked.\n\nHonest reporting and destination:\n- The PR101 child reported its host CUA as unavailable and did not claim a render (line 373). The parent check covered rendering later.\n- The explicit nonui destination was honoured and writes stayed in the trial directory (lines 365 and 375).",
+      "id": "R6",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Contract:\n- invocation-contract.md:5-27 defines caller identity, intent, evidence and destination inputs.\n- It forbids substituting the live branch or a different feature home, and lists handoff contents.\n- It creates no gate, publication or acceptance authority.\n\nGoverned trial: PR101 used the caller's exact range and explicit destination (140949:365-368).\n\nNaming recognition is narrow:\n- Only 'pr-explainer.html' is added to REPORTS (evidence.js:20, mirrored in the Desktop copy).\n- The regression at current-source.test.js:38-60 is behavioural and passed in the c42 full portable run.\n- There are no PROTOCOL, gate or authority changes, and pr-boundary.md is unchanged.",
+      "id": "R7",
+      "outcome": "PASS"
+    }
+  ],
+  "dimensions": [
+    {
+      "evidence": "Classifier: evidence.js:19-39 adds pr-explainer.html to REPORTS, which exempts it only at the record root or as a basename inside an artifactArea. The exemption is not extended to arbitrary HTML, JS or JSON (proved by current-source.test.js:38-60).\n\nMirrors: the Desktop evidence.js copy matches at line 20, and the projection was regenerated by script; the retained diff shows size 17886 and sha 4b8c47\u2026. Both doctor copies are updated identically at line 31.\n\nThe skill adds only instruction and reference files, with no executables or dependencies. agents/openai.yaml follows the convention of the 21 other skills.\n\nNo defects found. F1 is a nonblocking conservative CI classification.",
+      "name": "code",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Each of R1-R7 is backed by current source plus retained trial artifacts and logs (see criteria).\n\nProject rules and plan:\n- Changed paths match plan.md 'Expected source areas' (P1/P2), plus the doctor list and the static site index, both recorded in scratchpad.md.\n- Design exclusions hold: no gate, schema or authority change; no merge, release, install or capture-policy change; no renderer dependency.\n\nDecisions reconcile with source:\n- D-implementation-1/2: one entrypoint plus 3 references; narrow recognition; old report name retained for historical records.\n- D-implementation-3: real PR42/PR101 trials plus labelled fixtures.\n- D-implementation-4/5: validation replacement and a fresh backstop.\n\nThe autonomy-dial refusal and supervised continuation are recorded honestly. DEVELOPMENT.md section 9 now matches resources/commands/pr-boundary.md.",
+      "name": "requirements",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Actual receipts:\n- (a) Full portable PASS directly on c42c65bd: 6404 command 2, 435/437 Node with 2 skips, Python 100 OK, all package, audit and setup stages.\n- (b) Full portable PASS on e80 (83f9).\n- (c) Scoped e80 checks (889f): exact-mirror recheck; current-source, compose and native; 3 site tests; remaining stages; 4 artifact checks.\n- (d) c42 replay of the artifact integrity command, Desktop stage-protocol test, and hosted-context receipt (7b4e).\n- (e) Raw intent/PNG integrity on c42 (49f3).\n\nHosted CI: run 44368349936 on e80 executed every scope=='full' job in plugin-ci.yml successfully. The only skipped jobs are review-artifacts (wrong scope) and source-acceptance-receipt (push-only), which is consistent with the approved scope.\n\nThe local alternative is the plan's named portable backstop and is adequate on its own receipts. Hosted CI is supplemental and attributed to e80, not c42.\n\nHistory gaps for 3 verification results were handled by relying only on these fresh receipts. Skill-creator validation and native smoke remain implementer claims.",
+      "name": "evidence",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Changes stay within the plan's P1-P4 areas and recorded doctor and site updates.\n\nUntouched: release metadata (workflow-site/releases/desktop.json is identical to base), the site test fixture, CI workflows, retention and gates. Historical copies keep their base explain-diff counts.\n\nThe site-tuple exclusion is limited to the single pre-existing line-79 assertion and is qualified as PASS. The reporting-helper repair touches only an out-of-repository scratch script; no product scope changes.\n\nThe site aside's wording 'mandatory GateReeve enforcement follows separately' describes deferred work without adding it.",
+      "name": "scope",
+      "outcome": "PASS"
+    },
+    {
+      "evidence": "Prior review 15d2e55c (PASS) findings:\n- F2 is resolved by direct c42 stage-protocol and full portable receipts plus hosted Desktop contract success on application-identical e80.\n- F1 and F3 remain present and nonblocking.\n\nThe UNAVAILABLE review f6f1e503 had no findings. reconsiderClosures is empty.\n\nThe fresh full assessment found no new blocking defects and no other instance of the resolved missing-Desktop-test class: every desktop-mirrored changed file is covered by stage-protocol or the CLI copies-match test.",
+      "name": "findings",
+      "outcome": "PASS"
+    }
+  ],
+  "dispositions": [
+    {
+      "evidence": "Three new receipts close the missing Desktop-test evidence:\n- Verification 7b4e command 2 runs apps/desktop/test/stage-protocol.test.js directly on c42c65bd: 1 pass, 0 fail (receipt 459ef489).\n- Receipt f83efa85 records successful hosted run 44368349936 on e80f1ca, including 'Desktop contract on Ubuntu 22.04' and 'Desktop contract on Ubuntu 24.04', the macOS and Ubuntu runtime jobs, the Universal package and the Intel and Apple Silicon packaged runtimes. It also asserts exactFilteredManifestEquality=true for 1298 entries.\n- 6404 command 2 is a full portable PASS directly on c42.\n\nI treat the hosted CI as evidence for e80 only; the direct c42 runs close the gap.",
+      "id": "F2",
+      "status": "resolved"
+    },
+    {
+      "evidence": "ci/review-artifact-change.mjs is unchanged from base; its explain-diff count is 1 in both. pr-explainer.html is not in PACKET_ARTIFACT, so the conservative full-CI fallback remains. Nonblocking.",
+      "id": "F1",
+      "status": "present"
+    },
+    {
+      "evidence": "workflow-site/index.html lines 1637, 2013, 2663 and 2788 still link blob/main/plugin-src/shared/skills/pr-explainer/SKILL.md, which resolves only after merge. Nonblocking.",
+      "id": "F3",
+      "status": "present"
+    }
+  ],
+  "featureId": "tb-pr-explainer",
+  "findings": [
+    {
+      "blocking": false,
+      "classId": "ci-scope-conservative-artifact-name",
+      "criterion": "R7",
+      "evidence": "Still present and unchanged from base: PACKET_ARTIFACT recognises explain-diff.html but not pr-explainer.html. A PR touching only docs/issues/<f>/pr-N/pr-explainer.html is therefore classified 'full', not 'review-artifacts'. The failure mode is extra CI, never lost coverage, and the scratchpad records this as deliberate. Nonblocking follow-up.",
+      "id": "F1",
+      "path": "repository/ci/review-artifact-change.mjs"
+    },
+    {
+      "blocking": false,
+      "classId": "site-link-resolves-after-merge",
+      "criterion": "R1",
+      "evidence": "Still present: lines 1637, 2013, 2663 and 2788 link https://github.com/TrentBrown/gatereeve/blob/main/plugin-src/shared/skills/pr-explainer/SKILL.md. That path exists on main only after merge; base 67871b00 has only shared/skills/explain-diff. This is acceptable for a site deployed from main, but a branch preview would show a dangling link. Nonblocking observation.",
+      "id": "F3",
+      "path": "repository/workflow-site/index.html"
+    }
+  ],
+  "gate": "review",
+  "historyAssessment": null,
+  "input": {
+    "bytes": 5914,
+    "format": "json",
+    "hash": "sha256:c6b9e40a2d378b8c9f3742f872a9c1d7b6f30db31de87b29a02478f8d227648f"
+  },
+  "kind": "result",
+  "mode": "full",
+  "outcome": "PASS",
+  "prior": null,
+  "priorCandidate": null,
+  "receipt": {
+    "bytes": 727,
+    "format": "json",
+    "hash": "sha256:ad8116d798397cf4eaf041fec8e728538c2215149fa25ba56f8b73166232a130"
+  },
+  "runId": "pr-explainer-start-full-20261118",
+  "summary": "Fresh consolidated review of the pr-explainer feature: base 67871b00 to head c42c65bd. The target equals the base, so merging adds nothing beyond the feature change. Because historyGaps is nonempty, I did a full reassessment and did not rely on earlier verification history.\n\nWhat changed:\n- The explain-diff skill is replaced by plugin-src/shared/skills/pr-explainer: SKILL.md, agents/openai.yaml, and three references (artifact.md, visual-evidence.md, invocation-contract.md). The old skill entrypoint is deleted.\n- The inventory entry is swapped. Both workflow_doctor.py REQUIRED_SKILLS copies are updated.\n- 'pr-explainer.html' is added to REPORTS in both evidence.js copies, and the Desktop projection was regenerated.\n- A new behavioural classifier regression is in cli/test/current-source.test.js.\n- Active docs are updated: USER-GUIDE, DEVELOPMENT, the Desktop README and the static site index.\n- Historical records, fixtures, workflow-site artifacts and skills-copy are unchanged (explain-diff counts match base).\n\nI found no blocking defects.\n\nValidation since the last review is stronger:\n- Verification 6404 contains a direct full ci/portable-acceptance.sh PASS on c42c65bd itself: 437 Node tests, 435 passed, 2 skipped; Python 29+69+2 OK; 'All 28 workflow skills are present' in both packages; 'Portable acceptance passed'.\n- Its only failure was the helper script that prints a report (outside the repository) crashing with spawnSync git ENOBUFS. That happened after the receipt had already printed 'Artifact integrity checks passed'.\n- Verification 7b4e replays the repaired artifact command on c42 (PASS) and runs apps/desktop/test/stage-protocol.test.js on c42 (1/1 pass).\n- It also retains a receipt for hosted run 44368349936 on e80f1ca. Every full-scope job succeeded, including both Desktop contract jobs. The two skips are expected by plugin-ci.yml conditions: Review artifact validation runs only for review-artifacts scope, and Retain complete source acceptance runs only on push.\n- That receipt asserts exact equality of all 1298 filtered application entries and their OIDs between e80 and c42. This is an implementer-script assertion. The direct full portable PASS on c42 independently supports it, but the hosted CI is not counted as a run on c42.\n\nF2 (Desktop contract not executed) is resolved. F1 (conservative CI artifact-name pattern) and F3 (site links resolve only after merge) remain present and nonblocking.\n\nCaveats:\n- changedPaths was not supplied and the metadata has no blob hashes. I rebuilt the changed set from base/head comparisons and the retained 'CURRENT DELTA' diff.\n- Results from skill-creator quick_validate and the native install smoke remain implementer claims beyond what the package-inventory stages show.\n- The retained trial HTML is assessed through .html.txt copies and receipts. The originals live in the task-owned scratch area."
+}

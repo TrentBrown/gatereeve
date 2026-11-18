@@ -1,6 +1,6 @@
 # PR Explainer implementation report
 
-Status: implementation and validation complete; independent assessment and human-review readiness pending. Preparation PR: https://github.com/TrentBrown/gatereeve/pull/118 (closed draft).
+Status: ready for human review. GateReeve recorded acceptance-gate passage after all current obligations passed, with no missing obligations. Independent review PASS for all R1-R7; no blocking findings. This is gate readiness, not a human approval or merge authorization. Original preparation PR #118 remains closed and is superseded by the final review presentation pinned to the final evidence head.
 
 The skill fully replaces explain-diff in the native packages. It explains resolved changes for an experienced engineer unfamiliar with the area using intent, aligned before/after behavior where useful, selected annotated source, source-grounded diagrams, existing test/runtime evidence, explicit gaps, and reviewer concerns without a verdict. Visual discovery follows actual Playwright/report/CI configuration, including ignored non-default output and relative attachments. No default product execution, new capture, fixes, PR posting or delivery action.
 
@@ -12,4 +12,6 @@ Examples: [UI PR42 HTML text](evidence/ui/pr-explainer.html.txt), [non-UI govern
 
 Limits: the optional website fixture still hardcodes rc.1 against unchanged rc.29 release metadata; its failed receipt and unchanged-base proof are retained. Site-wide regeneration requires the optional Mermaid CLI absent here; this change alters only the active index links/text, with copied diagrams/skills unchanged. Active plugin installation, merge, release and enforcement were not performed. Full autonomy was requested, but GateReeve kept the formal dial supervised because main is unprotected.
 
-Independent assessment: pending. No human acceptance or merge authority is claimed.
+Independent assessment: [PASS for all seven criteria](evidence/independent-review.md), typed result sha256:d51a64d3b322493fec987de83ba39d3a86e432f55a85f8d54d8c75ce1124634d. The coverage decision accepts the one unchanged legacy site-tuple exclusion. Nonblocking CI naming and pre-merge main-link notes are retained. Additional hosted CI and the current Desktop staging test address the reviewer’s missing Desktop-test evidence. No human acceptance or merge authority is claimed.
+
+Final coverage qualification: the full unmodified portable command completed PASS directly on c42c65b (435 Node passes, two skips, 100 Python passes). A separate reporting helper overflowed its default child-process buffer; the repaired exact artifact command passes, and the independent review accepted this replacement without relabeling the failed aggregate result. The assessor also resolved F2 using actual hosted Desktop-contract results and the current local staging test. See [current assessment](evidence/independent-review.md), [acceptance check](evidence/acceptance-check.txt), and [recorded passage](evidence/acceptance-passage.txt).
