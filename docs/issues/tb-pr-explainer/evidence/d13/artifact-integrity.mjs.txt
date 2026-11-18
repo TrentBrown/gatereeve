@@ -1,0 +1,29 @@
+import {readFileSync,existsSync} from 'node:fs';
+import {createRequire} from 'node:module';
+import {execFileSync} from 'node:child_process';
+import {resolve,dirname} from 'node:path';
+const repo='/Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer';
+const require=createRequire(repo+'/cli/package.json');const {parseHTML}=require('linkedom');
+const dir='/Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/trials/executive-summary';
+const html=readFileSync(dir+'/pr-explainer.html','utf8');const {document}=parseHTML(html);
+const ids=[...document.querySelectorAll('[id]')].map(e=>e.id);if(new Set(ids).size!==ids.length)throw Error('Duplicate diagram/page IDs');
+const refs=[];
+for(const el of document.querySelectorAll('a[href],img[src],script[src],link[href],image[href],use[href]')){
+const v=el.getAttribute('href')||el.getAttribute('src');
+if(v.startsWith('#')){if(v.length>1&&!ids.includes(v.slice(1)))throw Error('Broken fragment '+v);continue;}
+if(el.tagName!=='A'&&!v.startsWith('data:'))throw Error('External reading dependency '+v);
+if(!/^[a-z]+:/i.test(v)&&!existsSync(resolve(dir,decodeURIComponent(v.split('#')[0]))))throw Error('Missing referenced evidence '+v);
+const m=v.match(/^https:\/\/github.com\/TrentBrown\/gatereeve\/blob\/([a-f0-9]{40})\/(.+?)(?:#L(\d+)(?:-L?(\d+))?)?$/);
+if(m){const lines=execFileSync('git',['-C',repo,'show',m[1]+':'+m[2]],{encoding:'utf8',maxBuffer:16*1024*1024}).split('\n').length;if(m[3]&&(+m[3]<1||+(m[4]||m[3])>lines))throw Error('Invalid source line '+v);refs.push(v);}
+}
+let embeddedSvgCount=0;
+for(const img of document.querySelectorAll('img[src^="data:image/svg+xml;base64,"]')){const svg=Buffer.from(img.getAttribute('src').split(',')[1],'base64').toString('utf8');if(/<script|https?:\/\/(?!www.w3.org)/i.test(svg))throw Error('SVG reading dependency');if(!img.getAttribute('alt'))throw Error('Missing diagram label');embeddedSvgCount++;}
+const browser=JSON.parse(readFileSync(dir+'/browser-checks.json','utf8'));
+if(browser.sizes.some(s=>s.width!==s.scroll||s.remoteAssets)||browser.keyboard.some(k=>!k.worked))throw Error('Artifact browser checks failed');
+const expected=['plugin-src/shared/skills/pr-explainer/SKILL.md','plugin-src/shared/skills/pr-explainer/references/artifact.md'];
+const changed=execFileSync('git',['-C',repo,'diff','--name-only','c68e1d0e8204316005dde88b85bf3f64b5f7edf3','HEAD','--','.',':(exclude)docs/issues/tb-pr-explainer/**'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);
+if(changed.some(p=>!expected.includes(p))||changed.length!==2)throw Error('Unexpected application source delta '+changed);
+console.log(JSON.stringify({sourceDelta:changed,checkedSourceReferences:refs.length,svgCount:document.querySelectorAll('svg').length+embeddedSvgCount,uniqueIds:ids.length,browser},null,2));
+console.log('ACTUAL ARTIFACT\n'+html);
+console.log('INDEPENDENT ACTION LOG\n'+readFileSync(dir+'/actions.md','utf8'));
+console.log('RAW PINNED DIFF\n'+execFileSync('git',['-C',repo,'diff','fec5039eaa98b9194173543ee34c92d1be33292e','aa9541fe824da53a82f13b09a5fa566cfc65aa9a'],{encoding:'utf8',maxBuffer:4*1024*1024}));

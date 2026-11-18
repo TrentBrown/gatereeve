@@ -1,0 +1,38 @@
+{
+  "keyboard": [
+    {
+      "name": "The race and repair",
+      "worked": true
+    },
+    {
+      "name": "How the code works",
+      "worked": true
+    },
+    {
+      "name": "What was verified",
+      "worked": true
+    },
+    {
+      "name": "Where to look closely",
+      "worked": true
+    },
+    {
+      "name": "Sources and identity",
+      "worked": true
+    }
+  ],
+  "sizes": [
+    {
+      "width": 1280,
+      "scroll": 1280,
+      "loadedImages": true,
+      "remoteAssets": 0
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "loadedImages": true,
+      "remoteAssets": 0
+    }
+  ]
+}

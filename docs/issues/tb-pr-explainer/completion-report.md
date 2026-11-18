@@ -1,5 +1,15 @@
 # PR Explainer implementation report
 
+## Current D13 refinement
+
+The user-requested opening executive summary and rendered-diagram guidance are implemented in the canonical skill and artifact reference. Mermaid is an optional authoring format throughout; render at generation and embed the rendition (prefer inline SVG), without reader-side Mermaid or CDN. Interactive HTML remains optional where useful, and the core summary stands on its own.
+
+Fresh package/skill checks passed, including 12 composition/native tests. A new independent PR101 forward trial embeds two Mermaid-rendered SVGs, gives a substantive plainspoken opening, preserves 16 revision-bound links and evidence distinctions, and passed parent desktop/phone/keyboard inspections. No product tests or captures were run. See [D13 verification](evidence/d13/verification.md), [parent inspection](evidence/d13/parent-inspection.md), and [independent assessment](evidence/d13/independent-review.md). Actual HTML: /Users/trent.brown/.t3/scratch/2026-11-18-i-believe-that-the-emerging-042cd34c/trials/executive-summary/pr-explainer.html.
+
+Fresh independent assessment PASS for R1-R7, typed result sha256:d4b3b50de62444b0419bb69fa5c8b8d0c333e215ec51d410d9cb64441774b3ca; no new or blocking findings. It accepts the scoped local alternative for the instruction-only delta. No fresh hosted CI was claimed. Historical broader validation below remains evidence of the original delivery. This is review preparation, not human acceptance or merge authority. Mandatory enforcement, capture enhancements, metrics, merge, release and active installation remain excluded.
+
+## Original delivery before D13
+
 Status: ready for human review. GateReeve recorded acceptance-gate passage after all current obligations passed, with no missing obligations. Independent review PASS for all R1-R7; no blocking findings. This is gate readiness, not a human approval or merge authorization. Original preparation PR #118 remains closed and is superseded by the final review presentation pinned to the final evidence head.
 
 The skill fully replaces explain-diff in the native packages. It explains resolved changes for an experienced engineer unfamiliar with the area using intent, aligned before/after behavior where useful, selected annotated source, source-grounded diagrams, existing test/runtime evidence, explicit gaps, and reviewer concerns without a verdict. Visual discovery follows actual Playwright/report/CI configuration, including ignored non-default output and relative attachments. No default product execution, new capture, fixes, PR posting or delivery action.

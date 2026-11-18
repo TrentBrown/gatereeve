@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "read",
+  "data": {
+    "schemaVersion": 1,
+    "kind": "result",
+    "id": "sha256:d4b3b50de62444b0419bb69fa5c8b8d0c333e215ec51d410d9cb64441774b3ca",
+    "data": {
+      "result": {
+        "artifacts": [
+          {
+            "bytes": 1341,
+            "format": "json",
+            "hash": "sha256:9e0b1392aa98585039b85bc7d95a447bfd9f7daf65aec691efc2996ef795bb75"
+          },
+          {
+            "bytes": 18293,
+            "format": "json",
+            "hash": "sha256:6226e99546d2f3eabd6feeb9aa26e9da69e8a8d34474169bdb697fbfe463af77"
+          }
+        ],
+        "contract": "gatereeve/current/7",
+        "coverage": {
+          "complete": true,
+          "interactions": [
+            "SKILL.md:30 and 40 \u00d7 artifact.md:5-7 and 29-31: the executive-summary and Mermaid-rendition guidance is consistent across the entrypoint and its reference. It is consistent with visual-evidence.md (no fabricated captures) and with invocation-contract.md (self-contained reading, no gate).",
+            "D13 trial HTML (receipt 9e3da9af) \u00d7 amended guidance:\n- A labelled 'Executive summary' gives the problem, change, mechanism and scope in plain language.\n- Before/after diagrams were rendered from Mermaid and embedded as data URLs, with captions describing them as conceptual.\n- It separates the existing unchanged test, retained CI output and author-reported claims.\n- The reading guide disclaims any acceptance or merge recommendation.\n- It has 0 script tags and 0 remote assets.",
+            "evidence.js REPORTS \u00d7 excluded()/artifactArea() \u00d7 the current-source.test.js:38-60 regression: the exemption is narrow, and both copies are identical at line 20.",
+            "workflow-inventory.json \u00d7 both doctor REQUIRED_SKILLS lists \u00d7 package composition: the validate and lint receipts on 7239cea report 28 skills and 2 platforms.",
+            "ci/review-artifact-change.mjs is unchanged, so a change touching only pr-explainer.html takes full CI (F1, conservative).",
+            "Target = base, so there is no additional merge interaction."
+          ],
+          "limitations": [],
+          "paths": [
+            "repository/plugin-src/shared/skills/pr-explainer/SKILL.md",
+            "repository/plugin-src/shared/skills/pr-explainer/references/artifact.md",
+            "repository/plugin-src/shared/skills/pr-explainer/references/visual-evidence.md",
+            "repository/plugin-src/shared/skills/pr-explainer/references/invocation-contract.md",
+            "repository/plugin-src/shared/skills/pr-explainer/agents/openai.yaml",
+            "repository/plugin-src/shared/skills/explain-diff/SKILL.md",
+            "repository/plugin-src/contracts/workflow-inventory.json",
+            "repository/plugin-src/shared/resources/protocol/current/evidence.js",
+            "repository/apps/desktop/resources/protocol/current/evidence.js",
+            "repository/apps/desktop/resources/desktop-projection.json",
+            "repository/plugin-src/shared/resources/scripts/workflow_doctor.py",
+            "repository/apps/desktop/resources/scripts/workflow_doctor.py",
+            "repository/cli/test/current-source.test.js",
+            "repository/USER-GUIDE.md",
+            "repository/DEVELOPMENT.md",
+            "repository/apps/desktop/README.md",
+            "repository/workflow-site/index.html",
+            "repository/ci/review-artifact-change.mjs"
+          ]
+        },
+        "coverageDecisions": [],
+        "criteria": [
+          {
+            "evidence": "Replacement and naming:\n- workflow-inventory.json:166-171 lists pr-explainer at shared/skills/pr-explainer, and plugin-src/shared/skills/explain-diff/ is absent at head.\n- invocation-contract.md:29 says 'There is no explain-diff alias'.\n- Both doctor copies list pr-explainer at line 31. USER-GUIDE.md:279 and DEVELOPMENT.md:288 use the new name and pr-explainer.html.\n\nFresh receipts on 7239cea: plugin validate (28 skills, codex and claude), lint and validate-native PASS, and compose/native tests 12/12.\n\nStandalone invocation:\n- SKILL.md:12-18 requires the actual base/head or working-tree snapshot and clarification when scope is unresolved, and says 'Ordinary use needs no GateReeve run'.\n- The D13 trial recorded base fec5039e and head aa9541fe, and confirmed both against PR metadata.\n\nHistorical skills-copy, artifacts and fixtures are unchanged. Reference counts match the prior head.",
+            "id": "R1",
+            "outcome": "PASS"
+          },
+          {
+            "evidence": "Guidance:\n- SKILL.md:30 and artifact.md:5 require a clearly labelled, standalone, plainspoken executive summary covering the problem, change, mechanism and scope, plus any material evidence limit.\n- artifact.md:9-11 requires logical grouping, accounting for non-excerpted changes, and base/head-bound citations.\n\nD13 trial (9e3da9af):\n- The opening 'Executive summary' explains the concurrent-first-writer race and the atomic marker publication in plain language.\n- The sections then follow a logical order: race, mechanism, evidence, reading guide, provenance.\n- 16 revision-bound links were validated against pinned revisions. Excerpts match the raw diff, e.g. store.js L127-136 and L20-36 at aa9541fe.\n- The log discloses the missing PR-specific design/spec (line 113).\n- The earlier UI42 and PR101 trials, validated with 64 references in d51a64d3, are unchanged behavioural context.",
+            "id": "R2",
+            "outcome": "PASS"
+          },
+          {
+            "evidence": "Guidance:\n- artifact.md:7 says to consider 1-2 overview diagrams, with no quota.\n- artifact.md:29 says Mermaid must be rendered and embedded, with no runtime or CDN, unique IDs and accessible captions.\n- artifact.md:31 makes interaction optional, source-grounded and keyboard-operable.\n- artifact.md:35 forbids forced one-sided before/after comparisons. SKILL.md:40 forbids fabricated screenshots and unrequested quizzes.\n\nD13 trial:\n- The before/after figures use the same process-A/B example, rendered by mmdc 12.2.0 and embedded as SVG data URLs.\n- The alt text and captions describe them as source-grounded and conceptual.\n- The no-capture case stays visually explanatory, with the gap disclosed (line 82).\n- There is no quiz or fabricated screen.",
+            "id": "R3",
+            "outcome": "PASS"
+          },
+          {
+            "evidence": "visual-evidence.md:5-13 is unchanged. It follows tests, Playwright and CI configuration, ignored output directories, report attachments resolved against their report, and scoped CI artifact reads. Lines 15-29 distinguish baseline, actual, diff, failure and context-only captures.\n\nThe earlier fixture trial found and embedded the relevant head-helper capture and excluded the unrelated stale image (assessed in d51a64d3); that behaviour is unaffected by this delta.\n\nThe D13 non-UI trial keeps discovery bounded:\n- It lists CI artifacts without downloading unrelated ones (line 108).\n- It runs targeted output-directory checks with no broad scan (line 112).\n- It excludes images from earlier explanations (line 82).",
+            "id": "R4",
+            "outcome": "PASS"
+          },
+          {
+            "evidence": "Guidance:\n- SKILL.md:22-26 separates the evidence categories and forbids product tests, app launch, captures, test/CI changes, fixes, posting and delivery by default.\n- artifact.md:49 allows no PASS/FAIL, score or merge recommendation.\n\nD13 trial:\n- It labels the existing test as 'unchanged in this PR', identifies CI output by synthetic merge 6dd8287 of the head, and labels PR-body stress results as 'Author-reported \u00b7 raw output unavailable here'.\n- The log records no checkout, product mutation, test execution, app launch, PR mutation or publishing (lines 98 and 143).\n- The reading guide says it 'does not assign review acceptance or a merge recommendation'.\n\nNo metrics or enforcement were added.",
+            "id": "R5",
+            "outcome": "PASS"
+          },
+          {
+            "evidence": "Guidance:\n- artifact.md:53-59 requires a single self-contained file, reflow, bounded code areas, keyboard controls and honest reporting of checks.\n- artifact.md:29 adds readable diagram text on phones and a fallback when rendering is unavailable.\n\nD13 receipt:\n- 0 script tags and 0 remote assets. CSS is embedded and fonts are system fonts.\n- The two SVGs are embedded (max-width 360px), and the columns stack below 650px.\n- Widths 1280\u21921280 and 390\u2192390, with images loaded.\n- Keyboard navigation worked on all 5 section links.\n- The child disclosed that it did not run the browser checks; the parent supplied them (line 142).\n- The explicit adjacent output was honoured.\n\nCaveat: the browser results are retained implementer observations.",
+            "id": "R6",
+            "outcome": "PASS"
+          },
+          {
+            "evidence": "Contract and recognition:\n- invocation-contract.md:5-27 is unchanged. It defines identity, intent, evidence and destination inputs; forbids substitution; and creates no gate, publication or authority.\n- Naming recognition is narrow: evidence.js:20 (both copies) adds only 'pr-explainer.html', with the behavioural regression at current-source.test.js:38-60.\n- No PROTOCOL, gate or authority change. DEVELOPMENT.md:289 confirms there is no required gate.\n\nGoverned use: the PR101 governed trial used the caller's exact range and destination (d51a64d3). The D13 trial again pins base fec5039e and head aa9541fe and reports provenance in the page footer.",
+            "id": "R7",
+            "outcome": "PASS"
+          }
+        ],
+        "dimensions": [
+          {
+            "evidence": "Head delta since the prior reviewed head: Markdown only, in plugin-src/shared/skills/pr-explainer/SKILL.md (lines 30 and 40) and references/artifact.md (lines 5-7 and 29-31). Neither contains executable code or adds a dependency.\n\nThe new text is internally consistent:\n- It keeps the no-quota rule, the ban on fabricated screenshots, and the optional quiz.\n- It requires the rendered Mermaid output to be embedded, with unique SVG IDs, accessible captions, a fallback when rendering is unavailable, and keyboard-operable optional interaction.\n- It does not contradict invocation-contract.md or visual-evidence.md.\n\nFresh check of the full feature:\n- evidence.js:19-20 (canonical and Desktop copy) adds only 'pr-explainer.html' to REPORTS. It is exempt only at the record root or as a basename inside artifactArea (lines 36-38).\n- cli/test/current-source.test.js:38-60 keeps ordinary-page.html, pr-explainer.js and settings.json as source and preserves the historical explain-diff.html bytes.\n- workflow-inventory.json:166-171 lists pr-explainer, and plugin-src/shared/skills/explain-diff/ is absent at head.\n- Both workflow_doctor.py copies list 'pr-explainer' at line 31.\n- agents/openai.yaml is well formed.\n\nNo defects found. F1 is a conservative CI classification only.",
+            "name": "code",
+            "outcome": "PASS"
+          },
+          {
+            "evidence": "R1-R7 are each backed by current source plus retained trials (see criteria).\n\nThe amended AC2 and AC3 text in the approved spec is implemented:\n- 'clearly labeled, concise but substantive executive summary' is in SKILL.md:30 and artifact.md:5.\n- 'one or two overview diagrams ... without imposing a quota' is in SKILL.md:30 and artifact.md:7.\n- 'render diagrams during generation and embed their renditions, preferably inline SVG' is in SKILL.md:40 and artifact.md:29.\n- 'controls do not hide the core summary' is in SKILL.md:40 and artifact.md:7 and 31.\n\nDecisions reconcile with source:\n- The D13 human amendment (subject 4db11344) authorizes only an instruction refinement. The plan's D13 revision and scratchpad note 'only the two skill Markdown instructions changed' match the source delta.\n- D-implementation-1 to D-implementation-5 still hold: one entrypoint plus three references, narrow recognition, the real PR42/PR101 trials, and validation qualification.\n\nNo gates, schema, authority, publication or capture policy were added. DEVELOPMENT.md:287-289 says 'the standalone skill does not add a required gate'.",
+            "name": "requirements",
+            "outcome": "PASS"
+          },
+          {
+            "evidence": "Runner validation is an 'alternative' that the implementer proposes; there is no hosted CI. I assessed it independently against the approved scope.\n\nActual receipts on 7239cea7:\n- plugin validate: 28 skills, 2 platforms (12db0e28).\n- plugin lint: 205 files, 28 existing skills (8217895a).\n- validate-native (37cddc30).\n- compose.test.js and native.test.js: 12/12 pass (475b417a).\n- lint_issues and lint_tracker: PASS (6b39e7f1).\n- d13-artifact-integrity.mjs, exit 0 (9e3da9af):\n  - sourceDelta lists exactly SKILL.md and artifact.md.\n  - It finds 16 revision-bound references, 2 embedded SVGs, unique IDs, and 0 remote assets.\n  - It reports 1280\u21921280 and 390\u2192390 scroll widths and keyboard navigation working on all 5 nav targets.\n  - It retains the actual HTML and the raw pinned PR101 diff.\n\nWhy this is sufficient:\n- The delta is instruction-only Markdown with no desktop mirror (no pr-explainer copy exists under apps/).\n- The receipts cover packaging, inventory and native discovery, plus a behavioural trial of exactly the amended R2, R3 and R6 behaviour.\n- The earlier full portable backstop and hosted results on the identical executable tree, assessed in d51a64d3, are historical context only, not fresh runs.\n- Rerunning the full Node and Python suites or hosted plugin-ci for a Markdown-only skill change would add little. Skipping them is consistent with the plan's D13 scoped-verification strategy.\n\nLimits:\n- The browser and keyboard results are implementer-retained observations relayed by an out-of-repository script.\n- The trial child honestly disclosed that it did not perform those checks (log line 142).",
+            "name": "evidence",
+            "outcome": "PASS"
+          },
+          {
+            "evidence": "The change stays within the plan (P1-P4 plus the D13 revision) and the human-approved amendment:\n- The two instruction files are the only change since the prior review.\n- No product runtime, evidence-classifier, generated projection, CI workflow, release metadata, gate or authority changed.\n- Historical records (workflow-site/skills-copy, artifacts, fixtures, the explain-diff gate IDs in visual-fixture.js, workflow-model-1.6.json) are unchanged; their reference counts are identical to the prior head.\n- Target equals base, so there is no merge interaction.\n- Merge, release, active installation and mandatory enforcement remain excluded. The site aside at workflow-site/index.html:1081 describes enforcement as separate future work and does not add it.\n- The trial's mermaid-cli install was confined to a task-owned authoring directory, not the repository or user profiles.",
+            "name": "scope",
+            "outcome": "PASS"
+          },
+          {
+            "evidence": "Open findings from prior review d51a64d3 were re-verified:\n- F1 is present and nonblocking. ci/review-artifact-change.mjs:8 PACKET_ARTIFACT still names explain-diff.html only.\n- F3 is present and nonblocking. workflow-site/index.html has blob/main links to pr-explainer/SKILL.md at lines 1081, 1637, 2013, 2663 and 2788. Line 1081 was also present at the prior head; it is the same class, not new.\n\nF2 stays resolved, because the executable source is unchanged since its closure.\n\nThe fresh full assessment found no blocking defects. There is no new instance of a resolved class: no desktop-mirrored file changed in this delta. reconsiderClosures is empty.",
+            "name": "findings",
+            "outcome": "PASS"
+          }
+        ],
+        "dispositions": [
+          {
+            "evidence": "ci/review-artifact-change.mjs:8 PACKET_ARTIFACT is still '(?:boundary\\.json|code-review\\.md|explain-diff\\.html|judge\\.md|pattern-review\\.md|spec-evaluation\\.md|verification\\.md)', which omits pr-explainer.html. The fallback is the conservative full CI scope. Nonblocking.",
+            "id": "F1",
+            "status": "present"
+          },
+          {
+            "evidence": "workflow-site/index.html lines 1081, 1637, 2013, 2663 and 2788 still link blob/main/plugin-src/shared/skills/pr-explainer/SKILL.md, which resolves only after merge. Nonblocking.",
+            "id": "F3",
+            "status": "present"
+          }
+        ],
+        "featureId": "tb-pr-explainer",
+        "findings": [
+          {
+            "blocking": false,
+            "classId": "ci-scope-conservative-artifact-name",
+            "criterion": "R7",
+            "evidence": "Still present at head 7239cea7: line 8 PACKET_ARTIFACT recognises explain-diff.html but not pr-explainer.html. A PR touching only docs/issues/<f>/pr-N/pr-explainer.html is classified 'full' rather than 'review-artifacts'. The failure mode is extra CI, never lost coverage, and the scratchpad records this as a deliberate conservative choice. Nonblocking follow-up.",
+            "id": "F1",
+            "path": "repository/ci/review-artifact-change.mjs"
+          },
+          {
+            "blocking": false,
+            "classId": "site-link-resolves-after-merge",
+            "criterion": "R1",
+            "evidence": "Still present: lines 1081, 1637, 2013, 2663 and 2788 link https://github.com/TrentBrown/gatereeve/blob/main/plugin-src/shared/skills/pr-explainer/SKILL.md. That file exists on main only after merge; base 67871b00 has only shared/skills/explain-diff. This is acceptable for a site deployed from main, but a branch preview would show dangling links. Nonblocking observation.",
+            "id": "F3",
+            "path": "repository/workflow-site/index.html"
+          }
+        ],
+        "gate": "review",
+        "historyAssessment": null,
+        "input": {
+          "bytes": 2736,
+          "format": "json",
+          "hash": "sha256:aad752226d6c572b5bef683ee1bb7b9c7a5b26f57c14604747805647c05f1e1f"
+        },
+        "kind": "result",
+        "mode": "full",
+        "outcome": "PASS",
+        "prior": null,
+        "priorCandidate": null,
+        "receipt": {
+          "bytes": 736,
+          "format": "json",
+          "hash": "sha256:93d7c0880ae270af8ac907a5de2581b99e036a093dc8cdd08a9576e2b3b695c5"
+        },
+        "runId": "pr-explainer-start-full-20261118",
+        "summary": "Fresh consolidated review of tb-pr-explainer: base 67871b00 to head 7239cea7, target = base. Because historyGaps lists three unavailable verification results, I reassessed the whole feature rather than relying on history. I re-read the full change set: the new pr-explainer skill (SKILL.md, agents/openai.yaml, and three references), removal of the old explain-diff skill, the inventory and doctor updates, the narrow REPORTS addition in both evidence.js copies, the classifier regression, and the active documentation and site updates.\n\nWhat changed since the last review (d51a64d3, head c42c65bd, PASS):\n- Only the D13 instruction change. SKILL.md lines 30 and 40, and artifact.md lines 5-7 and 29-31, now require a labelled, plainspoken executive summary that stands on its own.\n- They allow one or two optional overview diagrams with no quota, and Mermaid as an authoring format that is rendered during generation and embedded, with no runtime or CDN.\n- Interactive HTML is optional, keyboard-operable, and the summary must not depend on operating controls.\n- I confirmed this by direct file comparison with the prior head. The other feature paths match the prior snapshot by identical pr-explainer/explain-diff reference counts across 28 files and unchanged REPORTS, inventory and doctor lines. The receipt's sourceDelta lists the same two files.\n\nI found no blocking defects. F1 (CI artifact-name pattern) and F3 (site links that resolve only after merge) are still present and nonblocking.\n\nCaveats:\n- The implementer says the last accepted delivery was 'c68e1d0', but the last retained review assessed c42c65bd. I relied on my direct file comparison, not on that claim.\n- The D13 desktop, phone and keyboard results are implementer-retained observations relayed by the d13-artifact-integrity.mjs receipt. That script is outside the repository; it is not an independent browser run.\n- The trial artifact has no interactive controls beyond navigation links, so the optional interactive-HTML guidance is assessed from source only.\n- The trial embeds Mermaid SVG as data-URL images rather than the 'preferred' inline SVG. Its action log gives SVG-ID isolation as the reason, which the guidance permits.\n- The trial installed @mermaid-js/mermaid-cli into a task-owned authoring directory to produce the renditions. That is authoring tooling, not an excluded product action. The skill does not mandate it, and it adds no repository dependency.\n- Results from skill-creator quick_validate and the native install smoke remain implementer claims."
+      },
+      "input": {
+        "candidate": {
+          "bytes": 1045489,
+          "format": "json",
+          "hash": "sha256:ecc37050ff9bd9e8f82a04e34c6d05578029de10fe24940d07130859e4d588b9",
+          "preparationId": "d61c7af42bc8a99a5e570e0bf34c6b850d153adce448682716443987bab7b9d5"
+        },
+        "claims": [],
+        "configuration": {
+          "model": "opus",
+          "provider": "claude-code",
+          "reasoningEffort": "high",
+          "timeoutSeconds": 900
+        },
+        "consumed": [
+          {
+            "bytes": 5376,
+            "format": "json",
+            "hash": "sha256:07052674b75e1f2b9e7a7919d15942d3102f1196d06383909bbc462a0d10c313"
+          },
+          {
+            "bytes": 2060,
+            "format": "json",
+            "hash": "sha256:064c9ee7cccfd935ebb3dd298c625ca6a33909493905e5cab9ec44aebec9fd5d"
+          }
+        ],
+        "contract": "gatereeve/current/7",
+        "coverageClaims": [],
+        "environment": {
+          "kind": "pinned-review-inputs"
+        },
+        "gates": [
+          "review"
+        ],
+        "history": [
+          {
+            "bytes": 20602,
+            "format": "json",
+            "hash": "sha256:d51a64d3b322493fec987de83ba39d3a86e432f55a85f8d54d8c75ce1124634d"
+          }
+        ],
+        "historyGaps": [
+          {
+            "gate": "verification",
+            "position": 0,
+            "reason": "Historical evidence is unavailable, corrupt or no longer isolated; fresh proof after this gap is required.",
+            "resultHash": "sha256:c22e68b60ddd48cd8bcb6f9485ef541f096df270ec6f41fc2512cba110e7620c"
+          },
+          {
+            "gate": "verification",
+            "position": 1,
+            "reason": "Historical evidence is unavailable, corrupt or no longer isolated; fresh proof after this gap is required.",
+            "resultHash": "sha256:f08f844cfaa2046d69629b4e61016d9b10f6185d126ceef100a2dbca7ab65f71"
+          },
+          {
+            "gate": "verification",
+            "position": 2,
+            "reason": "Historical evidence is unavailable, corrupt or no longer isolated; fresh proof after this gap is required.",
+            "resultHash": "sha256:8a4d689b43cf2dad95e3c38c71cdec067199f2ae3dbd164ba56aaf8b0eb91a55"
+          }
+        ],
+        "integrations": null,
+        "pattern": [
+          {
+            "alias": "repository",
+            "overrides": [],
+            "rules": [],
+            "sources": [
+              {
+                "reference": {
+                  "bytes": 3,
+                  "hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+                },
+                "root": "/Users/trent.brown/Code/tb/.worktrees/gatereeve-pr-explainer/.pattern-review"
+              }
+            ],
+            "triggers": []
+          }
+        ],
+        "prior": null,
+        "reconsiderClosures": [],
+        "repair": null,
+        "requestedHistory": [
+          {
+            "bytes": 20602,
+            "format": "json",
+            "hash": "sha256:d51a64d3b322493fec987de83ba39d3a86e432f55a85f8d54d8c75ce1124634d"
+          }
+        ],
+        "reviewContract": "sha256:7811e2b02cc0773f40d3e5716ff27155ff46feadde4a52f998b8e01eff61894e",
+        "support": [
+          {
+            "bytes": 4680,
+            "hash": "sha256:ecf48214c8ac2ca1b7223968d658a2c2ce502112763eb14204fe3f50c77e2726",
+            "path": "scratchpad.md"
+          },
+          {
+            "bytes": 2541,
+            "hash": "sha256:160009799fdd91b8e93e89ccd932c1afc3f3f2fd6ef8745f042a43da0ee6f676",
+            "path": "decisions.md"
+          },
+          {
+            "bytes": 9270,
+            "hash": "sha256:a52fdad0d9a3f1d3bb59098265e047ee926b405726e35c796de4b65581839ad1",
+            "path": "plan.md"
+          },
+          {
+            "bytes": 2194,
+            "hash": "sha256:abd815b032cfcec7f0dd3e68b398d633f946457f5854ebe8ad03fa360f745b74",
+            "path": "issues.md"
+          },
+          {
+            "bytes": 4514,
+            "hash": "sha256:0590ae959c7b29ca3a807e6b421bb430e430dfc38ef9409b3a158d702cbbd9e3",
+            "path": "tracker.md"
+          }
+        ],
+        "validUntil": null
+      },
+      "receipt": {
+        "completedAt": "2026-11-18T20:57:45.688Z",
+        "contract": "gatereeve/current/7",
+        "evaluator": {
+          "capabilityProfile": {
+            "id": "high-capability-v1",
+            "minimumReasoning": "high"
+          },
+          "contextId": "65e90f26-0116-4d00-a307-a912c860a4c9",
+          "freshContext": true,
+          "inheritedTurns": 0,
+          "model": "opus",
+          "provider": "claude-code",
+          "reasoningEffort": "high"
+        },
+        "gates": [
+          "review"
+        ],
+        "input": "sha256:aad752226d6c572b5bef683ee1bb7b9c7a5b26f57c14604747805647c05f1e1f",
+        "jobId": "77fd6caedb1a39a28f89e00ad2d95588cd427caaa0f786e4e49f8581124384cd",
+        "kind": "execution",
+        "metrics": {
+          "cost": 1.8867231000000002,
+          "tokens": {
+            "cacheCreation": 116568,
+            "cachedInput": 2382981,
+            "input": 58,
+            "output": 23733
+          }
+        },
+        "role": "independent",
+        "runId": "pr-explainer-start-full-20261118",
+        "startedAt": "2026-11-18T20:52:47.142Z"
+      }
+    }
+  },
+  "error": null,
+  "warnings": []
+}
