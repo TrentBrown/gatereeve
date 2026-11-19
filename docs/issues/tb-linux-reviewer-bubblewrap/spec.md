@@ -1,0 +1,24 @@
+# Spec - tb-linux-reviewer-bubblewrap
+
+## Acceptance Criteria
+
+- **AC1.** The Linux Codex adapter passes `shell_environment_policy.set.PATH="/usr/bin:/bin"` in addition to `shell_environment_policy.inherit="none"`. The declared PATH contains only the fixed system directories and cannot inherit the operator PATH. GateReeve supplies no additional helper selection or fallback flags.
+- **AC2.** Non-Linux Codex and Claude Code receive their existing argument vectors. Linux Codex retains ephemeral startup, read-only mode, denied network policy, ignored user settings and rules, independently scoped scratch space and the existing receipt contract. Canonical and packaged desktop adapter sources match.
+- **AC3.** As devbox on aws-1, run a disposable GateReeve planning fixture twice with the patched adapter. Select system CLI `/usr/local/bin/codex` version 0.169.1 with PATH `/usr/local/bin:/usr/bin:/bin` as observed in the T3 service, then user-local CLI `~/.local/bin/codex` version 0.170.0 with PATH `/srv/devbox/home/devbox/.local/bin:/usr/local/bin:/usr/bin:/bin` as observed in a T3 Codex child. For each run, trace distro `/usr/bin/bwrap`, require an accepted fresh planning receipt, and require a FAIL verdict identifying the deliberately different literals marigold in the frozen design and sunstone in the frozen interview.
+- **AC4.** Run a disposable GateReeve paired boundary review as devbox with user-local Codex 0.170.0 using the patched adapter. Require its Codex leg to record a complete result and a validated receipt bound to the pinned snapshot with read-only/network-denied policy. Trace the distro helper in that leg.
+- **AC5.** In the same pilot, for both CLI versions, verify the same disposable file and loopback HTTP endpoint are writable and reachable outside the sandbox, then observe both attempts denied inside the read-only, network-denied sandbox. Confirm unchanged file content and continued reachability outside. Capture `systemctl --user show -p MainPID --value t3code.service` before and after the pilot from the devbox user manager, and require the same nonzero process ID. Evidence must label the runner as a native T3-dispatched thread or a standalone process that recreates the observed T3 PATH, according to how it ran.
+
+## Rubric
+
+| # | Criterion | Pass | Fail | Evidence |
+|---|---|---|---|---|
+| R1 | AC1 - Deterministic Linux PATH | Linux argv includes inherit-none and the exact fixed PATH /usr/bin:/bin, accepts no parent PATH and adds no other helper or fallback flags. | An argv differs from the specified configuration, uses any other PATH, inherits an environment value, or adds a helper or fallback flag. | Exact argument comparisons for Linux and non-Linux. |
+| R2 | AC2 - Contract and packaging | Non-Linux and Claude argument vectors keep existing behavior, Linux retains all listed sandbox flags and the resulting receipt remains accepted by validateAgentWorkflowReceipt and validateAgentWorkflowStageResult, and the two adapter files are byte-identical. | A previous non-Linux or Claude argument changes, Linux drops any listed guard, either existing receipt validation fails, or the adapter mirror differs. | CLI adapter regression tests, receipt validators and byte comparison. |
+| R3 | AC3 - Planning | For each named launcher PATH, CLI path and version, the trace selects distro bwrap and an accepted fresh receipt records FAIL with both marigold and sunstone cited in the finding evidence. | Either case has a different launcher PATH, binary or version, lacks a matching distro trace or completed fresh receipt, gives any verdict other than FAIL, or omits either literal from the finding. | Captured launcher PATH and version, distro trace, adapter result with digests, verdict and citations. |
+| R4 | AC4 - Paired review | The 0.170.0 Codex member selects distro bwrap and records a completed PASS or FAIL result with a receipt accepted by the protocol and bound to the pinned snapshot and read-only/network-denied policy. | The distro trace or completed result is absent, or the member receipt fails validation or binds another snapshot or policy. | Paired review event, member receipt and trace. |
+| R5 | AC5 - Isolation and continuity | For both CLI versions the outside file write and loopback request succeed, the corresponding inside attempts are denied, the file bytes and subsequent endpoint check match controls, the before and after T3 service MainPIDs are equal and nonzero, and the launch route is labeled. | Any write, connection, integrity, MainPID or launch-route check is absent or differs from the specified control. | Controlled runtime output and systemd service observations. |
+
+
+## Changes
+
+- Defined the exact CLI matrix, frozen-input evidence, paired receipt and service continuity check after independent review.
