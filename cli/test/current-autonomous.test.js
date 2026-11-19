@@ -205,9 +205,17 @@ for (const missing of ['code', 'requirements', 'findings', 'criterion']) test(`a
   await assert.rejects(f.request('review.adjudicate', { candidate: state.candidate.hash, pair: pair.identity, reason: 'Do not accept incomplete conclusions.', evidence: pair.members.map(member => member.ref),
     dispositions: [{ findingId: pair.members[1].result.findings[0].id, outcome: 'accepted-risk', reason: 'Incomplete is not residual risk.', evidence: 'Missing conclusion.', residualRisk: 'Unknown.' }] }, 'forbidden'), /complete responsibility and criterion/);
 });
-test('a later failed report cannot omit an older open finding from autonomous reconciliation', async t => {
-  const f = await prepared(t); await grant(f); await f.request('candidate.ready', {}, 'ready');
-  pairedAdapters(f, { blocking: ['claude-code'] }); await f.request('review.execute', {}, 'initial');
+for (const path of ['app/app.js', 'planning/plan.md', 'requirements/spec.md', 'requirements/brief.md']) test(`a later FAIL cannot erase an open ${path} finding`, async t => {
+  const f = await prepared(t, path === 'planning/plan.md' || path === 'requirements/spec.md' ? 'full' : 'light');
+  await grant(f); await f.request('candidate.ready', {}, 'ready');
+  pairedAdapters(f, { blocking: ['claude-code'] });
+  const initialAdapter = f.core.runtime.evaluators['claude-code'], initialRun = initialAdapter.runStage.bind(initialAdapter);
+  initialAdapter.runStage = async request => {
+    const result = await initialRun(request);
+    for (const verdict of result.output.verdicts) verdict.findings[0].path = path;
+    result.receipt.digests.output = sha256Digest(result.output); return result;
+  };
+  await f.request('review.execute', {}, 'initial');
   let state = (await f.core.state()).state;
   const first = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
   const originalId = first.members[1].result.findings[0].id;
@@ -223,6 +231,18 @@ test('a later failed report cannot omit an older open finding from autonomous re
   assert.ok(pair.members[1].unreconciledFindings.includes(originalId));
   await assert.rejects(f.request('review.adjudicate', { candidate: state.candidate.hash, pair: pair.identity, reason: 'Cannot silently drop the original finding.', evidence: pair.members.map(member => member.ref),
     dispositions: [{ findingId: pair.members[1].result.findings[0].id, outcome: 'accepted-risk', reason: 'Only the new issue was addressed.', evidence: 'Original issue has no disposition.', residualRisk: 'Unreconciled original issue.' }] }, 'forbidden'), /Unreconciled historical/);
+  const latestId = pair.members[1].result.findings[0].id;
+  pairedAdapters(f);
+  const finalAdapter = f.core.runtime.evaluators['claude-code'], finalRun = finalAdapter.runStage.bind(finalAdapter);
+  finalAdapter.runStage = async request => {
+    const result = await finalRun(request);
+    for (const verdict of result.output.verdicts) verdict.dispositions = [{ id: latestId, status: 'resolved', evidence: 'Only the newest issue was inspected.' }];
+    result.receipt.digests.output = sha256Digest(result.output); return result;
+  };
+  const attempted = await f.request('gate.execute', { gates: ['review'], configuration: { provider: 'claude-code', model: 'fixture', reviewerSelection: state.reviewerSelection.event, reviewRevision: 3 } }, 'cannot-clear-latest-only');
+  const verdict = await f.core.store.json(attempted.event.payload.results[0]);
+  assert.equal(verdict.outcome, 'UNAVAILABLE', 'A PASS clearing only F2 must be rejected while F1 stays open');
+  assert.match(verdict.summary, /unresolved|disposition|blocking/i);
 });
 test('follow-up peers may both retain one original finding without duplicate-disposition deadlock', async t => {
   const f = await prepared(t); await grant(f); await f.request('candidate.ready', {}, 'ready');

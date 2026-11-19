@@ -840,8 +840,10 @@ independently assesses code, requirements, evidence, scope and findings against
 the same pinned source and applicable Verification. Light uses the brief; full
 uses selected approved criteria for a slice and every criterion for a feature.
 Initial assessments run concurrently in isolated read-only views without the
-peer's initial output. Recovery after a provider failure need not overlap an
-already completed peer. Retain both results, including failed/unavailable ones.
+peer's initial output. An interrupted round can recover its delayed peer against
+the frozen baseline without rerunning the completed peer. A completed round with
+an unavailable peer needs a new blind round to establish independence. Retain
+both results, including failed/unavailable ones.
 
 At the first boundary, the agent discovers available native providers/models and
 reasoning options and records its decision with `review.select`. Prefer capable
@@ -908,6 +910,13 @@ Every responsibility and selected criterion must reach a complete PASS or FAIL
 conclusion before adjudication; UNAVAILABLE conclusions remain incomplete even
 inside an overall FAIL. Open historical findings need explicit reconciliation,
 and delta coverage must include changed paths and interactions.
+Open findings on requirements and planning documents persist across later
+negative reports just as repository findings do. If original output is lost,
+surviving findings may enter fresh review as historical context with retained
+repository, criterion, source and reviewer scope. This context is ordered at its
+original journal position and never substitutes for missing execution proof.
+Fresh review must independently reconcile it; qualification does not require a
+nonexistent context input or reconstruct the missing output.
 Missing or invalid assessments, uncovered required scope, missing verification,
 rejected coverage replacements, evidence-integrity failure and unknown mandate
 compliance are not adjudicable. A completed negative scope/mandate opinion may

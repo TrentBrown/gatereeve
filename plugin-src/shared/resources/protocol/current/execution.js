@@ -19,7 +19,7 @@ import { localPath } from './store.js';
 import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean, briefBased } from './evidence.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter, promptCharacters, MAX_PROMPT_CHARACTERS_LIMIT } from '../local-agent-adapters.js';
 import { fitHistory, writeHistoryIndex, HISTORY_PRIORITY } from './review-history.js';
-import { findingObligations } from './review-findings.js';
+import { findingObligations, reviewScope } from './review-findings.js';
 import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
 
@@ -471,7 +471,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     }
     for (const finding of report.findings ?? []) if (finding.blocking &&
       (candidate.criteria.includes(finding.criterion) || finding.criterion === `gate:${report.gate}`) &&
-      candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`))) {
+      (candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`))
+        || (brief ? ['requirements/brief.md'] : PLANNING_PATHS).includes(finding.path))) {
       findingStates.set(`${report.gate}:${finding.id}`, { id: finding.id, gate: report.gate, ref, open: true, closure: null });
     }
     for (const disposition of report.dispositions ?? []) {
@@ -527,7 +528,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     if (missingHistory.some(item => item.resultHash === ref.hash)) {
       // Preserve available findings as context only. Missing source/artifacts
       // cannot become a dependency of fresh proof or be silently reconstructed.
-      const context = { kind: 'historical-context', originalResultHash: ref.hash, evidenceUnavailable: true };
+      const context = { kind: 'historical-context', originalResultHash: ref.hash, evidenceUnavailable: true,
+        scope: reviewScope(historic, (await core.store.json(report.input)).configuration) };
       for (const key of ['gate', 'outcome', 'summary', 'findings', 'dispositions', 'coverage', 'criteria']) if (report[key] !== undefined) context[key] = report[key];
       history.push({ reference: await core.store.putJson(context), reviewerResult: context });
     } else history.push({ reference: ref, reviewerResult: report });

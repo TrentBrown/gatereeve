@@ -1,18 +1,38 @@
 import { identity, requireThat } from './contracts.js';
+import { contentIdentity } from './evidence.js';
+
+// Recovery context is finding evidence, never replacement execution proof.
+// Copy scope facts while the original inputs can still be read, so later
+// qualification need not make unavailable artifacts dependencies again.
+export function reviewScope(candidate, configuration) {
+  return { repositories: candidate.repositories.map(({ alias, identity }) => ({ alias, identity })),
+    criteria: candidate.criteria, contentIdentity: contentIdentity(candidate),
+    provider: configuration.provider, model: configuration.model,
+    reviewerSelection: configuration.reviewerSelection ?? null };
+}
+
+export async function retainedReviewScope(core, report) {
+  if (report.kind === 'historical-context') return report.scope ?? null;
+  const input = await core.store.json(report.input);
+  return reviewScope(await core.store.json(input.candidate), input.configuration);
+}
 
 export async function findingObligations(core, state, candidate, inputs, result) {
   const known = new Map(), provided = new Set();
   const withheld = state.reviewRounds.find(round => round.event === inputs.reviewRound)?.withheld ?? [];
-  const history = [...new Map([...withheld, ...(inputs.history ?? [])].map(ref => [ref.hash, ref])).values()]
-    .sort((a, b) => state.results.findIndex(ref => ref.hash === a.hash) - state.results.findIndex(ref => ref.hash === b.hash));
-  for (const reference of history) {
-    const report = await core.store.json(reference);
+  const history = await Promise.all([...new Map([...withheld, ...(inputs.history ?? [])].map(ref => [ref.hash, ref])).values()]
+    .map(async reference => ({ reference, report: await core.store.json(reference) })));
+  const position = ({ reference, report }) => state.results.findIndex(ref => ref.hash === (report.originalResultHash ?? reference.hash));
+  history.sort((a, b) => position(a) - position(b));
+  for (const { reference, report } of history) {
     if (report.gate !== 'review') continue;
     if ((inputs.history ?? []).some(ref => ref.hash === reference.hash)) {
       for (const row of [...(report.findings ?? []), ...(report.dispositions ?? [])]) provided.add(row.id);
     }
-    const input = await core.store.json(report.input), historic = await core.store.json(input.candidate);
-    if (!historic.repositories.some(repo => candidate.repositories.some(selected => identity(repo.identity) === identity(selected.identity)))) continue;
+    const scope = await retainedReviewScope(core, report);
+    // Older context has already been scoped by history preparation. Its
+    // available finding facts can remain obligations, but cannot prove PASS.
+    if (scope && !scope.repositories.some(repo => candidate.repositories.some(selected => identity(repo.identity) === identity(selected.identity)))) continue;
     for (const finding of report.findings ?? []) if ((candidate.criteria.includes(finding.criterion) || finding.criterion === 'gate:review')
       && (candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`)) || /^(requirements|planning)\//u.test(finding.path))) {
       known.set(finding.id, { finding, open: finding.blocking });

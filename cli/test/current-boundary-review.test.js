@@ -208,6 +208,55 @@ test('lost initial-round context blocks acceptance and fresh independent proof c
   const check = await f.request('milestone.check', { name: 'acceptance' });
   assert.equal(check.allowed, true, check.missing.join('; '));
 });
+for (const beforeInitial of [false, true]) test(`lost review output retains qualified finding context (${beforeInitial ? 'older source before initial pair' : 'follow-up after initial pair'})`, async t => {
+  const f = await prepared(t); pairedAdapters(f);
+  if (!beforeInitial) await f.request('review.execute', {}, 'initial');
+  pairedAdapters(f, { blocking: ['codex'] });
+  const selected = (await f.core.state()).state.reviewerSelection;
+  const original = await f.request('gate.execute', { gates: ['review'], configuration: { provider: 'codex', model: 'fixture',
+    ...(beforeInitial ? {} : { reviewerSelection: selected.event }), reviewRevision: 'original-failure' } }, 'original-failure');
+  const failed = await f.core.store.json(original.event.payload.results[0]), findingId = failed.findings[0].id;
+  const lost = failed.artifacts[1];
+  await rm(join(f.home, '.gatereeve-current/objects', lost.hash.slice(7)));
+  if (beforeInitial) {
+    const head = await branchWith(f, 'recovered', 'export const answer = 41; // Current source\n');
+    await candidate(f, 'SLICE', head, 'current-source');
+    await f.request('gate.execute', { gates: ['verification'], configuration: {
+      validation: { kind: 'alternative', reason: 'Actual current-source fixture check', scope: 'Constant export' },
+      checks: [{ repository: 'app', command: process.execPath, args: ['--input-type=module', '-e', "import { answer } from './app.js'; if(answer !== 41) process.exit(1)"], purpose: 'Verify current export' }],
+    } }, 'current-verification');
+  }
+  pairedAdapters(f, { present: [findingId] });
+  await f.request('review.execute', {}, 'fresh-present');
+  let state = (await f.core.state()).state;
+  let pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.equal(pair.initialEstablished, true);
+  assert.equal(pair.outcome, 'FAIL', 'Fresh retained dissent must qualify without a missing-input crash');
+  assert.ok(pair.members.every(member => member.materialFindings.some(row => row.id === findingId)));
+  for (const member of pair.members) {
+    const input = await f.core.store.json(member.result.input);
+    const reports = await Promise.all(input.history.map(ref => f.core.store.json(ref)));
+    const context = reports.find(row => row.kind === 'historical-context');
+    assert.equal(context.originalResultHash, original.event.payload.results[0].hash);
+    assert.equal(context.input, undefined, 'Recovery context must not require missing original execution proof');
+    assert.equal(context.scope.provider, 'codex');
+    assert.equal(context.scope.repositories[0].alias, 'app');
+  }
+  pairedAdapters(f);
+  for (const adapter of Object.values(f.core.runtime.evaluators)) {
+    const run = adapter.runStage.bind(adapter);
+    adapter.runStage = async request => {
+      const result = await run(request);
+      for (const verdict of result.output.verdicts) verdict.dispositions = [{ id: findingId, status: 'resolved', evidence: 'Fresh current-source inspection resolves the retained finding.' }];
+      result.receipt.digests.output = sha256Digest(result.output); return result;
+    };
+  }
+  await f.request('review.execute', {}, 'fresh-resolution');
+  state = (await f.core.state()).state;
+  pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.equal(pair.outcome, 'PASS');
+  await assert.rejects(f.core.store.get(lost), /ENOENT/, 'Fresh proof must not reconstruct missing original output');
+});
 test('local finding IDs retain distinct reviewer provenance', async t => {
   const f = await prepared(t);
   pairedAdapters(f, { blocking: ['codex', 'claude-code'] });

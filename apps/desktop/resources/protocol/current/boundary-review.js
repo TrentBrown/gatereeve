@@ -2,15 +2,15 @@ import { identity, requireThat } from './contracts.js';
 import { reviewerSelection, modelProvider } from './reviewer-selection.js';
 import { executeGates, changedPaths } from './execution.js';
 import { contentIdentity } from './evidence.js';
-import { findingObligations } from './review-findings.js';
+import { findingObligations, retainedReviewScope } from './review-findings.js';
 
 async function initialPeerReport(core, ref, selected, candidate) {
   const report = await core.store.json(ref);
   if (report.gate !== 'review') return false;
-  const input = await core.store.json(report.input);
-  if (input.configuration.reviewerSelection === selected.event) return true;
-  return selected.selection.reviewers.some(row => row.provider === input.configuration.provider && row.model === input.configuration.model)
-    && contentIdentity(await core.store.json(input.candidate)) === contentIdentity(candidate);
+  const scope = await retainedReviewScope(core, report);
+  if (!scope || scope.reviewerSelection === selected.event) return true;
+  return selected.selection.reviewers.some(row => row.provider === scope.provider && row.model === scope.model)
+    && scope.contentIdentity === contentIdentity(candidate);
 }
 
 async function initialRound(core, state, selected, memo) {
