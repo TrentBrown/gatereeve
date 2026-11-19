@@ -53,3 +53,12 @@ Keep existing explicitly scoped human exception authority distinct from unattend
 - **Triggered by:** Actual Sol 6.1 high review sha256:a2d69a4f171d91c905eac469fb3574f365e54f8b9f00b68e5864ba51b352ac53 found REV-001 through REV-004.
 
 Require a recorded coordinated initial round before targeted individual perspectives can establish acceptance. Retain its pre-round baseline for interrupted-operation recovery, preserving both initial independence and original completed jobs; include original receipts/baseline in packet closure. A completed negative review is adjudicable only when every required dimension/criterion is assessed, delta coverage is complete and historical open findings have explicit current reconciliation. Keep incomplete native FAIL visible while refusing to convert it into eligible residual risk. Native SessionStart must report the actual autonomous mode and mandate-bound guidance. These repairs enforce the approved AC rather than extending the human mandate. The first actual Opus attempt returned malformed structured output and remains UNAVAILABLE; it supplied no usable assessment.
+
+## D7 - Blind initial history without losing withheld findings
+
+- **Confidence:** HIGH
+- **Triggered by:** Actual qualified Opus 5.5 high FAIL sha256:56595849b304794b8c268be89ac98dca8f13be0e4f478c9d6a19bdaca57734cb, finding REV-005.
+
+Until coordinated independence is established, remove same-selection reports and same-source reports from the chosen models from the initial input history. Validate this at qualification as well as preparation. Preserve withheld material findings as unresolved obligations outside the blind context; a later follow-up must actually reconcile them. Refuse invented disposition IDs not present in the supplied history, explicit claims or current findings, so a guessed closure cannot launder an unseen issue into later history. An unavailable peer may recover in a fresh blind round; completed findings cannot silently vanish. This strengthens the approved AC3/AC4 boundary without changing the mandate.
+
+The Opus follow-up successfully parsed a complete fenced JSON response using the existing adapter; no parser or provider ABI change is needed. An agent diagnostic wrapper separately failed before retaining a Sol result. That host attempt remains unknown; inspection found no active child. Future proof must be fresh after it rather than manufacturing a missing result.

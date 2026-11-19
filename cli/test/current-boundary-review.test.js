@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { boundaryReviews } from '../../plugin-src/shared/resources/protocol/current/boundary-review.js';
+import { sha256Digest } from '../../plugin-src/shared/resources/protocol/agent-workflow.js';
 
 import { selection, prepared, pairedAdapters } from './helpers/paired-review-fixture.js';
 import { branchWith, candidate } from './helpers/lightweight-fixture.js';
@@ -86,18 +87,77 @@ test('a single historical assessment never satisfies the paired boundary obligat
   assert.equal(review.satisfied, false);
   assert.match(review.reason, /anthropic/);
 });
-test('serial individual assessments cannot establish the coordinated initial round', async t => {
+for (const tagged of [true, false]) test(`serial individual assessments cannot seed initial history (${tagged ? 'tagged' : 'unmarked'})`, async t => {
   const f = await prepared(t); pairedAdapters(f);
   const selected = (await f.core.state()).state.reviewerSelection;
   for (const provider of ['codex', 'claude-code']) await f.request('gate.execute', { gates: ['review'],
-    configuration: { provider, model: 'fixture', reviewerSelection: selected.event } }, `serial-${provider}`);
+    configuration: { provider, model: 'fixture', ...(tagged ? { reviewerSelection: selected.event } : {}) } }, `serial-${provider}`);
   const review = (await f.request('milestone.check', { name: 'acceptance' })).outcomes.find(row => row.id === 'review');
   assert.equal(review.satisfied, false);
-  assert.match(review.reason, /coordinated independent initial/);
+  assert.match(review.reason, /coordinated independent initial|Missing current boundary review/);
   const launches = pairedAdapters(f);
+  const histories = [];
+  for (const adapter of Object.values(f.core.runtime.evaluators)) {
+    const run = adapter.runStage.bind(adapter);
+    adapter.runStage = async request => { histories.push(request.input.history); return run(request); };
+  }
   await f.request('review.execute', {}, 'actual-initial-round');
   assert.equal(launches(), 2, 'Serial reports must not be reused as the independent initial pair');
+  assert.deepEqual(histories.map(rows => rows.length), [0, 0], 'Serial seed opinions must not leak into the initial pair');
   assert.equal((await f.request('milestone.check', { name: 'acceptance' })).outcomes.find(row => row.id === 'review').satisfied, true);
+});
+test('an unavailable initial peer can recover without either new context seeing the earlier peer report', async t => {
+  const f = await prepared(t); pairedAdapters(f, { unavailable: 'claude-code' });
+  await f.request('review.execute', {}, 'partial-initial');
+  pairedAdapters(f);
+  const histories = [];
+  for (const adapter of Object.values(f.core.runtime.evaluators)) {
+    const run = adapter.runStage.bind(adapter);
+    adapter.runStage = async request => { histories.push(request.input.history); return run(request); };
+  }
+  await f.request('review.execute', {}, 'recover-initial');
+  const { state } = await f.core.state(), pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.equal(pair.outcome, 'PASS');
+  assert.deepEqual(histories.map(rows => rows.length), [0, 0]);
+});
+test('withholding initial peer output cannot erase a known blocking finding', async t => {
+  const f = await prepared(t); pairedAdapters(f, { blocking: ['codex'] });
+  const selected = (await f.core.state()).state.reviewerSelection;
+  const first = await f.request('gate.execute', { gates: ['review'], configuration: { provider: 'codex', model: 'fixture', reviewerSelection: selected.event } }, 'seed');
+  const findingId = (await f.core.store.json(first.event.payload.results[0])).findings[0].id;
+  pairedAdapters(f);
+  for (const adapter of Object.values(f.core.runtime.evaluators)) {
+    const run = adapter.runStage.bind(adapter);
+    adapter.runStage = async request => {
+      const result = await run(request);
+      for (const verdict of result.output.verdicts) verdict.dispositions = [{ id: findingId, status: 'unsupported', evidence: 'Guessed closure without access to the original claim.' }];
+      result.receipt.digests.output = sha256Digest(result.output); return result;
+    };
+  }
+  await f.request('review.execute', {}, 'guessed-initial');
+  let state = (await f.core.state()).state;
+  let pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.ok(pair.members.every(member => member.result.outcome === 'UNAVAILABLE'), 'An invented closure of a hidden finding is invalid output');
+  pairedAdapters(f);
+  await f.request('review.execute', {}, 'blind-initial');
+  state = (await f.core.state()).state;
+  pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.equal(pair.initialEstablished, true);
+  assert.equal(pair.outcome, 'UNAVAILABLE', 'Independent PASS cannot silently close the withheld issue');
+  assert.ok(pair.members.every(member => member.unreconciledFindings.includes(findingId)));
+  for (const adapter of Object.values(f.core.runtime.evaluators)) {
+    const run = adapter.runStage.bind(adapter);
+    adapter.runStage = async request => {
+      const result = await run(request);
+      for (const verdict of result.output.verdicts) verdict.dispositions = [{ id: findingId, status: 'unsupported', evidence: 'Independent follow-up checked and rejected the earlier objection against actual source.' }];
+      result.receipt.digests.output = sha256Digest(result.output); return result;
+    };
+  }
+  await f.request('review.execute', {}, 'reconcile-after-initial');
+  state = (await f.core.state()).state;
+  pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.equal(pair.outcome, 'PASS');
+  assert.ok(pair.members.every(member => member.result.dispositions.some(row => row.id === findingId)));
 });
 test('an interrupted initial round retains its baseline and completed peer on retry', async t => {
   const f = await prepared(t), launches = pairedAdapters(f, { blocking: ['codex'] });
@@ -168,7 +228,7 @@ test('opposed reviews remain visible without making peer approval override the f
   assert.equal(pair.outcome, 'FAIL');
 });
 test('each provider supplies its own delta after source changes and cannot borrow the peer prior', async t => {
-  const f = await prepared(t); pairedAdapters(f); await f.request('review.execute', {}, 'original');
+  const f = await prepared(t); const launches = pairedAdapters(f); await f.request('review.execute', {}, 'original');
   const before = (await f.core.state()).state;
   const prior = await boundaryReviews(f.core, before, await f.core.store.json(before.candidate));
   const head = await branchWith(f, 'changed', { 'app.js': 'export const answer = 42;\n' });
@@ -179,10 +239,14 @@ test('each provider supplies its own delta after source changes and cannot borro
   } }, 'changed-verification');
   await assert.rejects(f.request('gate.execute', { gates: ['review'], prior: prior.members[1].ref,
     configuration: { provider: 'codex', model: 'fixture', reviewerSelection: before.reviewerSelection.event } }, 'wrong-prior'), /own provider perspective/);
-  await f.request('review.execute', { prior: Object.fromEntries(prior.members.map(member => [member.reviewer.provider, member.ref])) }, 'deltas');
+  const targeted = await f.request('gate.execute', { gates: ['review'], prior: prior.members[0].ref,
+    configuration: { provider: 'codex', model: 'fixture', reasoningEffort: 'high', reviewerSelection: before.reviewerSelection.event } }, 'targeted-delta');
+  await f.request('review.execute', { prior: { 'claude-code': prior.members[1].ref } }, 'deltas');
+  assert.equal(launches(), 4, 'The unchanged targeted perspective is reused while the peer supplies its own delta');
   const after = (await f.core.state()).state;
   const pair = await boundaryReviews(f.core, after, await f.core.store.json(after.candidate));
   assert.equal(pair.outcome, 'PASS');
+  assert.equal(pair.members[0].ref.hash, targeted.event.payload.results[0].hash);
   assert.ok(pair.members.every(member => member.result.mode === 'delta'));
   assert.deepEqual(pair.members.map(member => member.result.prior.hash), prior.members.map(member => member.ref.hash));
 });

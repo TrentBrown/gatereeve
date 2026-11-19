@@ -19,6 +19,7 @@ import { localPath } from './store.js';
 import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean, briefBased } from './evidence.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter, promptCharacters, MAX_PROMPT_CHARACTERS_LIMIT } from '../local-agent-adapters.js';
 import { fitHistory, writeHistoryIndex, HISTORY_PRIORITY } from './review-history.js';
+import { findingObligations } from './review-findings.js';
 import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
 
@@ -330,6 +331,11 @@ export function validateVerdict(verdict, ids, candidate, changes, history, claim
       if (['resolved', 'unsupported'].includes(item.status)) prior.get(item.id).open = false;
     }
   }
+  if (verdict.gate === 'review') {
+    const disclosed = new Set([...prior.keys(), ...verdict.findings.map(row => row.id), ...claims.map(row => row.findingId),
+      ...history.filter(entry => entry.reviewerResult.gate === 'review').flatMap(entry => (entry.reviewerResult.dispositions ?? []).map(row => row.id))]);
+    requireThat(verdict.dispositions.every(row => disclosed.has(row.id)), 'A review disposition must name a finding disclosed in supplied history, claims or current findings');
+  }
   if (verdict.outcome === 'PASS') {
     requireThat(!verdict.dispositions.some(item => item.status === 'present' && prior.get(item.id)?.blocking), 'PASS contradicts a present blocking finding');
     const required = new Set([...prior.values()].filter(item => item.open).map(item => item.id));
@@ -587,8 +593,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       if (result.gate === 'review' && (previous.configuration.provider !== configuration.provider
         || previous.configuration.model !== configuration.model
         || previous.configuration.reviewerSelection !== configuration.reviewerSelection)) continue;
-      if (result.gate === 'review' && reviewBaseline && (!previous.reviewRound
-        || !reviewBaseline.initialEstablished && previous.reviewRound !== reviewBaseline.round)) continue;
+      if (result.gate === 'review' && reviewBaseline && !reviewBaseline.initialEstablished
+        && previous.reviewRound !== reviewBaseline.round) continue;
       // Only the latest verdict may be reused. Its own qualified closures change
       // derived history, but are not new review inputs. A later result always wins.
       examined.add(result.gate);
@@ -596,6 +602,9 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
         || previous.reviewContract !== value.reviewContract || identity(previous.claims) !== identity(value.claims)
         || identity(previous.requestedHistory ?? []) !== identity(value.requestedHistory) || identity(previous.historyGaps ?? []) !== identity(missingHistory)) { await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'inputs-changed'}); continue; }
       try {
+        if (result.gate === 'review' && (await findingObligations(core, state, candidate, previous, result)).unreconciledFindings.length) {
+          await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'findings-not-reconciled'}); continue;
+        }
         const equivalent = async refs => Promise.all(refs.map(ref => core.evidenceIdentity(ref, candidate, state, applicabilityMemo)));
         if (identity(await equivalent(previous.consumed ?? [])) !== identity(await equivalent(consumed))) { await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'consumed-proof-changed'}); continue; }
         const applicable = await core.currentResult(ref, candidate, state, new Set(), applicabilityMemo);

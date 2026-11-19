@@ -858,7 +858,14 @@ are unchanged. No model-selection configuration is added.
 `review.execute` coordinates native assessments and `boundaryReviews` qualifies
 the latest applicable result independently for each selected perspective. A
 coordinated initial round must establish independence for the selection before
-individual assessments can qualify as follow-ups. `REVIEW_ROUND_STARTED` retains
+individual assessments can qualify as follow-ups. Until then, withhold earlier
+reports from this selection and same-source reports from the selected models,
+including unmarked serial seed reviews. Explicit peer history, peer-finding
+claims and delta priors cannot bypass the initial isolation. Withheld material
+findings remain obligations: after the blind initial pass they require actual
+follow-up reconciliation, rather than disappearing from a clean report. Unknown
+finding IDs cannot acquire a closure without being disclosed to the reviewer.
+`REVIEW_ROUND_STARTED` retains
 the pre-round state; replay uses that history baseline while reconnecting to
 current job records, so an interrupted initial peer cannot inherit the first
 answer or relaunch a completed assessment. The packet retains the initial

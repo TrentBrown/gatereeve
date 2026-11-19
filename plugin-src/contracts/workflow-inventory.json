@@ -255,6 +255,7 @@
       "current/autonomous.js",
       "current/boundary-review.js",
       "current/reviewer-selection.js",
+      "current/review-findings.js",
       "current/core.js",
       "current/coverage.js",
       "current/delegation.js",

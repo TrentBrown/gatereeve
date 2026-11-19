@@ -1,6 +1,17 @@
 import { identity, requireThat } from './contracts.js';
 import { reviewerSelection, modelProvider } from './reviewer-selection.js';
 import { executeGates, changedPaths } from './execution.js';
+import { contentIdentity } from './evidence.js';
+import { findingObligations } from './review-findings.js';
+
+async function initialPeerReport(core, ref, selected, candidate) {
+  const report = await core.store.json(ref);
+  if (report.gate !== 'review') return false;
+  const input = await core.store.json(report.input);
+  if (input.configuration.reviewerSelection === selected.event) return true;
+  return selected.selection.reviewers.some(row => row.provider === input.configuration.provider && row.model === input.configuration.model)
+    && contentIdentity(await core.store.json(input.candidate)) === contentIdentity(candidate);
+}
 
 async function initialRound(core, state, selected, memo) {
   const key = `initial-round:${state.runId}:${state.eventCount}:${selected.event}`;
@@ -25,6 +36,10 @@ async function initialRound(core, state, selected, memo) {
             || receipt.evaluator?.freshContext !== true || receipt.evaluator.inheritedTurns !== 0
             || state.implementers.includes(receipt.evaluator.contextId)
             || modelProvider(receipt.evaluator.provider) !== reviewer.modelProvider) break;
+          const candidate = await core.store.json(input.candidate);
+          let exposed = false;
+          for (const previous of input.history ?? []) if (await initialPeerReport(core, previous, selected, candidate)) { exposed = true; break; }
+          if (exposed) break;
           members.push({ input, receipt, ref });
         } catch { break; }
       }
@@ -41,28 +56,6 @@ async function initialRound(core, state, selected, memo) {
   return memo.get(key);
 }
 
-async function findingObligations(core, inputs, result) {
-  const known = new Map();
-  for (const reference of inputs.history ?? []) {
-    const report = await core.store.json(reference);
-    if (report.gate !== 'review') continue;
-    for (const finding of report.findings ?? []) known.set(finding.id, { finding, open: finding.blocking });
-    for (const disposition of report.dispositions ?? []) if (known.has(disposition.id)) {
-      if (['resolved', 'unsupported'].includes(disposition.status)) known.get(disposition.id).open = false;
-      if (disposition.status === 'present') known.get(disposition.id).open = known.get(disposition.id).finding.blocking;
-    }
-  }
-  const unreconciled = [...known.values()].filter(row => row.open && !result.findings?.some(finding => finding.id === row.finding.id && finding.blocking)
-    && !result.dispositions?.some(disposition => disposition.id === row.finding.id
-    && ['resolved', 'unsupported', 'present'].includes(disposition.status))).map(row => row.finding.id);
-  const material = new Map((result.findings ?? []).filter(finding => finding.blocking).map(finding => [finding.id, finding]));
-  for (const disposition of result.dispositions ?? []) if (disposition.status === 'present' && !material.has(disposition.id)) {
-    const original = known.get(disposition.id)?.finding;
-    requireThat(original, 'A present finding needs retained identity in the supplied reviewer history');
-    if (original.blocking) material.set(disposition.id, { ...original, evidence: disposition.evidence });
-  }
-  return { materialFindings: [...material.values()], unreconciledFindings: unreconciled };
-}
 
 export async function selectReviewers(core, input, operation) {
   const { state } = await core.state();
@@ -108,7 +101,8 @@ export async function boundaryReviews(core, state, candidate, memo = new Map(), 
         const receipt = await core.store.json(result.receipt);
         requireThat(result.outcome === 'UNAVAILABLE' || modelProvider(receipt.evaluator?.provider) === reviewer.modelProvider,
           'Reviewer model provider differs from the selected perspective');
-        const obligations = await findingObligations(core, inputs, result);
+        const obligations = await findingObligations(core, state, candidate, inputs, result);
+        if (result.outcome === 'PASS' && obligations.unreconciledFindings.length) qualification ??= 'Prior withheld findings require follow-up reconciliation';
         const changes = result.mode === 'delta' ? changedPaths(await core.store.json(result.priorCandidate), candidate) : null;
         const incompleteDelta = Boolean(changes && (!changes.every(path => result.coverage.paths.includes(path)) || !result.coverage.interactions.length));
         found = { ref, result, receipt, reviewer, qualification, ...obligations, incompleteDelta };
@@ -148,19 +142,36 @@ export async function executeBoundaryReviews(core, input, operation) {
   const configuration = input.configuration ?? {};
   requireThat(!['provider', 'model', 'reasoningEffort', 'reviewerSelection'].some(key => Object.hasOwn(configuration, key)), 'Review identities come from the recorded selection');
   const begin = { id: `round_${identity(operation.id).slice(7)}`, hash: identity({ operation }) };
+  const initialEstablished = Boolean(await initialRound(core, state, selected, new Map()));
   let round = currentView.events.find(event => event.operation.id === begin.id);
   if (!round) {
+    let historyState = state;
+    const withheld = [];
+    if (!initialEstablished) {
+      const candidate = await core.store.json(state.candidate), results = [];
+      for (const ref of state.results) {
+        let peer = false;
+        try { peer = await initialPeerReport(core, ref, selected, candidate); } catch { /* Historical losses stay visible through normal history-gap handling. */ }
+        (peer ? withheld : results).push(ref);
+      }
+      for (const ref of input.history ?? []) requireThat(!withheld.some(row => row.hash === ref.hash), 'Initial independence requires withholding peer reports, including explicit history');
+      const peerFindings = new Set();
+      for (const ref of withheld) for (const finding of (await core.store.json(ref)).findings ?? []) peerFindings.add(finding.id);
+      requireThat(!(input.claims ?? []).some(claim => peerFindings.has(claim.findingId)) && !Object.keys(priors).length,
+        'Peer-finding claims and per-provider deltas follow the independent initial round');
+      historyState = { ...state, results };
+    }
     // Context can contain historical losses. Retain its exact bytes without
     // promoting every old reference into a new mandatory proof dependency.
-    const baseline = await core.store.put(JSON.stringify({ kind: 'boundary-review-baseline', state }));
-    round = (await core.append(state, 'REVIEW_ROUND_STARTED', { baseline, candidate: state.candidate, selection: selected.event }, begin)).event;
+    const baseline = await core.store.put(JSON.stringify({ kind: 'boundary-review-baseline', state: historyState }));
+    round = (await core.append(state, 'REVIEW_ROUND_STARTED', { baseline, withheld, candidate: state.candidate, selection: selected.event }, begin)).event;
   }
   requireThat(round.operation.hash === begin.hash && round.payload.candidate.hash === state.candidate?.hash
     && round.payload.selection === selected.event, 'The interrupted review round belongs to different inputs; select a new operation');
   const retained = await core.store.json(round.payload.baseline);
   requireThat(retained.kind === 'boundary-review-baseline' && retained.state.runId === state.runId, 'Invalid retained review baseline');
   const baseline = { state: retained.state, events: currentView.events, round: round.hash,
-    initialEstablished: Boolean(await initialRound(core, state, selected, new Map())) };
+    initialEstablished };
   const outcomes = await Promise.allSettled(selected.selection.reviewers.map((reviewer, slot) => {
     const { modelProvider: family, reason, ...execution } = reviewer;
     const request = { gates: ['review'], configuration: { ...configuration, ...execution, reviewerSelection: selected.event },
