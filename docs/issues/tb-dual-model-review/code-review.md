@@ -1,5 +1,20 @@
 # Independent review record - tb-dual-model-review
 
+Final application/support revision `7aca79e`: both native assessments qualify as PASS, with all eight criteria and all five responsibilities complete, no required coverage limitations and no findings. The later report-only commit records this evidence without changing application or supporting-document inputs. The final published GateReeve summary binds the delivery candidate head.
+
+| Model | Qualified result | Fresh context |
+|---|---|---|
+| Claude Opus 5.5 high | PASS `sha256:aa4ebbdfc71b9fe58ce133fe63b8e5eaa03e28668e84aee448d2ac40cac94e18` | `f8c5b957-c97c-48d7-93e0-058078a45d26` |
+| GPT-6.1 Sol high | PASS `sha256:61190308baaaea8af4a69d9d5b3ab7344304d1051f6a8fb47c9eb432a8c3a35e` | `01a1f19a-7fed-7910-9a64-d82ebc4bce11` |
+
+Both independently accepted Verification `sha256:1329aa266a0cdf81138b7a013f894b56c7c2ef6d10f7caabc771303c0e3e8988` and the semantic document-only coverage replacement. Eight actual current checks validate the exact documentation-only delta, unchanged runtime/approved requirements, issue/tracker structure, native package validation/lint/build and actual PR whitespace. Retained full CI44437634512 and local Verification059be661… cover the unchanged runtime. Current delivery-head hosted checks are observed separately on PR121; their result is not inferred from the earlier run.
+
+The first Opus final-document attempt `sha256:12f7cbe0ad39927e7028172367aff88dbb4660dd7d57d96fe796e1ee17289be7` remains UNAVAILABLE because its response mixed prose and JSON. A genuine fresh response produced the qualifying PASS above; the original output was not rewritten or relabeled. Earlier supported findings and unsuccessful attempts remain in the history below. No live release/deployment, interactive Electron exercise or installed-plugin upgrade is claimed. The governing run remains installed current/7; the product change introduces current/8, whose paired proof/publication behavior is tested separately. No release merge is authorized.
+
+Earlier nonblocking policy advice about hiding superseded models from an entire provider family remains outside the approved chosen-model isolation scope. All seven blocking REV findings are resolved. The final reviewers found no new findings.
+
+## Retained review history
+
 Candidate 099dca90e2e970de8705696137bdbe7e9f421cf7; governing candidate sha256:a8fbc5cec11cb7f452b4d68b6656543392828ad90f6cbff52b7f18b16f4fdc01. Both initial jobs consumed actual verification sha256:ca3080a62466456391bc321b4b0a9d51f03cd1751a4b7611bf5f936685bcada6 and received no prior review history.
 
 | Requested model | Recorded outcome | Evidence |

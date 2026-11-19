@@ -1,6 +1,6 @@
 # Verification - tb-dual-model-review
 
-Implementation evidence is provisional until the exact final candidate receives independent native review. This feature is governed by the separately installed current/7 protocol; product current/8 tests do not upgrade or grant authority to that run.
+Both final independent native assessments PASS the reviewed application/support revision `7aca79e`, including the actual final documentation/native package checks and semantic coverage replacement. The later report-only commit changes no application or supporting-document inputs. This feature is governed by the separately installed current/7 protocol; product current/8 tests do not upgrade or grant authority to that run.
 
 | Check | Observed result | Scope and limits |
 |---|---|---|
@@ -23,4 +23,6 @@ Local raw outputs are retained under verification/ and the governing protocol st
 
 No release merge, deployment, installed-plugin upgrade or post-merge integration is claimed. Main branch protection is active and enforced for administrators; the final release merge still needs the human instruction for that PR.
 
-Both qualified implementation reviews passed against the actual `f0b3d0b` current local and CI receipts. The final revision changes documentation/support records only; runtime-code equivalence and current documentation/package checks will be retained before final publication.
+Both qualified implementation reviews passed against the actual `f0b3d0b` current local and CI receipts. The final revision changes documentation/support records only; runtime-code equivalence and current documentation/package checks are retained and independently qualified below.
+
+Final document Verification: `sha256:1329aa266a0cdf81138b7a013f894b56c7c2ef6d10f7caabc771303c0e3e8988`, all eight actual checks PASS. Both final qualified reviewers independently approve the coverage replacement (Opusaa4ebbdf…, Sol61190308…). Their complete receipts and coverage conclusions are retained in the governing store and summarized in [code-review.md](code-review.md). The current delivery-head hosted result is observed separately rather than inferred from the earlier full run.
