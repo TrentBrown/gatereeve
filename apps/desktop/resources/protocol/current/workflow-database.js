@@ -10,7 +10,7 @@ import { CONTRACT, canonical, requireThat } from './contracts.js';
 export const DATABASE_NAME = `workflow.sqlite.${CONTRACT.replace(/^gatereeve\//u, '').replace('/', '-')}`;
 // Earlier contracts' database names, newest first. They are read only to
 // preserve activation provenance on explicit resumption; never written.
-export const EARLIER_DATABASE_NAMES = Object.freeze(['workflow.sqlite']);
+export const EARLIER_DATABASE_NAMES = Object.freeze(['workflow.sqlite.current-7', 'workflow.sqlite']);
 const VERSION = 1;
 const SCHEMA = `
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT;

@@ -138,7 +138,7 @@ analysis and unknown denominators; it does not claim complete time capture or
 that every repeated check was waste.
 
 **Rigor, autonomy and authority.** Every observation projected from a run
-carries `rigor` (`full`/`light`) and `autonomy` (`supervised`/`delegated`): the
+carries `rigor` (`full`/`light`) and `autonomy` (`supervised`/`delegated`/`autonomous`): the
 run's dials when its event was recorded. A contract-7 run with no dial events
 reads `full`/`supervised`. Observations projected before dial measurement, and
 execution timings (which are not run events), have no dial fields and are
@@ -148,7 +148,7 @@ grouped as "Not recorded", never as full/supervised. Projected run events:
 |---|---|
 | `STARTED` | `event`, check `STARTED`, initial dials; plus one `DIAL_INITIAL` per recorded start dial with `dial`, `dialValue`, `dialSource` (`built-in`/`explicit`), `actor`, `authorityKind` |
 | `DIAL_SET` (settings, delegation, escalation, hand-back) | `event`, check `DIAL_SET`, `dial`, `dialValue`, `dialPrevious`, `dialSource` (`explicit`/`automatic`), `actor`, `trigger` (`tripwire`, `amend`, `agent`, `human`, `external-blocker`, `protection-lost`), `authorityKind` when a human instruction was observed |
-| `DECIDED` (incl. `stay-light`, delegated decisions) | `decision`, check = kind, `authorityKind` (`human-confirmed`/`delegated-evaluator`), `authorityBasis` (`planning-review`/`required-gates`), `actions`, `count` of hits for `stay-light` |
+| `DECIDED` (incl. `stay-light`, delegated decisions) | `decision`, check = kind, `authorityKind` (`human-confirmed`/`delegated-evaluator`/`autonomous-evaluator`), `authorityBasis` (`planning-review`/`autonomous-judgment`/`required-gates`), `actions`, `count` of hits for `stay-light` |
 | `TRIPWIRES_EVALUATED` | `event`, `stage`, `outcome` `HIT`/`CLEAR`, hit `count`, hit `categories` (never paths or text) |
 | `PLANNING_REVIEWED` | `artifact`, check `planning-review:<artifact>`, outcome, evaluator model/provider |
 | `MERGE_BLOCKED` | `event`, `blocker` (`required-review`/`branch-policy`), outcome `BLOCKED` |

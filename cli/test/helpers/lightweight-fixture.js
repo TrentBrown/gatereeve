@@ -112,6 +112,7 @@ export function openPr(f, headBranch, baseBranch, head, body = 'Change descripti
 }
 // Evaluator double: gate reviews and planning reviews, with a fresh context.
 export function evaluator(f, { outcome = 'PASS', planning = 'PASS', contextId = 'reviewer-fresh', findings = [] } = {}) {
+  f.core.runtime.evaluators = undefined;
   const runs = [];
   f.core.runtime.evaluator = {
     async describe() { return { provider: 'codex', model: 'fixture', reasoningEffort: 'high' }; },
@@ -139,8 +140,11 @@ export async function gates(f, suffix = '') {
   await f.request('candidate.ready', {}, `ready${suffix}`);
   const refs = [...(await f.request('gate.execute', { gates: ['verification'], configuration: { validation: { kind: 'alternative', reason: 'Fixture has no hosted CI', scope: 'The approved criterion' },
     checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Fixture verification' }] } }, `verify${suffix}`)).event.payload.results];
-  evaluator(f);
-  refs.push(...(await f.request('gate.execute', { gates: ['review'], configuration: reviewConfig }, `review${suffix}`)).event.payload.results);
+  const { selection, pairedAdapters } = await import('./paired-review-fixture.js');
+  if (!(await f.core.state()).state.reviewerSelection) await f.request('review.select', selection(), `select${suffix}`);
+  pairedAdapters(f);
+  const paired = await f.request('review.execute', {}, `review${suffix}`);
+  refs.push(...paired.event.payload.outcomes.flatMap(outcome => outcome.results ?? []));
   refs.push(...(await f.request('gate.execute', { gates: ['context'] }, `context${suffix}`)).event.payload.results);
   await f.request('gate.execute', { gates: ['packet'], consumed: refs }, `packet${suffix}`);
   return refs;

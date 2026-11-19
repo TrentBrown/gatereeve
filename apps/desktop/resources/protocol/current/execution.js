@@ -19,6 +19,7 @@ import { localPath } from './store.js';
 import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean, briefBased } from './evidence.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter, promptCharacters, MAX_PROMPT_CHARACTERS_LIMIT } from '../local-agent-adapters.js';
 import { fitHistory, writeHistoryIndex, HISTORY_PRIORITY } from './review-history.js';
+import { findingObligations, reviewScope } from './review-findings.js';
 import { sha256Digest, validateAgentWorkflowStageResult, AGENT_WORKFLOW_PROTOCOL_VERSION, HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-workflow.js';
 import { validateJsonSchema } from '../json-schema.js';
 
@@ -27,6 +28,7 @@ const schema = {
   type: 'object', additionalProperties: false, required: ['verdicts'], properties: {
     verdicts: { type: 'array', items: { type: 'object', additionalProperties: false,
       required: ['gate', 'outcome', 'summary', 'coverage', 'findings', 'dispositions', 'criteria', 'historyAssessment'], properties: {
+        mandateAssessment: { anyOf: [{ type: 'null' }, { type: 'object', additionalProperties: false, required: ['outcome', 'evidence'], properties: { outcome: { type: 'string', enum: OUTCOMES }, evidence: { type: 'string', minLength: 1 } } }] },
         dimensions: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['name','outcome','evidence'], properties: { name: { type: 'string', enum: ['code','requirements','evidence','scope','findings'] }, outcome: { type: 'string', enum: OUTCOMES }, evidence: { type: 'string', minLength: 1 } } } },
         gate: { type: 'string' }, outcome: { type: 'string', enum: OUTCOMES }, summary: { type: 'string' },
         coverage: { type: 'object', additionalProperties: false, required: ['complete', 'paths', 'interactions', 'limitations'], properties: {
@@ -99,7 +101,7 @@ Prior results are inputs, not authority. Verify open findings, claimed fixes and
 Blocking findings must set criterion to a selected rubric ID (for example R1) or exactly gate:<gate> (for example gate:code), plus current source evidence. Planning findings may cite requirements/spec.md or planning/<document>.md from packet.planning. For packet.coverageClaims, review, spec and judge must return coverageDecisions with a PASS or FAIL and evidence for every claim. Assess replacement behavior, prior failures and changed interactions, not command spelling. Never approve a replacement merely because its tests pass. When packet.repair is present, correct only the reported contract error in its original verdict; preserve findings, severity, evidence and outcome. Its original provider context is unavailable, so use the supplied original report and retained source without repeating an unrelated full review. Unvalidated findings in prior reports still require investigation; they are observations, not trusted verdicts. Advice, unsupported speculation and unrelated pre-existing issues are nonblocking follow-ups. Do not invent scope.
 For delta review, explicitly cover all changed paths and their interactions and state any uncovered scope. PASS requires complete required coverage, no blocking findings and no unresolved required limitations. Missing verification is UNAVAILABLE, never an invented successful test. Examine consumed runner.validation: the declared required CI jobs may be too narrow; assess executed and skipped jobs against the approved scope. An alternative is only an implementer proposal: independently assess actual local receipts against that scope and record the conclusion in the evidence dimension.
 Every snapshot has metadata/<alias>.json with the original Git modes and kinds at base, head and target; prior snapshots have the same metadata under prior/<result-hash>/. Files in this read-only view are materialized without executable permissions, so use the retained mode metadata when assessing permission changes. Git symlinks are regular text files containing their target, never followed. Gitlinks are JSON metadata with the pinned commit; contents require a separately selected repository or an explicit coverage limitation. Do not treat metadata as reviewed implementation.
-Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, target/<alias>/ is the independently pinned proposed merge target; assess its interactions with the complete feature change. Prior targets are under prior/<result-hash>/target/<alias>/. Read requirements/ and the explicit evidence paths in the input. Do not access network or modify files.`;
+Read current files under repositories/<alias>/, base files under base/<alias>/, prior head source under prior/<result-hash>/repositories/<alias>/ and prior base source under prior/<result-hash>/base/<alias>/, target/<alias>/ is the independently pinned proposed merge target; assess its interactions with the complete feature change. Prior targets are under prior/<result-hash>/target/<alias>/. Read requirements/ and the explicit evidence paths in the input. If input.mandate is supplied, independently compare actual behavior and proposed risk with its fixed human goal/constraints and mandateAuthority. Return mandateAssessment with outcome and precise evidence. Missing evidence is UNAVAILABLE, and a mandate violation prevents PASS. Do not redefine the mandate from mutable planning documents. Do not access network or modify files.`;
 
 const briefInstructions = `This is a light-rigor run. Its requirement basis is requirements/brief.md (goal, scope and findings log); there is no specification rubric or planning record. The single selected criterion "brief" means the change achieves the brief's goal within its stated scope. Assess code defects and interactions, verification sufficiency and scope against the brief; the requirements dimension assesses conformance to the brief's goal and scope. Blocking findings set criterion to brief or exactly gate:<gate>; findings about the brief itself cite requirements/brief.md.`;
 // Full-rigor rules stay byte-identical; a brief-based candidate adds its basis.
@@ -179,7 +181,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
   text(configuration.model, 'Evaluator model');
   const reasoningEffort = configuration.reasoningEffort ?? 'high';
   validateEvaluatorCapability(HIGH_CAPABILITY_PROFILE, reasoningEffort);
-  const adapter = core.runtime.evaluator ?? (provider === 'codex'
+  const adapter = core.runtime.evaluators?.[provider] ?? core.runtime.evaluator ?? (provider === 'codex'
     ? createCodexAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' })
     : createClaudeCodeAgentAdapter({ model: configuration.model, reasoningEffort: configuration.reasoningEffort ?? 'high' }));
   const outputSchema = reviewSchema(packet.gates, candidate.criteria);
@@ -329,6 +331,11 @@ export function validateVerdict(verdict, ids, candidate, changes, history, claim
       if (['resolved', 'unsupported'].includes(item.status)) prior.get(item.id).open = false;
     }
   }
+  if (verdict.gate === 'review') {
+    const disclosed = new Set([...prior.keys(), ...verdict.findings.map(row => row.id), ...claims.map(row => row.findingId),
+      ...history.filter(entry => entry.reviewerResult.gate === 'review').flatMap(entry => (entry.reviewerResult.dispositions ?? []).map(row => row.id))]);
+    requireThat(verdict.dispositions.every(row => disclosed.has(row.id)), 'A review disposition must name a finding disclosed in supplied history, claims or current findings');
+  }
   if (verdict.outcome === 'PASS') {
     requireThat(!verdict.dispositions.some(item => item.status === 'present' && prior.get(item.id)?.blocking), 'PASS contradicts a present blocking finding');
     const required = new Set([...prior.values()].filter(item => item.open).map(item => item.id));
@@ -369,7 +376,7 @@ export function validateVerdict(verdict, ids, candidate, changes, history, claim
   }
 }
 
-export async function executeGates(core, input, operation) {
+export async function executeGates(core, input, operation, reviewBaseline) {
   const id = randomUUID(), startedAt = Date.now(), start = performance.now(); let finished = false;
   const finish = async outcome => {
     if (finished) return; finished = true;
@@ -378,11 +385,14 @@ export async function executeGates(core, input, operation) {
   };
   await record({id,startedAt,category:'setup',label:'execution-preparation',worker:true,outcome:'RUNNING',pid:process.pid,
     project:core.context.workspaceRoot,feature:core.context.featureId});
-  try { const value = await executeGatesPrepared(core,input,operation,finish); await finish(value.reused ? 'REUSED' : 'PASS'); return value; }
+  try { const value = await executeGatesPrepared(core,input,operation,finish,reviewBaseline); await finish(value.reused ? 'REUSED' : 'PASS'); return value; }
   catch(error) { await finish('UNAVAILABLE'); throw error; }
 }
-async function executeGatesPrepared(core, input, operation, preparationFinished) {
-  const { state, events } = await core.state();
+async function executeGatesPrepared(core, input, operation, preparationFinished, reviewBaseline) {
+  // A paired round shares one prior-history snapshot. A fast peer must never
+  // become input to the other initial assessment during preparation. Live
+  // authority and candidate checks still run before each job is admitted.
+  const { state, events } = reviewBaseline ?? await core.state();
   const applicabilityMemo = new Map();
   requireThat(!state.paused && ['IMPLEMENTING', 'ACCEPTING', 'INTEGRATED'].includes(state.phase), 'Execution is outside the authorized phase');
   requireThat((await core.check('implementation')).allowed, 'Current implementation authorization is required');
@@ -461,7 +471,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
     }
     for (const finding of report.findings ?? []) if (finding.blocking &&
       (candidate.criteria.includes(finding.criterion) || finding.criterion === `gate:${report.gate}`) &&
-      candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`))) {
+      (candidate.repositories.some(repo => finding.path.startsWith(`${repo.alias}/`))
+        || (brief ? ['requirements/brief.md'] : PLANNING_PATHS).includes(finding.path))) {
       findingStates.set(`${report.gate}:${finding.id}`, { id: finding.id, gate: report.gate, ref, open: true, closure: null });
     }
     for (const disposition of report.dispositions ?? []) {
@@ -517,7 +528,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
     if (missingHistory.some(item => item.resultHash === ref.hash)) {
       // Preserve available findings as context only. Missing source/artifacts
       // cannot become a dependency of fresh proof or be silently reconstructed.
-      const context = { kind: 'historical-context', originalResultHash: ref.hash, evidenceUnavailable: true };
+      const context = { kind: 'historical-context', originalResultHash: ref.hash, evidenceUnavailable: true,
+        scope: reviewScope(historic, (await core.store.json(report.input)).configuration) };
       for (const key of ['gate', 'outcome', 'summary', 'findings', 'dispositions', 'coverage', 'criteria']) if (report[key] !== undefined) context[key] = report[key];
       history.push({ reference: await core.store.putJson(context), reviewerResult: context });
     } else history.push({ reference: ref, reviewerResult: report });
@@ -528,6 +540,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
     requireThat(role === 'independent' && input.gates.length === 1, 'Delta requires one qualified independent gate');
     const prior = await core.store.json(input.prior);
     const priorInput = await core.store.json(prior.input);
+    if (input.gates[0] === 'review') requireThat(priorInput.configuration.provider === configuration.provider,
+      'A review delta must retain its own provider perspective');
     priorCandidate = priorInput.candidate;
     const before = await checkCandidate(core.store, core.context, priorCandidate, { live: false });
     requireThat(identity(before.requirements) === identity(candidate.requirements) && identity(before.criteria) === identity(candidate.criteria)
@@ -558,7 +572,9 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
     repair = { reference: input.repair, original: recorded.result.unvalidatedVerdict, diagnostic: recorded.result.summary };
   }
   const runnerEnvironment = role === 'runner' ? resolveRunnerEnvironment(configuration) : Object.freeze({});
-  const value = { contract: CONTRACT, gates: input.gates, candidate: state.candidate, configuration, consumed, support,
+  const mandate = state.dials.autonomy.value === 'autonomous' ? state.dials.autonomy.mandate : null;
+  const value = { contract: CONTRACT, gates: input.gates, candidate: state.candidate, configuration, consumed, support, mandate,
+    reviewRound: reviewBaseline?.round ?? null,
     environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment, { retainDiagnostics: true }),
     pattern: input.gates.some(id => ['review', 'pattern'].includes(id)) ? await patternInputs(core.store, core.context, candidate, core.runtime.pythonGuardOptions) : null,
     integrations: definitions[0].at === 'completion' ? state.integrations : null,
@@ -576,6 +592,11 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
       let result, previous;
       try { result = await core.store.json(ref); previous = await core.store.json(result.input); } catch { continue; }
       if (!input.gates.includes(result.gate) || examined.has(result.gate)) continue;
+      if (result.gate === 'review' && (previous.configuration.provider !== configuration.provider
+        || previous.configuration.model !== configuration.model
+        || previous.configuration.reviewerSelection !== configuration.reviewerSelection)) continue;
+      if (result.gate === 'review' && reviewBaseline && !reviewBaseline.initialEstablished
+        && previous.reviewRound !== reviewBaseline.round) continue;
       // Only the latest verdict may be reused. Its own qualified closures change
       // derived history, but are not new review inputs. A later result always wins.
       examined.add(result.gate);
@@ -583,6 +604,9 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
         || previous.reviewContract !== value.reviewContract || identity(previous.claims) !== identity(value.claims)
         || identity(previous.requestedHistory ?? []) !== identity(value.requestedHistory) || identity(previous.historyGaps ?? []) !== identity(missingHistory)) { await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'inputs-changed'}); continue; }
       try {
+        if (result.gate === 'review' && (await findingObligations(core, state, candidate, previous, result)).unreconciledFindings.length) {
+          await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'findings-not-reconciled'}); continue;
+        }
         const equivalent = async refs => Promise.all(refs.map(ref => core.evidenceIdentity(ref, candidate, state, applicabilityMemo)));
         if (identity(await equivalent(previous.consumed ?? [])) !== identity(await equivalent(consumed))) { await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'consumed-proof-changed'}); continue; }
         const applicable = await core.currentResult(ref, candidate, state, new Set(), applicabilityMemo);
@@ -602,11 +626,21 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
     if (retained) {
       requireThat(retained.runId === state.runId && retained.operation.hash === operation.hash, 'Retained job identity mismatch');
       for (const ref of retained.results) await core.store.get(ref);
-      return core.append(state, 'JOB_FINISHED', { jobId, results: retained.results }, operation);
+      return finishJob(core, state.runId, jobId, retained.results, operation);
     }
     return { status: 'UNAVAILABLE', jobId, reason: 'Prior execution outcome is uncertain. Inspect retained job evidence; do not automatically relaunch.' };
   }
-  await core.append(state, 'JOB_STARTED', { jobId, input: prepared, gates: input.gates }, { id: `start_${jobId}`, hash: identity({ jobId, prepared }) });
+  while (true) {
+    const starting = (await core.state()).state;
+    requireThat(starting.runId === state.runId && starting.candidate?.hash === state.candidate?.hash
+      && identity(starting.decisions) === identity(state.decisions) && identity(starting.dials) === identity(state.dials)
+      && ['IMPLEMENTING', 'ACCEPTING', 'INTEGRATED'].includes(starting.phase) && !starting.paused && !starting.delegationBlocked,
+    'Candidate or authority changed during execution preparation');
+    try {
+      await core.append(starting, 'JOB_STARTED', { jobId, input: prepared, gates: input.gates }, { id: `start_${jobId}`, hash: identity({ jobId, prepared }) });
+      break;
+    } catch (error) { if (!error.message.startsWith('Concurrent update;')) throw error; }
+  }
   if (!await core.store.claimJob(jobId)) return { status: 'UNAVAILABLE', jobId, reason: 'Execution is already claimed. Reconcile its retained outcome before retrying.' };
   await preparationFinished('PASS');
   const startedAt = new Date().toISOString();
@@ -616,7 +650,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
     if (role === 'independent' || role === 'assessment') {
       const packet = { contract: CONTRACT, rules: input.gates.map(id => ({ id, rule: gate(id).rule })), pattern: value.pattern, gates: input.gates, criteria: candidate.criteria, scope: candidate.scope,
         source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, target: repo.target, metadata: `metadata/${repo.alias}.json`, entries: [...repo.baseFiles, ...repo.files, ...repo.targetFiles].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
-        history: [], historyIndex: null, coverageClaims: replacements, repair: value.repair, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
+        history: [], historyIndex: null, mandate, ...(mandate ? { mandateAuthority: state.dials.autonomy.authority } : {}), coverageClaims: replacements, repair: value.repair, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
       packet.consumedReferences = [...new Map([...packet.consumedReferences, ...replacements.flatMap(claim => [...claim.supersedes, ...claim.replacements])].map(ref => [ref.hash, ref])).values()];
       if (brief && input.gates.includes('review')) packet.planning = { basis: 'brief', brief: 'requirements/brief.md', authority: state.decisions };
       else if (input.gates.some(id => ['review', 'reconcile', 'triage'].includes(id))) {
@@ -635,7 +669,23 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
           validateJsonSchema(schema.properties.verdicts.items, selected[0], { label: id });
           validateVerdict(selected[0], input.gates, candidate, changes, history, input.claims ?? [], value.reconsiderClosures);
           validateCoverageDecisions(selected[0], replacements);
+          if (id === 'review' && mandate) {
+            requireThat(OUTCOMES.includes(selected[0].mandateAssessment?.outcome), 'Autonomous boundary review must assess the fixed human mandate');
+            text(selected[0].mandateAssessment.evidence, 'Mandate assessment evidence');
+            requireThat(selected[0].outcome !== 'PASS' || selected[0].mandateAssessment.outcome === 'PASS', 'Boundary PASS contradicts mandate compliance');
+          }
           if (value.repair) validateFormatRepair(value.repair.original, selected[0], candidate.criteria);
+          if (id === 'review' && configuration.reviewerSelection) {
+            const verdict = structuredClone(selected[0]);
+            const known = new Set(history.flatMap(item => (item.reviewerResult.findings ?? []).map(finding => finding.id)));
+            const provenance = [];
+            for (const finding of verdict.findings) {
+              const originalId = finding.id;
+              if (!known.has(originalId) && !originalId.startsWith(`${configuration.provider}/`)) finding.id = `${configuration.provider}/${originalId}`;
+              provenance.push({ id: finding.id, originalId, provider: configuration.provider, model: configuration.model });
+            }
+            return { ...verdict, findingProvenance: provenance };
+          }
           return selected[0];
         } catch (error) {
           const original = returned.find(item => item?.gate === id);
@@ -729,10 +779,17 @@ async function executeGatesPrepared(core, input, operation, preparationFinished)
     }
   }
   await core.store.saveJob(jobId, { runId: state.runId, operation, results: refs });
-  const current = (await core.state()).state;
-  // Results retain their original candidate even if edits occurred during execution.
-  requireThat(current.runId === state.runId, 'Active run changed during execution; original outcome retained without entering the replacement run');
-  return core.append(current, 'JOB_FINISHED', { jobId, results: refs }, operation);
+  return finishJob(core, state.runId, jobId, refs, operation);
+}
+
+async function finishJob(core, runId, jobId, refs, operation) {
+  while (true) {
+    const current = (await core.state()).state;
+    // Results retain their original candidate even if edits occurred during execution.
+    requireThat(current.runId === runId, 'Active run changed during execution; original outcome retained without entering the replacement run');
+    try { return await core.append(current, 'JOB_FINISHED', { jobId, results: refs }, operation); }
+    catch (error) { if (!error.message.startsWith('Concurrent update;')) throw error; }
+  }
 }
 
 // Per-claim verification provenance (both rigors): an agent-run command with its
@@ -762,7 +819,7 @@ export async function coreEvidence(core, state, candidate, id, consumed = [], ap
       // eligibility is checked separately, so one human instruction may supply
       // a waiver and acceptance without fabricating a successful evaluation.
       const inventory = await core.inventory(state, candidate, applicabilityMemo);
-      await core.store.closure(inventory.map(item => item.reference).filter(Boolean));
+      await core.store.closure(inventory.flatMap(item => [...(item.references ?? [item.reference]), ...(item.initialProof ?? [])]).filter(Boolean));
       return { gate: id, outcome: 'PASS', summary: 'Complete evidence inventory retained, including missing proof; human decisions supplement this packet', findings: [], dispositions: [], inventory, historyGaps: await core.historyGaps(state) };
     }
     case 'retention': {
@@ -773,7 +830,7 @@ export async function coreEvidence(core, state, candidate, id, consumed = [], ap
       }
       const retained = { candidate: state.candidate, decisions: state.decisions,
         integrations: state.integrations, validationFailures: state.validationFailures };
-      await core.store.closure([retained, inventory.map(item => item.reference).filter(Boolean), completion.map(item => item.reference)]);
+      await core.store.closure([retained, inventory.flatMap(item => [...(item.references ?? [item.reference]), ...(item.initialProof ?? [])]).filter(Boolean), completion.map(item => item.reference)]);
       await core.store.events(state.runId);
       return { gate: id, outcome: 'PASS', summary: 'Current required evidence retained; historical losses remain visible; Git tracking optional; backup not asserted', findings: [], dispositions: [], inventory, completion, retained, historyGaps: await core.historyGaps(state) };
     }

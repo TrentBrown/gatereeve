@@ -1,3 +1,4 @@
+import { selection, pairExistingEvaluator } from './helpers/paired-review-fixture.js';
 // Workspace configuration for delivery (spec AC6 "Workspace configuration for
 // delivery", R8; design and spec Changes 2026-11-17). Only GitHub transport
 // and the evaluator are simulated; Git, the written file, the local excludes,
@@ -419,7 +420,9 @@ for (const rigor of ['full', 'light']) test(`freshly configured repository compl
   const refs = [...(await f.request('gate.execute', { gates: ['verification'], configuration: { validation: { kind: 'alternative', reason: 'Fixture has no hosted CI', scope: 'The approved criterion' },
     checks: [{ repository: 'repository', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Fixture verification' }] } }, 'verify')).event.payload.results];
   evaluator({ core: { runtime: f.runtime } });
-  refs.push(...(await f.request('gate.execute', { gates: ['review'], configuration: reviewConfig }, 'review')).event.payload.results);
+  pairExistingEvaluator({ core: { runtime: f.runtime } });
+  await f.request('review.select', selection(), 'select');
+  refs.push(...(await f.request('review.execute', {}, 'review')).event.payload.outcomes.flatMap(row => row.results));
   refs.push(...(await f.request('gate.execute', { gates: ['context'] }, 'context')).event.payload.results);
   await f.request('gate.execute', { gates: ['packet'], consumed: refs }, 'packet');
   const subject = (await f.request('status')).current.candidate.hash;

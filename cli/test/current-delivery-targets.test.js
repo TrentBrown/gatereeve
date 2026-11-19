@@ -1,3 +1,4 @@
+import { selection, pairExistingEvaluator } from './helpers/paired-review-fixture.js';
 // Delivery targets, release merge authority, external blockers and review-summary
 // publication (spec AC6, R8 non-delegated paths, R9). Only GitHub transport is
 // simulated; Git remotes, integration proof and core decisions are real.
@@ -118,7 +119,8 @@ async function accepted(f) {
   const refs = [...(await f.request('gate.execute', { gates: ['verification'], configuration: { validation: { kind: 'alternative', reason: 'Fixture has no hosted CI', scope: 'The approved criterion' },
     checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Fixture verification' }] } }, 'verify')).event.payload.results];
   evaluator(f);
-  refs.push(...(await f.request('gate.execute', { gates: ['review'], configuration: reviewConfig }, 'review')).event.payload.results);
+  await f.request('review.select', selection(), 'select'); pairExistingEvaluator(f);
+  refs.push(...(await f.request('review.execute', {}, 'review')).event.payload.outcomes.flatMap(row => row.results));
   refs.push(...(await f.request('gate.execute', { gates: ['context'] }, 'context')).event.payload.results);
   await f.request('gate.execute', { gates: ['packet'], consumed: refs }, 'packet');
   const check = await f.request('milestone.check', { name: 'acceptance' });
@@ -344,13 +346,14 @@ test('publication presents the latest qualifying review, even when it is UNAVAIL
   await f.request('gate.execute', { gates: ['verification'], configuration: { validation: { kind: 'alternative', reason: 'Fixture has no hosted CI', scope: 'The approved criterion' },
     checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Fixture verification' }] } }, 'verify');
   evaluator(f);
-  await f.request('gate.execute', { gates: ['review'], configuration: reviewConfig }, 'review-pass');
+  await f.request('review.select', selection(), 'select'); pairExistingEvaluator(f);
+  await f.request('review.execute', {}, 'review-pass');
   const passed = await f.request('review.publish', { repository: 'app', number: 12 }, 'publish-pass');
   assert.equal(passed.outcome, 'PASS');
   // A newer review reaches no conclusion: it is what the gate now sees, so it is what the PR shows.
   f.core.runtime.evaluator.runStage = async () => { throw new Error('Evaluator output was malformed'); };
   // A different declared configuration (explicit effort) runs a fresh review instead of reusing the PASS.
-  await f.request('gate.execute', { gates: ['review'], configuration: { ...reviewConfig, reasoningEffort: 'high' } }, 'review-unavailable');
+  await f.request('review.execute', { configuration: { reviewRevision: 2 } }, 'review-unavailable');
   const latest = await f.core.store.json((await f.core.state()).state.results.at(-1));
   assert.deepEqual([latest.gate, latest.outcome], ['review', 'UNAVAILABLE']);
   const inventory = await f.core.inventory((await f.core.state()).state, await f.core.store.json((await f.request('status')).candidate));
@@ -358,7 +361,9 @@ test('publication presents the latest qualifying review, even when it is UNAVAIL
   const published = await f.request('review.publish', { repository: 'app', number: 12 }, 'publish-unavailable');
   assert.equal(published.outcome, 'UNAVAILABLE'); assert.equal(published.changed, true);
   assert.notEqual(published.review.hash, passed.review.hash);
-  assert.match(f.gh.pr.body, /\*\*Outcome:\*\* UNAVAILABLE \(the latest independent review reached no conclusion; this is not a PASS/u);
+  assert.match(f.gh.pr.body, /\*\*Outcome:\*\* UNAVAILABLE/u);
+  assert.match(f.gh.pr.body, /openai.*UNAVAILABLE/u);
+  assert.match(f.gh.pr.body, /anthropic.*UNAVAILABLE/u);
   assert.doesNotMatch(f.gh.pr.body, /\*\*Outcome:\*\* PASS/u);
   assert.equal(f.gh.pr.body.split(SUMMARY_START).length, 2);
   // The authorization check makes the same selection: the older PASS section no longer qualifies.

@@ -74,9 +74,9 @@ def _dials(data: dict[str, Any]) -> dict[str, str]:
     if not isinstance(dials, dict):
         return dict(DEFAULT_DIALS)
     # Anything unreadable is reported at the built-in default, never as light
-    # or delegated.
+    # or delegated/autonomous.
     rigor = dials.get("rigor") if dials.get("rigor") in ("full", "light") else "full"
-    autonomy = dials.get("autonomy") if dials.get("autonomy") in ("supervised", "delegated") else "supervised"
+    autonomy = dials.get("autonomy") if dials.get("autonomy") in ("supervised", "delegated", "autonomous") else "supervised"
     return {"rigor": rigor, "autonomy": autonomy}
 
 
@@ -172,6 +172,16 @@ def run_context(data: dict[str, Any]) -> str:
             f"delegated only for SLICE PRs into {integration} with every required gate PASS. "
             f"Merges into {release} still need a per-PR human instruction. Hand back to "
             f"supervised and stop for the human on {HAND_BACK_TRIGGERS}."
+        )
+    elif dials["autonomy"] == "autonomous":
+        _, release = _branches(data)
+        parts.append(
+            "Autonomy is autonomous: work within the retained human goal and constraints. "
+            "In-mandate amendments need refreshed independent assessment and authority; "
+            "eligible judgment calls and diminishing returns may receive explicit adjudication. "
+            "Both complete cross-provider reviews and all mandatory factual checks remain required. "
+            "Preserve original verdicts and residual risks. Continue to a ready final PR; "
+            f"merges into {release} still need a per-PR human instruction."
         )
     note = _workspace_note(data, run=True)
     if note:

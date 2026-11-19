@@ -36,7 +36,7 @@ export async function reportingDatabase(store, create = true) {
 // their authority kind (and a delegated decision its basis); dial changes carry
 // which dial, the change, its source, actor and hand-back/escalation trigger.
 // `dialSource` is distinct from `source`, the reporting source identity.
-export const DIAL_FIELDS = Object.freeze({ rigor: Object.freeze(['full','light']), autonomy: Object.freeze(['supervised','delegated']) });
+export const DIAL_FIELDS = Object.freeze({ rigor: Object.freeze(['full','light']), autonomy: Object.freeze(['supervised','delegated','autonomous']) });
 const MEASUREMENT = ['rigor','autonomy','authorityKind','authorityBasis','dial','dialValue','dialPrevious','dialSource','actor','trigger','blocker','linkBasis','stage','count','categories','actions'];
 const LISTS = ['links','categories','actions'];
 export const LINK_BASES = Object.freeze(['human-stated','agent-proposed']);
@@ -159,7 +159,7 @@ const tally = (rows, key) => { const counts = {}; for (const row of rows) { cons
 export function measurement(rows) {
   const dials = rows.filter(row => row.check === 'DIAL_SET'), initial = rows.filter(row => row.check === 'DIAL_INITIAL');
   const escalations = dials.filter(row => row.dial === 'rigor' && row.dialPrevious === 'light' && row.dialValue === 'full');
-  const handBacks = dials.filter(row => row.dial === 'autonomy' && row.dialPrevious === 'delegated' && row.dialValue === 'supervised');
+  const handBacks = dials.filter(row => row.dial === 'autonomy' && ['delegated','autonomous'].includes(row.dialPrevious) && row.dialValue === 'supervised');
   const decisions = rows.filter(row => row.kind === 'decision');
   const tripwires = rows.filter(row => row.check === 'TRIPWIRES_EVALUATED');
   const defects = rows.filter(row => row.kind === 'escaped-defect');

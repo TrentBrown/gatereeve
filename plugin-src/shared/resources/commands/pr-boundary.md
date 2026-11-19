@@ -6,8 +6,8 @@ Prepare a pinned candidate from clean application source and current approved
 requirements. Declare readiness explicitly; this launches no evaluator. Choose
 the order of focused checks and independent reviews. `review` consumes actual
 Verification and assesses code, every criterion, CI/local alternative scope,
-project rules, material decisions and all relevant findings in one fresh context.
-Use additional models/reviews when risk, uncertainty or prior misses justify them.
+project rules, material decisions and all relevant findings in each of two fresh provider contexts.
+Use review.select and review.execute for the required pair; request additional review only when risk or uncertainty warrants it.
 Context, packet and retention are checked automatically at their milestone.
 Reuse qualifying proof or request targeted independent delta review covering
 changed code and interactions. Preserve original failures and supported findings.
@@ -38,3 +38,5 @@ branch. If GitHub refuses an authorized merge under a hosting rule, report the
 retry `merge.execute` after it is resolved. Deployment remains separately authorized. Open
 drafts are default; closed drafts require explicit repository configuration. No automatic
 remediation-round limit or evidence-commit requirement applies.
+
+Autonomous authority may qualify eligible residual risk separately from original review outcomes. It is mandate-bound, never substitutes for a missing reviewer or mandatory verification, and never authorizes the final release merge.

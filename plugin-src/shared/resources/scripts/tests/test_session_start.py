@@ -29,7 +29,7 @@ def governed(rigor: str, autonomy: str, *, phase: str = "IMPLEMENTING", **extra:
     """Adapter status data for a current run, shaped like currentSnapshot()."""
     data: dict[str, object] = {
         "schemaVersion": 1,
-        "contract": "gatereeve/current/7",
+        "contract": "gatereeve/current/8",
         "mode": "governed",
         "featureId": "fixture-feature",
         "current": {"phase": phase, "paused": False, "pendingDecisions": []},
@@ -51,7 +51,7 @@ def governed(rigor: str, autonomy: str, *, phase: str = "IMPLEMENTING", **extra:
 
 NO_RUN = {
     "schemaVersion": 1,
-    "contract": "gatereeve/current/7",
+    "contract": "gatereeve/current/8",
     "mode": "current-entry",
     "featureId": "fixture-feature",
     "current": None,
@@ -141,6 +141,17 @@ class SessionStartStateTests(unittest.TestCase):
                     self.assertIn(LIGHT_PROCEDURE, context)
                     self.assertNotIn(FULL_WORKFLOW_SKILL, context)
 
+    def test_autonomous_runs_retain_mode_and_mandate_bound_guidance(self) -> None:
+        for rigor in ("full", "light"):
+            with self.subTest(rigor=rigor):
+                context = render_context(governed(rigor, "autonomous"))
+                self.assert_states_dials(context, rigor, "autonomous")
+                self.assertIn("retained human goal and constraints", context)
+                self.assertIn("Both complete cross-provider reviews", context)
+                self.assertIn("ready final PR", context)
+                self.assertIn("merges into main still need a per-PR human instruction", context)
+                self.assertNotIn("Hand back to supervised", context)
+
     def test_paused_and_pending_decisions_are_blockers(self) -> None:
         data = governed("full", "supervised")
         data["current"] = {"phase": "IMPLEMENTING", "paused": True, "pendingDecisions": [{}]}
@@ -149,7 +160,7 @@ class SessionStartStateTests(unittest.TestCase):
         self.assertIn("1 pending human instruction(s)", context)
 
     def test_unreadable_dials_never_report_light_or_delegated(self) -> None:
-        context = render_context(governed("lite", "autonomous"))
+        context = render_context(governed("lite", "unattended"))
         self.assert_states_dials(context, "full", "supervised")
         context = render_context(dict(governed("light", "delegated"), dials=None))
         self.assert_states_dials(context, "full", "supervised")

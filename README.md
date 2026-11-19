@@ -17,8 +17,8 @@ flowchart LR
 ```
 
 Every stage leaves durable records — interview, design, spec with a binary
-rubric, plan, decisions, verification evidence, adversarial LLM-as-judge
-review, optional Whiteboard Defense, and closeout proof — so the work stays inspectable instead of
+rubric, plan, decisions, verification evidence, two independent cross-provider boundary
+reviews, optional Whiteboard Defense, and closeout proof — so the work stays inspectable instead of
 disappearing into chat history.
 
 New features are governed by a versioned state-machine protocol packaged in

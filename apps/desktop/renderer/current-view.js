@@ -14,7 +14,7 @@ export function renderWorkflowDials(snapshot, container) {
   const dials = snapshot?.dials ?? null;
   for (const dial of ['rigor', 'autonomy']) {
     const value = dials?.[dial] ?? snapshot?.dialDefaults?.[dial] ?? DIAL_DEFAULTS[dial];
-    const elevated = (dial === 'rigor' && value === 'light') || (dial === 'autonomy' && value === 'delegated');
+    const elevated = (dial === 'rigor' && value === 'light') || (dial === 'autonomy' && ['delegated', 'autonomous'].includes(value));
     const className = `badge ${elevated ? `dial-${value}` : 'neutral'}${dials ? '' : ' dial-default'}`;
     container.append(node('span', { className, text: `${DIAL_LABELS[dial]} · ${title(value)}${dials ? '' : ' (default)'}`,
       attributes: { 'data-dial': dial, 'data-value': value, title: dials ? `Current run ${dial}` : `No current run; a new run starts ${value} unless explicitly chosen` } }));
@@ -30,6 +30,14 @@ export function renderCurrentOverview(snapshot, elements, { openArtifact, copy, 
   for (const pending of snapshot?.current?.pendingDecisions ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Pending human instruction: ${pending.decision.reason}. Requested continuation has not been authorized.` }));
   for (const grant of snapshot?.current?.standingAuthorizations ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Standing authorization ${grant.grant}: ${grant.allowed ? 'active' : grant.reason}. Scope: ${JSON.stringify(grant.scope)}. Applications: ${JSON.stringify(grant.applications ?? [])}. Deployment requires separate authorization.` }));
   for (const gap of snapshot?.current?.historyGaps ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Historical evidence unavailable: ${gap.resultHash}. Fresh proof can replace its current role; the lost record is not reconstructed.` }));
+  for (const decision of snapshot?.current?.delegation?.decisions ?? []) if (decision.judgment) {
+    const notice = node('p', { className: 'notice', text: `Autonomous planning judgment: ${decision.judgment.reason}. Original independent planning outcome: ${decision.evaluationOutcome}. ${decision.judgment.stopReason ?? ''}` });
+    if (decision.nativeResult) {
+      const button = node('button', { type: 'button', text: 'Inspect original planning review' });
+      button.addEventListener('click', () => readResult?.(decision.nativeResult.hash)); notice.append(button);
+    }
+    elements['global-alerts'].append(notice);
+  }
   for (const [id, prep] of Object.entries(snapshot?.current?.sourcePreparationStatus ?? {})) if (prep.status !== 'published') elements['global-alerts'].append(node('p', { className: 'notice', text: `Source preparation ${id}: ${prep.status}. ${prep.reason}` }));
   const cleanup = snapshot?.current?.sourceCleanup;
   if (cleanup) elements['global-alerts'].append(node('p', { className: 'notice', text: `Source retention: ${cleanup.status}. ${cleanup.errors?.map(item => item.reason).join('; ') || 'Completed-run references released; later reuse checks source availability.'}` }));
@@ -86,6 +94,18 @@ export function renderCurrentObligations(snapshot, elements, readResult) {
       node('p', { text: `${title(gate.at)} · ${gate.role} · ${result?.outcome ?? 'UNAVAILABLE'}` }),
     ]);
     if (result?.exception) card.append(node('p', { className: 'notice', text: `Accepted exception: ${result.exception.reason}. ${result.exception.consequences}` }));
+    if (gate.id === 'review') {
+      for (const reviewer of snapshot?.current?.reviewerSelection?.selection?.reviewers ?? []) card.append(node('p', { text: `${reviewer.modelProvider}: ${reviewer.model} · ${reviewer.reasoningEffort} effort` }));
+      for (const reference of result?.reviews ?? []) {
+        const button = node('button', { type: 'button', text: 'Inspect independent review' });
+        button.addEventListener('click', () => readResult?.(reference.hash)); card.append(button);
+      }
+      if (result?.adjudication) {
+        card.append(node('p', { className: 'notice', text: `Autonomous risk acceptance: ${result.adjudication.reason}. Original reviewer verdicts remain ${result.outcome}.` }));
+        if (result.adjudication.stopReason) card.append(node('p', { text: `Iteration stopping reason: ${result.adjudication.stopReason}` }));
+        for (const disposition of result.adjudication.dispositions) card.append(node('p', { text: `${disposition.findingId}: ${disposition.outcome}. ${disposition.reason} Residual risk: ${disposition.residualRisk}` }));
+      }
+    }
     if (result?.reason) card.append(node('p', { text: result.reason }));
     if (result?.result) {
       const button = node('button', { type: 'button', text: 'Inspect evidence' });

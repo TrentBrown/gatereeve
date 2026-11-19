@@ -262,8 +262,25 @@ retains the selected source and approved local requirements. FEATURE scope uses
 each repository's configured original `featureBaseSha`. `gatereeve ready`
 records readiness without launching a reviewer. The model requests evaluations
 explicitly with `gatereeve evaluate <gates...>` and chooses their order within
-the authorized phase. Code and spec may share one fresh independent evaluator;
-each retains its own verdict. Judge remains independently required.
+the authorized phase. For the required boundary pair, record runtime discovery
+and choices with `gatereeve select-reviewers selection.json`, then request
+`gatereeve review-boundary`. The two complete reviews use different model
+providers and run in parallel with independent initial context. Each covers code,
+requirements, evidence, scope and findings. Separate code/spec/Judge assessments
+remain optional; both boundary perspectives are required in full and light rigor.
+
+Reviewer models are agent-selected from available capabilities, preferring
+suitable daily-driver models at high effort and honoring developer instructions.
+The selection JSON is an input to a recorded run decision, not persistent model
+configuration. The main implementing thread keeps its chosen model.
+
+Autonomy is `supervised`, `delegated` or `autonomous`, defaulting to supervised.
+Use `gatereeve run set-dial choice.json` for an explicit named-run grant;
+autonomous authority additionally retains the human goal and constraints.
+`gatereeve adjudicate-review judgment.json` can record eligible residual risks
+and a reasoned iteration stop under autonomous authority. Original reviews keep
+their verdicts. Missing assessments, mandatory failures and known mandate
+violations still block; final release merge remains separately authorized.
 
 `gatereeve status` shows milestone blockers and any accepted exceptions with
 their original outcomes and consequences. `--json` retains full structured

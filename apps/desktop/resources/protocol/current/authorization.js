@@ -195,7 +195,8 @@ export async function applyStanding(core, input, operation) {
 // still under the same delegation, for a SLICE candidate whose prepared action
 // targets the distinct integration branch. A hand-back ends it.
 export function delegationValidity(state, item, candidate, action = null) {
-  if (state.dials.autonomy.value !== 'delegated' || state.dials.autonomy.event !== item.delegation) {
+  if (!['delegated', 'autonomous'].includes(state.dials.autonomy.value) || state.dials.autonomy.event !== item.delegation
+    || (item.authority?.kind === 'autonomous-evaluator') !== (state.dials.autonomy.value === 'autonomous')) {
     return { allowed: false, reason: 'Delegation was handed back or replaced; the delegated acceptance no longer authorizes' };
   }
   if (state.delegationBlocked === item.delegation) {

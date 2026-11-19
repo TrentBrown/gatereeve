@@ -45,7 +45,7 @@ Reviewers assess whether these declarations cover the real execution.
 
 ## Reviews and evidence
 
-Use one fresh `review` for acceptance. Additional model-diverse perspectives and
+Use two fresh cross-provider `review` perspectives for acceptance through review.select and review.execute. Additional model-diverse perspectives and
 supplemental named reviews are agent choices.
 Use `coverageClaims` (CLI `--coverage-claims`) with `id`, `supersedes`,
 `replacements`, selected `criteria` and `reason`. References name actual results.

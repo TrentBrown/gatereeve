@@ -13,7 +13,7 @@ Delegated autonomy, Delivery targets) for the exact operation inputs. Do not loa
   and "forgot to choose" means full.
 - Start the run with `run.start` and
   `rigor: {value: "light", authority: <the human's observed instruction>, reason}`.
-  Autonomy stays `supervised` unless the human explicitly delegates this run.
+  Autonomy stays `supervised` unless the human explicitly grants delegated or autonomous authority for this run.
 - Delivery needs a workspace configuration. In a repository with a GitHub remote
   and no `.agentic-workflow.json`, `run.start` writes a minimal one (this branch as
   the feature, the default branch as integration and release, excluded locally) and
@@ -95,7 +95,7 @@ Light acceptance requires the same gates as full: `context`, `review`,
 - Prepare the candidate with `criteria: ["brief"]` (no rubric IDs).
 - Run `verification` with real checks. Record provenance honestly: agent-run
   receipts, hosted CI on the exact head, or none. "No CI checks" is never green CI.
-- Run `review` in a fresh, independent context. It assesses code defects and
+- Select two different providers with `review.select` and run `review.execute` in two fresh, independent contexts in parallel. It assesses code defects and
   interactions, verification sufficiency and scope against the brief's goal and
   scope. `spec`, `judge`, `reconcile` and `triage` are refused for a brief-based
   candidate; `code`, `pattern` and `explanation` remain available.
@@ -128,3 +128,16 @@ external merge blocker and observed loss of release-branch protection. When you
 are uncertain, hand back yourself with `run.set-dial`
 `{dial: "autonomy", value: "supervised", actor: "agent", reason}`; that is always
 allowed. Only the human can delegate again.
+
+
+## Autonomous light runs
+
+An explicit autonomous named-run grant retains the original human goal and
+constraints. Independent brief planning review must assess that mandate before
+`autonomous-evaluator` authorization. In-mandate brief changes require fresh
+independent assessment and renewed authority without routine human handback;
+the agent cannot change the mandate. Tripwires escalate to full with the mandate
+preserved. Both complete provider perspectives remain required. Eligible dissent
+may receive a separately recorded autonomous adjudication and diminishing-returns
+stop; missing reviews, failed mandatory checks and mandate violations still
+block. Final release merge remains separately authorized. See PROTOCOL.md.

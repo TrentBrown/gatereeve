@@ -32,7 +32,7 @@ test('new runs default to full/supervised with built-in provenance and time', as
   const f = await fixture(t); await f.start();
   const status = await f.request('status');
   assert.equal(status.contract, CONTRACT);
-  assert.equal(CONTRACT, 'gatereeve/current/7');
+  assert.equal(CONTRACT, 'gatereeve/current/8');
   for (const dial of ['rigor', 'autonomy']) {
     assert.equal(status.dials[dial].value, DEFAULT_DIALS[dial]);
     assert.equal(status.dials[dial].source, 'built-in');

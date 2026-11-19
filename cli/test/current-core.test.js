@@ -8,6 +8,7 @@ import { CurrentStore } from '../../plugin-src/shared/resources/protocol/current
 import { CurrentCore } from '../../plugin-src/shared/resources/protocol/current/core.js';
 import { identity } from '../../plugin-src/shared/resources/protocol/current/contracts.js';
 import { git, contentIdentity } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
+import { selection, pairedAdapters } from './helpers/paired-review-fixture.js';
 
 const test = isolatedTests(import.meta.url);
 const corruptFirst = f => database(f.home,true,db=>db.prepare("UPDATE events SET body='{}' WHERE run_id='run-one' AND sequence=1").run());
@@ -142,6 +143,7 @@ async function runVerification(f, fail = false, operationId = 'verify-one') {
   } }, operationId);
 }
 function fakeEvaluator(f, { malformed = false, inherited = false, blocking = false, findingId = 'finding-1', outcome = blocking ? 'FAIL' : 'PASS', dispositions = [], historyAssessment = null, criterionRows = null, coverage = null, summary = 'Fixture assessment', criterionEvidence = 'Fixture source and command receipt', inspect = null } = {}) {
+  f.core.runtime.evaluators = undefined;
   let launches = 0;
   f.core.runtime.evaluator = {
     async describe() { return { provider: 'codex', model: 'fixture', reasoningEffort: 'high' }; },
@@ -300,12 +302,17 @@ async function reviewAll(f, { accept = true } = {}) {
   await writeFile(join(f.home, 'scratchpad.md'), '# No pending decisions\n');
   await f.request('candidate.ready', {}, 'ready');
   const verification = await runVerification(f);
-  fakeEvaluator(f);
+  pairedAdapters(f);
+  if (!(await f.core.state()).state.reviewerSelection) await f.request('review.select', selection(), 'select-boundary');
   const refs = [...verification.event.payload.results];
   for (const gate of ['context', 'review']) {
-    const result = await f.request('gate.execute', { gates: [gate], consumed: ['review', 'spec', 'judge'].includes(gate) ? verification.event.payload.results : [],
-      configuration: ['review', 'reconcile', 'triage', 'code', 'spec', 'judge', 'pattern', 'explanation'].includes(gate) ? { provider: 'codex', model: 'fixture' } : {} }, `gate-${gate}`);
-    refs.push(...result.event.payload.results);
+    if (gate === 'review') {
+      const result = await f.request('review.execute', { consumed: verification.event.payload.results }, 'gate-review');
+      refs.push(...result.event.payload.outcomes.flatMap(outcome => outcome.results ?? []));
+    } else {
+      const result = await f.request('gate.execute', { gates: [gate], consumed: [], configuration: {} }, `gate-${gate}`);
+      refs.push(...result.event.payload.results);
+    }
   }
   await f.request('gate.execute', { gates: ['packet'], consumed: refs }, 'packet');
   assert.equal((await f.request('milestone.check', { name: 'acceptance' })).allowed, true);

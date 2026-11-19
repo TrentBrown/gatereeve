@@ -34,5 +34,5 @@ export function formatTime(value) {
 }
 
 export function diagnosticCanShowGovernedViews(snapshot) {
-  return snapshot?.contract === 'gatereeve/current/7';
+  return snapshot?.contract === 'gatereeve/current/8';
 }

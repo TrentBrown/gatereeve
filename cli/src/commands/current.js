@@ -29,11 +29,14 @@ async function run(options, operation, input = {}, detail = {}) {
       for (const outcome of milestone.outcomes ?? []) if (outcome.exception) {
         console.log(`  ${outcome.id}: ${outcome.outcome}; accepted exception: ${outcome.exception.reason}; consequences: ${outcome.exception.consequences}`);
       }
+      for (const outcome of milestone.outcomes ?? []) if (outcome.adjudication) console.log(`  ${outcome.id}: original ${outcome.outcome}; autonomous adjudication: ${outcome.adjudication.reason}; ${outcome.adjudication.stopReason ?? 'remaining risk retained'}`);
     }
+    const selected = result.data.current?.reviewerSelection ?? result.data.reviewerSelection;
+    for (const reviewer of selected?.selection?.reviewers ?? []) console.log(`Boundary reviewer: ${reviewer.modelProvider} ${reviewer.model}, ${reviewer.reasoningEffort} effort; ${reviewer.reason}`);
     // Delegation scope and delegated decisions, reported distinctly from human-confirmed ones.
     const delegation = result.data.delegation ?? result.data.current?.delegation;
     if (delegation?.active) console.log(`Delegation: active since ${delegation.since}; ${delegation.scope.map(item => `${item.repository}: ${item.delegatedMerges}`).join('; ')}; hands back on ${delegation.handBackTriggers.join(', ')}`);
-    for (const item of delegation?.decisions ?? []) console.log(`Delegated decision ${item.kind}${item.actions.length ? ` + ${item.actions.join(', ')}` : ''} (delegated-evaluator, ${item.basis}): ${item.event}`);
+    for (const item of delegation?.decisions ?? []) console.log(`${item.authorityKind === 'autonomous-evaluator' ? 'Autonomous' : 'Delegated'} decision ${item.kind}${item.actions.length ? ` + ${item.actions.join(', ')}` : ''} (${item.authorityKind ?? 'delegated-evaluator'}, ${item.basis}): ${item.event}${item.judgment ? `; original planning review ${item.evaluationOutcome}; ${item.judgment.reason}` : ''}`);
     const tripwires = result.data.tripwires;
     if (tripwires?.hits?.length) console.log(`Tripwires: ${tripwires.hits.length} hit(s): ${tripwires.hits.map(hit => `${hit.category} ${hit.repository}/${hit.path}`).join('; ')}${tripwires.coveredByStayLight ? ' (human stay-light decision recorded)' : ''}; subject ${tripwires.subject}`);
     const verification = result.data.milestones.flatMap(milestone => milestone.outcomes ?? []).find(outcome => outcome.provenance);
@@ -87,12 +90,25 @@ export function currentCommands() {
       : 'Preserve documents and establish the current run (a fresh run follows the run start workspace rules)')
       .requiredOption('--implementer <context>', 'Implementing context identity', collect, [])
       .option('--planning <file>', 'Observed design and implementation approval records for resumption')
-      .option('--whiteboard', 'Include the optional whiteboard gate');
+      .option('--whiteboard', 'Include the optional whiteboard gate')
+      .option('--choices <file>', 'Explicit per-run rigor/autonomy choices and optional runId; autonomous needs a human mandate');
     workspaceOptions(item);
-    runCommand.addCommand(item.action(async options => run(options, `run.${action}`, { implementers: options.implementer,
+    runCommand.addCommand(item.action(async options => run(options, `run.${action}`, { ...(options.choices ? await readJsonFile(options.choices) : {}), implementers: options.implementer,
       optionalGates: options.whiteboard ? ['whiteboard'] : [], ...(options.planning ? { planning: await readJsonFile(options.planning) } : {}),
       ...(workspaceInput(options) ? { workspace: workspaceInput(options) } : {}) })));
   }
+  runCommand.addCommand(command('set-dial', 'Record a per-run human choice or permitted agent return/escalation')
+    .argument('<file>', 'Exact run.set-dial input; autonomous requires the named run, human authority and fixed mandate')
+    .action(async (file, options) => run(options, 'run.set-dial', await readJsonFile(file))));
+  const selectReviewers = command('select-reviewers', 'Record runtime capability observations and two cross-provider reviewer choices')
+    .argument('<file>', 'Observed capabilities, selected reviewers and rationale')
+    .action(async (file, options) => run(options, 'review.select', await readJsonFile(file)));
+  const reviewBoundary = command('review-boundary', 'Execute both selected independent boundary reviewers in parallel')
+    .argument('[file]', 'Optional consumed/history/claims or per-provider delta priors')
+    .action(async (file, options) => run(options, 'review.execute', file ? await readJsonFile(file) : {}));
+  const adjudicateReview = command('adjudicate-review', 'Under autonomous authority, record eligible residual risk and any diminishing-returns stopping reason')
+    .argument('<file>', 'Exact candidate/pair, dispositions, retained evidence and rationale')
+    .action(async (file, options) => run(options, 'review.adjudicate', await readJsonFile(file)));
   const workspace = new Command('workspace').description('Workspace configuration for delivery (.agentic-workflow.json)');
   workspace.addCommand(workspaceOptions(command('configure', 'For an existing run without one, write the minimal workspace configuration: the GitHub default branch as integration and release, excluded locally'))
     .action(options => run(options, 'workspace.configure', workspaceInput(options) ?? {})));
@@ -176,6 +192,9 @@ export function currentCommands() {
   delegatedDecision.action((kind, options) => run(options, 'human.decide', { kind, subject: options.subject,
     authority: { kind: 'delegated-evaluator', delegation: options.delegation, evaluation: options.evaluation },
     reason: options.reason, consequences: options.consequences }));
+  const autonomousDecision = command('decide-autonomous', 'Record an independently assessed in-mandate planning decision, including explicit judgment when needed')
+    .argument('<file>', 'Exact planning decision with autonomous-evaluator authority; amendments retain previousSubject')
+    .action(async (file, options) => run(options, 'human.decide', await readJsonFile(file)));
   const planningReview = command('review-planning', 'Run an independent planning review of the design, spec or brief')
     .argument('<artifact>', 'design, spec or brief')
     .requiredOption('--provider <name>', 'codex or claude-code')
@@ -213,5 +232,5 @@ export function currentCommands() {
     .option('--merge <file>', 'Selected repository, PR number and merge method')
     .action(async options => run(options, 'delivery.resume', {
       ...(options.grant ? { grant: options.grant } : {}), ...(options.merge ? { merge: await readJsonFile(options.merge) } : {}) }));
-  return [status, coverage, database, note, read, runCommand, workspace, spec, candidate, ready, gate, decide, delegatedDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
+  return [status, coverage, database, note, read, runCommand, workspace, spec, candidate, ready, gate, selectReviewers, reviewBoundary, adjudicateReview, decide, delegatedDecision, autonomousDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
 }
