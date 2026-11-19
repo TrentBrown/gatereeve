@@ -7,18 +7,18 @@
 
 ## Rubric Status
 
-Last recorded native assessment: candidate `56c56e2`, Sol 6.1 high. History-persistence/recovery repairs await fresh assessments. See [code-review.md](code-review.md) and [spec-evaluation.md](spec-evaluation.md); these rows do not grant acceptance.
+Both independent implementation assessments on `f0b3d0b` passed every criterion. Final source and boundary qualification are maintained in [code-review.md](code-review.md) and [spec-evaluation.md](spec-evaluation.md); these rows record that completed implementation assessment and do not grant merge authority.
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|--------|-------|
-| R1 | Two complete independent reviews | PASS | [Native report](code-review.md) | Previous native assessment; history repairs and final review pending. |
-| R2 | Runtime selection | PASS | [Native report](code-review.md) | Previous native assessment; history repairs and final review pending. |
-| R3 | Concurrent independent execution | PASS | [Native report](code-review.md) | Previous native assessment; history repairs and final review pending. |
-| R4 | Findings and current coverage | FAIL | [Native report](code-review.md) | Previous native assessment; history repairs and final review pending. |
-| R5 | Mode-specific authority | PASS | [Native report](code-review.md) | Previous native assessment; history repairs and final review pending. |
-| R6 | Mandate-bound amendments | PASS | [Native report](code-review.md) | Previous native assessment; history repairs and final review pending. |
-| R7 | Truthful convergence | FAIL | [Native report](code-review.md) | Previous native assessment; history repairs and final review pending. |
-| R8 | Protected delivery and visibility | PASS | [Native report](code-review.md) | Previous native assessment; history repairs and final review pending. |
+| R1 | Two complete independent reviews | PASS | [Native report](code-review.md) | Both qualified reports complete all five dimensions and every criterion. |
+| R2 | Runtime selection | PASS | [Native report](code-review.md) | Runtime discovery and provider/effort provenance verified. |
+| R3 | Concurrent independent execution | PASS | [Native report](code-review.md) | Blind initial round, concurrent execution and recovery regressions pass. |
+| R4 | Findings and current coverage | PASS | [Native report](code-review.md) | All seven blocking findings resolved; planning persistence and recovery verified. |
+| R5 | Mode-specific authority | PASS | [Native report](code-review.md) | Supervised/delegated regression and explicit autonomous grants verified. |
+| R6 | Mandate-bound amendments | PASS | [Native report](code-review.md) | Fixed mandate, independently assessed amendments and rebuttals verified. |
+| R7 | Truthful convergence | PASS | [Native report](code-review.md) | Complete objection reconciliation and mandatory-failure barriers verified. |
+| R8 | Protected delivery and visibility | PASS | [Native report](code-review.md) | Protected delivery, native/desktop visibility, packaging and resumption verified. |
 
 ## Review Log
 
@@ -31,3 +31,5 @@ Last recorded native assessment: candidate `56c56e2`, Sol 6.1 high. History-pers
 - Qualified Opus follow-up on `922bab7` passed seven criteria and failed R3 with REV-005. Existing fenced JSON parsing worked. The initial-history repair now passes 33 focused regressions; the diagnostic-host failure remains unknown and supplies no review proof. Fresh native reviews remain required.
 
 - On `56c56e2`, Opus confirmed the initial-isolation repair with no blocking code finding but lacked the newly completed CI receipt. Sol passed six criteria and found REV-006/007 (R4/R7). Current repairs preserve planning findings and scoped recovery context; fresh proof remains required.
+
+- Qualified Opus and Sol current-claims assessments on `f0b3d0b` passed all eight criteria with complete coverage and no blocking findings. Exact-head CI and all nine local verification checks passed. Final documentation and evidence publication use the linked reports; issues remain in-review until human review/integration.

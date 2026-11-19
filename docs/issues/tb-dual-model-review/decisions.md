@@ -71,3 +71,10 @@ The Opus follow-up successfully parsed a complete fenced JSON response using the
 Keep open findings on approved requirements and planning paths in automatic history just as for repository paths, including through intervening negative reports. Neither PASS nor autonomous adjudication can discard an earlier objection by addressing only its successor. When original execution output is unavailable, retain scoped repository/criterion/source and reviewer facts with surviving findings as historical context. Qualification and initial independence inspect those facts without requiring a nonexistent context input; order context by the original result's journal position. Context remains evidence of an objection, never a replacement original receipt or a claimed restoration of missing bytes. Fresh proof must independently reconcile it. This repairs approved AC4/AC7 without amending design/spec or the human mandate.
 
 Opus v3 found no blocking code defects and confirmed REV-005, but withheld complete evidence approval because the new-head CI was not in its input. That CI subsequently passed (run44434956392, exact56c56e2). Its NB-2 proposal to hide all same-provider-family past model reports exceeds the approved chosen-model isolation policy and remains a nonblocking follow-up; no policy expansion is included.
+
+## D9 - Follow-up claim scope and review guidance
+
+- **Confidence:** HIGH
+- **Triggered by:** Complete native assessments carried unchanged closures while redundant implementer fix claims required fresh dispositions.
+
+Follow-up requests should claim new or affected repairs and retain unchanged closures through supported history applicability. Reasserting an earlier fix requires a new supported disposition. Adding a disposition is substantive reviewer judgment, so it cannot be supplied by format-only repair or by the implementer. Preserve unqualified outcomes and request fresh assessment when needed; do not weaken validation. Clarify this existing contract in PR-review guidance and update the development guide to require two complete cross-provider assessments. No runtime acceptance rule, human mandate or approved specification changes.

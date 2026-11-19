@@ -1,14 +1,16 @@
 # Specification assessment - tb-dual-model-review
 
-Last native assessment is Sol on candidate 099dca9. Repairs are pending a new assessment. Original source-scoped outcomes remain truthful:
+Both qualified independent implementation assessments on `f0b3d0b` PASS all eight criteria with complete coverage and no blocking findings: Opus `sha256:2beaa51559c668ef31c5031e90a874bff0e998c506eb52566d28e20314124f3b` and Sol `sha256:dd20d683278da25e662521398d578fa6ab5e753c6d381d4839a497f84222e454`. Both consume current local Verification059be661… and exact-head hosted-CI Verification300cea8b….
 
-| Criterion | Native outcome | Evidence |
+| Criterion | Outcome | Evidence |
 |---|---|---|
-| R1 | FAIL | boundary-review.js qualifies two selected cross-provider receipts and distinct contexts; bound stdout d3e2c0e... records full/light pair and missing-peer tests passing. Nevertheless REV-001 permits acceptance with an unavailable responsibility or selected criterion, violating the requirement for two complete perspectives. |
-| R2 | PASS | reviewer-selection.js requires discovered model/effort observations, labeled class judgments, rationale, high capability and distinct provider families. boundary-review.js records selection/replacement identity and matches executed receipt settings; unchanged selections are reused. Bound stdout d3e2c0e... records six selection-policy tests and pair reuse passing. Native instructions scope discovery to boundary reviewers without adding model-selection configuration. These fixtures do not establish live provider availability. |
-| R3 | FAIL | Bound concurrency, fast-peer history isolation and failure-retention tests pass for review.execute. REV-003 establishes that two individual gate.execute calls can instead qualify serial initial reviews, with the first automatically included in the second's history; acceptance does not enforce the initial independence contract. |
-| R4 | FAIL | Bound tests substantiate provider-namespaced findings, own-provider delta ancestry and shared present dispositions. REV-002 shows that historical open findings omitted from later FAIL reports are absent from the adjudication obligation, allowing acceptance without their resolution or disposition. |
-| R5 | UNAVAILABLE | contracts.js preserves full/supervised defaults and requires human named-run autonomous grants; delegation.js restricts authority kinds and protected slice delivery. Bound autonomous grant/revocation tests pass. However, runner.validation's claimed repaired broad regressions are unbound, and executed files omit current-dials, current-core and legacy delivery suites needed to substantiate unchanged supervised/delegated authority and dispute behavior. |
-| R6 | PASS | contracts.js retains goal/constraints in human grants; delegation.js binds independent planning assessment to that mandate and current commitments. core.js lines 420–435 retains previous/new amendment documents and refreshes specification proof; currentResult lines 728–758 checks mandate and current content. Bound autonomous tests cover in-mandate amendment, contradictory planning PASS rejection, explicit negative-assessment rebuttal and authority revocation. D5 preserves original FAIL and requires evidence rather than redefining the mandate. |
-| R7 | FAIL | autonomous.js binds adjudication to candidate, pair, selection, grant and mandate, retains original outcomes and blocks actual mandatory-check failures; corresponding bound tests pass. REV-001 still excuses incomplete assessment, and REV-002 allows remaining material objections to escape adjudication. Those gaps violate truthful convergence despite preserving FAIL labels. |
-| R8 | FAIL | Bound tests support ready-for-human final delivery, current/7 isolation, desktop dissent visibility and package staging. authorization.js retains per-PR release authorization, and publication.js renders both reports and adjudication separately. REV-004 nevertheless makes shipped SessionStart guidance report an autonomous run as supervised, contradicting required native visibility. |
+| R1 | PASS | Both qualified reports complete all five dimensions and every criterion. |
+| R2 | PASS | Runtime discovery and provider/effort provenance verified. |
+| R3 | PASS | Blind initial round, concurrent execution and recovery regressions pass. |
+| R4 | PASS | All seven blocking findings resolved; planning persistence and recovery verified. |
+| R5 | PASS | Supervised/delegated regression and explicit autonomous grants verified. |
+| R6 | PASS | Fixed mandate, independently assessed amendments and rebuttals verified. |
+| R7 | PASS | Complete objection reconciliation and mandatory-failure barriers verified. |
+| R8 | PASS | Protected delivery, native/desktop visibility, packaging and resumption verified. |
+
+Original FAIL/UNAVAILABLE outcomes remain retained. The final documentation revision updates rubric records and review guidance without changing runtime code; its final boundary qualification is recorded in [code-review.md](code-review.md). No human final acceptance, release merge, deployment or post-merge completion is claimed.

@@ -14,8 +14,13 @@ Implementation evidence is provisional until the exact final candidate receives 
 | Acceptance follow-ups | PASS; 40 passed, one optional test skipped; about 127 seconds | All previously failing delivery/light/workspace/guard groups, boundary independence and stale-authority admission, autonomous metrics/privacy. |
 | Native review repairs | PASS; 29 focused checks, then 44 integration checks with one optional skip; 13 SessionStart tests | Completeness, historical findings, initial provenance, recovery, delivery and native guidance. Three final serial/retry/lost-proof tests also pass after retention refinements. Native re-review remains pending. |
 | Initial history repair | PASS; 33 focused tests | Serial and unmarked seeds, unavailable-peer recovery, withheld findings, refusal of invented closures, reconciliation and individual follow-up reuse. Fresh final native reviews pending. |
+| Current-head verification on `56c56e2` | PASS; 62 CLI, 13 Python and 183 desktop tests (one optional desktop skip), package checks and audit | Actual governing Verification a83f56e…; exact-head CI run44434956392 also passed. |
+| Planning history and recovery repair | PASS; six focused regressions | Current `f0b3d0b` fixes native REV-006/007; complete affected checks and fresh reviews pending. |
+| `f0b3d0b` affected verification | PASS; all nine checks | 89 affected CLI tests + one optional skip; nine existing core history/review/acceptance tests; 13 Python; 183 desktop + one optional skip; native validation/lint/build and audit. Governing Verification059be661…; current-head broad CI remains pending. |
 | Lifecycle document lint | PASS | Issue/tracker extraction and branch document structure; interview status-line warning only. Semantic adequacy remains independent review. |
 
 Local raw outputs are retained under verification/ and the governing protocol store; routine raw logs and runtime objects are not intended source changes. Metrics capture reported incomplete; execution exit status and test summaries remain available. No missing token or cost value is treated as zero.
 
 No release merge, deployment, installed-plugin upgrade or post-merge integration is claimed. Main branch protection is active and enforced for administrators; the final release merge still needs the human instruction for that PR.
+
+Both qualified implementation reviews passed against the actual `f0b3d0b` current local and CI receipts. The final revision changes documentation/support records only; runtime-code equivalence and current documentation/package checks will be retained before final publication.

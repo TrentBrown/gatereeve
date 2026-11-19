@@ -20,6 +20,11 @@ qualified delta priors for follow-up; the implementer cannot author reviewer
 clearance. Individual `gate.execute review` assessments cannot satisfy the pair
 by themselves. Missing/unavailable review stays unavailable, never approval.
 
+Limit follow-up fix claims to new or affected repairs. Carry forward unchanged
+closures with supported history applicability; repeating a fix claim requires a
+new supported disposition for that finding. Adding a disposition changes the
+reviewer's judgment and needs a fresh assessment, rather than format-only repair.
+
 Supervised/delegated disputes require material clearance from both perspectives;
 return persistent disputes to the human with evidence. Under explicit autonomous
 authority only, use `review.adjudicate` for eligible in-mandate judgment calls,
