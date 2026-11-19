@@ -83,7 +83,7 @@ export function project(events) {
     decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, actions: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
     sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length,
     externalBlockers: [], externalBlocker: null, tripwires: null, tripwireHistory: [], planningReviews: [], handBack: null, delegationBlocked: null,
-    reviewerSelection: null, boundaryReviewHistory: [], adjudications: [],
+    reviewerSelection: null, reviewRounds: [], boundaryReviewHistory: [], adjudications: [],
     // Workspace configuration observed or written at run start (spec AC6), or later by workspace.configure.
     workspace: first.workspace ? { ...first.workspace, at: events[0].recordedAt, event: events[0].hash } : null };
   state.dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial,
@@ -107,6 +107,7 @@ export function project(events) {
         break;
       case 'SPEC_VALIDATED': state.specValidation = value; if (['SPECIFYING', 'PLANNING'].includes(state.phase)) state.phase = 'PLANNING'; break;
       case 'REVIEWERS_SELECTED': state.reviewerSelection = { ...value, event: event.hash, at: event.recordedAt }; break;
+      case 'REVIEW_ROUND_STARTED': state.reviewRounds.push({ ...value, event: event.hash, at: event.recordedAt }); break;
       case 'BOUNDARY_REVIEWED': state.boundaryReviewHistory.push({ ...value, event: event.hash, at: event.recordedAt }); break;
       case 'REVIEW_ADJUDICATED': state.adjudications.push({ ...value, event: event.hash, at: event.recordedAt }); break;
       case 'SOURCE_PREPARING': state.sourcePreparations.push(value); state.sourcePreparationStatus[value.id] = { status: 'preparing', reason: 'Preparation has not published a candidate; owned references are retained for retry.' }; break;
@@ -569,7 +570,8 @@ export class CurrentCore {
       if (definition.id === 'review') {
         try {
           const pair = await boundaryReviews(this, state, candidate, memo);
-          inventory.push({ gate: 'review', reference: null, references: pair.members.map(member => member.ref), outcome: pair.outcome, pair: pair.identity });
+          inventory.push({ gate: 'review', reference: null, references: pair.members.map(member => member.ref), outcome: pair.outcome, pair: pair.identity,
+            initialProof: pair.initialProof ? [pair.initialProof.baseline, ...pair.initialProof.reviews] : [] });
         } catch (error) { inventory.push({ gate: 'review', reference: null, outcome: 'UNAVAILABLE', reason: error.message }); }
         continue;
       }

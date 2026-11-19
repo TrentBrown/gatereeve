@@ -5,6 +5,7 @@ import { guardDelegatedAction, isAutonomous } from './delegation.js';
 
 export function eligibleResidualRisk(pair, mandate = null, rebuttal = null) {
   requireThat(pair.members.length === 2, 'Residual-risk acceptance requires both independent perspectives');
+  requireThat(pair.initialEstablished !== false, 'Initial reviewer independence must be established before adjudication');
   if (rebuttal) { requireThat(mandate, 'A rebuttal needs the fixed mandate'); mandateRebuttal(rebuttal, mandate); }
   for (const member of pair.members) {
     const { result } = member;
@@ -12,6 +13,11 @@ export function eligibleResidualRisk(pair, mandate = null, rebuttal = null) {
       'Unavailable or invalid review cannot be adjudicated');
     requireThat(result.coverage?.complete === true && result.coverage.limitations.length === 0,
       'Uncovered required scope cannot be adjudicated');
+    requireThat(result.dimensions?.length === 5 && result.dimensions.every(row => ['PASS', 'FAIL'].includes(row.outcome))
+      && result.criteria?.length > 0 && result.criteria.every(row => ['PASS', 'FAIL'].includes(row.outcome)),
+    'Adjudication needs complete responsibility and criterion conclusions, not unavailable assessments');
+    requireThat(!(member.unreconciledFindings ?? []).length, 'Unreconciled historical findings need independent clarification before adjudication');
+    requireThat(!member.incompleteDelta, 'Incomplete changed-path or interaction coverage cannot be adjudicated');
     requireThat(result.mandateAssessment?.outcome === 'PASS' || result.mandateAssessment?.outcome === 'FAIL' && rebuttal,
       'Mandate violations or unknown compliance cannot be accepted as residual risk; an unsupported claim needs counterevidence');
     for (const dimension of ['evidence', 'scope']) {

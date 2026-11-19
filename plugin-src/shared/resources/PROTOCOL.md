@@ -856,7 +856,13 @@ successful native execution. The main thread and planning-review model policy
 are unchanged. No model-selection configuration is added.
 
 `review.execute` coordinates native assessments and `boundaryReviews` qualifies
-the latest applicable result independently for each selected perspective. An
+the latest applicable result independently for each selected perspective. A
+coordinated initial round must establish independence for the selection before
+individual assessments can qualify as follow-ups. `REVIEW_ROUND_STARTED` retains
+the pre-round state; replay uses that history baseline while reconnecting to
+current job records, so an interrupted initial peer cannot inherit the first
+answer or relaunch a completed assessment. The packet retains the initial
+receipts and baseline as well as the current perspectives. An
 individual `gate.execute` remains useful for a targeted perspective, but cannot
 stand in for the pair. Per-provider delta priors must retain their own provider
 perspective. Findings receive provider-specific identities and original-ID
@@ -891,6 +897,10 @@ positions, rationale, retained evidence, remaining risk and a diminishing-return
 stopping reason when used. Unanimous approval is not required; both complete
 assessments are. Original FAIL/UNAVAILABLE never becomes reviewer PASS.
 
+Every responsibility and selected criterion must reach a complete PASS or FAIL
+conclusion before adjudication; UNAVAILABLE conclusions remain incomplete even
+inside an overall FAIL. Open historical findings need explicit reconciliation,
+and delta coverage must include changed paths and interactions.
 Missing or invalid assessments, uncovered required scope, missing verification,
 rejected coverage replacements, evidence-integrity failure and unknown mandate
 compliance are not adjudicable. A completed negative scope/mandate opinion may

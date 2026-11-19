@@ -88,14 +88,18 @@ test('autonomous adjudication accepts eligible dissent, retains FAIL and records
 test('residual-risk authority cannot substitute for mandatory evidence or mandate compliance', () => {
   const good = { outcome: 'PASS', coverage: { complete: true, limitations: [] }, findings: [],
     mandateAssessment: { outcome: 'PASS', evidence: 'Within the mandate' },
-    dimensions: ['evidence', 'scope'].map(name => ({ name, outcome: 'PASS', evidence: 'Checked' })) };
+    criteria: [{ id: 'brief', outcome: 'PASS', evidence: 'Checked' }],
+    dimensions: ['code', 'requirements', 'evidence', 'scope', 'findings'].map(name => ({ name, outcome: 'PASS', evidence: 'Checked' })) };
+  assert.deepEqual(eligibleResidualRisk({ members: [{ result: good }, { result: good }] }), []);
   for (const mutate of [
     row => { row.outcome = 'UNAVAILABLE'; },
     row => { row.coverage.complete = false; },
     row => { row.coverage.limitations = ['Unreviewed interaction']; },
     row => { row.mandateAssessment.outcome = 'FAIL'; },
     row => { row.mandateAssessment.outcome = 'UNAVAILABLE'; },
-    row => { row.dimensions[0].outcome = 'FAIL'; },
+    row => { row.dimensions.find(item => item.name === 'evidence').outcome = 'FAIL'; },
+    ...['code', 'requirements', 'findings'].map(name => row => { row.dimensions.find(item => item.name === name).outcome = 'UNAVAILABLE'; }),
+    row => { row.criteria[0].outcome = 'UNAVAILABLE'; },
     row => { row.coverageDecisions = [{ outcome: 'FAIL' }]; },
     row => { row.outcome = 'FAIL'; },
   ]) {
@@ -182,6 +186,43 @@ test('a rebuttal cannot excuse a failed actual mandatory verification check', as
   await assert.rejects(f.request('review.adjudicate', { candidate: state.candidate.hash, pair: pair.identity, reason: 'Do not override this failure.',
     mandateRebuttal: rebuttal, evidence: pair.members.map(member => member.ref),
     dispositions: [{ findingId: pair.members[1].result.findings[0].id, outcome: 'unsupported', reason: 'Reviewer interpretation is disputed.', evidence: 'A rebuttal is not a test PASS.', residualRisk: 'The actual mandatory test failed.' }] }, 'forbidden'), /failed or missing mandatory/);
+});
+for (const missing of ['code', 'requirements', 'findings', 'criterion']) test(`an incomplete ${missing} conclusion cannot become autonomous acceptance`, async t => {
+  const f = await prepared(t); await grant(f); await f.request('candidate.ready', {}, 'ready');
+  pairedAdapters(f, { blocking: ['claude-code'] });
+  const adapter = f.core.runtime.evaluators['claude-code'], run = adapter.runStage.bind(adapter);
+  adapter.runStage = async request => {
+    const result = await run(request);
+    for (const verdict of result.output.verdicts) {
+      if (missing === 'criterion') verdict.criteria[0].outcome = 'UNAVAILABLE';
+      else verdict.dimensions.find(row => row.name === missing).outcome = 'UNAVAILABLE';
+    }
+    result.receipt.digests.output = sha256Digest(result.output); return result;
+  };
+  await f.request('review.execute', {}, 'incomplete');
+  const { state } = await f.core.state(), pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.equal(pair.members[1].result.outcome, 'FAIL', 'The original negative assessment stays retained');
+  await assert.rejects(f.request('review.adjudicate', { candidate: state.candidate.hash, pair: pair.identity, reason: 'Do not accept incomplete conclusions.', evidence: pair.members.map(member => member.ref),
+    dispositions: [{ findingId: pair.members[1].result.findings[0].id, outcome: 'accepted-risk', reason: 'Incomplete is not residual risk.', evidence: 'Missing conclusion.', residualRisk: 'Unknown.' }] }, 'forbidden'), /complete responsibility and criterion/);
+});
+test('a later failed report cannot omit an older open finding from autonomous reconciliation', async t => {
+  const f = await prepared(t); await grant(f); await f.request('candidate.ready', {}, 'ready');
+  pairedAdapters(f, { blocking: ['claude-code'] }); await f.request('review.execute', {}, 'initial');
+  let state = (await f.core.state()).state;
+  const first = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  const originalId = first.members[1].result.findings[0].id;
+  const adapter = f.core.runtime.evaluators['claude-code'], run = adapter.runStage.bind(adapter);
+  adapter.runStage = async request => {
+    const result = await run(request);
+    for (const verdict of result.output.verdicts) verdict.findings[0].id = 'new-issue';
+    result.receipt.digests.output = sha256Digest(result.output); return result;
+  };
+  await f.request('gate.execute', { gates: ['review'], configuration: { provider: 'claude-code', model: 'fixture', reviewerSelection: state.reviewerSelection.event, reviewRevision: 2 } }, 'later-fail');
+  state = (await f.core.state()).state;
+  const pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.ok(pair.members[1].unreconciledFindings.includes(originalId));
+  await assert.rejects(f.request('review.adjudicate', { candidate: state.candidate.hash, pair: pair.identity, reason: 'Cannot silently drop the original finding.', evidence: pair.members.map(member => member.ref),
+    dispositions: [{ findingId: pair.members[1].result.findings[0].id, outcome: 'accepted-risk', reason: 'Only the new issue was addressed.', evidence: 'Original issue has no disposition.', residualRisk: 'Unreconciled original issue.' }] }, 'forbidden'), /Unreconciled historical/);
 });
 test('follow-up peers may both retain one original finding without duplicate-disposition deadlock', async t => {
   const f = await prepared(t); await grant(f); await f.request('candidate.ready', {}, 'ready');

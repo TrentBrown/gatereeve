@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:0b0f44918c1de2fd0bdfb0f0e01d4fba6b637973c088f00b360e4cd1c0f4d763",
+  "protocolHash": "sha256:f6f18c69c318836af724654bc05794d413e79ca0e900f85895103c1fe8a1bfb5",
   "contract": "gatereeve/current/8",
   "contractSha256": "83710584359e6c5032493af4cde03e539d4dc90f2b8603b7a29fc00fd13c65d2",
   "files": [
@@ -37,13 +37,13 @@
     },
     {
       "path": "current/autonomous.js",
-      "size": 7341,
-      "sha256": "b91b92f99ff4bfdf7e357cbe28f85317ae01be05518d0393eff816c549b549bf"
+      "size": 8066,
+      "sha256": "4290b87f5cbdfa1633f864edc2046c082656a472bf0a261dc79d0637049cbaf8"
     },
     {
       "path": "current/boundary-review.js",
-      "size": 8187,
-      "sha256": "dd3e8307d5eefd99050f74b26d0f3d18982b1ff8cd3860151cd0bc2a17148b91"
+      "size": 13382,
+      "sha256": "08ccfedc506d8d5cceed4eb2793d315ffc738337955058cd2c22ca49206ad9e8"
     },
     {
       "path": "current/command-guard.js",
@@ -57,8 +57,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 97090,
-      "sha256": "e5b56b4b21f2d159be56ba4c32676f6ea643e1b0ac5698011b7b48be0f3f4c23"
+      "size": 97341,
+      "sha256": "60fcc0c39f6625d695406fbbbb219c9ac8dd36357600d5972aa755881c3861d1"
     },
     {
       "path": "current/coverage.js",
@@ -97,8 +97,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 73774,
-      "sha256": "5750dbdfeea9e294653c1d0c3ab353cab0d4fbabf74395856a26889c48a5ab10"
+      "size": 74187,
+      "sha256": "4eec11586545391acd6ff760a3b856b91cf5310e198f2a9dfc6a69fcc4d31eda"
     },
     {
       "path": "current/generated-inputs.js",
@@ -137,8 +137,8 @@
     },
     {
       "path": "current/publication.js",
-      "size": 13629,
-      "sha256": "98b965a1290b2ca8eb07c7949e50edb748b3f6a6d37ffcd5f567eb8144f6979b"
+      "size": 13935,
+      "sha256": "f5bdae2bce41a6b33988d5745da9786509bc087c1842565886f4b95fb05dc5d2"
     },
     {
       "path": "current/review-history.js",

@@ -566,6 +566,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
   const runnerEnvironment = role === 'runner' ? resolveRunnerEnvironment(configuration) : Object.freeze({});
   const mandate = state.dials.autonomy.value === 'autonomous' ? state.dials.autonomy.mandate : null;
   const value = { contract: CONTRACT, gates: input.gates, candidate: state.candidate, configuration, consumed, support, mandate,
+    reviewRound: reviewBaseline?.round ?? null,
     environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment, { retainDiagnostics: true }),
     pattern: input.gates.some(id => ['review', 'pattern'].includes(id)) ? await patternInputs(core.store, core.context, candidate, core.runtime.pythonGuardOptions) : null,
     integrations: definitions[0].at === 'completion' ? state.integrations : null,
@@ -586,6 +587,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       if (result.gate === 'review' && (previous.configuration.provider !== configuration.provider
         || previous.configuration.model !== configuration.model
         || previous.configuration.reviewerSelection !== configuration.reviewerSelection)) continue;
+      if (result.gate === 'review' && reviewBaseline && (!previous.reviewRound
+        || !reviewBaseline.initialEstablished && previous.reviewRound !== reviewBaseline.round)) continue;
       // Only the latest verdict may be reused. Its own qualified closures change
       // derived history, but are not new review inputs. A later result always wins.
       examined.add(result.gate);
@@ -612,7 +615,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     if (retained) {
       requireThat(retained.runId === state.runId && retained.operation.hash === operation.hash, 'Retained job identity mismatch');
       for (const ref of retained.results) await core.store.get(ref);
-      return core.append(state, 'JOB_FINISHED', { jobId, results: retained.results }, operation);
+      return finishJob(core, state.runId, jobId, retained.results, operation);
     }
     return { status: 'UNAVAILABLE', jobId, reason: 'Prior execution outcome is uncertain. Inspect retained job evidence; do not automatically relaunch.' };
   }
@@ -765,10 +768,14 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     }
   }
   await core.store.saveJob(jobId, { runId: state.runId, operation, results: refs });
+  return finishJob(core, state.runId, jobId, refs, operation);
+}
+
+async function finishJob(core, runId, jobId, refs, operation) {
   while (true) {
     const current = (await core.state()).state;
     // Results retain their original candidate even if edits occurred during execution.
-    requireThat(current.runId === state.runId, 'Active run changed during execution; original outcome retained without entering the replacement run');
+    requireThat(current.runId === runId, 'Active run changed during execution; original outcome retained without entering the replacement run');
     try { return await core.append(current, 'JOB_FINISHED', { jobId, results: refs }, operation); }
     catch (error) { if (!error.message.startsWith('Concurrent update;')) throw error; }
   }
@@ -801,7 +808,7 @@ export async function coreEvidence(core, state, candidate, id, consumed = [], ap
       // eligibility is checked separately, so one human instruction may supply
       // a waiver and acceptance without fabricating a successful evaluation.
       const inventory = await core.inventory(state, candidate, applicabilityMemo);
-      await core.store.closure(inventory.flatMap(item => item.references ?? [item.reference]).filter(Boolean));
+      await core.store.closure(inventory.flatMap(item => [...(item.references ?? [item.reference]), ...(item.initialProof ?? [])]).filter(Boolean));
       return { gate: id, outcome: 'PASS', summary: 'Complete evidence inventory retained, including missing proof; human decisions supplement this packet', findings: [], dispositions: [], inventory, historyGaps: await core.historyGaps(state) };
     }
     case 'retention': {
@@ -812,7 +819,7 @@ export async function coreEvidence(core, state, candidate, id, consumed = [], ap
       }
       const retained = { candidate: state.candidate, decisions: state.decisions,
         integrations: state.integrations, validationFailures: state.validationFailures };
-      await core.store.closure([retained, inventory.flatMap(item => item.references ?? [item.reference]).filter(Boolean), completion.map(item => item.reference)]);
+      await core.store.closure([retained, inventory.flatMap(item => [...(item.references ?? [item.reference]), ...(item.initialProof ?? [])]).filter(Boolean), completion.map(item => item.reference)]);
       await core.store.events(state.runId);
       return { gate: id, outcome: 'PASS', summary: 'Current required evidence retained; historical losses remain visible; Git tracking optional; backup not asserted', findings: [], dispositions: [], inventory, completion, retained, historyGaps: await core.historyGaps(state) };
     }

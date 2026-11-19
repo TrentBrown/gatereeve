@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { rm } from 'node:fs/promises';
+import { join } from 'node:path';
 import { boundaryReviews } from '../../plugin-src/shared/resources/protocol/current/boundary-review.js';
 
 import { selection, prepared, pairedAdapters } from './helpers/paired-review-fixture.js';
@@ -84,12 +86,67 @@ test('a single historical assessment never satisfies the paired boundary obligat
   assert.equal(review.satisfied, false);
   assert.match(review.reason, /anthropic/);
 });
+test('serial individual assessments cannot establish the coordinated initial round', async t => {
+  const f = await prepared(t); pairedAdapters(f);
+  const selected = (await f.core.state()).state.reviewerSelection;
+  for (const provider of ['codex', 'claude-code']) await f.request('gate.execute', { gates: ['review'],
+    configuration: { provider, model: 'fixture', reviewerSelection: selected.event } }, `serial-${provider}`);
+  const review = (await f.request('milestone.check', { name: 'acceptance' })).outcomes.find(row => row.id === 'review');
+  assert.equal(review.satisfied, false);
+  assert.match(review.reason, /coordinated independent initial/);
+  const launches = pairedAdapters(f);
+  await f.request('review.execute', {}, 'actual-initial-round');
+  assert.equal(launches(), 2, 'Serial reports must not be reused as the independent initial pair');
+  assert.equal((await f.request('milestone.check', { name: 'acceptance' })).outcomes.find(row => row.id === 'review').satisfied, true);
+});
+test('an interrupted initial round retains its baseline and completed peer on retry', async t => {
+  const f = await prepared(t), launches = pairedAdapters(f, { blocking: ['codex'] });
+  const histories = [];
+  for (const [provider, adapter] of Object.entries(f.core.runtime.evaluators)) {
+    const run = adapter.runStage.bind(adapter);
+    adapter.runStage = async request => { histories.push({ provider, history: request.input.history }); return run(request); };
+  }
+  const append = f.core.append.bind(f.core);
+  f.core.append = async (...args) => {
+    if (args[1] === 'JOB_STARTED' && (await f.core.store.json(args[2].input)).configuration.provider === 'claude-code') throw new Error('Interrupted before peer admission');
+    if (args[1] === 'BOUNDARY_REVIEWED') throw new Error('Interrupted before round publication');
+    return append(...args);
+  };
+  await assert.rejects(f.request('review.execute', {}, 'interrupted'), /round publication/);
+  assert.equal(launches(), 1);
+  f.core.append = append;
+  await f.request('review.execute', {}, 'interrupted');
+  assert.equal(launches(), 2, 'The original completed report must survive recovery without relaunch');
+  assert.deepEqual(histories.map(row => row.history.length), [0, 0], 'The delayed initial peer must not inherit the first answer on retry');
+  const { state } = await f.core.state();
+  const pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.deepEqual(pair.members.map(member => member.result.outcome), ['FAIL', 'PASS']);
+  assert.equal(pair.initialEstablished, true);
+});
 test('unchanged successful perspectives are reused independently', async t => {
   const f = await prepared(t);
   const launches = pairedAdapters(f);
   await f.request('review.execute', {}, 'first');
   await f.request('review.execute', {}, 'second');
   assert.equal(launches(), 2);
+});
+test('lost initial-round context blocks acceptance and fresh independent proof can replace it', async t => {
+  const f = await prepared(t), launches = pairedAdapters(f);
+  await f.request('candidate.ready', {}, 'ready');
+  await f.request('review.execute', {}, 'first');
+  let state = (await f.core.state()).state;
+  let pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  const inventory = await f.core.inventory(state, await f.core.store.json(state.candidate));
+  assert.equal(inventory.find(row => row.gate === 'review').initialProof.length, 3);
+  await rm(join(f.home, '.gatereeve-current/objects', pair.initialProof.baseline.hash.slice(7)));
+  assert.equal((await f.request('milestone.check', { name: 'acceptance' })).allowed, false);
+  await f.request('review.execute', {}, 'replace-lost-initial');
+  state = (await f.core.state()).state;
+  pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.equal(launches(), 4, 'Lost initial proof requires two fresh contexts, not reuse of unqualified history');
+  assert.equal(pair.outcome, 'PASS');
+  const check = await f.request('milestone.check', { name: 'acceptance' });
+  assert.equal(check.allowed, true, check.missing.join('; '));
 });
 test('local finding IDs retain distinct reviewer provenance', async t => {
   const f = await prepared(t);

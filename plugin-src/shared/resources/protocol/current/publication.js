@@ -31,7 +31,7 @@ export async function currentReview(core, state, candidate) {
   const active = [latestImplementation(state), candidate.requirements?.['design.md'] ? currentDesignApproval(state, candidate.requirements['design.md'].hash) : null];
   const planningJudgments = [...new Map(active.filter(item => item?.authority?.basis === 'autonomous-judgment').map(item => [item.event, item])).values()];
   const ref = await core.store.putJson({ kind: 'boundary-review-summary', candidate: state.candidate,
-    pair: pair.identity, selection: pair.selection, reviews: pair.members.map(member => member.ref), outcome: pair.outcome, adjudication, planningJudgments });
+    pair: pair.identity, selection: pair.selection, reviews: pair.members.map(member => member.ref), initialProof: pair.initialProof, outcome: pair.outcome, adjudication, planningJudgments });
   return { ref, pair, adjudication, planningJudgments, result: { outcome: pair.outcome, summary: pair.summary }, receipt: {} };
 }
 const OUTCOME_NOTE = {
@@ -57,6 +57,8 @@ export function renderSummary({ candidateRef, candidate, pin, review }) {
       if (member.result.mandateAssessment) lines.push(`- **Mandate assessment:** ${inline(member.result.mandateAssessment.outcome)} — ${inline(member.result.mandateAssessment.evidence)}`);
       for (const finding of member.result.findings ?? []) lines.push(`- ${finding.blocking ? 'Blocking' : 'Nonblocking'} \`${inline(finding.id)}\` (${inline(finding.criterion)}, \`${inline(finding.path)}\`): ${inline(finding.evidence)}`);
       for (const disposition of member.result.dispositions ?? []) lines.push(`- Finding \`${inline(disposition.id)}\`: ${inline(disposition.status)} — ${inline(disposition.evidence)}`);
+      if (member.unreconciledFindings?.length) lines.push(`- **Unreconciled prior findings:** ${member.unreconciledFindings.map(inline).join(', ')}`);
+      if (member.incompleteDelta) lines.push('- **Incomplete delta:** changed-path or interaction coverage is missing.');
       if (member.qualification) lines.push(`- **Qualification limit:** ${inline(member.qualification)}`);
     }
     if (adjudication) {
