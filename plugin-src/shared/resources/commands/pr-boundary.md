@@ -11,12 +11,18 @@ Use review.select and review.execute for the required pair; request additional r
 Context, packet and retention are checked automatically at their milestone.
 Reuse qualifying proof or request targeted independent delta review covering
 changed code and interactions. Preserve original failures and supported findings.
-Include the human explanation in the review summary and validate packet
-reference closure. `milestone.check/pass` acceptance enforces required proof or
+Pattern review is optional. Request its gate explicitly when active rules need a
+dedicated assessment. Validate packet reference closure. `milestone.check/pass` acceptance enforces required proof or
 scoped exceptions. In both rigors, run `review.publish` for the PR so its
 description carries the current independent review summary for the candidate
-head before presenting it; republish after any new review or candidate. Present
-exact candidate and risks for human acceptance unless an applicable recorded
+head before presenting it. Once acceptance evidence qualifies, the operation
+returns the pinned local HTML explainer and any configured Mutineer advisory.
+Lead with the explainer link for human or agent review. If generation fails,
+retry publication using the retained verification and review. Republish after
+any new review or candidate. For opted-in repositories, Mutineer runs against
+the pinned target only at this handoff. Surface its status and report link in
+the thread. Offer pruning separately when a maintainer requests it.
+Present the exact candidate and risks for human acceptance unless an applicable recorded
 standing acceptance grant already covers this work, or the run is delegated and
 the candidate is a fully passing `SLICE` PR into the integration branch
 (`delegation.apply`; PROTOCOL.md Delegated autonomy). A light run's tripwire hits

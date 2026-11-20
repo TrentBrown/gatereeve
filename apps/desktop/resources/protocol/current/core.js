@@ -10,7 +10,7 @@ import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-w
 import { executionEnvironment, assertEnvironmentCurrent } from './environment.js';
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
-import { CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, DELEGATED_AUTHORITY, AUTONOMOUS_AUTHORITY, startDial, dialChange, automaticDial, requireThat, identity,
+import { ID, CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, DELEGATED_AUTHORITY, AUTONOMOUS_AUTHORITY, startDial, dialChange, automaticDial, requireThat, identity,
   identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity, briefBased } from './evidence.js';
@@ -826,7 +826,7 @@ export class CurrentCore {
       }
       const validators = ['reconcile', 'triage'].includes(gateId) ? [await planningBinding()] : [];
       return identity({ validators, configuration: input.configuration, dependencies, support, rule: reviewContract([gateId], candidate),
-        pattern: ['review', 'pattern'].includes(gateId) ? await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false, allowMissing: true }) : null,
+        pattern: gateId === 'pattern' ? await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false, allowMissing: true }) : null,
         externalValidity: !input.validUntil || Date.now() <= Date.parse(input.validUntil),
         integrations: gate(gateId).at === 'completion' ? state.integrations : null,
         historyGaps: gaps.filter(gap => gap.gate === null || gap.gate === gateId),
@@ -1162,7 +1162,12 @@ export class CurrentCore {
       for (const ref of saved.results) requireThat(ref?.format === 'json' && typeof ref.hash === 'string' && Number.isSafeInteger(ref.bytes), 'Invalid retained execution result reference');
       // Publishing these original references preserves historical truth. Missing
       // object bytes remain explicit gaps; they cannot become current PASS.
-      const recorded = await this.append(state, 'JOB_FINISHED', { jobId: pending.jobId, results: saved.results }, saved.operation);
+      const legacy = typeof saved.operation.id === 'string' && saved.operation.id.length > 128
+        && ID.test(saved.operation.id.slice(0, 128)) && /^[a-zA-Z0-9_-]+$/u.test(saved.operation.id.slice(128));
+      const completion = legacy ? { id: `legacy_finish_${pending.jobId}`, hash: saved.operation.hash } : saved.operation;
+      const recorded = await this.append(state, 'JOB_FINISHED', {
+        jobId: pending.jobId, results: saved.results, ...(legacy ? { originalOperation: saved.operation } : {}),
+      }, completion);
       state = recorded.state;
     }
   }
@@ -1224,7 +1229,7 @@ export class CurrentCore {
   }
   async executeObserved(request) {
     const input = request.input ?? {};
-    const operation = { id: request.operationId ?? randomUUID(), hash: identity({ operation: request.operation, input }) };
+    const operation = { id: identifier(request.operationId ?? randomUUID(), 'operation'), hash: identity({ operation: request.operation, input }) };
     const mutating = !['status', 'snapshot', 'database.inspect', 'database.history', 'milestone.check', 'coverage.status'].includes(request.operation);
     if (mutating) { await this.assertContext(); await this.store.activationHead({ repair: true }); }
     if (request.operation === 'database.inspect') return this.store.inspect();

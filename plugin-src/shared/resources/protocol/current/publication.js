@@ -4,6 +4,7 @@ import { configuredGit } from './authorization.js';
 import { gh, remoteName } from './actions.js';
 import { boundaryReviews } from './boundary-review.js';
 import { currentAdjudication } from './autonomous.js';
+import { finalHandoff } from './final-handoff.js';
 
 // The independent review summary is published into a delimited section of the
 // PR description (spec AC6/R9). The section is rendered deterministically from
@@ -47,6 +48,10 @@ export function renderSummary({ candidateRef, candidate, pin, review }) {
       `- **Reviewed head:** \`${pin.alias}\` \`${pin.head}\` (base \`${pin.base}\`, target \`${pin.target}\`)`,
       `- **Candidate:** \`${candidateRef.hash}\` (${candidate.scope}; ${briefBased(candidate) ? 'light rigor, brief basis' : 'full rigor, rubric basis'})`,
       `- **Selection:** ${inline(pair.selection.selection.reason)}`];
+    for (const entry of pair.selection.selection.preferenceEvidence ?? []) {
+      for (const skipped of entry.skipped) lines.push(`- **${inline(entry.provider)} preference skipped:** ${inline(skipped.model)} — ${inline(skipped.reason)}`);
+      if (entry.basis === 'agent-judgment') lines.push(`- **${inline(entry.provider)} fallback:** ${inline(entry.reason)}`);
+    }
     for (const member of pair.members) {
       lines.push('', `**${inline(member.reviewer.modelProvider)} — ${inline(member.reviewer.model)} (${inline(member.reviewer.reasoningEffort)} effort): ${member.result.outcome}**`,
         `- **Evidence:** ${member.ref ? `\`${member.ref.hash}\`` : 'UNAVAILABLE — no current receipt'}`,
@@ -146,6 +151,7 @@ export async function publishReview(core, input) {
   const pr = await readPullRequest(core, target.repository.path, target.ownerRepo, input.number);
   requireThat(pr.state !== 'MERGED', 'Selected PR is already merged');
   requireThat(pr.headRefOid === target.pin.head, `PR head ${pr.headRefOid} differs from the reviewed candidate head ${target.pin.head}; push the reviewed head or prepare and review a new candidate`);
+  const handoff = await finalHandoff(core, target);
   const body = withSummary(pr.body, target.section);
   const changed = body !== normalize(pr.body);
   if (changed) {
@@ -155,7 +161,7 @@ export async function publishReview(core, input) {
     requireThat(publishedSection(published.body) === target.section, 'Published review summary could not be verified on the PR');
   }
   return { repository: input.repository, number: input.number, ownerRepo: target.ownerRepo, head: target.pin.head,
-    candidate: target.state.candidate, review: target.review.ref, outcome: target.review.result.outcome, changed, section: target.section };
+    candidate: target.state.candidate, review: target.review.ref, outcome: target.review.result.outcome, ...(handoff ? { handoff } : {}), changed, section: target.section };
 }
 // Merge authorization (human or standing) and protected merge require the PR to
 // carry the current summary for the exact prepared head.

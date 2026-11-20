@@ -161,6 +161,12 @@ export class CurrentStore {
     const bytes = await readSafe(this.home, localPath(path));
     return { path, hash: digest(bytes), bytes: bytes.length };
   }
+  async publishReport(path, reference) {
+    const bytes = await this.get(reference);
+    const created = await publish(this.home, path, bytes);
+    requireThat(created || digest(await readSafe(this.home, path)) === reference.hash, 'Existing handoff report is corrupt');
+    return join(this.home, path);
+  }
   async capture(path) { return { path: localPath(path), ...await this.put(await readSafe(this.home, path)) }; }
   async currentBytes(ref) {
     const bytes = await readSafe(this.home, ref.path);

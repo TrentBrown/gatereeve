@@ -40,3 +40,31 @@ test('selection needs two reviewers, discovery provenance and an honest class ba
   const basis = input(); basis.observations[0].basis = 'guaranteed';
   assert.throws(() => reviewerSelection(basis), /agent judgment/);
 });
+
+test('configured preferences enforce order and preserve eligible same-provider fallback', () => {
+  const value = input();
+  value.observations.push({ ...value.observations[1], model: 'preferred' });
+  const preferences = { 'claude-code': [{ model: 'missing' }, { model: 'preferred', reasoningEffort: 'high' }] };
+  assert.throws(() => reviewerSelection(value, preferences), /first eligible configured claude-code reviewer/);
+  value.reviewers[1].model = 'preferred';
+  const preferred = reviewerSelection(value, preferences);
+  assert.equal(preferred.preferenceEvidence[0].basis, 'configured-preference');
+  assert.deepEqual(preferred.preferenceEvidence[0].skipped.map(row => row.model), ['missing']);
+  value.reviewers[1].model = 'daily-1';
+  preferences['claude-code'][1].reasoningEffort = 'unsupported';
+  assert.equal(reviewerSelection(value, preferences).preferenceEvidence[0].basis, 'agent-judgment');
+  assert.equal(reviewerSelection(value, {}).preferenceEvidence, undefined);
+});
+
+test('correction removes only ineligible affected IDs and preserves present dispositions', async () => {
+  const { validateFormatRepair } = await import('../../plugin-src/shared/resources/protocol/current/execution.js');
+  const original = {
+    gate: 'review', outcome: 'PASS', findings: [],
+    historyAssessment: { affected: ['closed', 'open-advisory'], carryForwardReason: '' },
+    dispositions: [{ id: 'open-advisory', status: 'present', evidence: 'Still present in current source.' }],
+  };
+  const corrected = { ...original, historyAssessment: { ...original.historyAssessment, affected: ['closed'] } };
+  assert.doesNotThrow(() => validateFormatRepair(original, corrected, [], ['closed']));
+  assert.throws(() => validateFormatRepair(original, { ...corrected, dispositions: [] }, [], ['closed']), /Substantive assessment changes/);
+  assert.throws(() => validateFormatRepair(original, { ...corrected, historyAssessment: { affected: [], carryForwardReason: '' } }, [], ['closed']), /Substantive assessment changes/);
+});

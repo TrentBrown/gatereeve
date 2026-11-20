@@ -299,3 +299,25 @@ test('each provider supplies its own delta after source changes and cannot borro
   assert.ok(pair.members.every(member => member.result.mode === 'delta'));
   assert.deepEqual(pair.members.map(member => member.result.prior.hash), prior.members.map(member => member.ref.hash));
 });
+
+test('Claude gets one same-model correction and retains the original Codex result', async t => {
+  const f = await prepared(t);
+  pairedAdapters(f);
+  const counts = { codex: 0, 'claude-code': 0 };
+  for (const [provider, adapter] of Object.entries(f.core.runtime.evaluators)) {
+    const run = adapter.runStage.bind(adapter);
+    adapter.runStage = async request => {
+      counts[provider]++;
+      if (provider === 'claude-code' && counts[provider] === 1) {
+        throw Object.assign(new Error('Malformed JSON'), { providerFailure: { category: 'malformed-output' } });
+      }
+      return run(request);
+    };
+  }
+  const done = await f.request('review.execute', {}, 'repair-pair');
+  assert.deepEqual(counts, { codex: 1, 'claude-code': 2 });
+  const reports = await Promise.all(done.event.payload.outcomes.map(row => f.core.store.json(row.results[0])));
+  assert.deepEqual(reports.map(row => row.outcome), ['PASS', 'PASS']);
+  const { state } = await f.core.state();
+  assert.equal((await boundaryReviews(f.core, state, await f.core.store.json(state.candidate))).outcome, 'PASS');
+});

@@ -254,11 +254,12 @@ test('bundled provider output schemas type every constant', async () => {
 });
 
 
-test('Claude structured output accepts an entire JSON fence but rejects prose or broken JSON', () => {
+test('Claude structured output accepts one JSON fence in fallback text but rejects ambiguity and broken JSON', () => {
   const parse = result => parseClaudeStructuredOutput(JSON.stringify({ session_id: 'fresh', result }));
   assert.deepEqual(parse('```json\n{"ok":true}\n```').output, { ok: true });
-  assert.throws(() => parse('Explanation\n```json\n{"ok":true}\n```'));
-  assert.throws(() => parse('```json\n{"ok":true}\n```\nMore text'));
+  assert.deepEqual(parse('Explanation\n```json\n{"ok":true}\n```').output, { ok: true });
+  assert.throws(() => parse('```json\n{"ok":true}\n```\n```json\n{"ok":false}\n```'));
+  assert.throws(() => parse('```json\n{"ok":true}\n```\n{"ok":false}'));
   assert.throws(() => parse('```json\n{"ok":}\n```'));
 });
 

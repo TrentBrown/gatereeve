@@ -17,6 +17,11 @@ async function run(options, operation, input = {}, detail = {}) {
   const result = await executeProtocolRequest({ ...context(options), operation, input, ...detail });
   if (options.json) console.log(JSON.stringify(result, null, 2));
   else if (!result.ok) console.error(`${result.error.code}: ${result.error.message}`);
+  else if (operation === 'review.publish' && result.data?.handoff) {
+    const { path, mutation } = result.data.handoff;
+    console.log(`PR explainer: ${path}`);
+    if (mutation) console.log(`Mutineer advisory: ${mutation.status}${mutation.reason ? ` — ${mutation.reason}` : ''}${mutation.path ? ` (${mutation.path})` : ''}`);
+  }
   else if (result.data?.contract && result.data?.featureId && result.data?.milestones) {
     console.log(`${result.data.featureId}: ${result.data.current?.phase ?? result.data.phase ?? 'current run needed'}`);
     // Both run dials, or the built-in defaults a new run receives when none exists.

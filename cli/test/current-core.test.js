@@ -2693,3 +2693,39 @@ test('standing grants bind effective fetch and push URLs even with unchanged raw
   }
   assert.equal((await f.request('authorization.apply', { grant: grant.event.hash }, 'restored-remote')).event.type, 'DECIDED');
 });
+
+test('oversized operation IDs fail before execution and legacy completed outcomes reconcile once', async t => {
+  const f = await fixture(t);
+  await authorize(f);
+  await candidate(f);
+  const config = { gates: ['verification'], configuration: {
+    checks: [{ repository: 'app', command: process.execPath, args: ['--version'], purpose: 'Verify the fixture runner' }],
+  } };
+  const oversized = 'v'.repeat(129);
+  const before = await f.core.state();
+  await assert.rejects(f.request('gate.execute', config, oversized), /Invalid operation/);
+  assert.equal((await f.core.state()).events.length, before.events.length);
+  const completed = await f.request('gate.execute', config, 'valid-source');
+  const refs = completed.event.payload.results;
+  const prior = completed.event.payload.jobId;
+  const current = (await f.core.state()).state;
+  const original = { id: oversized, hash: identity({ operation: 'gate.execute', input: config }) };
+  const jobId = identity({ run: current.runId, operation: original }).slice(7);
+  const result = await f.core.store.json(refs[0]);
+  const receipt = await f.core.store.putJson({ ...await f.core.store.json(result.receipt), jobId });
+  const results = [await f.core.store.putJson({ ...result, receipt })];
+  const started = await f.core.append(current, 'JOB_STARTED', { jobId, input: current.jobs[prior].input, gates: config.gates },
+    { id: `start_${jobId}`, hash: identity(jobId) });
+  await f.core.append(started.state, 'JOB_OUTCOME_READY', { jobId, operation: original, results },
+    { id: `outcome_${jobId}`, hash: identity(results) });
+  await f.request('candidate.ready', {}, 'recover-legacy');
+  await f.core.reconcileCompletedJobs();
+  const { state, events } = await f.core.state();
+  assert.deepEqual(await f.core.store.job(jobId), { runId: current.runId, operation: original, results });
+  assert.deepEqual(state.jobs[jobId].results, results);
+  const recorded = events.filter(event => event.type === 'JOB_FINISHED' && event.payload.jobId === jobId);
+  assert.equal(recorded.length, 1);
+  assert.deepEqual(recorded[0].payload.originalOperation, original);
+  assert.equal(recorded[0].operation.hash, original.hash);
+  assert.equal((await f.core.recordedResult(results[0], state)).result.outcome, result.outcome);
+});

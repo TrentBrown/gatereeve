@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:88c2edb5d35213e26ee2cd5aab9a49dd323de43cfa2354efec852454961b132a",
+  "protocolHash": "sha256:052bbdda66257af46d5d223d56f2b76305acb07b948d0a771db6e49a4e1212ff",
   "contract": "gatereeve/current/8",
   "contractSha256": "83710584359e6c5032493af4cde03e539d4dc90f2b8603b7a29fc00fd13c65d2",
   "files": [
@@ -17,8 +17,8 @@
     },
     {
       "path": "context.js",
-      "size": 14631,
-      "sha256": "f389de38dd2838215418ec2634d606aff6a91fe43aabab8641356e47b1951e09"
+      "size": 16806,
+      "sha256": "12f81793f4785a1e4f90fa1b68badc4129e8c7649eb7683ef359a10149491795"
     },
     {
       "path": "current/actions.js",
@@ -42,8 +42,8 @@
     },
     {
       "path": "current/boundary-review.js",
-      "size": 13923,
-      "sha256": "3e590b88362aae6de841911991b0d14e96cbcd509545e91a0ef479e9e33576b4"
+      "size": 14568,
+      "sha256": "74699ec6885025461ef5f0b2b4d6f8ad51215d59aad6c6b0819cbea22c73a788"
     },
     {
       "path": "current/command-guard.js",
@@ -57,8 +57,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 97341,
-      "sha256": "60fcc0c39f6625d695406fbbbb219c9ac8dd36357600d5972aa755881c3861d1"
+      "size": 97751,
+      "sha256": "9867e672433378936b1ae487d7840d55c6f2b257f3fb503360a9ce93fdd827bb"
     },
     {
       "path": "current/coverage.js",
@@ -97,8 +97,13 @@
     },
     {
       "path": "current/execution.js",
-      "size": 75198,
-      "sha256": "d409405ff058d53501d153dc2db1dc9f42766310d1719818f41b3ba2f2aea2cc"
+      "size": 76416,
+      "sha256": "beafe2ab5a25bbd3acde711350bd217c62e90ed86e558cb879f8c46240fe8763"
+    },
+    {
+      "path": "current/final-handoff.js",
+      "size": 8960,
+      "sha256": "99dcefd9fc64ff295e43674a77d29f1a0413c46f3ab68f6d9ad58c9a525b52dd"
     },
     {
       "path": "current/generated-inputs.js",
@@ -137,8 +142,8 @@
     },
     {
       "path": "current/publication.js",
-      "size": 13935,
-      "sha256": "f5bdae2bce41a6b33988d5745da9786509bc087c1842565886f4b95fb05dc5d2"
+      "size": 14444,
+      "sha256": "a0ad9189596881ff1af55d9e8df26bbadb0d18a9fd8fd5c7c419e675e5ebe243"
     },
     {
       "path": "current/review-findings.js",
@@ -152,8 +157,8 @@
     },
     {
       "path": "current/reviewer-selection.js",
-      "size": 3581,
-      "sha256": "445358573c9e079e278bbd278c36121ac1d2e38da34b2db2ab6bfe733aca4dd8"
+      "size": 4890,
+      "sha256": "b5e721bf0aff67e0cb7a555579c6cc999dae883d87a8f470ec5e1027749c0e3c"
     },
     {
       "path": "current/runner-profile.js",
@@ -172,8 +177,8 @@
     },
     {
       "path": "current/store.js",
-      "size": 16162,
-      "sha256": "d2172190c9cc4d5672fbe5c89171bfe517569be79ce42487e46c7c11821401bf"
+      "size": 16471,
+      "sha256": "ad1dd3da72900c5bb08c3ca45e3d96951a4508a6a1a5c96e8680a5e3fcb41a0c"
     },
     {
       "path": "current/tripwires.js",
@@ -212,8 +217,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 15701,
-      "sha256": "4adc3a44d5a44bf41bcca434d5c6ccd3c4ae9b0b04461fb189725d255b5bced9"
+      "size": 16307,
+      "sha256": "42107a71e864826ba90e11527c596ea94a00582a0ef7426a341641248fe28caa"
     },
     {
       "path": "module-runtime.js",

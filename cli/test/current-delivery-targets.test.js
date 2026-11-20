@@ -4,7 +4,7 @@ import { selection, pairExistingEvaluator } from './helpers/paired-review-fixtur
 // simulated; Git remotes, integration proof and core decisions are real.
 import assert from 'node:assert/strict';
 import { isolatedTests } from './helpers/isolated-tests.js';
-import { mkdtemp, mkdir, writeFile, rm, realpath } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CurrentCore } from '../../plugin-src/shared/resources/protocol/current/core.js';
@@ -385,4 +385,56 @@ test('model-authored review text cannot close or forge the published section', (
   assert.equal(section.split(SUMMARY_START).length, 2); assert.equal(section.split(SUMMARY_END).length, 2);
   assert.ok(section.startsWith(SUMMARY_START) && section.endsWith(SUMMARY_END));
   assert.equal(publishedSection(withSummary('Description', section)), section);
+});
+
+test('final handoff leads with pinned HTML and reuses advisory mutation evidence', async t => {
+  const f = await fixture(t);
+  const head = await branchWith(f, 'topic', 'export const answer = 42;\n');
+  await candidate(f, 'SLICE', head);
+  openPr(f, 'topic', f.integration, head);
+  f.context.repositories[0].mutationAdvisory = { packages: ['packages/domain'], timeoutMs: 2000 };
+  const commands = [];
+  let toolVersion = '1.2.3', simulation = null;
+  f.core.runtime.mutineer = async (args, path, timeoutMs) => {
+    assert.equal(path, f.repo);
+    if (args[0] === '--version') return { outcome: 'PASS', stdout: toolVersion };
+    commands.push(args);
+    if (simulation) return simulation;
+    assert.equal(timeoutMs, 2000);
+    return { outcome: 'PASS', stdout: JSON.stringify({
+      commitPinned: true, commit: head, baseRef: f.base, mergeBase: f.base, scope: { ranges: true },
+      packages: [{ package: 'packages/domain', counts: { Killed: 0, Survived: 2 } }],
+    }) };
+  };
+  await accepted(f);
+  assert.deepEqual(commands, []);
+  const publish = f.core.store.publishReport.bind(f.core.store);
+  f.core.store.publishReport = async (path, ref) => {
+    if (path.endsWith('pr-explainer.html')) throw new Error('Explainer storage unavailable');
+    return publish(path, ref);
+  };
+  await assert.rejects(f.request('review.publish', { repository: 'app', number: 12 }, 'failed-explainer'), /Explainer storage unavailable/);
+  assert.deepEqual(f.gh.calls, []);
+  f.core.store.publishReport = publish;
+  const first = await f.request('review.publish', { repository: 'app', number: 12 }, 'final-handoff');
+  const refreshed = await f.request('review.publish', { repository: 'app', number: 12 }, 'refresh-handoff');
+  assert.deepEqual(commands, [['run', '--since', f.base, '--json', '--package', 'packages/domain']], JSON.stringify({ handoff: first.handoff, check: (await f.core.check('acceptance')).missing }));
+  assert.equal(refreshed.handoff.path, first.handoff.path);
+  assert.equal(first.handoff.mutation.counts.survived, 2);
+  const markup = await readFile(first.handoff.path, 'utf8');
+  assert.match(markup, new RegExp(head));
+  assert.match(markup, /Mutation testing advisory/);
+  assert.match(markup, /\.\.\/[a-f0-9]{64}\/mutineer\.json/);
+  const report = JSON.parse(await readFile(first.handoff.mutation.path, 'utf8'));
+  assert.equal(report.record.commit, head);
+  toolVersion = '1.2.4';
+  simulation = { outcome: 'UNAVAILABLE', termination: { reason: 'Timed out after 2000 ms' } };
+  const timeout = await f.request('review.publish', { repository: 'app', number: 12 }, 'timeout-advisory');
+  assert.equal(timeout.handoff.mutation.status, 'unavailable');
+  assert.match(timeout.handoff.mutation.reason, /Timed out/);
+  toolVersion = '1.2.5';
+  simulation = { outcome: 'PASS', stdout: 'Nothing to mutate: no source lines changed' };
+  const skipped = await f.request('review.publish', { repository: 'app', number: 12 }, 'skip-advisory');
+  assert.equal(skipped.handoff.mutation.status, 'skipped');
+  assert.notEqual(skipped.handoff.path, timeout.handoff.path);
 });
