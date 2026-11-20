@@ -84,6 +84,11 @@ function github(f) {
       mergeCommit: pr.state === 'MERGED' ? { oid: pr.headRefOid } : null });
     host.calls.push(command);
     if (command === 'edit') pr.body = args[args.indexOf('--body') + 1];
+    if (command === 'reopen') {
+      pr.state = 'OPEN';
+      pr.headRefOid = (await git(root, ['ls-remote', 'origin', `refs/heads/${pr.headRefName}`])).split(/\s/u)[0];
+    }
+    if (command === 'close') pr.state = 'CLOSED';
     if (command === 'ready') pr.isDraft = args.includes('--undo');
     if (command === 'merge') {
       if (host.merge) return host.merge(root, args);
@@ -239,6 +244,24 @@ for (const rigor of ['full', 'light']) test(`per-PR human authorize-merge lets t
   const status = await f.request('status');
   assert.equal(status.integrations.app.branch, f.release); assert.equal(status.integrations.app.integrationSha, head);
   assert.equal(status.dials.rigor.value, rigor);
+});
+
+test('an authorized closed PR publishes its retained review after GitHub refreshes the head', async t => {
+  const f = await fixture(t);
+  f.context.repositories[0].keepPullRequestsClosed = true;
+  const { head, subject } = await finalPr(f);
+  Object.assign(f.gh.pr, { state: 'CLOSED', headRefOid: f.base, isCrossRepository: false });
+  const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
+  assert.equal(action.head, head);
+  await assert.rejects(authorizeMerge(f, subject, action, 'missing-handoff'), /Generate the current PR explainer/);
+  const publication = await f.request('review.publish', { repository: 'app', number: 12 }, 'closed-preview');
+  assert.ok(publication.publicationPending);
+  assert.deepEqual(f.gh.calls, []);
+  await authorizeMerge(f, subject, action);
+  await f.request('merge.execute', { repository: 'app', number: 12 }, 'closed-merge');
+  assert.deepEqual(f.gh.calls, ['reopen', 'edit', 'ready', 'checks', 'merge']);
+  assert.match(publishedSection(f.gh.pr.body), new RegExp(head));
+  assert.equal(f.gh.pr.state, 'MERGED');
 });
 
 test('a hosting-rule merge refusal is an external blocker, not a gate failure', async t => {

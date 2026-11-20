@@ -65,6 +65,11 @@ test('correction removes only ineligible affected IDs and preserves present disp
   };
   const corrected = { ...original, historyAssessment: { ...original.historyAssessment, affected: ['closed'] } };
   assert.doesNotThrow(() => validateFormatRepair(original, corrected, [], ['closed']));
+  const mandateAssessment = { outcome: 'PASS', evidence: 'Observed mandate compliance' };
+  assert.doesNotThrow(() => validateFormatRepair({ ...original, mandateAssessment }, { ...corrected, mandateAssessment }, [], ['closed']));
+  assert.throws(() => validateFormatRepair(original, { ...corrected, mandateAssessment }, [], ['closed']), /preserve mandate assessment/);
+  assert.throws(() => validateFormatRepair({ ...original, mandateAssessment },
+    { ...corrected, mandateAssessment: { ...mandateAssessment, evidence: 'A different claim' } }, [], ['closed']), /preserve mandate assessment/);
   assert.throws(() => validateFormatRepair(original, { ...corrected, dispositions: [] }, [], ['closed']), /Substantive assessment changes/);
   assert.throws(() => validateFormatRepair(original, { ...corrected, historyAssessment: { affected: [], carryForwardReason: '' } }, [], ['closed']), /Substantive assessment changes/);
 });

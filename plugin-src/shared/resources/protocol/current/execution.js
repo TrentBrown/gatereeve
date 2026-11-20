@@ -65,6 +65,8 @@ export function reviewSchema(gates, criteria) {
 export function validateFormatRepair(original, corrected, selectedCriteria = [], eligibleAffected = null) {
   const permitted = new Set([...selectedCriteria, `gate:${original.gate}`]);
   requireThat(corrected.gate === original.gate && corrected.outcome === original.outcome, 'Verdict changes require substantive reassessment, not format repair');
+  requireThat(identity(original.mandateAssessment ?? null) === identity(corrected.mandateAssessment ?? null),
+    'Format repair must preserve mandate assessment');
   const oldFindings = original.findings ?? [];
   requireThat(Array.isArray(corrected.findings) && corrected.findings.length === oldFindings.length, 'Format repair must preserve all original findings');
   for (const before of oldFindings) {

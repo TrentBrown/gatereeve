@@ -7,7 +7,7 @@ import { runTrustedPythonGuard } from '../python-guards.js';
 import { ExternalBlockerError, ContractError } from '../errors.js';
 import { resolveEntryPoints, recoveryText } from './entry-point.js';
 import { qualifyingDecisions, requireUnexpired, configuredGit, deliveryTarget, deliveryBranches } from './authorization.js';
-import { requirePublishedReview } from './publication.js';
+import { publishReview, requirePublishedReview } from './publication.js';
 
 const exec = promisify(execFile);
 export async function gh(root, args) {
@@ -165,7 +165,7 @@ export async function merge(core, input, operation) {
   const repository = core.context.repositories.find(item => item.alias === action.repository);
   const run = core.runtime.gh ?? gh;
   // The PR must still present the current review summary for this head.
-  await requirePublishedReview(core, action);
+  const review = await requirePublishedReview(core, action);
   let opened = false;
   let madeReady = false;
   await requireCurrentState(core, state);
@@ -179,6 +179,11 @@ export async function merge(core, input, operation) {
     requireThat(current.number === action.number && current.state === 'OPEN' && current.headRefOid === action.head
       && current.headRefName === action.headBranch && current.baseRefName === action.baseBranch && current.baseRefOid === action.base,
     'PR identity changed inside the merge window');
+    if (review.publicationPending) {
+      await publishReview(core, { repository: action.repository, number: action.number });
+      await requirePublishedReview(core, action);
+      await requireCurrentState(core, state);
+    }
     if (current.isDraft) {
       madeReady = true;
       await run(repository.path, ['pr', 'ready', String(action.number), '--repo', action.ownerRepo]);

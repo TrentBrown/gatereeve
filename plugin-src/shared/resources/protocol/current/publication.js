@@ -142,6 +142,17 @@ async function readPullRequest(core, path, ownerRepo, number) {
   requireThat(pr.number === number, 'Selected PR has changed identity');
   return pr;
 }
+// The host retains its last displayed head while a same-repository PR is closed.
+async function closedSourceMatches(core, target, pr) {
+  if (pr.state !== 'CLOSED' || pr.isCrossRepository !== false) return false;
+  const git = configuredGit(core), path = target.repository.path;
+  const branch = (await git(path, ['branch', '--show-current'])).trim();
+  if (!branch || pr.headRefName !== branch) return false;
+  const ref = `refs/heads/${branch}`;
+  const remote = target.repository.remote ?? 'origin';
+  return (await git(path, ['ls-remote', '--refs', remote, ref])).trim() === `${target.pin.head}\t${ref}`;
+}
+
 // Operation review.publish: write the current summary into the PR description.
 export async function publishReview(core, input) {
   requireThat(input && Object.keys(input).every(key => ['repository', 'number'].includes(key)), 'Unsupported review publication field');
@@ -150,23 +161,12 @@ export async function publishReview(core, input) {
   const run = core.runtime.gh ?? gh;
   const pr = await readPullRequest(core, target.repository.path, target.ownerRepo, input.number);
   requireThat(pr.state !== 'MERGED', 'Selected PR is already merged');
-  if (pr.state === 'CLOSED' && pr.headRefOid !== target.pin.head && pr.isCrossRepository === false) {
-    // GitHub freezes a closed PR's last displayed head. Qualify the currently
-    // pushed source branch separately before offering its local review packet.
-    const git = configuredGit(core), path = target.repository.path;
-    const branch = (await git(path, ['branch', '--show-current'])).trim();
-    if (branch && pr.headRefName === branch) {
-      const ref = `refs/heads/${branch}`;
-      const remote = target.repository.remote ?? 'origin';
-      const tip = (await git(path, ['ls-remote', '--refs', remote, ref])).trim();
-      if (tip === `${target.pin.head}\t${ref}`) {
-        const handoff = await finalHandoff(core, target);
-        if (handoff) return { repository: input.repository, number: input.number, ownerRepo: target.ownerRepo,
-          head: target.pin.head, candidate: target.state.candidate, review: target.review.ref,
-          outcome: target.review.result.outcome, changed: false, handoff,
-          publicationPending: 'Closed PR still displays its previous head. Publish the hosted summary when GitHub observes the reviewed head.' };
-      }
-    }
+  if (pr.headRefOid !== target.pin.head && await closedSourceMatches(core, target, pr)) {
+    const handoff = await finalHandoff(core, target);
+    if (handoff) return { repository: input.repository, number: input.number, ownerRepo: target.ownerRepo,
+      head: target.pin.head, candidate: target.state.candidate, review: target.review.ref,
+      outcome: target.review.result.outcome, changed: false, handoff,
+      publicationPending: 'Closed PR still displays its previous head. Publish the hosted summary when GitHub observes the reviewed head.' };
   }
   requireThat(pr.headRefOid === target.pin.head, `PR head ${pr.headRefOid} differs from the reviewed candidate head ${target.pin.head}; push the reviewed head or prepare and review a new candidate`);
   const handoff = await finalHandoff(core, target);
@@ -189,6 +189,11 @@ export async function requirePublishedReview(core, action) {
   const target = await reviewTarget(core, { repository: action.repository, number: action.number });
   requireThat(target.ownerRepo === action.ownerRepo && target.pin.head === action.head, 'Prepared merge action differs from the current candidate');
   const pr = await readPullRequest(core, target.repository.path, action.ownerRepo, action.number);
+  if (pr.headRefOid !== action.head && action.keepClosed && pr.headRefName === action.headBranch
+    && await closedSourceMatches(core, target, pr)) {
+    await requireFinalHandoff(core, target);
+    return { review: target.review.ref, publicationPending: true };
+  }
   requireThat(pr.headRefOid === action.head, 'PR head differs from the prepared merge action');
   requireThat(publishedSection(pr.body) === target.section,
     `PR #${action.number} does not carry the current independent review summary for head ${action.head}; run review.publish for this PR before requesting merge authorization`);

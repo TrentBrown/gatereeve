@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:59e3559cd8d7e4d4959fbbc18117af8d25b80b1daa86bd01e85197dcb9ed09a6",
+  "protocolHash": "sha256:3f6a8556a7ef3b035d25eb9f0d290158d237ba62d5689c41b329ad02d554d207",
   "contract": "gatereeve/current/8",
   "contractSha256": "83710584359e6c5032493af4cde03e539d4dc90f2b8603b7a29fc00fd13c65d2",
   "files": [
@@ -22,8 +22,8 @@
     },
     {
       "path": "current/actions.js",
-      "size": 20988,
-      "sha256": "18f94bd5707419c1750b79458fbf1536a50388a4ce9d55a2af634c71ec80c92b"
+      "size": 21248,
+      "sha256": "edb55067013cba52839e95983f20e5cce240000647c931779aca2d4e02cea497"
     },
     {
       "path": "current/adapter.js",
@@ -97,8 +97,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 76416,
-      "sha256": "beafe2ab5a25bbd3acde711350bd217c62e90ed86e558cb879f8c46240fe8763"
+      "size": 76581,
+      "sha256": "eed0b53eed041f6d6b0e29efc1975337dc3439c36c8496836bdf0431699259b8"
     },
     {
       "path": "current/final-handoff.js",
@@ -142,8 +142,8 @@
     },
     {
       "path": "current/publication.js",
-      "size": 15992,
-      "sha256": "50fd75f832746beccdabf3ba986835b64f5bf1f780cb6c764d09933efbae514b"
+      "size": 16245,
+      "sha256": "6613b672d11378231528b6400afb35683ad7edc0712014d54e3676befcacaa02"
     },
     {
       "path": "current/review-findings.js",
