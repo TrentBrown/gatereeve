@@ -20,7 +20,8 @@ async function run(options, operation, input = {}, detail = {}) {
   else if (operation === 'review.publish' && result.data?.handoff) {
     const { path, mutation } = result.data.handoff;
     console.log(`PR explainer: ${path}`);
-    if (mutation) console.log(`Mutineer advisory: ${mutation.status}${mutation.reason ? ` — ${mutation.reason}` : ''}${mutation.path ? ` (${mutation.path})` : ''}`);
+    if (result.data.publicationPending) console.log(result.data.publicationPending);
+    if (mutation) console.log(`Mutineer advisory: ${mutation.status}${mutation.summary ? ` — ${mutation.summary}` : ''}${mutation.path ? ` (${mutation.path})` : ''}`);
   }
   else if (result.data?.contract && result.data?.featureId && result.data?.milestones) {
     console.log(`${result.data.featureId}: ${result.data.current?.phase ?? result.data.phase ?? 'current run needed'}`);

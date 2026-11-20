@@ -138,7 +138,7 @@ async function reviewTarget(core, input) {
 }
 async function readPullRequest(core, path, ownerRepo, number) {
   const run = core.runtime.gh ?? gh;
-  const pr = JSON.parse(await run(path, ['pr', 'view', String(number), '--repo', ownerRepo, '--json', 'number,state,headRefOid,body']));
+  const pr = JSON.parse(await run(path, ['pr', 'view', String(number), '--repo', ownerRepo, '--json', 'number,state,headRefName,headRefOid,isCrossRepository,body']));
   requireThat(pr.number === number, 'Selected PR has changed identity');
   return pr;
 }
@@ -150,6 +150,24 @@ export async function publishReview(core, input) {
   const run = core.runtime.gh ?? gh;
   const pr = await readPullRequest(core, target.repository.path, target.ownerRepo, input.number);
   requireThat(pr.state !== 'MERGED', 'Selected PR is already merged');
+  if (pr.state === 'CLOSED' && pr.headRefOid !== target.pin.head && pr.isCrossRepository === false) {
+    // GitHub freezes a closed PR's last displayed head. Qualify the currently
+    // pushed source branch separately before offering its local review packet.
+    const git = configuredGit(core), path = target.repository.path;
+    const branch = (await git(path, ['branch', '--show-current'])).trim();
+    if (branch && pr.headRefName === branch) {
+      const ref = `refs/heads/${branch}`;
+      const remote = target.repository.remote ?? 'origin';
+      const tip = (await git(path, ['ls-remote', '--refs', remote, ref])).trim();
+      if (tip === `${target.pin.head}\t${ref}`) {
+        const handoff = await finalHandoff(core, target);
+        if (handoff) return { repository: input.repository, number: input.number, ownerRepo: target.ownerRepo,
+          head: target.pin.head, candidate: target.state.candidate, review: target.review.ref,
+          outcome: target.review.result.outcome, changed: false, handoff,
+          publicationPending: 'Closed PR still displays its previous head. Publish the hosted summary when GitHub observes the reviewed head.' };
+      }
+    }
+  }
   requireThat(pr.headRefOid === target.pin.head, `PR head ${pr.headRefOid} differs from the reviewed candidate head ${target.pin.head}; push the reviewed head or prepare and review a new candidate`);
   const handoff = await finalHandoff(core, target);
   const body = withSummary(pr.body, target.section);

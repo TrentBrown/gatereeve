@@ -437,4 +437,14 @@ test('final handoff leads with pinned HTML and reuses advisory mutation evidence
   const skipped = await f.request('review.publish', { repository: 'app', number: 12 }, 'skip-advisory');
   assert.equal(skipped.handoff.mutation.status, 'skipped');
   assert.notEqual(skipped.handoff.path, timeout.handoff.path);
+  f.gh.pr.state = 'CLOSED';
+  f.gh.pr.isCrossRepository = false;
+  f.gh.pr.headRefOid = f.base;
+  const edits = f.gh.calls.length;
+  const closed = await f.request('review.publish', { repository: 'app', number: 12 }, 'closed-handoff');
+  assert.match(closed.publicationPending, /previous head/);
+  assert.equal(closed.handoff.path, skipped.handoff.path);
+  assert.equal(f.gh.calls.length, edits);
+  f.gh.pr.headRefName = 'other-branch';
+  await assert.rejects(f.request('review.publish', { repository: 'app', number: 12 }, 'wrong-closed-head'), /differs from the reviewed candidate head/);
 });

@@ -42,7 +42,7 @@ async function mutationEvidence(core, { pin, repository, state }) {
           counts.survived += pkg.counts?.Survived ?? 0;
           counts.uncovered += pkg.counts?.NoCoverage ?? 0;
         }
-        result = { status: 'completed', mergeBase, counts, record };
+        result = { status: 'completed', mergeBase, counts, selectedPackages: record.packages.map(pkg => pkg.package), record };
       }
     } catch (error) {
       result = { status: 'unavailable', reason: error.message };
@@ -88,6 +88,10 @@ export async function finalHandoff(core, target) {
     const revision = headFiles.has(file) ? pin.head : pin.base;
     return `<li><a href="https://github.com/${html(ownerRepo)}/blob/${html(revision)}/${html(path)}">${html(file)}</a>${headFiles.has(file) ? '' : ' (removed)'}</li>`;
   }).join('');
+  const mutationSummary = mutation?.counts
+    ? `${mutation.counts.generated} generated, ${mutation.counts.killed} killed, ${mutation.counts.survived} surviving, ${mutation.counts.uncovered} uncovered`
+    : mutation?.reason;
+  if (mutation) mutation.summary = mutationSummary ?? mutation.status;
   const document = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PR explainer · ${html(ownerRepo)}</title>
 <style>body{font:1rem/1.6 system-ui,sans-serif;max-width:52rem;margin:3rem auto;padding:0 1.25rem;color:#172439;background:#f6f8fc}h1{line-height:1.1}section{padding:1rem 1.35rem;background:white;border:1px solid #dce3ec;border-radius:.65rem;margin:1rem 0}code{overflow-wrap:anywhere}summary{cursor:pointer}a{color:#1456a2}</style>
 <h1>PR explainer</h1><p>${html(ownerRepo)} · ${html(candidate.scope)} review · <a href="${html(comparison)}">Pinned comparison</a></p>
@@ -97,7 +101,7 @@ export async function finalHandoff(core, target) {
 <section><h2>Verification</h2><ul>${check.outcomes.filter(row => ['context', 'verification'].includes(row.id)).map(row => `<li>${html(row.outcome)} · ${html(row.reason)}</li>`).join('')}${commands.map(row => `<li>${html(row.outcome)} · ${html(row.purpose)}</li>`).join('')}</ul></section>
 <section><h2>Findings and limits</h2>${findings.length ? `<ul>${findings.join('')}</ul>` : '<p>No findings reported.</p>'}${limitations.length ? `<ul>${limitations.map(item => `<li>${html(item)}</li>`).join('')}</ul>` : ''}${perspectives.join('')}</section>
 <section><h2>Changed files</h2><ul>${files}</ul></section>
-${mutation ? `<section><h2>Mutation testing advisory</h2><p>${html(mutation.status)} · ${html(mutation.reason ?? JSON.stringify(mutation.counts ?? {}))}</p>${mutation.path ? `<p><a href="../${html(mutation.reference.hash.slice(7))}/mutineer.json">Detailed report</a></p>` : ''}<p>Pruning is available as a separate maintainer decision.</p></section>` : ''}</html>`;
+${mutation ? `<section><h2>Mutation testing advisory</h2><p>${html(mutation.status)} · ${html(mutation.summary)}</p>${mutation.selectedPackages?.length ? `<p>Packages ${html(mutation.selectedPackages.join(', '))} · ${Math.round(mutation.durationMs / 1000)}s</p>` : ''}${mutation.path ? `<p><a href="../${html(mutation.reference.hash.slice(7))}/mutineer.json">Detailed report</a></p>` : ''}<p>Pruning is available as a separate maintainer decision.</p></section>` : ''}</html>`;
   const latest = (await core.state()).state;
   requireThat(latest.runId === state.runId && latest.eventCount === state.eventCount, 'Acceptance evidence changed while preparing the explainer');
   await core.assertLiveInputs(state, 'acceptance', check.liveInputs);

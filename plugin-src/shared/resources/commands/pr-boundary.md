@@ -19,7 +19,10 @@ head before presenting it. Once acceptance evidence qualifies, the operation
 returns the pinned local HTML explainer and any configured Mutineer advisory.
 Lead with the explainer link for human or agent review. If generation fails,
 retry publication using the retained verification and review. Republish after
-any new review or candidate. For opted-in repositories, Mutineer runs against
+any new review or candidate. A closed PR may display its previous head. In that
+case, GateReeve qualifies the pushed source branch and returns the local packet.
+Publish the hosted summary when GitHub observes the reviewed head within the
+authorized merge window. For opted-in repositories, Mutineer runs against
 the pinned target only at this handoff. Surface its status and report link in
 the thread. Offer pruning separately when a maintainer requests it.
 Present the exact candidate and risks for human acceptance unless an applicable recorded
