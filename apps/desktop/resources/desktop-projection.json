@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:3f6a8556a7ef3b035d25eb9f0d290158d237ba62d5689c41b329ad02d554d207",
+  "protocolHash": "sha256:c3d69f85776c42df36bc536902d1fdfe0cae577fa09be8c011f7f5a3ca26ec44",
   "contract": "gatereeve/current/8",
   "contractSha256": "83710584359e6c5032493af4cde03e539d4dc90f2b8603b7a29fc00fd13c65d2",
   "files": [
@@ -102,8 +102,8 @@
     },
     {
       "path": "current/final-handoff.js",
-      "size": 11785,
-      "sha256": "613d0fa0260b66019fa2ef384c07781e9e8d695218286858aa2aab406d2daebb"
+      "size": 11670,
+      "sha256": "954f4bc2668bc33512af28a4111ec2333eec773d00eaf9fa51112014359e3d20"
     },
     {
       "path": "current/generated-inputs.js",
@@ -177,8 +177,8 @@
     },
     {
       "path": "current/store.js",
-      "size": 16471,
-      "sha256": "ad1dd3da72900c5bb08c3ca45e3d96951a4508a6a1a5c96e8680a5e3fcb41a0c"
+      "size": 17037,
+      "sha256": "6003bc72391823274a527c757a5e7ee95adf358909847e7f12d7f24ed22854cf"
     },
     {
       "path": "current/tripwires.js",

@@ -463,6 +463,14 @@ test('final handoff leads with pinned HTML and reuses advisory mutation evidence
   const skipped = await f.request('review.publish', { repository: 'app', number: 12 }, 'skip-advisory');
   assert.equal(skipped.handoff.mutation.status, 'skipped');
   assert.notEqual(skipped.handoff.path, timeout.handoff.path);
+  const { requireFinalHandoff } = await import('../../plugin-src/shared/resources/protocol/current/final-handoff.js');
+  const { state } = await f.core.state();
+  const pinned = await f.core.store.json(state.candidate);
+  const retained = await requireFinalHandoff(f.core, {
+    state, pin: pinned.repositories[0], repository: f.context.repositories[0], number: 12, review: { ref: skipped.review },
+  });
+  assert.equal(retained.path, skipped.handoff.path);
+  assert.equal(retained.mutation.version, '1.2.5');
   f.gh.pr.state = 'CLOSED';
   f.gh.pr.isCrossRepository = false;
   f.gh.pr.headRefOid = f.base;

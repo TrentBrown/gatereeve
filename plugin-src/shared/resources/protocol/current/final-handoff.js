@@ -78,7 +78,7 @@ export async function requireFinalHandoff(core, target) {
   const check = await core.check('acceptance');
   requireThat(check.allowed && check.runId === target.state.runId && check.eventCount === target.state.eventCount,
     'Acceptance evidence changed; prepare a current review handoff');
-  const saved = await core.store.job(handoffIdentity(target, check.outcomes));
+  const saved = await core.store.handoff(handoffIdentity(target, check.outcomes));
   requireThat(saved?.runId === target.state.runId && saved.handoff, 'Generate the current PR explainer with review.publish before merge');
   const handoff = await core.store.json(saved.handoff);
   await core.store.closure(handoff);
@@ -148,11 +148,8 @@ ${mutation ? `<section data-evidence="${html(mutation.reference?.hash)}"><h2>Mut
     evidence: check.outcomes.map(row => ({ gate: row.id, outcome: row.outcome, references: row.reviews ?? [row.result].filter(Boolean) })),
   });
   await core.store.publishReport(pathFor(ref, `${packet.hash.slice(7)}-packet.json`), packet);
-  const key = handoffIdentity(target, check.outcomes);
-  const retained = { runId: state.runId, handoff: packet };
-  // A generation retry can add optional mutation evidence after an earlier
-  // advisory was unavailable; both rendered packets remain available.
-  const previous = await core.store.job(key);
-  if (!previous) await core.store.saveJob(key, retained);
+  // Advance the pointer after all files are published. Previous packets
+  // retain their independent, content-addressed artifacts.
+  await core.store.saveHandoff(handoffIdentity(target, check.outcomes), { runId: state.runId, handoff: packet });
   return { ...handoff, packet };
 }
