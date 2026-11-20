@@ -103,13 +103,14 @@ function openPr(f, headBranch, baseBranch, head, body = 'Change description.') {
     baseRefOid: f.base, body, mergeStateStatus: 'CLEAN', reviewDecision: '' };
 }
 function evaluator(f, { summary = 'Fixture assessment: the change exports 42.' } = {}) {
+  const paths = f.context.repositories.map(repository => `${repository.alias}/app.js`);
   f.core.runtime.evaluator = {
     async describe() { return { provider: 'codex', model: 'fixture', reasoningEffort: 'high' }; },
     async runStage(request) {
       const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome: 'PASS', summary,
         ...(id === 'review' ? { dimensions: ['code', 'requirements', 'evidence', 'scope', 'findings'].map(name => ({ name, outcome: 'PASS', evidence: 'Fixture source and receipts' })) } : {}),
         criteria: request.input.criteria.map(row => ({ id: row, outcome: 'PASS', evidence: 'app/app.js exports 42' })),
-        coverage: { complete: true, paths: ['app/app.js'], interactions: ['app/app.js'], limitations: [] }, findings: [], dispositions: [], historyAssessment: null })) };
+        coverage: { complete: true, paths, interactions: paths, limitations: [] }, findings: [], dispositions: [], historyAssessment: null })) };
       return { schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed', output, receipt: { schemaVersion: 1, kind: 'gatereeve-agent-workflow-receipt',
         protocolVersion: request.protocolVersion, module: request.module, stage: request.stage.id, capabilityProfile: request.capabilityProfile, startedAt: '2026-11-16T00:00:00Z', completedAt: '2026-11-16T00:00:01Z',
         status: 'completed', runId: request.runId, attemptId: request.attemptId, isolation: { method: 'test-isolated', freshContext: true, inheritedTurns: 0 },
@@ -494,4 +495,37 @@ test('final handoff leads with pinned HTML and reuses advisory mutation evidence
   assert.equal(commands.filter(args => args[0] === 'run').length, 4);
   f.gh.pr.headRefName = 'other-branch';
   await assert.rejects(f.request('review.publish', { repository: 'app', number: 12 }, 'wrong-closed-head'), /differs from the reviewed candidate head/);
+});
+
+test('final handoff leads with mutation evidence scoped to each repository', async t => {
+  const f = await fixture(t);
+  const head = await branchWith(f, 'topic', 'export const answer = 42;\n');
+  const second = join(f.root, 'mirror');
+  await git(f.root, ['clone', '--branch', 'topic', f.repo, second]);
+  await git(second, ['remote', 'set-url', 'origin', 'https://github.com/fixture/mirror.git']);
+  await git(second, ['config', `url.${join(f.root, 'host.git')}.insteadOf`, 'https://github.com/fixture/mirror.git']);
+  const app = f.context.repositories[0];
+  app.mutationAdvisory = { packages: ['packages/domain'], timeoutMs: 2000 };
+  f.context.repositories.push({ ...app, alias: 'mirror', path: second });
+  const pins = f.context.repositories.map(({ alias }) => ({ alias, base: f.base, head, target: f.base }));
+  await f.request('candidate.prepare', { repositories: pins, scope: 'SLICE', criteria: f.criteria }, 'two-repositories');
+  openPr(f, 'topic', f.integration, head);
+  const runs = [];
+  f.core.runtime.mutineer = async (args, path) => {
+    if (args[0] === '--version') return { outcome: 'PASS', stdout: '1.2.3' };
+    runs.push(path);
+    return { outcome: 'PASS', stdout: JSON.stringify({
+      commitPinned: true, commit: head, baseRef: f.base, mergeBase: f.base, scope: { ranges: true },
+      packages: [{ package: 'packages/domain', counts: { Killed: 0, Survived: path === f.repo ? 2 : 3 } }],
+    }) };
+  };
+  await accepted(f);
+  const first = await f.request('review.publish', { repository: 'app', number: 12 }, 'app-handoff');
+  const mirror = await f.request('review.publish', { repository: 'mirror', number: 12 }, 'mirror-handoff');
+  const refreshed = await f.request('review.publish', { repository: 'app', number: 12 }, 'app-refresh');
+  assert.deepEqual(runs, [f.repo, second]);
+  assert.equal(first.handoff.mutation.repository.alias, 'app');
+  assert.equal(mirror.handoff.mutation.repository.alias, 'mirror');
+  assert.equal(mirror.handoff.mutation.counts.survived, 3);
+  assert.equal(refreshed.handoff.mutation.reference.hash, first.handoff.mutation.reference.hash);
 });

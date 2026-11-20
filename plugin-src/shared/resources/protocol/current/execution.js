@@ -693,6 +693,10 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
               if (!known.has(originalId) && !originalId.startsWith(`${configuration.provider}/`)) finding.id = `${configuration.provider}/${originalId}`;
               provenance.push({ id: finding.id, originalId, provider: configuration.provider, model: configuration.model });
             }
+            const findingIds = new Map(provenance.map(({ originalId, id }) => [originalId, id]));
+            requireThat(new Set(findingIds.values()).size === findingIds.size, 'Duplicate namespaced finding identity');
+            for (const disposition of verdict.dispositions) disposition.id = findingIds.get(disposition.id) ?? disposition.id;
+            requireThat(new Set(verdict.dispositions.map(row => row.id)).size === verdict.dispositions.length, 'Duplicate namespaced disposition identity');
             return { ...verdict, findingProvenance: provenance };
           }
           return selected[0];

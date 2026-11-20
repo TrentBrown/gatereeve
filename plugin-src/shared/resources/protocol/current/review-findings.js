@@ -47,7 +47,7 @@ export async function findingObligations(core, state, candidate, inputs, result)
     && ['resolved', 'unsupported', 'present'].includes(disposition.status))).map(row => row.finding.id);
   const material = new Map((result.findings ?? []).filter(finding => finding.blocking).map(finding => [finding.id, finding]));
   for (const disposition of result.dispositions ?? []) if (disposition.status === 'present' && !material.has(disposition.id)) {
-    const original = known.get(disposition.id)?.finding;
+    const original = result.findings?.find(finding => finding.id === disposition.id) ?? known.get(disposition.id)?.finding;
     requireThat(original, 'A present finding needs retained identity in the supplied reviewer history');
     if (original.blocking) material.set(disposition.id, { ...original, evidence: disposition.evidence });
   }

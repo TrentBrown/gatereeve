@@ -15,7 +15,8 @@ async function mutationEvidence(core, { pin, repository, state }) {
     runCheckProcess({ command: 'mutineer', args, timeoutMs }, {}, path, process.env));
   const version = await execute(['--version'], repository.path, 30000);
   if (version.outcome !== 'PASS') return { status: 'unavailable', reason: 'Mutineer version could not be determined' };
-  const input = { head: pin.head, target: pin.target, version: version.stdout.trim(), configuration };
+  const input = { repository: { alias: pin.alias, identity: identity(pin.identity) },
+    head: pin.head, target: pin.target, version: version.stdout.trim(), configuration };
   const job = `mutation_${identity(input).slice(7)}`;
   let retained = await core.store.job(job);
   if (!retained && await core.store.claimJob(job)) {

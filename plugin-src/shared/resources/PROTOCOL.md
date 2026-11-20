@@ -745,12 +745,14 @@ between `<!-- gatereeve:review-summary:start -->` and
 `<!-- gatereeve:review-summary:end -->` in the PR description, replacing an
 earlier section and keeping all other text. The section names the outcome,
 reviewed head, candidate, result identity, evaluator and basis (rubric or brief),
-then the summary, criteria, dimensions and findings. Human `authorize-merge`,
-standing merge application and `merge.execute` each re-read the PR description
-and require the section to equal a fresh rendering for the prepared head; a newer
-review result, a new candidate or an edited section requires publishing again.
-Authorization is the enforcement point because that is when someone relies on the
-presentation; `merge.execute` repeats the check before any external write.
+then the summary, criteria, dimensions and findings. For an accepted candidate,
+the operation also retains the exact-head HTML explainer and any advisory mutation
+report. Human `authorize-merge`, standing merge application and `merge.execute`
+require the retained handoff and the current hosted summary. A closed same-repository
+PR can still display the old head. When its pushed branch matches the prepared
+head, the retained local handoff supports authorization. After reopening inside
+the authorized merge window, `merge.execute` verifies the host's exact head and
+base, publishes the summary and checks it again before attempting the merge.
 
 **External blockers.** When GitHub refuses an authorized merge because of a hosting
 rule (for example a required approving review the author cannot give, or a base
@@ -872,7 +874,7 @@ selection and reason. Autonomous mode may choose an available comparably capable
 replacement; changing user-pinned choices in other modes needs developer
 direction. A missing second provider remains a blocker. Discovery does not prove
 successful native execution. The main thread and planning-review model policy
-are unchanged. No model-selection configuration is added.
+are unchanged.
 
 `review.execute` coordinates native assessments and `boundaryReviews` qualifies
 the latest applicable result independently for each selected perspective. A
