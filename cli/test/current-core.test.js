@@ -2293,7 +2293,7 @@ test('acceptance assessment requires explicit backstop scope and every independe
  await runVerification(f);fakeEvaluator(f,{inherited:true});
  const invalid=await f.request('gate.execute',{gates:['review'],configuration:{provider:'codex',model:'fixture'}},'inherited-review');
  assert.equal((await f.core.store.json(invalid.event.payload.results[0])).outcome,'UNAVAILABLE');
- fakeEvaluator(f,{inspect:request=>{assert.ok(request.input.planning.documents['plan.md']);assert.ok(request.input.pattern);}});
+ fakeEvaluator(f,{inspect:request=>{assert.ok(request.input.planning.documents['plan.md']);assert.equal(request.input.pattern, null);}});
  const passed=await f.request('gate.execute',{gates:['review'],configuration:{provider:'codex',model:'fixture',revision:2}},'fresh-review');
  const result=await f.core.store.json(passed.event.payload.results[0]);assert.equal(result.outcome,'PASS',result.summary);assert.equal(result.dimensions.length,5);
 });
