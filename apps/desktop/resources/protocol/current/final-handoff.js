@@ -54,9 +54,8 @@ async function mutationEvidence(core, { pin, repository, state }) {
   retained ??= await core.store.job(job);
   if (!retained) return { status: 'unavailable', reason: 'A matching run is active or its prior execution was interrupted' };
   const report = await core.store.json(retained.report);
-  const path = await core.store.publishReport(pathFor(retained.report, 'mutineer.json'), retained.report);
   const { record, ...summary } = report;
-  return { ...summary, path, reference: retained.report };
+  return { ...summary, reference: retained.report };
 }
 
 export async function finalHandoff(core, target) {
@@ -101,11 +100,12 @@ export async function finalHandoff(core, target) {
 <section><h2>Verification</h2><ul>${check.outcomes.filter(row => ['context', 'verification'].includes(row.id)).map(row => `<li>${html(row.outcome)} · ${html(row.reason)}</li>`).join('')}${commands.map(row => `<li>${html(row.outcome)} · ${html(row.purpose)}</li>`).join('')}</ul></section>
 <section><h2>Findings and limits</h2>${findings.length ? `<ul>${findings.join('')}</ul>` : '<p>No findings reported.</p>'}${limitations.length ? `<ul>${limitations.map(item => `<li>${html(item)}</li>`).join('')}</ul>` : ''}${perspectives.join('')}</section>
 <section><h2>Changed files</h2><ul>${files}</ul></section>
-${mutation ? `<section><h2>Mutation testing advisory</h2><p>${html(mutation.status)} · ${html(mutation.summary)}</p>${mutation.selectedPackages?.length ? `<p>Packages ${html(mutation.selectedPackages.join(', '))} · ${Math.round(mutation.durationMs / 1000)}s</p>` : ''}${mutation.path ? `<p><a href="../${html(mutation.reference.hash.slice(7))}/mutineer.json">Detailed report</a></p>` : ''}<p>Pruning is available as a separate maintainer decision.</p></section>` : ''}</html>`;
+${mutation ? `<section data-evidence="${html(mutation.reference?.hash)}"><h2>Mutation testing advisory</h2><p>${html(mutation.status)} · ${html(mutation.summary)}</p>${mutation.selectedPackages?.length ? `<p>Packages ${html(mutation.selectedPackages.join(', '))} · ${Math.round(mutation.durationMs / 1000)}s</p>` : ''}${mutation.reference ? '<p><a href="mutineer.json">Detailed report</a></p>' : ''}<p>Pruning is available as a separate maintainer decision.</p></section>` : ''}</html>`;
   const latest = (await core.state()).state;
   requireThat(latest.runId === state.runId && latest.eventCount === state.eventCount, 'Acceptance evidence changed while preparing the explainer');
   await core.assertLiveInputs(state, 'acceptance', check.liveInputs);
   const ref = await core.store.put(document);
+  if (mutation?.reference) mutation.path = await core.store.publishReport(pathFor(ref, 'mutineer.json'), mutation.reference);
   const path = await core.store.publishReport(pathFor(ref, 'pr-explainer.html'), ref);
   const handoff = { path, reference: ref, candidate: state.candidate, review: review.ref, mutation };
   const packet = await core.store.putJson({ ...handoff,

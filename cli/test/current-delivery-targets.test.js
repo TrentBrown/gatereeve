@@ -424,7 +424,7 @@ test('final handoff leads with pinned HTML and reuses advisory mutation evidence
   const markup = await readFile(first.handoff.path, 'utf8');
   assert.match(markup, new RegExp(head));
   assert.match(markup, /Mutation testing advisory/);
-  assert.match(markup, /\.\.\/[a-f0-9]{64}\/mutineer\.json/);
+  assert.match(markup, /href="mutineer\.json"/);
   const report = JSON.parse(await readFile(first.handoff.mutation.path, 'utf8'));
   assert.equal(report.record.commit, head);
   toolVersion = '1.2.4';

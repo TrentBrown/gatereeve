@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:6c07962b76e6fe58ed3acc8739259276cd26d2860f82c4cfb4d152752e1af4a7",
+  "protocolHash": "sha256:6dfb5453130a65f2508c40913f9d84286d89bc553e970a3865e5284267b6a835",
   "contract": "gatereeve/current/8",
   "contractSha256": "83710584359e6c5032493af4cde03e539d4dc90f2b8603b7a29fc00fd13c65d2",
   "files": [
@@ -17,8 +17,8 @@
     },
     {
       "path": "context.js",
-      "size": 16806,
-      "sha256": "12f81793f4785a1e4f90fa1b68badc4129e8c7649eb7683ef359a10149491795"
+      "size": 16961,
+      "sha256": "9a3cc065037f5a6654aca73870615fa6b03d0713401706c6aad7d70fa4e6a62c"
     },
     {
       "path": "current/actions.js",
@@ -102,8 +102,8 @@
     },
     {
       "path": "current/final-handoff.js",
-      "size": 9430,
-      "sha256": "4d4a65bfb2f77ba1596a8e34056ce6439d6740ff42d5792ed5a60db742dd81b1"
+      "size": 9453,
+      "sha256": "acbe4fa76eb04df4d56ba00968e83dc4b97c9c61a262c9e505fd6877f3e7a9be"
     },
     {
       "path": "current/generated-inputs.js",

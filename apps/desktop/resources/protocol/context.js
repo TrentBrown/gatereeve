@@ -243,8 +243,12 @@ async function parseRepositories(value, workspaceRoot, environment) {
       integrationBranch,
       releaseBranch,
       keepPullRequestsClosed,
-      reviewerPreferences: reviewerPreferences(rawRepository.reviewerPreferences, `repositories.${alias}.reviewerPreferences`),
-      mutationAdvisory: mutationAdvisory(rawRepository.mutationAdvisory, `repositories.${alias}.mutationAdvisory`),
+      ...(rawRepository.reviewerPreferences === undefined ? {} : {
+        reviewerPreferences: reviewerPreferences(rawRepository.reviewerPreferences, `repositories.${alias}.reviewerPreferences`),
+      }),
+      ...(rawRepository.mutationAdvisory === undefined ? {} : {
+        mutationAdvisory: mutationAdvisory(rawRepository.mutationAdvisory, `repositories.${alias}.mutationAdvisory`),
+      }),
       featureBaseSha,
     });
   }
