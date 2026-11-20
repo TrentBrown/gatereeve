@@ -62,7 +62,7 @@ export function reviewSchema(gates, criteria) {
   return output;
 }
 
-export function validateFormatRepair(original, corrected, selectedCriteria = [], eligibleAffected = null) {
+export function validateFormatRepair(original, corrected, selectedCriteria = [], eligibleAffected = null, resolvePath = path => path) {
   const permitted = new Set([...selectedCriteria, `gate:${original.gate}`]);
   requireThat(corrected.gate === original.gate && corrected.outcome === original.outcome, 'Verdict changes require substantive reassessment, not format repair');
   requireThat(identity(original.mandateAssessment ?? null) === identity(corrected.mandateAssessment ?? null),
@@ -71,7 +71,10 @@ export function validateFormatRepair(original, corrected, selectedCriteria = [],
   requireThat(Array.isArray(corrected.findings) && corrected.findings.length === oldFindings.length, 'Format repair must preserve all original findings');
   for (const before of oldFindings) {
     const after = corrected.findings.find(item => item.id === before.id);
-    requireThat(after && ['id', 'classId', 'path', 'evidence', 'blocking'].every(key => identity(after[key] ?? null) === identity(before[key] ?? null)),
+    const source = resolvePath(before.path);
+    requireThat(after && ['id', 'classId', 'evidence'].every(key => identity(after[key] ?? null) === identity(before[key] ?? null))
+      && (after.path === before.path || (source && source === resolvePath(after.path)))
+      && typeof after.blocking === 'boolean' && (!Object.hasOwn(before, 'blocking') || after.blocking === before.blocking),
       'Format repair must preserve finding identity, severity and evidence');
     if (permitted.has(before.criterion)) requireThat(after.criterion === before.criterion, 'Valid finding criterion cannot be reassigned by format repair');
   }
@@ -310,6 +313,21 @@ async function commands(core, state, candidate, configuration, completion, envir
   return { receipts, outcome: receipts.some(item => item.outcome === 'UNAVAILABLE') ? 'UNAVAILABLE'
     : receipts.every(item => item.outcome === 'PASS') ? 'PASS' : 'FAIL' };
 }
+function findingPathResolver(candidate, gateId) {
+  const paths = new Set(candidate.repositories.flatMap(repo => [...repo.files, ...repo.baseFiles, ...repo.targetFiles].map(file => `${repo.alias}/${file.path}`)));
+  const planningPaths = ['review', 'spec', 'judge', 'reconcile', 'triage'].includes(gateId)
+    ? (briefBased(candidate) ? ['requirements/brief.md'] : PLANNING_PATHS)
+    : [];
+  return path => {
+    if (typeof path !== 'string') return null;
+    if (paths.has(path) || planningPaths.includes(path)) return path;
+    if (gateId !== 'review') return null;
+    // Recover a missing alias only for an exact, unique repository-relative path.
+    const matches = candidate.repositories.map(repo => `${repo.alias}/${path}`).filter(value => paths.has(value));
+    return matches.length === 1 ? matches[0] : null;
+  };
+}
+
 export function validateVerdict(verdict, ids, candidate, changes, history, claims, reconsiderClosures = []) {
   requireThat(ids.includes(verdict.gate) && OUTCOMES.includes(verdict.outcome), 'Reviewer returned an unrequested gate or invalid outcome');
   text(verdict.summary, 'Review summary');
@@ -317,19 +335,11 @@ export function validateVerdict(verdict, ids, candidate, changes, history, claim
     && ['paths', 'interactions', 'limitations'].every(key => Array.isArray(verdict.coverage[key]) && verdict.coverage[key].every(value => typeof value === 'string')),
   'Review must state coverage and limitations');
   requireThat(Array.isArray(verdict.findings) && Array.isArray(verdict.dispositions), 'Review must include findings and dispositions');
-  const paths = new Set(candidate.repositories.flatMap(repo => [...repo.files, ...repo.baseFiles, ...repo.targetFiles].map(file => `${repo.alias}/${file.path}`)));
-  const planningPaths = ['review', 'spec', 'judge', 'reconcile', 'triage'].includes(verdict.gate)
-    ? (briefBased(candidate) ? ['requirements/brief.md'] : PLANNING_PATHS)
-    : [];
+  const resolveFindingPath = findingPathResolver(candidate, verdict.gate);
   const findings = verdict.findings.map(finding => {
     ['id', 'classId', 'criterion', 'path', 'evidence'].forEach(key => text(finding[key], `Finding ${key}`));
-    let path = finding.path;
-    // Recover a missing alias only for an exact, unique repository-relative path.
-    if (verdict.gate === 'review' && !paths.has(path) && !planningPaths.includes(path)) {
-      const matches = candidate.repositories.map(repo => `${repo.alias}/${path}`).filter(value => paths.has(value));
-      if (matches.length === 1) [path] = matches;
-    }
-    requireThat((paths.has(path) || planningPaths.includes(path)) && typeof finding.blocking === 'boolean', 'Finding must name source in scope');
+    const path = resolveFindingPath(finding.path);
+    requireThat(path && typeof finding.blocking === 'boolean', 'Finding must name source in scope');
     if (finding.blocking) requireThat(candidate.criteria.includes(finding.criterion) || finding.criterion === `gate:${verdict.gate}`, 'Blocking finding lacks approved criterion');
     return path === finding.path ? finding : { ...finding, path };
   });
@@ -694,7 +704,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
             text(canonicalVerdict.mandateAssessment.evidence, 'Mandate assessment evidence');
             requireThat(canonicalVerdict.outcome !== 'PASS' || canonicalVerdict.mandateAssessment.outcome === 'PASS', 'Boundary PASS contradicts mandate compliance');
           }
-          if (value.repair) validateFormatRepair(value.repair.original, original, candidate.criteria, value.repair.eligibleAffected);
+          if (value.repair) validateFormatRepair(value.repair.original, original, candidate.criteria,
+            value.repair.eligibleAffected, findingPathResolver(candidate, id));
           if (id === 'review' && configuration.reviewerSelection) {
             const verdict = structuredClone(canonicalVerdict);
             const known = new Set(history.flatMap(item => (item.reviewerResult.findings ?? []).map(finding => finding.id)));

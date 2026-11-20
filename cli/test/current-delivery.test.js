@@ -50,6 +50,9 @@ test('schema constrains criterion IDs and contract repair cannot erase findings'
   assert.doesNotThrow(() => validateFormatRepair(original, fixed));
   assert.throws(() => validateFormatRepair(original, { ...fixed, outcome: 'PASS' }));
   assert.throws(() => validateFormatRepair(original, { ...fixed, findings: [] }));
+  assert.throws(() => validateFormatRepair(original, {
+    ...fixed, findings: [{ ...fixed.findings[0], blocking: false }],
+  }), /severity/u);
 });
 
 test('invalid reviewer criterion remains visible and independent targeted repair preserves the defect', async t => {

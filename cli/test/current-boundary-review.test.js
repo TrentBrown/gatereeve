@@ -332,3 +332,31 @@ test('Claude gets one same-model correction and retains the original Codex resul
   const { state } = await f.core.state();
   assert.equal((await boundaryReviews(f.core, state, await f.core.store.json(state.candidate))).outcome, 'PASS');
 });
+
+test('Claude can supply an omitted severity and qualify the same pinned source in its retry', async t => {
+  const f = await prepared(t, 'full');
+  const launches = pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators['claude-code'];
+  const run = adapter.runStage.bind(adapter);
+  const advisory = { id: 'omitted-severity', classId: 'constant', criterion: 'R1',
+    path: 'app.js', evidence: 'The constant could use a comment.' };
+  adapter.runStage = async request => {
+    const result = await run(request);
+    const verdict = result.output.verdicts[0];
+    verdict.findings = request.input.repair
+      ? [{ ...advisory, path: 'app/app.js', blocking: false }]
+      : [advisory];
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const done = await f.request('review.execute', {}, 'repair-severity');
+  assert.equal(launches(), 3);
+  const reports = await Promise.all(done.event.payload.outcomes.map(row => f.core.store.json(row.results[0])));
+  assert.deepEqual(reports.map(report => report.outcome), ['PASS', 'PASS']);
+  assert.equal(reports[1].findings[0].blocking, false);
+  assert.equal(reports[1].findings[0].path, 'app/app.js');
+  assert.equal(reports[1].findings[0].evidence, advisory.evidence);
+  const { state } = await f.core.state();
+  const pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.equal(pair.outcome, 'PASS');
+});
