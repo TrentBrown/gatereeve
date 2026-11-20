@@ -4,7 +4,7 @@ import { configuredGit } from './authorization.js';
 import { gh, remoteName } from './actions.js';
 import { boundaryReviews } from './boundary-review.js';
 import { currentAdjudication } from './autonomous.js';
-import { finalHandoff } from './final-handoff.js';
+import { finalHandoff, requireFinalHandoff } from './final-handoff.js';
 
 // The independent review summary is published into a delimited section of the
 // PR description (spec AC6/R9). The section is rendered deterministically from
@@ -133,7 +133,7 @@ async function reviewTarget(core, input) {
   const ownerRepo = remoteName(await configuredGit(core)(repository.path, ['config', '--get', `remote.${repository.remote ?? 'origin'}.url`]));
   const review = await currentReview(core, state, candidate);
   requireThat(review, 'No current independent review result for this candidate head; run the review gate on the current candidate before publishing or requesting merge authorization');
-  return { state, candidate, pin, repository, ownerRepo, review,
+  return { state, candidate, pin, repository, ownerRepo, review, number: input.number,
     section: renderSummary({ candidateRef: state.candidate, candidate, pin, review }) };
 }
 async function readPullRequest(core, path, ownerRepo, number) {
@@ -170,8 +170,10 @@ export async function publishReview(core, input) {
   }
   requireThat(pr.headRefOid === target.pin.head, `PR head ${pr.headRefOid} differs from the reviewed candidate head ${target.pin.head}; push the reviewed head or prepare and review a new candidate`);
   const handoff = await finalHandoff(core, target);
-  const body = withSummary(pr.body, target.section);
-  const changed = body !== normalize(pr.body);
+  const live = handoff ? await readPullRequest(core, target.repository.path, target.ownerRepo, input.number) : pr;
+  requireThat(live.state !== 'MERGED' && live.headRefOid === target.pin.head, 'PR changed while preparing the final handoff');
+  const body = withSummary(live.body, target.section);
+  const changed = body !== normalize(live.body);
   if (changed) {
     requireThat(body.length <= BODY_LIMIT, `The PR description with the review summary would exceed GitHub's ${BODY_LIMIT}-character limit; shorten the description`);
     await run(target.repository.path, ['pr', 'edit', String(input.number), '--repo', target.ownerRepo, '--body', body]);
@@ -190,5 +192,6 @@ export async function requirePublishedReview(core, action) {
   requireThat(pr.headRefOid === action.head, 'PR head differs from the prepared merge action');
   requireThat(publishedSection(pr.body) === target.section,
     `PR #${action.number} does not carry the current independent review summary for head ${action.head}; run review.publish for this PR before requesting merge authorization`);
+  await requireFinalHandoff(core, target);
   return { review: target.review.ref };
 }

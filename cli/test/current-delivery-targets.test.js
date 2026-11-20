@@ -369,7 +369,7 @@ test('publication presents the latest qualifying review, even when it is UNAVAIL
   // The authorization check makes the same selection: the older PASS section no longer qualifies.
   const { requirePublishedReview } = await import('../../plugin-src/shared/resources/protocol/current/publication.js');
   const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
-  assert.equal((await requirePublishedReview(f.core, action)).review.hash, published.review.hash);
+  await assert.rejects(requirePublishedReview(f.core, action), /Acceptance evidence changed/);
   f.gh.pr.body = withSummary('Intro text.', passed.section);
   await assert.rejects(requirePublishedReview(f.core, action), /does not carry the current independent review summary/);
 });
@@ -420,6 +420,9 @@ test('final handoff leads with pinned HTML and reuses advisory mutation evidence
   const refreshed = await f.request('review.publish', { repository: 'app', number: 12 }, 'refresh-handoff');
   assert.deepEqual(commands, [['run', '--since', f.base, '--json', '--package', 'packages/domain']], JSON.stringify({ handoff: first.handoff, check: (await f.core.check('acceptance')).missing }));
   assert.equal(refreshed.handoff.path, first.handoff.path);
+  const { requirePublishedReview } = await import('../../plugin-src/shared/resources/protocol/current/publication.js');
+  const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
+  assert.equal((await requirePublishedReview(f.core, action)).review.hash, first.review.hash);
   assert.equal(first.handoff.mutation.counts.survived, 2);
   const markup = await readFile(first.handoff.path, 'utf8');
   assert.match(markup, new RegExp(head));

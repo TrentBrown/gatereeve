@@ -62,14 +62,41 @@ async function mutationEvidence(core, { pin, repository, state }) {
   return { ...summary, reference: retained.report };
 }
 
+function handoffIdentity(target, outcomes) {
+  return `handoff_${identity({
+    candidate: target.state.candidate,
+    review: target.review.ref,
+    repository: target.pin.alias,
+    number: target.number,
+    mutationAdvisory: target.repository.mutationAdvisory ?? null,
+    evidence: outcomes.map(row => ({ gate: row.id, outcome: row.outcome, result: row.result,
+      reviews: row.reviews ?? [], exception: row.exception })),
+  }).slice(7)}`;
+}
+
+export async function requireFinalHandoff(core, target) {
+  const check = await core.check('acceptance');
+  requireThat(check.allowed && check.runId === target.state.runId && check.eventCount === target.state.eventCount,
+    'Acceptance evidence changed; prepare a current review handoff');
+  const saved = await core.store.job(handoffIdentity(target, check.outcomes));
+  requireThat(saved?.runId === target.state.runId && saved.handoff, 'Generate the current PR explainer with review.publish before merge');
+  const handoff = await core.store.json(saved.handoff);
+  await core.store.closure(handoff);
+  await core.store.currentBytes({ ...handoff.reference, path: pathFor(handoff.reference, 'pr-explainer.html') });
+  return handoff;
+}
+
 export async function finalHandoff(core, target) {
   const check = await core.check('acceptance');
   const { state, candidate, pin, ownerRepo, review } = target;
-  if (!check.allowed || !check.outcomes.some(item => item.id === 'review' && item.outcome === 'PASS')
-    || !check.outcomes.some(item => item.id === 'verification' && item.outcome === 'PASS')) return null;
+  if (!check.allowed) return null;
   requireThat(check.runId === state.runId && check.eventCount === state.eventCount, 'Acceptance evidence changed before final handoff');
   let mutation;
-  try { mutation = await mutationEvidence(core, target); }
+  try {
+    const passed = check.outcomes.filter(row => ['review', 'verification'].includes(row.id) && row.outcome === 'PASS');
+    mutation = passed.length === 2 ? await mutationEvidence(core, target)
+      : target.repository.mutationAdvisory ? { status: 'skipped', reason: 'Verification and paired review did not both pass' } : null;
+  }
   catch { mutation = { status: 'unavailable', reason: 'Mutation evidence could not be retained or retrieved' }; }
   const findings = (review.pair?.members ?? []).flatMap(member => (member.result.findings ?? [])
     .map(item => `<li><strong>${html(item.blocking ? 'Blocking' : 'Advisory')}:</strong> ${html(item.evidence)} <code>${html(item.path)}</code></li>`));
@@ -91,6 +118,10 @@ export async function finalHandoff(core, target) {
     const revision = headFiles.has(file) ? pin.head : pin.base;
     return `<li><a href="https://github.com/${html(ownerRepo)}/blob/${html(revision)}/${html(path)}">${html(file)}</a>${headFiles.has(file) ? '' : ' (removed)'}</li>`;
   }).join('');
+  const exceptions = check.outcomes.flatMap(row => {
+    const decision = row.exception ?? row.adjudication;
+    return decision ? [`<li>${html(row.id)} · ${html(decision.reason)} ${html(decision.consequences ?? decision.stopReason)}</li>`] : [];
+  });
   const mutationSummary = mutation?.counts
     ? `${mutation.counts.generated} generated, ${mutation.counts.killed} killed, ${mutation.counts.survived} surviving, ${mutation.counts.uncovered} uncovered`
     : mutation?.reason;
@@ -103,6 +134,7 @@ export async function finalHandoff(core, target) {
 <section><h2>Acceptance criteria</h2><ul>${acceptance.map(item => `<li>${html(item.id)} · ${html(item.outcome)} · ${html(item.evidence)}</li>`).join('')}</ul></section>
 <section><h2>Verification</h2><ul>${check.outcomes.filter(row => ['context', 'verification'].includes(row.id)).map(row => `<li>${html(row.outcome)} · ${html(row.reason)}</li>`).join('')}${commands.map(row => `<li>${html(row.outcome)} · ${html(row.purpose)}</li>`).join('')}</ul></section>
 <section><h2>Findings and limits</h2>${findings.length ? `<ul>${findings.join('')}</ul>` : '<p>No findings reported.</p>'}${limitations.length ? `<ul>${limitations.map(item => `<li>${html(item)}</li>`).join('')}</ul>` : ''}${perspectives.join('')}</section>
+${exceptions.length ? `<section><h2>Acceptance decisions</h2><ul>${exceptions.join('')}</ul></section>` : ''}
 <section><h2>Changed files</h2><ul>${files}</ul></section>
 ${mutation ? `<section data-evidence="${html(mutation.reference?.hash)}"><h2>Mutation testing advisory</h2><p>${html(mutation.status)} · ${html(mutation.summary)}</p>${mutation.selectedPackages?.length ? `<p>Packages ${html(mutation.selectedPackages.join(', '))} · ${Math.round(mutation.durationMs / 1000)}s</p>` : ''}${mutation.reference ? '<p><a href="mutineer.json">Detailed report</a></p>' : ''}<p>Pruning is available as a separate maintainer decision.</p></section>` : ''}</html>`;
   const latest = (await core.state()).state;
@@ -116,5 +148,11 @@ ${mutation ? `<section data-evidence="${html(mutation.reference?.hash)}"><h2>Mut
     evidence: check.outcomes.map(row => ({ gate: row.id, outcome: row.outcome, references: row.reviews ?? [row.result].filter(Boolean) })),
   });
   await core.store.publishReport(pathFor(ref, `${packet.hash.slice(7)}-packet.json`), packet);
+  const key = handoffIdentity(target, check.outcomes);
+  const retained = { runId: state.runId, handoff: packet };
+  // A generation retry can add optional mutation evidence after an earlier
+  // advisory was unavailable; both rendered packets remain available.
+  const previous = await core.store.job(key);
+  if (!previous) await core.store.saveJob(key, retained);
   return { ...handoff, packet };
 }
