@@ -37,3 +37,9 @@ Verify the operation recovery design against persisted journal and job receipts 
 Add ordered per-provider reviewer model preferences to `.agentic-workflow.json`. An entry names a model and may specify reasoning effort. GateReeve selects the first preference that current runtime discovery confirms is available and eligible. If the list is empty or exhausted, the selecting agent may pick any eligible model from that provider, including Sonnet on the Claude side. Retain both selected models, efforts, and the reasons for skipping configured preferences or choosing a fallback. Preserve one reviewer from each provider. A response format or field failure uses the selected model for its one correction attempt. It does not advance the preference list.
 
 Acceptance evidence should exercise available first choices, partial availability, exhausted or absent lists, and same-model correction. Validate the selected model and effort against the provider's runtime observations and existing capability requirements.
+
+### Review scratch reclamation
+
+The recursive open-file probe can exhaust its timeout on a populated source view after the reviewer exits. On Linux, collect the handles visible to the invoking user without enumerating the view. Use the required filesystem safety and sizing walk to match open device and inode identities. Preserve owner, supervised-child and process-group checks, mount protection, retention and the locked apply recheck. Keep the recursive probe on macOS and for paths requiring escaped output.
+
+Preserve the finish receipt and durable workflow evidence. When bulk remains, report why and identify the exact registered run for preview and retry. Reconcile the view record after removal, including removal by the cleanup CLI. Deployment and cleanup of existing host data require separate operations.

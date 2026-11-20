@@ -12,6 +12,7 @@
 | R6 | In review | Survivor, skip and timeout advisory fixture. |
 | R7 | In review | Oversized operation admission and legacy exact-receipt reconciliation regression. |
 | R8 | In review | Ordered preference, exhaustion and unconfigured selection regressions. |
+| R9 | In review | Linux benchmark with 196,673 directories and 786,496 file paths. Real working-directory and external hard-link guards, preserved receipts, and exact-run retry and reconciliation fixtures. |
 
 ## Review Log
 

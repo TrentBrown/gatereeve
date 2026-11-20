@@ -161,20 +161,83 @@ async function loadRun(root, id) {
   return { path, owner, stat };
 }
 
-async function treeSize(path, device) {
+async function treeSize(path, device, openInodes) {
   let bytes = 0;
-  for (const entry of await readdir(path, { withFileTypes: true })) {
-    const child = join(path, entry.name), stat = await lstat(child);
-    assert(stat.dev === device, 'Scratch contains another filesystem');
-    if (stat.isDirectory() && !stat.isSymbolicLink()) bytes += await treeSize(child, device);
-    else bytes += stat.blocks == null ? stat.size : stat.blocks * 512;
+  const pending = [path];
+  while (pending.length) {
+    // Keep enough filesystem work in flight to size large sealed reviews
+    // without issuing unbounded IO for the entire tree.
+    const results = await Promise.all(pending.splice(-32).map(async child => {
+      const stat = await lstat(child, { bigint: true });
+      assert(stat.dev === device, 'Scratch contains another filesystem');
+      if (openInodes.has(stat.ino)) return null;
+      return stat.isDirectory() ? (await readdir(child)).map(name => join(child, name)) : Number(stat.blocks * 512n);
+    }));
+    if (results.includes(null)) return null;
+    for (const result of results) {
+      if (typeof result === 'number') bytes += result;
+      else for (const child of result) pending.push(child);
+    }
   }
   return bytes;
 }
 
+async function linuxOpenFiles(path, device, openInodes) {
+  // With no pathname selector, lsof enumerates process handles without walking
+  // the review tree. Request NUL-terminated fields so spaces and line breaks in
+  // a handle's name cannot be mistaken for record separators.
+  const { stdout, stderr } = await execute('lsof', ['-nP', '-F0fDin'], {
+    timeout: 10000, maxBuffer: 32 * 1024 * 1024, env: { ...process.env, LC_ALL: 'C' },
+  });
+  assert(!stderr.trim() && stdout.endsWith('\0\n'), 'Open-file inventory is incomplete');
+  let controller = false, descriptor = '', matchingDevice = false, sawControllerCwd = false;
+  for (const field of stdout.split('\0')) {
+    const start = field.startsWith('\n') ? 1 : 0;
+    const tag = field[start], value = field.slice(start + 1);
+    if (tag === 'p') {
+      controller = value === String(process.pid);
+    } else if (tag === 'f') {
+      descriptor = value;
+      matchingDevice = false;
+    } else if (tag === 'D') matchingDevice = /^0x[0-9a-f]+$/iu.test(value) && BigInt(value) === device;
+    else if (tag === 'i' && /^\d+$/u.test(value)) {
+      if (controller && descriptor === 'cwd') sawControllerCwd = true;
+      if (matchingDevice) openInodes.add(BigInt(value));
+    } else if (tag === 'n') {
+      if (contains(path, value) || value === `${path} (deleted)`) return true;
+    }
+  }
+  // Like recursive lsof, the inventory covers handles the operating system
+  // exposes to the invoking user. Require evidence that its own process is
+  // inspectable and leave registered process/group checks independent.
+  assert(sawControllerCwd, 'Open-file inventory is incomplete');
+  return false;
+}
+
+async function openFiles(path, device, openInodes) {
+  // For paths lsof may escape in the C locale, keep inode-based selection.
+  if (process.platform === 'linux' && /^[\x20-\x7e]+$/u.test(path) && !path.includes('\\')) {
+    return linuxOpenFiles(path, device, openInodes);
+  }
+  try {
+    const { stdout, stderr } = await execute('lsof', ['-t', '+D', path], { timeout: 10000, maxBuffer: 1024 * 1024 });
+    if (stdout.trim()) return true;
+    assert(!stderr.trim(), 'Open-file inventory is incomplete');
+    return false;
+  } catch (error) {
+    // Darwin lsof may report a PID and exit 1. A positive observation
+    // still protects the view; only a clean, empty result proves no match.
+    if (error.code === 1 && !error.stderr?.trim()) {
+      const output = error.stdout?.trim() ?? '';
+      if (!output || /^\d+(?:\s+\d+)*$/u.test(output)) return Boolean(output);
+    }
+    throw error;
+  }
+}
+
 // Full cleanup is deliberately conservative. Failed/unsupported OS probes
 // produce uncertain entries; Doctor's quick inventory does not run these probes.
-export async function activity(path) {
+export async function activity(path, device, openInodes = new Set()) {
   const { stdout: mounts } = await execute('mount', [], { timeout: 10000, maxBuffer: 1024 * 1024 });
   const mounted = mounts.trim().split('\n').map(line => / on (.*?) \(/u.exec(line)?.[1]?.replace(/ type \S+$/u, ''));
   assert(mounted.length > 0 && mounted.every(Boolean), 'Mount inventory could not be parsed');
@@ -183,11 +246,10 @@ export async function activity(path) {
     if (contains(path, mount)) return 'mounted';
   }
   try {
-    const result = await execute('lsof', ['-t', '+D', path], { timeout: 10000, maxBuffer: 1024 * 1024 });
-    if (result.stdout.trim()) return 'active';
-    assert(!result.stderr.trim(), 'Open-file inventory is incomplete');
+    if (await openFiles(path, device, openInodes)) return 'active';
   } catch (error) {
-    if (!(error.code === 1 && !error.stdout?.trim() && !error.stderr?.trim())) throw new Error('Open-file activity could not be established');
+    const reason = error.killed ? 'probe timed out' : error.code === 'ENOENT' ? 'lsof is unavailable' : 'incomplete inventory';
+    throw new Error(`Open-file activity could not be established (${reason})`, { cause: error });
   }
   const { stdout } = await execute('ps', ['-ax', '-o', 'command='], { timeout: 10000, maxBuffer: 4 * 1024 * 1024 });
   if (stdout.split('\n').some(command => command.includes(path))) return 'active';
@@ -222,13 +284,28 @@ async function assess(root, id, { quick = false, now = Date.now(), probe = proce
           catch (error) { if (error.code !== 'ESRCH') throw error; }
         }
       }
-      const observed = await inspectActivity(path);
+      const device = BigInt(stat.dev), openInodes = new Set();
+      const observed = await inspectActivity(path, device, openInodes);
       assert(['inactive', 'active', 'mounted'].includes(observed), 'Unknown activity observation');
       item.status = observed === 'inactive' ? 'eligible' : observed;
+      // The sizing and filesystem-safety walk also checks device/inode identity.
+      // This catches handles opened through outside hard links or mount aliases.
+      if (item.status === 'eligible') {
+        item.bytes = await treeSize(path, device, openInodes);
+        if (item.bytes === null) item.status = 'active';
+      }
     }
-    // Never traverse a known mounted or active directory to calculate a size.
-    if (item.status === 'eligible') item.bytes = await treeSize(path, stat.dev);
-  } catch (error) { item.status = 'uncertain'; item.reason = error.message; }
+  } catch (error) {
+    item.status = 'uncertain';
+    item.reason = error.message;
+    if (absent(error) && await lstat(item.path).then(() => false, absent)) {
+      const receipt = await regularJson(join(root, 'reports', `${id}.json`)).catch(() => null);
+      if (receipt?.kind === KIND && receipt.id === id) {
+        item.status = 'removed';
+        delete item.reason;
+      }
+    }
+  }
   return item;
 }
 
@@ -255,12 +332,13 @@ export async function cleanupScratch({ root = scratchRoot(), run, apply = false,
     for (const item of preview.entries.filter(entry => entry.status === 'eligible')) {
       try {
         const current = await assess(info.root, item.id, { ...options, quick: false });
-        assert(current.status === 'eligible' && same(item.identity, current.identity), 'Run changed or is no longer eligible');
+        assert(current.status === 'eligible' && same(item.identity, current.identity),
+          `Run changed or is no longer eligible (${current.reason ?? current.status})`);
         // All cooperating creators/finishers use this root lock. Re-read parent
         // and run identities immediately before removal. rm never follows links.
         assert(same(info, await rootInfo(root)), 'Scratch root changed');
         assert(same(current.identity, await directory(current.path)), 'Run directory changed');
-        await makeWritable(current.path);
+        await makeWritable(current.path, current.identity.dev);
         await rm(current.path, { recursive: true });
         removed.push({ id: item.id, bytes: current.bytes });
       } catch (error) { errors.push({ id: item.id, reason: error.message }); }
@@ -272,11 +350,14 @@ export async function cleanupScratch({ root = scratchRoot(), run, apply = false,
 
 // Reviewer views deliberately seal directories read-only. Restore owner access
 // only after activity/mount checks and under the same cleanup lock. Never follow links.
-async function makeWritable(path) {
+async function makeWritable(path, device) {
   const info = await lstat(path);
   if (!info.isDirectory() || info.isSymbolicLink()) return;
+  assert(info.dev === device, 'Scratch contains another filesystem');
   await chmod(path, info.mode | 0o700);
-  for (const name of await readdir(path)) await makeWritable(join(path, name));
+  for (const entry of await readdir(path, { withFileTypes: true })) {
+    if (entry.isDirectory()) await makeWritable(join(path, entry.name), device);
+  }
 }
 
 // External tools use standard temporary APIs; put those allocations under the

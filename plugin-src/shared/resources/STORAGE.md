@@ -52,6 +52,7 @@ Use the CLI from an installed package or a source checkout:
 gatereeve cleanup                    # preview; no writes
 gatereeve cleanup --apply            # recheck and remove eligible owned runs
 gatereeve cleanup --run <run-id>      # preview one exact run
+gatereeve cleanup --run <run-id> --apply
 gatereeve doctor                     # quick advisory metadata inventory
 gatereeve scratch run --purpose test -- /absolute/tool arguments
 gatereeve scratch run --keep-hours 24 -- /absolute/tool arguments
@@ -85,10 +86,21 @@ Cleanup rechecks run/root ownership and directory identities under a maintenance
 lock. Symlinked roots/records, malformed or missing owners, active owners or child
 groups, mounted directories and uncertain OS observations are protected. PID reuse
 alone does not establish inactivity. Full checks use POSIX `ps`, `mount` and
-`lsof`; unavailable tools or permissions retain scratch. Doctor reads metadata
+`lsof`. On Linux, a process-handle inventory avoids recursively scanning the
+source tree during the activity probe. The filesystem walk used to size and
+validate the run also checks open device/inode pairs, including files opened
+through hard links. The inventory has the same OS visibility limits as the
+invoking user's recursive `lsof`; a failed or incomplete probe retains scratch.
+Other platforms and paths requiring escaped output use recursive selection.
+Doctor reads metadata
 only, labels possible interruptions, and does not claim size/reclaimability until
 a full cleanup preview. Allocated-byte estimates are not guaranteed free-space
 changes (APFS snapshots/clones and concurrent activity may differ).
+
+If review scratch remains, use the exact root and run ID from the review output
+to preview the reason and retry after it clears. An exact run with a retained
+finish receipt and no bulk reports `removed`. The workflow reconciles its local
+view record when it next performs a mutating operation.
 
 Interrupted runs can be eligible once recorded owner/children are inactive and
 OS probes find no remaining use. An interruption during child registration or

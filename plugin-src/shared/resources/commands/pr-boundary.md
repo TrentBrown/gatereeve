@@ -23,8 +23,10 @@ any new review or candidate. A closed PR may display its previous head. In that
 case, GateReeve qualifies the pushed source branch and returns the local packet.
 Publish the hosted summary when GitHub observes the reviewed head within the
 authorized merge window. For opted-in repositories, Mutineer runs against
-the pinned target only at this handoff. Surface its status and report link in
-the thread. Offer pruning separately when a maintainer requests it.
+the pinned target only at this handoff. The local explainer and thread summary
+link to the detailed Mutineer report retained in the acceptance packet. The
+GitHub PR description carries the independent review summary and evidence
+identifiers. Offer pruning separately when a maintainer requests it.
 Present the exact candidate and risks for human acceptance unless an applicable recorded
 standing acceptance grant already covers this work, or the run is delegated and
 the candidate is a fully passing `SLICE` PR into the integration branch

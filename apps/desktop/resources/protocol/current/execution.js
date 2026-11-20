@@ -318,12 +318,21 @@ export function validateVerdict(verdict, ids, candidate, changes, history, claim
   'Review must state coverage and limitations');
   requireThat(Array.isArray(verdict.findings) && Array.isArray(verdict.dispositions), 'Review must include findings and dispositions');
   const paths = new Set(candidate.repositories.flatMap(repo => [...repo.files, ...repo.baseFiles, ...repo.targetFiles].map(file => `${repo.alias}/${file.path}`)));
-  if (['review', 'spec', 'judge', 'reconcile', 'triage'].includes(verdict.gate)) for (const path of briefBased(candidate) ? ['requirements/brief.md'] : PLANNING_PATHS) paths.add(path);
-  for (const finding of verdict.findings) {
+  const planningPaths = ['review', 'spec', 'judge', 'reconcile', 'triage'].includes(verdict.gate)
+    ? (briefBased(candidate) ? ['requirements/brief.md'] : PLANNING_PATHS)
+    : [];
+  const findings = verdict.findings.map(finding => {
     ['id', 'classId', 'criterion', 'path', 'evidence'].forEach(key => text(finding[key], `Finding ${key}`));
-    requireThat(paths.has(finding.path) && typeof finding.blocking === 'boolean', 'Finding must name source in scope');
+    let path = finding.path;
+    // Recover a missing alias only for an exact, unique repository-relative path.
+    if (verdict.gate === 'review' && !paths.has(path) && !planningPaths.includes(path)) {
+      const matches = candidate.repositories.map(repo => `${repo.alias}/${path}`).filter(value => paths.has(value));
+      if (matches.length === 1) [path] = matches;
+    }
+    requireThat((paths.has(path) || planningPaths.includes(path)) && typeof finding.blocking === 'boolean', 'Finding must name source in scope');
     if (finding.blocking) requireThat(candidate.criteria.includes(finding.criterion) || finding.criterion === `gate:${verdict.gate}`, 'Blocking finding lacks approved criterion');
-  }
+    return path === finding.path ? finding : { ...finding, path };
+  });
   requireThat(new Set(verdict.findings.map(item => item.id)).size === verdict.findings.length, 'Duplicate finding identity');
   for (const disposition of verdict.dispositions) {
     text(disposition.id, 'Finding identity'); text(disposition.evidence, 'Disposition evidence');
@@ -381,6 +390,7 @@ export function validateVerdict(verdict, ids, candidate, changes, history, claim
       requireThat(verdict.coverage.interactions.length > 0 && verdict.coverage.interactions.every(item => item.trim()), 'Delta must describe the interactions examined');
     }
   }
+  return { ...verdict, findings };
 }
 
 export async function executeGates(core, input, operation, reviewBaseline) {
@@ -675,17 +685,18 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
         try {
           const selected = returned.filter(item => item.gate === id);
           requireThat(selected.length === 1, 'Missing or duplicate independent verdict');
-          validateJsonSchema(schema.properties.verdicts.items, selected[0], { label: id });
-          validateVerdict(selected[0], input.gates, candidate, changes, history, input.claims ?? [], value.reconsiderClosures);
-          validateCoverageDecisions(selected[0], replacements);
+          const [original] = selected;
+          validateJsonSchema(schema.properties.verdicts.items, original, { label: id });
+          const canonicalVerdict = validateVerdict(original, input.gates, candidate, changes, history, input.claims ?? [], value.reconsiderClosures);
+          validateCoverageDecisions(canonicalVerdict, replacements);
           if (id === 'review' && mandate) {
-            requireThat(OUTCOMES.includes(selected[0].mandateAssessment?.outcome), 'Autonomous boundary review must assess the fixed human mandate');
-            text(selected[0].mandateAssessment.evidence, 'Mandate assessment evidence');
-            requireThat(selected[0].outcome !== 'PASS' || selected[0].mandateAssessment.outcome === 'PASS', 'Boundary PASS contradicts mandate compliance');
+            requireThat(OUTCOMES.includes(canonicalVerdict.mandateAssessment?.outcome), 'Autonomous boundary review must assess the fixed human mandate');
+            text(canonicalVerdict.mandateAssessment.evidence, 'Mandate assessment evidence');
+            requireThat(canonicalVerdict.outcome !== 'PASS' || canonicalVerdict.mandateAssessment.outcome === 'PASS', 'Boundary PASS contradicts mandate compliance');
           }
-          if (value.repair) validateFormatRepair(value.repair.original, selected[0], candidate.criteria, value.repair.eligibleAffected);
+          if (value.repair) validateFormatRepair(value.repair.original, original, candidate.criteria, value.repair.eligibleAffected);
           if (id === 'review' && configuration.reviewerSelection) {
-            const verdict = structuredClone(selected[0]);
+            const verdict = structuredClone(canonicalVerdict);
             const known = new Set(history.flatMap(item => (item.reviewerResult.findings ?? []).map(finding => finding.id)));
             const provenance = [];
             for (const finding of verdict.findings) {
@@ -699,7 +710,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
             requireThat(new Set(verdict.dispositions.map(row => row.id)).size === verdict.dispositions.length, 'Duplicate namespaced disposition identity');
             return { ...verdict, findingProvenance: provenance };
           }
-          return selected[0];
+          return canonicalVerdict;
         } catch (error) {
           const original = returned.find(item => item?.gate === id);
           return { gate: id, outcome: 'UNAVAILABLE', summary: error.message, findings: [], dispositions: [], invalidVerdictContract: true,

@@ -35,3 +35,8 @@
 - **Question** May GateReeve choose an eligible model, including Sonnet, after exhausting the configured preferences?
 - **Answer** Yes, for both Claude and GPT.
 - **Decision** Use ordered per-provider preferences in .agentic-workflow.json, with an optional reasoning effort for each model. Select the first available and eligible preference. If no preference qualifies, allow the agent to pick any eligible model from the same provider and record its reasoning. Preserve the two-provider requirement and keep model selection separate from verdict repair.
+
+## D7. Review scratch inode exhaustion
+
+- **Request** Find the root cause and fix it in the current PR before publication.
+- **Decision** Replace the directory-size-dependent Linux activity probe, preserve cleanup protections and exact-run recovery, and verify completion on a large Linux fixture. Host deployment and existing scratch reclamation remain separate operations.

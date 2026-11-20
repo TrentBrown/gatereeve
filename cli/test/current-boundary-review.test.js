@@ -315,7 +315,7 @@ test('Claude gets one same-model correction and retains the original Codex resul
       if (provider === 'codex') {
         const verdict = result.output.verdicts[0];
         verdict.findings = [{ id: 'new-advisory', classId: 'constant', criterion: request.input.criteria[0],
-          path: 'app/app.js', evidence: 'Current source has an advisory observation.', blocking: false }];
+          path: 'app.js', evidence: 'Current source has an advisory observation.', blocking: false }];
         verdict.dispositions = [{ id: 'new-advisory', status: 'present', evidence: 'The observation is present in current source.' }];
         result.receipt.digests.output = sha256Digest(result.output);
       }
@@ -327,6 +327,7 @@ test('Claude gets one same-model correction and retains the original Codex resul
   const reports = await Promise.all(done.event.payload.outcomes.map(row => f.core.store.json(row.results[0])));
   assert.deepEqual(reports.map(row => row.outcome), ['PASS', 'PASS']);
   assert.equal(reports[0].findings[0].id, 'codex/new-advisory');
+  assert.equal(reports[0].findings[0].path, 'app/app.js');
   assert.equal(reports[0].dispositions[0].id, reports[0].findings[0].id);
   const { state } = await f.core.state();
   assert.equal((await boundaryReviews(f.core, state, await f.core.store.json(state.candidate))).outcome, 'PASS');

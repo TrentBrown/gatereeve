@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readdir, rm, mkdir, writeFile, symlink, lstat, rename, chmod } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, mkdir, writeFile, symlink, lstat, rename, chmod, link } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { execFile, spawn } from 'node:child_process';
+import { execFile, spawn, spawnSync } from 'node:child_process';
+import { once } from 'node:events';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { createScratch, finishScratch, cleanupScratch, inspectScratch, withScratch, processIdentity } from '../../plugin-src/shared/resources/storage/scratch.js';
@@ -99,6 +100,29 @@ test('apply rechecks run identity and activity after preview', async t => {
   assert.equal(result.removed.length, 0);
   assert.match(result.errors[0].reason, /no longer eligible/u);
   assert.ok(await lstat(run.path));
+});
+
+test('Linux protects a review inode open through an external hard link', { skip: process.platform !== 'linux' }, async t => {
+  if (spawnSync('lsof', ['-v']).error) return t.skip('lsof is required for the real handle check');
+  const { root, parent } = await fixture(t);
+  const run = await createScratch({ root, purpose: 'review-source-view' });
+  const source = join(run.path, 'source'), external = join(parent, 'outside');
+  await writeFile(source, 'protected data');
+  await link(source, external);
+  const holder = spawn(process.execPath, ['-e', `require('node:fs').openSync(process.env.OPEN_PATH, 'r');
+    process.stdout.write('ready'); setInterval(() => {}, 1000);`], {
+    env: { ...process.env, OPEN_PATH: external }, stdio: ['ignore', 'pipe', 'inherit'],
+  });
+  const stopped = once(holder, 'exit');
+  t.after(async () => { holder.kill(); await stopped; });
+  await once(holder.stdout, 'data');
+  const finished = await finishScratch(run);
+  assert.equal(finished.entries[0].status, 'active');
+  assert.equal(finished.removed.length, 0);
+  holder.kill();
+  await stopped;
+  assert.equal((await cleanupScratch({ root, run: run.id, apply: true })).removed.length, 1);
+  assert.equal(await readFile(external, 'utf8'), 'protected data');
 });
 
 test('retention expires into eligibility; run selection leaves other runs alone', async t => {
