@@ -1,4 +1,4 @@
-import { selection, pairExistingEvaluator } from './helpers/paired-review-fixture.js';
+import { selection, pairExistingEvaluator, passingReviewRefs } from './helpers/paired-review-fixture.js';
 // Delivery targets, release merge authority, external blockers and review-summary
 // publication (spec AC6, R8 non-delegated paths, R9). Only GitHub transport is
 // simulated; Git remotes, integration proof and core decisions are real.
@@ -126,7 +126,7 @@ async function accepted(f) {
     checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Fixture verification' }] } }, 'verify')).event.payload.results];
   evaluator(f);
   await f.request('review.select', selection(), 'select'); pairExistingEvaluator(f);
-  refs.push(...(await f.request('review.execute', {}, 'review')).event.payload.outcomes.flatMap(row => row.results));
+  refs.push(...await passingReviewRefs(f, 'review'));
   refs.push(...(await f.request('gate.execute', { gates: ['context'] }, 'context')).event.payload.results);
   await f.request('gate.execute', { gates: ['packet'], consumed: refs }, 'packet');
   const check = await f.request('milestone.check', { name: 'acceptance' });

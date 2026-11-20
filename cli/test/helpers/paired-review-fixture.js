@@ -6,6 +6,20 @@ export const selection = () => ({ reason: 'Daily-driver models advertised by the
   observations: ['codex', 'claude-code'].map(provider => ({ provider, model: 'fixture', modelClass: 'standard', basis: 'agent-judgment', source: 'Fixture discovery', reasoningEfforts: ['high'] })),
   reviewers: ['codex', 'claude-code'].map(provider => ({ provider, model: 'fixture', reasoningEffort: 'high', reason: 'Suitable independent daily-driver perspective.' })) });
 
+export async function passingReviewRefs(f, operationId) {
+  const { event } = await f.request('review.execute', {}, operationId);
+  const refs = [];
+  for (const outcome of event.payload.outcomes) {
+    assert.equal(outcome.status, 'completed', `${outcome.provider} review: ${outcome.reason}`);
+    assert.equal(outcome.results?.length, 1, `${outcome.provider} review must retain one result`);
+    const [ref] = outcome.results;
+    const result = await f.core.store.json(ref);
+    assert.equal(result.outcome, 'PASS', `${outcome.provider} review: ${result.summary}`);
+    refs.push(ref);
+  }
+  return refs;
+}
+
 // Explicitly upgrade acceptance fixtures, keeping their evaluator's assertions
 // and transformations. Individual gate/invalid-receipt tests remain individual.
 export function pairExistingEvaluator(f) {

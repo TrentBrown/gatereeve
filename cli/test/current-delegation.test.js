@@ -225,7 +225,13 @@ async function delegatedSlice(t, options = {}) {
   await candidate(f, 'SLICE', head);
   openPr(f, 'topic', f.integration, head);
   await gates(f);
-  await f.request('milestone.pass', { name: 'acceptance' }, 'acceptance');
+  try {
+    await f.request('milestone.pass', { name: 'acceptance' }, 'acceptance');
+  } catch (error) {
+    const { missing, outcomes } = error.details ?? {};
+    if (!missing) throw error;
+    assert.fail(JSON.stringify({ missing, outcomes: outcomes?.map(({ id, outcome, reason }) => ({ id, outcome, reason })) }));
+  }
   const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
   return { f, head, action };
 }
