@@ -1,6 +1,7 @@
 import { identity, requireThat } from './contracts.js';
 import { runCheckProcess } from './execution.js';
 import { configuredGit } from './authorization.js';
+import { assertClean } from './evidence.js';
 
 const html = text => String(text ?? '').replace(/[&<>"]/gu, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
@@ -27,6 +28,9 @@ async function mutationEvidence(core, { pin, repository, state }) {
       const args = ['run', '--since', pin.target, '--json'];
       if (configuration.packages.length) args.push('--package', ...configuration.packages);
       const run = await execute(args, repository.path, configuration.timeoutMs);
+      // Qualify our checkout as well as the range reported by the tool.
+      requireThat((await git(repository.path, ['rev-parse', 'HEAD'])).trim() === pin.head, 'Mutation checkout changed during execution');
+      await assertClean(repository, core.store);
       requireThat(run.outcome === 'PASS', run.termination?.reason ?? 'Mutation command unavailable');
       if (run.stdout.startsWith('Nothing to mutate: no source lines')) {
         result = { status: 'skipped', reason: 'No eligible changed production lines', mergeBase };

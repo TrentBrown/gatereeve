@@ -445,6 +445,19 @@ test('final handoff leads with pinned HTML and reuses advisory mutation evidence
   assert.match(closed.publicationPending, /previous head/);
   assert.equal(closed.handoff.path, skipped.handoff.path);
   assert.equal(f.gh.calls.length, edits);
+  toolVersion = '1.2.6';
+  simulation = null;
+  const tool = f.core.runtime.mutineer;
+  f.core.runtime.mutineer = async (...args) => {
+    const result = await tool(...args);
+    if (args[0][0] === 'run') await writeFile(join(f.repo, 'app.js'), 'export const answer = 0;\n');
+    return result;
+  };
+  await assert.rejects(f.request('review.publish', { repository: 'app', number: 12 }, 'mutated-checkout'), /clean|uncommitted|source|working tree/iu);
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 42;\n');
+  const recovered = await f.request('review.publish', { repository: 'app', number: 12 }, 'clean-handoff');
+  assert.equal(recovered.handoff.mutation.status, 'unavailable');
+  assert.equal(commands.filter(args => args[0] === 'run').length, 4);
   f.gh.pr.headRefName = 'other-branch';
   await assert.rejects(f.request('review.publish', { repository: 'app', number: 12 }, 'wrong-closed-head'), /differs from the reviewed candidate head/);
 });
