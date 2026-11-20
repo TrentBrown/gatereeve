@@ -230,6 +230,14 @@ function descriptor({ id, provider, model, reasoningEffort, isolationMethod }) {
   });
 }
 
+export function codexShellEnvironmentArgs(platform = process.platform) {
+  const args = ['--config', 'shell_environment_policy.inherit="none"'];
+  // Linux Codex uses the command environment to discover distro Bubblewrap.
+  // Keep those search paths fixed when the rest of the environment is scrubbed.
+  if (platform === 'linux') args.push('--config', 'shell_environment_policy.set.PATH="/usr/bin:/bin"');
+  return args;
+}
+
 export function createCodexAgentAdapter({
   executable = 'codex',
   model,
@@ -259,7 +267,7 @@ export function createCodexAgentAdapter({
           'exec', '--ephemeral', '--ignore-user-config', '--ignore-rules',
           '--skip-git-repo-check', '--sandbox', 'read-only', '--model', model,
           '--config', `model_reasoning_effort="${reasoningEffort}"`,
-          '--config', 'shell_environment_policy.inherit="none"',
+          ...codexShellEnvironmentArgs(),
           '--cd', request.repositoryPath,
           '--output-schema', schemaPath,
           '--output-last-message', outputPath,

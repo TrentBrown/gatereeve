@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { MAX_ARGUMENT_BYTES, assertArgumentSizes } from '../../plugin-src/shared/resources/protocol/local-agent-adapters.js';
+import { MAX_ARGUMENT_BYTES, assertArgumentSizes, codexShellEnvironmentArgs } from '../../plugin-src/shared/resources/protocol/local-agent-adapters.js';
 import {
   createClaudeCodeAgentAdapter,
   createCodexAgentAdapter,
@@ -40,6 +40,15 @@ function request() {
   };
 }
 
+test('only Linux Codex adds the fixed distro helper path to the scrubbed shell', () => {
+  const scrubbed = ['--config', 'shell_environment_policy.inherit="none"'];
+  assert.deepEqual(codexShellEnvironmentArgs('linux'), [
+    ...scrubbed, '--config', 'shell_environment_policy.set.PATH="/usr/bin:/bin"',
+  ]);
+  assert.deepEqual(codexShellEnvironmentArgs('darwin'), scrubbed);
+  assert.deepEqual(codexShellEnvironmentArgs('win32'), scrubbed);
+});
+
 test('Codex adapter launches a fresh ephemeral read-only structured run', async () => {
   const calls = [];
   const adapter = createCodexAgentAdapter({
@@ -68,7 +77,9 @@ test('Codex adapter launches a fresh ephemeral read-only structured run', async 
   assert(calls[0].args.includes('--skip-git-repo-check'));
   assert(calls[0].args.includes('read-only'));
   assert(calls[0].args.includes('--output-schema'));
-  assert(calls[0].args.includes('shell_environment_policy.inherit="none"'));
+  const shellArgs = codexShellEnvironmentArgs();
+  const shellStart = calls[0].args.indexOf(shellArgs[1]) - 1;
+  assert.deepEqual(calls[0].args.slice(shellStart, shellStart + shellArgs.length), shellArgs);
   assert(!calls[0].args.includes('resume'));
 });
 
