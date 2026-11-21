@@ -199,7 +199,18 @@ function parseObject(value, label) {
 
 export function parseClaudeStructuredOutput(stdout) {
   const envelope = parseObject(stdout, 'Claude Code');
-  const output = envelope.structured_output ?? envelope.structuredOutput ?? envelope.result;
+  const structured = envelope.structured_output ?? envelope.structuredOutput;
+  let output = structured ?? envelope.result;
+  // Only the text fallback can contain a conversational wrapper. Reject
+  // multiple fences so no competing verdict can be silently discarded.
+  if (structured == null && typeof output === 'string') {
+    const fences = output.match(/^[ \t]*```[^\r\n]*$/gmu);
+    const block = /^[ \t]*```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n[ \t]*```[ \t]*$/mu.exec(output);
+    if (fences?.length === 2 && block) {
+      const outside = output.slice(0, block.index) + '\n' + output.slice(block.index + block[0].length);
+      if (!/^\s*[\[{]/mu.test(outside)) output = block[1];
+    }
+  }
   return {
     output: parseObject(output, 'Claude Code structured output'),
     contextId: envelope.session_id ?? envelope.sessionId,

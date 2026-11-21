@@ -7,7 +7,7 @@ import { HIGH_CAPABILITY_PROFILE, validateEvaluatorCapability } from '../agent-w
 const FAMILIES = Object.freeze({ codex: 'openai', 'claude-code': 'anthropic' });
 export const modelProvider = provider => FAMILIES[provider] ?? null;
 
-export function reviewerSelection(input) {
+export function reviewerSelection(input, preferences = {}) {
   requireThat(input && Object.keys(input).every(key => ['observations', 'reviewers', 'reason', 'instruction', 'previous'].includes(key)), 'Unsupported reviewer selection field');
   text(input.reason, 'Reviewer selection rationale');
   requireThat(Array.isArray(input.observations) && input.observations.length > 0, 'Reviewer selection needs current discovery observations');
@@ -36,6 +36,26 @@ export function reviewerSelection(input) {
   requireThat(new Set(reviewers.map(row => row.modelProvider)).size === 2, 'Boundary reviewers must use different model providers');
   if (input.instruction !== undefined) text(input.instruction, 'Explicit reviewer instruction');
   if (input.previous !== undefined) text(input.previous, 'Previous selection identity');
-  return { observations, reviewers, reason: input.reason, ...(input.instruction ? { instruction: input.instruction } : {}), ...(input.previous ? { previous: input.previous } : {}),
+  const preferenceEvidence = reviewers.flatMap(reviewer => {
+    const options = preferences[reviewer.provider] ?? [];
+    if (!options.length) return [];
+    const skipped = [];
+    for (const option of options) {
+      const observation = observations.find(row => row.provider === reviewer.provider && row.model === option.model);
+      const efforts = (observation?.reasoningEfforts ?? []).filter(effort => {
+        if (option.reasoningEffort && option.reasoningEffort !== effort) return false;
+        try { validateEvaluatorCapability(HIGH_CAPABILITY_PROFILE, effort); return true; }
+        catch { return false; }
+      });
+      if (efforts.length) {
+        requireThat(reviewer.model === option.model && efforts.includes(reviewer.reasoningEffort),
+          `Select first eligible configured ${reviewer.provider} reviewer: ${option.model} (${efforts.join(', ')})`);
+        return [{ provider: reviewer.provider, skipped, basis: 'configured-preference' }];
+      }
+      skipped.push({ ...option, reason: observation ? 'No eligible configured reasoning effort discovered' : 'Model not discovered' });
+    }
+    return [{ provider: reviewer.provider, skipped, basis: 'agent-judgment', reason: reviewer.reason }];
+  });
+  return { observations, reviewers, ...(preferenceEvidence.length ? { preferenceEvidence } : {}), reason: input.reason, ...(input.instruction ? { instruction: input.instruction } : {}), ...(input.previous ? { previous: input.previous } : {}),
     availability: 'discovered; execution not yet established' };
 }

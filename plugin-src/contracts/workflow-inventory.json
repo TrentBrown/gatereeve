@@ -270,6 +270,7 @@
       "current/environment.js",
       "current/evidence.js",
       "current/execution.js",
+      "current/final-handoff.js",
       "current/git-source.js",
       "current/observation.js",
       "current/pattern-inputs.js",

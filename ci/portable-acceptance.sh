@@ -16,7 +16,9 @@ export GIT_CONFIG_GLOBAL="$(mktemp)"
 git config --global user.name "Workflow Acceptance"
 git config --global user.email "workflow-acceptance@example.invalid"
 
-npm test --prefix cli
+# Several large test files already run four isolated shards. Limit concurrent
+# files so they do not multiply process and managed-scratch contention on CI.
+npm test --prefix cli -- --test-concurrency=2
 npm audit --prefix cli --audit-level=high
 
 python3 -m unittest discover \

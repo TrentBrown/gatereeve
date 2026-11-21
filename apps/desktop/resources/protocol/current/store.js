@@ -161,6 +161,12 @@ export class CurrentStore {
     const bytes = await readSafe(this.home, localPath(path));
     return { path, hash: digest(bytes), bytes: bytes.length };
   }
+  async publishReport(path, reference) {
+    const bytes = await this.get(reference);
+    const created = await publish(this.home, path, bytes);
+    requireThat(created || digest(await readSafe(this.home, path)) === reference.hash, 'Existing handoff report is corrupt');
+    return join(this.home, path);
+  }
   async capture(path) { return { path: localPath(path), ...await this.put(await readSafe(this.home, path)) }; }
   async currentBytes(ref) {
     const bytes = await readSafe(this.home, ref.path);
@@ -251,6 +257,20 @@ export class CurrentStore {
   async job(jobId) {
     identifier(jobId, 'job');
     return database(this.home, false, db => JSON.parse(db.prepare('SELECT body FROM jobs WHERE id=?').get(jobId)?.body ?? 'null'));
+  }
+  async handoff(key) {
+    identifier(key, 'handoff');
+    const current = await database(this.home, false, db =>
+      JSON.parse(db.prepare('SELECT value FROM metadata WHERE key=?').get(key)?.value ?? 'null'));
+    return current ?? this.job(key);
+  }
+  async saveHandoff(key, value) {
+    identifier(key, 'handoff');
+    await this.get(value.handoff);
+    return database(this.home, true, db => {
+      db.prepare('INSERT INTO metadata(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value')
+        .run(key, canonical(value));
+    });
   }
   async events(runId) {
     identifier(runId, 'run');

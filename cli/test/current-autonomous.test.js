@@ -82,6 +82,10 @@ test('autonomous adjudication accepts eligible dissent, retains FAIL and records
   assert.equal(review.satisfied, true);
   assert.ok(review.adjudication);
   assert.equal(check.allowed, true);
+  openPr(f, 'topic', f.integration, f.base);
+  const publication = await f.request('review.publish', { repository: 'app', number: 12 }, 'publish-adjudicated');
+  assert.equal(publication.outcome, 'FAIL');
+  assert.ok(publication.handoff?.path.endsWith('pr-explainer.html'));
   await f.request('run.set-dial', { dial: 'autonomy', value: 'supervised', actor: 'agent', reason: 'Return judgment' }, 'supervised');
   assert.equal((await f.request('milestone.check', { name: 'acceptance' })).outcomes.find(row => row.id === 'review').satisfied, false);
 });

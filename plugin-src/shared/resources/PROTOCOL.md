@@ -37,7 +37,7 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `milestone.check` | `name: implementation|acceptance|merge|completion`; reports missing proof/authority without writing |
 | `milestone.pass` | Record an allowed milestone; merge must use its protected action |
 | `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. Rejects a PR whose candidate scope does not match its target (see Delivery targets). Without a workspace configuration it fails naming `workspace.configure` |
-| `review.select` | `observations`, exactly two `reviewers`, `reason`, optional developer `instruction` and replacement `previous` selection event. Record runtime discovery and daily-driver/high-effort choices; this is not model-selection configuration |
+| `review.select` | `observations`, exactly two `reviewers`, `reason`, optional developer `instruction` and replacement `previous` selection event. Record runtime discovery and daily-driver/high-effort choices after applying configured reviewer preferences |
 | `review.execute` | Run the selected pair in parallel; optional `consumed`, bounded `history`/`claims`, `coverageClaims`, per-provider `prior` and shared non-identity `configuration`. Individual `gate.execute review` results alone do not satisfy acceptance |
 | `review.adjudicate` | Autonomous only: exact `candidate` hash and `pair` identity, complete material-finding `dispositions`, `reason`, retained `evidence`, optional `stopReason`; preserves original reviewer outcomes |
 | `review.publish` | `repository`, PR `number`; write the current independent `review` summary for the candidate head into a delimited section of the PR description. Idempotent; refuses without a current qualifying review result or when the PR head differs from the candidate head |
@@ -745,12 +745,14 @@ between `<!-- gatereeve:review-summary:start -->` and
 `<!-- gatereeve:review-summary:end -->` in the PR description, replacing an
 earlier section and keeping all other text. The section names the outcome,
 reviewed head, candidate, result identity, evaluator and basis (rubric or brief),
-then the summary, criteria, dimensions and findings. Human `authorize-merge`,
-standing merge application and `merge.execute` each re-read the PR description
-and require the section to equal a fresh rendering for the prepared head; a newer
-review result, a new candidate or an edited section requires publishing again.
-Authorization is the enforcement point because that is when someone relies on the
-presentation; `merge.execute` repeats the check before any external write.
+then the summary, criteria, dimensions and findings. For an accepted candidate,
+the operation also retains the exact-head HTML explainer and any advisory mutation
+report. Human `authorize-merge`, standing merge application and `merge.execute`
+require the retained handoff and the current hosted summary. A closed same-repository
+PR can still display the old head. When its pushed branch matches the prepared
+head, the retained local handoff supports authorization. After reopening inside
+the authorized merge window, `merge.execute` verifies the host's exact head and
+base, publishes the summary and checks it again before attempting the merge.
 
 **External blockers.** When GitHub refuses an authorized merge because of a hosting
 rule (for example a required approving review the author cannot give, or a base
@@ -849,13 +851,30 @@ At the first boundary, the agent discovers available native providers/models and
 reasoning options and records its decision with `review.select`. Prefer capable
 standard/daily-driver models at high effort, honor explicit developer model
 instructions and label inferred model classes as agent judgment. Version names
-are data, not built-in defaults. Reuse the pair within the run; replace it only
+are data, not built-in defaults. Set ordered preferences under the workflow
+repository alias in `.agentic-workflow.json`, for example:
+
+```json
+{
+  "reviewerPreferences": {
+    "codex": [{ "model": "gpt-6.2-sol", "reasoningEffort": "high" }],
+    "claude-code": [{ "model": "claude-opus-5-5", "reasoningEffort": "high" }]
+  },
+  "mutationAdvisory": { "packages": ["packages/domain"], "timeoutMs": 900000 }
+}
+```
+
+Discover the configured candidates and submit the first eligible observed choice
+for each provider. If the list is empty or exhausted, choose an eligible model
+from the same provider using current discovery and record the rationale. A
+malformed verdict triggers at most one Claude-only retry per round using the
+same model and effort. Reuse the pair within the run; replace it only
 for availability changes or developer direction, identifying the previous
 selection and reason. Autonomous mode may choose an available comparably capable
 replacement; changing user-pinned choices in other modes needs developer
 direction. A missing second provider remains a blocker. Discovery does not prove
 successful native execution. The main thread and planning-review model policy
-are unchanged. No model-selection configuration is added.
+are unchanged.
 
 `review.execute` coordinates native assessments and `boundaryReviews` qualifies
 the latest applicable result independently for each selected perspective. A

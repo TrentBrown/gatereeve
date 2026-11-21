@@ -44,3 +44,29 @@ test('carried closures still need a reason, and every required ID a supported di
   // An open finding is never carried as unaffected.
   assert.throws(() => validate(verdict({ affected: ['C1', 'O1'], carryForwardReason: 'C2 untouched.' }, [disposition('C1'), disposition('O1', 'unaffected'), disposition('K1')])), /Open finding O1 cannot be carried as unaffected/);
 });
+
+test('review requires an explicit alias when a relative finding path has multiple owners', () => {
+  const candidateWithOverlap = { ...candidate, repositories: [
+    ...candidate.repositories,
+    { ...candidate.repositories[0], alias: 'other' },
+    { alias: 'requirements', files: [], baseFiles: [], targetFiles: [] },
+  ] };
+  const review = {
+    ...verdict(null, []), gate: 'review', outcome: 'FAIL',
+    criteria: [{ id: 'R1', outcome: 'FAIL', evidence: 'Source defect.' }],
+    dimensions: ['code', 'requirements', 'evidence', 'scope', 'findings']
+      .map(name => ({ name, outcome: 'FAIL', evidence: 'Source defect.' })),
+  };
+  const checkPath = (path, scope = candidateWithOverlap) => validateVerdict({
+    ...review, findings: [{ ...finding('F1'), path }],
+  }, ['review'], scope, null, [], []);
+
+  assert.throws(() => checkPath('app.js'), /Finding must name source in scope/);
+  assert.throws(() => checkPath('spec.md'), /Finding must name source in scope/);
+  assert.throws(() => checkPath('missing/app.js'), /Finding must name source in scope/);
+  const recovered = checkPath('app.js', candidate);
+  assert.equal(recovered.outcome, 'FAIL');
+  assert.deepEqual(recovered.findings, [finding('F1')]);
+  assert.equal(checkPath('other/app.js').findings[0].path, 'other/app.js');
+  assert.equal(checkPath('requirements/spec.md').findings[0].path, 'requirements/spec.md');
+});

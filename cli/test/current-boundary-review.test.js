@@ -299,3 +299,64 @@ test('each provider supplies its own delta after source changes and cannot borro
   assert.ok(pair.members.every(member => member.result.mode === 'delta'));
   assert.deepEqual(pair.members.map(member => member.result.prior.hash), prior.members.map(member => member.ref.hash));
 });
+
+test('Claude gets one same-model correction and retains the original Codex result', async t => {
+  const f = await prepared(t);
+  pairedAdapters(f);
+  const counts = { codex: 0, 'claude-code': 0 };
+  for (const [provider, adapter] of Object.entries(f.core.runtime.evaluators)) {
+    const run = adapter.runStage.bind(adapter);
+    adapter.runStage = async request => {
+      counts[provider]++;
+      if (provider === 'claude-code' && counts[provider] === 1) {
+        throw Object.assign(new Error('Malformed JSON'), { providerFailure: { category: 'malformed-output' } });
+      }
+      const result = await run(request);
+      if (provider === 'codex') {
+        const verdict = result.output.verdicts[0];
+        verdict.findings = [{ id: 'new-advisory', classId: 'constant', criterion: request.input.criteria[0],
+          path: 'app.js', evidence: 'Current source has an advisory observation.', blocking: false }];
+        verdict.dispositions = [{ id: 'new-advisory', status: 'present', evidence: 'The observation is present in current source.' }];
+        result.receipt.digests.output = sha256Digest(result.output);
+      }
+      return result;
+    };
+  }
+  const done = await f.request('review.execute', {}, 'repair-pair');
+  assert.deepEqual(counts, { codex: 1, 'claude-code': 2 });
+  const reports = await Promise.all(done.event.payload.outcomes.map(row => f.core.store.json(row.results[0])));
+  assert.deepEqual(reports.map(row => row.outcome), ['PASS', 'PASS']);
+  assert.equal(reports[0].findings[0].id, 'codex/new-advisory');
+  assert.equal(reports[0].findings[0].path, 'app/app.js');
+  assert.equal(reports[0].dispositions[0].id, reports[0].findings[0].id);
+  const { state } = await f.core.state();
+  assert.equal((await boundaryReviews(f.core, state, await f.core.store.json(state.candidate))).outcome, 'PASS');
+});
+
+test('Claude can supply an omitted severity and qualify the same pinned source in its retry', async t => {
+  const f = await prepared(t, 'full');
+  const launches = pairedAdapters(f);
+  const adapter = f.core.runtime.evaluators['claude-code'];
+  const run = adapter.runStage.bind(adapter);
+  const advisory = { id: 'omitted-severity', classId: 'constant', criterion: 'R1',
+    path: 'app.js', evidence: 'The constant could use a comment.' };
+  adapter.runStage = async request => {
+    const result = await run(request);
+    const verdict = result.output.verdicts[0];
+    verdict.findings = request.input.repair
+      ? [{ ...advisory, path: 'app/app.js', blocking: false }]
+      : [advisory];
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const done = await f.request('review.execute', {}, 'repair-severity');
+  assert.equal(launches(), 3);
+  const reports = await Promise.all(done.event.payload.outcomes.map(row => f.core.store.json(row.results[0])));
+  assert.deepEqual(reports.map(report => report.outcome), ['PASS', 'PASS']);
+  assert.equal(reports[1].findings[0].blocking, false);
+  assert.equal(reports[1].findings[0].path, 'app/app.js');
+  assert.equal(reports[1].findings[0].evidence, advisory.evidence);
+  const { state } = await f.core.state();
+  const pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.equal(pair.outcome, 'PASS');
+});

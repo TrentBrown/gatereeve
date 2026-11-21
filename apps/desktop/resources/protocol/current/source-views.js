@@ -1,4 +1,4 @@
-import { createScratch, finishScratch, cleanupScratch } from '../../storage/scratch.js';
+import { createScratch, finishScratch, cleanupScratch, inspectScratch } from '../../storage/scratch.js';
 import { mkdir, writeFile, open, link, rm, lstat, readdir, chmod } from 'node:fs/promises';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
@@ -19,14 +19,24 @@ export async function viewStatus(store) {
 }
 export async function cleanupViews(store, state = null) {
   for (const view of await store.openViews()) {
-    if (!inactive(view) || view.root !== expected(view)) continue;
-    // A dead controller does not prove its evaluator subprocess has stopped.
-    if (view.jobId && (view.runId !== state?.runId || !state.jobs[view.jobId]?.finished)) continue;
-    let exists = true;
-    try { await lstat(view.root); } catch (error) { if (error.code !== 'ENOENT') continue; exists = false; }
-    if (!exists) { await store.finishView(view.id); continue; }
+    if (view.host !== hostname() || view.root !== expected(view)) continue;
+    const controllerDone = inactive(view) && (!view.jobId || (view.runId === state?.runId && state.jobs?.[view.jobId]?.finished));
     try {
-      const info = await lstat(view.root);
+      const info = await lstat(view.root).catch(error => {
+        if (error.code === 'ENOENT') return null;
+        throw error;
+      });
+      if (!info) {
+        // A finished scratch receipt plus an absent registered run also
+        // reconciles an exact CLI cleanup while the controller is still alive.
+        const alreadyRemoved = controllerDone || (await inspectScratch({
+          root: view.scratch.root, run: view.scratch.id, quick: true,
+        })).entries[0]?.status === 'removed';
+        if (alreadyRemoved) await store.finishView(view.id);
+        continue;
+      }
+      // A dead controller alone does not prove its evaluator has stopped.
+      if (!controllerDone) continue;
       requireThat(info.isDirectory() && !info.isSymbolicLink(), 'Unsafe interrupted review view');
       requireThat((await readSafe(view.root, '.gatereeve-view-owner')).toString() === identity({ home: store.home, id: view.id }), 'Review view ownership is unavailable');
       const result = await cleanupScratch({ ...view.scratch, apply: true, run: view.scratch.id });
@@ -34,12 +44,27 @@ export async function cleanupViews(store, state = null) {
     } catch { /* Ambiguous ownership is preserved and remains visible. */ }
   }
 }
+function reportDeferred(scratch, reason) {
+  const root = "'" + scratch.root.replaceAll("'", "'\\''") + "'";
+  console.error(`Review scratch retained (${reason}): ${scratch.path}\nPreview: GATEREEVE_SCRATCH_ROOT=${root} gatereeve cleanup --run ${scratch.id} --json\nAdd --apply after reviewing eligibility.`);
+}
+
 export async function newView(store, { runId = null, jobId = null, linkFile = link, writeMarker = writeFile } = {}) {
   const id = randomUUID();
   const scratch = await createScratch({ purpose: 'review-source-view' });
   const root = join(scratch.path, 'view');
   const readers = new Map(); const backing = new Map(); const paths = new Set();
   const backingRoot = join(root, '.source-blobs');
+  async function finish(error) {
+    let result;
+    try { result = await finishScratch(scratch, { error }); }
+    catch (cause) { reportDeferred(scratch, cause.message); throw cause; }
+    if (result.removed.length) await store.finishView(id);
+    else {
+      const entry = result.entries[0];
+      reportDeferred(scratch, result.error ?? result.errors?.[0]?.reason ?? entry?.reason ?? entry?.status ?? 'unknown');
+    }
+  }
   try {
     await store.saveView(id, { root, pid: process.pid, host: hostname(), runId, jobId,
       scratch: { root: scratch.root, id: scratch.id } });
@@ -47,10 +72,8 @@ export async function newView(store, { runId = null, jobId = null, linkFile = li
     await writeMarker(join(root, '.gatereeve-view-owner'), identity({ home: store.home, id }), { flag: 'wx', mode: 0o400 });
     await mkdir(backingRoot, { mode: 0o700 });
   } catch (error) {
-    try {
-      const result = await finishScratch(scratch, { error });
-      if (result.removed.length) await store.finishView(id);
-    } catch (cleanupError) { throw new AggregateError([error, cleanupError], 'Review view initialization and cleanup failed'); }
+    try { await finish(error); }
+    catch (cleanupError) { throw new AggregateError([error, cleanupError], 'Review view initialization and cleanup failed'); }
     throw error;
   }
   return {
@@ -108,9 +131,7 @@ export async function newView(store, { runId = null, jobId = null, linkFile = li
     },
     async close() {
       for (const reader of readers.values()) await reader.abort(); readers.clear();
-      const result = await finishScratch(scratch);
-      if (result.removed.length) await store.finishView(id);
-      else console.error(`Review scratch retained: ${scratch.path}`);
+      await finish();
     },
   };
 }

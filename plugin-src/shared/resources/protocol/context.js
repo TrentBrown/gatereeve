@@ -19,6 +19,40 @@ const IDENTIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/u;
 const resolutions = new WeakMap();
 const OBJECT_ID = /^[0-9a-fA-F]{40,64}$/u;
 
+function reviewerPreferences(value, label) {
+  if (value === undefined) return {};
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object`);
+  return Object.fromEntries(Object.entries(value).map(([provider, entries]) => {
+    if (!['codex', 'claude-code'].includes(provider) || !Array.isArray(entries)) {
+      throw new Error(`${label} requires arrays for supported native providers`);
+    }
+    const models = new Set();
+    return [provider, entries.map(entry => {
+      if (!entry || typeof entry !== 'object' || Object.keys(entry).some(key => !['model', 'reasoningEffort'].includes(key))
+        || typeof entry.model !== 'string' || !entry.model.trim() || models.has(entry.model)
+        || (entry.reasoningEffort !== undefined && (typeof entry.reasoningEffort !== 'string' || !entry.reasoningEffort.trim()))) {
+        throw new Error(`${label}.${provider} requires distinct model IDs and optional reasoning efforts`);
+      }
+      models.add(entry.model);
+      return { ...entry };
+    })];
+  }));
+}
+
+function mutationAdvisory(value, label) {
+  if (value === undefined || value === false) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || Object.keys(value).some(key => !['packages', 'timeoutMs'].includes(key))) {
+    throw new Error(`${label} must be false or an object with packages and timeoutMs`);
+  }
+  const { packages = [], timeoutMs = 900000 } = value;
+  if (!Array.isArray(packages) || packages.some(pkg => typeof pkg !== 'string' || !pkg.trim() || pkg.startsWith('-'))
+    || !Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2147483647) {
+    throw new Error(`${label} requires package names or paths and a positive timeout in milliseconds`);
+  }
+  return { packages: [...packages], timeoutMs };
+}
+
 function expandUser(path, environment) {
   if (path === '~') return environment.HOME ?? homedir();
   if (path.startsWith(`~${sep}`)) {
@@ -209,6 +243,12 @@ async function parseRepositories(value, workspaceRoot, environment) {
       integrationBranch,
       releaseBranch,
       keepPullRequestsClosed,
+      ...(rawRepository.reviewerPreferences === undefined ? {} : {
+        reviewerPreferences: reviewerPreferences(rawRepository.reviewerPreferences, `repositories.${alias}.reviewerPreferences`),
+      }),
+      ...(rawRepository.mutationAdvisory === undefined ? {} : {
+        mutationAdvisory: mutationAdvisory(rawRepository.mutationAdvisory, `repositories.${alias}.mutationAdvisory`),
+      }),
       featureBaseSha,
     });
   }
@@ -320,7 +360,7 @@ function authorityContext(context) {
       alias: item.alias, path: item.path, remote: item.remote ?? 'origin',
       integrationBranch: item.integrationBranch ?? null,
       releaseBranch: item.releaseBranch ?? item.integrationBranch ?? null,
-      keepPullRequestsClosed: Boolean(item.keepPullRequestsClosed), featureBaseSha: item.featureBaseSha ?? null,
+      keepPullRequestsClosed: Boolean(item.keepPullRequestsClosed), reviewerPreferences: item.reviewerPreferences ?? {}, mutationAdvisory: item.mutationAdvisory ?? null, featureBaseSha: item.featureBaseSha ?? null,
     })),
   });
 }

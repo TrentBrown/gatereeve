@@ -1,12 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile, readFile, rm, readdir, stat, open, symlink } from 'node:fs/promises';
+import { once } from 'node:events';
+import { spawn, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { currentFixture } from './helpers/current-fixture.js';
 import { git, sourceCandidate, checkSource, contentIdentity } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
 import { sourcePreparation, ensurePins, releasePins, checkPins } from '../../plugin-src/shared/resources/protocol/current/source-retention.js';
 import { ObjectReader, withObjects, sourceGit } from '../../plugin-src/shared/resources/protocol/current/git-source.js';
 import { newView, cleanupViews } from '../../plugin-src/shared/resources/protocol/current/source-views.js';
+import { cleanupScratch } from '../../plugin-src/shared/resources/storage/scratch.js';
 
 async function commit(f) {
   await git(f.repo, ['add', '.']); await git(f.repo, ['commit', '--allow-empty', '-m', 'source fixture']);
@@ -156,6 +159,51 @@ test('cleanup leaves live view sessions intact', async t => {
   const f = await currentFixture(t); const view = await newView(f.core.store);
   await cleanupViews(f.core.store); assert.ok((await stat(view.root)).isDirectory());
   await view.close();
+});
+
+test('sealed review cleanup preserves a live cwd and reconciles an exact retry', async t => {
+  if (spawnSync('lsof', ['-v']).error) return t.skip('lsof is required for the real handle check');
+  const f = await currentFixture(t);
+  const durable = await f.core.store.put('retained evidence');
+  const view = await newView(f.core.store);
+  const [record] = await f.core.store.openViews();
+  const options = { root: record.scratch.root, run: record.scratch.id };
+  for (let index = 0; index < 48; index++) {
+    const directory = join(view.root, 'repositories', 'app', String(index));
+    await mkdir(directory, { recursive: true });
+    await Promise.all(Array.from({ length: 12 }, (_, entry) =>
+      writeFile(join(directory, String(entry)), 'source', { mode: 0o400 })));
+  }
+  await view.seal();
+  const holder = spawn(process.execPath, ['-e', 'process.stdout.write("ready"); setInterval(() => {}, 1000)'], {
+    cwd: view.root, stdio: ['ignore', 'pipe', 'inherit'],
+  });
+  const stopped = once(holder, 'exit');
+  t.after(async () => { holder.kill(); await stopped; });
+  await once(holder.stdout, 'data');
+
+  const messages = t.mock.method(console, 'error', () => {});
+  await view.close();
+  const log = messages.mock.calls.map(({ arguments: [message] }) => message).join('\n');
+  assert.match(log, /retained \(active\)/u);
+  assert.ok(log.includes(`cleanup --run ${record.scratch.id} --json`));
+  assert.equal((await cleanupScratch(options)).entries[0].status, 'active');
+  assert.ok((await stat(view.root)).isDirectory());
+  assert.equal((await f.core.store.openViews())[0].id, record.id);
+
+  holder.kill();
+  await stopped;
+  assert.equal((await cleanupScratch(options)).entries[0].status, 'eligible');
+  assert.ok((await stat(view.root)).isDirectory(), 'preview did not remove the view');
+  const result = await cleanupScratch({ ...options, apply: true });
+  assert.equal(result.removed[0]?.id, record.scratch.id);
+  await assert.rejects(stat(view.root), { code: 'ENOENT' });
+  assert.equal((await cleanupScratch({ ...options, apply: true })).entries[0].status, 'removed');
+  const receipt = JSON.parse(await readFile(join(record.scratch.root, 'reports', `${record.scratch.id}.json`), 'utf8'));
+  assert.equal(receipt.outcome, 'PASS');
+  await cleanupViews(f.core.store);
+  assert.deepEqual(await f.core.store.openViews(), []);
+  assert.equal(String(await f.core.store.get(durable)), 'retained evidence');
 });
 
 test('completion cleanup is durable, protects active jobs, and does not undo completion', async t => {

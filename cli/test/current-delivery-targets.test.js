@@ -1,10 +1,10 @@
-import { selection, pairExistingEvaluator } from './helpers/paired-review-fixture.js';
+import { selection, pairExistingEvaluator, passingReviewRefs } from './helpers/paired-review-fixture.js';
 // Delivery targets, release merge authority, external blockers and review-summary
 // publication (spec AC6, R8 non-delegated paths, R9). Only GitHub transport is
 // simulated; Git remotes, integration proof and core decisions are real.
 import assert from 'node:assert/strict';
 import { isolatedTests } from './helpers/isolated-tests.js';
-import { mkdtemp, mkdir, writeFile, rm, realpath } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CurrentCore } from '../../plugin-src/shared/resources/protocol/current/core.js';
@@ -84,6 +84,11 @@ function github(f) {
       mergeCommit: pr.state === 'MERGED' ? { oid: pr.headRefOid } : null });
     host.calls.push(command);
     if (command === 'edit') pr.body = args[args.indexOf('--body') + 1];
+    if (command === 'reopen') {
+      pr.state = 'OPEN';
+      pr.headRefOid = (await git(root, ['ls-remote', 'origin', `refs/heads/${pr.headRefName}`])).split(/\s/u)[0];
+    }
+    if (command === 'close') pr.state = 'CLOSED';
     if (command === 'ready') pr.isDraft = args.includes('--undo');
     if (command === 'merge') {
       if (host.merge) return host.merge(root, args);
@@ -98,13 +103,14 @@ function openPr(f, headBranch, baseBranch, head, body = 'Change description.') {
     baseRefOid: f.base, body, mergeStateStatus: 'CLEAN', reviewDecision: '' };
 }
 function evaluator(f, { summary = 'Fixture assessment: the change exports 42.' } = {}) {
+  const paths = f.context.repositories.map(repository => `${repository.alias}/app.js`);
   f.core.runtime.evaluator = {
     async describe() { return { provider: 'codex', model: 'fixture', reasoningEffort: 'high' }; },
     async runStage(request) {
       const output = { verdicts: request.input.gates.map(id => ({ gate: id, outcome: 'PASS', summary,
         ...(id === 'review' ? { dimensions: ['code', 'requirements', 'evidence', 'scope', 'findings'].map(name => ({ name, outcome: 'PASS', evidence: 'Fixture source and receipts' })) } : {}),
         criteria: request.input.criteria.map(row => ({ id: row, outcome: 'PASS', evidence: 'app/app.js exports 42' })),
-        coverage: { complete: true, paths: ['app/app.js'], interactions: ['app/app.js'], limitations: [] }, findings: [], dispositions: [], historyAssessment: null })) };
+        coverage: { complete: true, paths, interactions: paths, limitations: [] }, findings: [], dispositions: [], historyAssessment: null })) };
       return { schemaVersion: 1, protocolVersion: request.protocolVersion, stageId: request.stage.id, status: 'completed', output, receipt: { schemaVersion: 1, kind: 'gatereeve-agent-workflow-receipt',
         protocolVersion: request.protocolVersion, module: request.module, stage: request.stage.id, capabilityProfile: request.capabilityProfile, startedAt: '2026-11-16T00:00:00Z', completedAt: '2026-11-16T00:00:01Z',
         status: 'completed', runId: request.runId, attemptId: request.attemptId, isolation: { method: 'test-isolated', freshContext: true, inheritedTurns: 0 },
@@ -120,7 +126,7 @@ async function accepted(f) {
     checks: [{ repository: 'app', command: process.execPath, args: ['-e', 'process.exit(0)'], purpose: 'Fixture verification' }] } }, 'verify')).event.payload.results];
   evaluator(f);
   await f.request('review.select', selection(), 'select'); pairExistingEvaluator(f);
-  refs.push(...(await f.request('review.execute', {}, 'review')).event.payload.outcomes.flatMap(row => row.results));
+  refs.push(...await passingReviewRefs(f, 'review'));
   refs.push(...(await f.request('gate.execute', { gates: ['context'] }, 'context')).event.payload.results);
   await f.request('gate.execute', { gates: ['packet'], consumed: refs }, 'packet');
   const check = await f.request('milestone.check', { name: 'acceptance' });
@@ -239,6 +245,24 @@ for (const rigor of ['full', 'light']) test(`per-PR human authorize-merge lets t
   const status = await f.request('status');
   assert.equal(status.integrations.app.branch, f.release); assert.equal(status.integrations.app.integrationSha, head);
   assert.equal(status.dials.rigor.value, rigor);
+});
+
+test('an authorized closed PR publishes its retained review after GitHub refreshes the head', async t => {
+  const f = await fixture(t);
+  f.context.repositories[0].keepPullRequestsClosed = true;
+  const { head, subject } = await finalPr(f);
+  Object.assign(f.gh.pr, { state: 'CLOSED', headRefOid: f.base, isCrossRepository: false });
+  const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
+  assert.equal(action.head, head);
+  await assert.rejects(authorizeMerge(f, subject, action, 'missing-handoff'), /Generate the current PR explainer/);
+  const publication = await f.request('review.publish', { repository: 'app', number: 12 }, 'closed-preview');
+  assert.ok(publication.publicationPending);
+  assert.deepEqual(f.gh.calls, []);
+  await authorizeMerge(f, subject, action);
+  await f.request('merge.execute', { repository: 'app', number: 12 }, 'closed-merge');
+  assert.deepEqual(f.gh.calls, ['reopen', 'edit', 'ready', 'checks', 'merge']);
+  assert.match(publishedSection(f.gh.pr.body), new RegExp(head));
+  assert.equal(f.gh.pr.state, 'MERGED');
 });
 
 test('a hosting-rule merge refusal is an external blocker, not a gate failure', async t => {
@@ -369,7 +393,7 @@ test('publication presents the latest qualifying review, even when it is UNAVAIL
   // The authorization check makes the same selection: the older PASS section no longer qualifies.
   const { requirePublishedReview } = await import('../../plugin-src/shared/resources/protocol/current/publication.js');
   const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
-  assert.equal((await requirePublishedReview(f.core, action)).review.hash, published.review.hash);
+  await assert.rejects(requirePublishedReview(f.core, action), /Acceptance evidence changed/);
   f.gh.pr.body = withSummary('Intro text.', passed.section);
   await assert.rejects(requirePublishedReview(f.core, action), /does not carry the current independent review summary/);
 });
@@ -385,4 +409,123 @@ test('model-authored review text cannot close or forge the published section', (
   assert.equal(section.split(SUMMARY_START).length, 2); assert.equal(section.split(SUMMARY_END).length, 2);
   assert.ok(section.startsWith(SUMMARY_START) && section.endsWith(SUMMARY_END));
   assert.equal(publishedSection(withSummary('Description', section)), section);
+});
+
+test('final handoff leads with pinned HTML and reuses advisory mutation evidence', async t => {
+  const f = await fixture(t);
+  const head = await branchWith(f, 'topic', 'export const answer = 42;\n');
+  await candidate(f, 'SLICE', head);
+  openPr(f, 'topic', f.integration, head);
+  f.context.repositories[0].mutationAdvisory = { packages: ['packages/domain'], timeoutMs: 2000 };
+  const commands = [];
+  let toolVersion = '1.2.3', simulation = null;
+  f.core.runtime.mutineer = async (args, path, timeoutMs) => {
+    assert.equal(path, f.repo);
+    if (args[0] === '--version') return { outcome: 'PASS', stdout: toolVersion };
+    commands.push(args);
+    if (simulation) return simulation;
+    assert.equal(timeoutMs, 2000);
+    return { outcome: 'PASS', stdout: JSON.stringify({
+      commitPinned: true, commit: head, baseRef: f.base, mergeBase: f.base, scope: { ranges: true },
+      packages: [{ package: 'packages/domain', counts: { Killed: 0, Survived: 2 } }],
+    }) };
+  };
+  await accepted(f);
+  assert.deepEqual(commands, []);
+  const publish = f.core.store.publishReport.bind(f.core.store);
+  f.core.store.publishReport = async (path, ref) => {
+    if (path.endsWith('pr-explainer.html')) throw new Error('Explainer storage unavailable');
+    return publish(path, ref);
+  };
+  await assert.rejects(f.request('review.publish', { repository: 'app', number: 12 }, 'failed-explainer'), /Explainer storage unavailable/);
+  assert.deepEqual(f.gh.calls, []);
+  f.core.store.publishReport = publish;
+  const first = await f.request('review.publish', { repository: 'app', number: 12 }, 'final-handoff');
+  const refreshed = await f.request('review.publish', { repository: 'app', number: 12 }, 'refresh-handoff');
+  assert.deepEqual(commands, [['run', '--since', f.base, '--json', '--package', 'packages/domain']], JSON.stringify({ handoff: first.handoff, check: (await f.core.check('acceptance')).missing }));
+  assert.equal(refreshed.handoff.path, first.handoff.path);
+  const { requirePublishedReview } = await import('../../plugin-src/shared/resources/protocol/current/publication.js');
+  const action = await f.request('merge.prepare', { repository: 'app', number: 12 });
+  assert.equal((await requirePublishedReview(f.core, action)).review.hash, first.review.hash);
+  assert.equal(first.handoff.mutation.counts.survived, 2);
+  const markup = await readFile(first.handoff.path, 'utf8');
+  assert.match(markup, new RegExp(head));
+  assert.match(markup, /Mutation testing advisory/);
+  assert.match(markup, /href="mutineer\.json"/);
+  const report = JSON.parse(await readFile(first.handoff.mutation.path, 'utf8'));
+  assert.equal(report.record.commit, head);
+  toolVersion = '1.2.4';
+  simulation = { outcome: 'UNAVAILABLE', termination: { reason: 'Timed out after 2000 ms' } };
+  const timeout = await f.request('review.publish', { repository: 'app', number: 12 }, 'timeout-advisory');
+  assert.equal(timeout.handoff.mutation.status, 'unavailable');
+  assert.match(timeout.handoff.mutation.reason, /Timed out/);
+  toolVersion = '1.2.5';
+  simulation = { outcome: 'PASS', stdout: 'Nothing to mutate: no source lines changed' };
+  const skipped = await f.request('review.publish', { repository: 'app', number: 12 }, 'skip-advisory');
+  assert.equal(skipped.handoff.mutation.status, 'skipped');
+  assert.notEqual(skipped.handoff.path, timeout.handoff.path);
+  const { requireFinalHandoff } = await import('../../plugin-src/shared/resources/protocol/current/final-handoff.js');
+  const { state } = await f.core.state();
+  const pinned = await f.core.store.json(state.candidate);
+  const retained = await requireFinalHandoff(f.core, {
+    state, pin: pinned.repositories[0], repository: f.context.repositories[0], number: 12, review: { ref: skipped.review },
+  });
+  assert.equal(retained.path, skipped.handoff.path);
+  assert.equal(retained.mutation.version, '1.2.5');
+  f.gh.pr.state = 'CLOSED';
+  f.gh.pr.isCrossRepository = false;
+  f.gh.pr.headRefOid = f.base;
+  const edits = f.gh.calls.length;
+  const closed = await f.request('review.publish', { repository: 'app', number: 12 }, 'closed-handoff');
+  assert.match(closed.publicationPending, /previous head/);
+  assert.equal(closed.handoff.path, skipped.handoff.path);
+  assert.equal(f.gh.calls.length, edits);
+  toolVersion = '1.2.6';
+  simulation = null;
+  const tool = f.core.runtime.mutineer;
+  f.core.runtime.mutineer = async (...args) => {
+    const result = await tool(...args);
+    if (args[0][0] === 'run') await writeFile(join(f.repo, 'app.js'), 'export const answer = 0;\n');
+    return result;
+  };
+  await assert.rejects(f.request('review.publish', { repository: 'app', number: 12 }, 'mutated-checkout'), /clean|uncommitted|source|working tree/iu);
+  await writeFile(join(f.repo, 'app.js'), 'export const answer = 42;\n');
+  const recovered = await f.request('review.publish', { repository: 'app', number: 12 }, 'clean-handoff');
+  assert.equal(recovered.handoff.mutation.status, 'unavailable');
+  assert.equal(commands.filter(args => args[0] === 'run').length, 4);
+  f.gh.pr.headRefName = 'other-branch';
+  await assert.rejects(f.request('review.publish', { repository: 'app', number: 12 }, 'wrong-closed-head'), /differs from the reviewed candidate head/);
+});
+
+test('final handoff leads with mutation evidence scoped to each repository', async t => {
+  const f = await fixture(t);
+  const head = await branchWith(f, 'topic', 'export const answer = 42;\n');
+  const second = join(f.root, 'mirror');
+  await git(f.root, ['clone', '--branch', 'topic', f.repo, second]);
+  await git(second, ['remote', 'set-url', 'origin', 'https://github.com/fixture/mirror.git']);
+  await git(second, ['config', `url.${join(f.root, 'host.git')}.insteadOf`, 'https://github.com/fixture/mirror.git']);
+  const app = f.context.repositories[0];
+  app.mutationAdvisory = { packages: ['packages/domain'], timeoutMs: 2000 };
+  f.context.repositories.push({ ...app, alias: 'mirror', path: second });
+  const pins = f.context.repositories.map(({ alias }) => ({ alias, base: f.base, head, target: f.base }));
+  await f.request('candidate.prepare', { repositories: pins, scope: 'SLICE', criteria: f.criteria }, 'two-repositories');
+  openPr(f, 'topic', f.integration, head);
+  const runs = [];
+  f.core.runtime.mutineer = async (args, path) => {
+    if (args[0] === '--version') return { outcome: 'PASS', stdout: '1.2.3' };
+    runs.push(path);
+    return { outcome: 'PASS', stdout: JSON.stringify({
+      commitPinned: true, commit: head, baseRef: f.base, mergeBase: f.base, scope: { ranges: true },
+      packages: [{ package: 'packages/domain', counts: { Killed: 0, Survived: path === f.repo ? 2 : 3 } }],
+    }) };
+  };
+  await accepted(f);
+  const first = await f.request('review.publish', { repository: 'app', number: 12 }, 'app-handoff');
+  const mirror = await f.request('review.publish', { repository: 'mirror', number: 12 }, 'mirror-handoff');
+  const refreshed = await f.request('review.publish', { repository: 'app', number: 12 }, 'app-refresh');
+  assert.deepEqual(runs, [f.repo, second]);
+  assert.equal(first.handoff.mutation.repository.alias, 'app');
+  assert.equal(mirror.handoff.mutation.repository.alias, 'mirror');
+  assert.equal(mirror.handoff.mutation.counts.survived, 3);
+  assert.equal(refreshed.handoff.mutation.reference.hash, first.handoff.mutation.reference.hash);
 });

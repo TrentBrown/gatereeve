@@ -61,7 +61,7 @@ export async function selectReviewers(core, input, operation) {
   const { state } = await core.state();
   requireThat(!state.paused && ['IMPLEMENTING', 'ACCEPTING'].includes(state.phase), 'Select reviewers within the authorized implementation phase');
   requireThat((await core.check('implementation')).allowed, 'Current implementation authorization is required');
-  const selection = reviewerSelection(input);
+  const selection = reviewerSelection(input, core.context.repository?.reviewerPreferences);
   if (state.reviewerSelection) {
     requireThat(input.previous === state.reviewerSelection.event, 'Replacing reviewers must identify the current selection');
     requireThat(state.dials.autonomy.value === 'autonomous' || !state.reviewerSelection.selection.instruction || input.instruction,
@@ -172,12 +172,20 @@ export async function executeBoundaryReviews(core, input, operation) {
   requireThat(retained.kind === 'boundary-review-baseline' && retained.state.runId === state.runId, 'Invalid retained review baseline');
   const baseline = { state: retained.state, events: currentView.events, round: round.hash,
     initialEstablished };
-  const outcomes = await Promise.allSettled(selected.selection.reviewers.map((reviewer, slot) => {
+  const outcomes = await Promise.allSettled(selected.selection.reviewers.map(async (reviewer, slot) => {
     const { modelProvider: family, reason, ...execution } = reviewer;
     const request = { gates: ['review'], configuration: { ...configuration, ...execution, reviewerSelection: selected.event },
       ...Object.fromEntries(['consumed', 'history', 'claims', 'coverageClaims'].filter(key => input[key] !== undefined).map(key => [key, input[key]])),
       ...(priors[reviewer.provider] ? { prior: priors[reviewer.provider] } : {}) };
-    return executeGates(core, request, { id: `review_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, request }) }, baseline);
+    const first = await executeGates(core, request,
+      { id: `review_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, request }) }, baseline);
+    const reference = (first.event?.payload.results ?? first.results)?.[0];
+    if (family !== 'anthropic' || !reference) return first;
+    const verdict = await core.store.json(reference);
+    if (!verdict.invalidVerdictContract) return first;
+    const correction = verdict.unvalidatedVerdict ? { ...request, repair: reference } : request;
+    const retry = { id: `review_retry_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, correction }) };
+    return executeGates(core, correction, retry, { ...baseline, events: (await core.state()).events });
   }));
   const current = (await core.state()).state;
   requireThat(current.candidate?.hash === state.candidate?.hash && current.reviewerSelection?.event === selected.event,

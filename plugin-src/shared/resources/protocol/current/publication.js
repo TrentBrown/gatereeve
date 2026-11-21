@@ -4,6 +4,7 @@ import { configuredGit } from './authorization.js';
 import { gh, remoteName } from './actions.js';
 import { boundaryReviews } from './boundary-review.js';
 import { currentAdjudication } from './autonomous.js';
+import { finalHandoff, requireFinalHandoff } from './final-handoff.js';
 
 // The independent review summary is published into a delimited section of the
 // PR description (spec AC6/R9). The section is rendered deterministically from
@@ -47,6 +48,10 @@ export function renderSummary({ candidateRef, candidate, pin, review }) {
       `- **Reviewed head:** \`${pin.alias}\` \`${pin.head}\` (base \`${pin.base}\`, target \`${pin.target}\`)`,
       `- **Candidate:** \`${candidateRef.hash}\` (${candidate.scope}; ${briefBased(candidate) ? 'light rigor, brief basis' : 'full rigor, rubric basis'})`,
       `- **Selection:** ${inline(pair.selection.selection.reason)}`];
+    for (const entry of pair.selection.selection.preferenceEvidence ?? []) {
+      for (const skipped of entry.skipped) lines.push(`- **${inline(entry.provider)} preference skipped:** ${inline(skipped.model)} — ${inline(skipped.reason)}`);
+      if (entry.basis === 'agent-judgment') lines.push(`- **${inline(entry.provider)} fallback:** ${inline(entry.reason)}`);
+    }
     for (const member of pair.members) {
       lines.push('', `**${inline(member.reviewer.modelProvider)} — ${inline(member.reviewer.model)} (${inline(member.reviewer.reasoningEffort)} effort): ${member.result.outcome}**`,
         `- **Evidence:** ${member.ref ? `\`${member.ref.hash}\`` : 'UNAVAILABLE — no current receipt'}`,
@@ -128,15 +133,26 @@ async function reviewTarget(core, input) {
   const ownerRepo = remoteName(await configuredGit(core)(repository.path, ['config', '--get', `remote.${repository.remote ?? 'origin'}.url`]));
   const review = await currentReview(core, state, candidate);
   requireThat(review, 'No current independent review result for this candidate head; run the review gate on the current candidate before publishing or requesting merge authorization');
-  return { state, candidate, pin, repository, ownerRepo, review,
+  return { state, candidate, pin, repository, ownerRepo, review, number: input.number,
     section: renderSummary({ candidateRef: state.candidate, candidate, pin, review }) };
 }
 async function readPullRequest(core, path, ownerRepo, number) {
   const run = core.runtime.gh ?? gh;
-  const pr = JSON.parse(await run(path, ['pr', 'view', String(number), '--repo', ownerRepo, '--json', 'number,state,headRefOid,body']));
+  const pr = JSON.parse(await run(path, ['pr', 'view', String(number), '--repo', ownerRepo, '--json', 'number,state,headRefName,headRefOid,isCrossRepository,body']));
   requireThat(pr.number === number, 'Selected PR has changed identity');
   return pr;
 }
+// The host retains its last displayed head while a same-repository PR is closed.
+async function closedSourceMatches(core, target, pr) {
+  if (pr.state !== 'CLOSED' || pr.isCrossRepository !== false) return false;
+  const git = configuredGit(core), path = target.repository.path;
+  const branch = (await git(path, ['branch', '--show-current'])).trim();
+  if (!branch || pr.headRefName !== branch) return false;
+  const ref = `refs/heads/${branch}`;
+  const remote = target.repository.remote ?? 'origin';
+  return (await git(path, ['ls-remote', '--refs', remote, ref])).trim() === `${target.pin.head}\t${ref}`;
+}
+
 // Operation review.publish: write the current summary into the PR description.
 export async function publishReview(core, input) {
   requireThat(input && Object.keys(input).every(key => ['repository', 'number'].includes(key)), 'Unsupported review publication field');
@@ -145,9 +161,19 @@ export async function publishReview(core, input) {
   const run = core.runtime.gh ?? gh;
   const pr = await readPullRequest(core, target.repository.path, target.ownerRepo, input.number);
   requireThat(pr.state !== 'MERGED', 'Selected PR is already merged');
+  if (pr.headRefOid !== target.pin.head && await closedSourceMatches(core, target, pr)) {
+    const handoff = await finalHandoff(core, target);
+    if (handoff) return { repository: input.repository, number: input.number, ownerRepo: target.ownerRepo,
+      head: target.pin.head, candidate: target.state.candidate, review: target.review.ref,
+      outcome: target.review.result.outcome, changed: false, handoff,
+      publicationPending: 'Closed PR still displays its previous head. Publish the hosted summary when GitHub observes the reviewed head.' };
+  }
   requireThat(pr.headRefOid === target.pin.head, `PR head ${pr.headRefOid} differs from the reviewed candidate head ${target.pin.head}; push the reviewed head or prepare and review a new candidate`);
-  const body = withSummary(pr.body, target.section);
-  const changed = body !== normalize(pr.body);
+  const handoff = await finalHandoff(core, target);
+  const live = handoff ? await readPullRequest(core, target.repository.path, target.ownerRepo, input.number) : pr;
+  requireThat(live.state !== 'MERGED' && live.headRefOid === target.pin.head, 'PR changed while preparing the final handoff');
+  const body = withSummary(live.body, target.section);
+  const changed = body !== normalize(live.body);
   if (changed) {
     requireThat(body.length <= BODY_LIMIT, `The PR description with the review summary would exceed GitHub's ${BODY_LIMIT}-character limit; shorten the description`);
     await run(target.repository.path, ['pr', 'edit', String(input.number), '--repo', target.ownerRepo, '--body', body]);
@@ -155,7 +181,7 @@ export async function publishReview(core, input) {
     requireThat(publishedSection(published.body) === target.section, 'Published review summary could not be verified on the PR');
   }
   return { repository: input.repository, number: input.number, ownerRepo: target.ownerRepo, head: target.pin.head,
-    candidate: target.state.candidate, review: target.review.ref, outcome: target.review.result.outcome, changed, section: target.section };
+    candidate: target.state.candidate, review: target.review.ref, outcome: target.review.result.outcome, ...(handoff ? { handoff } : {}), changed, section: target.section };
 }
 // Merge authorization (human or standing) and protected merge require the PR to
 // carry the current summary for the exact prepared head.
@@ -163,8 +189,14 @@ export async function requirePublishedReview(core, action) {
   const target = await reviewTarget(core, { repository: action.repository, number: action.number });
   requireThat(target.ownerRepo === action.ownerRepo && target.pin.head === action.head, 'Prepared merge action differs from the current candidate');
   const pr = await readPullRequest(core, target.repository.path, action.ownerRepo, action.number);
+  if (pr.headRefOid !== action.head && action.keepClosed && pr.headRefName === action.headBranch
+    && await closedSourceMatches(core, target, pr)) {
+    await requireFinalHandoff(core, target);
+    return { review: target.review.ref, publicationPending: true };
+  }
   requireThat(pr.headRefOid === action.head, 'PR head differs from the prepared merge action');
   requireThat(publishedSection(pr.body) === target.section,
     `PR #${action.number} does not carry the current independent review summary for head ${action.head}; run review.publish for this PR before requesting merge authorization`);
+  await requireFinalHandoff(core, target);
   return { review: target.review.ref };
 }
