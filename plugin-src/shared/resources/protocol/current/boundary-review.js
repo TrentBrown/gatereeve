@@ -126,9 +126,15 @@ export async function boundaryReviews(core, state, candidate, memo = new Map(), 
   if (!initial) for (const member of members) member.qualification ??= 'Coordinated initial independence is not established';
   const outcome = members.some(member => member.result.outcome === 'FAIL') ? 'FAIL'
     : members.every(member => member.result.outcome === 'PASS' && !member.qualification) ? 'PASS' : 'UNAVAILABLE';
+  const summary = members.map(({ reviewer, result, unreconciledFindings, incompleteDelta }) => {
+    const failure = result.verdictFailure?.kind;
+    const diagnostic = failure === 'assessment' ? 'Review contract failure. ' : failure === 'format' ? 'Invalid review output. ' : '';
+    const unresolved = unreconciledFindings?.length ? ` Unreconciled prior findings: ${unreconciledFindings.join(', ')}.` : '';
+    const coverage = incompleteDelta ? ' Changed-path or interaction coverage is incomplete.' : '';
+    return `${reviewer.modelProvider}: ${result.outcome}: ${diagnostic}${result.summary}${unresolved}${coverage}`;
+  }).join('\n');
   return { selection: selected, members, outcome, initialEstablished: Boolean(initial), initialProof: initial,
-    identity: identity({ selection: selected.event, results: members.map(member => member.ref?.hash ?? null) }),
-    summary: members.map(member => `${member.reviewer.modelProvider}: ${member.result.outcome}: ${member.result.summary}${member.unreconciledFindings?.length ? ` Unreconciled prior findings: ${member.unreconciledFindings.join(', ')}.` : ''}${member.incompleteDelta ? ' Changed-path or interaction coverage is incomplete.' : ''}`).join('\n') };
+    identity: identity({ selection: selected.event, results: members.map(member => member.ref?.hash ?? null) }), summary };
 }
 
 export async function executeBoundaryReviews(core, input, operation) {
@@ -180,12 +186,17 @@ export async function executeBoundaryReviews(core, input, operation) {
     const first = await executeGates(core, request,
       { id: `review_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, request }) }, baseline);
     const reference = (first.event?.payload.results ?? first.results)?.[0];
-    if (family !== 'anthropic' || !reference) return first;
+    if (!reference) return first;
     const verdict = await core.store.json(reference);
     if (!verdict.invalidVerdictContract) return first;
-    const correction = verdict.unvalidatedVerdict ? { ...request, repair: reference } : request;
-    const retry = { id: `review_retry_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, correction }) };
-    return executeGates(core, correction, retry, { ...baseline, events: (await core.state()).events });
+    const assessment = verdict.verdictFailure?.kind === 'assessment';
+    if (!assessment && family !== 'anthropic') return first;
+    const correction = !assessment && verdict.unvalidatedVerdict ? { ...request, repair: reference } : request;
+    const reassessment = assessment ? {
+      reference, diagnostic: verdict.summary, ...verdict.verdictFailure, observations: verdict.unvalidatedFindings ?? [],
+    } : null;
+    const retry = { id: `review_retry_${identity([operation.id, slot]).slice(7)}`, hash: identity({ operation, correction, ...(reassessment ? { reassessment } : {}) }) };
+    return executeGates(core, correction, retry, { ...baseline, events: (await core.state()).events, reassessment });
   }));
   const current = (await core.state()).state;
   requireThat(current.candidate?.hash === state.candidate?.hash && current.reviewerSelection?.event === selected.event,

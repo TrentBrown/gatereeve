@@ -360,3 +360,65 @@ test('Claude can supply an omitted severity and qualify the same pinned source i
   const pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
   assert.equal(pair.outcome, 'PASS');
 });
+
+test('semantic verdict failures get one fresh assessment with retained verification and diagnostics', async t => {
+  const f = await prepared(t);
+  pairedAdapters(f);
+  await f.request('review.execute', {}, 'establish-independence');
+  pairedAdapters(f, { blocking: ['codex'] });
+  const { reviewerSelection } = (await f.core.state()).state;
+  const seeded = await f.request('gate.execute', { gates: ['review'], configuration: {
+    provider: 'codex', model: 'fixture', reviewerSelection: reviewerSelection.event, reviewRevision: 'record-blocker',
+  } }, 'record-blocker');
+  const prior = await f.core.store.json(seeded.event.payload.results[0]);
+  assert.equal(prior.outcome, 'FAIL', prior.summary);
+  const blocker = prior.findings[0].id;
+  pairedAdapters(f);
+  const calls = { codex: [], 'claude-code': [] };
+  for (const [provider, adapter] of Object.entries(f.core.runtime.evaluators)) {
+    const run = adapter.runStage.bind(adapter);
+    adapter.runStage = async request => {
+      calls[provider].push(request.input);
+      const result = await run(request);
+      const verdict = result.output.verdicts[0];
+      verdict.dispositions = [{ id: blocker, status: 'present', evidence: 'The original issue remains.' }];
+      if (provider === 'codex') {
+        verdict.dispositions.push({ id: 'same-local-id', status: 'present', evidence: 'An unqualified ID is not disclosed.' });
+        if (!request.input.reassessment) verdict.findings = [{ id: 'new-observation', classId: 'constant', criterion: request.input.criteria[0],
+          path: 'app/app.js', evidence: 'The fixture exports a constant.', blocking: false }];
+      } else if (request.input.reassessment) {
+        verdict.outcome = 'FAIL';
+        verdict.dimensions.find(row => row.name === 'code').outcome = 'FAIL';
+      }
+      result.receipt.digests.output = sha256Digest(result.output);
+      result.receipt.provider.contextId += `-${calls[provider].length}`;
+      return result;
+    };
+  }
+  const done = await f.request('review.execute', {}, 'reassess');
+  for (const [provider, attempts] of Object.entries(calls)) {
+    assert.equal(attempts.length, 2);
+    const [first, retry] = attempts;
+    assert.equal(retry.repair, null);
+    assert.deepEqual(retry.source, first.source);
+    assert.deepEqual(retry.consumedReferences, first.consumedReferences);
+    const retained = await f.core.store.json(retry.reassessment.reference);
+    assert.equal(retained.outcome, 'UNAVAILABLE');
+    assert.equal(retained.unvalidatedVerdict.outcome, 'PASS');
+    assert.deepEqual(retry.reassessment.observations, retained.unvalidatedFindings);
+  }
+  const codex = calls.codex[1].reassessment;
+  assert.equal(codex.code, 'unknown-disposition');
+  assert.deepEqual(codex.findingIds, ['same-local-id']);
+  assert.ok(codex.permittedIds.includes(blocker));
+  const claude = calls['claude-code'][1].reassessment;
+  assert.equal(claude.code, 'blocking-disposition');
+  assert.deepEqual(claude.findingIds, [blocker]);
+  const reports = await Promise.all(done.event.payload.outcomes.map(row => f.core.store.json(row.results[0])));
+  assert.deepEqual(reports.map(row => row.outcome), ['UNAVAILABLE', 'FAIL']);
+  assert.equal(reports[0].verdictFailure.kind, 'assessment');
+  const { state } = await f.core.state();
+  const pair = await boundaryReviews(f.core, state, await f.core.store.json(state.candidate));
+  assert.match(pair.summary, /openai: UNAVAILABLE: Review contract failure/);
+  assert.match(pair.summary, /anthropic: FAIL/);
+});

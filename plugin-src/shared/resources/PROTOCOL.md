@@ -867,8 +867,11 @@ repository alias in `.agentic-workflow.json`, for example:
 Discover the configured candidates and submit the first eligible observed choice
 for each provider. If the list is empty or exhausted, choose an eligible model
 from the same provider using current discovery and record the rationale. A
-malformed verdict triggers at most one Claude-only retry per round using the
-same model and effort. Reuse the pair within the run; replace it only
+malformed verdict triggers at most one Claude-only format retry per round using the
+same model and effort. An unknown disposition ID or a PASS that leaves a blocking
+finding present triggers one fresh assessment by the affected provider with the
+same pinned candidate, verification and reviewer selection. The rejected verdict
+and diagnostic remain available as evidence. Reuse the pair within the run; replace it only
 for availability changes or developer direction, identifying the previous
 selection and reason. Autonomous mode may choose an available comparably capable
 replacement; changing user-pinned choices in other modes needs developer
