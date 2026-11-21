@@ -13,7 +13,8 @@ import { patternInputs } from './pattern-inputs.js';
 import { runScratchCommand } from '../../storage/scratch.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CONTRACT, canonical, identity, requireThat, gate, text } from './contracts.js';
+import { CONTRACT, canonical, identity, requireThat, gate, text, autonomousValue } from './contracts.js';
+import { agentDecisions, AGENT_DECISION_RULE } from './goal.js';
 import { newView } from './source-views.js';
 import { localPath } from './store.js';
 import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean, briefBased } from './evidence.js';
@@ -599,8 +600,11 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     repair = { reference: input.repair, original: recorded.result.unvalidatedVerdict, diagnostic: recorded.result.summary, eligibleAffected: recorded.result.eligibleAffected ?? null };
   }
   const runnerEnvironment = role === 'runner' ? resolveRunnerEnvironment(configuration) : Object.freeze({});
-  const mandate = state.dials.autonomy.value === 'autonomous' ? state.dials.autonomy.mandate : null;
-  const value = { contract: CONTRACT, gates: input.gates, candidate: state.candidate, configuration, consumed, support, mandate,
+  const mandate = autonomousValue(state.dials.autonomy.value) ? state.dials.autonomy.mandate : null;
+  // Goal runs hand every agent-answered decision to the boundary reviewers (spec AC6).
+  const agentDecisionInput = state.dials.autonomy.value === 'goal' && role === 'independent'
+    ? { agentDecisions: { rule: AGENT_DECISION_RULE, entries: await agentDecisions(core.context.featureHome) } } : {};
+  const value = { contract: CONTRACT, gates: input.gates, candidate: state.candidate, configuration, consumed, support, mandate, ...agentDecisionInput,
     reviewRound: reviewBaseline?.round ?? null,
     environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment, { retainDiagnostics: true }),
     pattern: input.gates.includes('pattern') ? await patternInputs(core.store, core.context, candidate, core.runtime.pythonGuardOptions) : null,
@@ -677,7 +681,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     if (role === 'independent' || role === 'assessment') {
       const packet = { contract: CONTRACT, rules: input.gates.map(id => ({ id, rule: gate(id).rule })), pattern: value.pattern, gates: input.gates, criteria: candidate.criteria, scope: candidate.scope,
         source: candidate.repositories.map(repo => ({ alias: repo.alias, base: repo.base, head: repo.head, target: repo.target, metadata: `metadata/${repo.alias}.json`, entries: [...repo.baseFiles, ...repo.files, ...repo.targetFiles].filter(file => file.entryKind).map(({ path, mode, entryKind }) => ({ path, mode, entryKind })) })),
-        history: [], historyIndex: null, mandate, ...(mandate ? { mandateAuthority: state.dials.autonomy.authority } : {}), coverageClaims: replacements, repair: value.repair, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
+        history: [], historyIndex: null, mandate, ...(mandate ? { mandateAuthority: state.dials.autonomy.authority } : {}), ...(value.agentDecisions ? { agentDecisions: value.agentDecisions } : {}), coverageClaims: replacements, repair: value.repair, historyGaps: missingHistory, reconsiderClosures: value.reconsiderClosures, claims: input.claims ?? [], changedPaths: changes, consumedReferences: consumed, consumed: await Promise.all(consumed.map(ref => core.store.json(ref))) };
       packet.consumedReferences = [...new Map([...packet.consumedReferences, ...replacements.flatMap(claim => [...claim.supersedes, ...claim.replacements])].map(ref => [ref.hash, ref])).values()];
       if (brief && input.gates.includes('review')) packet.planning = { basis: 'brief', brief: 'requirements/brief.md', authority: state.decisions };
       else if (input.gates.some(id => ['review', 'reconcile', 'triage'].includes(id))) {

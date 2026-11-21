@@ -3,7 +3,7 @@ import { basename } from 'node:path';
 import { sourceGit } from '../protocol/current/git-source.js';
 import { hostname } from 'node:os';
 import { MetricsStore } from './store.js';
-import { reportingDatabase, observation, DIAL_FIELDS, LINK_BASES } from './fleet.js';
+import { reportingDatabase, observation, DIAL_FIELDS, LINK_BASES, reportingDial } from './fleet.js';
 import { DEFAULT_DIALS } from '../protocol/current/contracts.js';
 import { captureWarning } from './observe.js';
 
@@ -32,7 +32,7 @@ function measured(type, value) {
       authorityBasis: text(value.authority?.basis) ?? (value.standingGrant ? 'standing-grant' : undefined),
       actions: Array.isArray(value.actions) && value.actions.length ? value.actions : undefined,
       count: value.kind === 'stay-light' && Array.isArray(value.hits) ? value.hits.length : undefined });
-    case 'DIAL_SET': return defined({ dial: text(value.dial), dialValue: text(value.value), dialPrevious: text(value.previous), dialSource: text(value.source),
+    case 'DIAL_SET': return defined({ dial: text(value.dial), dialValue: text(reportingDial(value.dial, value.value)), dialPrevious: text(reportingDial(value.dial, value.previous)), dialSource: text(value.source),
       actor: text(value.actor), trigger: text(value.trigger), authorityKind: text(value.authority?.kind) });
     case 'TRIPWIRES_EVALUATED': { const hits = Array.isArray(value.hits) ? value.hits : [];
       return defined({ stage: text(value.stage), count: hits.length, outcome: hits.length ? 'HIT' : 'CLEAR',
@@ -70,8 +70,8 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
     const dials = { ...DEFAULT_DIALS };
     for (const [index, event] of events.entries()) {
       const value = event.payload ?? {};
-      if (event.type === 'STARTED') for (const dial of Object.keys(DIAL_FIELDS)) dials[dial] = value.dials?.[dial]?.value ?? DEFAULT_DIALS[dial];
-      if (event.type === 'DIAL_SET' && Object.hasOwn(DIAL_FIELDS, value.dial)) dials[value.dial] = value.value;
+      if (event.type === 'STARTED') for (const dial of Object.keys(DIAL_FIELDS)) dials[dial] = reportingDial(dial, value.dials?.[dial]?.value ?? DEFAULT_DIALS[dial]);
+      if (event.type === 'DIAL_SET' && Object.hasOwn(DIAL_FIELDS, value.dial)) dials[value.dial] = reportingDial(value.dial, value.value);
       if (index < old.sequence) continue;
       const common = { ...base, id: `${source}:${event.hash}`, observedAt: event.recordedAt, kind: 'event', check: event.type, reference: event.hash,
         ...Object.fromEntries(Object.keys(DIAL_FIELDS).map(dial => [dial, DIAL_FIELDS[dial].includes(dials[dial]) ? dials[dial] : null])) };
@@ -80,7 +80,7 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
         observations.push(observation({ ...common, check: event.type }));
         // Each start dial with its provenance (explicit choice or built-in default).
         for (const dial of Object.keys(DIAL_FIELDS)) if (value.dials?.[dial]) observations.push(observation({ ...common, id: `${common.id}:dial:${dial}`, check: 'DIAL_INITIAL',
-          ...defined({ dial, dialValue: text(value.dials[dial].value), dialSource: text(value.dials[dial].source), actor: text(value.dials[dial].actor), authorityKind: text(value.dials[dial].authority?.kind) }) }));
+          ...defined({ dial, dialValue: text(reportingDial(dial, value.dials[dial].value)), dialSource: text(value.dials[dial].source), actor: text(value.dials[dial].actor), authorityKind: text(value.dials[dial].authority?.kind) }) }));
       }
       else if (event.type === 'JOB_FINISHED') {
         for (const ref of value.results) {

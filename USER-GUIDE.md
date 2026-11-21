@@ -175,12 +175,31 @@ configuration is required, and the implementing thread keeps your chosen model.
 
 Autonomy defaults to **supervised**. **Delegated** allows independently approved
 planning and qualifying slice delivery, with human handback for scope amendments
-or unresolved material disagreement. **Autonomous** requires your explicit grant
-for that run and retains your original goal and constraints. It can amend its
+or unresolved material disagreement. **Mandated** (formerly called autonomous)
+requires your explicit grant for that run and retains your original goal and
+constraints. It can amend its
 approach within that mandate, document eligible residual risks and stop iterating
 when further rounds add little value. Both reviews and actual mandatory checks
 remain required; native failures stay visible. Every final release merge still
 needs your instruction for that PR.
+
+**Goal** is the highest level. It has mandated authority, but the agent does
+not ask you questions. Grant it with the `goal` skill ("goal mode: ..."), either
+when you start, or after you have led the interview yourself. The agent then:
+
+- answers its own questions and records each one as an `Answered by: agent`
+  entry, which both reviewers assess and the PR lists under "Decisions made
+  for you";
+- keeps going through the harness's native `/goal` or GateReeve's Stop hook;
+- may use the test methods it needs, and lists them on the PR.
+
+It ends in one of two states:
+- **Ready:** a ready, unmerged final PR.
+- **Parked:** at a real blocker, a draft PR that lists the blockers, followed
+  by a question to you.
+
+Confirm or override any agent entry when you return. A park resumes with your
+`run.continue`.
 
 The boundary deliberately refuses to evaluate an ambiguous local state. The
 intended code must be committed, pushed, represented by the draft PR, and

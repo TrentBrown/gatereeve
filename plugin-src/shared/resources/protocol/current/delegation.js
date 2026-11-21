@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CONTRACT, DELEGATED_AUTHORITY, AUTONOMOUS_AUTHORITY, HAND_BACK_TRIGGERS, identity, requireThat, text, mandateRebuttal, automaticDial, decisionHas, latestImplementation } from './contracts.js';
+import { CONTRACT, DELEGATED_AUTHORITY, AUTONOMOUS_AUTHORITY, HAND_BACK_TRIGGERS, identity, requireThat, text, mandateRebuttal, automaticDial, decisionHas, latestImplementation, autonomousValue, unattendedValue } from './contracts.js';
 import { ContractError } from '../errors.js';
+import { agentDecisions, AGENT_DECISION_RULE } from './goal.js';
 import { deliveryBranches, configuredGit } from './authorization.js';
 import { checkCandidate } from './evidence.js';
 import { newView } from './source-views.js';
@@ -20,7 +21,8 @@ import { allowedRunOutcome } from './autonomous.js';
 // - a scope-changing amend, an agent hand-back, an external merge blocker or
 //   observed loss of release-branch protection returns the run to supervised.
 export const isDelegated = state => state.dials.autonomy.value === 'delegated';
-export const isAutonomous = state => state.dials.autonomy.value === 'autonomous';
+export const isAutonomous = state => autonomousValue(state.dials.autonomy.value);
+export const isGoal = state => state.dials.autonomy.value === 'goal';
 export const hasRunAuthority = state => isDelegated(state) || isAutonomous(state);
 
 // The non-admin branches API exposes a readable `protected` flag (design D11).
@@ -191,6 +193,8 @@ export async function reviewPlanning(core, input, operation) {
   const raised = raisedFromLight(state);
   const packet = { artifact: input.artifact, decision: PLANNING_ARTIFACTS[input.artifact].decision, rule: reviewRule(input.artifact, raised),
     subject, ...(isAutonomous(state) ? { mandate: state.dials.autonomy.mandate, instruction: state.dials.autonomy.authority } : {}),
+    // Goal runs hand every agent-answered decision to the planning reviewer (spec AC6).
+    ...(isGoal(state) ? { agentDecisions: { rule: AGENT_DECISION_RULE, entries: await agentDecisions(core.context.featureHome) } } : {}),
     documents: Object.entries(documents).map(([name, ref]) => ({ path: `requirements/${name}`, hash: ref.hash })) };
   const view = await newView(core.store, { runId: state.runId });
   let retained = [];
@@ -265,7 +269,7 @@ export function briefScope(bytes) {
 // Qualify a delegated planning decision; returns the recorded citation.
 export async function delegatedPlanningAuthority(core, state, value) {
   const autonomous = value.authority.kind === AUTONOMOUS_AUTHORITY;
-  requireThat(autonomous ? isAutonomous(state) : isDelegated(state), `The ${value.authority.kind} authority requires ${autonomous ? 'autonomous' : 'delegated'} autonomy; this run is ${state.dials.autonomy.value}, so ${value.kind} needs an observed human instruction`);
+  requireThat(autonomous ? isAutonomous(state) : isDelegated(state), `The ${value.authority.kind} authority requires ${autonomous ? 'mandated or goal' : 'delegated'} autonomy; this run is ${state.dials.autonomy.value}, so ${value.kind} needs an observed human instruction`);
   const delegation = state.dials.autonomy;
   requireThat(value.authority.delegation === delegation.event, 'Delegated authority must cite the current delegation event (status delegation.event)');
   const light = state.dials.rigor.value === 'light';
@@ -371,7 +375,7 @@ export async function applyDelegation(core, input, operation) {
 // delegated decisions (reported distinctly from human-confirmed).
 export function delegationStatus(core, state) {
   const autonomy = state.dials.autonomy;
-  const handBacks = state.dialHistory.filter(item => item.dial === 'autonomy' && item.value === 'supervised' && ['delegated', 'autonomous'].includes(item.previous))
+  const handBacks = state.dialHistory.filter(item => item.dial === 'autonomy' && item.value === 'supervised' && unattendedValue(item.previous))
     .map(item => ({ event: item.event, at: item.at, trigger: item.trigger ?? null, actor: item.actor, reason: item.reason ?? null }));
   return {
     active: hasRunAuthority(state), mode: autonomy.value, event: hasRunAuthority(state) ? autonomy.event : null, since: hasRunAuthority(state) ? autonomy.at : null,

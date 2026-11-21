@@ -29,6 +29,7 @@ MINIMUM_NODE = (22, 13)
 REQUIRED_SKILLS = (
     "checkpoint",
     "pr-explainer",
+    "goal",
     "grill-me",
     "handoff",
     "pattern-audit",

@@ -26,6 +26,9 @@ def main() -> int:
     parser.add_argument("--triggered-by", required=True)
     parser.add_argument("--body", required=True)
     parser.add_argument("--alternatives", default="None recorded.")
+    parser.add_argument("--answered-by", choices=["human", "agent"], default="agent",
+                        help="Who answered: human, or agent for a self-answered decision (goal autonomy)")
+    parser.add_argument("--reversibility", default=None, help="For agent entries: whether and how the choice can be undone")
     args = parser.parse_args()
 
     branch_dir = Path(args.branch_dir)
@@ -40,14 +43,17 @@ def main() -> int:
         )
 
     n = next_number(text)
+    reversibility = f"\n**Reversibility:** {args.reversibility}\n" if args.reversibility else ""
     entry = f"""
 
 ## [{n}] {args.title}
 
 [ ] **Promote**
 
-**Confidence:** {args.confidence}
+**Answered by:** {args.answered_by}
 
+**Confidence:** {args.confidence}
+{reversibility}
 **Blast Radius:** {args.blast_radius}
 
 {args.body}

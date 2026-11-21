@@ -1,0 +1,4 @@
+interface:
+  display_name: "Goal Run"
+  short_description: "Run unattended to a ready, unmerged PR without asking"
+  default_prompt: "Use $goal to take this to a ready PR without asking me. Goal: "

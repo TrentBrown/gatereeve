@@ -121,7 +121,24 @@
     "notes": [
       "The default hooks/hooks.json path avoids the current disagreement between the fresh Codex manual and plugin-creator validator guidance about a manifest hooks field.",
       "Codex 0.142.4 exposes no plugin enable or disable CLI subcommand; that state is managed through supported app/config surfaces."
-    ]
+    ],
+    "goalAutonomy": {
+      "observedClient": "0.171.0",
+      "observation": "Installed binary strings, not documentation (2026-11-21)",
+      "hookEvents": [
+        "SessionStart",
+        "PreToolUse",
+        "Stop"
+      ],
+      "stopHook": true,
+      "questionTool": "request_user_input",
+      "nativeGoal": {
+        "command": "/goal [<objective>|clear|edit|pause|resume]",
+        "arm": "create_goal",
+        "read": "get_goal",
+        "update": "update_goal"
+      }
+    }
   },
   "claudeCode": {
     "manifestPath": ".claude-plugin/plugin.json",
@@ -240,7 +257,24 @@
     "notes": [
       "Place version in plugin.json only; do not duplicate it in the marketplace entry.",
       "Run /reload-plugins or start a fresh session after installation or update."
-    ]
+    ],
+    "goalAutonomy": {
+      "observedClient": "2.1.330",
+      "observation": "Installed binary strings, not documentation (2026-11-21)",
+      "hookEvents": [
+        "SessionStart",
+        "PreToolUse",
+        "Stop"
+      ],
+      "stopHook": true,
+      "questionTool": "AskUserQuestion",
+      "nativeGoal": {
+        "command": "/goal [<condition> | clear]",
+        "arm": "set_goal",
+        "read": "get_goal",
+        "pause": "pause_goal"
+      }
+    }
   },
   "officialSources": [
     "https://learn.chatgpt.com/docs/build-plugins",

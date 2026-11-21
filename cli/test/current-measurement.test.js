@@ -156,9 +156,9 @@ test('autonomous projection preserves its mode and judgment basis without export
   const value = await report(store);
   assert.equal(await store.captureIncomplete(), false);
   const decision = byEvent(value.observations, 7)[0];
-  assert.deepEqual([decision.autonomy, decision.authorityKind, decision.authorityBasis], ['autonomous', 'autonomous-evaluator', 'autonomous-judgment']);
+  assert.deepEqual([decision.autonomy, decision.authorityKind, decision.authorityBasis], ['mandated', 'autonomous-evaluator', 'autonomous-judgment']);
   assert.equal(value.measurement.handBacks.total, 1);
-  assert.ok(value.autonomies.some(row => row.name === 'autonomous'));
+  assert.ok(value.autonomies.some(row => row.name === 'mandated'));
   assert.ok(!JSON.stringify(value.observations).includes(SECRET));
 });
 

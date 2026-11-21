@@ -84,4 +84,20 @@ test('workflow header shows both run dials, marking defaults when no run exists'
   renderCurrentOverview({ ...(await adapter.snapshot(f.home)), dials: { rigor: 'full', autonomy: 'delegated' } }, elements);
   assert.deepEqual(badges().map(item => item.text), ['Rigor · Full', 'Autonomy · Delegated']);
   assert.match(badges()[1].className, /dial-delegated/u);
+
+  // Mandated (formerly autonomous) and goal autonomy stand out too; a goal run
+  // also shows its terminal state and the decisions made for the human.
+  renderCurrentOverview({ ...(await adapter.snapshot(f.home)), dials: { rigor: 'full', autonomy: 'mandated' } }, elements);
+  assert.deepEqual(badges().map(item => item.text), ['Rigor · Full', 'Autonomy · Mandated']);
+  assert.match(badges()[1].className, /dial-mandated/u);
+  assert.equal(header.querySelector('[data-goal-terminal]'), null);
+  for (const [terminal, label] of [[null, 'Goal · In progress'], ['parked', 'Goal · Parked'], ['ready-pr', 'Goal · Ready PR']]) {
+    const goal = { condition: 'condition', terminal, reason: 'reason', decisions: [{ file: 'interview.md', heading: 'D2 - Default value' }] };
+    renderCurrentOverview({ ...(await adapter.snapshot(f.home)), dials: { rigor: 'full', autonomy: 'goal' }, goal }, elements);
+    assert.match(badges()[1].className, /dial-goal/u);
+    const badge = header.querySelector('[data-goal-terminal]');
+    assert.equal(badge.textContent, label);
+    assert.equal(badge.getAttribute('data-goal-terminal'), terminal ?? 'none');
+    assert.match(elements['global-alerts'].querySelector('.goal-decisions').textContent, /Decisions made for you \(1\): interview\.md D2 - Default value/u);
+  }
 });

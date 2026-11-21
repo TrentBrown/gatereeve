@@ -17,7 +17,7 @@ Check the run's dials first (`status` reports `dials` and `dialDefaults`; the
 SessionStart context states them):
 
 - **No current run:** before non-trivial work, ask the human "full or light?".
-  Defaults are `full`/`supervised`; light, delegated and autonomous are explicit per-run
+  Defaults are `full`/`supervised`; light, delegated, mandated and goal are explicit per-run
   choices only.
 - **Light run (`rigor: light`), or the human chose light:** follow
   `<plugin-root>/resources/commands/light-run.md` instead of the full planning
@@ -45,6 +45,13 @@ plugin-local protocol adapter for governed features; the optional PATH CLI is
 not a prerequisite. Existing work resumes through the current entry without interpreting old events. Never claim a
 gate passed merely from prose when the protocol rejects or has not recorded the
 passage.
+
+## Goal autonomy
+
+For an unattended run to a ready PR without questions, or to raise an existing
+run after a human-led interview, use the `goal` skill
+(`<plugin-root>/skills/goal/SKILL.md`). In a goal run never ask the human:
+record `Answered by: agent` entries instead.
 
 ## Command Map
 

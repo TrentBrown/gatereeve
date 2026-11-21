@@ -33,6 +33,7 @@ async function run(options, operation, input = {}, detail = {}) {
     for (const dial of ['rigor', 'autonomy']) {
       console.log(`${dial === 'rigor' ? 'Rigor' : 'Autonomy'}: ${dials ? dials[dial] : `${defaults[dial]} (default for a new run)`}`);
     }
+    for (const line of goalLines(result.data.goal)) console.log(line);
     for (const milestone of result.data.milestones) {
       console.log(`${milestone.name}: ${milestone.historical ? (milestone.allowed ? 'recorded' : `recorded; ${milestone.missing.join('; ')}`) : milestone.allowed ? 'ready' : milestone.missing.join('; ')}`);
       for (const outcome of milestone.outcomes ?? []) if (outcome.exception) {
@@ -81,6 +82,12 @@ function workspaceInput(options) {
   return { ...(options.replaceWorkspace ? { replace: true } : {}), ...(options.confirmFeature !== undefined ? { confirmFeature: options.confirmFeature } : {}),
     authority: { kind: 'human-confirmed', instruction: options.instruction, context: options.instructionContext } };
 }
+// Goal autonomy: terminal state and the decisions made for the human (spec AC8).
+export function goalLines(goal) {
+  if (!goal) return [];
+  return [`Goal: ${goal.terminal ?? 'not yet terminal'}; ${goal.reason}`,
+    ...(goal.decisions ?? []).map(entry => `Decision made for you: ${entry.file} ${entry.heading}`)];
+}
 export function currentCommands() {
   const status = command('status', 'Inspect current commitments, proof and milestone blockers');
   status.action(options => run(options, 'status'));
@@ -100,15 +107,18 @@ export function currentCommands() {
       .requiredOption('--implementer <context>', 'Implementing context identity', collect, [])
       .option('--planning <file>', 'Observed design and implementation approval records for resumption')
       .option('--whiteboard', 'Include the optional whiteboard gate')
-      .option('--choices <file>', 'Explicit per-run rigor/autonomy choices and optional runId; autonomous needs a human mandate');
+      .option('--choices <file>', 'Explicit per-run rigor/autonomy choices and optional runId; mandated and goal need a human mandate');
     workspaceOptions(item);
     runCommand.addCommand(item.action(async options => run(options, `run.${action}`, { ...(options.choices ? await readJsonFile(options.choices) : {}), implementers: options.implementer,
       optionalGates: options.whiteboard ? ['whiteboard'] : [], ...(options.planning ? { planning: await readJsonFile(options.planning) } : {}),
       ...(workspaceInput(options) ? { workspace: workspaceInput(options) } : {}) })));
   }
   runCommand.addCommand(command('set-dial', 'Record a per-run human choice or permitted agent return/escalation')
-    .argument('<file>', 'Exact run.set-dial input; autonomous requires the named run, human authority and fixed mandate')
+    .argument('<file>', 'Exact run.set-dial input; mandated and goal require the named run, human authority and fixed mandate')
     .action(async (file, options) => run(options, 'run.set-dial', await readJsonFile(file))));
+  runCommand.addCommand(command('park', 'Under goal autonomy, park the run behind an open draft PR that lists every blocker')
+    .argument('<file>', 'Exact goal.park input: pr {repository, number}, blockers and evidence')
+    .action(async (file, options) => run(options, 'goal.park', await readJsonFile(file))));
   const selectReviewers = command('select-reviewers', 'Record runtime capability observations and two cross-provider reviewer choices')
     .argument('<file>', 'Observed capabilities, selected reviewers and rationale')
     .action(async (file, options) => run(options, 'review.select', await readJsonFile(file)));

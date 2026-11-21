@@ -1,4 +1,4 @@
-import { identity, requireThat } from './contracts.js';
+import { identity, requireThat, autonomousValue } from './contracts.js';
 import { reviewerSelection, modelProvider } from './reviewer-selection.js';
 import { executeGates, changedPaths } from './execution.js';
 import { contentIdentity } from './evidence.js';
@@ -64,7 +64,7 @@ export async function selectReviewers(core, input, operation) {
   const selection = reviewerSelection(input, core.context.repository?.reviewerPreferences);
   if (state.reviewerSelection) {
     requireThat(input.previous === state.reviewerSelection.event, 'Replacing reviewers must identify the current selection');
-    requireThat(state.dials.autonomy.value === 'autonomous' || !state.reviewerSelection.selection.instruction || input.instruction,
+    requireThat(autonomousValue(state.dials.autonomy.value) || !state.reviewerSelection.selection.instruction || input.instruction,
       'Replacing user-pinned reviewers needs explicit developer direction outside autonomous mode');
   } else requireThat(!input.previous, 'No previous reviewer selection exists');
   return core.append(state, 'REVIEWERS_SELECTED', { selection }, operation);

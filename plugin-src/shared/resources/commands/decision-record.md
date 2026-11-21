@@ -7,6 +7,11 @@ Use when a decision trigger fires during implementation.
    `docs/issues/{featureId}/scratchpad.md`.
 3. New entries always start with `[ ] **Promote**`.
 4. Record immediately, not retroactively at the end of the session.
+5. Every entry carries **Answered by:** `human | agent`. In a goal run a
+   question you would have asked the human is a decision you answer
+   yourself: record it with `--answered-by agent`, the alternatives and
+   `--reversibility`. Agent entries are listed on the PR under "Decisions
+   made for you" and assessed by both independent reviewers.
 
 Useful script:
 

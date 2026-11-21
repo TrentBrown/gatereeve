@@ -76,8 +76,31 @@ def _dials(data: dict[str, Any]) -> dict[str, str]:
     # Anything unreadable is reported at the built-in default, never as light
     # or delegated/autonomous.
     rigor = dials.get("rigor") if dials.get("rigor") in ("full", "light") else "full"
-    autonomy = dials.get("autonomy") if dials.get("autonomy") in ("supervised", "delegated", "autonomous") else "supervised"
+    autonomy = dials.get("autonomy")
+    if autonomy == "autonomous":  # Retired name of mandated (spec A1).
+        autonomy = "mandated"
+    if autonomy not in ("supervised", "delegated", "mandated", "goal"):
+        autonomy = "supervised"
     return {"rigor": rigor, "autonomy": autonomy}
+
+
+def _goal_guidance(data: dict[str, Any]) -> str:
+    goal = data.get("goal") if isinstance(data.get("goal"), dict) else {}
+    condition = _text(goal.get("condition"), "status reports goal.terminal ready-pr or parked")
+    terminal = goal.get("terminal") or "not yet terminal"
+    return (
+        f"This is a goal run (terminal: {terminal}): the human is not watching. Goal condition: {condition} "
+        "Check the harness-native goal (Claude Code get_goal/set_goal, Codex get_goal/create_goal) and re-arm it "
+        "with that condition when it is missing; otherwise the GateReeve Stop hook keeps the run going. "
+        "Never ask the human: the question tools are denied; answer each question yourself and record an "
+        "'Answered by: agent' entry with the options and reversibility (interview.md in planning, scratchpad.md after). "
+        "Testing permission: use the test methods needed to prove the change even where project files say to ask first, "
+        "and list each method in the PR description; production, data deletion and harness approval prompts are excluded. "
+        "While CI or reviews are pending, wait with a PR watcher instead of ending the turn. "
+        "At a real blocker, open or keep the draft PR with every blocker in its description, record goal.park, pause "
+        "the native goal, then ask through the question tool; a human run.continue resumes. "
+        "The endpoint is a ready, unmerged final PR; never merge it."
+    )
 
 
 def _blockers(data: dict[str, Any]) -> str:
@@ -173,16 +196,18 @@ def run_context(data: dict[str, Any]) -> str:
             f"Merges into {release} still need a per-PR human instruction. Hand back to "
             f"supervised and stop for the human on {HAND_BACK_TRIGGERS}."
         )
-    elif dials["autonomy"] == "autonomous":
+    elif dials["autonomy"] in ("mandated", "goal"):
         _, release = _branches(data)
         parts.append(
-            "Autonomy is autonomous: work within the retained human goal and constraints. "
+            f"Autonomy is {dials['autonomy']}: work within the retained human goal and constraints. "
             "In-mandate amendments need refreshed independent assessment and authority; "
             "eligible judgment calls and diminishing returns may receive explicit adjudication. "
             "Both complete cross-provider reviews and all mandatory factual checks remain required. "
             "Preserve original verdicts and residual risks. Continue to a ready final PR; "
             f"merges into {release} still need a per-PR human instruction."
         )
+    if dials["autonomy"] == "goal":
+        parts.append(_goal_guidance(data))
     note = _workspace_note(data, run=True)
     if note:
         parts.append(note)

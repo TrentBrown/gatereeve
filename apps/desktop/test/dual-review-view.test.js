@@ -25,8 +25,8 @@ test('the desktop preserves dissent, exposes both receipts and labels autonomous
   const buttons = [...elements['module-settings-list'].querySelectorAll('button')];
   assert.equal(buttons.length, 2); buttons.forEach(button => button.click());
   assert.deepEqual(opened, references.map(reference => reference.hash));
-  assert.match(elements['workflow-dials'].textContent, /Autonomy · Autonomous/);
-  assert.ok(elements['workflow-dials'].querySelector('.dial-autonomous'));
+  assert.match(elements['workflow-dials'].textContent, /Autonomy · Mandated/);
+  assert.ok(elements['workflow-dials'].querySelector('.dial-mandated'));
   const nativeResult = { hash: `sha256:${'c'.repeat(64)}` };
   snapshot.current.delegation = { decisions: [{ judgment: { reason: 'Planning objection rebutted with evidence.' }, evaluationOutcome: 'FAIL', nativeResult }] };
   renderCurrentOverview(snapshot, elements, { readResult: hash => opened.push(hash) });

@@ -11,7 +11,7 @@ import { executionEnvironment, assertEnvironmentCurrent } from './environment.js
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
 import { ID, CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, DELEGATED_AUTHORITY, AUTONOMOUS_AUTHORITY, startDial, dialChange, automaticDial, requireThat, identity,
-  identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval } from './contracts.js';
+  identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval, unattendedValue, normalizedDial, autonomyAlias } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity, briefBased } from './evidence.js';
 import { validatePlanning, assertPlanningProof, planningBinding } from './planning.js';
@@ -21,8 +21,9 @@ import { captureStanding, applyStanding, standingValidity, standingReleaseRefusa
 import { publishReview, requirePublishedReview } from './publication.js';
 import { selectReviewers, executeBoundaryReviews, boundaryReviews } from './boundary-review.js';
 import { adjudicateReview, currentAdjudication, allowedRunOutcome } from './autonomous.js';
+import { parkGoal, readyRecord, goalStatus, captureInterview, interviewDrift, agentDecisions } from './goal.js';
 import { evaluateTripwires, describeHits, hitKey } from './tripwires.js';
-import { isDelegated, isAutonomous, hasRunAuthority, requireProtection, guardDelegatedAction, reviewPlanning, delegatedPlanningAuthority, assertBriefScopeUnchanged, briefScopeChanged, applyDelegation, delegationStatus, briefLines } from './delegation.js';
+import { isDelegated, isAutonomous, isGoal, hasRunAuthority, requireProtection, guardDelegatedAction, reviewPlanning, delegatedPlanningAuthority, assertBriefScopeUnchanged, briefScopeChanged, applyDelegation, delegationStatus, briefLines } from './delegation.js';
 
 import { sourcePreparation, ensurePins, releasePins } from './source-retention.js';
 import { cleanupViews, viewStatus } from './source-views.js';
@@ -82,12 +83,12 @@ export function project(events) {
     phase: 'DESIGNING', implementers: first.implementers, optionalGates: first.optionalGates,
     decisions: [], pendingDecisions: [], validationFailures: [], results: [], jobs: {}, actions: {}, expectations: {}, candidate: null, specValidation: null, integrated: null, integrations: {},
     sourcePreparations: [], sourcePreparationStatus: {}, sourceCleanup: null, ready: false, paused: false, eventCount: events.length,
-    externalBlockers: [], externalBlocker: null, tripwires: null, tripwireHistory: [], planningReviews: [], handBack: null, delegationBlocked: null,
+    externalBlockers: [], externalBlocker: null, park: null, goalReady: null, interviewPin: null, tripwires: null, tripwireHistory: [], planningReviews: [], handBack: null, delegationBlocked: null,
     reviewerSelection: null, reviewRounds: [], boundaryReviewHistory: [], adjudications: [],
     // Workspace configuration observed or written at run start (spec AC6), or later by workspace.configure.
     workspace: first.workspace ? { ...first.workspace, at: events[0].recordedAt, event: events[0].hash } : null };
   state.dials = Object.fromEntries(Object.keys(DIALS).map(dial => [dial,
-    { ...(first.dials?.[dial] ?? startDial(dial)), at: events[0].recordedAt, event: events[0].hash }]));
+    { ...normalizedDial(first.dials?.[dial] ?? startDial(dial)), at: events[0].recordedAt, event: events[0].hash }]));
   state.dialHistory = Object.entries(state.dials).map(([dial, value]) => ({ dial, ...value }));
   for (const event of events.slice(1)) {
     const value = event.payload;
@@ -97,6 +98,7 @@ export function project(events) {
       case 'DECIDED':
         state.pendingDecisions = state.pendingDecisions.filter(item => item.operation.id !== value.requestId);
         state.decisions.push({ ...value, event: event.hash });
+        if (value.interview?.hash && ['approve-design', 'amend'].includes(value.kind)) state.interviewPin = value.interview;
         // A hand-back stops for the human until a human decision is observed.
         if (value.authority?.kind === 'human-confirmed') state.handBack = null;
         if (value.kind === 'approve-design') state.phase = 'SPECIFYING';
@@ -113,7 +115,7 @@ export function project(events) {
       case 'SOURCE_PREPARING': state.sourcePreparations.push(value); state.sourcePreparationStatus[value.id] = { status: 'preparing', reason: 'Preparation has not published a candidate; owned references are retained for retry.' }; break;
       case 'SOURCE_PREPARATION_FAILED': state.sourcePreparationStatus[value.id] = { status: 'retry-required', reason: value.reason }; break;
       case 'SOURCE_CLEANUP': state.sourceCleanup = value; break;
-      case 'CANDIDATE': if (value.preparationId) state.sourcePreparationStatus[value.preparationId] = { status: 'published', reason: null }; state.candidate = value; state.ready = false; state.integrated = null; state.integrations = {}; state.externalBlocker = null; state.tripwires = null; state.phase = 'IMPLEMENTING'; break;
+      case 'CANDIDATE': if (value.preparationId) state.sourcePreparationStatus[value.preparationId] = { status: 'published', reason: null }; state.candidate = value; state.goalReady = null; state.ready = false; state.integrated = null; state.integrations = {}; state.externalBlocker = null; state.tripwires = null; state.phase = 'IMPLEMENTING'; break;
       // Tripwire classification of a light candidate (spec AC4). Hits are facts;
       // dispositions are separate decisions or dial events.
       case 'TRIPWIRES_EVALUATED': { const recorded = { ...value, at: event.recordedAt, event: event.hash }; state.tripwireHistory.push(recorded); if (value.candidate?.hash === state.candidate?.hash) state.tripwires = recorded; break; }
@@ -140,16 +142,19 @@ export function project(events) {
       case 'OBSERVATION': break; // Agent memory; never grants authority.
       case 'WORKSPACE_CONFIGURED': state.workspace = { ...value, at: event.recordedAt, event: event.hash }; break;
       case 'DIAL_SET': {
-        const recorded = { ...value, at: event.recordedAt, event: event.hash };
+        const recorded = { ...normalizedDial(value), at: event.recordedAt, event: event.hash };
         state.dials[value.dial] = recorded; state.dialHistory.push(recorded);
-        if (value.dial === 'autonomy') { state.handBack = value.value === 'supervised' && ['delegated', 'autonomous'].includes(value.previous) && value.actor !== 'human' ? recorded : null; state.delegationBlocked = null; }
+        if (value.dial === 'autonomy' && recorded.value !== 'goal') state.park = null;
+        if (value.dial === 'autonomy') { state.handBack = recorded.value === 'supervised' && unattendedValue(recorded.previous) && value.actor !== 'human' ? recorded : null; state.delegationBlocked = null; }
         // Raised rigor voids brief-bound authority: full planning starts again
         // so design approval, spec validation and authorization are reachable.
         if (value.dial === 'rigor' && value.previous === 'light' && !['DESIGNING', 'SPECIFYING', 'PLANNING'].includes(state.phase)) { state.phase = 'DESIGNING'; state.ready = false; }
         break;
       }
       case 'PAUSED': state.paused = true; break;
-      case 'RESUMED': state.paused = false; break;
+      case 'RESUMED': state.paused = false; state.park = null; break;
+      case 'PARKED': state.park = { ...value, at: event.recordedAt, event: event.hash }; break;
+      case 'GOAL_READY': state.goalReady = { ...value, at: event.recordedAt, event: event.hash }; break;
       default: throw new Error(`Unsupported current event: ${event.type}`);
     }
   }
@@ -220,10 +225,10 @@ export class CurrentCore {
     // branch observed as protected, exactly as run.set-dial does (spec AC5).
     // It is observed before any workspace configuration is written, so the Git
     // fallback still cannot delegate at start.
-    if (['delegated', 'autonomous'].includes(dials.autonomy.value)) dials.autonomy = { ...dials.autonomy, runId: input.runId, protection: await requireProtection(this) };
+    if (unattendedValue(dials.autonomy.value)) dials.autonomy = { ...dials.autonomy, runId: input.runId, protection: await requireProtection(this) };
     // Workspace configuration (spec AC6): decided and possibly written here,
     // unless the adapter already did so before creating the feature home.
-    const prepared = workspace ? await this.prepareWorkspace(input.workspace, workspaceOperation, { createAllowed: !['delegated', 'autonomous'].includes(dials.autonomy.value) }) : null;
+    const prepared = workspace ? await this.prepareWorkspace(input.workspace, workspaceOperation, { createAllowed: !unattendedValue(dials.autonomy.value) }) : null;
     try {
       const recorded = prepared?.record ? await this.retainWorkspace(prepared) : null;
       // No legacy files are read or overwritten. STARTED is durable before activation.
@@ -287,7 +292,7 @@ export class CurrentCore {
       // Dial choices apply only when resumption starts a run. Never drop a
       // differing choice silently on an already active run.
       for (const dial of Object.keys(DIALS)) {
-        if (input[dial] === undefined || input[dial]?.value === state.dials[dial].value) continue;
+        if (input[dial] === undefined || (dial === 'autonomy' ? autonomyAlias(input[dial]?.value) : input[dial]?.value) === state.dials[dial].value) continue;
         requireThat(!(dial === 'rigor' && input[dial]?.value === 'light'), LOWERING_REFUSED);
         requireThat(false, `The active run is already ${dial} ${state.dials[dial].value}; change it with run.set-dial`);
       }
@@ -429,6 +434,7 @@ export class CurrentCore {
       value.documents = current.docs;
       // The instruction approves the named design delta; spec proof still needs refresh.
       value.approvedDesign = current.docs['design.md'];
+      { const interview = await captureInterview(this.store); if (interview) value.interview = interview; }
       if (decisionHas(value, 'authorize-implementation')) {
         if (!delegated) state = await this.pendingDecision(value, operation, state);
         const proof = await this.specProof(current.docs, operation, state);
@@ -932,6 +938,7 @@ export class CurrentCore {
       await this.assertContext();
       current = await this.commitments({ capture: false, state });
       if (!findDecision(state, 'authorize-implementation', current.subject)) missing.push('current implementation authorization');
+      { const drift = await interviewDrift(this.store, state); if (drift) missing.push(drift); }
       // A light run's brief-bound authorization needs no specification validation.
       if (!lightRun(state) && (!state.specValidation || state.specValidation.spec.hash !== current.docs['spec.md'].hash
         || state.specValidation.design.hash !== current.docs['design.md'].hash)) missing.push('current specification validation');
@@ -1116,7 +1123,8 @@ export class CurrentCore {
           : await standingValidity(this, state, grant, candidate, null, { allowIntegratedTargets: true })),
     })));
     return { ...state, temporaryViews: await viewStatus(this.store), commitments, standingAuthorizations, delegation: delegationStatus(this, state), historyGaps: await this.historyGaps(state, memo), obligations: GATES.filter(item => !item.supplemental && (!item.optional || state.optionalGates.includes(item.id))),
-      enforcement: ENFORCEMENT, milestones: await Promise.all(MILESTONES.map(name => this.check(name, null, memo))) };
+      enforcement: ENFORCEMENT, ...await (async () => { const milestones = await Promise.all(MILESTONES.map(name => this.check(name, null, memo)));
+        return { milestones, goal: goalStatus(state, milestones, isGoal(state) ? await agentDecisions(this.context.featureHome) : []) }; })() };
   }
   async coverageStatus() {
     const { state } = await this.state();
@@ -1175,7 +1183,7 @@ export class CurrentCore {
     const { state } = await this.state();
     requireThat(state.phase !== 'COMPLETE', 'Run dials cannot change after completion');
     const change = dialChange(state, input);
-    if (change.dial === 'autonomy' && ['delegated', 'autonomous'].includes(change.value)) change.protection = await requireProtection(this);
+    if (change.dial === 'autonomy' && unattendedValue(change.value)) change.protection = await requireProtection(this);
     return this.append(state, 'DIAL_SET', change, operation);
   }
   // Classify the current light candidate. Under delegation a hit raises rigor to
@@ -1271,7 +1279,18 @@ export class CurrentCore {
       case 'milestone.check': return this.check(input.name);
       case 'milestone.pass': return this.pass(input.name, operation);
       case 'merge.prepare': return prepareMerge(this, input);
-      case 'review.publish': return publishReview(this, input);
+      case 'review.publish': {
+        const published = await publishReview(this, input);
+        const { state } = await this.state();
+        const ready = readyRecord(state, { scope: published.scope }, published, published.observed ?? {});
+        if (ready && JSON.stringify(state.goalReady && { ...state.goalReady, at: undefined, event: undefined }) !== JSON.stringify({ ...ready, at: undefined, event: undefined }))
+          await this.append(state, 'GOAL_READY', ready, { id: `${operation.id}-goal-ready`, hash: identity(ready) });
+        return published;
+      }
+      case 'goal.park': {
+        const { observePullRequest } = await import('./publication.js');
+        return parkGoal(this, input, operation, observePullRequest);
+      }
       case 'merge.execute': return protectedMerge(this, input, operation);
       case 'delivery.resume':
         try { return await resumeDelivery(this, input, operation); }
