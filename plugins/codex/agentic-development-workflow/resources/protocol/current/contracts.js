@@ -1,0 +1,258 @@
+import { createHash } from 'node:crypto';
+import { ContractError } from '../errors.js';
+
+export const CONTRACT = 'gatereeve/current/8';
+// Run dials. Values are explicit per-run choices over these built-in defaults;
+// no configuration layer can change them (design D3/D4).
+export const DIALS = Object.freeze({ rigor: Object.freeze(['full', 'light']), autonomy: Object.freeze(['supervised', 'delegated', 'autonomous']) });
+export const DEFAULT_DIALS = Object.freeze({ rigor: 'full', autonomy: 'supervised' });
+export const PHASES = ['DESIGNING', 'SPECIFYING', 'PLANNING', 'IMPLEMENTING', 'ACCEPTING', 'INTEGRATED', 'COMPLETE'];
+export const MILESTONES = ['implementation', 'acceptance', 'merge', 'completion'];
+export const HASH = /^sha256:[a-f0-9]{64}$/u;
+export const ID = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/u;
+
+export function requireThat(condition, message, details = null) {
+  if (!condition) throw new ContractError(message, details);
+}
+export function object(value, label) {
+  requireThat(value !== null && typeof value === 'object' && !Array.isArray(value), `${label} must be an object`);
+  return value;
+}
+export function text(value, label) {
+  requireThat(typeof value === 'string' && value.trim().length > 0, `${label} must be nonempty text`);
+  return value;
+}
+export function identifier(value, label = 'identity') {
+  requireThat(typeof value === 'string' && ID.test(value), `Invalid ${label}`);
+  return value;
+}
+export function canonical(value) {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
+  }
+  requireThat(value !== undefined && (typeof value !== 'number' || Number.isFinite(value)), 'Non-JSON contract value');
+  return JSON.stringify(value);
+}
+export function digest(bytes) {
+  return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+}
+export const identity = value => digest(canonical(value));
+
+// These are proof contracts, not edges in an execution graph. Generated facts
+// still need verified evidence; optional assessments do not disable other gates.
+export const GATES = Object.freeze([
+  { id: 'context', label: 'Pinned source and requirements', role: 'core', at: 'acceptance', waivable: false },
+  { id: 'reconcile', supplemental: true, label: 'Record reconciliation', rule: 'Assess complete feature-level requirement-to-implementation-and-evidence coverage using the retained planning documents. Supporting tasks need not each map to a rubric row. Presentation-only differences are not defects. Missing or ambiguous requirements and uncovered selected criteria prevent PASS.', role: 'independent', at: 'acceptance', waivable: false },
+  { id: 'review', label: 'Independent acceptance assessment', role: 'independent', at: 'acceptance', waivable: true, rule: 'Independently examine code defects and interactions, every approved criterion, actual validation sufficiency and CI scope, scope/decision contradictions, relevant project rules and findings/fixes. Give explicit evidence-backed conclusions for code, requirements, evidence, scope and findings. This is one of two required complete boundary assessments from different model providers. Each fresh context must independently cover every responsibility; initial assessments do not inherit the peer report. Do not inherit implementation conversation or treat claims as proof.' },
+  { id: 'verification', label: 'Build, test and runtime verification', role: 'runner', at: 'acceptance', waivable: true },
+  { id: 'spec', supplemental: true, label: 'Specification acceptance', rule: 'Score every selected approved rubric criterion against actual Verification and source evidence. PASS only when all required behavior and boundary-feasible evidence are satisfied.', role: 'independent', at: 'acceptance', waivable: true },
+  { id: 'pattern', supplemental: true, label: 'Pattern review', rule: 'Use the supplied resolved active rules and deterministic triggers. Evaluate every triggered rule, decide agentic triggers with rationale, and report rule IDs/source hashes. Unresolved manual reviews and blocker failures prevent PASS. An existing empty rule scope is a visible warning, never claimed as meaningful pattern coverage.', role: 'assessment', at: 'acceptance', waivable: true },
+  { id: 'judge', supplemental: true, label: 'Independent compliance judgment', rule: 'Independently assess every selected rubric row, scope creep, contradictions and gaps. Inspect bound Verification receipts; do not assume test success proves reachable behavior. Optional additional perspective; the required consolidated review already includes compliance judgment.', role: 'independent', at: 'acceptance', waivable: true },
+  { id: 'code', supplemental: true, label: 'Code review', rule: 'Inspect the actual base/head change, surrounding reachable behavior and cross-repository interactions for supported correctness, security and regression defects. Cite current source and approved requirements. Unrelated pre-existing issues and speculative advice are nonblocking.', role: 'independent', at: 'acceptance', waivable: true },
+  { id: 'triage', supplemental: true, label: 'Decision triage', rule: 'Assess material decision dispositions in the retained scratchpad and decisions. Identify unresolved material choices and changes to approved scope without applicable actual authority. Checkbox formatting is irrelevant. Model claims and checked boxes cannot grant authority.', role: 'independent', at: 'acceptance', waivable: false },
+  { id: 'explanation', supplemental: true, label: 'Human review explanation', rule: 'Produce a self-contained human-readable explanation in summary of the concrete problem, resulting behavior, main implementation choices, actual verification and remaining limitations. Reviewers must be able to inspect the exact change from this retained artifact.', role: 'assessment', at: 'acceptance', waivable: false },
+  { id: 'packet', label: 'Review packet integrity', role: 'core', at: 'acceptance', waivable: false },
+  { id: 'finalization', label: 'Required release and finalization obligations', role: 'runner', at: 'completion', waivable: true },
+  { id: 'release', label: 'Required release observation', role: 'observation', at: 'completion', waivable: true },
+  { id: 'retention', label: 'Local record retention', role: 'core', at: 'completion', waivable: false },
+  { id: 'whiteboard', label: 'Whiteboard assessment', rule: 'Independently challenge the design and implementation against failure modes, data flow, edge cases, integration assumptions, operational behavior and alternatives. State concrete challenges and evidence-backed answers in summary. Unsupported defenses or uncovered required behavior prevent PASS.', role: 'independent', at: 'acceptance', waivable: true, waiverPolicy: 'non-behavioral-only', optional: true },
+]);
+
+export function gate(id) {
+  const found = GATES.find(item => item.id === id);
+  requireThat(found, `Unknown gate: ${id}`);
+  return found;
+}
+export function authority(value) {
+  object(value, 'Human authority');
+  requireThat(value.kind === 'human-confirmed', 'An observed human instruction is required');
+  text(value.instruction, 'Human instruction');
+  text(value.context, 'Instruction context');
+  if (value.messageId !== undefined) text(value.messageId, 'Message reference');
+  if (value.conversationId !== undefined) text(value.conversationId, 'Conversation reference');
+  return structuredClone(value);
+}
+// A delegated planning decision cites the human's delegation and an
+// independent evaluator PASS instead of a live human instruction (spec AC5).
+// It is reported as its own authority kind, never as human-confirmed.
+export const DELEGATED_AUTHORITY = 'delegated-evaluator';
+export const AUTONOMOUS_AUTHORITY = 'autonomous-evaluator';
+export const DELEGATED_DECISIONS = Object.freeze(['approve-design', 'authorize-implementation']);
+export function delegatedAuthority(value) {
+  object(value, 'Delegated authority');
+  requireThat([DELEGATED_AUTHORITY, AUTONOMOUS_AUTHORITY].includes(value.kind), 'Unknown delegated authority kind');
+  requireThat(Object.keys(value).every(key => ['kind', 'delegation', 'evaluation', ...(value.kind === AUTONOMOUS_AUTHORITY ? ['judgment'] : [])].includes(key)), 'Delegated authority names only the delegation event and the evaluator result event (autonomous authority may add explicit judgment)');
+  requireThat(HASH.test(value.delegation) && HASH.test(value.evaluation), 'Delegated authority must cite the delegation event and the planning review event by identity');
+  return structuredClone(value);
+}
+export function decision(value) {
+  object(value, 'Decision');
+  requireThat(Object.keys(value).every(key => ['kind', 'subject', 'authority', 'reason', 'consequences', 'actions', 'gates', 'findings', 'action', 'previousSubject', 'scope', 'waiverBasis'].includes(key)), 'Unsupported decision field; scope must be explicit in the supported contract');
+  requireThat(['approve-design', 'authorize-implementation', 'accept', 'waive', 'amend', 'policy-amend', 'authorize-merge', 'authorize-standing', 'revoke-standing', 'stay-light'].includes(value.kind), 'Unknown decision kind');
+  requireThat(value.scope === undefined || value.kind === 'authorize-standing', 'Scope is only supported on a standing grant');
+  if (value.authority?.kind === AUTONOMOUS_AUTHORITY) {
+    requireThat(['approve-design', 'authorize-implementation', 'amend'].includes(value.kind)
+      && (value.actions ?? []).every(action => value.kind === 'amend' && action === 'authorize-implementation'),
+    'Autonomous planning authority covers planning and in-mandate amendments only');
+    delegatedAuthority(value.authority);
+  } else if (value.authority?.kind === DELEGATED_AUTHORITY) {
+    requireThat(DELEGATED_DECISIONS.includes(value.kind) && !(value.actions ?? []).length,
+      `Delegated authority covers only ${DELEGATED_DECISIONS.join(' and ')} without continuations; ${value.kind} needs an observed human instruction`);
+    delegatedAuthority(value.authority);
+  } else authority(value.authority);
+  text(value.reason, 'Decision reason');
+  text(value.consequences, 'Known consequences');
+  requireThat(HASH.test(value.subject), 'Decision must name the exact subject identity');
+  const actions = value.actions ?? [];
+  requireThat(Array.isArray(actions) && new Set(actions).size === actions.length, 'Decision actions must be distinct');
+  const allowed = { waive: ['accept', 'authorize-merge'], accept: ['authorize-merge'], amend: ['authorize-implementation'], 'policy-amend': ['waive', 'accept', 'authorize-merge'] };
+  requireThat(actions.every(action => (allowed[value.kind] ?? []).includes(action)), 'Unsupported decision continuation');
+  if (value.kind === 'waive' || value.kind === 'policy-amend') {
+    requireThat(Array.isArray(value.gates) && value.gates.length > 0 && new Set(value.gates).size === value.gates.length, 'Waiver must name distinct gates');
+    value.gates.forEach(gate);
+    if (value.kind === 'policy-amend') requireThat(value.gates.every(id => ['reconcile', 'triage', 'explanation', 'whiteboard'].includes(id)), 'Policy amendment cannot waive integrity, factual truth or authority');
+  }
+  if (value.waiverBasis !== undefined) {
+    requireThat(decisionHas(value, 'waive') && value.gates?.includes('whiteboard'), 'Waiver basis requires a Whiteboard exception');
+    requireThat(nonBehavioralBasis(value.waiverBasis), 'Whiteboard requires an explicit non-behavioral classification and retained evidence');
+  }
+  if (value.findings !== undefined) {
+    requireThat((value.kind === 'waive' || value.kind === 'policy-amend') && Array.isArray(value.findings)
+      && value.findings.length > 0 && new Set(value.findings).size === value.findings.length,
+      'Finding exceptions require distinct named findings');
+    value.findings.forEach(id => text(id, 'Finding identity'));
+  }
+  return structuredClone(value);
+}
+export const decisionHas = (value, kind) => value.kind === kind || (value.actions ?? []).includes(kind);
+// A commitment amendment supersedes previous permission even if bytes later
+// return to their old values. Keep proof reuse separate from human authority.
+export const latestImplementation = state => state.decisions.findLast(item => decisionHas(item, 'authorize-implementation') || item.kind === 'amend');
+export function currentAuthorityDecisions(state) {
+  const index = state.decisions.findLastIndex(item => decisionHas(item, 'authorize-implementation') || item.kind === 'amend');
+  return state.decisions.slice(Math.max(0, index));
+}
+export function currentDesignApproval(state, subject) {
+  const latest = state.decisions.findLast(item => item.kind === 'approve-design' || item.kind === 'amend');
+  return (latest?.kind === 'amend' ? latest.approvedDesign?.hash : latest?.subject) === subject ? latest : null;
+}
+function nonBehavioralBasis(basis) {
+  return basis?.classification === 'NON_BEHAVIORAL'
+    && Object.keys(basis).every(key => ['classification', 'evidence'].includes(key))
+    && HASH.test(basis.evidence?.hash) && Number.isSafeInteger(basis.evidence?.bytes) && basis.evidence.bytes >= 0;
+}
+export function waiverPolicyAllows(state, id, subject, applicability = null, basis = null) {
+  const applies = item => item.subject === subject || (applicability && item.applicability === applicability);
+  const amendment = currentAuthorityDecisions(state).some(item => item.kind === 'policy-amend' && applies(item) && item.gates.includes(id));
+  return amendment || gate(id).waivable && (gate(id).waiverPolicy !== 'non-behavioral-only' || nonBehavioralBasis(basis));
+}
+export function waiverFor(state, id, subject, applicability = null, risk = null, result = null) {
+  const applies = item => item.subject === subject || (applicability && item.applicability === applicability);
+  return currentAuthorityDecisions(state).findLast(item => decisionHas(item, 'waive') && applies(item) && item.gates.includes(id)
+    && waiverPolicyAllows(state, id, subject, applicability, item.waiverBasis)
+    && risk !== null && item.risks?.[id] === risk
+    && (!item.findings || result?.outcome === 'FAIL' && result.findings?.some(finding => finding.blocking)
+      && result.findings.filter(finding => finding.blocking).every(finding => item.findings.includes(finding.id)))) ?? null;
+}
+const actions = Object.freeze({
+  implementation: { mode: 'adapter-only', entry: 'human.decide / milestone.pass', checkedBy: 'current-core.test.js: implementation authorization and changed commitments' },
+  acceptance: { mode: 'adapter-only', entry: 'milestone.pass', checkedBy: 'current-core.test.js: missing proof and scoped exceptions' },
+  merge: { mode: 'adapter-only', entry: 'merge.execute', checkedBy: 'current-core.test.js: exact action, branch direction, drift and reclose' },
+  completion: { mode: 'adapter-only', entry: 'milestone.pass', checkedBy: 'current-core.test.js: integration, release and retention' },
+  directPullRequestMerge: { mode: 'configured-hook-unverified-host', handlerBehavior: 'deny-and-route', entry: 'PreToolUse direct gh pr merge', checkedBy: 'current-hook.test.js', limit: 'Handler and manifest subprocess tests only; native-host activation and actual interception are unverified. Recognized direct shell forms only; use the protected merge adapter for actual execution' },
+  arbitraryShell: { mode: 'cooperative', interception: 'not-configured', reason: 'Indirect scripts, alternate clients and external commands are outside this hook coverage.' },
+});
+export const ENFORCEMENT = Object.freeze({
+  core: 'milestone checks',
+  codex: { sessionStart: 'run-state guidance', actionHooks: 'PreToolUse: best-effort guard for gh pr merge, gh api merge and protected-branch git push', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
+  claude: { sessionStart: 'run-state guidance', actionHooks: 'PreToolUse: best-effort guard for gh pr merge, gh api merge and protected-branch git push', protectedAdapters: 'required', actions, hostSmoke: 'packaged SessionStart and PreToolUse subprocess smoke; live plugin activation not asserted' },
+});
+
+export function humanMandate(value) {
+  object(value, 'Autonomous human mandate');
+  requireThat(Object.keys(value).every(key => ['goal', 'constraints'].includes(key)), 'A human mandate contains only its fixed goal and explicit constraints');
+  text(value.goal, 'Fixed human goal');
+  requireThat(Array.isArray(value.constraints), 'Explicit human constraints must be recorded, even when empty');
+  value.constraints.forEach(constraint => text(constraint, 'Explicit human constraint'));
+  return structuredClone(value);
+}
+
+// A rebuttal cannot redefine the goal or constraints: it must address the
+// retained goal and each constraint by index with inspectable counterevidence.
+export function mandateRebuttal(value, mandate) {
+  object(value, 'Mandate rebuttal');
+  requireThat(Object.keys(value).every(key => ['goalEvidence', 'constraints'].includes(key)), 'Mandate rebuttal contains evidence, not a replacement mandate');
+  text(value.goalEvidence, 'Evidence supporting the fixed human goal');
+  requireThat(Array.isArray(value.constraints) && value.constraints.length === mandate.constraints.length
+    && new Set(value.constraints.map(row => row.index)).size === mandate.constraints.length, 'Address every fixed human constraint');
+  for (const row of value.constraints) {
+    requireThat(row && Object.keys(row).every(key => ['index', 'evidence'].includes(key))
+      && Number.isInteger(row.index) && row.index >= 0 && row.index < mandate.constraints.length, 'Unknown fixed constraint in mandate rebuttal');
+    text(row.evidence, 'Fixed-constraint counterevidence');
+  }
+  return structuredClone(value);
+}
+
+// A dial choice supplied at run start. Only the built-in default may be chosen
+// without an observed human instruction. Delegation additionally needs the
+// release-branch protection observation, which the core attaches (spec AC5).
+export function startDial(dial, value) {
+  requireThat(Object.hasOwn(DIALS, dial), 'Unknown run dial');
+  if (value === undefined) return { value: DEFAULT_DIALS[dial], source: 'built-in', actor: null };
+  object(value, `${dial} choice`);
+  requireThat(Object.keys(value).every(key => ['value', 'authority', 'reason', 'mandate'].includes(key)), `Unsupported ${dial} choice field`);
+  requireThat(DIALS[dial].includes(value.value), `Invalid ${dial} value`);
+  if (value.value !== DEFAULT_DIALS[dial]) requireThat(value.authority !== undefined, `Choosing ${dial} ${value.value} requires an observed human instruction`);
+  // Every explicit choice carries provenance: the observed instruction or a reason.
+  requireThat(value.authority !== undefined || value.reason !== undefined, `An explicit ${dial} choice needs an observed human instruction or a reason`);
+  const choice = { value: value.value, source: 'explicit', actor: value.authority ? 'human' : 'agent' };
+  if (value.authority !== undefined) choice.authority = authority(value.authority);
+  if (value.reason !== undefined) choice.reason = text(value.reason, `${dial} reason`);
+  if (dial === 'autonomy' && value.value === 'autonomous') choice.mandate = humanMandate(value.mandate);
+  else requireThat(value.mandate === undefined, 'A fixed human mandate belongs to autonomous authority only');
+  return choice;
+}
+export const LOWERING_REFUSED = 'Rigor cannot be lowered within a run; to work at light rigor, start a new light run on a new topic branch (this run and its evidence remain retained)';
+// Validate a requested dial change against the asymmetric rules (design D5 as
+// revised 2026-11-16): rigor only rises; lowering it requires a new light run.
+export function dialChange(state, input) {
+  object(input, 'Dial change');
+  requireThat(Object.keys(input).every(key => ['dial', 'value', 'actor', 'authority', 'reason', 'runId', 'mandate'].includes(key)), 'Unsupported dial change field');
+  requireThat(Object.hasOwn(DIALS, input.dial), 'Unknown run dial');
+  requireThat(DIALS[input.dial].includes(input.value), `Invalid ${input.dial} value`);
+  // Lowering is refused before any other field check, so every caller gets the
+  // path forward rather than a missing-field error.
+  // A light run asking for light is told so, not told it cannot lower (F13).
+  if (input.dial === 'rigor' && input.value === 'light') requireThat(false, state.dials.rigor.value === 'light' ? 'Run rigor is already light' : LOWERING_REFUSED);
+  requireThat(['human', 'agent'].includes(input.actor), 'Dial change actor must be human or agent');
+  text(input.reason, 'Dial change reason');
+  requireThat(input.actor !== 'human' || input.authority !== undefined, 'A human dial change requires the observed instruction');
+  requireThat(input.actor !== 'agent' || input.authority === undefined, 'An agent dial change cannot claim human authority');
+  const current = state.dials[input.dial].value;
+  requireThat(current !== input.value, `Run ${input.dial} is already ${input.value}`);
+  // Delegation is a human decision naming this run; the core adds the observed
+  // release-branch protection before it is recorded.
+  if (input.dial === 'autonomy' && ['delegated', 'autonomous'].includes(input.value)) {
+    requireThat(input.actor === 'human', 'Only a human can delegate');
+    requireThat(input.runId === state.runId, `Delegation must name this run: supply runId ${state.runId}`);
+  } else requireThat(input.runId === undefined, 'Only a delegation names the run');
+  const mandate = input.dial === 'autonomy' && input.value === 'autonomous' ? humanMandate(input.mandate) : null;
+  requireThat(mandate || input.mandate === undefined, 'A fixed human mandate belongs to autonomous authority only');
+  return { dial: input.dial, value: input.value, previous: current, source: 'explicit', actor: input.actor,
+    ...(input.authority !== undefined ? { authority: authority(input.authority) } : {}), reason: input.reason,
+    ...(input.runId !== undefined ? { runId: input.runId } : {}),
+    ...(mandate ? { mandate } : {}),
+    // Returning delegated work is a hand-back: by the agent, or by the human.
+    ...(input.dial === 'autonomy' && input.value === 'supervised' ? { trigger: input.actor === 'agent' ? 'agent' : 'human' } : {}) };
+}
+// Recorded automatic dial changes (tripwire escalation, hand-back). They are
+// raises or returns to supervision only, so no human instruction is needed.
+export const HAND_BACK_TRIGGERS = Object.freeze(['amend', 'agent', 'external-blocker', 'protection-lost']);
+// Tripwire categories (spec AC4); patterns live in tripwires.js.
+export const TRIPWIRE_CATEGORIES = Object.freeze(['migrations-schema', 'auth-security', 'secrets', 'public-api', 'data-deletion']);
+export function automaticDial(state, dial, value, trigger, reason, details = {}) {
+  requireThat((dial === 'rigor' && value === 'full') || (dial === 'autonomy' && value === 'supervised'), 'Automatic dial changes only raise rigor or return autonomy to supervised');
+  return { dial, value, previous: state.dials[dial].value, source: 'automatic', actor: 'gatereeve', trigger, reason: text(reason, 'Automatic dial reason'), ...details };
+}
+

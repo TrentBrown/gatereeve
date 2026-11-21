@@ -1,0 +1,10 @@
+flowchart LR
+  Interview --> Design
+  Design -->|Human design approval| Spec
+  Spec -->|Validated specification| Plan[Plan and issues]
+  Plan -->|Human implementation authorization| Work[Model-led implementation and repair]
+  Work --> Evidence[Requested checks and independent reviews]
+  Evidence -->|Current required proof or scoped exceptions| Acceptance[Human acceptance]
+  Acceptance -->|Exact action authorization and protected check| Merge[Observed integration]
+  Merge -->|Finalization and retained evidence| Complete
+  Evidence -->|Findings or stale proof| Work

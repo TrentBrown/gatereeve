@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Judge"
+  short_description: "Run an independent spec compliance pass"
+  default_prompt: "Run an independent judge pass."

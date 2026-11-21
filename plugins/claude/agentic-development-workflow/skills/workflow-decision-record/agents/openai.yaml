@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Decision Record"
+  short_description: "Record a workflow decision"
+  default_prompt: "Record this decision in the branch scratchpad."
