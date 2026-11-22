@@ -52,13 +52,18 @@ silent best effort:
     environment value.
   - Without `systemd-inhibit` (including every non-Linux host) the launch
     command is byte-identical to today's.
+  - When `systemd-inhibit` is present but refuses the lock (a non-zero exit
+    from a lock probe taken before launch, for example with no logind
+    available), the reviewer launches unwrapped exactly as when it is absent,
+    and the review proceeds.
   - Under the wrapper, stdin is delivered to the reviewer, stdout and stderr
     are captured as before, the reviewer's exit code is reported, a timeout
     terminates the reviewer process itself (not only the wrapper) within the
     existing timeout handling, and the argument-size guard accounts for the
     added arguments.
   - The reviewer receipt records whether an idle inhibitor was held
-    (`idleInhibitor: true|false`).
+    (`idleInhibitor: true|false`); it is `false` whenever the launch was
+    unwrapped, including after a refused probe.
 - **AC2. Metrics repair (slice 2).**
   - Test suites write only to a per-test or temporary metrics store; a full
     CLI test run adds no rows to the shared store at
@@ -114,8 +119,9 @@ silent best effort:
     is one round, including rounds where one reviewer was UNAVAILABLE. Only a
     human-approved amendment resets it. `status` shows the scope and round.
   - Rounds 1–3: every in-scope finding with a failure scenario that is not low
-    blocks. Rounds 4–5: only high findings and regressions of the previous fix
-    block; other findings become follow-ups. At round 6 the review is not
+    blocks. Rounds 4–5: only high findings and medium regressions of the
+    previous fix block; other findings become follow-ups. Low never blocks in
+    any round, including a low regression of the previous fix. At round 6 the review is not
     qualifying until the human records continue, amend, waive or split; in a
     goal run round 6 requires `goal.park` instead, and adjudication past round
     6 is refused.
@@ -154,10 +160,23 @@ silent best effort:
 - **AC9. CI after review convergence (slice 5).**
   - `candidate.prepare`, `review.execute` and alternative Verification work on
     a candidate head that exists only as a local commit.
+  - Local evidence during rounds: the Verification each review round consumes
+    contains at least one runner receipt executed on that round's candidate
+    tree, and receipts for the focused tests of every changed source area and
+    for every test suite whose code the candidate changes. Reviewers assess
+    that coverage in the evidence dimension; a missing receipt for a changed
+    area or affected suite is an evidence finding rated under the severity
+    rules above, and a Verification with no receipt on the candidate tree makes the
+    review not qualifying.
   - After a review scope converges, a `ci` Verification for the pushed head
     whose tree equals the reviewed candidate's tree is qualified by a
-    runner-role check with no model call: it confirms tree identity and that
-    every required check passed. Recording it does not make the converged
+    runner-role check with no model call: it confirms tree identity, that
+    every required check passed, and that every local receipt the converged
+    reviews consumed is covered. A consumed receipt is covered when its check
+    is among the CI run's passing required checks, or when it is a passing
+    local receipt for the identical tree included in the final Verification.
+    A consumed receipt that is neither makes the check fail, naming the
+    receipt. Recording it does not make the converged
     reviews non-reusable, and no paired re-review is required for acceptance.
   - A `ci` Verification for a different tree is rejected naming both trees.
   - Acceptance of a candidate still requires a passing `ci` Verification on
@@ -176,6 +195,17 @@ silent best effort:
     root (default `~/Code`), and previews by default.
   - Candidates and stale worktrees, always-skipped cases with reasons, and the
     per-worktree list of things that might matter follow D17 and D18 exactly.
+  - The regenerable set that is never listed is exact: git-ignored
+    directories named `node_modules`, `dist`, `build`, `out`, `.next`,
+    `.turbo`, `.cache`, `coverage`, `__pycache__`, `.pytest_cache`, `.venv` or
+    `target` at any depth, and `.gatereeve-current` directories. A repository
+    extends the set only with directory names in its local git configuration
+    (`git config --add gatereeve.sweepRegenerable <name>`). Every other
+    git-ignored file or directory, including dotfiles such as `.env`, is
+    listed.
+  - When open-PR status for a worktree's branch cannot be established (no
+    `gh`, no authentication, or a host error), that worktree is skipped with
+    the reason `pr-state-unknown`, whatever other candidate rule it meets.
   - With confirmation, each confirmed worktree is removed completely, then
     `git worktree prune` runs and the local branch is deleted only when fully
     merged. Remote branches are never touched.
@@ -192,20 +222,26 @@ silent best effort:
   - CLI status, desktop views, PROTOCOL.md, WORKFLOW.md, the boundary
     procedure and the user guide reflect the new behaviour; resource sync,
     contract and plugin checks pass.
-  - Runs and specs from earlier contracts keep working.
+  - Runs and specs from earlier contracts keep working. The new finding fields
+    (AC3), sweep records (AC4) and round policy (AC6) apply only to reviews
+    executed under this version. Results, findings and dispositions retained
+    from an earlier version keep their recorded outcome and qualification on
+    resume; their findings read as severity `unrated` and block exactly as
+    under their original contract; a later review on a resumed run applies the
+    new contract, with its round count starting at 1.
 
 ## Rubric
 
 | # | Criterion | Pass | Fail | Evidence |
 |---|-----------|------|------|----------|
-| R1 | AC1 idle lock | Tests show the wrapped command with the exact flags and a bounded secret-free `--why` when `systemd-inhibit` is present, a byte-identical command when absent, stdin delivered, exit code preserved, timeout terminating the reviewer process, the size guard counting the added arguments, and `idleInhibitor` in the receipt; a live Linux run shows the lock in `systemd-inhibit --list` during a review | Any listed behaviour missing or changed when absent | Adapter unit tests + live host check |
+| R1 | AC1 idle lock | Tests show the wrapped command with the exact flags and a bounded secret-free `--why` when `systemd-inhibit` is present, a byte-identical command when absent or when the lock probe is refused (with `idleInhibitor: false`), stdin delivered, exit code preserved, timeout terminating the reviewer process, the size guard counting the added arguments, and `idleInhibitor` in the receipt; a live Linux run shows the lock in `systemd-inhibit --list` during a review | Any listed behaviour missing, a review failing because the lock was refused, or the command changed when absent | Adapter unit tests + live host check |
 | R2 | AC2 metrics repair | A full CLI test run leaves the shared store's row count unchanged; purge previews then removes only test-suite rows; capture succeeds on duplicate observation times; status reports the real count; a decision's pending time precedes its answer | Any shared-store write from tests, a non-test row purged, or a listed bug reproducible | Metrics tests + before/after store counts |
 | R3 | AC3 severity and class | Contract tests reject findings missing severity, failure scenario, class ID or class statement in every gate and rigor; low never blocks; paired disagreement resolves to the higher rating; a disposition cannot change severity | Any missing field accepted, a low finding blocking, or severity changed by a disposition | Protocol contract tests |
 | R4 | AC4 sweep records | Tests reject a `fixed` disposition missing any sweep field (naming it), accept a one-site record with its search, and show the next round's input carrying the records | Any missing field accepted, a valid one-site record refused, or records absent from the next round | Protocol tests + reviewer input inspection |
 | R5 | AC5 robustness | Tests show one automatic repair turn on a contract error, UNAVAILABLE when repair fails or changes substance, mechanical normalization recorded as `normalized`, `not-assessed` for a missing peer disposition with the finding open, a reason code on every UNAVAILABLE, and repair turns excluded from the round count with tokens and time recorded | A second repair attempt, a substantive repair accepted, a missing reason code, or a repair counted as a round | Protocol tests with fake reviewer adapters |
-| R6 | AC6 round policy | Tests cover the counter per scope, UNAVAILABLE rounds counting, reset only by amendment, the three schedule bands, round 6 requiring a human decision (or `goal.park` in goal runs, with adjudication refused), planning and light runs following it, and the light-run advice at 4; PROTOCOL.md replaced | Any band mis-applied, a reset without amendment, round 6 passing without the required decision, or the old statement retained | Protocol tests + doc diff |
+| R6 | AC6 round policy | Tests cover the counter per scope, UNAVAILABLE rounds counting, reset only by amendment, the three schedule bands (including a low regression of the previous fix not blocking and a medium one blocking in rounds 4–5), round 6 requiring a human decision (or `goal.park` in goal runs, with adjudication refused), planning and light runs following it, and the light-run advice at 4; PROTOCOL.md replaced | Any band mis-applied, a reset without amendment, round 6 passing without the required decision, or the old statement retained | Protocol tests + doc diff |
 | R7 | AC7 follow-ups | Tests show follow-up records and generated `follow-ups.md`, Completion refused with an undecided follow-up, bulk decisions, `policy-default` authority never reported as human-confirmed, the low/medium defaults and no high default, the supervised single answer, and goal runs applying defaults, filing or seeding medium work, and parking on open high | Any follow-up lost, Completion allowed undecided, a default reported as human, a high default applied, or a goal run reaching ready-PR with open high | Protocol tests + generated file inspection |
 | R8 | AC8 failure model | `spec.validate` fails naming the line for a missing or empty section and for each listed word without a bound or reference, passes with one; old validated specs warn; reviewer inputs carry the model; light briefs without one lint clean | A listed case passing or failing wrongly, or reviewers lacking the model | Spec-lint tests + reviewer input inspection |
-| R9 | AC9 CI after convergence | Tests show preparation and review on an unpushed local head, a same-tree CI Verification qualified mechanically without invalidating converged reviews or launching reviewers, a different-tree CI Verification rejected naming both trees, acceptance refused on local evidence alone, the CI-failure delta path, and the push warning without denial; docs updated | A paired re-review required after same-tree CI, a different tree accepted, acceptance on local evidence alone, or a push denied | Protocol tests + hook tests + doc review |
-| R10 | AC10 sweep | Tests over fixture repositories cover discovery, every candidate rule, every skip with its reason, every listed item, regenerable folders and `.gatereeve-current/` not listed, preview by default, confirmed removal with prune and merged-only branch deletion, untouched remote branches, and non-interactive removal limited to empty lists | Any protected worktree removed, a listed item omitted, a remote branch touched, or a removal without confirmation | CLI tests with fixture repositories |
-| R11 | AC11 measurement and surfaces | Tests show each listed metrics field stored and the four D6 measures reported from the store alone; surfaces and docs updated; the existing suites pass with only the test edits these criteria require; sync, contract and plugin checks pass | A field missing, a measure needing a worktree, a surface or doc missing, or an existing test failing | Metrics tests + full suites + plugin checks |
+| R9 | AC9 CI after convergence | Tests show preparation and review on an unpushed local head, a Verification without a receipt on the candidate tree making the review not qualifying, reviewer instructions assessing changed-area and affected-suite receipts, a same-tree CI Verification with covered receipts qualified mechanically without invalidating converged reviews or launching reviewers, an uncovered consumed receipt failing the check by name, a different-tree CI Verification rejected naming both trees, acceptance refused on local evidence alone, the CI-failure delta path, and the push warning without denial; docs updated | A paired re-review required after same-tree covered CI, an uncovered receipt or a different tree accepted, acceptance on local evidence alone, or a push denied solely because reviews have not converged | Protocol tests + hook tests + doc review |
+| R10 | AC10 sweep | Tests over fixture repositories cover discovery, every candidate rule, every skip with its reason, every listed item, exactly the listed regenerable directory names (and a git-config extension) not listed while any other ignored file such as `.env` is listed, `pr-state-unknown` skips, preview by default, confirmed removal with prune and merged-only branch deletion, untouched remote branches, and non-interactive removal limited to empty lists | Any protected worktree removed, a worktree with unknown PR state removed, a listed item omitted, a remote branch touched, or an interactive removal without confirmation, or a non-interactive removal of a worktree with a non-empty list | CLI tests with fixture repositories |
+| R11 | AC11 measurement and surfaces | Tests show each listed metrics field stored, a retained earlier-version result keeping its outcome and qualification on resume with `unrated` findings, a later review on that run applying the new contract from round 1, and the four D6 measures reported from the store alone; surfaces and docs updated; the existing suites pass with only the test edits these criteria require; sync, contract and plugin checks pass | A field missing, a measure needing a worktree, a surface or doc missing, or an existing test failing | Metrics tests + full suites + plugin checks |

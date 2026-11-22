@@ -44,10 +44,14 @@ Every shared resource change is restaged into the desktop copies
   `systemd-inhibit --what=idle --mode=block --who=GateReeve --why=<why> <executable> <args…>`.
   The `why` text is built from provider, role and feature id, stripped of
   control characters and truncated to 120 characters.
-- `systemd-inhibit` execs its child and forwards termination, so the timeout's
-  SIGTERM/SIGKILL reaches the reviewer; verify with a test that the reviewer
-  process is gone after a timeout. If verification shows the signal is not
-  forwarded, run the child in its own process group and signal the group.
+- On this host (systemd 259) `systemd-inhibit` forwards SIGTERM to its child
+  (checked 2026-11-22: wrapper and child both gone after SIGTERM to the
+  wrapper). Keep a test that the reviewer process is gone after a timeout; if
+  forwarding fails elsewhere, run the child in its own process group and
+  signal the group.
+- Before wrapping, probe the lock once per launch
+  (`systemd-inhibit --what=idle --mode=block --who=GateReeve --why=<why> true`);
+  a non-zero probe exit means launch unwrapped with `idleInhibitor: false`.
 - Apply `assertArgumentSizes` to the final argv including wrapper arguments.
 - Record `idleInhibitor: true|false` in the receipt (`receiptFor`).
 - Tests: injected `platform`/`which` seams for presence and absence, a fake
@@ -102,7 +106,8 @@ Every shared resource change is restaged into the desktop copies
   slice PR candidate scope, feature-final, or planning artifact), reset only
   by an `amend` decision. Project it in `status`.
 - Apply the schedule in finding obligations: rounds 1–3 block non-low
-  in-scope findings; rounds 4–5 block high and fix regressions; round 6 makes
+  in-scope findings; rounds 4–5 block high findings and medium
+  regressions of the previous fix (low never blocks); round 6 makes
   review non-qualifying until a human decision (continue, amend, waive,
   split), or `goal.park` in a goal run; refuse adjudication at round 6.
 - Light-run advice at round 4. Replace the PROTOCOL.md "no fixed ratios or
@@ -133,8 +138,11 @@ Every shared resource change is restaged into the desktop copies
 - Verify `candidate.prepare`, `review.execute` and alternative Verification on
   an unpushed head; fix any remote-head assumption found.
 - Add a runner-role CI qualification: when a `ci` Verification's head tree
-  equals the converged candidate's tree and every required check passed, the
-  converged reviews remain qualifying. Implement it in the reuse/qualification
+  equals the converged candidate's tree, every required check passed, and every
+  local receipt the converged reviews consumed is covered (its check is among
+  CI's passing required checks, or it is a passing same-tree local receipt
+  included in the final Verification), the converged reviews remain
+  qualifying. An uncovered consumed receipt fails the check by name. Implement it in the reuse/qualification
   path so evidence identity for consumed local Verification is satisfied by
   the same-tree CI proof instead of `consumed-proof-changed`, and record the
   check as a runner result (no model call).
@@ -142,21 +150,29 @@ Every shared resource change is restaged into the desktop copies
   requiring a passing CI Verification on the exact head.
 - PreToolUse: warn on `git push` to a PR branch while the review scope has not
   converged.
+- Reviewer instructions assess the AC9 local-evidence rule; a Verification
+  without a receipt on the candidate tree makes the review not qualifying.
 - Update `commands/pr-boundary.md`, WORKFLOW.md and PROTOCOL.md.
 
 ### P9 - Worktree sweep (slice 6, AC10)
 
 - New `cli/src/commands/worktree.js` with `sweep`: discovery, candidate and
   stale rules, skips with reasons, the D17 list (regenerable set:
-  `node_modules`, build/dist/out, caches, `.gatereeve-current/`, extendable
-  per repository), preview by default, per-worktree confirmation, removal,
+  the exact git-ignored directory names in AC10 plus `.gatereeve-current`,
+  extended only by `git config gatereeve.sweepRegenerable`), preview by default, per-worktree confirmation, removal,
   `git worktree prune`, merged-only local branch deletion, non-interactive
   mode limited to empty lists.
-- PR state through `gh` when available; when unavailable, PR-based candidacy
-  is skipped with a reason rather than assumed.
+- PR state through `gh`. When open-PR status for a branch cannot be
+  established, that worktree is skipped as `pr-state-unknown`, whatever other
+  candidate rule it meets.
 - Fixture-repository tests.
 
 ### P10 - Measurement, surfaces and docs (all slices, AC11)
+
+- Version the reviewer contract: new fields, sweep records and round policy
+  apply to reviews executed under this version; retained earlier results keep
+  their outcome, with findings read as `unrated`. Tests replay a retained
+  earlier-version run.
 
 - Metrics report for the four D6 measures from the shared store.
 - CLI status and desktop views for round, follow-ups, unavailable reasons,

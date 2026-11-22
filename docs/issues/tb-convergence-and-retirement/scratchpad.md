@@ -5,3 +5,86 @@
 Working record of decisions made during this feature's lifetime. Append entries
 across delivery branches and sessions. Triage at each PR boundary; promoted
 entries are appended to `decisions.md`.
+
+## [1] Low severity takes precedence over the regression rule
+
+[ ] **Promote**
+
+**Answered by:** agent
+
+**Confidence:** HIGH
+
+**Context:** Planning review F5 found D7 (regressions of the previous fix block
+in rounds 4–5) and D8 (low findings never block) contradict for a low
+regression.
+
+**Options:** low never blocks, even as a regression; regressions block at any
+severity.
+
+**Decision:** Low never blocks in any round. Rounds 4–5 block high findings and
+medium regressions of the previous fix. A low regression becomes a follow-up.
+
+**Rationale:** D8 defines low as unusual conditions or out-of-model, which is
+the class whose pursuit caused non-convergence; the human approved D8 without
+exceptions. Reversible by a later amendment.
+
+## [2] Lock probe before launch for refusal fallback
+
+[ ] **Promote**
+
+**Answered by:** agent
+
+**Confidence:** MEDIUM
+
+**Context:** Planning review F2: the design requires an unwrapped launch when
+`systemd-inhibit` refuses, but a refusal inside the wrapper would look like a
+reviewer failure.
+
+**Options:** probe before launch; inspect wrapper stderr after a failure and
+relaunch.
+
+**Decision:** Probe the lock with `systemd-inhibit … true` before each launch;
+a non-zero probe exit launches unwrapped with `idleInhibitor: false`.
+
+**Rationale:** Keeps reviewer failures and lock refusals distinguishable at the
+cost of one short process per launch, and never relaunches a reviewer.
+Reversible.
+
+## [3] Open-PR status unknown skips the worktree
+
+[ ] **Promote**
+
+**Answered by:** agent
+
+**Confidence:** HIGH
+
+**Context:** Planning review F3: open-PR worktrees must always be skipped, but
+other candidate rules (merged branch, COMPLETE run) could select a worktree
+whose PR state cannot be read.
+
+**Decision:** Skip any worktree whose open-PR status cannot be established,
+with reason `pr-state-unknown`.
+
+**Rationale:** Fails safe on an irreversible deletion. Reversible.
+
+## [4] Local evidence rule, legacy compatibility and the exact regenerable set
+
+[ ] **Promote**
+
+**Answered by:** agent
+
+**Confidence:** MEDIUM
+
+**Context:** Second planning review F1–F3 asked the spec to settle the local
+evidence the design left open, the boundary for runs from earlier contracts,
+and the sweep's exact regenerable set.
+
+**Decision:** (a) Each round's Verification has a receipt on the candidate tree
+plus focused-test receipts for every changed source area and every affected
+suite, assessed by reviewers. (b) New contract rules apply to reviews executed
+under this version; retained results keep their outcome with `unrated`
+findings. (c) A fixed list of git-ignored directory names, extendable only by
+local git configuration; anything else ignored is listed.
+
+**Rationale:** Each fails safe or preserves existing proof; none weakens an
+obligation. Reversible by amendment.
