@@ -107,3 +107,34 @@ test('a goal boundary review receives the agent decisions and the published PR l
   await f.request('review.publish', { repository: 'app', number: 12 }, 'publish');
   assert.match(f.gh.pr.body, /Decisions made for you[\s\S]*`scratchpad\.md` Chose the merge method/u);
 });
+
+test('a goal planning decision cites only a review that assessed the current agent decision entries', async t => {
+  const { sha256Digest } = await import('../../plugin-src/shared/resources/protocol/agent-workflow.js');
+  const f = await fixture(t, { rigor: 'full' });
+  const prior = (await f.core.commitments()).subject;
+  const mandated = await grant(f, 'mandated', 'mandated');
+  await writeFile(join(f.home, 'design.md'), (await readFile(join(f.home, 'design.md'), 'utf8')) + '\nSimplify within the same goal.\n');
+  await writeFile(join(f.home, 'spec.md'), (await readFile(join(f.home, 'spec.md'), 'utf8')) + '\nApproach simplified.\n');
+  evaluator(f);
+  const run = f.core.runtime.evaluator.runStage;
+  f.core.runtime.evaluator.runStage = async request => {
+    const result = await run(request);
+    result.output.mandateAssessment = { outcome: 'PASS', evidence: 'Fixture mandate assessment.' };
+    result.receipt.digests.output = sha256Digest(result.output);
+    return result;
+  };
+  const review = (id) => f.request('planning.review', { artifact: 'spec', configuration: { provider: 'codex', model: 'fixture' } }, id);
+  const amend = (delegation, evaluation, id) => f.request('human.decide', { kind: 'amend', subject: current, previousSubject: prior, actions: ['authorize-implementation'],
+    reason: 'In-mandate simplification', consequences: 'Refresh evidence', authority: { kind: 'autonomous-evaluator', delegation, evaluation } }, id);
+  const current = (await f.core.commitments()).subject;
+  const beforeRaise = await review('review-mandated');
+  const raised = await grant(f, 'goal', 'goal');
+  await assert.rejects(amend(raised.event.hash, beforeRaise.event.hash, 'amend-stale-raise'), /did not assess the current agent decision entries/u);
+  const fresh = await review('review-goal');
+  await writeFile(join(f.home, 'scratchpad.md'), '# Scratchpad\n\n## Late choice\n\n**Answered by:** agent\n\nPicked a default.\n');
+  await assert.rejects(amend(raised.event.hash, fresh.event.hash, 'amend-stale-entry'), /did not assess the current agent decision entries/u);
+  const assessed = await review('review-goal-current');
+  const amended = await amend(raised.event.hash, assessed.event.hash, 'amend-current');
+  assert.equal(amended.event.payload.authority.kind, 'autonomous-evaluator');
+  assert.ok(mandated.event);
+});

@@ -229,7 +229,8 @@ export async function reviewPlanning(core, input, operation) {
     const evaluator = { provider: descriptor.provider, model: descriptor.model, reasoningEffort, contextId: receipt.provider.contextId, freshContext: true, inheritedTurns: 0 };
     const reference = await core.store.putJson({ contract: CONTRACT, kind: 'planning-review', runId: state.runId, featureId: state.featureId,
       artifact: input.artifact, subject, documents, reviewContract: planningReviewContract(input.artifact, raised), outcome: result.output.outcome,
-      summary: result.output.summary, findings: result.output.findings, ...(packet.mandate ? { mandate: packet.mandate, mandateAssessment: result.output.mandateAssessment } : {}), evaluator, receipt: retained[0], output: retained[1] });
+      summary: result.output.summary, findings: result.output.findings, ...(packet.mandate ? { mandate: packet.mandate, mandateAssessment: result.output.mandateAssessment } : {}),
+      ...(packet.agentDecisions ? { agentDecisions: packet.agentDecisions } : {}), evaluator, receipt: retained[0], output: retained[1] });
     return core.append(state, 'PLANNING_REVIEWED', { artifact: input.artifact, subject, documents, outcome: result.output.outcome, result: reference, evaluator }, operation);
   } catch (error) { error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])]; throw error; }
   finally { await view.close(); }
@@ -286,6 +287,12 @@ export async function delegatedPlanningAuthority(core, state, value) {
     && !state.implementers.includes(result.evaluator?.contextId), 'The cited planning review is not a qualifying independent PASS');
   if (autonomous) requireThat(result.mandate && identity(result.mandate) === identity(delegation.mandate)
     && ['PASS', 'FAIL'].includes(result.mandateAssessment?.outcome), 'The independent planning review must assess the fixed human mandate');
+  // A goal planning decision needs a review that assessed the current agent
+  // decision entries (spec AC6): not one from before a raise to goal or before
+  // a later agent entry.
+  if (isGoal(state)) requireThat(identity(result.agentDecisions ?? null)
+    === identity({ rule: AGENT_DECISION_RULE, entries: await agentDecisions(core.context.featureHome) }),
+  'The cited planning review did not assess the current agent decision entries; run planning.review again');
   let judgment = null;
   if (autonomous && value.authority.judgment) {
     const proposed = value.authority.judgment;

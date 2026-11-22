@@ -200,5 +200,8 @@ Under `goal`, grill-me and decision records answer their own questions as
 PR lists. The harness question tools are denied until a recorded park. The
 native goal, or the Stop hook, keeps the run active. While CI is pending, wait
 with a PR watcher. A real blocker gets a draft PR listing it, then
-`goal.park`, then a question. Use the `goal` skill to grant a new goal run or
+`goal.park`, then a question; a human `run.continue` resumes the run. The grant
+also covers the test methods needed to prove the change, even where project
+files say to ask first. List each method in the PR. Production, data deletion
+and harness approvals are excluded. Use the `goal` skill to grant a new goal run or
 to raise an existing one, for example after a human-led interview.
