@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:f4c59400338d3940cde213551d22d81ceca4b92df534f48d6b9c304112de469a",
+  "protocolHash": "sha256:f83e4122d2913eeb7eaeebd9ca7d66fef84e82bfb2b5db0f1c0b87d8ae12259c",
   "contract": "gatereeve/current/8",
   "contractSha256": "acea458578d64a6d7fb2ad10b0907bc23b7488b1248ec76d03f2e41e708205e3",
   "files": [
@@ -117,8 +117,8 @@
     },
     {
       "path": "current/goal.js",
-      "size": 8521,
-      "sha256": "8b68af97d3dc448bd04f3d588648be733dbd98faddab914dba80a64605e6a5be"
+      "size": 9190,
+      "sha256": "937852870696ac41fb20c73a296564d1db9d53c82cf88fb14b969620433e6f2a"
     },
     {
       "path": "current/observation.js",

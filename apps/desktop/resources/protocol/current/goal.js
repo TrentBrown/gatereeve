@@ -10,18 +10,28 @@ import { isGoal } from './delegation.js';
 // The one provenance-tagged decision record (spec AC6): entries marked
 // "Answered by: agent" in these feature documents, identified by file+heading.
 export const DECISION_FILES = Object.freeze(['interview.md', 'scratchpad.md', 'decisions.md']);
-const ANSWERED_BY = /^\s*(?:[-*]\s*)?\*\*Answered by:\*\*\s*`?(human|agent)`?/imu;
+// Provenance may be written bold (**Answered by:** agent), plain (Answered by:
+// agent), in a list item, and with or without backticks.
+const ANSWERED_BY = /^\s*(?:[-*+]\s+)?(?:\*\*|__)?Answered by:?(?:\*\*|__)?:?\s*`?(human|agent)`?\b/imu;
 export function parseDecisionEntries(file, markdown) {
   // Split into heading sections, each with only its own lines (up to the next
   // heading of any level).
+  // Every ATX heading level counts, so an entry is never hidden by its depth.
+  // Text before the first heading forms an untitled preamble section.
   const sections = [];
-  let current = null;
+  // Fenced code (an example in prose) neither opens headings nor states provenance.
+  let current = { heading: '(preamble)', level: 0, marker: '', lines: [], prose: [] };
+  sections.push(current);
+  let fenced = false;
   for (const line of markdown.split(/\r?\n/u)) {
-    const heading = /^(#{2,4})\s+(.+?)\s*$/u.exec(line);
-    if (heading) { current = { heading: heading[2], level: heading[1].length, marker: heading[1], lines: [] }; sections.push(current); continue; }
-    if (current) current.lines.push(line);
+    const fence = /^\s*(```|~~~)/u.test(line);
+    const heading = fenced || fence ? null : /^(#{1,6})\s+(.+?)\s*#*\s*$/u.exec(line);
+    if (fence) fenced = !fenced;
+    if (heading) { current = { heading: heading[2], level: heading[1].length, marker: heading[1], lines: [], prose: [] }; sections.push(current); continue; }
+    current.lines.push(line);
+    if (!fenced && !fence) current.prose.push(line);
   }
-  const provenance = section => ANSWERED_BY.exec(section.lines.join('\n'))?.[1]?.toLowerCase() ?? null;
+  const provenance = section => ANSWERED_BY.exec(section.prose.join('\n'))?.[1]?.toLowerCase() ?? null;
   // An entry is a section whose own lines state its provenance. Its body also
   // takes deeper subsections (for example "### Decision") until a heading at the
   // same or a higher level, or a deeper heading that is itself an entry. A

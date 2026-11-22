@@ -155,3 +155,13 @@ test('entries beneath a grouping heading keep their own identity and provenance'
   assert.doesNotMatch(parsed[1].body, /D3 - Other|Later section/u);
   assert.notEqual(parseDecisionEntries('interview.md', grouped('41.'))[1].body, parsed[1].body);
 });
+
+test('agent entries are found at any heading depth, before any heading, and in plain or bold provenance form', () => {
+  const deep = `# Scratchpad\n\n#### Storage decisions\n\n##### [1] Human choice\n\n**Answered by:** human\n\n##### [2] Agent choice\n\n**Answered by:** agent\n\nUse SQLite.\n\n###### Why\n\nEmbedded.\n`;
+  assert.deepEqual(parseDecisionEntries('scratchpad.md', deep).map(({ heading, answeredBy }) => [heading, answeredBy]), [['[1] Human choice', 'human'], ['[2] Agent choice', 'agent']]);
+  assert.match(parseDecisionEntries('scratchpad.md', deep)[1].body, /Use SQLite[\s\S]*###### Why[\s\S]*Embedded/u);
+  for (const form of ['Answered by: agent', '- Answered by: `agent`', '**Answered by:** `agent`', '- **Answered by**: agent', '__Answered by:__ agent'])
+    assert.deepEqual(parseDecisionEntries('interview.md', `# Interview\n\n## D1 - Choice\n\n${form}\n\nPicked 42.\n`).map(entry => entry.answeredBy), ['agent'], form);
+  assert.deepEqual(parseDecisionEntries('scratchpad.md', 'Answered by: agent\n\nChose a default before any heading.\n').map(({ heading, answeredBy }) => [heading, answeredBy]), [['(preamble)', 'agent']]);
+  assert.deepEqual(parseDecisionEntries('scratchpad.md', '## Notes\n\n```md\n## Fake heading\nAnswered by: agent\n```\n'), [], 'fenced examples are not entries');
+});
