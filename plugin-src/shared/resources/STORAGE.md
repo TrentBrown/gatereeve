@@ -126,6 +126,34 @@ hash and verification receipt before cleaning its temporary application/fixture.
 `--keep` provides a 24-hour debugging hold. Production builds continue through
 Release Conductor with separate, explicitly retained outputs.
 
+## Finished worktrees
+
+`gatereeve worktree sweep [repositories...] [--root <dir>]` previews git
+worktrees that look finished: the branch is merged into the remote default
+branch, its PR is merged or closed, or its GateReeve run recorded completion.
+Worktrees with no commits or changes for 30 days are shown separately as
+`stale`. Discovery uses `git worktree list` for the named main checkouts, or for
+every repository directly under `--root` (default `~/Code`) or one level below.
+
+It always skips, with the reason: the main checkout, the worktree holding the
+current directory, a branch with an open PR, a branch whose PR state cannot be
+read (`pr-state-unknown`), and a `development`/`development-*` branch with
+commits not on the remote. For every candidate it lists what might matter:
+untracked files, modified tracked files, ignored files outside the regenerable
+set, commits not on any remote, a branch with no remote, and workflow state
+(`.gatereeve-current/`) that the telemetry harvester has not copied since its
+last change (`.gatereeve-current/harvested.json` with a newer `harvestedAt`).
+The regenerable set is the git-ignored directories `node_modules`, `dist`,
+`build`, `out`, `.next`, `.turbo`, `.cache`, `coverage`, `__pycache__`,
+`.pytest_cache`, `.venv` and `target`; a repository adds names only with
+`git config --add gatereeve.sweepRegenerable <name>`.
+
+`--apply` asks once per worktree, re-checks it, deletes it completely (there is
+no archive or Trash), runs `git worktree prune`, and deletes the local branch
+only when it is merged into the remote default branch. `--apply --yes` removes
+only worktrees with nothing listed. Remote branches are never touched. Deleting
+a worktree deletes its review audit trail; committed docs remain in git.
+
 ## Default producer coverage
 
 Managed storage is the default for disposable work created by GateReeve:
