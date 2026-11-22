@@ -4,7 +4,7 @@
     "id": "agentic-development-workflow",
     "displayName": "Agentic Software Development Workflow",
     "initialVersion": "0.1.0",
-    "expectedSkillCount": 28
+    "expectedSkillCount": 29
   },
   "skills": [
     {
@@ -84,6 +84,12 @@
       "group": "lifecycle",
       "state": "existing",
       "canonicalPath": "shared/skills/workflow-setup"
+    },
+    {
+      "name": "goal",
+      "group": "lifecycle",
+      "state": "existing",
+      "canonicalPath": "shared/skills/goal"
     },
     {
       "name": "workflow-doctor",
@@ -272,12 +278,14 @@
       "current/execution.js",
       "current/final-handoff.js",
       "current/git-source.js",
+      "current/goal.js",
       "current/observation.js",
       "current/pattern-inputs.js",
       "current/pre-tool-use.js",
       "current/review-history.js",
       "current/source-retention.js",
       "current/source-views.js",
+      "current/stop.js",
       "current/store.js",
       "current/tripwires.js",
       "current/workflow-database.js",

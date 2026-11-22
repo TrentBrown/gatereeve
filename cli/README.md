@@ -274,7 +274,7 @@ suitable daily-driver models at high effort and honoring developer instructions.
 The selection JSON is an input to a recorded run decision, not persistent model
 configuration. The main implementing thread keeps its chosen model.
 
-Autonomy is `supervised`, `delegated` or `autonomous`, defaulting to supervised.
+Autonomy is `supervised`, `delegated`, `mandated` (formerly `autonomous`, still accepted as an alias) or `goal`, defaulting to supervised. `goal` adds unattended rules to mandated authority: no questions, agent decision entries, a park operation (`goal.park`) and a Stop hook.
 Use `gatereeve run set-dial choice.json` for an explicit named-run grant;
 autonomous authority additionally retains the human goal and constraints.
 `gatereeve adjudicate-review judgment.json` can record eligible residual risks

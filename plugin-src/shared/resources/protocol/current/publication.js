@@ -5,6 +5,7 @@ import { gh, remoteName } from './actions.js';
 import { boundaryReviews } from './boundary-review.js';
 import { currentAdjudication } from './autonomous.js';
 import { finalHandoff, requireFinalHandoff } from './final-handoff.js';
+import { agentDecisions } from './goal.js';
 
 // The independent review summary is published into a delimited section of the
 // PR description (spec AC6/R9). The section is rendered deterministically from
@@ -108,6 +109,15 @@ export function renderSummary({ candidateRef, candidate, pin, review }) {
   lines.push('', '_Published by GateReeve from the retained review result; edits inside this section are replaced._', SUMMARY_END);
   return lines.join('\n');
 }
+// Goal runs list every agent-answered decision inside the published section
+// (spec AC6). Other autonomies publish no such section.
+export function withDecisions(section, decisions) {
+  if (!decisions) return section;
+  const lines = ['', '**Decisions made for you**', '_The human was not asked; each entry records the agent\'s choice and is assessed by both independent reviewers._'];
+  if (!decisions.length) lines.push('- None recorded.');
+  for (const entry of decisions) lines.push(`- \`${inline(entry.file)}\` ${inline(entry.heading)}`);
+  return section.replace(SUMMARY_END, () => `${lines.join('\n')}\n${SUMMARY_END}`);
+}
 export function publishedSection(body) {
   const text = normalize(body);
   if (!occurrences(text, SUMMARY_START) && !occurrences(text, SUMMARY_END)) return null;
@@ -133,14 +143,22 @@ async function reviewTarget(core, input) {
   const ownerRepo = remoteName(await configuredGit(core)(repository.path, ['config', '--get', `remote.${repository.remote ?? 'origin'}.url`]));
   const review = await currentReview(core, state, candidate);
   requireThat(review, 'No current independent review result for this candidate head; run the review gate on the current candidate before publishing or requesting merge authorization');
+  const decisions = state.dials.autonomy.value === 'goal' ? await agentDecisions(core.context.featureHome) : null;
   return { state, candidate, pin, repository, ownerRepo, review, number: input.number,
-    section: renderSummary({ candidateRef: state.candidate, candidate, pin, review }) };
+    section: withDecisions(renderSummary({ candidateRef: state.candidate, candidate, pin, review }), decisions) };
 }
 async function readPullRequest(core, path, ownerRepo, number) {
   const run = core.runtime.gh ?? gh;
-  const pr = JSON.parse(await run(path, ['pr', 'view', String(number), '--repo', ownerRepo, '--json', 'number,state,headRefName,headRefOid,isCrossRepository,body']));
+  const pr = JSON.parse(await run(path, ['pr', 'view', String(number), '--repo', ownerRepo, '--json', 'number,state,isDraft,headRefName,headRefOid,isCrossRepository,body']));
   requireThat(pr.number === number, 'Selected PR has changed identity');
   return pr;
+}
+// Observe a configured repository's PR for a goal park (draft allowed).
+export async function observePullRequest(core, { repository: alias, number }) {
+  const repository = core.context.repositories.find(item => item.alias === alias);
+  requireThat(repository, `Unknown configured repository ${alias}`);
+  const ownerRepo = remoteName(await configuredGit(core)(repository.path, ['config', '--get', `remote.${repository.remote ?? 'origin'}.url`]));
+  return readPullRequest(core, repository.path, ownerRepo, number);
 }
 // The host retains its last displayed head while a same-repository PR is closed.
 async function closedSourceMatches(core, target, pr) {
@@ -181,7 +199,8 @@ export async function publishReview(core, input) {
     requireThat(publishedSection(published.body) === target.section, 'Published review summary could not be verified on the PR');
   }
   return { repository: input.repository, number: input.number, ownerRepo: target.ownerRepo, head: target.pin.head,
-    candidate: target.state.candidate, review: target.review.ref, outcome: target.review.result.outcome, ...(handoff ? { handoff } : {}), changed, section: target.section };
+    candidate: target.state.candidate, review: target.review.ref, outcome: target.review.result.outcome, ...(handoff ? { handoff } : {}), changed, section: target.section,
+    observed: { state: live.state, isDraft: Boolean(live.isDraft), headRefOid: live.headRefOid }, scope: target.candidate.scope };
 }
 // Merge authorization (human or standing) and protected merge require the PR to
 // carry the current summary for the exact prepared head.

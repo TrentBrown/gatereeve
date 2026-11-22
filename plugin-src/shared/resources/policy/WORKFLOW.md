@@ -6,7 +6,7 @@ for passage; a prose statement cannot replace missing evidence or authorization.
 
 ## Run dials
 
-Every run has `rigor` (`full | light`) and `autonomy` (`supervised | delegated | autonomous`),
+Every run has `rigor` (`full | light`) and `autonomy` (`supervised | delegated | mandated | goal`; `autonomous` is the retired alias of `mandated`),
 defaulting to `full`/`supervised`; no configuration changes them. When no run
 exists, ask the human "full or light?" before non-trivial work and record the
 answer as the explicit rigor choice. This document describes full rigor. A light
@@ -190,3 +190,18 @@ assessment, preserved original reviewer outcomes and all other mandatory proof.
 It may amend derived planning within the fixed goal/constraints without routine
 human handback. It cannot rewrite the mandate, excuse missing reviews or failed
 mandatory checks, or merge the final release PR without the human instruction.
+
+## Goal autonomy
+
+`goal` runs from the grant to a ready, unmerged PR without asking the human
+(PROTOCOL.md Goal autonomy). The interview and decision records stay single.
+Under `goal`, grill-me and decision records answer their own questions as
+`Answered by: agent` entries, which both independent reviewers assess and the
+PR lists. The harness question tools are denied until a recorded park. The
+native goal, or the Stop hook, keeps the run active. While CI is pending, wait
+with a PR watcher. A real blocker gets a draft PR listing it, then
+`goal.park`, then a question; a human `run.continue` resumes the run. The grant
+also covers the test methods needed to prove the change, even where project
+files say to ask first. List each method in the PR. Production, data deletion
+and harness approvals are excluded. Use the `goal` skill to grant a new goal run or
+to raise an existing one, for example after a human-led interview.

@@ -36,11 +36,24 @@ export async function reportingDatabase(store, create = true) {
 // their authority kind (and a delegated decision its basis); dial changes carry
 // which dial, the change, its source, actor and hand-back/escalation trigger.
 // `dialSource` is distinct from `source`, the reporting source identity.
-export const DIAL_FIELDS = Object.freeze({ rigor: Object.freeze(['full','light']), autonomy: Object.freeze(['supervised','delegated','autonomous']) });
+export const DIAL_FIELDS = Object.freeze({ rigor: Object.freeze(['full','light']), autonomy: Object.freeze(['supervised','delegated','mandated','goal']) });
+// Retained runs recorded `mandated` as `autonomous` before the rename (spec A1).
+export const reportingDial = (dial, value) => dial === 'autonomy' && value === 'autonomous' ? 'mandated' : value;
+// Rows stored, exported or snapshotted before the rename keep `autonomous`;
+// every read and import normalizes them so validation, grouping and
+// hand-back counts treat them as `mandated`.
+export function normalizedObservation(value) {
+  if (!value || typeof value !== 'object') return value;
+  const next = { ...value };
+  if (next.autonomy === 'autonomous') next.autonomy = 'mandated';
+  if (next.dial === 'autonomy') for (const key of ['dialValue', 'dialPrevious']) if (next[key] === 'autonomous') next[key] = 'mandated';
+  return next;
+}
 const MEASUREMENT = ['rigor','autonomy','authorityKind','authorityBasis','dial','dialValue','dialPrevious','dialSource','actor','trigger','blocker','linkBasis','stage','count','categories','actions'];
 const LISTS = ['links','categories','actions'];
 export const LINK_BASES = Object.freeze(['human-stated','agent-proposed']);
-export function observation(value) {
+export function observation(input) {
+  const value = normalizedObservation(input);
   const allowed = ['id','source','observedAt','kind','project','projectKey','workflow','issue','branch','platform','check','model','provider','strategy','reason','outcome','findingId','fixId','links','reference','metrics','limitation','validator','contract',...MEASUREMENT];
   check(value && typeof value === 'object' && Object.keys(value).every(key => allowed.includes(key)), 'Unsupported reporting observation field');
   check(label(value.id) && value.id && label(value.source) && value.source && time(value.observedAt), 'Observation needs stable identity, source and observation time');
@@ -80,9 +93,11 @@ export async function importSnapshot(input, store) {
     for (const row of records) {
       const version = hash(row);
       const historical = db.prepare('SELECT body,observed_at FROM reporting_observations WHERE id=?').all(row.id);
-      check(!historical.some(old => Date.parse(old.observed_at) === Date.parse(row.observedAt) && old.body !== JSON.stringify(row)), 'Conflicting values for the same observation time');
+      // A stored pre-rename body equals its normalized form (spec A1).
+      const storedBody = body => JSON.stringify(JSON.parse(stable(normalizedObservation(JSON.parse(body)))));
+      check(!historical.some(old => Date.parse(old.observed_at) === Date.parse(row.observedAt) && storedBody(old.body) !== JSON.stringify(row)), 'Conflicting values for the same observation time');
       const latest = db.prepare('SELECT o.body,o.observed_at FROM reporting_observations o JOIN reporting_latest l ON o.id=l.id AND o.version=l.version WHERE o.id=?').get(row.id);
-      if (latest && latest.body !== JSON.stringify(row)) {
+      if (latest && storedBody(latest.body) !== JSON.stringify(row)) {
         const old = JSON.parse(latest.body);
         check(old.source === row.source && old.kind === row.kind && (old.metrics && row.metrics ? old.metrics.projectId === row.metrics.projectId && old.metrics.featureId === row.metrics.featureId : old.workflow === row.workflow), 'Conflicting observation identity');
         check(old.observedAt !== row.observedAt, 'Conflicting values for the same observation time');
@@ -102,7 +117,7 @@ export async function exportSnapshot({ dataset } = {}, store) {
   check(db && label(dataset), 'Select a known report dataset');
   const found = db.prepare('SELECT body FROM reporting_datasets WHERE id=?').get(dataset);
   check(found, 'Unknown report dataset');
-  const records = db.prepare('SELECT o.body FROM reporting_members m JOIN reporting_observations o ON o.id=m.id AND o.version=m.version WHERE m.dataset=? ORDER BY o.id').all(dataset).map(row => JSON.parse(row.body));
+  const records = db.prepare('SELECT o.body FROM reporting_members m JOIN reporting_observations o ON o.id=m.id AND o.version=m.version WHERE m.dataset=? ORDER BY o.id').all(dataset).map(row => normalizedObservation(JSON.parse(row.body)));
   return { format: SNAPSHOT_FORMAT, sources: JSON.parse(found.body).sources, records };
 }
 export async function listDatasets(store) {
@@ -126,7 +141,7 @@ export async function captureSnapshot(input = {}, store) {
     }
 
   }
-  if (db) records.push(...db.prepare('SELECT o.body FROM reporting_local x JOIN reporting_latest l ON l.id=x.id JOIN reporting_observations o ON o.id=l.id AND o.version=l.version').all().map(row=>JSON.parse(row.body)));
+  if (db) records.push(...db.prepare('SELECT o.body FROM reporting_local x JOIN reporting_latest l ON l.id=x.id JOIN reporting_observations o ON o.id=l.id AND o.version=l.version').all().map(row=>normalizedObservation(JSON.parse(row.body))));
   const sources = [{ id: sourceId, platform, capturedAt: now, since: records.length ? new Date(records.reduce((at,row)=>Math.min(at,row.metrics?.startedAt ?? Date.parse(row.observedAt)),Date.parse(now))).toISOString() : null,
     until: now, status: inventory.captureIncomplete ? 'partial' : 'available', collectorVersion: 'reporting/1',
     limitations: ['Uninstrumented work and total execution denominator are unknown.', ...(inventory.captureIncomplete ? ['Collector reported incomplete capture.'] : [])] }];
@@ -159,7 +174,7 @@ const tally = (rows, key) => { const counts = {}; for (const row of rows) { cons
 export function measurement(rows) {
   const dials = rows.filter(row => row.check === 'DIAL_SET'), initial = rows.filter(row => row.check === 'DIAL_INITIAL');
   const escalations = dials.filter(row => row.dial === 'rigor' && row.dialPrevious === 'light' && row.dialValue === 'full');
-  const handBacks = dials.filter(row => row.dial === 'autonomy' && ['delegated','autonomous'].includes(row.dialPrevious) && row.dialValue === 'supervised');
+  const handBacks = dials.filter(row => row.dial === 'autonomy' && ['delegated','mandated','goal'].includes(row.dialPrevious) && row.dialValue === 'supervised');
   const decisions = rows.filter(row => row.kind === 'decision');
   const tripwires = rows.filter(row => row.check === 'TRIPWIRES_EVALUATED');
   const defects = rows.filter(row => row.kind === 'escaped-defect');

@@ -23,6 +23,25 @@
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/resources/protocol/current/pre-tool-use.js\""
           }
         ]
+      },
+      {
+        "matcher": "AskUserQuestion|request_user_input",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/resources/protocol/current/pre-tool-use.js\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/resources/protocol/current/stop.js\""
+          }
+        ]
       }
     ]
   }

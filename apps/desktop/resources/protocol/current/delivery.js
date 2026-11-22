@@ -1,6 +1,6 @@
 import { hostname } from 'node:os';
 import { randomUUID } from 'node:crypto';
-import { identity, requireThat, decisionHas } from './contracts.js';
+import { identity, requireThat, decisionHas, autonomousValue, unattendedValue } from './contracts.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
 import { configuredGit, qualifyingDecisions, standingValidity } from './authorization.js';
 
@@ -86,9 +86,9 @@ export async function resumeDelivery(core, input, operation) {
   const authorized = (await qualifyingDecisions(core, state, action ? 'authorize-merge' : 'accept', state.candidate.hash, candidate))
     .some(item => !action || identity(item.action) === identity(action));
   // Delegated autonomy covers a SLICE PR into the integration branch (AC5).
-  if (!authorized && action && !input.grant && ['delegated', 'autonomous'].includes(state.dials.autonomy.value) && action.deliveryTarget === 'integration') {
+  if (!authorized && action && !input.grant && unattendedValue(state.dials.autonomy.value) && action.deliveryTarget === 'integration') {
     await request('delegation.apply', { action });
-  } else if (!authorized && action?.deliveryTarget === 'release' && state.dials.autonomy.value === 'autonomous') {
+  } else if (!authorized && action?.deliveryTarget === 'release' && autonomousValue(state.dials.autonomy.value)) {
     const { requirePublishedReview } = await import('./publication.js');
     await requirePublishedReview(core, action);
     return status('ready-for-human', 'The final PR has current review evidence and published risks. Its release merge needs the per-PR human instruction.', 'human.authorize-merge',

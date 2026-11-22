@@ -172,7 +172,10 @@ main { min-height: calc(100vh - var(--masthead-height)); }
 }
 .badge.neutral { color: #564b60; background: #eeeaf2; }
 .dial-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
-.badge.dial-light, .badge.dial-delegated, .badge.dial-autonomous { color: #4a3000; background: #ffd27a; }
+.badge.dial-light, .badge.dial-delegated, .badge.dial-mandated, .badge.dial-goal { color: #4a3000; background: #ffd27a; }
+.badge.goal-terminal { color: #1f2a44; background: #dbe4ff; }
+.badge.goal-ready-pr { color: #0b3d1f; background: #b8ecc8; }
+.badge.goal-parked { color: #5a1010; background: #ffc9c9; }
 .badge.dial-default { box-shadow: inset 0 0 0 1px #c9bfd3; }
 .navigation { display: grid; gap: 0.3rem; padding: 1rem 0; }
 .nav-item {

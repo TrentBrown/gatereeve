@@ -16,6 +16,24 @@ decisions one at a time, until you reach genuine shared understanding.
 Most valuable right before a commitment: starting a project, writing a plan or
 spec, making a decision, or sending something that matters.
 
+## Who answers: human or goal autonomy
+
+There is one interview and one record for every autonomy level. Check the run's
+autonomy (`status` `dials.autonomy`) before each question:
+
+- **`goal`:** the human is not watching. Do not ask. Answer each question
+  yourself with the most defensible option, derived from the codebase, the
+  mandate and established practice. Record it as an `Answered by: agent`
+  entry with the options considered and its reversibility. Continue
+  numbering from the last entry in `interview.md`, so a goal run can pick up
+  where a human-led interview stopped. Prefer reversible choices. Escalate only a
+  real blocker, via the goal park rule, never with a routine question.
+- **Any other autonomy (`supervised`, `delegated`, `mandated`):** ask the
+  human as below and record `Answered by: human`.
+- **A returning human** may confirm an `agent` entry (change its provenance to
+  `human`) or override it with a new human entry that names the entry it
+  supersedes. After design approval an override is an amendment.
+
 Rules:
 
 - Ask ONE question at a time. Wait for the answer before asking the next. Follow
@@ -42,8 +60,10 @@ Keep a running record as you go:
 - The moment a decision is ratified, append an entry to
   `docs/issues/{featureId}/interview.md` in the resolved cumulative feature
   folder (create the file on the first decision).
-  Each entry is **Question** asked / **Answer** given / **Decision** reached —
-  numbered (D1, D2, …). NO promote/review checkboxes — the interview record has
+  Each entry is **Question** asked / **Answer** given / **Answered by:**
+  `human | agent` / **Decision** reached — numbered (D1, D2, …). An
+  `agent` entry also records **Options:** considered and **Reversibility:**
+  (whether and how the choice can be undone). NO promote/review checkboxes — the interview record has
   no review gate; that gate belongs to `decisions.md`. Flag meta/tooling
   decisions distinctly from the feature design.
 - If the tool genuinely cannot write files, print each entry as a markdown code

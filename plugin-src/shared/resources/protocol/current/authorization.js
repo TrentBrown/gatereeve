@@ -1,5 +1,5 @@
 import { realpath } from 'node:fs/promises';
-import { identity, requireThat, object, text, decisionHas, latestImplementation, currentAuthorityDecisions } from './contracts.js';
+import { identity, requireThat, object, text, decisionHas, latestImplementation, currentAuthorityDecisions, autonomousValue, unattendedValue } from './contracts.js';
 import { git, checkCandidate } from './evidence.js';
 
 // Even a later amendment without implementation continuation invalidates a
@@ -195,8 +195,8 @@ export async function applyStanding(core, input, operation) {
 // still under the same delegation, for a SLICE candidate whose prepared action
 // targets the distinct integration branch. A hand-back ends it.
 export function delegationValidity(state, item, candidate, action = null) {
-  if (!['delegated', 'autonomous'].includes(state.dials.autonomy.value) || state.dials.autonomy.event !== item.delegation
-    || (item.authority?.kind === 'autonomous-evaluator') !== (state.dials.autonomy.value === 'autonomous')) {
+  if (!unattendedValue(state.dials.autonomy.value) || state.dials.autonomy.event !== item.delegation
+    || (item.authority?.kind === 'autonomous-evaluator') !== autonomousValue(state.dials.autonomy.value)) {
     return { allowed: false, reason: 'Delegation was handed back or replaced; the delegated acceptance no longer authorizes' };
   }
   if (state.delegationBlocked === item.delegation) {

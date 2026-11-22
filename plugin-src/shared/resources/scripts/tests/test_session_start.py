@@ -145,12 +145,42 @@ class SessionStartStateTests(unittest.TestCase):
         for rigor in ("full", "light"):
             with self.subTest(rigor=rigor):
                 context = render_context(governed(rigor, "autonomous"))
-                self.assert_states_dials(context, rigor, "autonomous")
+                self.assert_states_dials(context, rigor, "mandated")
                 self.assertIn("retained human goal and constraints", context)
                 self.assertIn("Both complete cross-provider reviews", context)
                 self.assertIn("ready final PR", context)
                 self.assertIn("merges into main still need a per-PR human instruction", context)
                 self.assertNotIn("Hand back to supervised", context)
+
+    def test_mandated_runs_get_no_goal_guidance(self) -> None:
+        context = render_context(governed("full", "mandated"))
+        self.assert_states_dials(context, "full", "mandated")
+        self.assertIn("retained human goal and constraints", context)
+        self.assertNotIn("This is a goal run", context)
+
+    def test_goal_runs_state_every_goal_rule(self) -> None:
+        condition = 'GateReeve status for run fixture reports goal.terminal "ready-pr" or "parked".'
+        data = governed("full", "goal", goal={"condition": condition, "terminal": None, "reason": "No candidate", "decisions": []})
+        context = render_context(data)
+        self.assert_states_dials(context, "full", "goal")
+        for expected in (
+            "This is a goal run (terminal: not yet terminal)",
+            condition,
+            "re-arm it",
+            "Stop hook",
+            "Never ask the human",
+            "'Answered by: agent'",
+            "Testing permission",
+            "list each method in the PR description",
+            "production, data deletion and harness approval prompts are excluded",
+            "wait with a PR watcher",
+            "record goal.park, pause the native goal, then ask through the question tool",
+            "ready, unmerged final PR",
+            "retained human goal and constraints",
+        ):
+            self.assertIn(expected, context)
+        for autonomy in ("supervised", "delegated", "mandated"):
+            self.assertNotIn("This is a goal run", render_context(governed("full", autonomy)))
 
     def test_paused_and_pending_decisions_are_blockers(self) -> None:
         data = governed("full", "supervised")

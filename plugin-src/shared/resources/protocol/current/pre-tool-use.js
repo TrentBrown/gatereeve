@@ -80,7 +80,27 @@ async function mergeReason(event) {
   } catch { return 'GateReeve could not validate the merge milestone.'; }
 }
 
+// Harness question tools (Claude Code, Codex). Under goal autonomy the agent
+// answers its own questions (spec AC4, AC6); a recorded park re-admits them.
+export const QUESTION_TOOLS = Object.freeze(['AskUserQuestion', 'request_user_input']);
+export const NO_ASK_REASON = 'This is a goal run: the human is not watching and a question would stall it. Answer the question yourself with a sensible default, '
+  + 'then record it as an entry with "Answered by: agent", the options considered and whether the choice can be undone (interview.md during planning, '
+  + 'scratchpad.md afterwards). Ask the human only after a real blocker: open a PR listing the blockers, record goal.park, then use the question tool.';
+// Fails open: an unreadable run state never blocks a question.
+export async function questionGuard(event, runtime = {}) {
+  try {
+    const { CurrentCore } = await import('./core.js');
+    const contextFor = runtime.contextFor ?? (await import('./adapter.js')).contextFor;
+    const { isGoal } = await import('./delegation.js');
+    const core = await CurrentCore.at(await contextFor({ cwd: event.cwd ?? process.cwd() }), runtime.core ?? {});
+    if (!await core.store.active()) return {};
+    const { state } = await core.state();
+    return isGoal(state) && !state.park ? deny(NO_ASK_REASON) : {};
+  } catch { return {}; }
+}
+
 export async function preToolUse(event, runtime = {}) {
+  if (QUESTION_TOOLS.includes(event?.tool_name)) return questionGuard(event, runtime);
   const command = event?.tool_input?.command ?? event?.tool_input?.cmd;
   if (typeof command !== 'string') return {};
   const findings = classifyShellCommand(command);

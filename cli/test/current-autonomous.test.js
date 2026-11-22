@@ -35,7 +35,7 @@ test('autonomous authority requires an explicit named-run human grant, mandate a
   f.gh.protection.main = true;
   const result = await grant(f);
   assert.deepEqual(result.event.payload.mandate, mandate);
-  assert.equal(result.state.dials.autonomy.value, 'autonomous');
+  assert.equal(result.state.dials.autonomy.value, 'mandated');
 });
 test('an in-mandate independently reviewed amendment renews authority without a human handback', async t => {
   const f = await fixture(t, { rigor: 'full' });
@@ -49,7 +49,7 @@ test('an in-mandate independently reviewed amendment renews authority without a 
   const amended = await f.request('human.decide', { kind: 'amend', subject: current.subject, previousSubject: prior,
     actions: ['authorize-implementation'], reason: 'Simpler in-mandate approach', consequences: 'Refresh planning and evidence',
     authority: { kind: 'autonomous-evaluator', delegation: granting.event.hash, evaluation: reviewed.event.hash } }, 'amend');
-  assert.equal(amended.state.dials.autonomy.value, 'autonomous');
+  assert.equal(amended.state.dials.autonomy.value, 'mandated');
   assert.equal(amended.state.phase, 'IMPLEMENTING');
   assert.equal(amended.state.handBack, null);
   assert.equal(amended.event.payload.authority.kind, 'autonomous-evaluator');
@@ -146,7 +146,7 @@ test('autonomous judgment rebuts a completed negative planning opinion without r
   assert.equal(amended.event.payload.authority.basis, 'autonomous-judgment');
   assert.equal(amended.event.payload.authority.evaluation.outcome, 'FAIL');
   assert.equal(amended.state.planningReviews.at(-1).outcome, 'FAIL');
-  assert.equal(amended.state.dials.autonomy.value, 'autonomous');
+  assert.equal(amended.state.dials.autonomy.value, 'mandated');
   assert.equal((await f.request('milestone.check', { name: 'implementation' })).allowed, true);
   const retained = await readCurrent(f.context, 'result', review.event.payload.result.hash, { gh: f.core.runtime.gh });
   assert.equal(retained.data.result.kind, 'planning-review');

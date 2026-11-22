@@ -39,11 +39,12 @@ identity and exact input after an uncertain response. Conflicting reuse fails.
 | `merge.prepare` | `repository`, PR `number`, `method`; derive the exact source/target action, including `deliveryTarget: integration|release`, to present for authorization. Rejects a PR whose candidate scope does not match its target (see Delivery targets). Without a workspace configuration it fails naming `workspace.configure` |
 | `review.select` | `observations`, exactly two `reviewers`, `reason`, optional developer `instruction` and replacement `previous` selection event. Record runtime discovery and daily-driver/high-effort choices after applying configured reviewer preferences |
 | `review.execute` | Run the selected pair in parallel; optional `consumed`, bounded `history`/`claims`, `coverageClaims`, per-provider `prior` and shared non-identity `configuration`. Individual `gate.execute review` results alone do not satisfy acceptance |
-| `review.adjudicate` | Autonomous only: exact `candidate` hash and `pair` identity, complete material-finding `dispositions`, `reason`, retained `evidence`, optional `stopReason`; preserves original reviewer outcomes |
+| `review.adjudicate` | Autonomous authority (`mandated` or `goal`) only: exact `candidate` hash and `pair` identity, complete material-finding `dispositions`, `reason`, retained `evidence`, optional `stopReason`; preserves original reviewer outcomes |
 | `review.publish` | `repository`, PR `number`; write the current independent `review` summary for the candidate head into a delimited section of the PR description. Idempotent; refuses without a current qualifying review result or when the PR head differs from the candidate head |
 | `merge.execute` | Same action selector; requires current proof, human acceptance, authorization bound to the prepared action and the current review summary on the PR. A hosting-rule refusal fails with `EXTERNAL_BLOCKER`, not a gate failure |
 | `integration.observe` | `repository`, optional configured `branch`; fetch and verify actual reviewed-content integration, independent of acceptance |
-| `run.pause`, `run.continue` | Actual `authority` instruction; continuation never follows merely from elapsed time |
+| `run.pause`, `run.continue` | Actual `authority` instruction; continuation never follows merely from elapsed time. A human `run.continue` also clears a goal park |
+| `goal.park` | Goal autonomy only: `pr: {repository, number}`, non-empty `blockers` and `evidence`. The PR must be an open draft whose description lists every blocker. Records `PARKED`; `status` `goal.terminal` becomes `parked` (see Goal autonomy) |
 
 Unsupported old operations are rejected. Start a current run; do not replay,
 convert, overwrite or delete old locks/journals. A resume with missing approvals
@@ -53,7 +54,7 @@ unchanged interview or invent provenance.
 
 ## Run dials
 
-Every run carries `rigor` (`full | light`) and `autonomy` (`supervised | delegated | autonomous`),
+Every run carries `rigor` (`full | light`) and `autonomy` (`supervised | delegated | mandated | goal`; `mandated` was called `autonomous` before current/8 goal autonomy, and `autonomous` remains an accepted alias that records and replays as `mandated`),
 recorded in `STARTED` and in each `DIAL_SET` event with value, source
 (`explicit | built-in`), actor, instruction or reason, and time. Defaults are
 `full` and `supervised`. No global, repository or workspace configuration changes
@@ -900,7 +901,7 @@ persistent dispute, record the evidence/reason and return control to the human
 (`run.set-dial autonomy supervised`, actor agent, under delegation). There is no
 fixed review-round cap. Do not endlessly retry unchanged disputed claims.
 
-`autonomous` is a third explicit per-run choice, independent of rigor. Defaults
+`mandated` (formerly `autonomous`) is a third explicit per-run choice, independent of rigor. Defaults
 remain full/supervised. Grant it only from an observed human instruction bound to
 the named run and recorded `mandate: {goal, constraints}`. At run start the mandate
 belongs to the autonomy choice; in `run.set-dial` it is a top-level input. The
@@ -975,3 +976,65 @@ Existing explicitly scoped human gate-exception authority remains separate from
 unattended adjudication. Human exceptions retain original UNAVAILABLE/FAIL and
 never claim two reviews occurred. A finding-specific exception cannot silently
 cover a missing peer. Autonomous judgment itself cannot waive mandatory facts.
+
+## Goal autonomy (current/8)
+
+`goal` is the fourth autonomy value. It carries exactly the autonomous
+authority of `mandated`: the same human grant (observed instruction, named
+`runId`, fixed `mandate: {goal, constraints}`, observed release protection),
+`autonomous-evaluator` planning decisions, adjudication, in-mandate amendments
+without hand-back, SLICE integration delivery and tripwire escalation. Checks
+that admit delegated or autonomous authority still admit `delegated`. On top of
+that authority, `goal` adds attendance rules for a human who is not watching.
+
+- **Status.** `status.goal` reports:
+  - `condition`: the text handed to the harness-native goal and the Stop hook;
+  - `terminal`: `ready-pr`, `parked` or `null`;
+  - `reason`;
+  - `decisions`: the agent decision entries.
+
+  `parked` takes precedence over `ready-pr`. `ready-pr` requires both of the
+  following:
+  - the acceptance milestone qualifies for the current FEATURE candidate;
+  - `review.publish` recorded the current summary on an open, unmerged PR
+    whose head is the candidate head (`GOAL_READY`). A draft is fine, because
+    PRs stay open drafts until merge authorization.
+- **No-ask.** The PreToolUse hook denies the harness question tools
+  (`AskUserQuestion`, `request_user_input`) in a goal run without an active
+  park. The agent answers the question itself and records an
+  `Answered by: agent` entry with the options considered and its
+  reversibility: in `interview.md` during planning, and in `scratchpad.md`
+  afterwards. The guard fails open when the state is unreadable.
+- **One decision record.** Every interview and decision entry carries
+  **Answered by:** `human | agent`.
+  - Agent entries from `interview.md`, `scratchpad.md` and `decisions.md` go to
+    the planning-review and boundary-review inputs (`agentDecisions`), each
+    with a rule to assess them against the mandate.
+  - `review.publish` lists them under "Decisions made for you".
+  - In a goal run `interview.md` is pinned at the latest `approve-design` or
+    amendment. A differing record blocks the implementation and acceptance
+    milestones until an amendment pins it. A goal grant never re-pins.
+  - A returning human confirms an agent entry (its provenance becomes
+    `human`) or overrides it with a superseding human entry.
+- **Persistence.** Where the harness offers a native goal, arm it with
+  `goal.condition` (Claude Code `set_goal`, Codex `create_goal`). Both
+  platforms also register a Stop hook. It blocks the turn from ending while
+  `goal.terminal` is `null`, and admits the stop after 3 consecutive blocks with
+  no new protocol event (the stall valve). It fails open.
+- **Park.** At a real blocker the agent advances as far as it can and keeps an
+  open draft PR whose description lists every blocker. It then records
+  `goal.park`, pauses the native goal, and asks through the harness question
+  tool. A human `run.continue` clears the park, and the run stays `goal`.
+  Leaving goal autonomy also clears it.
+- **Testing permission.** A goal grant covers the test methods needed to prove
+  the change, even where project files say to ask first. Each method used is
+  listed in the PR description. Production, data deletion and harness or
+  system approval prompts are excluded.
+- **Endpoint.** Success is a ready, unmerged final PR. The release merge still
+  needs the per-PR human instruction, and deployment remains separately
+  authorized.
+
+Grant a goal run with the `goal` skill. For a new run, it creates a fresh
+topic branch, starts the run and raises it. For an existing run, including
+after a human-led interview, it only raises: no branch, no rigor change, and
+it continues from the current phase.

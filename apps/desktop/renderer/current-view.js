@@ -13,12 +13,19 @@ export function renderWorkflowDials(snapshot, container) {
   clear(container);
   const dials = snapshot?.dials ?? null;
   for (const dial of ['rigor', 'autonomy']) {
-    const value = dials?.[dial] ?? snapshot?.dialDefaults?.[dial] ?? DIAL_DEFAULTS[dial];
-    const elevated = (dial === 'rigor' && value === 'light') || (dial === 'autonomy' && ['delegated', 'autonomous'].includes(value));
+    const raw = dials?.[dial] ?? snapshot?.dialDefaults?.[dial] ?? DIAL_DEFAULTS[dial];
+    // `mandated` was called `autonomous` before spec A1; older adapters may report it.
+    const value = dial === 'autonomy' && raw === 'autonomous' ? 'mandated' : raw;
+    const elevated = (dial === 'rigor' && value === 'light') || (dial === 'autonomy' && ['delegated', 'mandated', 'goal'].includes(value));
     const className = `badge ${elevated ? `dial-${value}` : 'neutral'}${dials ? '' : ' dial-default'}`;
     container.append(node('span', { className, text: `${DIAL_LABELS[dial]} · ${title(value)}${dials ? '' : ' (default)'}`,
       attributes: { 'data-dial': dial, 'data-value': value, title: dials ? `Current run ${dial}` : `No current run; a new run starts ${value} unless explicitly chosen` } }));
   }
+  // Goal autonomy: the terminal state toward which the unattended run works.
+  const goal = snapshot?.goal;
+  if (goal) container.append(node('span', { className: `badge goal-terminal${goal.terminal ? ` goal-${goal.terminal}` : ''}`,
+    text: `Goal · ${goal.terminal === 'ready-pr' ? 'Ready PR' : goal.terminal === 'parked' ? 'Parked' : 'In progress'}`,
+    attributes: { 'data-goal-terminal': goal.terminal ?? 'none', title: goal.reason } }));
 }
 
 export function renderCurrentOverview(snapshot, elements, { openArtifact, copy, readResult } = {}) {
@@ -27,6 +34,8 @@ export function renderCurrentOverview(snapshot, elements, { openArtifact, copy, 
   for (const id of ['slices-surface', 'boundary-surface', 'closeout-surface', 'finalization-surface']) elements[id].hidden = true;
   clear(elements['global-alerts']);
   for (const blocker of snapshot?.blockers ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: blocker.message }));
+  if (snapshot?.goal?.decisions?.length) elements['global-alerts'].append(node('p', { className: 'notice goal-decisions',
+    text: `Decisions made for you (${snapshot.goal.decisions.length}): ${snapshot.goal.decisions.map(entry => `${entry.file} ${entry.heading}`).join('; ')}. Confirm or override them in the record.` }));
   for (const pending of snapshot?.current?.pendingDecisions ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Pending human instruction: ${pending.decision.reason}. Requested continuation has not been authorized.` }));
   for (const grant of snapshot?.current?.standingAuthorizations ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Standing authorization ${grant.grant}: ${grant.allowed ? 'active' : grant.reason}. Scope: ${JSON.stringify(grant.scope)}. Applications: ${JSON.stringify(grant.applications ?? [])}. Deployment requires separate authorization.` }));
   for (const gap of snapshot?.current?.historyGaps ?? []) elements['global-alerts'].append(node('p', { className: 'notice', text: `Historical evidence unavailable: ${gap.resultHash}. Fresh proof can replace its current role; the lost record is not reconstructed.` }));

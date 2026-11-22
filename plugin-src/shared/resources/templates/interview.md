@@ -14,3 +14,7 @@ clarification.
 This file is the output of Grill Me and the input to the Design step. It is
 not a substitute for `design.md`; it is the source material from which
 `design.md` is synthesized.
+
+Each entry: **Question** / **Answer** / **Answered by:** `human | agent` /
+**Decision**. An `agent` entry (goal autonomy: the agent answered itself) also
+records **Options:** and **Reversibility:**.

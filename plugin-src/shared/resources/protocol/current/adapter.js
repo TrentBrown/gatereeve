@@ -7,7 +7,7 @@ import { successResult, failureResult } from '../result.js';
 import { CurrentCore, validateStart } from './core.js';
 import { prepareWorkspace, workspaceStatus, startsFreshRun, WORKSPACE_PREPARED } from './workspace.js';
 import { CurrentStore, readSafe } from './store.js';
-import { CONTRACT, PHASES, GATES, ENFORCEMENT, DEFAULT_DIALS, identity, digest, requireThat } from './contracts.js';
+import { CONTRACT, PHASES, GATES, ENFORCEMENT, DEFAULT_DIALS, identity, digest, requireThat, unattendedValue } from './contracts.js';
 import { resolveEntryPoints, operationCommand, recoveryText } from './entry-point.js';
 
 // brief.md is a light run's commitment; it is listed only when present.
@@ -76,8 +76,10 @@ function runBlockers(data) {
   const tripwires = tripwireSummary(data);
   if (data.dials?.rigor?.value === 'light' && tripwires?.hits?.length && !tripwires.coveredByStayLight) blockers.push({ type: 'tripwire',
     message: `${tripwires.hits.length} tripwire hit(s) (${[...new Set(tripwires.hits.map(hit => hit.category))].join(', ')}) block acceptance of this light run. `
-      + (['delegated', 'autonomous'].includes(data.dials.autonomy.value) ? 'Under unattended authority the run escalates to full rigor.'
+      + (unattendedValue(data.dials.autonomy.value) ? 'Under unattended authority the run escalates to full rigor.'
         : `Stop for the human: escalate to full (run.set-dial rigor full) or record their stay-light decision bound to subject ${tripwires.subject}.`) });
+  if (data.goal?.terminal === 'parked') blockers.push({ type: 'goal-park',
+    message: `${data.goal.reason}. Ask the human through the harness question tool; a human run.continue resumes the goal run.` });
   // Pending until a human decision is observed after the hand-back.
   if (data.handBack) blockers.push({ type: 'hand-back',
     message: `Delegation was handed back to supervised (${data.handBack.trigger ?? 'agent'}: ${data.handBack.reason ?? 'no reason recorded'}). Stop for the human. `
@@ -131,6 +133,8 @@ export async function currentSnapshot(context, options = {}, runtime = {}) {
     // Delegation scope, protection, hand-backs and delegated decisions, and the
     // current light candidate's tripwire hits (spec AC4, AC5).
     delegation: data?.delegation ?? null,
+    // Goal autonomy: the native-goal condition and terminal state (spec AC2).
+    goal: data?.goal ?? null,
     tripwires: data ? tripwireSummary(data) : null,
     blockers: reason ? [{ type: 'current-entry', message: reason }] : [...runBlockers(data), ...(data?.externalBlocker ? [{ type: 'external-blocker',
       message: `PR #${data.externalBlocker.number} (${data.externalBlocker.headBranch} -> ${data.externalBlocker.baseBranch}) is blocked by a hosting rule (${data.externalBlocker.blocker}); this is not a gate failure. Resolve it on the host, then run merge.execute again (${recoveryText(entry, ['merge.execute'], { cwd, requests: { 'merge.execute': { input: { repository: data.externalBlocker.repository ?? '<alias>', number: data.externalBlocker.number, method: data.externalBlocker.method ?? '<authorized method>' } } } })}).` }] : [])],

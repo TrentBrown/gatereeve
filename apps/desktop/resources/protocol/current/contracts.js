@@ -4,7 +4,25 @@ import { ContractError } from '../errors.js';
 export const CONTRACT = 'gatereeve/current/8';
 // Run dials. Values are explicit per-run choices over these built-in defaults;
 // no configuration layer can change them (design D3/D4).
-export const DIALS = Object.freeze({ rigor: Object.freeze(['full', 'light']), autonomy: Object.freeze(['supervised', 'delegated', 'autonomous']) });
+export const DIALS = Object.freeze({ rigor: Object.freeze(['full', 'light']), autonomy: Object.freeze(['supervised', 'delegated', 'mandated', 'goal']) });
+// `mandated` was called `autonomous` before spec A1. Requests and retained
+// records that say `autonomous` stay valid and are read as `mandated`.
+export const LEGACY_AUTONOMY = Object.freeze({ autonomous: 'mandated' });
+export const autonomyAlias = value => Object.hasOwn(LEGACY_AUTONOMY, value) ? LEGACY_AUTONOMY[value] : value;
+// Normalize a recorded dial value (STARTED choice or DIAL_SET) on replay.
+export function normalizedDial(record) {
+  if (record?.dial !== undefined && record.dial !== 'autonomy') return record;
+  const value = autonomyAlias(record.value);
+  const previous = record.previous === undefined ? undefined : autonomyAlias(record.previous);
+  return value === record.value && previous === record.previous ? record : { ...record, value, ...(previous === undefined ? {} : { previous }) };
+}
+// `goal` carries exactly autonomous authority plus unattended attendance rules
+// (no-ask, park, native goal persistence). Every autonomous-authority check uses
+// these predicates so the two values cannot drift apart.
+export const AUTONOMOUS_VALUES = Object.freeze(['mandated', 'goal']);
+export const UNATTENDED_VALUES = Object.freeze(['delegated', ...AUTONOMOUS_VALUES]);
+export const autonomousValue = value => AUTONOMOUS_VALUES.includes(value);
+export const unattendedValue = value => UNATTENDED_VALUES.includes(value);
 export const DEFAULT_DIALS = Object.freeze({ rigor: 'full', autonomy: 'supervised' });
 export const PHASES = ['DESIGNING', 'SPECIFYING', 'PLANNING', 'IMPLEMENTING', 'ACCEPTING', 'INTEGRATED', 'COMPLETE'];
 export const MILESTONES = ['implementation', 'acceptance', 'merge', 'completion'];
@@ -202,6 +220,7 @@ export function startDial(dial, value) {
   if (value === undefined) return { value: DEFAULT_DIALS[dial], source: 'built-in', actor: null };
   object(value, `${dial} choice`);
   requireThat(Object.keys(value).every(key => ['value', 'authority', 'reason', 'mandate'].includes(key)), `Unsupported ${dial} choice field`);
+  if (dial === 'autonomy') value = { ...value, value: autonomyAlias(value.value) };
   requireThat(DIALS[dial].includes(value.value), `Invalid ${dial} value`);
   if (value.value !== DEFAULT_DIALS[dial]) requireThat(value.authority !== undefined, `Choosing ${dial} ${value.value} requires an observed human instruction`);
   // Every explicit choice carries provenance: the observed instruction or a reason.
@@ -209,7 +228,7 @@ export function startDial(dial, value) {
   const choice = { value: value.value, source: 'explicit', actor: value.authority ? 'human' : 'agent' };
   if (value.authority !== undefined) choice.authority = authority(value.authority);
   if (value.reason !== undefined) choice.reason = text(value.reason, `${dial} reason`);
-  if (dial === 'autonomy' && value.value === 'autonomous') choice.mandate = humanMandate(value.mandate);
+  if (dial === 'autonomy' && autonomousValue(value.value)) choice.mandate = humanMandate(value.mandate);
   else requireThat(value.mandate === undefined, 'A fixed human mandate belongs to autonomous authority only');
   return choice;
 }
@@ -220,6 +239,7 @@ export function dialChange(state, input) {
   object(input, 'Dial change');
   requireThat(Object.keys(input).every(key => ['dial', 'value', 'actor', 'authority', 'reason', 'runId', 'mandate'].includes(key)), 'Unsupported dial change field');
   requireThat(Object.hasOwn(DIALS, input.dial), 'Unknown run dial');
+  if (input.dial === 'autonomy') input = { ...input, value: autonomyAlias(input.value) };
   requireThat(DIALS[input.dial].includes(input.value), `Invalid ${input.dial} value`);
   // Lowering is refused before any other field check, so every caller gets the
   // path forward rather than a missing-field error.
@@ -233,11 +253,11 @@ export function dialChange(state, input) {
   requireThat(current !== input.value, `Run ${input.dial} is already ${input.value}`);
   // Delegation is a human decision naming this run; the core adds the observed
   // release-branch protection before it is recorded.
-  if (input.dial === 'autonomy' && ['delegated', 'autonomous'].includes(input.value)) {
+  if (input.dial === 'autonomy' && unattendedValue(input.value)) {
     requireThat(input.actor === 'human', 'Only a human can delegate');
     requireThat(input.runId === state.runId, `Delegation must name this run: supply runId ${state.runId}`);
   } else requireThat(input.runId === undefined, 'Only a delegation names the run');
-  const mandate = input.dial === 'autonomy' && input.value === 'autonomous' ? humanMandate(input.mandate) : null;
+  const mandate = input.dial === 'autonomy' && autonomousValue(input.value) ? humanMandate(input.mandate) : null;
   requireThat(mandate || input.mandate === undefined, 'A fixed human mandate belongs to autonomous authority only');
   return { dial: input.dial, value: input.value, previous: current, source: 'explicit', actor: input.actor,
     ...(input.authority !== undefined ? { authority: authority(input.authority) } : {}), reason: input.reason,

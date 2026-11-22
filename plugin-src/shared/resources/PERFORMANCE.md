@@ -138,7 +138,7 @@ analysis and unknown denominators; it does not claim complete time capture or
 that every repeated check was waste.
 
 **Rigor, autonomy and authority.** Every observation projected from a run
-carries `rigor` (`full`/`light`) and `autonomy` (`supervised`/`delegated`/`autonomous`): the
+carries `rigor` (`full`/`light`) and `autonomy` (`supervised`/`delegated`/`mandated`/`goal`; retained `autonomous` records report as `mandated`): the
 run's dials when its event was recorded. A contract-7 run with no dial events
 reads `full`/`supervised`. Observations projected before dial measurement, and
 execution timings (which are not run events), have no dial fields and are
