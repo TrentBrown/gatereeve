@@ -16,7 +16,14 @@ export function parseDecisionEntries(file, markdown) {
   let current = null;
   for (const line of markdown.split(/\r?\n/u)) {
     const heading = /^(#{2,4})\s+(.+?)\s*$/u.exec(line);
-    if (heading) { if (current) entries.push(current); current = { file, heading: heading[2], lines: [] }; continue; }
+    // A deeper heading (for example "### Decision" inside a "## [1] ..." entry)
+    // belongs to the current entry's body; only a same-or-higher heading starts
+    // the next entry, so nested content stays reviewed and freshness-checked.
+    if (heading && !(current && heading[1].length > current.level)) {
+      if (current) entries.push(current);
+      current = { file, heading: heading[2], level: heading[1].length, lines: [] };
+      continue;
+    }
     if (current) current.lines.push(line);
   }
   if (current) entries.push(current);

@@ -138,3 +138,11 @@ test('a goal planning decision cites only a review that assessed the current age
   assert.equal(amended.event.payload.authority.kind, 'autonomous-evaluator');
   assert.ok(mandated.event);
 });
+
+test('nested headings inside an agent entry stay part of that entry, so a changed choice changes the entries', () => {
+  const entry = choice => `# Scratchpad\n\n## [1] Storage choice\n\n**Answered by:** agent\n\n### Decision\n\n${choice}\n\n### Alternatives\n\nOther stores.\n\n## [2] Next entry\n\n**Answered by:** human\n`;
+  const first = parseDecisionEntries('scratchpad.md', entry('Use SQLite.'));
+  assert.deepEqual(first.map(({ heading, answeredBy }) => [heading, answeredBy]), [['[1] Storage choice', 'agent'], ['[2] Next entry', 'human']]);
+  assert.match(first[0].body, /### Decision[\s\S]*Use SQLite\.[\s\S]*### Alternatives/u);
+  assert.notEqual(parseDecisionEntries('scratchpad.md', entry('Use Postgres.'))[0].body, first[0].body);
+});
