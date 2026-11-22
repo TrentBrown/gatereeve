@@ -12,23 +12,33 @@ import { isGoal } from './delegation.js';
 export const DECISION_FILES = Object.freeze(['interview.md', 'scratchpad.md', 'decisions.md']);
 const ANSWERED_BY = /^\s*(?:[-*]\s*)?\*\*Answered by:\*\*\s*`?(human|agent)`?/imu;
 export function parseDecisionEntries(file, markdown) {
-  const entries = [];
+  // Split into heading sections, each with only its own lines (up to the next
+  // heading of any level).
+  const sections = [];
   let current = null;
   for (const line of markdown.split(/\r?\n/u)) {
     const heading = /^(#{2,4})\s+(.+?)\s*$/u.exec(line);
-    // A deeper heading (for example "### Decision" inside a "## [1] ..." entry)
-    // belongs to the current entry's body; only a same-or-higher heading starts
-    // the next entry, so nested content stays reviewed and freshness-checked.
-    if (heading && !(current && heading[1].length > current.level)) {
-      if (current) entries.push(current);
-      current = { file, heading: heading[2], level: heading[1].length, lines: [] };
-      continue;
-    }
+    if (heading) { current = { heading: heading[2], level: heading[1].length, marker: heading[1], lines: [] }; sections.push(current); continue; }
     if (current) current.lines.push(line);
   }
-  if (current) entries.push(current);
-  return entries.map(entry => ({ file: entry.file, heading: entry.heading, answeredBy: ANSWERED_BY.exec(entry.lines.join('\n'))?.[1]?.toLowerCase() ?? null,
-    body: entry.lines.join('\n').trim() })).filter(entry => entry.answeredBy);
+  const provenance = section => ANSWERED_BY.exec(section.lines.join('\n'))?.[1]?.toLowerCase() ?? null;
+  // An entry is a section whose own lines state its provenance. Its body also
+  // takes deeper subsections (for example "### Decision") until a heading at the
+  // same or a higher level, or a deeper heading that is itself an entry. A
+  // grouping section without its own provenance is never an entry, so entries
+  // beneath it keep their own identity.
+  const entries = [];
+  sections.forEach((section, index) => {
+    const answeredBy = provenance(section);
+    if (!answeredBy) return;
+    const body = [...section.lines];
+    for (const next of sections.slice(index + 1)) {
+      if (next.level <= section.level || provenance(next)) break;
+      body.push(`${next.marker} ${next.heading}`, ...next.lines);
+    }
+    entries.push({ file, heading: section.heading, answeredBy, body: body.join('\n').trim() });
+  });
+  return entries;
 }
 export async function agentDecisions(featureHome) {
   const found = [];

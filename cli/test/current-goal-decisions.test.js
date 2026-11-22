@@ -146,3 +146,12 @@ test('nested headings inside an agent entry stay part of that entry, so a change
   assert.match(first[0].body, /### Decision[\s\S]*Use SQLite\.[\s\S]*### Alternatives/u);
   assert.notEqual(parseDecisionEntries('scratchpad.md', entry('Use Postgres.'))[0].body, first[0].body);
 });
+
+test('entries beneath a grouping heading keep their own identity and provenance', () => {
+  const grouped = choice => `# Interview\n\n## Feature design\n\nContext for the section.\n\n### D1 - Name\n\n- **Answered by:** human\n- **Decision:** Keep answer.\n\n### D2 - Default\n\n- **Answered by:** agent\n- **Decision:** ${choice}\n\n#### Rationale\n\nReversible.\n\n## Later section\n\n### D3 - Other\n\n- **Answered by:** agent\n- **Decision:** Third.\n`;
+  const parsed = parseDecisionEntries('interview.md', grouped('42.'));
+  assert.deepEqual(parsed.map(({ heading, answeredBy }) => [heading, answeredBy]), [['D1 - Name', 'human'], ['D2 - Default', 'agent'], ['D3 - Other', 'agent']]);
+  assert.match(parsed[1].body, /42\.[\s\S]*#### Rationale[\s\S]*Reversible/u);
+  assert.doesNotMatch(parsed[1].body, /D3 - Other|Later section/u);
+  assert.notEqual(parseDecisionEntries('interview.md', grouped('41.'))[1].body, parsed[1].body);
+});
