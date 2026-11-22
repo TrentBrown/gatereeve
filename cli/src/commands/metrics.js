@@ -25,6 +25,7 @@ export function metricsCommands() {
     for(const key of ['enabled','diagnosticDetails'])if(key in options){if(!['true','false'].includes(options[key]))throw new Error(`${key} must be true or false`);options[key]=options[key]==='true';}
     output(Object.keys(options).length?await metricsRequest('config',options):(await metricsRequest('status')).settings);
   });
+  root.command('purge-test-data').description('Preview or remove rows from test-suite fixtures (workflows in temporary directories)').option('--apply','remove the previewed rows').action(async options=>output(await metricsRequest('purge-test-data',{apply:options.apply===true})));
   root.command('cleanup').option('--apply','remove eligible owned metrics').action(async options=>output(await metricsRequest('cleanup',{apply:options.apply===true})));
   root.command('run').description('Run argv transparently; separate command with --').option('--execution <id>','stable identity for this actual execution').option('--project <identity>').option('--feature <identity>').option('--category <category>').option('--reason <reason>').option('--scope <scope>','declared full or focused coverage').argument('<command>').argument('[args...]').passThroughOptions().action(async(command,args,options)=>{
     const result=await runMeasured(command,args,options);

@@ -1,7 +1,8 @@
 import { inspectDatabase } from '../protocol/current/workflow-database.js';
 import { DatabaseSync } from 'node:sqlite';
 import { lstat } from 'node:fs/promises';
-import { hostname } from 'node:os';
+import { hostname, tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { report, workerAccounting } from './report.js';
 import { validateRecord } from './store.js';
@@ -77,7 +78,7 @@ function source(value) {
   check(Array.isArray(value.limitations) && value.limitations.every(label), 'Sources must disclose coverage limitations');
   return JSON.parse(stable(value));
 }
-export async function importSnapshot(input, store) {
+export async function importSnapshot(input, store, { skipConflicts = false } = {}) {
   check(input?.format === SNAPSHOT_FORMAT, 'Unsupported snapshot format; use the explicit legacy import adapter');
   check(Array.isArray(input.sources) && Array.isArray(input.records) && input.records.length <= 100000, 'Invalid snapshot contents');
   check(Buffer.byteLength(JSON.stringify(input)) <= 64 * 1024 * 1024, 'Snapshot exceeds 64 MiB');
@@ -90,18 +91,25 @@ export async function importSnapshot(input, store) {
   const id = hash(canonical), db = await reportingDatabase(store);
   return store.transaction(db, () => {
     if (db.prepare('SELECT id FROM reporting_datasets WHERE id=?').get(id)) return { dataset: id, records: records.length, reused: true };
+    const conflicts = [];
     for (const row of records) {
       const version = hash(row);
       const historical = db.prepare('SELECT body,observed_at FROM reporting_observations WHERE id=?').all(row.id);
       // A stored pre-rename body equals its normalized form (spec A1).
       const storedBody = body => JSON.stringify(JSON.parse(stable(normalizedObservation(JSON.parse(body)))));
-      check(!historical.some(old => Date.parse(old.observed_at) === Date.parse(row.observedAt) && storedBody(old.body) !== JSON.stringify(row)), 'Conflicting values for the same observation time');
+      // Explicit imports refuse a conflict. Local capture (spec AC2) keeps the
+      // stored value, skips the conflicting row and reports it, so one bad row
+      // (for example a test fixture's reused identity) cannot block capture.
+      const conflict = reason => { if (!skipConflicts) check(false, reason); conflicts.push({ id: row.id, reason }); return true; };
+      if (historical.some(old => Date.parse(old.observed_at) === Date.parse(row.observedAt) && storedBody(old.body) !== JSON.stringify(row))
+        && conflict('Conflicting values for the same observation time')) continue;
       const latest = db.prepare('SELECT o.body,o.observed_at FROM reporting_observations o JOIN reporting_latest l ON o.id=l.id AND o.version=l.version WHERE o.id=?').get(row.id);
       if (latest && storedBody(latest.body) !== JSON.stringify(row)) {
         const old = JSON.parse(latest.body);
-        check(old.source === row.source && old.kind === row.kind && (old.metrics && row.metrics ? old.metrics.projectId === row.metrics.projectId && old.metrics.featureId === row.metrics.featureId : old.workflow === row.workflow), 'Conflicting observation identity');
-        check(old.observedAt !== row.observedAt, 'Conflicting values for the same observation time');
-        if (old.metrics && row.metrics) check(old.metrics.id === row.metrics.id && old.metrics.startedAt === row.metrics.startedAt, 'Conflicting execution identity');
+        if (!(old.source === row.source && old.kind === row.kind && (old.metrics && row.metrics ? old.metrics.projectId === row.metrics.projectId && old.metrics.featureId === row.metrics.featureId : old.workflow === row.workflow))
+          && conflict('Conflicting observation identity')) continue;
+        if (old.observedAt === row.observedAt && conflict('Conflicting values for the same observation time')) continue;
+        if (old.metrics && row.metrics && !(old.metrics.id === row.metrics.id && old.metrics.startedAt === row.metrics.startedAt) && conflict('Conflicting execution identity')) continue;
       }
       db.prepare('INSERT OR IGNORE INTO reporting_observations VALUES (?,?,?,?)').run(row.id,version,row.observedAt,JSON.stringify(row));
       if (!latest || Date.parse(latest.observed_at) < Date.parse(row.observedAt)) db.prepare('INSERT INTO reporting_latest VALUES (?,?) ON CONFLICT(id) DO UPDATE SET version=excluded.version').run(row.id,version);
@@ -109,7 +117,7 @@ export async function importSnapshot(input, store) {
     }
     db.prepare('INSERT INTO reporting_datasets VALUES (?,?)').run(id,JSON.stringify({ format: SNAPSHOT_FORMAT, sources: canonical.sources, capturedAt: new Date().toISOString() }));
     check(store.usedBytes(db) <= store.configFrom(db).maxBytes, 'Reporting capacity exhausted; preview/apply eligible metrics cleanup or explicitly increase the configured limit');
-    return { dataset: id, records: records.length, reused: false };
+    return { dataset: id, records: records.length - conflicts.length, reused: false, ...(skipConflicts ? { skipped: conflicts } : {}) };
   });
 }
 export async function exportSnapshot({ dataset } = {}, store) {
@@ -147,7 +155,7 @@ export async function captureSnapshot(input = {}, store) {
     limitations: ['Uninstrumented work and total execution denominator are unknown.', ...(inventory.captureIncomplete ? ['Collector reported incomplete capture.'] : [])] }];
   for (const row of records) if (!sources.some(item => item.id === row.source)) sources.push({ ...sources[0], id: row.source, platform: row.platform ?? platform });
   for (const missing of input.missingSources ?? []) { check(label(missing) && missing, 'Invalid missing source'); sources.push({ id: `missing:${missing}`, platform: missing, capturedAt: now, since: null, until: null, status: 'missing', limitations: ['No snapshot available at capture.'] }); }
-  return importSnapshot({ format: SNAPSHOT_FORMAT, sources, records }, store);
+  return importSnapshot({ format: SNAPSHOT_FORMAT, sources, records }, store, { skipConflicts: true });
 }
 export async function importLegacySnapshot({ records, platform, sourceId, capturedAt, labels = {} }, store) {
   check(label(sourceId) && label(platform) && time(capturedAt) && Array.isArray(records), 'Legacy import needs explicit source, platform and capture time');
@@ -187,6 +195,7 @@ export function measurement(rows) {
     explicitStarts: tally(initial.filter(row => row.dialSource === 'explicit'), 'dialValue'),
     delegations: [...initial, ...dials].filter(row => row.dial === 'autonomy' && row.dialValue === 'delegated').length,
     decisions: { total: decisions.length, byAuthority: tally(decisions, 'authorityKind'), standingApplications: decisions.filter(row => row.authorityBasis === 'standing-grant').length },
+    humanWait: humanWait(decisions, rows),
     humanTouches: decisions.filter(row => row.authorityKind === 'human-confirmed' && row.authorityBasis !== 'standing-grant').length + [...initial, ...dials].filter(row => row.actor === 'human').length,
     tripwires: { evaluations: tripwires.length, withHits: tripwires.filter(row => row.count > 0).length, hits: tripwires.reduce((sum, row) => sum + (row.count ?? 0), 0),
       stayLight: decisions.filter(row => row.check === 'stay-light').length },
@@ -195,6 +204,26 @@ export function measurement(rows) {
     escapedDefects: { records: defects.length, confirmedOriginLinks: confirmed.length, byBasis: tally(confirmed, 'linkBasis'), statement: escapedDefectStatement(defects.length, confirmed.length) },
     caveat: DIAL_COMPARISON_CAVEAT,
   };
+}
+// Spec AC2: the human's wait is from the recorded question (decision.ask) to
+// the human-confirmed answer of the same kind in the same workflow. Decisions
+// with no recorded question stay unmeasured rather than reading as zero.
+export function humanWait(decisions, rows) {
+  const asked = rows.filter(row => row.check?.startsWith('asked:'));
+  const waits = [];
+  let unmeasured = 0;
+  for (const decision of decisions.filter(row => row.authorityKind === 'human-confirmed')) {
+    const at = Date.parse(decision.observedAt);
+    const earlier = decisions.filter(row => row !== decision && row.workflow === decision.workflow && row.check === decision.check && Date.parse(row.observedAt) < at)
+      .reduce((latest, row) => Math.max(latest, Date.parse(row.observedAt)), -Infinity);
+    const question = asked.filter(row => row.workflow === decision.workflow && row.check === `asked:${decision.check}`
+      && Date.parse(row.observedAt) <= at && Date.parse(row.observedAt) > earlier)
+      .reduce((first, row) => Math.min(first, Date.parse(row.observedAt)), Infinity);
+    if (Number.isFinite(question)) waits.push(at - question); else unmeasured += 1;
+  }
+  const sorted = [...waits].sort((a, b) => a - b);
+  const median = sorted.length ? (sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2) : null;
+  return { measured: waits.length, unmeasured, totalMs: waits.reduce((sum, value) => sum + value, 0), medianMs: median };
 }
 function group(rows, key, work, missing = 'Unknown') {
   const groups = new Map();
@@ -294,6 +323,40 @@ export async function knownDatabases(input, store) {
     reset:'Workflow reset is not provided. If the database is lost, explicitly start a fresh run with observed approvals; documents remain intact.' };
 }
 
+export async function reportingCounts(store) {
+  let db; try { db = await reportingDatabase(store, false); } catch { db = null; }
+  if (!db) return { observations: 0, workflows: 0, datasets: 0 };
+  const count = sql => db.prepare(sql).get().n;
+  return { observations: count('SELECT COUNT(*) AS n FROM reporting_latest'), workflows: count('SELECT COUNT(*) AS n FROM reporting_workflows'), datasets: count('SELECT COUNT(*) AS n FROM reporting_datasets') };
+}
+// Spec AC2: rows from test-suite fixtures (workflows whose database lived in a
+// temporary directory) are removed on request. Preview by default; real
+// project rows are never matched because real workspaces are not temporary.
+export const temporaryRoots = () => [...new Set([tmpdir(), '/tmp', '/var/tmp', '/private/tmp', '/var/folders', '/private/var/folders'].map(path => resolve(path)))];
+export const temporaryHome = (home, roots = temporaryRoots()) => typeof home === 'string' && roots.some(root => home === root || home.startsWith(`${root}/`));
+export async function purgeTestData({ apply = false, roots } = {}, store) {
+  check(typeof apply === 'boolean', 'Purge accepts only apply boolean');
+  const db = await reportingDatabase(store, false);
+  if (!db) return { workflows: 0, observations: 0, projects: [], applied: false };
+  const workflows = db.prepare('SELECT id,home,body FROM reporting_workflows').all().filter(row => temporaryHome(row.home, roots));
+  const ids = new Set(workflows.map(row => row.id));
+  const keys = new Set(workflows.map(row => JSON.parse(row.body).projectKey).filter(Boolean));
+  const matched = new Map();
+  for (const row of db.prepare('SELECT id,body FROM reporting_observations').all()) {
+    if (matched.has(row.id)) continue;
+    const body = JSON.parse(row.body);
+    if (ids.has(body.workflow) || keys.has(body.projectKey)) matched.set(row.id, body.project ?? 'Unknown project');
+  }
+  const projects = {};
+  for (const project of matched.values()) { const name = project.replace(/[-_ ][A-Za-z0-9_]{6,8}$/u, '-*'); projects[name] = (projects[name] ?? 0) + 1; }
+  if (apply) store.transaction(db, () => {
+    const list = JSON.stringify([...matched.keys()]), workflowList = JSON.stringify([...ids]);
+    for (const table of ['reporting_observations', 'reporting_latest', 'reporting_local', 'reporting_members']) db.prepare(`DELETE FROM ${table} WHERE id IN (SELECT value FROM json_each(?))`).run(list);
+    db.prepare('DELETE FROM reporting_workflows WHERE id IN (SELECT value FROM json_each(?))').run(workflowList);
+  });
+  return { workflows: ids.size, observations: matched.size, projects: Object.entries(projects).sort((a, b) => b[1] - a[1]).map(([project, count]) => ({ project, count })), applied: apply,
+    rule: 'Workflows whose database lived in a temporary directory, and their observations.' };
+}
 export async function cleanupReporting({apply=false} = {},store) {
   const db=await reportingDatabase(store,false);if(!db)return {datasets:0,observations:0,applied:apply};
   const threshold=new Date(Date.now()-store.configFrom(db).summaryDays*86400000).toISOString();

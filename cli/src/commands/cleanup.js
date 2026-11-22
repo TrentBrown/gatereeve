@@ -7,9 +7,14 @@ function print(result, asJson) {
   if (asJson) { console.log(JSON.stringify(result, null, 2)); return; }
   console.log(`Scratch root: ${result.root}`);
   if (result.error) console.log(`Unavailable: ${result.error}`);
-  for (const entry of result.entries) console.log(`${entry.status}: ${entry.id}${entry.bytes === null ? '' : ` (${entry.bytes} allocated bytes)`}${entry.reason ? ` — ${entry.reason}` : ''}`);
+  for (const entry of result.entries) {
+    console.log(`${entry.status}${entry.stranded ? ' (stranded)' : ''}: ${entry.id}${entry.files === null || entry.files === undefined ? '' : ` (${entry.files} files)`}${entry.bytes === null || entry.bytes === undefined ? '' : ` (${entry.bytes} allocated bytes)`}${entry.reason ? ` — ${entry.reason}` : ''}`);
+    if (entry.stranded) console.log(`  stranded for over 7 days; remove with: ${entry.command}`);
+  }
+  if (result.files !== undefined) console.log(`Files in runs: ${result.files}`);
+  if (result.reports) console.log(`Diagnostic reports: ${result.reports.total} (${result.reports.removable.age} past 30 days, ${result.reports.removable.count} beyond the newest 5000${result.applied ? `; removed ${result.reportsRemoved ?? 0}` : ''})`);
   if (!result.entries.length && !result.error) console.log('No managed scratch runs.');
-  if (result.applied) console.log(`Removed ${result.removed.length} run(s), ${result.reclaimedBytes} allocated bytes. Filesystem free-space changes may differ.`);
+  if (result.applied) console.log(`Removed ${result.removed.length} run(s), ${result.reclaimedFiles ?? 0} files, ${result.reclaimedBytes} allocated bytes. Filesystem free-space changes may differ.`);
   else console.log(result.quick ? 'Read-only inventory; run gatereeve cleanup for activity and size checks.' : `Preview only: ${result.eligibleBytes ?? 'unknown'} eligible bytes. Use --apply to remove eligible runs.`);
   for (const error of result.errors ?? []) console.error(`${error.id}: ${error.reason}`);
   if (result.metrics) console.log(`Metrics: ${JSON.stringify(result.metrics)}`);

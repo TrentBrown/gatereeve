@@ -11,7 +11,7 @@ import { executionEnvironment, assertEnvironmentCurrent } from './environment.js
 import { patternInputs } from './pattern-inputs.js';
 import { randomUUID } from 'node:crypto';
 import { ID, CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_REFUSED, DELEGATED_AUTHORITY, AUTONOMOUS_AUTHORITY, startDial, dialChange, automaticDial, requireThat, identity,
-  identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval, unattendedValue, normalizedDial, autonomyAlias } from './contracts.js';
+  identifier, text, decision, gate, authority, decisionHas, waiverFor, waiverPolicyAllows, latestImplementation, currentAuthorityDecisions, currentDesignApproval, unattendedValue, normalizedDial, autonomyAlias, decisionQuestion } from './contracts.js';
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity, briefBased } from './evidence.js';
 import { validatePlanning, assertPlanningProof, planningBinding } from './planning.js';
@@ -94,7 +94,9 @@ export function project(events) {
   for (const event of events.slice(1)) {
     const value = event.payload;
     switch (event.type) {
-      case 'DECISION_PENDING': state.pendingDecisions.push({ ...value, event: event.hash }); break;
+      // An asked question (decision.ask) only times the human's wait; the
+      // recovery record for an interrupted decision is the unflagged form.
+      case 'DECISION_PENDING': if (!value.asked) state.pendingDecisions.push({ ...value, event: event.hash }); break;
       case 'VALIDATION_FAILED': state.validationFailures.push(value); state.specValidation = null; break;
       case 'DECIDED':
         state.pendingDecisions = state.pendingDecisions.filter(item => item.operation.id !== value.requestId);
@@ -1283,6 +1285,11 @@ export class CurrentCore {
       case 'spec.validate': return this.validateSpec(operation);
       case 'candidate.prepare': return this.prepare(input, operation);
       case 'candidate.ready': return this.readiness(operation);
+      case 'decision.ask': {
+        const question = decisionQuestion(input);
+        const { state } = await this.state();
+        return this.append(state, 'DECISION_PENDING', question, operation);
+      }
       case 'workflow.observe': {
         const note = workflowObservation(input);
         const { state } = await this.state();

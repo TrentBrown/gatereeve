@@ -10,7 +10,7 @@
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|----|-------|
 | R1 | AC1 idle lock | IMPLEMENTED | - | local-agent-idle-inhibitor.test.js (wrap, fallbacks, stdin, exit code, size guard, timeout, live lock list and release, receipt) |
-| R2 | AC2 metrics repair | TODO | - | slice 2 |
+| R2 | AC2 metrics repair | IMPLEMENTED | - | metrics-repair.test.js (isolation, purge, capture conflicts, status counts, decision.ask, human wait, scratch file counts, stranded, report retention); live store copy: purge 49,236 fixture rows, capture succeeds |
 | R3 | AC3 severity and class | TODO | - | slice 3 |
 | R4 | AC4 sweep records | TODO | - | slice 3 |
 | R5 | AC5 robustness | TODO | - | slice 3 |

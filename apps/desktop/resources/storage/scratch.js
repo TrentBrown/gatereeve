@@ -161,8 +161,16 @@ async function loadRun(root, id) {
   return { path, owner, stat };
 }
 
-async function treeSize(path, device, openInodes) {
-  let bytes = 0;
+// Allocated bytes count each inode once, so hard-linked reviewer views are not
+// multiplied; `files` counts every entry (the inode cost of keeping the run).
+async function treeSize(path, device, openInodes, counted = null) {
+  const totals = await treeTotals(path, device, openInodes);
+  if (counted) counted.files = totals?.files ?? null;
+  return totals?.bytes ?? null;
+}
+async function treeTotals(path, device, openInodes = new Set()) {
+  let bytes = 0, files = 0;
+  const seen = new Set();
   const pending = [path];
   while (pending.length) {
     // Keep enough filesystem work in flight to size large sealed reviews
@@ -171,7 +179,9 @@ async function treeSize(path, device, openInodes) {
       const stat = await lstat(child, { bigint: true });
       assert(stat.dev === device, 'Scratch contains another filesystem');
       if (openInodes.has(stat.ino)) return null;
-      return stat.isDirectory() ? (await readdir(child)).map(name => join(child, name)) : Number(stat.blocks * 512n);
+      files += 1;
+      const first = !seen.has(stat.ino); seen.add(stat.ino);
+      return stat.isDirectory() ? (await readdir(child)).map(name => join(child, name)) : first ? Number(stat.blocks * 512n) : 0;
     }));
     if (results.includes(null)) return null;
     for (const result of results) {
@@ -179,7 +189,7 @@ async function treeSize(path, device, openInodes) {
       else for (const child of result) pending.push(child);
     }
   }
-  return bytes;
+  return { bytes, files };
 }
 
 async function linuxOpenFiles(path, device, openInodes) {
@@ -291,7 +301,9 @@ async function assess(root, id, { quick = false, now = Date.now(), probe = proce
       // The sizing and filesystem-safety walk also checks device/inode identity.
       // This catches handles opened through outside hard links or mount aliases.
       if (item.status === 'eligible') {
-        item.bytes = await treeSize(path, device, openInodes);
+        const counted = {};
+        item.bytes = await treeSize(path, device, openInodes, counted);
+        item.files = counted.files;
         if (item.bytes === null) item.status = 'active';
       }
     }
@@ -306,7 +318,42 @@ async function assess(root, id, { quick = false, now = Date.now(), probe = proce
       }
     }
   }
+  if (!quick) await markStranded(root, item, now);
   return item;
+}
+
+// Spec AC2: a run older than STRANDED_DAYS whose owner and children are gone
+// is labeled with its file count and the exact removal command. Removal still
+// requires the ordinary eligibility checks.
+export const STRANDED_DAYS = 7;
+async function markStranded(root, item, now) {
+  if (!['eligible', 'uncertain'].includes(item.status) || !item.createdAt || Date.parse(item.createdAt) > now - STRANDED_DAYS * 86400000) return;
+  item.stranded = true;
+  if (item.files === undefined || item.files === null) {
+    try { item.files = (await treeTotals(item.path, BigInt((await lstat(item.path, { bigint: true })).dev)))?.files ?? null; } catch { item.files = null; }
+  }
+  item.command = `GATEREEVE_SCRATCH_ROOT='${root}' gatereeve cleanup --run ${item.id} --apply`;
+}
+
+// Spec AC2: diagnostic reports are kept REPORT_DAYS, then at most REPORT_LIMIT
+// newest; a report whose run folder still exists is never removed.
+export const REPORT_DAYS = 30, REPORT_LIMIT = 5000;
+async function reportRetention(root, now = Date.now()) {
+  const directory = join(root, 'reports');
+  const names = (await readdir(directory)).filter(name => name.endsWith('.json'));
+  const live = new Set(await readdir(join(root, 'runs')));
+  const reports = [];
+  for (const name of names) {
+    try { const stat = await lstat(join(directory, name)); if (stat.isFile()) reports.push({ name, id: name.slice(0, -5), mtime: stat.mtimeMs }); } catch { /* raced */ }
+  }
+  reports.sort((a, b) => b.mtime - a.mtime);
+  const byAge = [], byCount = [];
+  reports.forEach((report, index) => {
+    if (live.has(report.id)) return;
+    if (report.mtime < now - REPORT_DAYS * 86400000) byAge.push(report.name);
+    else if (index >= REPORT_LIMIT) byCount.push(report.name);
+  });
+  return { total: reports.length, removable: { age: byAge.length, count: byCount.length }, names: [...byAge, ...byCount] };
 }
 
 export async function inspectScratch({ root = scratchRoot(), run, quick = false, ...options } = {}) {
@@ -320,12 +367,15 @@ export async function inspectScratch({ root = scratchRoot(), run, quick = false,
   const names = run ? [run] : await readdir(join(info.root, 'runs'));
   const entries = [];
   for (const name of names.sort()) entries.push(await assess(info.root, name, { ...options, quick }));
-  return { root: info.root, entries, eligibleBytes: quick ? null : entries.reduce((sum, item) => sum + (item.status === 'eligible' ? item.bytes : 0), 0), quick };
+  if (quick) for (const item of entries) item.files = await treeTotals(item.path, BigInt((await lstat(item.path, { bigint: true }).catch(() => ({ dev: 0n }))).dev)).then(totals => totals?.files ?? null, () => null);
+  const reports = run ? null : await reportRetention(info.root).then(({ names: _names, ...summary }) => summary, () => null);
+  return { root: info.root, entries, eligibleBytes: quick ? null : entries.reduce((sum, item) => sum + (item.status === 'eligible' ? item.bytes : 0), 0),
+    files: entries.reduce((sum, item) => sum + (item.files ?? 0), 0), reports, quick };
 }
 
 export async function cleanupScratch({ root = scratchRoot(), run, apply = false, ...options } = {}) {
   const preview = await inspectScratch({ root, run, ...options, quick: false });
-  if (!apply || preview.error || preview.entries.length === 0) return { ...preview, applied: false, removed: [], reclaimedBytes: 0 };
+  if (!apply || preview.error || (preview.entries.length === 0 && (run || !(preview.reports?.removable.age || preview.reports?.removable.count)))) return { ...preview, applied: false, removed: [], reclaimedBytes: 0 };
   const info = await rootInfo(root);
   return lock(info.root, async () => {
     const removed = [], errors = [], skipped = [];
@@ -340,11 +390,19 @@ export async function cleanupScratch({ root = scratchRoot(), run, apply = false,
         assert(same(current.identity, await directory(current.path)), 'Run directory changed');
         await makeWritable(current.path, current.identity.dev);
         await rm(current.path, { recursive: true });
-        removed.push({ id: item.id, bytes: current.bytes });
+        removed.push({ id: item.id, bytes: current.bytes, files: current.files });
       } catch (error) { errors.push({ id: item.id, reason: error.message }); }
     }
     for (const item of preview.entries.filter(entry => entry.status !== 'eligible')) skipped.push({ id: item.id, status: item.status });
-    return { ...preview, applied: true, removed, skipped, errors, reclaimedBytes: removed.reduce((sum, item) => sum + item.bytes, 0) };
+    let reportsRemoved = 0;
+    if (!run) {
+      const retention = await reportRetention(info.root);
+      for (const name of retention.names) {
+        try { await unlink(join(info.root, 'reports', name)); reportsRemoved += 1; } catch (error) { errors.push({ id: name, reason: error.message }); }
+      }
+    }
+    return { ...preview, applied: true, removed, skipped, errors, reportsRemoved, reclaimedBytes: removed.reduce((sum, item) => sum + item.bytes, 0),
+      reclaimedFiles: removed.reduce((sum, item) => sum + (item.files ?? 0), 0) };
   });
 }
 

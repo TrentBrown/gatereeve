@@ -91,7 +91,7 @@ export async function projectWorkflow(core, store = new MetricsStore()) {
           for (const finding of result.findings ?? []) observations.push(observation({ ...row, id: `${row.id}:finding:${finding.id}`, kind: 'finding', findingId: finding.id }));
           for (const disposition of result.dispositions ?? []) observations.push(observation({ ...row, id: `${row.id}:disposition:${disposition.id}`, kind: 'disposition', findingId: disposition.id, outcome: disposition.status }));
         }
-      } else observations.push(observation({ ...common, kind: event.type === 'DECIDED' ? 'decision' : event.type === 'MILESTONE' ? 'milestone' : 'event', check: value.kind ?? value.name ?? event.type, ...measured(event.type, value) }));
+      } else observations.push(observation({ ...common, kind: event.type === 'DECIDED' ? 'decision' : event.type === 'MILESTONE' ? 'milestone' : 'event', check: event.type === 'DECISION_PENDING' && value.asked ? `asked:${value.decision.kind}` : value.kind ?? value.name ?? event.type, ...measured(event.type, value) }));
     }
     const body = { ...base, home: core.store.home, sequence: events.length, projectId, featureId: await store.identity(core.context.featureId) };
     store.transaction(db, () => {

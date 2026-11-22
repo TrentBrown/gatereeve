@@ -88,7 +88,8 @@ scope needs fresh/wider evidence. Generate mechanical records through operations
 - Completion: whole-feature acceptance, actual integration, required finalization
   proof and verified local evidence retention.
 
-Record one concrete human decision with its actual quote/context and available
+When presenting a decision question to the human, record it first with
+`decision.ask` so the wait is measured. Record one concrete human decision with its actual quote/context and available
 provenance. It may cover multiple expressly named actions. Do not ask again for
 the same unchanged authorization. Waivers retain FAIL/UNAVAILABLE and accepted
 risk separately. Amendments retain old/new requirements and refresh affected

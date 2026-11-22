@@ -1,4 +1,4 @@
-import { captureSnapshot, importSnapshot, exportSnapshot, importLegacySnapshot, listDatasets, combineSnapshots, reevaluationReport, renderReevaluation, knownDatabases, cleanupReporting } from './fleet.js';
+import { captureSnapshot, importSnapshot, exportSnapshot, importLegacySnapshot, listDatasets, combineSnapshots, reevaluationReport, renderReevaluation, knownDatabases, cleanupReporting, purgeTestData } from './fleet.js';
 import { analyzeReport } from './analysis.js';
 import { MetricsStore } from './store.js';
 import { report, status, renderReport } from './report.js';
@@ -16,6 +16,7 @@ export async function metricsRequest(action, input={}, store=new MetricsStore())
   if(action==='report'||action==='export')return report(input,store);
   if(action==='status') { if(Object.keys(input).length)throw new Error('Status accepts no arguments');return status(store); }
   if(action==='config')return store.setConfig(input);
+  if(action==='purge-test-data'){if(Object.keys(input).some(k=>k!=='apply'))throw new Error('Purge accepts only apply boolean');return purgeTestData({apply:input.apply===true},store);}
   if(action==='cleanup') {
     if(Object.keys(input).some(k=>k!=='apply')||('apply'in input&&typeof input.apply!=='boolean'))throw new Error('Cleanup accepts only apply boolean');
     const reporting=await cleanupReporting(input,store);

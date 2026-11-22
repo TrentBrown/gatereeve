@@ -71,10 +71,20 @@ After success or failure a compact diagnostic receipt (bounded error/output,
 no environment or full command arguments) is written to `gatereeve/reports/`
 before bulk becomes eligible. Governed checks keep raw captured output out of these
 reports and pass it to the existing redacted evidence pipeline instead. These temporary diagnostics are not permanent gate
-evidence or backups. They are outside automatic run cleanup. Export required
+evidence or backups. They are outside automatic run cleanup: `gatereeve cleanup
+--apply` removes reports older than 30 days and, beyond those, all but the newest
+5,000, never a report whose run folder still exists. Export required
 evidence to the feature record. Consider sensitive tool output before retaining
 diagnostics. A failed receipt write protects bulk. Cleanup failures remain visible
 alongside the original error.
+
+Previews and `gatereeve doctor` count files (inodes) per run and in total, and
+the diagnostic reports, alongside allocated bytes; a hard-linked file's bytes are
+counted once. A run older than 7 days whose owner and children are gone is shown
+as `stranded` with its file count and its exact `gatereeve cleanup --run <id>
+--apply` command; removal still needs the ordinary eligibility checks. Repository
+tests run with a private scratch root (`cli/scripts/isolated-test.js`) and never
+use the host scratch area.
 
 An explicit hold protects bulk until its expiry. Expiry only permits a later
 on-demand cleanup; there is no scheduler. `plugin smoke-install --keep` holds its

@@ -95,6 +95,9 @@ export function currentCommands() {
   coverage.action(options => run(options, 'coverage.status'));
   const database = command('database', 'Inspect the current authoritative SQLite store').option('--history','Read bounded workflow history').option('--kind <kind>').option('--limit <count>', 'History rows', Number, 100);
   database.action(options => run(options, options.history ? 'database.history' : 'database.inspect', options.history ? {kind:options.kind,limit:options.limit} : {}));
+  const ask = command('ask', 'Record that a decision question is being presented to the human, so the wait until the answer is measured')
+    .argument('<file>', 'decision.ask input: kind, optional subject and a short question summary');
+  ask.action(async (file, options) => run(options, 'decision.ask', await readJsonFile(file)));
   const note = command('workflow-note', 'Record strategy, friction, fixes or escaped defects without granting authority').argument('<file>');
   note.action(async (file,options) => run(options,'workflow.observe',await readJsonFile(file)));
   const read = command('read', 'Inspect a named artifact, current result, event history or model')
