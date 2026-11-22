@@ -81,4 +81,3 @@ agentDecisions (entries plus an assessment rule) is added to the planning packet
 
 **Alternatives considered:**
 Change the shared prompts (invalidates existing proof reuse).
-
