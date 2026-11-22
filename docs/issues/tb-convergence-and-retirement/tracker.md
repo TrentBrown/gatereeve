@@ -9,7 +9,7 @@
 
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|----|-------|
-| R1 | AC1 idle lock | TODO | - | slice 1 |
+| R1 | AC1 idle lock | IMPLEMENTED | - | local-agent-idle-inhibitor.test.js (wrap, fallbacks, stdin, exit code, size guard, timeout, live lock list and release, receipt) |
 | R2 | AC2 metrics repair | TODO | - | slice 2 |
 | R3 | AC3 severity and class | TODO | - | slice 3 |
 | R4 | AC4 sweep records | TODO | - | slice 3 |

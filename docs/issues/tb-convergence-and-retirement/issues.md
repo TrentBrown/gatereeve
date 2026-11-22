@@ -9,7 +9,7 @@ Operational task breakdown derived from the plan. One issue per slice.
 
 ## I-1 - Reviewer idle-inhibitor lock
 
-- **Status:** todo
+- **Status:** in-progress
 - **Estimate:** small
 - **Plan steps:** P1
 - **Rubric criteria:** R1

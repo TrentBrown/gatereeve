@@ -110,9 +110,12 @@ export function validateAgentWorkflowReceipt(value) {
 
   exactKeys(
     value.isolation,
-    ['method', 'freshContext', 'inheritedTurns'],
+    ['method', 'freshContext', 'inheritedTurns', ...(value?.isolation?.idleInhibitor === undefined ? [] : ['idleInhibitor'])],
     'Agent workflow receipt isolation'
   );
+  if (value.isolation.idleInhibitor !== undefined && typeof value.isolation.idleInhibitor !== 'boolean') {
+    throw new ContractError('Agent workflow receipt idle inhibitor must be a boolean');
+  }
   nonempty(value.isolation.method, 'Agent workflow receipt isolation method');
   if (value.isolation.freshContext !== true || value.isolation.inheritedTurns !== 0) {
     throw new ContractError('Agent workflow receipt must attest a fresh context with zero inherited turns');

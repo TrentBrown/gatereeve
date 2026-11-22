@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:fb453cbb1733bd75373d9d9c65f990218cb66a7a8768eea828ec1a058038df36",
+  "protocolHash": "sha256:d47cc12ba878a5a189cb5283d12290a811f3d23a856c8dfe0e94652f1959c373",
   "contract": "gatereeve/current/8",
   "contractSha256": "acea458578d64a6d7fb2ad10b0907bc23b7488b1248ec76d03f2e41e708205e3",
   "files": [
     {
       "path": "agent-workflow.js",
-      "size": 7587,
-      "sha256": "20bf1aa7363cf82153b4c245e29cd2c784f1570c39fe6c0cd78507d7ead15271"
+      "size": 7863,
+      "sha256": "dd9e35e7234199e34e437ec1ae8523e1a2ab8cdc0e388f923578971cfe5b96a1"
     },
     {
       "path": "constants.js",
@@ -67,8 +67,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 36067,
-      "sha256": "55c25b54ae09231219b7c739da97acbab913afd2fe91f46a0416d4c5b638976d"
+      "size": 36102,
+      "sha256": "6acabfc5cd2b37dd618300ac366cc24c2566783415876051528e8bf4f6ea4d2d"
     },
     {
       "path": "current/delivery.js",
@@ -97,8 +97,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 78761,
-      "sha256": "c490816a2a78f9ff49b896da47d8bd3e0a3ec839fb62bbe6eb5410f31319912b"
+      "size": 78796,
+      "sha256": "148659da05550575218a1c08bd24e5a7420b382927c0b1e6498cf797e2fd0f83"
     },
     {
       "path": "current/final-handoff.js",
@@ -227,8 +227,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 16307,
-      "sha256": "42107a71e864826ba90e11527c596ea94a00582a0ef7426a341641248fe28caa"
+      "size": 19680,
+      "sha256": "dc9139cb86e53348c0337c4489fc4d9229592bb7dc96a6be82b3427c0233c795"
     },
     {
       "path": "module-runtime.js",

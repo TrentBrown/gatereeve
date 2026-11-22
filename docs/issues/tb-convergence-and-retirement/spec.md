@@ -77,6 +77,19 @@ silent best effort:
   - `metrics status` reports the actual record count.
   - `DECISION_PENDING` is recorded when a decision question is presented, so a
     human wait between question and answer is measured as non-zero.
+  - Scratch area (D28): every CLI test process uses a private temporary
+    scratch root, so a full CLI test run creates no run folders or reports
+    under the host scratch root (`/tmp/gatereeve`).
+  - `gatereeve cleanup --apply` also removes diagnostic reports older than 30
+    days and, beyond those, all but the newest 5,000; a report whose run folder
+    still exists is never removed, and the preview shows how many reports each
+    rule would remove.
+  - `gatereeve cleanup` previews and `gatereeve doctor` report file counts
+    (per run, total, and the report count) alongside bytes.
+  - A run folder older than 7 days whose owner process and children are gone
+    is shown as `stranded`, with its file count and the exact
+    `gatereeve cleanup --run <id> --apply` command; removal still requires the
+    existing eligibility checks.
 - **AC3. Finding severity, failure scenario and class (slice 3).**
   - The reviewer contract (code, spec, review and planning gates, both rigors)
     requires each finding to carry `severity` (`high|medium|low`), a
@@ -235,7 +248,7 @@ silent best effort:
 | # | Criterion | Pass | Fail | Evidence |
 |---|-----------|------|------|----------|
 | R1 | AC1 idle lock | Tests show the wrapped command with the exact flags and a bounded secret-free `--why` when `systemd-inhibit` is present, a byte-identical command when absent or when the lock probe is refused (with `idleInhibitor: false`), stdin delivered, exit code preserved, timeout terminating the reviewer process, the size guard counting the added arguments, and `idleInhibitor` in the receipt; a live Linux run shows the lock in `systemd-inhibit --list` during a review | Any listed behaviour missing, a review failing because the lock was refused, or the command changed when absent | Adapter unit tests + live host check |
-| R2 | AC2 metrics repair | A full CLI test run leaves the shared store's row count unchanged; purge previews then removes only test-suite rows; capture succeeds on duplicate observation times; status reports the real count; a decision's pending time precedes its answer | Any shared-store write from tests, a non-test row purged, or a listed bug reproducible | Metrics tests + before/after store counts |
+| R2 | AC2 metrics repair | A full CLI test run leaves the shared store's row count and the host scratch root's run and report counts unchanged; purge previews then removes only test-suite rows; capture succeeds on duplicate observation times; status reports the real count; a decision's pending time precedes its answer; report retention removes only reports past the age or count limit whose runs are gone; previews and doctor show file counts; stranded runs are labeled with their count and command | Any shared-store or host-scratch write from tests, a non-test row purged, a report for an existing run removed, a missing file count or stranded label, or a listed bug reproducible | Metrics tests + before/after store counts |
 | R3 | AC3 severity and class | Contract tests reject findings missing severity, failure scenario, class ID or class statement in every gate and rigor; low never blocks; paired disagreement resolves to the higher rating; a disposition cannot change severity | Any missing field accepted, a low finding blocking, or severity changed by a disposition | Protocol contract tests |
 | R4 | AC4 sweep records | Tests reject a `fixed` disposition missing any sweep field (naming it), accept a one-site record with its search, and show the next round's input carrying the records | Any missing field accepted, a valid one-site record refused, or records absent from the next round | Protocol tests + reviewer input inspection |
 | R5 | AC5 robustness | Tests show one automatic repair turn on a contract error, UNAVAILABLE when repair fails or changes substance, mechanical normalization recorded as `normalized`, `not-assessed` for a missing peer disposition with the finding open, a reason code on every UNAVAILABLE, and repair turns excluded from the round count with tokens and time recorded | A second repair attempt, a substantive repair accepted, a missing reason code, or a repair counted as a round | Protocol tests with fake reviewer adapters |

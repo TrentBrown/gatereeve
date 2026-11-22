@@ -1,6 +1,6 @@
 # Design - tb-convergence-and-retirement
 
-**Source:** `interview.md`, decisions D1–D27 (D1–D19 from the Mac interview,
+**Source:** `interview.md`, decisions D1–D28 (D1–D19 from the Mac interview,
 D20–D27 added on Linux, 2026-11-22).
 **Rigor:** full, supervised.
 
@@ -94,6 +94,10 @@ integration branch.
   and `status` reporting 0 records.
 - Record `DECISION_PENDING` when the question is asked, not when it is
   answered.
+- Scratch area (D28): test suites never use the host scratch area
+  (`/tmp/gatereeve`); diagnostic reports get an age and count limit applied
+  by `gatereeve cleanup --apply`; cleanup and `doctor` report file counts;
+  runs left behind past an age limit are labeled `stranded` for removal.
 
 ### Slices 3 and 4 - Review convergence
 

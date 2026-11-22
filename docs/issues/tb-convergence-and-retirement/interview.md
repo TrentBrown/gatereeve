@@ -546,3 +546,19 @@ and the Fleet thread's reviewer idle-inhibitor request.
 - **Decision:** The PreToolUse guard warns, without denying, on `git push` to
   a PR branch while the current review scope has not converged. Integration
   and release branch denials are unchanged.
+
+### D28 - Scratch-area inode growth (amends slice 2)
+- **Question:** The host scratch area `/tmp/gatereeve` holds 30,752 never-pruned
+  report files and 188 retained run folders, some reviewer source views with
+  300k–600k files each, mostly from the test suite writing to the shared
+  scratch root. Clean it up once now, amend slice 2 to stop the growth, both,
+  or neither?
+- **Answered by:** human
+- **Answer:** "both".
+- **Decision:**
+  1. One-off: preview `gatereeve cleanup`, show the human what is eligible
+     with file counts, and apply only with the human's OK.
+  2. Slice 2 is amended: test suites never use the shared scratch area;
+     reports get an age and count limit; `gatereeve cleanup` and `doctor`
+     report file counts; stranded runs past an age limit are listed for
+     removal.

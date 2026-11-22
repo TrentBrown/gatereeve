@@ -1,8 +1,9 @@
 import { withScratch, scratchEnvironment } from '../storage/scratch.js';
 import { spawn } from 'node:child_process';
+import { accessSync, constants as fsConstants } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 
-import { join } from 'node:path';
+import { delimiter, isAbsolute, join } from 'node:path';
 
 import { sha256Digest, AGENT_WORKFLOW_PROTOCOL_VERSION, validateEvaluatorCapability } from './agent-workflow.js';
 import { ContractError } from './errors.js';
@@ -14,10 +15,62 @@ function iso(value) {
   return value instanceof Date ? value.toISOString() : value;
 }
 
-export function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds }) {
+// Idle-stop automation (for example Fleet) treats a held systemd idle
+// inhibitor as "kept awake". A reviewer waits on the model API for long quiet
+// stretches inside one tool call, so it declares itself with a lock tied to its
+// own process: released on exit or crash, visible to every local user.
+export const IDLE_INHIBITOR_WHY_LIMIT = 120;
+export function idleInhibitorWhy({ provider, stage, feature }) {
+  const role = stage === 'review' ? 'boundary' : String(stage ?? 'agent').replace(/-review$/u, '');
+  const text = `${provider} ${role} review: ${feature}`.replace(/[\u0000-\u001f\u007f]+/gu, ' ').replace(/\s+/gu, ' ').trim();
+  return text.slice(0, IDLE_INHIBITOR_WHY_LIMIT);
+}
+function findExecutable(name, pathValue) {
+  for (const directory of String(pathValue ?? '').split(delimiter)) {
+    if (!directory || !isAbsolute(directory)) continue;
+    const candidate = join(directory, name);
+    try { accessSync(candidate, fsConstants.X_OK); return candidate; } catch { /* next */ }
+  }
+  return null;
+}
+function inhibitorArgs(why) {
+  return ['--what=idle', '--mode=block', '--who=GateReeve', `--why=${why}`];
+}
+function probeIdleInhibitor(inhibitor, why) {
+  // A refused lock (no logind, policy denial) must not look like a reviewer
+  // failure: take and release it once with a no-op before the real launch.
+  return new Promise(resolve => {
+    let child;
+    try { child = spawn(inhibitor, [...inhibitorArgs(why), 'true'], { stdio: 'ignore' }); }
+    catch { resolve(false); return; }
+    const timer = setTimeout(() => { child.kill('SIGKILL'); resolve(false); }, 10_000);
+    child.on('error', () => { clearTimeout(timer); resolve(false); });
+    child.on('close', code => { clearTimeout(timer); resolve(code === 0); });
+  });
+}
+export const systemIdleInhibitor = Object.freeze({
+  platform: () => process.platform,
+  resolve: () => findExecutable('systemd-inhibit', process.env.PATH),
+  probe: probeIdleInhibitor,
+});
+// The launch to use: wrapped in `systemd-inhibit` on Linux when it is present
+// and grants the lock, otherwise exactly the requested command.
+export async function idleInhibitedLaunch(executable, args, idleLock, inhibitor = systemIdleInhibitor) {
+  const unwrapped = { executable, args, idleInhibitor: false };
+  if (!idleLock?.why || inhibitor.platform() !== 'linux') return unwrapped;
+  const wrapper = inhibitor.resolve();
+  if (!wrapper || !(await inhibitor.probe(wrapper, idleLock.why))) return unwrapped;
+  return { executable: wrapper, args: [...inhibitorArgs(idleLock.why), executable, ...args], idleInhibitor: true };
+}
+
+export async function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds, idleLock = null, inhibitor = systemIdleInhibitor }) {
+  const launch = await idleInhibitedLaunch(executable, args, idleLock, inhibitor);
+  assertArgumentSizes(launch.args);
   return new Promise((resolve, reject) => {
     const startedAt = new Date();
-    const child = spawn(executable, args, {
+    // systemd-inhibit forwards SIGTERM to the reviewer it runs, so the timeout
+    // below reaches the reviewer itself through the wrapper.
+    const child = spawn(launch.executable, launch.args, {
       cwd,
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -58,6 +111,7 @@ export function runAgentProcess(executable, args, { cwd, input, env = process.en
       const result = {
         code,
         signal,
+        idleInhibitor: launch.idleInhibitor,
         stdout: Buffer.concat(stdout).toString('utf8'),
         stderr: Buffer.concat(stderr).toString('utf8'),
         startedAt,
@@ -157,7 +211,7 @@ function receiptFor(request, descriptor, output, contextId, method, processResul
       reasoningEffort: descriptor.reasoningEffort,
       contextId,
     },
-    isolation: { method, freshContext: true, inheritedTurns: 0 },
+    isolation: { method, freshContext: true, inheritedTurns: 0, idleInhibitor: processResult.idleInhibitor === true },
     policy: {
       repositoryAccess: request.policy.repositoryAccess,
       networkAccess: request.policy.networkAccess,
@@ -288,6 +342,7 @@ export function createCodexAgentAdapter({
           input: promptFor(request),
           env: await scratchEnvironment(scratchRun, environment),
           timeoutSeconds: request.timeoutSeconds,
+          idleLock: { why: idleInhibitorWhy({ provider: 'codex', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
         });
         const output = parseObject(await readFile(outputPath, 'utf8'), 'Codex structured output');
         const contextId = parseCodexContextId(processResult.stdout);
@@ -351,6 +406,7 @@ export function createClaudeCodeAgentAdapter({
         input: promptFor(request),
         env: await scratchEnvironment(scratchRun, environment),
         timeoutSeconds: request.timeoutSeconds,
+        idleLock: { why: idleInhibitorWhy({ provider: 'claude-code', stage: request.stage.id, feature: request.featureId ?? request.runId }) },
       });
       const parsed = parseClaudeStructuredOutput(processResult.stdout);
       if (typeof parsed.contextId !== 'string' || parsed.contextId === '') {

@@ -336,6 +336,18 @@ instructions; claimed dispositions are labeled. Reviewers must find new
 supported defects, verify affected fixes and cover interactions. Missing or
 contradictory output is UNAVAILABLE, never PASS.
 
+**Idle-stop inhibitor.** Reviewers wait on the model API for long quiet
+stretches. On Linux, when `systemd-inhibit` is on `PATH` and grants the lock,
+every reviewer process runs as `systemd-inhibit --what=idle --mode=block
+--who=GateReeve --why="<provider> <role> review: <feature>"` (the reason is at
+most 120 characters, single-line, and carries no prompt text or environment
+values; every local user can read it with `systemd-inhibit --list`). The lock
+belongs to the reviewer process and is released when it exits or crashes, so
+idle-stop automation such as Fleet treats the host as busy while a review runs.
+A refused lock, a missing `systemd-inhibit` or another platform launches the
+reviewer exactly as before. Receipts record `isolation.idleInhibitor:
+true|false`.
+
 Frozen requirements, source manifests, inputs, results and receipts live beneath
 canonical `docs/issues/<featureId>/.gatereeve-current/`. Git is optional for those
 records. Source itself remains in Git, protected by owner/run-specific refs under

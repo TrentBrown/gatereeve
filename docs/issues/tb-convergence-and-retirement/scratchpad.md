@@ -88,3 +88,23 @@ local git configuration; anything else ignored is listed.
 
 **Rationale:** Each fails safe or preserves existing proof; none weakens an
 obligation. Reversible by amendment.
+
+## [5] Scratch retention limits
+
+[ ] **Promote**
+
+**Answered by:** agent
+
+**Confidence:** MEDIUM
+
+**Context:** D28 asked for an age and count limit on scratch reports and an age
+limit for stranded runs without numbers.
+
+**Options:** 7/14/30/90 days; 1,000/5,000/20,000 reports.
+
+**Decision:** Reports: 30 days, then newest 5,000, never a report whose run
+folder still exists. Stranded runs: older than 7 days with dead owners.
+
+**Rationale:** Reports are 4 KiB each and useful for a few weeks of diagnosis;
+5,000 covers several full test-heavy weeks if tests ever leak again. Seven days
+outlives any review or release job. Reversible.

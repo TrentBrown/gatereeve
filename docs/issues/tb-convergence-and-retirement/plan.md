@@ -70,6 +70,14 @@ Every shared resource change is restaged into the desktop copies
 - Reproduce and fix the capture conflict ("Conflicting values for the same
   observation time") with a deterministic resolution, and the `status` zero
   count.
+- Scratch area (D28): set a private `TMPDIR` scratch root for every test
+  process in the test harness (`cli/test/helpers` and the `npm test` script),
+  and assert the host scratch root is untouched after a run.
+- In `plugin-src/shared/resources/storage/scratch.js`: report retention (30
+  days, newest 5,000, never a report whose run folder exists) applied by
+  `cleanup --apply` and counted in the preview; file counts per run and in
+  total in previews and `doctor`; a `stranded` label for runs older than 7
+  days with dead owners and children, with the exact per-run command.
 - Record `DECISION_PENDING` at question time: find where the question is
   presented (pending decisions in status / hook paths) and emit the
   observation then.
