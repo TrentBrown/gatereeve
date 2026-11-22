@@ -165,3 +165,12 @@ test('agent entries are found at any heading depth, before any heading, and in p
   assert.deepEqual(parseDecisionEntries('scratchpad.md', 'Answered by: agent\n\nChose a default before any heading.\n').map(({ heading, answeredBy }) => [heading, answeredBy]), [['(preamble)', 'agent']]);
   assert.deepEqual(parseDecisionEntries('scratchpad.md', '## Notes\n\n```md\n## Fake heading\nAnswered by: agent\n```\n'), [], 'fenced examples are not entries');
 });
+
+test('indented headings, CommonMark fence lengths and ordered-list or quoted provenance are handled', () => {
+  const indented = '# Scratchpad\n\n## Choices\n\n  ### [1] Human choice\n\n**Answered by:** human\n\n   ### [2] Agent choice\n\n**Answered by:** agent\n\nChose 42.\n';
+  assert.deepEqual(parseDecisionEntries('scratchpad.md', indented).map(({ heading, answeredBy }) => [heading, answeredBy]), [['[1] Human choice', 'human'], ['[2] Agent choice', 'agent']]);
+  const fences = '## [1] Human choice\n\n**Answered by:** human\n\n````md\n```js\n## Not a heading\nAnswered by: agent\n````\n\n## [2] Agent choice\n\n**Answered by:** agent\n\nChose 42.\n';
+  assert.deepEqual(parseDecisionEntries('scratchpad.md', fences).map(({ heading, answeredBy }) => [heading, answeredBy]), [['[1] Human choice', 'human'], ['[2] Agent choice', 'agent']]);
+  for (const form of ['3. **Answered by:** agent', '> Answered by: agent', '> - **Answered by:** `agent`'])
+    assert.deepEqual(parseDecisionEntries('interview.md', `## D1 - Choice\n\n${form}\n`).map(entry => entry.answeredBy), ['agent'], form);
+});
