@@ -84,6 +84,21 @@ test('workflow header shows both run dials, marking defaults when no run exists'
   renderCurrentOverview({ ...(await adapter.snapshot(f.home)), dials: { rigor: 'full', autonomy: 'delegated' } }, elements);
   assert.deepEqual(badges().map(item => item.text), ['Rigor · Full', 'Autonomy · Delegated']);
   assert.match(badges()[1].className, /dial-delegated/u);
+});
+
+test('workflow header marks mandated and goal autonomy and shows the goal terminal state and decisions', async t => {
+  const previousMetrics = process.env.GATEREEVE_METRICS;
+  process.env.GATEREEVE_METRICS = 'off';
+  t.after(() => { if (previousMetrics === undefined) delete process.env.GATEREEVE_METRICS; else process.env.GATEREEVE_METRICS = previousMetrics; });
+  const f = await currentFixture(t);
+  const adapter = createProtocolAdapter(); await adapter.resolve(f.repo);
+  const { window } = parseHTML(await readFile(new URL('../renderer/index.html', import.meta.url), 'utf8'));
+  globalThis.document = window.document; t.after(() => delete globalThis.document);
+  const elements = Object.fromEntries([...window.document.querySelectorAll('[id]')].map(element => [element.id, element]));
+  const header = window.document.querySelector('.page-heading #workflow-dials');
+  assert.ok(header, 'the dial badges live in the workflow overview heading');
+  assert.equal(header.getAttribute('aria-label'), 'Run dials');
+  const badges = () => [...header.querySelectorAll('[data-dial]')].map(item => ({ dial: item.getAttribute('data-dial'), value: item.getAttribute('data-value'), text: item.textContent, className: item.className }));
 
   // Mandated (formerly autonomous) and goal autonomy stand out too; a goal run
   // also shows its terminal state and the decisions made for the human.

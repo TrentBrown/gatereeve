@@ -11,7 +11,7 @@
 |---|-------------------|--------|----|-------|
 | R1 | AC1 grant prerequisites | IMPLEMENTED | - | current-goal.test.js (set-dial and run.start grants/refusals) |
 | R2 | AC1 parity and eligibility | IMPLEMENTED | - | current-goal-parity.test.js (adjudication, SLICE delivery, tripwire); current-goal.test.js (amendment, release merge refused); delegated suite |
-| R3 | AC1 compatibility | IMPLEMENTED | - | full CLI suite; existing-test edits limited to rename assertions and skill counts |
+| R3 | AC1 compatibility | IMPLEMENTED | - | full CLI suite; existing-test edits limited to AC9 rename assertions and the inventory counts admitted by spec A4 |
 | R4 | AC2 terminal state | IMPLEMENTED | - | current-goal.test.js (null, ready-pr, parked precedence, non-goal); current-goal-decisions.test.js (decisions) |
 | R5 | AC3 park/resume | IMPLEMENTED | - | current-goal.test.js (draft + listed blockers, refusals, human continue, dial return) |
 | R6 | AC4 question guard | IMPLEMENTED | - | current-goal-hooks.test.js; current-hook.test.js unchanged |

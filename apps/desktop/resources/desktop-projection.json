@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:76ffcec65e165a81ed02c71d5e555d2191b9d40a654bdf987334745635af3b3e",
+  "protocolHash": "sha256:c44a1cf994b8671f4b515efa5e38d96dc536c22dfe12b8f1566e19e52500a47b",
   "contract": "gatereeve/current/8",
   "contractSha256": "acea458578d64a6d7fb2ad10b0907bc23b7488b1248ec76d03f2e41e708205e3",
   "files": [
@@ -57,8 +57,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 99503,
-      "sha256": "0d76e56d52b1bda1355e3bef3d45ef91e4b67bcf1a9d35e85a9881587c58049a"
+      "size": 100709,
+      "sha256": "ff3c4cac84274b8ef0b2ac9e12e2761e292416877e1bd9a1e623d663231781c6"
     },
     {
       "path": "current/coverage.js",
@@ -97,8 +97,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 78665,
-      "sha256": "ef4217899e638f8913a8506adfe1dc1fa086c5fc65085645bcafd02dfc7f361f"
+      "size": 78761,
+      "sha256": "c490816a2a78f9ff49b896da47d8bd3e0a3ec839fb62bbe6eb5410f31319912b"
     },
     {
       "path": "current/final-handoff.js",
@@ -117,8 +117,8 @@
     },
     {
       "path": "current/goal.js",
-      "size": 7258,
-      "sha256": "2508c920ba949f16c090fe610587b8459dd2d4c68f2da21bbf9e0e2356596021"
+      "size": 7715,
+      "sha256": "7a333279f64b688d8a47685316294f81d4a6832e82424245fd106c426d4d9f8f"
     },
     {
       "path": "current/observation.js",

@@ -400,3 +400,24 @@ test('CLI, desktop, MCP and plugin copies match and use contract gatereeve/curre
   assert.deepEqual(response.result.structuredContent, await metricsRequest('reevaluate', { dataset }, store));
   assert.equal(response.result.structuredContent.measurement.escalations.total, 1);
 });
+
+test('retained reporting rows and snapshots recorded as autonomous read and import as mandated', async t => {
+  const { importSnapshot, exportSnapshot, SNAPSHOT_FORMAT, reportingDatabase: database } = await import('../../plugin-src/shared/resources/performance/fleet.js');
+  const store = await metricsStore(t);
+  const at = '2026-11-16T00:00:00.000Z';
+  const snapshot = { format: SNAPSHOT_FORMAT, sources: [{ id: 'legacy', platform: 'fixture', capturedAt: at, status: 'available', limitations: [] }],
+    records: [
+      { id: 'legacy:decision', source: 'legacy', observedAt: at, kind: 'decision', autonomy: 'autonomous', authorityKind: 'autonomous-evaluator' },
+      { id: 'legacy:handback', source: 'legacy', observedAt: at, kind: 'event', check: 'DIAL_SET', autonomy: 'supervised', dial: 'autonomy', dialValue: 'supervised', dialPrevious: 'autonomous' }] };
+  const { dataset } = await importSnapshot(snapshot, store);
+  let exported = await exportSnapshot({ dataset }, store);
+  assert.deepEqual(exported.records.map(row => [row.autonomy, row.dialPrevious ?? null]), [['mandated', null], ['supervised', 'mandated']]);
+  // A body stored before the rename (raw `autonomous`) still exports normalized
+  // and re-imports without an identity conflict.
+  const db = await database(store);
+  for (const row of db.prepare('SELECT id,version,body FROM reporting_observations').all())
+    db.prepare('UPDATE reporting_observations SET body=? WHERE id=? AND version=?').run(row.body.replaceAll('"mandated"', '"autonomous"'), row.id, row.version);
+  exported = await exportSnapshot({ dataset }, store);
+  assert.ok(exported.records.every(row => row.autonomy !== 'autonomous' && row.dialPrevious !== 'autonomous'));
+  assert.equal((await importSnapshot(snapshot, store)).dataset, dataset);
+});

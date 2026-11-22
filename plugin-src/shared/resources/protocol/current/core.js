@@ -21,7 +21,7 @@ import { captureStanding, applyStanding, standingValidity, standingReleaseRefusa
 import { publishReview, requirePublishedReview } from './publication.js';
 import { selectReviewers, executeBoundaryReviews, boundaryReviews } from './boundary-review.js';
 import { adjudicateReview, currentAdjudication, allowedRunOutcome } from './autonomous.js';
-import { parkGoal, readyRecord, goalStatus, captureInterview, interviewDrift, agentDecisions } from './goal.js';
+import { parkGoal, readyRecord, goalStatus, captureInterview, interviewDrift, agentDecisions, AGENT_DECISION_RULE } from './goal.js';
 import { evaluateTripwires, describeHits, hitKey } from './tripwires.js';
 import { isDelegated, isAutonomous, isGoal, hasRunAuthority, requireProtection, guardDelegatedAction, reviewPlanning, delegatedPlanningAuthority, assertBriefScopeUnchanged, briefScopeChanged, applyDelegation, delegationStatus, briefLines } from './delegation.js';
 
@@ -33,6 +33,7 @@ const LIVE_PROOFS = Symbol('qualified live proof inputs');
 const RETAINED_CLOSURE = Symbol('retained bytes verified in this observation');
 const admissions = new WeakMap();
 const lightRun = state => state.dials.rigor.value === 'light';
+const GOAL_READY_STALE = new Set(['DECIDED', 'SPEC_VALIDATED', 'REVIEWERS_SELECTED', 'REVIEW_ROUND_STARTED', 'BOUNDARY_REVIEWED', 'REVIEW_ADJUDICATED', 'CANDIDATE', 'JOB_FINISHED', 'INTEGRATED', 'DIAL_SET']);
 // A human stay-light decision covers the current tripwire hits only when every
 // current hit was named in it; a new hit needs a new decision (spec AC4).
 function stayLightCovers(state, hits) {
@@ -157,6 +158,9 @@ export function project(events) {
       case 'GOAL_READY': state.goalReady = { ...value, at: event.recordedAt, event: event.hash }; break;
       default: throw new Error(`Unsupported current event: ${event.type}`);
     }
+    // A published ready summary describes one review state; any later change
+    // to reviews, evidence, decisions or dials needs a republish (spec AC2).
+    if (GOAL_READY_STALE.has(event.type)) state.goalReady = null;
   }
   requireThat(PHASES.includes(state.phase), 'Invalid current phase');
   return state;
@@ -737,6 +741,15 @@ export class CurrentCore {
     requireThat(inputs.contract === CONTRACT && inputs.gates.includes(result.gate), 'Result input binding mismatch');
     if (result.gate === 'review' && isAutonomous(state)) requireThat(inputs.mandate
       && identity(inputs.mandate) === identity(state.dials.autonomy.mandate), 'Boundary review does not assess the current fixed mandate');
+    // A goal run's boundary review must have assessed the current agent
+    // decision entries (spec AC6): a review from before a raise to goal or
+    // before a new agent entry no longer qualifies.
+    if (result.gate === 'review' && isGoal(state)) {
+      const decisionsKey = `agent-decisions:${this.context.featureHome}`;
+      if (!memo.has(decisionsKey)) memo.set(decisionsKey, agentDecisions(this.context.featureHome));
+      requireThat(identity(inputs.agentDecisions ?? null) === identity({ rule: AGENT_DECISION_RULE, entries: await memo.get(decisionsKey) }),
+        'Boundary review did not assess the current agent decision entries; run the paired review again');
+    }
     if (['independent', 'assessment'].includes(definition.role) && result.outcome !== 'UNAVAILABLE') {
       validateEvaluatorCapability(receipt.evaluator?.capabilityProfile, receipt.evaluator?.reasoningEffort);
       requireThat(identity(receipt.evaluator.capabilityProfile) === identity(HIGH_CAPABILITY_PROFILE)
@@ -1282,7 +1295,7 @@ export class CurrentCore {
       case 'review.publish': {
         const published = await publishReview(this, input);
         const { state } = await this.state();
-        const ready = readyRecord(state, { scope: published.scope }, published, published.observed ?? {});
+        const ready = readyRecord(state, { scope: published.scope }, published, published.observed ?? {}, isGoal(state) ? await agentDecisions(this.context.featureHome) : []);
         if (ready && JSON.stringify(state.goalReady && { ...state.goalReady, at: undefined, event: undefined }) !== JSON.stringify({ ...ready, at: undefined, event: undefined }))
           await this.append(state, 'GOAL_READY', ready, { id: `${operation.id}-goal-ready`, hash: identity(ready) });
         return published;

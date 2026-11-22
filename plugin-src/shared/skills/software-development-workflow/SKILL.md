@@ -50,8 +50,15 @@ passage.
 
 For an unattended run to a ready PR without questions, or to raise an existing
 run after a human-led interview, use the `goal` skill
-(`<plugin-root>/skills/goal/SKILL.md`). In a goal run never ask the human:
-record `Answered by: agent` entries instead.
+(`<plugin-root>/skills/goal/SKILL.md`). In a goal run, follow these rules:
+
+- Never ask the human. Record `Answered by: agent` entries instead.
+- Use the test methods needed to prove the change, and list them in the PR.
+  Production, data deletion and harness approvals are excluded.
+- At a real blocker, keep a draft PR listing every blocker, record
+  `goal.park`, then ask through the question tool. A human `run.continue`
+  resumes the run.
+- End at a ready, unmerged final PR.
 
 ## Command Map
 

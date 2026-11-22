@@ -179,7 +179,7 @@ likely failures.
 |---|-----------|------|------|----------|
 | R1 | AC1 grant prerequisites | Tests show `run.set-dial` to `goal` accepted with human authority + runId + mandate + protection and refused when each one is missing or the actor is agent, and `run.start` with `goal` accepted with human authority + mandate + protection and refused without the mandate | A valid grant refused, any missing prerequisite accepted, or an agent raise accepted | CLI protocol tests |
 | R2 | AC1 parity and eligibility | Tests show a goal run passing each listed autonomous path; existing delegated tests pass; a release-target merge under goal is refused without the per-PR human instruction | Any listed path refused for goal, a delegated path lost, or a goal release merge allowed without the per-PR human instruction | CLI protocol tests |
-| R3 | AC1 compatibility | The existing CLI suite passes; the only existing-test edits are AC9 rename assertions; defaults remain full/supervised | Any other existing test changed, any existing test failing, or defaults changed | Full CLI test run + diff of existing tests |
+| R3 | AC1 compatibility | The existing CLI suite passes; the only existing-test edits are AC9 rename assertions and the skill-inventory counts that the added `goal` skill (AC7) raises from 28 to 29; defaults remain full/supervised | Any other existing test changed, any existing test failing, or defaults changed | Full CLI test run + diff of existing tests |
 | R4 | AC2 terminal state | Tests cover `null`, `ready-pr` (every condition), `parked`, parked precedence over ready-pr, `decisions`, and the missing `goal` object for non-goal runs | Any state reported when its conditions are not all met, or a covered case untested | CLI protocol tests |
 | R5 | AC3 park/resume | Tests show park accepted only per AC3 (open draft PR containing every blocker) and refused for each listed refusal; resume only by human `run.continue`; dial return clears the park | Any listed refusal accepted, a valid park refused, or a non-human continue accepted | CLI protocol tests |
 | R6 | AC4 question guard | Hook tests show deny under goal without park, no deny with park, non-goal or unreadable state; both manifests route both tools; existing shell-guard tests unchanged and passing | Any case decided otherwise, or a manifest missing a tool | Hook tests + manifest inspection |
@@ -228,3 +228,8 @@ Append spec amendments here. Do not remove or weaken original criteria.
   criterion adds the stall valve as a bounded exception, the rename criterion
   is restated, and the compatibility rubric row now admits the rename
   assertion edits.
+- **A4 - 2026-11-22.** R3 also admits updating the existing skill-inventory
+  count assertions (`contracts.test.js`, `portability.test.js`) from 28 to 29.
+  That change necessarily follows from shipping the `goal` skill the goal
+  skill criterion requires. The boundary reviewers (codex REV-3) read R3
+  literally as forbidding it. No behavior criterion changes.

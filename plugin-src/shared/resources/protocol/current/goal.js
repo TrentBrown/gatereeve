@@ -4,7 +4,7 @@
 // state is computed from recorded events only, so status never needs the host.
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { requireThat, text } from './contracts.js';
+import { requireThat, text, identity } from './contracts.js';
 import { isGoal } from './delegation.js';
 
 // The one provenance-tagged decision record (spec AC6): entries marked
@@ -90,10 +90,12 @@ export async function parkGoal(core, input, operation, readPullRequest) {
 // Recorded by review.publish when a goal run's final FEATURE candidate summary
 // is published on an open, unmerged PR (an open draft is GateReeve's default
 // delivery state, spec A2) whose head is the candidate head.
-export function readyRecord(state, candidate, publication, pr) {
+export const decisionsIdentity = decisions => identity(decisions.map(({ file, heading, body }) => ({ file, heading, body })));
+export function readyRecord(state, candidate, publication, pr, decisions = []) {
   if (!isGoal(state) || candidate.scope !== 'FEATURE') return null;
   if (pr.state !== 'OPEN' || pr.headRefOid !== publication.head) return null;
-  return { candidate: state.candidate.hash, repository: publication.repository, number: publication.number, head: publication.head, review: publication.review };
+  return { candidate: state.candidate.hash, repository: publication.repository, number: publication.number, head: publication.head, review: publication.review,
+    decisions: decisionsIdentity(decisions) };
 }
 
 export function goalStatus(state, milestones = [], decisions = []) {
@@ -103,10 +105,12 @@ export function goalStatus(state, milestones = [], decisions = []) {
   if (state.park) return { condition, terminal: 'parked', decisions: listed, reason: `Parked behind PR #${state.park.pr.number}: ${state.park.blockers.join('; ')}`, park: state.park };
   const ready = state.goalReady;
   const acceptance = milestones.find(item => item.name === 'acceptance');
-  if (ready && state.candidate?.hash === ready.candidate && acceptance?.allowed)
+  const decisionsCurrent = ready && ready.decisions === decisionsIdentity(decisions);
+  if (ready && state.candidate?.hash === ready.candidate && acceptance?.allowed && decisionsCurrent)
     return { condition, terminal: 'ready-pr', decisions: listed, reason: `PR #${ready.number} is ready: acceptance qualifies and the current review summary is published on head ${ready.head}. Its release merge needs the per-PR human instruction.`, ready };
   const reason = !state.candidate ? 'No candidate is pinned yet'
-    : !ready || ready.candidate !== state.candidate.hash ? 'The final FEATURE candidate summary is not yet published on an open PR'
-      : 'The acceptance milestone does not qualify for the current candidate';
+    : !ready || ready.candidate !== state.candidate.hash ? 'The final FEATURE candidate summary is not yet published on an open PR for the current review state'
+      : !acceptance?.allowed ? 'The acceptance milestone does not qualify for the current candidate'
+        : 'Agent decision entries changed since the summary was published; run review.publish again';
   return { condition, terminal: null, reason, decisions: listed };
 }

@@ -633,6 +633,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       examined.add(result.gate);
       if (identity(previous.configuration) !== identity(configuration) || identity(previous.coverageClaims ?? []) !== identity(replacements)
         || previous.reviewContract !== value.reviewContract || identity(previous.claims) !== identity(value.claims)
+        || identity(previous.agentDecisions ?? null) !== identity(value.agentDecisions ?? null)
         || identity(previous.requestedHistory ?? []) !== identity(value.requestedHistory) || identity(previous.historyGaps ?? []) !== identity(missingHistory)) { await record({category:'reuse',startedAt:Date.now(),durationMs:0,outcome:'REJECTED',reason:'inputs-changed'}); continue; }
       try {
         if (result.gate === 'review' && (await findingObligations(core, state, candidate, previous, result)).unreconciledFindings.length) {
