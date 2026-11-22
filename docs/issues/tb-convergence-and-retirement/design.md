@@ -1,6 +1,6 @@
 # Design - tb-convergence-and-retirement
 
-**Source:** `interview.md`, decisions D1–D28 (D1–D19 from the Mac interview,
+**Source:** `interview.md`, decisions D1–D31 (D1–D19 from the Mac interview,
 D20–D27 added on Linux, 2026-11-22).
 **Rigor:** full, supervised.
 
@@ -103,7 +103,11 @@ integration branch.
 
 Slice 3 carries the reviewer contract (severity, failure scenario, class
 statement, sweep record, contract robustness, and the per-finding metrics
-fields). Slice 4 carries the round policy, follow-ups, the failure-model rule,
+fields), plus reviewer input and activity retention (D29, D30): instructions,
+input and output schema, the Codex event stream, a Claude `stream-json` event
+stream, and the raw output of contract failures, stored whole as
+content-addressed objects referenced from the receipt, so the exact prompt of
+any review round can be reconstructed and re-run. Slice 4 carries the round policy, follow-ups, the failure-model rule,
 light-run rules and goal-mode wiring.
 
 **Severity and failure scenarios (D8).**
@@ -254,7 +258,9 @@ coupling. It previews by default.
   - commits not on a remote;
   - a branch with no remote.
 
-  Regenerable folders and `.gatereeve-current/` aren't listed.
+  Regenerable folders aren't listed. `.gatereeve-current/` is listed unless a
+  harvest marker shows the telemetry harvester copied it after its last change
+  (D31).
 - **Removal:** one confirmation per worktree, then delete everything. There
   is no Trash and no archive. Afterwards: `git worktree prune`, and the local
   branch is deleted only if fully merged. Remote branches are never touched.

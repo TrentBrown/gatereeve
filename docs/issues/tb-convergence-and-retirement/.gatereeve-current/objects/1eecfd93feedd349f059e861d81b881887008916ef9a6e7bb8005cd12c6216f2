@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "featureId": "tb-unattended-autonomy",
+  "repositories": {
+    "repository": {
+      "path": ".",
+      "remote": "origin",
+      "integrationBranch": "main",
+      "releaseBranch": "main",
+      "keepPullRequestsClosed": false,
+      "featureBaseSha": "400e4a29e0e19afd1f1d0b53709d4a6d74d03127"
+    }
+  }
+}

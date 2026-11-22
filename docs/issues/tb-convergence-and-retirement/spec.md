@@ -207,11 +207,13 @@ silent best effort:
     for the named repositories, or for every repository under a configured
     root (default `~/Code`), and previews by default.
   - Candidates and stale worktrees, always-skipped cases with reasons, and the
-    per-worktree list of things that might matter follow D17 and D18 exactly.
+    per-worktree list of things that might matter follow D17 and D18, as
+    amended by D31 (unharvested `.gatereeve-current/` is listed).
   - The regenerable set that is never listed is exact: git-ignored
     directories named `node_modules`, `dist`, `build`, `out`, `.next`,
     `.turbo`, `.cache`, `coverage`, `__pycache__`, `.pytest_cache`, `.venv` or
-    `target` at any depth, and `.gatereeve-current` directories. A repository
+    `target` at any depth, and `.gatereeve-current` directories whose harvest
+    marker is current. A repository
     extends the set only with directory names in its local git configuration
     (`git config --add gatereeve.sweepRegenerable <name>`). Every other
     git-ignored file or directory, including dotfiles such as `.env`, is
@@ -242,6 +244,27 @@ silent best effort:
     resume; their findings read as severity `unrated` and block exactly as
     under their original contract; a later review on a resumed run applies the
     new contract, with its round count starting at 1.
+- **AC12. Reviewer input and activity retention (slice 3).**
+  - For every reviewer run (boundary, gate and planning reviews), the
+    instructions, input and output schema are stored as content-addressed
+    objects in the feature's workflow state, referenced from the receipt; the
+    exact prompt text the provider received is reconstructible byte for byte
+    from the workflow state alone, and its digest matches the receipt's.
+  - The Codex `--json` event stream is stored whole as an object referenced
+    from the receipt.
+  - The Claude reviewer runs with `--output-format stream-json --verbose`; its
+    event stream, including tool calls, is stored whole as an object referenced
+    from the receipt, and the structured result and context ID are read from
+    the stream's final `result` event.
+  - When a result is UNAVAILABLE because of a contract or malformed-output
+    error, the raw output text and the validation errors are stored and
+    referenced from that result.
+  - Retained objects are not truncated (D30); the isolation flags are
+    unchanged; receipts from earlier versions without these references remain
+    valid.
+  - The worktree sweep lists a worktree's `.gatereeve-current/` unless a harvest
+    marker (`.gatereeve-current/harvested.json` with an ISO `harvestedAt`) is
+    newer than every other file in it (D31).
 
 ## Rubric
 
@@ -257,4 +280,5 @@ silent best effort:
 | R8 | AC8 failure model | `spec.validate` fails naming the line for a missing or empty section and for each listed word without a bound or reference, passes with one; old validated specs warn; reviewer inputs carry the model; light briefs without one lint clean | A listed case passing or failing wrongly, or reviewers lacking the model | Spec-lint tests + reviewer input inspection |
 | R9 | AC9 CI after convergence | Tests show preparation and review on an unpushed local head, a Verification without a receipt on the candidate tree making the review not qualifying, reviewer instructions assessing changed-area and affected-suite receipts, a same-tree CI Verification with covered receipts qualified mechanically without invalidating converged reviews or launching reviewers, an uncovered consumed receipt failing the check by name, a different-tree CI Verification rejected naming both trees, acceptance refused on local evidence alone, the CI-failure delta path, and the push warning without denial; docs updated | A paired re-review required after same-tree covered CI, an uncovered receipt or a different tree accepted, acceptance on local evidence alone, or a push denied solely because reviews have not converged | Protocol tests + hook tests + doc review |
 | R10 | AC10 sweep | Tests over fixture repositories cover discovery, every candidate rule, every skip with its reason, every listed item, exactly the listed regenerable directory names (and a git-config extension) not listed while any other ignored file such as `.env` is listed, `pr-state-unknown` skips, preview by default, confirmed removal with prune and merged-only branch deletion, untouched remote branches, and non-interactive removal limited to empty lists | Any protected worktree removed, a worktree with unknown PR state removed, a listed item omitted, a remote branch touched, or an interactive removal without confirmation, or a non-interactive removal of a worktree with a non-empty list | CLI tests with fixture repositories |
+| R12 | AC12 reviewer retention | Tests reconstruct a review round's exact prompt from the workflow state alone and match the receipt digests; show the Codex and Claude event streams stored whole and referenced (Claude parsed from stream-json, including a tool call); raw output and validation errors stored for a contract failure; a legacy receipt still valid; the sweep listing unharvested state and not listing state with a newer harvest marker | Any prompt not reconstructible, a stream missing or truncated, failed output lost, a legacy receipt rejected, or unharvested state deleted without being listed | Adapter and protocol tests + sweep fixture tests |
 | R11 | AC11 measurement and surfaces | Tests show each listed metrics field stored, a retained earlier-version result keeping its outcome and qualification on resume with `unrated` findings, a later review on that run applying the new contract from round 1, and the four D6 measures reported from the store alone; surfaces and docs updated; the existing suites pass with only the test edits these criteria require; sync, contract and plugin checks pass | A field missing, a measure needing a worktree, a surface or doc missing, or an existing test failing | Metrics tests + full suites + plugin checks |

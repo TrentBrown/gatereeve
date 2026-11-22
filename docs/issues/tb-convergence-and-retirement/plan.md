@@ -95,7 +95,17 @@ Every shared resource change is restaged into the desktop copies
   (`class`, `sites[]` with path/line, `search`, `fix`, `test`, `dependents`);
   pass prior sweep records into the next round's review input.
 
-### P4 - Reviewer contract robustness and finding metrics (slice 3, AC5, AC11 part)
+### P4 - Reviewer contract robustness and finding metrics (slice 3, AC5, AC11 part, AC12)
+
+- Retention (AC12): in `local-agent-adapters.js` return the prompt parts and
+  the raw stdout with each stage result; in `execution.js` and
+  `delegation.js` store instructions, input, output schema and the event
+  stream with `core.store.putJson`/`put` and reference them from the stored
+  receipt (`retained: {instructions, input, outputSchema, events}`). Switch
+  Claude to `--output-format stream-json --verbose` and parse the final
+  `result` event (`structured_output`, `session_id`, usage). On contract or
+  malformed-output UNAVAILABLE, store the raw output and validation errors.
+  Test: reconstruct `promptText` from the stored objects and compare digests.
 
 - On a contract error from a reviewer, run one automatic repair turn through
   the existing `repair` path (`execution.js`, `validateFormatRepair`) with the
@@ -173,6 +183,8 @@ Every shared resource change is restaged into the desktop copies
 - PR state through `gh`. When open-PR status for a branch cannot be
   established, that worktree is skipped as `pr-state-unknown`, whatever other
   candidate rule it meets.
+- List `.gatereeve-current/` unless `.gatereeve-current/harvested.json`
+  (`harvestedAt`) is newer than every other file in it (D31).
 - Fixture-repository tests.
 
 ### P10 - Measurement, surfaces and docs (all slices, AC11)
@@ -194,7 +206,7 @@ Every shared resource change is restaged into the desktop copies
 | P1 | R1 |
 | P2 | R2 |
 | P3 | R3, R4 |
-| P4 | R5, R11 |
+| P4 | R5, R11, R12 |
 | P5 | R6 |
 | P6 | R7 |
 | P7 | R8 |

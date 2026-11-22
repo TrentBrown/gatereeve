@@ -562,3 +562,38 @@ and the Fleet thread's reviewer idle-inhibitor request.
      reports get an age and count limit; `gatereeve cleanup` and `doctor`
      report file counts; stranded runs past an age limit are listed for
      removal.
+
+### D29 - Reviewer input and activity retention (amends slice 3)
+- **Question:** The telemetry thread's handoff (`handoff-reviewer-retention.md`)
+  asks GateReeve to keep every reviewer's exact inputs and activity so review
+  rounds can be analysed and re-run. Where does it go?
+- **Answered by:** human
+- **Answer:** "Into slice 3 (Recommended)", after asking to "accommodate the
+  changes needed into our slices here".
+- **Decision:** Slice 3 also retains, per reviewer run, as content-addressed
+  objects in the feature's workflow state referenced from the receipt: the
+  instructions, input and output schema (so the exact prompt is
+  reconstructible byte for byte); the Codex `--json` event stream; a Claude
+  event stream from `--output-format stream-json --verbose` (verified
+  2026-11-22 with Claude Code 2.1.330 under `--restricted`: tool calls and a
+  final `result` with `structured_output` are emitted); and the raw output
+  with validation errors when a result fails the contract. Isolation flags
+  (`--ephemeral`, `--no-session-persistence`) stay. Redaction is the
+  harvester's job. Candidates already pin full per-repository commit IDs.
+
+### D30 - No size caps on retained reviewer objects
+- **Question:** Cap retained prompts and event streams per object?
+- **Answered by:** human
+- **Answer:** "No caps".
+- **Decision:** Objects are stored whole. The existing bounds remain: prompts
+  at 512 KiB and process output at 16 MiB.
+
+### D31 - The sweep lists unharvested workflow state (amends D17)
+- **Question:** The sweep deletes a worktree's workflow state, which would
+  destroy retained reviewer inputs before the harvester copies them. How
+  should it treat that?
+- **Answered by:** human
+- **Answer:** "List unharvested state (Recommended)".
+- **Decision:** Amends D17 item 3. A worktree's `.gatereeve-current/` is listed
+  as something that might matter unless a harvest marker shows it was copied
+  after its last change; non-interactive mode therefore skips it.
