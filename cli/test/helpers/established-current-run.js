@@ -15,6 +15,8 @@ export async function establishCurrentRun(core, { refresh = false } = {}) {
     await writeFile(join(home, 'plan.md'), '# Plan\n## P1 - Implement R1\n');
     await writeFile(join(home, 'issues.md'), '# Issues\n## I-1 - Implement\n**Status:** in-review\n**Plan steps:** P1\n**Rubric criteria:** R1\n');
     await writeFile(join(home, 'tracker.md'), '# Tracker\n## Rubric Status\n| R1 | AC1 | NOT YET | pending |\n## Review Log\n');
+    // candidate.prepare requires the decisions log (spec AC13); keep a caller's own.
+    await writeFile(join(home, 'decisions.md'), '# Decisions\nNo changes.\n', { flag: 'wx' }).catch(error => { if (error.code !== 'EEXIST') throw error; });
     await request('run.start', { runId: 'desktop-established', implementers: ['fixture-implementer'] }, 'start');
     const design = await core.store.capture('design.md');
     await request('human.decide', { kind: 'approve-design', subject: design.hash, authority, reason: 'Fixture', consequences: 'Validate fixture' }, 'design');
