@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:57fe50b3ad1d7bad59646355ce5c97d3377dd5acb5b4b1392d35f5cbc5b1ee4d",
+  "protocolHash": "sha256:50692b1cc468e1e78ae56f33a933260df93c38403c601f5b7f5c2b5815b80618",
   "contract": "gatereeve/current/8",
   "contractSha256": "7667d7eeff6381d189f3f19c835ebedbd3fc88650f80a735d39c68f3e1576823",
   "files": [
@@ -27,8 +27,8 @@
     },
     {
       "path": "current/adapter.js",
-      "size": 18171,
-      "sha256": "f3d2b4af5e10688df85d149a34dd057e94bc829658eb61bbdc90a75141031cdd"
+      "size": 18295,
+      "sha256": "3773f1d696195faa370d43a877e3ea5b67c0d0a1194d4685e9f4190e1b5e3398"
     },
     {
       "path": "current/authorization.js",
@@ -57,13 +57,13 @@
     },
     {
       "path": "current/core.js",
-      "size": 101105,
-      "sha256": "7eb6456bdf62177aee20b4c3b448ee4828053e87612b1bb0ba262a8e45024632"
+      "size": 104418,
+      "sha256": "304b4ad8c78b540b4961812d10f9a73f5af8e814de38ea85cd32d2737a3bd815"
     },
     {
       "path": "current/coverage.js",
-      "size": 2899,
-      "sha256": "e5508842c1135b0041f44b587cb2c85fe12ab5e2559da9038e71d2787270ac8d"
+      "size": 5134,
+      "sha256": "58360ab6d33e6ed0e24d765b163bb126b5f9ed77ac9074950ee64c97a754161e"
     },
     {
       "path": "current/delegation.js",
@@ -82,8 +82,8 @@
     },
     {
       "path": "current/entry-point.js",
-      "size": 4925,
-      "sha256": "5ce0cb9facb6be1b3ac9b3365c8f6ed5cfc5a8f398f631cc89149556dc7e444c"
+      "size": 4974,
+      "sha256": "5b7fdfb75a79da7303d149cd8f581282a3005da020c6ca86ac444fe32b6c34a3"
     },
     {
       "path": "current/environment.js",
@@ -97,8 +97,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 78796,
-      "sha256": "148659da05550575218a1c08bd24e5a7420b382927c0b1e6498cf797e2fd0f83"
+      "size": 79732,
+      "sha256": "e5caf981de36d295d534e00726ec23c49a209af1caf4aeb54b3812a8b437d38f"
     },
     {
       "path": "current/final-handoff.js",
@@ -202,8 +202,8 @@
     },
     {
       "path": "current/workflow-database.js",
-      "size": 7675,
-      "sha256": "fbd0c0f29008f63babc387749007c833dc87c99eacc555e84c5007d123473124"
+      "size": 7713,
+      "sha256": "31f384f92fcea12c0cde0b884674995ab4846e3598ac3c5a6000e4b53f3525be"
     },
     {
       "path": "current/workspace.js",

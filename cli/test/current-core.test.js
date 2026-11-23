@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import { database, DATABASE_NAME } from '../../plugin-src/shared/resources/protocol/current/workflow-database.js';
 import assert from 'node:assert/strict';
 import { isolatedTests } from './helpers/isolated-tests.js';

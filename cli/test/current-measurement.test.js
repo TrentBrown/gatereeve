@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 // Measurement and rollout (spec AC8, R12): projected observations carry the
 // run dials and decision authority; dial, delegation, tripwire, escalation,
 // hand-back, planning-review and external-blocker events reach metrics;

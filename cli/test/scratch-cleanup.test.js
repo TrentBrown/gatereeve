@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, readdir, rm, mkdir, writeFile, symlink, lstat, rename, chmod, link } from 'node:fs/promises';
@@ -151,9 +152,56 @@ test('interrupted child registration and maintenance locks remain protected', as
   const { root } = await fixture(t), run = await createScratch({ root, purpose: 'interrupted' });
   await changeOwner(run, { supervisionPending: true });
   assert.equal((await cleanupScratch({ root, apply: true, ...inactive })).entries[0].status, 'uncertain');
+  // Run creation takes no lock; an interrupted lock is reported by the
+  // operations that need it and is never removed by age.
+  const second = await createScratch({ root, purpose: 'second' });
   await mkdir(join(root, '.maintenance-lock'), { mode: 0o700 });
-  await assert.rejects(createScratch({ root, purpose: 'second' }), /maintenance/u);
+  await assert.rejects(finishScratch(second), /maintenance was interrupted/u);
   assert.ok(await lstat(run.path));
+  assert.ok(await lstat(join(root, '.maintenance-lock')));
+});
+
+test('a waiter on a live lock holder keeps waiting; a gone holder is reported as interrupted', async t => {
+  const { root } = await fixture(t), run = await createScratch({ root, purpose: 'waiter' });
+  const lockPath = join(root, '.maintenance-lock');
+  await mkdir(lockPath, { mode: 0o700 });
+  await writeFile(join(lockPath, 'owner.json'), JSON.stringify({ kind: 'gatereeve-scratch/1', processId: process.pid, processStartedAt: await processIdentity(process.pid) }), { mode: 0o600 });
+  let settled = false;
+  const waiting = finishScratch(run).finally(() => { settled = true; });
+  await new Promise(resolveWait => setTimeout(resolveWait, 3500)); // past the observation and unknown-owner windows' first probe
+  assert.equal(settled, false, 'a waiter on a live holder must not fail');
+  await rm(lockPath, { recursive: true });
+  assert.equal((await waiting).removed.length, 1);
+  await mkdir(lockPath, { mode: 0o700 });
+  await writeFile(join(lockPath, 'owner.json'), JSON.stringify({ kind: 'gatereeve-scratch/1', processId: process.pid, processStartedAt: 'not this process' }), { mode: 0o600 });
+  const another = await createScratch({ root, purpose: 'gone holder' });
+  await assert.rejects(finishScratch(another), /maintenance was interrupted/u);
+  assert.ok(await lstat(lockPath));
+});
+
+test('run creation takes no lock and cleanup deletes a tombstone outside the lock', async t => {
+  const { root } = await fixture(t), first = await createScratch({ root, purpose: 'first' });
+  await mkdir(join(root, '.maintenance-lock'), { mode: 0o700 }); // held by nobody we could wait for
+  const runs = await Promise.all(Array.from({ length: 8 }, () => createScratch({ root, purpose: 'lockless' })));
+  assert.equal(new Set(runs.map(run => run.id)).size, 8);
+  await rm(join(root, '.maintenance-lock'), { recursive: true });
+  // Observe the lock state during deletion: the rename happens under the
+  // lock, the recursive removal of the tombstone after it is released.
+  await writeFile(join(first.path, 'bulk'), 'x');
+  await changeOwner(first, { state: 'finished' });
+  await rm(join(first.path, '.active'));
+  let lockedDuringRemoval = null;
+  const removeTree = async path => {
+    lockedDuringRemoval = await lstat(join(root, '.maintenance-lock')).then(() => true, () => false);
+    assert.match(path, /\/runs\/\.removing-/u);
+    await rm(path, { recursive: true });
+  };
+  const result = await cleanupScratch({ root, run: first.id, apply: true, removeTree, ...inactive });
+  assert.equal(lockedDuringRemoval, false);
+  assert.deepEqual(result.removed.map(item => item.id), [first.id]);
+  assert.deepEqual((await readdir(join(root, 'runs'))).filter(name => name.startsWith('.')), []);
+  await assert.rejects(lstat(join(root, '.maintenance-lock')), { code: 'ENOENT' });
+  assert.equal((await inspectScratch({ root, quick: true })).tombstones, 0);
 });
 
 test('concurrent creators in a new root have unique ownership', async t => {

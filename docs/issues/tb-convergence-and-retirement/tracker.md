@@ -10,7 +10,7 @@
 | # | Criterion (short) | Status | Review | Notes |
 |---|-------------------|--------|----|-------|
 | R1 | AC1 idle lock | DONE | PR #128 (7 paired rounds, PASS) | local-agent-idle-inhibitor.test.js (wrap, fallbacks, stdin, exit code, size guard, timeout, live lock list and release, receipt) |
-| R2 | AC2 metrics repair | IN PROGRESS | - | PR A; D33 scratch-lock work pending. metrics-repair.test.js (isolation, purge, capture conflicts, status counts, decision.ask, human wait, scratch file counts, stranded, report retention); live store copy: purge 49,236 fixture rows, capture succeeds |
+| R2 | AC2 metrics repair | IN PROGRESS | - | PR A; D33 scratch lock implemented: scratch-cleanup.test.js (lockless creation, tombstone deleted outside the lock, live-holder waiter, interrupted lock reported), test-shards.test.js (per-shard roots, every test file imports helpers/private-scratch.js). metrics-repair.test.js (isolation, purge, capture conflicts, status counts, decision.ask, human wait, scratch file counts, stranded, report retention); live store copy: purge 49,236 fixture rows, capture succeeds |
 | R3 | AC3 severity and class | TODO | - | slice 3 |
 | R4 | AC4 sweep records | TODO | - | slice 3 |
 | R5 | AC5 robustness | TODO | - | slice 3 |
@@ -21,7 +21,7 @@
 | R10 | AC10 sweep | IMPLEMENTED | - | PR A; worktree-sweep.test.js |
 | R11 | AC11 measurement and surfaces | TODO | - | PRs B and C |
 | R12 | AC12 reviewer retention | TODO | - | PR B |
-| R13 | AC13 workflow robustness | TODO | - | PR A (D33) |
+| R13 | AC13 workflow robustness | IN PROGRESS | - | PR A (D33): workflow-robustness.test.js (prepare names missing decisions.md; check replacement covered after consuming review PASS, uncovered after FAIL; job.abandon gone/live/delivery/legacy, older proof qualifies again); test_bootstrap_branch_docs.py (decisions.md created) |
 
 ## Review Log
 

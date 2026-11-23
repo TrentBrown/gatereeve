@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import { selection, pairExistingEvaluator, passingReviewRefs } from './helpers/paired-review-fixture.js';
 // Delivery targets, release merge authority, external blockers and review-summary
 // publication (spec AC6, R8 non-delegated paths, R9). Only GitHub transport is

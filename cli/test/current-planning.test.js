@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { planningFacts, planningReferences, validatePlanning, assertPlanningProof } from '../../plugin-src/shared/resources/protocol/current/planning.js';

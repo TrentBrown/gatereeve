@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 import { smokePublicHomebrewCask } from '../../apps/desktop/scripts/smoke-homebrew-cask.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';

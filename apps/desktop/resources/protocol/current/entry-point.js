@@ -24,6 +24,7 @@ const CLI_FORMS = Object.freeze({
   'review.select': 'gatereeve select-reviewers --help',
   'review.execute': 'gatereeve review-boundary --help',
   'review.adjudicate': 'gatereeve adjudicate-review --help',
+  'job.abandon': 'gatereeve abandon-job --help',
   'run.set-dial': 'gatereeve run set-dial --help',
   'merge.prepare': 'gatereeve merge prepare --number <PR> --source-repository <alias>',
   'merge.execute': 'gatereeve merge execute --number <PR> --source-repository <alias>',

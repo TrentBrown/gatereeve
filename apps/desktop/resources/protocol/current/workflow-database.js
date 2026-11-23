@@ -77,7 +77,7 @@ export function historyRow(db, { id, runId, kind, recordedAt, source, body }) {
 export function projectEvent(db, event) {
   const { runId, hash, type, payload, recordedAt } = event;
   const kind = ({ STARTED: 'workflow', DECIDED: 'decision', DECISION_PENDING: 'pending-decision',
-    JOB_STARTED: 'execution-start', JOB_OUTCOME_READY: 'execution-outcome', JOB_FINISHED: 'execution-finish',
+    JOB_STARTED: 'execution-start', JOB_OUTCOME_READY: 'execution-outcome', JOB_FINISHED: 'execution-finish', JOB_ABANDONED: 'execution-abandoned',
     CANDIDATE: 'candidate', OBSERVATION: 'observation', MILESTONE: 'milestone', INTEGRATED: 'integration' })[type] ?? 'workflow-event';
   historyRow(db, { id: hash, runId, kind, recordedAt, source: 'protocol', body: { type, ...payload } });
   if (type === 'STARTED') for (const [index, contextId] of (payload.implementers ?? []).entries()) {

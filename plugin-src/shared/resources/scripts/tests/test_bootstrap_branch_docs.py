@@ -66,6 +66,10 @@ class BootstrapBranchDocsTests(unittest.TestCase):
 
         feature_home = self.root / "docs/issues" / feature_id
         self.assertTrue((feature_home / "spec.md").is_file())
+        # Spec AC13 (D33): the decisions log is created with the other lifecycle
+        # documents, so candidate.prepare never finds it missing.
+        for name in ("interview.md", "plan.md", "issues.md", "tracker.md", "scratchpad.md", "decisions.md"):
+            self.assertTrue((feature_home / name).is_file(), name)
         self.assertIn("**Feature:**", (feature_home / "spec.md").read_text())
         self.assertFalse((self.root / "docs/issues" / f"{feature_id}-02-api").exists())
         self.assertIn(f"Feature docs: {feature_home.resolve()}", first.stdout)

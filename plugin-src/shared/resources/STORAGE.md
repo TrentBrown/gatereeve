@@ -92,8 +92,15 @@ owned workspace for 24 hours. A caller's explicit `--workspace` remains caller
 owned. Normal completion cleans the command's own scratch where safety checks
 permit. Retained paths and reasons are reported.
 
-Cleanup rechecks run/root ownership and directory identities under a maintenance
-lock. Symlinked roots/records, malformed or missing owners, active owners or child
+Creating a run takes no lock: its folder name is unique and its owner record is
+published by an atomic rename (until then cleanup treats the run as uncertain).
+Cleanup probes activity outside the lock, then rechecks run/root ownership and
+directory identities under the maintenance lock only while renaming an eligible
+run to a `.removing-` tombstone; the tombstone is deleted outside the lock. A
+process waiting on a lock whose holder is verified alive keeps waiting; a holder
+verified gone, or a lock left without an owner record, is reported as interrupted
+and never removed by age. Each isolated test shard and each test file run directly
+with `node --test` gets its own private scratch root (`cli/test/helpers`). Symlinked roots/records, malformed or missing owners, active owners or child
 groups, mounted directories and uncertain OS observations are protected. PID reuse
 alone does not establish inactivity. Full checks use POSIX `ps`, `mount` and
 `lsof`. On Linux, a process-handle inventory avoids recursively scanning the

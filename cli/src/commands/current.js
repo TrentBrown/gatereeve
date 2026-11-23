@@ -131,6 +131,10 @@ export function currentCommands() {
   const adjudicateReview = command('adjudicate-review', 'Under autonomous authority, record eligible residual risk and any diminishing-returns stopping reason')
     .argument('<file>', 'Exact candidate/pair, dispositions, retained evidence and rationale')
     .action(async (file, options) => run(options, 'review.adjudicate', await readJsonFile(file)));
+  const abandonJob = command('abandon-job', 'Record that a runner or independent-assessment job whose process is verifiably gone will never finish')
+    .requiredOption('--job <id>', 'Pending job ID from status')
+    .requiredOption('--reason <text>', 'Why the job will never finish')
+    .action(options => run(options, 'job.abandon', { jobId: options.job, reason: options.reason }));
   const workspace = new Command('workspace').description('Workspace configuration for delivery (.agentic-workflow.json)');
   workspace.addCommand(workspaceOptions(command('configure', 'For an existing run without one, write the minimal workspace configuration: the GitHub default branch as integration and release, excluded locally'))
     .action(options => run(options, 'workspace.configure', workspaceInput(options) ?? {})));
@@ -254,5 +258,5 @@ export function currentCommands() {
     .option('--merge <file>', 'Selected repository, PR number and merge method')
     .action(async options => run(options, 'delivery.resume', {
       ...(options.grant ? { grant: options.grant } : {}), ...(options.merge ? { merge: await readJsonFile(options.merge) } : {}) }));
-  return [status, coverage, database, note, read, runCommand, workspace, spec, candidate, ready, gate, selectReviewers, reviewBoundary, adjudicateReview, decide, delegatedDecision, autonomousDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
+  return [status, coverage, database, note, read, runCommand, workspace, spec, candidate, ready, gate, selectReviewers, reviewBoundary, adjudicateReview, abandonJob, decide, delegatedDecision, autonomousDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
 }

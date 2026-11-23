@@ -1,3 +1,4 @@
+import './helpers/private-scratch.js';
 // Review machinery fixes approved by Trent 2026-11-17 (S8): history-assessment
 // validation of a PASS with reconsidered closures.
 import assert from 'node:assert/strict';
