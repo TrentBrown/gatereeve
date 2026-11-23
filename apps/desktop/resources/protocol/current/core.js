@@ -631,6 +631,7 @@ export class CurrentCore {
         for (const id of ids) covered.set(id, result.outcome === 'PASS');
       } catch { /* Historical success cannot fill current coverage. */ }
     }
+    const pairedReplacements = new Map();
     // Semantic supersession is established by an existing independent spec or
     // Judge result. A model-authored claim alone never satisfies coverage.
     for (const ref of [...state.results].reverse()) {
@@ -645,10 +646,16 @@ export class CurrentCore {
       for (const claim of inputs.coverageClaims) {
         if (!report.coverageDecisions?.some(item => item.id === claim.id && item.outcome === 'PASS')) continue;
         if (claim.kind === 'check-replacement') {
-          // Spec AC13 (D33): the declared replacement counts once the consuming
-          // review accepted it and its verification is still current and passing.
-          try { if ((await this.currentResult(claim.verification, candidate, state, new Set(), memo, false)).outcome === 'PASS') covered.set(checkIdentity(claim.replaces), true); }
-          catch { /* A stale replacement cannot cover prior behavior. */ }
+          // Spec AC13 (D33): the declared replacement counts once both members
+          // of the paired boundary review that consumed it accepted it and its
+          // verification is still current and passing. A standalone spec,
+          // judge or single review decision is not enough.
+          if (report.gate !== 'review' || !inputs.configuration?.reviewerSelection || typeof inputs.configuration.provider !== 'string') continue;
+          try { if ((await this.currentResult(claim.verification, candidate, state, new Set(), memo, false)).outcome !== 'PASS') continue; }
+          catch { continue; } // A stale replacement cannot cover prior behavior.
+          const key = `${claim.verification.hash}:${checkIdentity(claim.replaces)}`;
+          const providers = pairedReplacements.get(key) ?? pairedReplacements.set(key, { identity: checkIdentity(claim.replaces), providers: new Set() }).get(key);
+          providers.providers.add(inputs.configuration.provider);
           continue;
         }
         let applicable = true;
@@ -663,6 +670,7 @@ export class CurrentCore {
         }
       }
     }
+    for (const { identity: replaced, providers } of pairedReplacements.values()) if (providers.size >= 2) covered.set(replaced, true);
     requireThat([...required].every(id => covered.get(id) === true), 'Verification has uncovered prior behavior; rerun checks or qualify replacement coverage in the existing independent review');
   }
   async recordedResult(ref, state) {

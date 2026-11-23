@@ -282,3 +282,30 @@ test('a terminated owner can be reclaimed by real activity checks without trusti
     assert.equal(result.removed[0].id, id);
   }
 });
+
+test('an interrupted tombstone is reclaimed once its deleter is gone; a live deleter keeps it', async t => {
+  const { root } = await fixture(t);
+  const runs = join(root, 'runs'), seed = await createScratch({ root, purpose: 'seed' });
+  const leftover = async (name, owner) => {
+    await mkdir(join(runs, name), { mode: 0o700 }); await writeFile(join(runs, name, 'bulk'), 'x');
+    await writeFile(join(runs, `${name}.json`), JSON.stringify({ kind: 'gatereeve-scratch/1', ...owner }), { mode: 0o600 });
+  };
+  await leftover('.removing-gone', { processId: process.pid, processStartedAt: 'an exited deleter' });
+  await leftover('.removing-live', { processId: process.pid, processStartedAt: await processIdentity(process.pid) });
+  assert.equal((await inspectScratch({ root, quick: true })).tombstones, 2);
+  const result = await cleanupScratch({ root, apply: true, ...inactive, probe: processIdentity });
+  assert.equal(result.tombstonesRemoved, 1, JSON.stringify(result.errors));
+  const left = (await readdir(runs)).filter(name => name.startsWith('.'));
+  assert.deepEqual(left.sort(), ['.removing-live', '.removing-live.json']);
+  assert.ok(await lstat(seed.path));
+});
+
+test('a run removed by a concurrent cleanup is skipped, not a failure', async t => {
+  const { root } = await fixture(t), run = await createScratch({ root, purpose: 'raced' });
+  await changeOwner(run, { state: 'finished' }); await rm(join(run.path, '.active'));
+  let raced = false;
+  const result = await cleanupScratch({ root, run: run.id, apply: true, ...inactive,
+    inspectActivity: async path => { if (!raced) { raced = true; } else { await cleanupScratch({ root, run: run.id, apply: true, ...inactive }); } return 'inactive'; } });
+  assert.deepEqual(result.errors, []);
+  assert.deepEqual(result.skipped, [{ id: run.id, status: 'removed' }]);
+});

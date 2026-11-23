@@ -42,6 +42,8 @@ test('the test-data purge previews, then removes only workflows that lived in te
   const db = await reportingDatabase(store);
   db.prepare('INSERT INTO reporting_workflows VALUES (?,?,?)').run('w-real', '/home/someone/code/product/docs/issues/x', JSON.stringify({ projectKey: 'src:real' }));
   db.prepare('INSERT INTO reporting_workflows VALUES (?,?,?)').run('w-temp', join(tmpdir(), 'gatereeve-current-AbC123/docs/issues/f'), JSON.stringify({ projectKey: 'src:temp-project' }));
+  // A real workspace that happens to live under a temporary root is not test data.
+  db.prepare('INSERT INTO reporting_workflows VALUES (?,?,?)').run('w-tmp-real', join(tmpdir(), 'product/docs/issues/x'), JSON.stringify({ projectKey: 'src:tmp-real' }));
   const preview = await purgeTestData({}, store);
   assert.equal(preview.applied, false);
   assert.equal(preview.workflows, 1);
@@ -50,9 +52,13 @@ test('the test-data purge previews, then removes only workflows that lived in te
   const applied = await purgeTestData({ apply: true }, store);
   assert.equal(applied.observations, 2);
   const status = await metricsRequest('status', {}, store);
-  assert.deepEqual([status.breakdown.observations, status.breakdown.workflows, status.records], [1, 1, 1]);
+  assert.deepEqual([status.breakdown.observations, status.breakdown.workflows, status.records], [1, 2, 1]);
   assert.equal(temporaryHome('/home/someone/code/x'), false);
-  assert.equal(temporaryHome(join(tmpdir(), 'anything')), true);
+  assert.equal(temporaryHome(join(tmpdir(), 'product')), false);
+  assert.equal(temporaryHome(join(tmpdir(), 'my-product/docs')), false);
+  assert.equal(temporaryHome(join(tmpdir(), 'gatereeve-current-AbC123/docs')), true);
+  assert.equal(temporaryHome('/tmp/gatereeve/runs/node-x/tmp/gatereeve-light-q1W2e3/docs/issues/f', ['/tmp']), true);
+  assert.equal(temporaryHome('/tmp/gatereeve session start ysAb12Cd/docs', ['/tmp']), true);
 });
 
 test('capture keeps the stored value and reports a conflicting row; explicit import still refuses', async t => {
@@ -136,4 +142,26 @@ test('scratch cleanup counts files, labels stranded runs and limits diagnostic r
   assert.ok(left.includes(`${keep.id}.json`), 'a report whose run folder exists is kept');
   assert.ok(left.length <= REPORT_LIMIT + 2);
   assert.ok(applied.removed.some(item => item.id === run.id && item.files >= 3));
+});
+
+test('the CLI registers ask (decision.ask) and abandon-job (job.abandon)', async () => {
+  const { createProgram } = await import('../src/index.js');
+  const names = createProgram().commands.map(command => command.name());
+  assert.ok(names.includes('ask'), names.join(', '));
+  assert.ok(names.includes('abandon-job'), names.join(', '));
+});
+
+test('a full cleanup preview counts files for active and retained runs too', async t => {
+  const parent = await temp(t, 'scratch-counts-');
+  const root = join(parent, 'gatereeve');
+  const active = await createScratch({ root, purpose: 'live' });
+  await writeFile(join(active.path, 'a'), 'x'); await writeFile(join(active.path, 'b'), 'y');
+  const kept = await createScratch({ root, purpose: 'kept', keepUntil: new Date(Date.now() + 86400000).toISOString() });
+  const preview = await cleanupScratch({ root });
+  const byId = id => preview.entries.find(item => item.id === id);
+  assert.equal(byId(active.id).status, 'active');
+  assert.ok(byId(active.id).files >= 4, 'active run files are counted');
+  assert.equal(byId(kept.id).status, 'retained');
+  assert.ok(byId(kept.id).files >= 1);
+  assert.ok(preview.files >= byId(active.id).files + byId(kept.id).files);
 });

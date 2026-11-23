@@ -6,6 +6,7 @@ import test from 'node:test';
 import { writeFile, mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { currentFixture } from './helpers/current-fixture.js';
+import { selection, pairExistingEvaluator } from './helpers/paired-review-fixture.js';
 import { fixtureEvaluator } from './helpers/established-current-run.js';
 import { git } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
 import { sha256Digest } from '../../plugin-src/shared/resources/protocol/agent-workflow.js';
@@ -55,7 +56,7 @@ test('candidate.prepare fails naming a missing decisions log', async t => {
   await f.prepare();
 });
 
-test('a declared check replacement is covered once the consuming review accepts it, and refused when it rejects it', async t => {
+test('a declared check replacement is covered once both paired reviewers accept it, and not by a single assessment or a rejection', async t => {
   const f = await ready(t);
   const original = check('process.exit(1)');
   await verify(f, [original]);
@@ -70,21 +71,29 @@ test('a declared check replacement is covered once the consuming review accepts 
     claims = request.input.coverageClaims;
     for (const verdict of output.verdicts) {
       verdict.coverageDecisions = claims.map(claim => ({ id: claim.id, outcome: decision, evidence: 'Fixture assessment of the replacement' }));
+      verdict.dimensions = ['code', 'requirements', 'evidence', 'scope', 'findings'].map(name => ({ name, outcome: 'PASS', evidence: 'Actual fixture source and receipts' }));
       if (decision === 'FAIL') verdict.outcome = 'FAIL';
     }
   });
-  // Rejected by the consuming review: still uncovered.
-  await f.request('gate.execute', { gates: ['spec'], configuration: reviewConfig, consumed: replacement });
+  const uncovered = async () => assert.rejects(f.core.verificationCoverage(candidate, (await f.core.state()).state, new Map()), /uncovered prior behavior/u);
+  // A standalone assessment is not the paired review: still uncovered.
+  decision = 'PASS';
+  const single = await f.request('gate.execute', { gates: ['spec'], configuration: reviewConfig, consumed: replacement });
+  assert.equal((await f.core.store.json(single.event.payload.results[0])).outcome, 'PASS');
   assert.equal(claims.length, 1); assert.equal(claims[0].kind, 'check-replacement');
   assert.deepEqual(claims[0].replaces, { repository: 'app', command: original.command, args: original.args });
-  await assert.rejects(f.core.verificationCoverage(candidate, (await f.core.state()).state, new Map()), /uncovered prior behavior/u);
-  // Accepted in the same kind of review (no extra claim input needed): covered.
+  await uncovered();
+  // Rejected by the paired review: still uncovered.
+  await f.request('review.select', selection()); pairExistingEvaluator(f);
+  decision = 'FAIL';
+  await f.request('review.execute', { consumed: replacement });
+  await uncovered();
+  // Accepted by both members of the paired review (no extra claim input): covered.
   decision = 'PASS';
-  const assessed = await f.request('gate.execute', { gates: ['spec'], configuration: reviewConfig, consumed: replacement });
-  assert.equal((await f.core.store.json(assessed.event.payload.results[0])).outcome, 'PASS');
+  const batch = await f.request('review.execute', { consumed: replacement });
+  for (const ref of batch.event.payload.outcomes.flatMap(row => row.results)) assert.equal((await f.core.store.json(ref)).outcome, 'PASS');
   await f.core.verificationCoverage(candidate, (await f.core.state()).state, new Map());
 });
-
 
 test('job.abandon accepts a gone runner job, refuses a live or delivery job, and older proof qualifies again', async t => {
   const f = await ready(t);

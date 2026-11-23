@@ -258,5 +258,5 @@ export function currentCommands() {
     .option('--merge <file>', 'Selected repository, PR number and merge method')
     .action(async options => run(options, 'delivery.resume', {
       ...(options.grant ? { grant: options.grant } : {}), ...(options.merge ? { merge: await readJsonFile(options.merge) } : {}) }));
-  return [status, coverage, database, note, read, runCommand, workspace, spec, candidate, ready, gate, selectReviewers, reviewBoundary, adjudicateReview, abandonJob, decide, delegatedDecision, autonomousDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
+  return [status, coverage, database, ask, note, read, runCommand, workspace, spec, candidate, ready, gate, selectReviewers, reviewBoundary, adjudicateReview, abandonJob, decide, delegatedDecision, autonomousDecision, planningReview, apply, applyDelegation, milestone, merge, publish, observe, delivery];
 }

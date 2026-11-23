@@ -22,10 +22,14 @@ gatereeve metrics purge-test-data --apply # remove them
 datasets. `metrics capture` keeps a stored value when a local row conflicts with
 it (same observation identity and time, different content), skips that row and
 lists it under `skipped`; explicit snapshot imports still refuse conflicts.
-`metrics purge-test-data` matches workflows whose database lived in a temporary
-directory (the host temporary directory, `/tmp`, `/var/tmp` or macOS
-`/var/folders`) and their observations. Real workspaces never live there, so the
-preview names only fixture projects; nothing is removed without `--apply`.
+`metrics purge-test-data` matches workflows whose database lived in a test-suite
+fixture directory: below a temporary directory (the host temporary directory,
+`/tmp`, `/var/tmp` or macOS `/var/folders`), a directory the test suites create
+with `mkdtemp` or Python `tempfile` (a test prefix such as `gatereeve-`, `gr-` or
+`workflow ` plus six to eight random characters). It also matches those
+workflows' observations. A real workspace under `/tmp`, such as `/tmp/product`,
+is not matched. The preview names the matched projects; nothing is removed
+without `--apply`.
 
 The CLI test suite (`npm test --prefix cli`) runs through
 `cli/scripts/isolated-test.js`, which gives every test process a private scratch
@@ -34,7 +38,7 @@ scratch area.
 
 Human wait is measured from a recorded question to the human-confirmed answer of
 the same decision kind in the same workflow. Record the question with the
-`decision.ask` operation (`gatereeve current ask <file>`) when it is presented;
+`decision.ask` operation (`gatereeve ask <file>`) when it is presented;
 a decision with no recorded question is counted as unmeasured, not as zero.
 
 Without the optional CLI, use the plugin's `resources/performance/command.js` with the same wrapper options and `-- command args...`. Pass the real project/workspace identity consistently across local and CI imports. Omit unknown feature/source identity instead of guessing it. Do not redirect a test's normal output to the measurement store.

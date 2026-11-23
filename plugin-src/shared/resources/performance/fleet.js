@@ -329,11 +329,15 @@ export async function reportingCounts(store) {
   const count = sql => db.prepare(sql).get().n;
   return { observations: count('SELECT COUNT(*) AS n FROM reporting_latest'), workflows: count('SELECT COUNT(*) AS n FROM reporting_workflows'), datasets: count('SELECT COUNT(*) AS n FROM reporting_datasets') };
 }
-// Spec AC2: rows from test-suite fixtures (workflows whose database lived in a
-// temporary directory) are removed on request. Preview by default; real
-// project rows are never matched because real workspaces are not temporary.
+// Spec AC2: rows from test-suite fixtures are removed on request. Preview by
+// default. A workflow is test data only when its database lived in a
+// temporary directory AND below it in a directory the test suites create with
+// mkdtemp (a test prefix plus six to eight random characters: Node mkdtemp or Python tempfile). A real workspace under
+// /tmp (for example /tmp/product) is never matched.
 export const temporaryRoots = () => [...new Set([tmpdir(), '/tmp', '/var/tmp', '/private/tmp', '/var/folders', '/private/var/folders'].map(path => resolve(path)))];
-export const temporaryHome = (home, roots = temporaryRoots()) => typeof home === 'string' && roots.some(root => home === root || home.startsWith(`${root}/`));
+export const TEST_FIXTURE_DIRECTORY = /^(?:gatereeve|gr|workflow|sweep-test|scratch-[a-z-]*test|whiteboard-evidence|tool-leftover|installer-retention|metrics)[- ][^/]*[A-Za-z0-9_]{6,8}$/u;
+export const temporaryHome = (home, roots = temporaryRoots()) => typeof home === 'string' && roots.some(root => home.startsWith(`${root}/`)
+  && home.slice(root.length + 1).split('/').some(part => TEST_FIXTURE_DIRECTORY.test(part)));
 export async function purgeTestData({ apply = false, roots } = {}, store) {
   check(typeof apply === 'boolean', 'Purge accepts only apply boolean');
   const db = await reportingDatabase(store, false);
@@ -355,7 +359,7 @@ export async function purgeTestData({ apply = false, roots } = {}, store) {
     db.prepare('DELETE FROM reporting_workflows WHERE id IN (SELECT value FROM json_each(?))').run(workflowList);
   });
   return { workflows: ids.size, observations: matched.size, projects: Object.entries(projects).sort((a, b) => b[1] - a[1]).map(([project, count]) => ({ project, count })), applied: apply,
-    rule: 'Workflows whose database lived in a temporary directory, and their observations.' };
+    rule: 'Workflows whose database lived in a test-suite fixture directory (created with mkdtemp under a temporary directory), and their observations.' };
 }
 export async function cleanupReporting({apply=false} = {},store) {
   const db=await reportingDatabase(store,false);if(!db)return {datasets:0,observations:0,applied:apply};

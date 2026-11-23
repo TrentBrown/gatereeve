@@ -61,9 +61,15 @@ async function defaultBranch(tools, repo) {
   catch { for (const name of ['origin/main', 'origin/master']) { try { await tools.git(repo, ['rev-parse', '--verify', '--quiet', name]); return name; } catch { /* next */ } } return null; }
 }
 
+// Open PRs are listed without the all-states cap: an open PR missing from a
+// truncated listing must never read as "no PR". A listing that reaches its
+// limit is treated as unknown.
+const OPEN_PR_LIMIT = 10000;
 async function pullRequests(tools, repo) {
   try {
-    const rows = JSON.parse(await tools.gh(repo, ['pr', 'list', '--state', 'all', '--limit', '1000', '--json', 'headRefName,state,number']));
+    const open = JSON.parse(await tools.gh(repo, ['pr', 'list', '--state', 'open', '--limit', String(OPEN_PR_LIMIT), '--json', 'headRefName,state,number']));
+    if (open.length >= OPEN_PR_LIMIT) return null;
+    const rows = [...open, ...JSON.parse(await tools.gh(repo, ['pr', 'list', '--state', 'all', '--limit', '1000', '--json', 'headRefName,state,number']))];
     const byBranch = new Map();
     for (const row of rows) (byBranch.get(row.headRefName) ?? byBranch.set(row.headRefName, []).get(row.headRefName)).push(row);
     return byBranch;
@@ -104,12 +110,14 @@ async function newestFile(dir, skip) {
   const pending = [dir];
   while (pending.length) {
     const current = pending.pop();
-    let entries; try { entries = await readdir(current, { withFileTypes: true }); } catch { continue; }
+    // An unreadable entry is not evidence that the marker covers it: let the
+    // error propagate so the state is listed (harvested() returns false).
+    const entries = await readdir(current, { withFileTypes: true });
     for (const entry of entries) {
       const path = join(current, entry.name);
       if (path === skip) continue;
       if (entry.isDirectory()) pending.push(path);
-      else { const info = await lstat(path).catch(() => null); if (info) newest = Math.max(newest, info.mtimeMs); }
+      else newest = Math.max(newest, (await lstat(path)).mtimeMs);
     }
   }
   return newest;
@@ -141,28 +149,41 @@ async function regenerableSet(tools, path) {
   return new Set([...REGENERABLE, ...extra.filter(name => !name.includes('/'))]);
 }
 
+// Porcelain v1 -z: "XY path\0", except a rename or copy, "XY new\0old\0".
+// The new path is the record; the original path that follows is consumed.
+export function parseStatus(output) {
+  const fields = output.split('\0'), records = [];
+  for (let index = 0; index < fields.length; index++) {
+    const field = fields[index];
+    if (!field) continue;
+    const code = field.slice(0, 2);
+    records.push({ code, path: field.slice(3) });
+    if (/[RC]/u.test(code)) index++;
+  }
+  return records;
+}
+
 // The D17 list: everything in the worktree that might matter, by name.
 export async function mattersList(tools, worktree) {
   const items = [];
   const regenerable = await regenerableSet(tools, worktree.path);
-  const status = (await tools.git(worktree.path, ['status', '--porcelain=v1', '-z', '--ignored=matching', '--untracked-files=normal'])).split('\0').filter(Boolean);
+  const status = parseStatus(await tools.git(worktree.path, ['status', '--porcelain=v1', '-z', '--ignored=matching', '--untracked-files=normal']));
   // git collapses a wholly untracked folder to one entry; expand any that hold
   // workflow state so the state is judged by its harvest marker (D31).
   const records = [];
   for (const record of status) {
-    const path = record.slice(3);
-    if (record.startsWith('??') && path.endsWith('/') && await containsState(join(worktree.path, path))) {
-      records.push(...(await tools.git(worktree.path, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--', path])).split('\0').filter(Boolean));
+    if (record.code === '??' && record.path.endsWith('/') && await containsState(join(worktree.path, record.path))) {
+      records.push(...parseStatus(await tools.git(worktree.path, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--', record.path])));
     } else records.push(record);
   }
   const states = new Set();
-  for (const record of records) {
-    const code = record.slice(0, 2), path = record.slice(3);
-    if (/^R|^C/u.test(code)) continue;
+  for (const { code, path } of records) {
     const parts = path.replace(/\/$/u, '').split('/');
     const stateAt = parts.indexOf('.gatereeve-current');
     if (stateAt >= 0) { states.add(join(worktree.path, ...parts.slice(0, stateAt + 1))); continue; }
-    if (code === '!!') { if (!regenerable.has(parts[parts.length - 1])) items.push({ kind: 'ignored', path }); }
+    // Only an ignored directory (git prints it with a trailing slash) with a
+    // regenerable name is omitted; an ignored file named dist is still listed.
+    if (code === '!!') { if (!(path.endsWith('/') && regenerable.has(parts[parts.length - 1]))) items.push({ kind: 'ignored', path }); }
     else if (code === '??') { if (!items.some(item => item.kind === 'untracked' && path.startsWith(item.path) && item.path.endsWith('/'))) items.push({ kind: 'untracked', path }); }
     else items.push({ kind: 'modified', path });
   }

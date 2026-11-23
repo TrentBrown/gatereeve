@@ -96,7 +96,7 @@ Creating a run takes no lock: its folder name is unique and its owner record is
 published by an atomic rename (until then cleanup treats the run as uncertain).
 Cleanup probes activity outside the lock, then rechecks run/root ownership and
 directory identities under the maintenance lock only while renaming an eligible
-run to a `.removing-` tombstone; the tombstone is deleted outside the lock. A
+run to a `.removing-` tombstone, whose owner record names the deleting process; the tombstone is deleted outside the lock. A tombstone left by an interrupted deletion is reclaimed by a later `cleanup --apply` once its deleter is verifiably gone. A run that a concurrent cleanup already removed is reported as skipped, not as a failure. A
 process waiting on a lock whose holder is verified alive keeps waiting; a holder
 verified gone, or a lock left without an owner record, is reported as interrupted
 and never removed by age. Each isolated test shard and each test file run directly

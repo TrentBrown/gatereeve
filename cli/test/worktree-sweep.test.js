@@ -2,12 +2,12 @@ import './helpers/private-scratch.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, rm, writeFile, utimes, stat, realpath } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile, utimes, stat, realpath, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { DatabaseSync } from 'node:sqlite';
-import { planSweep, sweep, systemTools, discoverRepositories } from '../src/worktree-sweep.js';
+import { planSweep, sweep, systemTools, discoverRepositories, REGENERABLE, parseStatus } from '../src/worktree-sweep.js';
 
 const run = promisify(execFile);
 const OLD = '2026-01-01T00:00:00Z';
@@ -33,7 +33,8 @@ async function world(t) {
   const add = async (name, { from = 'main' } = {}) => { const path = join(base, name); await git(repo, 'worktree', 'add', '-q', '-b', name, path, from); return path; };
   return { base, code, repo, origin, add };
 }
-const prs = map => ({ git: systemTools.git, gh: async () => JSON.stringify(Object.entries(map).map(([headRefName, state], number) => ({ headRefName, state, number }))) });
+const prs = map => ({ git: systemTools.git, gh: async (_repo, args) => JSON.stringify(Object.entries(map).map(([headRefName, state], number) => ({ headRefName, state, number }))
+  .filter(row => !args?.includes('open') || row.state === 'OPEN')) });
 const byName = (plan, name) => plan.worktrees.find(item => item.path.endsWith(`/${name}`));
 
 test('discovery finds main checkouts under the root and their worktrees through git', async t => {
@@ -146,4 +147,51 @@ test('non-interactive apply removes only worktrees with nothing listed, and prev
   assert.deepEqual(result.removed.map(item => item.path.split('/').pop()), ['empty-merged']);
   assert.ok(result.declined.some(item => item.path === listed));
   assert.ok(await stat(listed));
+});
+
+test('every regenerable directory name is omitted at any depth; an ignored file with such a name and .env are listed', async t => {
+  const w = await world(t);
+  const path = await w.add('regen');
+  await writeFile(join(path, '.gitignore'), [...REGENERABLE, '.env', ''].join('\n'));
+  await git(path, 'add', '.gitignore'); await commitAt(path, 'ignore');
+  for (const name of REGENERABLE) { await mkdir(join(path, 'pkg', 'deep', name), { recursive: true }); await writeFile(join(path, 'pkg', 'deep', name, 'f'), 'x'); }
+  await writeFile(join(path, '.env'), 'TOKEN=1');
+  await writeFile(join(path, 'dist'), 'a regular file named dist is not regenerable');
+  const plan = await planSweep({ repositories: [w.repo], cwd: w.base, tools: prs({ regen: 'CLOSED' }) });
+  const ignored = byName(plan, 'regen').matters.filter(item => item.kind === 'ignored').map(item => item.path).sort();
+  assert.deepEqual(ignored, ['.env', 'dist']);
+});
+
+test('a staged rename is listed by its new path and its original path is not misparsed', async t => {
+  assert.deepEqual(parseStatus('R  new.txt\0old.txt\0?? notes.txt\0'), [{ code: 'R ', path: 'new.txt' }, { code: '??', path: 'notes.txt' }]);
+  const w = await world(t);
+  const path = await w.add('renamed');
+  await writeFile(join(path, 'old.txt'), 'content'); await git(path, 'add', 'old.txt'); await commitAt(path, 'old');
+  await git(path, 'mv', 'old.txt', 'new.txt');
+  const plan = await planSweep({ repositories: [w.repo], cwd: w.base, tools: prs({ renamed: 'CLOSED' }) });
+  const modified = byName(plan, 'renamed').matters.filter(item => item.kind === 'modified').map(item => item.path);
+  assert.deepEqual(modified, ['new.txt']);
+});
+
+test('an unreadable part of workflow state is never covered by a harvest marker', { skip: process.getuid?.() === 0 }, async t => {
+  const w = await world(t);
+  const path = await w.add('unreadable');
+  const state = join(path, 'docs/issues/f/.gatereeve-current');
+  await mkdir(join(state, 'objects'), { recursive: true }); await writeFile(join(state, 'objects', 'a'), 'x');
+  await writeFile(join(state, 'harvested.json'), JSON.stringify({ harvestedAt: new Date(Date.now() + 60000).toISOString() }));
+  await chmod(join(state, 'objects'), 0o000);
+  let plan;
+  try { plan = await planSweep({ repositories: [w.repo], cwd: w.base, tools: prs({ unreadable: 'CLOSED' }) }); }
+  finally { await chmod(join(state, 'objects'), 0o700); }
+  assert.ok(byName(plan, 'unreadable').matters.some(item => item.kind === 'unharvested-workflow-state'));
+});
+
+test('an open PR outside the all-states listing still protects its worktree; a full open listing is unknown', async t => {
+  const w = await world(t);
+  await w.add('old-open');
+  const tools = rows => ({ git: systemTools.git, gh: async (_repo, args) => JSON.stringify(args.includes('open') ? rows : []) });
+  let plan = await planSweep({ repositories: [w.repo], cwd: w.base, tools: tools([{ headRefName: 'old-open', state: 'OPEN', number: 1 }]) });
+  assert.equal(byName(plan, 'old-open').reason, 'open pull request');
+  plan = await planSweep({ repositories: [w.repo], cwd: w.base, tools: tools(Array.from({ length: 10000 }, (_, number) => ({ headRefName: `b${number}`, state: 'OPEN', number }))) });
+  assert.equal(byName(plan, 'old-open').reason, 'pr-state-unknown');
 });
