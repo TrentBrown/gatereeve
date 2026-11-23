@@ -206,7 +206,7 @@ export async function reviewPlanning(core, input, operation) {
     requireThat(descriptor.provider === configuration.provider && descriptor.model === configuration.model && descriptor.reasoningEffort === reasoningEffort,
       'Evaluator descriptor differs from the requested provider, model or reasoning');
     const attemptId = identity({ operation: operation.id, subject, documents });
-    const request = { protocolVersion: AGENT_WORKFLOW_PROTOCOL_VERSION, runId: state.runId, attemptId,
+    const request = { protocolVersion: AGENT_WORKFLOW_PROTOCOL_VERSION, runId: state.runId, featureId: core.context.featureId, attemptId,
       module: { id: 'gatereeve/planning-review', version: '1.0.0', digest: identity(outputSchema) },
       stage: { id: 'planning-review', role: 'independent evaluator' }, capabilityProfile: HIGH_CAPABILITY_PROFILE,
       policy: { repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated' },

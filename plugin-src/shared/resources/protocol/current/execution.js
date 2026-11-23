@@ -217,7 +217,7 @@ async function independent(core, state, candidate, prepared, configuration, pack
     requireThat(descriptor.provider === provider && descriptor.model === configuration.model, 'Evaluator descriptor differs from requested provider/model');
     requireThat(descriptor.reasoningEffort === reasoningEffort, 'Evaluator descriptor reasoning differs from request');
     validateEvaluatorCapability(HIGH_CAPABILITY_PROFILE, descriptor.reasoningEffort);
-    const request = { protocolVersion: AGENT_WORKFLOW_PROTOCOL_VERSION, runId: state.runId, attemptId: prepared.hash,
+    const request = { protocolVersion: AGENT_WORKFLOW_PROTOCOL_VERSION, runId: state.runId, featureId: core.context.featureId, attemptId: prepared.hash,
       module: { id: 'gatereeve/current-review', version: '3.0.0', digest: identity(outputSchema) },
       stage: { id: 'review', role: 'independent evaluator' },
       capabilityProfile: HIGH_CAPABILITY_PROFILE,
