@@ -34,7 +34,7 @@ class BootstrapBranchDocsTests(unittest.TestCase):
 
     def run_bootstrap(self) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, str(SCRIPT), "--root", str(self.root)],
+            [sys.executable, "-B", str(SCRIPT), "--root", str(self.root)],
             check=True,
             capture_output=True,
             text=True,
@@ -100,7 +100,7 @@ class BootstrapBranchDocsTests(unittest.TestCase):
         )
 
         result = subprocess.run(
-            [sys.executable, str(SCRIPT), "--root", str(self.root)],
+            [sys.executable, "-B", str(SCRIPT), "--root", str(self.root)],
             check=False,
             capture_output=True,
             text=True,
@@ -127,6 +127,7 @@ class BootstrapBranchDocsTests(unittest.TestCase):
         result = subprocess.run(
             [
                 sys.executable,
+                "-B",
                 str(SCRIPT),
                 "--root",
                 str(self.root),
