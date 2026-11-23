@@ -110,16 +110,25 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
     });
     // Ending the run: SIGTERM, then SIGKILL two seconds later. Behind
     // systemd-inhibit the tracked child is the wrapper, which forwards only
-    // SIGTERM and may exit first, so the wrapper's descendants are recorded
-    // before the first signal and receive the SIGKILL directly.
+    // SIGTERM and may exit (or close its streams) first, so the wrapper's
+    // descendants are recorded before the first signal. The SIGKILL then
+    // goes to them and to anything they or the wrapper started since, and it
+    // still fires after the wrapper closes: closed streams do not mean the
+    // recorded reviewer has exited.
     let killTimer = null;
+    let recorded = [];
     const terminate = () => {
       if (killTimer !== null) return;
-      const descendants = launch.idleInhibitor ? processDescendants(child.pid) : [];
+      recorded = launch.idleInhibitor ? processDescendants(child.pid) : [];
       child.kill('SIGTERM');
       killTimer = setTimeout(() => {
+        const seen = new Set(recorded.map(item => item.pid));
+        const targets = [...recorded];
+        for (const root of [child.pid, ...recorded.map(item => item.pid)]) {
+          for (const item of processDescendants(root)) if (!seen.has(item.pid)) { seen.add(item.pid); targets.push(item); }
+        }
         child.kill('SIGKILL');
-        for (const item of descendants) killIfSame(item);
+        for (const item of targets) killIfSame(item);
       }, 2_000);
     };
     const stdout = [];
@@ -149,7 +158,7 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
     child.on('error', reject);
     child.on('close', (code, exitSignal) => {
       clearTimeout(timer);
-      if (killTimer !== null) clearTimeout(killTimer);
+      if (killTimer !== null && recorded.length === 0) clearTimeout(killTimer);
       const completedAt = new Date();
       if (timedOut) return reject(Object.assign(new Error(`${executable} timed out`), {code:'AGENT_PROVIDER_TIMEOUT'}));
       if (size > MAX_OUTPUT_BYTES) return reject(new Error(`${executable} exceeded the output limit`));

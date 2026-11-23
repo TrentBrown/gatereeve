@@ -199,3 +199,19 @@ test('on this Linux host interrupting the evaluator ends the reviewer and releas
   await interruptEvaluator(t, { marker });
   assert.doesNotMatch(execFileSync('systemd-inhibit', ['--list', '--no-pager'], { encoding: 'utf8' }), new RegExp(`interrupt-${process.pid}`, 'u'));
 });
+
+test('a timeout still kills a wrapped reviewer that closes its streams on SIGTERM and then hangs', async t => {
+  const base = await scripts(t);
+  const reviewer = join(base.dir, 'closing');
+  // On SIGTERM: drop stdout/stderr (so the wrapper's pipes close), ignore further TERMs, keep running.
+  await writeFile(reviewer, `#!/bin/sh\necho $$ > "${join(base.dir, 'pid')}"\ntrap 'trap "" TERM; exec >/dev/null 2>&1' TERM\nread line\nwhile :; do sleep 0.2; done\n`);
+  const wrapper = join(base.dir, 'exiting-inhibit');
+  await writeFile(wrapper, '#!/bin/sh\nwhile [ "${1#--}" != "$1" ]; do shift; done\n"$@" &\nchild=$!\ntrap \'kill -TERM $child; exit 143\' TERM\nwait $child\n');
+  await chmod(reviewer, 0o755); await chmod(wrapper, 0o755);
+  const inhibitor = { platform: () => 'linux', resolve: () => wrapper, probe: async () => true };
+  await assert.rejects(runAgentProcess(reviewer, [], { input: 'x\n', timeoutSeconds: 1, idleLock: { why }, inhibitor }),
+    error => error.code === 'AGENT_PROVIDER_TIMEOUT');
+  const pid = await pidOf(base.dir);
+  await new Promise(resolve => setTimeout(resolve, 2500));
+  assert.equal(alive(pid), false, 'the forced kill outlives the wrapper close');
+});
