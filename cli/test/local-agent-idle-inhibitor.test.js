@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdtemp, rm, writeFile, chmod, readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -72,7 +73,15 @@ test('the argument-size guard applies to the wrapped command', async t => {
     /per-argument limit/u);
 });
 
-const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
+// A killed process whose new parent never reaps it (PID 1 in many containers)
+// stays a zombie: it has ended, but signal 0 still reaches it.
+const alive = pid => {
+  try { process.kill(pid, 0); } catch { return false; }
+  try {
+    const stat = readFileSync(`/proc/${pid}/stat`, 'utf8');
+    return stat.slice(stat.lastIndexOf(')') + 2, stat.lastIndexOf(')') + 3) !== 'Z';
+  } catch { return process.platform === 'linux' ? false : true; }
+};
 
 test('a timeout terminates the wrapped reviewer process itself', async t => {
   const { dir, reviewer, inhibitor } = await scripts(t);
@@ -82,8 +91,11 @@ test('a timeout terminates the wrapped reviewer process itself', async t => {
   assert.equal(alive(pid), false);
 });
 
-const realInhibitor = process.platform === 'linux' && systemIdleInhibitor.resolve();
-test('on this Linux host the real lock is listed while a reviewer runs and released after it', { skip: !realInhibitor && 'systemd-inhibit unavailable' }, async t => {
+// Live checks need a lock this host actually grants: a container can have
+// systemd-inhibit installed without a reachable system bus.
+const realWrapper = process.platform === 'linux' && systemIdleInhibitor.resolve();
+const realInhibitor = Boolean(realWrapper) && await systemIdleInhibitor.probe(realWrapper, 'codex boundary review: probe');
+test('on this Linux host the real lock is listed while a reviewer runs and released after it', { skip: !realInhibitor && 'systemd-inhibit unavailable or the lock is refused' }, async t => {
   const { dir } = await scripts(t);
   const slow = join(dir, 'slow');
   await writeFile(slow, '#!/bin/sh\nread line\nsleep 2\necho done\n'); await chmod(slow, 0o755);
@@ -117,7 +129,7 @@ test('the reviewer receipt records whether an idle inhibitor was held', async ()
   }
 });
 
-test('on this Linux host a timeout through the real systemd-inhibit terminates the reviewer', { skip: !realInhibitor && 'systemd-inhibit unavailable' }, async t => {
+test('on this Linux host a timeout through the real systemd-inhibit terminates the reviewer', { skip: !realInhibitor && 'systemd-inhibit unavailable or the lock is refused' }, async t => {
   const { dir, reviewer } = await scripts(t);
   await assert.rejects(runAgentProcess(reviewer, [], { input: 'sleep\n', timeoutSeconds: 1, idleLock: { why: `codex boundary review: timeout-${process.pid}` } }),
     error => error.code === 'AGENT_PROVIDER_TIMEOUT');
@@ -149,7 +161,7 @@ test('a timeout kills a reviewer that ignores SIGTERM behind a separate wrapper 
   assert.equal(alive(await pidOf(dir)), false);
 });
 
-test('on this Linux host a timeout through the real systemd-inhibit kills a reviewer that ignores SIGTERM', { skip: !realInhibitor && 'systemd-inhibit unavailable' }, async t => {
+test('on this Linux host a timeout through the real systemd-inhibit kills a reviewer that ignores SIGTERM', { skip: !realInhibitor && 'systemd-inhibit unavailable or the lock is refused' }, async t => {
   const { dir, reviewer } = await stubborn(t);
   const started = Date.now();
   await assert.rejects(runAgentProcess(reviewer, [], { input: 'x\n', timeoutSeconds: 1, idleLock: { why: `codex boundary review: stubborn-${process.pid}` } }),
@@ -194,7 +206,7 @@ test('interrupting the evaluator ends a reviewer behind a separate wrapper proce
   await interruptEvaluator(t, { inhibitorPath: wrapper, marker: why });
 });
 
-test('on this Linux host interrupting the evaluator ends the reviewer and releases the real lock', { skip: !realInhibitor && 'systemd-inhibit unavailable' }, async t => {
+test('on this Linux host interrupting the evaluator ends the reviewer and releases the real lock', { skip: !realInhibitor && 'systemd-inhibit unavailable or the lock is refused' }, async t => {
   const marker = `codex boundary review: interrupt-${process.pid}`;
   await interruptEvaluator(t, { marker });
   assert.doesNotMatch(execFileSync('systemd-inhibit', ['--list', '--no-pager'], { encoding: 'utf8' }), new RegExp(`interrupt-${process.pid}`, 'u'));
