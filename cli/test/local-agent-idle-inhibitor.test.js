@@ -125,3 +125,36 @@ test('on this Linux host a timeout through the real systemd-inhibit terminates t
   await new Promise(resolve => setTimeout(resolve, 200));
   assert.equal(alive(pid), false);
 });
+
+// A reviewer that ignores SIGTERM, behind a wrapper that is a separate process
+// (as systemd-inhibit is): the forced kill must still reach the reviewer.
+async function stubborn(t) {
+  const base = await scripts(t);
+  const reviewer = join(base.dir, 'stubborn');
+  await writeFile(reviewer, `#!/bin/sh\ntrap '' TERM\necho $$ > "${join(base.dir, 'pid')}"\nread line\nwhile :; do sleep 1; done\n`);
+  const wrapper = join(base.dir, 'forwarding-inhibit');
+  await writeFile(wrapper, '#!/bin/sh\nwhile [ "${1#--}" != "$1" ]; do shift; done\n"$@" &\nchild=$!\ntrap \'kill -TERM $child; exit 143\' TERM\nwait $child\n');
+  await chmod(reviewer, 0o755); await chmod(wrapper, 0o755);
+  return { ...base, reviewer, inhibitor: { platform: () => 'linux', resolve: () => wrapper, probe: async () => true } };
+}
+const pidOf = async dir => Number((await readFile(join(dir, 'pid'), 'utf8')).trim());
+
+test('a timeout kills a reviewer that ignores SIGTERM behind a separate wrapper process', async t => {
+  const { dir, reviewer, inhibitor } = await stubborn(t);
+  const started = Date.now();
+  await assert.rejects(runAgentProcess(reviewer, [], { input: 'x\n', timeoutSeconds: 1, idleLock: { why }, inhibitor }),
+    error => error.code === 'AGENT_PROVIDER_TIMEOUT');
+  assert.ok(Date.now() - started < 8000, 'the forced kill ends the run without waiting for the reviewer');
+  await new Promise(resolve => setTimeout(resolve, 200));
+  assert.equal(alive(await pidOf(dir)), false);
+});
+
+test('on this Linux host a timeout through the real systemd-inhibit kills a reviewer that ignores SIGTERM', { skip: !realInhibitor && 'systemd-inhibit unavailable' }, async t => {
+  const { dir, reviewer } = await stubborn(t);
+  const started = Date.now();
+  await assert.rejects(runAgentProcess(reviewer, [], { input: 'x\n', timeoutSeconds: 1, idleLock: { why: `codex boundary review: stubborn-${process.pid}` } }),
+    error => error.code === 'AGENT_PROVIDER_TIMEOUT');
+  assert.ok(Date.now() - started < 8000);
+  await new Promise(resolve => setTimeout(resolve, 200));
+  assert.equal(alive(await pidOf(dir)), false);
+});

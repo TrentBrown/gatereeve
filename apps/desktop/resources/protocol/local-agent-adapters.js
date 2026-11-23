@@ -68,13 +68,26 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
   assertArgumentSizes(launch.args);
   return new Promise((resolve, reject) => {
     const startedAt = new Date();
-    // systemd-inhibit forwards SIGTERM to the reviewer it runs, so the timeout
-    // below reaches the reviewer itself through the wrapper.
+    // The child leads its own process group, so the signals below reach the
+    // reviewer as well as a systemd-inhibit wrapper around it: a reviewer that
+    // ignores SIGTERM still receives the later SIGKILL directly.
+    const grouped = process.platform !== 'win32';
     const child = spawn(launch.executable, launch.args, {
       cwd,
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
+      detached: grouped,
     });
+    const signal = (name) => {
+      if (grouped && child.pid) {
+        try { process.kill(-child.pid, name); return; } catch { /* group already gone */ }
+      }
+      child.kill(name);
+    };
+    // A detached group no longer dies with the evaluator's terminal session;
+    // take it down if the evaluator exits first.
+    const onExit = () => signal('SIGKILL');
+    if (grouped) process.once('exit', onExit);
     const stdout = [];
     const stderr = [];
     let size = 0;
@@ -88,21 +101,22 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
     let killTimer = null;
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGTERM');
-      killTimer = setTimeout(() => child.kill('SIGKILL'), 2_000);
+      signal('SIGTERM');
+      killTimer = setTimeout(() => signal('SIGKILL'), 2_000);
     }, timeoutSeconds * 1000);
     child.stdout.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_OUTPUT_BYTES) child.kill('SIGTERM');
+      if (size > MAX_OUTPUT_BYTES) signal('SIGTERM');
       else stdout.push(chunk);
     });
     child.stderr.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_OUTPUT_BYTES) child.kill('SIGTERM');
+      if (size > MAX_OUTPUT_BYTES) signal('SIGTERM');
       else stderr.push(chunk);
     });
-    child.on('error', reject);
-    child.on('close', (code, signal) => {
+    child.on('error', (error) => { process.removeListener('exit', onExit); reject(error); });
+    child.on('close', (code, exitSignal) => {
+      process.removeListener('exit', onExit);
       clearTimeout(timer);
       if (killTimer !== null) clearTimeout(killTimer);
       const completedAt = new Date();
@@ -110,14 +124,14 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
       if (size > MAX_OUTPUT_BYTES) return reject(new Error(`${executable} exceeded the output limit`));
       const result = {
         code,
-        signal,
+        signal: exitSignal,
         idleInhibitor: launch.idleInhibitor,
         stdout: Buffer.concat(stdout).toString('utf8'),
         stderr: Buffer.concat(stderr).toString('utf8'),
         startedAt,
         completedAt,
       };
-      if (code !== 0 || signal !== null) {
+      if (code !== 0 || exitSignal !== null) {
         const diagnostic = `${result.stderr}\n${result.stdout}`;
         const transient = /rate.?limit|\b429\b|\b50[234]\b|temporar(?:y|ily)|connection reset|timed out/iu.test(diagnostic);
         const category = /credit balance|insufficient credit/iu.test(diagnostic) ? 'credit-unavailable'
@@ -126,14 +140,14 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
           : transient ? 'transient-service-failure' : 'configuration-or-execution';
         return reject(Object.assign(new Error(`Evaluator unavailable: ${category}; check the provider configuration before retrying.`), {
           code: transient ? 'AGENT_PROVIDER_TRANSIENT' : 'AGENT_PROVIDER_CONFIGURATION',
-          providerFailure: { category, exitCode: code, signal, startedAt: iso(startedAt), completedAt: iso(completedAt) },
+          providerFailure: { category, exitCode: code, signal: exitSignal, startedAt: iso(startedAt), completedAt: iso(completedAt) },
         }));
       }
       // Exit 0 without the complete prompt delivered is not a trustworthy run.
       if (stdinError) {
         return reject(Object.assign(new Error('Evaluator unavailable: configuration-or-execution; the provider did not accept the complete prompt on standard input.'), {
           code: 'AGENT_PROVIDER_CONFIGURATION',
-          providerFailure: { category: 'configuration-or-execution', exitCode: code, signal, stdin: stdinError.code ?? 'error', startedAt: iso(startedAt), completedAt: iso(completedAt) },
+          providerFailure: { category: 'configuration-or-execution', exitCode: code, signal: exitSignal, stdin: stdinError.code ?? 'error', startedAt: iso(startedAt), completedAt: iso(completedAt) },
         }));
       }
       resolve(result);

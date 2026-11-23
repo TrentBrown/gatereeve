@@ -346,7 +346,9 @@ belongs to the reviewer process and is released when it exits or crashes, so
 idle-stop automation such as Fleet treats the host as busy while a review runs.
 A refused lock, a missing `systemd-inhibit` or another platform launches the
 reviewer exactly as before. Receipts record `isolation.idleInhibitor:
-true|false`.
+true|false`. Each reviewer launch leads its own process group, and the timeout
+and output-limit signals go to the whole group, so a reviewer that ignores
+SIGTERM still receives the forced SIGKILL behind the wrapper.
 
 Frozen requirements, source manifests, inputs, results and receipts live beneath
 canonical `docs/issues/<featureId>/.gatereeve-current/`. Git is optional for those
