@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:0776705d65435b6714225f2b0cc829607d9ce3918796c72cee827e5acee62182",
+  "protocolHash": "sha256:c2e2f735534f99c0737c75b13b60a4062b2865f94bdf7ec60aa00d4199ab5f00",
   "contract": "gatereeve/current/8",
   "contractSha256": "acea458578d64a6d7fb2ad10b0907bc23b7488b1248ec76d03f2e41e708205e3",
   "files": [
@@ -227,8 +227,8 @@
     },
     {
       "path": "local-agent-adapters.js",
-      "size": 20387,
-      "sha256": "a4e308ca4d60e8efc99bd6d17060b1cc612bb04ed119140996d2ebf8e82ce90e"
+      "size": 21537,
+      "sha256": "a76f36a263b245033a4cf26d35bec78b8b8e492eb07a0e7a5d0458f7448c8d01"
     },
     {
       "path": "module-runtime.js",

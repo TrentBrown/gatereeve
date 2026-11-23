@@ -1,6 +1,6 @@
 import { withScratch, scratchEnvironment } from '../storage/scratch.js';
 import { spawn } from 'node:child_process';
-import { accessSync, constants as fsConstants } from 'node:fs';
+import { accessSync, constants as fsConstants, readdirSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 
 import { delimiter, isAbsolute, join } from 'node:path';
@@ -63,31 +63,65 @@ export async function idleInhibitedLaunch(executable, args, idleLock, inhibitor 
   return { executable: wrapper, args: [...inhibitorArgs(idleLock.why), executable, ...args], idleInhibitor: true };
 }
 
+// Linux process table helpers for ending a wrapped reviewer: the start time
+// guards a recorded PID against reuse before the delayed SIGKILL.
+function processStat(pid) {
+  try {
+    const text = readFileSync(`/proc/${pid}/stat`, 'utf8');
+    const fields = text.slice(text.lastIndexOf(')') + 2).split(' ');
+    return { parent: Number(fields[1]), started: fields[19] };
+  } catch { return null; }
+}
+export function processDescendants(root) {
+  if (process.platform !== 'linux' || !root) return [];
+  let entries;
+  try { entries = readdirSync('/proc'); } catch { return []; }
+  const children = new Map();
+  for (const name of entries) {
+    if (!/^\d+$/u.test(name)) continue;
+    const stat = processStat(name);
+    if (!stat) continue;
+    if (!children.has(stat.parent)) children.set(stat.parent, []);
+    children.get(stat.parent).push({ pid: Number(name), started: stat.started });
+  }
+  const found = [];
+  const queue = [root];
+  while (queue.length) {
+    for (const item of children.get(queue.shift()) ?? []) { found.push(item); queue.push(item.pid); }
+  }
+  return found;
+}
+function killIfSame({ pid, started }) {
+  if (processStat(pid)?.started !== started) return;
+  try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
+}
+
 export async function runAgentProcess(executable, args, { cwd, input, env = process.env, timeoutSeconds, idleLock = null, inhibitor = systemIdleInhibitor }) {
   const launch = await idleInhibitedLaunch(executable, args, idleLock, inhibitor);
   assertArgumentSizes(launch.args);
   return new Promise((resolve, reject) => {
     const startedAt = new Date();
-    // The child leads its own process group, so the signals below reach the
-    // reviewer as well as a systemd-inhibit wrapper around it: a reviewer that
-    // ignores SIGTERM still receives the later SIGKILL directly.
-    const grouped = process.platform !== 'win32';
+    // The launch stays in the evaluator's process group, so an interrupt,
+    // hangup or cancellation of the evaluator still reaches the reviewer.
     const child = spawn(launch.executable, launch.args, {
       cwd,
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
-      detached: grouped,
     });
-    const signal = (name) => {
-      if (grouped && child.pid) {
-        try { process.kill(-child.pid, name); return; } catch { /* group already gone */ }
-      }
-      child.kill(name);
+    // Ending the run: SIGTERM, then SIGKILL two seconds later. Behind
+    // systemd-inhibit the tracked child is the wrapper, which forwards only
+    // SIGTERM and may exit first, so the wrapper's descendants are recorded
+    // before the first signal and receive the SIGKILL directly.
+    let killTimer = null;
+    const terminate = () => {
+      if (killTimer !== null) return;
+      const descendants = launch.idleInhibitor ? processDescendants(child.pid) : [];
+      child.kill('SIGTERM');
+      killTimer = setTimeout(() => {
+        child.kill('SIGKILL');
+        for (const item of descendants) killIfSame(item);
+      }, 2_000);
     };
-    // A detached group no longer dies with the evaluator's terminal session;
-    // take it down if the evaluator exits first.
-    const onExit = () => signal('SIGKILL');
-    if (grouped) process.once('exit', onExit);
     const stdout = [];
     const stderr = [];
     let size = 0;
@@ -98,25 +132,22 @@ export async function runAgentProcess(executable, args, { cwd, input, env = proc
     let stdinError = null;
     child.stdin.on('error', (error) => { stdinError ??= error; });
     let timedOut = false;
-    let killTimer = null;
     const timer = setTimeout(() => {
       timedOut = true;
-      signal('SIGTERM');
-      killTimer = setTimeout(() => signal('SIGKILL'), 2_000);
+      terminate();
     }, timeoutSeconds * 1000);
     child.stdout.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_OUTPUT_BYTES) signal('SIGTERM');
+      if (size > MAX_OUTPUT_BYTES) terminate();
       else stdout.push(chunk);
     });
     child.stderr.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_OUTPUT_BYTES) signal('SIGTERM');
+      if (size > MAX_OUTPUT_BYTES) terminate();
       else stderr.push(chunk);
     });
-    child.on('error', (error) => { process.removeListener('exit', onExit); reject(error); });
+    child.on('error', reject);
     child.on('close', (code, exitSignal) => {
-      process.removeListener('exit', onExit);
       clearTimeout(timer);
       if (killTimer !== null) clearTimeout(killTimer);
       const completedAt = new Date();

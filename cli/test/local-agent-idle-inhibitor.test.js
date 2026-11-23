@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { mkdtemp, rm, writeFile, chmod, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -157,4 +157,45 @@ test('on this Linux host a timeout through the real systemd-inhibit kills a revi
   assert.ok(Date.now() - started < 8000);
   await new Promise(resolve => setTimeout(resolve, 200));
   assert.equal(alive(await pidOf(dir)), false);
+});
+
+// Interrupting the evaluator (Ctrl+C reaches the terminal's foreground process
+// group) must end the reviewer and release the lock, as it did before wrapping.
+async function interruptEvaluator(t, { inhibitorPath = null, marker }) {
+  const { dir } = await scripts(t);
+  const reviewer = join(dir, 'waiting');
+  await writeFile(reviewer, `#!/bin/sh\necho $$ > "${join(dir, 'pid')}"\nexec sleep 30\n`); await chmod(reviewer, 0o755);
+  const evaluator = join(dir, 'evaluator.mjs');
+  const adapters = new URL('../../plugin-src/shared/resources/protocol/local-agent-adapters.js', import.meta.url).href;
+  await writeFile(evaluator, `import { runAgentProcess } from ${JSON.stringify(adapters)};
+const path = ${JSON.stringify(inhibitorPath)};
+const inhibitor = path ? { platform: () => 'linux', resolve: () => path, probe: async () => true } : undefined;
+await runAgentProcess(${JSON.stringify(reviewer)}, [], { input: '', timeoutSeconds: 60, idleLock: { why: ${JSON.stringify(marker)} }, ...(inhibitor ? { inhibitor } : {}) });
+`);
+  const group = spawn(process.execPath, [evaluator], { detached: true, stdio: 'ignore' });
+  const exited = new Promise(resolve => group.once('exit', (code, signal) => resolve(signal)));
+  let pid = NaN;
+  for (let i = 0; i < 100 && Number.isNaN(pid); i++) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    pid = Number((await readFile(join(dir, 'pid'), 'utf8').catch(() => '')).trim() || NaN);
+  }
+  assert.ok(alive(pid), 'the reviewer started');
+  process.kill(-group.pid, 'SIGINT');
+  assert.equal(await exited, 'SIGINT');
+  await new Promise(resolve => setTimeout(resolve, 300));
+  assert.equal(alive(pid), false, 'the interrupt reached the reviewer');
+  return dir;
+}
+
+test('interrupting the evaluator ends a reviewer behind a separate wrapper process', async t => {
+  const base = await scripts(t);
+  const wrapper = join(base.dir, 'forwarding-inhibit');
+  await writeFile(wrapper, '#!/bin/sh\nwhile [ "${1#--}" != "$1" ]; do shift; done\n"$@"\n'); await chmod(wrapper, 0o755);
+  await interruptEvaluator(t, { inhibitorPath: wrapper, marker: why });
+});
+
+test('on this Linux host interrupting the evaluator ends the reviewer and releases the real lock', { skip: !realInhibitor && 'systemd-inhibit unavailable' }, async t => {
+  const marker = `codex boundary review: interrupt-${process.pid}`;
+  await interruptEvaluator(t, { marker });
+  assert.doesNotMatch(execFileSync('systemd-inhibit', ['--list', '--no-pager'], { encoding: 'utf8' }), new RegExp(`interrupt-${process.pid}`, 'u'));
 });
