@@ -22,16 +22,18 @@ gatereeve metrics purge-test-data --apply # remove them
 datasets. `metrics capture` keeps a stored value when a local row conflicts with
 it (same observation identity and time, different content), skips that row and
 lists it under `skipped`; explicit snapshot imports still refuse conflicts.
-`metrics purge-test-data` matches a workflow only when both hold: its database
-lived below a temporary directory (the host temporary directory, `/tmp`,
-`/var/tmp` or macOS `/var/folders`) in a directory with the exact shape the test
-suites create (`gatereeve-current-`, `gatereeve-current-surface-`,
+`metrics purge-test-data` previews candidate test-fixture workflows: a workflow
+whose database lived below a temporary directory (the host temporary directory,
+`/tmp`, `/var/tmp` or macOS `/var/folders`) in a directory with the exact shape
+the test suites create (`gatereeve-current-`, `gatereeve-current-surface-`,
 `gatereeve-dials-`, `gatereeve-light-`, `gatereeve-s5-` or `gatereeve-targets-`
 plus a six-character `mkdtemp` suffix, or `gatereeve session start ` plus an
-eight-character `tempfile` suffix), and that folder no longer exists. The
-matched workflows' observations are removed with them. A real workspace, which
-is still on disk, is never matched. The preview names the matched projects;
-nothing is removed without `--apply`.
+eight-character `tempfile` suffix) and whose folder no longer exists. The
+preview lists each candidate's ID and folder. Nothing is removed automatically:
+`--apply` removes only the workflows named with `--workflow <id...>` or
+`--workflows-file <path>` (one ID per line), each of which must still be a
+candidate, together with their observations. Observations under a project key
+that any other workflow also uses are kept.
 
 The CLI test suite (`npm test --prefix cli`) runs through
 `cli/scripts/isolated-test.js`, which gives every test process a private scratch

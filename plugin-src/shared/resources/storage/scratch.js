@@ -391,15 +391,21 @@ export async function inspectScratch({ root = scratchRoot(), run, quick = false,
   }
   if (run !== undefined) assert(ID.test(run), 'Invalid scratch run ID');
   const listed = run ? [run] : await readdir(join(info.root, 'runs'));
-  const names = listed.filter(name => !name.startsWith(TOMBSTONE)), tombstones = listed.filter(name => name.startsWith(TOMBSTONE) && !name.endsWith('.json') && !name.startsWith(`${TOMBSTONE}pending-`)).length;
+  const names = listed.filter(name => !name.startsWith(TOMBSTONE)), tombstoneNames = listed.filter(name => name.startsWith(TOMBSTONE) && !name.endsWith('.json') && !name.startsWith(`${TOMBSTONE}pending-`)), tombstones = tombstoneNames.length;
   const entries = [];
   for (const name of names.sort()) entries.push(await assess(info.root, name, { ...options, quick }));
   // Spec AC2: previews and doctor count files for every run, not only eligible ones.
   // A mounted run is not walked: the mount may be a large or remote tree.
   for (const item of entries) if (item.files === undefined && !['removed', 'mounted'].includes(item.status)) item.files = await treeTotals(item.path, BigInt((await lstat(item.path, { bigint: true }).catch(() => ({ dev: 0n }))).dev)).then(totals => totals?.files ?? null, () => null);
+  // Interrupted deletions stay visible: count their files too.
+  let tombstoneFiles = 0;
+  for (const name of tombstoneNames) {
+    const path = join(info.root, 'runs', name);
+    tombstoneFiles += await treeTotals(path, BigInt((await lstat(path, { bigint: true })).dev)).then(totals => totals?.files ?? 0, () => 0);
+  }
   const reports = run ? null : await reportRetention(info.root).then(({ names: _names, ...summary }) => summary, () => null);
   return { root: info.root, entries, eligibleBytes: quick ? null : entries.reduce((sum, item) => sum + (item.status === 'eligible' ? item.bytes : 0), 0),
-    files: entries.reduce((sum, item) => sum + (item.files ?? 0), 0), reports, tombstones, quick };
+    files: entries.reduce((sum, item) => sum + (item.files ?? 0), 0), reports, tombstones, tombstoneFiles, quick };
 }
 
 export async function cleanupScratch({ root = scratchRoot(), run, apply = false, ...options } = {}) {

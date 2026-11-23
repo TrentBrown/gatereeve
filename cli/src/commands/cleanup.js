@@ -13,7 +13,8 @@ function print(result, asJson) {
   }
   if (result.files !== undefined) console.log(`Files in runs: ${result.files}`);
   if (result.reports) console.log(`Diagnostic reports: ${result.reports.total} (${result.reports.removable.age} past 30 days, ${result.reports.removable.count} beyond the newest 5000${result.applied ? `; removed ${result.reportsRemoved ?? 0}` : ''})`);
-  if (!result.entries.length && !result.error) console.log('No managed scratch runs.');
+  if (result.tombstones) console.log(`Interrupted deletions (tombstones): ${result.tombstones} (${result.tombstoneFiles ?? 0} files); cleanup --apply reclaims those whose deleter is gone${result.applied ? `; reclaimed ${result.tombstonesRemoved ?? 0}` : ''}`);
+  if (!result.entries.length && !result.tombstones && !result.error) console.log('No managed scratch runs.');
   if (result.applied) console.log(`Removed ${result.removed.length} run(s), ${result.reclaimedFiles ?? 0} files, ${result.reclaimedBytes} allocated bytes. Filesystem free-space changes may differ.`);
   else console.log(result.quick ? 'Read-only inventory; run gatereeve cleanup for activity and size checks.' : `Preview only: ${result.eligibleBytes ?? 'unknown'} eligible bytes. Use --apply to remove eligible runs.`);
   for (const error of result.errors ?? []) console.error(`${error.id}: ${error.reason}`);

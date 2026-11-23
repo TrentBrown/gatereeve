@@ -316,6 +316,13 @@ test('a leftover tombstone alone is reclaimed; a deletion failure is an error, n
   const runs = join(root, 'runs');
   await mkdir(join(runs, '.removing-only'), { mode: 0o700 });
   await writeFile(join(runs, '.removing-only.json'), JSON.stringify({ kind: 'gatereeve-scratch/1', processId: process.pid, processStartedAt: 'an exited deleter' }), { mode: 0o600 });
+  await writeFile(join(runs, '.removing-only', 'bulk'), 'x');
+  const seen = await inspectScratch({ root, quick: true });
+  assert.deepEqual([seen.tombstones, seen.tombstoneFiles], [1, 2]);
+  const cli = fileURLToPath(new URL('../bin/workflow.js', import.meta.url));
+  const printed = (await execute(process.execPath, [cli, 'cleanup'], { env: { ...process.env, GATEREEVE_SCRATCH_ROOT: root } })).stdout;
+  assert.match(printed, /Interrupted deletions \(tombstones\): 1 \(2 files\)/u);
+  assert.doesNotMatch(printed, /No managed scratch runs/u);
   const reclaimed = await cleanupScratch({ root, apply: true, ...inactive });
   assert.equal(reclaimed.tombstonesRemoved, 1, JSON.stringify(reclaimed));
   assert.deepEqual((await readdir(runs)).filter(name => name.startsWith('.')), []);

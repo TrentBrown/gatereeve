@@ -341,13 +341,25 @@ export const TEST_FIXTURE_DIRECTORY = /^(?:gatereeve-(?:current|current-surface|
 export const temporaryHome = (home, roots = temporaryRoots()) => typeof home === 'string' && roots.some(root => home.startsWith(`${root}/`)
   && home.slice(root.length + 1).split('/').some(part => TEST_FIXTURE_DIRECTORY.test(part)));
 const fixtureGone = home => !existsSync(home);
-export async function purgeTestData({ apply = false, roots } = {}, store) {
-  check(typeof apply === 'boolean', 'Purge accepts only apply boolean');
+// D33 descoping (scratchpad [7]): the preview proposes candidates by fixture
+// shape; deletion removes only the workflows the human names from it.
+export async function purgeTestData({ apply = false, workflows: named, roots } = {}, store) {
+  check(typeof apply === 'boolean', 'Purge accepts apply boolean and named workflows');
+  check(!apply || (Array.isArray(named) && named.length > 0 && named.every(id => typeof id === 'string' && id)), 'Apply names the workflows to remove (IDs from the preview)');
   const db = await reportingDatabase(store, false);
-  if (!db) return { workflows: 0, observations: 0, projects: [], applied: false };
-  const workflows = db.prepare('SELECT id,home,body FROM reporting_workflows').all().filter(row => temporaryHome(row.home, roots) && fixtureGone(row.home));
-  const ids = new Set(workflows.map(row => row.id));
-  const keys = new Set(workflows.map(row => JSON.parse(row.body).projectKey).filter(Boolean));
+  if (!db) { check(!apply, 'No reporting store: nothing to remove'); return { workflows: 0, observations: 0, projects: [], candidates: [], applied: false }; }
+  const candidates = db.prepare('SELECT id,home,body FROM reporting_workflows').all().filter(row => temporaryHome(row.home, roots) && fixtureGone(row.home));
+  let selected = candidates;
+  if (apply) {
+    const known = new Set(candidates.map(row => row.id));
+    const unknown = named.filter(id => !known.has(id));
+    check(!unknown.length, `Not a current purge candidate: ${unknown.slice(0, 5).join(', ')}; run the preview again`);
+    const chosen = new Set(named); selected = candidates.filter(row => chosen.has(row.id));
+  }
+  const ids = new Set(selected.map(row => row.id));
+  const keys = new Set(selected.map(row => JSON.parse(row.body).projectKey).filter(Boolean));
+  // A project key shared with any workflow not selected keeps its observations.
+  for (const row of db.prepare('SELECT id,body FROM reporting_workflows').all()) if (!ids.has(row.id)) keys.delete(JSON.parse(row.body).projectKey);
   const matched = new Map();
   for (const row of db.prepare('SELECT id,body FROM reporting_observations').all()) {
     if (matched.has(row.id)) continue;
@@ -362,7 +374,8 @@ export async function purgeTestData({ apply = false, roots } = {}, store) {
     db.prepare('DELETE FROM reporting_workflows WHERE id IN (SELECT value FROM json_each(?))').run(workflowList);
   });
   return { workflows: ids.size, observations: matched.size, projects: Object.entries(projects).sort((a, b) => b[1] - a[1]).map(([project, count]) => ({ project, count })), applied: apply,
-    rule: 'Workflows whose database lived in a test-suite fixture directory under a temporary directory and no longer exists, and their observations.' };
+    candidates: apply ? [] : candidates.map(row => ({ id: row.id, home: row.home })),
+    rule: 'Preview: workflows in a test-suite fixture directory shape under a temporary directory whose folder no longer exists. Apply removes only the named workflows and their observations.' };
 }
 export async function cleanupReporting({apply=false} = {},store) {
   const db=await reportingDatabase(store,false);if(!db)return {datasets:0,observations:0,applied:apply};

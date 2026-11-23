@@ -34,7 +34,7 @@ test('npm test runs against a private scratch root and metrics store', async t =
   }
 });
 
-test('the test-data purge previews, then removes only workflows that lived in temporary directories', async t => {
+test('the test-data purge previews fixture candidates and removes only the workflows named from the preview', async t => {
   const store = new MetricsStore(await temp(t, 'metrics-'));
   await importSnapshot({ format: SNAPSHOT_FORMAT, sources: [source], records: [
     row('real-1', { workflow: 'w-real', project: 'product' }), row('fixture-1', { workflow: 'w-temp', project: 'gatereeve-current-AbC123' }),
@@ -49,7 +49,11 @@ test('the test-data purge previews, then removes only workflows that lived in te
   assert.equal(preview.workflows, 1);
   assert.equal(preview.observations, 2);
   assert.equal((await metricsRequest('status', {}, store)).breakdown.observations, 3);
-  const applied = await purgeTestData({ apply: true }, store);
+  // Deletion is never automatic: apply must name the previewed workflows.
+  assert.deepEqual(preview.candidates.map(item => item.id), ['w-temp']);
+  await assert.rejects(purgeTestData({ apply: true }, store), /names the workflows/u);
+  await assert.rejects(purgeTestData({ apply: true, workflows: ['w-real'] }, store), /Not a current purge candidate: w-real/u);
+  const applied = await purgeTestData({ apply: true, workflows: ['w-temp'] }, store);
   assert.equal(applied.observations, 2);
   const status = await metricsRequest('status', {}, store);
   assert.deepEqual([status.breakdown.observations, status.breakdown.workflows, status.records], [1, 2, 1]);
