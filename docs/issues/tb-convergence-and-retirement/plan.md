@@ -11,7 +11,7 @@
 - `spec.md` controls scope, required behavior, and rubric mapping.
 - `design.md` supplies the chosen architecture, constraints, and boundaries.
 - `interview.md` supplies supporting examples, rationale, references, and edge
-  cases (D1–D27).
+  cases (D1–D33).
 - `handoff.md` supplies code pointers and the evidence base from the Mac
   interview.
 
@@ -29,6 +29,23 @@ Six slices (D24), each a branch from the integration branch
 
 The final FEATURE PR from the integration branch to `main` is reviewed and
 left ready and unmerged.
+
+**Delivery after slice 1 (D33).** Slice 1 shipped alone (PR #128). The
+remaining slices ship as three SLICE PRs into the integration branch:
+
+- **PR A** - slices 2 and 6 plus the D33 scratch-lock and workflow-robustness
+  work (P2, P9, P11);
+- **PR B** - slice 3 plus the D33 verdict work (P3, P4);
+- **PR C** - slices 4 and 5 (P5–P8).
+
+Each PR gets at most two paired review rounds; after that, remaining
+non-blocking findings become follow-ups and residual risk is recorded with
+`review.adjudicate`. Blocking findings are still fixed. Local verification
+uses one fixed check list from the first run of each PR (focused and affected
+suites, the core suite in parallel once P2's per-shard scratch roots land),
+and each background step stays under two hours. Once PRs A and B are merged,
+this run's GateReeve operations use the adapter from the integration branch
+checkout (`plugin-src/shared/resources/protocol/plugin-adapter.js`).
 
 Every shared resource change is restaged into the desktop copies
 (`node apps/desktop/scripts/stage-protocol.mjs`) and checked with
@@ -81,6 +98,15 @@ Every shared resource change is restaged into the desktop copies
 - Record `DECISION_PENDING` at question time: find where the question is
   presented (pending decisions in status / hook paths) and emit the
   observation then.
+- Scratch lock (D33): give each isolated shard its own root in
+  `cli/test/helpers/isolated-tests.js` and a private root to any suite run
+  directly with `node --test` (a test-side preload or helper that sets
+  `GATEREEVE_SCRATCH_ROOT`/`TMPDIR` when the host root would be used).
+  In `storage/scratch.js`: `createScratch` creates the run folder and owner
+  record without the global lock; cleanup takes the lock only to rename an
+  eligible run to a tombstone, then deletes it outside the lock; `lock()`
+  keeps waiting while the holder is verified alive and reports an
+  interrupted lock as today.
 
 ### P3 - Reviewer contract: severity, failure scenario, class (slice 3, AC3, AC4)
 
@@ -117,6 +143,17 @@ Every shared resource change is restaged into the desktop copies
 - Record repair-turn tokens and duration outside the round count.
 - Write per-finding and per-reviewer-result fields to the shared metrics
   store.
+- Substance and bookkeeping (D32, D33): compute the required disposition set
+  in `execution.js` (the existing `required`/`reconsider` logic) and pass it
+  in the reviewer packet; build the output schema per request with enums of
+  allowed finding IDs; normalize disclosed-but-not-required IDs out of
+  `historyAssessment.affected` and dispositions (recorded as `normalized`)
+  instead of rejecting; treat findings inside earlier UNAVAILABLE results as
+  disclosed; add the present-but-low disposition; ship a read-only
+  `validate-verdict` script in the reviewer sandbox that runs the same
+  validator; compare format repairs by substance identity in
+  `validateFormatRepair`; count rejections and normalizations per rule in
+  the metrics store.
 
 ### P5 - Round policy and goal wiring (slice 4, AC6)
 
@@ -199,6 +236,19 @@ Every shared resource change is restaged into the desktop copies
   idle inhibitor; PROTOCOL.md, WORKFLOW.md, USER-GUIDE.md, cli/README.md.
 - Restage resources; plugin checks.
 
+### P11 - Workflow robustness (PR A, AC13)
+
+- Create `decisions.md` with the lifecycle documents (branch bootstrap and
+  run start) and make `candidate.prepare` fail naming it when missing.
+- Verification configuration: optional per-check `replaces` (earlier check
+  identities plus a reason); the reviewer packet carries them as coverage
+  claims, and `verificationCoverage` in `core.js` counts a replaced identity
+  as covered when the consuming paired review passes that coverage decision.
+- `job.abandon` (`jobId`, `reason`): allowed for runner and
+  independent-assessment jobs whose process is verifiably gone; records
+  `JOB_ABANDONED`; the pending-execution check in `qualifyResult` ignores
+  abandoned jobs. Delivery jobs are refused.
+
 ## Rubric mapping
 
 | Step | Rubric |
@@ -213,3 +263,4 @@ Every shared resource change is restaged into the desktop copies
 | P8 | R9 |
 | P9 | R10 |
 | P10 | R11 |
+| P11 | R13 |
