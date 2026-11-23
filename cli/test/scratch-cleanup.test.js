@@ -309,3 +309,19 @@ test('a run removed by a concurrent cleanup is skipped, not a failure', async t 
   assert.deepEqual(result.errors, []);
   assert.deepEqual(result.skipped, [{ id: run.id, status: 'removed' }]);
 });
+
+test('a leftover tombstone alone is reclaimed; a deletion failure is an error, not a concurrent removal', async t => {
+  const { root } = await fixture(t);
+  await createScratch({ root, purpose: 'register' }).then(run => cleanupScratch({ root, run: run.id, apply: true, ...inactive }));
+  const runs = join(root, 'runs');
+  await mkdir(join(runs, '.removing-only'), { mode: 0o700 });
+  await writeFile(join(runs, '.removing-only.json'), JSON.stringify({ kind: 'gatereeve-scratch/1', processId: process.pid, processStartedAt: 'an exited deleter' }), { mode: 0o600 });
+  const reclaimed = await cleanupScratch({ root, apply: true, ...inactive });
+  assert.equal(reclaimed.tombstonesRemoved, 1, JSON.stringify(reclaimed));
+  assert.deepEqual((await readdir(runs)).filter(name => name.startsWith('.')), []);
+  const run = await createScratch({ root, purpose: 'failing delete' });
+  await changeOwner(run, { state: 'finished' }); await rm(join(run.path, '.active'));
+  const failed = await cleanupScratch({ root, run: run.id, apply: true, ...inactive, removeTree: async () => { throw new Error('EBUSY fixture'); } });
+  assert.match(failed.errors[0]?.reason ?? '', /EBUSY fixture/u);
+  assert.deepEqual(failed.skipped, []);
+});

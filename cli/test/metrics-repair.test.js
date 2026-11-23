@@ -56,9 +56,11 @@ test('the test-data purge previews, then removes only workflows that lived in te
   assert.equal(temporaryHome('/home/someone/code/x'), false);
   assert.equal(temporaryHome(join(tmpdir(), 'product')), false);
   assert.equal(temporaryHome(join(tmpdir(), 'my-product/docs')), false);
+  for (const real of ['gatereeve-project', 'gatereeve-production', 'gatereeve-release', 'workflow-redesign', 'gr-checkout', 'metrics-dashboard', 'gatereeve-current-project'])
+    assert.equal(temporaryHome(join(tmpdir(), real, 'docs')), false, real);
   assert.equal(temporaryHome(join(tmpdir(), 'gatereeve-current-AbC123/docs')), true);
   assert.equal(temporaryHome('/tmp/gatereeve/runs/node-x/tmp/gatereeve-light-q1W2e3/docs/issues/f', ['/tmp']), true);
-  assert.equal(temporaryHome('/tmp/gatereeve session start ysAb12Cd/docs', ['/tmp']), true);
+  assert.equal(temporaryHome('/tmp/gatereeve session start p92rac_a/docs', ['/tmp']), true);
 });
 
 test('capture keeps the stored value and reports a conflicting row; explicit import still refuses', async t => {
@@ -164,4 +166,16 @@ test('a full cleanup preview counts files for active and retained runs too', asy
   assert.equal(byId(kept.id).status, 'retained');
   assert.ok(byId(kept.id).files >= 1);
   assert.ok(preview.files >= byId(active.id).files + byId(kept.id).files);
+});
+
+test('the purge keeps a fixture-shaped workflow whose folder still exists on disk', async t => {
+  const store = new MetricsStore(await temp(t, 'metrics-'));
+  const live = await mkdtemp(join(tmpdir(), 'gatereeve-current-'));
+  t.after(() => rm(live, { recursive: true, force: true }));
+  await importSnapshot({ format: SNAPSHOT_FORMAT, sources: [source], records: [row('live-1', { workflow: 'w-live', project: 'live' })] }, store);
+  const db = await reportingDatabase(store);
+  db.prepare('INSERT INTO reporting_workflows VALUES (?,?,?)').run('w-live', live, JSON.stringify({ projectKey: 'src:live' }));
+  assert.equal(temporaryHome(live), true);
+  const preview = await purgeTestData({}, store);
+  assert.deepEqual([preview.workflows, preview.observations], [0, 0]);
 });

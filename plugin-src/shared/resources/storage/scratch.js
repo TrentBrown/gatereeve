@@ -395,7 +395,8 @@ export async function inspectScratch({ root = scratchRoot(), run, quick = false,
   const entries = [];
   for (const name of names.sort()) entries.push(await assess(info.root, name, { ...options, quick }));
   // Spec AC2: previews and doctor count files for every run, not only eligible ones.
-  for (const item of entries) if (item.files === undefined && item.status !== 'removed') item.files = await treeTotals(item.path, BigInt((await lstat(item.path, { bigint: true }).catch(() => ({ dev: 0n }))).dev)).then(totals => totals?.files ?? null, () => null);
+  // A mounted run is not walked: the mount may be a large or remote tree.
+  for (const item of entries) if (item.files === undefined && !['removed', 'mounted'].includes(item.status)) item.files = await treeTotals(item.path, BigInt((await lstat(item.path, { bigint: true }).catch(() => ({ dev: 0n }))).dev)).then(totals => totals?.files ?? null, () => null);
   const reports = run ? null : await reportRetention(info.root).then(({ names: _names, ...summary }) => summary, () => null);
   return { root: info.root, entries, eligibleBytes: quick ? null : entries.reduce((sum, item) => sum + (item.status === 'eligible' ? item.bytes : 0), 0),
     files: entries.reduce((sum, item) => sum + (item.files ?? 0), 0), reports, tombstones, quick };
@@ -403,10 +404,11 @@ export async function inspectScratch({ root = scratchRoot(), run, quick = false,
 
 export async function cleanupScratch({ root = scratchRoot(), run, apply = false, ...options } = {}) {
   const preview = await inspectScratch({ root, run, ...options, quick: false });
-  if (!apply || preview.error || (preview.entries.length === 0 && (run || !(preview.reports?.removable.age || preview.reports?.removable.count)))) return { ...preview, applied: false, removed: [], reclaimedBytes: 0 };
+  if (!apply || preview.error || (preview.entries.length === 0 && (run || !(preview.reports?.removable.age || preview.reports?.removable.count || preview.tombstones)))) return { ...preview, applied: false, removed: [], reclaimedBytes: 0 };
   const info = await rootInfo(root), { removeTree = path => rm(path, { recursive: true }) } = options;
   const removed = [], errors = [], skipped = [];
   for (const item of preview.entries.filter(entry => entry.status === 'eligible')) {
+    let entombed = false;
     try {
       // Activity probes run outside the lock. An eligible run's owner has
       // finished or is gone, and only the owner changes its record, so the
@@ -425,11 +427,12 @@ export async function cleanupScratch({ root = scratchRoot(), run, apply = false,
       });
       // A concurrent cleanup already removed it: nothing failed.
       if (!tombstone) { skipped.push({ id: item.id, status: 'removed' }); continue; }
+      entombed = true; // From here a failure is a deletion failure, never a concurrent removal.
       await bury(tombstone, current.identity, removeTree);
       removed.push({ id: item.id, bytes: current.bytes, files: current.files });
     } catch (error) {
       // A concurrent cleanup removed the run while it was being rechecked.
-      if (await lstat(item.path).then(() => false, absent)) skipped.push({ id: item.id, status: 'removed' });
+      if (!entombed && await lstat(item.path).then(() => false, absent)) skipped.push({ id: item.id, status: 'removed' });
       else errors.push({ id: item.id, reason: error.message });
     }
   }

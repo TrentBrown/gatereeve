@@ -647,15 +647,19 @@ export class CurrentCore {
         if (!report.coverageDecisions?.some(item => item.id === claim.id && item.outcome === 'PASS')) continue;
         if (claim.kind === 'check-replacement') {
           // Spec AC13 (D33): the declared replacement counts once both members
-          // of the paired boundary review that consumed it accepted it and its
-          // verification is still current and passing. A standalone spec,
-          // judge or single review decision is not enough.
-          if (report.gate !== 'review' || !inputs.configuration?.reviewerSelection || typeof inputs.configuration.provider !== 'string') continue;
+          // of one recorded paired boundary round (BOUNDARY_REVIEWED) accepted
+          // it and its verification is still current and passing. A standalone
+          // spec, judge or review decision, or reviews from different rounds,
+          // are not enough.
+          if (report.gate !== 'review') continue;
+          const round = state.boundaryReviewHistory.find(entry => entry.outcomes?.some(outcome => outcome.results?.some(item => item.hash === ref.hash)));
+          if (!round) continue;
+          const provider = round.outcomes.find(outcome => outcome.results?.some(item => item.hash === ref.hash)).provider;
           try { if ((await this.currentResult(claim.verification, candidate, state, new Set(), memo, false)).outcome !== 'PASS') continue; }
           catch { continue; } // A stale replacement cannot cover prior behavior.
-          const key = `${claim.verification.hash}:${checkIdentity(claim.replaces)}`;
-          const providers = pairedReplacements.get(key) ?? pairedReplacements.set(key, { identity: checkIdentity(claim.replaces), providers: new Set() }).get(key);
-          providers.providers.add(inputs.configuration.provider);
+          const key = `${round.event}:${claim.verification.hash}:${checkIdentity(claim.replaces)}`;
+          const entry = pairedReplacements.get(key) ?? pairedReplacements.set(key, { identity: checkIdentity(claim.replaces), providers: new Set(), required: round.outcomes.length }).get(key);
+          entry.providers.add(provider);
           continue;
         }
         let applicable = true;
@@ -670,7 +674,7 @@ export class CurrentCore {
         }
       }
     }
-    for (const { identity: replaced, providers } of pairedReplacements.values()) if (providers.size >= 2) covered.set(replaced, true);
+    for (const { identity: replaced, providers, required } of pairedReplacements.values()) if (providers.size >= 2 && providers.size === required) covered.set(replaced, true);
     requireThat([...required].every(id => covered.get(id) === true), 'Verification has uncovered prior behavior; rerun checks or qualify replacement coverage in the existing independent review');
   }
   async recordedResult(ref, state) {

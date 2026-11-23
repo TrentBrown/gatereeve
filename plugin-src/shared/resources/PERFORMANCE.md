@@ -22,14 +22,16 @@ gatereeve metrics purge-test-data --apply # remove them
 datasets. `metrics capture` keeps a stored value when a local row conflicts with
 it (same observation identity and time, different content), skips that row and
 lists it under `skipped`; explicit snapshot imports still refuse conflicts.
-`metrics purge-test-data` matches workflows whose database lived in a test-suite
-fixture directory: below a temporary directory (the host temporary directory,
-`/tmp`, `/var/tmp` or macOS `/var/folders`), a directory the test suites create
-with `mkdtemp` or Python `tempfile` (a test prefix such as `gatereeve-`, `gr-` or
-`workflow ` plus six to eight random characters). It also matches those
-workflows' observations. A real workspace under `/tmp`, such as `/tmp/product`,
-is not matched. The preview names the matched projects; nothing is removed
-without `--apply`.
+`metrics purge-test-data` matches a workflow only when both hold: its database
+lived below a temporary directory (the host temporary directory, `/tmp`,
+`/var/tmp` or macOS `/var/folders`) in a directory with the exact shape the test
+suites create (`gatereeve-current-`, `gatereeve-current-surface-`,
+`gatereeve-dials-`, `gatereeve-light-`, `gatereeve-s5-` or `gatereeve-targets-`
+plus a six-character `mkdtemp` suffix, or `gatereeve session start ` plus an
+eight-character `tempfile` suffix), and that folder no longer exists. The
+matched workflows' observations are removed with them. A real workspace, which
+is still on disk, is never matched. The preview names the matched projects;
+nothing is removed without `--apply`.
 
 The CLI test suite (`npm test --prefix cli`) runs through
 `cli/scripts/isolated-test.js`, which gives every test process a private scratch

@@ -195,3 +195,17 @@ test('an open PR outside the all-states listing still protects its worktree; a f
   plan = await planSweep({ repositories: [w.repo], cwd: w.base, tools: tools(Array.from({ length: 10000 }, (_, number) => ({ headRefName: `b${number}`, state: 'OPEN', number }))) });
   assert.equal(byName(plan, 'old-open').reason, 'pr-state-unknown');
 });
+
+test('only repository-local git config extends the regenerable set', async t => {
+  const w = await world(t);
+  const path = await w.add('global-ext');
+  await mkdir(join(path, 'local-cache')); await writeFile(join(path, 'local-cache/a'), 'secret');
+  const globalConfig = join(w.base, 'global.gitconfig');
+  await writeFile(globalConfig, '[gatereeve]\n\tsweepRegenerable = local-cache\n');
+  const previous = process.env.GIT_CONFIG_GLOBAL;
+  process.env.GIT_CONFIG_GLOBAL = globalConfig;
+  try {
+    const plan = await planSweep({ repositories: [w.repo], cwd: w.base, tools: prs({ 'global-ext': 'CLOSED' }) });
+    assert.ok(byName(plan, 'global-ext').matters.some(item => item.kind === 'ignored' && item.path === 'local-cache/'));
+  } finally { if (previous === undefined) delete process.env.GIT_CONFIG_GLOBAL; else process.env.GIT_CONFIG_GLOBAL = previous; }
+});

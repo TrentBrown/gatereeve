@@ -145,7 +145,7 @@ async function containsState(dir) {
 
 async function regenerableSet(tools, path) {
   let extra = [];
-  try { extra = (await tools.git(path, ['config', '--get-all', 'gatereeve.sweepRegenerable'])).split('\n').map(item => item.trim()).filter(Boolean); } catch { /* none */ }
+  try { extra = (await tools.git(path, ['config', '--local', '--get-all', 'gatereeve.sweepRegenerable'])).split('\n').map(item => item.trim()).filter(Boolean); } catch { /* none */ }
   return new Set([...REGENERABLE, ...extra.filter(name => !name.includes('/'))]);
 }
 

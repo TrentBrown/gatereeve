@@ -108,3 +108,22 @@ folder still exists. Stranded runs: older than 7 days with dead owners.
 **Rationale:** Reports are 4 KiB each and useful for a few weeks of diagnosis;
 5,000 covers several full test-heavy weeks if tests ever leak again. Seven days
 outlives any review or release job. Reversible.
+
+## [6] PR A: a third, delta-only paired round for blocking fixes
+
+**Answered by:** human (2026-11-23, "Fix + one delta round")
+
+**Context:** After the two paired rounds D33 allows, round 2 still raised four
+blocking findings (purge name pattern matching real folders, unreachable
+tombstone reclaim, global git config in the sweep skip list, check replacement
+not bound to a recorded boundary pair). D33 says blocking findings are still
+fixed, and acceptance needs a passing pair on the current candidate, so any
+fix needs a further round.
+
+**Decision:** Fix all four (plus the cheap non-blocking bury-failure and
+mounted-count findings), verify once, and run one delta paired round limited
+to these fixes. Non-blocking findings after it are adjudicated; no further
+rounds for PR A.
+
+**Rationale:** Two of the four could delete real data; accepting them as risk
+contradicts D33. One short delta round costs about 45 minutes.

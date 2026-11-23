@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { inspectDatabase } from '../protocol/current/workflow-database.js';
 import { DatabaseSync } from 'node:sqlite';
 import { lstat } from 'node:fs/promises';
@@ -330,19 +331,21 @@ export async function reportingCounts(store) {
   return { observations: count('SELECT COUNT(*) AS n FROM reporting_latest'), workflows: count('SELECT COUNT(*) AS n FROM reporting_workflows'), datasets: count('SELECT COUNT(*) AS n FROM reporting_datasets') };
 }
 // Spec AC2: rows from test-suite fixtures are removed on request. Preview by
-// default. A workflow is test data only when its database lived in a
-// temporary directory AND below it in a directory the test suites create with
-// mkdtemp (a test prefix plus six to eight random characters: Node mkdtemp or Python tempfile). A real workspace under
-// /tmp (for example /tmp/product) is never matched.
+// default. A workflow is test data only when (1) its database lived below a
+// temporary directory in a directory with the exact shape the suites create
+// (a fixture prefix the suites use plus the random suffix of Node mkdtemp or
+// Python tempfile) and (2) that workflow folder no longer exists: suites
+// delete their fixtures, a real workspace is still on disk.
 export const temporaryRoots = () => [...new Set([tmpdir(), '/tmp', '/var/tmp', '/private/tmp', '/var/folders', '/private/var/folders'].map(path => resolve(path)))];
-export const TEST_FIXTURE_DIRECTORY = /^(?:gatereeve|gr|workflow|sweep-test|scratch-[a-z-]*test|whiteboard-evidence|tool-leftover|installer-retention|metrics)[- ][^/]*[A-Za-z0-9_]{6,8}$/u;
+export const TEST_FIXTURE_DIRECTORY = /^(?:gatereeve-(?:current|current-surface|dials|light|s5|targets)-[A-Za-z0-9]{6}|gatereeve session start [a-z0-9_]{8})$/u;
 export const temporaryHome = (home, roots = temporaryRoots()) => typeof home === 'string' && roots.some(root => home.startsWith(`${root}/`)
   && home.slice(root.length + 1).split('/').some(part => TEST_FIXTURE_DIRECTORY.test(part)));
+const fixtureGone = home => !existsSync(home);
 export async function purgeTestData({ apply = false, roots } = {}, store) {
   check(typeof apply === 'boolean', 'Purge accepts only apply boolean');
   const db = await reportingDatabase(store, false);
   if (!db) return { workflows: 0, observations: 0, projects: [], applied: false };
-  const workflows = db.prepare('SELECT id,home,body FROM reporting_workflows').all().filter(row => temporaryHome(row.home, roots));
+  const workflows = db.prepare('SELECT id,home,body FROM reporting_workflows').all().filter(row => temporaryHome(row.home, roots) && fixtureGone(row.home));
   const ids = new Set(workflows.map(row => row.id));
   const keys = new Set(workflows.map(row => JSON.parse(row.body).projectKey).filter(Boolean));
   const matched = new Map();
@@ -359,7 +362,7 @@ export async function purgeTestData({ apply = false, roots } = {}, store) {
     db.prepare('DELETE FROM reporting_workflows WHERE id IN (SELECT value FROM json_each(?))').run(workflowList);
   });
   return { workflows: ids.size, observations: matched.size, projects: Object.entries(projects).sort((a, b) => b[1] - a[1]).map(([project, count]) => ({ project, count })), applied: apply,
-    rule: 'Workflows whose database lived in a test-suite fixture directory (created with mkdtemp under a temporary directory), and their observations.' };
+    rule: 'Workflows whose database lived in a test-suite fixture directory under a temporary directory and no longer exists, and their observations.' };
 }
 export async function cleanupReporting({apply=false} = {},store) {
   const db=await reportingDatabase(store,false);if(!db)return {datasets:0,observations:0,applied:apply};

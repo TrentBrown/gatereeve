@@ -83,6 +83,9 @@ test('a declared check replacement is covered once both paired reviewers accept 
   assert.equal(claims.length, 1); assert.equal(claims[0].kind, 'check-replacement');
   assert.deepEqual(claims[0].replaces, { repository: 'app', command: original.command, args: original.args });
   await uncovered();
+  // Two standalone review assessments from different providers are not a recorded boundary pair.
+  for (const provider of ['codex', 'claude-code']) await f.request('gate.execute', { gates: ['review'], configuration: { provider, model: 'fixture' }, consumed: replacement });
+  await uncovered();
   // Rejected by the paired review: still uncovered.
   await f.request('review.select', selection()); pairExistingEvaluator(f);
   decision = 'FAIL';
