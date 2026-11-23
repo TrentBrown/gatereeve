@@ -35,7 +35,9 @@ const env = { ...process.env };
 // The suite must isolate itself; never pass the host roots through as private ones.
 for (const key of ['GATEREEVE_SCRATCH_ROOT', 'GATEREEVE_METRICS_DIR', 'GATEREEVE_TEST_ISOLATED']) delete env[key];
 const code = await new Promise((resolveRun, reject) => {
-  const child = spawn(process.execPath, [join(here, 'isolated-test.js'), ...process.argv.slice(2)], { env, stdio: 'inherit' });
+  // Run from cli/ exactly as `npm test --prefix cli` does, so node --test
+  // discovers the CLI suite and nothing else in the repository.
+  const child = spawn(process.execPath, [join(here, 'isolated-test.js'), ...process.argv.slice(2)], { cwd: join(here, '..'), env, stdio: 'inherit' });
   child.on('error', reject);
   child.on('close', status => resolveRun(status ?? 1));
 });
