@@ -334,7 +334,7 @@ test('Claude gets one same-model correction and retains the original Codex resul
   assert.equal((await boundaryReviews(f.core, state, await f.core.store.json(state.candidate))).outcome, 'PASS');
 });
 
-test('Claude can supply an omitted severity and qualify the same pinned source in its retry', async t => {
+test('Claude can supply an omitted blocking flag and qualify the same pinned source in its retry', async t => {
   const f = await prepared(t, 'full');
   const launches = pairedAdapters(f);
   const adapter = f.core.runtime.evaluators['claude-code'];

@@ -8,6 +8,8 @@ import { validateVerdict, validateFormatRepair, findingLedger, reviewSchema, una
   from '../../plugin-src/shared/resources/protocol/current/execution.js';
 import { pairedSeverities } from '../../plugin-src/shared/resources/protocol/current/boundary-review.js';
 import { ContractError } from '../../plugin-src/shared/resources/protocol/errors.js';
+import { validateJsonSchema } from '../../plugin-src/shared/resources/protocol/json-schema.js';
+import { validateReview as validatePlanningReview } from '../../plugin-src/shared/resources/protocol/current/delegation.js';
 
 const candidate = { criteria: ['R1'], repositories: [{ alias: 'app', files: [{ path: 'app.js' }], baseFiles: [{ path: 'app.js' }], targetFiles: [] }] };
 const finding = (id, { blocking = true, severity = 'high', ...rest } = {}) => ({ id, classId: `class-${id}`, classStatement: `Class of ${id}`,
@@ -150,4 +152,64 @@ test('every UNAVAILABLE cause maps to one reason code', () => {
   assert.equal(unavailableReason(Object.assign(new Error('x'), { providerFailure: { category: 'authentication' } })), 'provider-error');
   assert.equal(unavailableReason(new Error('disk full')), 'other');
   assert.deepEqual(UNAVAILABLE_REASONS, ['contract', 'malformed-json', 'provider-error', 'timeout', 'missing-evidence', 'other']);
+});
+
+// R3: every gate and rigor rejects a finding missing any of the four fields.
+const brief = { criteria: ['brief'], requirements: { 'brief.md': {} }, repositories: candidate.repositories };
+const dimensionRows = outcome => ['code', 'requirements', 'evidence', 'scope', 'findings'].map(name => ({ name, outcome, evidence: 'Checked.' }));
+const gateVerdict = (gate, scope, findings, outcome = 'FAIL') => pass({ gate, outcome, findings,
+  criteria: ['review', 'spec', 'judge'].includes(gate) ? scope.criteria.map(id => ({ id, outcome, evidence: 'Assessed.' })) : [],
+  ...(gate === 'review' ? { dimensions: dimensionRows(outcome) } : {}) });
+const forScope = (scope, row) => ({ ...row, criterion: scope.criteria[0] });
+for (const [label, gate, scope] of [['code (full)', 'code', candidate], ['spec (full)', 'spec', candidate], ['judge (full)', 'judge', candidate],
+  ['review (full)', 'review', candidate], ['review (light brief)', 'review', brief], ['code (light brief)', 'code', brief]]) {
+  test(`${label} rejects a finding missing any severity, failure scenario or class field`, () => {
+    const check = row => validateVerdict(gateVerdict(gate, scope, [row]), [gate], scope, null, [], []);
+    assert.equal(check(forScope(scope, finding('N1'))).outcome, 'FAIL');
+    for (const key of ['severity', 'failureScenario', 'classId', 'classStatement']) {
+      const row = forScope(scope, finding('N1')); delete row[key];
+      assert.throws(() => check(row), key === 'severity' ? /severity must be high, medium or low/ : new RegExp(`Finding ${key}`));
+    }
+  });
+}
+
+test('a FAIL resting only on low findings is recorded as PASS; any other cause keeps it FAIL', () => {
+  const check = (findings, fields = {}) => validateVerdict({ ...gateVerdict('review', candidate, findings), ...fields }, ['review'], candidate, null, [], []);
+  const lowOnly = check([finding('L1', { severity: 'low' })]);
+  assert.equal(lowOnly.outcome, 'PASS');
+  assert.ok(lowOnly.criteria.every(row => row.outcome === 'PASS') && lowOnly.dimensions.every(row => row.outcome === 'PASS'));
+  assert.deepEqual(lowOnly.normalized.find(row => row.rule === 'low-only-fail').original, { outcome: 'FAIL', criteria: ['R1'], dimensions: ['code', 'requirements', 'evidence', 'scope', 'findings'] });
+  assert.equal(check([finding('L1', { severity: 'low' }), finding('M1', { severity: 'medium' })]).outcome, 'FAIL');
+  assert.equal(check([finding('L1', { severity: 'low' })], { coverage: { complete: false, paths: [], interactions: [], limitations: ['Uncovered'] } }).outcome, 'FAIL');
+  assert.equal(check([finding('L1', { severity: 'low' })], { mandateAssessment: { outcome: 'FAIL', evidence: 'Out of mandate.' } }).outcome, 'FAIL');
+  // A FAIL with no blocking finding at all stays the reviewer's FAIL.
+  assert.equal(check([finding('A1', { severity: 'medium', blocking: false })]).outcome, 'FAIL');
+});
+
+test('a disposition cannot carry or change a severity', () => {
+  const schemaFor = gate => reviewSchema([gate], ['R1']).properties.verdicts.items.anyOf[0];
+  const verdict = { ...gateVerdict('code', candidate, [finding('F1')]), mandateAssessment: null, coverageDecisions: [] };
+  assert.doesNotThrow(() => validateJsonSchema(schemaFor('code'), verdict, { label: 'code' }));
+  for (const extra of [{ severity: 'low' }, { severity: 'high' }]) {
+    assert.throws(() => validateJsonSchema(schemaFor('code'), { ...verdict, dispositions: [{ ...disposition('F1', 'present'), ...extra }] }, { label: 'code' }));
+  }
+});
+
+test('planning reviews require the same finding fields; low never blocks', () => {
+  const documents = { 'design.md': {} };
+  const row = (id, fields = {}) => ({ id, document: 'requirements/design.md', evidence: `Evidence ${id}`, blocking: true, severity: 'high',
+    failureScenario: `Trigger ${id} -> wrong plan`, classId: `class-${id}`, classStatement: `Class ${id}`, ...fields });
+  const review = (findings, outcome = 'FAIL') => ({ outcome, summary: 'Planning assessment.', findings, mandateAssessment: null });
+  assert.deepEqual(validatePlanningReview(review([row('P1')]), documents), []);
+  for (const key of ['severity', 'failureScenario', 'classId', 'classStatement']) {
+    const missing = row('P1'); delete missing[key];
+    assert.throws(() => validatePlanningReview(review([missing]), documents), /Planning finding|severity/);
+  }
+  const low = review([row('L1', { severity: 'low' })]);
+  assert.deepEqual(validatePlanningReview(low, documents).map(item => item.rule), ['low-never-blocks', 'low-only-fail']);
+  assert.equal(low.outcome, 'PASS');
+  assert.equal(low.findings[0].blocking, false);
+  const mixed = review([row('L1', { severity: 'low' }), row('M1', { severity: 'medium' })]);
+  validatePlanningReview(mixed, documents);
+  assert.equal(mixed.outcome, 'FAIL');
 });
