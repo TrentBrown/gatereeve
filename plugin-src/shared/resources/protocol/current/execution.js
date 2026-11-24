@@ -35,7 +35,7 @@ const SEVERITY_RANK = { low: 1, unrated: 2, medium: 2, high: 3 };
 export const findingSeverity = finding => SEVERITIES.includes(finding?.severity) ? finding.severity : 'unrated';
 // Low never blocks; an unrated (earlier-contract) finding keeps its recorded flag.
 export const findingBlocks = finding => Boolean(finding?.blocking) && findingSeverity(finding) !== 'low';
-export const higherSeverity = (a, b) => (SEVERITY_RANK[a] ?? 0) >= (SEVERITY_RANK[b] ?? 0) ? a : b;
+export const severityRank = severity => SEVERITY_RANK[severity] ?? 0;
 // Every UNAVAILABLE result carries exactly one of these codes (spec AC5).
 export const UNAVAILABLE_REASONS = Object.freeze(['contract', 'malformed-json', 'provider-error', 'timeout', 'missing-evidence', 'other']);
 export function unavailableReason(error) {
@@ -161,10 +161,10 @@ export function validateFormatRepair(original, corrected, selectedCriteria = [],
   }
   if (original.coverage !== undefined) requireThat(corrected.coverage?.complete === original.coverage?.complete
     && identity(original.coverage?.limitations ?? []) === identity(corrected.coverage?.limitations ?? []), substance);
-  const rows = (value, key, fields) => identity([...(value ?? [])].map(row => fields.map(field => row?.[field] ?? null)).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
-  if (original.dispositions !== undefined) requireThat(rows(original.dispositions, 'id', ['id', 'status']) === rows(corrected.dispositions, 'id', ['id', 'status']), substance);
-  if (original.coverageDecisions !== undefined) requireThat(rows(original.coverageDecisions, 'id', ['id', 'outcome']) === rows(corrected.coverageDecisions, 'id', ['id', 'outcome']), substance);
-  if (original.dimensions !== undefined) requireThat(rows(original.dimensions, 'name', ['name', 'outcome']) === rows(corrected.dimensions, 'name', ['name', 'outcome']), substance);
+  const rows = (value, fields) => identity([...(value ?? [])].map(row => fields.map(field => row?.[field] ?? null)).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
+  if (original.dispositions !== undefined) requireThat(rows(original.dispositions, ['id', 'status']) === rows(corrected.dispositions, ['id', 'status']), substance);
+  if (original.coverageDecisions !== undefined) requireThat(rows(original.coverageDecisions, ['id', 'outcome']) === rows(corrected.coverageDecisions, ['id', 'outcome']), substance);
+  if (original.dimensions !== undefined) requireThat(rows(original.dimensions, ['name', 'outcome']) === rows(corrected.dimensions, ['name', 'outcome']), substance);
   // An omitted assessment may be supplied; a stated one keeps its affected set.
   if (original.historyAssessment !== undefined && original.historyAssessment !== null) {
     // Affected IDs are compared as the set that bookkeeping keeps.
@@ -457,8 +457,11 @@ export function validateVerdict(verdict, ids, candidate, changes, history, claim
     for (const id of historyAssessment.affected) {
       if (kept.includes(id)) { normalized.push({ rule: 'duplicate-affected', field: 'historyAssessment.affected', id }); continue; }
       if (ledger.eligibleAffected.includes(id)) { kept.push(id); continue; }
-      requireThat(disclosed.has(id), `Affected finding ${id} is not disclosed in supplied history`, { eligibleAffected: ledger.eligibleAffected });
-      normalized.push({ rule: 'affected-not-required', field: 'historyAssessment.affected', id });
+      // An ID disclosed nowhere is a contract error only where the list is
+      // assessed (a PASS reconsidering closures), as before; elsewhere it is dropped.
+      if (!disclosed.has(id)) requireThat(!(verdict.outcome === 'PASS' && ledger.reconsider.length),
+        `Affected finding ${id} is not disclosed in supplied history`, { eligibleAffected: ledger.eligibleAffected });
+      normalized.push({ rule: disclosed.has(id) ? 'affected-not-required' : 'affected-not-disclosed', field: 'historyAssessment.affected', id });
     }
     if (kept.length !== historyAssessment.affected.length) historyAssessment = { ...historyAssessment, affected: kept };
   }

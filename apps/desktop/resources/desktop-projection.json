@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:363ec4060a4b55f1c1a87024e0f27ba8c90adad7d9204ea32b77a43b1f274aa5",
+  "protocolHash": "sha256:d45d75a0475ade726c626b499ab39e8a494cd93282439316eb217d6d25e6a112",
   "contract": "gatereeve/current/8",
   "contractSha256": "7667d7eeff6381d189f3f19c835ebedbd3fc88650f80a735d39c68f3e1576823",
   "files": [
@@ -42,8 +42,8 @@
     },
     {
       "path": "current/boundary-review.js",
-      "size": 15752,
-      "sha256": "fbf9ab60dbce9fa01b1b9470266c8e77271e9da400c9df707122453d3c12f8fa"
+      "size": 15669,
+      "sha256": "255abc45cd9216d5bd9656ae80615e9b7a6ef1f2590a73b98e28653d289f2e02"
     },
     {
       "path": "current/command-guard.js",
@@ -97,8 +97,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 88280,
-      "sha256": "6c73ed374e2e21b1328764b171412107209fb2e5806744e462a3e78cf56947b0"
+      "size": 88487,
+      "sha256": "e3fa1885ab1836eb6cb23b3f777bec4ef8ce60176396b2f6b2d704585810a0da"
     },
     {
       "path": "current/final-handoff.js",

@@ -175,3 +175,23 @@ D8 also requires a failure scenario and a class statement for every finding.
 
 **Rationale:** Ship the changes that stop bookkeeping rejections first and keep
 the store schema change in one PR.
+
+## [10] Exit-time SIGABRT in isolated test processes: timebox closed, follow-up
+
+**Answered by:** agent (D34 item 5: timeboxed, never blocks a PR)
+
+**Context:** In CI (PR A, current-core shard) and earlier local runs, a
+`node --test` file process inside an isolated shard passed every assigned test
+and then died with SIGABRT, printing nothing.
+
+**Decision:** Not reproduced on aws-1 within the timebox, with core dumps
+enabled (apport writes to `/var/lib/apport/coredump`; gdb extracted from the
+Ubuntu package): one full CLI suite on 8 cores (566 tests, 11.5 min, load ~22)
+plus repeated isolated runs of current-core, current-light, current-tripwires,
+current-delivery-targets and current-boundary-review, including runs pinned to
+2 CPUs to match hosted runners. Recorded as a follow-up; a hosted CI rerun of a
+job that fails only this way is acceptable evidence handling.
+
+**Next step for the follow-up:** run CI with `ulimit -c unlimited` and upload
+any core as an artifact, or run the shard under `catchsegv`-style gdb batch
+(`gdb -batch -ex bt`) on a 2-CPU runner.

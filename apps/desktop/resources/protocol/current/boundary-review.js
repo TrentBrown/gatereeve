@@ -1,6 +1,6 @@
 import { identity, requireThat, autonomousValue } from './contracts.js';
 import { reviewerSelection, modelProvider } from './reviewer-selection.js';
-import { executeGates, changedPaths } from './execution.js';
+import { executeGates, changedPaths, findingSeverity, severityRank } from './execution.js';
 import { contentIdentity } from './evidence.js';
 import { findingObligations, retainedReviewScope } from './review-findings.js';
 
@@ -59,15 +59,14 @@ async function initialRound(core, state, selected, memo) {
 
 // When the paired reviewers rate the same finding class differently, the
 // higher rating is the qualifying one (AC3, D8). Keyed by classId.
-const RANK = { low: 1, unrated: 2, medium: 2, high: 3 };
 export function pairedSeverities(members) {
   const classes = new Map();
   for (const member of members) for (const finding of member.result?.findings ?? []) {
     if (typeof finding?.classId !== 'string') continue;
-    const severity = ['high', 'medium', 'low'].includes(finding.severity) ? finding.severity : 'unrated';
+    const severity = findingSeverity(finding);
     const row = classes.get(finding.classId) ?? { classId: finding.classId, severity, ratings: [] };
     row.ratings.push({ provider: member.reviewer.provider, findingId: finding.id, severity });
-    if ((RANK[severity] ?? 0) > (RANK[row.severity] ?? 0)) row.severity = severity;
+    if (severityRank(severity) > severityRank(row.severity)) row.severity = severity;
     classes.set(finding.classId, row);
   }
   return [...classes.values()].map(row => ({ ...row, disagreement: new Set(row.ratings.map(item => item.severity)).size > 1 }));

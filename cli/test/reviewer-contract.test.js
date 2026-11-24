@@ -60,7 +60,11 @@ test('a disclosed but not required affected ID is normalized, never rejected', (
   assert.deepEqual(result.historyAssessment.affected, ['C1']);
   assert.deepEqual(result.normalized.map(row => [row.rule, row.id]),
     [['affected-not-required', 'A1'], ['affected-not-required', 'U1'], ['affected-not-required', 'P1']]);
-  // An ID disclosed nowhere stays a contract error.
+  // Outside an assessed list (here a FAIL), even an undisclosed ID is only dropped.
+  const failed = validate(pass({ outcome: 'FAIL', findings: [finding('F1')], historyAssessment: { affected: ['Z9'], carryForwardReason: '' } }));
+  assert.deepEqual(failed.historyAssessment.affected, []);
+  assert.deepEqual(failed.normalized.map(row => row.rule), ['affected-not-disclosed']);
+  // In a PASS reconsidering closures, an ID disclosed nowhere stays a contract error.
   assert.throws(() => validate(pass({ dispositions: [disposition('O1'), disposition('C1')],
     historyAssessment: { affected: ['C1', 'Z9'], carryForwardReason: '' } })), /Z9 is not disclosed/);
   const review = pass({ gate: 'review', criteria: [{ id: 'R1', outcome: 'PASS', evidence: 'Checked.' }],
