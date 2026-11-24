@@ -11,6 +11,16 @@ Use review.select and review.execute for the required pair; request additional r
 Context, packet and retention are checked automatically at their milestone.
 Reuse qualifying proof or request targeted independent delta review covering
 changed code and interactions. Preserve original failures and supported findings.
+Run review rounds on local commits: each round consumes local Verification with
+receipts on the candidate tree for the focused tests of every changed area and
+every affected suite. Follow the round policy (PROTOCOL.md): from round 4 only
+high findings and medium regressions of the previous fix block, and at round 6
+stop for the human (continue, amend, waive or split; a goal run records
+`goal.park`). After the pair converges, push once, open or update the PR, and
+record the hosted CI run as a `ci` Verification for the exact head; the
+runner-role CI check qualifies the converged reviews without a re-review. If
+hosted CI fails, fix locally, run one paired delta round on the fix, then rerun
+CI. Pushing before convergence draws a warning, not a denial.
 Pattern review is optional. Request its gate explicitly when active rules need a
 dedicated assessment. Validate packet reference closure. `milestone.check/pass` acceptance enforces required proof or
 scoped exceptions. In both rigors, run `review.publish` for the PR so its
@@ -47,7 +57,7 @@ the agent then runs `merge.execute`. Standing grants never cover the release
 branch. If GitHub refuses an authorized merge under a hosting rule, report the
 `EXTERNAL_BLOCKER` to the human as an external blocker, not a gate failure, and
 retry `merge.execute` after it is resolved. Deployment remains separately authorized. Open
-drafts are default; closed drafts require explicit repository configuration. No automatic
-remediation-round limit or evidence-commit requirement applies.
+drafts are default; closed drafts require explicit repository configuration. The round
+policy is the only remediation-round limit; no evidence-commit requirement applies.
 
 Autonomous authority may qualify eligible residual risk separately from original review outcomes. It is mandate-bound, never substitutes for a missing reviewer or mandatory verification, and never authorizes the final release merge.

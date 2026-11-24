@@ -273,13 +273,46 @@ remain available.
 Use the test pyramid as a heuristic: choose quick focused deterministic checks
 and useful early independent discovery while implementing. Run wider integration
 and browser checks when changed behavior warrants them. The agent chooses order,
-review count, batching, scope and model diversity; no fixed ratios or round cap.
+review count, batching, scope and model diversity, within the round policy below.
 Strongly consider independent models for consequential persistence/authority
 changes, uncertain findings, repeated misses or divergent conclusions. Record a
 short strategy/reason through `workflow.observe`, preferably at an existing work
 boundary. Ordinary implementer self-review is not another mandatory gate.
 
-Runner configuration is `checks: [{repository,command,args,purpose,timeoutMs?,replaces?}]`.
+### Round policy
+
+Each review scope has a round counter: the slice PR candidate scope (`slice`),
+the feature-final review (`feature-final`) or one planning document
+(`planning:<artifact>`). One round is one paired review of one candidate revision
+(one planning review of one document revision), including rounds where a reviewer
+was UNAVAILABLE; reviewing the same revision again is the same round. Only a
+human-approved amendment (`amend`, or in a light run a human re-authorization of a
+changed brief) resets the counters; observing a slice's integration closes its
+scope, so the next slice PR starts at round 1. Rounds executed before this policy
+are not counted. `status.rounds` shows each scope, its round and band, and advice.
+
+- Rounds 1-3: every in-scope finding with a failure scenario that is not low
+  blocks (the reviewer's `blocking` flag).
+- Rounds 4-5: only `high` findings and `medium` regressions of the previous fix
+  block. A regression is a finding new in this round on a path (planning: a
+  document) the previous round's fix changed. Other findings stop blocking and
+  stay visible on the pair member (`demotedFindings`); a reviewer FAIL explained
+  only by demoted findings counts as PASS for the pair.
+- Low never blocks in any round, including a low regression. Findings without a
+  severity (earlier contracts) read as `unrated` and block exactly as before.
+- Round 6: the review is not qualifying until the human records
+  `human.decide {kind:"review-rounds", reviewScope, choice:"continue"|"split",
+  subject}` (subject: the current candidate hash, or for a planning scope its
+  current document revision), an `amend`, or a `waive`. After continue or split,
+  later rounds keep the round 4-5 band. A new revision is not reviewed past round
+  6 until then. In a goal run the hand-back is `goal.park` with the PR and round
+  evidence. `review.adjudicate` (and autonomous planning judgment) at round 6 or
+  later is refused.
+
+Planning reviews and light runs follow the same schedule; when a light run's
+counter reaches 4, `status` advises raising rigor (advice only).
+
+Runner configuration is `checks: [{repository,command,args,purpose,ciCheck?,timeoutMs?,replaces?}]`.
 `replaces: [{repository?,command,args,reason}]` declares earlier check identities
 the check replaces (the repository defaults to the check's own). Each declaration
 becomes a `check-replacement` coverage claim in any review, spec or judge
@@ -303,6 +336,31 @@ actual local check receipts. This is a proposal until independently assessed.
 A green badge alone is insufficient. Focused local loops do not require this
 broad backstop until acceptance is requested. A CI run reporting no jobs is "no CI
 checks" and leaves Verification UNAVAILABLE; it is never passing CI.
+
+**CI after review convergence.** `candidate.prepare`, `review.execute` and
+`alternative` Verification work on a head that exists only as a local commit.
+During rounds, the Verification a round consumes needs at least one passing
+runner receipt on the candidate tree (otherwise the review is not qualifying), plus
+receipts for the focused tests of every changed source area and every affected
+test suite; reviewers assess that coverage in the evidence dimension and report a
+missing receipt as an evidence finding. After the scope converges, push once and
+record a `ci` Verification for the exact head (`checks` may be empty for a `ci`
+Verification). A runner-role check, with no model call, qualifies it against the
+converged reviews: every required check passed and every local receipt the reviews
+consumed is covered, either because its `ciCheck` (else its `purpose`) is among
+the run's passing required checks, or because the final Verification carries a
+passing receipt of the same check on the identical tree. An uncovered receipt
+fails the check by name. A qualified CI Verification keeps the converged reviews
+qualifying and reusable (`review.execute` reuses them; reuse reason
+`ci-qualified`); `milestone.check` shows the result as `ciQualification` on the
+verification outcome. A `ci` Verification for a different tree is rejected naming
+both trees, and a different commit with the same tree is not the exact head.
+Acceptance refuses a latest Verification that is local evidence the converged
+reviews did not assess (rerunning the same checks on the same tree is the same
+evidence). After a hosted CI failure, fix locally, run one paired delta review of
+the fix (one round), then rerun hosted CI. The PreToolUse guard warns, without
+denying, on `git push` to a topic branch while the current candidate's paired
+review is not a qualifying PASS.
 
 Every Verification result and runner record carries `provenance` (both rigors):
 `agentRun` lists each agent-run command with outcome and receipt (index and
@@ -961,8 +1019,9 @@ perspective. Findings receive provider-specific identities and original-ID
 provenance. Rebuttals are claims until evaluated or legitimately adjudicated.
 Supervised/delegated modes require material clearance from both reviewers; on
 persistent dispute, record the evidence/reason and return control to the human
-(`run.set-dial autonomy supervised`, actor agent, under delegation). There is no
-fixed review-round cap. Do not endlessly retry unchanged disputed claims.
+(`run.set-dial autonomy supervised`, actor agent, under delegation). Rounds
+follow the round policy above, with its round 6 hand-back. Do not endlessly retry
+unchanged disputed claims.
 
 `mandated` (formerly `autonomous`) is a third explicit per-run choice, independent of rigor. Defaults
 remain full/supervised. Grant it only from an observed human instruction bound to
