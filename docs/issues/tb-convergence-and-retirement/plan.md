@@ -47,6 +47,31 @@ and each background step stays under two hours. Once PRs A and B are merged,
 this run's GateReeve operations use the adapter from the integration branch
 checkout (`plugin-src/shared/resources/protocol/plugin-adapter.js`).
 
+**Speed-ups first (D34).** PR A merged outside GateReeve (#129). The rest is
+reordered so the changes that shorten review loops land first and are used at
+once:
+
+- **PR B1 (B-lite)** - the P4 verdict work only: required-disposition set and
+  per-request schema with finding-ID enums, disclosed-not-required IDs
+  normalized instead of rejected, present-but-low disposition, one automatic
+  repair turn judged by substance identity, `unavailableReason` on every
+  UNAVAILABLE result; plus the P3 severity field with low findings
+  non-blocking and the higher paired severity winning (R5 core, R3 core).
+- **PR C1** - P5 round policy and P8 CI after convergence (R6, R9), built in
+  parallel with B1 where files do not overlap.
+- **PR B2 / C2** - the remaining P3/P4 (sweep records, normalization of
+  misplaced fields, `not-assessed`, `validate-verdict`, retention AC12,
+  per-finding metrics) and P6/P7 (follow-ups, failure model), or a follow-up
+  feature if the human cuts them.
+
+After B1 merges, this run uses the integration branch adapter. Verification
+for every remaining PR is hosted CI plus one small fixed local list (focused
+suites only, about 5-10 minutes) chosen on the PR's first run and never
+grown; no local full-suite or serial runs. Before each paired round the
+implementer self-reviews and tests; findings of a round are fixed in one
+commit; later rounds are deltas. The exit-time SIGABRT in isolated test
+processes is investigated first (timeboxed).
+
 Every shared resource change is restaged into the desktop copies
 (`node apps/desktop/scripts/stage-protocol.mjs`) and checked with
 `npm start --prefix cli -- plugin validate | lint | validate-native | build`.

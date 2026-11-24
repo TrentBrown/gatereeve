@@ -46,7 +46,7 @@ function evaluator(f, transform) {
 test('schema constrains criterion IDs and contract repair cannot erase findings', () => {
   const variants = reviewSchema(['code', 'spec'], ['R1']).properties.verdicts.items.anyOf;
   assert.deepEqual(variants[0].properties.findings.items.properties.criterion.enum, ['R1', 'gate:code']);
-  const original = { gate: 'code', outcome: 'FAIL', findings: [{ id: 'f', classId: 'bug', criterion: 'code', path: 'app/app.js', evidence: 'bad branch', blocking: true }] };
+  const original = { gate: 'code', outcome: 'FAIL', findings: [{ id: 'f', classId: 'bug', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: 'code', path: 'app/app.js', evidence: 'bad branch', blocking: true }] };
   const fixed = structuredClone(original); fixed.findings[0].criterion = 'gate:code';
   assert.doesNotThrow(() => validateFormatRepair(original, fixed));
   assert.throws(() => validateFormatRepair(original, { ...fixed, outcome: 'PASS' }));
@@ -61,7 +61,7 @@ test('invalid reviewer criterion remains visible and independent targeted repair
   evaluator(f, (output, request) => {
     if (request.input.repair) output.verdicts = [{ ...request.input.repair.original,
       findings: request.input.repair.original.findings.map(item => ({ ...item, criterion: 'gate:code' })) }];
-    else Object.assign(output.verdicts[0], { outcome: 'FAIL', findings: [{ id: 'defect', classId: 'bug', criterion: 'code', path: 'app/app.js', evidence: 'A supported fixture defect', blocking: true }] });
+    else Object.assign(output.verdicts[0], { outcome: 'FAIL', findings: [{ id: 'defect', classId: 'bug', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: 'code', path: 'app/app.js', evidence: 'A supported fixture defect', blocking: true }] });
   });
   const first = await f.request('gate.execute', { gates: ['code'], configuration: reviewConfig });
   const ref = first.event.payload.results[0], invalid = await f.core.store.json(ref);
@@ -146,7 +146,7 @@ test('derived coverage cannot assert proof, and resume returns pending work with
 test('native evaluator repairs a retained synthetic malformed response without erasing its finding', { skip: process.env.GATEREEVE_LIVE_EVALUATOR !== '1' }, async t => {
   const f = await ready(t), model = process.env.GATEREEVE_AGENT_MODEL;
   assert.ok(model, 'Choose an explicit native model');
-  evaluator(f, output => Object.assign(output.verdicts[0], { outcome: 'FAIL', findings: [{ id: 'retained-fixture-finding', classId: 'fixture',
+  evaluator(f, output => Object.assign(output.verdicts[0], { outcome: 'FAIL', findings: [{ id: 'retained-fixture-finding', classId: 'fixture', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output',
     criterion: 'code', path: 'app/app.js', evidence: 'Synthetic response-contract exercise: preserve this original observation verbatim.', blocking: true }] }));
   const simulated = f.core.runtime.evaluator;
   f.core.runtime.evaluator = {

@@ -26,6 +26,9 @@ export function eligibleResidualRisk(pair, mandate = null, rebuttal = null) {
         'Missing verification or unknown scope cannot be adjudicated; unsupported objections need counterevidence');
     }
     requireThat(!(result.coverageDecisions ?? []).some(row => row.outcome !== 'PASS'), 'Rejected verification coverage cannot be adjudicated');
+    // A FAIL resting only on low findings is already recorded as PASS by the
+    // validator (AC3); any FAIL left without a material finding has another
+    // cause and needs reviewer clarification.
     requireThat(result.outcome !== 'FAIL' || (member.materialFindings ?? result.findings).some(finding => finding.blocking),
       'An unexplained failed assessment needs reviewer clarification, not residual-risk acceptance');
   }

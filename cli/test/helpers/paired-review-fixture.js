@@ -63,7 +63,7 @@ export function pairedAdapters(f, { unavailable = null, overlap = false, blockin
         verdict.outcome = 'FAIL';
         verdict.dimensions.find(row => row.name === 'code').outcome = 'FAIL';
         if (mandateFailure.includes(provider)) verdict.dimensions.find(row => row.name === 'scope').outcome = 'FAIL';
-        verdict.findings = [{ id: 'same-local-id', classId: 'constant', criterion: request.input.criteria[0], path: 'app/app.js', evidence: 'The fixture exports 41.', blocking: true }];
+        verdict.findings = [{ id: 'same-local-id', classId: 'constant', classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: request.input.criteria[0], path: 'app/app.js', evidence: 'The fixture exports 41.', blocking: true }];
       }
       if (present.length) for (const verdict of result.output.verdicts) {
         verdict.outcome = 'FAIL'; verdict.dimensions.find(row => row.name === 'code').outcome = 'FAIL';

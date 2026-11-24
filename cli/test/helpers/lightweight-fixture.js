@@ -120,7 +120,7 @@ export function evaluator(f, { outcome = 'PASS', planning = 'PASS', contextId = 
       runs.push(request);
       const output = request.stage.id === 'planning-review'
         ? { outcome: planning, summary: `Fixture ${request.input.artifact} review`, findings: planning === 'FAIL'
-          ? [{ id: 'P1', document: request.input.documents[0].path, evidence: 'Fixture blocking finding', blocking: true }] : findings }
+          ? [{ id: 'P1', document: request.input.documents[0].path, evidence: 'Fixture blocking finding', blocking: true, severity: 'high', failureScenario: 'Fixture input -> wrong observable output', classId: 'fixture', classStatement: 'Fixture planning defect class' }] : findings }
         : { verdicts: request.input.gates.map(id => ({ gate: id, outcome, summary: 'Fixture assessment: the change exports 42.',
           ...(id === 'review' ? { dimensions: ['code', 'requirements', 'evidence', 'scope', 'findings'].map(name => ({ name, outcome, evidence: 'Fixture source and receipts' })) } : {}),
           criteria: request.input.criteria.map(row => ({ id: row, outcome, evidence: 'app/app.js exports 42' })),

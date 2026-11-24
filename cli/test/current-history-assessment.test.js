@@ -6,7 +6,7 @@ import test from 'node:test';
 import { validateVerdict } from '../../plugin-src/shared/resources/protocol/current/execution.js';
 
 const candidate = { criteria: ['R1'], repositories: [{ alias: 'app', files: [{ path: 'app.js' }], baseFiles: [{ path: 'app.js' }], targetFiles: [] }] };
-const finding = (id, blocking = true) => ({ id, classId: `class-${id}`, criterion: 'R1', path: 'app/app.js', evidence: `Evidence for ${id}`, blocking });
+const finding = (id, blocking = true) => ({ id, classId: `class-${id}`, classStatement: 'Fixture defect class', severity: 'high', failureScenario: 'Fixture input -> wrong observable output', criterion: 'R1', path: 'app/app.js', evidence: `Evidence for ${id}`, blocking });
 const disposition = (id, status = 'resolved') => ({ id, status, evidence: `Disposition evidence for ${id}` });
 // Prior code-gate history: C1 and C2 were closed (resolved), O1 is still open,
 // K1 was closed but the implementer claims a further fix to it.
@@ -29,9 +29,11 @@ test('a PASS whose affected list includes an open prior finding and a claimed fi
   assert.doesNotThrow(() => validate(verdict({ affected: ['O1'], carryForwardReason: 'C1 and C2 are untouched by the change.' }), [disposition('O1'), disposition('K1')]));
 });
 
-test('unknown or duplicate affected IDs are still rejected', () => {
-  assert.throws(() => validate(verdict({ affected: ['C1', 'X9'], carryForwardReason: 'C2 is untouched.' })), /Reconsider affected closed findings/);
-  assert.throws(() => validate(verdict({ affected: ['C1', 'C1'], carryForwardReason: 'C2 is untouched.' })), /Reconsider affected closed findings/);
+test('undisclosed affected IDs are still rejected; repeats are normalized (AC5)', () => {
+  assert.throws(() => validate(verdict({ affected: ['C1', 'X9'], carryForwardReason: 'C2 is untouched.' })), /Affected finding X9 is not disclosed/);
+  const repeated = validate(verdict({ affected: ['C1', 'C1'], carryForwardReason: 'C2 is untouched.' }));
+  assert.deepEqual(repeated.historyAssessment.affected, ['C1']);
+  assert.deepEqual(repeated.normalized, [{ rule: 'duplicate-affected', field: 'historyAssessment.affected', id: 'C1' }]);
   assert.throws(() => validate(verdict(undefined)), /Reconsider affected closed findings/);
 });
 

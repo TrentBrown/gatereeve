@@ -149,3 +149,49 @@ round (round 4); then adjudicate.
 
 **Rationale:** Automatic deletion by name pattern kept failing review; human
 confirmation removes the risk class instead of narrowing it.
+
+## [9] PR B1: scope of the reviewer-contract speed-ups
+
+**Answered by:** agent (under the mandate and D34)
+
+**Context:** D34 scopes PR B1 to the P4 verdict work plus the P3 severity field.
+D8 also requires a failure scenario and a class statement for every finding.
+
+**Decision:**
+- B1 includes all AC3 finding fields (`severity`, `failureScenario`,
+  `classId`, `classStatement`) for code, spec, review and planning gates, since
+  D8 makes them one contract.
+- The paired higher-severity rating is recorded on the boundary review
+  (`severities`); C1's round schedule consumes it.
+- Format repair keeps the full mandate assessment (AC5's first bullet names it);
+  other dependent text may change.
+- Dispositions naming disclosed IDs are kept (they were never rejected); only
+  `historyAssessment.affected` extras and repeats are normalized, which is where
+  rc.31 rejected substantively valid verdicts.
+- Deferred to B2: per-rule rejection and normalization counts in the metrics
+  store (the store has a fixed outcome/reason vocabulary that B2's per-finding
+  metrics extend), `validate-verdict`, misplaced-field normalization,
+  `not-assessed`, sweep records and retention.
+
+**Rationale:** Ship the changes that stop bookkeeping rejections first and keep
+the store schema change in one PR.
+
+## [10] Exit-time SIGABRT in isolated test processes: timebox closed, follow-up
+
+**Answered by:** agent (D34 item 5: timeboxed, never blocks a PR)
+
+**Context:** In CI (PR A, current-core shard) and earlier local runs, a
+`node --test` file process inside an isolated shard passed every assigned test
+and then died with SIGABRT, printing nothing.
+
+**Decision:** Not reproduced on aws-1 within the timebox, with core dumps
+enabled (apport writes to `/var/lib/apport/coredump`; gdb extracted from the
+Ubuntu package): one full CLI suite on 8 cores (566 tests, 11.5 min, load ~22)
+plus repeated isolated runs of current-core, current-light, current-tripwires,
+current-delivery-targets and current-boundary-review, including runs pinned to
+2 CPUs to match hosted runners. Recorded as a follow-up; a hosted CI rerun of a
+job that fails only this way is acceptable evidence handling.
+
+**Next step for the follow-up:** run CI with `ulimit -c unlimited` and upload
+any core as an artifact, or run the shard under `catchsegv`-style gdb batch
+(`gdb -batch -ex bt`) on a 2-CPU runner.

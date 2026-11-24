@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:c2ffa1ec273d76d7119ba278a39532b751e17181d0fe5dc60a8a050d1f855e61",
+  "protocolHash": "sha256:6d4bf582f35b8b2cf921d2db45bd1dbeecc410e7755abc3cdb3f568a506666b9",
   "contract": "gatereeve/current/8",
   "contractSha256": "7667d7eeff6381d189f3f19c835ebedbd3fc88650f80a735d39c68f3e1576823",
   "files": [
@@ -37,13 +37,13 @@
     },
     {
       "path": "current/autonomous.js",
-      "size": 8066,
-      "sha256": "4290b87f5cbdfa1633f864edc2046c082656a472bf0a261dc79d0637049cbaf8"
+      "size": 8268,
+      "sha256": "6d88de765a2ee0edf94585197f36e9eb1ab4b9f46334822bab46853bd4fddc58"
     },
     {
       "path": "current/boundary-review.js",
-      "size": 14585,
-      "sha256": "628615907d9c2c3c78c878893051e10c18a9af8d74185bbc8c9d873916cbf080"
+      "size": 15669,
+      "sha256": "255abc45cd9216d5bd9656ae80615e9b7a6ef1f2590a73b98e28653d289f2e02"
     },
     {
       "path": "current/command-guard.js",
@@ -67,8 +67,8 @@
     },
     {
       "path": "current/delegation.js",
-      "size": 36102,
-      "sha256": "6acabfc5cd2b37dd618300ac366cc24c2566783415876051528e8bf4f6ea4d2d"
+      "size": 38108,
+      "sha256": "da80bfbf9a840db3821a8e85808ab3e7c1efd44c2c6b0de98220485d874fec31"
     },
     {
       "path": "current/delivery.js",
@@ -97,8 +97,8 @@
     },
     {
       "path": "current/execution.js",
-      "size": 79732,
-      "sha256": "e5caf981de36d295d534e00726ec23c49a209af1caf4aeb54b3812a8b437d38f"
+      "size": 90100,
+      "sha256": "ce34cdf7faa8aaf20cb481acf73e8efb0e51708783e41f7c9f7558679903cb65"
     },
     {
       "path": "current/final-handoff.js",
@@ -152,8 +152,8 @@
     },
     {
       "path": "current/review-findings.js",
-      "size": 4014,
-      "sha256": "4c18b1a94fafb5731a3b9540b05bb0c09aa8890251e582b7414d8af6abcc134f"
+      "size": 4201,
+      "sha256": "5f6e116840e3c642e5ca572a218f6e9967a02fd52aa09ecf71cb65d9038499c4"
     },
     {
       "path": "current/review-history.js",
