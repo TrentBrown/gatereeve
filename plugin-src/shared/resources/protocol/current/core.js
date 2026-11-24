@@ -1117,6 +1117,14 @@ export class CurrentCore {
         } else if (!assessed) missing.push('verification: the latest Verification is local evidence the converged reviews did not assess; record a ci Verification for the exact candidate head or review the new evidence');
       } catch (error) { missing.push(`verification: ${error.message}`); }
     }
+    // Spec AC9: a repository with hosted CI (workflows in its candidate tree)
+    // is accepted only on a passing ci Verification for the exact candidate
+    // head; local evidence alone never suffices there. A repository without
+    // hosted CI keeps the independently assessed local alternative.
+    if (candidate && verified) {
+      const hosted = candidate.repositories.filter(repo => (repo.files ?? []).some(file => file.path.startsWith('.github/workflows/')));
+      if (hosted.length && !await isCiVerification(this, verified.result)) missing.push(`verification: ${hosted.map(repo => repo.alias).join(', ')} has hosted CI (.github/workflows); acceptance needs a passing ci Verification on the exact candidate head, not local evidence alone`);
+    }
     if (['merge', 'completion'].includes(name)) {
       const acceptances = await qualifyingDecisions(this, state, 'accept', state.candidate?.hash, candidate);
       if (!acceptances.length) missing.push('current human acceptance');

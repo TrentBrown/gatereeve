@@ -16,7 +16,7 @@ export const ROUND_CHOICES = Object.freeze(['continue', 'split']);
 export const boundaryScope = candidate => candidate.scope === 'FEATURE' ? 'feature-final' : 'slice';
 export const planningScope = artifact => `planning:${artifact}`;
 // Findings from earlier contracts have no severity and block exactly as before.
-export const severityOf = finding => finding?.severity ?? 'unrated';
+export const severityOf = finding => ['high', 'medium', 'low'].includes(finding?.severity) ? finding.severity : 'unrated';
 
 // Projection hooks, called from core.js project() in event order.
 export function countRound(state, scope, revision, details) {

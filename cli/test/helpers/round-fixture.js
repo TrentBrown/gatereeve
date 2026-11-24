@@ -1,7 +1,7 @@
 // Shared steps for the round-policy and CI-after-convergence tests (spec AC6,
 // AC9). Candidates are local commits that are never pushed unless a test says so.
-import { writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { git } from '../../../plugin-src/shared/resources/protocol/current/evidence.js';
 import { identity } from '../../../plugin-src/shared/resources/protocol/current/contracts.js';
 import { ROUND_POLICY } from '../../../plugin-src/shared/resources/protocol/current/round-policy.js';
@@ -20,7 +20,7 @@ export async function localVerification(f, operationId, checks = [focusedCheck()
 // Commit a change locally (no push), prepare it as the candidate and record
 // local Verification for it.
 export async function revise(f, files, label, checks) {
-  for (const [path, body] of Object.entries(files)) await writeFile(join(f.repo, path), body);
+  for (const [path, body] of Object.entries(files)) { await mkdir(dirname(join(f.repo, path)), { recursive: true }); await writeFile(join(f.repo, path), body); }
   await git(f.repo, ['add', '-A']); await git(f.repo, ['commit', '-q', '-m', `local ${label}`]);
   const head = (await git(f.repo, ['rev-parse', 'HEAD'])).trim();
   await candidate(f, 'SLICE', head, `candidate-${label}`);
@@ -40,23 +40,6 @@ export async function seedRounds(f, count, scope = 'slice') {
   }
 }
 
-// The reviewer contract from PR B1 adds `severity`; this build's schema does
-// not accept it yet. Simulate it by reading a `[high|medium|low]` tag in the
-// finding evidence when stored review results are read back.
-export function simulateSeverity(f) {
-  const read = f.core.store.json.bind(f.core.store);
-  f.core.store.json = async ref => {
-    const value = await read(ref);
-    if (value?.kind === 'result' && value.gate === 'review' && Array.isArray(value.findings)) {
-      return { ...value, findings: value.findings.map(finding => {
-        const severity = /\[(high|medium|low)\]/u.exec(finding.evidence ?? '')?.[1];
-        return severity ? { ...finding, severity } : finding;
-      }) };
-    }
-    return value;
-  };
-}
-
 // Paired fake reviewers; `findings[provider]` makes that reviewer FAIL with
 // those findings (each needs path and evidence, optionally blocking).
 export function reviewers(f, { findings = {}, unavailable = null } = {}) {
@@ -69,7 +52,11 @@ export function reviewers(f, { findings = {}, unavailable = null } = {}) {
       if (rows?.length) for (const verdict of result.output.verdicts) {
         verdict.outcome = 'FAIL';
         verdict.dimensions.find(row => row.name === 'code').outcome = 'FAIL';
-        verdict.findings = rows.map((row, index) => ({ id: `${provider}-finding-${index}`, classId: 'fixture', criterion: request.input.criteria[0], blocking: true, ...row }));
+        // A `[high|medium|low]` tag in the evidence sets the B1 severity field;
+        // untagged rows are high, which blocks exactly like the reviewer flag.
+        verdict.findings = rows.map((row, index) => ({ id: `${provider}-finding-${index}`, classId: 'fixture', classStatement: 'Fixture defect class',
+          failureScenario: 'Fixture input -> wrong observable output', criterion: request.input.criteria[0], blocking: true,
+          severity: /\[(high|medium|low)\]/u.exec(row.evidence ?? '')?.[1] ?? 'high', ...row }));
       }
       result.receipt.digests.output = sha256Digest(result.output);
       return result;

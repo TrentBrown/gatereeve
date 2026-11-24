@@ -24,9 +24,9 @@ const acceptance = f => f.request('milestone.check', { name: 'acceptance' });
 const verificationMissing = check => check.missing.filter(item => item.startsWith('verification'));
 
 // Converged paired reviews on a local commit that was never pushed.
-async function converged(t, checks = [focusedCheck('Unit tests', { ciCheck: 'test' })]) {
+async function converged(t, checks = [focusedCheck('Unit tests', { ciCheck: 'test' })], files = {}) {
   const f = await fixture(t, { rigor: 'light' });
-  const head = await revise(f, { 'app.js': 'export const answer = 42;\n' }, 'r1', checks);
+  const head = await revise(f, { 'app.js': 'export const answer = 42;\n', ...files }, 'r1', checks);
   assert.doesNotMatch(await git(f.repo, ['ls-remote', 'origin']), new RegExp(head), 'the candidate head is local only');
   await f.request('review.select', selection(), 'select');
   const launches = reviewers(f);
@@ -140,4 +140,14 @@ test('pushing a PR branch before the reviews converge is warned about, never den
   reviewers(f);
   await f.request('review.execute', {}, 'round-1');
   assert.deepEqual(await push('git push -u origin topic'), {}, 'no warning once the scope has converged');
+});
+
+test('a repository with hosted CI is never accepted on local evidence alone', async t => {
+  const workflow = { '.github/workflows/ci.yml': 'on: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps: [{ run: npm test }]\n' };
+  const { f, head } = await converged(t, [focusedCheck('Unit tests', { ciCheck: 'test' })], workflow);
+  // The converged reviews assessed this local Verification, yet hosted CI exists.
+  assert.match(verificationMissing(await acceptance(f)).join('\n'), /app has hosted CI .*needs a passing ci Verification on the exact candidate head/);
+  hostedCi(f, { head, treeId: await tree(f, head) });
+  await ciVerification(f, 'verify-ci-hosted');
+  assert.deepEqual(verificationMissing(await acceptance(f)), []);
 });

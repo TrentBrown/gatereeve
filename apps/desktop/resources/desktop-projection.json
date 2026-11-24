@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "plugin-src/shared/resources/protocol",
-  "protocolHash": "sha256:1d1a379b84d6d6b7978d77d0908340ff8a869a485206b322a9aa6b5ef7c05754",
+  "protocolHash": "sha256:1b55c51da3d5f851a7f1f0d16af3a5315ea408247628968fa5eec5e941a364a7",
   "contract": "gatereeve/current/8",
   "contractSha256": "1df0afc21301595b72a5f9bdad3ab2aade7452ad1c5a4f97455bde354bf1120a",
   "files": [
@@ -62,8 +62,8 @@
     },
     {
       "path": "current/core.js",
-      "size": 109634,
-      "sha256": "8a158120cc1600c15201f2fff7053dc1f9053b1777b341a83e6c681f9152fa26"
+      "size": 110395,
+      "sha256": "4acfaaa1bc5c9454cf4f2433eb52f984ba3003db7d50ed5253aba700dfb1cf5e"
     },
     {
       "path": "current/coverage.js",
@@ -172,8 +172,8 @@
     },
     {
       "path": "current/round-policy.js",
-      "size": 5318,
-      "sha256": "29edb6b870403913f94e533122ba64d319382bb167d7b0a050b58d29d5af15cf"
+      "size": 5372,
+      "sha256": "210bfe5cd64ab4223b65d181191655370de052286618683d8b6a467eb0f8bbf7"
     },
     {
       "path": "current/runner-profile.js",

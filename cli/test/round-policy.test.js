@@ -14,7 +14,7 @@ import { git } from '../../plugin-src/shared/resources/protocol/current/evidence
 import { scheduledBlocking, roundHandBack, roundStatus, ROUND_POLICY } from '../../plugin-src/shared/resources/protocol/current/round-policy.js';
 import { fixture, human, evaluator, reviewConfig, delegate } from './helpers/lightweight-fixture.js';
 import { selection } from './helpers/paired-review-fixture.js';
-import { revise, seedRounds, simulateSeverity, reviewers } from './helpers/round-fixture.js';
+import { revise, seedRounds, reviewers } from './helpers/round-fixture.js';
 
 const finding = (severity, extra = {}) => ({ blocking: true, ...(severity ? { severity } : {}), ...extra });
 
@@ -133,14 +133,13 @@ const bands = [
   { name: 'round 2 blocks a medium finding', round: 2, codex: [{ path: 'app/other.js', evidence: '[medium] The other export is unused.' }], outcome: 'FAIL' },
   { name: 'round 4 demotes a medium non-regression and a low regression', round: 4,
     codex: [{ path: 'app/other.js', evidence: '[medium] The other export is unused.' }],
-    claude: [{ path: 'app/app.js', evidence: '[low] The fix comment is terse.' }], outcome: 'PASS', demoted: 2 },
+    // The low finding never blocked (B1 records it non-blocking), so only the medium one is demoted.
+    claude: [{ path: 'app/app.js', evidence: '[low] The fix comment is terse.' }], outcome: 'PASS', demoted: 1 },
   { name: 'round 4 blocks a medium regression of the previous fix', round: 4, codex: [{ path: 'app/app.js', evidence: '[medium] The fix broke the export contract.' }], outcome: 'FAIL' },
   { name: 'round 5 blocks a high finding anywhere', round: 5, codex: [{ path: 'app/other.js', evidence: '[high] The other export leaks data.' }], outcome: 'FAIL' },
-  { name: 'round 4 keeps an unrated finding blocking as under its original contract', round: 4, codex: [{ path: 'app/other.js', evidence: 'No severity recorded.' }], outcome: 'FAIL' },
 ];
 for (const band of bands) test(`schedule band: ${band.name}`, async t => {
   const f = await lightRun(t);
-  simulateSeverity(f);
   await seedRounds(f, band.round - 1);
   await revise(f, { 'app.js': 'export const answer = 42; // fix\n' }, 'fix');
   reviewers(f, { findings: { codex: band.codex, ...(band.claude ? { 'claude-code': band.claude } : {}) } });
@@ -203,4 +202,10 @@ test('planning reviews count rounds per document and a delegated decision cannot
   await assert.rejects(f.request('human.decide', { kind: 'authorize-implementation', subject: (await f.core.commitments()).subject,
     authority: { kind: DELEGATED_AUTHORITY, delegation, evaluation: last.event.hash }, reason: 'Delegated', consequences: 'May implement' }, 'delegated-authorize'),
   /planning:brief reached round 6/);
+});
+
+test('an unrated finding from an earlier contract keeps blocking as recorded in every band', () => {
+  const legacy = { id: 'legacy', blocking: true }; // retained before B1: no severity
+  for (const round of [1, 4, 5, 7]) assert.equal(scheduledBlocking(legacy, { round }), true, `round ${round}`);
+  assert.equal(scheduledBlocking({ ...legacy, blocking: false }, { round: 4 }), false);
 });

@@ -357,7 +357,11 @@ verification outcome. A `ci` Verification for a different tree is rejected namin
 both trees, and a different commit with the same tree is not the exact head.
 Acceptance refuses a latest Verification that is local evidence the converged
 reviews did not assess (rerunning the same checks on the same tree is the same
-evidence). After a hosted CI failure, fix locally, run one paired delta review of
+evidence). A candidate repository with hosted CI (workflows under
+`.github/workflows/` in its tree) is accepted only on a passing `ci`
+Verification for the exact candidate head; local evidence alone never suffices
+there. A repository without hosted CI keeps the independently assessed local
+alternative. After a hosted CI failure, fix locally, run one paired delta review of
 the fix (one round), then rerun hosted CI. The PreToolUse guard warns, without
 denying, on `git push` to a topic branch while the current candidate's paired
 review is not a qualifying PASS.

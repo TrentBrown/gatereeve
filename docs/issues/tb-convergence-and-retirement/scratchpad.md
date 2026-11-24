@@ -178,13 +178,17 @@ lands in parallel.
   only); after it, later rounds keep the round 4-5 band. A new revision is not
   reviewed past round 6 without it. `amend` resets; `waive` uses the existing
   waiver. Adjudication at round 6 or later is refused in every autonomous mode.
-- (e) "Acceptance still requires a passing ci Verification" is read as no
-  weakening of today's contract: an `alternative` that the converged reviews
-  assessed still qualifies, as documented before; a latest Verification the
-  reviews did not assess is refused. A `ci` Verification recorded after
-  convergence is qualified by the runner-role check, derived at each milestone
-  and at reuse (no model call, no separate event). A local receipt is matched to
-  a CI check through an optional `ciCheck` on the check (else its `purpose`).
+- (e) Acceptance (parent decision after review of this entry): a candidate
+  repository whose tree has hosted CI workflows (`.github/workflows/`) is
+  accepted only on a passing `ci` Verification for the exact candidate head;
+  local evidence alone never suffices there (AC9, R9). A repository with no
+  hosted CI keeps the independently assessed local `alternative`, as before,
+  because it has no CI to run. A latest local Verification the converged
+  reviews did not assess is refused either way. A `ci` Verification recorded
+  after convergence is qualified by the runner-role check, derived at each
+  milestone and at reuse (no model call, no separate event). A local receipt is
+  matched to a CI check through an optional `ciCheck` on the check (else its
+  `purpose`).
 - (f) A `ci` Verification may carry no local checks; a review consuming only
   such a Verification has no receipt on the candidate tree and is not
   qualifying.
