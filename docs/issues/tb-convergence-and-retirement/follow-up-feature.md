@@ -62,7 +62,14 @@ Do these first, in this order:
   scratchpad [10]); CI reruns of the failed job are the workaround.
 - Cross-round regression tracking: Codex's round-6 findings on C1 were fixed
   in `ad075ed` but not re-reviewed (human waiver). Further edge cases may
-  exist.
+  exist. Raised since, against the merged code (docs PR #132 review):
+  - a peer that re-reports a finding as a finding, rather than through a
+    `present` disposition, is not counted as "still present", so a peer's
+    `resolved` can still clear the original regression origin
+    (`review-findings.js` peer prepass; Codex, high);
+  - individual selection-tagged reviews have no shared `reviewRound`, so peer
+    disagreement between two individual results is not grouped (Claude,
+    low).
 - Two pending verification jobs from before the run moved from Playpen to aws-1
   cannot be abandoned: they predate owner records.
 - PR A open items:

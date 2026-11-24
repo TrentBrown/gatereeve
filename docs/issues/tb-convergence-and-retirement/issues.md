@@ -21,7 +21,7 @@ Wrap reviewer launches in `systemd-inhibit` on Linux; receipt field.
 
 ## I-2 - Metrics repair
 
-- **Status:** todo
+- **Status:** done
 - **Estimate:** medium
 - **Plan steps:** P2, P11
 - **Rubric criteria:** R2, R13
@@ -35,7 +35,7 @@ replacement, `job.abandon`).
 
 ## I-3 - Reviewer contract
 
-- **Status:** todo
+- **Status:** done
 - **Estimate:** large
 - **Plan steps:** P3, P4
 - **Rubric criteria:** R3, R5, R11 (former row 4, sweep records, moved by D36)
@@ -50,7 +50,7 @@ and D33 substance/bookkeeping separation, per-request ID enums,
 
 ## I-4 - Round policy, follow-ups and failure model
 
-- **Status:** todo
+- **Status:** done
 - **Estimate:** large
 - **Plan steps:** P5, P6, P7
 - **Rubric criteria:** R6 (former rows 7 and 8, follow-ups and failure model, moved by D36)
@@ -63,7 +63,7 @@ Completion decision, failure-model lint.
 
 ## I-5 - CI after review convergence
 
-- **Status:** todo
+- **Status:** done
 - **Estimate:** medium
 - **Plan steps:** P8
 - **Rubric criteria:** R9
@@ -75,7 +75,7 @@ Unpushed-head review, runner-role CI qualification, push warning, docs.
 
 ## I-6 - Worktree sweep
 
-- **Status:** todo
+- **Status:** done
 - **Estimate:** medium
 - **Plan steps:** P9
 - **Rubric criteria:** R10
@@ -87,7 +87,7 @@ Unpushed-head review, runner-role CI qualification, push warning, docs.
 
 ## I-7 - Measurement report, surfaces and docs
 
-- **Status:** todo
+- **Status:** done
 - **Estimate:** medium
 - **Plan steps:** P10
 - **Rubric criteria:** R11
