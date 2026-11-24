@@ -16,7 +16,7 @@ import { ID, CONTRACT, PHASES, GATES, MILESTONES, ENFORCEMENT, DIALS, LOWERING_R
 import { CurrentStore } from './store.js';
 import { requirements, sourceCandidate, assertSourceIsolation, checkCandidate, checkSource, contentIdentity, briefBased } from './evidence.js';
 import { validatePlanning, assertPlanningProof, planningBinding } from './planning.js';
-import { executeGates, reviewContract, coreEvidence } from './execution.js';
+import { executeGates, reviewContract, coreEvidence, retainedContractQualifies } from './execution.js';
 import { prepareMerge, merge, observeIntegration } from './actions.js';
 import { captureStanding, applyStanding, standingValidity, standingReleaseRefusal, qualifyingDecisions, requireUnexpired } from './authorization.js';
 import { publishReview, requirePublishedReview } from './publication.js';
@@ -136,8 +136,16 @@ export function project(events) {
       case 'TRIPWIRES_EVALUATED': { const recorded = { ...value, at: event.recordedAt, event: event.hash }; state.tripwireHistory.push(recorded); if (value.candidate?.hash === state.candidate?.hash) state.tripwires = recorded; break; }
       // Independent planning review; a delegated planning decision cites a PASS.
       case 'PLANNING_REVIEWED': state.planningReviews.push({ ...value, at: event.recordedAt, event: event.hash });
-        if (value.roundPolicy) countRound(state, planningScope(value.artifact), value.subject, { event: event.hash, at: event.recordedAt });
+        if (value.roundPolicy) {
+          const scope = planningScope(value.artifact);
+          countRound(state, scope, value.subject, { event: event.hash, at: event.recordedAt });
+          // A round counted at review start points at the completed review.
+          const row = state.reviewScopes[scope]?.revisions.at(-1);
+          if (row?.revision === value.subject) row.event = event.hash;
+        }
         break;
+      // The round of a review counted when it started (spec AC6).
+      case 'ROUND_COUNTED': countRound(state, value.roundPolicy.scope, value.roundPolicy.revision, { ...(value.candidate ? { candidate: value.candidate } : {}), event: event.hash, at: event.recordedAt }); break;
       case 'READY': state.ready = true; break;
       case 'TRANSITION_RECORDED': state.transition = value; break;
       case 'ACTION_CLAIMED': state.actions[value.id] = { ...value, running: true }; break;
@@ -812,7 +820,7 @@ export class CurrentCore {
         && receipt.evaluator.provider === inputs.configuration.provider && receipt.evaluator.model === inputs.configuration.model,
       'Retained evaluator qualification differs from the requested proof');
     }
-    requireThat(inputs.reviewContract === reviewContract(inputs.gates, candidate), 'Evaluator rules or output contract changed');
+    requireThat(retainedContractQualifies(inputs, reviewContract(inputs.gates, candidate)), 'Evaluator rules or output contract changed');
     if (inputs.pattern) requireThat(identity(inputs.pattern) === identity(await patternInputs(this.store, this.context, candidate, { ...this.runtime.pythonGuardOptions, capture: false })), 'Pattern policy or trigger inputs changed');
     const evaluated = await checkCandidate(this.store, this.context, inputs.candidate, { live: false, memo });
     for (const artifact of result.artifacts ?? []) await this.store.get(artifact);

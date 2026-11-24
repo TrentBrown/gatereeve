@@ -226,7 +226,9 @@ light-run rules and goal-mode wiring.
   against the converged reviews: the same tree, the required checks passing,
   and coverage of the local receipts the reviews consumed. Adding it does not
   invalidate the converged reviews (no `consumed-proof-changed` re-review).
-  Acceptance still requires CI evidence on the exact candidate head.
+  Acceptance still requires CI evidence on the exact candidate head in a
+  repository with hosted CI; a repository without hosted CI keeps the assessed
+  local alternative (D35).
 - If hosted CI fails, the fix is made locally, a paired delta review covers
   only the fix (it counts as a round), and hosted CI runs once more (D26).
 - The PreToolUse guard warns, but does not deny, on `git push` to a PR branch

@@ -13,6 +13,7 @@ import { DELEGATED_AUTHORITY } from '../../plugin-src/shared/resources/protocol/
 import { git } from '../../plugin-src/shared/resources/protocol/current/evidence.js';
 import { scheduledBlocking, roundHandBack, roundStatus, ROUND_POLICY, countRound, roundOf, currentRevision, recordRoundDecision } from '../../plugin-src/shared/resources/protocol/current/round-policy.js';
 import { fixture, human, evaluator, reviewConfig, delegate } from './helpers/lightweight-fixture.js';
+import { retainedContractQualifies, REVIEW_CONTRACT_VERSION } from '../../plugin-src/shared/resources/protocol/current/execution.js';
 import { selection } from './helpers/paired-review-fixture.js';
 import { revise, seedRounds, reviewers } from './helpers/round-fixture.js';
 
@@ -302,4 +303,39 @@ test('an individual selection-tagged review cannot bypass the round 6 hand-back'
   await assert.rejects(f.request('gate.execute', { gates: ['review'], configuration: { provider: reviewer.provider, model: reviewer.model,
     reasoningEffort: reviewer.reasoningEffort, reviewerSelection: state.reviewerSelection.event } }, 'individual-round-7'), /reached round 6/);
   assert.equal(launches(), 0);
+});
+
+test('successive individual selection-tagged review pairs advance the counter until round 6 hands back', async t => {
+  const f = await lightRun(t);
+  await seedRounds(f, 4);
+  const individualPair = async label => {
+    const { state } = await f.core.state();
+    for (const reviewer of state.reviewerSelection.selection.reviewers) await f.request('gate.execute', { gates: ['review'], configuration: { provider: reviewer.provider,
+      model: reviewer.model, reasoningEffort: reviewer.reasoningEffort, reviewerSelection: state.reviewerSelection.event } }, `${label}-${reviewer.provider}`);
+  };
+  reviewers(f);
+  for (const [round, label] of [[5, 'r5'], [6, 'r6']]) {
+    await revise(f, { 'app.js': `export const answer = 42; // ${label}\n` }, label);
+    await individualPair(label);
+    assert.equal((await f.request('status')).rounds.scopes[0].round, round, `individual reviews of ${label} count round ${round}`);
+  }
+  assert.equal((await pair(f)).outcome, 'UNAVAILABLE', 'round 6 hands back');
+  await revise(f, { 'app.js': 'export const answer = 42; // r7\n' }, 'r7');
+  await assert.rejects(individualPair('r7'), /reached round 6/);
+});
+
+test('a planning review that fails at the provider still uses its round', async t => {
+  const f = await fixture(t, { rigor: 'light', authorize: false });
+  await delegate(f);
+  f.core.runtime.evaluator = { async describe() { return { provider: 'codex', model: 'fixture', reasoningEffort: 'high' }; },
+    async runStage() { throw Object.assign(new Error('codex timed out'), { code: 'AGENT_PROVIDER_TIMEOUT' }); } };
+  await assert.rejects(f.request('planning.review', { artifact: 'brief', configuration: reviewConfig }, 'brief-timeout'), /timed out/);
+  assert.deepEqual((await f.request('status')).rounds.scopes.map(row => [row.scope, row.round]), [['planning:brief', 1]]);
+});
+
+test('a result retained from an earlier review contract keeps its qualification (AC11)', () => {
+  assert.equal(retainedContractQualifies({ reviewContract: 'sha256:old' }, 'sha256:new'), true, 'an unversioned earlier result');
+  assert.equal(retainedContractQualifies({ reviewContract: 'sha256:old', reviewContractVersion: 'gatereeve-review/earlier' }, 'sha256:new'), true);
+  assert.equal(retainedContractQualifies({ reviewContract: 'sha256:same', reviewContractVersion: REVIEW_CONTRACT_VERSION }, 'sha256:same'), true);
+  assert.equal(retainedContractQualifies({ reviewContract: 'sha256:old', reviewContractVersion: REVIEW_CONTRACT_VERSION }, 'sha256:new'), false, 'same version, changed rules');
 });

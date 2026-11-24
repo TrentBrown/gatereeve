@@ -713,3 +713,8 @@ and the Fleet thread's reviewer idle-inhibitor request.
   never suffices there. A repository without hosted CI keeps the independently
   assessed local alternative. These rules apply to reviews run under the round
   policy; earlier-contract pairs keep their qualification (AC11).
+- **Amendment:** "Amend AC9/R9 and the design per D35, authorize implementation
+  of the amended spec, and restore full autonomy for this run under the same
+  mandate" (human, 2026-11-24, after both C1 round-2 reviewers asked for the
+  decision in the pinned requirements). spec.md AC9 and R9 and design.md (CI
+  after convergence) now carry the D35 reading.

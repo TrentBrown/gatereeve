@@ -1,4 +1,4 @@
-import { requireThat } from './contracts.js';
+import { requireThat, identity } from './contracts.js';
 
 // Round policy (spec AC6, interview D7, D14, D23). One review scope is a slice
 // PR candidate scope, the feature-final review or one planning document. One
@@ -59,6 +59,20 @@ export function scheduledRound(state, scope, revision) {
   const scoped = state.reviewScopes?.[scope];
   if (!scoped) return null;
   return currentRevision(state, scope, revision) ? scoped.round : scoped.round + 1;
+}
+// Count the round before any review of a new revision starts, on every entry
+// path (review.execute, an individual selection-tagged gate.execute, a planning
+// review), so provider failures and individual reviews advance the counter.
+// Idempotent: concurrent peers of one round record it once.
+export async function countReviewRound(core, scope, revision, candidate = null) {
+  while (true) {
+    const { state } = await core.state();
+    if (currentRevision(state, scope, revision)) return state;
+    const after = state.reviewScopes?.[scope]?.round ?? 0;
+    const payload = { roundPolicy: { policy: ROUND_POLICY, scope, revision }, candidate, after };
+    try { return (await core.append(state, 'ROUND_COUNTED', payload, { id: `round_count_${identity({ scope, revision, after }).slice(7, 71)}`, hash: identity(payload) })).state; }
+    catch (error) { if (!/^Concurrent update;/u.test(error.message)) throw error; }
+  }
 }
 // A new revision past round 6 is not reviewed until the human decides (AC6).
 export function assertRoundOpen(state, scope, revision, goal = false) {

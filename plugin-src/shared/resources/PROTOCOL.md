@@ -319,10 +319,17 @@ are not counted. `status.rounds` shows each scope, its round and band, and advic
   evidence. `review.adjudicate` (and autonomous planning judgment) at round 6 or
   later is refused.
 
-Individual selection-tagged `gate.execute` reviews follow the same policy: a
-revision not yet counted is the next round (never legacy), and a new revision
-past round 6 is refused without the human decision. A review run under this
-policy records `roundPolicy` in its input.
+A round is counted (`ROUND_COUNTED`) when the first review of a new revision
+starts, on every entry path: `review.execute`, an individual selection-tagged
+`gate.execute` review, or a planning review. A provider error, timeout or
+malformed output therefore still uses its round. A new revision past round 6 is
+refused without the human decision. A review run under this policy records
+`roundPolicy` in its input.
+
+Every execution input records `reviewContractVersion`. A result retained from an
+earlier version keeps its recorded qualification on resume although the
+evaluator rules changed since (spec AC11); within one version the rules
+fingerprint must match exactly.
 
 Planning reviews and light runs follow the same schedule; when a light run's
 counter reaches 4, `status` advises raising rigor (advice only).

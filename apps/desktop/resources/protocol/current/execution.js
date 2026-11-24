@@ -18,7 +18,7 @@ import { agentDecisions, AGENT_DECISION_RULE } from './goal.js';
 import { newView } from './source-views.js';
 import { localPath } from './store.js';
 import { assertSourceIsolation, checkCandidate, checkSource, contentIdentity, git, assertClean, briefBased } from './evidence.js';
-import { ROUND_POLICY, boundaryScope, scheduledRound, assertRoundOpen, band as roundBand } from './round-policy.js';
+import { ROUND_POLICY, boundaryScope, scheduledRound, assertRoundOpen, countReviewRound, band as roundBand } from './round-policy.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter, promptCharacters, MAX_PROMPT_CHARACTERS_LIMIT } from '../local-agent-adapters.js';
 import { fitHistory, writeHistoryIndex, HISTORY_PRIORITY } from './review-history.js';
 import { findingObligations, reviewScope } from './review-findings.js';
@@ -201,6 +201,14 @@ const evaluatorInstructions = candidate => briefBased(candidate) ? `${instructio
 export const RUBRIC_GATES = Object.freeze(['spec', 'judge', 'reconcile', 'triage']);
 const PLANNING_PATHS = ['requirements/spec.md', 'requirements/design.md', 'planning/plan.md', 'planning/issues.md', 'planning/tracker.md', 'planning/scratchpad.md', 'planning/decisions.md'];
 
+// Version of the evaluator rules recorded in every execution input. A result
+// retained from an earlier version keeps its recorded qualification on resume
+// although the rules changed since (spec AC11); within one version the rules
+// fingerprint must still match exactly.
+export const REVIEW_CONTRACT_VERSION = 'gatereeve-review/2026-11-c1';
+export function retainedContractQualifies(inputs, current) {
+  return inputs.reviewContract === current || (inputs.reviewContractVersion ?? null) !== REVIEW_CONTRACT_VERSION;
+}
 export const reviewContract = (ids, candidate = null) => identity({ capabilityProfile: HIGH_CAPABILITY_PROFILE, providerContract: AGENT_WORKFLOW_PROTOCOL_VERSION, schema, instructions: evaluatorInstructions(candidate), rules: [...ids].sort().map(id => ({ id, rule: gate(id).rule ?? null })) });
 
 async function sourceMetadata(root, candidate) {
@@ -756,7 +764,7 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
     roundPolicy = { policy: ROUND_POLICY, scope, round, band: roundBand(round), regressionPaths };
   }
   const value = { contract: CONTRACT, gates: input.gates, candidate: state.candidate, configuration, consumed, support, mandate, ...agentDecisionInput,
-    ...(roundPolicy ? { roundPolicy } : {}),
+    ...(roundPolicy ? { roundPolicy } : {}), reviewContractVersion: REVIEW_CONTRACT_VERSION,
     reviewRound: reviewBaseline?.round ?? null,
     environment: await executionEnvironment(core.context, candidate, configuration, role === 'runner', runnerEnvironment, { retainDiagnostics: true }),
     pattern: input.gates.includes('pattern') ? await patternInputs(core.store, core.context, candidate, core.runtime.pythonGuardOptions) : null,
@@ -810,6 +818,8 @@ async function executeGatesPrepared(core, input, operation, preparationFinished,
       return { reused:true, results:input.gates.map(id=>reusable.get(id)), currentCandidate:state.candidate };
     }
   }
+  // The review of a new revision counts its round before it starts (AC6).
+  if (roundPolicy) await countReviewRound(core, roundPolicy.scope, contentIdentity(candidate), state.candidate);
   const jobId = identity({ run: state.runId, operation }).slice(7);
   const started = events.find(event => event.type === 'JOB_STARTED' && event.payload.jobId === jobId);
   if (started) {

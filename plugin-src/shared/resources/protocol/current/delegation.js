@@ -11,7 +11,7 @@ import { localPath } from './store.js';
 import { HIGH_CAPABILITY_PROFILE, AGENT_WORKFLOW_PROTOCOL_VERSION, sha256Digest, validateAgentWorkflowStageResult, validateEvaluatorCapability } from '../agent-workflow.js';
 import { createCodexAgentAdapter, createClaudeCodeAgentAdapter } from '../local-agent-adapters.js';
 import { allowedRunOutcome } from './autonomous.js';
-import { ROUND_POLICY, planningScope, roundOf, scheduledBlocking, roundHandBack, refuseLateAdjudication, NARROW_FROM } from './round-policy.js';
+import { ROUND_POLICY, planningScope, roundOf, scheduledBlocking, roundHandBack, refuseLateAdjudication, countReviewRound, NARROW_FROM } from './round-policy.js';
 
 // Planning reviews follow the round schedule (spec AC6): from round 4 only
 // high findings and medium regressions (findings on a document the previous
@@ -21,7 +21,11 @@ async function planningSchedule(core, state, artifact, cited, result) {
   const scope = planningScope(artifact), round = roundOf(state, scope, cited.subject);
   const revisions = state.reviewScopes?.[scope]?.revisions ?? [];
   const reviewAt = row => row ? state.planningReviews.find(item => item.event === row.event) : null;
-  const changedSince = (row, documents, name) => { const before = reviewAt(revisions.find(item => item.round === row.round - 1))?.documents ?? {}; return before[name]?.hash !== documents[name]?.hash; };
+  // A round-1 finding has no previous fix, so it is never a regression.
+  const changedSince = (row, documents, name) => {
+    const previous = reviewAt(revisions.find(item => item.round === row.round - 1));
+    return Boolean(previous) && previous.documents?.[name]?.hash !== documents[name]?.hash;
+  };
   const firstRaised = new Map();
   for (const row of revisions) {
     const review = reviewAt(row);
@@ -252,6 +256,9 @@ export async function reviewPlanning(core, input, operation) {
       policy: { repositoryAccess: 'read-only', networkAccess: 'deny', scratch: 'isolated' },
       repositoryPath: view.root, snapshotDigest: identity(documents), instructions, input: packet, outputSchema,
       timeoutSeconds: configuration.timeoutSeconds ?? 900 };
+    // Count the planning round before the provider runs: an error, timeout or
+    // malformed output still uses the round (spec AC6, failure model).
+    await countReviewRound(core, planningScope(input.artifact), subject);
     const result = await adapter.runStage(request);
     retained = [await core.store.putJson(result.receipt), await core.store.putJson(result.output)];
     validateAgentWorkflowStageResult(result);
@@ -273,7 +280,8 @@ export async function reviewPlanning(core, input, operation) {
       ...(normalized.length ? { normalized } : {}),
       summary: result.output.summary, findings: result.output.findings, ...(packet.mandate ? { mandate: packet.mandate, mandateAssessment: result.output.mandateAssessment } : {}),
       ...(packet.agentDecisions ? { agentDecisions: packet.agentDecisions } : {}), evaluator, receipt: retained[0], output: retained[1] });
-    return core.append(state, 'PLANNING_REVIEWED', { artifact: input.artifact, subject, documents, outcome: result.output.outcome, result: reference, evaluator, roundPolicy: ROUND_POLICY }, operation);
+    // The round was counted at review start, so append on the current journal.
+    return core.append((await core.state()).state, 'PLANNING_REVIEWED', { artifact: input.artifact, subject, documents, outcome: result.output.outcome, result: reference, evaluator, roundPolicy: ROUND_POLICY }, operation);
   } catch (error) { error.artifacts = [...new Set([...(error.artifacts ?? []), ...retained])]; throw error; }
   finally { await view.close(); }
 }
